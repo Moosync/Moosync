@@ -1,0 +1,378 @@
+{
+  "sidebar": {
+    "tabs": {
+      "queue": "कतार",
+      "allSongs": "सभी गानें",
+      "playlists": "गानो की सूची",
+      "albums": "संग्रहिका",
+      "artists": "कलाकार",
+      "genre": "शैलियाँ",
+      "explore": "एक्सप्लोर करें",
+      "paths": "पथ",
+      "themes": "विषय",
+      "extensions": "विस्तार",
+      "system": "प्रणाली",
+      "logs": "लॉग",
+      "keybinds": "कीबाइंड्स"
+    }
+  },
+  "topbar": {
+    "searchPlaceholder": "खोज",
+    "noResultsFound": "कोई परिणाम नहीं मिला"
+  },
+  "pages": {
+    "playlists": "गानों की सूचीयाँ",
+    "albums": "एल्बम",
+    "artists": "कलाकार",
+    "genres": "शैलियाँ",
+    "explore": "एक्सप्लोर करें"
+  },
+  "playlists": {
+    "local": "स्थानीय",
+    "new_playlist": {
+      "create": "बनाएँ",
+      "description_placeholder": "विवरण"
+    },
+    "url": {
+      "input_hint": "यहाँ URL दर्ज करें.. (YouTube या Spotify)"
+    }
+  },
+  "songView": {
+    "details": {
+      "songCount": "{count} गाना | {count} songs गानें"
+    },
+    "songList": {
+      "topbar": {
+        "searchPlaceholder": "खोज"
+      }
+    }
+  },
+  "buttons": {
+    "playSingle": "खेलें{title}",
+    "addToQueue": "कतार में {title} जोड़ें",
+    "addToLibrary": "लाइब्रेर में {title} जोड़ें",
+    "playRandom": "100 यादृच्छिक गाने बजाएँ",
+    "fetchAll": "सभी गाने प्राप्त करें",
+    "close": "Close",
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "loading": "लोड हो रहा है...",
+  "now_playing": "Now playing",
+  "contextMenu": {
+    "sort_by": "Sort by",
+    "sort": {
+      "title": "Title",
+      "album": "Album (Track No.)",
+      "artist": "Artist",
+      "genre": "Genre",
+      "date_added": "तारीख संकलित हुई",
+      "provider": "प्रदाता",
+      "playCount": "Play count"
+    },
+    "playlist": {
+      "new": "New Playlist",
+      "addFromURL": "Import from URL",
+      "remove": "प्‍लेलिस्‍ट से हटाएं",
+      "export": "प्लेलिस्ट निर्यात करें",
+      "add": "प्लेलिस्ट में जोड़ें",
+      "save": "Add To Library"
+    },
+    "song": {
+      "addFromURL": "यूआरएल से जोड़ें",
+      "playNow": "प्ले करें",
+      "playNext": "Play Next",
+      "clearAndPlay": "Clear queue and play",
+      "addToQueue": "सूची में जोड़े",
+      "moveToTop": "शीर्ष पर जाएं",
+      "moveToBottom": "नीचे ले जाएँ",
+      "moveManually": "मैन्युअल रूप से ले जाएँ",
+      "manualIndex": "गाने का नंबर सेट करे",
+      "remove": "लाइब्रेरी से निकालें",
+      "add": "गीत को लाईब्रेरी में जोड़ें",
+      "removeFromPlaylist": "Remove from playlist",
+      "hideFromLibrary": "Hide from library",
+      "showInLibrary": "Show in library",
+      "showHidden": "Show hidden songs",
+      "hideHidden": "Hide hidden songs",
+      "openInBrowser": "Open in browser",
+      "gotoAlbum": "Goto album ({title})",
+      "gotoArtists": "Goto artists"
+    },
+    "artist": {
+      "remove": "Remove artist"
+    },
+    "album": {
+      "remove": "Remove album"
+    },
+    "moreInfo": "अन्य जानकारी",
+    "incorrectPlayback": "Incorrect playback?"
+  },
+  "explore": {
+    "you_listened_to": "You've listened to",
+    "of_music": "of music",
+    "played_for": "Played for",
+    "hot_from": "Hot from"
+  },
+  "providers": {
+    "youtube": "यूट्यूब",
+    "spotify": "इस्पोटिफाई",
+    "invidious": "अपमानजनक",
+    "lastfm": "आखरीएफएम"
+  },
+  "accounts": {
+    "connect": "Connect",
+    "sign_out": "Sign out"
+  },
+  "settings": {
+    "paths": {
+      "songDirectories": "Song Directories",
+      "songDirectories_tooltip": "Directories where all your local music is stored",
+      "songDirectories_exclude": "Blacklisted Directories",
+      "songDirectories_exclude_tooltip": "Songs in these directories would not be scanned",
+      "addFolder": "Add Folder...",
+      "remove": "Remove",
+      "artworkPath": "Downloaded Artwork Path",
+      "artworkPath_tooltip": "Directory where downloaded artworks are stored",
+      "thumbnailPath": "Downloaded Thumbnail Path",
+      "thumbnailPath_tooltip": "Directory where generated thumbnails are stored",
+      "splitter": "Artist name split pattern",
+      "splitter_tooltip": "Regex to split artist names. Leave empty to disable splitting.",
+      "scan_interval": "Scan interval",
+      "scan_interval_tooltip": "Interval in minutes to trigger a scan task. Set to -1 to disable automatic scanning",
+      "scan_threads": "Scan CPU threads",
+      "scan_threads_tooltip": "Number of threads to use when scanning for local music"
+    },
+    "themes": {
+      "songView": "Songs View",
+      "songView_tooltip": "Customize song list appearance",
+      "songView_classic": "Classic",
+      "songView_compact": "Compact",
+      "themes": "Themes",
+      "themes_tooltip": "Customize colors",
+      "themes_default": "Default",
+      "createTheme": "New theme",
+      "importTheme": "Import theme",
+      "newTheme": {
+        "name": "Theme Name",
+        "author": "Author",
+        "colors": "Colors",
+        "colors_tooltip": "Change the colors to customise UI",
+        "css": "Custom CSS",
+        "watch_css": "Watch CSS for file changes"
+      },
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "tertiary": "Tertiary",
+      "textPrimary": "Text Primary",
+      "textSecondary": "Text Secondary",
+      "textInverse": "Text Inverse",
+      "accent": "Accent",
+      "divider": "Divider",
+      "import_button": "Import"
+    },
+    "extensions": {
+      "extensions": "Extensions",
+      "extensions_tooltip": "List of all installed extensions",
+      "discover": "Discover",
+      "install": "Install from file",
+      "remove": "Remove"
+    },
+    "system": {
+      "systemSettings": {
+        "title": "System Settings",
+        "systemStartup": "Start app on system startup",
+        "minimizeTray": "Minimize to tray on close",
+        "hardwareAcceleration": "Use GPU hardware acceleration",
+        "watchFileChanges": "Watch music directories for changes",
+        "enableJukeboxMode": "Enable toggle for Jukebox mode",
+        "lastLoadedPlaybackState": "Load last playback state on startup"
+      },
+      "systemSettings_tooltip": "Settings which are related to your system",
+      "audioSettings": {
+        "title": "Audio Settings",
+        "gaplessPlayback": "Use gapless playback for wherever possible",
+        "sponsorBlock": "Use SponsorBlock to automatically skip to highlighted part of Youtube song"
+      },
+      "audioSettings_tooltip": "Settings which are related audio playback",
+      "gapless_skip": "Skip song before end (seconds)",
+      "invidiousUrlUnsupported": "This url does not support Invidious API",
+      "invidious_tooltip": "Invidious instance to use instead of youtube",
+      "restartApp": "Restart Moosync",
+      "zoom": "Zoom Factor (Beta)",
+      "zoom_tooltip": "Zoom of windows in percentage. This may break the UI.",
+      "spotify": {
+        "client_id": "Spotify Client ID",
+        "client_id_tooltip": "Spotify client ID required to login to Spotify. Click to know more",
+        "client_secret": "Spotify Client Secret",
+        "client_secret_tooltip": "Spotify client Secret required to login to Spotify. Click to know more",
+        "autoFetchButton": "Get Spotify details automatically",
+        "autoFetchPreTitle": "Get",
+        "autoFetchTitle": "ClientID and Secret",
+        "autoFetchDisclaimer": "A window will now open where you will be asked to login to your Spotify account. After logging in please do not click anywhere as the whole process will be automated",
+        "openWindow": "Open Window",
+        "title": "Spotify Settings",
+        "tooltip": "Options to change the behavior of spotify playback",
+        "librespotEnable": "Use librespot (Spotify Premium required)",
+        "username": "Spotify username",
+        "username_tooltip": "Your spotify username. Usually your email",
+        "password": "Spotify password",
+        "password_tooltip": "Your spotify password. You may need to set one in settings on Spotify",
+        "librespot": {
+          "title": "Librespot options",
+          "tooltip": "Options to change the behavior of librespot",
+          "useSpotifyCanvas": "Show spotify canvas video in background",
+          "useLibrespotPlayback": "Use librespot for song playback"
+        }
+      },
+      "youtube": {
+        "client_id": "Youtube Client ID",
+        "client_secret": "Youtube Client Secret",
+        "client_id_tooltip": "Youtube client ID required to login to Youtube. Click to know more",
+        "client_secret_tooltip": "Youtube client Secret required to login to Youtube. Click to know more"
+      },
+      "lastfm": {
+        "client_id": "LastFM Api Key",
+        "client_secret": "LastFM Client Secret"
+      },
+      "youtubeAlternative": {
+        "title": "Youtube Alternative services",
+        "tooltip": "Get data from Youtube through a 3rd party provider",
+        "useYoutube": "Use default Youtube services",
+        "useInvidious": "Use Invidious services",
+        "usePiped": "Use Piped services",
+        "piped": {
+          "url": "Piped Instance",
+          "url_tooltip": "URL of Piped instance to use",
+          "username": "Username",
+          "username_tooltip": "Your piped username at the selected instance",
+          "password": "Password",
+          "password_tooltip": "Your piped password at the selected instance"
+        },
+        "invidious": {
+          "url": "Invidious Instance",
+          "url_tooltip": "URL of Invidious instance to use",
+          "options": "Advanced Invidious options",
+          "options_tooltip": "Options to fine control Invidious playback",
+          "always_proxy": "Always play audio from Invidious proxy instead of Google video"
+        },
+        "youtube": {
+          "options": "Advanced Youtube options",
+          "options_tooltip": "Options to fine control Youtube playback",
+          "useEmbeds": "Use Youtube embeds for playing audio from Youtube"
+        }
+      },
+      "language": "Language",
+      "language_tooltip": "Change the language of the interface",
+      "clearPreferences": "Reset to default",
+      "clear_preferences_title": "Reset to default?",
+      "clear_preferences": "Are you sure you want to reset everything to default? The app will restart after you reset.",
+      "clear_preferences_button": "Confirm",
+      "jukebox": {
+        "pin": "Jukebox mode pin",
+        "pin_tooltip": "This pin will be required to exit Jukebox Mode. Should be numeric.",
+        "optionalFields": "Button visibility",
+        "optionalFields_tooltip": "Toggle optional buttons to show in Jukebox mode",
+        "optional_skip": "Track Skip buttons",
+        "optional_shuffle": "Shuffle button",
+        "optional_repeat": "Repeat button"
+      },
+      "lyrics": {
+        "title": "Lyrics providers",
+        "tooltip": "Select which lyrics providers to use to search for lyrics",
+        "az_lyrics": "Use AZLyrics",
+        "google_lyrics": "Use Google search lyrics",
+        "spotify_lyrics": "Use Spotify for lyrics (Requires librespot)",
+        "genius_lyrics": "Use Genius"
+      },
+      "queueSettings": {
+        "title": "Queue Settings",
+        "tooltip": "Options to tweak the behavior of song queue",
+        "clearQueue": "Clear queue before adding playing a playlist"
+      },
+      "scrobble": {
+        "provider_toggle": {
+          "title": "Scrobble whitelist",
+          "tooltip": "Enable providers whose songs you want to be scrobble'd"
+        }
+      },
+      "volumePersistMode": {
+        "title": "Volume behavior",
+        "tooltip": "Change the way volume slider behaves",
+        "noPersist": "Normal behavior",
+        "persistSeparateVolumes": "Remember separate volume for each provider",
+        "persistClampVolume": "Manually adjust volume range for each provider"
+      }
+    },
+    "logs": {
+      "logSettings": "Log Settings",
+      "level": "Level",
+      "process": "Process",
+      "filterMessage": "Filter Message",
+      "levels": {
+        "all": "All",
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "debug_logging": "Enable debug logging",
+      "table": {
+        "time": "Time",
+        "level": "Level",
+        "process": "Process",
+        "message": "Message"
+      }
+    }
+  },
+  "hotkeys": {
+    "play": "Play Song",
+    "pause": "Pause song",
+    "play_toggle": "Toggle play",
+    "mute_active": "Mute",
+    "mute_inactive": "Unmute",
+    "mute_toggle": " Toggle mute",
+    "volume_inc": "Increase volume",
+    "volume_dec": "Decrease volume",
+    "repeat_active": "Repeat song",
+    "repeat_inactive": "Disable repeat",
+    "repeat_toggle": "Toggle repeat",
+    "queue_open": "Open song queue",
+    "queue_close": "Close song queue",
+    "queue_toggle": "Toggle song queue",
+    "reload_page": "Reload page",
+    "devtools": "Toggle dev-tools",
+    "help": "Open help",
+    "fullscreen": "Fullscreen",
+    "next_song": "Skip song",
+    "prev_song": "Prev song",
+    "seek_forward": "Seek 5s forward",
+    "seek_backwards": "Seek 5s backwards",
+    "seek_0": "Seek to 0%",
+    "seek_1": "Seek to 10%",
+    "seek_2": "Seek to 20%",
+    "seek_3": "Seek to 30%",
+    "seek_4": "Seek to 40%",
+    "seek_5": "Seek to 50%",
+    "seek_6": "Seek to 60%",
+    "seek_7": "Seek to 70%",
+    "seek_8": "Seek to 80%",
+    "seek_9": "Seek to 90%"
+  },
+  "tray": {
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "prev": "Prev",
+    "repeat": "Repeat",
+    "no_repeat": "No repeat",
+    "shuffle": "Shuffle",
+    "show_app": "Show app",
+    "quit": "Quit"
+  },
+  "toasts": {
+    "queued": "Queued {count} song | Queued {count} songs",
+    "shuffled": "Shuffled"
+  }
+}

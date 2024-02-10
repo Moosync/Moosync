@@ -1,0 +1,378 @@
+{
+  "sidebar": {
+    "tabs": {
+      "queue": "Kø",
+      "allSongs": "Alle Sanger",
+      "playlists": "Spillelister",
+      "albums": "Album",
+      "artists": "Artister",
+      "genre": "Genres",
+      "explore": "Utforsk",
+      "paths": "Paths",
+      "themes": "Tema",
+      "extensions": "Utvidelser",
+      "system": "System",
+      "logs": "Logger",
+      "keybinds": "Hurtigtaster"
+    }
+  },
+  "topbar": {
+    "searchPlaceholder": "Søk...",
+    "noResultsFound": "Ingen resultater funnet"
+  },
+  "pages": {
+    "playlists": "Spillelister",
+    "albums": "Album",
+    "artists": "Artister",
+    "genres": "Genres",
+    "explore": "Utforsk"
+  },
+  "playlists": {
+    "local": "Local",
+    "new_playlist": {
+      "create": "Create",
+      "description_placeholder": "Description..."
+    },
+    "url": {
+      "input_hint": "Enter URL Here.. (Youtube or Spotify)"
+    }
+  },
+  "songView": {
+    "details": {
+      "songCount": "{count} sang (G3/4: {count} sanger"
+    },
+    "songList": {
+      "topbar": {
+        "searchPlaceholder": "Søk..."
+      }
+    }
+  },
+  "buttons": {
+    "playSingle": "Spill {title}",
+    "addToQueue": "Legg til {title} til køen",
+    "addToLibrary": "Legg til {title} i biblioteket",
+    "playRandom": "Spill 100 tilfeldige sanger",
+    "fetchAll": "Fetch all songs",
+    "close": "Close",
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "loading": "Laster...",
+  "now_playing": "Now playing",
+  "contextMenu": {
+    "sort_by": "Sort by",
+    "sort": {
+      "title": "Tittel",
+      "album": "album",
+      "artist": "Kunstner",
+      "genre": "Sjanger",
+      "date_added": "Dato lagt til",
+      "provider": "Leverandør",
+      "playCount": "Spill teller"
+    },
+    "playlist": {
+      "new": "Ny spilleliste",
+      "addFromURL": "Importer fra URL",
+      "remove": "Fjern spilleliste",
+      "export": "Eksporter spilleliste",
+      "add": "Legg til i Spilleliste",
+      "save": "Legg til i bibliotek"
+    },
+    "song": {
+      "addFromURL": "Legg til fra URL",
+      "playNow": "Spill nå",
+      "playNext": "Spill neste",
+      "clearAndPlay": "Slett kø og spill",
+      "addToQueue": "Legg til i køen",
+      "moveToTop": "Flytt til toppen",
+      "moveToBottom": "Flytt til bunnen",
+      "moveManually": "Flytt manuelt",
+      "manualIndex": "Angi indeks for sang",
+      "remove": "Fjern fra bibliotek",
+      "add": "Legg til sang i biblioteket εAdd Songs i Library",
+      "removeFromPlaylist": "Fjern fra spillelisten",
+      "hideFromLibrary": "Skjul fra bibliotek",
+      "showInLibrary": "Vis i bibliotek",
+      "showHidden": "Vis skjulte sanger",
+      "hideHidden": "Skjul skjulte sanger",
+      "openInBrowser": "Åpne i nettleser",
+      "gotoAlbum": "Goto album ({title})",
+      "gotoArtists": "Goto artists"
+    },
+    "artist": {
+      "remove": "Remove artist"
+    },
+    "album": {
+      "remove": "Remove album"
+    },
+    "moreInfo": "Mer informasjon",
+    "incorrectPlayback": "Feil avspilling?"
+  },
+  "explore": {
+    "you_listened_to": "You've listened to",
+    "of_music": "of music",
+    "played_for": "Played for",
+    "hot_from": "Hot from"
+  },
+  "providers": {
+    "youtube": "YouTube",
+    "spotify": "Spotify",
+    "invidious": "Invidiøs",
+    "lastfm": "LastFM"
+  },
+  "accounts": {
+    "connect": "Connect",
+    "sign_out": "Sign out"
+  },
+  "settings": {
+    "paths": {
+      "songDirectories": "Sang Mapper",
+      "songDirectories_tooltip": "Mapper hvor all lokal musikk blir lagret",
+      "songDirectories_exclude": "Svartelistede mapper",
+      "songDirectories_exclude_tooltip": "Sanger i katalogene ville ikke bli skannet",
+      "addFolder": "Legg til mappe...",
+      "remove": "Fjern",
+      "artworkPath": "Nedlastet Artwork Path",
+      "artworkPath_tooltip": "Mappe hvor nedlastede kunstverk lagres",
+      "thumbnailPath": "Sti for miniatyrbilder",
+      "thumbnailPath_tooltip": "Mappe hvor genererte miniatyrbilder lagres",
+      "splitter": "Artistens navn splittringsmønster",
+      "splitter_tooltip": "Regex for å splitte artistnavn. La stå tomt for å deaktivere splitting.",
+      "scan_interval": "Skann intervall",
+      "scan_interval_tooltip": "Interval in minutes to trigger a scan task. Set to -1 to disable automatic scanning",
+      "scan_threads": "Scan CPU threads",
+      "scan_threads_tooltip": "Number of threads to use when scanning for local music"
+    },
+    "themes": {
+      "songView": "Visning av sanger",
+      "songView_tooltip": "Tilpass utseendet på sanglisten",
+      "songView_classic": "Klassisk",
+      "songView_compact": "Kompakt",
+      "themes": "Temaer",
+      "themes_tooltip": "Tilpass farger",
+      "themes_default": "Standard",
+      "createTheme": "Ny tema",
+      "importTheme": "Importer tema",
+      "newTheme": {
+        "name": "Tema Navn",
+        "author": "Forfatter",
+        "colors": "Farger",
+        "colors_tooltip": "Endre farger for å tilpasse brukergrensesnittet",
+        "css": "Custom CSS",
+        "watch_css": "Watch CSS for file changes"
+      },
+      "primary": "Primær",
+      "secondary": "Sekundær",
+      "tertiary": "Tertiær",
+      "textPrimary": "Tekst primær",
+      "textSecondary": "Sekundær tekst",
+      "textInverse": "Tekst motsatt",
+      "accent": "Utheving",
+      "divider": "Skillelinje",
+      "import_button": "Importer"
+    },
+    "extensions": {
+      "extensions": "Utvidelser",
+      "extensions_tooltip": "Liste over alle installerte utvidelser",
+      "discover": "Oppdag",
+      "install": "Installer fra fil",
+      "remove": "Fjern"
+    },
+    "system": {
+      "systemSettings": {
+        "title": "System innstillinger",
+        "systemStartup": "Start app ved systemoppstart",
+        "minimizeTray": "Minimer til verktøykassen ved lukking",
+        "hardwareAcceleration": "Bruk GPU hardwareakselerasjon",
+        "watchFileChanges": "Se musikkmapper for endringer",
+        "enableJukeboxMode": "Aktiver av/på hurtiginnfelte med Jukebox",
+        "lastLoadedPlaybackState": "Last inn status for siste avspilling ved oppstart"
+      },
+      "systemSettings_tooltip": "Innstillinger som er relatert til systemet ditt",
+      "audioSettings": {
+        "title": "Lydinnstillinger for lyd",
+        "gaplessPlayback": "Bruk uten opphold der det er mulig",
+        "sponsorBlock": "Bruk SponsorBlock til å automatisk hoppe over uthevede deler av YouTube-sangen"
+      },
+      "audioSettings_tooltip": "Innstillinger som er relatert lydavspilling",
+      "gapless_skip": "Skip song before end (seconds)",
+      "invidiousUrlUnsupported": "Denne nettadressen støtter ikke Invidious API",
+      "invidious_tooltip": "Invidiøs forekomst å bruke istedenfor youtube",
+      "restartApp": "Restart Moosync",
+      "zoom": "Zoom faktor (Beta)",
+      "zoom_tooltip": "Zoom av vinduer i prosentvisning. Dette kan bryte brukergrensesnittet.",
+      "spotify": {
+        "client_id": "Spotify klient-ID",
+        "client_id_tooltip": "Spotiftify klient-ID kreves for å logge inn til Spotify. Klikk for å vite mer",
+        "client_secret": "Spotify klient hemmelighet",
+        "client_secret_tooltip": "Spotify-klient Secret kreves for å logge inn til Spotify. Klikk for å vite mer",
+        "autoFetchButton": "Få Spotify detaljer automatisk",
+        "autoFetchPreTitle": "Hent",
+        "autoFetchTitle": "KlientID og Hemmelig",
+        "autoFetchDisclaimer": "Et vindu vil nå åpne hvor du vil bli bedt om å logge inn på din Spotify-konto. Etter innlogging vennligst ikke klikk hvor som helst som hele prosessen vil bli automatisk",
+        "openWindow": "Åpne vindu",
+        "title": "Spotify Innstillinger",
+        "tooltip": "Alternativer for å endre oppførselen til spotify avspilling",
+        "librespotEnable": "Bruk librespot (Spotify Premium kreves)",
+        "username": "Spotify brukernavn",
+        "username_tooltip": "Ditt spotify brukernavn. Vanligvis din e-post",
+        "password": "Spotify passord",
+        "password_tooltip": "Ditt spotify passord. Du må kanskje angi en i innstillinger på Spotify",
+        "librespot": {
+          "title": "Librespot alternativer",
+          "tooltip": "Alternativer for å endre librespot oppførsel",
+          "useSpotifyCanvas": "Vis urfolksvideo i bakgrunnen",
+          "useLibrespotPlayback": "Bruk librespot for sangavspilling"
+        }
+      },
+      "youtube": {
+        "client_id": "Youtube klient-ID",
+        "client_secret": "YouTube klient hemmelighet",
+        "client_id_tooltip": "Youtube klient-ID kreves for å logge inn til Youtube. Klikk for å vite mer",
+        "client_secret_tooltip": "Youtube klient Secret kreves for å logge inn til Youtube. Klikk for å vite mer"
+      },
+      "lastfm": {
+        "client_id": "LastFM Api Key",
+        "client_secret": "LastFM Client Secret"
+      },
+      "youtubeAlternative": {
+        "title": "Youtube alternative tjenester",
+        "tooltip": "Få data fra Youtube gjennom en tredjepartsleverandør",
+        "useYoutube": "Bruk standard YouTube-tjenester",
+        "useInvidious": "Bruk Invidiøse tjenester",
+        "usePiped": "Bruk Piped services",
+        "piped": {
+          "url": "Rørt forekomst",
+          "url_tooltip": "URL til Rørinstans som skal brukes",
+          "username": "Brukernavn",
+          "username_tooltip": "Rørt brukernavn i valgt forekomst",
+          "password": "Passord",
+          "password_tooltip": "Ditt piped passord i den valgte instansen"
+        },
+        "invidious": {
+          "url": "Invidiøs forekomst",
+          "url_tooltip": "URL-adressen til innebygd forekomst som skal brukes",
+          "options": "Avanserte Invidiøse alternativer",
+          "options_tooltip": "Alternativ for finstyring invidiøs avspilling",
+          "always_proxy": "Spill alltid lyd fra Invidiøs proxy i stedet for Google video"
+        },
+        "youtube": {
+          "options": "Avanserte innstillinger for YouTube",
+          "options_tooltip": "Alternativer for fin kontroll YouTube-avspilling",
+          "useEmbeds": "Bruk Youtube innebygde lyd fra YouTube"
+        }
+      },
+      "language": "Språk",
+      "language_tooltip": "Endre språket til grensesnittet",
+      "clearPreferences": "Tilbakestill til standard",
+      "clear_preferences_title": "Sett til standard?",
+      "clear_preferences": "Er du sikker på at du vil tilbakestille alt til standard? Appen vil starte på nytt etter at du har tilbakestilt.",
+      "clear_preferences_button": "Bekreft",
+      "jukebox": {
+        "pin": "Jukebox modus pinne",
+        "pin_tooltip": "Det kreves spesialisering innen Tis pin for å avslutte platespiller. Bør være et tall.",
+        "optionalFields": "Knapp synlighet",
+        "optionalFields_tooltip": "Aktiver valgfrie knapper for å vise i Jukebox modus",
+        "optional_skip": "Track Skip buttons",
+        "optional_shuffle": "Shuffle button",
+        "optional_repeat": "Gjenta knapp"
+      },
+      "lyrics": {
+        "title": "Sangtekst leverandører",
+        "tooltip": "Velg hvilke tekstleverandører som skal brukes for å søke etter tekster",
+        "az_lyrics": "Bruk AZLyrics",
+        "google_lyrics": "Bruk Googles søketekster",
+        "spotify_lyrics": "Bruk Spotify for sangtekster (krever librespot)",
+        "genius_lyrics": "Bruk Genius"
+      },
+      "queueSettings": {
+        "title": "Kø innstillinger",
+        "tooltip": "Alternativer for å justere oppførselen til sangen",
+        "clearQueue": "Tøm køen før du legger til spilleliste"
+      },
+      "scrobble": {
+        "provider_toggle": {
+          "title": "Scrobble whitelist",
+          "tooltip": "Aktiver leverandører med sanger du vil være scrobble'd"
+        }
+      },
+      "volumePersistMode": {
+        "title": "Volum oppførsel",
+        "tooltip": "Endre måten volum skyveren oppfører seg på",
+        "noPersist": "Normal oppførsel",
+        "persistSeparateVolumes": "Husk volum separat for hver tjeneste",
+        "persistClampVolume": "Manuelt juster maks volum for hver tjeneste"
+      }
+    },
+    "logs": {
+      "logSettings": "Logg innstillinger",
+      "level": "Nivå",
+      "process": "Prosess",
+      "filterMessage": "Filtrer melding",
+      "levels": {
+        "all": "All",
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "debug_logging": "Enable debug logging",
+      "table": {
+        "time": "Time",
+        "level": "Level",
+        "process": "Process",
+        "message": "Message"
+      }
+    }
+  },
+  "hotkeys": {
+    "play": "Play Song",
+    "pause": "Pause song",
+    "play_toggle": "Toggle play",
+    "mute_active": "Mute",
+    "mute_inactive": "Unmute",
+    "mute_toggle": " Toggle mute",
+    "volume_inc": "Increase volume",
+    "volume_dec": "Decrease volume",
+    "repeat_active": "Repeat song",
+    "repeat_inactive": "Disable repeat",
+    "repeat_toggle": "Toggle repeat",
+    "queue_open": "Open song queue",
+    "queue_close": "Close song queue",
+    "queue_toggle": "Toggle song queue",
+    "reload_page": "Reload page",
+    "devtools": "Toggle dev-tools",
+    "help": "Open help",
+    "fullscreen": "Fullscreen",
+    "next_song": "Skip song",
+    "prev_song": "Prev song",
+    "seek_forward": "Seek 5s forward",
+    "seek_backwards": "Seek 5s backwards",
+    "seek_0": "Seek to 0%",
+    "seek_1": "Seek to 10%",
+    "seek_2": "Seek to 20%",
+    "seek_3": "Seek to 30%",
+    "seek_4": "Seek to 40%",
+    "seek_5": "Seek to 50%",
+    "seek_6": "Seek to 60%",
+    "seek_7": "Seek to 70%",
+    "seek_8": "Seek to 80%",
+    "seek_9": "Seek to 90%"
+  },
+  "tray": {
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "prev": "Prev",
+    "repeat": "Repeat",
+    "no_repeat": "No repeat",
+    "shuffle": "Shuffle",
+    "show_app": "Show app",
+    "quit": "Quit"
+  },
+  "toasts": {
+    "queued": "Queued {count} song | Queued {count} songs",
+    "shuffled": "Shuffled"
+  }
+}

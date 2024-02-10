@@ -1,0 +1,378 @@
+{
+  "sidebar": {
+    "tabs": {
+      "queue": "Coda",
+      "allSongs": "Tutti i brani",
+      "playlists": "Playlist",
+      "albums": "Album",
+      "artists": "Artisti",
+      "genre": "Generi",
+      "explore": "Esplora",
+      "paths": "Paths",
+      "themes": "Themes",
+      "extensions": "Extensions",
+      "system": "System",
+      "logs": "Logs",
+      "keybinds": "Keybinds"
+    }
+  },
+  "topbar": {
+    "searchPlaceholder": "Cerca...",
+    "noResultsFound": "Nessun risultato"
+  },
+  "pages": {
+    "playlists": "Playlist",
+    "albums": "Album",
+    "artists": "Artisti",
+    "genres": "Generi",
+    "explore": "Esplora"
+  },
+  "playlists": {
+    "local": "Local",
+    "new_playlist": {
+      "create": "Create",
+      "description_placeholder": "Description..."
+    },
+    "url": {
+      "input_hint": "Enter URL Here.. (Youtube or Spotify)"
+    }
+  },
+  "songView": {
+    "details": {
+      "songCount": "{count} Brano | {count} brani"
+    },
+    "songList": {
+      "topbar": {
+        "searchPlaceholder": "Cerca..."
+      }
+    }
+  },
+  "buttons": {
+    "playSingle": "Riproduci {title}",
+    "addToQueue": "Aggiungi {title} alla coda",
+    "addToLibrary": "Aggiungi {title} alla libreria",
+    "playRandom": "Riproduce 100 brani casuali",
+    "fetchAll": "Fetch all songs",
+    "close": "Close",
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "loading": "Caricamento...",
+  "now_playing": "Now playing",
+  "contextMenu": {
+    "sort_by": "Sort by",
+    "sort": {
+      "title": "Titolo",
+      "album": "Album (Track No.)",
+      "artist": "Artista",
+      "genre": "Genere",
+      "date_added": "Data di aggiunta",
+      "provider": "Origine",
+      "playCount": "Numero di riproduzioni"
+    },
+    "playlist": {
+      "new": "Nuova Scaletta",
+      "addFromURL": "Importa da URL",
+      "remove": "Elimina playlist",
+      "export": "Esporta playlist",
+      "add": "Aggiungi alla playlist",
+      "save": "Aggiungi Alla Libreria"
+    },
+    "song": {
+      "addFromURL": "Aggiungi un brano da un URL",
+      "playNow": "Riproduci",
+      "playNext": "Riproduci Successivo",
+      "clearAndPlay": "Cancella coda e riproduci",
+      "addToQueue": "Aggiungi alla coda",
+      "moveToTop": "Sposta in cima",
+      "moveToBottom": "Sposta in fondo",
+      "moveManually": "Sposta manualmente",
+      "manualIndex": "Imposta la posizione del brano",
+      "remove": "Rimuovi dalla libreria",
+      "add": "Aggiungi il brano alla libreria | Aggiungi i brani alla libreria",
+      "removeFromPlaylist": "Rimuovi dalla playlist",
+      "hideFromLibrary": "Nascondi dalla libreria",
+      "showInLibrary": "Mostra nella libreria",
+      "showHidden": "Mostra brani nascosti",
+      "hideHidden": "Nascondi brani nascosti",
+      "openInBrowser": "Open in browser",
+      "gotoAlbum": "Goto album ({title})",
+      "gotoArtists": "Goto artists"
+    },
+    "artist": {
+      "remove": "Remove artist"
+    },
+    "album": {
+      "remove": "Remove album"
+    },
+    "moreInfo": "Più informazioni",
+    "incorrectPlayback": "Incorrect playback?"
+  },
+  "explore": {
+    "you_listened_to": "You've listened to",
+    "of_music": "of music",
+    "played_for": "Played for",
+    "hot_from": "Hot from"
+  },
+  "providers": {
+    "youtube": "YouTube",
+    "spotify": "Spotify",
+    "invidious": "Invidious",
+    "lastfm": "LastFM"
+  },
+  "accounts": {
+    "connect": "Connect",
+    "sign_out": "Sign out"
+  },
+  "settings": {
+    "paths": {
+      "songDirectories": "Posizione dei brani",
+      "songDirectories_tooltip": "Posizione dei tuoi brani locali",
+      "songDirectories_exclude": "Directory Blacklist",
+      "songDirectories_exclude_tooltip": "Le canzoni in queste directory non verrebbero scansionate",
+      "addFolder": "Aggiungi cartella...",
+      "remove": "Rimuovi",
+      "artworkPath": "Posizione degli Artwork scaricati",
+      "artworkPath_tooltip": "Posizione di tutti gli Artwork scaricati",
+      "thumbnailPath": "Percorso delle copertine scaricate",
+      "thumbnailPath_tooltip": "Percorso dove salvare le copertine generate",
+      "splitter": "Modello di divisione nome artista",
+      "splitter_tooltip": "Regex per dividere i nomi dell'artista. Lasciare vuoto per disabilitare la divisione.",
+      "scan_interval": "Scan interval",
+      "scan_interval_tooltip": "Interval in minutes to trigger a scan task. Set to -1 to disable automatic scanning",
+      "scan_threads": "Scan CPU threads",
+      "scan_threads_tooltip": "Number of threads to use when scanning for local music"
+    },
+    "themes": {
+      "songView": "Vista brani",
+      "songView_tooltip": "Personalizzazione dell'aspetto dell'elenco dei brani",
+      "songView_classic": "Classico",
+      "songView_compact": "Compatto",
+      "themes": "Temi",
+      "themes_tooltip": "Personalizza i colori",
+      "themes_default": "Default",
+      "createTheme": "Nuovo tema",
+      "importTheme": "Importa tema",
+      "newTheme": {
+        "name": "Nome",
+        "author": "Autore",
+        "colors": "Colori",
+        "colors_tooltip": "Cambia i colori per personalizzare l'interfaccia",
+        "css": "Custom CSS",
+        "watch_css": "Watch CSS for file changes"
+      },
+      "primary": "Primario",
+      "secondary": "Secondario",
+      "tertiary": "Terziario",
+      "textPrimary": "Primario del testo",
+      "textSecondary": "Secondario del testo",
+      "textInverse": "Inverso del testo",
+      "accent": "Tonalità",
+      "divider": "Separatori",
+      "import_button": "Importa"
+    },
+    "extensions": {
+      "extensions": "Estensioni",
+      "extensions_tooltip": "Lista delle estensioni installate",
+      "discover": "Scopri",
+      "install": "Installa da file",
+      "remove": "Rimuovi"
+    },
+    "system": {
+      "systemSettings": {
+        "title": "Impostazioni di sistema",
+        "systemStartup": "Avvia all'avvio di sistema",
+        "minimizeTray": "Riduci a icona invece di chiudere",
+        "hardwareAcceleration": "Usa l'accelerazione hardware",
+        "watchFileChanges": "Controlla i cambiamenti delle canzoni locali",
+        "enableJukeboxMode": "Attiva la modalità Jukebox",
+        "lastLoadedPlaybackState": "Load last playback state on startup"
+      },
+      "systemSettings_tooltip": "Impostazioni di sistema",
+      "audioSettings": {
+        "title": "Impostazioni Audio",
+        "gaplessPlayback": "Usa la riproduzione senza interruzioni dove possibile",
+        "sponsorBlock": "Usa SponsorBlock per saltare automaticamente alla parte in evidenza del brano Youtube"
+      },
+      "audioSettings_tooltip": "Impostazioni relative alla riproduzione audio",
+      "gapless_skip": "Skip song before end (seconds)",
+      "invidiousUrlUnsupported": "Questo URL non supporta l'API di Invidious",
+      "invidious_tooltip": "Istanza Invidious da usare invece di YouTube",
+      "restartApp": "Riavvia Moosync",
+      "zoom": "Zoom (Beta)",
+      "zoom_tooltip": "Zoom delle finestre in percentuale. Questo potrebbe compromettere l'interfaccia.",
+      "spotify": {
+        "client_id": "Client ID di Spotify",
+        "client_id_tooltip": "Il Client ID di Spotify è richiesto per accedere. Clicca per saperne di più",
+        "client_secret": "Client Secret di Spotify",
+        "client_secret_tooltip": "Il Client Secret di Spotify è richiesto per accedere. Clicca per saperne di più",
+        "autoFetchButton": "Ottieni automaticamente i dettagli di Spotify",
+        "autoFetchPreTitle": "Ottieni",
+        "autoFetchTitle": "ClientID e Secret",
+        "autoFetchDisclaimer": "Si aprirà una finestra in cui ti verrà chiesto di accedere al tuo account Spotify. Dopo aver effettuato l'accesso, non cliccare da nessuna parte perché l'intero processo sarà automatizzato",
+        "openWindow": "Apri finestra",
+        "title": "Impostazioni Spotify",
+        "tooltip": "Opzioni per modificare il comportamento della riproduzione di spotify",
+        "librespotEnable": "Usa librespot (Spotify Premium richiesto)",
+        "username": "Nome utente Spotify",
+        "username_tooltip": "Il tuo nome utente spotify. Solitamente la tua email",
+        "password": "Password di Spotify",
+        "password_tooltip": "La tua password per spotify. Potrebbe essere necessario impostarne una nelle impostazioni su Spotify",
+        "librespot": {
+          "title": "Opzioni di Librespot",
+          "tooltip": "Opzioni per modificare il comportamento di librespot",
+          "useSpotifyCanvas": "Mostra il video per spotify su tela in background",
+          "useLibrespotPlayback": "Usa librespot per la riproduzione del brano"
+        }
+      },
+      "youtube": {
+        "client_id": "Client ID di YouTube",
+        "client_secret": "Client Secret di YouTube",
+        "client_id_tooltip": "ID client Youtube richiesto per accedere a Youtube. Clicca per saperne di più",
+        "client_secret_tooltip": "Client Youtube Secret richiesto per accedere a Youtube. Clicca per saperne di più"
+      },
+      "lastfm": {
+        "client_id": "Chiave API di LastFM",
+        "client_secret": "Client Secret di LastFM"
+      },
+      "youtubeAlternative": {
+        "title": "Youtube Servizi alternativi",
+        "tooltip": "Ottieni dati da Youtube attraverso un provider di terze parti",
+        "useYoutube": "Usa i servizi Youtube predefiniti",
+        "useInvidious": "Utilizza servizi invidiosi",
+        "usePiped": "Usa servizi Piped",
+        "piped": {
+          "url": "Istanza Pipata",
+          "url_tooltip": "URL dell'istanza Piped da usare",
+          "username": "Username",
+          "username_tooltip": "Il tuo nome utente piped nell'istanza selezionata",
+          "password": "Password",
+          "password_tooltip": "La tua password piped all'istanza selezionata"
+        },
+        "invidious": {
+          "url": "Istanze Invidious",
+          "url_tooltip": "URL dell'istanza Invidious da usare",
+          "options": "Opzioni avanzate invidiose",
+          "options_tooltip": "Opzioni per controllare la riproduzione invidiosa",
+          "always_proxy": "Riproduci sempre l'audio dal proxy Invidious invece del video di Google"
+        },
+        "youtube": {
+          "options": "Opzioni avanzate di Youtube",
+          "options_tooltip": "Opzioni per controllare la riproduzione di Youtube",
+          "useEmbeds": "Usa gli embed di YouTube per riprodurre l'audio"
+        }
+      },
+      "language": "Lingua",
+      "language_tooltip": "Modifica la lingua dell'interfaccia",
+      "clearPreferences": "Ripristina impostazioni predefinite",
+      "clear_preferences_title": "Ripristinare il predefinito?",
+      "clear_preferences": "Sei sicuro di voler ripristinare tutto al predefinito? L'app si riavvierà dopo il ripristino.",
+      "clear_preferences_button": "Conferma",
+      "jukebox": {
+        "pin": "Perno modalità Jukebox",
+        "pin_tooltip": "Il pin Tis sarà necessario per uscire dalla modalità Jukebox. Dovrebbe essere numerico.",
+        "optionalFields": "Button visibility",
+        "optionalFields_tooltip": "Toggle optional buttons to show in Jukebox mode",
+        "optional_skip": "Track Skip buttons",
+        "optional_shuffle": "Shuffle button",
+        "optional_repeat": "Repeat button"
+      },
+      "lyrics": {
+        "title": "Fornitori di testi",
+        "tooltip": "Seleziona quali fornitori di testi usare per cercare il testo",
+        "az_lyrics": "Usa AZLyrics",
+        "google_lyrics": "Usa i testi di ricerca di Google",
+        "spotify_lyrics": "Use Spotify for lyrics (Requires librespot)",
+        "genius_lyrics": "Use Genius"
+      },
+      "queueSettings": {
+        "title": "Impostazioni Coda",
+        "tooltip": "Opzioni per modificare il comportamento della coda del brano",
+        "clearQueue": "Svuota la coda prima di aggiungere una scaletta"
+      },
+      "scrobble": {
+        "provider_toggle": {
+          "title": "Whitelist scrobble",
+          "tooltip": "Abilita gli operatori i cui brani vuoi essere scrobble'd"
+        }
+      },
+      "volumePersistMode": {
+        "title": "Volume behavior",
+        "tooltip": "Change the way volume slider behaves",
+        "noPersist": "Normal behavior",
+        "persistSeparateVolumes": "Remember separate volume for each provider",
+        "persistClampVolume": "Manually adjust volume range for each provider"
+      }
+    },
+    "logs": {
+      "logSettings": "Impostazioni di log",
+      "level": "Livello di log",
+      "process": "Processi",
+      "filterMessage": "Filtra messaggi",
+      "levels": {
+        "all": "All",
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "debug_logging": "Enable debug logging",
+      "table": {
+        "time": "Time",
+        "level": "Level",
+        "process": "Process",
+        "message": "Message"
+      }
+    }
+  },
+  "hotkeys": {
+    "play": "Play Song",
+    "pause": "Pause song",
+    "play_toggle": "Toggle play",
+    "mute_active": "Mute",
+    "mute_inactive": "Unmute",
+    "mute_toggle": " Toggle mute",
+    "volume_inc": "Increase volume",
+    "volume_dec": "Decrease volume",
+    "repeat_active": "Repeat song",
+    "repeat_inactive": "Disable repeat",
+    "repeat_toggle": "Toggle repeat",
+    "queue_open": "Open song queue",
+    "queue_close": "Close song queue",
+    "queue_toggle": "Toggle song queue",
+    "reload_page": "Reload page",
+    "devtools": "Toggle dev-tools",
+    "help": "Open help",
+    "fullscreen": "Fullscreen",
+    "next_song": "Skip song",
+    "prev_song": "Prev song",
+    "seek_forward": "Seek 5s forward",
+    "seek_backwards": "Seek 5s backwards",
+    "seek_0": "Seek to 0%",
+    "seek_1": "Seek to 10%",
+    "seek_2": "Seek to 20%",
+    "seek_3": "Seek to 30%",
+    "seek_4": "Seek to 40%",
+    "seek_5": "Seek to 50%",
+    "seek_6": "Seek to 60%",
+    "seek_7": "Seek to 70%",
+    "seek_8": "Seek to 80%",
+    "seek_9": "Seek to 90%"
+  },
+  "tray": {
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "prev": "Prev",
+    "repeat": "Repeat",
+    "no_repeat": "No repeat",
+    "shuffle": "Shuffle",
+    "show_app": "Show app",
+    "quit": "Quit"
+  },
+  "toasts": {
+    "queued": "Queued {count} song | Queued {count} songs",
+    "shuffled": "Shuffled"
+  }
+}

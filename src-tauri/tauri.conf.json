@@ -1,37 +1,46 @@
 {
-  "build": {
-    "beforeDevCommand": "yarn dev",
-    "beforeBuildCommand": "yarn build",
-    "devPath": "http://localhost:1420/mainWindow",
-    "distDir": "../dist"
-  },
-  "package": {
-    "productName": "Moosync",
-    "version": "0.0.0"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "shell": {
-        "all": false,
-        "open": true
+  "app": {
+    "macOSPrivateApi": false,
+    "security": {
+      "assetProtocol": {
+        "enable": false,
+        "scope": []
+      },
+      "csp": null,
+      "dangerousDisableAssetCspModification": false,
+      "freezePrototype": false,
+      "pattern": {
+        "use": "brownfield"
       }
     },
-    "windows": [],
-    "security": {
-      "csp": null
-    },
-    "bundle": {
-      "active": true,
-      "targets": "all",
-      "identifier": "com.tauri.dev",
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
-      ]
-    }
-  }
+    "withGlobalTauri": true
+  },
+  "build": {
+    "beforeBuildCommand": "yarn build",
+    "beforeDevCommand": "yarn dev",
+    "devUrl": "http://localhost:1420/mainWindow",
+    "frontendDist": "../dist"
+  },
+  "bundle": {
+    "active": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "targets": [
+      "app",
+      "deb",
+      "dmg",
+      "rpm",
+      "msi",
+      "nsis",
+      "updater"
+    ]
+  },
+  "identifier": "app.moosync.moosync",
+  "productName": "Moosync",
+  "version": "0.0.0"
 }

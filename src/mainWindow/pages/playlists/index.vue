@@ -193,7 +193,7 @@ export default class Playlists extends mixins(RouterPushes, ContextMenuMixin, Pr
 
   private async getLocalPlaylists() {
     const localPlaylists = await window.SearchUtils.searchEntityByOptions<Playlist>({
-      playlist: true
+      playlist: {}
     })
 
     for (const p of localPlaylists) {

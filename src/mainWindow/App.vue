@@ -273,7 +273,7 @@ export default class App extends mixins(ThemeHandler, PlayerControls, KeyHandler
 
   private async populatePlaylists() {
     const RawPlaylists = await window.SearchUtils.searchEntityByOptions<Playlist>({
-      playlist: true
+      playlist: {}
     })
     const playlists: playlistInfo = {}
     for (const p of RawPlaylists) {

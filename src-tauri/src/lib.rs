@@ -3,12 +3,20 @@
 
 use logger::logger::{log_debug, log_error, log_info, log_warn};
 use preference_holder::preferences::{initial, load_selective, save_selective};
+use serde::Serialize;
 use state::get_preference_state;
 use tauri::{Manager, WebviewWindowBuilder};
 
+use crate::{
+    db::database::{get_db_state, get_entity_by_options, get_songs_by_options, insert_songs},
+    types::songs::{GetSongOptions, QueryableSong},
+};
+
+mod db;
 mod logger;
 mod preference_holder;
 mod state;
+mod types;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -20,9 +28,15 @@ pub fn run() {
             log_error,
             log_debug,
             log_info,
-            log_warn
+            log_warn,
+            // DB
+            get_songs_by_options,
+            get_entity_by_options
         ])
         .setup(|app| {
+            let db = get_db_state(app);
+            app.manage(db);
+
             let config = get_preference_state(app)?;
             app.manage(config);
 

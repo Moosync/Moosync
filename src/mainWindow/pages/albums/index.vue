@@ -40,7 +40,7 @@ export default class Albums extends mixins(RouterPushes, ContextMenuMixin) {
 
   private async getAlbums() {
     this.albumList = await window.SearchUtils.searchEntityByOptions({
-      album: true
+      album: {}
     })
     this.sort()
   }

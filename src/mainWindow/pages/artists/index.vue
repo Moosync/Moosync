@@ -39,7 +39,7 @@ export default class ArtistsPage extends mixins(RouterPushes, ContextMenuMixin) 
   public artistList: Artists[] = []
   private async getArtists() {
     this.artistList = await window.SearchUtils.searchEntityByOptions({
-      artist: true
+      artist: {}
     })
     this.sort()
   }

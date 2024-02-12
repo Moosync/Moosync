@@ -269,16 +269,16 @@ export default class SongInfoModal extends mixins(ImgLoader) {
   }
 
   private async fetchDatalist() {
-    this.datalist['artists'] = (await window.SearchUtils.searchEntityByOptions<Artists>({ artist: true })).map(
+    this.datalist['artists'] = (await window.SearchUtils.searchEntityByOptions<Artists>({ artist: {} })).map(
       (val) => ({ key: val.artist_id, value: val.artist_name })
     ) as DatalistArray
 
-    this.datalist['album'] = (await window.SearchUtils.searchEntityByOptions<Album>({ album: true })).map((val) => ({
+    this.datalist['album'] = (await window.SearchUtils.searchEntityByOptions<Album>({ album: {} })).map((val) => ({
       key: val.album_id,
       value: val.album_name
     })) as DatalistArray
 
-    this.datalist['genre'] = (await window.SearchUtils.searchEntityByOptions<Genre>({ genre: true })).map((val) => ({
+    this.datalist['genre'] = (await window.SearchUtils.searchEntityByOptions<Genre>({ genre: {} })).map((val) => ({
       key: val.genre_id,
       value: val.genre_name
     }))

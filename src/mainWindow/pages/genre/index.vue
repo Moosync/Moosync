@@ -42,7 +42,7 @@ export default class Genres extends mixins(RouterPushes) {
   public genresList: Genre[] = []
   private async getGenres() {
     this.genresList = await window.SearchUtils.searchEntityByOptions({
-      genre: true
+      genre: {}
     })
   }
 

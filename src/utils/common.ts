@@ -123,13 +123,13 @@ window.DBUtils = new Proxy(
 // }) as any
 
 window.SearchUtils = {
-	searchEntityByOptions: () => {
-		return [];
+	searchEntityByOptions: (options) => {
+		return invoke("get_entity_by_options", { options });
 	},
-	searchSongsByOptions: () => {
-		return [];
+	searchSongsByOptions: async (options, _) => {
+		return invoke("get_songs_by_options", { options });
 	},
-} as any;
+};
 
 window.ThemeUtils = {
 	getSongView: () => {

@@ -16,17 +16,17 @@ window.PreferenceUtils = {
 		return invoke("load_selective", { key });
 	},
 
-	loadSelectiveArrayItem: () => {
+	loadSelectiveArrayItem: async () => {
 		return {};
 	},
 
-	listenPreferenceChanged: () => {
+	listenPreferenceChanged: async () => {
 		return;
 	},
-	notifyPreferenceChanged: () => {
+	notifyPreferenceChanged: async () => {
 		return;
 	},
-} as any;
+};
 
 window.LoggerUtils = {
 	debug: (...message: unknown[]) => {
@@ -228,15 +228,14 @@ window.ExtensionUtils = {
 	},
 };
 
-window.Store = new Proxy(
-	{},
-	{
-		get(target, prop) {
-			console.log(target, prop);
-			return () => {};
-		},
+window.Store = {
+	setSecure: async (key, value) => {
+		return await invoke("set_secure", { key, value });
 	},
-) as any;
+	getSecure: async (key) => {
+		return await invoke("get_secure", { key });
+	},
+};
 
 console.log("info logger", window.PreferenceUtils);
 

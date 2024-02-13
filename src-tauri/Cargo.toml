@@ -28,6 +28,12 @@ percent-encoding = "2.3.1"
 json_dotpath = "1.1.0"
 webkit2gtk = "2.0.1"
 open = "5.0.1"
+keyring = "2.3.2"
+whoami = "1.4.1"
+ring = "0.17.7"
+rand = "0.8.5"
+hex = "0.4.3"
+chacha20poly1305 = "0.10.1"
 
 
 [features]

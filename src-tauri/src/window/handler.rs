@@ -1,7 +1,8 @@
 use std::env;
 
 use crate::{
-    generate_command, preference_holder::preferences::load_selective, state::PreferenceConfig,
+    generate_command,
+    preference_holder::preferences::{load_selective, PreferenceConfig},
 };
 use open;
 use tauri::{AppHandle, Error, Manager, State, WebviewWindow, Window};
@@ -45,7 +46,7 @@ impl WindowHandler {
         app: AppHandle,
         preference: State<PreferenceConfig>,
     ) -> Result<(), Error> {
-        let scale_factor = load_selective(preference, "zoomFactor".into()).as_f64();
+        let scale_factor = preference.load_selective("zoomFactor".into())?.as_f64();
         if let Some(scale_factor) = scale_factor {
             let windows = app.webview_windows();
             for window in windows.values() {

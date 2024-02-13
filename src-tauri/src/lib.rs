@@ -9,9 +9,10 @@ use std::{
 use http::{header::*, response::Builder as ResponseBuilder, status::StatusCode};
 use http_range::HttpRange;
 use logger::logger::{log_debug, log_error, log_info, log_warn};
-use preference_holder::preferences::{initial, load_selective, save_selective};
+use preference_holder::preferences::{
+    get_secure, initial, load_selective, save_selective, set_secure,
+};
 use serde::Serialize;
-use state::get_preference_state;
 use tauri::{
     http::{self, header::CONTENT_TYPE},
     Manager, State, WebviewWindowBuilder,
@@ -21,6 +22,7 @@ use tauri_plugin_deep_link::DeepLinkExt;
 use crate::{
     db::database::{get_db_state, get_entity_by_options, get_songs_by_options, insert_songs},
     oauth::handler::{get_oauth_state, OAuthHandler},
+    preference_holder::preferences::get_preference_state,
     types::songs::{GetSongOptions, QueryableSong},
     window::handler::{
         close_window, get_platform, get_window_state, has_frame, is_maximized, maximize_window,
@@ -37,7 +39,6 @@ mod logger;
 mod macros;
 mod oauth;
 mod preference_holder;
-mod state;
 mod types;
 mod window;
 
@@ -58,6 +59,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             save_selective,
             load_selective,
+            get_secure,
+            set_secure,
             // Logger
             log_error,
             log_debug,

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Categories=
+Comment=A Tauri App
+Exec=moosync %U
+Icon=moosync
+Name=Moosync
+Terminal=false
+Type=Application
+MimeType=x-scheme-handler/moosync;

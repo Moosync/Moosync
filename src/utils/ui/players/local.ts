@@ -7,160 +7,184 @@
  *  See LICENSE in the project root for license information.
  */
 
-import { Player } from './player'
-import { wrapHTMLAudioElement as wrapPlayerInstance } from './wrapper/htmlAudioElement'
+import { Player } from "./player";
+import { wrapHTMLAudioElement as wrapPlayerInstance } from "./wrapper/htmlAudioElement";
 
 export class LocalPlayer extends Player {
-  playerInstance!: CustomAudioInstance
-  private track: MediaElementAudioSourceNode | undefined
-  private context: AudioContext | undefined
+	playerInstance!: CustomAudioInstance;
+	private track: MediaElementAudioSourceNode | undefined;
+	private context: AudioContext | undefined;
 
-  public provides(): PlayerTypes[] {
-    return ['LOCAL', 'URL']
-  }
+	public provides(): PlayerTypes[] {
+		return ["LOCAL", "URL"];
+	}
 
-  get key() {
-    return 'LOCAL'
-  }
+	get key() {
+		return "LOCAL";
+	}
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public async canPlay(_: string): Promise<boolean> {
-    return true
-  }
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	public async canPlay(_: string): Promise<boolean> {
+		return true;
+	}
 
-  // TODO: Typecheck playerInstance somehow
-  protected async _initialize(playerInstance: unknown): Promise<void> {
-    if (
-      playerInstance &&
-      (playerInstance instanceof HTMLAudioElement || (playerInstance as CustomAudioInstance).isCustomAudio)
-    ) {
-      this.playerInstance = wrapPlayerInstance(playerInstance as CustomAudioInstance)
-    } else {
-      throw new Error('passed player is not an instance of CustomAudioInstance')
-    }
-  }
+	// TODO: Typecheck playerInstance somehow
+	protected async _initialize(playerInstance: unknown): Promise<void> {
+		if (
+			playerInstance &&
+			(playerInstance instanceof HTMLAudioElement ||
+				(playerInstance as CustomAudioInstance).isCustomAudio)
+		) {
+			this.playerInstance = wrapPlayerInstance(
+				playerInstance as CustomAudioInstance,
+			);
+		} else {
+			throw new Error(
+				"passed player is not an instance of CustomAudioInstance",
+			);
+		}
+	}
 
-  protected async _load(src?: string, volume?: number, autoplay?: boolean): Promise<void> {
-    if (src) {
-      this.playerInstance.setSrc(src, autoplay)
-    }
-    if (volume) this.volume = volume
-  }
+	protected async _load(
+		src?: string,
+		volume?: number,
+		autoplay?: boolean,
+	): Promise<void> {
+		if (src) {
+			if (!this.playerInstance.isCustomAudio) {
+				console.log("fetching src", src);
+				const resp = await fetch(src);
+				const blob = await resp.blob();
+				const url = URL.createObjectURL(blob);
 
-  protected async _play(): Promise<void> {
-    if (this.playerInstance.paused) await this.playerInstance?.play()
-  }
+				this.playerInstance.setSrc(url, autoplay);
+			} else {
+				this.playerInstance.setSrc(src, autoplay);
+			}
+		}
+		if (volume) this.volume = volume;
+	}
 
-  protected _pause(): void {
-    if (!this.playerInstance.paused) this.playerInstance?.pause()
-  }
+	protected async _play(): Promise<void> {
+		if (this.playerInstance.paused) await this.playerInstance?.play();
+	}
 
-  protected _stop(): void {
-    this.playerInstance.stop()
-  }
+	protected _pause(): void {
+		if (!this.playerInstance.paused) this.playerInstance?.pause();
+	}
 
-  get currentTime(): number {
-    return this.playerInstance.currentTime
-  }
+	protected _stop(): void {
+		this.playerInstance.stop();
+	}
 
-  set currentTime(time: number) {
-    this.playerInstance.currentTime = time
-  }
+	get currentTime(): number {
+		return this.playerInstance.currentTime;
+	}
 
-  get volume(): number {
-    return this.playerInstance.volume * 100
-  }
+	set currentTime(time: number) {
+		this.playerInstance.currentTime = time;
+	}
 
-  set volume(volume: number) {
-    this.playerInstance.volume = volume / 100
-  }
+	get volume(): number {
+		return this.playerInstance.volume * 100;
+	}
 
-  protected listenOnEnded(callback: () => void): void {
-    this.playerInstance.onended = callback
-  }
+	set volume(volume: number) {
+		this.playerInstance.volume = volume / 100;
+	}
 
-  protected listenOnTimeUpdate(callback: (time: number) => void): void {
-    this.playerInstance.ontimeupdate = () => callback(this.currentTime)
-  }
+	protected listenOnEnded(callback: () => void): void {
+		this.playerInstance.onended = callback;
+	}
 
-  protected listenOnLoad(callback: () => void): void {
-    this.playerInstance.onload = callback
-    this.playerInstance.onloadeddata = callback
-  }
+	protected listenOnTimeUpdate(callback: (time: number) => void): void {
+		this.playerInstance.ontimeupdate = () => callback(this.currentTime);
+	}
 
-  protected listenOnError(callback: (err: Error) => void): void {
-    this.playerInstance.onerror = (event, source, line, col, err) => {
-      const finalErr = err ?? ((event as ErrorEvent).target as HTMLAudioElement).error
-      console.error('error', event, source, line, col, finalErr)
-      if (callback) {
-        if (finalErr) {
-          callback(finalErr as Error)
-        } else {
-          if (typeof event === 'string') {
-            callback(new Error(event))
-          } else if (event instanceof Event) {
-            callback(new Error(`${event.type}: loading source`))
-          }
-        }
-      }
-    }
-  }
+	protected listenOnLoad(callback: () => void): void {
+		this.playerInstance.onload = callback;
+		this.playerInstance.onloadeddata = callback;
+	}
 
-  protected listenOnStateChange(callback: (state: PlayerState) => void): void {
-    const play = () => callback('PLAYING')
-    const pause = () => callback('PAUSED')
-    const stop = () => callback('STOPPED')
+	protected listenOnError(callback: (err: Error) => void): void {
+		this.playerInstance.onerror = (event, source, line, col, err) => {
+			const finalErr =
+				err ?? ((event as ErrorEvent)?.target as HTMLAudioElement)?.error;
+			console.error("error", err);
+			if (callback) {
+				if (finalErr) {
+					callback(finalErr as Error);
+				} else {
+					if (typeof event === "string") {
+						callback(new Error(event));
+					} else if (event instanceof Event) {
+						callback(new Error(`${event.type}: loading source`));
+					}
+				}
+			}
+		};
+	}
 
-    this.playerInstance.addEventListener('play', play)
-    this.playerInstance.addEventListener('pause', pause)
-    this.playerInstance.addEventListener('ended', stop)
-  }
+	protected listenOnStateChange(callback: (state: PlayerState) => void): void {
+		const play = () => callback("PLAYING");
+		const pause = () => callback("PAUSED");
+		const stop = () => callback("STOPPED");
 
-  protected listenOnBuffer(callback: () => void): void {
-    this.playerInstance.onloadstart = callback
-  }
+		this.playerInstance.addEventListener("play", play);
+		this.playerInstance.addEventListener("pause", pause);
+		this.playerInstance.addEventListener("ended", stop);
+	}
 
-  removeAllListeners(): void {
-    if (this.playerInstance) {
-      this.playerInstance.onended = null
-      this.playerInstance.ontimeupdate = null
-      this.playerInstance.onload = null
-      this.playerInstance.onloadeddata = null
-      this.playerInstance.onloadstart = null
-      for (const [key, value] of Object.entries(this.playerInstance.listeners ?? {})) {
-        this.playerInstance.removeEventListener(key as keyof HTMLMediaElementEventMap, value)
-      }
-    }
-  }
+	protected listenOnBuffer(callback: () => void): void {
+		this.playerInstance.onloadstart = callback;
+	}
 
-  createAudioContext() {
-    if (!this.context && this.playerInstance instanceof HTMLAudioElement) {
-      this.context = new AudioContext()
-      this.track = this.context.createMediaElementSource(this.playerInstance)
-      this.track.connect(this.context.destination)
-    }
+	removeAllListeners(): void {
+		if (this.playerInstance) {
+			this.playerInstance.onended = null;
+			this.playerInstance.ontimeupdate = null;
+			this.playerInstance.onload = null;
+			this.playerInstance.onloadeddata = null;
+			this.playerInstance.onloadstart = null;
+			for (const [key, value] of Object.entries(
+				this.playerInstance.listeners ?? {},
+			)) {
+				this.playerInstance.removeEventListener(
+					key as keyof HTMLMediaElementEventMap,
+					value,
+				);
+			}
+		}
+	}
 
-    return this.context
-  }
+	createAudioContext() {
+		if (!this.context && this.playerInstance instanceof HTMLAudioElement) {
+			this.context = new AudioContext();
+			this.track = this.context.createMediaElementSource(this.playerInstance);
+			this.track.connect(this.context.destination);
+		}
 
-  connectAudioContextNode(node: AudioNode): void {
-    if (this.context && this.track) {
-      this.track.connect(node).connect(this.context.destination)
-    }
-  }
+		return this.context;
+	}
 
-  // Hoping electron will cache the audio
-  preload(src: string) {
-    try {
-      new URL(src)
-      const audio = new Audio()
-      audio.preload = 'auto'
-      audio.volume = 0
-      audio.src = src
-      audio.load()
-      audio.play()
-    } catch (e) {
-      console.debug('Not a valid URL, not preloading')
-    }
-  }
+	connectAudioContextNode(node: AudioNode): void {
+		if (this.context && this.track) {
+			this.track.connect(node).connect(this.context.destination);
+		}
+	}
+
+	// Hoping electron will cache the audio
+	preload(src: string) {
+		try {
+			new URL(src);
+			const audio = new Audio();
+			audio.preload = "auto";
+			audio.volume = 0;
+			audio.src = src;
+			audio.load();
+			audio.play();
+		} catch (e) {
+			console.debug("Not a valid URL, not preloading");
+		}
+	}
 }

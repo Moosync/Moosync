@@ -69,6 +69,7 @@ import { nextTick } from 'vue'
 import { convertProxy } from '@/utils/ui/common'
 import { RepeatState } from '../../../../utils/commonConstants';
 import { RodioPlayer } from '../../../../utils/ui/players/rodio';
+import { convertFileSrc } from '@tauri-apps/api/core';
 
 @Component({
   emits: ['onTimeUpdate']
@@ -328,7 +329,7 @@ export default class AudioStream extends mixins(
     const players = await new Promise<Player[]>((resolve) => {
       const players: Player[] = []
 
-      players.push(new RodioPlayer())
+      // players.push(new RodioPlayer())
       players.push(new LocalPlayer())
       players.push(new DashPlayer())
       players.push(new HLSPlayer())
@@ -665,7 +666,7 @@ export default class AudioStream extends mixins(
   private async getPlaybackDurationFromPlayer(song: Song) {
     try {
       const data = await new Promise<number | undefined>((resolve, reject) => {
-        const url = song.path ? `media://${song.path}` : song.playbackUrl
+        const url = song.path ? convertFileSrc(song.path, "media") : song.playbackUrl
 
         if (url) {
           const audio = new Audio()
@@ -886,7 +887,7 @@ export default class AudioStream extends mixins(
 
     console.debug('Loading new song', song)
 
-    this.unloadAudio()
+    // this.unloadAudio()
 
     const PlayerTypes = song.type
 
@@ -915,7 +916,7 @@ export default class AudioStream extends mixins(
 
     try {
       this.activePlayer?.load(
-        song.path ? 'media://' + song.path : song.playbackUrl,
+        song.path ? convertFileSrc(song.path, "asset") : song.playbackUrl,
         this.volume,
         vxm.player.playAfterLoad || this.playerState === 'PLAYING'
       )
@@ -923,7 +924,7 @@ export default class AudioStream extends mixins(
       console.error('failed to load song', e)
     }
 
-    console.debug('Loaded song at', song.path ? 'media://' + song.path : song.playbackUrl)
+    console.debug('Loaded song at', song.path ? convertFileSrc(song.path, "asset") : song.playbackUrl)
     vxm.player.loading = false
 
 

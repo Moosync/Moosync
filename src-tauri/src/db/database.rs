@@ -28,6 +28,7 @@ use crate::{
         album_bridge::dsl::album_bridge,
         albums::{album_id, dsl::albums},
     },
+    filter_field, generate_command,
     types::{
         entities::{
             AlbumBridge, ArtistBridge, GenreBridge, GetEntityOptions, QueryableAlbum,
@@ -47,30 +48,6 @@ use super::{
         genres::{dsl::genres, genre_id},
     },
 };
-
-#[macro_export]
-macro_rules! generate_command {
-    ($method_name:ident, $ret:ty, $($v:ident: $t:ty),*) => {
-        #[tauri::command]
-        pub fn $method_name(db: State<Database>, $($v: $t),*) -> Result<$ret, String> {
-            db.$method_name($($v,)*).map_err(|e| e.to_string())
-        }
-    };
-}
-
-macro_rules! filter_field {
-    ($predicate:expr, $field:expr, $column:expr, $inclusive:expr) => {
-        if let Some(val) = $field {
-            if $inclusive {
-                QueryDsl::or_filter($predicate, $column.eq(val))
-            } else {
-                QueryDsl::filter($predicate, $column.eq(val))
-            }
-        } else {
-            $predicate
-        }
-    };
-}
 
 #[derive(Debug, Clone)]
 pub struct Database {
@@ -303,14 +280,16 @@ impl Database {
         let mut ret = vec![];
         let mut conn = self.pool.get().unwrap();
 
-        let mut predicate = schema::allsongs::table.into_boxed();
         let inclusive = if let Some(inclusive) = options.inclusive {
             inclusive
         } else {
             false
         };
 
+        let mut fetched_songs: Vec<QueryableSong> = vec![];
+
         if let Some(song) = options.song {
+            let mut predicate = schema::allsongs::table.into_boxed();
             predicate = filter_field!(predicate, &song._id, schema::allsongs::_id, inclusive);
             predicate = filter_field!(predicate, &song.path, schema::allsongs::path, inclusive);
             predicate = filter_field!(predicate, &song.title, schema::allsongs::title, inclusive);
@@ -341,9 +320,8 @@ impl Database {
                 schema::allsongs::show_in_library,
                 inclusive
             );
+            fetched_songs = predicate.load(&mut conn)?;
         }
-
-        let fetched_songs: Vec<QueryableSong> = predicate.load(&mut conn)?;
 
         for s in fetched_songs {
             let mut album: Option<QueryableAlbum> = None;
@@ -394,8 +372,8 @@ pub fn get_db_state(app: &mut App) -> Database {
     db
 }
 
-generate_command!(insert_songs, (), a: Vec<Song>);
-generate_command!(remove_songs, (), a: Vec<String>);
-generate_command!(update_song, (), a: QueryableSong);
-generate_command!(get_songs_by_options, Vec<Song>, options: GetSongOptions);
-generate_command!(get_entity_by_options, Value, options: GetEntityOptions);
+generate_command!(insert_songs, Database, (), a: Vec<Song>);
+generate_command!(remove_songs, Database, (), a: Vec<String>);
+generate_command!(update_song, Database, (), a: QueryableSong);
+generate_command!(get_songs_by_options, Database, Vec<Song>, options: GetSongOptions);
+generate_command!(get_entity_by_options, Database, Value, options: GetEntityOptions);

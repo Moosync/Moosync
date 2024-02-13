@@ -1,5 +1,10 @@
-use std::fs::File;
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{Read, Write},
+};
 
+use json_dotpath::DotPaths;
 use preferences::{Preferences, PreferencesMap};
 use serde::Serialize;
 use serde_json::Value;
@@ -10,31 +15,34 @@ use crate::state::PreferenceConfig;
 #[tauri::command]
 pub fn load_selective(config: State<PreferenceConfig>, key: String) -> Value {
     let mut config_file = File::open(&config.config_file).unwrap();
-    let preferences = PreferencesMap::load_from(&mut config_file).unwrap();
-    let val: Option<&String> = preferences.get(key.as_str());
+    let mut prefs = String::new();
+    config_file.read_to_string(&mut prefs).unwrap();
+
+    let value: Value = serde_json::from_str(&prefs).unwrap();
+    let val: Option<Value> = value.dot_get(format!("prefs.{}", key).as_str()).unwrap();
     if val.is_none() {
         println!("No value found for {}", key);
         return Value::Null;
     }
 
-    let parsed: Value = serde_json::from_str(val.unwrap()).unwrap();
-    parsed
+    val.unwrap()
 }
 
 #[tauri::command]
 pub fn save_selective(config: State<PreferenceConfig>, key: String, value: Value) {
     let mut config_file = File::open(&config.config_file).unwrap();
-    let mut prefs: PreferencesMap<String> = PreferencesMap::load_from(&mut config_file).unwrap();
-    prefs.insert(
-        key,
-        value
-            .serialize(serde_json::value::Serializer)
-            .unwrap()
-            .to_string(),
-    );
+    let mut prefs = String::new();
+    config_file.read_to_string(&mut prefs).unwrap();
+
+    let mut prefs: Value = serde_json::from_str(&prefs).unwrap();
+    prefs
+        .dot_set(format!("prefs.{}", key).as_str(), value)
+        .unwrap();
 
     let mut config_file = File::create(&config.config_file).unwrap();
-    prefs.save_to(&mut config_file).unwrap();
+    config_file
+        .write_all(serde_json::to_string(&prefs).unwrap().as_bytes())
+        .unwrap();
 }
 
 pub fn initial(state: State<PreferenceConfig>) {

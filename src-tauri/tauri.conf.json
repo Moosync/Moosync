@@ -3,11 +3,16 @@
     "macOSPrivateApi": false,
     "security": {
       "assetProtocol": {
-        "enable": false,
-        "scope": []
+        "enable": true,
+        "scope": {
+          "allow": [
+            "**/*"
+          ],
+          "requireLiteralLeadingDot": false
+        }
       },
-      "csp": null,
-      "dangerousDisableAssetCspModification": false,
+      "csp": "default-src 'self'; img-src 'self' asset: media: https://asset.localhost; media-src 'self' asset: media: https://asset.localhost",
+      "dangerousDisableAssetCspModification": true,
       "freezePrototype": false,
       "pattern": {
         "use": "brownfield"
@@ -32,15 +37,33 @@
     ],
     "targets": [
       "app",
+      "appimage",
       "deb",
       "dmg",
       "rpm",
       "msi",
       "nsis",
       "updater"
-    ]
+    ],
+    "linux": {
+      "deb": {
+        "desktopTemplate": "./moosync.desktop"
+      }
+    }
   },
   "identifier": "app.moosync.moosync",
+  "plugins": {
+    "deep-link": {
+      "domains": [
+        {
+          "host": "moosync.app",
+          "pathPrefix": [
+            "/youtube"
+          ]
+        }
+      ]
+    }
+  },
   "productName": "Moosync",
   "version": "0.0.0"
 }

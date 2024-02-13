@@ -7,33 +7,36 @@
  *  See LICENSE in the project root for license information.
  */
 
-import { Component, Vue } from 'vue-facing-decorator'
+import { Component, Vue } from "vue-facing-decorator";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 @Component
 export default class ImgLoader extends Vue {
-  getValidImageLow(song: Song | null | undefined) {
-    return (
-      song?.song_coverPath_low ??
-      song?.album?.album_coverPath_low ??
-      song?.song_coverPath_high ??
-      song?.album?.album_coverPath_high
-    )
-  }
+	getValidImageLow(song: Song | null | undefined) {
+		return (
+			song?.song_coverPath_low ??
+			song?.album?.album_coverPath_low ??
+			song?.song_coverPath_high ??
+			song?.album?.album_coverPath_high
+		);
+	}
 
-  getValidImageHigh(song: Song | null | undefined) {
-    return (
-      song?.song_coverPath_high ??
-      song?.album?.album_coverPath_high ??
-      song?.song_coverPath_low ??
-      song?.album?.album_coverPath_low
-    )
-  }
+	getValidImageHigh(song: Song | null | undefined) {
+		return (
+			song?.song_coverPath_high ??
+			song?.album?.album_coverPath_high ??
+			song?.song_coverPath_low ??
+			song?.album?.album_coverPath_low
+		);
+	}
 
-  getImgSrc(imgSrc: string | null | undefined) {
-    if (imgSrc) {
-      if (imgSrc.startsWith('http') || imgSrc.startsWith('media')) return imgSrc
-      else return `media://${imgSrc}`
-    }
-    return ''
-  }
+	getImgSrc(imgSrc: string | null | undefined) {
+		if (imgSrc) {
+			if (!imgSrc.startsWith("http")) {
+				return convertFileSrc(imgSrc, "asset");
+			}
+			return imgSrc;
+		}
+		return "";
+	}
 }

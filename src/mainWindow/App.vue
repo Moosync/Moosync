@@ -56,6 +56,7 @@ import IncorrectPlaybackModal from './components/modals/IncorrectPlaybackModal.v
 import { ToastType, toast } from 'vue3-toastify'
 import { useI18n } from 'vue-i18n'
 import { convertProxy } from '@/utils/ui/common'
+import { convertFileSrc } from '@tauri-apps/api/core';
 
 @Component({
   components: {
@@ -294,7 +295,7 @@ export default class App extends mixins(ThemeHandler, PlayerControls, KeyHandler
       audio.addEventListener('loadedmetadata', function () {
         resolve(audio.duration)
       })
-      audio.src = 'media://' + src
+      audio.src = convertFileSrc("src", "asset")
     })
   }
 

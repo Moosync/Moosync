@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 console.log(invoke);
 
@@ -95,15 +96,55 @@ window.RodioUtils = new Proxy(
 	},
 ) as any;
 
-window.WindowUtils = new Proxy(
-	{},
-	{
-		get(target, prop) {
-			console.log(target, prop);
-			return () => {};
-		},
+window.WindowUtils = {
+	registerOAuthCallback: async (path) => {
+		return await invoke("register_oauth_path", { path });
 	},
-) as any;
+	deregisterOAuthCallback: async (path) => {
+		return await invoke("unregister_oauth_path", { path });
+	},
+	listenOAuth: (channelID, callback) => {
+		console.log("listening on channel", channelID);
+		listen(
+			channelID,
+			(event) => {
+				console.log("got event", event);
+				const data = event.payload as string;
+				callback(data);
+			},
+			{},
+		);
+	},
+
+	isWindowMaximized: async () => {
+		return await invoke("is_maximized");
+	},
+
+	hasFrame: async () => {
+		return await invoke("has_frame");
+	},
+	closeWindow: async () => {
+		return await invoke("close_window");
+	},
+	getPlatform: async () => {
+		return await invoke("get_platform");
+	},
+	maxWindow: async () => {
+		return await invoke("maximize_window");
+	},
+	minWindow: async () => {
+		return await invoke("minimize_window");
+	},
+	clearRSS: async () => {
+		// For compatibility
+	},
+	updateZoom: async () => {
+		return await invoke("update_zoom");
+	},
+	openExternal: async (url) => {
+		return await invoke("open_external", { url });
+	},
+};
 
 window.DBUtils = new Proxy(
 	{},
@@ -182,6 +223,9 @@ window.ExtensionUtils = {
 	listenExtensionsChanged: () => {},
 	listenAccountRegistered: () => {},
 	listenRequests: () => {},
+	sendEvent: (event) => {
+		return undefined as any;
+	},
 };
 
 window.Store = new Proxy(

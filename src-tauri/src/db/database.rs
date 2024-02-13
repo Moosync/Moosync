@@ -1,26 +1,13 @@
-use std::{
-    path::PathBuf,
-    thread::{self, JoinHandle},
-    vec,
-};
-
-use diesel::internal::table_macro::BoxedSelectStatement;
-use diesel::BoxableExpression;
+use std::{path::PathBuf, vec};
 
 use diesel::{
-    associations::HasTable,
     connection::SimpleConnection,
     delete, insert_into,
-    query_builder::{AsQuery, Query},
-    query_dsl::methods::FilterDsl,
     r2d2::{self, ConnectionManager, Pool},
-    result::Error,
-    select, update, BoolExpressionMethods, Connection, ExpressionMethods, QueryDsl, RunQueryDsl,
-    SelectableHelper, SqliteConnection,
+    update, ExpressionMethods, QueryDsl, RunQueryDsl, SqliteConnection,
 };
 use serde_json::Value;
 use tauri::{App, Manager, State};
-use uuid::Uuid;
 
 use crate::{
     db::schema::{
@@ -28,6 +15,7 @@ use crate::{
         album_bridge::dsl::album_bridge,
         albums::{album_id, dsl::albums},
     },
+    errors::errors::Result,
     filter_field, generate_command,
     types::{
         entities::{
@@ -71,7 +59,7 @@ impl Database {
         db
     }
 
-    pub fn connect(path: PathBuf) -> Pool<ConnectionManager<SqliteConnection>> {
+    fn connect(path: PathBuf) -> Pool<ConnectionManager<SqliteConnection>> {
         let manager = ConnectionManager::<SqliteConnection>::new(path.to_str().unwrap());
         let pool = r2d2::Pool::builder()
             .build(manager)
@@ -79,7 +67,7 @@ impl Database {
         pool
     }
 
-    pub fn insert_songs(&self, songs: Vec<Song>) -> Result<(), Error> {
+    pub fn insert_songs(&self, songs: Vec<Song>) -> Result<()> {
         let mut conn = self.pool.get().unwrap();
         for song in songs {
             insert_into(allsongs)
@@ -102,7 +90,7 @@ impl Database {
     }
 
     // TODO: Remove album
-    pub fn remove_songs(&self, ids: Vec<String>) -> Result<(), Error> {
+    pub fn remove_songs(&self, ids: Vec<String>) -> Result<()> {
         let mut conn = self.pool.get().unwrap();
         for id in ids {
             delete(QueryDsl::filter(allsongs, _id.eq(id))).execute(&mut conn)?;
@@ -111,18 +99,14 @@ impl Database {
         Ok(())
     }
 
-    pub fn update_song(&self, song: QueryableSong) -> Result<(), Error> {
+    pub fn update_song(&self, song: QueryableSong) -> Result<()> {
         update(allsongs)
             .set(&song)
             .execute(&mut self.pool.get().unwrap())?;
         Ok(())
     }
 
-    fn get_albums(
-        &self,
-        options: QueryableAlbum,
-        inclusive: bool,
-    ) -> Result<Vec<QueryableAlbum>, Error> {
+    fn get_albums(&self, options: QueryableAlbum, inclusive: bool) -> Result<Vec<QueryableAlbum>> {
         let mut conn = self.pool.get().unwrap();
         let mut predicate = schema::albums::table.into_boxed();
 
@@ -148,7 +132,7 @@ impl Database {
         &self,
         options: QueryableArtist,
         inclusive: bool,
-    ) -> Result<Vec<QueryableArtist>, Error> {
+    ) -> Result<Vec<QueryableArtist>> {
         let mut conn = self.pool.get().unwrap();
         let mut predicate = schema::artists::table.into_boxed();
 
@@ -177,11 +161,7 @@ impl Database {
         Ok(fetched)
     }
 
-    fn get_genres(
-        &self,
-        options: QueryableGenre,
-        inclusive: bool,
-    ) -> Result<Vec<QueryableGenre>, Error> {
+    fn get_genres(&self, options: QueryableGenre, inclusive: bool) -> Result<Vec<QueryableGenre>> {
         let mut conn = self.pool.get().unwrap();
         let mut predicate = schema::genres::table.into_boxed();
 
@@ -207,7 +187,7 @@ impl Database {
         &self,
         options: QueryablePlaylist,
         inclusive: bool,
-    ) -> Result<Vec<QueryablePlaylist>, Error> {
+    ) -> Result<Vec<QueryablePlaylist>> {
         let mut conn = self.pool.get().unwrap();
         let mut predicate = schema::playlists::table.into_boxed();
 
@@ -240,7 +220,7 @@ impl Database {
         Ok(fetched)
     }
 
-    pub fn get_entity_by_options(&self, options: GetEntityOptions) -> Result<Value, Error> {
+    pub fn get_entity_by_options(&self, options: GetEntityOptions) -> Result<Value> {
         let inclusive = if let Some(inclusive) = options.inclusive {
             inclusive
         } else {
@@ -276,7 +256,7 @@ impl Database {
         Ok(Value::Null)
     }
 
-    pub fn get_songs_by_options(&self, options: GetSongOptions) -> Result<Vec<Song>, Error> {
+    pub fn get_songs_by_options(&self, options: GetSongOptions) -> Result<Vec<Song>> {
         let mut ret = vec![];
         let mut conn = self.pool.get().unwrap();
 
@@ -353,6 +333,7 @@ impl Database {
             if let Ok(genre_data) = genre_data {
                 genre = QueryDsl::filter(genres, genre_id.eq(genre_data.genre)).load(&mut conn)?;
             }
+            println!("{}", serde_json::to_string_pretty(&s).unwrap());
             ret.push(Song {
                 song: s,
                 album,

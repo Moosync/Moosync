@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     fs::{self, File},
     io::{Read, Write},
     path::PathBuf,
@@ -8,20 +7,18 @@ use std::{
 
 use chacha20poly1305::{
     aead::{generic_array::GenericArray, Aead, OsRng},
-    AeadCore, ChaCha20Poly1305, ChaChaPoly1305, Key, KeyInit, KeySizeUser,
+    AeadCore, ChaCha20Poly1305, Key, KeyInit, KeySizeUser,
 };
 use json_dotpath::DotPaths;
 use keyring::Entry;
-use preferences::{Preferences, PreferencesMap};
-use rand::thread_rng;
-use rand::Rng;
-use ring::aead::{BoundKey, SealingKey, UnboundKey, AES_256_GCM};
-use serde::Serialize;
+
+
+
 use serde_json::Value;
 use tauri::{App, Error, Manager, State};
 use whoami;
 
-use crate::generate_command;
+use crate::{errors::errors::Result, generate_command};
 
 pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,
@@ -29,7 +26,7 @@ pub struct PreferenceConfig {
 }
 
 impl PreferenceConfig {
-    pub fn load_selective(&self, key: String) -> Result<Value, Error> {
+    pub fn load_selective(&self, key: String) -> Result<Value> {
         let config_file_path = self.config_file.lock().unwrap();
         let mut config_file = File::open(config_file_path.as_os_str())?;
         let mut prefs = String::new();
@@ -47,7 +44,7 @@ impl PreferenceConfig {
         Ok(val.unwrap())
     }
 
-    pub fn save_selective(&self, key: String, value: Value) -> Result<(), Error> {
+    pub fn save_selective(&self, key: String, value: Value) -> Result<()> {
         let config_file_path = self.config_file.lock().unwrap();
         let mut config_file = File::open(config_file_path.as_os_str())?;
         let mut prefs = String::new();
@@ -63,7 +60,7 @@ impl PreferenceConfig {
         Ok(())
     }
 
-    pub fn get_secure(&self, key: String) -> Result<Value, Error> {
+    pub fn get_secure(&self, key: String) -> Result<Value> {
         let data = self.load_selective(key)?;
         if data.is_null() {
             return Ok(data);
@@ -82,7 +79,7 @@ impl PreferenceConfig {
         Ok(Value::String(plaintext))
     }
 
-    pub fn set_secure(&self, key: String, value: Value) -> Result<(), Error> {
+    pub fn set_secure(&self, key: String, value: Value) -> Result<()> {
         let secret = self.secret.lock().unwrap();
         let cipher = ChaCha20Poly1305::new(&secret);
         let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
@@ -98,7 +95,7 @@ impl PreferenceConfig {
     }
 }
 
-pub fn get_preference_state(app: &mut App) -> Result<PreferenceConfig, Error> {
+pub fn get_preference_state(app: &mut App) -> Result<PreferenceConfig> {
     let data_dir = app.path().app_config_dir()?;
     let config_file = data_dir.join("config.json");
     println!("{:?}", data_dir);

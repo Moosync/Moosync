@@ -1,13 +1,20 @@
-use std::path::PathBuf;
 
-use diesel::{sqlite::Sqlite, Connection, SqliteConnection};
+
+use diesel::{sqlite::Sqlite};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use tauri::{App, Manager};
 
-pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
+
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
+pub const CACHE_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations_cache");
 
 pub fn run_migrations(databse: &mut impl MigrationHarness<Sqlite>) {
     databse
         .run_pending_migrations(MIGRATIONS)
+        .expect("Failed to run migrations");
+}
+
+pub fn run_migration_cache(databse: &mut impl MigrationHarness<Sqlite>) {
+    databse
+        .run_pending_migrations(CACHE_MIGRATIONS)
         .expect("Failed to run migrations");
 }

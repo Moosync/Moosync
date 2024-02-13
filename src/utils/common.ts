@@ -5,14 +5,10 @@ console.log(invoke);
 
 window.PreferenceUtils = {
 	saveSelective: (key: string, value: unknown, isExtension: boolean) => {
-		console.log("saving selective");
-		// return {}
 		return invoke("save_selective", { key, value });
 	},
 
 	loadSelective: (key: string) => {
-		console.log("loading selective", key);
-		// return {}
 		return invoke("load_selective", { key });
 	},
 
@@ -170,6 +166,12 @@ window.SearchUtils = {
 	searchSongsByOptions: async (options, _) => {
 		return invoke("get_songs_by_options", { options });
 	},
+	searchYT: async (title, artists) => {
+		return await invoke("search_yt", { title, artists: artists ?? [] });
+	},
+	getYTAudioURL: async (id) => {
+		return await invoke("get_video_url", { videoId: id });
+	},
 };
 
 window.ThemeUtils = {
@@ -234,6 +236,9 @@ window.Store = {
 	},
 	getSecure: async (key) => {
 		return await invoke("get_secure", { key });
+	},
+	removeSecure: async (key) => {
+		return invoke("save_selective", { key, value: null });
 	},
 };
 

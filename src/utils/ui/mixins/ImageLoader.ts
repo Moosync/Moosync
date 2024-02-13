@@ -13,6 +13,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 @Component
 export default class ImgLoader extends Vue {
 	getValidImageLow(song: Song | null | undefined) {
+		console.log(song);
 		return (
 			song?.song_coverPath_low ??
 			song?.album?.album_coverPath_low ??
@@ -31,6 +32,7 @@ export default class ImgLoader extends Vue {
 	}
 
 	getImgSrc(imgSrc: string | null | undefined) {
+		console.log(imgSrc);
 		if (imgSrc) {
 			if (!imgSrc.startsWith("http")) {
 				return convertFileSrc(imgSrc, "asset");

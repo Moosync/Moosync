@@ -1,11 +1,12 @@
 use std::env;
 
 use crate::{
+    errors::errors::Result,
     generate_command,
-    preference_holder::preferences::{load_selective, PreferenceConfig},
+    preference_holder::preferences::{PreferenceConfig},
 };
 use open;
-use tauri::{AppHandle, Error, Manager, State, WebviewWindow, Window};
+use tauri::{AppHandle, Manager, State, Window};
 
 pub struct WindowHandler {}
 
@@ -14,38 +15,34 @@ impl WindowHandler {
         WindowHandler {}
     }
 
-    pub fn is_maximized(&self, window: Window) -> Result<bool, Error> {
-        window.is_maximized()
+    pub fn is_maximized(&self, window: Window) -> Result<bool> {
+        Ok(window.is_maximized()?)
     }
 
-    pub fn has_frame(&self) -> Result<bool, Error> {
+    pub fn has_frame(&self) -> Result<bool> {
         Ok(cfg!(unix) || cfg!(macos))
     }
 
-    pub fn close_window(&self, window: Window) -> Result<(), Error> {
+    pub fn close_window(&self, window: Window) -> Result<()> {
         window.close()?;
         Ok(())
     }
 
-    pub fn get_platform(&self) -> Result<String, Error> {
+    pub fn get_platform(&self) -> Result<String> {
         Ok(env::consts::OS.to_string())
     }
 
-    pub fn maximize_window(&self, window: Window) -> Result<(), Error> {
+    pub fn maximize_window(&self, window: Window) -> Result<()> {
         window.maximize()?;
         Ok(())
     }
 
-    pub fn minimize_window(&self, window: Window) -> Result<(), Error> {
+    pub fn minimize_window(&self, window: Window) -> Result<()> {
         window.minimize()?;
         Ok(())
     }
 
-    pub fn update_zoom(
-        &self,
-        app: AppHandle,
-        preference: State<PreferenceConfig>,
-    ) -> Result<(), Error> {
+    pub fn update_zoom(&self, app: AppHandle, preference: State<PreferenceConfig>) -> Result<()> {
         let scale_factor = preference.load_selective("zoomFactor".into())?.as_f64();
         if let Some(scale_factor) = scale_factor {
             let windows = app.webview_windows();
@@ -75,7 +72,7 @@ impl WindowHandler {
         Ok(())
     }
 
-    pub fn open_external(&self, url: String) -> Result<(), Error> {
+    pub fn open_external(&self, url: String) -> Result<()> {
         open::that(url)?;
         Ok(())
     }

@@ -5,6 +5,8 @@ use crate::db::schema::{
     album_bridge, albums, artist_bridge, artists, genre_bridge, genres, playlist_bridge, playlists,
 };
 
+use super::songs::Song;
+
 #[derive(
     Deserialize, Serialize, Insertable, Default, Queryable, Identifiable, AsChangeset, Clone, Debug,
 )]
@@ -111,4 +113,13 @@ pub struct QueryablePlaylist {
     pub playlist_path: Option<String>,
     pub extension: Option<String>,
     pub icon: Option<String>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct SearchResult {
+    pub songs: Vec<Song>,
+    pub artists: Vec<QueryableArtist>,
+    pub playlists: Vec<QueryablePlaylist>,
+    pub albums: Vec<QueryableAlbum>,
+    pub genres: Vec<QueryableGenre>,
 }

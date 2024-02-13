@@ -1,9 +1,9 @@
 use std::{collections::HashMap, sync::Mutex};
 
-use tauri::{App, AppHandle, Error, EventTarget, Manager, State};
+use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
 
-use crate::generate_command;
+use crate::{errors::errors::Result, generate_command};
 
 pub struct OAuthHandler {
     pub oauth_map: Mutex<HashMap<String, String>>,
@@ -16,7 +16,7 @@ impl OAuthHandler {
         }
     }
 
-    pub fn register_oauth_path(&self, path: String) -> Result<String, String> {
+    pub fn register_oauth_path(&self, path: String) -> Result<String> {
         let mut oauth_map = self.oauth_map.lock().unwrap();
         if let Some(channel) = oauth_map.get(path.as_str()) {
             return Ok(channel.to_string());
@@ -26,13 +26,13 @@ impl OAuthHandler {
         Ok(id)
     }
 
-    pub fn unregister_oauth_path(&self, path: String) -> Result<(), String> {
+    pub fn unregister_oauth_path(&self, path: String) -> Result<()> {
         let mut oauth_map = self.oauth_map.lock().unwrap();
         oauth_map.remove(&path);
         Ok(())
     }
 
-    pub fn handle_oauth(&self, app: &AppHandle, url: String) -> Result<(), Error> {
+    pub fn handle_oauth(&self, app: &AppHandle, url: String) -> Result<()> {
         let oauth_map = self.oauth_map.lock().unwrap();
         let query = url.replace("moosync://", "");
         let path = query.split("?").nth(0).unwrap();
@@ -48,6 +48,6 @@ impl OAuthHandler {
 generate_command!(register_oauth_path, OAuthHandler, String, path: String);
 generate_command!(unregister_oauth_path, OAuthHandler, (), path: String);
 
-pub fn get_oauth_state() -> Result<OAuthHandler, String> {
+pub fn get_oauth_state() -> Result<OAuthHandler> {
     Ok(OAuthHandler::new())
 }

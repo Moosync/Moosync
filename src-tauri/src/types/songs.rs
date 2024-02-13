@@ -87,23 +87,29 @@ pub struct QueryableSong {
     pub date: Option<String>,
     pub year: Option<String>,
     pub lyrics: Option<String>,
+    #[serde(rename = "releaseType")]
     #[diesel(column_name = "releaseType")]
     pub release_type: Option<String>,
     pub bitrate: Option<f64>,
     pub codec: Option<String>,
     pub container: Option<String>,
     pub duration: Option<f64>,
+    #[serde(rename = "sampleRate")]
     #[diesel(column_name = "sampleRate")]
     pub sample_rate: Option<f64>,
     pub hash: Option<String>,
+    #[serde(rename = "type")]
     pub type_: SongType,
     pub url: Option<String>,
     #[diesel(column_name = "song_coverPath_high")]
+    #[serde(rename = "song_coverPath_high")]
     pub song_cover_path_high: Option<String>,
-    #[diesel(column_name = "song_coverPath_low")]
-    pub song_cover_path_low: Option<String>,
     #[diesel(column_name = "playbackUrl")]
+    #[serde(rename = "playbackUrl")]
     pub playback_url: Option<String>,
+    #[diesel(column_name = "song_coverPath_low")]
+    #[serde(rename = "song_coverPath_low")]
+    pub song_cover_path_low: Option<String>,
     pub date_added: Option<String>,
     pub provider_extension: Option<String>,
     pub icon: Option<String>,

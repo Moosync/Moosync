@@ -1,9 +1,10 @@
 use std::{collections::HashMap, sync::Mutex};
 
+use macros::generate_command;
 use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
 
-use crate::{errors::errors::Result, generate_command};
+use types::errors::errors::Result;
 
 pub struct OAuthHandler {
     pub oauth_map: Mutex<HashMap<String, String>>,

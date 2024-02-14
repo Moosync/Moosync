@@ -14,6 +14,8 @@ pub enum MoosyncError {
     Json(#[from] serde_json::Error),
     #[error(transparent)]
     Youtube(#[from] VideoError),
+    #[error(transparent)]
+    DotPaths(#[from] json_dotpath::Error),
     #[error("{0}")]
     String(String),
 }

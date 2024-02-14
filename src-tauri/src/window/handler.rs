@@ -1,12 +1,10 @@
 use std::env;
 
-use crate::{
-    errors::errors::Result,
-    generate_command,
-    preference_holder::preferences::{PreferenceConfig},
-};
+use macros::generate_command;
 use open;
-use tauri::{AppHandle, Manager, State, Window};
+use preferences::preferences::PreferenceConfig;
+use tauri::{AppHandle, Manager, State, WebviewWindowBuilder, Window};
+use types::errors::errors::Result;
 
 pub struct WindowHandler {}
 
@@ -76,6 +74,19 @@ impl WindowHandler {
         open::that(url)?;
         Ok(())
     }
+
+    pub fn open_window(&self, app: AppHandle, is_main_window: bool) -> Result<()> {
+        if !is_main_window {
+            WebviewWindowBuilder::new(
+                &app,
+                "settings",
+                tauri::WebviewUrl::App("/preferenceWindow".into()),
+            )
+            .build()?;
+        }
+
+        Ok(())
+    }
 }
 
 pub fn get_window_state() -> WindowHandler {
@@ -90,3 +101,4 @@ generate_command!(maximize_window, WindowHandler, (), window: Window);
 generate_command!(minimize_window, WindowHandler, (), window: Window);
 generate_command!(update_zoom, WindowHandler, (), app: AppHandle, preference: State<PreferenceConfig>);
 generate_command!(open_external, WindowHandler, (), url: String);
+generate_command!(open_window, WindowHandler, (), app: AppHandle, is_main_window: bool);

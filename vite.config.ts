@@ -5,10 +5,12 @@ import json from "@rollup/plugin-json";
 import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
 import { fileURLToPath } from "url";
 import { internalIpV4 } from "internal-ip";
+import HtmlExtFallbackPlugin from "./html-fallback";
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
 	plugins: [
+		HtmlExtFallbackPlugin({ rootDir: __dirname }),
 		vue({
 			template: {
 				compilerOptions: {
@@ -36,7 +38,8 @@ export default defineConfig(async () => ({
 	build: {
 		rollupOptions: {
 			input: {
-				mainWindow: "./index.html",
+				mainWindow: "./mainWindow.html",
+				preferenceWindow: "./preferenceWindow.html",
 			},
 		},
 	},

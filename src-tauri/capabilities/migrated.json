@@ -3,7 +3,8 @@
   "description": "permissions that were migrated from v1",
   "context": "local",
   "windows": [
-    "main"
+    "main",
+    "settings"
   ],
   "permissions": [
     "path:default",

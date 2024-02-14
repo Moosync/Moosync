@@ -1100,6 +1100,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "database"
+version = "0.1.0"
+dependencies = [
+ "diesel",
+ "diesel_migrations",
+ "macros",
+ "serde",
+ "serde_json",
+ "types",
+ "uuid",
+]
+
+[[package]]
 name = "deranged"
 version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2770,6 +2783,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c41e0c4fef86961ac6d6f8a82609f55f31b05e4fce149ac5710e439df7619ba4"
 
 [[package]]
+name = "macros"
+version = "0.1.0"
+
+[[package]]
 name = "malloc_buf"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2908,16 +2925,10 @@ dependencies = [
 name = "moosync"
 version = "0.0.0"
 dependencies = [
- "chacha20poly1305",
- "diesel",
- "diesel_migrations",
- "hex",
- "json_dotpath",
- "keyring",
- "lazy_static",
+ "database",
+ "macros",
  "open",
- "rand 0.8.5",
- "rusty_ytdl",
+ "preferences",
  "serde",
  "serde_json",
  "tauri",
@@ -2925,9 +2936,10 @@ dependencies = [
  "tauri-plugin-deep-link",
  "tauri-plugin-single-instance",
  "thiserror",
+ "types",
  "uuid",
  "webkit2gtk",
- "whoami",
+ "youtube",
 ]
 
 [[package]]
@@ -3675,6 +3687,21 @@ name = "precomputed-hash"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
+
+[[package]]
+name = "preferences"
+version = "0.1.0"
+dependencies = [
+ "chacha20poly1305",
+ "hex",
+ "json_dotpath",
+ "keyring",
+ "rand 0.8.5",
+ "serde",
+ "serde_json",
+ "types",
+ "whoami",
+]
 
 [[package]]
 name = "proc-macro-crate"
@@ -5453,6 +5480,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
 
 [[package]]
+name = "types"
+version = "0.1.0"
+dependencies = [
+ "diesel",
+ "json_dotpath",
+ "rusty_ytdl",
+ "serde",
+ "serde_json",
+ "tauri",
+ "thiserror",
+]
+
+[[package]]
 name = "uds_windows"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6380,6 +6420,15 @@ dependencies = [
  "quote",
  "syn 2.0.48",
  "synstructure",
+]
+
+[[package]]
+name = "youtube"
+version = "0.1.0"
+dependencies = [
+ "database",
+ "rusty_ytdl",
+ "types",
 ]
 
 [[package]]

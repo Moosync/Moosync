@@ -1,7 +1,7 @@
 use diesel::{AsChangeset, Insertable, Queryable};
 use serde::{Deserialize, Serialize};
 
-use crate::db::cache_schema::cache;
+use crate::cache_schema::cache;
 
 #[derive(Deserialize, Serialize, Insertable, Default, Queryable, AsChangeset, Clone, Debug)]
 #[diesel(table_name = cache)]

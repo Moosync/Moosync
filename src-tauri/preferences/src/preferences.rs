@@ -12,13 +12,10 @@ use chacha20poly1305::{
 use json_dotpath::DotPaths;
 use keyring::Entry;
 
-
-
 use serde_json::Value;
-use tauri::{App, Error, Manager, State};
 use whoami;
 
-use crate::{errors::errors::Result, generate_command};
+use types::errors::errors::{MoosyncError, Result};
 
 pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,
@@ -26,6 +23,39 @@ pub struct PreferenceConfig {
 }
 
 impl PreferenceConfig {
+    pub fn new(data_dir: PathBuf) -> Result<Self> {
+        let config_file = data_dir.join("config.json");
+        println!("{:?}", data_dir);
+
+        if !data_dir.exists() {
+            fs::create_dir_all(data_dir)?;
+        }
+
+        if !config_file.exists() {
+            let mut file = File::create(config_file.clone())?;
+            file.write_all(b"{}")?;
+        }
+
+        // TODO: Error handling
+        let entry = Entry::new("moosync", whoami::username().as_str()).unwrap();
+        let secret = if let Ok(password) = entry.get_password() {
+            let decoded = hex::decode(password).unwrap();
+            Key::from(GenericArray::clone_from_slice(
+                &decoded[0..ChaCha20Poly1305::key_size()],
+            ))
+        } else {
+            let key = ChaCha20Poly1305::generate_key(&mut OsRng);
+            let encoded = hex::encode(key).to_string();
+            entry.set_password(encoded.as_str()).unwrap();
+            key
+        };
+
+        Ok(PreferenceConfig {
+            config_file: Mutex::new(config_file),
+            secret: Mutex::new(secret),
+        })
+    }
+
     pub fn load_selective(&self, key: String) -> Result<Value> {
         let config_file_path = self.config_file.lock().unwrap();
         let mut config_file = File::open(config_file_path.as_os_str())?;
@@ -33,9 +63,7 @@ impl PreferenceConfig {
         config_file.read_to_string(&mut prefs)?;
 
         let value: Value = serde_json::from_str(&prefs).unwrap();
-        let val: Option<Value> = value
-            .dot_get(format!("prefs.{}", key).as_str())
-            .map_err(|e| Error::AssetNotFound(e.to_string()))?;
+        let val: Option<Value> = value.dot_get(format!("prefs.{}", key).as_str())?;
         if val.is_none() {
             println!("No value found for {}", key);
             return Ok(Value::Null);
@@ -58,6 +86,25 @@ impl PreferenceConfig {
         let mut config_file = File::create(config_file_path.as_os_str())?;
         config_file.write_all(serde_json::to_string(&prefs)?.as_bytes())?;
         Ok(())
+    }
+
+    pub fn load_selective_array(&self, key: String) -> Result<Value> {
+        let mut split = key.split(".");
+        let parent = split.next().unwrap();
+        let child = split.next().unwrap();
+
+        let preference = self.load_selective(parent.to_string())?;
+        if preference.is_array() {
+            for item in preference.as_array().unwrap() {
+                if let Some(key) = item.get("key") {
+                    if key == child {
+                        return Ok(item.clone().take());
+                    }
+                }
+            }
+        }
+
+        Err(MoosyncError::String("Invalid key".into()))
     }
 
     pub fn get_secure(&self, key: String) -> Result<Value> {
@@ -94,54 +141,3 @@ impl PreferenceConfig {
         Ok(())
     }
 }
-
-pub fn get_preference_state(app: &mut App) -> Result<PreferenceConfig> {
-    let data_dir = app.path().app_config_dir()?;
-    let config_file = data_dir.join("config.json");
-    println!("{:?}", data_dir);
-
-    if !data_dir.exists() {
-        fs::create_dir_all(data_dir)?;
-    }
-
-    if !config_file.exists() {
-        let mut file = File::create(config_file.clone())?;
-        file.write(b"{}")?;
-    }
-
-    // TODO: Error handling
-    let entry = Entry::new("moosync", whoami::username().as_str()).unwrap();
-    let secret = if let Ok(password) = entry.get_password() {
-        let decoded = hex::decode(password).unwrap();
-        Key::from(GenericArray::clone_from_slice(
-            &decoded[0..ChaCha20Poly1305::key_size()],
-        ))
-    } else {
-        let key = ChaCha20Poly1305::generate_key(&mut OsRng);
-        let encoded = hex::encode(key).to_string();
-        entry.set_password(encoded.as_str()).unwrap();
-        key
-    };
-
-    Ok(PreferenceConfig {
-        config_file: Mutex::new(config_file),
-        secret: Mutex::new(secret),
-    })
-}
-
-pub fn initial(state: State<PreferenceConfig>) {
-    state
-        .save_selective("hotkeys".into(), Value::Array(vec![]))
-        .unwrap();
-    state
-        .save_selective("isFirstLaunch".into(), Value::Bool(false))
-        .unwrap();
-    state
-        .save_selective("youtubeAlt".into(), Value::Array(vec![]))
-        .unwrap();
-}
-
-generate_command!(load_selective, PreferenceConfig, Value, key: String);
-generate_command!(save_selective, PreferenceConfig, (), key: String, value: Value);
-generate_command!(get_secure, PreferenceConfig, Value, key: String);
-generate_command!(set_secure, PreferenceConfig, (), key: String, value: Value);

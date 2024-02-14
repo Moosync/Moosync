@@ -1,7 +1,7 @@
 use diesel::{AsChangeset, Identifiable, Insertable, Queryable};
 use serde::{Deserialize, Serialize};
 
-use crate::db::schema::{
+use crate::schema::{
     album_bridge, albums, artist_bridge, artists, genre_bridge, genres, playlist_bridge, playlists,
 };
 

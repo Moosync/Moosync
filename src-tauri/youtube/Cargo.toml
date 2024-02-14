@@ -1,0 +1,11 @@
+[package]
+name = "youtube"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rusty_ytdl = "0.6.6"
+database = { path = "../database" }
+types = { path = "../types" }

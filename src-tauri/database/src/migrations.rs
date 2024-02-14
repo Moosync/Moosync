@@ -1,8 +1,5 @@
-
-
-use diesel::{sqlite::Sqlite};
+use diesel::sqlite::Sqlite;
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 pub const CACHE_MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations_cache");

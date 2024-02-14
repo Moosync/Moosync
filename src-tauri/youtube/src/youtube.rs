@@ -1,30 +1,27 @@
-use crate::{
-    errors::errors::Result,
-    generate_command_async,
-    types::{
-        entities::{QueryableAlbum, QueryableArtist, SearchResult},
-        songs::{QueryableSong, Song, SongType},
-    },
+use database::types::{
+    entities::{QueryableAlbum, QueryableArtist, SearchResult},
+    songs::{QueryableSong, Song, SongType},
 };
-
 use rusty_ytdl::{
     search::{SearchOptions, SearchType, YouTube},
-    Video,
+    VideoFormat,
 };
+use types::errors::errors::{MoosyncError, Result};
 
-use tauri::State;
 pub struct YoutubeScraper {
     youtube: YouTube,
 }
 
-impl YoutubeScraper {
-    pub fn new() -> YoutubeScraper {
+impl Default for YoutubeScraper {
+    fn default() -> YoutubeScraper {
         YoutubeScraper {
             youtube: YouTube::new().unwrap(),
         }
     }
+}
 
-    fn parse_song(&self, v: rusty_ytdl::search::Video) -> Song {
+impl YoutubeScraper {
+    pub fn parse_song(&self, v: rusty_ytdl::search::Video) -> Song {
         Song {
             song: QueryableSong {
                 _id: Some(format!("youtube:{}", v.id.clone())),
@@ -45,7 +42,7 @@ impl YoutubeScraper {
                 hash: None,
                 type_: SongType::YOUTUBE,
                 url: Some(v.id.clone()),
-                song_cover_path_high: v.thumbnails.get(0).map(|d| d.url.clone()),
+                song_cover_path_high: v.thumbnails.first().map(|d| d.url.clone()),
                 song_cover_path_low: v.thumbnails.get(1).map(|d| d.url.clone()),
                 playback_url: Some(v.id),
                 date_added: None,
@@ -109,14 +106,28 @@ impl YoutubeScraper {
     }
 
     pub async fn get_video_url(&self, id: String) -> Result<String> {
+        println!("getting video url for {}", id);
         let video = rusty_ytdl::Video::new(id)?;
-        Ok(video.get_video_url())
+        let info = video.get_info().await?;
+
+        let mut best_format: Option<VideoFormat> = None;
+        for format in info.formats {
+            if let Some(best) = best_format.clone() {
+                if format.has_audio
+                    && !format.is_dash_mpd
+                    && format.is_hls
+                    && format.audio_bitrate > best.audio_bitrate
+                {
+                    best_format = Some(format);
+                }
+            } else {
+                best_format = Some(format);
+            }
+        }
+
+        match best_format {
+            Some(f) => Ok(f.url.clone()),
+            None => Err(MoosyncError::String("Unable to find URL".into())),
+        }
     }
 }
-
-pub fn get_youtube_scraper_state() -> YoutubeScraper {
-    YoutubeScraper::new()
-}
-
-generate_command_async!(search_yt, YoutubeScraper, SearchResult, title: String, artists: Vec<String>);
-generate_command_async!(get_video_url, YoutubeScraper, String, id: String);

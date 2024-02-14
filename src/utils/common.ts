@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 console.log(invoke);
 
 window.PreferenceUtils = {
-	saveSelective: (key: string, value: unknown, isExtension: boolean) => {
+	saveSelective: (key, value) => {
 		return invoke("save_selective", { key, value });
 	},
 
@@ -12,8 +12,8 @@ window.PreferenceUtils = {
 		return invoke("load_selective", { key });
 	},
 
-	loadSelectiveArrayItem: async () => {
-		return {};
+	loadSelectiveArrayItem: async (key) => {
+		return invoke("load_selective_array", { key });
 	},
 
 	listenPreferenceChanged: async () => {
@@ -140,6 +140,17 @@ window.WindowUtils = {
 	openExternal: async (url) => {
 		return await invoke("open_external", { url });
 	},
+	openWindow: async (isMainWindow, args) => {
+		return await invoke("open_window", { isMainWindow });
+	},
+	listenArgs: (callback) => {
+		callback({
+			page: "paths",
+		});
+	},
+	showTitlebarIcons: async () => {
+		return false;
+	},
 };
 
 window.DBUtils = new Proxy(
@@ -170,7 +181,11 @@ window.SearchUtils = {
 		return await invoke("search_yt", { title, artists: artists ?? [] });
 	},
 	getYTAudioURL: async (id) => {
-		return await invoke("get_video_url", { videoId: id });
+		console.log("getting url for", id);
+		return await invoke("get_video_url", { id });
+	},
+	searchAll: async (term) => {
+		return await invoke("search_all", { term });
 	},
 };
 

@@ -1,6 +1,13 @@
 {
   "app": {
     "macOSPrivateApi": false,
+    "windows": [
+      {
+        "url": "/mainWindow",
+        "height": 800,
+        "width": 1024
+      }
+    ],
     "security": {
       "assetProtocol": {
         "enable": true,

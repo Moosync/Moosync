@@ -233,6 +233,7 @@ export default class AudioStream extends mixins(
         this.registerPlayerListeners()
         this.activePlayerTypes = newType
 
+        console.log('using embeds', this.useEmbed)
         this.showYTPlayer =
           this.useEmbed && vxm.providers.youtubeAlt === YoutubeAlts.YOUTUBE && player.key === 'YOUTUBE' ? 2 : 0
         this.analyserNode = undefined
@@ -365,6 +366,7 @@ export default class AudioStream extends mixins(
     if (player.isInitialized) return
 
     if (player instanceof YoutubePlayer) {
+      console.log("embeds", await window.PreferenceUtils.loadSelectiveArrayItem<Checkbox>('youtubeOptions.youtube_embeds'))
       this.useEmbed =
         (await window.PreferenceUtils.loadSelectiveArrayItem<Checkbox>('youtubeOptions.youtube_embeds'))?.enabled ??
         true

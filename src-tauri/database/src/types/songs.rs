@@ -10,12 +10,12 @@ use diesel::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::db::schema::allsongs;
+use crate::schema::allsongs;
 
 use super::entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist};
 
 #[derive(Debug, Default, Deserialize, Serialize, FromSqlRow, AsExpression, Clone)]
-#[sql_type = "diesel::sql_types::Text"]
+#[diesel(sql_type = diesel::sql_types::Text)]
 pub enum SongType {
     #[default]
     LOCAL,

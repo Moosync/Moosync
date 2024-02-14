@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{path::PathBuf};
 
 use diesel::{
     connection::SimpleConnection,
@@ -7,9 +7,9 @@ use diesel::{
     r2d2::{self, ConnectionManager, Pool},
     ExpressionMethods, RunQueryDsl, SqliteConnection,
 };
-use tauri::{App, Manager};
 
-use crate::{errors::errors::Result, types::cache::CacheModel};
+use crate::types::cache::CacheModel;
+use types::errors::errors::Result;
 
 use super::{
     cache_schema::{
@@ -75,16 +75,4 @@ impl CacheHolder {
         }
         Ok(None)
     }
-}
-
-pub fn get_cache_state(app: &mut App) -> CacheHolder {
-    let data_dir = app.path().app_cache_dir().unwrap();
-    let path = data_dir.join("http_cache.db");
-    if !data_dir.exists() {
-        fs::create_dir_all(data_dir).unwrap();
-    }
-    println!("Cache DB path {:?}", path);
-    let db = CacheHolder::new(path);
-
-    db
 }

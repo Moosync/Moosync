@@ -2,35 +2,31 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use logger::logger::{log_debug, log_error, log_info, log_warn};
-use preference_holder::preferences::{
-    get_secure, initial, load_selective, save_selective, set_secure,
+use preference_holder::{
+    get_preference_state, get_secure, initial, load_selective, load_selective_array,
+    save_selective, set_secure,
 };
 
-use tauri::{Manager, State, WebviewWindowBuilder};
+use tauri::{Manager, State};
 
-use crate::{
+use {
     db::{
-        cache::get_cache_state,
-        database::{get_db_state, get_entity_by_options, get_songs_by_options},
+        get_cache_state, {get_db_state, get_entity_by_options, get_songs_by_options, search_all},
     },
     oauth::handler::{get_oauth_state, OAuthHandler},
-    preference_holder::preferences::get_preference_state,
     window::handler::{
         close_window, get_platform, get_window_state, has_frame, is_maximized, maximize_window,
-        minimize_window, open_external, update_zoom,
+        minimize_window, open_external, open_window, update_zoom,
     },
-    youtube::youtube::{get_video_url, get_youtube_scraper_state, search_yt},
+    youtube::{get_video_url, get_youtube_scraper_state, search_yt},
 };
 
 use crate::oauth::handler::{register_oauth_path, unregister_oauth_path};
 
 mod db;
-mod errors;
 mod logger;
-mod macros;
 mod oauth;
 mod preference_holder;
-mod types;
 mod window;
 mod youtube;
 
@@ -38,9 +34,7 @@ mod youtube;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
-            println!("{}, {argv:?}, {cwd}", app.package_info().name);
-
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if let Some(url) = argv.get(1) {
                 let state: State<OAuthHandler> = app.state();
                 state.handle_oauth(app, url.to_string()).unwrap();
@@ -50,6 +44,7 @@ pub fn run() {
             // Preferences
             save_selective,
             load_selective,
+            load_selective_array,
             get_secure,
             set_secure,
             // Logger
@@ -60,6 +55,7 @@ pub fn run() {
             // DB
             get_songs_by_options,
             get_entity_by_options,
+            search_all,
             // OAuth
             register_oauth_path,
             unregister_oauth_path,
@@ -72,6 +68,7 @@ pub fn run() {
             minimize_window,
             update_zoom,
             open_external,
+            open_window,
             // Youtube
             search_yt,
             get_video_url,
@@ -101,9 +98,6 @@ pub fn run() {
                 println!("got url {:?}", url);
             });
 
-            println!("Creating new window");
-            WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("/mainWindow".into()))
-                .build()?;
             Ok(())
         })
         .run(tauri::generate_context!())

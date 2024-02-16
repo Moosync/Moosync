@@ -1,6 +1,8 @@
+use std::{fmt::Display, str::FromStr};
+
 use diesel::{
     backend::Backend,
-    deserialize::{self, FromSql, FromSqlRow},
+    deserialize::{self, FromSql, FromSqlRow, QueryableByName},
     expression::AsExpression,
     serialize::ToSql,
     sql_types::Text,
@@ -8,13 +10,19 @@ use diesel::{
     AsChangeset, Identifiable, Insertable, Queryable, Selectable,
 };
 use serde::{Deserialize, Serialize};
+use types::errors::errors::MoosyncError;
 use uuid::Uuid;
 
 use crate::schema::allsongs;
 
-use super::entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist};
+use super::{
+    entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist},
+    traits::SearchByTerm,
+};
 
-#[derive(Debug, Default, Deserialize, Serialize, FromSqlRow, AsExpression, Clone)]
+#[derive(
+    Debug, Default, Deserialize, Serialize, FromSqlRow, AsExpression, Clone, PartialEq, Eq,
+)]
 #[diesel(sql_type = diesel::sql_types::Text)]
 pub enum SongType {
     #[default]
@@ -24,6 +32,35 @@ pub enum SongType {
     SPOTIFY,
     DASH,
     HLS,
+}
+impl Display for SongType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let data = match self {
+            SongType::LOCAL => "LOCAL",
+            SongType::URL => "URL",
+            SongType::YOUTUBE => "YOUTUBE",
+            SongType::SPOTIFY => "SPOTIFY",
+            SongType::DASH => "DASH",
+            SongType::HLS => "HLS",
+        };
+        write!(f, "{}", data)
+    }
+}
+
+impl FromStr for SongType {
+    type Err = MoosyncError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "LOCAL" => Ok(SongType::LOCAL),
+            "URL" => Ok(SongType::URL),
+            "YOUTUBE" => Ok(SongType::YOUTUBE),
+            "SPOTIFY" => Ok(SongType::SPOTIFY),
+            "DASH" => Ok(SongType::DASH),
+            "HLS" => Ok(SongType::HLS),
+            _ => Err(MoosyncError::String(format!("Invalid song type: {}", s))),
+        }
+    }
 }
 
 impl ToSql<Text, Sqlite> for SongType
@@ -74,6 +111,7 @@ where
     AsChangeset,
     Clone,
     Selectable,
+    QueryableByName,
 )]
 #[diesel(table_name = allsongs)]
 #[diesel(primary_key(_id))]
@@ -120,9 +158,20 @@ pub struct QueryableSong {
 
 impl QueryableSong {
     pub fn empty() -> Self {
-        let mut song: Self = Default::default();
-        song._id = Some(Uuid::new_v4().to_string());
-        song
+        Self {
+            _id: Some(Uuid::new_v4().to_string()),
+            ..Default::default()
+        }
+    }
+}
+
+impl SearchByTerm for QueryableSong {
+    fn search_by_term(term: Option<String>) -> Self {
+        let mut data = Self::empty();
+        data.title = term.clone();
+        data.path = term;
+
+        data
     }
 }
 

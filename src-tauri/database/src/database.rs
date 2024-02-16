@@ -1,3 +1,6 @@
+use std::cmp::min;
+
+use std::str::FromStr;
 use std::{path::PathBuf, vec};
 
 use diesel::{
@@ -6,11 +9,15 @@ use diesel::{
     r2d2::{self, ConnectionManager, Pool, PooledConnection},
     update, Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SqliteConnection,
 };
-use diesel::{TextExpressionMethods};
+use diesel::{insert_or_ignore_into, BoolExpressionMethods, Insertable, TextExpressionMethods};
 use macros::{filter_field, filter_field_like};
 use serde_json::Value;
+use uuid::Uuid;
 
+use crate::schema::playlists::dsl::playlists;
+use crate::types::entities::PlaylistBridge;
 use crate::types::songs::SearchableSong;
+use crate::types::traits::{BridgeUtils, SearchByTerm};
 use crate::{
     schema::{
         self,
@@ -63,32 +70,168 @@ impl Database {
 
     fn connect(path: PathBuf) -> Pool<ConnectionManager<SqliteConnection>> {
         let manager = ConnectionManager::<SqliteConnection>::new(path.to_str().unwrap());
-        let pool = r2d2::Pool::builder()
+
+        r2d2::Pool::builder()
             .build(manager)
-            .expect("Failed to create pool.");
-        pool
+            .expect("Failed to create pool.")
     }
 
-    pub fn insert_songs(&self, songs: Vec<Song>) -> Result<()> {
+    fn insert_album(
+        &self,
+        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        _album: QueryableAlbum,
+    ) -> Result<String> {
+        let mut cloned = _album.clone();
+        cloned.album_id = Some(Uuid::new_v4().to_string());
+        insert_into(albums).values(&cloned).execute(conn)?;
+        Ok(cloned.album_id.unwrap())
+    }
+
+    fn insert_artist(
+        &self,
+        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        _artist: QueryableArtist,
+    ) -> Result<String> {
+        let mut cloned = _artist.clone();
+        cloned.artist_id = Some(Uuid::new_v4().to_string());
+        insert_into(artists).values(&cloned).execute(conn)?;
+        Ok(cloned.artist_id.unwrap())
+    }
+
+    fn insert_genre(
+        &self,
+        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        _genre: QueryableGenre,
+    ) -> Result<String> {
+        let mut cloned = _genre.clone();
+        cloned.genre_id = Some(Uuid::new_v4().to_string());
+        insert_into(genres).values(&cloned).execute(conn)?;
+        Ok(cloned.genre_id.unwrap())
+    }
+
+    fn insert_playlist(
+        &self,
+        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        _playlist: QueryablePlaylist,
+    ) -> Result<String> {
+        let mut cloned = _playlist.clone();
+        cloned.playlist_id = Some(Uuid::new_v4().to_string());
+        insert_into(playlists).values(&cloned).execute(conn)?;
+        Ok(cloned.playlist_id.unwrap())
+    }
+
+    pub fn create_playlist(&self, playlist: QueryablePlaylist) -> Result<String> {
         let mut conn = self.pool.get().unwrap();
-        for song in songs {
-            insert_into(allsongs)
+
+        let mut playlist = playlist.clone();
+        if playlist.playlist_id.is_none() {
+            playlist.playlist_id = Some(Uuid::new_v4().to_string());
+        }
+
+        if playlist.playlist_name.is_empty() {
+            playlist.playlist_name = "New playlist".to_string();
+        }
+
+        if playlist.playlist_path.is_some() {
+            let fetched = self.get_playlists(
+                QueryablePlaylist {
+                    playlist_path: playlist.playlist_path.clone(),
+                    ..Default::default()
+                },
+                false,
+                &mut conn,
+            )?;
+            if !fetched.is_empty() {
+                return Ok(fetched[0].playlist_id.clone().unwrap());
+            }
+        }
+
+        self.insert_playlist(&mut conn, playlist)
+    }
+
+    pub fn add_to_playlist(&self, playlist_id: String, song_id: String) -> Result<()> {
+        let mut conn = self.pool.get().unwrap();
+        insert_into(playlist_bridge)
+            .values(PlaylistBridge::insert_value(playlist_id, song_id))
+            .execute(&mut conn)?;
+
+        Ok(())
+    }
+
+    pub fn insert_songs(&self, songs: Vec<Song>) -> Result<Vec<Song>> {
+        let mut ret = vec![];
+        let mut conn = self.pool.get().unwrap();
+        for mut song in songs {
+            if song.song._id.is_none() {
+                song.song._id = Some(Uuid::new_v4().to_string());
+            }
+
+            let changed = insert_or_ignore_into(allsongs)
                 .values(&song.song)
                 .execute(&mut conn)?;
 
-            if song.album.is_some() {
-                let album_ = song.album.unwrap();
-                insert_into(albums).values(&album_).execute(&mut conn)?;
-                insert_into(album_bridge)
-                    .values(&AlbumBridge {
-                        id: None,
-                        song: song.song._id,
-                        album: album_.album_id,
-                    })
-                    .execute(&mut conn)?;
+            if changed == 0 {
+                ret.push(song);
+                continue;
             }
+
+            if let Some(_album) = &mut song.album {
+                let album_id_ = self
+                    .get_albums(
+                        QueryableAlbum::search_by_term(_album.album_name.clone()),
+                        false,
+                        &mut conn,
+                    )?
+                    .first()
+                    .map(|v| v.album_id.clone().unwrap())
+                    .unwrap_or_else(|| self.insert_album(&mut conn, _album.clone()).unwrap());
+
+                AlbumBridge::insert_value(album_id_.clone(), song.song._id.clone().unwrap())
+                    .insert_into(album_bridge)
+                    .execute(&mut conn)?;
+
+                _album.album_id = Some(album_id_);
+            }
+
+            for mut _artist in &mut song.artists {
+                let artist_id_ = self
+                    .get_artists(
+                        QueryableArtist::search_by_term(_artist.artist_name.clone()),
+                        false,
+                        &mut conn,
+                    )?
+                    .first()
+                    .map(|v| v.artist_id.clone().unwrap())
+                    .unwrap_or_else(|| self.insert_artist(&mut conn, _artist.clone()).unwrap());
+
+                ArtistBridge::insert_value(artist_id_.clone(), song.song._id.clone().unwrap())
+                    .insert_into(artist_bridge)
+                    .execute(&mut conn)?;
+
+                _artist.artist_id = Some(artist_id_);
+            }
+
+            for mut _genre in &mut song.genre {
+                let genre_id_ = self
+                    .get_genres(
+                        QueryableGenre::search_by_term(_genre.genre_name.clone()),
+                        false,
+                        &mut conn,
+                    )?
+                    .first()
+                    .map(|v| v.genre_id.clone().unwrap())
+                    .unwrap_or_else(|| self.insert_genre(&mut conn, _genre.clone()).unwrap());
+
+                GenreBridge::insert_value(genre_id_.clone(), song.song._id.clone().unwrap())
+                    .insert_into(genre_bridge)
+                    .execute(&mut conn)?;
+
+                _genre.genre_id = Some(genre_id_);
+            }
+
+            ret.push(song);
         }
-        Ok(())
+        Ok(ret)
     }
 
     // TODO: Remove album
@@ -535,8 +678,6 @@ impl Database {
             inclusive: Some(false),
         })?;
 
-        println!("Got songs: {:?}", songs);
-
         let mut conn = self.pool.get().unwrap();
         let _albums = self.get_albums(
             QueryableAlbum {
@@ -577,7 +718,7 @@ impl Database {
             &mut conn,
         )?;
 
-        let playlists = self.get_playlists(
+        let _playlists = self.get_playlists(
             QueryablePlaylist {
                 playlist_id: None,
                 playlist_name: term.clone(),
@@ -595,9 +736,46 @@ impl Database {
         Ok(SearchResult {
             songs,
             artists: _artists,
-            playlists,
+            playlists: _playlists,
             albums: _albums,
             genres: _genres,
         })
+    }
+
+    pub fn files_not_in_db(&self, file_list: Vec<(PathBuf, f64)>) -> Result<Vec<(PathBuf, f64)>> {
+        let mut conn = self.pool.get().unwrap();
+
+        let mut file_list_copy = file_list.clone();
+        let len = file_list.len();
+
+        let mut ret = vec![];
+
+        let exp_limit = 998;
+        for _ in 0..len / exp_limit + 1 {
+            let curr_len = min(len, exp_limit);
+            let mut query =
+                QueryDsl::select(allsongs, (schema::allsongs::path, schema::allsongs::size))
+                    .into_boxed();
+            for _ in 0..curr_len {
+                let data = file_list_copy.pop().unwrap();
+                let predicate = schema::allsongs::path
+                    .eq(data.0.to_string_lossy().to_string())
+                    .and(schema::allsongs::size.eq(data.1));
+                query = query.or_filter(predicate);
+            }
+
+            let mut res = query
+                .load::<(Option<String>, Option<f64>)>(&mut conn)?
+                .iter()
+                .map(|v| {
+                    (
+                        PathBuf::from_str(v.0.clone().unwrap().as_str()).unwrap(),
+                        v.1.unwrap(),
+                    )
+                })
+                .collect::<Vec<_>>();
+            ret.append(&mut res);
+        }
+        Ok(ret)
     }
 }

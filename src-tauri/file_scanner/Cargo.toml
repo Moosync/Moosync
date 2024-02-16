@@ -1,0 +1,22 @@
+[package]
+name = "file_scanner"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+database = { path = "../database" }
+substring = "1.4.5"
+types = { path = "../types" }
+blake3 = { version = "1.5.0", features = ["std"] }
+fast_image_resize = "3.0.4"
+image = "0.24.7"
+lazy_static = "1.4.0"
+lofty = "0.18.2"
+regex = "1.10.2"
+threadpool = "1.8.1"
+num_cpus = "1.16.0"
+uuid = { version = "1.7.0", features = ["v4"] }
+jwalk = "0.8.1"
+dunce = "1.0.4"

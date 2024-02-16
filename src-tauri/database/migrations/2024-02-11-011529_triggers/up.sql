@@ -22,6 +22,11 @@ SET
 WHERE
     artist_id = OLD.artist;
 
+DELETE FROM
+    artists
+WHERE
+    artist_song_count = 0;
+
 END;
 
 CREATE TRIGGER increment_album_count
@@ -47,6 +52,11 @@ SET
 WHERE
     album_id = OLD.album;
 
+DELETE FROM
+    albums
+WHERE
+    album_song_count = 0;
+
 END;
 
 CREATE TRIGGER increment_genre_count
@@ -71,6 +81,11 @@ SET
     genre_song_count = genre_song_count - 1
 WHERE
     genre_id = OLD.genre;
+
+DELETE FROM
+    genres
+WHERE
+    genre_song_count = 0;
 
 END;
 

@@ -12,8 +12,8 @@ use macros::generate_command;
 use serde_json::Value;
 use tauri::{App, Manager, State};
 
-generate_command!(insert_songs, Database, (), a: Vec<Song>);
-generate_command!(remove_songs, Database, (), a: Vec<String>);
+generate_command!(insert_songs, Database, Vec<Song>, songs: Vec<Song>);
+generate_command!(remove_songs, Database, (), songs: Vec<String>);
 generate_command!(update_song, Database, (), a: QueryableSong);
 generate_command!(get_songs_by_options, Database, Vec<Song>, options: GetSongOptions);
 generate_command!(get_entity_by_options, Database, Value, options: GetEntityOptions);

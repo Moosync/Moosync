@@ -42,15 +42,14 @@ window.LoggerUtils = {
 	},
 };
 
-window.FileUtils = new Proxy(
-	{},
-	{
-		get(target, prop) {
-			console.log(target, prop);
-			return () => {};
-		},
+window.FileUtils = {
+	scan: (force) => {
+		return invoke("start_scan", { force, paths: null });
 	},
-) as any;
+	scanSingleSong: (path: string) => {
+		return invoke("start_scan", { paths: [path], force: false });
+	},
+};
 
 window.ThemeUtils = new Proxy(
 	{},
@@ -153,22 +152,11 @@ window.WindowUtils = {
 	},
 };
 
-window.DBUtils = new Proxy(
-	{},
-	{
-		get(target, prop) {
-			console.log(target, prop);
-			return () => {};
-		},
-	},
-) as any;
-
-// window.SearchUtils = new Proxy({}, {
-//   get(target, prop) {
-//     console.log(target, prop)
-//     return () => { }
-//   }
-// }) as any
+window.DBUtils = {
+	storeSongs: async (songs) => await invoke("store_songs", { songs }),
+	removeSongs: async (songs) =>
+		await invoke("remove_songs", { songs: songs.map((val) => val._id) }),
+};
 
 window.SearchUtils = {
 	searchEntityByOptions: (options) => {
@@ -242,6 +230,9 @@ window.ExtensionUtils = {
 	listenRequests: () => {},
 	sendEvent: (event) => {
 		return undefined as any;
+	},
+	getContextMenuItems: async () => {
+		return [];
 	},
 };
 
@@ -345,9 +336,8 @@ export function sortSongListFn(options: SongSortOptions[]) {
 				if (first !== second) {
 					if (!o.asc) {
 						return sortAsc(second, first);
-					} else {
-						return sortAsc(first, second);
 					}
+					return sortAsc(first, second);
 				}
 			}
 		}

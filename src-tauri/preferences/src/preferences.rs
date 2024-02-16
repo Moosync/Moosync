@@ -3,6 +3,7 @@ use std::{
     io::{Read, Write},
     path::PathBuf,
     sync::Mutex,
+    vec,
 };
 
 use chacha20poly1305::{
@@ -139,5 +140,21 @@ impl PreferenceConfig {
         self.save_selective(key, parsed.into())?;
 
         Ok(())
+    }
+
+    pub fn get_scan_paths(&self) -> Result<Vec<String>> {
+        let tmp = self.load_selective("musicPaths".to_string())?;
+
+        let paths = tmp.as_array().unwrap();
+
+        let mut ret = vec![];
+        for p in paths {
+            let enabled = p.get("enabled").unwrap().as_bool().unwrap();
+            if enabled {
+                ret.push(p.get("path").unwrap().as_str().unwrap().to_string());
+            }
+        }
+
+        Ok(ret)
     }
 }

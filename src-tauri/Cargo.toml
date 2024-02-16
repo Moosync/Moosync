@@ -1,5 +1,6 @@
 workspace = { members = [
     "database",
+    "file_scanner",
     "macros",
     "preferences",
     "types",
@@ -24,6 +25,7 @@ database = { path = "./database" }
 types = { path = "./types" }
 youtube = { path = "./youtube" }
 preferences = { path = "./preferences" }
+file_scanner = { path = "./file_scanner" }
 tauri = { version = "2.0.0-beta", features = ["protocol-asset", "devtools"] }
 tauri-plugin-deep-link = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }

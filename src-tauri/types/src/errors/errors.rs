@@ -1,5 +1,8 @@
-use std::io;
+use std::{io, num::ParseFloatError, time::SystemTimeError};
 
+use fast_image_resize::{DifferentTypesOfPixelsError, ImageBufferError};
+use image::ImageError;
+use lofty::LoftyError;
 use rusty_ytdl::VideoError;
 
 #[derive(Debug, thiserror::Error)]
@@ -16,6 +19,20 @@ pub enum MoosyncError {
     Youtube(#[from] VideoError),
     #[error(transparent)]
     DotPaths(#[from] json_dotpath::Error),
+    #[error(transparent)]
+    SystemTimeError(#[from] SystemTimeError),
+    #[error(transparent)]
+    ImageBufferError(#[from] ImageBufferError),
+    #[error(transparent)]
+    ImageError(#[from] ImageError),
+    #[error(transparent)]
+    DifferentTypesOfPixelsError(#[from] DifferentTypesOfPixelsError),
+    #[error(transparent)]
+    LoftyError(#[from] LoftyError),
+    #[error(transparent)]
+    ParseFloatError(#[from] ParseFloatError),
+    #[error(transparent)]
+    JWalkError(#[from] jwalk::Error),
     #[error("{0}")]
     String(String),
 }

@@ -1,17 +1,23 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use database::database::Database;
 use logger::logger::{log_debug, log_error, log_info, log_warn};
 use preference_holder::{
     get_preference_state, get_secure, initial, load_selective, load_selective_array,
     save_selective, set_secure,
 };
 
+use scanner::{get_scanner_state, start_scan};
 use tauri::{Manager, State};
 
 use {
     db::{
-        get_cache_state, {get_db_state, get_entity_by_options, get_songs_by_options, search_all},
+        get_cache_state,
+        {
+            get_db_state, get_entity_by_options, get_songs_by_options, insert_songs, remove_songs,
+            search_all,
+        },
     },
     oauth::handler::{get_oauth_state, OAuthHandler},
     window::handler::{
@@ -27,6 +33,7 @@ mod db;
 mod logger;
 mod oauth;
 mod preference_holder;
+mod scanner;
 mod window;
 mod youtube;
 
@@ -53,6 +60,8 @@ pub fn run() {
             log_info,
             log_warn,
             // DB
+            insert_songs,
+            remove_songs,
             get_songs_by_options,
             get_entity_by_options,
             search_all,
@@ -72,6 +81,8 @@ pub fn run() {
             // Youtube
             search_yt,
             get_video_url,
+            // Scanner
+            start_scan,
         ])
         .setup(|app| {
             let db = get_db_state(app);
@@ -91,6 +102,9 @@ pub fn run() {
 
             let yt_state = get_youtube_scraper_state();
             app.manage(yt_state);
+
+            let scanner_state = get_scanner_state();
+            app.manage(scanner_state);
 
             initial(app.state());
 

@@ -5,7 +5,10 @@ use crate::schema::{
     album_bridge, albums, artist_bridge, artists, genre_bridge, genres, playlist_bridge, playlists,
 };
 
-use super::songs::Song;
+use super::{
+    songs::Song,
+    traits::{BridgeUtils, SearchByTerm},
+};
 
 #[derive(
     Deserialize, Serialize, Insertable, Default, Queryable, Identifiable, AsChangeset, Clone, Debug,
@@ -24,6 +27,15 @@ pub struct QueryableAlbum {
     pub album_extra_info: Option<String>,
 }
 
+impl SearchByTerm for QueryableAlbum {
+    fn search_by_term(term: Option<String>) -> Self {
+        Self {
+            album_name: term,
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Deserialize, Insertable, Default, Queryable, Identifiable, Clone, Debug)]
 #[diesel(table_name = album_bridge)]
 #[diesel(primary_key(id))]
@@ -31,6 +43,16 @@ pub struct AlbumBridge {
     pub id: Option<i32>,
     pub song: Option<String>,
     pub album: Option<String>,
+}
+
+impl BridgeUtils for AlbumBridge {
+    fn insert_value(entity: String, song: String) -> Self {
+        Self {
+            album: Some(entity),
+            song: Some(song),
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(
@@ -49,6 +71,15 @@ pub struct QueryableArtist {
     pub sanitized_artist_name: Option<String>,
 }
 
+impl SearchByTerm for QueryableArtist {
+    fn search_by_term(term: Option<String>) -> Self {
+        Self {
+            artist_name: term,
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Deserialize, Insertable, Default, Queryable, Identifiable, Clone, Debug)]
 #[diesel(table_name = artist_bridge)]
 #[diesel(primary_key(id))]
@@ -56,6 +87,16 @@ pub struct ArtistBridge {
     pub id: Option<i32>,
     pub song: Option<String>,
     pub artist: Option<String>,
+}
+
+impl BridgeUtils for ArtistBridge {
+    fn insert_value(entity: String, song: String) -> Self {
+        Self {
+            artist: Some(entity),
+            song: Some(song),
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(
@@ -70,6 +111,15 @@ pub struct QueryableGenre {
     pub genre_song_count: f64,
 }
 
+impl SearchByTerm for QueryableGenre {
+    fn search_by_term(term: Option<String>) -> Self {
+        Self {
+            genre_name: term,
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Deserialize, Insertable, Default, Queryable, Identifiable, Clone, Debug)]
 #[diesel(table_name = genre_bridge)]
 #[diesel(primary_key(id))]
@@ -77,6 +127,16 @@ pub struct GenreBridge {
     pub id: Option<i32>,
     pub song: Option<String>,
     pub genre: Option<String>,
+}
+
+impl BridgeUtils for GenreBridge {
+    fn insert_value(entity: String, song: String) -> Self {
+        Self {
+            genre: Some(entity),
+            song: Some(song),
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Clone, Default)]
@@ -97,6 +157,16 @@ pub struct PlaylistBridge {
     pub playlist: Option<String>,
 }
 
+impl BridgeUtils for PlaylistBridge {
+    fn insert_value(entity: String, song: String) -> Self {
+        Self {
+            playlist: Some(entity),
+            song: Some(song),
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(
     Deserialize, Serialize, Insertable, Default, Queryable, Identifiable, AsChangeset, Clone, Debug,
 )]
@@ -113,6 +183,15 @@ pub struct QueryablePlaylist {
     pub playlist_path: Option<String>,
     pub extension: Option<String>,
     pub icon: Option<String>,
+}
+
+impl SearchByTerm for QueryablePlaylist {
+    fn search_by_term(term: Option<String>) -> Self {
+        Self {
+            playlist_name: term.unwrap_or_default(),
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug)]

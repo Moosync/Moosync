@@ -10,9 +10,7 @@ pub fn get_preference_state(app: &mut App) -> Result<PreferenceConfig> {
 }
 
 pub fn initial(state: State<PreferenceConfig>) {
-    state
-        .save_selective("hotkeys".into(), Value::Array(vec![]))
-        .unwrap();
+    state.save_selective("hotkeys".into(), Value::Null).unwrap();
     state
         .save_selective("isFirstLaunch".into(), Value::Bool(false))
         .unwrap();

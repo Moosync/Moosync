@@ -1,7 +1,8 @@
-use std::{io, num::ParseFloatError, time::SystemTimeError};
+use std::{io, num::ParseFloatError, string::FromUtf8Error, time::SystemTimeError};
 
 use fast_image_resize::{DifferentTypesOfPixelsError, ImageBufferError};
 use image::ImageError;
+use librespot::{core::Error as LibrespotError};
 use lofty::LoftyError;
 use rusty_ytdl::VideoError;
 
@@ -33,6 +34,14 @@ pub enum MoosyncError {
     ParseFloatError(#[from] ParseFloatError),
     #[error(transparent)]
     JWalkError(#[from] jwalk::Error),
+    #[error(transparent)]
+    Librespot(#[from] LibrespotError),
+    #[error(transparent)]
+    UTF8(#[from] FromUtf8Error),
+    #[error(transparent)]
+    Reqwest(#[from] reqwest::Error),
+    #[error(transparent)]
+    ProtoBuf(#[from] protobuf::Error),
     #[error("{0}")]
     String(String),
 }

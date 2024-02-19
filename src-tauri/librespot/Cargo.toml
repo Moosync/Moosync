@@ -1,0 +1,18 @@
+[package]
+name = "librespot"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+librespot = { git = "https://github.com/librespot-org/librespot", branch = "dev", features = [
+    "default",
+] }
+protobuf = { version = "3.3.0", features = ["bytes"] }
+reqwest = "0.11.24"
+tokio = { version = "1.36.0", features = ["full"] }
+futures-util = { version = "0.3.29", default_features = false }
+types = { path = "../types" }
+quote = "1.0.35"
+serde = { version = "1.0", features = ["derive"] }

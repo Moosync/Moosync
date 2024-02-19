@@ -5,15 +5,16 @@ console.log(invoke);
 
 window.PreferenceUtils = {
 	saveSelective: (key, value) => {
-		return invoke("save_selective", { key, value });
+		console.log("saving", key, value);
+		return invoke("save_selective", { key, value: value ?? null });
 	},
 
-	loadSelective: (key: string) => {
-		return invoke("load_selective", { key });
+	loadSelective: async (key: string, _, default_val) => {
+		return (await invoke("load_selective", { key })) ?? default_val;
 	},
 
-	loadSelectiveArrayItem: async (key) => {
-		return invoke("load_selective_array", { key });
+	loadSelectiveArrayItem: async (key, default_val) => {
+		return (await invoke("load_selective_array", { key })) ?? default_val;
 	},
 
 	listenPreferenceChanged: async () => {
@@ -49,6 +50,7 @@ window.FileUtils = {
 	scanSingleSong: (path: string) => {
 		return invoke("start_scan", { paths: [path], force: false });
 	},
+	listenInitialFileOpenRequest: async (callback) => {},
 };
 
 window.ThemeUtils = new Proxy(
@@ -150,6 +152,8 @@ window.WindowUtils = {
 	showTitlebarIcons: async () => {
 		return false;
 	},
+	mainWindowHasMounted: async () => {},
+	handleReload: async () => {},
 };
 
 window.DBUtils = {
@@ -245,6 +249,123 @@ window.Store = {
 	},
 	removeSecure: async (key) => {
 		return invoke("save_selective", { key, value: null });
+	},
+};
+
+class SpotifyPosition {
+	private interval: ReturnType<typeof setInterval> | undefined;
+	private callback: ((pos: number) => void) | undefined;
+	private position = 0;
+	private position_update = 500;
+
+	setCallback(callback?: (pos: number) => void) {
+		this.callback = callback;
+	}
+
+	start() {
+		if (this.interval) {
+			clearInterval(this.interval);
+			this.interval = undefined;
+		}
+
+		this.interval = setInterval(() => {
+			this.position = this.position + this.position_update;
+			this.callback?.(this.position);
+		}, this.position_update);
+	}
+
+	stop() {
+		if (this.interval) {
+			clearInterval(this.interval);
+			this.interval = undefined;
+		}
+	}
+
+	updatePos(pos: unknown) {
+		this.position = Number.parseInt((pos as string).toString());
+		this.callback?.(this.position);
+	}
+}
+const spotifyPositionHandler = new SpotifyPosition();
+
+window.SpotifyPlayer = {
+	connect: async (config) => {
+		return invoke("initialize_librespot", { config });
+	},
+	close: async () => {
+		return invoke("librespot_close");
+	},
+	command: async (command, args) => {
+		switch (command) {
+			case "PLAY":
+				return invoke("librespot_play");
+			case "PAUSE":
+				return invoke("librespot_pause");
+			case "SEEK":
+				return invoke("librespot_seek", { pos: args[0] });
+			case "LOAD":
+				return invoke("librespot_load", { uri: args[0], autoplay: false });
+			case "VOLUME":
+				return invoke("librespot_volume", {
+					volume: Number.parseInt(
+						((Math.max(Math.min(args[0], 100), 0) / 100) * 65535).toFixed(0),
+					),
+				});
+		}
+	},
+	getToken: async (scope) => {
+		return invoke("librespot_get_token", { scopes: scope.join(",") });
+	},
+	on: async <T extends PlayerEventTypes>(
+		event: T,
+		callback: (event: PlayerEvent<T>) => void,
+	) => {
+		if (event === "TimeUpdated") {
+			spotifyPositionHandler.setCallback((pos) => {
+				callback({
+					event,
+					position_ms: pos,
+				} as unknown as PlayerEvent<T>);
+			});
+			return () => spotifyPositionHandler.setCallback(undefined);
+		}
+
+		return await listen(`librespot_event_${event}`, (event) => {
+			const data = event.payload as PlayerEvent<T>;
+			switch (data.event) {
+				case "Playing":
+					spotifyPositionHandler.updatePos(
+						(data as PlayerEvent<"Playing">).position_ms,
+					);
+					spotifyPositionHandler.start();
+					break;
+				case "Paused":
+					spotifyPositionHandler.updatePos(
+						(data as PlayerEvent<"Paused">).position_ms,
+					);
+					spotifyPositionHandler.stop();
+					break;
+				case "Stopped":
+					spotifyPositionHandler.updatePos(0);
+					spotifyPositionHandler.stop();
+					break;
+				case "PositionCorrection":
+					spotifyPositionHandler.updatePos(
+						(data as PlayerEvent<"PositionCorrection">).position_ms,
+					);
+					break;
+				case "Seeked":
+					spotifyPositionHandler.updatePos(
+						(data as PlayerEvent<"Seeked">).position_ms,
+					);
+					break;
+				case "TrackChanged":
+					spotifyPositionHandler.updatePos(0);
+					spotifyPositionHandler.stop();
+					break;
+			}
+			callback(data);
+		});
 	},
 };
 

@@ -1,5 +1,6 @@
 use std::env;
 
+use librespot::LibrespotHolder;
 use macros::generate_command;
 use open;
 use preferences::preferences::PreferenceConfig;
@@ -87,6 +88,17 @@ impl WindowHandler {
 
         Ok(())
     }
+
+    pub fn reload_window(
+        &self,
+        librespot: State<LibrespotHolder>,
+        is_main_window: bool,
+    ) -> Result<()> {
+        if is_main_window {
+            librespot.librespot_close()?;
+        }
+        Ok(())
+    }
 }
 
 pub fn get_window_state() -> WindowHandler {
@@ -102,3 +114,4 @@ generate_command!(minimize_window, WindowHandler, (), window: Window);
 generate_command!(update_zoom, WindowHandler, (), app: AppHandle, preference: State<PreferenceConfig>);
 generate_command!(open_external, WindowHandler, (), url: String);
 generate_command!(open_window, WindowHandler, (), app: AppHandle, is_main_window: bool);
+generate_command!(reload_window, WindowHandler, (), app: State<LibrespotHolder>, is_main_window: bool);

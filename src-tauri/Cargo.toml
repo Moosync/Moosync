@@ -1,11 +1,14 @@
-workspace = { members = [
+[workspace]
+resolver = "2"
+members = [
     "database",
     "file_scanner",
+    "librespot",
     "macros",
     "preferences",
     "types",
     "youtube",
-] }
+]
 
 [package]
 name = "moosync"
@@ -26,6 +29,7 @@ types = { path = "./types" }
 youtube = { path = "./youtube" }
 preferences = { path = "./preferences" }
 file_scanner = { path = "./file_scanner" }
+librespot = { path = "./librespot" }
 tauri = { version = "2.0.0-beta", features = ["protocol-asset", "devtools"] }
 tauri-plugin-deep-link = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
@@ -48,3 +52,9 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [profile.release]
 strip = "symbols"
+
+[profile.dev]
+debug = 0
+opt-level = 0
+lto = false
+incremental = true

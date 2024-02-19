@@ -90,9 +90,9 @@ impl PreferenceConfig {
     }
 
     pub fn load_selective_array(&self, key: String) -> Result<Value> {
-        let mut split = key.split(".");
-        let parent = split.next().unwrap();
-        let child = split.next().unwrap();
+        let mut split: Vec<&str> = key.split('.').collect();
+        let child = split.pop().unwrap();
+        let parent = split.join(".");
 
         let preference = self.load_selective(parent.to_string())?;
         if preference.is_array() {

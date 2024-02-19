@@ -1,7 +1,10 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use database::database::Database;
+use librespot::{
+    get_librespot_state, initialize_librespot, librespot_close, librespot_get_token,
+    librespot_load, librespot_pause, librespot_play, librespot_seek, librespot_volume,
+};
 use logger::logger::{log_debug, log_error, log_info, log_warn};
 use preference_holder::{
     get_preference_state, get_secure, initial, load_selective, load_selective_array,
@@ -30,6 +33,7 @@ use {
 use crate::oauth::handler::{register_oauth_path, unregister_oauth_path};
 
 mod db;
+mod librespot;
 mod logger;
 mod oauth;
 mod preference_holder;
@@ -83,6 +87,15 @@ pub fn run() {
             get_video_url,
             // Scanner
             start_scan,
+            // Librespot
+            initialize_librespot,
+            librespot_play,
+            librespot_pause,
+            librespot_close,
+            librespot_load,
+            librespot_seek,
+            librespot_volume,
+            librespot_get_token,
         ])
         .setup(|app| {
             let db = get_db_state(app);
@@ -105,6 +118,9 @@ pub fn run() {
 
             let scanner_state = get_scanner_state();
             app.manage(scanner_state);
+
+            let librespot_state = get_librespot_state();
+            app.manage(librespot_state);
 
             initial(app.state());
 

@@ -9,7 +9,7 @@ pub fn get_preference_state(app: &mut App) -> Result<PreferenceConfig> {
     PreferenceConfig::new(data_dir)
 }
 
-pub fn initial(state: State<PreferenceConfig>) {}
+pub fn initial(_state: State<PreferenceConfig>) {}
 
 generate_command!(load_selective, PreferenceConfig, Value, key: String);
 generate_command!(save_selective, PreferenceConfig, (), key: String, value: Value);

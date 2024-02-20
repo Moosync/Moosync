@@ -26,6 +26,12 @@ pub struct ScannerHolder {
     progress: Mutex<u8>,
 }
 
+impl Default for ScannerHolder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ScannerHolder {
     pub fn new() -> Self {
         Self {

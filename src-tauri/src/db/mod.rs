@@ -27,9 +27,9 @@ pub fn get_cache_state(app: &mut App) -> CacheHolder {
         }
     }
     println!("Cache DB path {:?}", path);
-    let db = CacheHolder::new(path);
+    
 
-    db
+    CacheHolder::new(path)
 }
 
 pub fn get_db_state(app: &mut App) -> Database {

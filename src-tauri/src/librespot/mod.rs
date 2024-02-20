@@ -1,12 +1,12 @@
-use std::{collections::HashMap, mem, str::FromStr, thread};
+use std::{str::FromStr, thread};
 
 use librespot::{
     spirc::ParsedToken, utils::event_to_map, Bitrate, Cache, ConnectConfig, Credentials,
-    DeviceType, LibrespotHolder, PlayerConfig, PlayerEvent,
+    DeviceType, LibrespotHolder, PlayerConfig,
 };
 use macros::generate_command;
-use serde::Serialize;
-use serde_json::{Map, Value};
+
+use serde_json::{Value};
 use tauri::{AppHandle, Manager, State};
 use types::errors::errors::{MoosyncError, Result};
 

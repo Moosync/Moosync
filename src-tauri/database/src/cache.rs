@@ -42,10 +42,10 @@ impl CacheHolder {
 
     fn connect(path: PathBuf) -> Pool<ConnectionManager<SqliteConnection>> {
         let manager = ConnectionManager::<SqliteConnection>::new(path.to_str().unwrap());
-        let pool = r2d2::Pool::builder()
+        
+        r2d2::Pool::builder()
             .build(manager)
-            .expect("Failed to create pool.");
-        pool
+            .expect("Failed to create pool.")
     }
 
     fn set(&self, _url: &str, blob: Vec<u8>, expires: i32) -> Result<()> {

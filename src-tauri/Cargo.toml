@@ -6,9 +6,11 @@ members = [
     "librespot",
     "macros",
     "preferences",
+    "themes",
     "types",
     "youtube",
 ]
+
 
 [package]
 name = "moosync"
@@ -30,9 +32,11 @@ youtube = { path = "./youtube" }
 preferences = { path = "./preferences" }
 file_scanner = { path = "./file_scanner" }
 librespot = { path = "./librespot" }
+themes = { path = "./themes" }
 tauri = { version = "2.0.0-beta", features = ["protocol-asset", "devtools"] }
 tauri-plugin-deep-link = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
+tauri-plugin-devtools = { git = "https://github.com/crabnebula-dev/devtools" }
 webkit2gtk = "2.0.1"
 open = "5.0.1"
 thiserror = "1.0.57"

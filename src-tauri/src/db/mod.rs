@@ -20,10 +20,11 @@ generate_command!(get_entity_by_options, Database, Value, options: GetEntityOpti
 generate_command!(search_all, Database, SearchResult, term: String);
 
 pub fn get_cache_state(app: &mut App) -> CacheHolder {
-    let data_dir = app.path().app_cache_dir().unwrap();
-    let path = data_dir.join("http_cache.db");
-    if !data_dir.exists() {
-        fs::create_dir_all(data_dir).unwrap();
+    let path = app.path().app_cache_dir().unwrap().join("http_cache.db");
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent).unwrap();
+        }
     }
     println!("Cache DB path {:?}", path);
     let db = CacheHolder::new(path);
@@ -33,6 +34,11 @@ pub fn get_cache_state(app: &mut App) -> CacheHolder {
 
 pub fn get_db_state(app: &mut App) -> Database {
     let path = app.path().app_data_dir().unwrap().join("songs.db");
+    if let Some(parent) = path.parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent).unwrap();
+        }
+    }
     println!("DB path {:?}", path);
 
     Database::new(path)

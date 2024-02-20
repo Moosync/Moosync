@@ -9,15 +9,7 @@ pub fn get_preference_state(app: &mut App) -> Result<PreferenceConfig> {
     PreferenceConfig::new(data_dir)
 }
 
-pub fn initial(state: State<PreferenceConfig>) {
-    state.save_selective("hotkeys".into(), Value::Null).unwrap();
-    state
-        .save_selective("isFirstLaunch".into(), Value::Bool(false))
-        .unwrap();
-    state
-        .save_selective("youtubeAlt".into(), Value::Array(vec![]))
-        .unwrap();
-}
+pub fn initial(state: State<PreferenceConfig>) {}
 
 generate_command!(load_selective, PreferenceConfig, Value, key: String);
 generate_command!(save_selective, PreferenceConfig, (), key: String, value: Value);

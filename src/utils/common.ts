@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { listen, emit } from "@tauri-apps/api/event";
 
 console.log(invoke);
 
@@ -53,15 +53,76 @@ window.FileUtils = {
 	listenInitialFileOpenRequest: async (callback) => {},
 };
 
-window.ThemeUtils = new Proxy(
-	{},
-	{
-		get(target, prop) {
-			console.log(target, prop);
-			return () => {};
-		},
+const defaultTheme: ThemeDetails = {
+	id: "default",
+	name: "Default",
+	author: "Moosync",
+	theme: {
+		primary: "#212121",
+		secondary: "#282828",
+		tertiary: "#151515",
+		textPrimary: "#ffffff",
+		textSecondary: "#565656",
+		textInverse: "#000000",
+		accent: "#65CB88",
+		divider: "rgba(79, 79, 79, 0.67)",
 	},
-) as any;
+};
+
+window.ThemeUtils = {
+	getAllThemes: async () => {
+		return await invoke("load_all_themes");
+	},
+	getTheme: async (id) => {
+		if (!id) return defaultTheme;
+
+		return invoke("load_theme", { id });
+	},
+	saveTheme: async (theme) => {
+		return invoke("save_theme", { theme });
+	},
+
+	removeTheme: async (id) => {
+		return invoke("remove_theme", { id });
+	},
+	getActiveTheme: async () => {
+		console.log("getting active theme");
+
+		const id = await window.PreferenceUtils.loadSelective(
+			"activeTheme",
+			false,
+			defaultTheme,
+		);
+		if (!id) return defaultTheme;
+		return invoke("load_theme", { id });
+	},
+
+	setActiveTheme: async (id) => {
+		await window.PreferenceUtils.saveSelective("activeTheme", id);
+		const theme = await window.ThemeUtils.getTheme(id);
+		emit("theme_refresh", theme);
+	},
+	getSongView: async () => {
+		return (
+			(await window.PreferenceUtils.loadSelective(
+				"songView",
+				false,
+				"compact",
+			)) ?? "compact"
+		);
+	},
+	setSongView: async (value) => {
+		return window.PreferenceUtils.saveSelective("songView", value);
+	},
+	onThemeRefresh: async (callback) => {
+		listen("theme_refresh", async (event) => {
+			callback(event.payload as ThemeDetails);
+		});
+	},
+	setTempTheme: async (theme: ThemeDetails) => {
+		emit("theme_refresh", theme);
+	},
+};
 
 window.MprisUtils = new Proxy(
 	{},
@@ -179,50 +240,6 @@ window.SearchUtils = {
 	searchAll: async (term) => {
 		return await invoke("search_all", { term });
 	},
-};
-
-window.ThemeUtils = {
-	getSongView: () => {
-		return new Promise((resolve) => {
-			resolve("compact");
-		});
-	},
-	listenGenerateIconRequest: () => {},
-	getTheme: async (id?: string) => {
-		return {
-			id: "default",
-			name: "Default",
-			theme: {
-				primary: "#212121",
-				secondary: "#282828",
-				tertiary: "#151515",
-				textPrimary: "#ffffff",
-				textSecondary: "#565656",
-				textInverse: "#000000",
-				accent: "#65CB88",
-				divider: "rgba(79, 79, 79, 0.67)",
-			},
-			author: "",
-		};
-	},
-	getActiveTheme: async () => {
-		return {
-			id: "default",
-			name: "Default",
-			theme: {
-				primary: "#212121",
-				secondary: "#282828",
-				tertiary: "#151515",
-				textPrimary: "#ffffff",
-				textSecondary: "#565656",
-				textInverse: "#000000",
-				accent: "#65CB88",
-				divider: "rgba(79, 79, 79, 0.67)",
-			},
-			author: "",
-		};
-	},
-	onThemeRefresh: () => {},
 };
 
 window.ExtensionUtils = {

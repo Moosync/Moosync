@@ -36,7 +36,7 @@ impl OAuthHandler {
     pub fn handle_oauth(&self, app: &AppHandle, url: String) -> Result<()> {
         let oauth_map = self.oauth_map.lock().unwrap();
         let query = url.replace("moosync://", "");
-        let path = query.split("?").nth(0).unwrap();
+        let path = query.split('?').nth(0).unwrap();
         if let Some(channel) = oauth_map.get(path) {
             println!("Emitting {:?} to {:?}", path, channel);
             app.emit(channel.as_str(), url)?;

@@ -114,7 +114,7 @@ impl PreferenceConfig {
             return Ok(data);
         }
         let data = data.as_str().unwrap().to_string();
-        let mut split = data.split(":");
+        let mut split = data.split(':');
         let nonce = split.next().unwrap();
         let nonce = GenericArray::clone_from_slice(&hex::decode(nonce).unwrap()[0..12]);
         let ciphertext = hex::decode(split.next().unwrap()).unwrap();

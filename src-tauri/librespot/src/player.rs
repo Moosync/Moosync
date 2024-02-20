@@ -2,12 +2,10 @@ use std::sync::Arc;
 
 use futures_util::StreamExt;
 
-use librespot;
 use librespot::core::cache::Cache;
 use librespot::core::SpotifyId;
 use librespot::core::{authentication::Credentials, config::SessionConfig, session::Session};
 use librespot::discovery::DeviceType;
-
 
 use librespot::playback::config::{PlayerConfig, VolumeCtrl};
 use librespot::playback::mixer::{Mixer, MixerConfig};
@@ -15,9 +13,8 @@ use librespot::playback::player::Player;
 use librespot::playback::{audio_backend, mixer};
 use protobuf::Message;
 use reqwest::header::{CONTENT_LENGTH, CONTENT_TYPE};
-use tokio;
 
-use types::errors::errors::{Result};
+use types::errors::errors::Result;
 
 use crate::canvaz::entity_canvaz_request::Entity;
 use crate::canvaz::{EntityCanvazRequest, EntityCanvazResponse};
@@ -34,10 +31,14 @@ pub fn new_player(
         audio_backend::find(Some(backend_str)).unwrap()
     };
 
-    let mut mixer_config = MixerConfig::default();
-    mixer_config.volume_ctrl =
-        VolumeCtrl::from_str_with_range(volume_ctrl.as_str(), VolumeCtrl::DEFAULT_DB_RANGE)
-            .unwrap_or_else(|_| VolumeCtrl::Log(VolumeCtrl::DEFAULT_DB_RANGE));
+    let mixer_config = MixerConfig {
+        volume_ctrl: VolumeCtrl::from_str_with_range(
+            volume_ctrl.as_str(),
+            VolumeCtrl::DEFAULT_DB_RANGE,
+        )
+        .unwrap_or(VolumeCtrl::Log(VolumeCtrl::DEFAULT_DB_RANGE)),
+        ..Default::default()
+    };
 
     let mixer = mixer::find(None).unwrap()(mixer_config);
 
@@ -53,9 +54,8 @@ pub fn new_player(
 
 pub fn create_session(cache_config: Cache) -> Session {
     let session_config = SessionConfig::default();
-    let session = Session::new(session_config, Some(cache_config));
 
-    session
+    Session::new(session_config, Some(cache_config))
 }
 
 #[allow(dead_code)]

@@ -10,9 +10,11 @@ use preference_holder::{
     get_preference_state, get_secure, initial, load_selective, load_selective_array,
     save_selective, set_secure,
 };
+use themes::{load_all_themes, load_theme, remove_theme, save_theme};
 
 use scanner::{get_scanner_state, start_scan};
 use tauri::{Manager, State};
+use themes::get_theme_handler_state;
 
 use {
     db::{
@@ -38,11 +40,14 @@ mod logger;
 mod oauth;
 mod preference_holder;
 mod scanner;
+mod themes;
 mod window;
 mod youtube;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let devtools = tauri_plugin_devtools::init();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
@@ -51,6 +56,7 @@ pub fn run() {
                 state.handle_oauth(app, url.to_string()).unwrap();
             }
         }))
+        .plugin(devtools)
         .invoke_handler(tauri::generate_handler![
             // Preferences
             save_selective,
@@ -96,6 +102,11 @@ pub fn run() {
             librespot_seek,
             librespot_volume,
             librespot_get_token,
+            // Themes
+            load_all_themes,
+            load_theme,
+            save_theme,
+            remove_theme,
         ])
         .setup(|app| {
             let db = get_db_state(app);
@@ -121,6 +132,9 @@ pub fn run() {
 
             let librespot_state = get_librespot_state();
             app.manage(librespot_state);
+
+            let theme_handler_state = get_theme_handler_state(app);
+            app.manage(theme_handler_state);
 
             initial(app.state());
 

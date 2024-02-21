@@ -33,7 +33,7 @@ impl OAuthHandler {
         Ok(())
     }
 
-    pub fn handle_oauth(&self, app: &AppHandle, url: String) -> Result<()> {
+    pub fn handle_oauth(&self, app: AppHandle, url: String) -> Result<()> {
         let oauth_map = self.oauth_map.lock().unwrap();
         let query = url.replace("moosync://", "");
         let path = query.split('?').nth(0).unwrap();
@@ -48,6 +48,7 @@ impl OAuthHandler {
 
 generate_command!(register_oauth_path, OAuthHandler, String, path: String);
 generate_command!(unregister_oauth_path, OAuthHandler, (), path: String);
+generate_command!(handle_oauth, OAuthHandler, (), app: AppHandle, url: String);
 
 pub fn get_oauth_state() -> Result<OAuthHandler> {
     Ok(OAuthHandler::new())

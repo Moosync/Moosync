@@ -126,29 +126,29 @@ pub struct QueryableSong {
     pub year: Option<String>,
     pub lyrics: Option<String>,
     #[serde(rename = "releaseType")]
-    #[diesel(column_name = "releaseType")]
+    #[diesel(column_name = "releasetype")]
     pub release_type: Option<String>,
     pub bitrate: Option<f64>,
     pub codec: Option<String>,
     pub container: Option<String>,
     pub duration: Option<f64>,
     #[serde(rename = "sampleRate")]
-    #[diesel(column_name = "sampleRate")]
+    #[diesel(column_name = "samplerate")]
     pub sample_rate: Option<f64>,
     pub hash: Option<String>,
     #[serde(rename = "type")]
     pub type_: SongType,
     pub url: Option<String>,
-    #[diesel(column_name = "song_coverPath_high")]
+    #[diesel(column_name = "song_coverpath_high")]
     #[serde(rename = "song_coverPath_high")]
     pub song_cover_path_high: Option<String>,
-    #[diesel(column_name = "playbackUrl")]
+    #[diesel(column_name = "playbackurl")]
     #[serde(rename = "playbackUrl")]
     pub playback_url: Option<String>,
-    #[diesel(column_name = "song_coverPath_low")]
+    #[diesel(column_name = "song_coverpath_low")]
     #[serde(rename = "song_coverPath_low")]
     pub song_cover_path_low: Option<String>,
-    pub date_added: Option<String>,
+    pub date_added: Option<i64>,
     pub provider_extension: Option<String>,
     pub icon: Option<String>,
     pub show_in_library: Option<bool>,
@@ -206,6 +206,6 @@ pub struct Song {
     #[serde(flatten)]
     pub song: QueryableSong,
     pub album: Option<QueryableAlbum>,
-    pub artists: Vec<QueryableArtist>,
-    pub genre: Vec<QueryableGenre>,
+    pub artists: Option<Vec<QueryableArtist>>,
+    pub genre: Option<Vec<QueryableGenre>>,
 }

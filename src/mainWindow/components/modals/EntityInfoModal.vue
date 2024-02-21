@@ -209,18 +209,18 @@ export default class EntityInfoModal extends Vue {
         }
       ])
 
-      if (!file.canceled && file.filePaths.length > 0) {
+      if (file && file.length > 0) {
         if ((this.tmpEntity as Artists)['artist_id']) {
-          ;(this.tmpEntity as Artists).artist_coverPath = file.filePaths[0]
+          ;(this.tmpEntity as Artists).artist_coverPath = file[0].path
         }
 
         if ((this.tmpEntity as Album)['album_id']) {
-          ;(this.tmpEntity as Album).album_coverPath_high = file.filePaths[0]
-          ;(this.tmpEntity as Album).album_coverPath_low = file.filePaths[0]
+          ;(this.tmpEntity as Album).album_coverPath_high = file[0].path
+          ;(this.tmpEntity as Album).album_coverPath_low = file[0].path
         }
 
         if ((this.tmpEntity as Playlist)['playlist_id']) {
-          ;(this.tmpEntity as Playlist).playlist_coverPath = file.filePaths[0]
+          ;(this.tmpEntity as Playlist).playlist_coverPath = file[0].path
         }
       }
     }

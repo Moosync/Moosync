@@ -72,7 +72,7 @@ CREATE TABLE `allsongs`(
 	`song_coverpath_high` TEXT,
 	`playbackurl` TEXT,
 	`song_coverpath_low` TEXT,
-	`date_added` TEXT,
+	`date_added` UNSIGNED BIG INT,
 	`provider_extension` TEXT,
 	`icon` TEXT,
 	`show_in_library` BOOL,
@@ -104,4 +104,3 @@ CREATE TABLE `analytics`(
 	`play_count` INTEGER,
 	`play_time` DOUBLE
 );
-

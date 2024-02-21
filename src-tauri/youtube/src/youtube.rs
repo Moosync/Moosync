@@ -55,22 +55,22 @@ impl YoutubeScraper {
                 album_id: None,
                 album_name: Some("Misc".to_string()),
                 album_artist: None,
-                album_coverPath_high: None,
+                album_coverpath_high: None,
                 album_song_count: 00f64,
                 year: None,
-                album_coverPath_low: None,
+                album_coverpath_low: None,
                 album_extra_info: None,
             }),
-            artists: vec![QueryableArtist {
+            artists: Some(vec![QueryableArtist {
                 artist_id: Some(format!("youtube-author:{}", v.channel.id)),
                 artist_mbid: None,
                 artist_name: Some(v.channel.name),
-                artist_coverPath: None,
+                artist_coverpath: None,
                 artist_song_count: 0f64,
                 artist_extra_info: None,
                 sanitized_artist_name: None,
-            }],
-            genre: vec![],
+            }]),
+            genre: Some(vec![]),
         }
     }
 

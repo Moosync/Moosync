@@ -126,9 +126,9 @@ export default class DirectoryGroup extends mixins(ExtensionPreferenceMixin) {
 
   openFileBrowser() {
     window.WindowUtils.openFileBrowser(this.isMainWindow, false).then((data) => {
-      if (!data.canceled && this.value) {
-        for (const path of data.filePaths) {
-          this.value.push({ path, enabled: true })
+      if (data && this.value) {
+        for (const path of data) {
+          this.value.push({ path: path.path, enabled: true })
         }
         this.onInputChange(this.value)
       }

@@ -1807,7 +1807,7 @@
   dependencies:
     defer-to-connect "^1.0.1"
 
-"@tauri-apps/api@^2.0.0-beta.0":
+"@tauri-apps/api@2.0.0-beta.0", "@tauri-apps/api@^2.0.0-beta.0":
   version "2.0.0-beta.0"
   resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-2.0.0-beta.0.tgz#36b10e6f459fd125530ac083262a355b84ce9b95"
   integrity sha512-WLoh/Vk8cgY7XrJV7Vpb6PssReBZWQCATfYBb1aCRDk+sp0NyPwumx6fZ2ECAKzAcs3OeanluwZcajruIW4CPQ==
@@ -1877,6 +1877,13 @@
     "@tauri-apps/cli-win32-arm64-msvc" "2.0.0-beta.1"
     "@tauri-apps/cli-win32-ia32-msvc" "2.0.0-beta.1"
     "@tauri-apps/cli-win32-x64-msvc" "2.0.0-beta.1"
+
+"@tauri-apps/plugin-dialog@^2.0.0-beta.0":
+  version "2.0.0-beta.0"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/plugin-dialog/-/plugin-dialog-2.0.0-beta.0.tgz#07ba51779342300228f1a5eb946306f5069a4f00"
+  integrity sha512-cNxiBwGB6Xgnwy5GyAabwPyvm1iaC7MmrgzcUwB1JaydLjp/Yu3Z0TmkmmEClFrrvIQA+sMcq0C8wwv6i4aedw==
+  dependencies:
+    "@tauri-apps/api" "2.0.0-beta.0"
 
 "@tokenizer/token@^0.3.0":
   version "0.3.0"

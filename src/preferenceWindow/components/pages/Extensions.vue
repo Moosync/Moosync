@@ -158,8 +158,8 @@ export default class Extensions extends Vue {
 
   private openFileBrowser() {
     window.WindowUtils.openFileBrowser(false, true).then((data) => {
-      if (!data.canceled) {
-        window.ExtensionUtils.install(...data.filePaths).then((result) => {
+      if (data) {
+        window.ExtensionUtils.install(...data.map(v => v.path)).then((result) => {
           if (result.success) {
             nextTick().then(() => this.fetchExtensions())
           }

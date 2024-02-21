@@ -6,7 +6,7 @@ use librespot::{
 };
 use macros::generate_command;
 
-use serde_json::{Value};
+use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
 use types::errors::errors::{MoosyncError, Result};
 

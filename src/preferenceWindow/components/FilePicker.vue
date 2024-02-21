@@ -64,8 +64,8 @@ export default class FilePicker extends mixins(ExtensionPreferenceMixin) {
 
   openFileBrowser() {
     window.WindowUtils.openFileBrowser(false, false).then((data) => {
-      if (!data.canceled && data.filePaths.length > 0) {
-        this.value = data.filePaths[0]
+      if (data && data.length > 0) {
+        this.value = data[0].path
         this.onInputChange(this.value)
       }
     })

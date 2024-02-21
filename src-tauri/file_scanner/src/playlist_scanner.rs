@@ -164,8 +164,8 @@ impl<'a> PlaylistScanner<'a> {
                 songs.push(Song {
                     song,
                     album: None,
-                    artists: self.parse_artists(artists),
-                    genre: vec![],
+                    artists: Some(self.parse_artists(artists)),
+                    genre: Some(vec![]),
                 });
 
                 artists = None;

@@ -180,8 +180,8 @@ pub fn scan_file(
     let mut song: Song = Song {
         song: QueryableSong::empty(),
         album: None,
-        artists: vec![],
-        genre: vec![],
+        artists: Some(vec![]),
+        genre: Some(vec![]),
     };
     song.song._id = Some(Uuid::new_v4().to_string());
     song.song.title = Some(path.file_name().unwrap().to_string_lossy().to_string());
@@ -274,8 +274,8 @@ pub fn scan_file(
             song.album = Some(QueryableAlbum {
                 album_id: Some(Uuid::new_v4().to_string()),
                 album_name: album.map(|v| v.to_string()),
-                album_coverPath_high: song.song.song_cover_path_high.clone(),
-                album_coverPath_low: song.song.song_cover_path_low.clone(),
+                album_coverpath_high: song.song.song_cover_path_high.clone(),
+                album_coverpath_low: song.song.song_cover_path_low.clone(),
                 album_artist: metadata
                     .get_string(&lofty::ItemKey::AlbumArtist)
                     .map(|s| s.to_owned()),
@@ -283,20 +283,15 @@ pub fn scan_file(
             })
         }
 
-        if artists.is_some() {
-            song.artists = artists.unwrap();
-        }
+        song.artists = artists;
 
         song.song.year = metadata.year().map(|s| s.to_string());
-        song.genre = metadata
-            .genre()
-            .map(|s| {
-                vec![QueryableGenre {
-                    genre_name: Some(s.to_string()),
-                    ..Default::default()
-                }]
-            })
-            .unwrap_or_default();
+        song.genre = metadata.genre().map(|s| {
+            vec![QueryableGenre {
+                genre_name: Some(s.to_string()),
+                ..Default::default()
+            }]
+        });
         song.song.lyrics = lyrics;
     }
 

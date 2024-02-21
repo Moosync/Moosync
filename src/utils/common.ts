@@ -1,8 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, emit } from "@tauri-apps/api/event";
 
-console.log(invoke);
-
 window.PreferenceUtils = {
 	saveSelective: (key, value) => {
 		console.log("saving", key, value);
@@ -124,15 +122,20 @@ window.ThemeUtils = {
 	},
 };
 
-window.MprisUtils = new Proxy(
-	{},
-	{
-		get(target, prop) {
-			console.log(target, prop);
-			return () => {};
-		},
+window.MprisUtils = {
+	updateSongInfo: async (metadata) => {
+		invoke("set_metadata", { metadata });
 	},
-) as any;
+	updatePlaybackState: async (state) => invoke("set_playback_state", { state }),
+	setButtonStatus: async () => {},
+	listenMediaButtonPress: async (callback) => {
+		listen("media_button_press", async (event) => {
+			const payload = event.payload as [number, unknown];
+			callback(payload[0], payload[1]);
+		});
+	},
+	updatePosition: async (duration) => invoke("set_position", { duration }),
+};
 
 window.UpdateUtils = new Proxy(
 	{},
@@ -162,7 +165,6 @@ window.WindowUtils = {
 		return await invoke("unregister_oauth_path", { path });
 	},
 	listenOAuth: (channelID, callback) => {
-		console.log("listening on channel", channelID);
 		listen(
 			channelID,
 			(event) => {
@@ -215,12 +217,50 @@ window.WindowUtils = {
 	},
 	mainWindowHasMounted: async () => {},
 	handleReload: async () => {},
+	enableFullscreen: async () => invoke("enable_fullscreen"),
+	disableFullscreen: async () => invoke("disable_fullscreen"),
+	toggleFullscreen: async () => invoke("toggle_fullscreen"),
+	toggleDevTools: async () => invoke("toggle_dev_tools"),
+	openFileBrowser: async (_, file, filters) => {
+		return await invoke("open_file_browser", {
+			filters,
+			directory: !file,
+			multiple: true,
+		});
+	},
+	restartApp: async () => invoke("restart_app"),
+	triggerOAuthCallback: async (url) =>
+		invoke("trigger_oauth_callback", { url }),
 };
 
 window.DBUtils = {
-	storeSongs: async (songs) => await invoke("store_songs", { songs }),
-	removeSongs: async (songs) =>
+	storeSongs: async (songs) => {
+		console.log(songs);
+		return await invoke("insert_songs", { songs });
+	},
+	removeSongs: async (...songs) =>
 		await invoke("remove_songs", { songs: songs.map((val) => val._id) }),
+	createPlaylist: async (playlist) =>
+		await invoke("create_playlist", { playlist }),
+	addToPlaylist: async (playlistID, ...songs) =>
+		await invoke("add_to_playlist", { id: playlistID, songs }),
+	removeFromPlaylist: async (playlistID, ...songs) =>
+		await invoke("remove_from_playlist", {
+			id: playlistID,
+			songs: songs.map((val) => val._id),
+		}),
+	removePlaylist: async (id) => await invoke("remove_playlist", { id }),
+	updateAlbum: async (album) => await invoke("update_album", { album }),
+	updateArtist: async (artist) => await invoke("update_artist", { artist }),
+	updatePlaylist: async (playlist) =>
+		await invoke("update_playlist", { playlist }),
+	updateSongs: async (songs) => await invoke("update_songs", { songs }),
+	updateLyrics: async (id, lyrics) => await invoke("update_lyrics", { lyrics }),
+	incrementPlayCount: async (id) =>
+		await invoke("increment_play_count", { id }),
+	incrementPlayTime: async (id, duration) =>
+		await invoke("increment_play_time", { id, duration }),
+	exportPlaylist: async (playlist) => {},
 };
 
 window.SearchUtils = {

@@ -717,7 +717,7 @@ export default class AudioStream extends mixins(
       albumName: raw.album?.album_name,
       albumArtist: raw.album?.album_artist,
       artistName: raw.artists && raw.artists.map((val) => val.artist_name).join(', '),
-      genres: raw.genre,
+      genres: raw.genre?.map(val => val.genre_name),
       thumbnail:
         raw.song_coverPath_high ??
         raw.album?.album_coverPath_high ??

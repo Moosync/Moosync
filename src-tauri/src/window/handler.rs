@@ -4,7 +4,7 @@ use librespot::LibrespotHolder;
 use macros::generate_command;
 use open;
 use preferences::preferences::PreferenceConfig;
-use tauri::{AppHandle, Manager, State, WebviewWindowBuilder, Window};
+use tauri::{AppHandle, Manager, State, WebviewWindow, WebviewWindowBuilder, Window};
 use types::errors::errors::Result;
 
 pub struct WindowHandler {}
@@ -89,14 +89,35 @@ impl WindowHandler {
         Ok(())
     }
 
-    pub fn reload_window(
-        &self,
-        librespot: State<LibrespotHolder>,
-        is_main_window: bool,
-    ) -> Result<()> {
-        if is_main_window {
-            librespot.librespot_close()?;
+    pub fn enable_fullscreen(&self, window: Window) -> Result<()> {
+        window.set_fullscreen(true)?;
+        Ok(())
+    }
+
+    pub fn disable_fullscreen(&self, window: Window) -> Result<()> {
+        window.set_fullscreen(false)?;
+        Ok(())
+    }
+
+    pub fn toggle_fullscreen(&self, window: Window) -> Result<()> {
+        let is_fullscreen = window.is_fullscreen()?;
+        window.set_fullscreen(!is_fullscreen)?;
+        Ok(())
+    }
+
+    pub fn toggle_dev_tools(&self, window: WebviewWindow) -> Result<()> {
+        let is_devtools_open = window.is_devtools_open();
+        if !is_devtools_open {
+            window.open_devtools();
+        } else {
+            window.close_devtools();
         }
+
+        Ok(())
+    }
+
+    pub fn restart_app(&self, app: AppHandle) -> Result<()> {
+        app.restart();
         Ok(())
     }
 }
@@ -114,4 +135,8 @@ generate_command!(minimize_window, WindowHandler, (), window: Window);
 generate_command!(update_zoom, WindowHandler, (), app: AppHandle, preference: State<PreferenceConfig>);
 generate_command!(open_external, WindowHandler, (), url: String);
 generate_command!(open_window, WindowHandler, (), app: AppHandle, is_main_window: bool);
-generate_command!(reload_window, WindowHandler, (), app: State<LibrespotHolder>, is_main_window: bool);
+generate_command!(enable_fullscreen, WindowHandler, (), window: Window);
+generate_command!(disable_fullscreen, WindowHandler, (), window: Window);
+generate_command!(toggle_fullscreen, WindowHandler, (), window: Window);
+generate_command!(toggle_dev_tools, WindowHandler, (), window: WebviewWindow);
+generate_command!(restart_app, WindowHandler, (), app: AppHandle);

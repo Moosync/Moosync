@@ -25,18 +25,18 @@ fn test_insert() {
             album: Some(QueryableAlbum::search_by_term(Some(
                 "Test album".to_string(),
             ))),
-            artists: vec![QueryableArtist::search_by_term(Some(
+            artists: Some(vec![QueryableArtist::search_by_term(Some(
                 "Test artist".to_string(),
-            ))],
-            genre: vec![],
+            ))]),
+            genre: Some(vec![]),
         }])
         .unwrap();
 
     cleanup();
 
     assert_eq!(res.len(), 1);
-    assert_eq!(res[0].genre.len(), 0);
+    assert_eq!(res[0].genre.clone().unwrap().len(), 0);
     assert!(res[0].song._id.is_some());
     assert!(res[0].album.clone().unwrap().album_id.is_some());
-    assert!(res[0].artists[0].artist_id.is_some());
+    assert!(res[0].artists.clone().unwrap()[0].artist_id.is_some());
 }

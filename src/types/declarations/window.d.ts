@@ -261,8 +261,8 @@ interface windowUtils {
 	openFileBrowser: (
 		isMainWindow: boolean,
 		file: boolean,
-		filters?: Electron.FileFilter[],
-	) => Promise<Electron.OpenDialogReturnValue>;
+		filters?: import("@tauri-apps/plugin-dialog").DialogFilter[],
+	) => Promise<import("@tauri-apps/plugin-dialog").FileResponse[] | null>;
 	toggleDevTools: (isMainWindow: boolean) => Promise<void>;
 	openExternal: (url: string) => Promise<void>;
 	registerOAuthCallback: (path: string) => Promise<string>;

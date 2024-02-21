@@ -250,8 +250,8 @@ export default class Themes extends Vue {
       }
     ])
 
-    for (const filePath of resp.filePaths ?? []) {
-      await window.ThemeUtils.importTheme(filePath)
+    for (const filePath of resp ?? []) {
+      await window.ThemeUtils.importTheme(filePath.path)
     }
 
     this.getAllThemes()

@@ -1,14 +1,56 @@
-use diesel::{AsChangeset, Identifiable, Insertable, Queryable};
+use std::{borrow::Cow, collections::HashMap, io::Read, str::FromStr};
+
+use diesel::{
+    backend::Backend,
+    deserialize::{self, FromSql, FromSqlRow},
+    expression::AsExpression,
+    serialize::{IsNull, ToSql},
+    sql_types::Text,
+    sqlite::Sqlite,
+    AsChangeset, Identifiable, Insertable, Queryable,
+};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::schema::{
-    album_bridge, albums, artist_bridge, artists, genre_bridge, genres, playlist_bridge, playlists,
+    album_bridge, albums, analytics, artist_bridge, artists, genre_bridge, genres, playlist_bridge,
+    playlists,
 };
 
 use super::{
     songs::Song,
     traits::{BridgeUtils, SearchByTerm},
 };
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, FromSqlRow, AsExpression)]
+#[diesel(sql_type = diesel::sql_types::Text)]
+pub struct EntityInfo(pub serde_json::Value);
+
+impl<DB> FromSql<Text, DB> for EntityInfo
+where
+    DB: Backend,
+    String: FromSql<Text, DB>,
+{
+    fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
+        let t = <String as FromSql<Text, DB>>::from_sql(bytes)?;
+        Ok(Self(serde_json::from_str(&t)?))
+    }
+}
+
+impl ToSql<Text, Sqlite> for EntityInfo
+where
+    String: ToSql<Text, Sqlite>,
+{
+    fn to_sql<'b>(
+        &'b self,
+        out: &mut diesel::serialize::Output<'b, '_, Sqlite>,
+    ) -> diesel::serialize::Result {
+        let s = serde_json::to_string(&self.0)?;
+
+        out.set_value(s);
+        Ok(IsNull::No)
+    }
+}
 
 #[derive(
     Deserialize, Serialize, Insertable, Default, Queryable, Identifiable, AsChangeset, Clone, Debug,
@@ -19,12 +61,14 @@ pub struct QueryableAlbum {
     pub album_id: Option<String>,
     pub album_name: Option<String>,
     pub album_artist: Option<String>,
-    pub album_coverPath_high: Option<String>,
+    #[serde(rename = "album_coverPath_high")]
+    pub album_coverpath_high: Option<String>,
     #[serde(default)]
     pub album_song_count: f64,
     pub year: Option<String>,
-    pub album_coverPath_low: Option<String>,
-    pub album_extra_info: Option<String>,
+    #[serde(rename = "album_coverPath_low")]
+    pub album_coverpath_low: Option<String>,
+    pub album_extra_info: Option<EntityInfo>,
 }
 
 impl SearchByTerm for QueryableAlbum {
@@ -64,10 +108,11 @@ pub struct QueryableArtist {
     pub artist_id: Option<String>,
     pub artist_mbid: Option<String>,
     pub artist_name: Option<String>,
-    pub artist_coverPath: Option<String>,
+    #[serde(rename = "artist_coverPath")]
+    pub artist_coverpath: Option<String>,
     #[serde(default)]
     pub artist_song_count: f64,
-    pub artist_extra_info: Option<String>,
+    pub artist_extra_info: Option<EntityInfo>,
     pub sanitized_artist_name: Option<String>,
 }
 
@@ -176,7 +221,8 @@ pub struct QueryablePlaylist {
     pub playlist_id: Option<String>,
     #[serde(default)]
     pub playlist_name: String,
-    pub playlist_coverPath: Option<String>,
+    #[serde(rename = "playlist_coverPath")]
+    pub playlist_coverpath: Option<String>,
     #[serde(default)]
     pub playlist_song_count: f64,
     pub playlist_desc: Option<String>,
@@ -201,4 +247,16 @@ pub struct SearchResult {
     pub playlists: Vec<QueryablePlaylist>,
     pub albums: Vec<QueryableAlbum>,
     pub genres: Vec<QueryableGenre>,
+}
+
+#[derive(
+    Deserialize, Serialize, Insertable, Default, Queryable, Identifiable, AsChangeset, Clone, Debug,
+)]
+#[diesel(table_name = analytics)]
+#[diesel(primary_key(id))]
+pub struct Analytics {
+    pub id: Option<String>,
+    pub song_id: Option<String>,
+    pub play_count: Option<i32>,
+    pub play_time: Option<f64>,
 }

@@ -5,6 +5,7 @@ members = [
     "file_scanner",
     "librespot",
     "macros",
+    "mpris",
     "preferences",
     "themes",
     "types",
@@ -33,7 +34,12 @@ preferences = { path = "./preferences" }
 file_scanner = { path = "./file_scanner" }
 librespot = { path = "./librespot" }
 themes = { path = "./themes" }
-tauri = { version = "2.0.0-beta", features = ["protocol-asset", "devtools"] }
+mpris = { path = "./mpris" }
+tauri = { version = "2.0.0-beta", features = [
+    "protocol-asset",
+    "devtools",
+    "default",
+] }
 tauri-plugin-deep-link = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-devtools = { git = "https://github.com/crabnebula-dev/devtools" }
@@ -43,7 +49,6 @@ thiserror = "1.0.57"
 uuid = { version = "1.7.0", features = ["std", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

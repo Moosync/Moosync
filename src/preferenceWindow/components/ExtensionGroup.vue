@@ -104,8 +104,8 @@ export default class ExtensionGroup extends Vue {
   openFileBrowser() {
     window.WindowUtils.openFileBrowser(false, true, [{ name: 'Moosync Extension File', extensions: ['msox'] }]).then(
       (data) => {
-        if (!data.canceled) {
-          window.ExtensionUtils.install(...data.filePaths).then(() => this.emitExtensionsUpdated())
+        if (data) {
+          window.ExtensionUtils.install(...data.map(v => v.path)).then(() => this.emitExtensionsUpdated())
         }
       }
     )

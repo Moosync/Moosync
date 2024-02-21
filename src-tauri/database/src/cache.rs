@@ -1,4 +1,4 @@
-use std::{path::PathBuf};
+use std::path::PathBuf;
 
 use diesel::{
     connection::SimpleConnection,
@@ -42,7 +42,7 @@ impl CacheHolder {
 
     fn connect(path: PathBuf) -> Pool<ConnectionManager<SqliteConnection>> {
         let manager = ConnectionManager::<SqliteConnection>::new(path.to_str().unwrap());
-        
+
         r2d2::Pool::builder()
             .build(manager)
             .expect("Failed to create pool.")

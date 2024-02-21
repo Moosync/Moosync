@@ -266,8 +266,8 @@ export default class NewTheme extends Vue {
       }
     ])
 
-    if (!data.canceled && data.filePaths.length > 0) {
-      this.customTheme['customCSS'] = data.filePaths[0]
+    if (data && data.length > 0) {
+      this.customTheme['customCSS'] = data[0].path
       await this.listenPathChanges()
     }
   }

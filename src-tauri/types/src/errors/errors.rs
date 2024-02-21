@@ -2,7 +2,7 @@ use std::{io, num::ParseFloatError, string::FromUtf8Error, time::SystemTimeError
 
 use fast_image_resize::{DifferentTypesOfPixelsError, ImageBufferError};
 use image::ImageError;
-use librespot::{core::Error as LibrespotError};
+use librespot::core::Error as LibrespotError;
 use lofty::LoftyError;
 use rusty_ytdl::VideoError;
 
@@ -44,6 +44,14 @@ pub enum MoosyncError {
     ProtoBuf(#[from] protobuf::Error),
     #[error("{0}")]
     String(String),
+    #[error("Error in media controls: {0:?}")]
+    MediaControlError(souvlaki::Error),
+}
+
+impl From<souvlaki::Error> for MoosyncError {
+    fn from(value: souvlaki::Error) -> Self {
+        Self::MediaControlError(value)
+    }
 }
 
 impl serde::Serialize for MoosyncError {

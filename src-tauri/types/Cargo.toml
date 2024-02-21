@@ -6,6 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+souvlaki = { version = "0.7.3", default-features = false, features = [
+    "use_zbus",
+] }
 thiserror = "1.0.57"
 rusty_ytdl = "0.6.6"
 serde = { version = "1.0", features = ["derive"] }

@@ -104,8 +104,10 @@ impl ScannerHolder {
                     let res = database.insert_songs(vec![song]);
                     if item.0.is_some() {
                         if let Ok(res) = res {
-                            let _ = database
-                                .add_to_playlist(item.0.unwrap(), res[0].song._id.clone().unwrap());
+                            let _ = database.add_to_playlist_bridge(
+                                item.0.unwrap(),
+                                res[0].song._id.clone().unwrap(),
+                            );
                         }
                     }
                 }

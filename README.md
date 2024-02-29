@@ -27,3 +27,4 @@ You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/
 - Playlist export
 - Youtube playlists, artists, albums and suggestions
 - Spotify canvas
+- File browser

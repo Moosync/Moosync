@@ -7,7 +7,7 @@ use librespot::{
 use macros::generate_command;
 
 use serde_json::Value;
-use tauri::{AppHandle, EventTarget, Manager, State};
+use tauri::{AppHandle, EventTarget, Manager, State, Window};
 use types::errors::errors::{MoosyncError, Result};
 use uuid::Uuid;
 
@@ -18,6 +18,7 @@ pub fn get_librespot_state() -> LibrespotHolder {
 #[tauri::command()]
 pub fn initialize_librespot(
     app: AppHandle,
+    window: Window,
     librespot: State<LibrespotHolder>,
     config: Value,
     id: String,
@@ -120,17 +121,17 @@ pub fn initialize_librespot(
                         parsed_event.get("event").unwrap(),
                         id.clone()
                     )) {
-                        app.emit_to(
-                            EventTarget::webview_window("main"),
-                            format!(
-                                "librespot_event_{}_{}",
-                                parsed_event.get("event").unwrap(),
-                                id.clone()
+                        window
+                            .emit(
+                                format!(
+                                    "librespot_event_{}_{}",
+                                    parsed_event.get("event").unwrap(),
+                                    id.clone()
+                                )
+                                .as_str(),
+                                parsed_event,
                             )
-                            .as_str(),
-                            parsed_event,
-                        )
-                        .unwrap();
+                            .unwrap();
                     }
                 }
                 Err(e) => {

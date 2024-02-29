@@ -18,8 +18,8 @@
           "requireLiteralLeadingDot": false
         }
       },
-      "csp": "default-src 'self'; img-src 'self' asset: media: https://asset.localhost; media-src 'self' asset: media: https://asset.localhost",
-      "dangerousDisableAssetCspModification": true,
+      "csp": "default-src 'self'; img-src 'self' asset: media: https://asset.localhost; media-src 'self' asset: media: https://asset.localhost; connect-src ipc: http://ipc.localhost; styles-src 'unsafe-inline'",
+      "dangerousDisableAssetCspModification": false,
       "freezePrototype": false,
       "pattern": {
         "use": "brownfield"
@@ -44,7 +44,6 @@
     ],
     "targets": [
       "app",
-      "appimage",
       "deb",
       "dmg",
       "rpm",

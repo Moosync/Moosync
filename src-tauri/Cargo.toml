@@ -63,7 +63,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 strip = "symbols"
 
 [profile.dev]
-debug = 0
+# debug = 0
 opt-level = 0
 lto = false
 incremental = true

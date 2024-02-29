@@ -69,14 +69,6 @@ impl<'a> SongScanner<'a> {
             file_list.file_list
         };
 
-        println!(
-            "file list: {:?}",
-            song_list
-                .iter()
-                .map(|v| v.0.clone())
-                .collect::<Vec<PathBuf>>()
-        );
-
         let len = song_list.len();
 
         for (file_path, size) in song_list {

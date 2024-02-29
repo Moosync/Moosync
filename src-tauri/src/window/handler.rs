@@ -1,6 +1,6 @@
 use std::env;
 
-use librespot::LibrespotHolder;
+
 use macros::generate_command;
 use open;
 use preferences::preferences::PreferenceConfig;

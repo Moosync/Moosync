@@ -3,7 +3,6 @@ use std::{
         mpsc::{self, Receiver},
         Arc, Mutex,
     },
-    thread,
     time::Duration,
 };
 
@@ -69,7 +68,6 @@ impl MprisHolder {
     }
 
     pub fn set_metadata(&self, metadata: MprisPlayerDetails) -> Result<()> {
-        println!("Got metadata {:?}", metadata);
         let mut controls = self.controls.lock().unwrap();
         let duration = metadata.duration.map(|d| (d * 1000.0) as u64);
         controls.set_metadata(MediaMetadata {
@@ -108,7 +106,6 @@ impl MprisHolder {
     }
 
     pub fn set_position(&self, duration: f64) -> Result<()> {
-        println!("setting position to {:?}", duration);
         let mut last_duration = self.last_duration.lock().unwrap();
         *last_duration = (duration * 1000.0) as u64;
         drop(last_duration);

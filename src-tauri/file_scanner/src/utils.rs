@@ -20,7 +20,6 @@ use fast_image_resize as fr;
 use crate::types::FileList;
 
 pub fn check_directory(dir: PathBuf) -> Result<()> {
-    println!("{:?} {:?}", dir, dir.is_dir());
     if !dir.is_dir() {
         fs::create_dir_all(dir)?
     }

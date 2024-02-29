@@ -3,7 +3,7 @@ use std::{
         mpsc::{self, Receiver, Sender},
         Arc, Mutex,
     },
-    thread,
+    thread::{self, JoinHandle},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -81,7 +81,6 @@ impl SpircWrapper {
                 .build()
                 .unwrap();
             runtime.block_on(async move {
-                println!("Creating session");
                 let session = create_session(cache_config).clone();
 
                 let device_id = session.device_id().to_string();
@@ -103,13 +102,18 @@ impl SpircWrapper {
                 match res {
                     Ok((spirc, spirc_task)) => {
                         spirc.activate().unwrap();
-                        SpircWrapper::listen_commands(rx, spirc, session.clone());
-                        SpircWrapper::listen_events(player_events_tx, events_channel);
+                        let commands_thread =
+                            SpircWrapper::listen_commands(rx, spirc, session.clone());
+                        let events_thread =
+                            SpircWrapper::listen_events(player_events_tx, events_channel);
 
                         // Panic thread if send fails
                         player_creation_tx.send(Ok(device_id)).unwrap();
 
                         spirc_task.await;
+
+                        commands_thread.join().unwrap();
+                        events_thread.join().unwrap();
                     }
                     Err(e) => {
                         player_creation_tx
@@ -131,14 +135,23 @@ impl SpircWrapper {
         }
     }
 
-    fn listen_events(tx: Sender<PlayerEvent>, mut events_channel: PlayerEventChannel) {
+    fn listen_events(
+        tx: Sender<PlayerEvent>,
+        mut events_channel: PlayerEventChannel,
+    ) -> JoinHandle<()> {
         thread::spawn(move || loop {
             let message = events_channel.blocking_recv();
             if let Some(m) = message {
-                println!("Emitting event: {:?}", m);
-                tx.send(m).unwrap()
+                tx.send(m.clone()).unwrap();
+                if let PlayerEvent::SessionDisconnected {
+                    connection_id: _,
+                    user_name: _,
+                } = m
+                {
+                    return;
+                }
             }
-        });
+        })
     }
 
     fn handle_command(
@@ -228,22 +241,20 @@ impl SpircWrapper {
         rx: Receiver<(Message, Sender<Result<MessageReply>>)>,
         mut spirc: Spirc,
         mut session: Session,
-    ) {
+    ) -> JoinHandle<()> {
         thread::spawn(move || {
             while let Ok((message, tx)) = rx.recv() {
-                println!("Got message: {:?}", message);
-
                 if message == Message::Close {
                     spirc.shutdown().unwrap();
                     session.shutdown();
                     tx.send(Ok(MessageReply::None)).unwrap();
-                    break;
+                    return;
                 }
 
                 Self::handle_command(message.clone(), tx, &mut spirc, &mut session);
                 println!("Finished handling: {:?}", message);
             }
-        });
+        })
     }
 
     pub fn send(&self, command: Message) -> Result<MessageReply> {

@@ -106,7 +106,6 @@ impl YoutubeScraper {
     }
 
     pub async fn get_video_url(&self, id: String) -> Result<String> {
-        println!("getting video url for {}", id);
         let video = rusty_ytdl::Video::new(id)?;
         let info = video.get_info().await?;
 

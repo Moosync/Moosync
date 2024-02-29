@@ -347,7 +347,11 @@ const spotifyPositionHandler = new SpotifyPosition();
 
 window.SpotifyPlayer = {
 	connect: async (config) => {
-		return invoke("initialize_librespot", { config });
+		const id = Math.random()
+			.toString(36)
+			.substring(2, 8 + 2);
+		await invoke("initialize_librespot", { config, id });
+		return id;
 	},
 	close: async () => {
 		return invoke("librespot_close");
@@ -375,6 +379,7 @@ window.SpotifyPlayer = {
 	},
 	on: async <T extends PlayerEventTypes>(
 		event: T,
+		id: string,
 		callback: (event: PlayerEvent<T>) => void,
 	) => {
 		if (event === "TimeUpdated") {
@@ -387,7 +392,9 @@ window.SpotifyPlayer = {
 			return () => spotifyPositionHandler.setCallback(undefined);
 		}
 
-		return await listen(`librespot_event_${event}`, (event) => {
+		await invoke("register_event", { event: `librespot_event_${event}_${id}` });
+
+		return await listen(`librespot_event_${event}_${id}`, (event) => {
 			const data = event.payload as PlayerEvent<T>;
 			switch (data.event) {
 				case "Playing":
@@ -445,7 +452,7 @@ export function arrayDiff<T>(arr1: T[], arr2: T[]) {
 
 export function convertDuration(n: number) {
 	if (n) {
-		if (!isFinite(n) || n < 0) {
+		if (!Number.isFinite(n) || n < 0) {
 			return "Live";
 		}
 		const tmp = new Date(n * 1000).toISOString().substring(11, 19);

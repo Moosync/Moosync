@@ -38,7 +38,6 @@ impl OAuthHandler {
         let query = url.replace("moosync://", "");
         let path = query.split('?').nth(0).unwrap();
         if let Some(channel) = oauth_map.get(path) {
-            println!("Emitting {:?} to {:?}", path, channel);
             app.emit(channel.as_str(), url)?;
         }
 

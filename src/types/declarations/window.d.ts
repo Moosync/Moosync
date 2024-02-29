@@ -407,9 +407,10 @@ interface mprisUtils {
 interface spotifyPlayer {
 	connect: (
 		config: import("librespot-node").ConstructorConfig,
-	) => Promise<void>;
+	) => Promise<string>;
 	on: <T extends PlayerEventTypes>(
 		event: T,
+		id: string,
 		listener: (event: PlayerEvent<T>) => void,
 	) => Promise<import("@tauri-apps/api/event").UnlistenFn>;
 	command: <T extends SpotifyRequests.SpotifyCommands>(

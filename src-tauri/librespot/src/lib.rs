@@ -35,7 +35,6 @@ macro_rules! generate_methods {
         impl $struct_name {
             $(
                 pub fn $method_name(&self, $($arg : $arg_type),*) -> Result<$return_type> {
-                    println!("Calling method_name $method_name");
                     self.check_initialized()?;
                     let mut instance = self.instance.lock().unwrap();
 
@@ -48,6 +47,8 @@ macro_rules! generate_methods {
         }
     };
 }
+
+pub static REGISTERED_EVENTS: Mutex<Vec<String>> = Mutex::new(vec![]); 
 
 #[derive(Default)]
 pub struct LibrespotHolder {
@@ -71,6 +72,11 @@ impl LibrespotHolder {
         backend: String,
         volume_ctrl: String,
     ) -> Result<()> {
+
+        let mut events = REGISTERED_EVENTS.lock().unwrap();
+        events.clear();
+        drop(events);
+
         let mut config = self.config.lock().unwrap();
         *config = Some(ConfigHolder {
             credentials: credentials.clone(),
@@ -80,6 +86,12 @@ impl LibrespotHolder {
             backend: backend.clone(),
             volume_ctrl: volume_ctrl.clone(),
         });
+        let mut instance_ = self.instance.lock().unwrap();
+        if let Some(instance) = &mut *instance_ {
+            instance.librespot_close()?;
+        }
+        drop(instance_);
+
 
         let instance = SpircWrapper::new(
             credentials,
@@ -100,9 +112,11 @@ impl LibrespotHolder {
         if self.instance.lock().unwrap().is_some() {
             return Ok(());
         }
+
         let config_mutex = self.config.lock().unwrap();
-        let config = (*config_mutex).clone();
+        let config = config_mutex.clone();
         drop(config_mutex);
+
         if let Some(config) = config.as_ref() {
             self.initialize(
                 config.credentials.clone(),
@@ -118,13 +132,20 @@ impl LibrespotHolder {
     }
 
     pub fn get_events_channel(&self) -> Result<Arc<Mutex<mpsc::Receiver<PlayerEvent>>>> {
-        self.check_initialized()?;
-        let instance = self.instance.lock().unwrap();
+        let instance_lock = self.instance.lock().unwrap();
 
-        if let Some(instance) = instance.as_ref() {
-            return Ok(instance.events_channel.clone());
+        if let Some(instance) = instance_lock.as_ref() {
+            let events_channel = instance.events_channel.clone();
+            drop(instance_lock);
+            return Ok(events_channel);
         }
         Err(MoosyncError::String("Not initialized".to_string()))
+    }
+
+    pub fn register_event(&self, event_name: String) -> Result<()> {
+        let mut events = REGISTERED_EVENTS.lock().unwrap();
+        events.push(event_name.clone());
+        Ok(())
     }
 }
 

@@ -1,9 +1,9 @@
-use std::{ops::Neg, thread};
+use std::thread;
 
 use macros::generate_command;
 use mpris::MprisHolder;
 use serde_json::{json, Value};
-use tauri::{App, AppHandle, Manager, State};
+use tauri::{AppHandle, Manager, State};
 use types::{
     errors::errors::Result,
     mpris::{MprisPlayerDetails, PlaybackState},
@@ -17,7 +17,6 @@ pub fn get_mpris_state(app: AppHandle) -> Result<MprisHolder> {
         let receiver = receiver.lock().unwrap();
         loop {
             let event = receiver.recv().unwrap();
-            println!("Got mpris event {:?}", event.clone());
             let data = match event {
                 mpris::MediaControlEvent::Play => (0, Value::Null),
                 mpris::MediaControlEvent::Pause => (1, Value::Null),
@@ -26,7 +25,7 @@ pub fn get_mpris_state(app: AppHandle) -> Result<MprisHolder> {
                 mpris::MediaControlEvent::Previous => (7, Value::Null),
                 mpris::MediaControlEvent::Stop => (2, Value::Null),
                 mpris::MediaControlEvent::Seek(_) => (12, json!(0)),
-                mpris::MediaControlEvent::SeekBy(dir, pos) => {
+                mpris::MediaControlEvent::SeekBy(_dir, pos) => {
                     // match dir {
                     //     mpris::SeekDirection::Forward => (12, json!(pos.as_secs())),
                     //     mpris::SeekDirection::Backward => {

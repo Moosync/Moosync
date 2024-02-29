@@ -26,7 +26,6 @@ pub struct PreferenceConfig {
 impl PreferenceConfig {
     pub fn new(data_dir: PathBuf) -> Result<Self> {
         let config_file = data_dir.join("config.json");
-        println!("{:?}", data_dir);
 
         if !data_dir.exists() {
             fs::create_dir_all(data_dir)?;

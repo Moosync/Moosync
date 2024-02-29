@@ -6,6 +6,7 @@ import VueI18nPlugin from "@intlify/unplugin-vue-i18n/vite";
 import { fileURLToPath } from "url";
 import { internalIpV4 } from "internal-ip";
 import HtmlExtFallbackPlugin from "./html-fallback";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 // https://vitejs.dev/config/
 export default defineConfig(async () => ({
@@ -28,6 +29,7 @@ export default defineConfig(async () => ({
 			strictMessage: false,
 			escapeHtml: true,
 		}),
+		nodePolyfills(),
 	],
 	resolve: {
 		alias: {

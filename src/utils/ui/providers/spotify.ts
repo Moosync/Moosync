@@ -51,6 +51,8 @@ export class SpotifyProvider extends GenericProvider {
 	public loggedIn = false;
 
 	public canPlayPremium = false;
+
+	public librespotId: string | undefined;
 	public async shouldPlayPremium() {
 		return (
 			(
@@ -131,7 +133,7 @@ export class SpotifyProvider extends GenericProvider {
 
 			if (username && password) {
 				try {
-					await window.SpotifyPlayer.connect({
+					this.librespotId = await window.SpotifyPlayer.connect({
 						auth: {
 							username,
 							password,

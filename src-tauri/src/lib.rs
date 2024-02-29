@@ -4,6 +4,7 @@
 use librespot::{
     get_librespot_state, initialize_librespot, librespot_close, librespot_get_token,
     librespot_load, librespot_pause, librespot_play, librespot_seek, librespot_volume,
+    register_event,
 };
 use logger::logger::{log_debug, log_error, log_info, log_warn};
 use mpris::{get_mpris_state, set_metadata, set_playback_state, set_position};
@@ -123,6 +124,7 @@ pub fn run() {
             librespot_seek,
             librespot_volume,
             librespot_get_token,
+            register_event,
             // Themes
             load_all_themes,
             load_theme,

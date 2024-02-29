@@ -97,7 +97,11 @@ export class SpotifyPlayer extends Player {
 		event: T,
 		listener: (e: PlayerEvent<T>) => void,
 	) {
-		const unlisten = await window.SpotifyPlayer.on(event, listener);
+		const unlisten = await window.SpotifyPlayer.on(
+			event,
+			vxm.providers.spotifyProvider.librespotId ?? "",
+			listener,
+		);
 		this.listenerMap[event] = { unlisten };
 	}
 

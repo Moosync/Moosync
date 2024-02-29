@@ -115,7 +115,6 @@ impl ScannerHolder {
             }
         }
 
-        println!("Finished scanning");
         *state = ScanState::UNDEFINED;
 
         Ok(())

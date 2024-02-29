@@ -1,24 +1,26 @@
-use std::{str::FromStr, thread};
+use std::{str::FromStr, sync::mpsc::TryRecvError, thread};
 
 use librespot::{
     spirc::ParsedToken, utils::event_to_map, Bitrate, Cache, ConnectConfig, Credentials,
-    DeviceType, LibrespotHolder, PlayerConfig,
+    DeviceType, LibrespotHolder, PlayerConfig, REGISTERED_EVENTS,
 };
 use macros::generate_command;
 
 use serde_json::Value;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, EventTarget, Manager, State};
 use types::errors::errors::{MoosyncError, Result};
+use uuid::Uuid;
 
 pub fn get_librespot_state() -> LibrespotHolder {
     LibrespotHolder::new()
 }
 
-#[tauri::command(async)]
+#[tauri::command()]
 pub fn initialize_librespot(
     app: AppHandle,
     librespot: State<LibrespotHolder>,
     config: Value,
+    id: String,
 ) -> Result<()> {
     println!(
         "Initializing librespot {:?}",
@@ -104,28 +106,39 @@ pub fn initialize_librespot(
 
     // TODO: Check if event loop ends on closing librespot
     let events_channel = librespot.get_events_channel()?;
-    thread::spawn(move || {
+    tauri::async_runtime::spawn(async move {
         let events_channel = events_channel.lock().unwrap();
         loop {
             let event = events_channel.recv();
             match event {
                 Ok(event) => {
-                    println!("got event {:?}", event);
-                    let parsed_event = event_to_map(event);
-                    app.emit(
-                        format!(
-                            "librespot_event_{}",
-                            parsed_event.get("event").unwrap().as_str()
+                    let parsed_event = event_to_map(event.clone());
+
+                    let registered_events = REGISTERED_EVENTS.lock().unwrap();
+                    if registered_events.contains(&format!(
+                        "librespot_event_{}_{}",
+                        parsed_event.get("event").unwrap(),
+                        id.clone()
+                    )) {
+                        app.emit_to(
+                            EventTarget::webview_window("main"),
+                            format!(
+                                "librespot_event_{}_{}",
+                                parsed_event.get("event").unwrap(),
+                                id.clone()
+                            )
+                            .as_str(),
+                            parsed_event,
                         )
-                        .as_str(),
-                        parsed_event,
-                    )
-                    .unwrap();
+                        .unwrap();
+                    }
                 }
-                Err(_) => break,
+                Err(e) => {
+                    println!("Ending event loop {:?}", e);
+                    break;
+                }
             }
         }
-        println!("Event loop ended");
     });
 
     Ok(())
@@ -138,3 +151,4 @@ generate_command!(librespot_load, LibrespotHolder, (), uri: String, autoplay: bo
 generate_command!(librespot_seek, LibrespotHolder, (), pos: u32);
 generate_command!(librespot_volume, LibrespotHolder, (), volume: u16);
 generate_command!(librespot_get_token, LibrespotHolder, ParsedToken, scopes: String);
+generate_command!(register_event, LibrespotHolder, (), event: String);

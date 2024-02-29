@@ -97,8 +97,6 @@ impl<'a> PlaylistScanner<'a> {
                 artists = Some(artists_str.trim().to_string());
                 title = Some(title_str.replacen('-', "", 1).trim().to_string());
 
-                println!("{:?} {:?}", artists, title);
-
                 continue;
             }
 
@@ -216,8 +214,6 @@ impl<'a> PlaylistScanner<'a> {
         let file_list = get_files_recursively(self.dir.clone())?;
 
         let mut len = 0;
-
-        println!("{:?}", file_list.playlist_list);
 
         for playlist in file_list.playlist_list {
             let playlist_scan_res = self.scan_playlist(&playlist);

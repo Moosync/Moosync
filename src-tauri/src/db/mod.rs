@@ -39,7 +39,6 @@ pub fn get_cache_state(app: &mut App) -> CacheHolder {
             fs::create_dir_all(parent).unwrap();
         }
     }
-    println!("Cache DB path {:?}", path);
 
     CacheHolder::new(path)
 }
@@ -51,7 +50,6 @@ pub fn get_db_state(app: &mut App) -> Database {
             fs::create_dir_all(parent).unwrap();
         }
     }
-    println!("DB path {:?}", path);
 
     Database::new(path)
 }

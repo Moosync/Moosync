@@ -1,5 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
+use crate::errors::errors::MoosyncError;
 use diesel::{
     backend::Backend,
     deserialize::{self, FromSql, FromSqlRow, QueryableByName},
@@ -10,7 +11,6 @@ use diesel::{
     AsChangeset, Identifiable, Insertable, Queryable, Selectable,
 };
 use serde::{Deserialize, Serialize};
-use types::errors::errors::MoosyncError;
 use uuid::Uuid;
 
 use crate::schema::allsongs;

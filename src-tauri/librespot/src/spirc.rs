@@ -23,7 +23,7 @@ use librespot::{
 use serde::{Deserialize, Serialize};
 use tokio::runtime::Builder;
 
-use crate::player::{create_session, new_player};
+use crate::player::{create_session, get_lyrics, new_player};
 use types::errors::errors::{MoosyncError, Result};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -50,11 +50,13 @@ pub enum Message {
     Seek(u32),
     Load(String, bool),
     Volume(u16),
+    GetLyrics(String),
 }
 
 pub enum MessageReply {
     None,
     GetToken(Token),
+    GetLyrics(String),
 }
 
 impl SpircWrapper {
@@ -234,6 +236,10 @@ impl SpircWrapper {
                 tx.send(res).unwrap();
             }
             Message::Close => {}
+            Message::GetLyrics(uri) => {
+                let lyrics = get_lyrics(uri, session.clone()).map(MessageReply::GetLyrics);
+                tx.send(lyrics).unwrap();
+            }
         };
     }
 
@@ -308,6 +314,14 @@ impl SpircWrapper {
                     + token.expires_in)
                     .as_millis(),
             }),
+            _ => Err(MoosyncError::String("Invalid command reply".to_string())),
+        }
+    }
+
+    pub fn get_lyrics(&self, uri: String) -> Result<String> {
+        let res = self.send(Message::GetLyrics(uri))?;
+        match res {
+            MessageReply::GetLyrics(lyrics) => Ok(lyrics),
             _ => Err(MoosyncError::String("Invalid command reply".to_string())),
         }
     }

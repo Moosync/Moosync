@@ -14,30 +14,17 @@ use macros::{filter_field, filter_field_like};
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::schema::analytics::dsl::analytics;
-use crate::schema::playlists::dsl::playlists;
-use crate::types::entities::{Analytics, EntityInfo, PlaylistBridge};
-use crate::types::songs::SearchableSong;
-use crate::types::traits::{BridgeUtils, SearchByTerm};
-use crate::{
+use types::entities::{Analytics, EntityInfo, PlaylistBridge};
+use types::errors::errors::{MoosyncError, Result};
+use types::schema::analytics::dsl::analytics;
+use types::schema::playlists::dsl::playlists;
+use types::songs::SearchableSong;
+use types::traits::{BridgeUtils, SearchByTerm};
+use types::{
     schema::{
         self,
         album_bridge::dsl::album_bridge,
         albums::{album_id, dsl::albums},
-    },
-    types::{
-        entities::{
-            AlbumBridge, ArtistBridge, GenreBridge, GetEntityOptions, QueryableAlbum,
-            QueryableArtist, QueryableGenre, QueryablePlaylist, SearchResult,
-        },
-        songs::{GetSongOptions, QueryableSong, Song},
-    },
-};
-use types::errors::errors::{MoosyncError, Result};
-
-use super::{
-    migrations::run_migrations,
-    schema::{
         allsongs::{_id, dsl::allsongs},
         artist_bridge::dsl::artist_bridge,
         artists::{artist_id, dsl::artists},
@@ -45,7 +32,16 @@ use super::{
         genres::{dsl::genres, genre_id},
         playlist_bridge::dsl::playlist_bridge,
     },
+    {
+        entities::{
+            AlbumBridge, ArtistBridge, GenreBridge, GetEntityOptions, QueryableAlbum,
+            QueryableArtist, QueryableGenre, QueryablePlaylist, SearchResult,
+        },
+        songs::{GetSongOptions, QueryableSong, Song},
+    },
 };
+
+use super::{ migrations::run_migrations};
 
 #[derive(Debug, Clone)]
 pub struct Database {

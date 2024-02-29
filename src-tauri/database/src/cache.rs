@@ -8,15 +8,13 @@ use diesel::{
     ExpressionMethods, RunQueryDsl, SqliteConnection,
 };
 
-use crate::types::cache::CacheModel;
+use types::cache::CacheModel;
 use types::errors::errors::Result;
 
-use super::{
-    cache_schema::{
-        self,
-        cache::{dsl::cache, url},
-    },
-    migrations::run_migration_cache,
+use super::migrations::run_migration_cache;
+use types::cache_schema::{
+    self,
+    cache::{dsl::cache, url},
 };
 
 pub struct CacheHolder {

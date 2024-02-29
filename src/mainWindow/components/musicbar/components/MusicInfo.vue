@@ -220,9 +220,10 @@ export default class MusicInfo extends mixins(ImageLoader, ModelHelper, JukeboxM
 
         const { _id } = this.currentSong
         const resp =
-          (await this.getLyricsFromExtension()) ??
+          (await this.getLyricsFromExtension()) ||
           (await window.SearchUtils.searchLyrics(convertProxy(this.currentSong)))
 
+        console.log('got lyrics', resp)
         // Don't update lyrics if song has changed while fetching lyrics
         if (this.currentSong._id === _id) {
           this.lyrics = (resp as string) || 'No lyrics found...'

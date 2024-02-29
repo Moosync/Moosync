@@ -280,6 +280,13 @@ window.SearchUtils = {
 	searchAll: async (term) => {
 		return await invoke("search_all", { term });
 	},
+	searchLyrics: async (song: Song) =>
+		invoke("get_lyrics", {
+			artists: song.artists?.map((val) => val.artist_name) ?? [],
+			title: song.title,
+			id: song._id,
+			url: song.url,
+		}),
 };
 
 window.ExtensionUtils = {

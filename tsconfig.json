@@ -45,7 +45,6 @@
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "./html-fallback.ts"
   ],
   "exclude": [
     "node_modules"

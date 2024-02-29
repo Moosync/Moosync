@@ -4,12 +4,10 @@ use std::{
     sync::{mpsc, Mutex},
 };
 
-use database::{
-    database::Database,
-    types::{entities::QueryablePlaylist, songs::Song},
-};
+use database::database::Database;
 use threadpool::ThreadPool;
 use types::errors::errors::Result;
+use types::{entities::QueryablePlaylist, songs::Song};
 
 use crate::{playlist_scanner::PlaylistScanner, song_scanner::SongScanner};
 

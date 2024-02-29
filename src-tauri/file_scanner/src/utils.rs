@@ -1,7 +1,3 @@
-use database::types::{
-    entities::{QueryableAlbum, QueryableArtist, QueryableGenre},
-    songs::{QueryableSong, Song, SongType},
-};
 use lazy_static::lazy_static;
 use lofty::{read_from_path, Accessor, AudioFile, Picture, Probe, TaggedFileExt};
 use regex::Regex;
@@ -9,6 +5,10 @@ use std::{
     f64, fs,
     num::NonZeroU32,
     path::{Path, PathBuf},
+};
+use types::{
+    entities::{QueryableAlbum, QueryableArtist, QueryableGenre},
+    songs::{QueryableSong, Song, SongType},
 };
 use uuid::Uuid;
 

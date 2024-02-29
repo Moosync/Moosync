@@ -7,6 +7,7 @@ use librespot::{
     register_event,
 };
 use logger::logger::{log_debug, log_error, log_info, log_warn};
+use lyrics::{get_lyrics, get_lyrics_state};
 use mpris::{get_mpris_state, set_metadata, set_playback_state, set_position};
 use preference_holder::{
     get_preference_state, get_secure, initial, load_selective, load_selective_array,
@@ -42,6 +43,7 @@ use crate::oauth::handler::{register_oauth_path, unregister_oauth_path};
 mod db;
 mod librespot;
 mod logger;
+mod lyrics;
 mod mpris;
 mod oauth;
 mod preference_holder;
@@ -134,6 +136,8 @@ pub fn run() {
             set_metadata,
             set_playback_state,
             set_position,
+            // Lyrics
+            get_lyrics,
         ])
         .setup(|app| {
             let db = get_db_state(app);
@@ -165,6 +169,9 @@ pub fn run() {
 
             let mpris_state = get_mpris_state(app.app_handle().clone())?;
             app.manage(mpris_state);
+
+            let lyrics_state = get_lyrics_state();
+            app.manage(lyrics_state);
 
             initial(app.state());
 

@@ -6,7 +6,7 @@ use std::{
     sync::mpsc::Sender,
 };
 
-use database::types::{
+use types::{
     entities::{QueryableArtist, QueryablePlaylist},
     songs::{QueryableSong, Song, SongType},
 };

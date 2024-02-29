@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use database::types::songs::Song;
+use types::songs::Song;
 
 #[derive(Debug)]
 pub struct FileList {

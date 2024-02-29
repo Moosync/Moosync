@@ -4,6 +4,7 @@ members = [
     "database",
     "file_scanner",
     "librespot",
+    "lyrics",
     "macros",
     "mpris",
     "preferences",
@@ -35,6 +36,7 @@ file_scanner = { path = "./file_scanner" }
 librespot = { path = "./librespot" }
 themes = { path = "./themes" }
 mpris = { path = "./mpris" }
+lyrics = { path = "./lyrics" }
 tauri = { version = "2.0.0-beta", features = [
     "protocol-asset",
     "devtools",
@@ -63,7 +65,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 strip = "symbols"
 
 [profile.dev]
-# debug = 0
+debug = 0
 opt-level = 0
 lto = false
 incremental = true

@@ -1,12 +1,12 @@
-use database::types::{
-    entities::{QueryableAlbum, QueryableArtist, SearchResult},
-    songs::{QueryableSong, Song, SongType},
-};
 use rusty_ytdl::{
     search::{SearchOptions, SearchType, YouTube},
     VideoFormat,
 };
 use types::errors::errors::{MoosyncError, Result};
+use types::{
+    entities::{QueryableAlbum, QueryableArtist, SearchResult},
+    songs::{QueryableSong, Song, SongType},
+};
 
 pub struct YoutubeScraper {
     youtube: YouTube,

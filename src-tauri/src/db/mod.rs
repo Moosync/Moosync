@@ -1,18 +1,15 @@
 use std::fs;
 
-use database::{
-    cache::CacheHolder,
-    database::Database,
-    types::{
-        entities::{
-            GetEntityOptions, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult,
-        },
-        songs::{GetSongOptions, QueryableSong, Song},
-    },
-};
+use database::{cache::CacheHolder, database::Database};
 use macros::generate_command;
 use serde_json::Value;
 use tauri::{App, Manager, State};
+use types::{
+    entities::{
+        GetEntityOptions, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult,
+    },
+    songs::{GetSongOptions, QueryableSong, Song},
+};
 
 generate_command!(insert_songs, Database, Vec<Song>, songs: Vec<Song>);
 generate_command!(remove_songs, Database, (), songs: Vec<String>);

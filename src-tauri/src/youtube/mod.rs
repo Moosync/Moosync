@@ -1,6 +1,6 @@
-use database::types::entities::SearchResult;
 use macros::generate_command_async;
 use tauri::State;
+use types::entities::SearchResult;
 use youtube::youtube::YoutubeScraper;
 
 pub fn get_youtube_scraper_state() -> YoutubeScraper {

@@ -156,4 +156,5 @@ generate_methods!(LibrespotHolder,
     librespot_get_token(scopes: String) -> ParsedToken, 
     librespot_volume(vol: u16) -> (), 
     librespot_load(uri: String, autoplay: bool) -> (), 
-    librespot_seek(pos: u32) -> ());
+    librespot_seek(pos: u32) -> (),
+    get_lyrics(uri: String) -> String);

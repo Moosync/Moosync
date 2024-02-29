@@ -1,12 +1,10 @@
 use std::{fs, path::PathBuf, str::FromStr};
 
-use crate::{
-    database::Database,
-    types::{
-        entities::{QueryableAlbum, QueryableArtist},
-        songs::Song,
-        traits::SearchByTerm,
-    },
+use crate::database::Database;
+use types::{
+    entities::{QueryableAlbum, QueryableArtist},
+    songs::Song,
+    traits::SearchByTerm,
 };
 
 fn cleanup() {

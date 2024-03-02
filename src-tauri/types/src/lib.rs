@@ -1,5 +1,6 @@
 pub mod cache;
 pub mod cache_schema;
+pub mod canvaz;
 pub mod entities;
 pub mod errors;
 pub mod mpris;

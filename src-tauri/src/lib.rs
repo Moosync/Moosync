@@ -2,7 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use librespot::{
-    get_librespot_state, initialize_librespot, librespot_close, librespot_get_token,
+    get_canvaz, get_librespot_state, initialize_librespot, librespot_close, librespot_get_token,
     librespot_load, librespot_pause, librespot_play, librespot_seek, librespot_volume,
     register_event,
 };
@@ -129,6 +129,7 @@ pub fn run() {
             librespot_volume,
             librespot_get_token,
             register_event,
+            get_canvaz,
             // Themes
             load_all_themes,
             load_theme,

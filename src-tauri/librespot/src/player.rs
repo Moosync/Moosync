@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use std::vec;
 
 use futures_util::StreamExt;
 
@@ -14,6 +15,7 @@ use librespot::playback::{audio_backend, mixer};
 use protobuf::Message;
 use reqwest::header::{CONTENT_LENGTH, CONTENT_TYPE};
 
+use types::canvaz::{Canvaz, CanvazArtist, CanvazResponse, Type};
 use types::errors::errors::Result;
 
 use crate::canvaz::entity_canvaz_request::Entity;
@@ -91,7 +93,44 @@ pub fn get_lyrics(track_uri: String, session: Session) -> Result<String> {
     })
 }
 
-pub fn get_canvas(track_uri: String, session: Session) -> Result<EntityCanvazResponse> {
+fn parse_canvaz(canvaz: EntityCanvazResponse) -> Result<CanvazResponse> {
+    Ok(CanvazResponse {
+        canvases: canvaz
+            .canvases
+            .iter()
+            .map(|c| {
+                let artist = CanvazArtist {
+                    uri: c.artist.uri.clone(),
+                    name: c.artist.name.clone(),
+                    avatar: c.artist.avatar.clone(),
+                };
+                let type_ = match c.type_.enum_value_or_default() {
+                    crate::canvaz::Type::IMAGE => Type::IMAGE,
+                    crate::canvaz::Type::VIDEO => Type::VIDEO,
+                    crate::canvaz::Type::VIDEO_LOOPING => Type::VIDEO_LOOPING,
+                    crate::canvaz::Type::VIDEO_LOOPING_RANDOM => Type::VIDEO_LOOPING_RANDOM,
+                    crate::canvaz::Type::GIF => Type::GIF,
+                };
+                Canvaz {
+                    id: c.id.clone(),
+                    url: c.url.clone(),
+                    file_id: c.file_id.clone(),
+                    type_,
+                    entity_uri: c.entity_uri.clone(),
+                    artist,
+                    explicit: c.explicit,
+                    uploaded_by: c.uploaded_by.clone(),
+                    etag: c.etag.clone(),
+                    canvas_uri: c.canvas_uri.clone(),
+                    storylines_id: c.storylines_id.clone(),
+                }
+            })
+            .collect(),
+        ttl_in_seconds: canvaz.ttl_in_seconds,
+    })
+}
+
+pub fn get_canvas(track_uri: String, session: Session) -> Result<CanvazResponse> {
     let session_clone = session.clone();
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_io()
@@ -136,6 +175,6 @@ pub fn get_canvas(track_uri: String, session: Session) -> Result<EntityCanvazRes
 
         let data = EntityCanvazResponse::parse_from_tokio_bytes(&bytes.clone())?;
 
-        Ok(data)
+        parse_canvaz(data)
     })
 }

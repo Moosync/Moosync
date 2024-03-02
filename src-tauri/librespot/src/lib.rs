@@ -17,6 +17,7 @@ pub use librespot::playback::config::{
 };
 pub use librespot::protocol::authentication::AuthenticationType;
 use spirc::{ParsedToken, SpircWrapper};
+use types::canvaz::CanvazResponse;
 use types::errors::errors::{MoosyncError, Result};
 
 #[derive(Clone)]
@@ -155,4 +156,5 @@ generate_methods!(LibrespotHolder,
     librespot_volume(vol: u16) -> (), 
     librespot_load(uri: String, autoplay: bool) -> (), 
     librespot_seek(pos: u32) -> (),
-    get_lyrics(uri: String) -> String);
+    get_lyrics(uri: String) -> String,
+    get_canvaz(uri: String) -> CanvazResponse);

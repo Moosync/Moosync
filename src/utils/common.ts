@@ -379,6 +379,8 @@ window.SpotifyPlayer = {
 						((Math.max(Math.min(args[0], 100), 0) / 100) * 65535).toFixed(0),
 					),
 				});
+			case "GET_CANVAS":
+				return invoke("get_canvaz", { uri: args[0] });
 		}
 	},
 	getToken: async (scope) => {

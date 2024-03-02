@@ -8,7 +8,10 @@ use macros::generate_command;
 
 use serde_json::Value;
 use tauri::{AppHandle, EventTarget, Manager, State, Window};
-use types::errors::errors::{MoosyncError, Result};
+use types::{
+    canvaz::CanvazResponse,
+    errors::errors::{MoosyncError, Result},
+};
 use uuid::Uuid;
 
 pub fn get_librespot_state() -> LibrespotHolder {
@@ -153,3 +156,4 @@ generate_command!(librespot_seek, LibrespotHolder, (), pos: u32);
 generate_command!(librespot_volume, LibrespotHolder, (), volume: u16);
 generate_command!(librespot_get_token, LibrespotHolder, ParsedToken, scopes: String);
 generate_command!(register_event, LibrespotHolder, (), event: String);
+generate_command!(get_canvaz, LibrespotHolder, CanvazResponse, uri: String);

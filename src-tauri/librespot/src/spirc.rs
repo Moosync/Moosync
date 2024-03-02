@@ -23,8 +23,11 @@ use librespot::{
 use serde::{Deserialize, Serialize};
 use tokio::runtime::Builder;
 
-use crate::player::{create_session, get_lyrics, new_player};
-use types::errors::errors::{MoosyncError, Result};
+use crate::player::{create_session, get_canvas, get_lyrics, new_player};
+use types::{
+    canvaz::CanvazResponse,
+    errors::errors::{MoosyncError, Result},
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ParsedToken {
@@ -51,12 +54,14 @@ pub enum Message {
     Load(String, bool),
     Volume(u16),
     GetLyrics(String),
+    GetCanvaz(String),
 }
 
 pub enum MessageReply {
     None,
     GetToken(Token),
     GetLyrics(String),
+    GetCanvaz(CanvazResponse),
 }
 
 impl SpircWrapper {
@@ -240,6 +245,10 @@ impl SpircWrapper {
                 let lyrics = get_lyrics(uri, session.clone()).map(MessageReply::GetLyrics);
                 tx.send(lyrics).unwrap();
             }
+            Message::GetCanvaz(uri) => {
+                let canvaz = get_canvas(uri, session.clone()).map(MessageReply::GetCanvaz);
+                tx.send(canvaz).unwrap();
+            }
         };
     }
 
@@ -322,6 +331,14 @@ impl SpircWrapper {
         let res = self.send(Message::GetLyrics(uri))?;
         match res {
             MessageReply::GetLyrics(lyrics) => Ok(lyrics),
+            _ => Err(MoosyncError::String("Invalid command reply".to_string())),
+        }
+    }
+
+    pub fn get_canvaz(&self, uri: String) -> Result<CanvazResponse> {
+        let res = self.send(Message::GetCanvaz(uri))?;
+        match res {
+            MessageReply::GetCanvaz(canvaz) => Ok(canvaz),
             _ => Err(MoosyncError::String("Invalid command reply".to_string())),
         }
     }

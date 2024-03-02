@@ -1,5 +1,3 @@
-
-
 use diesel::{
     backend::Backend,
     deserialize::{self, FromSql, FromSqlRow},
@@ -10,7 +8,6 @@ use diesel::{
     AsChangeset, Identifiable, Insertable, Queryable,
 };
 use serde::{Deserialize, Serialize};
-
 
 use crate::schema::{
     album_bridge, albums, analytics, artist_bridge, artists, genre_bridge, genres, playlist_bridge,

@@ -1,11 +1,24 @@
 use std::env;
 
-
-use macros::generate_command;
+use macros::{generate_command, generate_command_async};
 use open;
 use preferences::preferences::PreferenceConfig;
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State, WebviewWindow, WebviewWindowBuilder, Window};
 use types::errors::errors::Result;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DialogFilter {
+    name: String,
+    extensions: Vec<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FileResponse {
+    name: String,
+    path: String,
+    size: usize,
+}
 
 pub struct WindowHandler {}
 
@@ -120,6 +133,43 @@ impl WindowHandler {
         app.restart();
         Ok(())
     }
+
+    pub async fn open_file_browser(
+        &self,
+        directory: bool,
+        multiple: bool,
+        filters: Vec<DialogFilter>,
+    ) -> Result<Vec<FileResponse>> {
+        let mut dialog = rfd::AsyncFileDialog::new();
+        for filter in filters {
+            dialog = dialog.add_filter(filter.name, filter.extensions.as_slice());
+        }
+
+        let files = if directory {
+            if multiple {
+                dialog.pick_folders().await
+            } else {
+                dialog.pick_folder().await.map(|v| vec![v])
+            }
+        } else if multiple {
+            dialog.pick_files().await
+        } else {
+            dialog.pick_file().await.map(|v| vec![v])
+        };
+
+        let mut ret = vec![];
+        if let Some(files) = files {
+            for file in files {
+                ret.push(FileResponse {
+                    name: file.file_name(),
+                    path: file.path().to_string_lossy().to_string(),
+                    size: 0,
+                })
+            }
+        }
+
+        Ok(ret)
+    }
 }
 
 pub fn get_window_state() -> WindowHandler {
@@ -140,3 +190,4 @@ generate_command!(disable_fullscreen, WindowHandler, (), window: Window);
 generate_command!(toggle_fullscreen, WindowHandler, (), window: Window);
 generate_command!(toggle_dev_tools, WindowHandler, (), window: WebviewWindow);
 generate_command!(restart_app, WindowHandler, (), app: AppHandle);
+generate_command_async!(open_file_browser, WindowHandler, Vec<FileResponse>, directory: bool, multiple: bool, filters: Vec<DialogFilter>);

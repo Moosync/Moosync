@@ -1824,7 +1824,12 @@
   dependencies:
     defer-to-connect "^1.0.1"
 
-"@tauri-apps/api@2.0.0-beta.0", "@tauri-apps/api@^2.0.0-beta.0":
+"@tauri-apps/api@2.0.0-beta.2":
+  version "2.0.0-beta.2"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-2.0.0-beta.2.tgz#adec036f5ece03b88f59fdb7fa18e315c77d0738"
+  integrity sha512-4r1r6kgttzIWxJ3HxkZQH+b7EiUtKhdUCPbi0KSalD+2T3j6klw+v8VyxhKwEdjM/eo60NE+J33v1E/Urq8puw==
+
+"@tauri-apps/api@^2.0.0-beta.0":
   version "2.0.0-beta.0"
   resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-2.0.0-beta.0.tgz#36b10e6f459fd125530ac083262a355b84ce9b95"
   integrity sha512-WLoh/Vk8cgY7XrJV7Vpb6PssReBZWQCATfYBb1aCRDk+sp0NyPwumx6fZ2ECAKzAcs3OeanluwZcajruIW4CPQ==
@@ -1895,12 +1900,12 @@
     "@tauri-apps/cli-win32-ia32-msvc" "2.0.0-beta.1"
     "@tauri-apps/cli-win32-x64-msvc" "2.0.0-beta.1"
 
-"@tauri-apps/plugin-dialog@^2.0.0-beta.0":
-  version "2.0.0-beta.0"
-  resolved "https://registry.yarnpkg.com/@tauri-apps/plugin-dialog/-/plugin-dialog-2.0.0-beta.0.tgz#07ba51779342300228f1a5eb946306f5069a4f00"
-  integrity sha512-cNxiBwGB6Xgnwy5GyAabwPyvm1iaC7MmrgzcUwB1JaydLjp/Yu3Z0TmkmmEClFrrvIQA+sMcq0C8wwv6i4aedw==
+"@tauri-apps/plugin-dialog@^2.0.0-beta.1":
+  version "2.0.0-beta.1"
+  resolved "https://registry.yarnpkg.com/@tauri-apps/plugin-dialog/-/plugin-dialog-2.0.0-beta.1.tgz#d02e39368fa0a069826b438dd729edb57bc316ff"
+  integrity sha512-nVZv2m67NaEU05SRbe59heFaZ5wlew9pgd/oi2yL8yUM+46abo9prky/eyXb1HzF8n66yRSaSkNcX1GZou5pNQ==
   dependencies:
-    "@tauri-apps/api" "2.0.0-beta.0"
+    "@tauri-apps/api" "2.0.0-beta.2"
 
 "@tokenizer/token@^0.3.0":
   version "0.3.0"

@@ -32,8 +32,9 @@ use {
     oauth::handler::{get_oauth_state, OAuthHandler},
     window::handler::{
         close_window, disable_fullscreen, enable_fullscreen, get_platform, get_window_state,
-        has_frame, is_maximized, maximize_window, minimize_window, open_external, open_window,
-        restart_app, toggle_dev_tools, toggle_fullscreen, update_zoom,
+        has_frame, is_maximized, maximize_window, minimize_window, open_external,
+        open_file_browser, open_window, restart_app, toggle_dev_tools, toggle_fullscreen,
+        update_zoom,
     },
     youtube::{get_video_url, get_youtube_scraper_state, search_yt},
 };
@@ -112,6 +113,7 @@ pub fn run() {
             toggle_fullscreen,
             toggle_dev_tools,
             restart_app,
+            open_file_browser,
             // Youtube
             search_yt,
             get_video_url,

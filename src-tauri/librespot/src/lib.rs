@@ -48,7 +48,7 @@ macro_rules! generate_methods {
     };
 }
 
-pub static REGISTERED_EVENTS: Mutex<Vec<String>> = Mutex::new(vec![]); 
+pub static REGISTERED_EVENTS: Mutex<Vec<String>> = Mutex::new(vec![]);
 
 #[derive(Default)]
 pub struct LibrespotHolder {
@@ -72,7 +72,6 @@ impl LibrespotHolder {
         backend: String,
         volume_ctrl: String,
     ) -> Result<()> {
-
         let mut events = REGISTERED_EVENTS.lock().unwrap();
         events.clear();
         drop(events);
@@ -91,7 +90,6 @@ impl LibrespotHolder {
             instance.librespot_close()?;
         }
         drop(instance_);
-
 
         let instance = SpircWrapper::new(
             credentials,

@@ -223,7 +223,7 @@ window.WindowUtils = {
 	toggleDevTools: async () => invoke("toggle_dev_tools"),
 	openFileBrowser: async (_, file, filters) => {
 		return await invoke("open_file_browser", {
-			filters,
+			filters: filters ?? [],
 			directory: !file,
 			multiple: true,
 		});

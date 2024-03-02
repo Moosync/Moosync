@@ -41,7 +41,7 @@ use types::{
     },
 };
 
-use super::{ migrations::run_migrations};
+use super::migrations::run_migrations;
 
 #[derive(Debug, Clone)]
 pub struct Database {

@@ -13,11 +13,13 @@ use preference_holder::{
     get_preference_state, get_secure, initial, load_selective, load_selective_array,
     save_selective, set_secure,
 };
-use themes::{load_all_themes, load_theme, remove_theme, save_theme};
+use themes::{
+    get_theme_handler_state, import_theme, load_all_themes, load_theme, remove_theme, save_theme,
+    transform_css,
+};
 
 use scanner::{get_scanner_state, start_scan};
 use tauri::{Manager, State};
-use themes::get_theme_handler_state;
 
 use {
     db::{
@@ -135,6 +137,8 @@ pub fn run() {
             load_theme,
             save_theme,
             remove_theme,
+            import_theme,
+            transform_css,
             // MPRIS
             set_metadata,
             set_playback_state,

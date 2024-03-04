@@ -1,15 +1,32 @@
 [package]
 name = "database"
-version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version = "0.1.0"
 
 [dependencies]
-macros = { path = "../macros" }
-types = { path = "../types" }
-diesel = { version = "2.1.0", features = ["sqlite", "r2d2", "serde_json"] }
-diesel_migrations = { features = ["sqlite"], version = "2.1.0" }
 serde_json = "1.0"
-serde = { version = "1.0", features = ["derive"] }
-uuid = { version = "1.7.0", features = ["std", "v4"] }
+
+[dependencies.diesel]
+version = "2.1.0"
+features = ["sqlite", "r2d2", "serde_json"]
+
+[dependencies.diesel_migrations]
+version = "2.1.0"
+features = ["sqlite"]
+
+[dependencies.macros]
+path = "../macros"
+features = []
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive", "serde_derive"]
+default-features = false
+
+[dependencies.types]
+path = "../types"
+features = []
+
+[dependencies.uuid]
+version = "1.7.0"
+features = ["std", "v4"]

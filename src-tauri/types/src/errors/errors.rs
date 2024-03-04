@@ -46,6 +46,10 @@ pub enum MoosyncError {
     String(String),
     #[error("Error in media controls: {0:?}")]
     MediaControlError(souvlaki::Error),
+    #[error(transparent)]
+    ZipError(#[from] zip::result::ZipError),
+    #[error(transparent)]
+    FSExtraError(#[from] fs_extra::error::Error),
 }
 
 impl From<souvlaki::Error> for MoosyncError {

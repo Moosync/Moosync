@@ -77,6 +77,7 @@ window.ThemeUtils = {
 		return invoke("load_theme", { id });
 	},
 	saveTheme: async (theme) => {
+		console.log("saving", theme);
 		return invoke("save_theme", { theme });
 	},
 
@@ -120,6 +121,8 @@ window.ThemeUtils = {
 	setTempTheme: async (theme: ThemeDetails) => {
 		emit("theme_refresh", theme);
 	},
+	importTheme: async (themePath) => invoke("import_theme", { themePath }),
+	transformCSS: async (cssPath) => invoke("transform_css", { cssPath }),
 };
 
 window.MprisUtils = {
@@ -403,7 +406,7 @@ window.SpotifyPlayer = {
 
 		await invoke("register_event", { event: `librespot_event_${event}_${id}` });
 
-		return await listen(`librespot_event_${event}_${id}`, (event) => {
+		const unlisten = await listen(`librespot_event_${event}_${id}`, (event) => {
 			const data = event.payload as PlayerEvent<T>;
 			switch (data.event) {
 				case "Playing":
@@ -439,6 +442,7 @@ window.SpotifyPlayer = {
 			}
 			callback(data);
 		});
+		return unlisten;
 	},
 };
 

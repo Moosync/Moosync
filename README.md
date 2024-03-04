@@ -22,9 +22,9 @@ You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/
 - Rodio player
 - System theme fetch
 - File logging
-- Theme CSS import parsing
+- ~~Theme CSS import parsing~~
 - Auto updater
 - Playlist export
 - Youtube playlists, artists, albums and suggestions
-- Spotify canvas
-- File browser
+- ~~Spotify canvas~~
+- ~~File browser~~

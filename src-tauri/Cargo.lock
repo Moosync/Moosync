@@ -8962,8 +8962,15 @@ name = "youtube"
 version = "0.1.0"
 dependencies = [
  "database",
+ "regex",
+ "reqwest",
  "rusty_ytdl",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "tokio",
  "types",
+ "url",
 ]
 
 [[package]]

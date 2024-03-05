@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::mpsc::TryRecvError, thread};
+use std::{str::FromStr};
 
 use librespot::{
     spirc::ParsedToken, utils::event_to_map, Bitrate, Cache, ConnectConfig, Credentials,
@@ -7,12 +7,12 @@ use librespot::{
 use macros::generate_command;
 
 use serde_json::Value;
-use tauri::{AppHandle, EventTarget, Manager, State, Window};
+use tauri::{AppHandle, Manager, State, Window};
 use types::{
     canvaz::CanvazResponse,
     errors::errors::{MoosyncError, Result},
 };
-use uuid::Uuid;
+
 
 pub fn get_librespot_state() -> LibrespotHolder {
     LibrespotHolder::new()

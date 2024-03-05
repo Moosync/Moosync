@@ -9,3 +9,10 @@ edition = "2021"
 rusty_ytdl = "0.6.6"
 database = { path = "../database" }
 types = { path = "../types" }
+serde_json = "1.0.114"
+reqwest = { version = "0.11.24", features = ["json"] }
+tokio = "1.36.0"
+serde_derive = "1.0.197"
+serde = "1.0.197"
+regex = "1.10.3"
+url = "2.5.0"

@@ -14,7 +14,7 @@ fn test_transformcss() -> Result<()> {
         root_theme.clone(),
         "@import \"./test1.css\"\n\n@import \"./test1.css\"",
     )?;
-    fs::write(subroot_theme.clone(), "hello1")?;
+fs::write(subroot_theme.clone(), "hello1")?;
 
     let res = theme_holder.transform_css(root_theme.to_string_lossy().to_string(), None)?;
 

@@ -290,6 +290,8 @@ window.SearchUtils = {
 			id: song._id,
 			url: song.url,
 		}),
+	getYTPlaylistContent: async (id, continuation) =>
+		invoke("get_playlist_content", { id, continuation }),
 };
 
 window.ExtensionUtils = {

@@ -1,12 +1,18 @@
-use std::collections::HashMap;
+
 
 use librespot::LibrespotHolder;
 use regex::Regex;
-use scraper::Selector;
+
 use serde_json::Value;
 use types::errors::errors::Result;
 
 pub struct LyricsFetcher {}
+
+impl Default for LyricsFetcher {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl LyricsFetcher {
     pub fn new() -> LyricsFetcher {
@@ -97,7 +103,7 @@ impl LyricsFetcher {
                                                         let res = split
                                                             .replace("<br>", "\n")
                                                             .replace("\\\\n", "")
-                                                            .replace("\\", "");
+                                                            .replace('\\', "");
 
                                                         // Remove HTML tags using regex
                                                         let re =
@@ -179,7 +185,7 @@ impl LyricsFetcher {
         Ok(String::new())
     }
 
-    async fn get_google_lyrics(&self, artists: Vec<String>, title: String) -> Result<String> {
+    async fn get_google_lyrics(&self, _artists: Vec<String>, _title: String) -> Result<String> {
         // let url = self.get_url("https://www.google.com/search?q=", artists, title, true);
 
         // let client = reqwest::Client::builder()

@@ -125,6 +125,7 @@ export default class SinglePlaylistView extends mixins(ContextMenuMixin, Provide
 
     this.generator = (provider, nextPageToken) => {
       if (this.playlist) {
+        console.log('using next page token', nextPageToken)
         return provider.getPlaylistContent(
           provider.sanitizeId(this.playlist.playlist_id, 'PLAYLIST'),
           this.invalidateCache,

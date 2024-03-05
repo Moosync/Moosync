@@ -8,6 +8,7 @@ use diesel::{
     ExpressionMethods, RunQueryDsl, SqliteConnection,
 };
 
+use serde::{Deserialize, Serialize};
 use types::cache::CacheModel;
 use types::errors::errors::Result;
 
@@ -46,13 +47,16 @@ impl CacheHolder {
             .expect("Failed to create pool.")
     }
 
-    fn set(&self, _url: &str, blob: Vec<u8>, expires: i32) -> Result<()> {
+    pub fn set<T>(&self, _url: &str, blob: &T, expires: i32) -> Result<()>
+    where
+        T: Serialize,
+    {
         let mut conn = self.pool.get().unwrap();
 
         let cache_model = CacheModel {
             id: None,
             url: _url.to_string(),
-            blob,
+            blob: serde_json::to_vec(blob)?,
             expires,
         };
         insert_into(cache)
@@ -64,13 +68,14 @@ impl CacheHolder {
         Ok(())
     }
 
-    fn get(&self, _url: &str) -> Result<Option<CacheModel>> {
+    pub fn get<T>(&self, _url: &str) -> Result<T>
+    where
+        T: for<'a> Deserialize<'a>,
+    {
         let mut conn = self.pool.get().unwrap();
 
-        let data = cache.filter(url.eq(_url)).first::<CacheModel>(&mut conn);
-        if let Ok(data) = data {
-            return Ok(Some(data));
-        }
-        Ok(None)
+        let data: CacheModel = cache.filter(url.eq(_url)).first::<CacheModel>(&mut conn)?;
+        let parsed: T = serde_json::from_slice(&data.blob)?;
+        Ok(parsed)
     }
 }

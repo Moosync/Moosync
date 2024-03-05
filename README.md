@@ -25,6 +25,6 @@ You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/
 - ~~Theme CSS import parsing~~
 - Auto updater
 - Playlist export
-- Youtube playlists, artists, albums and suggestions
+- ~~Youtube playlists, artists, albums and suggestions~~
 - ~~Spotify canvas~~
 - ~~File browser~~

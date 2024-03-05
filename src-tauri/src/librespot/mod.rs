@@ -1,10 +1,11 @@
-use std::{str::FromStr};
+use std::str::FromStr;
 
+use database::cache::CacheHolder;
 use librespot::{
     spirc::ParsedToken, utils::event_to_map, Bitrate, Cache, ConnectConfig, Credentials,
     DeviceType, LibrespotHolder, PlayerConfig, REGISTERED_EVENTS,
 };
-use macros::generate_command;
+use macros::{generate_command, generate_command_cached};
 
 use serde_json::Value;
 use tauri::{AppHandle, Manager, State, Window};
@@ -12,7 +13,6 @@ use types::{
     canvaz::CanvazResponse,
     errors::errors::{MoosyncError, Result},
 };
-
 
 pub fn get_librespot_state() -> LibrespotHolder {
     LibrespotHolder::new()
@@ -156,4 +156,4 @@ generate_command!(librespot_seek, LibrespotHolder, (), pos: u32);
 generate_command!(librespot_volume, LibrespotHolder, (), volume: u16);
 generate_command!(librespot_get_token, LibrespotHolder, ParsedToken, scopes: String);
 generate_command!(register_event, LibrespotHolder, (), event: String);
-generate_command!(get_canvaz, LibrespotHolder, CanvazResponse, uri: String);
+generate_command_cached!(get_canvaz, LibrespotHolder, CanvazResponse, uri: String);

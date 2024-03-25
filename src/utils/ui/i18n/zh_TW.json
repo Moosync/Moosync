@@ -39,7 +39,7 @@
   },
   "songView": {
     "details": {
-      "songCount": "{count} song | {count} songs"
+      "songCount": "{count} 首歌曲 | {count} 首歌曲"
     },
     "songList": {
       "topbar": {
@@ -68,15 +68,15 @@
       "artist": "歌手",
       "genre": "類型",
       "date_added": "加入日期",
-      "provider": "提供者",
+      "provider": "服務商",
       "playCount": "播放次數"
     },
     "playlist": {
-      "new": "新增播放清單",
+      "new": "新建播放清單",
       "addFromURL": "從網址匯入",
       "remove": "移除播放清單",
       "export": "匯出播放清單",
-      "add": "新增至播放清單",
+      "add": "加入至播放清單",
       "save": "加入至音樂庫"
     },
     "song": {
@@ -87,8 +87,8 @@
       "addToQueue": "新增至佇列",
       "moveToTop": "移到最上面",
       "moveToBottom": "移到底端",
-      "moveManually": "自訂曲目編號",
-      "manualIndex": "設定編號",
+      "moveManually": "手動移動",
+      "manualIndex": "設定曲目索引",
       "remove": "從音樂庫刪除",
       "add": "加入音樂庫 | 加入音樂庫",
       "removeFromPlaylist": "從播放清單移除",
@@ -137,11 +137,11 @@
       "artworkPath_tooltip": "下載音樂的儲存目錄",
       "thumbnailPath": "縮圖下載的路徑",
       "thumbnailPath_tooltip": "下載縮圖的儲存目錄",
-      "splitter": "Artist name split pattern",
-      "splitter_tooltip": "Regex to split artist names. Leave empty to disable splitting.",
-      "scan_interval": "Scan interval",
-      "scan_interval_tooltip": "Interval in minutes to trigger a scan task. Set to -1 to disable automatic scanning",
-      "scan_threads": "Scan CPU threads",
+      "splitter": "歌手名稱分隔樣式",
+      "splitter_tooltip": "正規表示式分隔歌手名稱. 留空則停用分隔",
+      "scan_interval": "掃描時間間隔",
+      "scan_interval_tooltip": "觸發一個掃描任務的間隔分鐘數. 設定 -1 則停用自動掃描",
+      "scan_threads": "掃描的 CPU 執行緒",
       "scan_threads_tooltip": "掃描本機音樂目錄的CPU執行緒數目"
     },
     "themes": {
@@ -164,10 +164,10 @@
       },
       "primary": "主要",
       "secondary": "次要",
-      "tertiary": "第三級",
-      "textPrimary": "Text Primary",
-      "textSecondary": "Text Secondary",
-      "textInverse": "Text Inverse",
+      "tertiary": "第三方功能",
+      "textPrimary": "主標題",
+      "textSecondary": "次標題",
+      "textInverse": "文字倒置",
       "accent": "色調",
       "divider": "分隔線",
       "import_button": "匯入"
@@ -193,74 +193,74 @@
       "audioSettings": {
         "title": "音訊設定",
         "gaplessPlayback": "盡可能使用無縫播放",
-        "sponsorBlock": "Use SponsorBlock to automatically skip to highlighted part of Youtube song"
+        "sponsorBlock": "使用SpnsorBlock自動跳過Youtube歌曲醒目部分"
       },
       "audioSettings_tooltip": "播放音訊相關的設定",
-      "gapless_skip": "Skip song before end (seconds)",
-      "invidiousUrlUnsupported": "This url does not support Invidious API",
-      "invidious_tooltip": "Invidious instance to use instead of youtube",
+      "gapless_skip": "在結束前跳過歌曲(秒)",
+      "invidiousUrlUnsupported": "這網址不支援 Invidious API",
+      "invidious_tooltip": "Invidious 服務用來取代 Youtube",
       "restartApp": "重啟 Moosync",
-      "zoom": "Zoom Factor (Beta)",
-      "zoom_tooltip": "Zoom of windows in percentage. This may break the UI.",
+      "zoom": "縮放倍數(測試)",
+      "zoom_tooltip": "視窗縮放的百分比. 這可能會破壞操作介面",
       "spotify": {
-        "client_id": "Spotify Client ID",
-        "client_id_tooltip": "Spotify client ID required to login to Spotify. Click to know more",
-        "client_secret": "Spotify Client Secret",
-        "client_secret_tooltip": "Spotify client Secret required to login to Spotify. Click to know more",
-        "autoFetchButton": "Get Spotify details automatically",
-        "autoFetchPreTitle": "Get",
-        "autoFetchTitle": "ClientID and Secret",
-        "autoFetchDisclaimer": "A window will now open where you will be asked to login to your Spotify account. After logging in please do not click anywhere as the whole process will be automated",
-        "openWindow": "Open Window",
-        "title": "Spotify Settings",
-        "tooltip": "Options to change the behavior of spotify playback",
-        "librespotEnable": "Use librespot (Spotify Premium required)",
-        "username": "Spotify username",
-        "username_tooltip": "Your spotify username. Usually your email",
-        "password": "Spotify password",
-        "password_tooltip": "Your spotify password. You may need to set one in settings on Spotify",
+        "client_id": "Spotify 用戶 ID",
+        "client_id_tooltip": "需要登入至 Spotify 的用戶 ID. 按下了解更多",
+        "client_secret": "Spotify 用戶密碼",
+        "client_secret_tooltip": "需要登入至 Spotify 的用戶密碼. 按下了解更多",
+        "autoFetchButton": "自動取得 Spotify 詳細資訊",
+        "autoFetchPreTitle": "取得",
+        "autoFetchTitle": "用戶 ID 與密碼",
+        "autoFetchDisclaimer": "一個視窗會立即開啟並要求你登入 Spotify 帳號. 登入後請不要點擊畫面, 因為整個程序會自動完成",
+        "openWindow": "開啟視窗",
+        "title": "Spotify 設定",
+        "tooltip": "改變 Spotify 播放行為的選項",
+        "librespotEnable": "使用 librespot (Spotify 付費會員)",
+        "username": "Spotify 用戶名稱",
+        "username_tooltip": "你的 Spotifi 用戶名稱. 通常是你的 email",
+        "password": "Spotify 密碼",
+        "password_tooltip": "你的 Spotify 密碼. 你可能需要在 Spotify 裡設定一個",
         "librespot": {
-          "title": "Librespot options",
-          "tooltip": "Options to change the behavior of librespot",
-          "useSpotifyCanvas": "Show spotify canvas video in background",
-          "useLibrespotPlayback": "Use librespot for song playback"
+          "title": "Librespot 選項",
+          "tooltip": "改變 Librespot 行為的選項",
+          "useSpotifyCanvas": "在背景中顯示 Spotify Canvas 影片",
+          "useLibrespotPlayback": "歌曲播放時使用 Librespot"
         }
       },
       "youtube": {
-        "client_id": "Youtube Client ID",
-        "client_secret": "Youtube Client Secret",
-        "client_id_tooltip": "Youtube client ID required to login to Youtube. Click to know more",
-        "client_secret_tooltip": "Youtube client Secret required to login to Youtube. Click to know more"
+        "client_id": "Youtube 用戶 ID",
+        "client_secret": "Youtube 用戶密碼",
+        "client_id_tooltip": "登入至 Youtube 的用戶 ID. 按下了解更多",
+        "client_secret_tooltip": "登入 Youtube 的用戶密碼. 按下了解更多"
       },
       "lastfm": {
-        "client_id": "LastFM Api Key",
-        "client_secret": "LastFM Client Secret"
+        "client_id": "LastFM API Key",
+        "client_secret": "LastFM 用戶密碼"
       },
       "youtubeAlternative": {
-        "title": "Youtube Alternative services",
-        "tooltip": "Get data from Youtube through a 3rd party provider",
-        "useYoutube": "Use default Youtube services",
-        "useInvidious": "Use Invidious services",
-        "usePiped": "Use Piped services",
+        "title": "Youtube 替代服務",
+        "tooltip": "透過第三方供應商取取得 Youtube 資料",
+        "useYoutube": "使用預設的 Youtube 服務",
+        "useInvidious": "使用 Invidious 服務",
+        "usePiped": "使用 Piped 服務",
         "piped": {
-          "url": "Piped Instance",
-          "url_tooltip": "URL of Piped instance to use",
-          "username": "Username",
-          "username_tooltip": "Your piped username at the selected instance",
-          "password": "Password",
-          "password_tooltip": "Your piped password at the selected instance"
+          "url": "Piped 服務",
+          "url_tooltip": "要使用的 Piped 服務網址",
+          "username": "用戶名稱",
+          "username_tooltip": "你的 Piped 服務用戶名稱",
+          "password": "密碼",
+          "password_tooltip": "你的 Piped 服務的密碼"
         },
         "invidious": {
-          "url": "Invidious Instance",
-          "url_tooltip": "URL of Invidious instance to use",
-          "options": "Advanced Invidious options",
-          "options_tooltip": "Options to fine control Invidious playback",
-          "always_proxy": "Always play audio from Invidious proxy instead of Google video"
+          "url": "Invidious 服務",
+          "url_tooltip": "要使用的 Invidious 服務網址",
+          "options": "進階的 Invidious 選項",
+          "options_tooltip": "微調 Invidious 播放的選項",
+          "always_proxy": "總是從 Invidious proxy 播放音訊而不是從 Google video"
         },
         "youtube": {
-          "options": "Advanced Youtube options",
-          "options_tooltip": "Options to fine control Youtube playback",
-          "useEmbeds": "Use Youtube embeds for playing audio from Youtube"
+          "options": "進階 Youtube 選項",
+          "options_tooltip": "微調 Youtube 播放的選項",
+          "useEmbeds": "從 Youtube 播放音訊時使用 Youtube 嵌入"
         }
       },
       "language": "語言",
@@ -270,21 +270,21 @@
       "clear_preferences": "確定要重置所有設定為預設值? 重置完成後將自動重啟",
       "clear_preferences_button": "確認",
       "jukebox": {
-        "pin": "Jukebox mode pin",
-        "pin_tooltip": "This pin will be required to exit Jukebox Mode. Should be numeric.",
-        "optionalFields": "Button visibility",
-        "optionalFields_tooltip": "Toggle optional buttons to show in Jukebox mode",
-        "optional_skip": "Track Skip buttons",
-        "optional_shuffle": "Shuffle button",
-        "optional_repeat": "Repeat button"
+        "pin": "點唱機模式安全碼",
+        "pin_tooltip": "關閉點唱機模式需要這個安全碼. 應該要是數字",
+        "optionalFields": "按鍵可視性",
+        "optionalFields_tooltip": "顯示在點唱機模式的切換選擇鍵",
+        "optional_skip": "曲目跳過按鍵",
+        "optional_shuffle": "隨機播放按鍵",
+        "optional_repeat": "循環播放按鍵"
       },
       "lyrics": {
-        "title": "Lyrics providers",
-        "tooltip": "Select which lyrics providers to use to search for lyrics",
-        "az_lyrics": "Use AZLyrics",
-        "google_lyrics": "Use Google search lyrics",
-        "spotify_lyrics": "Use Spotify for lyrics (Requires librespot)",
-        "genius_lyrics": "Use Genius"
+        "title": "歌詞服務商",
+        "tooltip": "選擇要使用哪個供應商的歌詞",
+        "az_lyrics": "使用 AZlyrics",
+        "google_lyrics": "使用 Google 搜尋歌詞",
+        "spotify_lyrics": "使用 Spotify 的歌詞(需要 Librespot 付費)",
+        "genius_lyrics": "使用 Genius"
       },
       "queueSettings": {
         "title": "佇列設定",
@@ -293,21 +293,21 @@
       },
       "scrobble": {
         "provider_toggle": {
-          "title": "Scrobble whitelist",
-          "tooltip": "Enable providers whose songs you want to be scrobble'd"
+          "title": "Scrobble 白名單",
+          "tooltip": "啟用你想被 scrobble 歌曲的服務商"
         }
       },
       "volumePersistMode": {
-        "title": "Volume behavior",
-        "tooltip": "Change the way volume slider behaves",
-        "noPersist": "Normal behavior",
-        "persistSeparateVolumes": "Remember separate volume for each provider",
-        "persistClampVolume": "Manually adjust volume range for each provider"
+        "title": "音量行為",
+        "tooltip": "改變音量滑桿行為方式",
+        "noPersist": "正常行為",
+        "persistSeparateVolumes": "記住每個服務商的個別音量",
+        "persistClampVolume": "手動調整每個服務商的音量範圍"
       }
     },
     "logs": {
       "logSettings": "日誌設定",
-      "level": "等級",
+      "level": "層級",
       "process": "程序",
       "filterMessage": "過濾訊息",
       "levels": {
@@ -320,7 +320,7 @@
       "debug_logging": "啟用除錯日誌",
       "table": {
         "time": "時間",
-        "level": "等級",
+        "level": "層級",
         "process": "程序",
         "message": "訊息"
       }
@@ -330,49 +330,49 @@
     "play": "播放歌曲",
     "pause": "暫停播放",
     "play_toggle": "播放切換",
-    "mute_active": "Mute",
-    "mute_inactive": "Unmute",
-    "mute_toggle": " Toggle mute",
-    "volume_inc": "Increase volume",
-    "volume_dec": "Decrease volume",
-    "repeat_active": "Repeat song",
-    "repeat_inactive": "Disable repeat",
-    "repeat_toggle": "Toggle repeat",
-    "queue_open": "Open song queue",
-    "queue_close": "Close song queue",
-    "queue_toggle": "Toggle song queue",
-    "reload_page": "Reload page",
-    "devtools": "Toggle dev-tools",
-    "help": "Open help",
-    "fullscreen": "Fullscreen",
-    "next_song": "Skip song",
-    "prev_song": "Prev song",
-    "seek_forward": "Seek 5s forward",
-    "seek_backwards": "Seek 5s backwards",
-    "seek_0": "Seek to 0%",
-    "seek_1": "Seek to 10%",
-    "seek_2": "Seek to 20%",
-    "seek_3": "Seek to 30%",
-    "seek_4": "Seek to 40%",
-    "seek_5": "Seek to 50%",
-    "seek_6": "Seek to 60%",
-    "seek_7": "Seek to 70%",
-    "seek_8": "Seek to 80%",
-    "seek_9": "Seek to 90%"
+    "mute_active": "靜音",
+    "mute_inactive": "取消靜音",
+    "mute_toggle": " 切換靜音",
+    "volume_inc": "調高音量",
+    "volume_dec": "調低音量",
+    "repeat_active": "循環播放曲目",
+    "repeat_inactive": "取消循環播放",
+    "repeat_toggle": "切換循環播放。",
+    "queue_open": "開啟歌曲佇列",
+    "queue_close": "關閉歌曲佇列",
+    "queue_toggle": "切換歌曲佇列",
+    "reload_page": "重新載入頁面",
+    "devtools": "切換開發者工具",
+    "help": "開啟求助",
+    "fullscreen": "全螢幕",
+    "next_song": "下一首",
+    "prev_song": "上一首",
+    "seek_forward": "快進 5 秒",
+    "seek_backwards": "後退 5 秒",
+    "seek_0": "搜尋至 0%",
+    "seek_1": "搜尋至 10%",
+    "seek_2": "搜尋至 20%",
+    "seek_3": "搜尋至 30%",
+    "seek_4": "搜尋至 40%",
+    "seek_5": "搜尋至 50%",
+    "seek_6": "搜尋至 60%",
+    "seek_7": "搜尋至 70%",
+    "seek_8": "搜尋至 80%",
+    "seek_9": "搜尋至 90%"
   },
   "tray": {
     "play": "播放",
     "pause": "暫停",
     "next": "下一首",
     "prev": "上一首",
-    "repeat": "重複",
-    "no_repeat": "不重複",
+    "repeat": "循環播放",
+    "no_repeat": "取消循環播放",
     "shuffle": "隨機播放",
     "show_app": "顯示應用程式",
     "quit": "離開"
   },
   "toasts": {
-    "queued": "Queued {count} song | Queued {count} songs",
+    "queued": "佇列 {count} 首歌曲 | 佇列 {count} 首歌曲",
     "shuffled": "隨機播放的"
   }
 }

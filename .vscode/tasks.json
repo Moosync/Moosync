@@ -1,0 +1,22 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "ui:dev",
+            "type": "shell",
+            "isBackground": true,
+            "command": "yarn",
+            "args": [
+                "dev"
+            ]
+        },
+        {
+            "label": "ui:build",
+            "type": "shell",
+            "command": "yarn",
+            "args": [
+                "build"
+            ]
+        }
+    ]
+}

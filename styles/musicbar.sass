@@ -1,0 +1,83 @@
+.background
+    position: fixed
+    bottom: 0
+    height: 6rem
+
+.timeline-container
+    height: 1rem
+    width: 100%
+
+.timeline
+    background: transparent
+    height: 0.5rem !important
+    width: 100%
+    padding: 0 15px 0 15px !important
+
+.musicbar
+    position: relative
+    background: transparent
+
+.bar-container
+    background: var(--primary)
+    height: calc(100% - 1rem)
+
+.slider
+    position: fixed
+    background: var(--primary)
+    width: 100%
+    // animation: 0.2s linear 0s slide
+    transition: transform 0.3s ease
+    z-index: -2
+.open
+    transform: translateY(-4px)
+
+.close
+    transform: translateY(100vh)
+
+.details-col
+    display: block
+
+.extra-col
+    display: block
+
+.slider
+    display: block
+
+@media only screen and (max-width : 800px)
+    .slider
+        display: none
+
+@media only screen and (max-width : 640px)
+    .details-col
+        display: none
+
+@media only screen and (max-width : 565px)
+    .extra-col
+        display: none
+
+.coverimg
+    height: 56px
+    width: 56px
+    min-width: 56px
+    margin-right: 15px
+    border-radius: 10px
+    object-fit: cover
+
+.text
+    text-align: left
+    font-weight: normal
+    line-height: 170.19%
+
+.song-title
+    cursor: pointer
+    font-size: 19.1549px
+    width: fit-content
+
+.song-subtitle
+    font-size: 14.2592px
+    color: var(--textSecondary)
+    width: fit-content
+    cursor: pointer
+    text-decoration: none
+    &:hover
+        text-decoration: underline

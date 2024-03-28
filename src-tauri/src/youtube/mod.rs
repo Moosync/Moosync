@@ -1,5 +1,5 @@
 use database::cache::CacheHolder;
-use macros::{generate_command_async, generate_command_async_cached};
+use macros::{generate_command_async_cached};
 use tauri::State;
 use types::entities::SearchResult;
 use youtube::{

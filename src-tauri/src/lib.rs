@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use extensions::get_extension_state;
 use librespot::{
     get_canvaz, get_librespot_state, initialize_librespot, librespot_close, librespot_get_token,
     librespot_load, librespot_pause, librespot_play, librespot_seek, librespot_volume,
@@ -18,6 +19,7 @@ use themes::{
     transform_css,
 };
 
+use extensions::{broadcast, download_extension, install_extension};
 use scanner::{get_scanner_state, start_scan};
 use tauri::{Manager, State};
 
@@ -44,6 +46,7 @@ use {
 use crate::oauth::handler::{register_oauth_path, unregister_oauth_path};
 
 mod db;
+mod extensions;
 mod librespot;
 mod logger;
 mod lyrics;
@@ -146,6 +149,10 @@ pub fn run() {
             set_position,
             // Lyrics
             get_lyrics,
+            // Extensions
+            broadcast,
+            install_extension,
+            download_extension,
         ])
         .setup(|app| {
             let db = get_db_state(app);
@@ -180,6 +187,9 @@ pub fn run() {
 
             let lyrics_state = get_lyrics_state();
             app.manage(lyrics_state);
+
+            let ext_state = get_extension_state(app.app_handle().clone())?;
+            app.manage(ext_state);
 
             initial(app.state());
 

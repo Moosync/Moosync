@@ -1,19 +1,3 @@
-[workspace]
-resolver = "2"
-members = [
-    "database",
-    "file_scanner",
-    "librespot",
-    "lyrics",
-    "macros",
-    "mpris",
-    "preferences",
-    "themes",
-    "types",
-    "youtube",
-]
-
-
 [package]
 name = "moosync"
 version = "0.0.0"
@@ -24,7 +8,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "2.0.0-beta", features = [] }
+tauri-build = { version = "2.0.0-beta.10", features = [] }
 
 [dependencies]
 macros = { path = "./macros" }
@@ -37,7 +21,8 @@ librespot = { path = "./librespot" }
 themes = { path = "./themes" }
 mpris = { path = "./mpris" }
 lyrics = { path = "./lyrics" }
-tauri = { version = "2.0.0-beta", features = [
+extensions = { path = "./extensions" }
+tauri = { version = "2.0.0-beta.13", features = [
     "protocol-asset",
     "devtools",
     "default",
@@ -72,7 +57,7 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 strip = "symbols"
 
 [profile.dev]
-debug = 0
+# debug = 0
 opt-level = 0
 lto = false
 incremental = true

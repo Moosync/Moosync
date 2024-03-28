@@ -1,6 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
 use crate::errors::errors::MoosyncError;
+#[cfg(feature = "core")]
 use diesel::{
     backend::Backend,
     deserialize::{self, FromSql, FromSqlRow, QueryableByName},
@@ -13,6 +14,7 @@ use diesel::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[cfg(feature = "core")]
 use crate::schema::allsongs;
 
 use super::{
@@ -20,10 +22,9 @@ use super::{
     traits::SearchByTerm,
 };
 
-#[derive(
-    Debug, Default, Deserialize, Serialize, FromSqlRow, AsExpression, Clone, PartialEq, Eq,
-)]
-#[diesel(sql_type = diesel::sql_types::Text)]
+#[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "core", derive(FromSqlRow, AsExpression))]
+#[cfg_attr(feature = "core", diesel(sql_type = diesel::sql_types::Text))]
 pub enum SongType {
     #[default]
     LOCAL,
@@ -63,6 +64,7 @@ impl FromStr for SongType {
     }
 }
 
+#[cfg(feature = "core")]
 impl ToSql<Text, Sqlite> for SongType
 where
     String: ToSql<Text, Sqlite>,
@@ -82,6 +84,7 @@ where
     }
 }
 
+#[cfg(feature = "core")]
 impl<DB> FromSql<Text, DB> for SongType
 where
     DB: Backend,
@@ -100,21 +103,20 @@ where
     }
 }
 
-#[derive(
-    Debug,
-    Deserialize,
-    Serialize,
-    Insertable,
-    Default,
-    Queryable,
-    Identifiable,
-    AsChangeset,
-    Clone,
-    Selectable,
-    QueryableByName,
+#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[cfg_attr(
+    feature = "core",
+    derive(
+        Insertable,
+        Queryable,
+        Identifiable,
+        AsChangeset,
+        Selectable,
+        QueryableByName
+    )
 )]
-#[diesel(table_name = allsongs)]
-#[diesel(primary_key(_id))]
+#[cfg_attr(feature = "core", diesel(table_name = allsongs))]
+#[cfg_attr(feature = "core", diesel(primary_key(_id)))]
 pub struct QueryableSong {
     pub _id: Option<String>,
     pub path: Option<String>,
@@ -126,26 +128,26 @@ pub struct QueryableSong {
     pub year: Option<String>,
     pub lyrics: Option<String>,
     #[serde(rename = "releaseType")]
-    #[diesel(column_name = "releasetype")]
+    #[cfg_attr(feature = "core", diesel(column_name = "releasetype"))]
     pub release_type: Option<String>,
     pub bitrate: Option<f64>,
     pub codec: Option<String>,
     pub container: Option<String>,
     pub duration: Option<f64>,
     #[serde(rename = "sampleRate")]
-    #[diesel(column_name = "samplerate")]
+    #[cfg_attr(feature = "core", diesel(column_name = "samplerate"))]
     pub sample_rate: Option<f64>,
     pub hash: Option<String>,
     #[serde(rename = "type")]
     pub type_: SongType,
     pub url: Option<String>,
-    #[diesel(column_name = "song_coverpath_high")]
+    #[cfg_attr(feature = "core", diesel(column_name = "song_coverpath_high"))]
     #[serde(rename = "song_coverPath_high")]
     pub song_cover_path_high: Option<String>,
-    #[diesel(column_name = "playbackurl")]
+    #[cfg_attr(feature = "core", diesel(column_name = "playbackurl"))]
     #[serde(rename = "playbackUrl")]
     pub playback_url: Option<String>,
-    #[diesel(column_name = "song_coverpath_low")]
+    #[cfg_attr(feature = "core", diesel(column_name = "song_coverpath_low"))]
     #[serde(rename = "song_coverPath_low")]
     pub song_cover_path_low: Option<String>,
     pub date_added: Option<i64>,

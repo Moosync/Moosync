@@ -1,57 +1,87 @@
-use std::{io, num::ParseFloatError, string::FromUtf8Error, time::SystemTimeError};
+use std::{
+    io,
+    num::{ParseFloatError, ParseIntError},
+    path,
+    string::FromUtf8Error,
+    time::SystemTimeError,
+};
 
+#[cfg(feature = "core")]
 use fast_image_resize::{DifferentTypesOfPixelsError, ImageBufferError};
+#[cfg(feature = "core")]
 use image::ImageError;
+#[cfg(feature = "core")]
 use librespot::core::Error as LibrespotError;
+#[cfg(feature = "core")]
 use lofty::LoftyError;
+#[cfg(feature = "core")]
 use rusty_ytdl::VideoError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum MoosyncError {
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     Tauri(#[from] tauri::Error),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     Diesel(#[from] diesel::result::Error),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     IO(#[from] io::Error),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     Youtube(#[from] VideoError),
     #[error(transparent)]
     DotPaths(#[from] json_dotpath::Error),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     SystemTimeError(#[from] SystemTimeError),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     ImageBufferError(#[from] ImageBufferError),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     ImageError(#[from] ImageError),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     DifferentTypesOfPixelsError(#[from] DifferentTypesOfPixelsError),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     LoftyError(#[from] LoftyError),
     #[error(transparent)]
     ParseFloatError(#[from] ParseFloatError),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     JWalkError(#[from] jwalk::Error),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     Librespot(#[from] LibrespotError),
     #[error(transparent)]
     UTF8(#[from] FromUtf8Error),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     Reqwest(#[from] reqwest::Error),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     ProtoBuf(#[from] protobuf::Error),
     #[error("{0}")]
     String(String),
-    #[error("Error in media controls: {0:?}")]
+    #[cfg_attr(feature = "core", error("Error in media controls: {0:?}"))]
+    #[cfg(feature = "core")]
     MediaControlError(souvlaki::Error),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     ZipError(#[from] zip::result::ZipError),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     FSExtraError(#[from] fs_extra::error::Error),
+    #[error(transparent)]
+    ParseIntError(#[from] ParseIntError),
 }
 
+#[cfg(feature = "core")]
 impl From<souvlaki::Error> for MoosyncError {
     fn from(value: souvlaki::Error) -> Self {
         Self::MediaControlError(value)

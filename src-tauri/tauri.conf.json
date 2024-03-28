@@ -28,13 +28,22 @@
     "withGlobalTauri": true
   },
   "build": {
-    "beforeBuildCommand": "yarn build",
-    "beforeDevCommand": "yarn dev",
-    "devUrl": "http://localhost:1420/mainWindow",
+    "beforeBuildCommand": "trunk build",
+    "beforeDevCommand": "trunk serve",
+    "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },
   "bundle": {
     "active": true,
+    "externalBin": [
+      "binaries/exthost"
+    ],
+    "resources": [
+      "bridge.js",
+      "events.js",
+      "setup-sandbox.js",
+      "setup-node-sandbox.js"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

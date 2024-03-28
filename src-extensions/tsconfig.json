@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "target": "es2022",
+        "module": "CommonJS",
+        "lib": [
+            "ES2022"
+        ],
+        "moduleResolution": "Node",
+        "rootDir": ".",
+        "outDir": "build",
+        "allowSyntheticDefaultImports": true,
+        "importHelpers": true,
+        "alwaysStrict": true,
+        "sourceMap": true,
+        "forceConsistentCasingInFileNames": true,
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitReturns": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitAny": false,
+        "noImplicitThis": false,
+        "strictNullChecks": false,
+        "typeRoots": [
+            "src/types"
+        ]
+    },
+    "include": [
+        "src/**/*.ts",
+        "__tests__/**/*"
+    ]
+}

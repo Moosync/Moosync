@@ -21,18 +21,19 @@ use types::errors::errors::{MoosyncError, Result};
 pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,
     pub secret: Mutex<Key>,
+    pub memcache: Mutex<Value>,
 }
 
 impl PreferenceConfig {
     pub fn new(data_dir: PathBuf) -> Result<Self> {
-        let config_file = data_dir.join("config.json");
+        let config_file_path = data_dir.join("config.json");
 
         if !data_dir.exists() {
             fs::create_dir_all(data_dir)?;
         }
 
-        if !config_file.exists() {
-            let mut file = File::create(config_file.clone())?;
+        if !config_file_path.exists() {
+            let mut file = File::create(config_file_path.clone())?;
             file.write_all(b"{}")?;
         }
 
@@ -50,20 +51,22 @@ impl PreferenceConfig {
             key
         };
 
+        let mut config_file = File::open(config_file_path.clone())?;
+        let mut prefs = String::new();
+        config_file.read_to_string(&mut prefs)?;
+
         Ok(PreferenceConfig {
-            config_file: Mutex::new(config_file),
+            config_file: Mutex::new(config_file_path),
             secret: Mutex::new(secret),
+            memcache: Mutex::new(serde_json::from_str(&prefs)?),
         })
     }
 
     pub fn load_selective(&self, key: String) -> Result<Value> {
-        let config_file_path = self.config_file.lock().unwrap();
-        let mut config_file = File::open(config_file_path.as_os_str())?;
-        let mut prefs = String::new();
-        config_file.read_to_string(&mut prefs)?;
-
-        let value: Value = serde_json::from_str(&prefs).unwrap();
-        let val: Option<Value> = value.dot_get(format!("prefs.{}", key).as_str())?;
+        let prefs = self.memcache.lock().unwrap();
+        let val: Option<Value> = prefs.dot_get(format!("prefs.{}", key).as_str())?;
+        println!("Loading selective {}", key);
+        drop(prefs);
         if val.is_none() {
             println!("No value found for {}", key);
             return Ok(Value::Null);
@@ -73,22 +76,23 @@ impl PreferenceConfig {
     }
 
     pub fn save_selective(&self, key: String, value: Value) -> Result<()> {
-        let config_file_path = self.config_file.lock().unwrap();
-        let mut config_file = File::open(config_file_path.as_os_str())?;
-        let mut prefs = String::new();
-        config_file.read_to_string(&mut prefs)?;
-
-        let mut prefs: Value = serde_json::from_str(&prefs)?;
+        let mut prefs = self.memcache.lock().unwrap();
+        println!("saving {}", key);
         prefs
             .dot_set(format!("prefs.{}", key).as_str(), value)
             .unwrap();
+        let writable = prefs.clone();
+        drop(prefs);
 
+        let config_file_path = self.config_file.lock().expect("poisoned");
         let mut config_file = File::create(config_file_path.as_os_str())?;
-        config_file.write_all(serde_json::to_string(&prefs)?.as_bytes())?;
+        config_file.write_all(&serde_json::to_vec(&writable)?)?;
+        config_file.flush()?;
         Ok(())
     }
 
     pub fn load_selective_array(&self, key: String) -> Result<Value> {
+        println!("Loading selective array {}", key);
         let mut split: Vec<&str> = key.split('.').collect();
         let child = split.pop().unwrap();
         let parent = split.join(".");
@@ -120,8 +124,11 @@ impl PreferenceConfig {
 
         let secret = self.secret.lock().unwrap();
         let cipher = ChaCha20Poly1305::new(&secret);
-        let plaintext =
-            String::from_utf8(cipher.decrypt(&nonce, ciphertext.as_slice()).unwrap()).unwrap();
+        let plaintext = String::from_utf8(
+            cipher
+                .decrypt(&nonce, ciphertext.as_slice())
+                .map_err(|e| MoosyncError::String(e.to_string()))?,
+        )?;
 
         Ok(Value::String(plaintext))
     }

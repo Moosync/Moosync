@@ -99,6 +99,7 @@ impl MprisHolder {
 
         let mut controls = self.controls.lock().unwrap();
         controls.set_playback(parsed)?;
+        drop(controls);
 
         let mut last_state = self.last_state.lock().unwrap();
         *last_state = state;

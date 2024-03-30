@@ -9,3 +9,5 @@ pub mod mpris;
 pub mod schema;
 pub mod songs;
 pub mod traits;
+
+pub mod ui;

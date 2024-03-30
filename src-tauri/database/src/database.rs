@@ -560,11 +560,7 @@ impl Database {
 
     pub fn get_songs_by_options(&self, options: GetSongOptions) -> Result<Vec<Song>> {
         let mut ret = vec![];
-        let inclusive = if let Some(inclusive) = options.inclusive {
-            inclusive
-        } else {
-            false
-        };
+        let inclusive = options.inclusive.unwrap_or_default();
 
         self.pool.get().unwrap().transaction(|conn| {
             let mut fetched_songs: Vec<QueryableSong> = vec![];

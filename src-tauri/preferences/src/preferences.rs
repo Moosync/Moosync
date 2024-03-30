@@ -58,7 +58,7 @@ impl PreferenceConfig {
         Ok(PreferenceConfig {
             config_file: Mutex::new(config_file_path),
             secret: Mutex::new(secret),
-            memcache: Mutex::new(serde_json::from_str(&prefs)?),
+            memcache: Mutex::new(serde_json::from_str(&prefs).unwrap_or_default()),
         })
     }
 

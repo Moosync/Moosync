@@ -1,10 +1,15 @@
 use std::{
+    fmt::format,
     io,
     num::{ParseFloatError, ParseIntError},
     path,
     string::FromUtf8Error,
     time::SystemTimeError,
 };
+
+use serde_json::Value;
+#[cfg(feature = "ui")]
+use wasm_bindgen::JsValue;
 
 #[cfg(feature = "core")]
 use fast_image_resize::{DifferentTypesOfPixelsError, ImageBufferError};
@@ -79,6 +84,14 @@ pub enum MoosyncError {
     FSExtraError(#[from] fs_extra::error::Error),
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
+}
+
+#[cfg(feature = "ui")]
+impl From<JsValue> for MoosyncError {
+    fn from(value: JsValue) -> Self {
+        let parsed: Value = serde_wasm_bindgen::from_value(value).unwrap();
+        Self::String(format!("{}", parsed))
+    }
 }
 
 #[cfg(feature = "core")]

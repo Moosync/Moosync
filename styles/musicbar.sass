@@ -81,3 +81,91 @@
     text-decoration: none
     &:hover
         text-decoration: underline
+
+.volume-slider-container
+    padding-right: 20px !important
+
+.volume-slider
+    right: 0
+    -webkit-appearance: none
+    height: 2px
+    outline: none
+    visibility: visible
+
+.volume-slider::-webkit-slider-thumb
+    -webkit-appearance: none
+    appearance: none
+    width: 12px
+    height: 12px
+    border-radius: 50%
+    background: var(--accent)
+
+.volume-slider::-ms-fill-upper
+    background-color: var(--primary)
+
+.volume-icon
+    width: 22px
+    &:hover
+        .slider-container
+            opacity: 1
+            display: block
+
+.expand-icon
+    display: block
+    height: 27px
+    width: 18px
+    transition: transform 0.2s linear
+
+.open
+    transform: rotate(180deg)
+
+.test
+    min-width: 0
+
+@media only screen and (max-width : 565px)
+
+@media only screen and (max-width : 800px)
+    .expand-icon
+        display: none
+
+    .volume-slider-container
+        right: -232px !important
+
+@media only screen and (max-width : 992px)
+    .volume-slider-container
+        right: -200px
+        bottom: 85px
+        height: 40px
+        width: 175px
+        max-width: 175px
+        position: absolute
+        background: var(--tertiary)
+        border-radius: 16px
+        padding-left: 15px !important
+        transform: rotate(-90deg)
+        transform-origin: 0px 88px
+        transition: opacity 0.2s ease-in-out
+        z-index: 9999
+        opacity: 0
+
+    .invisible
+        min-width: 0%
+
+.timestamp-container
+    display: block
+
+.fav-icon
+    margin-right: 1.5rem
+
+.col-button
+    max-width: calc(26px + 1.5rem)
+
+.col-play-button
+    max-width: calc(42px + 1.5rem)
+
+@media only screen and (max-width : 800px)
+    .timestamp-container
+        display: none
+
+    .shuffle-icon
+        margin-right: 0px

@@ -1,6 +1,8 @@
 mod app;
 mod components;
 mod icons;
+mod players;
+mod store;
 mod utils;
 
 use app::*;

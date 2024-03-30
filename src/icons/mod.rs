@@ -1,7 +1,16 @@
 pub mod albums_icon;
 pub mod allsongs_icon;
 pub mod artists_icon;
+pub mod expand_icon;
 pub mod explore_icon;
+pub mod fav_icon;
 pub mod genres_icon;
+pub mod next_track_icon;
+pub mod play_icon;
 pub mod playlists_icon;
+pub mod prev_track_icon;
 pub mod queue_icon;
+pub mod repeat_icon;
+pub mod repeat_once_icon;
+pub mod shuffle_icon;
+pub mod volume_icon;

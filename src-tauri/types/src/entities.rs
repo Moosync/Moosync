@@ -54,7 +54,7 @@ where
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Clone, Debug)]
+#[derive(Deserialize, Serialize, Default, Clone, Debug, PartialEq)]
 #[cfg_attr(
     feature = "core",
     derive(Insertable, Queryable, Identifiable, AsChangeset,)
@@ -107,7 +107,7 @@ impl BridgeUtils for AlbumBridge {
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Clone, Debug)]
+#[derive(Deserialize, Serialize, Default, Clone, Debug, PartialEq)]
 #[cfg_attr(
     feature = "core",
     derive(Insertable, Queryable, Identifiable, AsChangeset)
@@ -158,7 +158,7 @@ impl BridgeUtils for ArtistBridge {
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Clone, Debug)]
+#[derive(Deserialize, Serialize, Default, Clone, Debug, PartialEq)]
 #[cfg_attr(
     feature = "core",
     derive(Insertable, Queryable, Identifiable, AsChangeset,)

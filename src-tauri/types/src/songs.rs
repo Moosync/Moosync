@@ -103,7 +103,7 @@ where
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, Deserialize, Serialize, Default, Clone, PartialEq)]
 #[cfg_attr(
     feature = "core",
     derive(
@@ -177,7 +177,7 @@ impl SearchByTerm for QueryableSong {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, Default)]
+#[derive(Debug, Deserialize, Clone, Default, Serialize)]
 pub struct SearchableSong {
     pub _id: Option<String>,
     pub path: Option<String>,
@@ -193,7 +193,7 @@ pub struct SearchableSong {
     pub show_in_library: Option<bool>,
 }
 
-#[derive(Debug, Deserialize, Clone, Default)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct GetSongOptions {
     pub song: Option<SearchableSong>,
     pub artist: Option<QueryableArtist>,
@@ -203,7 +203,20 @@ pub struct GetSongOptions {
     pub inclusive: Option<bool>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+impl Default for GetSongOptions {
+    fn default() -> Self {
+        Self {
+            song: Some(SearchableSong::default()),
+            artist: None,
+            album: None,
+            genre: None,
+            playlist: None,
+            inclusive: None,
+        }
+    }
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq)]
 pub struct Song {
     #[serde(flatten)]
     pub song: QueryableSong,

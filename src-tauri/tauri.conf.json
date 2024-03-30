@@ -28,8 +28,8 @@
     "withGlobalTauri": true
   },
   "build": {
-    "beforeBuildCommand": "trunk build",
-    "beforeDevCommand": "trunk serve",
+    "beforeBuildCommand": "CARGO_TARGET_DIR=./target-ui trunk build",
+    "beforeDevCommand": "CARGO_TARGET_DIR=./target-ui trunk serve",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },

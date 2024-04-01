@@ -8,7 +8,3 @@ async function getBlobUrl(src) {
 window.__MOOSYNC__ = {
 	getBlobUrl,
 };
-
-module.exports = {
-	getBlobUrl,
-};

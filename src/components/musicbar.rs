@@ -44,19 +44,6 @@ fn Details() -> impl IntoView {
         title.set("-".into())
     });
 
-    // let songs = create_rw_signal(vec![]);
-    // get_songs_by_option(GetSongOptions::default(), songs);
-
-    // create_effect(move |_| {
-    //     let songs_list = songs.get();
-    //     player_store.write_only().update(|p| {
-    //         let first_song = songs_list.first();
-    //         if let Some(first_song) = first_song {
-    //             p.add_to_queue(first_song.clone());
-    //         }
-    //     });
-    // });
-
     view! {
         <div class="row no-gutters align-items-center w-100">
             <div class="col-auto">
@@ -202,6 +189,13 @@ pub fn Controls() -> impl IntoView {
 #[component]
 pub fn ExtraControls() -> impl IntoView {
     let is_cut = create_rw_signal(false);
+
+    let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
+    let (current_volume, set_current_volume) = create_slice(
+        player_store,
+        |player_store| player_store.player_details.volume,
+        |player_store, volume| player_store.set_volume(volume),
+    );
     view! {
         <div class="row no-gutters align-items-center justify-content-end">
             <div class="col-auto volume-slider-container d-flex">
@@ -210,9 +204,19 @@ pub fn ExtraControls() -> impl IntoView {
                     min="0"
                     max="100"
                     class="volume-slider w-100 align-self-center"
+                    prop:value=move || current_volume.get()
+                    on:input=move |ev| {
+                        set_current_volume.set(event_target_value(&ev).parse().unwrap())
+                    }
+
                     id="myRange"
                     aria-label="volume"
-                    style="background: linear-gradient(90deg, var(--accent) 0%, var(--accent) 0%, var(--textSecondary) 0%);"
+                    style=move || {
+                        format!(
+                            "background: linear-gradient(90deg, var(--accent) 0%, var(--accent) {}%, var(--textSecondary) 0%);",
+                            current_volume.get(),
+                        )
+                    }
                 />
 
             </div>
@@ -227,12 +231,81 @@ pub fn ExtraControls() -> impl IntoView {
 }
 
 #[component]
+pub fn Slider() -> impl IntoView {
+    let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
+    let current_time = create_read_slice(player_store, |p| p.player_details.current_time);
+    let current_song = create_read_slice(player_store, |p| p.current_song.clone());
+    let total_time = create_rw_signal(1f64);
+
+    create_effect(move |_| {
+        let current_song = current_song.get();
+        if let Some(current_song) = current_song {
+            if let Some(duration) = current_song.song.duration {
+                total_time.set(duration);
+            }
+        }
+    });
+    view! {
+        <div class="timeline pl-2 pr-2">
+            <div
+                data-v-cd53a430=""
+                class="time-slider time-slider-ltr timeline pl-2 pr-2 timeline pl-2 pr-2"
+                style="padding: 5px 0px; width: auto; height: 4px;"
+            >
+                <div class="time-slider-rail">
+                    <div
+                        class="time-slider-process"
+                        style=move || {
+                            format!(
+                                "height: 100%; top: 0px; left: 0%; width: {}%; transition-property: width, left; transition-duration: 0.1s;",
+                                (current_time.get() / total_time.get()) * 100f64,
+                            )
+                        }
+                    >
+                    </div>
+                    <div
+                        class="time-slider-dot"
+                        role="slider"
+                        tabindex="0"
+                        style=move || {
+                            format!(
+                                "width: 10px; height: 10px; transform: translate(-50%, -50%); top: 50%; left: {}%; transition: left 0.1s ease 0s;",
+                                (current_time.get() / total_time.get()) * 100f64,
+                            )
+                        }
+                    >
+
+                        <div class="time-slider-dot-handle"></div>
+                    </div>
+                </div>
+            </div>
+        // <input
+        // class="slider"
+        // type="range"
+        // min=0
+        // max=move || total_time.get()
+        // step=0.01
+        // value=move || current_time.get()
+        // style=move || {
+        // format!(
+        // "background: linear-gradient(90deg, var(--accent) 0%, var(--accent) {}%, var(--textSecondary) 0%);",
+        // current_time.get(),
+        // )
+        // }
+        // />
+
+        </div>
+    }
+}
+
+#[component]
 pub fn MusicBar() -> impl IntoView {
     view! {
         <div class="musicbar-content d-flex">
             <div class="background w-100">
                 <div class="musicbar h-100">
                     <AudioStream/>
+                    <Slider/>
                     <div class="container-fluid d-flex bar-container h-100 pb-2">
                         <div class="row no-gutters align-items-center justify-content-center align-content-center no-gutters w-100 control-row justify-content-between">
                             <div class="col-4 no-gutters details-col w-100">

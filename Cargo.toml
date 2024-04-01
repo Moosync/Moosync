@@ -26,8 +26,7 @@ leptos-use = "0.10.5"
 async-channel = "2.2.0"
 tokio = { version = "1.37.0", features = ["rt", "sync"] }
 serde_json = "1.0.115"
-async-trait = "0.1.79"
-
+leptos_router = { version = "0.6.9", features = ["csr"] }
 
 [workspace]
 resolver = "2"

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cmp::min, collections::HashMap};
 
 use types::{songs::Song, ui::player_details::PlayerState};
 
@@ -15,6 +15,7 @@ pub struct Queue {
 pub struct PlayerDetails {
     pub current_time: f64,
     pub state: PlayerState,
+    pub volume: f64,
 }
 
 #[derive(Debug, Default)]
@@ -51,11 +52,24 @@ impl PlayerStore {
         self.update_current_song();
     }
 
+    pub fn play_now(&mut self, song: Song) {
+        let song_id = song.song._id.clone().unwrap();
+        self.queue.data.insert(song_id.clone(), song);
+        let insertion_index = min(self.queue.song_queue.len(), self.queue.current_index + 1);
+        self.queue.song_queue.insert(insertion_index, song_id);
+        self.queue.current_index = insertion_index;
+        self.update_current_song();
+    }
+
     pub fn update_time(&mut self, new_time: f64) {
         self.player_details.current_time = new_time;
     }
 
     pub fn set_state(&mut self, state: PlayerState) {
         self.player_details.state = state;
+    }
+
+    pub fn set_volume(&mut self, volume: f64) {
+        self.player_details.volume = volume;
     }
 }

@@ -1,9 +1,10 @@
-use tokio::sync::mpsc::Sender;
+use tokio::sync::{mpsc::Sender, oneshot::Sender as OneShotSender};
 use types::{errors::errors::Result, songs::SongType, ui::player_details::PlayerEvents};
+use wasm_bindgen_futures::JsFuture;
 
 pub trait GenericPlayer: std::fmt::Debug {
     fn initialize(&self);
-    fn load(&self, src: String);
+    fn load(&self, src: String, resolver: OneShotSender<()>);
     fn play(&self) -> Result<()>;
     fn pause(&self) -> Result<()>;
     fn provides(&self) -> &[SongType];

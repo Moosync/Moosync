@@ -2,13 +2,17 @@ use std::{
     borrow::BorrowMut,
     cell::RefCell,
     fmt::Debug,
+    rc::Rc,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc, Mutex,
     },
     vec,
 };
-use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::{
+    mpsc::{Receiver, Sender},
+    oneshot,
+};
 use types::{
     errors::errors::{MoosyncError, Result},
     songs::{GetSongOptions, Song},
@@ -76,7 +80,19 @@ impl PlayerHolder {
             .unwrap_or(Err(MoosyncError::String("Player not found".into())))
     }
 
-    pub fn load_audio(&mut self, song: Song) -> Result<()> {
+    pub fn set_volume(&self, volume: f64) -> Result<()> {
+        let active_player_pos = self.active_player.load(Ordering::Relaxed);
+        let players = self.players.lock().unwrap();
+        let active = players.get(active_player_pos);
+        if active.is_none() {
+            return Ok(());
+        }
+
+        active.unwrap().set_volume(volume / 100f64)?;
+        Ok(())
+    }
+
+    pub async fn load_audio(&mut self, song: Song, current_volume: f64) -> Result<()> {
         let src = song.song.playback_url.clone().or(song.song.path.clone());
         if src.is_none() {
             return Ok(());
@@ -85,13 +101,18 @@ impl PlayerHolder {
         let pos = self.get_player(&song)?;
         self.active_player.store(pos, Ordering::Relaxed);
 
-        console_log!("getting src");
-        let src = convert_file_src(src.clone().unwrap(), "asset");
+        let src = convert_file_src(src.clone().unwrap());
+        console_log!("got src {}", src);
 
         let mut players = self.players.lock().unwrap();
         let player = players.get_mut(pos).unwrap();
         player.add_listeners(self.listener_tx.clone());
-        player.load(src);
+
+        let (resolver_tx, resolver_rx) = oneshot::channel();
+        player.load(src, resolver_tx);
+
+        resolver_rx.await.expect("Load failed to resolve");
+        player.set_volume(current_volume);
         player.play()?;
 
         Ok(())
@@ -165,33 +186,40 @@ impl PlayerHolder {
 
 #[component()]
 pub fn AudioStream() -> impl IntoView {
-    let players = RefCell::new(PlayerHolder::new());
-    players.borrow().initialize_players();
+    let players = PlayerHolder::new();
+    players.initialize_players();
 
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
     let current_song_sig = create_read_slice(player_store, |player_store| {
         player_store.current_song.clone()
     });
+    let current_volume = create_read_slice(player_store, |player_store| {
+        player_store.player_details.volume
+    });
+
+    let players = Rc::new(Mutex::new(players));
+    let players_copy = players.clone();
+    create_effect(move |_| {
+        let current_volume = current_volume.get();
+        let player = players.lock().unwrap();
+        player
+            .set_volume(current_volume)
+            .expect("Failed to set volume");
+    });
 
     create_effect(move |_| {
         let current_song = current_song_sig.get();
+        console_log!("Loading song {:?}", current_song);
         if let Some(current_song) = current_song {
-            let mut players = players.borrow_mut();
-            players.load_audio(current_song).unwrap();
+            let players = players_copy.clone();
+            spawn_local(async move {
+                let mut players = players.lock().unwrap();
+                players
+                    .load_audio(current_song, current_volume.get())
+                    .await
+                    .unwrap();
+            });
         }
-    });
-
-    let songs = create_rw_signal(vec![]);
-    get_songs_by_option(GetSongOptions::default(), songs);
-
-    create_effect(move |_| {
-        let songs_list = songs.get();
-        player_store.write_only().update(|p| {
-            let first_song = songs_list.first();
-            if let Some(first_song) = first_song {
-                p.add_to_queue(first_song.clone());
-            }
-        });
     });
 
     let player_container_ref = create_node_ref::<Div>();

@@ -1,6 +1,7 @@
 mod app;
 mod components;
 mod icons;
+mod pages;
 mod players;
 mod store;
 mod utils;

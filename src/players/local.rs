@@ -1,16 +1,17 @@
-use std::sync::Arc;
+use std::{future::Future, sync::Arc};
 
 use leptos::{
     create_node_ref,
-    ev::{ended, loadstart, pause, play, timeupdate},
+    ev::{ended, loadeddata, loadstart, pause, play, timeupdate},
     event_target,
     html::{audio, Audio},
     spawn_local, HtmlElement, NodeRef,
 };
 
 use leptos_use::use_event_listener;
-use tokio::sync::mpsc::Sender;
+use tokio::sync::{mpsc::Sender, oneshot::Sender as OneShotSender};
 use types::{errors::errors::Result, songs::SongType, ui::player_details::PlayerEvents};
+use wasm_bindgen_futures::JsFuture;
 
 use crate::{console_log, utils::common::get_blob_url};
 
@@ -74,7 +75,8 @@ impl LocalPlayer {
         listen_onplay => play => |_| PlayerEvents::Play,
         listen_onpause => pause => |_| PlayerEvents::Pause,
         listen_onended => ended => |_| PlayerEvents::Ended,
-        listen_onbuffer => loadstart => |_| PlayerEvents::Loading,
+        listen_onloadstart => loadstart => |_| PlayerEvents::Loading,
+        listen_onloadend => loadeddata => |_| PlayerEvents::Play,
         listen_ontimeupdate => timeupdate => |evt|{
             let target = event_target::<leptos::web_sys::HtmlAudioElement>(&evt);
             let time = target.current_time();
@@ -88,7 +90,7 @@ impl LocalPlayer {}
 impl GenericPlayer for LocalPlayer {
     fn initialize(&self) {}
 
-    fn load(&self, src: String) {
+    fn load(&self, src: String, resolver: OneShotSender<()>) {
         console_log!("Loading audio {}", src);
 
         let mut src = src;
@@ -101,11 +103,16 @@ impl GenericPlayer for LocalPlayer {
 
             audio_element.set_src(src.as_str());
             audio_element.load();
+
+            resolver.send(()).expect("Load failed to resolve");
         });
     }
 
     fn play(&self) -> Result<()> {
-        let _ = self.audio_element.play()?;
+        let promise = self.audio_element.play()?;
+        spawn_local(async move {
+            JsFuture::from(promise).await.unwrap();
+        });
         Ok(())
     }
 
@@ -131,7 +138,8 @@ impl GenericPlayer for LocalPlayer {
         self.listen_onplay(tx.clone());
         self.listen_onpause(tx.clone());
         self.listen_onended(tx.clone());
-        self.listen_onbuffer(tx.clone());
+        self.listen_onloadstart(tx.clone());
+        self.listen_onloadend(tx.clone());
         self.listen_ontimeupdate(tx.clone());
     }
 }

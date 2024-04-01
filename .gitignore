@@ -2,3 +2,4 @@ target/
 target-ui/
 dist/
 node_modules
+report.json

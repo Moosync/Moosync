@@ -38,13 +38,13 @@ pub fn get_songs_by_option(
         let mut song = Song::default();
         song.song._id = Some(format!("song_id_{}", i));
         song.song.title = Some(format!("hello world {}", i));
-        song.song.song_cover_path_low =
-            Some("https://i.scdn.co/image/ab67616d0000b2733cf1c1dbcfa3f1ab7282719b".to_string());
+        song.song.song_cover_path_low = None;
         song.artists = Some(vec![QueryableArtist {
             artist_name: Some("Test artist".to_string()),
             ..Default::default()
         }]);
         song.song.type_ = SongType::LOCAL;
+        song.song.duration = Some(200f64);
         song.song.playback_url =
             Some("https://cdn.freesound.org/previews/728/728162_462105-lq.mp3".into());
         songs.push(song);

@@ -40,9 +40,12 @@ pub fn format_duration(secs: f64) -> String {
     }
 }
 
-pub fn convert_file_src(path: String, protocol: &str) -> String {
-    let res = convertFileSrc(path.as_str(), protocol);
-    res.as_string().unwrap()
+pub fn convert_file_src(path: String) -> String {
+    if !path.starts_with("http:") && !path.starts_with("https:") {
+        let res = convertFileSrc(path.as_str(), "asset");
+        return res.as_string().unwrap();
+    }
+    path
 }
 
 pub async fn get_blob_url(src: String) -> String {

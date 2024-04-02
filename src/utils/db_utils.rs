@@ -1,10 +1,7 @@
 use leptos::{spawn_local, SignalSet};
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
-use types::songs::{GetSongOptions, QueryableSong, SearchableSong, Song};
-use wasm_bindgen::JsValue;
-
-use crate::console_log;
+use types::songs::{GetSongOptions, Song};
 
 use super::common::invoke;
 
@@ -38,7 +35,8 @@ pub fn get_songs_by_option(
         let mut song = Song::default();
         song.song._id = Some(format!("song_id_{}", i));
         song.song.title = Some(format!("hello world {}", i));
-        song.song.song_cover_path_low = None;
+        song.song.song_cover_path_low = Some("https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/200px-SMPTE_Color_Bars.svg.png".to_string());
+        song.song.song_cover_path_high = Some("https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/200px-SMPTE_Color_Bars.svg.png".to_string());
         song.artists = Some(vec![QueryableArtist {
             artist_name: Some("Test artist".to_string()),
             ..Default::default()

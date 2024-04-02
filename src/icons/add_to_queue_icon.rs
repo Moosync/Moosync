@@ -1,4 +1,4 @@
-use leptos::{component, view, IntoView, ReadSignal, SignalGet};
+use leptos::{component, view, IntoView};
 
 #[component]
 pub fn AddToQueueIcon(#[prop()] title: String) -> impl IntoView {

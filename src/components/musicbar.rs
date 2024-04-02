@@ -1,22 +1,21 @@
 use leptos::*;
 use leptos::{component, view, IntoView, RwSignal, SignalSet};
 use types::entities::QueryableArtist;
-use types::songs::GetSongOptions;
 use types::ui::player_details::PlayerState;
 
 use crate::components::audiostream::AudioStream;
-use crate::console_log;
+use crate::components::low_img::LowImg;
+use crate::components::musicinfo::MusicInfo;
 use crate::icons::expand_icon::ExpandIcon;
 use crate::icons::fav_icon::FavIcon;
 use crate::icons::next_track_icon::NextTrackIcon;
 use crate::icons::play_icon::PlayIcon;
-use crate::icons::prev_track_icon::{PrevTrackIcon, PrevTrackIconProps};
+use crate::icons::prev_track_icon::PrevTrackIcon;
 use crate::icons::repeat_icon::RepeatIcon;
 use crate::icons::shuffle_icon::ShuffleIcon;
 use crate::icons::volume_icon::VolumeIcon;
 use crate::store::player_store::PlayerStore;
-use crate::utils::common::format_duration;
-use crate::utils::db_utils::get_songs_by_option;
+use crate::utils::common::{format_duration, get_low_img};
 
 #[component]
 fn Details() -> impl IntoView {
@@ -32,12 +31,12 @@ fn Details() -> impl IntoView {
 
     create_effect(move |_| {
         let current_song = current_song.get().clone();
-        if let Some(current_song) = current_song {
-            title.set(current_song.song.title.unwrap());
-            cover_img.set(current_song.song.song_cover_path_low.unwrap_or_default());
+        if let Some(current_song) = &current_song {
+            title.set(current_song.song.title.clone().unwrap());
+            cover_img.set(get_low_img(current_song));
 
-            if let Some(artists) = current_song.artists {
-                artists_list.set(artists)
+            if let Some(artists) = &current_song.artists {
+                artists_list.set(artists.clone())
             }
             return;
         }
@@ -46,13 +45,13 @@ fn Details() -> impl IntoView {
 
     view! {
         <div class="row no-gutters align-items-center w-100">
-            <div class="col-auto">
-                <img
-                    class="img-fluid coverimg"
-                    referrerpolicy="no-referrer"
-                    src=move || cover_img.get()
-                    alt="cover art"
-                />
+            <div class="col-auto mr-3">
+
+                {move || {
+                    let cover_img = cover_img.get();
+                    view! { <LowImg cover_img=cover_img show_play_button=false play_now=|| {}/> }
+                }}
+
             </div>
             <div class="col text-truncate">
                 <div class="row align-items-center justify-content-start">
@@ -187,7 +186,10 @@ pub fn Controls() -> impl IntoView {
 }
 
 #[component]
-pub fn ExtraControls() -> impl IntoView {
+pub fn ExtraControls<T>(musicinfo_cb: T) -> impl IntoView
+where
+    T: Fn() + 'static,
+{
     let is_cut = create_rw_signal(false);
 
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
@@ -224,7 +226,7 @@ pub fn ExtraControls() -> impl IntoView {
                 <VolumeIcon cut=is_cut.read_only()/>
             </div>
             <div class="col-auto expand-icon ml-3">
-                <ExpandIcon/>
+                <ExpandIcon on:click=move |_| musicinfo_cb()/>
             </div>
         </div>
     }
@@ -248,7 +250,6 @@ pub fn Slider() -> impl IntoView {
     view! {
         <div class="timeline pl-2 pr-2">
             <div
-                data-v-cd53a430=""
                 class="time-slider time-slider-ltr timeline pl-2 pr-2 timeline pl-2 pr-2"
                 style="padding: 5px 0px; width: auto; height: 4px;"
             >
@@ -279,29 +280,16 @@ pub fn Slider() -> impl IntoView {
                     </div>
                 </div>
             </div>
-        // <input
-        // class="slider"
-        // type="range"
-        // min=0
-        // max=move || total_time.get()
-        // step=0.01
-        // value=move || current_time.get()
-        // style=move || {
-        // format!(
-        // "background: linear-gradient(90deg, var(--accent) 0%, var(--accent) {}%, var(--textSecondary) 0%);",
-        // current_time.get(),
-        // )
-        // }
-        // />
-
         </div>
     }
 }
 
 #[component]
 pub fn MusicBar() -> impl IntoView {
+    let show_musicinfo = create_rw_signal(true);
     view! {
         <div class="musicbar-content d-flex">
+            <MusicInfo show=show_musicinfo/>
             <div class="background w-100">
                 <div class="musicbar h-100">
                     <AudioStream/>
@@ -316,12 +304,15 @@ pub fn MusicBar() -> impl IntoView {
                                 <Controls/>
                             </div>
                             <div class="col-lg-auto col-1 align-self-center no-gutters extra-col">
-                                <ExtraControls/>
+                                <ExtraControls musicinfo_cb=move || {
+                                    show_musicinfo.set(!show_musicinfo.get())
+                                }/>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
     }
 }

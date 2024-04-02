@@ -1,4 +1,5 @@
 use chrono::{Duration, NaiveTime, Timelike};
+use types::songs::Song;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -41,6 +42,10 @@ pub fn format_duration(secs: f64) -> String {
 }
 
 pub fn convert_file_src(path: String) -> String {
+    if path.is_empty() {
+        return path;
+    }
+
     if !path.starts_with("http:") && !path.starts_with("https:") {
         let res = convertFileSrc(path.as_str(), "asset");
         return res.as_string().unwrap();
@@ -52,4 +57,60 @@ pub async fn get_blob_url(src: String) -> String {
     let res = getBlobUrl(src.as_str()).await;
     console_log!("Got blob url {}", res.as_string().unwrap());
     res.as_string().unwrap()
+}
+
+pub fn get_low_img(song: &Song) -> String {
+    if let Some(cover) = &song.song.song_cover_path_low {
+        return convert_file_src(cover.to_string());
+    }
+
+    if let Some(cover) = song
+        .album
+        .as_ref()
+        .and_then(|a| a.album_coverpath_low.clone())
+    {
+        return convert_file_src(cover.to_string());
+    }
+
+    if let Some(cover) = &song.song.song_cover_path_high {
+        return convert_file_src(cover.to_string());
+    }
+
+    if let Some(cover) = song
+        .album
+        .as_ref()
+        .and_then(|a| a.album_coverpath_high.clone())
+    {
+        return convert_file_src(cover.to_string());
+    }
+
+    String::new()
+}
+
+pub fn get_high_img(song: &Song) -> String {
+    if let Some(cover) = &song.song.song_cover_path_high {
+        return convert_file_src(cover.to_string());
+    }
+
+    if let Some(cover) = song
+        .album
+        .as_ref()
+        .and_then(|a| a.album_coverpath_high.clone())
+    {
+        return convert_file_src(cover.to_string());
+    }
+
+    if let Some(cover) = &song.song.song_cover_path_low {
+        return convert_file_src(cover.to_string());
+    }
+
+    if let Some(cover) = song
+        .album
+        .as_ref()
+        .and_then(|a| a.album_coverpath_low.clone())
+    {
+        return convert_file_src(cover.to_string());
+    }
+
+    String::new()
 }

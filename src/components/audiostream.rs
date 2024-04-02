@@ -1,6 +1,4 @@
 use std::{
-    borrow::BorrowMut,
-    cell::RefCell,
     fmt::Debug,
     rc::Rc,
     sync::{
@@ -15,21 +13,20 @@ use tokio::sync::{
 };
 use types::{
     errors::errors::{MoosyncError, Result},
-    songs::{GetSongOptions, Song},
+    songs::{Song},
     ui::player_details::{PlayerEvents, PlayerState},
 };
 
 use leptos::{
-    component, create_action, create_effect, create_node_ref, create_read_slice, create_rw_signal,
+    component, create_effect, create_node_ref, create_read_slice,
     create_write_slice, html::Div, spawn_local, use_context, view, IntoView, RwSignal, SignalGet,
-    SignalUpdate,
 };
 
 use crate::{
     console_log,
     players::{generic::GenericPlayer, local::LocalPlayer},
     store::player_store::PlayerStore,
-    utils::{common::convert_file_src, db_utils::get_songs_by_option},
+    utils::{common::convert_file_src},
 };
 
 #[derive(Debug)]

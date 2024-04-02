@@ -52,6 +52,10 @@ impl PlayerStore {
         self.update_current_song();
     }
 
+    pub fn remove_from_queue(&mut self, index: usize) {
+        self.queue.song_queue.remove(index);
+    }
+
     pub fn play_now(&mut self, song: Song) {
         let song_id = song.song._id.clone().unwrap();
         self.queue.data.insert(song_id.clone(), song);
@@ -71,5 +75,19 @@ impl PlayerStore {
 
     pub fn set_volume(&mut self, volume: f64) {
         self.player_details.volume = volume;
+    }
+
+    pub fn get_queue_songs(&self) -> Vec<Song> {
+        self.queue
+            .song_queue
+            .iter()
+            .map(|index| {
+                self.queue
+                    .data
+                    .get(index)
+                    .cloned()
+                    .expect("Song does not exist in data")
+            })
+            .collect()
     }
 }

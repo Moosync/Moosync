@@ -13,6 +13,7 @@ dependencies = [
  "leptos",
  "leptos-use",
  "leptos_router",
+ "leptos_virtual_scroller",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
@@ -3998,6 +3999,15 @@ dependencies = [
  "server_fn",
  "thiserror",
  "tracing",
+]
+
+[[package]]
+name = "leptos_virtual_scroller"
+version = "0.1.0"
+source = "git+https://github.com/Ovenoboyo/leptos_virtual_scroller#8a5cb2a051b53e35797de5d539eb098a0a47703a"
+dependencies = [
+ "leptos",
+ "leptos-use",
 ]
 
 [[package]]

@@ -1,4 +1,4 @@
-use leptos::{component, create_rw_signal, view, IntoView, Show, SignalGet, SignalSet};
+use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
 
 use crate::icons::{play_hover_icon::PlayHoverIcon, song_default_icon::SongDefaultIcon};
 

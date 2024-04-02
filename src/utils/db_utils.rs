@@ -31,7 +31,7 @@ pub fn get_songs_by_option(
     use types::{entities::QueryableArtist, songs::SongType};
 
     let mut songs = vec![];
-    for i in 0..10 {
+    for i in 0..1000 {
         let mut song = Song::default();
         song.song._id = Some(format!("song_id_{}", i));
         song.song.title = Some(format!("hello world {}", i));

@@ -1,7 +1,8 @@
 use leptos::{
-    component, create_read_slice, create_write_slice, expect_context, view, CollectView, IntoView,
-    RwSignal, SignalGet, SignalSet,
+    component, create_read_slice, create_write_slice, expect_context, view, IntoView, RwSignal,
+    SignalGet, SignalSet,
 };
+use leptos_virtual_scroller::VirtualScroller;
 use types::songs::Song;
 
 use crate::{
@@ -93,16 +94,14 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
                                     <div class="col w-100 h-100 mr-4 queue-container">
                                         <div class="w-100 h-100">
 
-                                            {move || {
-                                                queue_songs
-                                                    .get()
-                                                    .into_iter()
-                                                    .enumerate()
-                                                    .map(|(index, s)| {
-                                                        view! { <QueueItem song=s index=index/> }
-                                                    })
-                                                    .collect_view()
-                                            }}
+                                            <VirtualScroller
+                                                each=queue_songs
+                                                item_height=95usize
+                                                inner_el_style="width: calc(100% - 15px);"
+                                                children=move |(index, song)| {
+                                                    view! { <QueueItem song=song.clone() index=index/> }
+                                                }
+                                            />
 
                                         </div>
                                     </div>

@@ -3,9 +3,10 @@ use leptos::{
     ev::{keydown, keyup},
     event_target_value,
     html::Input,
-    use_context, view, window_event_listener, CollectView, HtmlElement, IntoView, ReadSignal,
-    RwSignal, SignalGet, SignalSet, SignalUpdate,
+    use_context, view, window_event_listener, HtmlElement, IntoView, ReadSignal, RwSignal,
+    SignalGet, SignalSet, SignalUpdate,
 };
+use leptos_virtual_scroller::VirtualScroller;
 use types::songs::Song;
 
 use crate::{
@@ -203,34 +204,23 @@ pub fn SongList(
                             style="height: calc(100% - 53px) !important;"
                         >
 
-                            {move || {
-                                song_list
-                                    .get()
-                                    .iter()
-                                    .enumerate()
-                                    .map(|(index, song)| {
-                                        let title = song.song.title.clone();
-                                        if title.is_none() {
-                                            return view! {}.into_view();
-                                        }
-                                        if let Some(filter) = filter.get() {
-                                            if !title.unwrap().contains(&filter) {
-                                                return view! {}.into_view();
-                                            }
-                                        }
-                                        view! {
-                                            <SongListItem
-                                                on:click=move |_| add_to_selected(index)
-                                                is_selected=Box::new(move || {
-                                                    selected_songs_sig.get().contains(&index)
-                                                })
+                            <VirtualScroller
+                                each=song_list
+                                item_height=95usize
+                                inner_el_style="width: calc(100% - 15px);"
+                                children=move |(index, song)| {
+                                    view! {
+                                        <SongListItem
+                                            on:click=move |_| add_to_selected(index)
+                                            is_selected=Box::new(move || {
+                                                selected_songs_sig.get().contains(&index)
+                                            })
 
-                                                song=song.clone()
-                                            />
-                                        }
-                                    })
-                                    .collect_view()
-                            }}
+                                            song=song.clone()
+                                        />
+                                    }
+                                }
+                            />
 
                         </div>
                     </div>

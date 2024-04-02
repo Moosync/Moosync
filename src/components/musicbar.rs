@@ -286,7 +286,7 @@ pub fn Slider() -> impl IntoView {
 
 #[component]
 pub fn MusicBar() -> impl IntoView {
-    let show_musicinfo = create_rw_signal(true);
+    let show_musicinfo = create_rw_signal(false);
     view! {
         <div class="musicbar-content d-flex">
             <MusicInfo show=show_musicinfo/>

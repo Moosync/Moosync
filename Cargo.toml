@@ -27,6 +27,7 @@ async-channel = "2.2.0"
 tokio = { version = "1.37.0", features = ["rt", "sync"] }
 serde_json = "1.0.115"
 leptos_router = { version = "0.6.9", features = ["csr"] }
+leptos_virtual_scroller = { git = "https://github.com/Ovenoboyo/leptos_virtual_scroller" }
 
 [workspace]
 resolver = "2"

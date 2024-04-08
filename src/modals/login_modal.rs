@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use leptos::{
-    component, create_action, create_rw_signal, event_target_value, expect_context, slot, spawn_local, view, Children, ChildrenFn, IntoView, SignalGet, SignalGetUntracked, SignalSet
+    component, create_action, create_rw_signal, event_target_value, expect_context, spawn_local, view, Children, IntoView, SignalGet, SignalGetUntracked, SignalSet
 };
 
 use crate::store::provider_store::ProviderStore;

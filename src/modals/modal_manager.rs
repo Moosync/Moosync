@@ -27,7 +27,7 @@ pub fn ModalManager() -> impl IntoView {
     
     view! {
         {
-            move || render_active_modal()
+            render_active_modal
         }
     }
 }

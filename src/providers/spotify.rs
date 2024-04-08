@@ -1,4 +1,4 @@
-use std::{collections::HashSet};
+use std::collections::HashSet;
 use web_time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_trait::async_trait;
@@ -9,8 +9,7 @@ use oauth2::{
     basic::{BasicClient, BasicErrorResponseType, BasicTokenType},
     reqwest::async_http_client,
     AccessToken, AuthUrl, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken,
-    EmptyExtraTokenFields, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken,
-    RefreshTokenRequest, RevocationErrorResponseType, Scope, StandardErrorResponse,
+    EmptyExtraTokenFields, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken, RevocationErrorResponseType, Scope, StandardErrorResponse,
     StandardRevocableToken, StandardTokenIntrospectionResponse, StandardTokenResponse,
     TokenResponse, TokenUrl,
 };

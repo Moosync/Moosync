@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt::Debug, rc::Rc, sync::Mutex};
 
 use leptos::{
-    spawn_local, RwSignal, SignalGet, SignalUpdate, SignalUpdateUntracked, SignalWithUntracked,
+    spawn_local, RwSignal, SignalGet, SignalUpdateUntracked,
 };
 use types::ui::providers::ProviderStatus;
 use types::errors::errors::Result;

@@ -14,7 +14,7 @@ struct KeyArgs {
 #[derive(Serialize)]
 struct SetKeyArgs {
     key: &'static str,
-    value: &'static Value
+    value: Value
 }
 
 pub fn load_selective(key: &'static str, setter: impl SignalSet<Value = Value> + 'static) {
@@ -27,6 +27,7 @@ pub fn load_selective(key: &'static str, setter: impl SignalSet<Value = Value> +
 
 pub async fn load_selective_async(key: &'static str) -> Result<Value> {
     if cfg!(feature = "mock") {
+        #[cfg(feature = "mock")]
         return load_selective_mock(key);
     }
 
@@ -64,7 +65,7 @@ pub fn load_selective_mock(key: &'static str) -> Result<Value> {
 
 #[cfg(not(feature = "mock"))]
 pub async fn set_secure_async(key: &'static str, value: Value) -> Result<()> {
-    let args = SetKeyArgs {key, value};
+    let args = to_value(&SetKeyArgs {key, value}).unwrap();
     invoke("set_secure", args).await;
     Ok(())
 } 

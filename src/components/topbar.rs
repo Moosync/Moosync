@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use leptos::{
-    component, create_action, create_effect, create_rw_signal, create_write_slice, ev::Event, event_target_value, expect_context, spawn_local, view, CollectView, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate
+    component, create_effect, create_rw_signal, create_write_slice, ev::Event, event_target_value, expect_context, view, CollectView, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate
 };
 use leptos_virtual_scroller::VirtualScroller;
 use types::{

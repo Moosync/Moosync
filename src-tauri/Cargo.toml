@@ -1,103 +1,54 @@
 [package]
 name = "moosync"
-edition = "2021"
 version = "0.0.0"
-authors = ["you"]
 description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+tauri-build = { version = "2.0.0-beta.10", features = [] }
 
 [dependencies]
+macros = { path = "./macros" }
+database = { path = "./database" }
+types = { path = "./types" }
+youtube = { path = "./youtube" }
+preferences = { path = "./preferences" }
+file_scanner = { path = "./file_scanner" }
+librespot = { path = "./librespot" }
+themes = { path = "./themes" }
+mpris = { path = "./mpris" }
+lyrics = { path = "./lyrics" }
+extensions = { path = "./extensions" }
+tauri = { version = "2.0.0-beta.13", features = [
+    "protocol-asset",
+    "devtools",
+    "default",
+] }
+tauri-plugin-deep-link = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
+tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
+tauri-plugin-devtools = { git = "https://github.com/crabnebula-dev/devtools" }
+webkit2gtk = "2.0.1"
 open = "5.0.1"
 thiserror = "1.0.57"
-webkit2gtk = "2.0.1"
+uuid = { version = "1.7.0", features = ["std", "v4"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rfd = { version = "0.14.0", default-features = false, features = [
+    "xdg-portal",
+    "async-std",
+] }
 
-[dependencies.database]
-path = "./database"
-features = []
+[rfd.features]
 
-[dependencies.extensions]
-path = "./extensions"
-features = []
-
-[dependencies.file_scanner]
-path = "./file_scanner"
-features = []
-
-[dependencies.librespot]
-path = "./librespot"
-features = []
-
-[dependencies.lyrics]
-path = "./lyrics"
-features = []
-
-[dependencies.macros]
-path = "./macros"
-features = []
-
-[dependencies.mpris]
-path = "./mpris"
-features = []
-
-[dependencies.preferences]
-path = "./preferences"
-features = []
-
-[dependencies.rfd]
-version = "0.14.0"
-features = ["xdg-portal", "async-std"]
-default-features = false
-
-[dependencies.serde]
-version = "1.0"
-features = ["derive"]
-
-[dependencies.serde_json]
-version = "1.0"
-features = []
-default-features = false
-
-[dependencies.tauri]
-version = "2.0.0-beta.13"
-features = ["protocol-asset", "devtools", "default"]
-
-[dependencies.tauri-plugin-deep-link]
-git = "https://github.com/tauri-apps/plugins-workspace"
-branch = "v2"
-features = []
-
-[dependencies.tauri-plugin-devtools]
-git = "https://github.com/crabnebula-dev/devtools"
-features = []
-
-[dependencies.tauri-plugin-single-instance]
-git = "https://github.com/tauri-apps/plugins-workspace"
-branch = "v2"
-features = []
-
-[dependencies.themes]
-path = "./themes"
-features = []
-
-[dependencies.types]
-path = "./types"
-features = []
-
-[dependencies.uuid]
-version = "1.7.0"
-features = ["std", "v4"]
-
-[dependencies.youtube]
-path = "./youtube"
-features = []
-
-[build-dependencies.tauri-build]
-version = "2.0.0-beta.10"
-features = []
 
 [features]
+# this feature is used for production builds or when `devPath` points to the filesystem
+# DO NOT REMOVE!!
 custom-protocol = ["tauri/custom-protocol"]
 
 [lib]
 name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
-required-features = []

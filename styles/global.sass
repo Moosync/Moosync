@@ -427,6 +427,65 @@ img
   background: var(--tertiary) !important
   color: var(--textPrimary) !important
 
+.musicbar
+  position: fixed
+  z-index: 4
+
+.sidebar
+  position: relative
+  z-index: 3
+
+.topbar
+  position: fixed
+  z-index: 2
+  left: calc(70px + 30px + 7.5px)
+  width: calc(100% - 70px - 30px - 7.5px)
+  transition: 0.2s
+  &.is-open
+    width: calc(100% - 261px - 30px - 7.5px)
+    left: calc(261px + 30px + 7.5px)
+
+.main-content
+  position: absolute
+  left: calc(70px)
+  top: calc(70px + 18px + 4px)
+  right: 0
+  bottom: calc(6rem + 30px)
+  height: calc(100% - (6rem + 30px) - 70px - 11px)
+  overflow-y: hidden
+  overflow-x: hidden
+  z-index: 1
+  transition: 0.2s
+  padding-right: 20px
+  &.is-open
+    left: calc(261px)
+
+.mini-player
+  display: none
+  height: calc(100% - 6rem - 15px)
+
+.main-content
+  display: flex
+
+.sidebar
+  display: block
+
+.topbar
+  display: flex
+
+@media only screen and (max-width : 800px)
+  .main-content
+    display: none
+
+  .sidebar
+    display: none
+
+  .topbar
+    display: none
+
+  .mini-player
+    display: block
+
 @import "./transitions"
 @import "./scrollbar"
 @import './bootstrap/scss/bootstrap.scss'
@@ -435,6 +494,8 @@ img
 @import "./musicbar"
 @import "./allsongs"
 @import "./musicinfo"
+@import "./topbar"
+@import "./login_modal.sass"
 
 @include media-breakpoint-up(lg)
   .slider-container

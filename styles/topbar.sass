@@ -1,0 +1,95 @@
+.topbar-container
+  background: var(--primary)
+  height: 70px
+
+.gear-icon
+  height: 26px
+  width: 26px
+  margin-left: 10px
+
+.update-icon
+  height: 26px
+  width: 26px
+  margin-left: 10px
+
+.icons-bar
+  margin-right: 30px
+
+.refresh-icon
+  height: 22px
+  width: 22px
+
+.jukebox-icon
+  height: 22px
+  width: 22px
+
+.searchbar
+  color: var(--textPrimary) !important
+  background: rgba(0, 0, 0, 0)
+  border: none
+  height: 24px
+  margin-top: -12px
+  width: calc(100% - 24px - 18px - 15px - 30px)
+  position: absolute
+  transition: background 0.3s cubic-bezier(0.39, 0.58, 0.57, 1), border-radius 1000ms
+  text-align: left
+  top: 50%
+  box-shadow: none
+  margin-left: calc(24px + 18px)
+  &::-webkit-input-placeholder
+    color: var(--textSecondary)
+  &:focus
+    background: rgba(0, 0, 0, 0) !important
+    outline: 0
+
+.full-border
+  border-radius: 58px
+
+.half-border
+  border-radius: 18px 18px 0 0
+  box-shadow: 0px -2px 17px 0px rgb(0 0 0 / 27%) !important
+
+.search-icon
+  position: absolute
+  height: 24px
+  top: 50%
+  left: 0
+  margin-top: -12px
+  margin-left: 15px
+
+.go-arrow
+  position: absolute
+  height: 20px
+  top: 50%
+  right: 0
+  margin-top: -12px
+  margin-right: 20px
+
+.search-results
+  position: absolute
+  top: 50px
+  padding: 0.375rem 0.75rem
+  width: 100%
+  background: var(--secondary)
+  border-radius: 0 0 18px 18px
+  box-shadow: -1px 12px 40px -5px rgb(0 0 0 / 50%)
+  max-height: 60vh
+  overflow: hidden
+
+.search-invisible
+  visibility: hidden
+  opacity: 0
+  transition: visibility 0s linear 300ms, opacity 300ms
+
+.search-visible
+  visibility: visible
+  opacity: 1
+  transition: visibility 0s linear 0s, opacity 300ms
+
+.searchbar-container
+  height: 50px
+  background: var(--secondary)
+  position: relative
+
+.search-container
+  position: relative

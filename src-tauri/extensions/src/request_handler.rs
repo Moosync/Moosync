@@ -1,4 +1,4 @@
-use std::{fmt::format, sync::mpsc, time::Duration};
+use std::{sync::mpsc, time::Duration};
 
 use database::database::Database;
 use preferences::preferences::PreferenceConfig;

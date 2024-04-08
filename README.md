@@ -28,3 +28,4 @@ You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/
 - ~~Youtube playlists, artists, albums and suggestions~~
 - ~~Spotify canvas~~
 - ~~File browser~~
+- Optimize cloning in songlists

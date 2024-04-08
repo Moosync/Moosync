@@ -143,7 +143,7 @@ pub fn get_canvas(track_uri: String, session: Session) -> Result<CanvazResponse>
 
         let mut req = EntityCanvazRequest::new();
         let mut entity = Entity::new();
-        entity.entity_uri = track_uri.clone();
+        entity.entity_uri.clone_from(&track_uri);
         req.entities.push(entity.clone());
 
         println!("{}", protobuf::text_format::print_to_string(&req));

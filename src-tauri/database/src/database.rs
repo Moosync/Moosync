@@ -401,11 +401,7 @@ impl Database {
 
     pub fn get_entity_by_options(&self, options: GetEntityOptions) -> Result<Value> {
         let mut conn = self.pool.get().unwrap();
-        let inclusive = if let Some(inclusive) = options.inclusive {
-            inclusive
-        } else {
-            false
-        };
+        let inclusive = options.inclusive.unwrap_or_default();
 
         if options.album.is_some() {
             return Ok(serde_json::to_value(self.get_albums(

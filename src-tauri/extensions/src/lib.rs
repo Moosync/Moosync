@@ -2,12 +2,12 @@ use std::{
     collections::HashMap,
     env,
     fs::{self, File},
-    io::{self, BufRead, BufReader, ErrorKind, Read, Write},
+    io::{BufRead, ErrorKind, Write},
     path::PathBuf,
     process::Command,
     str::FromStr,
     sync::{
-        mpsc::{self, Receiver, Sender},
+        mpsc::{self, Sender},
         Mutex,
     },
     thread, u64,
@@ -15,7 +15,7 @@ use std::{
 
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
-use interprocess::local_socket::{LocalSocketListener, LocalSocketStream};
+use interprocess::local_socket::{LocalSocketListener};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use socket_handler::{CommandSender, SocketHandler};
@@ -234,7 +234,7 @@ impl ExtensionHandler {
         println!(
             "Moving items from {:?} to {:?}",
             tmp_dir.clone(),
-            parent_dir.clone()
+            parent_dir
         );
         fs_extra::move_items(&[tmp_dir.clone()], parent_dir, &options)?;
 

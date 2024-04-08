@@ -26,7 +26,7 @@ async fn test_youtube_playlist_content() {
             .await
             .unwrap();
 
-        continuation = res1.nextPageToken.clone();
+        continuation.clone_from(&res1.nextPageToken);
 
         println!(
             "{:?}",

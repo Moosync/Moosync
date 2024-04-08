@@ -4,5 +4,6 @@
         "/home/ovenoboyo/.cargo/bin/leptosfmt",
         "--stdin",
         "--rustfmt"
-    ]
+    ],
+    "rust-analyzer.cargo.features": ["mock"]
 }

@@ -170,7 +170,7 @@ impl QueryableSong {
 impl SearchByTerm for QueryableSong {
     fn search_by_term(term: Option<String>) -> Self {
         let mut data = Self::empty();
-        data.title = term.clone();
+        data.title.clone_from(&term);
         data.path = term;
 
         data

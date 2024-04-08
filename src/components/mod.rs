@@ -6,3 +6,4 @@ pub mod provider_icon;
 pub mod sidebar;
 pub mod songdetails;
 pub mod songlist;
+pub mod topbar;

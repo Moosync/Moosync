@@ -1,12 +1,12 @@
 use std::{
-    fmt::format,
     io,
     num::{ParseFloatError, ParseIntError},
-    path,
     string::FromUtf8Error,
     time::SystemTimeError,
 };
 
+use oauth2::{basic::BasicErrorResponseType, RequestTokenError, StandardErrorResponse};
+use rspotify::ClientError;
 use serde_json::Value;
 #[cfg(feature = "ui")]
 use wasm_bindgen::JsValue;
@@ -84,6 +84,19 @@ pub enum MoosyncError {
     FSExtraError(#[from] fs_extra::error::Error),
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
+    #[cfg_attr(feature = "ui", error(transparent))]
+    #[cfg(feature = "ui")]
+    OAuthError(#[from] RequestTokenError<oauth2::reqwest::Error<reqwest::Error>, StandardErrorResponse<BasicErrorResponseType>>),
+    #[cfg_attr(feature = "ui", error(transparent))]
+    #[cfg(feature = "ui")]
+    SpotifyError(#[from] ClientError),
+}
+
+#[cfg(feature = "ui")]
+impl From<serde_wasm_bindgen::Error> for MoosyncError {
+    fn from(value: serde_wasm_bindgen::Error) -> Self {
+        Self::String(value.to_string())
+    }
 }
 
 #[cfg(feature = "ui")]
@@ -98,6 +111,12 @@ impl From<JsValue> for MoosyncError {
 impl From<souvlaki::Error> for MoosyncError {
     fn from(value: souvlaki::Error) -> Self {
         Self::MediaControlError(value)
+    }
+}
+
+impl From<&'static str> for MoosyncError {
+    fn from(value: &'static str) -> Self {
+        Self::String(value.to_string())
     }
 }
 

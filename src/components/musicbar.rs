@@ -6,6 +6,7 @@ use types::ui::player_details::PlayerState;
 use crate::components::audiostream::AudioStream;
 use crate::components::low_img::LowImg;
 use crate::components::musicinfo::MusicInfo;
+use crate::console_log;
 use crate::icons::expand_icon::ExpandIcon;
 use crate::icons::fav_icon::FavIcon;
 use crate::icons::next_track_icon::NextTrackIcon;
@@ -235,7 +236,14 @@ where
 #[component]
 pub fn Slider() -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
-    let current_time = create_read_slice(player_store, |p| p.player_details.current_time);
+    let slider_process: NodeRef<html::Div> = create_node_ref();
+    let offset_width = create_rw_signal(0f64);
+    
+    slider_process.on_load(move |s| {
+        offset_width.set(s.offset_width() as f64);
+    });
+    let (current_time, set_current_time) = create_slice(player_store, |p| p.player_details.current_time, move |p, val: f64| p.force_seek_percent(val / slider_process.get_untracked().unwrap().offset_width() as f64));
+    
     let current_song = create_read_slice(player_store, |p| p.current_song.clone());
     let total_time = create_rw_signal(1f64);
 
@@ -247,36 +255,46 @@ pub fn Slider() -> impl IntoView {
             }
         }
     });
+
     view! {
         <div class="timeline pl-2 pr-2">
             <div
                 class="time-slider time-slider-ltr timeline pl-2 pr-2 timeline pl-2 pr-2"
                 style="padding: 5px 0px; width: auto; height: 4px;"
             >
-                <div class="time-slider-rail">
-                    <div
-                        class="time-slider-process"
-                        style=move || {
-                            format!(
-                                "height: 100%; top: 0px; left: 0%; width: {}%; transition-property: width, left; transition-duration: 0.1s;",
-                                (current_time.get() / total_time.get()) * 100f64,
-                            )
-                        }
-                    >
-                    </div>
-                    <div
-                        class="time-slider-dot"
-                        role="slider"
-                        tabindex="0"
-                        style=move || {
-                            format!(
-                                "width: 10px; height: 10px; transform: translate(-50%, -50%); top: 50%; left: {}%; transition: left 0.1s ease 0s;",
-                                (current_time.get() / total_time.get()) * 100f64,
-                            )
-                        }
-                    >
+                <div
+                    class="time-slider-rail"
+                    ref=slider_process
+                    on:click=move |ev| {
+                        console_log!("offset {}", ev.offset_x());
+                        set_current_time.set(ev.offset_x() as f64);
+                    }
+                >
+                    <div class="time-slider-bg">
+                        <div
+                            class="time-slider-process"
+                            style=move || {
+                                format!(
+                                    "height: 100%; top: 0px; left: 0%; width: {}%; transition-property: width, left; transition-duration: 0.1s;",
+                                    (current_time.get() / total_time.get()) * 100f64,
+                                )
+                            }
+                        >
+                        </div>
+                        <div
+                            class="time-slider-dot"
+                            role="slider"
+                            tabindex="0"
+                            style=move || {
+                                format!(
+                                    "width: 10px; height: 10px; transform: translate(-50%, -50%); top: 50%; left: {}%; transition: left 0.1s ease 0s;",
+                                    (current_time.get() / total_time.get()) * 100f64,
+                                )
+                            }
+                        >
 
-                        <div class="time-slider-dot-handle"></div>
+                            <div class="time-slider-dot-handle"></div>
+                        </div>
                     </div>
                 </div>
             </div>

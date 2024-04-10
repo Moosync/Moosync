@@ -141,4 +141,8 @@ impl GenericPlayer for LocalPlayer {
         self.listen_onloadend(tx.clone());
         self.listen_ontimeupdate(tx.clone());
     }
+    
+    fn seek(&self, pos: f64) -> Result<()> {
+        Ok(self.audio_element.fast_seek(pos)?)
+    }
 }

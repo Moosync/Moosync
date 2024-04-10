@@ -18,8 +18,7 @@ use types::{
 };
 
 use leptos::{
-    component, create_effect, create_node_ref, create_read_slice,
-    create_write_slice, html::Div, spawn_local, use_context, view, IntoView, RwSignal, SignalGet,
+    component, create_effect, create_node_ref, create_read_slice, create_slice, create_write_slice, html::Div, spawn_local, use_context, view, IntoView, RwSignal, SignalGet, SignalGetUntracked, SignalSetter
 };
 
 use crate::{
@@ -109,21 +108,18 @@ impl PlayerHolder {
         player.load(src, resolver_tx);
 
         resolver_rx.await.expect("Load failed to resolve");
-        player.set_volume(current_volume);
+        player.set_volume(current_volume).unwrap();
         player.play()?;
 
         Ok(())
     }
 
-    fn register_external_state_listeners(&self, player_store: RwSignal<PlayerStore>) {
+    fn listen_player_state(&self, player_store: RwSignal<PlayerStore>) {
         let player_state_getter = create_read_slice(player_store, move |p| p.player_details.state);
-
         let players = self.players.clone();
         let active_player = self.active_player.clone();
         create_effect(move |_| {
             let player_state = player_state_getter.get();
-            console_log!("{:?}", player_state);
-
             let players = players.lock().unwrap();
 
             let active_player_pos = active_player.load(Ordering::Relaxed);
@@ -147,6 +143,37 @@ impl PlayerHolder {
                 PlayerState::Loading => {}
             }
         });
+    }
+
+    fn listen_force_seek(&self, player_store: RwSignal<PlayerStore>) {
+        let (force_seek, reset_force_seek) = create_slice(player_store, |p| p.player_details.force_seek, |p, _| p.force_seek_percent(-1f64));
+        let players = self.players.clone();
+        let active_player = self.active_player.clone();
+        create_effect(move |_| {
+            let force_seek = force_seek.get();
+            if force_seek < 0f64 {
+                return;
+            }
+
+            let players = players.lock().unwrap();
+
+            let active_player_pos = active_player.load(Ordering::Relaxed);
+
+            let active = players.get(active_player_pos);
+            if active.is_none() {
+                return;
+            }
+            let active = active.unwrap();
+
+            active.seek(force_seek).unwrap();
+
+            reset_force_seek.set(-1f64);
+        });
+    }
+
+    fn register_external_state_listeners(&self, player_store: RwSignal<PlayerStore>) {
+        self.listen_player_state(player_store);
+        self.listen_force_seek(player_store);
     }
 
     fn register_internal_state_listeners(
@@ -212,7 +239,7 @@ pub fn AudioStream() -> impl IntoView {
             spawn_local(async move {
                 let mut players = players.lock().unwrap();
                 players
-                    .load_audio(current_song, current_volume.get())
+                    .load_audio(current_song, current_volume.get_untracked())
                     .await
                     .unwrap();
             });

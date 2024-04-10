@@ -14,6 +14,7 @@ pub struct Queue {
 #[derive(Debug, Default)]
 pub struct PlayerDetails {
     pub current_time: f64,
+    pub force_seek: f64,
     pub state: PlayerState,
     pub volume: f64,
 }
@@ -67,6 +68,17 @@ impl PlayerStore {
 
     pub fn update_time(&mut self, new_time: f64) {
         self.player_details.current_time = new_time;
+    }
+
+    pub fn force_seek_percent(&mut self, new_time: f64) {
+        let new_time = if let Some(current_song) = &self.current_song {
+            current_song.song.duration.unwrap_or_default() * new_time
+        } else {
+            0f64
+        };
+        
+        self.player_details.force_seek = new_time;
+
     }
 
     pub fn set_state(&mut self, state: PlayerState) {

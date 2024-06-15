@@ -33,6 +33,7 @@ async-trait = "0.1.79"
 url = "2.5.0"
 rspotify = "0.13.1"
 web-time = "1.1.0"
+futures = "0.3.30"
 
 [workspace]
 resolver = "2"

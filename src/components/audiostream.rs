@@ -18,7 +18,7 @@ use types::{
 };
 
 use leptos::{
-    component, create_effect, create_node_ref, create_read_slice, create_slice, create_write_slice, html::Div, spawn_local, use_context, view, IntoView, RwSignal, SignalGet, SignalGetUntracked, SignalSetter
+    component, create_effect, create_node_ref, create_read_slice, create_slice, create_write_slice, html::Div, spawn_local, use_context, view, IntoView, RwSignal, SignalGet, SignalGetUntracked
 };
 
 use crate::{

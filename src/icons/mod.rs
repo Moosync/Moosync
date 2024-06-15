@@ -29,3 +29,4 @@ pub mod song_default_icon;
 pub mod sort_icon;
 pub mod trash_icon;
 pub mod volume_icon;
+pub mod plus_button;

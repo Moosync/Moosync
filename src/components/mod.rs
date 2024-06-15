@@ -7,3 +7,4 @@ pub mod sidebar;
 pub mod songdetails;
 pub mod songlist;
 pub mod topbar;
+pub mod cardview;

@@ -13,16 +13,19 @@ use crate::icons::{
     queue_icon::{QueueIcon, QueueIconProps},
 };
 
+#[derive(Debug, Clone)]
 struct Tab {
-    title: String,
-    icon: View,
+    pub title: String,
+    pub icon: View,
+    pub url: String,
 }
 
 impl Tab {
-    fn new(title: String, icon: impl IntoView) -> Self {
+    fn new(title: String, icon: impl IntoView, url: String) -> Self {
         Tab {
             title,
             icon: icon.into_view(),
+            url
         }
     }
 }
@@ -69,12 +72,6 @@ pub fn Sidebar() -> impl IntoView {
     let (active_tab, set_active_tab) = create_signal(1);
     active_write_signals[0].set(true);
 
-    create_effect(move |_| {
-        let active_tab = active_tab.get();
-        for (i, signal) in active_write_signals.iter().enumerate() {
-            signal.set(i == active_tab);
-        }
-    });
 
     let tabs = [
         Tab::new(
@@ -82,44 +79,63 @@ pub fn Sidebar() -> impl IntoView {
             QueueIcon(QueueIconProps {
                 active: active_read_signals[0],
             }),
+            "".into()
         ),
         Tab::new(
             "All Songs".into(),
             AllSongsIcon(AllSongsIconProps {
                 active: active_read_signals[1],
             }),
+            "/".into()
         ),
         Tab::new(
             "Playlists".into(),
             PlaylistsIcon(PlaylistsIconProps {
                 active: active_read_signals[2],
             }),
+            "/playlists".into()
         ),
         Tab::new(
             "Artists".into(),
             ArtistsIcon(ArtistsIconProps {
                 active: active_read_signals[3],
             }),
+            "/artists".into()
         ),
         Tab::new(
             "Albums".into(),
             AlbumsIcon(AlbumsIconProps {
                 active: active_read_signals[4],
             }),
+            "/albums".into()
         ),
         Tab::new(
             "Genres".into(),
             GenresIcon(GenresIconProps {
                 active: active_read_signals[5],
             }),
+            "/genres".into()
         ),
         Tab::new(
             "Explore".into(),
             ExploreIcon(ExploreIconProps {
                 active: active_read_signals[6],
             }),
+            "/explore".into()
         ),
     ];
+
+    let tab_urls: Vec<String> = tabs.iter().map(|v| v.url.clone()).collect();
+
+    let navigate = leptos_router::use_navigate();
+
+    create_effect(move |_| {
+        let active_tab = active_tab.get();
+        for (i, signal) in active_write_signals.iter().enumerate() {
+            signal.set(i == active_tab);
+        }
+        navigate(tab_urls[active_tab].as_str(), Default::default());
+    });
 
     view! {
         <div class="sidebar-container sidebar">
@@ -141,7 +157,7 @@ pub fn Sidebar() -> impl IntoView {
                         <div class="extra-margin-top">
                             <div class="d-flex flex-column">
 
-                                {tabs
+                                {tabs.clone()
                                     .into_iter()
                                     .enumerate()
                                     .map(|(index, tab)| {

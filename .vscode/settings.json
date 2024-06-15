@@ -5,5 +5,8 @@
         "--stdin",
         "--rustfmt"
     ],
-    "rust-analyzer.cargo.features": ["mock"]
+    "rust-analyzer.cargo.features": [
+        "mock"
+    ],
+    "rust-analyzer.showUnlinkedFileNotification": false
 }

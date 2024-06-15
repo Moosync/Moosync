@@ -204,7 +204,7 @@ impl BridgeUtils for GenreBridge {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct GetEntityOptions {
     pub artist: Option<QueryableArtist>,
     pub album: Option<QueryableAlbum>,

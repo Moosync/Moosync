@@ -5,8 +5,12 @@ use std::{
     time::SystemTimeError,
 };
 
+#[cfg(feature = "ui")]
 use oauth2::{basic::BasicErrorResponseType, RequestTokenError, StandardErrorResponse};
+
+#[cfg(feature = "ui")]
 use rspotify::ClientError;
+
 use serde_json::Value;
 #[cfg(feature = "ui")]
 use wasm_bindgen::JsValue;

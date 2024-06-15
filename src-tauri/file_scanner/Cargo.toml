@@ -9,14 +9,14 @@ edition = "2021"
 database = { path = "../database" }
 substring = "1.4.5"
 types = { path = "../types" }
-blake3 = { version = "1.5.0", features = ["std"] }
-fast_image_resize = "3.0.4"
-image = "0.24.7"
+blake3 = { version = "1.5.1", features = ["std"] }
+fast_image_resize = "4.0.0"
+image = "0.25.1"
 lazy_static = "1.4.0"
-lofty = "0.18.2"
-regex = "1.10.2"
+lofty = "0.20.0"
+regex = "1.10.5"
 threadpool = "1.8.1"
 num_cpus = "1.16.0"
-uuid = { version = "1.7.0", features = ["v4"] }
+uuid = { version = "1.8.0", features = ["v4"] }
 jwalk = "0.8.1"
 dunce = "1.0.4"

@@ -262,10 +262,52 @@
           ]
         },
         {
+          "description": "deep-link:allow-is-registered -> Enables the is_registered command without any pre-configured scope.",
+          "type": "string",
+          "enum": [
+            "deep-link:allow-is-registered"
+          ]
+        },
+        {
+          "description": "deep-link:allow-register -> Enables the register command without any pre-configured scope.",
+          "type": "string",
+          "enum": [
+            "deep-link:allow-register"
+          ]
+        },
+        {
+          "description": "deep-link:allow-unregister -> Enables the unregister command without any pre-configured scope.",
+          "type": "string",
+          "enum": [
+            "deep-link:allow-unregister"
+          ]
+        },
+        {
           "description": "deep-link:deny-get-current -> Denies the get_current command without any pre-configured scope.",
           "type": "string",
           "enum": [
             "deep-link:deny-get-current"
+          ]
+        },
+        {
+          "description": "deep-link:deny-is-registered -> Denies the is_registered command without any pre-configured scope.",
+          "type": "string",
+          "enum": [
+            "deep-link:deny-is-registered"
+          ]
+        },
+        {
+          "description": "deep-link:deny-register -> Denies the register command without any pre-configured scope.",
+          "type": "string",
+          "enum": [
+            "deep-link:deny-register"
+          ]
+        },
+        {
+          "description": "deep-link:deny-unregister -> Denies the unregister command without any pre-configured scope.",
+          "type": "string",
+          "enum": [
+            "deep-link:deny-unregister"
           ]
         },
         {
@@ -1248,6 +1290,13 @@
           ]
         },
         {
+          "description": "window:allow-cursor-position -> Enables the cursor_position command without any pre-configured scope.",
+          "type": "string",
+          "enum": [
+            "window:allow-cursor-position"
+          ]
+        },
+        {
           "description": "window:allow-destroy -> Enables the destroy command without any pre-configured scope.",
           "type": "string",
           "enum": [
@@ -1364,6 +1413,13 @@
           "type": "string",
           "enum": [
             "window:allow-minimize"
+          ]
+        },
+        {
+          "description": "window:allow-monitor-from-point -> Enables the monitor_from_point command without any pre-configured scope.",
+          "type": "string",
+          "enum": [
+            "window:allow-monitor-from-point"
           ]
         },
         {
@@ -1675,6 +1731,13 @@
           ]
         },
         {
+          "description": "window:deny-cursor-position -> Denies the cursor_position command without any pre-configured scope.",
+          "type": "string",
+          "enum": [
+            "window:deny-cursor-position"
+          ]
+        },
+        {
           "description": "window:deny-destroy -> Denies the destroy command without any pre-configured scope.",
           "type": "string",
           "enum": [
@@ -1791,6 +1854,13 @@
           "type": "string",
           "enum": [
             "window:deny-minimize"
+          ]
+        },
+        {
+          "description": "window:deny-monitor-from-point -> Denies the monitor_from_point command without any pre-configured scope.",
+          "type": "string",
+          "enum": [
+            "window:deny-monitor-from-point"
           ]
         },
         {

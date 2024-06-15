@@ -8,7 +8,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "2.0.0-beta.10", features = [] }
+tauri-build = { version = "2.0.0-beta.17", features = [] }
 
 [dependencies]
 macros = { path = "./macros" }
@@ -22,7 +22,7 @@ themes = { path = "./themes" }
 mpris = { path = "./mpris" }
 lyrics = { path = "./lyrics" }
 extensions = { path = "./extensions" }
-tauri = { version = "2.0.0-beta.13", features = [
+tauri = { version = "2.0.0-beta.22", features = [
     "protocol-asset",
     "devtools",
     "default",
@@ -31,12 +31,12 @@ tauri-plugin-deep-link = { git = "https://github.com/tauri-apps/plugins-workspac
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-devtools = { git = "https://github.com/crabnebula-dev/devtools" }
 webkit2gtk = "2.0.1"
-open = "5.0.1"
-thiserror = "1.0.57"
-uuid = { version = "1.7.0", features = ["std", "v4"] }
+open = "5.1.4"
+thiserror = "1.0.61"
+uuid = { version = "1.8.0", features = ["std", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-rfd = { version = "0.14.0", default-features = false, features = [
+rfd = { version = "0.14.1", default-features = false, features = [
     "xdg-portal",
     "async-std",
 ] }

@@ -9,10 +9,10 @@ edition = "2021"
 librespot = { git = "https://github.com/librespot-org/librespot", branch = "dev", features = [
     "default",
 ] }
-protobuf = { version = "3.3.0", features = ["bytes"] }
-reqwest = "0.11.24"
-tokio = { version = "1.36.0", features = ["full"] }
+protobuf = { version = "3.4.0", features = ["bytes"] }
+reqwest = "0.12.4"
+tokio = { version = "1.38.0", features = ["full"] }
 futures-util = { version = "0.3.29", default_features = false }
 types = { path = "../types" }
-quote = "1.0.35"
+quote = "1.0.36"
 serde = { version = "1.0", features = ["derive"] }

@@ -68,6 +68,7 @@ pub fn get_playlists_by_option(
     let mut songs = vec![];
     for i in 0..1000 {
         let mut playlist = QueryablePlaylist::default();
+        playlist.playlist_id = Some( format!("playlist_id_{}", i));
         playlist.playlist_name = format!("Playlist {}", i);
         playlist.playlist_coverpath = Some("https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/200px-SMPTE_Color_Bars.svg.png".to_string());
         songs.push(playlist);
@@ -85,6 +86,7 @@ pub fn get_artists_by_option(
     let mut songs = vec![];
     for i in 0..1000 {
         let mut artist = QueryableArtist::default();
+        artist.artist_id = Some( format!("artist_id_{}", i));
         artist.artist_name = Some(format!("Artist {}", i));
         artist.artist_coverpath = Some("https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/200px-SMPTE_Color_Bars.svg.png".to_string());
         songs.push(artist);
@@ -101,6 +103,7 @@ pub fn get_albums_by_option(
     let mut songs = vec![];
     for i in 0..1000 {
         let mut album = QueryableAlbum::default();
+        album.album_id = Some(format!("album_id_{}", i));
         album.album_name = Some(format!("Album {}", i));
         album.album_coverpath_high = Some("https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/200px-SMPTE_Color_Bars.svg.png".to_string());
         songs.push(album);
@@ -117,7 +120,8 @@ pub fn get_genres_by_option(
     let mut songs = vec![];
     for i in 0..1000 {
         let mut album = QueryableGenre::default();
-        album.genre_name = Some(format!("Album {}", i));
+        album.genre_id = Some(format!("genre_id_{}", i));
+        album.genre_name = Some(format!("Genre {}", i));
         songs.push(album);
     }
 

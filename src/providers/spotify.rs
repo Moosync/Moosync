@@ -157,20 +157,20 @@ impl SpotifyProvider {
         if !refresh_token.is_null() {
             let refresh_token = refresh_token.as_str().unwrap();
 
-            if cfg!(feature = "mock") {
-                let token_holder: TokenHolder =
-                    serde_json::from_value(get_secure_async("MoosyncSpotifyAccessToken").await?)?;
-                let mut res = OAuthTokenResponse::new(
-                    AccessToken::new(token_holder.access_token),
-                    BasicTokenType::Bearer,
-                    EmptyExtraTokenFields {},
-                );
-                res.set_refresh_token(Some(RefreshToken::new(token_holder.refresh_token)));
-                res.set_expires_in(Some(&Duration::from_secs(token_holder.expires_in)));
+            // if cfg!(feature = "mock") {
+            //     let token_holder: TokenHolder =
+            //         serde_json::from_value(get_secure_async("MoosyncSpotifyAccessToken").await?)?;
+            //     let mut res = OAuthTokenResponse::new(
+            //         AccessToken::new(token_holder.access_token),
+            //         BasicTokenType::Bearer,
+            //         EmptyExtraTokenFields {},
+            //     );
+            //     res.set_refresh_token(Some(RefreshToken::new(token_holder.refresh_token)));
+            //     res.set_expires_in(Some(&Duration::from_secs(token_holder.expires_in)));
 
-                self.set_tokens(res).await;
-                return Ok(());
-            }
+            //     self.set_tokens(res).await;
+            //     return Ok(());
+            // }
 
             let client = self.get_oauth_client();
             let res = client

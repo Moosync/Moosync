@@ -1,9 +1,35 @@
-use leptos::{component, create_rw_signal, view, IntoView};
+use leptos::{component, create_rw_signal, view, IntoView, SignalWith};
+use leptos_router::use_params_map;
 use leptos_virtual_scroller::VirtualGridScroller;
 use types::entities::{QueryableArtist};
+use types::songs::GetSongOptions;
 use crate::components::cardview::{CardItem, SimplifiedCardItem};
-
+use leptos_router::A;
 use crate::utils::db_utils::get_artists_by_option;
+
+use crate::utils::db_utils::{get_albums_by_option, get_songs_by_option};
+use crate::components::songview::SongView;
+
+#[component()]
+pub fn SingleArtist() -> impl IntoView {
+    let params = use_params_map();
+    let artist_id = params.with(|params| params.get("id").cloned()).unwrap();
+
+    let songs = create_rw_signal(vec![]);
+    
+    get_songs_by_option(
+        GetSongOptions {
+            artist: Some(QueryableArtist {
+                artist_id: Some(artist_id),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+        songs,
+    );
+
+    view! { <SongView songs=songs/> }
+}
 
 #[component()]
 pub fn AllArtists() -> impl IntoView {
@@ -22,8 +48,13 @@ pub fn AllArtists() -> impl IntoView {
 
                 <div class="row no-gutters w-100 flex-grow-1" style="align-items: flex-start; height: 70%">
                     <VirtualGridScroller each=artists item_width=275 item_height=275 children=move|(_, item)| {
+                        let artist_name = item.artist_name.clone().unwrap_or_default();
+                        let artist_coverpath = item.artist_coverpath.clone();
+                        let artist_id = item.artist_id.clone().unwrap_or_default();
                         view! {
-                            <CardItem item= SimplifiedCardItem { title: item.artist_name.clone().unwrap_or_default(), cover: item.artist_coverpath.clone() } />
+                            <A href=artist_id>
+                            <CardItem item= SimplifiedCardItem { title: artist_name, cover: artist_coverpath } />
+                            </A>
                         }
                     } />
                 </div>

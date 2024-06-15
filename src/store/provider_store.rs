@@ -104,6 +104,6 @@ impl ProviderStore {
             }
         }
 
-        return None
+        None
     }
 }

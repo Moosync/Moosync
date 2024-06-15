@@ -268,7 +268,7 @@ impl GenericProvider for SpotifyProvider {
     }
 
     fn match_id(&self, id: String) -> bool {
-        return id.starts_with("spotify-playlist:") || id.starts_with("spotify-artist:") || id.starts_with("spotify-album:") || id.starts_with("spotify:")
+        id.starts_with("spotify-playlist:") || id.starts_with("spotify-artist:") || id.starts_with("spotify-album:") || id.starts_with("spotify:")
     }
 
     async fn login(&mut self) -> Result<()> {

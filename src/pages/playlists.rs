@@ -1,5 +1,4 @@
 use std::rc::Rc;
-use std::sync::{Mutex, MutexGuard};
 
 use crate::components::cardview::{CardItem, SimplifiedCardItem};
 use crate::components::songview::SongView;

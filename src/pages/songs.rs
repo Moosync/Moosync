@@ -1,12 +1,9 @@
 use leptos::{
-    component, create_effect, create_rw_signal, spawn_local, view, IntoView, RwSignal, SignalGet,
-    SignalSet,
+    component, create_rw_signal, view, IntoView,
 };
-use types::songs::{GetSongOptions, Song};
+use types::songs::{GetSongOptions};
 
 use crate::{
-    components::{songdetails::SongDetails, songlist::SongList},
-    console_log,
     utils::db_utils::get_songs_by_option,
 };
 

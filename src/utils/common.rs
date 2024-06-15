@@ -114,3 +114,34 @@ pub fn get_high_img(song: &Song) -> String {
 
     String::new()
 }
+
+macro_rules! fetch_infinite {
+    ($provider:expr, $fetch_content:ident, $update_signal:expr, $($arg:expr),*) => {
+        let provider = $provider.clone();
+        spawn_local(async move {
+            let mut offset = 0;
+            let provider = provider.lock().unwrap();
+            loop {
+                let res = provider.$fetch_content($($arg,)* 50, offset).await;
+                if res.is_err() {
+                    break;
+                }
+
+                let mut res = res.unwrap();
+                let len = res.len() as u32;
+
+                if len == 0 {
+                    break;
+                }
+
+                offset += len;
+
+                $update_signal.update(|signal| {
+                    signal.append(&mut res);
+                });
+            }
+        });
+    };
+}
+
+pub(crate) use fetch_infinite;

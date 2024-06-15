@@ -1,47 +1,73 @@
 use std::rc::Rc;
+use std::sync::{Mutex, MutexGuard};
 
-use leptos::{component, create_rw_signal, expect_context, spawn_local, view, IntoView, SignalUpdate};
+use crate::components::cardview::{CardItem, SimplifiedCardItem};
+use crate::components::songview::SongView;
+use crate::providers::generic::GenericProvider;
+use crate::utils::common::fetch_infinite;
+use crate::utils::db_utils::get_songs_by_option;
+use leptos::{
+    component, create_rw_signal, expect_context, spawn_local, view, IntoView, SignalUpdate,
+    SignalWith,
+};
+use leptos_router::{use_params_map, A};
 use leptos_virtual_scroller::VirtualGridScroller;
 use types::entities::QueryablePlaylist;
-use crate::components::cardview::{CardItem, SimplifiedCardItem};
+use types::songs::GetSongOptions;
 
 use crate::store::provider_store::ProviderStore;
 use crate::{icons::plus_button::PlusIcon, utils::db_utils::get_playlists_by_option};
 
 #[component()]
-pub fn AllPlaylists() -> impl IntoView {
+pub fn SinglePlaylist() -> impl IntoView {
+    let params = use_params_map();
+    let playlist_id = params.with(|params| params.get("id").cloned()).unwrap();
+
+    let songs = create_rw_signal(vec![]);
+
+    let provider_store = expect_context::<Rc<ProviderStore>>();
+    let provider = provider_store.get_provider_by_id(playlist_id.clone());
+    if let Some(provider) = provider.cloned() {
+        let playlist_id = playlist_id.clone();
+        fetch_infinite!(
+            provider,
+            get_playlist_content,
+            songs,
+            playlist_id.clone()
+        );
+    }
+
     
+    get_songs_by_option(
+        GetSongOptions {
+            playlist: Some(QueryablePlaylist {
+                playlist_id: Some(playlist_id),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+        songs,
+    );
+
+
+
+    view! { <SongView songs=songs/> }
+}
+
+#[component()]
+pub fn AllPlaylists() -> impl IntoView {
     let playlists = create_rw_signal(vec![]);
     get_playlists_by_option(QueryablePlaylist::default(), playlists.write_only());
 
     let provider_store = expect_context::<Rc<ProviderStore>>();
     for key in provider_store.get_provider_keys() {
-        let playlistWriteSignal = playlists.write_only();
+        let playlist_write_signal = playlists.write_only();
         let provider = provider_store.get_provider_by_key(key).unwrap().clone();
-        spawn_local(async move {
-            let provider = provider.lock().unwrap();
-
-            let mut offset = 0;
-            loop {
-                let res = provider.fetch_user_playlists(50, offset).await;
-                if res.is_err() {
-                    break;
-                }
-
-                let mut res = res.unwrap();
-                let len = res.len() as u32;
-
-                if len == 0 {
-                    break;
-                }
-
-                offset += len;
-
-                playlistWriteSignal.update(|playlists| {
-                    playlists.append(&mut res);
-                });
-            }
-        });
+        fetch_infinite!(
+            provider,
+            fetch_user_playlists,
+            playlist_write_signal,
+        );
     }
 
     view! {
@@ -57,12 +83,29 @@ pub fn AllPlaylists() -> impl IntoView {
                     <div class="col align-self-center"></div>
                 </div>
 
-                <div class="row no-gutters w-100 flex-grow-1" style="align-items: flex-start; height: 70%">
-                    <VirtualGridScroller each=playlists item_width=275 item_height=275 children=move|(_, item)| {
-                        view! {
-                            <CardItem item= SimplifiedCardItem { title: item.playlist_name.clone(), cover: item.playlist_coverpath.clone() } />
+                <div
+                    class="row no-gutters w-100 flex-grow-1"
+                    style="align-items: flex-start; height: 70%"
+                >
+                    <VirtualGridScroller
+                        each=playlists
+                        item_width=275
+                        item_height=275
+                        children=move |(_, item)| {
+                            let playlist_name = item.playlist_name.clone();
+                            let playlist_coverpath = item.playlist_coverpath.clone();
+                            let playlist_id = item.playlist_id.clone().unwrap_or_default();
+                            view! {
+                                <A href=playlist_id>
+                                    <CardItem item=SimplifiedCardItem {
+                                        title: playlist_name,
+                                        cover: playlist_coverpath,
+                                    }/>
+                                </A>
+                            }
                         }
-                    } />
+                    />
+
                 </div>
             </div>
         </div>

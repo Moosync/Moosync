@@ -95,4 +95,15 @@ impl ProviderStore {
 
         Ok(provider.unwrap())
     }
+
+    pub fn get_provider_by_id(&self, id: String) -> Option<&Rc<Mutex<dyn GenericProvider>>> {
+        for (_, provider) in &self.providers{
+            let provider_lock = provider.lock().unwrap();
+            if provider_lock.match_id(id.clone()) {
+                return Some(provider);
+            }
+        }
+
+        return None
+    }
 }

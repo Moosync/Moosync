@@ -16,7 +16,7 @@ use oauth2::{
 };
 use rspotify::{
     clients::{BaseClient, OAuthClient},
-    model::{FullTrack, PlaylistId, SimplifiedPlaylist},
+    model::{FullTrack, Id, PlaylistId, SimplifiedPlaylist},
     AuthCodePkceSpotify, Token,
 };
 use serde::{Deserialize, Serialize};
@@ -186,7 +186,7 @@ impl SpotifyProvider {
 
     fn parse_playlist(&self, playlist: SimplifiedPlaylist) -> QueryablePlaylist {
         QueryablePlaylist {
-            playlist_id: Some(format!("spotify-playlist:{}", playlist.id)),
+            playlist_id: Some(format!("spotify-playlist:{}", playlist.id.id())),
             playlist_name: playlist.name,
             playlist_coverpath: playlist.images.first().map(|i| i.url.clone()),
             playlist_song_count: playlist.tracks.total as f64,
@@ -265,6 +265,10 @@ impl GenericProvider for SpotifyProvider {
 
     fn get_status(&self) -> RwSignal<ProviderStatus> {
         self.status
+    }
+
+    fn match_id(&self, id: String) -> bool {
+        return id.starts_with("spotify-playlist:") || id.starts_with("spotify-artist:") || id.starts_with("spotify-album:") || id.starts_with("spotify:")
     }
 
     async fn login(&mut self) -> Result<()> {

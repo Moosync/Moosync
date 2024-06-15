@@ -7,8 +7,11 @@ pub trait GenericProvider: std::fmt::Debug {
     async fn initialize(&mut self) -> Result<()>;
     fn key(&self) -> &str;
     fn get_status(&self) -> RwSignal<ProviderStatus>;
+    fn match_id(&self, id: String) -> bool;
+    
     async fn login(&mut self) -> Result<()>;
     async fn authorize(&mut self, code: String) -> Result<()>;
+
 
     async fn fetch_user_details(&self) -> Result<()>;
     async fn fetch_user_playlists(&self, limit: u32, offset: u32) -> Result<Vec<QueryablePlaylist>>;

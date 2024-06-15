@@ -8,3 +8,4 @@ pub mod songdetails;
 pub mod songlist;
 pub mod topbar;
 pub mod cardview;
+pub mod songview;

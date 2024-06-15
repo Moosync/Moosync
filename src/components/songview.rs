@@ -1,6 +1,5 @@
 use leptos::{
-    component, create_effect, create_rw_signal, view, IntoView, RwSignal, SignalGet,
-    SignalSet,
+    component, create_effect, create_rw_signal, view, IntoView, RwSignal, SignalGet, SignalSet,
 };
 use types::songs::Song;
 

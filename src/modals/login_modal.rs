@@ -1,7 +1,8 @@
 use std::rc::Rc;
 
 use leptos::{
-    component, create_action, create_rw_signal, event_target_value, expect_context, spawn_local, view, Children, IntoView, SignalGet, SignalGetUntracked, SignalSet
+    component, create_action, create_rw_signal, event_target_value, expect_context, spawn_local,
+    view, Children, IntoView, SignalGet, SignalGetUntracked, SignalSet,
 };
 
 use crate::store::provider_store::ProviderStore;
@@ -40,9 +41,7 @@ pub fn LoginModal(#[prop()] key: String) -> impl IntoView {
         let code = code.clone();
         let key = key.clone();
 
-        async move {
-            provider_store.authorize(key, code).await
-        }
+        async move { provider_store.authorize(key, code).await }
     });
 
     spawn_local(async move {
@@ -77,7 +76,12 @@ pub fn LoginModal(#[prop()] key: String) -> impl IntoView {
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col not-working-text mt-3" on:click=move |_| having_trouble.set(true)>Having trouble?</div>
+                                        <div
+                                            class="col not-working-text mt-3"
+                                            on:click=move |_| having_trouble.set(true)
+                                        >
+                                            Having trouble?
+                                        </div>
                                     </div>
                                 </div>
                             }
@@ -102,12 +106,19 @@ pub fn LoginModal(#[prop()] key: String) -> impl IntoView {
                                     </div>
                                     <div class="row">
                                         <div class="col">
-                                            <input class="ext-input mt-3" placeholder="Code" on:input=move |ev| code.set(event_target_value(&ev))/>
+                                            <input
+                                                class="ext-input mt-3"
+                                                placeholder="Code"
+                                                on:input=move |ev| code.set(event_target_value(&ev))
+                                            />
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col d-flex justify-content-center">
-                                            <div class="start-button button-grow mt-4 d-flex justify-content-center align-items-center" on:click=move |_| authorize.dispatch(code.get_untracked())>
+                                            <div
+                                                class="start-button button-grow mt-4 d-flex justify-content-center align-items-center"
+                                                on:click=move |_| authorize.dispatch(code.get_untracked())
+                                            >
                                                 Submit
                                             </div>
                                         </div>

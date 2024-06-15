@@ -1,10 +1,13 @@
 use leptos::{spawn_local, SignalSet};
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
-use types::entities::QueryableArtist;
 use types::entities::QueryableAlbum;
+use types::entities::QueryableArtist;
 use types::entities::QueryableGenre;
-use types::{entities::{GetEntityOptions, QueryablePlaylist}, songs::{GetSongOptions, Song}};
+use types::{
+    entities::{GetEntityOptions, QueryablePlaylist},
+    songs::{GetSongOptions, Song},
+};
 
 use super::common::invoke;
 
@@ -17,7 +20,6 @@ struct GetSongOptionsArgs {
 struct GetEntityOptionsArgs {
     options: GetEntityOptions,
 }
-
 
 #[cfg(not(feature = "mock"))]
 pub fn get_songs_by_option(
@@ -68,7 +70,7 @@ pub fn get_playlists_by_option(
     let mut songs = vec![];
     for i in 0..1000 {
         let mut playlist = QueryablePlaylist::default();
-        playlist.playlist_id = Some( format!("playlist_id_{}", i));
+        playlist.playlist_id = Some(format!("playlist_id_{}", i));
         playlist.playlist_name = format!("Playlist {}", i);
         playlist.playlist_coverpath = Some("https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/200px-SMPTE_Color_Bars.svg.png".to_string());
         songs.push(playlist);
@@ -82,11 +84,10 @@ pub fn get_artists_by_option(
     options: QueryableArtist,
     setter: impl SignalSet<Value = Vec<QueryableArtist>> + 'static,
 ) {
-
     let mut songs = vec![];
     for i in 0..1000 {
         let mut artist = QueryableArtist::default();
-        artist.artist_id = Some( format!("artist_id_{}", i));
+        artist.artist_id = Some(format!("artist_id_{}", i));
         artist.artist_name = Some(format!("Artist {}", i));
         artist.artist_coverpath = Some("https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/200px-SMPTE_Color_Bars.svg.png".to_string());
         songs.push(artist);
@@ -134,10 +135,13 @@ pub fn get_playlists_by_option(
     setter: impl SignalSet<Value = Vec<QueryablePlaylist>> + 'static,
 ) {
     spawn_local(async move {
-        let args = to_value(&GetEntityOptionsArgs { options: GetEntityOptions {
-            playlist: Some(options),
-            ..Default::default()
-        } }).unwrap();
+        let args = to_value(&GetEntityOptionsArgs {
+            options: GetEntityOptions {
+                playlist: Some(options),
+                ..Default::default()
+            },
+        })
+        .unwrap();
         let res = invoke("get_entity_by_options", args).await;
         let songs: Vec<QueryablePlaylist> = from_value(res).unwrap();
         setter.set(songs);
@@ -150,10 +154,13 @@ pub fn get_artists_by_option(
     setter: impl SignalSet<Value = Vec<QueryableArtist>> + 'static,
 ) {
     spawn_local(async move {
-        let args = to_value(&GetEntityOptionsArgs { options: GetEntityOptions {
-            artist: Some(options),
-            ..Default::default()
-        } }).unwrap();
+        let args = to_value(&GetEntityOptionsArgs {
+            options: GetEntityOptions {
+                artist: Some(options),
+                ..Default::default()
+            },
+        })
+        .unwrap();
         let res = invoke("get_entity_by_options", args).await;
         let songs: Vec<QueryableArtist> = from_value(res).unwrap();
         setter.set(songs);
@@ -166,10 +173,13 @@ pub fn get_albums_by_option(
     setter: impl SignalSet<Value = Vec<QueryableAlbum>> + 'static,
 ) {
     spawn_local(async move {
-        let args = to_value(&GetEntityOptionsArgs { options: GetEntityOptions {
-            album: Some(options),
-            ..Default::default()
-        } }).unwrap();
+        let args = to_value(&GetEntityOptionsArgs {
+            options: GetEntityOptions {
+                album: Some(options),
+                ..Default::default()
+            },
+        })
+        .unwrap();
         let res = invoke("get_entity_by_options", args).await;
         let songs: Vec<QueryableAlbum> = from_value(res).unwrap();
         setter.set(songs);
@@ -182,10 +192,13 @@ pub fn get_genres_by_option(
     setter: impl SignalSet<Value = Vec<QueryableGenre>> + 'static,
 ) {
     spawn_local(async move {
-        let args = to_value(&GetEntityOptionsArgs { options: GetEntityOptions {
-            genre: Some(options),
-            ..Default::default()
-        } }).unwrap();
+        let args = to_value(&GetEntityOptionsArgs {
+            options: GetEntityOptions {
+                genre: Some(options),
+                ..Default::default()
+            },
+        })
+        .unwrap();
         let res = invoke("get_entity_by_options", args).await;
         let songs: Vec<QueryableGenre> = from_value(res).unwrap();
         setter.set(songs);

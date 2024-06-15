@@ -25,7 +25,7 @@ impl Tab {
         Tab {
             title,
             icon: icon.into_view(),
-            url
+            url,
         }
     }
 }
@@ -72,56 +72,55 @@ pub fn Sidebar() -> impl IntoView {
     let (active_tab, set_active_tab) = create_signal(1);
     active_write_signals[0].set(true);
 
-
     let tabs = [
         Tab::new(
             "Queue".into(),
             QueueIcon(QueueIconProps {
                 active: active_read_signals[0],
             }),
-            "".into()
+            "".into(),
         ),
         Tab::new(
             "All Songs".into(),
             AllSongsIcon(AllSongsIconProps {
                 active: active_read_signals[1],
             }),
-            "/".into()
+            "/".into(),
         ),
         Tab::new(
             "Playlists".into(),
             PlaylistsIcon(PlaylistsIconProps {
                 active: active_read_signals[2],
             }),
-            "/playlists".into()
+            "/playlists".into(),
         ),
         Tab::new(
             "Artists".into(),
             ArtistsIcon(ArtistsIconProps {
                 active: active_read_signals[3],
             }),
-            "/artists".into()
+            "/artists".into(),
         ),
         Tab::new(
             "Albums".into(),
             AlbumsIcon(AlbumsIconProps {
                 active: active_read_signals[4],
             }),
-            "/albums".into()
+            "/albums".into(),
         ),
         Tab::new(
             "Genres".into(),
             GenresIcon(GenresIconProps {
                 active: active_read_signals[5],
             }),
-            "/genres".into()
+            "/genres".into(),
         ),
         Tab::new(
             "Explore".into(),
             ExploreIcon(ExploreIconProps {
                 active: active_read_signals[6],
             }),
-            "/explore".into()
+            "/explore".into(),
         ),
     ];
 
@@ -157,7 +156,8 @@ pub fn Sidebar() -> impl IntoView {
                         <div class="extra-margin-top">
                             <div class="d-flex flex-column">
 
-                                {tabs.clone()
+                                {tabs
+                                    .clone()
                                     .into_iter()
                                     .enumerate()
                                     .map(|(index, tab)| {

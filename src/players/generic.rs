@@ -11,5 +11,4 @@ pub trait GenericPlayer: std::fmt::Debug {
     fn set_volume(&self, volume: f64) -> Result<()>;
     fn get_volume(&self) -> Result<f64>;
     fn add_listeners(&mut self, tx: Sender<PlayerEvents>);
-
 }

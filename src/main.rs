@@ -1,12 +1,12 @@
 mod app;
 mod components;
 mod icons;
+mod modals;
 mod pages;
 mod players;
 mod providers;
 mod store;
 mod utils;
-mod modals;
 
 use app::*;
 use leptos::*;

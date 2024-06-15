@@ -1,6 +1,11 @@
-use leptos::{component, expect_context, view, IntoView, RwSignal, SignalGet, SignalUpdateUntracked};
+use leptos::{
+    component, expect_context, view, IntoView, RwSignal, SignalGet, SignalUpdateUntracked,
+};
 
-use crate::{modals::login_modal::LoginModal, store::modal_store::{ModalStore, Modals}};
+use crate::{
+    modals::login_modal::LoginModal,
+    store::modal_store::{ModalStore, Modals},
+};
 
 #[component]
 pub fn ModalManager() -> impl IntoView {
@@ -13,21 +18,14 @@ pub fn ModalManager() -> impl IntoView {
         }
 
         let ret = match active_modal.unwrap() {
-            Modals::LoginModal(key) => view! {
-                <LoginModal key=key />
-            },
-        }.into_view();
+            Modals::LoginModal(key) => view! { <LoginModal key=key/> },
+        }
+        .into_view();
 
-        modal_store.update_untracked(move |m| {
-            m.clear_active_modal()
-        });
+        modal_store.update_untracked(move |m| m.clear_active_modal());
 
         ret
     };
-    
-    view! {
-        {
-            render_active_modal
-        }
-    }
+
+    view! { render_active_modal }
 }

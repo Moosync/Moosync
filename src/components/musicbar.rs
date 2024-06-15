@@ -238,12 +238,20 @@ pub fn Slider() -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
     let slider_process: NodeRef<html::Div> = create_node_ref();
     let offset_width = create_rw_signal(0f64);
-    
+
     slider_process.on_load(move |s| {
         offset_width.set(s.offset_width() as f64);
     });
-    let (current_time, set_current_time) = create_slice(player_store, |p| p.player_details.current_time, move |p, val: f64| p.force_seek_percent(val / slider_process.get_untracked().unwrap().offset_width() as f64));
-    
+    let (current_time, set_current_time) = create_slice(
+        player_store,
+        |p| p.player_details.current_time,
+        move |p, val: f64| {
+            p.force_seek_percent(
+                val / slider_process.get_untracked().unwrap().offset_width() as f64,
+            )
+        },
+    );
+
     let current_song = create_read_slice(player_store, |p| p.current_song.clone());
     let total_time = create_rw_signal(1f64);
 
@@ -270,6 +278,7 @@ pub fn Slider() -> impl IntoView {
                         set_current_time.set(ev.offset_x() as f64);
                     }
                 >
+
                     <div class="time-slider-bg">
                         <div
                             class="time-slider-process"

@@ -1,7 +1,8 @@
 use std::rc::Rc;
 
 use leptos::{
-    component, create_effect, create_rw_signal, create_write_slice, ev::Event, event_target_value, expect_context, view, CollectView, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate
+    component, create_effect, create_rw_signal, create_write_slice, ev::Event, event_target_value,
+    expect_context, view, CollectView, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
 };
 use leptos_virtual_scroller::VirtualScroller;
 use types::{
@@ -15,7 +16,11 @@ use crate::{
     icons::{
         next_icon::NextIcon, person_icon::PersonIcon, prev_icon::PrevIcon, search_icon::SearchIcon,
     },
-    store::{modal_store::{ModalStore, Modals}, player_store::PlayerStore, provider_store::ProviderStore},
+    store::{
+        modal_store::{ModalStore, Modals},
+        player_store::PlayerStore,
+        provider_store::ProviderStore,
+    },
     utils::{common::get_low_img, db_utils::get_songs_by_option},
 };
 
@@ -64,12 +69,9 @@ pub fn Accounts() -> impl IntoView {
     let statuses = provider_store.get_all_statuses();
 
     let modal_store = expect_context::<RwSignal<ModalStore>>();
-    let show_login_modal = move |key: String| {
-        modal_store.update(|m| {
-            m.set_active_modal(Modals::LoginModal(key))
-        })
-    };
-    
+    let show_login_modal =
+        move |key: String| modal_store.update(|m| m.set_active_modal(Modals::LoginModal(key)));
+
     view! {
         <div>
             <PersonIcon on:click=move |_| show_accounts_popover.set(!show_accounts_popover.get())/>
@@ -87,9 +89,9 @@ pub fn Accounts() -> impl IntoView {
                                         let status = s.get();
                                         ret.push(
                                             view! {
-                                                <div on:click=move |_| show_login_modal(status.key.clone()) >
-                                                    {status.name.clone()} -  {status.user_name.clone()}
-                                                </div>
+                                                <div on:click=move |_| show_login_modal(
+                                                    status.key.clone(),
+                                                )>{status.name.clone()} - {status.user_name.clone()}</div>
                                             },
                                         );
                                     }

@@ -14,7 +14,7 @@ struct KeyArgs {
 #[derive(Serialize)]
 struct SetKeyArgs {
     key: &'static str,
-    value: Value
+    value: Value,
 }
 
 pub fn load_selective(key: &'static str, setter: impl SignalSet<Value = Value> + 'static) {
@@ -38,14 +38,18 @@ pub async fn load_selective_async(key: &'static str) -> Result<Value> {
 
 #[cfg(not(feature = "mock"))]
 pub async fn get_secure_async(key: &'static str) -> Result<Value> {
-        let args = to_value(&KeyArgs { key }).unwrap();
-        let res = invoke("get_secure", args).await;
-        Ok(from_value(res)?)
+    let args = to_value(&KeyArgs { key }).unwrap();
+    let res = invoke("get_secure", args).await;
+    Ok(from_value(res)?)
 }
 
 #[cfg(feature = "mock")]
 pub async fn get_secure_async(key: &'static str) -> Result<Value> {
-    let local_sotrage = leptos::web_sys::window().unwrap().local_storage().unwrap().unwrap();
+    let local_sotrage = leptos::web_sys::window()
+        .unwrap()
+        .local_storage()
+        .unwrap()
+        .unwrap();
     let res = local_sotrage.get(key).unwrap();
     if let Some(res) = res {
         return Ok(serde_json::from_str(&res)?);
@@ -65,14 +69,20 @@ pub fn load_selective_mock(key: &'static str) -> Result<Value> {
 
 #[cfg(not(feature = "mock"))]
 pub async fn set_secure_async(key: &'static str, value: Value) -> Result<()> {
-    let args = to_value(&SetKeyArgs {key, value}).unwrap();
+    let args = to_value(&SetKeyArgs { key, value }).unwrap();
     invoke("set_secure", args).await;
     Ok(())
-} 
+}
 
 #[cfg(feature = "mock")]
 pub async fn set_secure_async(key: &'static str, value: Value) -> Result<()> {
-    let local_sotrage = leptos::web_sys::window().unwrap().local_storage().unwrap().unwrap();
-    local_sotrage.set(key, serde_json::to_string(&value).unwrap().as_str()).unwrap();
+    let local_sotrage = leptos::web_sys::window()
+        .unwrap()
+        .local_storage()
+        .unwrap()
+        .unwrap();
+    local_sotrage
+        .set(key, serde_json::to_string(&value).unwrap().as_str())
+        .unwrap();
     Ok(())
-} 
+}

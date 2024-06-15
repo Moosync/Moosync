@@ -44,10 +44,16 @@ impl ProviderStore {
                 match provider.initialize().await {
                     Ok(_) => {
                         if let Err(err) = provider.fetch_user_details().await {
-                            console_log!("Error fetching user details for provider {}: {:?}", provider.key(), err)
+                            console_log!(
+                                "Error fetching user details for provider {}: {:?}",
+                                provider.key(),
+                                err
+                            )
                         }
-                    },
-                    Err(err) => console_log!("Error initializing provider {}: {:?}", provider.key(), err),
+                    }
+                    Err(err) => {
+                        console_log!("Error initializing provider {}: {:?}", provider.key(), err)
+                    }
                 }
             });
         }
@@ -97,7 +103,7 @@ impl ProviderStore {
     }
 
     pub fn get_provider_by_id(&self, id: String) -> Option<&Rc<Mutex<dyn GenericProvider>>> {
-        for (_, provider) in &self.providers{
+        for (_, provider) in &self.providers {
             let provider_lock = provider.lock().unwrap();
             if provider_lock.match_id(id.clone()) {
                 return Some(provider);

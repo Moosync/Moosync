@@ -1,13 +1,11 @@
-
-
 #[derive(Debug, Clone)]
 pub enum Modals {
-    LoginModal(String)
+    LoginModal(String),
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct ModalStore {
-    pub active_modal: Option<Modals>
+    pub active_modal: Option<Modals>,
 }
 
 impl ModalStore {

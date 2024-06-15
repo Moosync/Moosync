@@ -76,9 +76,8 @@ impl PlayerStore {
         } else {
             0f64
         };
-        
-        self.player_details.force_seek = new_time;
 
+        self.player_details.force_seek = new_time;
     }
 
     pub fn set_state(&mut self, state: PlayerState) {

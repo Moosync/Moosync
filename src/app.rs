@@ -4,7 +4,16 @@ use leptos::{component, create_rw_signal, provide_context, view, IntoView};
 use leptos_router::{Route, Router, Routes};
 
 use crate::{
-    components::{musicbar::MusicBar, sidebar::Sidebar, topbar::TopBar}, modals::modal_manager::ModalManager, pages::{albums::{AllAlbums, SingleAlbum}, artists::{AllArtists, SingleArtist}, genres::{AllGenres, SingleGenre}, playlists::{AllPlaylists, SinglePlaylist}, songs::AllSongs}, store::{modal_store::ModalStore, player_store::PlayerStore, provider_store::ProviderStore}
+    components::{musicbar::MusicBar, sidebar::Sidebar, topbar::TopBar},
+    modals::modal_manager::ModalManager,
+    pages::{
+        albums::{AllAlbums, SingleAlbum},
+        artists::{AllArtists, SingleArtist},
+        genres::{AllGenres, SingleGenre},
+        playlists::{AllPlaylists, SinglePlaylist},
+        songs::AllSongs,
+    },
+    store::{modal_store::ModalStore, player_store::PlayerStore, provider_store::ProviderStore},
 };
 
 #[component]
@@ -20,7 +29,7 @@ pub fn App() -> impl IntoView {
                     <Sidebar/>
                     <MusicBar/>
                     <TopBar/>
-                    <ModalManager />
+                    <ModalManager/>
                     <div class="main-container">
                         <Routes>
                             <Route path="/" view=AllSongs/>

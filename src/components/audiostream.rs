@@ -13,19 +13,20 @@ use tokio::sync::{
 };
 use types::{
     errors::errors::{MoosyncError, Result},
-    songs::{Song},
+    songs::Song,
     ui::player_details::{PlayerEvents, PlayerState},
 };
 
 use leptos::{
-    component, create_effect, create_node_ref, create_read_slice, create_slice, create_write_slice, html::Div, spawn_local, use_context, view, IntoView, RwSignal, SignalGet, SignalGetUntracked
+    component, create_effect, create_node_ref, create_read_slice, create_slice, create_write_slice,
+    html::Div, spawn_local, use_context, view, IntoView, RwSignal, SignalGet, SignalGetUntracked,
 };
 
 use crate::{
     console_log,
     players::{generic::GenericPlayer, local::LocalPlayer},
     store::player_store::PlayerStore,
-    utils::{common::convert_file_src},
+    utils::common::convert_file_src,
 };
 
 #[derive(Debug)]
@@ -146,7 +147,11 @@ impl PlayerHolder {
     }
 
     fn listen_force_seek(&self, player_store: RwSignal<PlayerStore>) {
-        let (force_seek, reset_force_seek) = create_slice(player_store, |p| p.player_details.force_seek, |p, _| p.force_seek_percent(-1f64));
+        let (force_seek, reset_force_seek) = create_slice(
+            player_store,
+            |p| p.player_details.force_seek,
+            |p, _| p.force_seek_percent(-1f64),
+        );
         let players = self.players.clone();
         let active_player = self.active_player.clone();
         create_effect(move |_| {

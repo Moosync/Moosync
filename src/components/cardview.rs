@@ -12,8 +12,8 @@ pub fn CardItem(#[prop()] item: SimplifiedCardItem) -> impl IntoView {
             <div class="card-img-top">
                 <div class="embed-responsive embed-responsive-1by1">
                     <div class="embed-responsive-item img-container">
-                        <div class="overlay me-auto justify-content-center d-flex align-items-center h-100 w-100">// Ext icon
-                        </div>
+                        // Ext icon
+                        <div class="overlay me-auto justify-content-center d-flex align-items-center h-100 w-100"></div>
                         <img src=item.cover class="img-fluid w-100 h-100"/>
                     </div>
                 </div>

@@ -28,15 +28,9 @@ pub fn SinglePlaylist() -> impl IntoView {
     let provider = provider_store.get_provider_by_id(playlist_id.clone());
     if let Some(provider) = provider.cloned() {
         let playlist_id = playlist_id.clone();
-        fetch_infinite!(
-            provider,
-            get_playlist_content,
-            songs,
-            playlist_id.clone()
-        );
+        fetch_infinite!(provider, get_playlist_content, songs, playlist_id.clone());
     }
 
-    
     get_songs_by_option(
         GetSongOptions {
             playlist: Some(QueryablePlaylist {
@@ -47,8 +41,6 @@ pub fn SinglePlaylist() -> impl IntoView {
         },
         songs,
     );
-
-
 
     view! { <SongView songs=songs/> }
 }
@@ -62,11 +54,7 @@ pub fn AllPlaylists() -> impl IntoView {
     for key in provider_store.get_provider_keys() {
         let playlist_write_signal = playlists.write_only();
         let provider = provider_store.get_provider_by_key(key).unwrap().clone();
-        fetch_infinite!(
-            provider,
-            fetch_user_playlists,
-            playlist_write_signal,
-        );
+        fetch_infinite!(provider, fetch_user_playlists, playlist_write_signal,);
     }
 
     view! {

@@ -15,9 +15,9 @@ pub async fn open_external(url: String) {
 }
 
 #[cfg(feature = "mock")]
-pub async fn open_external(
-    url: String,
-) {
-   let window = leptos::web_sys::window().expect("Window object does not exist");
-   window.open_with_url_and_target(url.as_str(), "_blank").unwrap();
+pub async fn open_external(url: String) {
+    let window = leptos::web_sys::window().expect("Window object does not exist");
+    window
+        .open_with_url_and_target(url.as_str(), "_blank")
+        .unwrap();
 }

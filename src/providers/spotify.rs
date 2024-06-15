@@ -1,6 +1,6 @@
 use futures::StreamExt;
-use std::{collections::HashSet};
-use web_time::{Duration, SystemTime, UNIX_EPOCH};
+use std::collections::HashSet;
+use web_time::{SystemTime, UNIX_EPOCH};
 
 use async_trait::async_trait;
 
@@ -8,8 +8,7 @@ use chrono::{DateTime, TimeDelta};
 use leptos::{create_rw_signal, RwSignal, SignalUpdate};
 use oauth2::{
     basic::{BasicClient, BasicErrorResponseType, BasicTokenType},
-    reqwest::async_http_client,
-    AccessToken, AuthUrl, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken,
+    reqwest::async_http_client, AuthUrl, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken,
     EmptyExtraTokenFields, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken,
     RevocationErrorResponseType, Scope, StandardErrorResponse, StandardRevocableToken,
     StandardTokenIntrospectionResponse, StandardTokenResponse, TokenResponse, TokenUrl,
@@ -76,12 +75,12 @@ pub struct SpotifyProvider {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct ArtistExtraInfo {
-    artist_id: String
+    artist_id: String,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct SpotifyExtraInfo {
-    spotify: ArtistExtraInfo
+    spotify: ArtistExtraInfo,
 }
 
 impl SpotifyProvider {
@@ -215,17 +214,25 @@ impl SpotifyProvider {
                 album_coverpath_high: item.album.images.first().map(|i| i.url.clone()),
                 ..Default::default()
             }),
-            artists: Some(item.artists.into_iter().map(|artist| {
-                QueryableArtist {
-                    artist_id: Some(format!("spotify-artist:{}", artist.id.clone().unwrap())),
-                    artist_name: Some(artist.name.clone()),
-                    artist_extra_info: Some(EntityInfo(serde_json::to_value(SpotifyExtraInfo {
-                        spotify: ArtistExtraInfo { artist_id: artist.id.unwrap().to_string() }
-                    }).unwrap())),
-                    sanitized_artist_name: Some(artist.name),
-                    ..Default::default()
-                }
-            }).collect()),
+            artists: Some(
+                item.artists
+                    .into_iter()
+                    .map(|artist| QueryableArtist {
+                        artist_id: Some(format!("spotify-artist:{}", artist.id.clone().unwrap())),
+                        artist_name: Some(artist.name.clone()),
+                        artist_extra_info: Some(EntityInfo(
+                            serde_json::to_value(SpotifyExtraInfo {
+                                spotify: ArtistExtraInfo {
+                                    artist_id: artist.id.unwrap().to_string(),
+                                },
+                            })
+                            .unwrap(),
+                        )),
+                        sanitized_artist_name: Some(artist.name),
+                        ..Default::default()
+                    })
+                    .collect(),
+            ),
             ..Default::default()
         }
     }
@@ -268,7 +275,10 @@ impl GenericProvider for SpotifyProvider {
     }
 
     fn match_id(&self, id: String) -> bool {
-        id.starts_with("spotify-playlist:") || id.starts_with("spotify-artist:") || id.starts_with("spotify-album:") || id.starts_with("spotify:")
+        id.starts_with("spotify-playlist:")
+            || id.starts_with("spotify-artist:")
+            || id.starts_with("spotify-album:")
+            || id.starts_with("spotify:")
     }
 
     async fn login(&mut self) -> Result<()> {

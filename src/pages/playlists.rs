@@ -31,15 +31,18 @@ pub fn SinglePlaylist() -> impl IntoView {
         let provider = provider_store
             .get_provider_key_by_id(playlist_id_tmp.clone())
             .await;
-        if let Some(provider) = provider {
-            let playlist_id = playlist_id_tmp.clone();
-            fetch_infinite!(
-                provider_store,
-                provider,
-                fetch_playlist_content,
-                songs,
-                playlist_id.clone()
-            );
+        match provider {
+            Ok(provider) => {
+                let playlist_id = playlist_id_tmp.clone();
+                fetch_infinite!(
+                    provider_store,
+                    provider,
+                    fetch_playlist_content,
+                    songs,
+                    playlist_id.clone()
+                );
+            }
+            Err(e) => console_log!("{}", e),
         }
     });
 

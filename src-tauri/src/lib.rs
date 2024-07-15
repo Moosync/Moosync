@@ -22,8 +22,8 @@ use themes::{
 
 use extensions::{broadcast, download_extension, install_extension};
 use providers::handler::{
-    fetch_playlist_content, fetch_user_details, fetch_user_playlists, initialize_all_providers,
-    provider_authorize, provider_login,
+    fetch_playlist_content, fetch_user_details, fetch_user_playlists, get_provider_key_by_id,
+    get_provider_keys, initialize_all_providers, provider_authorize, provider_login,
 };
 use scanner::{get_scanner_state, start_scan};
 use tauri::{Manager, State};
@@ -160,9 +160,11 @@ pub fn run() {
             install_extension,
             download_extension,
             //Provider Handler
+            get_provider_keys,
             initialize_all_providers,
             provider_login,
             provider_authorize,
+            get_provider_key_by_id,
             fetch_user_details,
             fetch_user_playlists,
             fetch_playlist_content,

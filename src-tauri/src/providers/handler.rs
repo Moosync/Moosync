@@ -1,7 +1,7 @@
 use futures::lock::Mutex;
 use std::{collections::HashMap, sync::Arc};
 
-use macros::generate_command_async;
+use macros::{generate_command, generate_command_async};
 use tauri::{AppHandle, State};
 use types::{
     entities::QueryablePlaylist,
@@ -81,6 +81,20 @@ impl ProviderHandler {
         Ok(())
     }
 
+    pub async fn get_provider_key_by_id(&self, id: String) -> Result<String> {
+        for (key, provider) in &self.provider_store {
+            let provider = provider.lock().await;
+            if provider.match_id(id.clone()) {
+                return Ok(key.clone());
+            }
+        }
+        Err(format!("Provider for id {} not found", id).into())
+    }
+
+    pub fn get_provider_keys(&self) -> Result<Vec<String>> {
+        Ok(self.provider_store.keys().cloned().collect())
+    }
+
     generate_wrapper_mut!(
         provider_login {
             args: {},
@@ -124,9 +138,11 @@ pub fn get_provider_handler_state(app: AppHandle) -> ProviderHandler {
     ProviderHandler::new(app)
 }
 
+generate_command!(get_provider_keys, ProviderHandler, Vec<String>,);
 generate_command_async!(initialize_all_providers, ProviderHandler, (),);
 generate_command_async!(provider_login, ProviderHandler, (), key: String);
 generate_command_async!(provider_authorize, ProviderHandler, (), key: String, code: String);
+generate_command_async!(get_provider_key_by_id, ProviderHandler, String, id: String);
 generate_command_async!(fetch_user_details, ProviderHandler, ProviderStatus, key: String);
 generate_command_async!(fetch_user_playlists, ProviderHandler, Vec<QueryablePlaylist>, key: String, limit: u32, offset: u32);
 generate_command_async!(fetch_playlist_content, ProviderHandler, Vec<Song>, key: String, playlist_id: String, limit: u32, offset: u32);

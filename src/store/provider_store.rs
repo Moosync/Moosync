@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fmt::Debug, rc::Rc, sync::Mutex};
 
-use leptos::{spawn_local, RwSignal, SignalGet, SignalUpdate, SignalUpdateUntracked};
+use leptos::{spawn_local, RwSignal, SignalGet, SignalSet, SignalUpdate, SignalUpdateUntracked};
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
 use types::entities::QueryablePlaylist;
@@ -14,6 +14,7 @@ use crate::utils::common::invoke;
 
 #[derive(Debug, Default)]
 pub struct ProviderStore {
+    keys: RwSignal<Vec<String>>,
     statuses: RwSignal<Vec<RwSignal<ProviderStatus>>>,
 }
 
@@ -38,7 +39,7 @@ macro_rules! generate_async_functions {
                     to_value(&args).unwrap(),
                 ).await;
 
-                Ok(from_value(res).unwrap())
+                Ok(from_value(res)?)
             }
         )*
     }
@@ -47,11 +48,13 @@ macro_rules! generate_async_functions {
 impl ProviderStore {
     pub fn new() -> Self {
         console_log!("Creating provider store");
+        let store = Self::default();
         spawn_local(async move {
             console_log!("Initializing providers");
             invoke("initialize_all_providers", JsValue::undefined()).await;
+            let provider_keys = invoke("get_provider_keys", JsValue::undefined()).await;
+            store.keys.set(from_value(provider_keys).unwrap());
         });
-        let store = Self::default();
 
         store.statuses.update(|statuses| {
             statuses.push(RwSignal::new(ProviderStatus {
@@ -64,24 +67,22 @@ impl ProviderStore {
         store
     }
 
-    pub fn get_providers(&self) -> Vec<&str> {
-        return vec!["spotify"];
-    }
-
     pub fn get_all_statuses(&self) -> RwSignal<Vec<RwSignal<ProviderStatus>>> {
         self.statuses
     }
 
-    pub async fn get_provider_key_by_id(&self, id: String) -> Option<String> {
+    pub async fn get_provider_key_by_id(&self, id: String) -> Result<String> {
         // TODO: Fetch valid key
-        return Some("spotify".to_string());
+        #[derive(Debug, Serialize)]
+        struct Args {
+            id: String,
+        }
+        let res = invoke("get_provider_key_by_id", to_value(&Args { id }).unwrap()).await;
+        return Ok(from_value(res)?);
     }
 
     pub fn get_provider_keys(&self) -> Vec<String> {
-        self.get_providers()
-            .into_iter()
-            .map(|s| s.to_string())
-            .collect()
+        return self.keys.get();
     }
 
     generate_async_functions!(

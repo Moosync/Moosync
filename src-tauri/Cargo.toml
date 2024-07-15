@@ -40,6 +40,13 @@ rfd = { version = "0.14.1", default-features = false, features = [
     "xdg-portal",
     "async-std",
 ] }
+async-trait = "0.1.80"
+oauth2 = "4.4.2"
+chrono = "0.4.38"
+rspotify = "0.13.2"
+url = "2.5.0"
+futures = "0.3.30"
+
 
 [rfd.features]
 

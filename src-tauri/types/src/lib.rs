@@ -10,4 +10,5 @@ pub mod schema;
 pub mod songs;
 pub mod traits;
 
+pub mod providers;
 pub mod ui;

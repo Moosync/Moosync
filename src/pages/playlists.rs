@@ -2,12 +2,12 @@ use std::rc::Rc;
 
 use crate::components::cardview::{CardItem, SimplifiedCardItem};
 use crate::components::songview::SongView;
-use crate::providers::generic::GenericProvider;
+use crate::console_log;
 use crate::utils::common::fetch_infinite;
 use crate::utils::db_utils::get_songs_by_option;
 use leptos::{
-    component, create_rw_signal, expect_context, spawn_local, view, IntoView, SignalUpdate,
-    SignalWith,
+    component, create_rw_signal, expect_context, spawn_local, use_context, view, IntoView,
+    SignalUpdate, SignalWith,
 };
 use leptos_router::{use_params_map, A};
 use leptos_virtual_scroller::VirtualGridScroller;
@@ -24,12 +24,24 @@ pub fn SinglePlaylist() -> impl IntoView {
 
     let songs = create_rw_signal(vec![]);
 
-    let provider_store = expect_context::<Rc<ProviderStore>>();
-    let provider = provider_store.get_provider_by_id(playlist_id.clone());
-    if let Some(provider) = provider.cloned() {
-        let playlist_id = playlist_id.clone();
-        fetch_infinite!(provider, get_playlist_content, songs, playlist_id.clone());
-    }
+    let provider_store = use_context::<Rc<ProviderStore>>().unwrap();
+
+    let playlist_id_tmp = playlist_id.clone();
+    spawn_local(async move {
+        let provider = provider_store
+            .get_provider_key_by_id(playlist_id_tmp.clone())
+            .await;
+        if let Some(provider) = provider {
+            let playlist_id = playlist_id_tmp.clone();
+            fetch_infinite!(
+                provider_store,
+                provider,
+                get_playlist_content,
+                songs,
+                playlist_id.clone()
+            );
+        }
+    });
 
     get_songs_by_option(
         GetSongOptions {
@@ -51,11 +63,17 @@ pub fn AllPlaylists() -> impl IntoView {
     get_playlists_by_option(QueryablePlaylist::default(), playlists.write_only());
 
     let provider_store = expect_context::<Rc<ProviderStore>>();
-    for key in provider_store.get_provider_keys() {
-        let playlist_write_signal = playlists.write_only();
-        let provider = provider_store.get_provider_by_key(key).unwrap().clone();
-        fetch_infinite!(provider, fetch_user_playlists, playlist_write_signal,);
-    }
+    spawn_local(async move {
+        for key in provider_store.get_provider_keys() {
+            let playlist_write_signal = playlists.write_only();
+            fetch_infinite!(
+                provider_store,
+                key,
+                fetch_user_playlists,
+                playlist_write_signal,
+            );
+        }
+    });
 
     view! {
         <div class="w-100 h-100">

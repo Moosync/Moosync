@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-
 use crate::types::Root;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -97,7 +96,9 @@ fn cut_after_json(haystack: &str) -> Option<String> {
 fn between(haystack: &str, left: &str, right: &str) -> Option<String> {
     if let Some(pos_left) = haystack.find(left) {
         let haystack = &haystack[pos_left + left.len()..];
-        haystack.find(right).map(|pos_right| haystack[..pos_right].to_string())
+        haystack
+            .find(right)
+            .map(|pos_right| haystack[..pos_right].to_string())
     } else {
         None
     }

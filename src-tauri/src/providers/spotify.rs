@@ -1,18 +1,20 @@
-use futures::StreamExt;
-use std::collections::HashSet;
-use web_time::{SystemTime, UNIX_EPOCH};
+use std::{
+    collections::HashSet,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use async_trait::async_trait;
 
 use chrono::{DateTime, TimeDelta};
-use leptos::{create_rw_signal, RwSignal, SignalUpdate};
 use oauth2::{
     basic::{BasicClient, BasicErrorResponseType, BasicTokenType},
-    reqwest::async_http_client, AuthUrl, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken,
-    EmptyExtraTokenFields, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken,
-    RevocationErrorResponseType, Scope, StandardErrorResponse, StandardRevocableToken,
-    StandardTokenIntrospectionResponse, StandardTokenResponse, TokenResponse, TokenUrl,
+    reqwest::async_http_client,
+    AuthUrl, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken, EmptyExtraTokenFields,
+    PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken, RevocationErrorResponseType,
+    Scope, StandardErrorResponse, StandardRevocableToken, StandardTokenIntrospectionResponse,
+    StandardTokenResponse, TokenResponse, TokenUrl,
 };
+use preferences::preferences::PreferenceConfig;
 use rspotify::{
     clients::{BaseClient, OAuthClient},
     model::{FullTrack, Id, PlaylistId, SimplifiedPlaylist},
@@ -20,23 +22,17 @@ use rspotify::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use tauri::{AppHandle, Manager, State};
 use types::{
     entities::{EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist},
     errors::errors::Result,
+    providers::generic::ProviderStatus,
     songs::{QueryableSong, Song, SongType},
-    ui::providers::ProviderStatus,
 };
+use types::{errors::errors::MoosyncError, providers::generic::GenericProvider};
 use url::Url;
 
-use crate::{
-    console_log,
-    utils::{
-        prefs::{get_secure_async, load_selective_async, set_secure_async},
-        window::open_external,
-    },
-};
-
-use super::generic::GenericProvider;
+use crate::window::handler::WindowHandler;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct TokenHolder {
@@ -65,10 +61,10 @@ type OAuth2Client = Client<
     StandardErrorResponse<RevocationErrorResponseType>,
 >;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SpotifyProvider {
+    app: AppHandle,
     config: SpotifyConfig,
-    status: RwSignal<ProviderStatus>,
     verifier: Option<(OAuth2Client, PkceCodeVerifier, CsrfToken)>,
     api_client: Option<AuthCodePkceSpotify>,
 }
@@ -84,10 +80,10 @@ pub struct SpotifyExtraInfo {
 }
 
 impl SpotifyProvider {
-    pub fn new() -> Self {
+    pub fn new(app: AppHandle) -> Self {
         Self {
+            app,
             config: SpotifyConfig::default(),
-            status: create_rw_signal(ProviderStatus::with_name("Spotify")),
             verifier: None,
             api_client: None,
         }
@@ -108,7 +104,7 @@ impl SpotifyProvider {
     }
 
     fn create_api_client(&mut self) {
-        console_log!("Creating api client");
+        println!("Creating api client");
         if let Some(token) = &self.config.tokens {
             self.api_client = Some(AuthCodePkceSpotify::from_token(Token {
                 access_token: token.access_token.clone(),
@@ -121,7 +117,7 @@ impl SpotifyProvider {
     }
 
     async fn set_tokens(&mut self, res: OAuthTokenResponse) {
-        console_log!("{:?}", res.extra_fields());
+        println!("{:?}", res.extra_fields());
 
         let expires_in = res.expires_in().unwrap_or_default();
         self.config.tokens = Some(TokenHolder {
@@ -132,50 +128,32 @@ impl SpotifyProvider {
                 .as_millis() as i64,
         });
 
-        set_secure_async(
-            "MoosyncSpotifyRefreshToken",
-            Value::String(res.refresh_token().unwrap().secret().clone()),
-        )
-        .await
-        .unwrap();
-
-        if cfg!(feature = "mock") {
-            set_secure_async(
-                "MoosyncSpotifyAccessToken",
-                serde_json::to_value(self.config.tokens.clone().unwrap()).unwrap(),
+        let preferences: State<PreferenceConfig> = self.app.state();
+        preferences
+            .inner()
+            .set_secure(
+                "MoosyncSpotifyRefreshToken".into(),
+                Value::String(res.refresh_token().unwrap().secret().clone()),
             )
-            .await
             .unwrap();
-        }
 
         self.create_api_client();
     }
 
     async fn refresh_login(&mut self) -> Result<()> {
-        let refresh_token = get_secure_async("MoosyncSpotifyRefreshToken").await?;
+        let preferences: State<PreferenceConfig> = self.app.state();
+        let refresh_token = preferences
+            .inner()
+            .get_secure("MoosyncSpotifyRefreshToken".into())?;
         if !refresh_token.is_null() {
             let refresh_token = refresh_token.as_str().unwrap();
-
-            // if cfg!(feature = "mock") {
-            //     let token_holder: TokenHolder =
-            //         serde_json::from_value(get_secure_async("MoosyncSpotifyAccessToken").await?)?;
-            //     let mut res = OAuthTokenResponse::new(
-            //         AccessToken::new(token_holder.access_token),
-            //         BasicTokenType::Bearer,
-            //         EmptyExtraTokenFields {},
-            //     );
-            //     res.set_refresh_token(Some(RefreshToken::new(token_holder.refresh_token)));
-            //     res.set_expires_in(Some(&Duration::from_secs(token_holder.expires_in)));
-
-            //     self.set_tokens(res).await;
-            //     return Ok(());
-            // }
 
             let client = self.get_oauth_client();
             let res = client
                 .exchange_refresh_token(&RefreshToken::new(refresh_token.to_string()))
                 .request_async(async_http_client)
-                .await?;
+                .await
+                .map_err(|err| MoosyncError::String(err.to_string()))?;
 
             self.set_tokens(res).await;
             return Ok(());
@@ -238,11 +216,12 @@ impl SpotifyProvider {
     }
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl GenericProvider for SpotifyProvider {
     async fn initialize(&mut self) -> Result<()> {
-        let spotify_config = load_selective_async("spotify").await?;
-        console_log!("{:?}", spotify_config);
+        let preferences: State<PreferenceConfig> = self.app.state();
+        let spotify_config = preferences.inner().load_selective("spotify".into())?;
+        println!("{:?}", spotify_config);
         let client_id = spotify_config.get("client_id");
         let client_secret = spotify_config.get("client_secret");
 
@@ -258,20 +237,16 @@ impl GenericProvider for SpotifyProvider {
 
         let res = self.refresh_login().await;
         if let Err(err) = res {
-            console_log!("spotify refresh login err: {:?}", err);
+            println!("spotify refresh login err: {:?}", err);
         }
 
-        console_log!("initialized {:?}", self.config);
+        println!("initialized {:?}", self.config);
 
         Ok(())
     }
 
     fn key(&self) -> &str {
         "spotify"
-    }
-
-    fn get_status(&self) -> RwSignal<ProviderStatus> {
-        self.status
     }
 
     fn match_id(&self, id: String) -> bool {
@@ -297,7 +272,10 @@ impl GenericProvider for SpotifyProvider {
             .url();
 
         self.verifier = Some((client, pkce_verifier, csrf_token.clone()));
-        open_external(auth_url.to_string()).await;
+        let window: State<WindowHandler> = self.app.state();
+
+        println!("Opening url {:?}", auth_url);
+        window.inner().open_external(auth_url.to_string());
 
         Ok(())
     }
@@ -321,25 +299,29 @@ impl GenericProvider for SpotifyProvider {
             .exchange_code(AuthorizationCode::new(code))
             .set_pkce_verifier(verifier)
             .request_async(async_http_client)
-            .await?;
+            .await
+            .map_err(|err| MoosyncError::String(err.to_string()))?;
         self.set_tokens(res).await;
         Ok(())
     }
 
-    async fn fetch_user_details(&self) -> Result<()> {
-        console_log!("Fetchinf user details {:?}", self.api_client);
+    async fn fetch_user_details(&self) -> Result<ProviderStatus> {
+        println!("Fetchinf user details {:?}", self.api_client);
         if let Some(api_client) = &self.api_client {
             let token = api_client.token.lock().await.unwrap();
-            console_log!("tokens {:?}", token.clone().unwrap().is_expired());
+            println!("tokens {:?}", token.clone().unwrap().is_expired());
             drop(token);
 
             let user = api_client.current_user().await?;
-            self.status.update(|s| {
-                s.user_name = user.display_name;
-                s.logged_in = true;
+            return Ok(ProviderStatus {
+                key: self.key().into(),
+                name: "Spotify".into(),
+                user_name: user.display_name,
+                logged_in: true,
             });
         }
-        Ok(())
+
+        Err("API client not initialized".into())
     }
 
     async fn fetch_user_playlists(

@@ -11,7 +11,9 @@ use crate::{
 pub fn ModalManager() -> impl IntoView {
     let modal_store = expect_context::<RwSignal<ModalStore>>();
 
-    let render_active_modal = move || {
+    view! {
+        <div>
+        {move || {
         let active_modal = modal_store.get().active_modal;
         if active_modal.is_none() {
             return view! {}.into_view();
@@ -25,7 +27,7 @@ pub fn ModalManager() -> impl IntoView {
         modal_store.update_untracked(move |m| m.clear_active_modal());
 
         ret
-    };
-
-    view! { render_active_modal }
+    }
+        } </div>
+    }
 }

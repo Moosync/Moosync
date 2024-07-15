@@ -116,13 +116,10 @@ pub fn get_high_img(song: &Song) -> String {
 }
 
 macro_rules! fetch_infinite {
-    ($provider:expr, $fetch_content:ident, $update_signal:expr, $($arg:expr),*) => {
-        let provider = $provider.clone();
-        spawn_local(async move {
+    ($provider_store:expr, $provider:expr, $fetch_content:ident, $update_signal:expr, $($arg:expr),*) => {
             let mut offset = 0;
-            let provider = provider.lock().unwrap();
             loop {
-                let res = provider.$fetch_content($($arg,)* 50, offset).await;
+                let res = $provider_store.$fetch_content($provider.clone(), $($arg,)* 50, offset).await;
                 if res.is_err() {
                     break;
                 }
@@ -140,7 +137,6 @@ macro_rules! fetch_infinite {
                     signal.append(&mut res);
                 });
             }
-        });
     };
 }
 

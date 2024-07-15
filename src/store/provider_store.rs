@@ -1,115 +1,116 @@
 use std::{collections::HashMap, fmt::Debug, rc::Rc, sync::Mutex};
 
-use leptos::{spawn_local, RwSignal, SignalGet, SignalUpdateUntracked};
+use leptos::{spawn_local, RwSignal, SignalGet, SignalUpdate, SignalUpdateUntracked};
+use serde::Serialize;
+use serde_wasm_bindgen::{from_value, to_value};
+use types::entities::QueryablePlaylist;
 use types::errors::errors::Result;
-use types::ui::providers::ProviderStatus;
+use types::providers::generic::ProviderStatus;
+use types::songs::Song;
+use wasm_bindgen::JsValue;
 
 use crate::console_log;
-use crate::providers::{generic::GenericProvider, spotify::SpotifyProvider};
+use crate::utils::common::invoke;
 
 #[derive(Debug, Default)]
 pub struct ProviderStore {
-    providers: HashMap<String, Rc<Mutex<dyn GenericProvider>>>,
     statuses: RwSignal<Vec<RwSignal<ProviderStatus>>>,
+}
+
+macro_rules! generate_async_functions {
+    ($($func_name:ident {
+        args: { $($arg_name:ident: $arg_type:ty),* $(,)? },
+        result_type: $result_type:ty,
+    }),* $(,)?) => {
+        $(
+            pub async fn $func_name(&self, key: String, $($arg_name: $arg_type),*) -> Result<$result_type> {
+                #[derive(Debug, Serialize)]
+                struct Args {
+                    key: String,
+                    $($arg_name: $arg_type),*
+                }
+                let args = Args {
+                    key,
+                    $($arg_name),*
+                };
+                let res = invoke(
+                    stringify!($func_name),
+                    to_value(&args).unwrap(),
+                ).await;
+
+                Ok(from_value(res).unwrap())
+            }
+        )*
+    }
 }
 
 impl ProviderStore {
     pub fn new() -> Self {
-        let mut store = Self {
-            ..Default::default()
-        };
+        console_log!("Creating provider store");
+        spawn_local(async move {
+            console_log!("Initializing providers");
+            invoke("initialize_all_providers", JsValue::undefined()).await;
+        });
+        let store = Self::default();
 
-        let spotify_provider = SpotifyProvider::new();
-        store.providers.insert(
-            spotify_provider.key().to_string(),
-            Rc::new(Mutex::new(spotify_provider)),
-        );
-
-        store.initialize_all_providers();
+        store.statuses.update(|statuses| {
+            statuses.push(RwSignal::new(ProviderStatus {
+                key: "spotify".to_string(),
+                name: "Spotify".to_string(),
+                user_name: None,
+                logged_in: false,
+            }))
+        });
         store
     }
 
-    pub fn initialize_provider(&self, key: &str) {
-        let provider = self.providers.get(key);
-        if let Some(provider_rc) = provider {
-            let provider = provider_rc.lock().unwrap();
-            self.statuses
-                .update_untracked(|s| s.push(provider.get_status()));
-
-            drop(provider);
-
-            let cloned = provider_rc.clone();
-            spawn_local(async move {
-                let mut provider = cloned.lock().unwrap();
-                match provider.initialize().await {
-                    Ok(_) => {
-                        if let Err(err) = provider.fetch_user_details().await {
-                            console_log!(
-                                "Error fetching user details for provider {}: {:?}",
-                                provider.key(),
-                                err
-                            )
-                        }
-                    }
-                    Err(err) => {
-                        console_log!("Error initializing provider {}: {:?}", provider.key(), err)
-                    }
-                }
-            });
-        }
-    }
-
-    pub fn initialize_all_providers(&self) {
-        for key in self.providers.keys() {
-            self.initialize_provider(key);
-        }
-    }
-
-    pub async fn login(&self, key: String) -> Result<()> {
-        let provider = self.providers.get(&key);
-        if let Some(provider) = provider {
-            let mut provider = provider.lock().unwrap();
-            provider.login().await?;
-            return Ok(());
-        }
-        Err("Provider not found".into())
-    }
-
-    pub async fn authorize(&self, key: String, code: String) -> Result<()> {
-        let provider = self.providers.get(&key);
-        if let Some(provider) = provider {
-            let mut provider = provider.lock().unwrap();
-            provider.authorize(code.clone()).await?;
-            return Ok(());
-        }
-        Err("Provider not found".into())
+    pub fn get_providers(&self) -> Vec<&str> {
+        return vec!["spotify"];
     }
 
     pub fn get_all_statuses(&self) -> RwSignal<Vec<RwSignal<ProviderStatus>>> {
         self.statuses
     }
 
+    pub async fn get_provider_key_by_id(&self, id: String) -> Option<String> {
+        // TODO: Fetch valid key
+        return Some("spotify".to_string());
+    }
+
     pub fn get_provider_keys(&self) -> Vec<String> {
-        self.providers.keys().cloned().collect()
+        self.get_providers()
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect()
     }
 
-    pub fn get_provider_by_key(&self, key: String) -> Result<&Rc<Mutex<dyn GenericProvider>>> {
-        let provider = self.providers.get(&key);
-        if provider.is_none() {
-            return Err("Provider not found".into());
-        }
+    generate_async_functions!(
+        provider_login {
+            args: {
 
-        Ok(provider.unwrap())
-    }
-
-    pub fn get_provider_by_id(&self, id: String) -> Option<&Rc<Mutex<dyn GenericProvider>>> {
-        for (_, provider) in &self.providers {
-            let provider_lock = provider.lock().unwrap();
-            if provider_lock.match_id(id.clone()) {
-                return Some(provider);
-            }
-        }
-
-        None
-    }
+            },
+            result_type: (),
+        },
+        provider_authorize {
+          args: {
+              code: String
+          },
+          result_type: (),
+        },
+        get_playlist_content {
+            args: {
+                playlist_id: String,
+                limit: u32,
+                offset: u32
+            },
+            result_type: Vec<Song>,
+        },
+        fetch_user_playlists {
+            args: {
+                limit: u32,
+                offset: u32
+            },
+            result_type: Vec<QueryablePlaylist>,
+        },
+    );
 }

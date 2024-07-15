@@ -32,7 +32,7 @@ impl WindowHandler {
     }
 
     pub fn has_frame(&self) -> Result<bool> {
-        Ok(cfg!(unix) || cfg!(macos))
+        Ok(cfg!(unix) || cfg!(target_os = "macos"))
     }
 
     pub fn close_window(&self, window: Window) -> Result<()> {

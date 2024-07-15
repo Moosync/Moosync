@@ -4,7 +4,6 @@ mod icons;
 mod modals;
 mod pages;
 mod players;
-mod providers;
 mod store;
 mod utils;
 

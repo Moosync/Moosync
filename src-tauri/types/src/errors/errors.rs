@@ -5,10 +5,13 @@ use std::{
     time::SystemTimeError,
 };
 
-#[cfg(feature = "ui")]
+#[cfg(feature = "core")]
+use fast_image_resize::ResizeError;
+
+#[cfg(feature = "core")]
 use oauth2::{basic::BasicErrorResponseType, RequestTokenError, StandardErrorResponse};
 
-#[cfg(feature = "ui")]
+#[cfg(feature = "core")]
 use rspotify::ClientError;
 
 use serde_json::Value;
@@ -16,13 +19,13 @@ use serde_json::Value;
 use wasm_bindgen::JsValue;
 
 #[cfg(feature = "core")]
-use fast_image_resize::{DifferentTypesOfPixelsError, ImageBufferError};
+use fast_image_resize::ImageBufferError;
 #[cfg(feature = "core")]
 use image::ImageError;
 #[cfg(feature = "core")]
 use librespot::core::Error as LibrespotError;
 #[cfg(feature = "core")]
-use lofty::LoftyError;
+use lofty::error::LoftyError;
 #[cfg(feature = "core")]
 use rusty_ytdl::VideoError;
 
@@ -55,7 +58,7 @@ pub enum MoosyncError {
     ImageError(#[from] ImageError),
     #[cfg_attr(feature = "core", error(transparent))]
     #[cfg(feature = "core")]
-    DifferentTypesOfPixelsError(#[from] DifferentTypesOfPixelsError),
+    DifferentTypesOfPixelsError(#[from] ResizeError),
     #[cfg_attr(feature = "core", error(transparent))]
     #[cfg(feature = "core")]
     LoftyError(#[from] LoftyError),
@@ -88,11 +91,8 @@ pub enum MoosyncError {
     FSExtraError(#[from] fs_extra::error::Error),
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),
-    #[cfg_attr(feature = "ui", error(transparent))]
-    #[cfg(feature = "ui")]
-    OAuthError(#[from] RequestTokenError<oauth2::reqwest::Error<reqwest::Error>, StandardErrorResponse<BasicErrorResponseType>>),
-    #[cfg_attr(feature = "ui", error(transparent))]
-    #[cfg(feature = "ui")]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     SpotifyError(#[from] ClientError),
 }
 
@@ -121,6 +121,12 @@ impl From<souvlaki::Error> for MoosyncError {
 impl From<&'static str> for MoosyncError {
     fn from(value: &'static str) -> Self {
         Self::String(value.to_string())
+    }
+}
+
+impl From<String> for MoosyncError {
+    fn from(value: String) -> Self {
+        Self::String(value)
     }
 }
 

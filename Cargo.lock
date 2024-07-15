@@ -4904,16 +4904,21 @@ dependencies = [
 name = "moosync"
 version = "0.0.0"
 dependencies = [
+ "async-trait",
+ "chrono",
  "database",
  "extensions",
  "file_scanner",
+ "futures",
  "librespot 0.1.0",
  "lyrics",
  "macros",
  "mpris",
+ "oauth2",
  "open",
  "preferences",
  "rfd",
+ "rspotify",
  "serde",
  "serde_json",
  "tauri",
@@ -4924,6 +4929,7 @@ dependencies = [
  "themes",
  "thiserror",
  "types",
+ "url",
  "uuid",
  "webkit2gtk",
  "youtube",
@@ -9168,6 +9174,7 @@ checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
 name = "types"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "diesel",
  "fast_image_resize",
  "fs_extra",

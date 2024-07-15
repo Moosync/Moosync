@@ -41,11 +41,14 @@ pub fn LoginModal(#[prop()] key: String) -> impl IntoView {
         let code = code.clone();
         let key = key.clone();
 
-        async move { provider_store.authorize(key, code).await }
+        async move { provider_store.provider_authorize(key, code).await }
     });
 
     spawn_local(async move {
-        provider_store_cloned.login(key_cloned).await.unwrap();
+        provider_store_cloned
+            .provider_login(key_cloned)
+            .await
+            .unwrap();
     });
 
     view! {

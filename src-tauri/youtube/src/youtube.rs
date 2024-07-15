@@ -1,4 +1,4 @@
-use std::{str::FromStr};
+use std::str::FromStr;
 
 use rusty_ytdl::{
     search::{Channel, Playlist, SearchOptions, SearchType, YouTube},

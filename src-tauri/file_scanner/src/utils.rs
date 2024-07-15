@@ -1,5 +1,8 @@
 use lazy_static::lazy_static;
-use lofty::{read_from_path, Accessor, AudioFile, Picture, Probe, TaggedFileExt};
+use lofty::{
+    picture::Picture, prelude::Accessor, prelude::AudioFile, prelude::TaggedFileExt, probe::Probe,
+    read_from_path,
+};
 use regex::Regex;
 use std::{
     f64, fs,
@@ -15,7 +18,7 @@ use uuid::Uuid;
 use image::ColorType;
 use types::errors::errors::Result;
 
-use fast_image_resize as fr;
+use fast_image_resize::{self as fr, IntoImageView, IntoImageViewMut, ResizeOptions};
 
 use crate::types::FileList;
 
@@ -88,10 +91,10 @@ fn generate_image(data: &[u8], path: PathBuf, dimensions: u32) -> Result<()> {
 
     let width = NonZeroU32::new(img.width()).unwrap();
     let height = NonZeroU32::new(img.height()).unwrap();
-    let src_image = fr::Image::from_vec_u8(
-        width,
-        height,
-        img.to_rgba8().into_raw(),
+    let src_image = fr::images::Image::from_vec_u8(
+        width.into(),
+        height.into(),
+        img.as_rgba8().unwrap().to_vec(),
         fr::PixelType::U8x4,
     )
     .unwrap();
@@ -99,15 +102,22 @@ fn generate_image(data: &[u8], path: PathBuf, dimensions: u32) -> Result<()> {
     // Create container for data of destination image
     let dst_width = NonZeroU32::new(dimensions).unwrap();
     let dst_height = NonZeroU32::new(dimensions).unwrap();
-    let mut dst_image = fr::Image::new(dst_width, dst_height, src_image.pixel_type());
+    let mut dst_image =
+        fr::images::Image::new(dst_width.into(), dst_height.into(), src_image.pixel_type());
 
     // Get mutable view of destination image data
-    let mut dst_view = dst_image.view_mut();
 
     // Create Resizer instance and resize source image
     // into buffer of destination image
-    let mut resizer = fr::Resizer::new(fr::ResizeAlg::Nearest);
-    resizer.resize(&src_image.view(), &mut dst_view)?;
+    let mut resizer = fr::Resizer::new();
+    resizer.resize(
+        &src_image,
+        &mut dst_image,
+        Some(&ResizeOptions {
+            algorithm: fast_image_resize::ResizeAlg::Nearest,
+            ..Default::default()
+        }),
+    )?;
 
     image::save_buffer(
         path,
@@ -242,7 +252,7 @@ pub fn scan_file(
         }
 
         let mut lyrics = metadata
-            .get_string(&lofty::ItemKey::Lyrics)
+            .get_string(&lofty::prelude::ItemKey::Lyrics)
             .map(str::to_string);
 
         if lyrics.is_none() {
@@ -267,7 +277,7 @@ pub fn scan_file(
         let album = metadata.album();
         if album.is_some() {
             song.song.track_no = metadata
-                .get_string(&lofty::ItemKey::TrackNumber)
+                .get_string(&lofty::prelude::ItemKey::TrackNumber)
                 .map(|s| s.parse().unwrap_or_default());
 
             song.album = Some(QueryableAlbum {
@@ -276,7 +286,7 @@ pub fn scan_file(
                 album_coverpath_high: song.song.song_cover_path_high.clone(),
                 album_coverpath_low: song.song.song_cover_path_low.clone(),
                 album_artist: metadata
-                    .get_string(&lofty::ItemKey::AlbumArtist)
+                    .get_string(&lofty::prelude::ItemKey::AlbumArtist)
                     .map(|s| s.to_owned()),
                 ..Default::default()
             })

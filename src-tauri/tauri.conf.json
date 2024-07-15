@@ -12,9 +12,7 @@
       "assetProtocol": {
         "enable": true,
         "scope": {
-          "allow": [
-            "**/*"
-          ],
+          "allow": ["**/*"],
           "requireLiteralLeadingDot": false
         }
       },
@@ -35,9 +33,7 @@
   },
   "bundle": {
     "active": true,
-    "externalBin": [
-      "binaries/exthost"
-    ],
+    "externalBin": ["binaries/exthost"],
     "resources": [
       "bridge.js",
       "events.js",
@@ -51,15 +47,7 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "targets": [
-      "app",
-      "deb",
-      "dmg",
-      "rpm",
-      "msi",
-      "nsis",
-      "updater"
-    ],
+    "targets": ["app", "deb", "dmg", "rpm", "msi", "nsis", "updater"],
     "linux": {
       "deb": {
         "desktopTemplate": "./moosync.desktop"
@@ -69,14 +57,12 @@
   "identifier": "app.moosync.moosync",
   "plugins": {
     "deep-link": {
-      "domains": [
-        {
-          "host": "moosync.app",
-          "pathPrefix": [
-            "/youtube"
-          ]
-        }
-      ]
+      "mobile": [
+        { "host": "moosync.app", "pathPrefix": ["/youtube", "/spotify"] }
+      ],
+      "desktop": {
+        "schemes": ["moosync"]
+      }
     }
   },
   "productName": "Moosync",

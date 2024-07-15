@@ -4,7 +4,7 @@ use std::{
     sync::mpsc::{Receiver, Sender},
 };
 
-use interprocess::local_socket::LocalSocketStream;
+use interprocess::local_socket::{traits::Stream, Stream as LocalSocketStream};
 use serde_json::Value;
 use tauri::AppHandle;
 use types::errors::errors::{MoosyncError, Result};

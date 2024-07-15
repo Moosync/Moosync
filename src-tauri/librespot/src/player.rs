@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-
 use futures_util::StreamExt;
 
 use librespot::core::cache::Cache;

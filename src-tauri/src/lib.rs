@@ -14,12 +14,17 @@ use preference_holder::{
     get_preference_state, get_secure, initial, load_selective, load_selective_array,
     save_selective, set_secure,
 };
+use providers::handler::get_provider_handler_state;
 use themes::{
     get_theme_handler_state, import_theme, load_all_themes, load_theme, remove_theme, save_theme,
     transform_css,
 };
 
 use extensions::{broadcast, download_extension, install_extension};
+use providers::handler::{
+    fetch_user_details, fetch_user_playlists, initialize_all_providers, provider_authorize,
+    provider_login,
+};
 use scanner::{get_scanner_state, start_scan};
 use tauri::{Manager, State};
 
@@ -53,6 +58,7 @@ mod lyrics;
 mod mpris;
 mod oauth;
 mod preference_holder;
+mod providers;
 mod scanner;
 mod themes;
 mod window;
@@ -153,6 +159,12 @@ pub fn run() {
             broadcast,
             install_extension,
             download_extension,
+            //Provider Handler
+            initialize_all_providers,
+            provider_login,
+            provider_authorize,
+            fetch_user_details,
+            fetch_user_playlists
         ])
         .setup(|app| {
             let db = get_db_state(app);
@@ -190,6 +202,9 @@ pub fn run() {
 
             let ext_state = get_extension_state(app.app_handle().clone())?;
             app.manage(ext_state);
+
+            let provider_handler_state = get_provider_handler_state(app.app_handle().clone());
+            app.manage(provider_handler_state);
 
             initial(app.state());
 

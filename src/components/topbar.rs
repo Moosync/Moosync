@@ -69,8 +69,10 @@ pub fn Accounts() -> impl IntoView {
     let statuses = provider_store.get_all_statuses();
 
     let modal_store = expect_context::<RwSignal<ModalStore>>();
-    let show_login_modal =
-        move |key: String| modal_store.update(|m| m.set_active_modal(Modals::LoginModal(key)));
+    let show_login_modal = move |key: String| {
+        console_log!("Showing login modal");
+        modal_store.update(|m| m.set_active_modal(Modals::LoginModal(key)))
+    };
 
     view! {
         <div>

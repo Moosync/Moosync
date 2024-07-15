@@ -1,5 +1,3 @@
-
-
 use librespot::LibrespotHolder;
 use regex::Regex;
 

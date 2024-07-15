@@ -15,7 +15,10 @@ use std::{
 
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
-use interprocess::local_socket::{LocalSocketListener};
+use interprocess::local_socket::{
+    traits::ListenerExt, GenericFilePath, GenericNamespaced, Listener as LocalSocketListener,
+    ListenerOptions, ToFsName, ToNsName,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use socket_handler::{CommandSender, SocketHandler};
@@ -92,8 +95,10 @@ impl ExtensionHandler {
     }
 
     pub fn listen_socket(&self) -> Result<()> {
-        let sock_listener = LocalSocketListener::bind(self.ipc_path.clone()).unwrap();
-        sock_listener.set_nonblocking(true).unwrap();
+        let opts = ListenerOptions::new()
+            .name(self.ipc_path.clone().to_fs_name::<GenericFilePath>()?)
+            .nonblocking(interprocess::local_socket::ListenerNonblockingMode::Both);
+        let sock_listener = opts.create_sync()?;
         let app_handler = self.app_handle.clone();
 
         let (tx_command, rx_command) = mpsc::channel::<(CommandSender, Value)>();

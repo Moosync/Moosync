@@ -8,7 +8,7 @@ use types::entities::QueryableArtist;
 use types::songs::GetSongOptions;
 
 use crate::components::songview::SongView;
-use crate::utils::db_utils::{get_songs_by_option};
+use crate::utils::db_utils::get_songs_by_option;
 
 #[component()]
 pub fn SingleArtist() -> impl IntoView {

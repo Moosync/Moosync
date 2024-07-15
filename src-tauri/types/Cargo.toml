@@ -20,13 +20,10 @@ core = [
     "dep:protobuf",
     "dep:zip",
     "dep:fs_extra",
-]
-ui = [
-    "dep:wasm-bindgen",
-    "dep:serde-wasm-bindgen",
     "dep:oauth2",
     "dep:rspotify",
 ]
+ui = ["dep:wasm-bindgen", "dep:serde-wasm-bindgen"]
 
 [dependencies]
 souvlaki = { version = "0.7.3", default-features = false, features = [
@@ -62,3 +59,4 @@ wasm-bindgen = { version = "0.2", optional = true }
 serde-wasm-bindgen = { version = "0.6", optional = true }
 oauth2 = { version = "4.4.2", optional = true }
 rspotify = { version = "0.13.2", optional = true }
+async-trait = { version = "0.1.80" }

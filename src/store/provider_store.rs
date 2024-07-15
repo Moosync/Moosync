@@ -97,20 +97,20 @@ impl ProviderStore {
           },
           result_type: (),
         },
-        get_playlist_content {
-            args: {
-                playlist_id: String,
-                limit: u32,
-                offset: u32
-            },
-            result_type: Vec<Song>,
-        },
         fetch_user_playlists {
             args: {
                 limit: u32,
                 offset: u32
             },
             result_type: Vec<QueryablePlaylist>,
+        },
+        fetch_playlist_content {
+            args: {
+                playlistId: String,
+                limit: u32,
+                offset: u32,
+            },
+            result_type: Vec<Song>,
         },
     );
 }

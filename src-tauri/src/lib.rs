@@ -22,8 +22,8 @@ use themes::{
 
 use extensions::{broadcast, download_extension, install_extension};
 use providers::handler::{
-    fetch_user_details, fetch_user_playlists, initialize_all_providers, provider_authorize,
-    provider_login,
+    fetch_playlist_content, fetch_user_details, fetch_user_playlists, initialize_all_providers,
+    provider_authorize, provider_login,
 };
 use scanner::{get_scanner_state, start_scan};
 use tauri::{Manager, State};
@@ -164,7 +164,8 @@ pub fn run() {
             provider_login,
             provider_authorize,
             fetch_user_details,
-            fetch_user_playlists
+            fetch_user_playlists,
+            fetch_playlist_content,
         ])
         .setup(|app| {
             let db = get_db_state(app);

@@ -36,7 +36,7 @@ pub fn SinglePlaylist() -> impl IntoView {
             fetch_infinite!(
                 provider_store,
                 provider,
-                get_playlist_content,
+                fetch_playlist_content,
                 songs,
                 playlist_id.clone()
             );

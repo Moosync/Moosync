@@ -14,10 +14,10 @@ pub fn SongView(#[prop()] songs: RwSignal<Vec<Song>>) -> impl IntoView {
     let last_selected_song = create_rw_signal(None::<Song>);
 
     create_effect(move |_| {
-        console_log!("{:?}", selected_songs.get());
         let selected_song = selected_songs.get().last().cloned();
         if let Some(selected_song) = selected_song {
             let all_songs = songs.get();
+            console_log!("selected {:?}", all_songs);
             last_selected_song.set(all_songs.get(selected_song).cloned());
         }
     });

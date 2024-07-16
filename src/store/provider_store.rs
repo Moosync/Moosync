@@ -5,7 +5,7 @@ use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
 use types::entities::QueryablePlaylist;
 use types::errors::errors::Result;
-use types::providers::generic::ProviderStatus;
+use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::Song;
 use wasm_bindgen::JsValue;
 
@@ -62,7 +62,14 @@ impl ProviderStore {
                 name: "Spotify".to_string(),
                 user_name: None,
                 logged_in: false,
-            }))
+            }));
+
+            statuses.push(RwSignal::new(ProviderStatus {
+                key: "youtube".to_string(),
+                name: "Youtube".to_string(),
+                user_name: None,
+                logged_in: false,
+            }));
         });
         store
     }
@@ -100,18 +107,16 @@ impl ProviderStore {
         },
         fetch_user_playlists {
             args: {
-                limit: u32,
-                offset: u32
+                pagination: Pagination
             },
-            result_type: Vec<QueryablePlaylist>,
+            result_type: (Vec<QueryablePlaylist>, Pagination),
         },
         fetch_playlist_content {
             args: {
                 playlistId: String,
-                limit: u32,
-                offset: u32,
+                pagination: Pagination
             },
-            result_type: Vec<Song>,
+            result_type: (Vec<Song>, Pagination),
         },
     );
 }

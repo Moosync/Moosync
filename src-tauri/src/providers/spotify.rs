@@ -26,7 +26,8 @@ use tauri::{AppHandle, Manager, State};
 use types::{
     entities::{EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist},
     errors::errors::Result,
-    providers::generic::ProviderStatus,
+    oauth::{OAuth2Client, OAuthTokenResponse},
+    providers::generic::{Pagination, ProviderStatus},
     songs::{QueryableSong, Song, SongType},
 };
 use types::{errors::errors::MoosyncError, providers::generic::GenericProvider};
@@ -34,13 +35,10 @@ use url::Url;
 
 use crate::window::handler::WindowHandler;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct TokenHolder {
-    access_token: String,
-    refresh_token: String,
-    expires_in: u64,
-    expires_at: i64,
-}
+use super::common::{
+    authorize, get_oauth_client, login, refresh_login, set_tokens, LoginArgs, OAuthClientArgs,
+    TokenHolder,
+};
 
 #[derive(Debug, Clone, Default)]
 struct SpotifyConfig {
@@ -50,16 +48,6 @@ struct SpotifyConfig {
     scopes: Vec<&'static str>,
     tokens: Option<TokenHolder>,
 }
-
-type OAuthTokenResponse = StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>;
-type OAuth2Client = Client<
-    StandardErrorResponse<BasicErrorResponseType>,
-    OAuthTokenResponse,
-    BasicTokenType,
-    StandardTokenIntrospectionResponse<EmptyExtraTokenFields, BasicTokenType>,
-    StandardRevocableToken,
-    StandardErrorResponse<RevocationErrorResponseType>,
->;
 
 #[derive(Debug)]
 pub struct SpotifyProvider {
@@ -92,15 +80,13 @@ impl SpotifyProvider {
 
 impl SpotifyProvider {
     fn get_oauth_client(&self) -> OAuth2Client {
-        BasicClient::new(
-            ClientId::new(self.config.client_id.clone().unwrap()),
-            Some(ClientSecret::new(
-                self.config.client_secret.clone().unwrap(),
-            )),
-            AuthUrl::new("https://accounts.spotify.com/authorize".to_string()).unwrap(),
-            Some(TokenUrl::new("https://accounts.spotify.com/api/token".to_string()).unwrap()),
-        )
-        .set_redirect_uri(RedirectUrl::new(self.config.redirect_uri.to_string()).unwrap())
+        get_oauth_client(OAuthClientArgs {
+            auth_url: "https://accounts.spotify.com/authorize".to_string(),
+            token_url: "https://accounts.spotify.com/api/token".to_string(),
+            redirect_url: self.config.redirect_uri.to_string(),
+            client_id: self.config.client_id.clone().unwrap(),
+            client_secret: self.config.client_secret.clone().unwrap(),
+        })
     }
 
     fn create_api_client(&mut self) {
@@ -116,49 +102,18 @@ impl SpotifyProvider {
         }
     }
 
-    async fn set_tokens(&mut self, res: OAuthTokenResponse) {
-        println!("{:?}", res.extra_fields());
-
-        let expires_in = res.expires_in().unwrap_or_default();
-        self.config.tokens = Some(TokenHolder {
-            access_token: res.access_token().secret().clone(),
-            refresh_token: res.refresh_token().unwrap().secret().clone(),
-            expires_in: expires_in.as_secs(),
-            expires_at: (SystemTime::now().duration_since(UNIX_EPOCH).unwrap() + expires_in)
-                .as_millis() as i64,
-        });
-
-        let preferences: State<PreferenceConfig> = self.app.state();
-        preferences
-            .inner()
-            .set_secure(
-                "MoosyncSpotifyRefreshToken".into(),
-                Value::String(res.refresh_token().unwrap().secret().clone()),
-            )
-            .unwrap();
-
-        self.create_api_client();
-    }
-
     async fn refresh_login(&mut self) -> Result<()> {
-        let preferences: State<PreferenceConfig> = self.app.state();
-        let refresh_token = preferences
-            .inner()
-            .get_secure("MoosyncSpotifyRefreshToken".into())?;
-        if !refresh_token.is_null() {
-            let refresh_token = refresh_token.as_str().unwrap();
+        self.config.tokens = Some(
+            refresh_login(
+                "MoosyncSpotifyRefreshToken",
+                self.get_oauth_client(),
+                &self.app,
+            )
+            .await?,
+        );
+        self.create_api_client();
 
-            let client = self.get_oauth_client();
-            let res = client
-                .exchange_refresh_token(&RefreshToken::new(refresh_token.to_string()))
-                .request_async(async_http_client)
-                .await
-                .map_err(|err| MoosyncError::String(err.to_string()))?;
-
-            self.set_tokens(res).await;
-            return Ok(());
-        }
-        Err("Refresh token not found".into())
+        Ok(())
     }
 
     fn parse_playlist(&self, playlist: SimplifiedPlaylist) -> QueryablePlaylist {
@@ -257,51 +212,32 @@ impl GenericProvider for SpotifyProvider {
     }
 
     async fn login(&mut self) -> Result<()> {
-        if self.config.client_id.is_none() || self.config.client_secret.is_none() {
-            return Err("Client ID not set".into());
-        }
-
-        let client = self.get_oauth_client();
-
-        let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
-
-        let (auth_url, csrf_token) = client
-            .authorize_url(CsrfToken::new_random)
-            .add_scopes(self.config.scopes.iter().map(|s| Scope::new(s.to_string())))
-            .set_pkce_challenge(pkce_challenge)
-            .url();
-
-        self.verifier = Some((client, pkce_verifier, csrf_token.clone()));
-        let window: State<WindowHandler> = self.app.state();
-
-        println!("Opening url {:?}", auth_url);
-        window.inner().open_external(auth_url.to_string());
+        self.verifier = login(
+            LoginArgs {
+                client_id: self.config.client_id.clone(),
+                client_secret: self.config.client_secret.clone(),
+                scopes: self.config.scopes.clone(),
+                extra_params: None,
+            },
+            self.get_oauth_client(),
+            &self.app,
+        )?;
 
         Ok(())
     }
 
     async fn authorize(&mut self, code: String) -> Result<()> {
-        if self.verifier.is_none() {
-            return Err("OAuth not initiated".into());
-        }
+        self.config.tokens = Some(
+            authorize(
+                "MoosyncSpotifyRefreshToken",
+                code,
+                &mut self.verifier,
+                &self.app,
+            )
+            .await?,
+        );
 
-        let parsed_code = Url::parse(format!("https://moosync.app/{}", code).as_str()).unwrap();
-        let code = parsed_code
-            .query_pairs()
-            .find(|p| p.0 == "code")
-            .unwrap()
-            .1
-            .to_string();
-
-        let (client, verifier, csrf) = self.verifier.take().unwrap();
-
-        let res = client
-            .exchange_code(AuthorizationCode::new(code))
-            .set_pkce_verifier(verifier)
-            .request_async(async_http_client)
-            .await
-            .map_err(|err| MoosyncError::String(err.to_string()))?;
-        self.set_tokens(res).await;
+        self.create_api_client();
         Ok(())
     }
 
@@ -326,13 +262,12 @@ impl GenericProvider for SpotifyProvider {
 
     async fn fetch_user_playlists(
         &self,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<QueryablePlaylist>> {
+        pagination: Pagination,
+    ) -> Result<(Vec<QueryablePlaylist>, Pagination)> {
         let mut ret = vec![];
         if let Some(api_client) = &self.api_client {
             let playlists = api_client
-                .current_user_playlists_manual(Some(limit), Some(offset))
+                .current_user_playlists_manual(Some(pagination.limit), Some(pagination.offset))
                 .await;
             if let Ok(playlists) = playlists {
                 for playlist in playlists.items {
@@ -340,15 +275,14 @@ impl GenericProvider for SpotifyProvider {
                 }
             }
         }
-        Ok(ret)
+        Ok((ret, pagination.next_page()))
     }
 
     async fn get_playlist_content(
         &self,
         playlist_id: String,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<Song>> {
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
         let mut ret = vec![];
         if let Some(api_client) = &self.api_client {
             let playlist_id = playlist_id
@@ -359,8 +293,8 @@ impl GenericProvider for SpotifyProvider {
                     PlaylistId::from_id_or_uri(playlist_id).unwrap(),
                     None,
                     None,
-                    Some(limit),
-                    Some(offset),
+                    Some(pagination.limit),
+                    Some(pagination.offset),
                 )
                 .await;
             if let Ok(items) = items {
@@ -380,6 +314,6 @@ impl GenericProvider for SpotifyProvider {
                 }
             }
         }
-        Ok(ret)
+        Ok((ret, pagination.next_page()))
     }
 }

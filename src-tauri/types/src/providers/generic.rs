@@ -3,6 +3,51 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
+pub struct Pagination {
+    pub limit: u32,
+    pub offset: u32,
+    pub token: Option<String>,
+    pub is_first: bool,
+}
+
+impl Pagination {
+    pub fn new_limit(limit: u32, offset: u32) -> Self {
+        Pagination {
+            limit,
+            offset,
+            is_first: true,
+            ..Default::default()
+        }
+    }
+
+    pub fn new_token(token: Option<String>) -> Self {
+        Pagination {
+            token,
+            is_first: true,
+            ..Default::default()
+        }
+    }
+
+    pub fn next_page(&self) -> Self {
+        Pagination {
+            limit: self.limit,
+            offset: self.offset + self.limit,
+            token: self.token.clone(),
+            is_first: false,
+        }
+    }
+
+    pub fn next_page_wtoken(&self, token: Option<String>) -> Self {
+        Pagination {
+            limit: self.limit,
+            offset: self.offset + self.limit,
+            token,
+            is_first: false,
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct ProviderStatus {
     pub key: String,
     pub name: String,
@@ -31,12 +76,13 @@ pub trait GenericProvider: std::fmt::Debug + Send {
     async fn authorize(&mut self, code: String) -> Result<()>;
 
     async fn fetch_user_details(&self) -> Result<ProviderStatus>;
-    async fn fetch_user_playlists(&self, limit: u32, offset: u32)
-        -> Result<Vec<QueryablePlaylist>>;
+    async fn fetch_user_playlists(
+        &self,
+        pagination: Pagination,
+    ) -> Result<(Vec<QueryablePlaylist>, Pagination)>;
     async fn get_playlist_content(
         &self,
         playlist_id: String,
-        limit: u32,
-        offset: u32,
-    ) -> Result<Vec<Song>>;
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)>;
 }

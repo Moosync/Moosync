@@ -117,21 +117,22 @@ pub fn get_high_img(song: &Song) -> String {
 
 macro_rules! fetch_infinite {
     ($provider_store:expr, $provider:expr, $fetch_content:ident, $update_signal:expr, $($arg:expr),*) => {
-            let mut offset = 0;
+            use types::providers::generic::Pagination;
+            let mut pagination = Pagination::new_limit(50, 0);
             loop {
-                let res = $provider_store.$fetch_content($provider.clone(), $($arg,)* 50, offset).await;
+                let res = $provider_store.$fetch_content($provider.clone(), $($arg,)* pagination).await;
                 if res.is_err() {
                     break;
                 }
 
-                let mut res = res.unwrap();
+                let (mut res, next_page) = res.unwrap();
                 let len = res.len() as u32;
 
                 if len == 0 {
                     break;
                 }
 
-                offset += len;
+                pagination = next_page;
 
                 $update_signal.update(|signal| {
                     signal.append(&mut res);

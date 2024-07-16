@@ -24,7 +24,7 @@ dependencies = [
  "stylers",
  "tokio",
  "types",
- "url",
+ "url 2.5.0",
  "uuid",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -253,7 +253,7 @@ dependencies = [
  "rand 0.8.5",
  "serde",
  "serde_repr",
- "url",
+ "url 2.5.0",
  "zbus 4.0.1",
 ]
 
@@ -621,11 +621,11 @@ dependencies = [
  "matchit",
  "memchr",
  "mime",
- "percent-encoding",
+ "percent-encoding 2.3.1",
  "pin-project-lite",
  "rustversion",
  "serde",
- "sync_wrapper",
+ "sync_wrapper 0.1.2",
  "tower",
  "tower-layer",
  "tower-service",
@@ -1427,41 +1427,30 @@ dependencies = [
 
 [[package]]
 name = "cookie"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7efb37c3e1ccb1ff97164ad95ac1606e8ccd35b3fa0a7d99a304c7f4a428cc24"
-dependencies = [
- "percent-encoding",
- "time",
- "version_check",
-]
-
-[[package]]
-name = "cookie"
 version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4ddef33a339a91ea89fb53151bd0a4689cfce27055c291dfa69945475d22c747"
 dependencies = [
- "percent-encoding",
+ "percent-encoding 2.3.1",
  "time",
  "version_check",
 ]
 
 [[package]]
 name = "cookie_store"
-version = "0.20.0"
+version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "387461abbc748185c3a6e1673d826918b450b87ff22639429c694619a83b6cf6"
+checksum = "4934e6b7e8419148b6ef56950d277af8561060b56afd59e2aadf98b59fce6baa"
 dependencies = [
- "cookie 0.17.0",
- "idna 0.3.0",
+ "cookie",
+ "idna 0.5.0",
  "log",
  "publicsuffix",
  "serde",
  "serde_derive",
  "serde_json",
  "time",
- "url",
+ "url 2.5.0",
 ]
 
 [[package]]
@@ -2344,7 +2333,7 @@ dependencies = [
  "futures",
  "interprocess",
  "preferences",
- "reqwest 0.12.4",
+ "reqwest 0.12.5",
  "serde",
  "serde_json",
  "tauri",
@@ -2505,7 +2494,7 @@ version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e13624c2627564efccf4934284bdd98cbaa14e79b0b5a141218e507b3a823456"
 dependencies = [
- "percent-encoding",
+ "percent-encoding 2.3.1",
 ]
 
 [[package]]
@@ -2970,6 +2959,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "google-apis-common"
+version = "6.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2efe58cc89d6670229d0ab84bfc4bbe35d2572571accaf2201526360b358414f"
+dependencies = [
+ "base64 0.22.1",
+ "chrono",
+ "http 0.2.12",
+ "hyper 0.14.29",
+ "itertools 0.12.1",
+ "mime",
+ "percent-encoding 2.3.1",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "tokio",
+ "tower-service",
+ "url 2.5.0",
+]
+
+[[package]]
+name = "google-youtube3"
+version = "5.0.5+20240626"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2b0afbd194da6ad73070da0d5fa9f7f95c28053b29e932c373d76199156234d"
+dependencies = [
+ "anyhow",
+ "google-apis-common",
+ "http 0.2.12",
+ "hyper 0.14.29",
+ "hyper-rustls 0.25.0",
+ "itertools 0.13.0",
+ "mime",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-service",
+ "url 1.7.2",
+]
+
+[[package]]
 name = "governor"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3395,6 +3425,23 @@ dependencies = [
 
 [[package]]
 name = "hyper-rustls"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "399c78f9338483cb7e630c8474b07268983c6bd5acee012e4211f9f7bb21b070"
+dependencies = [
+ "futures-util",
+ "http 0.2.12",
+ "hyper 0.14.29",
+ "log",
+ "rustls 0.22.4",
+ "rustls-native-certs",
+ "rustls-pki-types",
+ "tokio",
+ "tokio-rustls 0.25.0",
+]
+
+[[package]]
+name = "hyper-rustls"
 version = "0.26.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0bea761b46ae2b24eb4aef630d8d1c398157b6fc29e6350ecf090a0b70c952c"
@@ -3409,6 +3456,23 @@ dependencies = [
  "rustls-pki-types",
  "tokio",
  "tokio-rustls 0.25.0",
+ "tower-service",
+]
+
+[[package]]
+name = "hyper-rustls"
+version = "0.27.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ee4be2c948921a1a5320b629c4193916ed787a7f7f293fd3f7f5a6c9de74155"
+dependencies = [
+ "futures-util",
+ "http 1.1.0",
+ "hyper 1.3.1",
+ "hyper-util",
+ "rustls 0.23.10",
+ "rustls-pki-types",
+ "tokio",
+ "tokio-rustls 0.26.0",
  "tower-service",
 ]
 
@@ -3617,6 +3681,17 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "idna"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "38f09e0f0b1fb55fdee1f17470ad800da77af5186a1a76c026b679358b7e844e"
+dependencies = [
+ "matches",
+ "unicode-bidi",
+ "unicode-normalization",
+]
+
+[[package]]
+name = "idna"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e14ddfc70884202db2244c223200c204c2bda1bc6e0998d11b5e024d657209e6"
@@ -3818,6 +3893,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8478577c03552c21db0e2724ffb8986a5ce7af88107e6be5d2ee6e158c12800"
 
 [[package]]
+name = "iso8601"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "924e5d73ea28f59011fec52a0d12185d496a9b075d360657aed2a5707f701153"
+dependencies = [
+ "nom",
+]
+
+[[package]]
 name = "itertools"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3831,6 +3915,15 @@ name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
 dependencies = [
  "either",
 ]
@@ -4036,7 +4129,7 @@ checksum = "3272d90b77cdbb99e9060f90eb6f5738e56128b2f912db57a50efb006a26e262"
 dependencies = [
  "async-trait",
  "cfg-if",
- "cookie 0.18.1",
+ "cookie",
  "default-struct-builder",
  "futures-util",
  "gloo-timers",
@@ -4176,7 +4269,7 @@ dependencies = [
  "leptos",
  "linear-map",
  "once_cell",
- "percent-encoding",
+ "percent-encoding 2.3.1",
  "send_wrapper",
  "serde",
  "serde_json",
@@ -4324,7 +4417,7 @@ dependencies = [
  "librespot 0.5.0-dev",
  "protobuf",
  "quote",
- "reqwest 0.12.4",
+ "reqwest 0.12.5",
  "serde",
  "tokio",
  "types",
@@ -4352,7 +4445,7 @@ dependencies = [
  "sysinfo",
  "thiserror",
  "tokio",
- "url",
+ "url 2.5.0",
  "webpki",
 ]
 
@@ -4446,7 +4539,7 @@ dependencies = [
  "tokio-stream",
  "tokio-tungstenite",
  "tokio-util",
- "url",
+ "url 2.5.0",
  "uuid",
  "vergen",
 ]
@@ -4681,7 +4774,7 @@ version = "0.1.0"
 dependencies = [
  "librespot 0.1.0",
  "regex",
- "reqwest 0.12.4",
+ "reqwest 0.12.5",
  "scraper",
  "serde",
  "serde_json",
@@ -4910,6 +5003,8 @@ dependencies = [
  "extensions",
  "file_scanner",
  "futures",
+ "google-youtube3",
+ "iso8601",
  "librespot 0.1.0",
  "lyrics",
  "macros",
@@ -4917,6 +5012,7 @@ dependencies = [
  "oauth2",
  "open",
  "preferences",
+ "reqwest 0.12.5",
  "rfd",
  "rspotify",
  "serde",
@@ -4929,7 +5025,7 @@ dependencies = [
  "themes",
  "thiserror",
  "types",
- "url",
+ "url 2.5.0",
  "uuid",
  "webkit2gtk",
  "youtube",
@@ -5358,7 +5454,7 @@ dependencies = [
  "serde_path_to_error",
  "sha2",
  "thiserror",
- "url",
+ "url 2.5.0",
 ]
 
 [[package]]
@@ -5772,6 +5868,12 @@ checksum = "88b39c9bfcfc231068454382784bb460aae594343fb030d46e9f50a645418412"
 dependencies = [
  "base64ct",
 ]
+
+[[package]]
+name = "percent-encoding"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31010dd2e1ac33d5b46a5b413495239882813e0369f8ed8a5e266f173602f831"
 
 [[package]]
 name = "percent-encoding"
@@ -6720,19 +6822,19 @@ dependencies = [
  "log",
  "mime",
  "once_cell",
- "percent-encoding",
+ "percent-encoding 2.3.1",
  "pin-project-lite",
  "rustls 0.21.12",
  "rustls-pemfile 1.0.4",
  "serde",
  "serde_json",
  "serde_urlencoded",
- "sync_wrapper",
+ "sync_wrapper 0.1.2",
  "system-configuration",
  "tokio",
  "tokio-rustls 0.24.1",
  "tower-service",
- "url",
+ "url 2.5.0",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -6742,14 +6844,14 @@ dependencies = [
 
 [[package]]
 name = "reqwest"
-version = "0.12.4"
+version = "0.12.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "566cafdd92868e0939d3fb961bd0dc25fcfaaed179291093b3d43e6b3150ea10"
+checksum = "c7d6d2a27d57148378eb5e111173f4276ad26340ecc5c49a4a2152167a2d6a37"
 dependencies = [
  "async-compression",
  "base64 0.22.1",
  "bytes",
- "cookie 0.17.0",
+ "cookie",
  "cookie_store",
  "encoding_rs",
  "futures-core",
@@ -6759,6 +6861,7 @@ dependencies = [
  "http-body 1.0.0",
  "http-body-util",
  "hyper 1.3.1",
+ "hyper-rustls 0.27.2",
  "hyper-tls",
  "hyper-util",
  "ipnet",
@@ -6767,20 +6870,20 @@ dependencies = [
  "mime",
  "native-tls",
  "once_cell",
- "percent-encoding",
+ "percent-encoding 2.3.1",
  "pin-project-lite",
  "rustls-pemfile 2.1.2",
  "serde",
  "serde_json",
  "serde_urlencoded",
- "sync_wrapper",
+ "sync_wrapper 1.0.1",
  "system-configuration",
  "tokio",
  "tokio-native-tls",
  "tokio-socks",
  "tokio-util",
  "tower-service",
- "url",
+ "url 2.5.0",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-streams",
@@ -6797,7 +6900,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "http 1.1.0",
- "reqwest 0.12.4",
+ "reqwest 0.12.5",
  "serde",
  "thiserror",
  "tower-service",
@@ -6817,7 +6920,7 @@ dependencies = [
  "http 1.1.0",
  "hyper 1.3.1",
  "parking_lot 0.11.2",
- "reqwest 0.12.4",
+ "reqwest 0.12.5",
  "reqwest-middleware",
  "retry-policies",
  "tokio",
@@ -6954,7 +7057,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "thiserror",
- "url",
+ "url 2.5.0",
 ]
 
 [[package]]
@@ -6966,7 +7069,7 @@ dependencies = [
  "async-trait",
  "log",
  "maybe-async",
- "reqwest 0.12.4",
+ "reqwest 0.12.5",
  "serde_json",
  "thiserror",
 ]
@@ -7197,7 +7300,7 @@ dependencies = [
  "once_cell",
  "rand 0.8.5",
  "regex",
- "reqwest 0.12.4",
+ "reqwest 0.12.5",
  "reqwest-middleware",
  "reqwest-retry",
  "scraper",
@@ -7206,7 +7309,7 @@ dependencies = [
  "serde_qs 0.13.0",
  "thiserror",
  "tokio",
- "url",
+ "url 2.5.0",
  "urlencoding",
 ]
 
@@ -7260,7 +7363,7 @@ dependencies = [
  "schemars_derive",
  "serde",
  "serde_json",
- "url",
+ "url 2.5.0",
 ]
 
 [[package]]
@@ -7487,7 +7590,7 @@ version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0431a35568651e363364210c91983c1da5eb29404d9f0928b67d4ebcfa7d330c"
 dependencies = [
- "percent-encoding",
+ "percent-encoding 2.3.1",
  "serde",
  "thiserror",
 ]
@@ -7498,7 +7601,7 @@ version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cd34f36fe4c5ba9654417139a9b3a20d2e1de6012ee678ad14d240c22c78d8d6"
 dependencies = [
- "percent-encoding",
+ "percent-encoding 2.3.1",
  "serde",
  "thiserror",
 ]
@@ -7617,7 +7720,7 @@ dependencies = [
  "serde_qs 0.12.0",
  "server_fn_macro_default",
  "thiserror",
- "url",
+ "url 2.5.0",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "wasm-streams",
@@ -8151,6 +8254,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2047c6ded9c721764247e62cd3b03c09ffc529b2ba5b10ec482ae507a4a70160"
 
 [[package]]
+name = "sync_wrapper"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7065abeca94b6a8a577f9bd45aa0867a2238b74e8eb67cf10d492bc39351394"
+
+[[package]]
 name = "synstructure"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8241,7 +8350,7 @@ dependencies = [
  "scopeguard",
  "tao-macros",
  "unicode-segmentation",
- "url",
+ "url 2.5.0",
  "windows 0.57.0",
  "windows-core 0.57.0",
  "windows-version",
@@ -8296,9 +8405,9 @@ dependencies = [
  "mime",
  "muda",
  "objc",
- "percent-encoding",
+ "percent-encoding 2.3.1",
  "raw-window-handle 0.6.2",
- "reqwest 0.12.4",
+ "reqwest 0.12.5",
  "serde",
  "serde_json",
  "serde_repr",
@@ -8314,7 +8423,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tray-icon",
- "url",
+ "url 2.5.0",
  "urlpattern",
  "webkit2gtk",
  "webview2-com",
@@ -8366,7 +8475,7 @@ dependencies = [
  "tauri-utils",
  "thiserror",
  "time",
- "url",
+ "url 2.5.0",
  "uuid",
  "walkdir",
 ]
@@ -8416,7 +8525,7 @@ dependencies = [
  "tauri-plugin",
  "tauri-utils",
  "thiserror",
- "url",
+ "url 2.5.0",
  "windows-registry",
  "windows-result",
 ]
@@ -8475,7 +8584,7 @@ dependencies = [
  "serde_json",
  "tauri-utils",
  "thiserror",
- "url",
+ "url 2.5.0",
  "windows 0.56.0",
 ]
 
@@ -8490,14 +8599,14 @@ dependencies = [
  "http 1.1.0",
  "jni",
  "log",
- "percent-encoding",
+ "percent-encoding 2.3.1",
  "raw-window-handle 0.6.2",
  "softbuffer",
  "tao",
  "tauri-runtime",
  "tauri-utils",
  "tracing",
- "url",
+ "url 2.5.0",
  "webkit2gtk",
  "webview2-com",
  "windows 0.56.0",
@@ -8533,7 +8642,7 @@ dependencies = [
  "swift-rs",
  "thiserror",
  "toml 0.8.2",
- "url",
+ "url 2.5.0",
  "urlpattern",
  "walkdir",
 ]
@@ -8936,7 +9045,7 @@ dependencies = [
  "http-body 0.4.6",
  "hyper 0.14.29",
  "hyper-timeout",
- "percent-encoding",
+ "percent-encoding 2.3.1",
  "pin-project",
  "prost",
  "tokio",
@@ -9178,6 +9287,7 @@ dependencies = [
  "diesel",
  "fast_image_resize",
  "fs_extra",
+ "google-youtube3",
  "image",
  "json_dotpath",
  "jwalk",
@@ -9185,7 +9295,7 @@ dependencies = [
  "lofty",
  "oauth2",
  "protobuf",
- "reqwest 0.12.4",
+ "reqwest 0.12.5",
  "rspotify",
  "rusty_ytdl",
  "serde",
@@ -9308,13 +9418,24 @@ checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "url"
+version = "1.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dd4e7c0d531266369519a4aa4f399d748bd37043b00bde1e4ff1f60a120b355a"
+dependencies = [
+ "idna 0.1.5",
+ "matches",
+ "percent-encoding 1.0.1",
+]
+
+[[package]]
+name = "url"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "31e6302e3bb753d46e83516cae55ae196fc0c309407cf11ab35cc51a4c2a4633"
 dependencies = [
  "form_urlencoded",
  "idna 0.5.0",
- "percent-encoding",
+ "percent-encoding 2.3.1",
  "serde",
 ]
 
@@ -9334,7 +9455,7 @@ dependencies = [
  "regex",
  "serde",
  "unic-ucd-ident",
- "url",
+ "url 2.5.0",
 ]
 
 [[package]]
@@ -10233,7 +10354,7 @@ dependencies = [
  "objc",
  "objc_id",
  "once_cell",
- "percent-encoding",
+ "percent-encoding 2.3.1",
  "raw-window-handle 0.6.2",
  "sha2",
  "soup3",
@@ -10322,14 +10443,14 @@ version = "0.1.0"
 dependencies = [
  "database",
  "regex",
- "reqwest 0.12.4",
+ "reqwest 0.12.5",
  "rusty_ytdl",
  "serde",
  "serde_derive",
  "serde_json",
  "tokio",
  "types",
- "url",
+ "url 2.5.0",
 ]
 
 [[package]]
@@ -10675,7 +10796,7 @@ dependencies = [
  "enumflags2",
  "serde",
  "static_assertions",
- "url",
+ "url 2.5.0",
  "zvariant_derive 4.0.0",
 ]
 

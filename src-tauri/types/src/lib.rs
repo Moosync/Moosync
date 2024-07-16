@@ -12,3 +12,6 @@ pub mod traits;
 
 pub mod providers;
 pub mod ui;
+
+#[cfg(feature = "core")]
+pub mod oauth;

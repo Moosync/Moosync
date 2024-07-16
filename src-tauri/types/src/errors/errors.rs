@@ -9,6 +9,9 @@ use std::{
 use fast_image_resize::ResizeError;
 
 #[cfg(feature = "core")]
+use google_youtube3::Error as YoutubeError;
+
+#[cfg(feature = "core")]
 use oauth2::{basic::BasicErrorResponseType, RequestTokenError, StandardErrorResponse};
 
 #[cfg(feature = "core")]
@@ -94,6 +97,9 @@ pub enum MoosyncError {
     #[cfg_attr(feature = "core", error(transparent))]
     #[cfg(feature = "core")]
     SpotifyError(#[from] ClientError),
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
+    YoutubeError(#[from] YoutubeError),
 }
 
 #[cfg(feature = "ui")]

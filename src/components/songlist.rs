@@ -16,7 +16,7 @@ use crate::{
         sort_icon::SortIcon,
     },
     store::player_store::PlayerStore,
-    utils::common::get_low_img,
+    utils::common::{format_duration, get_low_img},
 };
 
 #[component()]
@@ -60,7 +60,7 @@ pub fn SongListItem(
                     </div>
                 </div>
 
-                <div class="col-auto offset-1 align-self-center ml-auto timestamp">00:00</div>
+                <div class="col-auto offset-1 align-self-center ml-auto timestamp">{format_duration(song.song.duration.unwrap_or(-1f64))}</div>
 
                 <div class="col-auto align-self-center button-icon ml-5">
                     <AddToQueueIcon title="test".to_string()/>

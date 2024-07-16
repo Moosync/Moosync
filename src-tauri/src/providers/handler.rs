@@ -1,7 +1,8 @@
 use futures::lock::Mutex;
 use std::{collections::HashMap, sync::Arc};
 
-use macros::{generate_command, generate_command_async};
+use database::cache::CacheHolder;
+use macros::{generate_command, generate_command_async, generate_command_async_cached};
 use tauri::{AppHandle, State};
 use types::{
     entities::QueryablePlaylist,
@@ -149,5 +150,5 @@ generate_command_async!(provider_login, ProviderHandler, (), key: String);
 generate_command_async!(provider_authorize, ProviderHandler, (), key: String, code: String);
 generate_command_async!(get_provider_key_by_id, ProviderHandler, String, id: String);
 generate_command_async!(fetch_user_details, ProviderHandler, ProviderStatus, key: String);
-generate_command_async!(fetch_user_playlists, ProviderHandler, (Vec<QueryablePlaylist>, Pagination), key: String, pagination: Pagination);
-generate_command_async!(fetch_playlist_content, ProviderHandler, (Vec<Song>, Pagination), key: String, playlist_id: String, pagination: Pagination);
+generate_command_async_cached!(fetch_user_playlists, ProviderHandler, (Vec<QueryablePlaylist>, Pagination), key: String, pagination: Pagination);
+generate_command_async_cached!(fetch_playlist_content, ProviderHandler, (Vec<Song>, Pagination), key: String, playlist_id: String, pagination: Pagination);

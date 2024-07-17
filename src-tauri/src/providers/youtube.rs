@@ -27,6 +27,7 @@ use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::{QueryableSong, Song, SongType};
 use types::{oauth::OAuth2Client, providers::generic::GenericProvider};
 use url::Url;
+use youtube::youtube::YoutubeScraper;
 
 use crate::window::handler::WindowHandler;
 
@@ -386,5 +387,17 @@ impl GenericProvider for YoutubeProvider {
             return Ok((ret, pagination.next_page_wtoken(resp.next_page_token)));
         }
         Err("API client not initialized".into())
+    }
+
+    async fn get_playback_url(&self, song: Song, player: String) -> Result<String> {
+        println!("Fetching song for {} player", player);
+        if player == "local" {
+            let youtube_scraper: State<YoutubeScraper> = self.app.state();
+            return youtube_scraper
+                .get_video_url(song.song.url.clone().unwrap())
+                .await;
+        } else {
+            return Ok(song.song.url.clone().unwrap());
+        }
     }
 }

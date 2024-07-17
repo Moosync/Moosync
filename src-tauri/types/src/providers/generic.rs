@@ -85,4 +85,5 @@ pub trait GenericProvider: std::fmt::Debug + Send {
         playlist_id: String,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)>;
+    async fn get_playback_url(&self, song: Song, player: String) -> Result<String>;
 }

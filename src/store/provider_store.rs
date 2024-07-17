@@ -118,5 +118,12 @@ impl ProviderStore {
             },
             result_type: (Vec<Song>, Pagination),
         },
+        fetch_playback_url {
+            args: {
+                song: Song,
+                player: String
+            },
+            result_type: String,
+        }
     );
 }

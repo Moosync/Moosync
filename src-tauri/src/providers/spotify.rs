@@ -316,4 +316,8 @@ impl GenericProvider for SpotifyProvider {
         }
         Ok((ret, pagination.next_page()))
     }
+
+    async fn get_playback_url(&self, _: Song, _: String) -> Result<String> {
+        Err(MoosyncError::SwitchProviders("youtube".into()))
+    }
 }

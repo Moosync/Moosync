@@ -25,25 +25,27 @@ use leptos::{
 use crate::{
     console_log,
     players::{generic::GenericPlayer, local::LocalPlayer},
-    store::player_store::PlayerStore,
+    store::{player_store::PlayerStore, provider_store::ProviderStore},
     utils::common::convert_file_src,
 };
 
 #[derive(Debug)]
 pub struct PlayerHolder {
+    providers: Rc<ProviderStore>,
     players: Arc<Mutex<Vec<Box<dyn GenericPlayer>>>>,
     active_player: Arc<AtomicUsize>,
     listener_tx: Sender<PlayerEvents>,
 }
 
 impl PlayerHolder {
-    pub fn new() -> PlayerHolder {
+    pub fn new(providers: Rc<ProviderStore>) -> PlayerHolder {
         let (tx, rx) = tokio::sync::mpsc::channel::<PlayerEvents>(1);
 
         let holder = PlayerHolder {
             players: Arc::new(Mutex::new(vec![])),
             listener_tx: tx,
             active_player: Arc::new(AtomicUsize::new(0)),
+            providers,
         };
 
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
@@ -66,15 +68,28 @@ impl PlayerHolder {
         }
     }
 
-    pub fn get_player(&self, song: &Song) -> Result<usize> {
+    pub async fn get_player(&self, song: &Song) -> Result<(usize, Option<Song>)> {
         let players = self.players.lock().unwrap();
         let player = players
             .iter()
-            .position(|p| p.provides().contains(&song.song.type_));
+            .position(|p| p.provides().contains(&song.song.type_) && p.can_play(&song));
 
-        player
-            .map(Ok)
-            .unwrap_or(Err(MoosyncError::String("Player not found".into())))
+        if player.is_some() {
+            return Ok((player.unwrap(), None));
+        }
+
+        if player.is_none() {
+            let mut song_tmp = song.clone();
+            for (i, player) in players.iter().enumerate() {
+                let playback_url = self.get_playback_url(song, player.key()).await?;
+                song_tmp.song.playback_url = Some(playback_url);
+                if player.can_play(&song_tmp) {
+                    return Ok((i, Some(song_tmp)));
+                }
+            }
+        }
+
+        Err(MoosyncError::String("Player not found".into()))
     }
 
     pub fn set_volume(&self, volume: f64) -> Result<()> {
@@ -89,16 +104,29 @@ impl PlayerHolder {
         Ok(())
     }
 
-    pub async fn load_audio(&mut self, song: Song, current_volume: f64) -> Result<()> {
-        let src = song.song.playback_url.clone().or(song.song.path.clone());
-        if src.is_none() {
-            return Ok(());
-        }
+    pub async fn get_playback_url(&self, song: &Song, player: String) -> Result<String> {
+        let id = song.song._id.clone().unwrap();
+        let provider = self.providers.get_provider_key_by_id(id.clone()).await?;
+        self.providers
+            .fetch_playback_url(provider, song.clone(), player)
+            .await
+    }
 
-        let pos = self.get_player(&song)?;
+    pub async fn load_audio(&mut self, song: &Song, current_volume: f64) -> Result<Option<Song>> {
+        let (pos, new_song) = self.get_player(song).await?;
+        let ret = new_song.clone();
+        let src = if let Some(new_song) = new_song {
+            new_song
+                .song
+                .playback_url
+                .clone()
+                .or(new_song.song.path.clone())
+        } else {
+            song.song.playback_url.clone().or(song.song.path.clone())
+        };
         self.active_player.store(pos, Ordering::Relaxed);
 
-        let src = convert_file_src(src.clone().unwrap());
+        let src = convert_file_src(src.unwrap());
         console_log!("got src {}", src);
 
         let mut players = self.players.lock().unwrap();
@@ -112,7 +140,7 @@ impl PlayerHolder {
         player.set_volume(current_volume).unwrap();
         player.play()?;
 
-        Ok(())
+        Ok(ret)
     }
 
     fn listen_player_state(&self, player_store: RwSignal<PlayerStore>) {
@@ -215,10 +243,12 @@ impl PlayerHolder {
 
 #[component()]
 pub fn AudioStream() -> impl IntoView {
-    let players = PlayerHolder::new();
+    let provider_store = use_context::<Rc<ProviderStore>>().unwrap();
+    let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
+
+    let players = PlayerHolder::new(provider_store);
     players.initialize_players();
 
-    let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
     let current_song_sig = create_read_slice(player_store, |player_store| {
         player_store.current_song.clone()
     });
@@ -243,10 +273,14 @@ pub fn AudioStream() -> impl IntoView {
             let players = players_copy.clone();
             spawn_local(async move {
                 let mut players = players.lock().unwrap();
-                players
-                    .load_audio(current_song, current_volume.get_untracked())
+                let updated_song = players
+                    .load_audio(&current_song, current_volume.get_untracked())
                     .await
                     .unwrap();
+
+                if updated_song.is_some() {
+                    // TODO: Update song in DB
+                }
             });
         }
     });

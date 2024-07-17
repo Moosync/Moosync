@@ -100,6 +100,9 @@ pub enum MoosyncError {
     #[cfg_attr(feature = "core", error(transparent))]
     #[cfg(feature = "core")]
     YoutubeError(#[from] YoutubeError),
+    #[cfg(feature = "core")]
+    #[error("Transfer control to provider: {0}")]
+    SwitchProviders(String),
 }
 
 #[cfg(feature = "ui")]

@@ -86,6 +86,10 @@ impl LocalPlayer {
 impl LocalPlayer {}
 
 impl GenericPlayer for LocalPlayer {
+    fn key(&self) -> String {
+        "local".into()
+    }
+
     fn initialize(&self) {}
 
     fn load(&self, src: String, resolver: OneShotSender<()>) {
@@ -120,7 +124,12 @@ impl GenericPlayer for LocalPlayer {
     }
 
     fn provides(&self) -> &[SongType] {
-        &[SongType::LOCAL, SongType::URL]
+        &[
+            SongType::LOCAL,
+            SongType::URL,
+            SongType::YOUTUBE,
+            SongType::SPOTIFY,
+        ]
     }
 
     fn set_volume(&self, volume: f64) -> Result<()> {
@@ -143,5 +152,16 @@ impl GenericPlayer for LocalPlayer {
 
     fn seek(&self, pos: f64) -> Result<()> {
         Ok(self.audio_element.fast_seek(pos)?)
+    }
+
+    fn can_play(&self, song: &types::songs::Song) -> bool {
+        let playback_url = song.song.path.clone().or(song.song.playback_url.clone());
+        if let Some(playback_url) = playback_url {
+            return playback_url.starts_with("http://")
+                || playback_url.starts_with("https://")
+                || playback_url.starts_with("asset");
+        }
+
+        return false;
     }
 }

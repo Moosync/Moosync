@@ -1,8 +1,10 @@
+use std::{borrow::Borrow, cell::RefCell, rc::Rc};
+
 use leptos::{
     create_node_ref,
     ev::{ended, loadeddata, loadstart, pause, play, timeupdate},
     event_target,
-    html::{audio, Audio},
+    html::{audio, Audio, Div},
     spawn_local, HtmlElement, NodeRef,
 };
 
@@ -11,7 +13,10 @@ use tokio::sync::{mpsc::Sender, oneshot::Sender as OneShotSender};
 use types::{errors::errors::Result, songs::SongType, ui::player_details::PlayerEvents};
 use wasm_bindgen_futures::JsFuture;
 
-use crate::{console_log, utils::common::get_blob_url};
+use crate::{
+    console_log,
+    utils::common::{convert_file_src, get_blob_url},
+};
 
 use super::generic::GenericPlayer;
 
@@ -83,17 +88,26 @@ impl LocalPlayer {
     );
 }
 
-impl LocalPlayer {}
-
 impl GenericPlayer for LocalPlayer {
+    fn initialize(&self, player_container: NodeRef<Div>) {
+        let node_ref = self.node_ref.clone();
+        player_container.on_load(move |elem| {
+            let audio_elem = node_ref.get().unwrap();
+            if let Err(e) = elem.append_child(&audio_elem) {
+                console_log!("Error initializing local player: {:?}", e);
+            }
+        });
+    }
+
     fn key(&self) -> String {
         "local".into()
     }
 
-    fn initialize(&self) {}
-
     fn load(&self, src: String, resolver: OneShotSender<()>) {
         console_log!("Loading audio {}", src);
+
+        let src = convert_file_src(src);
+        console_log!("got src {}", src);
 
         let mut src = src;
 

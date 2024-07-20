@@ -1,3 +1,4 @@
+use leptos::{html::Div, HtmlElement, NodeRef};
 use tokio::sync::{mpsc::Sender, oneshot::Sender as OneShotSender};
 use types::{
     errors::errors::Result,
@@ -6,8 +7,8 @@ use types::{
 };
 
 pub trait GenericPlayer: std::fmt::Debug {
+    fn initialize(&self, element: NodeRef<Div>);
     fn key(&self) -> String;
-    fn initialize(&self);
     fn load(&self, src: String, resolver: OneShotSender<()>);
     fn play(&self) -> Result<()>;
     fn pause(&self) -> Result<()>;

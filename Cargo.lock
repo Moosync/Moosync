@@ -17,6 +17,7 @@ dependencies = [
  "leptos_router",
  "leptos_virtual_scroller",
  "oauth2",
+ "regex",
  "rspotify",
  "serde",
  "serde-wasm-bindgen",
@@ -28,6 +29,7 @@ dependencies = [
  "uuid",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "web-sys",
  "web-time",
 ]
 

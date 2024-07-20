@@ -34,6 +34,8 @@ url = "2.5.0"
 rspotify = "0.13.2"
 web-time = "1.1.0"
 futures = "0.3.30"
+web-sys = "0.3.69"
+regex = "1.10.5"
 
 [workspace]
 resolver = "2"

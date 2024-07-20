@@ -5,6 +5,7 @@ use leptos::{
 use leptos_virtual_scroller::VirtualScroller;
 use types::songs::Song;
 
+use crate::components::audiostream::AudioStream;
 use crate::{
     components::{low_img::LowImg, provider_icon::ProviderIcon, songdetails::SongDetails},
     icons::{cross_icon::CrossIcon, trash_icon::TrashIcon},
@@ -80,6 +81,11 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
                     <div class="row no-gutters justify-content-center h-100 flex-nowrap">
                         // Song details
                         <div class="col-4">
+                            <div class="row no-gutters">
+                                <div class="col position-relative">
+                                    <AudioStream/>
+                                </div>
+                            </div>
                             <SongDetails show_icons=false selected_song=current_song/>
                         </div>
                         <div class="col-7 offset-1 right-container h-100">

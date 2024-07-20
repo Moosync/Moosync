@@ -19,26 +19,28 @@ use types::{
 
 use leptos::{
     component, create_effect, create_node_ref, create_read_slice, create_slice, create_write_slice,
-    html::Div, spawn_local, use_context, view, IntoView, RwSignal, SignalGet, SignalGetUntracked,
+    html::{div, Div},
+    spawn_local, use_context, view, HtmlElement, IntoView, NodeRef, RwSignal, SignalGet,
+    SignalGetUntracked,
 };
 
 use crate::{
     console_log,
-    players::{generic::GenericPlayer, local::LocalPlayer},
+    players::{generic::GenericPlayer, local::LocalPlayer, youtube::YoutubePlayer},
     store::{player_store::PlayerStore, provider_store::ProviderStore},
     utils::common::convert_file_src,
 };
 
-#[derive(Debug)]
 pub struct PlayerHolder {
     providers: Rc<ProviderStore>,
     players: Arc<Mutex<Vec<Box<dyn GenericPlayer>>>>,
     active_player: Arc<AtomicUsize>,
     listener_tx: Sender<PlayerEvents>,
+    player_container: NodeRef<Div>,
 }
 
 impl PlayerHolder {
-    pub fn new(providers: Rc<ProviderStore>) -> PlayerHolder {
+    pub fn new(player_container: NodeRef<Div>, providers: Rc<ProviderStore>) -> PlayerHolder {
         let (tx, rx) = tokio::sync::mpsc::channel::<PlayerEvents>(1);
 
         let holder = PlayerHolder {
@@ -46,6 +48,7 @@ impl PlayerHolder {
             listener_tx: tx,
             active_player: Arc::new(AtomicUsize::new(0)),
             providers,
+            player_container,
         };
 
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
@@ -57,14 +60,17 @@ impl PlayerHolder {
         let local_player = LocalPlayer::new();
         players.push(Box::new(local_player));
 
+        let youtube_player = YoutubePlayer::new();
+        players.push(Box::new(youtube_player));
+
         drop(players);
 
         holder
     }
 
     pub fn initialize_players(&self) {
-        for player in self.players.lock().unwrap().iter() {
-            player.initialize();
+        for player in self.players.lock().unwrap().iter_mut() {
+            player.initialize(self.player_container);
         }
     }
 
@@ -126,15 +132,12 @@ impl PlayerHolder {
         };
         self.active_player.store(pos, Ordering::Relaxed);
 
-        let src = convert_file_src(src.unwrap());
-        console_log!("got src {}", src);
-
         let mut players = self.players.lock().unwrap();
         let player = players.get_mut(pos).unwrap();
         player.add_listeners(self.listener_tx.clone());
 
         let (resolver_tx, resolver_rx) = oneshot::channel();
-        player.load(src, resolver_tx);
+        player.load(src.unwrap(), resolver_tx);
 
         resolver_rx.await.expect("Load failed to resolve");
         player.set_volume(current_volume).unwrap();
@@ -246,7 +249,9 @@ pub fn AudioStream() -> impl IntoView {
     let provider_store = use_context::<Rc<ProviderStore>>().unwrap();
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
 
-    let players = PlayerHolder::new(provider_store);
+    let player_container_ref = create_node_ref::<Div>();
+
+    let players = PlayerHolder::new(player_container_ref, provider_store);
     players.initialize_players();
 
     let current_song_sig = create_read_slice(player_store, |player_store| {
@@ -285,7 +290,5 @@ pub fn AudioStream() -> impl IntoView {
         }
     });
 
-    let player_container_ref = create_node_ref::<Div>();
-
-    view! { <div id="player_container" _ref=player_container_ref></div> }
+    view! { <div id="player_container" class="player-container" _ref=player_container_ref></div> }
 }

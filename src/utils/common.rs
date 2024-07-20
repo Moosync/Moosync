@@ -12,6 +12,9 @@ extern "C" {
 
     #[wasm_bindgen(js_namespace = ["window", "__MOOSYNC__"])]
     async fn getBlobUrl(src: &str) -> JsValue;
+
+    #[wasm_bindgen(js_namespace = ["window", "__MOOSYNC__"])]
+    fn createYTPlayer(element: &str) -> JsValue;
 }
 
 #[wasm_bindgen]
@@ -57,6 +60,10 @@ pub async fn get_blob_url(src: String) -> String {
     let res = getBlobUrl(src.as_str()).await;
     console_log!("Got blob url {}", res.as_string().unwrap());
     res.as_string().unwrap()
+}
+
+pub fn create_yt_player(element: &str) -> JsValue {
+    createYTPlayer(element)
 }
 
 pub fn get_low_img(song: &Song) -> String {

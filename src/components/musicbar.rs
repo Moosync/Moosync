@@ -3,7 +3,6 @@ use leptos::{component, view, IntoView, RwSignal, SignalSet};
 use types::entities::QueryableArtist;
 use types::ui::player_details::PlayerState;
 
-use crate::components::audiostream::AudioStream;
 use crate::components::low_img::LowImg;
 use crate::components::musicinfo::MusicInfo;
 use crate::console_log;
@@ -319,7 +318,6 @@ pub fn MusicBar() -> impl IntoView {
             <MusicInfo show=show_musicinfo/>
             <div class="background w-100">
                 <div class="musicbar h-100">
-                    <AudioStream/>
                     <Slider/>
                     <div class="container-fluid d-flex bar-container h-100 pb-2">
                         <div class="row no-gutters align-items-center justify-content-center align-content-center no-gutters w-100 control-row justify-content-between">

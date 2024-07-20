@@ -16,7 +16,7 @@
           "requireLiteralLeadingDot": false
         }
       },
-      "csp": "default-src 'self'; img-src 'self' asset: media: https://asset.localhost; media-src 'self' asset: media: https://asset.localhost; connect-src ipc: http://ipc.localhost; styles-src 'unsafe-inline'",
+      "csp": "default-src 'self'; img-src 'self' asset: media: https://asset.localhost; media-src 'self' asset: media: https://asset.localhost; connect-src ipc: http://ipc.localhost; styles-src 'unsafe-inline'; frame-src youtube.com https://www.youtube.com;",
       "dangerousDisableAssetCspModification": false,
       "freezePrototype": false,
       "pattern": {

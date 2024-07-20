@@ -1,10 +1,11 @@
 async function getBlobUrl(src) {
-	const resp = await fetch(src);
-	const blob = await resp.blob();
-	const url = URL.createObjectURL(blob);
-	return url;
+  const resp = await fetch(src);
+  const blob = await resp.blob();
+  const url = URL.createObjectURL(blob);
+  return url;
 }
 
 window.__MOOSYNC__ = {
-	getBlobUrl,
+  ...window.__MOOSYNC__,
+  getBlobUrl,
 };

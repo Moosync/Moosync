@@ -17,14 +17,17 @@ use oauth2::{
 use preferences::preferences::PreferenceConfig;
 use rspotify::{
     clients::{BaseClient, OAuthClient},
-    model::{FullTrack, Id, PlaylistId, SimplifiedPlaylist},
+    model::{
+        FullArtist, FullTrack, Id, PlaylistId, SearchType, SimplifiedAlbum, SimplifiedArtist,
+        SimplifiedPlaylist,
+    },
     AuthCodePkceSpotify, Token,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
 use types::{
-    entities::{EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist},
+    entities::{EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
     errors::errors::Result,
     oauth::{OAuth2Client, OAuthTokenResponse},
     providers::generic::{Pagination, ProviderStatus},
@@ -39,6 +42,20 @@ use super::common::{
     authorize, get_oauth_client, login, refresh_login, set_tokens, LoginArgs, OAuthClientArgs,
     TokenHolder,
 };
+
+macro_rules! search_and_parse_all {
+    ($client:expr, $term:expr, [$(($type:expr, $variant:path, $parse_fn:expr, $result_vec:expr)),*]) => {{
+        $(
+            if let Ok(search_results) = $client.search($term, $type, None, None, Some(50), Some(0)).await {
+                if let $variant(items) = search_results {
+                    for item in items.items {
+                        $parse_fn(item, &mut $result_vec);
+                    }
+                }
+            }
+        )*
+    }};
+}
 
 #[derive(Debug, Clone, Default)]
 struct SpotifyConfig {
@@ -126,6 +143,33 @@ impl SpotifyProvider {
         }
     }
 
+    fn parse_artists(&self, artist: SimplifiedArtist) -> QueryableArtist {
+        QueryableArtist {
+            artist_id: Some(format!("spotify-artist:{}", artist.id.clone().unwrap())),
+            artist_name: Some(artist.name),
+            artist_extra_info: Some(EntityInfo(
+                serde_json::to_value(SpotifyExtraInfo {
+                    spotify: ArtistExtraInfo {
+                        artist_id: artist.id.clone().unwrap().to_string(),
+                    },
+                })
+                .unwrap(),
+            )),
+            ..Default::default()
+        }
+    }
+
+    fn parse_album(&self, album: SimplifiedAlbum) -> QueryableAlbum {
+        QueryableAlbum {
+            album_id: Some(format!("spotify-album:{}", album.id.clone().unwrap())),
+            album_name: Some(album.name),
+            album_artist: album.artists.first().map(|a| a.name.clone()),
+            album_coverpath_high: album.images.first().map(|i| i.url.clone()),
+            album_coverpath_low: album.images.last().map(|i| i.url.clone()),
+            ..Default::default()
+        }
+    }
+
     fn parse_playlist_item(&self, item: FullTrack) -> Song {
         let id = item.id.unwrap().to_string();
         Song {
@@ -140,30 +184,11 @@ impl SpotifyProvider {
                 track_no: Some(item.disc_number as f64),
                 ..Default::default()
             },
-            album: Some(QueryableAlbum {
-                album_id: Some(format!("spotify-album:{}", item.album.id.unwrap())),
-                album_name: Some(item.album.name),
-                album_artist: item.album.artists.first().map(|a| a.name.clone()),
-                album_coverpath_high: item.album.images.first().map(|i| i.url.clone()),
-                ..Default::default()
-            }),
+            album: Some(self.parse_album(item.album)),
             artists: Some(
                 item.artists
                     .into_iter()
-                    .map(|artist| QueryableArtist {
-                        artist_id: Some(format!("spotify-artist:{}", artist.id.clone().unwrap())),
-                        artist_name: Some(artist.name.clone()),
-                        artist_extra_info: Some(EntityInfo(
-                            serde_json::to_value(SpotifyExtraInfo {
-                                spotify: ArtistExtraInfo {
-                                    artist_id: artist.id.unwrap().to_string(),
-                                },
-                            })
-                            .unwrap(),
-                        )),
-                        sanitized_artist_name: Some(artist.name),
-                        ..Default::default()
-                    })
+                    .map(|a| self.parse_artists(a))
                     .collect(),
             ),
             ..Default::default()
@@ -319,5 +344,58 @@ impl GenericProvider for SpotifyProvider {
 
     async fn get_playback_url(&self, _: Song, _: String) -> Result<String> {
         Err(MoosyncError::SwitchProviders("youtube".into()))
+    }
+
+    async fn search(&self, term: String) -> Result<SearchResult> {
+        let mut ret = SearchResult {
+            songs: vec![],
+            albums: vec![],
+            artists: vec![],
+            playlists: vec![],
+            ..Default::default()
+        };
+
+        if let Some(api_client) = &self.api_client {
+            search_and_parse_all!(
+                api_client,
+                &term,
+                [
+                    (
+                        SearchType::Track,
+                        rspotify::model::SearchResult::Tracks,
+                        |item, vec: &mut Vec<Song>| vec.push(self.parse_playlist_item(item)),
+                        ret.songs
+                    ),
+                    (
+                        SearchType::Playlist,
+                        rspotify::model::SearchResult::Playlists,
+                        |item, vec: &mut Vec<QueryablePlaylist>| vec
+                            .push(self.parse_playlist(item)),
+                        ret.playlists
+                    ),
+                    (
+                        SearchType::Artist,
+                        rspotify::model::SearchResult::Artists,
+                        |item: FullArtist, vec: &mut Vec<QueryableArtist>| vec.push(
+                            self.parse_artists(SimplifiedArtist {
+                                external_urls: item.external_urls,
+                                href: Some(item.href),
+                                id: Some(item.id),
+                                name: item.name,
+                            })
+                        ),
+                        ret.artists
+                    ),
+                    (
+                        SearchType::Album,
+                        rspotify::model::SearchResult::Albums,
+                        |item, vec: &mut Vec<QueryableAlbum>| vec.push(self.parse_album(item)),
+                        ret.albums
+                    )
+                ]
+            );
+        }
+
+        Ok(ret)
     }
 }

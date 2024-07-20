@@ -1,5 +1,7 @@
 use async_trait::async_trait;
-use google_youtube3::api::{Playlist, PlaylistItem, PlaylistListResponse, Video};
+use google_youtube3::api::{
+    Channel, ChannelSnippet, Playlist, PlaylistItem, PlaylistListResponse, PlaylistSnippet, Video,
+};
 use google_youtube3::hyper::client::HttpConnector;
 use google_youtube3::hyper_rustls::HttpsConnector;
 use google_youtube3::{hyper, hyper_rustls, YouTube};
@@ -20,18 +22,48 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 use tauri::{AppHandle, Manager, State};
-use types::entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist};
+use types::entities::{
+    EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult,
+};
 use types::errors::errors::{MoosyncError, Result};
 use types::oauth::OAuthTokenResponse;
 use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::{QueryableSong, Song, SongType};
 use types::{oauth::OAuth2Client, providers::generic::GenericProvider};
 use url::Url;
+use youtube::types::ContinuationToken;
 use youtube::youtube::YoutubeScraper;
 
 use crate::window::handler::WindowHandler;
 
 use super::common::{authorize, login, refresh_login, set_tokens, LoginArgs, TokenHolder};
+
+macro_rules! search_and_parse {
+    ($client:expr, $term:expr, $type:expr, $process_fn:expr) => {{
+        let (_, search_results) = $client
+            .search()
+            .list(&vec!["snippet".into()])
+            .add_type($type)
+            .q($term)
+            .max_results(50)
+            .doit()
+            .await?;
+
+        search_results.items.map_or(vec![], |items| {
+            items.into_iter().filter_map($process_fn).collect()
+        })
+    }};
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct ArtistExtraInfo {
+    artist_id: String,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct YoutubeExtraInfo {
+    youtube: ArtistExtraInfo,
+}
 
 #[derive(Debug, Clone, Default)]
 struct YoutubeConfig {
@@ -116,14 +148,42 @@ impl YoutubeProvider {
         QueryablePlaylist {
             playlist_id: Some(format!("youtube-playlist:{}", resp.id.unwrap())),
             playlist_name: snippet.title.unwrap_or_default(),
-            playlist_coverpath: snippet
-                .thumbnails
-                .map(|t| t.maxres.unwrap_or_default().url.unwrap_or_default()),
+            playlist_coverpath: snippet.thumbnails.map(|t| {
+                t.maxres
+                    .or(t.default)
+                    .unwrap_or_default()
+                    .url
+                    .unwrap_or_default()
+            }),
             playlist_song_count: content_details.item_count.unwrap_or_default() as f64,
             playlist_desc: snippet.description,
             playlist_path: None,
             extension: None,
             icon: None,
+        }
+    }
+
+    fn parse_channel(&self, resp: Channel) -> QueryableArtist {
+        let snippet = resp.snippet.as_ref().unwrap();
+        QueryableArtist {
+            artist_id: Some(format!("youtube-artist:{}", resp.id.clone().unwrap())),
+            artist_name: snippet.title.clone(),
+            artist_coverpath: snippet.thumbnails.clone().map(|t| {
+                t.maxres
+                    .or(t.default)
+                    .unwrap_or_default()
+                    .url
+                    .unwrap_or_default()
+            }),
+            artist_extra_info: Some(EntityInfo(
+                serde_json::to_value(YoutubeExtraInfo {
+                    youtube: ArtistExtraInfo {
+                        artist_id: resp.id.unwrap(),
+                    },
+                })
+                .unwrap(),
+            )),
+            ..Default::default()
         }
     }
 
@@ -199,10 +259,6 @@ impl YoutubeProvider {
 
 #[async_trait]
 impl GenericProvider for YoutubeProvider {
-    fn key(&self) -> &str {
-        "youtube"
-    }
-
     async fn initialize(&mut self) -> Result<()> {
         let preferences: State<PreferenceConfig> = self.app.state();
         let youtube_config = preferences.inner().load_selective("youtube".into())?;
@@ -223,6 +279,10 @@ impl GenericProvider for YoutubeProvider {
         println!("initialized {:?}", self.config);
 
         Ok(())
+    }
+
+    fn key(&self) -> &str {
+        "youtube"
     }
 
     fn match_id(&self, id: String) -> bool {
@@ -313,7 +373,7 @@ impl GenericProvider for YoutubeProvider {
                     "snippet".into(),
                 ])
                 .mine(true)
-                .max_results(3);
+                .max_results(50);
 
             if let Some(next_page) = pagination.token.clone() {
                 builder = builder.page_token(next_page.as_str());
@@ -359,21 +419,17 @@ impl GenericProvider for YoutubeProvider {
 
             let (_, resp) = builder.doit().await?;
             let ret = if let Some(items) = resp.items {
-                println!("Playlist items: {:?}", items);
                 self.fetch_song_details(
                     items
                         .iter()
-                        .map(|f| {
-                            f.snippet
-                                .as_ref()
-                                .map(|s| {
-                                    s.resource_id
-                                        .as_ref()
-                                        .map(|r| r.video_id.as_ref().unwrap())
-                                        .unwrap()
-                                })
-                                .unwrap()
-                                .clone()
+                        .filter_map(|item| {
+                            item.snippet.as_ref().and_then(|id| {
+                                if let Some(video_id) = id.resource_id.as_ref() {
+                                    video_id.video_id.clone()
+                                } else {
+                                    None
+                                }
+                            })
                         })
                         .collect(),
                 )
@@ -382,14 +438,30 @@ impl GenericProvider for YoutubeProvider {
                 vec![]
             };
 
-            println!("got playlist content {:?}", ret);
-
             return Ok((ret, pagination.next_page_wtoken(resp.next_page_token)));
         }
-        Err("API client not initialized".into())
+
+        let continuation = pagination
+            .clone()
+            .token
+            .map(|token| serde_json::from_str::<ContinuationToken>(&token).unwrap());
+
+        let youtube_scraper: State<YoutubeScraper> = self.app.state();
+        let res = youtube_scraper
+            .get_playlist_content(playlist_id, continuation)
+            .await?;
+
+        return Ok((
+            res.songs,
+            pagination.next_page_wtoken(
+                res.nextPageToken
+                    .map(|token| serde_json::to_string(&token).unwrap()),
+            ),
+        ));
     }
 
     async fn get_playback_url(&self, song: Song, player: String) -> Result<String> {
+        // TODO: Search spotify song
         println!("Fetching song for {} player", player);
         if player == "local" {
             let youtube_scraper: State<YoutubeScraper> = self.app.state();
@@ -399,5 +471,69 @@ impl GenericProvider for YoutubeProvider {
         } else {
             return Ok(song.song.url.clone().unwrap());
         }
+    }
+
+    async fn search(&self, term: String) -> Result<SearchResult> {
+        if let Some(api_client) = &self.api_client {
+            let mut songs = vec![];
+
+            let song_details = search_and_parse!(api_client, &term, "video", |item| {
+                item.id.as_ref().and_then(|id| id.video_id.clone())
+            });
+
+            if !song_details.is_empty() {
+                songs.extend(self.fetch_song_details(song_details).await?);
+            }
+
+            let playlists = search_and_parse!(api_client, &term, "playlist", |item| {
+                item.id.as_ref().and_then(|id| {
+                    id.playlist_id.as_ref().map(|playlist_id| {
+                        let snippet = item.snippet.as_ref().unwrap();
+                        let playlist = Playlist {
+                            id: Some(playlist_id.clone()),
+                            snippet: Some(PlaylistSnippet {
+                                description: snippet.description.clone(),
+                                thumbnails: snippet.thumbnails.clone(),
+                                title: snippet.title.clone(),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        };
+                        self.parse_playlist(playlist)
+                    })
+                })
+            });
+
+            let artists = search_and_parse!(api_client, &term, "channel", |item| {
+                item.id.as_ref().and_then(|id| {
+                    id.channel_id.as_ref().map(|channel_id| {
+                        let snippet = item.snippet.as_ref().unwrap();
+                        let channel = Channel {
+                            id: Some(channel_id.clone()),
+                            snippet: Some(ChannelSnippet {
+                                description: snippet.description.clone(),
+                                thumbnails: snippet.thumbnails.clone(),
+                                title: snippet.title.clone(),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        };
+                        self.parse_channel(channel)
+                    })
+                })
+            });
+
+            return Ok(SearchResult {
+                songs,
+                playlists,
+                artists,
+                ..Default::default()
+            });
+        }
+
+        Err(MoosyncError::String("TODO".into()))
+
+        // let youtube_scraper: State<YoutubeScraper> = self.app.state();
+        // return youtube_scraper.search(term).await;
     }
 }

@@ -46,7 +46,7 @@ use {
         open_file_browser, open_window, restart_app, toggle_dev_tools, toggle_fullscreen,
         update_zoom,
     },
-    youtube::{get_playlist_content, get_video_url, get_youtube_scraper_state, search_yt},
+    youtube::get_youtube_scraper_state,
 };
 
 use crate::oauth::handler::{register_oauth_path, unregister_oauth_path};
@@ -126,10 +126,6 @@ pub fn run() {
             toggle_dev_tools,
             restart_app,
             open_file_browser,
-            // Youtube
-            search_yt,
-            get_video_url,
-            get_playlist_content,
             // Scanner
             start_scan,
             // Librespot

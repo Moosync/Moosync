@@ -267,7 +267,7 @@ impl SearchByTerm for QueryablePlaylist {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Default, Clone)]
 pub struct SearchResult {
     pub songs: Vec<Song>,
     pub artists: Vec<QueryableArtist>,

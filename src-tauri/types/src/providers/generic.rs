@@ -1,4 +1,8 @@
-use crate::{entities::QueryablePlaylist, errors::errors::Result, songs::Song};
+use crate::{
+    entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist, SearchResult},
+    errors::errors::Result,
+    songs::Song,
+};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
@@ -86,4 +90,6 @@ pub trait GenericProvider: std::fmt::Debug + Send {
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)>;
     async fn get_playback_url(&self, song: Song, player: String) -> Result<String>;
+
+    async fn search(&self, term: String) -> Result<SearchResult>;
 }

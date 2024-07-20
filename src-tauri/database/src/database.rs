@@ -14,7 +14,7 @@ use macros::{filter_field, filter_field_like};
 use serde_json::Value;
 use uuid::Uuid;
 
-use types::entities::{Analytics, EntityInfo, PlaylistBridge};
+use types::entities::{Analytics, EntityInfo, PlaylistBridge, SearchResult};
 use types::errors::errors::{MoosyncError, Result};
 use types::schema::analytics::dsl::analytics;
 use types::schema::playlists::dsl::playlists;
@@ -35,7 +35,7 @@ use types::{
     {
         entities::{
             AlbumBridge, ArtistBridge, GenreBridge, GetEntityOptions, QueryableAlbum,
-            QueryableArtist, QueryableGenre, QueryablePlaylist, SearchResult,
+            QueryableArtist, QueryableGenre, QueryablePlaylist,
         },
         songs::{GetSongOptions, QueryableSong, Song},
     },

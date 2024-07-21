@@ -16,8 +16,6 @@ pub struct Client {
     pub utc_offset_minutes: i32,
 }
 
-struct YoutubePage {}
-
 pub fn parse_body(body: &str) -> (Option<Root>, Option<String>, Context) {
     let json = json_after(body, "window[\"ytInitialData\"] = ")
         .or(json_after(body, "var ytInitialData = "));

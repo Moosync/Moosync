@@ -1,5 +1,5 @@
 use crate::{
-    entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist, SearchResult},
+    entities::{QueryablePlaylist, SearchResult},
     errors::errors::Result,
     songs::Song,
 };

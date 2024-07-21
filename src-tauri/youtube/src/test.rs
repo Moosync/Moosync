@@ -19,14 +19,14 @@ async fn test_youtube_playlist_content() {
         res.songs.clone().len()
     );
 
-    let mut continuation = res.nextPageToken.clone();
+    let mut continuation = res.next_page_token.clone();
     loop {
         let res1 = scraper
             .get_playlist_content("UCsRM0YB_dabtEPGPTKo-gcw".to_string(), continuation.clone())
             .await
             .unwrap();
 
-        continuation.clone_from(&res1.nextPageToken);
+        continuation.clone_from(&res1.next_page_token);
 
         println!(
             "{:?}",
@@ -36,7 +36,7 @@ async fn test_youtube_playlist_content() {
                 .collect::<Vec<String>>()
         );
 
-        if res1.nextPageToken.is_none() {
+        if res1.next_page_token.is_none() {
             println!("Breaking loop");
             break;
         }

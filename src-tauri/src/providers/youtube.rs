@@ -1,42 +1,28 @@
 use async_trait::async_trait;
-use google_youtube3::api::{
-    Channel, ChannelSnippet, Playlist, PlaylistItem, PlaylistListResponse, PlaylistSnippet, Video,
-};
+use google_youtube3::api::{Channel, ChannelSnippet, Playlist, PlaylistSnippet, Video};
 use google_youtube3::hyper::client::HttpConnector;
 use google_youtube3::hyper_rustls::HttpsConnector;
 use google_youtube3::{hyper, hyper_rustls, YouTube};
-use iso8601::DateTime;
 use oauth2::basic::BasicClient;
-use oauth2::reqwest::async_http_client;
 use oauth2::{
-    AuthType, AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
-    PkceCodeVerifier, RedirectUrl, Scope, TokenResponse, TokenUrl,
+    AuthUrl, ClientId, ClientSecret, CsrfToken, PkceCodeVerifier, RedirectUrl, TokenResponse,
+    TokenUrl,
 };
 use preferences::preferences::PreferenceConfig;
-use rspotify::clients::pagination;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::collections::HashMap;
-use std::{
-    collections::HashSet,
-    time::{SystemTime, UNIX_EPOCH},
-};
 use tauri::{AppHandle, Manager, State};
 use types::entities::{
     EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult,
 };
 use types::errors::errors::{MoosyncError, Result};
-use types::oauth::OAuthTokenResponse;
 use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::{QueryableSong, Song, SongType};
 use types::{oauth::OAuth2Client, providers::generic::GenericProvider};
-use url::Url;
 use youtube::types::ContinuationToken;
 use youtube::youtube::YoutubeScraper;
 
-use crate::window::handler::WindowHandler;
-
-use super::common::{authorize, login, refresh_login, set_tokens, LoginArgs, TokenHolder};
+use super::common::{authorize, login, refresh_login, LoginArgs, TokenHolder};
 
 macro_rules! search_and_parse {
     ($client:expr, $term:expr, $type:expr, $process_fn:expr) => {{
@@ -340,7 +326,7 @@ impl GenericProvider for YoutubeProvider {
 
             let mut username = Some("".to_string());
             if let Some(items) = user_info.items {
-                let channel = items.get(0).unwrap();
+                let channel = items.first().unwrap();
                 if let Some(snippet) = &channel.snippet {
                     username = snippet.title.clone();
                 }
@@ -454,7 +440,7 @@ impl GenericProvider for YoutubeProvider {
         return Ok((
             res.songs,
             pagination.next_page_wtoken(
-                res.nextPageToken
+                res.next_page_token
                     .map(|token| serde_json::to_string(&token).unwrap()),
             ),
         ));

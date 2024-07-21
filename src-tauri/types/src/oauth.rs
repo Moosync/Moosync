@@ -1,10 +1,6 @@
 use oauth2::{
-    basic::{BasicClient, BasicErrorResponseType, BasicTokenType},
-    reqwest::async_http_client,
-    AuthUrl, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken, EmptyExtraTokenFields,
-    PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken, RevocationErrorResponseType,
-    Scope, StandardErrorResponse, StandardRevocableToken, StandardTokenIntrospectionResponse,
-    StandardTokenResponse, TokenResponse, TokenUrl,
+    basic::{BasicErrorResponseType, BasicTokenType}, Client, CsrfToken, EmptyExtraTokenFields, RevocationErrorResponseType, StandardErrorResponse, StandardRevocableToken, StandardTokenIntrospectionResponse,
+    StandardTokenResponse,
 };
 
 pub type OAuthTokenResponse = StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>;

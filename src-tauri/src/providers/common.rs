@@ -7,7 +7,6 @@ use oauth2::{AuthorizationCode, CsrfToken, PkceCodeChallenge, RefreshToken, Scop
 use preferences::preferences::PreferenceConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tauri::ipc::IpcResponse;
 use tauri::{AppHandle, Manager, State};
 use types::errors::errors::{MoosyncError, Result};
 use types::oauth::{OAuth2Client, OAuth2Verifier, OAuthTokenResponse};

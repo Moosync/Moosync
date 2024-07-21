@@ -6,7 +6,7 @@ use types::songs::Song;
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct PlaylistResponse {
     pub songs: Vec<Song>,
-    pub nextPageToken: Option<ContinuationToken>,
+    pub next_page_token: Option<ContinuationToken>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -2235,7 +2235,7 @@ pub struct Section {
 #[serde(rename_all = "camelCase")]
 pub struct HotkeyDialogSectionRenderer {
     pub title: Title6,
-    pub Option: Option<Vec<Options>>,
+    pub selection_option: Option<Vec<Options>>,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]

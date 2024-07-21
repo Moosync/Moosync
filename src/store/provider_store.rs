@@ -1,6 +1,6 @@
-use std::{collections::HashMap, fmt::Debug, rc::Rc, sync::Mutex};
+use std::fmt::Debug;
 
-use leptos::{spawn_local, RwSignal, SignalGet, SignalSet, SignalUpdate, SignalUpdateUntracked};
+use leptos::{spawn_local, RwSignal, SignalGet, SignalSet, SignalUpdate};
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
 use types::entities::QueryablePlaylist;
@@ -85,11 +85,11 @@ impl ProviderStore {
             id: String,
         }
         let res = invoke("get_provider_key_by_id", to_value(&Args { id }).unwrap()).await;
-        return Ok(from_value(res)?);
+        Ok(from_value(res)?)
     }
 
     pub fn get_provider_keys(&self) -> Vec<String> {
-        return self.keys.get();
+        self.keys.get()
     }
 
     generate_async_functions!(

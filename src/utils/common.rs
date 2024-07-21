@@ -62,10 +62,6 @@ pub async fn get_blob_url(src: String) -> String {
     res.as_string().unwrap()
 }
 
-pub fn create_yt_player(element: &str) -> JsValue {
-    createYTPlayer(element)
-}
-
 pub fn get_low_img(song: &Song) -> String {
     if let Some(cover) = &song.song.song_cover_path_low {
         return convert_file_src(cover.to_string());

@@ -1,4 +1,3 @@
-use std::{borrow::Borrow, cell::RefCell, rc::Rc};
 
 use leptos::{
     create_node_ref,
@@ -90,7 +89,7 @@ impl LocalPlayer {
 
 impl GenericPlayer for LocalPlayer {
     fn initialize(&self, player_container: NodeRef<Div>) {
-        let node_ref = self.node_ref.clone();
+        let node_ref = self.node_ref;
         player_container.on_load(move |elem| {
             let audio_elem = node_ref.get().unwrap();
             if let Err(e) = elem.append_child(&audio_elem) {
@@ -176,6 +175,6 @@ impl GenericPlayer for LocalPlayer {
                 || playback_url.starts_with("asset");
         }
 
-        return false;
+        false
     }
 }

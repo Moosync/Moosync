@@ -1,18 +1,10 @@
-use std::{
-    collections::HashSet,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::collections::HashSet;
 
 use async_trait::async_trait;
 
 use chrono::{DateTime, TimeDelta};
 use oauth2::{
-    basic::{BasicClient, BasicErrorResponseType, BasicTokenType},
-    reqwest::async_http_client,
-    AuthUrl, AuthorizationCode, Client, ClientId, ClientSecret, CsrfToken, EmptyExtraTokenFields,
-    PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, RefreshToken, RevocationErrorResponseType,
-    Scope, StandardErrorResponse, StandardRevocableToken, StandardTokenIntrospectionResponse,
-    StandardTokenResponse, TokenResponse, TokenUrl,
+    CsrfToken, PkceCodeVerifier, TokenResponse,
 };
 use preferences::preferences::PreferenceConfig;
 use rspotify::{
@@ -24,22 +16,19 @@ use rspotify::{
     AuthCodePkceSpotify, Token,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
 use types::{
     entities::{EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
     errors::errors::Result,
-    oauth::{OAuth2Client, OAuthTokenResponse},
+    oauth::OAuth2Client,
     providers::generic::{Pagination, ProviderStatus},
     songs::{QueryableSong, Song, SongType},
 };
 use types::{errors::errors::MoosyncError, providers::generic::GenericProvider};
-use url::Url;
 
-use crate::window::handler::WindowHandler;
 
 use super::common::{
-    authorize, get_oauth_client, login, refresh_login, set_tokens, LoginArgs, OAuthClientArgs,
+    authorize, get_oauth_client, login, refresh_login, LoginArgs, OAuthClientArgs,
     TokenHolder,
 };
 

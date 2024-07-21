@@ -1,6 +1,6 @@
 use leptos::{
     component, create_read_slice, create_write_slice, expect_context, view, IntoView, RwSignal,
-    SignalGet, SignalSet,
+    SignalGet,
 };
 use leptos_virtual_scroller::VirtualScroller;
 use types::songs::Song;

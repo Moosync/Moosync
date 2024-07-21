@@ -1,4 +1,4 @@
-use leptos::{html::Div, HtmlElement, NodeRef};
+use leptos::{html::Div, NodeRef};
 use tokio::sync::{mpsc::Sender, oneshot::Sender as OneShotSender};
 use types::{
     errors::errors::Result,

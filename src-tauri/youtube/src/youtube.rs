@@ -118,7 +118,7 @@ impl YoutubeScraper {
     ) -> Result<PlaylistResponse> {
         if continuation.continuation.is_none() {
             return Ok(PlaylistResponse {
-                nextPageToken: None,
+                next_page_token: None,
                 songs: vec![],
             });
         }
@@ -176,7 +176,7 @@ impl YoutubeScraper {
                 }
                 return Ok(PlaylistResponse {
                     songs: data,
-                    nextPageToken: Some(ContinuationToken {
+                    next_page_token: Some(ContinuationToken {
                         continuation: continuation_token,
                         api_key: Some(api_key),
                         context,
@@ -378,7 +378,7 @@ impl YoutubeScraper {
 
                             return Ok(PlaylistResponse {
                                 songs: data,
-                                nextPageToken: Some(ContinuationToken {
+                                next_page_token: Some(ContinuationToken {
                                     continuation: continuation_token,
                                     api_key,
                                     context,

@@ -16,8 +16,8 @@ use std::{
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
 use interprocess::local_socket::{
-    traits::ListenerExt, GenericFilePath, GenericNamespaced, Listener as LocalSocketListener,
-    ListenerOptions, ToFsName, ToNsName,
+    traits::ListenerExt, GenericFilePath,
+    ListenerOptions, ToFsName,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

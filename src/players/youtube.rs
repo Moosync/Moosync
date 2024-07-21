@@ -2,13 +2,13 @@ use std::{cell::RefCell, rc::Rc};
 
 use leptos::{
     html::{div, Div},
-    NodeRef, RwSignal,
+    NodeRef,
 };
 use regex::bytes::Regex;
 use tokio::sync::oneshot::Sender as OneShotSender;
 use types::errors::errors::Result;
 use types::{errors::errors::MoosyncError, songs::SongType, ui::player_details::PlayerEvents};
-use wasm_bindgen::{closure::Closure, JsValue};
+use wasm_bindgen::closure::Closure;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{console_log, utils::yt_player::YTPlayer};

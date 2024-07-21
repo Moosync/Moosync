@@ -1,5 +1,4 @@
 use std::{
-    fmt::Debug,
     rc::Rc,
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -19,8 +18,7 @@ use types::{
 
 use leptos::{
     component, create_effect, create_node_ref, create_read_slice, create_slice, create_write_slice,
-    html::{div, Div},
-    spawn_local, use_context, view, HtmlElement, IntoView, NodeRef, RwSignal, SignalGet,
+    html::Div, spawn_local, use_context, view, IntoView, NodeRef, RwSignal, SignalGet,
     SignalGetUntracked,
 };
 
@@ -28,7 +26,6 @@ use crate::{
     console_log,
     players::{generic::GenericPlayer, local::LocalPlayer, youtube::YoutubePlayer},
     store::{player_store::PlayerStore, provider_store::ProviderStore},
-    utils::common::convert_file_src,
 };
 
 pub struct PlayerHolder {
@@ -78,10 +75,10 @@ impl PlayerHolder {
         let players = self.players.lock().unwrap();
         let player = players
             .iter()
-            .position(|p| p.provides().contains(&song.song.type_) && p.can_play(&song));
+            .position(|p| p.provides().contains(&song.song.type_) && p.can_play(song));
 
-        if player.is_some() {
-            return Ok((player.unwrap(), None));
+        if let Some(player) = player {
+            return Ok((player, None));
         }
 
         if player.is_none() {

@@ -13,21 +13,19 @@ pub fn ModalManager() -> impl IntoView {
 
     view! {
         <div>
-        {move || {
-        let active_modal = modal_store.get().active_modal;
-        if active_modal.is_none() {
-            return view! {}.into_view();
-        }
+            {move || {
+                let active_modal = modal_store.get().active_modal;
+                if active_modal.is_none() {
+                    return view! {}.into_view();
+                }
+                let ret = match active_modal.unwrap() {
+                    Modals::LoginModal(key) => view! { <LoginModal key=key/> },
+                }
+                    .into_view();
+                modal_store.update_untracked(move |m| m.clear_active_modal());
+                ret
+            }}
 
-        let ret = match active_modal.unwrap() {
-            Modals::LoginModal(key) => view! { <LoginModal key=key/> },
-        }
-        .into_view();
-
-        modal_store.update_untracked(move |m| m.clear_active_modal());
-
-        ret
-    }
-        } </div>
+        </div>
     }
 }

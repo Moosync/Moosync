@@ -67,6 +67,7 @@ pub fn AllArtists() -> impl IntoView {
                             }
                         }
                     />
+
                 </div>
             </div>
         </div>

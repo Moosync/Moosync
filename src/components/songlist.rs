@@ -60,7 +60,9 @@ pub fn SongListItem(
                     </div>
                 </div>
 
-                <div class="col-auto offset-1 align-self-center ml-auto timestamp">{format_duration(song.song.duration.unwrap_or(-1f64))}</div>
+                <div class="col-auto offset-1 align-self-center ml-auto timestamp">
+                    {format_duration(song.song.duration.unwrap_or(-1f64))}
+                </div>
 
                 <div class="col-auto align-self-center button-icon ml-5">
                     <AddToQueueIcon title="test".to_string()/>

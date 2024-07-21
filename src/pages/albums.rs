@@ -66,6 +66,7 @@ pub fn AllAlbums() -> impl IntoView {
                             }
                         }
                     />
+
                 </div>
             </div>
         </div>

@@ -5,7 +5,7 @@ use database::cache::CacheHolder;
 use macros::{generate_command, generate_command_async, generate_command_async_cached};
 use tauri::{AppHandle, State};
 use types::{
-    entities::QueryablePlaylist,
+    entities::{QueryablePlaylist, SearchResult},
     errors::errors::{MoosyncError, Result},
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
@@ -158,6 +158,13 @@ impl ProviderHandler {
             },
             result_type: String,
             method_name: get_playback_url,
+        },
+        provider_search {
+            args: {
+                term: String
+            },
+            result_type: SearchResult,
+            method_name: search,
         }
     );
 }
@@ -175,3 +182,4 @@ generate_command_async!(fetch_user_details, ProviderHandler, ProviderStatus, key
 generate_command_async_cached!(fetch_user_playlists, ProviderHandler, (Vec<QueryablePlaylist>, Pagination), key: String, pagination: Pagination);
 generate_command_async_cached!(fetch_playlist_content, ProviderHandler, (Vec<Song>, Pagination), key: String, playlist_id: String, pagination: Pagination);
 generate_command_async_cached!(fetch_playback_url, ProviderHandler, String, key: String, song: Song, player: String);
+generate_command_async_cached!(provider_search, ProviderHandler, SearchResult, key: String, term: String);

@@ -1,8 +1,11 @@
-use leptos::{component, view, IntoView};
+use leptos::{component, view, IntoView, SignalGet};
+use leptos_router::A;
+use leptos_virtual_scroller::VirtualGridScroller;
 
 pub struct SimplifiedCardItem {
     pub title: String,
     pub cover: Option<String>,
+    pub id: String,
 }
 
 #[component()]
@@ -22,5 +25,28 @@ pub fn CardItem(#[prop()] item: SimplifiedCardItem) -> impl IntoView {
                 <p class="card-title text-truncate">{item.title}</p>
             </div>
         </div>
+    }
+}
+
+#[component()]
+pub fn CardView<T, S, C>(#[prop()] items: S, #[prop()] card_item: C) -> impl IntoView
+where
+    C: Fn((usize, &T)) -> SimplifiedCardItem + 'static,
+    S: SignalGet<Value = Vec<T>> + Copy + 'static,
+{
+    view! {
+        <VirtualGridScroller
+            each=items
+            item_width=275
+            item_height=275
+            children=move |data| {
+                let data = card_item(data);
+                view! {
+                    <A href=data.id.clone()>
+                        <CardItem item=data/>
+                    </A>
+                }
+            }
+        />
     }
 }

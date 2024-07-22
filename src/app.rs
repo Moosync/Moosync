@@ -11,6 +11,7 @@ use crate::{
         artists::{AllArtists, SingleArtist},
         genres::{AllGenres, SingleGenre},
         playlists::{AllPlaylists, SinglePlaylist},
+        search::Search,
         songs::AllSongs,
     },
     store::{modal_store::ModalStore, player_store::PlayerStore, provider_store::ProviderStore},
@@ -41,6 +42,7 @@ pub fn App() -> impl IntoView {
                             <Route path="/albums/:id" view=SingleAlbum/>
                             <Route path="/genres" view=AllGenres/>
                             <Route path="/genres/:id" view=SingleGenre/>
+                            <Route path="/search" view=Search/>
                         </Routes>
                     </div>
                 </div>

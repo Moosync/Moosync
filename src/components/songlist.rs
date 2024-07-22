@@ -3,7 +3,7 @@ use leptos::{
     ev::{keydown, keyup},
     event_target_value,
     html::Input,
-    use_context, view, window_event_listener, HtmlElement, IntoView, ReadSignal, RwSignal,
+    use_context, view, window_event_listener, HtmlElement, IntoView, ReadSignal, RwSignal, Show,
     SignalGet, SignalSet, SignalUpdate,
 };
 use leptos_virtual_scroller::VirtualScroller;
@@ -80,6 +80,8 @@ pub fn SongListItem(
 pub fn SongList(
     #[prop()] song_list: ReadSignal<Vec<Song>>,
     #[prop()] selected_songs_sig: RwSignal<Vec<usize>>,
+    #[prop(default = false)] expand: bool,
+    #[prop(default = false)] hide_search_bar: bool,
 ) -> impl IntoView {
     let is_ctrl_pressed = create_rw_signal(false);
     let is_shift_pressed = create_rw_signal(false);
@@ -150,9 +152,15 @@ pub fn SongList(
     };
 
     view! {
-        <div class="col-xl-9 col-8 h-100 song-list-compact">
+        <div class=move || if !expand {
+            "col-xl-9 col-8 h-100 song-list-compact"
+        } else {
+            "col h-100 song-list-compact"
+        }>
             <div class="d-flex h-100 w-100">
                 <div class="container-fluid">
+
+                <Show when=move || hide_search_bar fallback=move || view!{
                     <div class="container-fluid tab-carousel">
                         <div class="row no-gutters">
                             <div class="col song-header-options w-100">
@@ -199,6 +207,10 @@ pub fn SongList(
                             </div>
                         </div>
                     </div>
+                }>
+                <div></div>
+                </Show>
+
 
                     <div class="row no-gutters h-100">
                         <div

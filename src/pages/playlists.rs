@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::components::cardview::{CardItem, SimplifiedCardItem};
+use crate::components::cardview::{CardItem, CardView, SimplifiedCardItem};
 use crate::components::songview::SongView;
 use crate::console_log;
 use crate::utils::common::fetch_infinite;
@@ -95,25 +95,17 @@ pub fn AllPlaylists() -> impl IntoView {
                     class="row no-gutters w-100 flex-grow-1"
                     style="align-items: flex-start; height: 70%"
                 >
-                    <VirtualGridScroller
-                        each=playlists
-                        item_width=275
-                        item_height=275
-                        children=move |(_, item)| {
-                            let playlist_name = item.playlist_name.clone();
-                            let playlist_coverpath = item.playlist_coverpath.clone();
-                            let playlist_id = item.playlist_id.clone().unwrap_or_default();
-                            view! {
-                                <A href=playlist_id>
-                                    <CardItem item=SimplifiedCardItem {
-                                        title: playlist_name,
-                                        cover: playlist_coverpath,
-                                    }/>
-                                </A>
-                            }
-                        }
-                    />
+                <CardView items=playlists card_item=move |(_, item)| {
+                    let playlist_name = item.playlist_name.clone();
+                    let playlist_coverpath = item.playlist_coverpath.clone();
+                    let playlist_id = item.playlist_id.clone().unwrap_or_default();
 
+                    SimplifiedCardItem {
+                        title: playlist_name,
+                        cover: playlist_coverpath,
+                        id: playlist_id
+                    }
+                } />
                 </div>
             </div>
         </div>

@@ -1,4 +1,4 @@
-use crate::components::cardview::{CardItem, SimplifiedCardItem};
+use crate::components::cardview::{CardItem, CardView, SimplifiedCardItem};
 use crate::components::songview::SongView;
 use crate::utils::db_utils::get_genres_by_option;
 use crate::utils::db_utils::get_songs_by_option;
@@ -48,24 +48,16 @@ pub fn AllGenres() -> impl IntoView {
                     class="row no-gutters w-100 flex-grow-1"
                     style="align-items: flex-start; height: 70%"
                 >
-                    <VirtualGridScroller
-                        each=genres
-                        item_width=275
-                        item_height=275
-                        children=move |(_, item)| {
-                            let genre_name = item.genre_name.clone().unwrap_or_default();
-                            let genre_id = item.genre_id.clone().unwrap_or_default();
-                            view! {
-                                <A href=genre_id>
-                                    <CardItem item=SimplifiedCardItem {
-                                        title: genre_name,
-                                        cover: None,
-                                    }/>
-                                </A>
-                            }
-                        }
-                    />
+                <CardView items=genres card_item=move |(_, item)| {
+                    let genre_name = item.genre_name.clone().unwrap_or_default();
+                    let genre_id = item.genre_id.clone().unwrap_or_default();
 
+                    SimplifiedCardItem {
+                        title: genre_name,
+                        cover: None,
+                        id: genre_id
+                    }
+                } />
                 </div>
             </div>
         </div>

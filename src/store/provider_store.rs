@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use leptos::{spawn_local, RwSignal, SignalGet, SignalSet, SignalUpdate};
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
-use types::entities::QueryablePlaylist;
+use types::entities::{QueryablePlaylist, SearchResult};
 use types::errors::errors::Result;
 use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::Song;
@@ -124,6 +124,12 @@ impl ProviderStore {
                 player: String
             },
             result_type: String,
+        },
+        provider_search {
+            args: {
+                term: String
+            },
+            result_type: SearchResult,
         }
     );
 }

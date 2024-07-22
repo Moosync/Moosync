@@ -1,4 +1,4 @@
-use crate::components::cardview::{CardItem, SimplifiedCardItem};
+use crate::components::cardview::{CardItem, CardView, SimplifiedCardItem};
 use crate::utils::db_utils::get_artists_by_option;
 use leptos::{component, create_rw_signal, view, IntoView, SignalWith};
 use leptos_router::use_params_map;
@@ -49,25 +49,17 @@ pub fn AllArtists() -> impl IntoView {
                     class="row no-gutters w-100 flex-grow-1"
                     style="align-items: flex-start; height: 70%"
                 >
-                    <VirtualGridScroller
-                        each=artists
-                        item_width=275
-                        item_height=275
-                        children=move |(_, item)| {
-                            let artist_name = item.artist_name.clone().unwrap_or_default();
-                            let artist_coverpath = item.artist_coverpath.clone();
-                            let artist_id = item.artist_id.clone().unwrap_or_default();
-                            view! {
-                                <A href=artist_id>
-                                    <CardItem item=SimplifiedCardItem {
-                                        title: artist_name,
-                                        cover: artist_coverpath,
-                                    }/>
-                                </A>
-                            }
-                        }
-                    />
+                    <CardView items=artists card_item=move |(_, item)| {
+                        let artist_name = item.artist_name.clone().unwrap_or_default();
+                        let artist_coverpath = item.artist_coverpath.clone();
+                        let artist_id = item.artist_id.clone().unwrap_or_default();
 
+                        SimplifiedCardItem {
+                            title: artist_name,
+                            cover: artist_coverpath,
+                            id: artist_id
+                        }
+                    } />
                 </div>
             </div>
         </div>

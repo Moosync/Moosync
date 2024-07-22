@@ -9,6 +9,7 @@ dependencies = [
  "async-channel",
  "async-trait",
  "chrono",
+ "colors-transform",
  "console_error_panic_hook",
  "futures",
  "js-sys",
@@ -1316,6 +1317,12 @@ dependencies = [
  "lazy_static",
  "windows-sys 0.48.0",
 ]
+
+[[package]]
+name = "colors-transform"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9226dbc05df4fb986f48d730b001532580883c4c06c5d1c213f4b34c1c157178"
 
 [[package]]
 name = "combine"

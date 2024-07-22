@@ -9,6 +9,7 @@ use types::{
     entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist},
     songs::{GetSongOptions, SearchableSong, Song},
 };
+use web_sys::SubmitEvent;
 
 use crate::{
     components::low_img::LowImg,
@@ -116,6 +117,7 @@ pub fn Accounts() -> impl IntoView {
 #[component]
 pub fn TopBar() -> impl IntoView {
     let show_searchbar = create_rw_signal(false);
+    let input_value = create_rw_signal("".to_string());
     let results = create_rw_signal(vec![]);
     let handle_input_focus = move |focus: InputFocus| match focus {
         InputFocus::Focus => {
@@ -131,8 +133,16 @@ pub fn TopBar() -> impl IntoView {
         }
     });
 
+    let handle_page_change = move |ev: SubmitEvent| {
+        ev.prevent_default();
+        let text = input_value.get();
+        let navigate = leptos_router::use_navigate();
+        navigate(format!("/search?q={}", text).as_str(), Default::default());
+    };
+
     let handle_text_change = move |ev: Event| {
         let text = event_target_value(&ev);
+        input_value.set(text.clone());
         if text.is_empty() {
             return;
         }
@@ -192,14 +202,17 @@ pub fn TopBar() -> impl IntoView {
                                 <div class="search-icon">
                                     <SearchIcon accent=true/>
                                 </div>
-                                <input
-                                    class="form-control searchbar"
-                                    placeholder="Search..."
+                                <form on:submit=handle_page_change>
+                                    <input
+                                        class="form-control searchbar"
+                                        placeholder="Search..."
 
-                                    on:blur=move |_| handle_input_focus(InputFocus::Blur)
-                                    on:focus=move |_| handle_input_focus(InputFocus::Focus)
-                                    on:input=handle_text_change
-                                />
+                                        on:blur=move |_| handle_input_focus(InputFocus::Blur)
+                                        on:focus=move |_| handle_input_focus(InputFocus::Focus)
+                                        on:input=handle_text_change
+                                    />
+
+                                </form>
                             </div>
 
                             <div

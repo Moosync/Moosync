@@ -8,7 +8,7 @@ use librespot::{
 use macros::{generate_command, generate_command_cached};
 
 use serde_json::Value;
-use tauri::{AppHandle, Manager, State, Window};
+use tauri::{AppHandle, Emitter, Manager, State, Window};
 use types::{
     canvaz::CanvazResponse,
     errors::errors::{MoosyncError, Result},
@@ -79,6 +79,7 @@ pub fn initialize_librespot(
             .unwrap()
             .as_bool()
             .unwrap_or_default(),
+        is_group: false,
     };
 
     let volume_ctrl = config

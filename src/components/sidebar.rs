@@ -85,42 +85,42 @@ pub fn Sidebar() -> impl IntoView {
             AllSongsIcon(AllSongsIconProps {
                 active: active_read_signals[1],
             }),
-            "/".into(),
+            "/main".into(),
         ),
         Tab::new(
             "Playlists".into(),
             PlaylistsIcon(PlaylistsIconProps {
                 active: active_read_signals[2],
             }),
-            "/playlists".into(),
+            "/main/playlists".into(),
         ),
         Tab::new(
             "Artists".into(),
             ArtistsIcon(ArtistsIconProps {
                 active: active_read_signals[3],
             }),
-            "/artists".into(),
+            "/main/artists".into(),
         ),
         Tab::new(
             "Albums".into(),
             AlbumsIcon(AlbumsIconProps {
                 active: active_read_signals[4],
             }),
-            "/albums".into(),
+            "/main/albums".into(),
         ),
         Tab::new(
             "Genres".into(),
             GenresIcon(GenresIconProps {
                 active: active_read_signals[5],
             }),
-            "/genres".into(),
+            "/main/genres".into(),
         ),
         Tab::new(
             "Explore".into(),
             ExploreIcon(ExploreIconProps {
                 active: active_read_signals[6],
             }),
-            "/explore".into(),
+            "/main/explore".into(),
         ),
     ];
 

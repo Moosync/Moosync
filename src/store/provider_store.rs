@@ -18,6 +18,7 @@ pub struct ProviderStore {
     statuses: RwSignal<Vec<RwSignal<ProviderStatus>>>,
 }
 
+#[cfg(not(feature = "mock"))]
 macro_rules! generate_async_functions {
     ($($func_name:ident {
         args: { $($arg_name:ident: $arg_type:ty),* $(,)? },
@@ -45,15 +46,33 @@ macro_rules! generate_async_functions {
     }
 }
 
+#[cfg(feature = "mock")]
+macro_rules! generate_async_functions {
+    ($($func_name:ident {
+        args: { $($arg_name:ident: $arg_type:ty),* $(,)? },
+        result_type: $result_type:ty,
+    }),* $(,)?) => {
+        $(
+            pub async fn $func_name(&self, key: String, $($arg_name: $arg_type),*) -> Result<$result_type> {
+                Ok(Default::default())
+            }
+        )*
+    }
+}
+
 impl ProviderStore {
     pub fn new() -> Self {
         console_log!("Creating provider store");
         let store = Self::default();
         spawn_local(async move {
             console_log!("Initializing providers");
-            invoke("initialize_all_providers", JsValue::undefined()).await;
-            let provider_keys = invoke("get_provider_keys", JsValue::undefined()).await;
-            store.keys.set(from_value(provider_keys).unwrap());
+
+            #[cfg(not(feature = "mock"))]
+            {
+                invoke("initialize_all_providers", JsValue::undefined()).await;
+                let provider_keys = invoke("get_provider_keys", JsValue::undefined()).await;
+                store.keys.set(from_value(provider_keys).unwrap());
+            }
         });
 
         store.statuses.update(|statuses| {

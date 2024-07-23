@@ -25,10 +25,7 @@ macro_rules! listen_event {
                 let val: Result<PlayerEvents> = $handler(data);
                 match val {
                     Ok(val) => {
-                        let res = tx.send(val).await;
-                        if let Err(res) = res {
-                            console_log!("Error sending event: {:?}", res);
-                        }
+                        tx(val);
                     }
                     Err(e) => {
                         console_log!("Error sending event: {:?}", e);
@@ -67,6 +64,7 @@ impl GenericPlayer for YoutubePlayer {
             container_div.set_id("yt-player");
             elem.append_child(&container_div).unwrap();
         });
+        console_log!("Returning from YoutubePlayer initialize")
     }
 
     fn key(&self) -> String {
@@ -115,10 +113,7 @@ impl GenericPlayer for YoutubePlayer {
         Ok(self.player.getVolume())
     }
 
-    fn add_listeners(
-        &mut self,
-        tx: tokio::sync::mpsc::Sender<types::ui::player_details::PlayerEvents>,
-    ) {
+    fn add_listeners(&mut self, tx: Rc<Box<dyn Fn(PlayerEvents)>>) {
         listen_event!(self, tx.clone(), "stateChange", f64, |state| {
             console_log!("Youtube player Emitting {}", state);
             match state {

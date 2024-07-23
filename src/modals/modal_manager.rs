@@ -19,7 +19,7 @@ pub fn ModalManager() -> impl IntoView {
                     return view! {}.into_view();
                 }
                 let ret = match active_modal.unwrap() {
-                    Modals::LoginModal(key) => view! { <LoginModal key=key/> },
+                    Modals::LoginModal(key) => view! { <LoginModal key=key /> },
                 }
                     .into_view();
                 modal_store.update_untracked(move |m| m.clear_active_modal());

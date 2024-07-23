@@ -57,7 +57,7 @@ pub fn SinglePlaylist() -> impl IntoView {
         songs,
     );
 
-    view! { <SongView songs=songs/> }
+    view! { <SongView songs=songs /> }
 }
 
 #[component()]
@@ -85,7 +85,7 @@ pub fn AllPlaylists() -> impl IntoView {
 
                     <div class="col-auto">Playlists</div>
                     <div class="col-auto button-grow playlists-plus-icon">
-                        <PlusIcon/>
+                        <PlusIcon />
                     </div>
 
                     <div class="col align-self-center"></div>
@@ -95,17 +95,19 @@ pub fn AllPlaylists() -> impl IntoView {
                     class="row no-gutters w-100 flex-grow-1"
                     style="align-items: flex-start; height: 70%"
                 >
-                <CardView items=playlists card_item=move |(_, item)| {
-                    let playlist_name = item.playlist_name.clone();
-                    let playlist_coverpath = item.playlist_coverpath.clone();
-                    let playlist_id = item.playlist_id.clone().unwrap_or_default();
-
-                    SimplifiedCardItem {
-                        title: playlist_name,
-                        cover: playlist_coverpath,
-                        id: playlist_id
-                    }
-                } />
+                    <CardView
+                        items=playlists
+                        card_item=move |(_, item)| {
+                            let playlist_name = item.playlist_name.clone();
+                            let playlist_coverpath = item.playlist_coverpath.clone();
+                            let playlist_id = item.playlist_id.clone().unwrap_or_default();
+                            SimplifiedCardItem {
+                                title: playlist_name,
+                                cover: playlist_coverpath,
+                                id: playlist_id,
+                            }
+                        }
+                    />
                 </div>
             </div>
         </div>

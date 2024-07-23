@@ -42,7 +42,7 @@ pub fn SongListItem(
                             <div class="title text-truncate mr-2">
                                 {song.song.title.unwrap_or_default()}
                             </div>
-                            <ProviderIcon extension=song.song.provider_extension/>
+                            <ProviderIcon extension=song.song.provider_extension />
                         </div>
                     </div>
                     <div class="row no-gutters flex-nowrap">
@@ -65,11 +65,11 @@ pub fn SongListItem(
                 </div>
 
                 <div class="col-auto align-self-center button-icon ml-5">
-                    <AddToQueueIcon title="test".to_string()/>
+                    <AddToQueueIcon title="test".to_string() />
                 </div>
 
                 <div class="col-auto align-self-center ml-5 mr-3 py-2 ellipsis-icon">
-                    <EllipsisIcon/>
+                    <EllipsisIcon />
                 </div>
             </div>
         </div>
@@ -152,65 +152,71 @@ pub fn SongList(
     };
 
     view! {
-        <div class=move || if !expand {
-            "col-xl-9 col-8 h-100 song-list-compact"
-        } else {
-            "col h-100 song-list-compact"
+        <div class=move || {
+            if !expand {
+                "col-xl-9 col-8 h-100 song-list-compact"
+            } else {
+                "col h-100 song-list-compact"
+            }
         }>
             <div class="d-flex h-100 w-100">
                 <div class="container-fluid">
 
-                <Show when=move || hide_search_bar fallback=move || view!{
-                    <div class="container-fluid tab-carousel">
-                        <div class="row no-gutters">
-                            <div class="col song-header-options w-100">
-                                <div class="row no-gutters align-items-center h-100">
-                                    // Sort icons here
-                                    <div class="col-auto ml-auto d-flex">
+                    <Show
+                        when=move || hide_search_bar
+                        fallback=move || {
+                            view! {
+                                <div class="container-fluid tab-carousel">
+                                    <div class="row no-gutters">
+                                        <div class="col song-header-options w-100">
+                                            <div class="row no-gutters align-items-center h-100">
+                                                // Sort icons here
+                                                <div class="col-auto ml-auto d-flex">
 
-                                        {move || {
-                                            if show_searchbar.get() {
-                                                view! {
-                                                    <div class="searchbar-container mr-3">
-                                                        <input
-                                                            ref=searchbar_ref
-                                                            on:input=move |ev| {
-                                                                let text = event_target_value(&ev);
-                                                                if text.is_empty() {
-                                                                    filter.set(None);
-                                                                } else {
-                                                                    filter.set(Some(text));
-                                                                }
+                                                    {move || {
+                                                        if show_searchbar.get() {
+                                                            view! {
+                                                                <div class="searchbar-container mr-3">
+                                                                    <input
+                                                                        ref=searchbar_ref
+                                                                        on:input=move |ev| {
+                                                                            let text = event_target_value(&ev);
+                                                                            if text.is_empty() {
+                                                                                filter.set(None);
+                                                                            } else {
+                                                                                filter.set(Some(text));
+                                                                            }
+                                                                        }
+
+                                                                        type="text"
+                                                                        class="searchbar"
+                                                                        placeholder="search"
+                                                                    />
+                                                                </div>
                                                             }
-
-                                                            type="text"
-                                                            class="searchbar"
-                                                            placeholder="search"
-                                                        />
+                                                                .into_view()
+                                                        } else {
+                                                            view! {}.into_view()
+                                                        }
+                                                    }}
+                                                    <div
+                                                        class="mr-3 align-self-center"
+                                                        on:click=move |_| show_searchbar.set(!show_searchbar.get())
+                                                    >
+                                                        <SearchIcon accent=false />
+                                                    </div> <div class="align-self-center">
+                                                        <SortIcon />
                                                     </div>
-                                                }
-                                                    .into_view()
-                                            } else {
-                                                view! {}.into_view()
-                                            }
-                                        }}
-                                        <div
-                                            class="mr-3 align-self-center"
-                                            on:click=move |_| show_searchbar.set(!show_searchbar.get())
-                                        >
-                                            <SearchIcon accent=false/>
-                                        </div> <div class="align-self-center">
-                                            <SortIcon/>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                }>
-                <div></div>
-                </Show>
-
+                            }
+                        }
+                    >
+                        <div></div>
+                    </Show>
 
                     <div class="row no-gutters h-100">
                         <div

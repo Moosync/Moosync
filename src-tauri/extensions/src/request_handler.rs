@@ -4,7 +4,7 @@ use database::database::Database;
 use preferences::preferences::PreferenceConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use types::{
     errors::errors::{MoosyncError, Result},
     songs::{GetSongOptions, SearchableSong, Song},

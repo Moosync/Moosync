@@ -27,9 +27,9 @@ pub fn SongView(#[prop()] songs: RwSignal<Vec<Song>>) -> impl IntoView {
             <div class="container-fluid song-container h-100">
                 <div class="row no-gutters h-100 compact-container">
                     <div class="col-xl-3 col-4 h-100">
-                        <SongDetails selected_song=last_selected_song.read_only()/>
+                        <SongDetails selected_song=last_selected_song.read_only() />
                     </div>
-                    <SongList song_list=songs.read_only() selected_songs_sig=selected_songs/>
+                    <SongList song_list=songs.read_only() selected_songs_sig=selected_songs />
                 </div>
             </div>
 

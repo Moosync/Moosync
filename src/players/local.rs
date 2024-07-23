@@ -1,3 +1,4 @@
+use std::rc::Rc;
 
 use leptos::{
     create_node_ref,
@@ -25,10 +26,10 @@ macro_rules! listen_event {
             let tx = $tx.clone();
             spawn_local(async move {
                 let val = $handler(evt);
-                let res = tx.send(val).await;
-                if let Err(res) = res {
-                    console_log!("Error sending event: {:?}", res);
-                }
+                let res = tx(val);
+                // if let Err(res) = res {
+                //     console_log!("Error sending event: {:?}", res);
+                // }
             });
         });
         $self.listeners.push(Box::new(unlisten));
@@ -38,7 +39,7 @@ macro_rules! listen_event {
 macro_rules! generate_event_listeners {
     ($($method:tt => $event:ident => $handler:expr),*) => {
         $(
-            fn $method(&mut self, tx: Sender<PlayerEvents>) {
+            fn $method(&mut self, tx: Rc<Box<dyn Fn(PlayerEvents)>>) {
                 listen_event!(self, tx, $event, $handler);
             }
         )*
@@ -96,6 +97,7 @@ impl GenericPlayer for LocalPlayer {
                 console_log!("Error initializing local player: {:?}", e);
             }
         });
+        console_log!("Returning from local player initialize")
     }
 
     fn key(&self) -> String {
@@ -154,7 +156,7 @@ impl GenericPlayer for LocalPlayer {
         Ok(self.audio_element.volume())
     }
 
-    fn add_listeners(&mut self, tx: Sender<PlayerEvents>) {
+    fn add_listeners(&mut self, tx: Rc<Box<dyn Fn(PlayerEvents)>>) {
         self.listen_onplay(tx.clone());
         self.listen_onpause(tx.clone());
         self.listen_onended(tx.clone());

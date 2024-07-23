@@ -99,7 +99,7 @@ pub fn LoginModal(#[prop()] key: String) -> impl IntoView {
                                     </div>
                                     <div class="row">
                                         <div class="col">
-                                            <input class="ext-input mt-3" readonly/>
+                                            <input class="ext-input mt-3" readonly />
                                         </div>
                                     </div>
                                     <div class="row">

@@ -27,7 +27,7 @@ pub fn SingleGenre() -> impl IntoView {
         songs,
     );
 
-    view! { <SongView songs=songs/> }
+    view! { <SongView songs=songs /> }
 }
 
 #[component()]
@@ -48,16 +48,18 @@ pub fn AllGenres() -> impl IntoView {
                     class="row no-gutters w-100 flex-grow-1"
                     style="align-items: flex-start; height: 70%"
                 >
-                <CardView items=genres card_item=move |(_, item)| {
-                    let genre_name = item.genre_name.clone().unwrap_or_default();
-                    let genre_id = item.genre_id.clone().unwrap_or_default();
-
-                    SimplifiedCardItem {
-                        title: genre_name,
-                        cover: None,
-                        id: genre_id
-                    }
-                } />
+                    <CardView
+                        items=genres
+                        card_item=move |(_, item)| {
+                            let genre_name = item.genre_name.clone().unwrap_or_default();
+                            let genre_id = item.genre_id.clone().unwrap_or_default();
+                            SimplifiedCardItem {
+                                title: genre_name,
+                                cover: None,
+                                id: genre_id,
+                            }
+                        }
+                    />
                 </div>
             </div>
         </div>

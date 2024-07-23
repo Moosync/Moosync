@@ -4,6 +4,7 @@ use leptos::{
     component, create_effect, create_rw_signal, create_write_slice, ev::Event, event_target_value,
     expect_context, view, CollectView, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
 };
+use leptos_router::use_navigate;
 use leptos_virtual_scroller::VirtualScroller;
 use types::{
     entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist},
@@ -16,6 +17,7 @@ use crate::{
     console_log,
     icons::{
         next_icon::NextIcon, person_icon::PersonIcon, prev_icon::PrevIcon, search_icon::SearchIcon,
+        settings_icon::SettingsIcon,
     },
     store::{
         modal_store::{ModalStore, Modals},
@@ -63,6 +65,19 @@ pub fn SearchResultItem(song: Song) -> impl IntoView {
 }
 
 #[component]
+pub fn Settings(#[prop(optional)] class: &'static str) -> impl IntoView {
+    let navigate = use_navigate();
+    view! {
+        <div class=class>
+            <SettingsIcon on:click=move |_| {
+                console_log!("Navigating to settings");
+                navigate("/prefs", Default::default())
+            } />
+        </div>
+    }
+}
+
+#[component]
 pub fn Accounts() -> impl IntoView {
     let show_accounts_popover = create_rw_signal(false);
     let provider_store = expect_context::<Rc<ProviderStore>>();
@@ -77,7 +92,7 @@ pub fn Accounts() -> impl IntoView {
 
     view! {
         <div>
-            <PersonIcon on:click=move |_| show_accounts_popover.set(!show_accounts_popover.get())/>
+            <PersonIcon on:click=move |_| show_accounts_popover.set(!show_accounts_popover.get()) />
 
             {move || {
                 if show_accounts_popover.get() {
@@ -94,7 +109,7 @@ pub fn Accounts() -> impl IntoView {
                                             view! {
                                                 <div on:click=move |_| show_login_modal(
                                                     status.key.clone(),
-                                                )>{status.name.clone()} - {status.user_name.clone()}</div>
+                                                )>{status.name.clone()}- {status.user_name.clone()}</div>
                                             },
                                         );
                                     }
@@ -184,10 +199,10 @@ pub fn TopBar() -> impl IntoView {
                         // Prev next buttons
                         <div class="row justify-content-between">
                             <div class="col-6">
-                                <PrevIcon/>
+                                <PrevIcon />
                             </div>
                             <div class="col-6">
-                                <NextIcon/>
+                                <NextIcon />
                             </div>
                         </div>
                     </div>
@@ -200,7 +215,7 @@ pub fn TopBar() -> impl IntoView {
                                 class:half-border=move || show_searchbar.get()
                             >
                                 <div class="search-icon">
-                                    <SearchIcon accent=true/>
+                                    <SearchIcon accent=true />
                                 </div>
                                 <form on:submit=handle_page_change>
                                     <input
@@ -224,7 +239,7 @@ pub fn TopBar() -> impl IntoView {
                                         each=results
                                         item_height=95usize
                                         children=move |(_, song)| {
-                                            view! { <SearchResultItem song=song.clone()/> }
+                                            view! { <SearchResultItem song=song.clone() /> }
                                         }
                                     />
 
@@ -236,8 +251,9 @@ pub fn TopBar() -> impl IntoView {
                     // Extra buttons
                     <div class="col-auto pr-5 ml-auto my-auto icons-bar d-flex">
                         <div class="row flex-grow-1">
-                            <div class="col-auto">
-                                <Accounts/>
+                            <div class="col-auto d-flex">
+                                <Accounts />
+                                <Settings class="ml-2" />
                             </div>
                         </div>
                     </div>

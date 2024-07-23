@@ -26,7 +26,7 @@ where
                         }
                             .into_view()
                     } else {
-                        view! { <SongDefaultIcon/> }.into_view()
+                        view! { <SongDefaultIcon /> }.into_view()
                     }
                 }}
                 {if show_play_button {
@@ -35,7 +35,7 @@ where
                             class="play-button-song-list d-flex justify-content-center"
                             on:click=move |_| play_now()
                         >
-                            <PlayHoverIcon/>
+                            <PlayHoverIcon />
                         </div>
                     }
                         .into_view()

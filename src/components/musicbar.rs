@@ -49,7 +49,7 @@ fn Details() -> impl IntoView {
 
                 {move || {
                     let cover_img = cover_img.get();
-                    view! { <LowImg cover_img=cover_img show_play_button=false play_now=|| {}/> }
+                    view! { <LowImg cover_img=cover_img show_play_button=false play_now=|| {} /> }
                 }}
 
             </div>
@@ -143,12 +143,12 @@ pub fn Controls() -> impl IntoView {
     view! {
         <div class="row no-gutters align-items-center justify-content-center">
             <div class="col col-button">
-                <PrevTrackIcon disabled=prev_track_dis.read_only()/>
+                <PrevTrackIcon disabled=prev_track_dis.read_only() />
             </div>
             <div class="col col-button">
 
                 // TODO: Add repeat once icon
-                <RepeatIcon filled=is_repeat.read_only()/>
+                <RepeatIcon filled=is_repeat.read_only() />
             </div>
             <div class="col col-play-button">
                 <PlayIcon
@@ -165,13 +165,13 @@ pub fn Controls() -> impl IntoView {
 
             </div>
             <div class="col col-button">
-                <NextTrackIcon disabled=next_track_dis.read_only()/>
+                <NextTrackIcon disabled=next_track_dis.read_only() />
             </div>
             <div class="col col-button">
-                <ShuffleIcon filled=is_shuffle.read_only()/>
+                <ShuffleIcon filled=is_shuffle.read_only() />
             </div>
             <div class="col col-button mr-1">
-                <FavIcon filled=is_fav.read_only()/>
+                <FavIcon filled=is_fav.read_only() />
             </div>
             <div class="col-md-3 col-5 align-self-center timestamp-container">
                 <div class="row no-gutters align-items-center timestamp">
@@ -223,10 +223,10 @@ where
 
             </div>
             <div class="col-auto">
-                <VolumeIcon cut=is_cut.read_only()/>
+                <VolumeIcon cut=is_cut.read_only() />
             </div>
             <div class="col-auto expand-icon ml-3">
-                <ExpandIcon on:click=move |_| musicinfo_cb()/>
+                <ExpandIcon on:click=move |_| musicinfo_cb() />
             </div>
         </div>
     }
@@ -287,8 +287,7 @@ pub fn Slider() -> impl IntoView {
                                     (current_time.get() / total_time.get()) * 100f64,
                                 )
                             }
-                        >
-                        </div>
+                        ></div>
                         <div
                             class="time-slider-dot"
                             role="slider"
@@ -315,23 +314,23 @@ pub fn MusicBar() -> impl IntoView {
     let show_musicinfo = create_rw_signal(false);
     view! {
         <div class="musicbar-content d-flex">
-            <MusicInfo show=show_musicinfo/>
+            <MusicInfo show=show_musicinfo />
             <div class="background w-100">
                 <div class="musicbar h-100">
-                    <Slider/>
+                    <Slider />
                     <div class="container-fluid d-flex bar-container h-100 pb-2">
                         <div class="row no-gutters align-items-center justify-content-center align-content-center no-gutters w-100 control-row justify-content-between">
                             <div class="col-4 no-gutters details-col w-100">
-                                <Details/>
+                                <Details />
                             </div>
 
                             <div class="col align-self-center no-gutters controls-col">
-                                <Controls/>
+                                <Controls />
                             </div>
                             <div class="col-lg-auto col-1 align-self-center no-gutters extra-col">
                                 <ExtraControls musicinfo_cb=move || {
                                     show_musicinfo.set(!show_musicinfo.get())
-                                }/>
+                                } />
                             </div>
                         </div>
                     </div>

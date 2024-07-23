@@ -27,7 +27,7 @@ use providers::handler::{
     provider_login, provider_search,
 };
 use scanner::{get_scanner_state, start_scan};
-use tauri::{Manager, State};
+use tauri::{Emitter, Listener, Manager, State};
 
 use {
     db::{

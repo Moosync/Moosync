@@ -84,7 +84,7 @@ where
                                             .into_view()
                                     } else {
                                         view! {
-                                            <SongDefaultIcon class="fade-in-image".to_string()/>
+                                            <SongDefaultIcon class="fade-in-image".to_string() />
                                         }
                                             .into_view()
                                     }
@@ -125,16 +125,15 @@ where
                                 let title = selected_title.get();
                                 if let Some(title) = title {
                                     view! {
-                                        <PlainPlayIcon title=title.clone()/>
-                                        <AddToQueueIcon title=title.clone()/>
-                                        <AddToLibraryIcon title=title/>
+                                        <PlainPlayIcon title=title.clone() />
+                                        <AddToQueueIcon title=title.clone() />
+                                        <AddToLibraryIcon title=title />
                                     }
                                         .into_view()
                                 } else {
                                     view! {}.into_view()
                                 }
-                            }}
-                            <RandomIcon/> <FetchAllIcon/>
+                            }} <RandomIcon /> <FetchAllIcon />
                         </div>
                     </div>
                 </div>

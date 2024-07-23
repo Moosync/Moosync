@@ -30,7 +30,7 @@ pub fn QueueItem(#[prop()] song: Song, index: usize) -> impl IntoView {
                 <div class="col-lg-7 col-xl-8 col-5">
                     <div class="d-flex">
                         <div class="text-left song-title text-truncate">{song.song.title}</div>
-                        <ProviderIcon extension=song.song.provider_extension/>
+                        <ProviderIcon extension=song.song.provider_extension />
                     </div>
                     <div class="text-left song-subtitle text-truncate">
                         {song
@@ -45,7 +45,7 @@ pub fn QueueItem(#[prop()] song: Song, index: usize) -> impl IntoView {
                 </div>
                 <div class="col-auto text-right ml-auto d-flex align-items-center">
                     <div class="ml-auto remove-button">
-                        <TrashIcon on:click=move |_| remove_from_queue.set(index)/>
+                        <TrashIcon on:click=move |_| remove_from_queue.set(index) />
                     </div>
                 </div>
             </div>
@@ -73,7 +73,7 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
                         // Close button
                         <div class="col-auto">
                             <div class="cross-icon button-grow">
-                                <CrossIcon/>
+                                <CrossIcon />
                             </div>
                         </div>
                     </div>
@@ -83,10 +83,10 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
                         <div class="col-4">
                             <div class="row no-gutters">
                                 <div class="col position-relative">
-                                    <AudioStream/>
+                                    <AudioStream />
                                 </div>
                             </div>
-                            <SongDetails show_icons=false selected_song=current_song/>
+                            <SongDetails show_icons=false selected_song=current_song />
                         </div>
                         <div class="col-7 offset-1 right-container h-100">
                             <div class="h-100">
@@ -105,7 +105,7 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
                                                 item_height=95usize
                                                 inner_el_style="width: calc(100% - 15px);"
                                                 children=move |(index, song)| {
-                                                    view! { <QueueItem song=song.clone() index=index/> }
+                                                    view! { <QueueItem song=song.clone() index=index /> }
                                                 }
                                             />
 

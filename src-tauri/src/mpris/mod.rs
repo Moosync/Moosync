@@ -3,7 +3,7 @@ use std::thread;
 use macros::generate_command;
 use mpris::MprisHolder;
 use serde_json::{json, Value};
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, State};
 use types::{
     errors::errors::Result,
     mpris::{MprisPlayerDetails, PlaybackState},

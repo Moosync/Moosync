@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use leptos::{html::Div, NodeRef};
 use tokio::sync::{mpsc::Sender, oneshot::Sender as OneShotSender};
 use types::{
@@ -17,5 +19,5 @@ pub trait GenericPlayer: std::fmt::Debug {
     fn can_play(&self, song: &Song) -> bool;
     fn set_volume(&self, volume: f64) -> Result<()>;
     fn get_volume(&self) -> Result<f64>;
-    fn add_listeners(&mut self, tx: Sender<PlayerEvents>);
+    fn add_listeners(&mut self, state_setter: Rc<Box<dyn Fn(PlayerEvents)>>);
 }

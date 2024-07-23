@@ -47,7 +47,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "targets": ["app", "deb", "dmg", "rpm", "msi", "nsis", "updater"],
     "linux": {
       "deb": {
         "desktopTemplate": "./moosync.desktop"

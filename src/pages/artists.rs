@@ -28,7 +28,7 @@ pub fn SingleArtist() -> impl IntoView {
         songs,
     );
 
-    view! { <SongView songs=songs/> }
+    view! { <SongView songs=songs /> }
 }
 
 #[component()]
@@ -49,17 +49,19 @@ pub fn AllArtists() -> impl IntoView {
                     class="row no-gutters w-100 flex-grow-1"
                     style="align-items: flex-start; height: 70%"
                 >
-                    <CardView items=artists card_item=move |(_, item)| {
-                        let artist_name = item.artist_name.clone().unwrap_or_default();
-                        let artist_coverpath = item.artist_coverpath.clone();
-                        let artist_id = item.artist_id.clone().unwrap_or_default();
-
-                        SimplifiedCardItem {
-                            title: artist_name,
-                            cover: artist_coverpath,
-                            id: artist_id
+                    <CardView
+                        items=artists
+                        card_item=move |(_, item)| {
+                            let artist_name = item.artist_name.clone().unwrap_or_default();
+                            let artist_coverpath = item.artist_coverpath.clone();
+                            let artist_id = item.artist_id.clone().unwrap_or_default();
+                            SimplifiedCardItem {
+                                title: artist_name,
+                                cover: artist_coverpath,
+                                id: artist_id,
+                            }
                         }
-                    } />
+                    />
                 </div>
             </div>
         </div>

@@ -1,4 +1,5 @@
 use std::{
+    cell::RefCell,
     rc::Rc,
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -32,24 +33,21 @@ pub struct PlayerHolder {
     providers: Rc<ProviderStore>,
     players: Arc<Mutex<Vec<Box<dyn GenericPlayer>>>>,
     active_player: Arc<AtomicUsize>,
-    listener_tx: Sender<PlayerEvents>,
+    state_setter: Rc<Box<dyn Fn(PlayerEvents)>>,
     player_container: NodeRef<Div>,
 }
 
 impl PlayerHolder {
     pub fn new(player_container: NodeRef<Div>, providers: Rc<ProviderStore>) -> PlayerHolder {
-        let (tx, rx) = tokio::sync::mpsc::channel::<PlayerEvents>(1);
-
+        let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
+        let state_setter = Rc::new(Self::register_internal_state_listeners(player_store));
         let holder = PlayerHolder {
             players: Arc::new(Mutex::new(vec![])),
-            listener_tx: tx,
+            state_setter,
             active_player: Arc::new(AtomicUsize::new(0)),
             providers,
             player_container,
         };
-
-        let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
-        holder.register_internal_state_listeners(rx, player_store);
         holder.register_external_state_listeners(player_store);
 
         let mut players = holder.players.lock().unwrap();
@@ -69,6 +67,7 @@ impl PlayerHolder {
         for player in self.players.lock().unwrap().iter_mut() {
             player.initialize(self.player_container);
         }
+        console_log!("Initialized players")
     }
 
     pub async fn get_player(&self, song: &Song) -> Result<(usize, Option<Song>)> {
@@ -131,7 +130,7 @@ impl PlayerHolder {
 
         let mut players = self.players.lock().unwrap();
         let player = players.get_mut(pos).unwrap();
-        player.add_listeners(self.listener_tx.clone());
+        player.add_listeners(self.state_setter.clone());
 
         let (resolver_tx, resolver_rx) = oneshot::channel();
         player.load(src.unwrap(), resolver_tx);
@@ -210,10 +209,8 @@ impl PlayerHolder {
     }
 
     fn register_internal_state_listeners(
-        &self,
-        mut listeners_rx: Receiver<PlayerEvents>,
         player_store: RwSignal<PlayerStore>,
-    ) {
+    ) -> Box<dyn Fn(PlayerEvents)> {
         let player_state_setter = create_write_slice(player_store, move |store, state| {
             store.set_state(state);
         });
@@ -222,22 +219,17 @@ impl PlayerHolder {
             store.update_time(time);
         });
 
-        spawn_local(async move {
-            loop {
-                let event = listeners_rx.recv().await;
-                if let Some(event) = event {
-                    match event {
-                        PlayerEvents::Play => player_state_setter.set(PlayerState::Playing),
-                        PlayerEvents::Pause => player_state_setter.set(PlayerState::Paused),
-                        PlayerEvents::Loading => player_state_setter.set(PlayerState::Loading),
-                        PlayerEvents::Ended => {
-                            console_log!("ended")
-                        }
-                        PlayerEvents::TimeUpdate(t) => player_time_setter.set(t),
-                    }
-                }
+        let setter = move |ev: PlayerEvents| match ev {
+            PlayerEvents::Play => player_state_setter.set(PlayerState::Playing),
+            PlayerEvents::Pause => player_state_setter.set(PlayerState::Paused),
+            PlayerEvents::Loading => player_state_setter.set(PlayerState::Loading),
+            PlayerEvents::Ended => {
+                console_log!("ended")
             }
-        });
+            PlayerEvents::TimeUpdate(t) => player_time_setter.set(t),
+        };
+
+        Box::new(setter)
     }
 }
 

@@ -27,7 +27,7 @@ pub fn SingleAlbum() -> impl IntoView {
         songs,
     );
 
-    view! { <SongView songs=songs/> }
+    view! { <SongView songs=songs /> }
 }
 
 #[component()]
@@ -49,17 +49,19 @@ pub fn AllAlbums() -> impl IntoView {
                     style="align-items: flex-start; height: 70%"
                 >
 
-                <CardView items=albums card_item=move |(_, item)| {
-                    let album_id = item.album_id.clone().unwrap_or_default();
-                    let album_name = item.album_name.clone().unwrap_or_default();
-                    let album_coverpath = item.album_coverpath_high.clone();
-
-                    SimplifiedCardItem {
-                        title: album_name,
-                        cover: album_coverpath,
-                        id: album_id
-                    }
-                } />
+                    <CardView
+                        items=albums
+                        card_item=move |(_, item)| {
+                            let album_id = item.album_id.clone().unwrap_or_default();
+                            let album_name = item.album_name.clone().unwrap_or_default();
+                            let album_coverpath = item.album_coverpath_high.clone();
+                            SimplifiedCardItem {
+                                title: album_name,
+                                cover: album_coverpath,
+                                id: album_id,
+                            }
+                        }
+                    />
                 </div>
             </div>
         </div>

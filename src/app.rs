@@ -1,10 +1,11 @@
 use std::rc::Rc;
 
 use leptos::{component, create_rw_signal, provide_context, view, IntoView};
-use leptos_router::{Route, Router, Routes};
+use leptos_router::{Outlet, Route, Router, Routes};
 
 use crate::{
     components::{musicbar::MusicBar, sidebar::Sidebar, topbar::TopBar},
+    console_log,
     modals::modal_manager::ModalManager,
     pages::{
         albums::{AllAlbums, SingleAlbum},
@@ -12,10 +13,38 @@ use crate::{
         genres::{AllGenres, SingleGenre},
         playlists::{AllPlaylists, SinglePlaylist},
         search::Search,
+        settings::Settings,
         songs::AllSongs,
     },
     store::{modal_store::ModalStore, player_store::PlayerStore, provider_store::ProviderStore},
 };
+
+#[component]
+pub fn MainApp() -> impl IntoView {
+    view! {
+        <div>
+            <Sidebar />
+            <MusicBar />
+            <TopBar />
+            <ModalManager />
+            <div class="main-container">
+                <Outlet />
+            </div>
+        </div>
+    }
+}
+
+#[component]
+pub fn PrefApp() -> impl IntoView {
+    view! {
+        <div>
+            <ModalManager />
+            <div class="main-container">
+                <Outlet />
+            </div>
+        </div>
+    }
+}
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -27,24 +56,23 @@ pub fn App() -> impl IntoView {
         <Router>
             <main id="app">
                 <div class="appContainer">
-                    <Sidebar/>
-                    <MusicBar/>
-                    <TopBar/>
-                    <ModalManager/>
-                    <div class="main-container">
-                        <Routes>
-                            <Route path="/" view=AllSongs/>
-                            <Route path="/playlists" view=AllPlaylists/>
-                            <Route path="/playlists/:id" view=SinglePlaylist/>
-                            <Route path="/artists" view=AllArtists/>
-                            <Route path="/artists/:id" view=SingleArtist/>
-                            <Route path="/albums" view=AllAlbums/>
-                            <Route path="/albums/:id" view=SingleAlbum/>
-                            <Route path="/genres" view=AllGenres/>
-                            <Route path="/genres/:id" view=SingleGenre/>
-                            <Route path="/search" view=Search/>
-                        </Routes>
-                    </div>
+                    <Routes>
+                        <Route path="/main" view=MainApp>
+                            <Route path="" view=AllSongs />
+                            <Route path="playlists" view=AllPlaylists />
+                            <Route path="playlists/:id" view=SinglePlaylist />
+                            <Route path="artists" view=AllArtists />
+                            <Route path="artists/:id" view=SingleArtist />
+                            <Route path="albums" view=AllAlbums />
+                            <Route path="albums/:id" view=SingleAlbum />
+                            <Route path="genres" view=AllGenres />
+                            <Route path="genres/:id" view=SingleGenre />
+                            <Route path="search" view=Search />
+                        </Route>
+                        <Route path="/prefs" view=PrefApp>
+                            <Route path="" view=Settings></Route>
+                        </Route>
+                    </Routes>
                 </div>
             </main>
         </Router>

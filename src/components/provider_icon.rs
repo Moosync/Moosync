@@ -7,7 +7,7 @@ pub fn ProviderIcon(#[prop()] extension: Option<String>) -> impl IntoView {
         <div class="d-flex provider-icon">
             {move || {
                 if provider_icon.get().is_some() {
-                    view! { <img src=""/> }.into_view()
+                    view! { <img src="" /> }.into_view()
                 } else {
                     view! {}.into_view()
                 }

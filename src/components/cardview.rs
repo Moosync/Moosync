@@ -17,7 +17,7 @@ pub fn CardItem(#[prop()] item: SimplifiedCardItem) -> impl IntoView {
                     <div class="embed-responsive-item img-container">
                         // Ext icon
                         <div class="overlay me-auto justify-content-center d-flex align-items-center h-100 w-100"></div>
-                        <img src=item.cover class="img-fluid w-100 h-100"/>
+                        <img src=item.cover class="img-fluid w-100 h-100" />
                     </div>
                 </div>
             </div>
@@ -43,7 +43,7 @@ where
                 let data = card_item(data);
                 view! {
                     <A href=data.id.clone()>
-                        <CardItem item=data/>
+                        <CardItem item=data />
                     </A>
                 }
             }

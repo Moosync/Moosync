@@ -1,7 +1,7 @@
 use std::{collections::HashMap, sync::Mutex};
 
 use macros::generate_command;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use uuid::Uuid;
 
 use types::errors::errors::Result;

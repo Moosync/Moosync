@@ -25,6 +25,7 @@ pub mod random_icon;
 pub mod repeat_icon;
 pub mod repeat_once_icon;
 pub mod search_icon;
+pub mod settings_icon;
 pub mod shuffle_icon;
 pub mod song_default_icon;
 pub mod sort_icon;

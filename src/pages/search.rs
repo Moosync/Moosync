@@ -125,7 +125,7 @@ pub fn TabCarousel(
                             fallback=|| {
                                 view! {
                                     <div class="col-auto mr-3 h-100 d-flex align-items-center">
-                                        <PrevIcon/>
+                                        <PrevIcon />
                                     </div>
                                 }
                             }
@@ -134,45 +134,45 @@ pub fn TabCarousel(
                         </Show>
 
                         <div class="col provider-outer-container">
-                            <div
-                                class="gradient-overlay"
-                                style=move || gradient_style.get()
-                            ></div>
+                            <div class="gradient-overlay" style=move || gradient_style.get()></div>
 
-                            <div
-                                node_ref=provider_container
-                                class="provider-container d-flex"
-                            >
+                            <div node_ref=provider_container class="provider-container d-flex">
 
-                            <For each=move || keys.clone()
-                                key=|key| key.clone()
-                                children=move |key| {
-                                    let key_tmp = key.clone();
-                                    let key_tmp1 = key.clone();
-                                    view! {
-                                        <div class="h-100 item-checkbox-col mr-2" on:click=move |_| {
-                                            if selected.get().contains(&key_tmp) {
-                                                selected.update(|s| s.retain(|x| x != &key_tmp));
-                                            } else if !single_select {
-                                                selected.update(|s| s.push(key_tmp.clone()));
-                                            } else {
-                                                selected.set(vec![key_tmp.clone()]);
-                                            }
-                                        } >
-                                            <div class="h-100 d-flex item-checkbox-container" style=move || {
-                                                if selected.get().contains(&key_tmp1) {
-                                                    "background: var(--textSecondary);"
-                                                } else {
-                                                    "background: var(--secondary);"
+                                <For
+                                    each=move || keys.clone()
+                                    key=|key| key.clone()
+                                    children=move |key| {
+                                        let key_tmp = key.clone();
+                                        let key_tmp1 = key.clone();
+                                        view! {
+                                            <div
+                                                class="h-100 item-checkbox-col mr-2"
+                                                on:click=move |_| {
+                                                    if selected.get().contains(&key_tmp) {
+                                                        selected.update(|s| s.retain(|x| x != &key_tmp));
+                                                    } else if !single_select {
+                                                        selected.update(|s| s.push(key_tmp.clone()));
+                                                    } else {
+                                                        selected.set(vec![key_tmp.clone()]);
+                                                    }
                                                 }
-                                            }>
-                                                <span class="align-self-center provider-title">{key}</span>
+                                            >
+                                                <div
+                                                    class="h-100 d-flex item-checkbox-container"
+                                                    style=move || {
+                                                        if selected.get().contains(&key_tmp1) {
+                                                            "background: var(--textSecondary);"
+                                                        } else {
+                                                            "background: var(--secondary);"
+                                                        }
+                                                    }
+                                                >
+                                                    <span class="align-self-center provider-title">{key}</span>
+                                                </div>
                                             </div>
-                                        </div>
+                                        }
                                     }
-                                }
                                 />
-
 
                             </div>
                         </div>
@@ -182,7 +182,7 @@ pub fn TabCarousel(
                             fallback=|| {
                                 view! {
                                     <div class="col-auto ml-3 mr-3 h-100 d-flex align-items-center">
-                                        <NextIcon/>
+                                        <NextIcon />
                                     </div>
                                 }
                             }
@@ -270,69 +270,93 @@ pub fn Search() -> impl IntoView {
             <div class="container-fluid h-100 d-flex flex-column">
 
                 <TabCarousel keys=keys.clone() selected=selected_provider single_select=true />
-                <TabCarousel keys=category_keys.clone() selected=selected_category single_select=true />
+                <TabCarousel
+                    keys=category_keys.clone()
+                    selected=selected_category
+                    single_select=true
+                />
 
-
-            <div class="container-fluid mt-3 search-song-list-container">
-                <div class="row no-gutters h-100">
-                {
-                    move || {
-
-                        let search_results = search_results.get();
-                        let binding = selected_provider.get();
-                        let active_provider = binding.first();
-                        if active_provider.is_none() {
-                            return view! {}.into_view();
-                        }
-                        let active_provider = active_provider.unwrap();
-                        if let Some(res) = search_results.get(active_provider) {
-                            let binding = selected_category.get();
-                            let active_category = binding.first();
-                            if active_category.is_none() {
+                <div class="container-fluid mt-3 search-song-list-container">
+                    <div class="row no-gutters h-100">
+                        {move || {
+                            let search_results = search_results.get();
+                            let binding = selected_provider.get();
+                            let active_provider = binding.first();
+                            if active_provider.is_none() {
                                 return view! {}.into_view();
                             }
-                            let active_category = active_category.unwrap();
-
-                            return match active_category.as_str() {
-                                "Songs" => view! {
-                                    <SongList hide_search_bar=true expand=true song_list=create_rw_signal(res.songs.clone()).read_only() selected_songs_sig=create_rw_signal(vec![]) />
-                                }.into_view(),
-                                "Albums" => view! {
-                                    <CardView items=create_rw_signal(res.albums.clone()) card_item=move |(_, item)| {
-                                        SimplifiedCardItem {
-                                            title: item.album_name.clone().unwrap_or_default(),
-                                            cover: item.album_coverpath_high.clone(),
-                                            id: item.album_id.clone().unwrap_or_default()
+                            let active_provider = active_provider.unwrap();
+                            if let Some(res) = search_results.get(active_provider) {
+                                let binding = selected_category.get();
+                                let active_category = binding.first();
+                                if active_category.is_none() {
+                                    return view! {}.into_view();
+                                }
+                                let active_category = active_category.unwrap();
+                                return match active_category.as_str() {
+                                    "Songs" => {
+                                        view! {
+                                            <SongList
+                                                hide_search_bar=true
+                                                expand=true
+                                                song_list=create_rw_signal(res.songs.clone()).read_only()
+                                                selected_songs_sig=create_rw_signal(vec![])
+                                            />
                                         }
-                                    } />
-                                }.into_view(),
-                                "Artists" => view! {
-                                    <CardView items=create_rw_signal(res.artists.clone()) card_item=move |(_, item)| {
-                                        SimplifiedCardItem {
-                                            title: item.artist_name.clone().unwrap_or_default(),
-                                            cover: item.artist_coverpath.clone(),
-                                            id: item.artist_id.clone().unwrap_or_default()
+                                            .into_view()
+                                    }
+                                    "Albums" => {
+                                        view! {
+                                            <CardView
+                                                items=create_rw_signal(res.albums.clone())
+                                                card_item=move |(_, item)| {
+                                                    SimplifiedCardItem {
+                                                        title: item.album_name.clone().unwrap_or_default(),
+                                                        cover: item.album_coverpath_high.clone(),
+                                                        id: item.album_id.clone().unwrap_or_default(),
+                                                    }
+                                                }
+                                            />
                                         }
-                                    } />
-                                }.into_view(),
-                                "Playlists" => view! {
-                                    <CardView items=create_rw_signal(res.playlists.clone()) card_item=move |(_, item)| {
-                                        SimplifiedCardItem {
-                                            title: item.playlist_name.clone(),
-                                            cover: item.playlist_coverpath.clone(),
-                                            id: item.playlist_id.clone().unwrap_or_default()
+                                            .into_view()
+                                    }
+                                    "Artists" => {
+                                        view! {
+                                            <CardView
+                                                items=create_rw_signal(res.artists.clone())
+                                                card_item=move |(_, item)| {
+                                                    SimplifiedCardItem {
+                                                        title: item.artist_name.clone().unwrap_or_default(),
+                                                        cover: item.artist_coverpath.clone(),
+                                                        id: item.artist_id.clone().unwrap_or_default(),
+                                                    }
+                                                }
+                                            />
                                         }
-                                    } />
-                                }.into_view(),
-                                _ => view! {}.into_view()
+                                            .into_view()
+                                    }
+                                    "Playlists" => {
+                                        view! {
+                                            <CardView
+                                                items=create_rw_signal(res.playlists.clone())
+                                                card_item=move |(_, item)| {
+                                                    SimplifiedCardItem {
+                                                        title: item.playlist_name.clone(),
+                                                        cover: item.playlist_coverpath.clone(),
+                                                        id: item.playlist_id.clone().unwrap_or_default(),
+                                                    }
+                                                }
+                                            />
+                                        }
+                                            .into_view()
+                                    }
+                                    _ => view! {}.into_view(),
+                                };
                             }
-                        }
-
-                        view!{}.into_view()
-                    }
-                }
+                            view! {}.into_view()
+                        }}
+                    </div>
                 </div>
-            </div>
             </div>
         </div>
     }

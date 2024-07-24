@@ -37,6 +37,7 @@ futures = "0.3.30"
 web-sys = "0.3.69"
 regex = "1.10.5"
 colors-transform = "0.2.11"
+serde_yaml = "0.9.34"
 
 [workspace]
 resolver = "2"

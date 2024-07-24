@@ -1,0 +1,39 @@
+page:
+  - title: Paths
+    data:
+      - type: paths
+        name: Music folders
+        key: paths
+
+      - type: paths
+        name: Blacklisted Directories
+        key: blacklisted_directories
+
+      - type: number
+        name: Scan CPU threads
+        key: scan_cpu_threads
+
+      - type: text
+        name: Artist name split pattern
+        key: artist_split
+
+      - type: number
+        name: Scan interval
+        key: scan_interval
+
+      - type: file-picker
+        name: Downloaded artwork path
+        key: artwork_path
+
+      - type: file-picker
+        name: Downloaded thumbnails path
+        key: thumbnails_path
+
+      - type: checkbox
+        name: Use album artist
+        key: use_album_artist
+        items:
+          - name: first
+            key: first
+          - name: last
+            key: last

@@ -3,6 +3,7 @@ pub mod cardview;
 pub mod low_img;
 pub mod musicbar;
 pub mod musicinfo;
+pub mod prefs;
 pub mod provider_icon;
 pub mod sidebar;
 pub mod songdetails;

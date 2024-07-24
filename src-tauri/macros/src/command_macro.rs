@@ -1,6 +1,7 @@
 #[macro_export]
 macro_rules! generate_command {
     ($method_name:ident, $state:ident, $ret:ty, $($v:ident: $t:ty),*) => {
+        // #[flame]
         #[tauri::command(async)]
         pub fn $method_name(db: State<$state>, $($v: $t),*) -> types::errors::errors::Result<$ret> {
             println!("calling {}", stringify!($method_name));
@@ -12,6 +13,7 @@ macro_rules! generate_command {
 #[macro_export]
 macro_rules! generate_command_cached {
     ($method_name:ident, $state:ident, $ret:ty, $($v:ident: $t:ty),*) => {
+        // #[flame]
         #[tauri::command(async)]
         pub async fn $method_name(db: State<'_, $state>, cache: State<'_, CacheHolder>, $($v: $t),*) -> types::errors::errors::Result<$ret> {
             println!("calling cached {}", stringify!($method_name));
@@ -38,6 +40,7 @@ macro_rules! generate_command_cached {
 #[macro_export]
 macro_rules! generate_command_async {
     ($method_name:ident, $state:ident, $ret:ty, $($v:ident: $t:ty),*) => {
+        // #[flame]
         #[tauri::command(async)]
         pub async fn $method_name(db: State<'_, $state>, $($v: $t),*) -> types::errors::errors::Result<$ret> {
             println!("calling async {}", stringify!($method_name));
@@ -49,6 +52,7 @@ macro_rules! generate_command_async {
 #[macro_export]
 macro_rules! generate_command_async_cached {
     ($method_name:ident, $state:ident, $ret:ty, $($v:ident: $t:ty),*) => {
+        // #[flame]
         #[tauri::command(async)]
         pub async fn $method_name(db: State<'_, $state>, cache: State<'_, CacheHolder>, $($v: $t),*) -> types::errors::errors::Result<$ret> {
             let mut cache_string = String::new();

@@ -9,7 +9,7 @@ use leptos::{
 };
 
 use leptos_use::use_event_listener;
-use tokio::sync::{mpsc::Sender, oneshot::Sender as OneShotSender};
+use tokio::sync::oneshot::Sender as OneShotSender;
 use types::{errors::errors::Result, songs::SongType, ui::player_details::PlayerEvents};
 use wasm_bindgen_futures::JsFuture;
 

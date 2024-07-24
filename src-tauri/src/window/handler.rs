@@ -3,22 +3,10 @@ use std::env;
 use macros::{generate_command, generate_command_async};
 use open;
 use preferences::preferences::PreferenceConfig;
-use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State, WebviewWindow, WebviewWindowBuilder, Window};
 use types::errors::errors::Result;
+use types::window::{DialogFilter, FileResponse};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DialogFilter {
-    name: String,
-    extensions: Vec<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct FileResponse {
-    name: String,
-    path: String,
-    size: usize,
-}
 
 pub struct WindowHandler {}
 

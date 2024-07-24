@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use crate::components::cardview::{CardItem, CardView, SimplifiedCardItem};
+use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songview::SongView;
 use crate::console_log;
 use crate::utils::common::fetch_infinite;
@@ -9,8 +9,7 @@ use leptos::{
     component, create_rw_signal, expect_context, spawn_local, use_context, view, IntoView,
     SignalUpdate, SignalWith,
 };
-use leptos_router::{use_params_map, A};
-use leptos_virtual_scroller::VirtualGridScroller;
+use leptos_router::use_params_map;
 use types::entities::QueryablePlaylist;
 use types::songs::GetSongOptions;
 

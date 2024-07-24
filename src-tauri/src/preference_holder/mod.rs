@@ -4,6 +4,7 @@ use serde_json::Value;
 use tauri::{App, Manager, State};
 use types::errors::errors::Result;
 
+
 pub fn get_preference_state(app: &mut App) -> Result<PreferenceConfig> {
     let data_dir = app.path().app_config_dir()?;
     PreferenceConfig::new(data_dir)

@@ -1,0 +1,46 @@
+.prefs-container {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 15px;
+    overflow-y: scroll;
+}
+
+.path-prefs-background {
+    align-content: flex-start;
+    background-color: var(--tertiary);
+    overflow-y: scroll;
+    overflow-x: hidden;
+    height: 255px;
+}
+
+.input-prefs-background {
+    align-content: flex-start;
+    background-color: var(--tertiary);
+    height: 65px;
+}
+
+.ext-input {
+    background: inherit;
+}
+
+.ext-input-hover {
+    border: 0;
+    border-bottom: 1px solid transparent;
+    &:hover {
+        border-bottom: 1px solid var(--accent);
+    }
+}
+
+.item-text {
+    font-size: 18px;
+    color: var(--textPrimary);
+    min-width: 0;
+    text-align: left;
+}
+
+.file-picker-text {
+    color: var(--textSecondary) !important;
+}

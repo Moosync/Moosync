@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use leptos::{html::Div, NodeRef};
-use tokio::sync::{mpsc::Sender, oneshot::Sender as OneShotSender};
+use tokio::sync::oneshot::Sender as OneShotSender;
 use types::{
     errors::errors::Result,
     songs::{Song, SongType},

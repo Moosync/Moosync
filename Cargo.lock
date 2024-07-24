@@ -23,6 +23,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
+ "serde_yaml",
  "stylers",
  "tokio",
  "types",
@@ -700,7 +701,7 @@ dependencies = [
  "cexpr",
  "clang-sys",
  "itertools 0.12.1",
- "lazy_static",
+ "lazy_static 1.5.0",
  "lazycell",
  "proc-macro2",
  "quote",
@@ -1145,6 +1146,12 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "cfg_aliases"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
+
+[[package]]
+name = "cfg_aliases"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
@@ -1313,7 +1320,7 @@ version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cbf2150cce219b664a8a70df7a1f933836724b503f8a413af9365b4dcc4d90b8"
 dependencies = [
- "lazy_static",
+ "lazy_static 1.5.0",
  "windows-sys 0.48.0",
 ]
 
@@ -1349,7 +1356,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7328b20597b53c2454f0b1919720c25c7339051c02b72b7e05409e00b14132be"
 dependencies = [
  "convert_case 0.6.0",
- "lazy_static",
+ "lazy_static 1.5.0",
  "nom",
  "pathdiff",
  "serde",
@@ -1726,6 +1733,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0369ee1ad671834580515889b80f2ea915f23b8be8d0daa4bbaf2ac5c7590835"
 dependencies = [
  "cipher",
+]
+
+[[package]]
+name = "ctrlc"
+version = "3.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "672465ae37dc1bc6380a6547a8883d5dd397b0f1faaad4f265726cc7042a5345"
+dependencies = [
+ "nix 0.28.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -2393,7 +2410,7 @@ dependencies = [
  "fast_image_resize",
  "image",
  "jwalk",
- "lazy_static",
+ "lazy_static 1.5.0",
  "lofty",
  "num_cpus",
  "regex",
@@ -2408,6 +2425,30 @@ name = "fixedbitset"
 version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
+
+[[package]]
+name = "flame"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fc2706461e1ee94f55cab2ed2e3d34ae9536cfa830358ef80acff1a3dacab30"
+dependencies = [
+ "lazy_static 0.2.11",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "thread-id 3.3.0",
+]
+
+[[package]]
+name = "flamer"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7693d9dd1ec1c54f52195dfe255b627f7cec7da33b679cd56de949e662b3db10"
+dependencies = [
+ "flame",
+ "quote",
+ "syn 2.0.72",
+]
 
 [[package]]
 name = "flate2"
@@ -4062,7 +4103,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "363387f0019d714aa60cc30ab4fe501a747f4c08fc58f069dd14be971bd495a0"
 dependencies = [
  "byteorder",
- "lazy_static",
+ "lazy_static 1.5.0",
  "linux-keyutils",
  "secret-service",
  "security-framework",
@@ -4081,6 +4122,12 @@ dependencies = [
  "matches",
  "selectors 0.22.0",
 ]
+
+[[package]]
+name = "lazy_static"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76f033c7ad61445c5b347c7382dd1237847eb1bce590fe50365dcb33d546be73"
 
 [[package]]
 name = "lazy_static"
@@ -4137,7 +4184,7 @@ dependencies = [
  "gloo-timers",
  "gloo-utils",
  "js-sys",
- "lazy_static",
+ "lazy_static 1.5.0",
  "leptos",
  "paste",
  "thiserror",
@@ -4267,7 +4314,7 @@ dependencies = [
  "gloo-net",
  "itertools 0.12.1",
  "js-sys",
- "lazy_static",
+ "lazy_static 1.5.0",
  "leptos",
  "linear-map",
  "once_cell",
@@ -4290,7 +4337,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "603064a2d7ac46dba4b3ed5397a475076f9738918dd605670869dfe877d5966c"
 dependencies = [
  "inventory",
- "lazy_static",
+ "lazy_static 1.5.0",
  "leptos_macro",
  "leptos_reactive",
  "serde",
@@ -5009,9 +5056,12 @@ version = "0.0.0"
 dependencies = [
  "async-trait",
  "chrono",
+ "ctrlc",
  "database",
  "extensions",
  "file_scanner",
+ "flame",
+ "flamer",
  "futures",
  "google-youtube3",
  "iso8601",
@@ -5203,6 +5253,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nix"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab2156c4fce2f8df6c499cc1c763e4394b7482525bf2a9701c9d79d215f519e4"
+dependencies = [
+ "bitflags 2.6.0",
+ "cfg-if",
+ "cfg_aliases 0.1.1",
+ "libc",
+]
+
+[[package]]
 name = "no-std-compat"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5288,7 +5350,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dc84195820f291c7697304f3cbdadd1cb7199c0efc917ff5eafd71225c136151"
 dependencies = [
  "byteorder",
- "lazy_static",
+ "lazy_static 1.5.0",
  "libm",
  "num-integer",
  "num-iter",
@@ -5844,7 +5906,7 @@ dependencies = [
  "petgraph",
  "redox_syscall 0.5.3",
  "smallvec",
- "thread-id",
+ "thread-id 4.2.2",
  "windows-targets 0.52.6",
 ]
 
@@ -6708,6 +6770,12 @@ name = "recvmsg"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3edd4d5d42c92f0a659926464d4cce56b562761267ecf0f469d85b7de384175"
+
+[[package]]
+name = "redox_syscall"
+version = "0.1.57"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "41cc0f7e4d5d4544e8861606a285bb08d3e70712ccc7d2b84d7c0ccfaf4b05ce"
 
 [[package]]
 name = "redox_syscall"
@@ -7697,6 +7765,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_yaml"
+version = "0.9.34+deprecated"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
+dependencies = [
+ "indexmap 2.2.6",
+ "itoa 1.0.11",
+ "ryu",
+ "serde",
+ "unsafe-libyaml",
+]
+
+[[package]]
 name = "serialize-to-javascript"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7827,7 +7908,7 @@ version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
 dependencies = [
- "lazy_static",
+ "lazy_static 1.5.0",
 ]
 
 [[package]]
@@ -7934,7 +8015,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d623bff5d06f60d738990980d782c8c866997d9194cfe79ecad00aa2f76826dd"
 dependencies = [
  "bytemuck",
- "cfg_aliases",
+ "cfg_aliases 0.2.1",
  "core-graphics 0.23.2",
  "foreign-types 0.5.0",
  "js-sys",
@@ -8147,7 +8228,7 @@ version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "815c942ae7ee74737bb00f965fa5b5a2ac2ce7b6c01c0cc169bbeaf7abd5f5a9"
 dependencies = [
- "lazy_static",
+ "lazy_static 1.5.0",
  "symphonia-bundle-mp3",
  "symphonia-codec-vorbis",
  "symphonia-core",
@@ -8161,7 +8242,7 @@ version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c01c2aae70f0f1fb096b6f0ff112a930b1fb3626178fba3ae68b09dce71706d4"
 dependencies = [
- "lazy_static",
+ "lazy_static 1.5.0",
  "log",
  "symphonia-core",
  "symphonia-metadata",
@@ -8187,7 +8268,7 @@ dependencies = [
  "arrayvec",
  "bitflags 1.3.2",
  "bytemuck",
- "lazy_static",
+ "lazy_static 1.5.0",
  "log",
 ]
 
@@ -8210,7 +8291,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc622b9841a10089c5b18e99eb904f4341615d5aa55bbf4eedde1be721a4023c"
 dependencies = [
  "encoding_rs",
- "lazy_static",
+ "lazy_static 1.5.0",
  "log",
  "symphonia-core",
 ]
@@ -8349,7 +8430,7 @@ dependencies = [
  "gtk",
  "instant",
  "jni",
- "lazy_static",
+ "lazy_static 1.5.0",
  "libc",
  "log",
  "ndk 0.7.0",
@@ -8739,6 +8820,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.72",
+]
+
+[[package]]
+name = "thread-id"
+version = "3.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7fbf4c9d56b320106cd64fd024dadfa0be7cb4706725fc44a7d7ce952d820c1"
+dependencies = [
+ "libc",
+ "redox_syscall 0.1.57",
+ "winapi",
 ]
 
 [[package]]
@@ -9428,6 +9520,12 @@ dependencies = [
  "crypto-common",
  "subtle",
 ]
+
+[[package]]
+name = "unsafe-libyaml"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "673aac59facbab8a9007c7f6108d11f63b603f7cabff99fabf650fea5c32b861"
 
 [[package]]
 name = "untrusted"

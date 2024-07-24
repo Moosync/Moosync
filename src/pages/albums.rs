@@ -1,9 +1,7 @@
-use crate::components::cardview::{CardItem, CardView, SimplifiedCardItem};
+use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songview::SongView;
 use leptos::{component, create_rw_signal, view, IntoView, SignalWith};
 use leptos_router::use_params_map;
-use leptos_router::A;
-use leptos_virtual_scroller::VirtualGridScroller;
 use types::entities::QueryableAlbum;
 use types::songs::GetSongOptions;
 

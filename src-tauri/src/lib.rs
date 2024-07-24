@@ -27,7 +27,7 @@ use providers::handler::{
     provider_login, provider_search,
 };
 use scanner::{get_scanner_state, start_scan};
-use tauri::{Emitter, Listener, Manager, State};
+use tauri::{Listener, Manager, State};
 
 use {
     db::{
@@ -65,8 +65,17 @@ mod themes;
 mod window;
 mod youtube;
 
+use flame as f;
+use flamer::flame;
+use std::fs::File;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    ctrlc::set_handler(move || {
+        f::dump_html(File::create("flamegraph.html").unwrap()).unwrap();
+    })
+    .expect("Error setting Ctrl-C handler");
+
     let devtools = tauri_plugin_devtools::init();
 
     tauri::Builder::default()

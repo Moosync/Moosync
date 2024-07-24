@@ -1,5 +1,4 @@
 use std::{
-    cell::RefCell,
     rc::Rc,
     sync::{
         atomic::{AtomicUsize, Ordering},
@@ -7,10 +6,7 @@ use std::{
     },
     vec,
 };
-use tokio::sync::{
-    mpsc::{Receiver, Sender},
-    oneshot,
-};
+use tokio::sync::oneshot;
 use types::{
     errors::errors::{MoosyncError, Result},
     songs::Song,

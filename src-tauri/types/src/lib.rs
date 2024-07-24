@@ -5,6 +5,7 @@ pub mod canvaz;
 pub mod entities;
 pub mod errors;
 pub mod mpris;
+pub mod preferences;
 #[cfg(feature = "core")]
 pub mod schema;
 pub mod songs;
@@ -15,3 +16,5 @@ pub mod ui;
 
 #[cfg(feature = "core")]
 pub mod oauth;
+
+pub mod window;

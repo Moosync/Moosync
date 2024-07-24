@@ -1,11 +1,10 @@
 use std::rc::Rc;
 
 use leptos::{component, create_rw_signal, provide_context, view, IntoView};
-use leptos_router::{Outlet, Route, Router, Routes};
+use leptos_router::{Outlet, Redirect, Route, Router, Routes};
 
 use crate::{
     components::{musicbar::MusicBar, sidebar::Sidebar, topbar::TopBar},
-    console_log,
     modals::modal_manager::ModalManager,
     pages::{
         albums::{AllAlbums, SingleAlbum},
@@ -18,6 +17,12 @@ use crate::{
     },
     store::{modal_store::ModalStore, player_store::PlayerStore, provider_store::ProviderStore},
 };
+
+#[component]
+pub fn RedirectAll() -> impl IntoView {
+    // TODO: Change to all songs
+    view! { <Redirect path="/prefs" /> }
+}
 
 #[component]
 pub fn MainApp() -> impl IntoView {
@@ -39,7 +44,7 @@ pub fn PrefApp() -> impl IntoView {
     view! {
         <div>
             <ModalManager />
-            <div class="main-container">
+            <div class="prefs-container">
                 <Outlet />
             </div>
         </div>
@@ -72,6 +77,7 @@ pub fn App() -> impl IntoView {
                         <Route path="/prefs" view=PrefApp>
                             <Route path="" view=Settings></Route>
                         </Route>
+                        <Route path="*" view=RedirectAll />
                     </Routes>
                 </div>
             </main>

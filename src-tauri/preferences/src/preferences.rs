@@ -16,7 +16,10 @@ use keyring::Entry;
 use serde_json::Value;
 use whoami;
 
-use types::errors::errors::{MoosyncError, Result};
+use types::{
+    errors::errors::{MoosyncError, Result},
+    ui::preferences::PathsValue,
+};
 
 pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,
@@ -150,14 +153,13 @@ impl PreferenceConfig {
 
     pub fn get_scan_paths(&self) -> Result<Vec<String>> {
         let tmp = self.load_selective("musicPaths".to_string())?;
-
-        let paths = tmp.as_array().unwrap();
+        let paths: Vec<PathsValue> = serde_json::from_value(tmp)?;
 
         let mut ret = vec![];
         for p in paths {
-            let enabled = p.get("enabled").unwrap().as_bool().unwrap();
+            let enabled = p.enabled;
             if enabled {
-                ret.push(p.get("path").unwrap().as_str().unwrap().to_string());
+                ret.push(p.path);
             }
         }
 

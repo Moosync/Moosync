@@ -1,4 +1,1 @@
-pub mod checkbox;
-pub mod common;
-pub mod input;
-pub mod paths;
+pub mod static_components;

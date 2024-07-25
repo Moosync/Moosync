@@ -71,7 +71,7 @@ pub fn Settings(#[prop(optional)] class: &'static str) -> impl IntoView {
         <div class=class>
             <SettingsIcon on:click=move |_| {
                 console_log!("Navigating to settings");
-                navigate("/prefs", Default::default())
+                navigate("/prefs/paths", Default::default())
             } />
         </div>
     }

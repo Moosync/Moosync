@@ -15,9 +15,11 @@ dependencies = [
  "js-sys",
  "leptos",
  "leptos-use",
+ "leptos_i18n",
  "leptos_router",
  "leptos_virtual_scroller",
  "oauth2",
+ "pref_gen",
  "regex",
  "rspotify",
  "serde",
@@ -4255,6 +4257,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "leptos_i18n"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f74acc148183951986b9564214f34a2bdb2c14ef45f6db20898839e195a891d"
+dependencies = [
+ "cfg-if",
+ "leptos",
+ "leptos_i18n_macro",
+ "leptos_meta",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "leptos_i18n_macro"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf1c733bc79fccdd31c585535ad1d41586a4e7a22b17a5015405542acd828f3c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_json",
+ "syn 2.0.72",
+ "toml 0.8.2",
+]
+
+[[package]]
 name = "leptos_macro"
 version = "0.6.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4275,6 +4305,20 @@ dependencies = [
  "syn 2.0.72",
  "tracing",
  "uuid",
+]
+
+[[package]]
+name = "leptos_meta"
+version = "0.6.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "873ec368535d9971df4848ca21e91aa96fa00a6884258ab8f926db69ea97f547"
+dependencies = [
+ "cfg-if",
+ "indexmap 2.2.6",
+ "leptos",
+ "tracing",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -6285,6 +6329,18 @@ name = "precomputed-hash"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "925383efa346730478fb4838dbe9137d2a47675ad789c546d150a6e1dd4ab31c"
+
+[[package]]
+name = "pref_gen"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_yaml",
+ "syn 1.0.109",
+ "types",
+]
 
 [[package]]
 name = "preferences"

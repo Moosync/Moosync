@@ -38,6 +38,8 @@ web-sys = "0.3.69"
 regex = "1.10.5"
 colors-transform = "0.2.11"
 serde_yaml = "0.9.34"
+leptos_i18n = { version = "0.3.3" }
+pref_gen = { path = "src/pref_gen" }
 
 [workspace]
 resolver = "2"
@@ -54,6 +56,43 @@ members = [
     "src-tauri/themes",
     "src-tauri/types",
     "src-tauri/youtube",
+    "src/pref_gen",
+]
+
+[package.metadata.leptos-i18n]
+default = "en_US"
+locales = [
+    "af_ZA",
+    "ar_SA",
+    "ca_ES",
+    "cs_CZ",
+    "da_DK",
+    "de_DE",
+    "el_GR",
+    "en_US",
+    "es_ES",
+    "fi_FI",
+    "fr_FR",
+    "he_IL",
+    "hi_IN",
+    "hu_HU",
+    "it_IT",
+    "ja_JP",
+    "ko_KR",
+    "nl_NL",
+    "no_NO",
+    "pl_PL",
+    "pt_BR",
+    "pt_PT",
+    "ro_RO",
+    "ru_RU",
+    "sr_SP",
+    "sv_SE",
+    "tr_TR",
+    "uk_UA",
+    "vi_VN",
+    "zh_CN",
+    "zh_TW",
 ]
 
 [profile.release]

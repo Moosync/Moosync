@@ -1,0 +1,378 @@
+{
+  "sidebar": {
+    "tabs": {
+      "queue": "قائمة الانتظار",
+      "allSongs": "جميع الأغاني",
+      "playlists": "قوائم التشغيل",
+      "albums": "ألبومات",
+      "artists": "الفنانون",
+      "genre": "Genres",
+      "explore": "استكشف",
+      "paths": "Paths",
+      "themes": "Themes",
+      "extensions": "Extensions",
+      "system": "System",
+      "logs": "Logs",
+      "keybinds": "Keybinds"
+    }
+  },
+  "topbar": {
+    "searchPlaceholder": "بحث...",
+    "noResultsFound": "لم يتم العثور على نتائج"
+  },
+  "pages": {
+    "playlists": "قوائم التشغيل",
+    "albums": "ألبومات",
+    "artists": "الفنانون",
+    "genres": "Genres",
+    "explore": "استكشف"
+  },
+  "playlists": {
+    "local": "Local",
+    "new_playlist": {
+      "create": "Create",
+      "description_placeholder": "Description..."
+    },
+    "url": {
+      "input_hint": "Enter URL Here.. (Youtube or Spotify)"
+    }
+  },
+  "songView": {
+    "details": {
+      "songCount": "{count} أغنية | {count} أغنية"
+    },
+    "songList": {
+      "topbar": {
+        "searchPlaceholder": "بحث..."
+      }
+    }
+  },
+  "buttons": {
+    "playSingle": "تشغيل {title}",
+    "addToQueue": "إضافة {title} إلى قائمة الانتظار",
+    "addToLibrary": "إضافة {title} إلى المكتبة",
+    "playRandom": "تشغيل 100 أغنية عشوائية",
+    "fetchAll": "Fetch all songs",
+    "close": "Close",
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "loading": "تحميل...",
+  "now_playing": "Now playing",
+  "contextMenu": {
+    "sort_by": "Sort by",
+    "sort": {
+      "title": "العنوان",
+      "album": "Album (Track No.)",
+      "artist": "الفنان",
+      "genre": "النوع",
+      "date_added": "تاريخ الإضافة",
+      "provider": "موفر",
+      "playCount": "عدد اللعب"
+    },
+    "playlist": {
+      "new": "قائمة تشغيل جديدة",
+      "addFromURL": "استيراد من عنوان URL",
+      "remove": "إزالة قائمة التشغيل",
+      "export": "تصدير قائمة التشغيل",
+      "add": "إضافة إلى قائمة التشغيل",
+      "save": "إضافة إلى المكتبة"
+    },
+    "song": {
+      "addFromURL": "إضافة من عنوان URL",
+      "playNow": "تشغيل الآن",
+      "playNext": "تشغيل التالي",
+      "clearAndPlay": "مسح قائمة الانتظار والتشغيل",
+      "addToQueue": "إضافة إلى قائمة الانتظار",
+      "moveToTop": "الانتقال إلى الأعلى",
+      "moveToBottom": "الانتقال إلى الأسفل",
+      "moveManually": "نقل يدوياً",
+      "manualIndex": "تعيين فهرس الأغنية",
+      "remove": "إزالة من المكتبة",
+      "add": "إضافة أغنية إلى المكتبة <unk> إضافة أغاني إلى المكتبة",
+      "removeFromPlaylist": "إزالة من قائمة التشغيل",
+      "hideFromLibrary": "إخفاء من المكتبة",
+      "showInLibrary": "إظهار في المكتبة",
+      "showHidden": "إظهار الأغاني المخفية",
+      "hideHidden": "إخفاء الأغاني المخفية",
+      "openInBrowser": "Open in browser",
+      "gotoAlbum": "Goto album ({title})",
+      "gotoArtists": "Goto artists"
+    },
+    "artist": {
+      "remove": "Remove artist"
+    },
+    "album": {
+      "remove": "Remove album"
+    },
+    "moreInfo": "المزيد من المعلومات",
+    "incorrectPlayback": "Incorrect playback?"
+  },
+  "explore": {
+    "you_listened_to": "You've listened to",
+    "of_music": "of music",
+    "played_for": "Played for",
+    "hot_from": "Hot from"
+  },
+  "providers": {
+    "youtube": "يوتيوب",
+    "spotify": "سبوتيفاي",
+    "invidious": "دعوي",
+    "lastfm": "LastFM"
+  },
+  "accounts": {
+    "connect": "Connect",
+    "sign_out": "Sign out"
+  },
+  "settings": {
+    "paths": {
+      "songDirectories": "أدلة الأغنية",
+      "songDirectories_tooltip": "الدلائل حيث يتم تخزين جميع الموسيقى المحلية الخاصة بك",
+      "songDirectories_exclude": "مجلدات القائمة السوداء",
+      "songDirectories_exclude_tooltip": "لن يتم مسح الأغاني في هذه الدلائل",
+      "addFolder": "إضافة مجلد...",
+      "remove": "إزالة",
+      "artworkPath": "مسار الأعمال الفنية المحمّلة",
+      "artworkPath_tooltip": "الدليل حيث يتم تخزين الأعمال الفنية التي تم تنزيلها",
+      "thumbnailPath": "مسار الصورة المصغرة الذي تم تنزيله",
+      "thumbnailPath_tooltip": "الدليل حيث يتم تخزين الصور المصغرة التي تم إنشاؤها",
+      "splitter": "نمط تقسيم اسم الفنان",
+      "splitter_tooltip": "ريجكس لتقسيم أسماء الفنانين. اتركه فارغاً لتعطيل التقسيم.",
+      "scan_interval": "Scan interval",
+      "scan_interval_tooltip": "Interval in minutes to trigger a scan task. Set to -1 to disable automatic scanning",
+      "scan_threads": "Scan CPU threads",
+      "scan_threads_tooltip": "Number of threads to use when scanning for local music"
+    },
+    "themes": {
+      "songView": "عرض الأغاني",
+      "songView_tooltip": "تخصيص مظهر قائمة الأغنية",
+      "songView_classic": "كلاسيكي",
+      "songView_compact": "مدمج",
+      "themes": "السمات",
+      "themes_tooltip": "تخصيص الألوان",
+      "themes_default": "الافتراضي",
+      "createTheme": "موضوع جديد",
+      "importTheme": "استيراد السمة",
+      "newTheme": {
+        "name": "اسم السمة",
+        "author": "المؤلف",
+        "colors": "الألوان",
+        "colors_tooltip": "تغيير الألوان لتخصيص واجهة المستخدم",
+        "css": "Custom CSS",
+        "watch_css": "Watch CSS for file changes"
+      },
+      "primary": "اساسي",
+      "secondary": "ثانوي",
+      "tertiary": "المستوى الثالث",
+      "textPrimary": "النص الأساسي",
+      "textSecondary": "ثانوية نصية",
+      "textInverse": "عكس النص",
+      "accent": "اللكنة",
+      "divider": "الفاصل",
+      "import_button": "استيراد"
+    },
+    "extensions": {
+      "extensions": "ملحقات",
+      "extensions_tooltip": "قائمة بجميع الملحقات المثبتة",
+      "discover": "اكتشف",
+      "install": "تثبيت من الملف",
+      "remove": "إزالة"
+    },
+    "system": {
+      "systemSettings": {
+        "title": "إعدادات النظام",
+        "systemStartup": "بدء تشغيل التطبيق عند بدء تشغيل النظام",
+        "minimizeTray": "تصغير إلى غلق",
+        "hardwareAcceleration": "استخدام تسارع أجهزة GPU",
+        "watchFileChanges": "مشاهدة أدلة الموسيقى للتغييرات",
+        "enableJukeboxMode": "تمكين التبديل لوضع Youkebox",
+        "lastLoadedPlaybackState": "Load last playback state on startup"
+      },
+      "systemSettings_tooltip": "الإعدادات المرتبطة بالنظام الخاص بك",
+      "audioSettings": {
+        "title": "إعدادات الصوت",
+        "gaplessPlayback": "استخدام تشغيل غير قابل للتشغيل كلما كان ذلك ممكناً",
+        "sponsorBlock": "استخدم SponsorBlock للتخطي تلقائياً لجزء من أغنية يوتيوب"
+      },
+      "audioSettings_tooltip": "الإعدادات ذات الصلة بتشغيل الصوت",
+      "gapless_skip": "Skip song before end (seconds)",
+      "invidiousUrlUnsupported": "عنوان URL هذا لا يدعم API المدعو",
+      "invidious_tooltip": "مثال دعوي لاستخدام بدلا من يوتيوب",
+      "restartApp": "إعادة تشغيل موسينك",
+      "zoom": "عامل التكبير (بيتا)",
+      "zoom_tooltip": "تكبير النوافذ بنسبة مئوية. قد يؤدي هذا إلى كسر واجهة المستخدم.",
+      "spotify": {
+        "client_id": "معرف عميل Spotify",
+        "client_id_tooltip": "معرف عميل Spotify مطلوب لتسجيل الدخول إلى Spotify. انقر لمعرفة المزيد",
+        "client_secret": "سر عميل Spotify",
+        "client_secret_tooltip": "Spotify الزبون السري مطلوب لتسجيل الدخول إلى Spotify. انقر لمعرفة المزيد",
+        "autoFetchButton": "احصل على تفاصيل Spotify تلقائياً",
+        "autoFetchPreTitle": "احصل",
+        "autoFetchTitle": "معرف العميل والسر",
+        "autoFetchDisclaimer": "ستفتح نافذة الآن حيث سيُطلب منك تسجيل الدخول إلى حساب Spotify الخاص بك. بعد تسجيل الدخول الرجاء عدم النقر في أي مكان لأن العملية بأكملها ستكون تلقائية",
+        "openWindow": "فتح النافذة",
+        "title": "إعدادات Spotify",
+        "tooltip": "خيارات لتغيير سلوك التشغيل المفقود",
+        "librespotEnable": "استخدام librespot (Spotify Premium مطلوب)",
+        "username": "اسم المستخدم سبوتيفاي",
+        "username_tooltip": "اسم المستخدم الخاص بك. عادة بريدك الإلكتروني",
+        "password": "كلمة مرور سبوتيفاي",
+        "password_tooltip": "كلمة المرور الخاصة بك. قد تحتاج إلى تعيين واحدة في الإعدادات على Spotify",
+        "librespot": {
+          "title": "خيارات Librespot",
+          "tooltip": "خيارات لتغيير سلوك الليبرسبورت",
+          "useSpotifyCanvas": "إظهار فيديو canvas في الخلفية",
+          "useLibrespotPlayback": "استخدام librespot لتشغيل الأغنية"
+        }
+      },
+      "youtube": {
+        "client_id": "معرف عميل اليوتيوب",
+        "client_secret": "سر عميل اليوتيوب",
+        "client_id_tooltip": "معرف عميل Youtube مطلوب لتسجيل الدخول إلى اليوتيوب. انقر لمعرفة المزيد",
+        "client_secret_tooltip": "مطلوب سر عميل Youtube لتسجيل الدخول إلى اليوتيوب. انقر لمعرفة المزيد"
+      },
+      "lastfm": {
+        "client_id": "LastFM Api Key",
+        "client_secret": "LastFM Client Secret"
+      },
+      "youtubeAlternative": {
+        "title": "خدمات اليوتيوب البديلة",
+        "tooltip": "الحصول على البيانات من يوتيوب من خلال موفر طرف ثالث",
+        "useYoutube": "استخدام خدمات اليوتيوب الافتراضية",
+        "useInvidious": "استخدام الخدمات المدعومة",
+        "usePiped": "استخدام خدمات الأنابيب",
+        "piped": {
+          "url": "نموذج أنبوب",
+          "url_tooltip": "عنوان URL للمثيل المراد استخدامه",
+          "username": "اسم المستخدم",
+          "username_tooltip": "اسم المستخدم الخاص بك على الأنابيب في مثيل مثيل محدد",
+          "password": "كلمة المرور",
+          "password_tooltip": "كلمة مرور الأنابيب الخاصة بك في المثيل المحدد"
+        },
+        "invidious": {
+          "url": "المثيل المشجّع",
+          "url_tooltip": "عنوان URL للمثيل المدعو لاستخدامه",
+          "options": "خيارات دعوة متقدمة",
+          "options_tooltip": "خيارات التحكم الجيد في التشغيل المدعو",
+          "always_proxy": "تشغيل الصوت دائما من وكيل الدعوة بدلا من فيديو جوجل"
+        },
+        "youtube": {
+          "options": "خيارات اليوتيوب المتقدمة",
+          "options_tooltip": "خيارات التحكم الجيد في تشغيل اليوتيوب",
+          "useEmbeds": "استخدام تضمين اليوتيوب لتشغيل الصوت من يوتيوب"
+        }
+      },
+      "language": "اللغة",
+      "language_tooltip": "تغيير لغة الواجهة",
+      "clearPreferences": "إعادة التعيين إلى الافتراضي",
+      "clear_preferences_title": "إعادة التعيين إلى الافتراضي؟",
+      "clear_preferences": "هل أنت متأكد من أنك تريد إعادة تعيين كل شيء إلى الافتراضي؟ سيتم إعادة تشغيل التطبيق بعد إعادة تعيينه.",
+      "clear_preferences_button": "تأكيد",
+      "jukebox": {
+        "pin": "دبوس وضع يوكبوكس",
+        "pin_tooltip": "سيتم طلب دبوس للخروج من وضع يوكيبوك. يجب أن يكون رقميا.",
+        "optionalFields": "Button visibility",
+        "optionalFields_tooltip": "Toggle optional buttons to show in Jukebox mode",
+        "optional_skip": "Track Skip buttons",
+        "optional_shuffle": "Shuffle button",
+        "optional_repeat": "Repeat button"
+      },
+      "lyrics": {
+        "title": "موفري الكلمات",
+        "tooltip": "حدد موفري كلمات الأغاني الذين يمكن استخدامهم للبحث عن كلمات الأغاني",
+        "az_lyrics": "استخدام كلمات الاغنية",
+        "google_lyrics": "استخدام كلمات البحث في جوجل",
+        "spotify_lyrics": "Use Spotify for lyrics (Requires librespot)",
+        "genius_lyrics": "Use Genius"
+      },
+      "queueSettings": {
+        "title": "إعدادات قائمة الانتظار",
+        "tooltip": "خيارات لتعديل سلوك قائمة انتظار الأغنية",
+        "clearQueue": "مسح قائمة الانتظار قبل إضافة قائمة تشغيل"
+      },
+      "scrobble": {
+        "provider_toggle": {
+          "title": "تمرير القائمة البيضاء",
+          "tooltip": "تمكين مقدمي الخدمات الذين تريد أن تكون أغانيهم سكروبوت"
+        }
+      },
+      "volumePersistMode": {
+        "title": "Volume behavior",
+        "tooltip": "Change the way volume slider behaves",
+        "noPersist": "Normal behavior",
+        "persistSeparateVolumes": "Remember separate volume for each provider",
+        "persistClampVolume": "Manually adjust volume range for each provider"
+      }
+    },
+    "logs": {
+      "logSettings": "إعدادات السجل",
+      "level": "المستوى",
+      "process": "العملية",
+      "filterMessage": "تصفية الرسالة",
+      "levels": {
+        "all": "All",
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "debug_logging": "Enable debug logging",
+      "table": {
+        "time": "Time",
+        "level": "Level",
+        "process": "Process",
+        "message": "Message"
+      }
+    }
+  },
+  "hotkeys": {
+    "play": "Play Song",
+    "pause": "Pause song",
+    "play_toggle": "Toggle play",
+    "mute_active": "Mute",
+    "mute_inactive": "Unmute",
+    "mute_toggle": " Toggle mute",
+    "volume_inc": "Increase volume",
+    "volume_dec": "Decrease volume",
+    "repeat_active": "Repeat song",
+    "repeat_inactive": "Disable repeat",
+    "repeat_toggle": "Toggle repeat",
+    "queue_open": "Open song queue",
+    "queue_close": "Close song queue",
+    "queue_toggle": "Toggle song queue",
+    "reload_page": "Reload page",
+    "devtools": "Toggle dev-tools",
+    "help": "Open help",
+    "fullscreen": "Fullscreen",
+    "next_song": "Skip song",
+    "prev_song": "Prev song",
+    "seek_forward": "Seek 5s forward",
+    "seek_backwards": "Seek 5s backwards",
+    "seek_0": "Seek to 0%",
+    "seek_1": "Seek to 10%",
+    "seek_2": "Seek to 20%",
+    "seek_3": "Seek to 30%",
+    "seek_4": "Seek to 40%",
+    "seek_5": "Seek to 50%",
+    "seek_6": "Seek to 60%",
+    "seek_7": "Seek to 70%",
+    "seek_8": "Seek to 80%",
+    "seek_9": "Seek to 90%"
+  },
+  "tray": {
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "prev": "Prev",
+    "repeat": "Repeat",
+    "no_repeat": "No repeat",
+    "shuffle": "Shuffle",
+    "show_app": "Show app",
+    "quit": "Quit"
+  },
+  "toasts": {
+    "queued": "Queued {count} song | Queued {count} songs",
+    "shuffled": "Shuffled"
+  }
+}

@@ -1,0 +1,378 @@
+{
+  "sidebar": {
+    "tabs": {
+      "queue": "Очередь",
+      "allSongs": "Все песни",
+      "playlists": "Плейлисты",
+      "albums": "Альбомы",
+      "artists": "Исполнители",
+      "genre": "Жанры",
+      "explore": "Обзор",
+      "paths": "Пути",
+      "themes": "Темы",
+      "extensions": "Расширения",
+      "system": "Система",
+      "logs": "Журналы",
+      "keybinds": "Привязки клавиш"
+    }
+  },
+  "topbar": {
+    "searchPlaceholder": "Поиск...",
+    "noResultsFound": "Ничего не найдено"
+  },
+  "pages": {
+    "playlists": "Плейлисты",
+    "albums": "Альбомы",
+    "artists": "Исполнители",
+    "genres": "Жанры",
+    "explore": "Обзор"
+  },
+  "playlists": {
+    "local": "Локальный",
+    "new_playlist": {
+      "create": "Создать",
+      "description_placeholder": "Описание..."
+    },
+    "url": {
+      "input_hint": "Введите URL здесь (Youtube или Spotify)"
+    }
+  },
+  "songView": {
+    "details": {
+      "songCount": "{count} трека | {count} треков"
+    },
+    "songList": {
+      "topbar": {
+        "searchPlaceholder": "Поиск..."
+      }
+    }
+  },
+  "buttons": {
+    "playSingle": "Воспроизвести {title}",
+    "addToQueue": "Добавить {title} в очередь",
+    "addToLibrary": "Добавить {title} в фонотеку",
+    "playRandom": "Воспроизвести 100 случайных песен",
+    "fetchAll": "Получить все песни",
+    "close": "Закрыть",
+    "add": "Добавить",
+    "save": "Сохранить",
+    "cancel": "Отмена"
+  },
+  "loading": "Загрузка...",
+  "now_playing": "Сейчас играет",
+  "contextMenu": {
+    "sort_by": "Сортировать по",
+    "sort": {
+      "title": "По названию",
+      "album": "По альбому",
+      "artist": "По исполнителю",
+      "genre": "По жанру",
+      "date_added": "По дате добавления",
+      "provider": "По поставщику",
+      "playCount": "По числу прослушивания"
+    },
+    "playlist": {
+      "new": "Новый плейлист",
+      "addFromURL": "Импортировать из URL",
+      "remove": "Удалить список воспроизведения",
+      "export": "Экспортировать список воспроизведения",
+      "add": "Добавить в список воспроизведения",
+      "save": "Добавить в фонотеку"
+    },
+    "song": {
+      "addFromURL": "Добавить по ссылке",
+      "playNow": "Воспроизвести",
+      "playNext": "Воспроизвести следующий",
+      "clearAndPlay": "Очистить очередь и воспроизведение",
+      "addToQueue": "Добавить в очередь",
+      "moveToTop": "Переместить в начало",
+      "moveToBottom": "Переместить в конец",
+      "moveManually": "Переместить вручную",
+      "manualIndex": "Установить индекс трека",
+      "remove": "Убрать из фонотеки",
+      "add": "Добавить песню в фонотеку | Добавить песни в фонотеку",
+      "removeFromPlaylist": "Убрать из списка воспроизведения",
+      "hideFromLibrary": "Скрыть из фонотеки",
+      "showInLibrary": "Показать в фонотеке",
+      "showHidden": "Показать скрытые треки",
+      "hideHidden": "Скрыть скрытые треки",
+      "openInBrowser": "Открыть в браузере",
+      "gotoAlbum": "Перейти к альбому ({title})",
+      "gotoArtists": "Перейти к исполнителям"
+    },
+    "artist": {
+      "remove": "Удалить исполнителя"
+    },
+    "album": {
+      "remove": "Удалить альбом"
+    },
+    "moreInfo": "Доп. сведения",
+    "incorrectPlayback": "Неправильное воспроизведение?"
+  },
+  "explore": {
+    "you_listened_to": "Вы слушали",
+    "of_music": "музыки",
+    "played_for": "Играло",
+    "hot_from": "Популярное из"
+  },
+  "providers": {
+    "youtube": "YouTube",
+    "spotify": "Spotify",
+    "invidious": "Invidious",
+    "lastfm": "Last.fm"
+  },
+  "accounts": {
+    "connect": "Подключиться",
+    "sign_out": "Выйти"
+  },
+  "settings": {
+    "paths": {
+      "songDirectories": "Расположения треков",
+      "songDirectories_tooltip": "Папки с вашей локальной музыкой",
+      "songDirectories_exclude": "Папки в чёрный список",
+      "songDirectories_exclude_tooltip": "Треки в этих папках не будут просканированы",
+      "addFolder": "Добавить папку...",
+      "remove": "Убрать",
+      "artworkPath": "Путь скачанной иллюстрации",
+      "artworkPath_tooltip": "Папка хранения скачанных файлов с иллюстрациями",
+      "thumbnailPath": "Путь скачанных эскизов",
+      "thumbnailPath_tooltip": "Папка хранения сгенерированных миниатюр",
+      "splitter": "Шаблон разделения имени исполнителя",
+      "splitter_tooltip": "Регулярное выражение для разделения имён исполнителей. Оставьте пустым, чтобы отключить разделение.",
+      "scan_interval": "Интервал сканирования",
+      "scan_interval_tooltip": "Интервал сканирования. Введите -1 для отключения автоматического сканирования",
+      "scan_threads": "Потоки сканирования",
+      "scan_threads_tooltip": "Количество потоков процессора, используемых для сканирования локального хранилища"
+    },
+    "themes": {
+      "songView": "Вид треков",
+      "songView_tooltip": "Настроить внешний вид списка треков",
+      "songView_classic": "Классический",
+      "songView_compact": "Компактный",
+      "themes": "Темы",
+      "themes_tooltip": "Настройка цвета",
+      "themes_default": "По умолчанию",
+      "createTheme": "Новая тема",
+      "importTheme": "Импорт шаблона",
+      "newTheme": {
+        "name": "Название темы",
+        "author": "Автор",
+        "colors": "Цвета",
+        "colors_tooltip": "Изменить цвета для настройки интерфейса",
+        "css": "Пользовательский CSS",
+        "watch_css": "См. CSS для изменения файлов"
+      },
+      "primary": "Основной",
+      "secondary": "Вторичный",
+      "tertiary": "Третичный",
+      "textPrimary": "Основной текст",
+      "textSecondary": "Вторичный текст",
+      "textInverse": "Инвертировать текст",
+      "accent": "Оттенок",
+      "divider": "Разделитель",
+      "import_button": "Импорт"
+    },
+    "extensions": {
+      "extensions": "Расширения",
+      "extensions_tooltip": "Список всех установленных расширений",
+      "discover": "Подборка",
+      "install": "Установить из файла",
+      "remove": "Убрать"
+    },
+    "system": {
+      "systemSettings": {
+        "title": "Системные настройки",
+        "systemStartup": "Запускать приложение с включением системы",
+        "minimizeTray": "Сворачивать в область уведомлений при закрытии",
+        "hardwareAcceleration": "Использовать аппаратное ускорение GPU",
+        "watchFileChanges": "Смотреть папки с музыкой для изменения",
+        "enableJukeboxMode": "Включить переключение для режима Jukebox",
+        "lastLoadedPlaybackState": "Загрузить последнее состояние воспроизведения при запуске"
+      },
+      "systemSettings_tooltip": "Настройки, связанные с вашей системой",
+      "audioSettings": {
+        "title": "Настройки аудио",
+        "gaplessPlayback": "Использовать непрерывное воспроизведение когда это возможно",
+        "sponsorBlock": "Использовать SponsorBlock для автоперехода к выделенной части трека на Youtube"
+      },
+      "audioSettings_tooltip": "Настройки, связанные с воспроизведением аудио",
+      "gapless_skip": "Пропустить песню до окончания (секунды)",
+      "invidiousUrlUnsupported": "Эта ссылка не поддерживает Invidious API",
+      "invidious_tooltip": "Invidious экземпляр для использования вместо youtube",
+      "restartApp": "Перезапустить Moosync",
+      "zoom": "Масштаб (Бета)",
+      "zoom_tooltip": "Масштаб окон в процентах. Это может сломать пользовательский интерфейс.",
+      "spotify": {
+        "client_id": "ИД клиента Spotify",
+        "client_id_tooltip": "Требуется Spotify Client ID для входа в Spotify. Нажмите, чтобы узнать больше",
+        "client_secret": "Секретный ключ клиента Spotify",
+        "client_secret_tooltip": "Требуется Spotify Client Secret для входа в Spotify. Нажмите, чтобы узнать больше",
+        "autoFetchButton": "Получить информацию Spotify автоматически",
+        "autoFetchPreTitle": "Получить",
+        "autoFetchTitle": "ClientID и Secret",
+        "autoFetchDisclaimer": "Теперь откроется окно, в котором вам будет предложено войти в свою учетную запись Spotify. После входа не нажимайте нигде, так как весь процесс будет автоматизирован",
+        "openWindow": "Открыть окно",
+        "title": "Настройки Spotify",
+        "tooltip": "Параметры для изменения поведения воспроизведения Spotify",
+        "librespotEnable": "Использовать librespot (требуется Spotify Premium)",
+        "username": "Имя пользователя Spotify",
+        "username_tooltip": "Ваше имя пользователя Spotify. Обычно это электронная почта",
+        "password": "Пароль Spotify",
+        "password_tooltip": "Ваш пароль от Spotify. Возможно, придётся установить его в настройках Spotify",
+        "librespot": {
+          "title": "Параметры Librespot",
+          "tooltip": "Параметры для изменения поведения librespot",
+          "useSpotifyCanvas": "Показывать видео Spotify Canvas на фоне",
+          "useLibrespotPlayback": "Использовать librespot для воспроизведения треков"
+        }
+      },
+      "youtube": {
+        "client_id": "ИД клиента YouTube ",
+        "client_secret": "Секретный ключ клиента YouTube",
+        "client_id_tooltip": "Требуется Youtube Client ID для входа в Youtube. Нажмите, чтобы узнать больше",
+        "client_secret_tooltip": "Требуется Youtube Client Secret для входа в Youtube. Нажмите, чтобы узнать больше"
+      },
+      "lastfm": {
+        "client_id": "Ключ API Last.fm",
+        "client_secret": "Секретный ключ клиента Last.fm"
+      },
+      "youtubeAlternative": {
+        "title": "Альтернативные сервисы YouTube",
+        "tooltip": "Получать данные с Youtube через стороннего провайдера",
+        "useYoutube": "Использовать стандартные сервисы YouTube",
+        "useInvidious": "Использовать сервисы Invidious",
+        "usePiped": "Использовать сервисы Piped",
+        "piped": {
+          "url": "Экземпляр Piped",
+          "url_tooltip": "Ссылка на экземпляр Piped для использования",
+          "username": "Имя пользователя",
+          "username_tooltip": "Ваше имя пользователя piped в выбранном экземпляре",
+          "password": "Пароль",
+          "password_tooltip": "Ваш пароль piped в выбранном экземпляре"
+        },
+        "invidious": {
+          "url": "Экземпляр Invidious",
+          "url_tooltip": "Ссылка на экземпляр Invidious для использования",
+          "options": "Доп. настройки Invidious",
+          "options_tooltip": "Параметры для тонкого управления воспроизведением Invidious",
+          "always_proxy": "Всегда воспроизводить аудио с прокси Invidious вместо Google видео"
+        },
+        "youtube": {
+          "options": "Доп. настройки Youtube",
+          "options_tooltip": "Параметры для управления воспроизведением Youtube",
+          "useEmbeds": "Использовать вставки YouTube для воспроизведения аудио с Youtube"
+        }
+      },
+      "language": "Язык",
+      "language_tooltip": "Изменить язык интерфейса",
+      "clearPreferences": "Сброс по умолчанию",
+      "clear_preferences_title": "Сбросить настройки по умолчанию?",
+      "clear_preferences": "Вы уверены, что хотите сбросить все настройки по умолчанию? Приложение будет перезапущено после сброса.",
+      "clear_preferences_button": "Подтвердить",
+      "jukebox": {
+        "pin": "ПИН-код режима Jukebox",
+        "pin_tooltip": "Для выхода из режима проигрывания. Должно быть число.",
+        "optionalFields": "Видимость кнопки",
+        "optionalFields_tooltip": "Переключить видимость дополнительных кнопок в режиме Jukebox",
+        "optional_skip": "Кнопки пропуска дорожки",
+        "optional_shuffle": "Кнопка случайного проигрывания",
+        "optional_repeat": "Кнопка повтора"
+      },
+      "lyrics": {
+        "title": "Поставщики текстов песен",
+        "tooltip": "Выберите поставщики текстов для поиска текстов песен",
+        "az_lyrics": "Использовать AZ-стихи",
+        "google_lyrics": "Использовать Google поиск текстов песен",
+        "spotify_lyrics": "Использовать Spotify для текстов песен (требуется librespot)",
+        "genius_lyrics": "Использовать Genius"
+      },
+      "queueSettings": {
+        "title": "Настройки очереди",
+        "tooltip": "Опции для настройки поведения очереди песен",
+        "clearQueue": "Очистить очередь перед добавлением плейлиста"
+      },
+      "scrobble": {
+        "provider_toggle": {
+          "title": "Белый список скробблинга",
+          "tooltip": "Включить провайдеров, чьи песни вы хотите быть scrobble'd"
+        }
+      },
+      "volumePersistMode": {
+        "title": "Поведение громкости",
+        "tooltip": "Изменить поведение регулятора громкости",
+        "noPersist": "Обычное поведение",
+        "persistSeparateVolumes": "Запоминать собственную громкость для каждого поставщика",
+        "persistClampVolume": "Настройка диапазона громкости для каждого провайдера вручную"
+      }
+    },
+    "logs": {
+      "logSettings": "Настройки журнала",
+      "level": "Уровень",
+      "process": "Процесс",
+      "filterMessage": "Фильтр сообщений",
+      "levels": {
+        "all": "Все",
+        "debug": "Отладка",
+        "info": "Информация",
+        "warn": "Предупреждение",
+        "error": "Ошибка"
+      },
+      "debug_logging": "Включить логирование отладки",
+      "table": {
+        "time": "Время",
+        "level": "Уровень",
+        "process": "Процесс",
+        "message": "Сообщение"
+      }
+    }
+  },
+  "hotkeys": {
+    "play": "Воспроизвести",
+    "pause": "Пауза",
+    "play_toggle": "Переключить воспроизведение",
+    "mute_active": "Выключить звук",
+    "mute_inactive": "Включить звук",
+    "mute_toggle": "Переключить звук",
+    "volume_inc": "Увеличить громкость",
+    "volume_dec": "Уменьшить громкость",
+    "repeat_active": "Повторять песню",
+    "repeat_inactive": "Выключить повторение",
+    "repeat_toggle": "Переключить повторение",
+    "queue_open": "Открыть очередь песен",
+    "queue_close": "Закрыть очередь песен",
+    "queue_toggle": "Переключить очередь песен",
+    "reload_page": "Обновить страницу",
+    "devtools": "Переключить инструменты разработчика",
+    "help": "Помощь",
+    "fullscreen": "Полный экран",
+    "next_song": "Пропустить песню",
+    "prev_song": "Предыдущая песня",
+    "seek_forward": "Перемотать на 5 секунд вперед",
+    "seek_backwards": "Перемотать на 5 секунд назад",
+    "seek_0": "Перемотать на 0%",
+    "seek_1": "Перемотать на 10%",
+    "seek_2": "Перемотать на 20%",
+    "seek_3": "Перемотать на 30%",
+    "seek_4": "Перемотать на 40%",
+    "seek_5": "Перемотать на 50%",
+    "seek_6": "Перемотать на 60%",
+    "seek_7": "Перемотать на 70%",
+    "seek_8": "Перемотать на 80%",
+    "seek_9": "Перемотать на 90%"
+  },
+  "tray": {
+    "play": "Воспроизвести",
+    "pause": "Пауза",
+    "next": "Следующий",
+    "prev": "Предыдущий",
+    "repeat": "Повторять",
+    "no_repeat": "Не повторять",
+    "shuffle": "Перемешать",
+    "show_app": "Показать приложение",
+    "quit": "Выйти"
+  },
+  "toasts": {
+    "queued": "В очереди {count} песня | В очереди {count} песен",
+    "shuffled": "Перемешано"
+  }
+}

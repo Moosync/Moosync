@@ -1,0 +1,378 @@
+{
+  "sidebar": {
+    "tabs": {
+      "queue": "Wachtrij",
+      "allSongs": "Alle nummers",
+      "playlists": "Afspeellijsten",
+      "albums": "Albums",
+      "artists": "Artiesten",
+      "genre": "Genres",
+      "explore": "Verken",
+      "paths": "Paths",
+      "themes": "Themes",
+      "extensions": "Extensions",
+      "system": "System",
+      "logs": "Logs",
+      "keybinds": "Keybinds"
+    }
+  },
+  "topbar": {
+    "searchPlaceholder": "Zoeken...",
+    "noResultsFound": "Geen resultaten gevonden"
+  },
+  "pages": {
+    "playlists": "Afspeellijsten",
+    "albums": "Albums",
+    "artists": "Artiesten",
+    "genres": "Genres",
+    "explore": "Verken"
+  },
+  "playlists": {
+    "local": "Local",
+    "new_playlist": {
+      "create": "Create",
+      "description_placeholder": "Description..."
+    },
+    "url": {
+      "input_hint": "Enter URL Here.. (Youtube or Spotify)"
+    }
+  },
+  "songView": {
+    "details": {
+      "songCount": "{count} nummer +un{count} {count} nummers"
+    },
+    "songList": {
+      "topbar": {
+        "searchPlaceholder": "Zoeken..."
+      }
+    }
+  },
+  "buttons": {
+    "playSingle": "Speel {title}",
+    "addToQueue": "Voeg {title} toe aan wachtrij",
+    "addToLibrary": "{title} toevoegen aan bibliotheek",
+    "playRandom": "Speel 100 willekeurige nummers af",
+    "fetchAll": "Fetch all songs",
+    "close": "Close",
+    "add": "Add",
+    "save": "Save",
+    "cancel": "Cancel"
+  },
+  "loading": "Laden...",
+  "now_playing": "Now playing",
+  "contextMenu": {
+    "sort_by": "Sort by",
+    "sort": {
+      "title": "Aanspreektitel",
+      "album": "Album (Track No.)",
+      "artist": "Kunstenaar",
+      "genre": "genre",
+      "date_added": "Datum toegevoegd",
+      "provider": "Leverancier",
+      "playCount": "Aantal Afspelen"
+    },
+    "playlist": {
+      "new": "Nieuwe afspeellijst",
+      "addFromURL": "Importeer van URL",
+      "remove": "Afspeellijst verwijderen",
+      "export": "Afspeellijst exporteren",
+      "add": "Toevoegen aan afspeellijst",
+      "save": "Toevoegen aan Bibliotheek"
+    },
+    "song": {
+      "addFromURL": "Toevoegen van URL",
+      "playNow": "Speel nu",
+      "playNext": "Volgende afspelen",
+      "clearAndPlay": "Wachtrij wissen en afspelen",
+      "addToQueue": "Toevoegen aan wachtrij",
+      "moveToTop": "Verplaats naar boven",
+      "moveToBottom": "Verplaats naar onderen",
+      "moveManually": "Handmatig verplaatsen",
+      "manualIndex": "Index van nummer instellen",
+      "remove": "Verwijderen uit bibliotheek",
+      "add": "Voeg Lied toe aan de Bibliotheek, voeg nummers toe aan de bibliotheek",
+      "removeFromPlaylist": "Verwijderen uit afspeellijst",
+      "hideFromLibrary": "Verbergen in bibliotheek",
+      "showInLibrary": "In bibliotheek weergeven",
+      "showHidden": "Verborgen nummers weergeven",
+      "hideHidden": "Verborgen nummers verbergen",
+      "openInBrowser": "Open in browser",
+      "gotoAlbum": "Goto album ({title})",
+      "gotoArtists": "Goto artists"
+    },
+    "artist": {
+      "remove": "Remove artist"
+    },
+    "album": {
+      "remove": "Remove album"
+    },
+    "moreInfo": "Meer informatie",
+    "incorrectPlayback": "Incorrect playback?"
+  },
+  "explore": {
+    "you_listened_to": "You've listened to",
+    "of_music": "of music",
+    "played_for": "Played for",
+    "hot_from": "Hot from"
+  },
+  "providers": {
+    "youtube": "YouTube",
+    "spotify": "Spotify",
+    "invidious": "Onbenauwd",
+    "lastfm": "LastFM"
+  },
+  "accounts": {
+    "connect": "Connect",
+    "sign_out": "Sign out"
+  },
+  "settings": {
+    "paths": {
+      "songDirectories": "Nummer Mappen",
+      "songDirectories_tooltip": "Mappen waar al uw lokale muziek is opgeslagen",
+      "songDirectories_exclude": "Geblokkeerde mappen",
+      "songDirectories_exclude_tooltip": "Nummers in deze mappen worden niet gescand",
+      "addFolder": "Map toevoegen...",
+      "remove": "Verwijderen",
+      "artworkPath": "Gedownloade Artwork Pad",
+      "artworkPath_tooltip": "Map waar gedownloade bestanden worden opgeslagen",
+      "thumbnailPath": "Gedownloade thumbnail pad",
+      "thumbnailPath_tooltip": "Map waar gegenereerde miniaturen worden opgeslagen",
+      "splitter": "Kunstenaar naam gesplitst patroon",
+      "splitter_tooltip": "Regex om de naam van de artiest te splitsen. Laat leeg om splitsing uit te schakelen.",
+      "scan_interval": "Scan interval",
+      "scan_interval_tooltip": "Interval in minutes to trigger a scan task. Set to -1 to disable automatic scanning",
+      "scan_threads": "Scan CPU threads",
+      "scan_threads_tooltip": "Number of threads to use when scanning for local music"
+    },
+    "themes": {
+      "songView": "Nummers weergave",
+      "songView_tooltip": "Uiterlijk van de songlijst aanpassen",
+      "songView_classic": "Klassiek",
+      "songView_compact": "Compacte",
+      "themes": "Thema’s",
+      "themes_tooltip": "Kleuren aanpassen",
+      "themes_default": "Standaard",
+      "createTheme": "Nieuw thema",
+      "importTheme": "Themaontwerp importeren",
+      "newTheme": {
+        "name": "Thema naam",
+        "author": "Auteur",
+        "colors": "Kleuren",
+        "colors_tooltip": "Verander de kleuren om de UI aan te passen",
+        "css": "Custom CSS",
+        "watch_css": "Watch CSS for file changes"
+      },
+      "primary": "Primair",
+      "secondary": "Secundaire",
+      "tertiary": "Tertiair",
+      "textPrimary": "Tekst primaire",
+      "textSecondary": "Tekst secundair",
+      "textInverse": "Tekst inverse",
+      "accent": "Accent",
+      "divider": "Scheidingslijn",
+      "import_button": "Importeren"
+    },
+    "extensions": {
+      "extensions": "Extensies",
+      "extensions_tooltip": "Lijst van alle geïnstalleerde extensies",
+      "discover": "Ontdek",
+      "install": "Installeren vanuit bestand",
+      "remove": "Verwijderen"
+    },
+    "system": {
+      "systemSettings": {
+        "title": "Systeem Instellingen",
+        "systemStartup": "Start app bij opstarten van het systeem",
+        "minimizeTray": "Minimaliseer naar systeemvak bij sluiten",
+        "hardwareAcceleration": "Gebruik GPU hardwareversnelling",
+        "watchFileChanges": "Muziekmappen bekijken voor wijzigingen",
+        "enableJukeboxMode": "Schakelaar voor Jukebox-modus inschakelen",
+        "lastLoadedPlaybackState": "Load last playback state on startup"
+      },
+      "systemSettings_tooltip": "Instellingen die gerelateerd zijn aan uw systeem",
+      "audioSettings": {
+        "title": "Audio instellingen",
+        "gaplessPlayback": "Gebruik gapless play waar mogelijk",
+        "sponsorBlock": "SponsorBlock gebruiken om automatisch over te slaan naar gemarkeerd deel van het Youtube nummer"
+      },
+      "audioSettings_tooltip": "Instellingen voor verwante audio afspelen",
+      "gapless_skip": "Skip song before end (seconds)",
+      "invidiousUrlUnsupported": "Deze url biedt geen ondersteuning voor Invidious API",
+      "invidious_tooltip": "Onbenauwde instantie om te gebruiken in plaats van youtube",
+      "restartApp": "Herstart Moosync",
+      "zoom": "Zoom factor (Beta)",
+      "zoom_tooltip": "Inzoomen van ramen in percentage. Dit kan de UI breken.",
+      "spotify": {
+        "client_id": "Spotify Client ID",
+        "client_id_tooltip": "Spotify client ID vereist om in te loggen op Spotify. Klik om meer te weten te komen",
+        "client_secret": "Spotify Clientgeheim",
+        "client_secret_tooltip": "Spotify geheim client welke nodig is om in te loggen op Spotify. Klik voor meer informatie",
+        "autoFetchButton": "Spotify-gegevens automatisch krijgen",
+        "autoFetchPreTitle": "Verkrijg",
+        "autoFetchTitle": "ClientID en geheim",
+        "autoFetchDisclaimer": "Er wordt nu een venster geopend waar je gevraagd wordt in te loggen op je Spotify-account. Na het inloggen klikt u nergens op, omdat het hele proces zal worden geautomatiseerd",
+        "openWindow": "Open venster",
+        "title": "Spotify Instellingen",
+        "tooltip": "Opties om het gedrag van spotify afspelen te wijzigen",
+        "librespotEnable": "Gebruik librespot (Spotify Premium vereist)",
+        "username": "Spotify gebruikersnaam",
+        "username_tooltip": "Je spotify gebruikersnaam. Meestal je e-mailadres",
+        "password": "Spotify wachtwoord",
+        "password_tooltip": "Je wachtwoord om te spotify te gebruiken. Je moet er misschien een instellen bij instellingen op Spotify",
+        "librespot": {
+          "title": "Librespot opties",
+          "tooltip": "Opties om het gedrag van librespot te veranderen",
+          "useSpotifyCanvas": "Toon spotify canvas video op de achtergrond",
+          "useLibrespotPlayback": "Gebruik librespot voor het afspelen van nummer"
+        }
+      },
+      "youtube": {
+        "client_id": "Youtube Client ID",
+        "client_secret": "Youtube Client Secret",
+        "client_id_tooltip": "Youtube client ID is vereist om in te loggen op Youtube. Klik om meer te weten",
+        "client_secret_tooltip": "Youtube client secret vereist om in te loggen op Youtube. Klik om meer te weten"
+      },
+      "lastfm": {
+        "client_id": "LastFM Api Key",
+        "client_secret": "LastFM Client Secret"
+      },
+      "youtubeAlternative": {
+        "title": "Youtube Alternatieve diensten",
+        "tooltip": "Haal gegevens van Youtube op via een externe aanbieder",
+        "useYoutube": "Standaard Youtube-services gebruiken",
+        "useInvidious": "Gebruik vervelende diensten",
+        "usePiped": "Gebruik Piped services",
+        "piped": {
+          "url": "Invoer Instantie",
+          "url_tooltip": "URL van Piped instantie om te gebruiken",
+          "username": "Gebruikersnaam",
+          "username_tooltip": "Je pip-gebruikersnaam op de geselecteerde instantie",
+          "password": "Wachtwoord",
+          "password_tooltip": "Uw pipwachtwoord op de geselecteerde instantie"
+        },
+        "invidious": {
+          "url": "Onbenauwde instantie",
+          "url_tooltip": "Gebruikte URL van een Invidious exemplaar",
+          "options": "Geavanceerde ongemakkelijke opties",
+          "options_tooltip": "Opties voor fijn regelende ongecontroleerde weergave",
+          "always_proxy": "Altijd audio afspelen van Invidious proxy in plaats van Google video"
+        },
+        "youtube": {
+          "options": "Geavanceerde Youtube opties",
+          "options_tooltip": "Opties voor fijn bediening Youtube afspelen",
+          "useEmbeds": "Gebruik Youtube embeds voor het afspelen van audio van Youtube"
+        }
+      },
+      "language": "Taal",
+      "language_tooltip": "Wijzig de taal van de interface",
+      "clearPreferences": "Standaardinstellingen herstellen",
+      "clear_preferences_title": "Standaardinstellingen herstellen?",
+      "clear_preferences": "Weet u zeker dat u alles wilt terugzetten naar standaard? De app wordt opnieuw opgestart nadat u opnieuw bent ingesteld.",
+      "clear_preferences_button": "Bevestigen",
+      "jukebox": {
+        "pin": "Jukebox-modus pin",
+        "pin_tooltip": "De tis-pin zal vereist zijn om Jukebox modus af te sluiten. Moet numeriek zijn.",
+        "optionalFields": "Button visibility",
+        "optionalFields_tooltip": "Toggle optional buttons to show in Jukebox mode",
+        "optional_skip": "Track Skip buttons",
+        "optional_shuffle": "Shuffle button",
+        "optional_repeat": "Repeat button"
+      },
+      "lyrics": {
+        "title": "Songtekst leveranciers",
+        "tooltip": "Selecteer welke songtekst providers ze moeten gebruiken om te zoeken naar songteksten",
+        "az_lyrics": "Gebruik AZLyrics",
+        "google_lyrics": "Gebruik Google zoek songteksten",
+        "spotify_lyrics": "Use Spotify for lyrics (Requires librespot)",
+        "genius_lyrics": "Use Genius"
+      },
+      "queueSettings": {
+        "title": "Wachtrij instellingen",
+        "tooltip": "Opties om het gedrag van de nummerwachtrij aan te passen",
+        "clearQueue": "Wachtrij wissen voordat u een afspeellijst toevoegt"
+      },
+      "scrobble": {
+        "provider_toggle": {
+          "title": "Scrobble whitelist",
+          "tooltip": "Aanbieders waarvan je wilt dat je scrobble inschakelt"
+        }
+      },
+      "volumePersistMode": {
+        "title": "Volume behavior",
+        "tooltip": "Change the way volume slider behaves",
+        "noPersist": "Normal behavior",
+        "persistSeparateVolumes": "Remember separate volume for each provider",
+        "persistClampVolume": "Manually adjust volume range for each provider"
+      }
+    },
+    "logs": {
+      "logSettings": "Log Instellingen",
+      "level": "Niveau",
+      "process": "Verwerk",
+      "filterMessage": "Filter bericht",
+      "levels": {
+        "all": "All",
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "debug_logging": "Enable debug logging",
+      "table": {
+        "time": "Time",
+        "level": "Level",
+        "process": "Process",
+        "message": "Message"
+      }
+    }
+  },
+  "hotkeys": {
+    "play": "Play Song",
+    "pause": "Pause song",
+    "play_toggle": "Toggle play",
+    "mute_active": "Mute",
+    "mute_inactive": "Unmute",
+    "mute_toggle": " Toggle mute",
+    "volume_inc": "Increase volume",
+    "volume_dec": "Decrease volume",
+    "repeat_active": "Repeat song",
+    "repeat_inactive": "Disable repeat",
+    "repeat_toggle": "Toggle repeat",
+    "queue_open": "Open song queue",
+    "queue_close": "Close song queue",
+    "queue_toggle": "Toggle song queue",
+    "reload_page": "Reload page",
+    "devtools": "Toggle dev-tools",
+    "help": "Open help",
+    "fullscreen": "Fullscreen",
+    "next_song": "Skip song",
+    "prev_song": "Prev song",
+    "seek_forward": "Seek 5s forward",
+    "seek_backwards": "Seek 5s backwards",
+    "seek_0": "Seek to 0%",
+    "seek_1": "Seek to 10%",
+    "seek_2": "Seek to 20%",
+    "seek_3": "Seek to 30%",
+    "seek_4": "Seek to 40%",
+    "seek_5": "Seek to 50%",
+    "seek_6": "Seek to 60%",
+    "seek_7": "Seek to 70%",
+    "seek_8": "Seek to 80%",
+    "seek_9": "Seek to 90%"
+  },
+  "tray": {
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "prev": "Prev",
+    "repeat": "Repeat",
+    "no_repeat": "No repeat",
+    "shuffle": "Shuffle",
+    "show_app": "Show app",
+    "quit": "Quit"
+  },
+  "toasts": {
+    "queued": "Queued {count} song | Queued {count} songs",
+    "shuffled": "Shuffled"
+  }
+}

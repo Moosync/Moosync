@@ -25,6 +25,8 @@ pub struct PreferenceUIFile {
 pub struct Page {
     pub data: Vec<PreferenceUIData>,
     pub title: String,
+    pub path: String,
+    pub icon: String,
 }
 
 #[derive(Debug, Serialize, Clone, Deserialize)]
@@ -33,6 +35,7 @@ pub struct PreferenceUIData {
     pub _type: PreferenceTypes,
     pub name: String,
     pub key: String,
+    pub tooltip: String,
     pub items: Option<Vec<CheckboxItems>>,
 }
 

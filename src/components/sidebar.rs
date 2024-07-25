@@ -1,6 +1,6 @@
 use leptos::{
-    component, create_effect, create_signal, view, CollectView, IntoView, ReadSignal, SignalGet,
-    SignalSet, View, WriteSignal,
+    component, create_effect, create_signal, view, CollectView, IntoView, ReadSignal, Show,
+    SignalGet, SignalSet, View, WriteSignal,
 };
 
 use crate::icons::{
@@ -8,24 +8,45 @@ use crate::icons::{
     allsongs_icon::{AllSongsIcon, AllSongsIconProps},
     artists_icon::{ArtistsIcon, ArtistsIconProps},
     explore_icon::{ExploreIcon, ExploreIconProps},
+    extensions_icon::{ExtensionsIcon, ExtensionsIconProps},
     genres_icon::{GenresIcon, GenresIconProps},
+    logs_icon::{LogsIcon, LogsIconProps},
+    paths_icon::{PathsIcon, PathsIconProps},
     playlists_icon::{PlaylistsIcon, PlaylistsIconProps},
     queue_icon::{QueueIcon, QueueIconProps},
+    system_icon::{SystemIcon, SystemIconProps},
+    themes_icon::{ThemesIcon, ThemesIconProps},
 };
 
 #[derive(Debug, Clone)]
-struct Tab {
+pub struct Tab {
     pub title: String,
-    pub icon: View,
+    pub icon: fn(signal: ReadSignal<bool>) -> View,
     pub url: String,
 }
 
 impl Tab {
-    fn new(title: String, icon: impl IntoView, url: String) -> Self {
+    pub fn new(title: &str, icon: &str, url: &str) -> Self {
+        let icon = match icon {
+            "Queue" => |active| QueueIcon(QueueIconProps { active }).into_view(),
+            "All Songs" => |active| AllSongsIcon(AllSongsIconProps { active }).into_view(),
+            "Playlists" => |active| PlaylistsIcon(PlaylistsIconProps { active }).into_view(),
+            "Artists" => |active| ArtistsIcon(ArtistsIconProps { active }).into_view(),
+            "Albums" => |active| AlbumsIcon(AlbumsIconProps { active }).into_view(),
+            "Genres" => |active| GenresIcon(GenresIconProps { active }).into_view(),
+            "Explore" => |active| ExploreIcon(ExploreIconProps { active }).into_view(),
+            "Paths" => |active| PathsIcon(PathsIconProps { active }).into_view(),
+            "System" => |active| SystemIcon(SystemIconProps { active }).into_view(),
+            "Logs" => |active| LogsIcon(LogsIconProps { active }).into_view(),
+            "Extensions" => |active| ExtensionsIcon(ExtensionsIconProps { active }).into_view(),
+            "Themes" => |active| ThemesIcon(ThemesIconProps { active }).into_view(),
+
+            _ => todo!("Icon not found: {}", icon),
+        };
         Tab {
-            title,
-            icon: icon.into_view(),
-            url,
+            title: title.to_string(),
+            icon,
+            url: url.to_string(),
         }
     }
 }
@@ -35,19 +56,27 @@ fn TabItem(
     #[prop()] tab: Tab,
     index: usize,
     active_tab: ReadSignal<usize>,
+    active_tab_icon_signal: ReadSignal<bool>,
     set_active_tab: WriteSignal<usize>,
 ) -> impl IntoView {
     view! {
-        <div class="d-flex button-bar" on:click=move |_| set_active_tab.set(index)>
+        <div
+            class="d-flex button-bar"
+            class:button-active=move || active_tab.get() == index
+            on:click=move |_| set_active_tab.set(index)
+        >
+            <Show when=move || active_tab.get() == index>
+                <div class="whitebar whitebar-active"></div>
+            </Show>
             <div class="d-flex align-items-center icon-transition icon-padding-open w-100">
-                <div class="icon">{tab.icon}</div>
+                <div class="icon">{move || { (tab.icon)(active_tab_icon_signal) }}</div>
                 <div
                     class="text-padding"
-                    style=move || {
+                    style:color=move || {
                         if active_tab.get() == index {
-                            "color: var(--accent)"
+                            "var(--accent)"
                         } else {
-                            "color: var(--textPrimary)"
+                            "var(--textPrimary)"
                         }
                     }
                 >
@@ -60,10 +89,10 @@ fn TabItem(
 }
 
 #[component]
-pub fn Sidebar() -> impl IntoView {
+pub fn Sidebar(#[prop()] tabs: Vec<Tab>) -> impl IntoView {
     let mut active_write_signals = vec![];
     let mut active_read_signals = vec![];
-    for _ in 0..7 {
+    for _ in 0..tabs.len() {
         let (read, write) = create_signal(false);
         active_read_signals.push(read);
         active_write_signals.push(write);
@@ -71,58 +100,6 @@ pub fn Sidebar() -> impl IntoView {
 
     let (active_tab, set_active_tab) = create_signal(1);
     active_write_signals[0].set(true);
-
-    let tabs = [
-        Tab::new(
-            "Queue".into(),
-            QueueIcon(QueueIconProps {
-                active: active_read_signals[0],
-            }),
-            "".into(),
-        ),
-        Tab::new(
-            "All Songs".into(),
-            AllSongsIcon(AllSongsIconProps {
-                active: active_read_signals[1],
-            }),
-            "/main".into(),
-        ),
-        Tab::new(
-            "Playlists".into(),
-            PlaylistsIcon(PlaylistsIconProps {
-                active: active_read_signals[2],
-            }),
-            "/main/playlists".into(),
-        ),
-        Tab::new(
-            "Artists".into(),
-            ArtistsIcon(ArtistsIconProps {
-                active: active_read_signals[3],
-            }),
-            "/main/artists".into(),
-        ),
-        Tab::new(
-            "Albums".into(),
-            AlbumsIcon(AlbumsIconProps {
-                active: active_read_signals[4],
-            }),
-            "/main/albums".into(),
-        ),
-        Tab::new(
-            "Genres".into(),
-            GenresIcon(GenresIconProps {
-                active: active_read_signals[5],
-            }),
-            "/main/genres".into(),
-        ),
-        Tab::new(
-            "Explore".into(),
-            ExploreIcon(ExploreIconProps {
-                active: active_read_signals[6],
-            }),
-            "/main/explore".into(),
-        ),
-    ];
 
     let tab_urls: Vec<String> = tabs.iter().map(|v| v.url.clone()).collect();
 
@@ -133,7 +110,10 @@ pub fn Sidebar() -> impl IntoView {
         for (i, signal) in active_write_signals.iter().enumerate() {
             signal.set(i == active_tab);
         }
-        navigate(tab_urls[active_tab].as_str(), Default::default());
+        let url = tab_urls.get(active_tab);
+        if let Some(url) = url {
+            navigate(url.as_str(), Default::default());
+        }
     });
 
     view! {
@@ -157,14 +137,16 @@ pub fn Sidebar() -> impl IntoView {
                             <div class="d-flex flex-column">
 
                                 {tabs
-                                    .clone()
                                     .into_iter()
                                     .enumerate()
                                     .map(|(index, tab)| {
                                         TabItem(TabItemProps {
-                                            tab,
+                                            tab: tab.clone(),
                                             index,
                                             active_tab,
+                                            active_tab_icon_signal: *active_read_signals
+                                                .get(index)
+                                                .unwrap(),
                                             set_active_tab,
                                         })
                                     })

@@ -24,6 +24,16 @@
 
 $theme-colors: ("primary": #212121, "secondary": #282828, "tertiary": #151515, "textPrimary": #ffffff, "textSecondary": #565656, "textInverse": #000000, "accent": #65CB88, "divider": rgba(79, 79, 79, 0.67))
 
+:root
+    --primary: #212121
+    --secondary: #282828
+    --tertiary: #151515
+    --textPrimary: #ffffff
+    --textSecondary: #565656
+    --textInverse: #000000
+    --accent: #65CB88
+    --divider: rgba(79, 79, 79, 0.67)
+
 *:focus
   outline: none
 
@@ -517,3 +527,24 @@ img
 .search-song-list-container
     flex: 1
     min-height: 0
+
+@keyframes fade-in
+    from
+        opacity: 0
+
+    to
+        opacity: 0.9
+
+
+@keyframes fade-out
+    from
+        opacity: 0.9
+
+    to
+        opacity: 0
+
+.fade-in
+    animation: 200ms fade-in forwards
+
+.fade-out
+    animation: 200ms fade-out forwards

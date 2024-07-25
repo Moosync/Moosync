@@ -1,4 +1,4 @@
-use crate::{console_log, utils::prefs::open_file_browser_single};
+use crate::{console_log, icons::tooltip::Tooltip, utils::prefs::open_file_browser_single};
 use leptos::{component, event_target_value, view, IntoView, SignalGet, SignalSet};
 use leptos_use::use_debounce_fn_with_arg;
 use types::ui::preferences::{PreferenceTypes, PreferenceUIData};
@@ -31,8 +31,15 @@ pub fn InputPref(#[prop()] data: PreferenceUIData) -> impl IntoView {
     );
 
     view! {
-        <div class="container-fluid">
-            <div class="row no-gutters">Title</div>
+        <div class="container-fluid  mt-4">
+            <div class="row no-gutters">
+                <div class="col-auto align-self-center title d-flex preference-title">
+                    {data.name}
+                </div>
+                <div class="col-auto ml-2">
+                    <Tooltip title=data.tooltip />
+                </div>
+            </div>
 
             <div class="row no-gutters input-prefs-background w-100 mt-2 d-flex align-content-center">
 

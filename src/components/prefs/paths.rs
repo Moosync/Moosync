@@ -1,11 +1,8 @@
-use leptos::{
-    component, view, For, IntoView, SignalGet,
-    SignalUpdate,
-};
+use leptos::{component, view, For, IntoView, SignalGet, SignalUpdate};
 use types::ui::preferences::PreferenceUIData;
 
 use crate::{
-    components::prefs::common::setup_value_listeners_vec,
+    components::prefs::common::setup_value_listeners_vec, icons::tooltip::Tooltip,
     utils::prefs::open_file_browser,
 };
 
@@ -14,8 +11,18 @@ pub fn PathsPref(#[prop()] data: PreferenceUIData) -> impl IntoView {
     let (paths, selected_paths) = setup_value_listeners_vec(data.key.clone());
 
     view! {
-        <div class="container-fluid">
-            <div class="row no-gutters">
+        <div class="container-fluid mt-4">
+            <div class="row no-gutters align-items-center">
+
+                <div class="row no-gutters">
+                    <div class="col-auto align-self-center title d-flex preference-title">
+                        {data.name}
+                    </div>
+                    <div class="col-auto ml-2">
+                        <Tooltip title=data.tooltip />
+                    </div>
+                </div>
+
                 <div class="col-auto new-directories ml-auto justify-content-center">
                     <div>Refresh</div>
                 </div>

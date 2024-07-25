@@ -1,35 +1,45 @@
 page:
   - title: Paths
+    path: paths
+    icon: Paths
     data:
       - type: paths
+        tooltip: Directories where all your music is stored
         name: Music folders
         key: paths
 
       - type: paths
+        tooltip: Directories where all your music is stored
         name: Blacklisted Directories
         key: blacklisted_directories
 
       - type: number
+        tooltip: Directories where all your music is stored
         name: Scan CPU threads
         key: scan_cpu_threads
 
       - type: text
+        tooltip: Directories where all your music is stored
         name: Artist name split pattern
         key: artist_split
 
       - type: number
+        tooltip: Directories where all your music is stored
         name: Scan interval
         key: scan_interval
 
       - type: file-picker
+        tooltip: Directories where all your music is stored
         name: Downloaded artwork path
         key: artwork_path
 
       - type: file-picker
+        tooltip: Directories where all your music is stored
         name: Downloaded thumbnails path
         key: thumbnails_path
 
       - type: checkbox
+        tooltip: Directories where all your music is stored
         name: Use album artist
         key: use_album_artist
         items:

@@ -1,4 +1,5 @@
 use crate::console_log;
+use crate::icons::tooltip::Tooltip;
 use leptos::{
     component, event_target_checked, view, CollectView, IntoView, SignalGet, SignalUpdate,
 };
@@ -12,8 +13,16 @@ pub fn CheckboxPref(#[prop()] data: PreferenceUIData) -> impl IntoView {
     let pref_value = setup_value_listeners::<Vec<CheckboxPreference>>(data.key.clone());
 
     view! {
-        <div class="container-fluid">
-            <div class="row no-gutters">Title</div>
+        <div class="container-fluid mt-4">
+
+            <div class="row no-gutters">
+                <div class="col-auto align-self-center title d-flex preference-title">
+                    {data.name}
+                </div>
+                <div class="col-auto ml-2">
+                    <Tooltip title=data.tooltip />
+                </div>
+            </div>
 
             {move || {
                 data.items

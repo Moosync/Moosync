@@ -2,20 +2,20 @@ use crate::{
     components::prefs::checkbox::CheckboxPref, components::prefs::input::InputPref,
     components::prefs::paths::PathsPref, console_log,
 };
-use leptos::{component, view, For, IntoView};
-use types::ui::preferences::{PreferenceTypes, PreferenceUIData, PreferenceUIFile};
+use leptos::{component, view, For, IntoView, SignalWith};
+use leptos_router::use_params_map;
+use types::ui::preferences::{Page, PreferenceTypes, PreferenceUIData, PreferenceUIFile};
 
 #[component]
-pub fn Settings() -> impl IntoView {
-    let prefs: PreferenceUIFile = serde_yaml::from_str(include_str!("../prefs.yaml")).unwrap();
-    console_log!("prefs: {:?}", prefs);
+pub fn SettingsPage(#[prop()] prefs: PreferenceUIFile) -> impl IntoView {
+    let params = use_params_map();
+    let page = params.with(|params| params.get("page").cloned()).unwrap();
+    let page = prefs.page.into_iter().find(|val| val.path == page).unwrap();
 
-    let first_page = prefs.page.first().unwrap().clone();
     view! {
-        <div>
-
+        <div class="prefs-container">
             <For
-                each=move || first_page.data.clone()
+                each=move || page.data.clone()
                 key=|path| path.key.clone()
                 children=move |data: PreferenceUIData| {
                     match data._type {

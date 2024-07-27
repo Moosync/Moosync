@@ -1,49 +1,39 @@
 page:
-  - title: Paths
+  - title: sidebar.tabs.paths
     path: paths
     icon: Paths
     data:
       - type: paths
-        tooltip: Directories where all your music is stored
-        name: Music folders
+        tooltip: settings.paths.songDirectories_tooltip
+        name: settings.paths.songDirectories
         key: paths
 
       - type: paths
-        tooltip: Directories where all your music is stored
-        name: Blacklisted Directories
+        tooltip: settings.paths.songDirectories_exclude_tooltip
+        name: settings.paths.songDirectories_exclude
         key: blacklisted_directories
 
       - type: number
-        tooltip: Directories where all your music is stored
-        name: Scan CPU threads
+        tooltip: settings.paths.scan_threads_tooltip
+        name: settings.paths.scan_threads
         key: scan_cpu_threads
 
       - type: text
-        tooltip: Directories where all your music is stored
-        name: Artist name split pattern
+        tooltip: settings.paths.splitter_tooltip
+        name: settings.paths.splitter
         key: artist_split
 
       - type: number
-        tooltip: Directories where all your music is stored
-        name: Scan interval
+        tooltip: settings.paths.scan_interval_tooltip
+        name: settings.paths.scan_interval
         key: scan_interval
 
       - type: file-picker
-        tooltip: Directories where all your music is stored
-        name: Downloaded artwork path
-        key: artwork_path
-
-      - type: file-picker
-        tooltip: Directories where all your music is stored
-        name: Downloaded thumbnails path
+        tooltip: settings.paths.thumbnailPath_tooltip
+        name: settings.paths.thumbnailPath
         key: thumbnails_path
 
-      - type: checkbox
-        tooltip: Directories where all your music is stored
-        name: Use album artist
-        key: use_album_artist
-        items:
-          - name: first
-            key: first
-          - name: last
-            key: last
+      - type: file-picker
+        tooltip: settings.paths.artworkPath_tooltip
+        name: settings.paths.artworkPath
+        key: artwork_path

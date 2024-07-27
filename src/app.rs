@@ -2,12 +2,11 @@ use std::rc::Rc;
 
 use crate::components::prefs::static_components::SettingRoutes;
 use leptos::{
-    component, create_rw_signal, leptos_dom::Transparent, provide_context, view, CollectView,
-    IntoView, View,
+    component, create_rw_signal, provide_context, view,
+    IntoView,
 };
 use leptos_i18n::provide_i18n_context;
 use leptos_router::{Outlet, Redirect, Route, Router, Routes};
-use types::ui::preferences::PreferenceUIFile;
 
 use crate::{
     components::{
@@ -15,17 +14,7 @@ use crate::{
         sidebar::{Sidebar, Tab},
         topbar::TopBar,
     },
-    console_log,
     i18n::Locale,
-    icons::{
-        albums_icon::{AlbumsIcon, AlbumsIconProps},
-        allsongs_icon::{AllSongsIcon, AllSongsIconProps},
-        artists_icon::{ArtistsIcon, ArtistsIconProps},
-        explore_icon::{ExploreIcon, ExploreIconProps},
-        genres_icon::{GenresIcon, GenresIconProps},
-        playlists_icon::{PlaylistsIcon, PlaylistsIconProps},
-        queue_icon::{QueueIcon, QueueIconProps},
-    },
     modals::modal_manager::ModalManager,
     pages::{
         albums::{AllAlbums, SingleAlbum},

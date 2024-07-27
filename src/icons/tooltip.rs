@@ -1,18 +1,18 @@
 use std::time::Duration;
 
 use leptos::{
-    component, create_rw_signal, view, AnimatedShow, IntoView, ReadSignal, SignalGet, SignalSet,
+    component, create_rw_signal, view, AnimatedShow, ChildrenFn, IntoView,
+    SignalSet,
 };
 
 #[component]
-pub fn Tooltip(#[prop()] title: String) -> impl IntoView {
+pub fn Tooltip(children: ChildrenFn) -> impl IntoView {
     let show_tooltip = create_rw_signal(false);
     view! {
         <div>
             <svg
                 data-toggle="tooltip"
                 data-placement="right"
-                title=title.clone()
                 width="19"
                 height="19"
                 viewBox="0 0 19 19"
@@ -39,7 +39,7 @@ pub fn Tooltip(#[prop()] title: String) -> impl IntoView {
                     style="position: absolute; top: 6px; left: 25px; will-change: transform; width: max-content;"
                 >
                     <div class="arrow"></div>
-                    <div class="tooltip-inner">{title.clone()}</div>
+                    <div class="tooltip-inner">{children.clone()}</div>
                 </div>
             </AnimatedShow>
         </div>

@@ -11,7 +11,6 @@ use fast_image_resize::ResizeError;
 #[cfg(feature = "core")]
 use google_youtube3::Error as YoutubeError;
 
-
 #[cfg(feature = "core")]
 use rspotify::ClientError;
 

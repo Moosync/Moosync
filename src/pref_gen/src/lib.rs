@@ -1,9 +1,27 @@
-use std::{fmt::format, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, LitStr};
 use types::ui::preferences::{PreferenceTypes, PreferenceUIData, PreferenceUIFile};
+
+fn get_path(path_lit: String) -> proc_macro2::TokenStream {
+    let path_parts: Vec<syn::Ident> = path_lit
+        .split('.')
+        .map(|part| syn::Ident::new(part, proc_macro2::Span::call_site()))
+        .collect();
+
+    let mut access = quote! {};
+    for part in path_parts {
+        if access.is_empty() {
+            access = quote! { #part };
+        } else {
+            access = quote! { #access.#part };
+        }
+    }
+
+    access
+}
 
 #[proc_macro]
 pub fn generate_components(input: TokenStream) -> TokenStream {
@@ -20,7 +38,6 @@ pub fn generate_components(input: TokenStream) -> TokenStream {
         serde_yaml::from_str(&yaml_content).expect("Invalid YAML format");
 
     let components = generate_component(&config);
-
     TokenStream::from(components)
 }
 
@@ -31,17 +48,17 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
 
     for page in &config.page {
         let name = syn::Ident::new(
-            format!("Preference{}Page", page.title.clone()).as_str(),
+            format!("Preference{}Page", page.path.clone()).as_str(),
             proc_macro2::Span::call_site(),
         );
 
-        let page_title = page.title.clone();
+        let page_title = get_path(page.title.clone());
         let page_icon = page.icon.clone();
         let page_path = page.path.clone();
         let page_full_path = format!("/prefs/{}", page_path);
 
         tabs.push(quote! {
-            Tab::new(#page_title, #page_icon, #page_full_path),
+            Tab::new(i18n.get_keys().#page_title, #page_icon, #page_full_path),
         });
 
         routes.push(quote! {
@@ -96,6 +113,7 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
 
         #[component]
         pub fn PrefApp() -> impl IntoView {
+            let i18n = use_i18n();
             let mut tabs = vec![
                 #(#tabs)*
             ];
@@ -146,9 +164,9 @@ fn generate_children(data: &[PreferenceUIData]) -> Vec<(syn::Ident, proc_macro2:
 fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
 
-    let name = data.name.clone();
+    let name = get_path(data.name.clone());
 
-    let tooltip = data.tooltip.clone();
+    let tooltip = get_path(data.tooltip.clone());
 
     let fn_name = syn::Ident::new(
         format!("Checkbox{}Pref", data.key).as_str(),
@@ -158,7 +176,7 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
     let mut checkboxes = vec![];
     for items in data.items.clone().unwrap() {
         let item_key = items.key.clone();
-        let item_name = items.name.clone();
+        let item_name = get_path(items.name.clone());
         let checkbox_key = format!("checkbox-{}-{}", key, item_key);
 
         let stream = quote! {
@@ -203,7 +221,7 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
                 </div>
 
                 <div class="col-md-8 col-lg-9 col align-self-center ml-3 justify-content-start">
-                    <div class="item-text text-truncate">#item_name</div>
+                    <div class="item-text text-truncate">{t!(i18n, #item_name)}</div>
                 </div>
             </div>
         };
@@ -227,15 +245,16 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
                 }
                 save_selective(pref_key.clone(), value);
             });
+            let i18n = use_i18n();
             view! {
                 <div class="container-fluid mt-4">
 
                     <div class="row no-gutters">
                         <div class="col-auto align-self-center title d-flex preference-title">
-                            #name
+                            {t!(i18n, #name)}
                         </div>
                         <div class="col-auto ml-2">
-                            <Tooltip title=#tooltip.to_string() />
+                            <Tooltip> {t!(i18n, #tooltip)} </Tooltip>
                         </div>
                     </div>
 
@@ -251,7 +270,9 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
 fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
 
-    let name = data.name.clone();
+    let name = get_path(data.name.clone());
+
+    let tooltip = get_path(data.tooltip.clone());
 
     let (show_input, inp_type, is_number) = match data._type {
         PreferenceTypes::FilePicker => (false, "", false),
@@ -260,8 +281,6 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
         // Below case should never happen
         _ => (true, "", false),
     };
-
-    let tooltip = data.tooltip.clone();
 
     let fn_name = syn::Ident::new(
         format!("Input{}Pref", data.key).as_str(),
@@ -290,23 +309,25 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
             let debounced_update = use_debounce_fn_with_arg(
                 move |event: web_sys::Event| {
                     let value = event_target_value(&event);
-                    // if #is_number && value.parse::<f64>().is_err() {
-                    //     console_log!("Invalid number");
-                    //     return;
-                    // }
+                    if #is_number && value.parse::<f64>().is_err() {
+                        console_log!("Invalid number");
+                        return;
+                    }
                     pref_value.set(value);
                 },
                 500.0,
             );
 
+            let i18n = use_i18n();
+
             view! {
                 <div class="container-fluid  mt-4">
                     <div class="row no-gutters">
                         <div class="col-auto align-self-center title d-flex preference-title">
-                            #name
+                            {t!(i18n, #name)}
                         </div>
                         <div class="col-auto ml-2">
-                            <Tooltip title=#tooltip.to_string() />
+                            <Tooltip> {t!(i18n, #tooltip)} </Tooltip>
                         </div>
                     </div>
 
@@ -362,9 +383,9 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
 fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
 
-    let name = data.name.clone();
+    let name = get_path(data.name.clone());
 
-    let tooltip = data.tooltip.clone();
+    let tooltip = get_path(data.tooltip.clone());
 
     let fn_name = syn::Ident::new(
         format!("Paths{}Pref", data.key).as_str(),
@@ -404,10 +425,10 @@ fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
 
                         <div class="row no-gutters">
                             <div class="col-auto align-self-center title d-flex preference-title">
-                                #name
+                                {t!(i18n, #name)}
                             </div>
                             <div class="col-auto ml-2">
-                                <Tooltip title=#tooltip.to_string() />
+                                <Tooltip> {t!(i18n, #tooltip)} </Tooltip>
                             </div>
                         </div>
 

@@ -1,9 +1,12 @@
 use std::{
-    io,
     num::{ParseFloatError, ParseIntError},
     string::FromUtf8Error,
-    time::SystemTimeError,
 };
+
+#[cfg(feature = "core")]
+use std::io;
+#[cfg(feature = "core")]
+use std::time::SystemTimeError;
 
 #[cfg(feature = "core")]
 use fast_image_resize::ResizeError;
@@ -21,7 +24,11 @@ use wasm_bindgen::JsValue;
 #[cfg(feature = "core")]
 use fast_image_resize::ImageBufferError;
 #[cfg(feature = "core")]
+use hex::FromHexError;
+#[cfg(feature = "core")]
 use image::ImageError;
+#[cfg(feature = "core")]
+use keyring::Error as KeyringError;
 #[cfg(feature = "core")]
 use librespot::core::Error as LibrespotError;
 #[cfg(feature = "core")]
@@ -100,6 +107,12 @@ pub enum MoosyncError {
     #[cfg(feature = "core")]
     #[error("Transfer control to provider: {0}")]
     SwitchProviders(String),
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
+    HexError(#[from] FromHexError),
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
+    KeyringError(#[from] KeyringError),
 }
 
 #[cfg(feature = "ui")]

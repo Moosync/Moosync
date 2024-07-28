@@ -1,18 +1,37 @@
 [package]
 name = "librespot"
-version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version = "0.1.0"
 
 [dependencies]
-librespot = { git = "https://github.com/librespot-org/librespot", branch = "dev", features = [
-    "default",
-] }
-protobuf = { version = "3.4.0", features = ["bytes"] }
-reqwest = "0.12.4"
-tokio = { version = "1.38.0", features = ["full"] }
-futures-util = { version = "0.3.29", default_features = false }
-types = { path = "../types" }
 quote = "1.0.36"
-serde = { version = "1.0", features = ["derive"] }
+
+[dependencies.futures-util]
+version = "0.3.29"
+features = []
+
+[dependencies.librespot]
+git = "https://github.com/librespot-org/librespot"
+branch = "dev"
+features = ["default"]
+
+[dependencies.protobuf]
+version = "3.5.0"
+features = ["bytes"]
+
+[dependencies.reqwest]
+version = "0.12.5"
+features = ["http2", "default-tls", "macos-system-configuration"]
+default-features = false
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
+
+[dependencies.tokio]
+version = "1.39.2"
+features = ["full"]
+
+[dependencies.types]
+path = "../types"
+features = []

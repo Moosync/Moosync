@@ -10,7 +10,7 @@ mock = []
 [dependencies]
 console_error_panic_hook = "0.1.7"
 
-leptos = { version = "0.6.12", features = ["csr"] }
+leptos = { version = "0.6.13", features = ["csr"] }
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
@@ -20,17 +20,17 @@ stylers = "0.3.2"
 types = { path = "src-tauri/types", default-features = false, features = [
     "ui",
 ] }
-uuid = "1.8.0"
+uuid = "1.10.0"
 chrono = "0.4.38"
 leptos-use = "0.10.10"
 async-channel = "2.3.1"
-tokio = { version = "1.38.0", features = ["rt", "sync"] }
-serde_json = "1.0.117"
-leptos_router = { version = "0.6.12", features = ["csr"] }
+tokio = { version = "1.39.2", features = ["rt", "sync"] }
+serde_json = "1.0.120"
+leptos_router = { version = "0.6.13", features = ["csr"] }
 leptos_virtual_scroller = { git = "https://github.com/Ovenoboyo/leptos_virtual_scroller" }
 oauth2 = "4.4.2"
-async-trait = "0.1.80"
-url = "2.5.0"
+async-trait = "0.1.81"
+url = "2.5.2"
 rspotify = "0.13.2"
 web-time = "1.1.0"
 futures = "0.3.30"

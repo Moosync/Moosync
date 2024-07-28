@@ -7,10 +7,10 @@ edition = "2021"
 
 [dependencies]
 regex = "1.10.5"
-reqwest = "0.12.4"
-scraper = "0.19.0"
-serde = "1.0.203"
-serde_json = "1.0.117"
-tokio = "1.38.0"
+reqwest = "0.12.5"
+scraper = "0.19.1"
+serde = "1.0.204"
+serde_json = "1.0.120"
+tokio = "1.39.2"
 types = { path = "../types" }
 librespot = { path = "../librespot" }

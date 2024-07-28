@@ -37,3 +37,24 @@ page:
         tooltip: settings.paths.artworkPath_tooltip
         name: settings.paths.artworkPath
         key: artwork_path
+  - title: sidebar.tabs.system
+    path: system
+    icon: System
+    data:
+      - type: checkbox
+        name: settings.system.systemSettings.title
+        tooltip: settings.system.systemSettings_tooltip
+        key: system_settings
+        items:
+          - name: settings.system.systemSettings.systemStartup
+            key: auto_startup
+          - name: settings.system.systemSettings.minimizeTray
+            key: minimize_to_tray
+          - name: settings.system.systemSettings.hardwareAcceleration
+            key: hardware_acceleration
+          - name: settings.system.systemSettings.watchFileChanges
+            key: watch_file_changes
+          - name: settings.system.systemSettings.enableJukeboxMode
+            key: jukebox_mode
+          - name: settings.system.systemSettings.lastLoadedPlaybackState
+            key: last_loaded_playback_state

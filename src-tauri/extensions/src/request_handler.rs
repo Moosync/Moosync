@@ -152,12 +152,12 @@ impl ReplyHandler {
     pub fn get_preferences(&self, package_name: String, data: Value) -> Result<Value> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let request: PreferenceData = serde_json::from_value(data)?;
-        let ret =
-            preferences.load_selective(format!("extension.{}.{}", package_name, request.key))?;
-        if ret.is_null() {
-            return Ok(serde_json::to_value(&request.default_value)?);
-        }
-        Ok(serde_json::to_value(&ret)?)
+        let ret: Result<Value> =
+            preferences.load_selective(format!("extension.{}.{}", package_name, request.key));
+        Ok(match ret {
+            Ok(v) => v,
+            Err(_) => serde_json::to_value(&request.default_value)?,
+        })
     }
 
     pub fn set_preferences(&self, package_name: String, data: Value) -> Result<Value> {
@@ -173,11 +173,11 @@ impl ReplyHandler {
     pub fn get_secure(&self, package_name: String, data: Value) -> Result<Value> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let request: PreferenceData = serde_json::from_value(data)?;
-        let ret = preferences.get_secure(format!("extension.{}.{}", package_name, request.key))?;
-        if ret.is_null() {
-            return Ok(serde_json::to_value(&request.default_value)?);
-        }
-        Ok(serde_json::to_value(&ret)?)
+        let ret = preferences.get_secure(format!("extension.{}.{}", package_name, request.key));
+        Ok(match ret {
+            Ok(v) => v,
+            Err(_) => serde_json::to_value(&request.default_value)?,
+        })
     }
 
     pub fn set_secure(&self, package_name: String, data: Value) -> Result<Value> {

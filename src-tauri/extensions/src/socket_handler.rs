@@ -116,8 +116,6 @@ impl<'a> SocketHandler<'a> {
     }
 
     pub fn handle_connection(&mut self) {
-        self.conn.set_nonblocking(true).unwrap();
-
         let mut old_buf = vec![];
         loop {
             if let Ok((tx_reply, mut value)) = self.rx_command.try_recv() {

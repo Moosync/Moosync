@@ -28,7 +28,7 @@
     "explore": "Przeglądaj"
   },
   "playlists": {
-    "local": "Local",
+    "local": "Lokalny",
     "new_playlist": {
       "create": "Utwórz",
       "description_placeholder": "Opis..."
@@ -52,7 +52,7 @@
     "addToQueue": "Dodaj {title} do kolejki",
     "addToLibrary": "Dodaj {title} do biblioteki",
     "playRandom": "Odtwórz 100 losowych utworów",
-    "fetchAll": "Fetch all songs",
+    "fetchAll": "Pobierz wszystkie utwory",
     "close": "Zamknij",
     "add": "Dodaj",
     "save": "Zapisz",
@@ -64,7 +64,7 @@
     "sort_by": "Sortuj według",
     "sort": {
       "title": "Rozporządzenie Rady (EWG) nr 2658/87 z dnia 23 lipca 1987 r. w sprawie nomenklatury taryfowej i statystycznej oraz w sprawie Wspólnej Taryfy Celnej (Dz.U. L 256 z 7.9.1987, s. 1).",
-      "album": "Album (Track No.)",
+      "album": "Album (nr. utworu)",
       "artist": "Artysta",
       "genre": "Rodzaj",
       "date_added": "Data dodania",
@@ -98,7 +98,7 @@
       "hideHidden": "Ukryj ukryte utwory",
       "openInBrowser": "Otwórz w przeglądarce",
       "gotoAlbum": "Idź do albumu ({title})",
-      "gotoArtists": "Goto artists"
+      "gotoArtists": "Idź do artystów"
     },
     "artist": {
       "remove": "Usuń artystę"
@@ -107,13 +107,13 @@
       "remove": "Usuń album"
     },
     "moreInfo": "Więcej informacji",
-    "incorrectPlayback": "Incorrect playback?"
+    "incorrectPlayback": "Niepoprawne odtwarzanie?"
   },
   "explore": {
     "you_listened_to": "Słuchałeś",
     "of_music": "muzyki",
-    "played_for": "Played for",
-    "hot_from": "Hot from"
+    "played_for": "Grane dla",
+    "hot_from": "Gorące od"
   },
   "providers": {
     "youtube": "YouTube",
@@ -139,10 +139,10 @@
       "thumbnailPath_tooltip": "Katalog, w którym generowane miniatury są przechowywane",
       "splitter": "Wzór podziału nazwy artysty",
       "splitter_tooltip": "Regex, aby podzielić nazwy artysty. Pozostaw puste, aby wyłączyć dzielenie.",
-      "scan_interval": "Scan interval",
-      "scan_interval_tooltip": "Interval in minutes to trigger a scan task. Set to -1 to disable automatic scanning",
-      "scan_threads": "Scan CPU threads",
-      "scan_threads_tooltip": "Number of threads to use when scanning for local music"
+      "scan_interval": "Odstęp skanowania",
+      "scan_interval_tooltip": "Odstęp w minutach, aby uruchomić skanowanie. Ustaw na -1, aby wyłączyć automatyczne skanowanie",
+      "scan_threads": "Zeskanuj wątki CPU",
+      "scan_threads_tooltip": "Liczba wątków do użycia podczas skanowania muzyki lokalnej"
     },
     "themes": {
       "songView": "Widok utworów",

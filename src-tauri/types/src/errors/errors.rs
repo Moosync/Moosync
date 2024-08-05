@@ -15,6 +15,8 @@ use fast_image_resize::ResizeError;
 use google_youtube3::Error as YoutubeError;
 
 #[cfg(feature = "core")]
+use jsonschema::ValidationError;
+#[cfg(feature = "core")]
 use rspotify::ClientError;
 
 use serde_json::Value;
@@ -113,12 +115,27 @@ pub enum MoosyncError {
     #[cfg_attr(feature = "core", error(transparent))]
     #[cfg(feature = "core")]
     KeyringError(#[from] KeyringError),
+    #[cfg(feature = "core")]
+    #[cfg_attr(feature = "core", error("JSON validation failed: {0}"))]
+    JSONValidationError(String),
 }
 
 #[cfg(feature = "ui")]
 impl From<serde_wasm_bindgen::Error> for MoosyncError {
     fn from(value: serde_wasm_bindgen::Error) -> Self {
         Self::String(value.to_string())
+    }
+}
+
+#[cfg(feature = "core")]
+impl<'a> From<Box<dyn Iterator<Item = ValidationError<'a>> + Sync + Send + 'a>> for MoosyncError {
+    fn from(value: Box<dyn Iterator<Item = ValidationError<'a>> + Sync + Send + 'a>) -> Self {
+        let mut res = String::new();
+        for error in value {
+            res.push_str(error.to_string().as_str());
+            res.push('\n');
+        }
+        Self::JSONValidationError(res)
     }
 }
 

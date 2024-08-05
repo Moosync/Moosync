@@ -10,6 +10,7 @@ use oauth2::{
 };
 use preferences::preferences::PreferenceConfig;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use tauri::{AppHandle, Manager, State};
 use types::entities::{
@@ -247,7 +248,7 @@ impl YoutubeProvider {
 impl GenericProvider for YoutubeProvider {
     async fn initialize(&mut self) -> Result<()> {
         let preferences: State<PreferenceConfig> = self.app.state();
-        let youtube_config = preferences.inner().load_selective("youtube".into())?;
+        let youtube_config: Value = preferences.inner().load_selective("youtube".into())?;
         println!("{:?}", youtube_config);
         let client_id = youtube_config.get("client_id");
         let client_secret = youtube_config.get("client_secret");

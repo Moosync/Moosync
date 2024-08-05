@@ -36,6 +36,7 @@ pub struct PreferenceUIData {
     pub name: String,
     pub key: String,
     pub tooltip: String,
+    pub single: Option<bool>,
     pub items: Option<Vec<CheckboxItems>>,
 }
 

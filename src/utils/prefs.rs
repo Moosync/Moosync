@@ -1,13 +1,18 @@
+use js_sys::Function;
 use leptos::{spawn_local, SignalSet};
+use serde::Deserialize;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use serde_wasm_bindgen::{from_value, to_value};
 use types::errors::errors::Result;
 use types::window::{DialogFilter, FileResponse};
+use wasm_bindgen::prelude::Closure;
+use wasm_bindgen::{JsCast, JsValue};
+use web_sys::BeforeUnloadEvent;
 
 use crate::console_log;
 
-use super::common::invoke;
+use super::common::{invoke, listen};
 
 #[derive(Serialize)]
 struct KeyArgs {
@@ -27,13 +32,22 @@ where
     spawn_local(async move {
         let args = to_value(&KeyArgs { key: key.clone() }).unwrap();
         let res = invoke("load_selective", args).await;
-        let parsed = serde_wasm_bindgen::from_value(res);
+        if res.is_err() {
+            console_log!("Failed to load preference: {}", key);
+            return;
+        }
+        let parsed = serde_wasm_bindgen::from_value(res.unwrap());
         if parsed.is_err() {
             console_log!("Failed to parse preference: {}", key);
             return;
         }
         setter.set(parsed.unwrap());
     });
+}
+
+pub fn save_selective_number(key: String, value: String) {
+    let val = value.parse::<f64>().unwrap();
+    save_selective(key, val)
 }
 
 pub fn save_selective<T>(key: String, value: T)
@@ -101,7 +115,11 @@ pub fn open_file_browser(
         .unwrap();
 
         let res = invoke("open_file_browser", args).await;
-        let file_resp: Vec<FileResponse> = from_value(res).unwrap();
+        if res.is_err() {
+            console_log!("Failed to open file browser");
+            return;
+        }
+        let file_resp: Vec<FileResponse> = from_value(res.unwrap()).unwrap();
         setter.set(file_resp.iter().map(|f| f.path.clone()).collect());
     })
 }
@@ -126,7 +144,45 @@ pub fn open_file_browser_single(
         .unwrap();
 
         let res = invoke("open_file_browser", args).await;
-        let file_resp: Vec<FileResponse> = from_value(res).unwrap();
+        if res.is_err() {
+            console_log!("Failed to open file browser");
+            return;
+        }
+        let file_resp: Vec<FileResponse> = from_value(res.unwrap()).unwrap();
         setter.set(file_resp.first().unwrap().path.clone());
     })
+}
+
+pub fn watch_preferences(cb: fn((String, JsValue))) -> js_sys::Function {
+    let closure = Closure::wrap(Box::new(move |data: JsValue| {
+        let res = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
+        if res.is_array() {
+            let key = js_sys::Reflect::get(&res, &JsValue::from_f64(0f64))
+                .unwrap()
+                .as_string()
+                .unwrap();
+            let value = js_sys::Reflect::get(&res, &JsValue::from_f64(1f64)).unwrap();
+            cb((key, value));
+            return;
+        }
+        console_log!("Received invalid preference change: {:?}", data)
+    }) as Box<dyn Fn(JsValue)>);
+    let res = listen("preference-changed", closure.into_js_value());
+    console_log!("ret = {:?}", res);
+
+    let data = Box::new(move |ev: BeforeUnloadEvent| {
+        let unlisten = wasm_bindgen_futures::JsFuture::from(res.clone());
+        spawn_local(async move {
+            let unlisten = unlisten.await.unwrap();
+            if unlisten.is_function() {
+                let func = js_sys::Function::from(unlisten);
+                console_log!("Cleaning up preference listener");
+                func.call0(&JsValue::NULL).unwrap();
+            }
+        });
+    }) as Box<dyn FnMut(BeforeUnloadEvent)>;
+
+    let unlisten = Closure::wrap(data);
+
+    js_sys::Function::from(unlisten.into_js_value())
 }

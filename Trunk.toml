@@ -8,3 +8,4 @@ ignore = ["./src-tauri", "./target", "./target-ui", "./src-extensions"]
 address = "127.0.0.1"
 port = 1420
 open = false
+ws_protocol = "ws"

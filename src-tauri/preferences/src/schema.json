@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Preferences",
+  "description": "Preferences in Moosync",
+  "type": "object",
+  "$defs": {
+    "checkbox": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "required": ["key", "enabled"]
+      }
+    },
+    "paths": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "properties": {
+    "prefs": {
+      "type": "object",
+      "properties": {
+        "MoosyncSpotifyRefreshToken": {
+          "type": "string"
+        },
+        "MoosyncYoutubeRefreshToken": {
+          "type": "string"
+        },
+        "music_paths": {
+          "$ref": "#/$defs/paths"
+        },
+        "exclude_music_paths": {
+          "$ref": "#/$defs/paths"
+        },
+        "scan_threads": {
+          "type": "integer"
+        },
+        "artist_splitter": {
+          "type": "string"
+        },
+        "genre_splitter": {
+          "type": "string"
+        },
+        "scan_interval": {
+          "type": "integer"
+        },
+        "artwork_path": {
+          "type": "string"
+        },
+        "thumbnail_path": {
+          "type": "string"
+        },
+        "system_settings": {
+          "$ref": "#/$defs/checkbox"
+        },
+        "queue_settings": {
+          "$ref": "#/$defs/checkbox"
+        },
+        "audio_settings": {
+          "$ref": "#/$defs/checkbox"
+        },
+        "gapless_skip": {
+          "type": "number"
+        },
+        "volume_persist_mode": {
+          "$ref": "#/$defs/checkbox"
+        },
+        "spotify": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "$ref": "#/$defs/checkbox"
+            },
+            "username": {
+              "type": "string"
+            },
+            "password": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "required": []
+    }
+  },
+  "required": ["prefs"]
+}

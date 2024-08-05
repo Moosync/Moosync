@@ -37,7 +37,6 @@ futures = "0.3.30"
 web-sys = "0.3.69"
 regex = "1.10.5"
 colors-transform = "0.2.11"
-serde_yaml = "0.9.34"
 leptos_i18n = { version = "0.3.3" }
 pref_gen = { path = "src/pref_gen" }
 
@@ -99,7 +98,7 @@ locales = [
 strip = "symbols"
 
 [profile.dev]
-debug = 0
-opt-level = 0
-lto = false
+# debug = 0
+# opt-level = 0
+# lto = false
 incremental = true

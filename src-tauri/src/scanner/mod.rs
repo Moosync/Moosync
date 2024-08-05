@@ -2,10 +2,17 @@ use database::database::Database;
 use file_scanner::scanner::ScannerHolder;
 use preferences::preferences::PreferenceConfig;
 use tauri::State;
-use types::errors::errors::Result;
+use types::{errors::errors::Result, ui::preferences::PathsValue};
 
 pub fn get_scanner_state() -> ScannerHolder {
     ScannerHolder::new()
+}
+
+fn get_scan_paths(preferences: &State<PreferenceConfig>) -> Result<Vec<String>> {
+    let tmp: Vec<String> = preferences.load_selective("music_paths".to_string())?;
+
+    // TODO: Filter using exclude paths
+    Ok(tmp)
 }
 
 #[tauri::command(async)]
@@ -17,27 +24,27 @@ pub fn start_scan(
     force: bool,
 ) -> Result<()> {
     if paths.is_none() {
-        paths = Some(preferences.get_scan_paths()?);
+        paths = Some(get_scan_paths(&preferences)?);
     }
 
-    let thumbnail_dir = preferences
-        .load_selective("thumbnailPath".to_string())?
-        .as_str()
-        .unwrap()
-        .to_string();
+    let thumbnail_dir: String = preferences.load_selective("thumbnail_path".to_string())?;
 
-    let artist_split = preferences
-        .load_selective("scan_splitter".to_string())?
-        .as_str()
-        .unwrap_or(";")
-        .to_string();
+    let artist_split: String = preferences
+        .load_selective("artist_splitter".to_string())
+        .unwrap_or(";".to_string());
+
+    let scan_threads: f64 = preferences
+        .load_selective("scan_threads".to_string())
+        .unwrap_or(-1f64);
 
     for path in paths.unwrap() {
+        println!("Scanning path: {}", path);
         scanner.start_scan(
             database.inner(),
             path,
             thumbnail_dir.clone(),
             artist_split.clone(),
+            scan_threads,
             force,
         )?;
     }

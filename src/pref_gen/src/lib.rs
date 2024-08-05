@@ -38,6 +38,7 @@ pub fn generate_components(input: TokenStream) -> TokenStream {
         serde_yaml::from_str(&yaml_content).expect("Invalid YAML format");
 
     let components = generate_component(&config);
+
     TokenStream::from(components)
 }
 
@@ -96,11 +97,11 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
         use crate::{
             i18n::use_i18n,
             icons::tooltip::Tooltip,
-            utils::prefs::{load_selective, open_file_browser, open_file_browser_single, save_selective},
+            utils::prefs::{load_selective, open_file_browser, open_file_browser_single, save_selective, save_selective_number},
         };
         use leptos::{
             component, create_effect, create_rw_signal, event_target_checked, event_target_value, view,
-            For, IntoView, SignalGet, SignalSet, SignalUpdate, RwSignal
+            For, IntoView, SignalGet, SignalSet, SignalUpdate, RwSignal, SignalSetUntracked
         };
         use leptos_i18n::t;
         use leptos_use::use_debounce_fn_with_arg;
@@ -169,9 +170,11 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
     let tooltip = get_path(data.tooltip.clone());
 
     let fn_name = syn::Ident::new(
-        format!("Checkbox{}Pref", data.key).as_str(),
+        format!("Checkbox{}Pref", data.key.replace(".", "_")).as_str(),
         proc_macro2::Span::call_site(),
     );
+
+    let single = data.single.unwrap_or(false);
 
     let mut checkboxes = vec![];
     for items in data.items.clone().unwrap() {
@@ -210,6 +213,10 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
                                                 enabled,
                                             });
                                         }
+
+                                        if enabled {
+                                            last_enabled.set(#item_key.to_string());
+                                        }
                                     });
                             }
                         />
@@ -237,13 +244,25 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
             let pref_key = #key.to_string();
             load_selective(pref_key.clone(), pref_value.write_only());
 
+            let last_enabled = create_rw_signal(String::new());
+
             create_effect(move |_| {
-                let value = pref_value.get();
+                let mut value = pref_value.get();
                 if !should_write.get() {
                     should_write.set(true);
                     return;
                 }
-                save_selective(pref_key.clone(), value);
+
+                if #single {
+                    let last_enabled = last_enabled.get();
+                    // let mut value_c = value.clone();
+                    for items in value.iter_mut() {
+                        items.enabled = items.key == last_enabled;
+                    }
+                }
+                save_selective(pref_key.clone(), value.clone());
+                // pref_value.set_untracked(value);
+
             });
             let i18n = use_i18n();
             view! {
@@ -283,7 +302,7 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
     };
 
     let fn_name = syn::Ident::new(
-        format!("Input{}Pref", data.key).as_str(),
+        format!("Input{}Pref", data.key.replace(".", "_")).as_str(),
         proc_macro2::Span::call_site(),
     );
 
@@ -303,7 +322,13 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
                     should_write.set(true);
                     return;
                 }
-                save_selective(pref_key.clone(), value);
+
+                if #is_number {
+                    save_selective_number(pref_key.clone(), value);
+                } else {
+                    save_selective(pref_key.clone(), value);
+                }
+
             });
 
             let debounced_update = use_debounce_fn_with_arg(
@@ -388,7 +413,7 @@ fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
     let tooltip = get_path(data.tooltip.clone());
 
     let fn_name = syn::Ident::new(
-        format!("Paths{}Pref", data.key).as_str(),
+        format!("Paths{}Pref", data.key.replace(".", "_")).as_str(),
         proc_macro2::Span::call_site(),
     );
     let stream = quote! {
@@ -396,8 +421,7 @@ fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
         pub fn #fn_name() -> impl IntoView {
             let should_write = create_rw_signal(false);
             let paths: RwSignal<Vec<String>> = create_rw_signal(vec![]);
-            let pref_key = #key.to_string();
-            load_selective(pref_key.clone(), paths.write_only());
+            load_selective(#key.to_string(), paths.write_only());
 
             let selected_paths = create_rw_signal(vec![]);
 
@@ -409,12 +433,12 @@ fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
             });
 
             create_effect(move |_| {
-                let value = paths.get();
                 if !should_write.get() {
                     should_write.set(true);
                     return;
                 }
-                save_selective(pref_key.clone(), value);
+                let value = paths.get();
+                save_selective(#key.to_string(), value);
             });
 
             let i18n = use_i18n();
@@ -433,7 +457,9 @@ fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
                         </div>
 
                         <div class="col-auto new-directories ml-auto justify-content-center">
-                            <div>{"Refresh"}</div>
+                            <div on:click=move |_| {
+                                save_selective(#key.to_string(), paths.get())
+                                } >{"Refresh"}</div>
                         </div>
 
                         <div class="col-auto new-directories ml-4">

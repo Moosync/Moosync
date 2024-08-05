@@ -1,6 +1,6 @@
-use std::{cmp::min, collections::HashMap};
+use std::{cmp::max, cmp::min, collections::HashMap, default};
 
-use types::{songs::Song, ui::player_details::PlayerState};
+use types::{preferences::CheckboxPreference, songs::Song, ui::player_details::PlayerState};
 
 use crate::console_log;
 
@@ -16,7 +16,18 @@ pub struct PlayerDetails {
     pub current_time: f64,
     pub force_seek: f64,
     pub state: PlayerState,
-    pub volume: f64,
+    volume: f64,
+    volume_mode: VolumeMode,
+    volume_map: HashMap<String, f64>,
+    clamp_map: HashMap<String, f64>,
+}
+
+#[derive(Debug, Default)]
+enum VolumeMode {
+    #[default]
+    Normal,
+    PersistSeparate,
+    PersistClamp,
 }
 
 #[derive(Debug, Default)]
@@ -84,8 +95,51 @@ impl PlayerStore {
         self.player_details.state = state;
     }
 
+    fn get_song_key(&self) -> String {
+        if let Some(current_song) = &self.current_song {
+            return current_song
+                .song
+                .provider_extension
+                .clone()
+                .unwrap_or(current_song.song.type_.to_string());
+        }
+        "".to_string()
+    }
+
     pub fn set_volume(&mut self, volume: f64) {
+        if let VolumeMode::PersistSeparate = self.player_details.volume_mode {
+            let song_key = self.get_song_key();
+            if !song_key.is_empty() {
+                self.player_details.volume_map.insert(song_key, volume);
+            }
+        }
         self.player_details.volume = volume;
+    }
+
+    pub fn get_volume(&self) -> f64 {
+        let mut clamp = 100f64;
+        let mut volume = self.player_details.volume;
+        let song_key = self.get_song_key();
+        if !song_key.is_empty() {
+            if let VolumeMode::PersistSeparate = self.player_details.volume_mode {
+                if let Some(current_volume) = self.player_details.volume_map.get(&song_key) {
+                    volume = *current_volume;
+                }
+            }
+
+            if let VolumeMode::PersistClamp = self.player_details.volume_mode {
+                if let Some(current_clamp) = self.player_details.clamp_map.get(&song_key) {
+                    clamp = *current_clamp;
+                }
+            }
+        }
+        let maxv = (clamp).ln();
+        let scale = maxv / 100f64;
+        let volume = volume.clamp(0f64, 100f64);
+        if volume > 0f64 {
+            return volume.ln() / scale;
+        }
+        volume
     }
 
     pub fn get_queue_songs(&self) -> Vec<Song> {
@@ -100,5 +154,20 @@ impl PlayerStore {
                     .expect("Song does not exist in data")
             })
             .collect()
+    }
+
+    pub fn update_volume_mode(&mut self, mode: Vec<CheckboxPreference>) {
+        for m in mode {
+            if m.enabled {
+                self.player_details.volume_mode = match m.key.as_str() {
+                    "persist_separate" => VolumeMode::PersistSeparate,
+                    "persist_clamp" => VolumeMode::PersistClamp,
+                    _ => VolumeMode::Normal,
+                };
+                return;
+            }
+        }
+
+        self.player_details.volume_mode = VolumeMode::Normal;
     }
 }

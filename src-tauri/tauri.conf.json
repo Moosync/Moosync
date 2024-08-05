@@ -16,7 +16,7 @@
           "requireLiteralLeadingDot": false
         }
       },
-      "csp": "default-src 'self'; img-src 'self' asset: media: https://asset.localhost; media-src 'self' asset: media: https://asset.localhost; connect-src ipc: http://ipc.localhost; styles-src 'unsafe-inline'; frame-src youtube.com https://www.youtube.com;",
+      "csp": "default-src 'self'; img-src 'self' asset: media: https://asset.localhost; media-src 'self' asset: media: https://asset.localhost; connect-src ipc: tauri: http://ipc.localhost ; style-src 'unsafe-inline' tauri:; frame-src youtube.com https://www.youtube.com; script-src 'wasm-unsafe-eval';",
       "dangerousDisableAssetCspModification": false,
       "freezePrototype": false,
       "pattern": {
@@ -26,7 +26,6 @@
     "withGlobalTauri": true
   },
   "build": {
-    "beforeBuildCommand": "CARGO_TARGET_DIR=./target-ui trunk build",
     "beforeDevCommand": "CARGO_TARGET_DIR=./target-ui trunk serve",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"

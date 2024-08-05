@@ -22,7 +22,7 @@ use super::{
     traits::SearchByTerm,
 };
 
-#[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq, Copy)]
 #[cfg_attr(feature = "core", derive(FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "core", diesel(sql_type = diesel::sql_types::Text))]
 pub enum SongType {

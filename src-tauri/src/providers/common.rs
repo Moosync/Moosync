@@ -76,31 +76,29 @@ pub async fn refresh_login(
     app: &AppHandle,
 ) -> Result<TokenHolder> {
     let preferences: State<PreferenceConfig> = app.state();
-    let refresh_token = preferences.inner().get_secure(key.into())?;
+    let refresh_token: String = preferences.inner().get_secure(key.into())?;
     println!("refresh token {:?}", refresh_token);
-    if !refresh_token.is_null() {
-        let refresh_token = refresh_token.as_str().unwrap();
 
-        if !refresh_token.is_empty() {
-            let res = client
-                .exchange_refresh_token(&RefreshToken::new(refresh_token.to_string()))
-                .request_async(async_http_client)
-                .await
-                .map_err(|err| match err {
-                    oauth2::RequestTokenError::ServerResponse(e) => MoosyncError::String(format!(
-                        "{:?}: {:?} {:?}",
-                        e.error(),
-                        e.error_description(),
-                        serde_json::to_string(&e)
-                    )),
-                    oauth2::RequestTokenError::Request(_) => todo!(),
-                    oauth2::RequestTokenError::Parse(_, _) => todo!(),
-                    oauth2::RequestTokenError::Other(_) => todo!(),
-                })?;
+    if !refresh_token.is_empty() {
+        let res = client
+            .exchange_refresh_token(&RefreshToken::new(refresh_token.to_string()))
+            .request_async(async_http_client)
+            .await
+            .map_err(|err| match err {
+                oauth2::RequestTokenError::ServerResponse(e) => MoosyncError::String(format!(
+                    "{:?}: {:?} {:?}",
+                    e.error(),
+                    e.error_description(),
+                    serde_json::to_string(&e)
+                )),
+                oauth2::RequestTokenError::Request(_) => todo!(),
+                oauth2::RequestTokenError::Parse(_, _) => todo!(),
+                oauth2::RequestTokenError::Other(_) => todo!(),
+            })?;
 
-            return set_tokens(key, app, res, Some(refresh_token.to_string()));
-        }
+        return set_tokens(key, app, res, Some(refresh_token.to_string()));
     }
+
     Err("Refresh token not found".into())
 }
 

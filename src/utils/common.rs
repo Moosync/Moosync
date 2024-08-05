@@ -4,8 +4,11 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
-    pub async fn invoke(cmd: &str, args: JsValue) -> JsValue;
+    #[wasm_bindgen(catch, js_namespace = ["window", "__TAURI__", "core"])]
+    pub async fn invoke(cmd: &str, args: JsValue) -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "event"])]
+    pub fn listen(event: &str, cb: JsValue) -> js_sys::Promise;
 
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
     fn convertFileSrc(path: &str, protocol: &str) -> JsValue;

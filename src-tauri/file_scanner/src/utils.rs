@@ -94,10 +94,9 @@ fn generate_image(data: &[u8], path: PathBuf, dimensions: u32) -> Result<()> {
     let src_image = fr::images::Image::from_vec_u8(
         width.into(),
         height.into(),
-        img.as_rgba8().unwrap().to_vec(),
+        img.to_rgba8().into_vec(),
         fr::PixelType::U8x4,
-    )
-    .unwrap();
+    )?;
 
     // Create container for data of destination image
     let dst_width = NonZeroU32::new(dimensions).unwrap();
@@ -224,9 +223,14 @@ pub fn scan_file(
 
         let picture = metadata.pictures().first();
         if picture.is_some() {
-            if let Ok((high_path, low_path)) = store_picture(thumbnail_dir, picture.unwrap()) {
-                song.song.song_cover_path_high = Some(high_path.to_string_lossy().to_string());
-                song.song.song_cover_path_low = Some(low_path.to_string_lossy().to_string());
+            match store_picture(thumbnail_dir, picture.unwrap()) {
+                Ok((high_path, low_path)) => {
+                    song.song.song_cover_path_high = Some(high_path.to_string_lossy().to_string());
+                    song.song.song_cover_path_low = Some(low_path.to_string_lossy().to_string());
+                }
+                Err(e) => {
+                    println!("Error storing picture {:?}", e);
+                }
             }
         } else {
             let mut base_path = path.clone();

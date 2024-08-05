@@ -1,12 +1,18 @@
 use std::rc::Rc;
 
-use crate::components::prefs::static_components::SettingRoutes;
+use crate::{
+    components::prefs::static_components::SettingRoutes, console_log,
+    utils::prefs::watch_preferences,
+};
 use leptos::{
-    component, create_rw_signal, provide_context, view,
-    IntoView,
+    component, create_rw_signal, expect_context, on_cleanup, provide_context, view, window,
+    IntoView, RwSignal, SignalUpdate,
 };
 use leptos_i18n::provide_i18n_context;
 use leptos_router::{Outlet, Redirect, Route, Router, Routes};
+use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
+use wasm_bindgen_futures::spawn_local;
+use web_sys::BeforeUnloadEvent;
 
 use crate::{
     components::{
@@ -73,6 +79,21 @@ pub fn App() -> impl IntoView {
     provide_context(create_rw_signal(ModalStore::default()));
 
     provide_i18n_context::<Locale>();
+
+    let unlisten = watch_preferences(|(key, value)| {
+        console_log!("Preferences changed: {} = {:?}", key, value);
+        if key == "prefs.volume_persist_mode" {
+            let player_store = expect_context::<RwSignal<PlayerStore>>();
+            player_store.update(|store| {
+                store.update_volume_mode(serde_wasm_bindgen::from_value(value).unwrap())
+            });
+        }
+    });
+
+    let window = window();
+    if let Err(e) = window.add_event_listener_with_callback("beforeunload", &unlisten) {
+        console_log!("Failed to set unmount hook: {:?}", e);
+    }
 
     view! {
         <Router>

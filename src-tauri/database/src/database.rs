@@ -3,6 +3,8 @@ use std::cmp::min;
 use std::str::FromStr;
 use std::{path::PathBuf, vec};
 
+use diesel::associations::HasTable;
+use diesel::r2d2::R2D2Connection;
 use diesel::{
     connection::SimpleConnection,
     delete, insert_into,
@@ -10,6 +12,8 @@ use diesel::{
     update, Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SqliteConnection,
 };
 use diesel::{insert_or_ignore_into, BoolExpressionMethods, Insertable, TextExpressionMethods};
+use diesel_logger::LoggingConnection;
+use log::LevelFilter;
 use macros::{filter_field, filter_field_like};
 use serde_json::Value;
 use uuid::Uuid;
@@ -25,7 +29,7 @@ use types::{
         self,
         album_bridge::dsl::album_bridge,
         albums::{album_id, dsl::albums},
-        allsongs::{_id, dsl::allsongs},
+        allsongs::{_id, dsl::allsongs, path as song_path},
         artist_bridge::dsl::artist_bridge,
         artists::{artist_id, dsl::artists},
         genre_bridge::dsl::genre_bridge,
@@ -45,7 +49,7 @@ use super::migrations::run_migrations;
 
 #[derive(Debug, Clone)]
 pub struct Database {
-    pool: Pool<ConnectionManager<SqliteConnection>>,
+    pool: Pool<ConnectionManager<LoggingConnection<SqliteConnection>>>,
 }
 
 impl Database {
@@ -65,8 +69,9 @@ impl Database {
         db
     }
 
-    fn connect(path: PathBuf) -> Pool<ConnectionManager<SqliteConnection>> {
-        let manager = ConnectionManager::<SqliteConnection>::new(path.to_str().unwrap());
+    fn connect(path: PathBuf) -> Pool<ConnectionManager<LoggingConnection<SqliteConnection>>> {
+        let manager =
+            ConnectionManager::<LoggingConnection<SqliteConnection>>::new(path.to_str().unwrap());
 
         r2d2::Pool::builder()
             .build(manager)
@@ -75,7 +80,7 @@ impl Database {
 
     fn insert_album(
         &self,
-        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
         _album: QueryableAlbum,
     ) -> Result<String> {
         let mut cloned = _album.clone();
@@ -86,7 +91,7 @@ impl Database {
 
     fn insert_artist(
         &self,
-        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
         _artist: QueryableArtist,
     ) -> Result<String> {
         let mut cloned = _artist.clone();
@@ -97,7 +102,7 @@ impl Database {
 
     fn insert_genre(
         &self,
-        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
         _genre: QueryableGenre,
     ) -> Result<String> {
         let mut cloned = _genre.clone();
@@ -108,7 +113,7 @@ impl Database {
 
     fn insert_playlist(
         &self,
-        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
         _playlist: QueryablePlaylist,
     ) -> Result<String> {
         let mut cloned = _playlist.clone();
@@ -163,8 +168,11 @@ impl Database {
                 song.song._id = Some(Uuid::new_v4().to_string());
             }
 
-            let changed = insert_or_ignore_into(allsongs)
+            let changed = insert_into(allsongs)
                 .values(&song.song)
+                .on_conflict(song_path)
+                .do_update()
+                .set(&song.song)
                 .execute(&mut conn)?;
 
             if changed == 0 {
@@ -281,7 +289,7 @@ impl Database {
         &self,
         options: QueryableAlbum,
         inclusive: bool,
-        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
     ) -> Result<Vec<QueryableAlbum>> {
         let mut predicate = schema::albums::table.into_boxed();
 
@@ -307,7 +315,7 @@ impl Database {
         &self,
         options: QueryableArtist,
         inclusive: bool,
-        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
     ) -> Result<Vec<QueryableArtist>> {
         let mut predicate = schema::artists::table.into_boxed();
 
@@ -340,7 +348,7 @@ impl Database {
         &self,
         options: QueryableGenre,
         inclusive: bool,
-        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
     ) -> Result<Vec<QueryableGenre>> {
         let mut predicate = schema::genres::table.into_boxed();
 
@@ -366,7 +374,7 @@ impl Database {
         &self,
         options: QueryablePlaylist,
         inclusive: bool,
-        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
     ) -> Result<Vec<QueryablePlaylist>> {
         let mut predicate = schema::playlists::table.into_boxed();
 
@@ -446,7 +454,7 @@ impl Database {
         &self,
         options: QueryableAlbum,
         inclusive: bool,
-        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
     ) -> Result<Vec<QueryableSong>> {
         let binding = self.get_albums(options, inclusive, conn)?;
         let album = binding.first();
@@ -474,7 +482,7 @@ impl Database {
         &self,
         options: QueryableArtist,
         inclusive: bool,
-        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
     ) -> Result<Vec<QueryableSong>> {
         let binding = self.get_artists(options, inclusive, conn)?;
         let artist = binding.first();
@@ -502,7 +510,7 @@ impl Database {
         &self,
         options: QueryableGenre,
         inclusive: bool,
-        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
     ) -> Result<Vec<QueryableSong>> {
         let binding = self.get_genres(options, inclusive, conn)?;
         let genre = binding.first();
@@ -530,7 +538,7 @@ impl Database {
         &self,
         options: QueryablePlaylist,
         inclusive: bool,
-        conn: &mut PooledConnection<ConnectionManager<SqliteConnection>>,
+        conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
     ) -> Result<Vec<QueryableSong>> {
         let binding = self.get_playlists(options, inclusive, conn)?;
         let playlist = binding.first();

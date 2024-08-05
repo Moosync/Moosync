@@ -77,6 +77,7 @@ impl PlayerHolder {
         }
 
         if player.is_none() {
+            console_log!("Found no players, trying to refetch playback url");
             let mut song_tmp = song.clone();
             for (i, player) in players.iter().enumerate() {
                 let playback_url = self.get_playback_url(song, player.key()).await?;
@@ -242,9 +243,7 @@ pub fn AudioStream() -> impl IntoView {
     let current_song_sig = create_read_slice(player_store, |player_store| {
         player_store.current_song.clone()
     });
-    let current_volume = create_read_slice(player_store, |player_store| {
-        player_store.player_details.volume
-    });
+    let current_volume = create_read_slice(player_store, |player_store| player_store.get_volume());
 
     let players = Rc::new(Mutex::new(players));
     let players_copy = players.clone();

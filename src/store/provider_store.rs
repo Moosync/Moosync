@@ -38,7 +38,7 @@ macro_rules! generate_async_functions {
                 let res = invoke(
                     stringify!($func_name),
                     to_value(&args).unwrap(),
-                ).await;
+                ).await?;
 
                 Ok(from_value(res)?)
             }
@@ -71,7 +71,11 @@ impl ProviderStore {
             {
                 invoke("initialize_all_providers", JsValue::undefined()).await;
                 let provider_keys = invoke("get_provider_keys", JsValue::undefined()).await;
-                store.keys.set(from_value(provider_keys).unwrap());
+                if provider_keys.is_err() {
+                    console_log!("Failed to get provider keys");
+                    return;
+                }
+                store.keys.set(from_value(provider_keys.unwrap()).unwrap());
             }
         });
 
@@ -103,7 +107,7 @@ impl ProviderStore {
         struct Args {
             id: String,
         }
-        let res = invoke("get_provider_key_by_id", to_value(&Args { id }).unwrap()).await;
+        let res = invoke("get_provider_key_by_id", to_value(&Args { id }).unwrap()).await?;
         Ok(from_value(res)?)
     }
 

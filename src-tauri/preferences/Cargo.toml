@@ -15,3 +15,5 @@ rand = "0.8.5"
 hex = "0.4.3"
 chacha20poly1305 = "0.10.1"
 json_dotpath = "1.1.0"
+crossbeam-channel = "0.5.13"
+jsonschema = { version = "0.18.0", features = ["draft202012"] }

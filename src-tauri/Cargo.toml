@@ -9,11 +9,12 @@ description = "A Tauri App"
 async-trait = "0.1.81"
 chrono = "0.4.38"
 ctrlc = "3.4.4"
+env_logger = "0.11.5"
 flame = "0.2.2"
 flamer = "0.5.0"
 futures = "0.3.30"
 iso8601 = "0.6.1"
-oauth2 = "4.4.2"
+log = "0.4.22"
 open = "5.3.0"
 rspotify = "0.13.2"
 serde_json = "1.0"
@@ -54,6 +55,11 @@ features = []
 [dependencies.mpris]
 path = "./mpris"
 features = []
+
+[dependencies.oauth2]
+version = "4.4.2"
+features = ["reqwest"]
+default-features = false
 
 [dependencies.preferences]
 path = "./preferences"

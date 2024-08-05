@@ -48,6 +48,7 @@ impl ScannerHolder {
         dir: String,
         thumbnail_dir: String,
         artist_split: String,
+        scan_threads: f64,
         force: bool,
     ) -> Result<()> {
         let mut state = self.state.lock().unwrap();
@@ -59,10 +60,10 @@ impl ScannerHolder {
         *state = ScanState::SCANNING;
         let (_progress_tx, _progress_rx) = mpsc::channel::<u8>();
 
-        let threads = 12;
+        let threads = scan_threads;
 
         let cpus = num_cpus::get();
-        let thread_count = if threads <= 0 || threads as usize > cpus {
+        let thread_count = if threads <= 0f64 || threads as usize > cpus {
             cpus
         } else {
             threads as usize
@@ -99,6 +100,7 @@ impl ScannerHolder {
         for item in rx_song {
             match item.1 {
                 Ok(song) => {
+                    println!("Scanned song {:?}", song);
                     let res = database.insert_songs(vec![song]);
                     if item.0.is_some() {
                         if let Ok(res) = res {

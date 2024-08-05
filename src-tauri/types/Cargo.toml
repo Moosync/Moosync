@@ -4,6 +4,7 @@ edition = "2021"
 version = "0.1.0"
 
 [dependencies]
+jsonschema = { version = "0.18.0", features = ["draft202012"], optional = true }
 serde_json = "1.0"
 thiserror = "1.0.63"
 
@@ -127,6 +128,25 @@ features = []
 optional = true
 
 [features]
-core = ["dep:souvlaki", "dep:rusty_ytdl", "dep:tauri", "dep:diesel", "dep:fast_image_resize", "dep:image", "dep:lofty", "dep:jwalk", "dep:librespot", "dep:protobuf", "dep:zip", "dep:fs_extra", "dep:oauth2", "dep:rspotify", "dep:google-youtube3", "dep:hex", "dep:keyring"]
+core = [
+    "dep:souvlaki",
+    "dep:rusty_ytdl",
+    "dep:tauri",
+    "dep:diesel",
+    "dep:fast_image_resize",
+    "dep:image",
+    "dep:lofty",
+    "dep:jwalk",
+    "dep:librespot",
+    "dep:protobuf",
+    "dep:zip",
+    "dep:fs_extra",
+    "dep:oauth2",
+    "dep:rspotify",
+    "dep:google-youtube3",
+    "dep:hex",
+    "dep:keyring",
+    "dep:jsonschema",
+]
 default = ["core"]
 ui = ["dep:wasm-bindgen", "dep:serde-wasm-bindgen"]

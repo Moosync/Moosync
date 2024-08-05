@@ -1,6 +1,5 @@
 use std::thread;
 
-
 use macros::generate_command;
 use mpris::MprisHolder;
 use serde_json::{json, Value};
@@ -41,7 +40,7 @@ pub fn get_mpris_state(app: AppHandle) -> Result<MprisHolder> {
                 mpris::MediaControlEvent::Raise => (17, Value::Null),
                 mpris::MediaControlEvent::Quit => (18, Value::Null),
             };
-            app.emit("media_button_press", data);
+            let _ = app.emit("media_button_press", data);
         }
     });
 

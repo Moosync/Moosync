@@ -6,22 +6,22 @@ page:
       - type: paths
         tooltip: settings.paths.songDirectories_tooltip
         name: settings.paths.songDirectories
-        key: paths
+        key: music_paths
 
       - type: paths
         tooltip: settings.paths.songDirectories_exclude_tooltip
         name: settings.paths.songDirectories_exclude
-        key: blacklisted_directories
+        key: exclude_music_paths
 
       - type: number
         tooltip: settings.paths.scan_threads_tooltip
         name: settings.paths.scan_threads
-        key: scan_cpu_threads
+        key: scan_threads
 
       - type: text
         tooltip: settings.paths.splitter_tooltip
         name: settings.paths.splitter
-        key: artist_split
+        key: artist_splitter
 
       - type: number
         tooltip: settings.paths.scan_interval_tooltip
@@ -31,7 +31,7 @@ page:
       - type: file-picker
         tooltip: settings.paths.thumbnailPath_tooltip
         name: settings.paths.thumbnailPath
-        key: thumbnails_path
+        key: thumbnail_path
 
       - type: file-picker
         tooltip: settings.paths.artworkPath_tooltip
@@ -58,3 +58,62 @@ page:
             key: jukebox_mode
           - name: settings.system.systemSettings.lastLoadedPlaybackState
             key: last_loaded_playback_state
+
+      - type: checkbox
+        name: settings.system.queueSettings.title
+        tooltip: settings.system.queueSettings.tooltip
+        key: queue_settings
+        items:
+          - name: settings.system.queueSettings.clearQueue
+            key: clear_queue
+
+      - type: checkbox
+        name: settings.system.audioSettings.title
+        tooltip: settings.system.audioSettings_tooltip
+        key: audio_settings
+        items:
+          - name: settings.system.audioSettings.gaplessPlayback
+            key: gapless_playback
+          - name: settings.system.audioSettings.sponsorBlock
+            key: sponsor_block
+
+      - type: number
+        name: settings.system.gapless_skip
+        tooltip: settings.system.gapless_skip_tooltip
+        key: gapless_skip
+
+      - type: checkbox
+        name: settings.system.volumePersistMode.title
+        tooltip: settings.system.volumePersistMode.tooltip
+        single: true
+        key: volume_persist_mode
+        items:
+          - name: settings.system.volumePersistMode.noPersist
+            key: no_persist
+          - name: settings.system.volumePersistMode.persistSeparateVolumes
+            key: persist_separate
+          - name: settings.system.volumePersistMode.persistClampVolume
+            key: persist_clamp
+
+      # - type: checkbox
+      #   name: settings.system.scrobble.provider_toggle.title
+      #   tooltip: settings.system.scrobble.provider_toggle.tooltip
+      #   items:
+
+      - type: checkbox
+        name: settings.system.spotify.title
+        tooltip: settings.system.spotify.tooltip
+        key: spotify.enable
+        items:
+          - name: settings.system.spotify.librespotEnable
+            key: enable
+
+      - type: text
+        name: settings.system.spotify.username
+        tooltip: settings.system.spotify.username_tooltip
+        key: spotify.username
+
+      - type: text
+        name: settings.system.spotify.password
+        tooltip: settings.system.spotify.password_tooltip
+        key: spotify.password

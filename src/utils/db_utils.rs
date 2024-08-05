@@ -26,10 +26,16 @@ pub fn get_songs_by_option(
     options: GetSongOptions,
     setter: impl SignalSet<Value = Vec<Song>> + 'static,
 ) {
+    use crate::console_log;
+
     spawn_local(async move {
         let args = to_value(&GetSongOptionsArgs { options }).unwrap();
         let res = invoke("get_songs_by_options", args).await;
-        let songs: Vec<Song> = from_value(res).unwrap();
+        if res.is_err() {
+            console_log!("Failed to load songs {:?}", res.unwrap_err());
+            return;
+        }
+        let songs: Vec<Song> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
     });
 }
@@ -134,6 +140,8 @@ pub fn get_playlists_by_option(
     options: QueryablePlaylist,
     setter: impl SignalSet<Value = Vec<QueryablePlaylist>> + 'static,
 ) {
+    use crate::console_log;
+
     spawn_local(async move {
         let args = to_value(&GetEntityOptionsArgs {
             options: GetEntityOptions {
@@ -143,7 +151,11 @@ pub fn get_playlists_by_option(
         })
         .unwrap();
         let res = invoke("get_entity_by_options", args).await;
-        let songs: Vec<QueryablePlaylist> = from_value(res).unwrap();
+        if res.is_err() {
+            console_log!("Error getting playlists: {:?}", res);
+            return;
+        }
+        let songs: Vec<QueryablePlaylist> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
     });
 }
@@ -153,6 +165,8 @@ pub fn get_artists_by_option(
     options: QueryableArtist,
     setter: impl SignalSet<Value = Vec<QueryableArtist>> + 'static,
 ) {
+    use crate::console_log;
+
     spawn_local(async move {
         let args = to_value(&GetEntityOptionsArgs {
             options: GetEntityOptions {
@@ -162,7 +176,11 @@ pub fn get_artists_by_option(
         })
         .unwrap();
         let res = invoke("get_entity_by_options", args).await;
-        let songs: Vec<QueryableArtist> = from_value(res).unwrap();
+        if res.is_err() {
+            console_log!("Error getting artists: {:?}", res);
+            return;
+        }
+        let songs: Vec<QueryableArtist> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
     });
 }
@@ -172,6 +190,8 @@ pub fn get_albums_by_option(
     options: QueryableAlbum,
     setter: impl SignalSet<Value = Vec<QueryableAlbum>> + 'static,
 ) {
+    use crate::console_log;
+
     spawn_local(async move {
         let args = to_value(&GetEntityOptionsArgs {
             options: GetEntityOptions {
@@ -181,7 +201,11 @@ pub fn get_albums_by_option(
         })
         .unwrap();
         let res = invoke("get_entity_by_options", args).await;
-        let songs: Vec<QueryableAlbum> = from_value(res).unwrap();
+        if res.is_err() {
+            console_log!("Error getting albums: {:?}", res);
+            return;
+        }
+        let songs: Vec<QueryableAlbum> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
     });
 }
@@ -191,6 +215,8 @@ pub fn get_genres_by_option(
     options: QueryableGenre,
     setter: impl SignalSet<Value = Vec<QueryableGenre>> + 'static,
 ) {
+    use crate::console_log;
+
     spawn_local(async move {
         let args = to_value(&GetEntityOptionsArgs {
             options: GetEntityOptions {
@@ -200,7 +226,11 @@ pub fn get_genres_by_option(
         })
         .unwrap();
         let res = invoke("get_entity_by_options", args).await;
-        let songs: Vec<QueryableGenre> = from_value(res).unwrap();
+        if res.is_err() {
+            console_log!("Error getting genres: {:?}", res);
+            return;
+        }
+        let songs: Vec<QueryableGenre> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
     });
 }

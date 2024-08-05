@@ -3,9 +3,7 @@ use std::collections::HashSet;
 use async_trait::async_trait;
 
 use chrono::{DateTime, TimeDelta};
-use oauth2::{
-    CsrfToken, PkceCodeVerifier, TokenResponse,
-};
+use oauth2::{CsrfToken, PkceCodeVerifier, TokenResponse};
 use preferences::preferences::PreferenceConfig;
 use rspotify::{
     clients::{BaseClient, OAuthClient},
@@ -16,6 +14,7 @@ use rspotify::{
     AuthCodePkceSpotify, Token,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
 use types::{
     entities::{EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
@@ -26,10 +25,8 @@ use types::{
 };
 use types::{errors::errors::MoosyncError, providers::generic::GenericProvider};
 
-
 use super::common::{
-    authorize, get_oauth_client, login, refresh_login, LoginArgs, OAuthClientArgs,
-    TokenHolder,
+    authorize, get_oauth_client, login, refresh_login, LoginArgs, OAuthClientArgs, TokenHolder,
 };
 
 macro_rules! search_and_parse_all {
@@ -189,7 +186,7 @@ impl SpotifyProvider {
 impl GenericProvider for SpotifyProvider {
     async fn initialize(&mut self) -> Result<()> {
         let preferences: State<PreferenceConfig> = self.app.state();
-        let spotify_config = preferences.inner().load_selective("spotify".into())?;
+        let spotify_config: Value = preferences.inner().load_selective("spotify".into())?;
         println!("{:?}", spotify_config);
         let client_id = spotify_config.get("client_id");
         let client_secret = spotify_config.get("client_secret");

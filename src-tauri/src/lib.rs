@@ -11,8 +11,8 @@ use logger::logger::{log_debug, log_error, log_info, log_warn};
 use lyrics::{get_lyrics, get_lyrics_state};
 use mpris::{get_mpris_state, set_metadata, set_playback_state, set_position};
 use preference_holder::{
-    get_preference_state, get_secure, initial, load_selective, load_selective_array,
-    save_selective, set_secure,
+    get_preference_state, get_secure, handle_pref_changes, initial, load_selective,
+    load_selective_array, save_selective, set_secure,
 };
 use providers::handler::get_provider_handler_state;
 use themes::{
@@ -71,12 +71,9 @@ use std::fs::File;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    ctrlc::set_handler(move || {
-        f::dump_html(File::create("flamegraph.html").unwrap()).unwrap();
-    })
-    .expect("Error setting Ctrl-C handler");
+    env_logger::init();
 
-    let devtools = tauri_plugin_devtools::init();
+    // let devtools = tauri_plugin_devtools::init();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_deep_link::init())
@@ -86,7 +83,7 @@ pub fn run() {
                 state.handle_oauth(app.clone(), url.to_string()).unwrap();
             }
         }))
-        .plugin(devtools)
+        // .plugin(devtools)
         .invoke_handler(tauri::generate_handler![
             // Preferences
             save_selective,
@@ -217,7 +214,8 @@ pub fn run() {
             let provider_handler_state = get_provider_handler_state(app.app_handle().clone());
             app.manage(provider_handler_state);
 
-            initial(app.state());
+            initial(app);
+            handle_pref_changes(app.handle().clone());
 
             app.listen("deep-link://new-url", |url| {
                 println!("got url {:?}", url);

@@ -7,7 +7,6 @@ use tauri::{AppHandle, Manager, State, WebviewWindow, WebviewWindowBuilder, Wind
 use types::errors::errors::Result;
 use types::window::{DialogFilter, FileResponse};
 
-
 pub struct WindowHandler {}
 
 impl WindowHandler {
@@ -43,32 +42,31 @@ impl WindowHandler {
     }
 
     pub fn update_zoom(&self, app: AppHandle, preference: State<PreferenceConfig>) -> Result<()> {
-        let scale_factor = preference.load_selective("zoomFactor".into())?.as_f64();
-        if let Some(scale_factor) = scale_factor {
-            let windows = app.webview_windows();
-            for window in windows.values() {
-                window.with_webview(move |webview| {
-                    #[cfg(target_os = "linux")]
-                    {
-                        // see https://docs.rs/webkit2gtk/0.18.2/webkit2gtk/struct.WebView.html
-                        // and https://docs.rs/webkit2gtk/0.18.2/webkit2gtk/trait.WebViewExt.html
-                        use webkit2gtk::WebViewExt;
-                        webview.inner().set_zoom_level(scale_factor);
-                    }
+        let scale_factor: f64 = preference.load_selective("zoomFactor".into())?;
+        let windows = app.webview_windows();
+        for window in windows.values() {
+            window.with_webview(move |webview| {
+                #[cfg(target_os = "linux")]
+                {
+                    // see https://docs.rs/webkit2gtk/0.18.2/webkit2gtk/struct.WebView.html
+                    // and https://docs.rs/webkit2gtk/0.18.2/webkit2gtk/trait.WebViewExt.html
+                    use webkit2gtk::WebViewExt;
+                    webview.inner().set_zoom_level(scale_factor);
+                }
 
-                    #[cfg(windows)]
-                    unsafe {
-                        // see https://docs.rs/webview2-com/0.19.1/webview2_com/Microsoft/Web/WebView2/Win32/struct.ICoreWebView2Controller.html
-                        webview.controller().SetZoomFactor(scale_factor).unwrap();
-                    }
+                #[cfg(windows)]
+                unsafe {
+                    // see https://docs.rs/webview2-com/0.19.1/webview2_com/Microsoft/Web/WebView2/Win32/struct.ICoreWebView2Controller.html
+                    webview.controller().SetZoomFactor(scale_factor).unwrap();
+                }
 
-                    #[cfg(target_os = "macos")]
-                    unsafe {
-                        let () = msg_send![webview.inner(), setPageZoom: scale_factor];
-                    }
-                })?;
-            }
+                #[cfg(target_os = "macos")]
+                unsafe {
+                    let () = msg_send![webview.inner(), setPageZoom: scale_factor];
+                }
+            })?;
         }
+
         Ok(())
     }
 

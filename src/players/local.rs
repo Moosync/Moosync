@@ -105,12 +105,8 @@ impl GenericPlayer for LocalPlayer {
     }
 
     fn load(&self, src: String, resolver: OneShotSender<()>) {
+        let mut src = convert_file_src(src);
         console_log!("Loading audio {}", src);
-
-        let src = convert_file_src(src);
-        console_log!("got src {}", src);
-
-        let mut src = src;
 
         let audio_element = self.audio_element.clone();
         spawn_local(async move {
@@ -170,7 +166,13 @@ impl GenericPlayer for LocalPlayer {
     }
 
     fn can_play(&self, song: &types::songs::Song) -> bool {
-        let playback_url = song.song.path.clone().or(song.song.playback_url.clone());
+        let playback_url = song
+            .song
+            .path
+            .clone()
+            .map(convert_file_src)
+            .or(song.song.playback_url.clone());
+        console_log!("Checking playback url {:?}", playback_url);
         if let Some(playback_url) = playback_url {
             return playback_url.starts_with("http://")
                 || playback_url.starts_with("https://")

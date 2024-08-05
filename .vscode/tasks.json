@@ -5,15 +5,15 @@
             "label": "ui:dev",
             "type": "shell",
             "isBackground": true,
-            "command": "yarn",
+            "command": "trunk",
             "args": [
-                "dev"
+                "serve"
             ]
         },
         {
             "label": "ui:build",
             "type": "shell",
-            "command": "yarn",
+            "command": "trunk",
             "args": [
                 "build"
             ]

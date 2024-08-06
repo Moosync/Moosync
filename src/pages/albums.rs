@@ -1,7 +1,7 @@
 use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songview::SongView;
 use leptos::{component, create_rw_signal, view, IntoView, SignalWith};
-use leptos_router::use_params_map;
+use leptos_router::{use_params_map, use_query_map};
 use types::entities::QueryableAlbum;
 use types::songs::GetSongOptions;
 
@@ -9,7 +9,7 @@ use crate::utils::db_utils::{get_albums_by_option, get_songs_by_option};
 
 #[component()]
 pub fn SingleAlbum() -> impl IntoView {
-    let params = use_params_map();
+    let params = use_query_map();
     let album_id = params.with(|params| params.get("id").cloned()).unwrap();
 
     let songs = create_rw_signal(vec![]);

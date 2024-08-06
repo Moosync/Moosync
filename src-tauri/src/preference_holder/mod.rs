@@ -17,6 +17,8 @@ const UI_KEYS: &[&str] = &[
     "prefs.gapless_skip",
     "prefs.volume_persist_mode",
     "prefs.spotify.enable",
+    "prefs.spotify.username",
+    "prefs.spotify.password",
 ];
 
 macro_rules! generate_states {

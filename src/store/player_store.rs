@@ -1,4 +1,4 @@
-use std::{cmp::max, cmp::min, collections::HashMap, default};
+use std::{cmp::min, collections::HashMap};
 
 use types::{preferences::CheckboxPreference, songs::Song, ui::player_details::PlayerState};
 

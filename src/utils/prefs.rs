@@ -1,21 +1,16 @@
-use std::rc::Rc;
 
-use js_sys::Function;
 use leptos::{spawn_local, SignalSet};
-use serde::Deserialize;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use serde_wasm_bindgen::{from_value, to_value};
 use types::errors::errors::Result;
 use types::window::{DialogFilter, FileResponse};
-use wasm_bindgen::prelude::Closure;
-use wasm_bindgen::{JsCast, JsValue};
-use web_sys::BeforeUnloadEvent;
+use wasm_bindgen::JsValue;
 
 use crate::console_log;
 use crate::utils::common::listen_event;
 
-use super::common::{invoke, listen};
+use super::common::invoke;
 
 #[derive(Serialize)]
 struct KeyArgs {

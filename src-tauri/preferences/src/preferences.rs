@@ -2,7 +2,7 @@ use std::{
     fs::{self, File},
     io::{Read, Write},
     path::PathBuf,
-    thread, vec,
+    thread,
 };
 
 use std::sync::Mutex;
@@ -17,14 +17,11 @@ use json_dotpath::DotPaths;
 use jsonschema::JSONSchema;
 use keyring::Entry;
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde::{de::DeserializeOwned, Serialize};
+use serde_json::Value;
 use whoami;
 
-use types::{
-    errors::errors::{MoosyncError, Result},
-    ui::preferences::PathsValue,
-};
+use types::errors::errors::{MoosyncError, Result};
 
 pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,

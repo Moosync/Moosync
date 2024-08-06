@@ -1,18 +1,18 @@
 use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration};
 
 use leptos::{
-    create_rw_signal, leptos_dom::helpers::IntervalHandle, set_interval, set_interval_with_handle,
+    leptos_dom::helpers::IntervalHandle, set_interval_with_handle,
 };
 use serde::Serialize;
 use types::{preferences::CheckboxPreference, ui::player_details::PlayerEvents};
-use wasm_bindgen::{prelude::Closure, JsValue};
+use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
     console_log,
     utils::{
-        common::{invoke, listen, listen_event},
-        prefs::{load_selective, load_selective_async},
+        common::{invoke, listen_event},
+        prefs::load_selective_async,
     },
 };
 

@@ -9,7 +9,7 @@ use leptos::{
     component, create_rw_signal, expect_context, spawn_local, use_context, view, IntoView,
     SignalUpdate, SignalWith,
 };
-use leptos_router::{use_params_map, use_query_map};
+use leptos_router::use_query_map;
 use types::entities::QueryablePlaylist;
 use types::songs::GetSongOptions;
 

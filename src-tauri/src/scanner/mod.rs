@@ -2,7 +2,7 @@ use database::database::Database;
 use file_scanner::scanner::ScannerHolder;
 use preferences::preferences::PreferenceConfig;
 use tauri::State;
-use types::{errors::errors::Result, ui::preferences::PathsValue};
+use types::errors::errors::Result;
 
 pub fn get_scanner_state() -> ScannerHolder {
     ScannerHolder::new()

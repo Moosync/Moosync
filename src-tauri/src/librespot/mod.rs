@@ -1,4 +1,3 @@
-use std::str::FromStr;
 
 use database::cache::CacheHolder;
 use librespot::{
@@ -8,11 +7,10 @@ use librespot::{
 use macros::{generate_command, generate_command_cached};
 
 use preferences::preferences::PreferenceConfig;
-use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State, Window};
 use types::{
     canvaz::CanvazResponse,
-    errors::errors::{MoosyncError, Result},
+    errors::errors::Result,
 };
 
 pub fn get_librespot_state() -> LibrespotHolder {

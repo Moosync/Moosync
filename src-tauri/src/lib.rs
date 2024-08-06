@@ -65,9 +65,6 @@ mod themes;
 mod window;
 mod youtube;
 
-use flame as f;
-use flamer::flame;
-use std::fs::File;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

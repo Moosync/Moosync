@@ -1,7 +1,4 @@
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-};
+use std::thread;
 
 use database::database::Database;
 use file_scanner::scanner::ScannerHolder;

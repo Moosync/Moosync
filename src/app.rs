@@ -5,15 +5,12 @@ use crate::{
     players::librespot::LibrespotPlayer, utils::prefs::watch_preferences,
 };
 use leptos::{
-    component, create_rw_signal, expect_context, on_cleanup, provide_context, view, window,
+    component, create_rw_signal, expect_context, provide_context, view, window,
     IntoView, RwSignal, SignalUpdate,
 };
 use leptos_i18n::provide_i18n_context;
 use leptos_router::{Outlet, Redirect, Route, Router, Routes};
 use types::preferences::CheckboxPreference;
-use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
-use wasm_bindgen_futures::spawn_local;
-use web_sys::BeforeUnloadEvent;
 
 use crate::{
     components::{

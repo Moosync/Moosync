@@ -144,7 +144,7 @@ impl GenericPlayer for LocalPlayer {
     }
 
     fn set_volume(&self, volume: f64) -> Result<()> {
-        self.audio_element.set_volume(volume);
+        self.audio_element.set_volume(volume / 100f64);
         Ok(())
     }
 
@@ -180,5 +180,16 @@ impl GenericPlayer for LocalPlayer {
         }
 
         false
+    }
+
+    fn stop(&mut self) -> Result<()> {
+        self.pause()?;
+        self.audio_element.set_src_object(None);
+
+        for listener in self.listeners.iter() {
+            listener();
+        }
+        self.listeners.clear();
+        Ok(())
     }
 }

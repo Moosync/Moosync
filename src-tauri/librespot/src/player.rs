@@ -37,7 +37,7 @@ pub fn new_player(
             volume_ctrl.as_str(),
             VolumeCtrl::DEFAULT_DB_RANGE,
         )
-        .unwrap_or(VolumeCtrl::Log(VolumeCtrl::DEFAULT_DB_RANGE)),
+        .unwrap_or(VolumeCtrl::Linear),
         ..Default::default()
     };
 

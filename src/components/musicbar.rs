@@ -195,7 +195,7 @@ where
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
     let (current_volume, set_current_volume) = create_slice(
         player_store,
-        |player_store| player_store.get_volume(),
+        |player_store| player_store.get_raw_volume(),
         |player_store, volume| player_store.set_volume(volume),
     );
     view! {

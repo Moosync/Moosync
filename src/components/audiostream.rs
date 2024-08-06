@@ -72,6 +72,16 @@ impl PlayerHolder {
         console_log!("Initialized players")
     }
 
+    pub fn stop_playback(&self) -> Result<()> {
+        let active_player = self.active_player.load(Ordering::Relaxed);
+        let mut players = self.players.lock().unwrap();
+        if let Some(player) = players.get_mut(active_player) {
+            player.stop()?;
+        }
+
+        Ok(())
+    }
+
     pub async fn get_player(&self, song: &Song) -> Result<(usize, Option<Song>)> {
         let players = self.players.lock().unwrap();
         let player = players
@@ -105,7 +115,7 @@ impl PlayerHolder {
             return Ok(());
         }
 
-        active.unwrap().set_volume(volume / 100f64)?;
+        active.unwrap().set_volume(volume)?;
         Ok(())
     }
 
@@ -119,6 +129,13 @@ impl PlayerHolder {
 
     pub async fn load_audio(&mut self, song: &Song, current_volume: f64) -> Result<Option<Song>> {
         let (pos, new_song) = self.get_player(song).await?;
+
+        // Stop current player only if we need to switch;
+        let old_pos = self.active_player.load(Ordering::Relaxed);
+        if old_pos != pos {
+            self.stop_playback()?;
+        }
+
         let ret = new_song.clone();
         let src = if let Some(new_song) = new_song {
             new_song

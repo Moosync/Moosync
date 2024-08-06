@@ -12,6 +12,7 @@ pub trait GenericPlayer: std::fmt::Debug {
     fn initialize(&self, element: NodeRef<Div>);
     fn key(&self) -> String;
     fn load(&self, src: String, resolver: OneShotSender<()>);
+    fn stop(&mut self) -> Result<()>;
     fn play(&self) -> Result<()>;
     fn pause(&self) -> Result<()>;
     fn seek(&self, pos: f64) -> Result<()>;

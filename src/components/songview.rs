@@ -17,7 +17,7 @@ pub fn SongView(#[prop()] songs: RwSignal<Vec<Song>>) -> impl IntoView {
         let selected_song = selected_songs.get().last().cloned();
         if let Some(selected_song) = selected_song {
             let all_songs = songs.get();
-            console_log!("selected {:?}", all_songs);
+            console_log!("selected {:?}", all_songs.get(selected_song).unwrap());
             last_selected_song.set(all_songs.get(selected_song).cloned());
         }
     });

@@ -132,4 +132,11 @@ impl GenericPlayer for YoutubePlayer {
             Ok(PlayerEvents::TimeUpdate(time))
         })
     }
+
+    fn stop(&mut self) -> Result<()> {
+        self.pause()?;
+        self.player.stop();
+        self.player.removeAllListeners();
+        Ok(())
+    }
 }

@@ -110,6 +110,7 @@ impl PlayerStore {
         if let VolumeMode::PersistSeparate = self.player_details.volume_mode {
             let song_key = self.get_song_key();
             if !song_key.is_empty() {
+                console_log!("Setting volume for song: {}, {}", song_key, volume);
                 self.player_details.volume_map.insert(song_key, volume);
             }
         }
@@ -140,6 +141,18 @@ impl PlayerStore {
             return volume.ln() / scale;
         }
         volume
+    }
+
+    pub fn get_raw_volume(&self) -> f64 {
+        if let VolumeMode::PersistSeparate = self.player_details.volume_mode {
+            let song_key = self.get_song_key();
+            if !song_key.is_empty() {
+                if let Some(volume) = self.player_details.volume_map.get(&song_key) {
+                    return *volume;
+                }
+            }
+        }
+        self.player_details.volume
     }
 
     pub fn get_queue_songs(&self) -> Vec<Song> {

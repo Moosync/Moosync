@@ -1,8 +1,6 @@
-use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration};
+use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration, u16};
 
-use leptos::{
-    leptos_dom::helpers::IntervalHandle, set_interval_with_handle,
-};
+use leptos::{leptos_dom::helpers::IntervalHandle, set_interval_with_handle};
 use serde::Serialize;
 use types::{preferences::CheckboxPreference, ui::player_details::PlayerEvents};
 use wasm_bindgen::JsValue;
@@ -236,14 +234,18 @@ impl GenericPlayer for LibrespotPlayer {
     }
 
     fn set_volume(&self, volume: f64) -> types::errors::errors::Result<()> {
+        let parsed_volume = (volume / 100f64 * (u16::MAX as f64)) as u16;
         spawn_local(async move {
             #[derive(Serialize)]
             struct VolumeArgs {
-                volume: f64,
+                volume: u16,
             }
             let res = invoke(
                 "librespot_volume",
-                serde_wasm_bindgen::to_value(&VolumeArgs { volume }).unwrap(),
+                serde_wasm_bindgen::to_value(&VolumeArgs {
+                    volume: parsed_volume,
+                })
+                .unwrap(),
             )
             .await;
 
@@ -274,6 +276,8 @@ impl GenericPlayer for LibrespotPlayer {
             "librespot_event_Loading",
             "librespot_event_EndOfTrack",
             "librespot_event_Unavailable",
+            "librespot_event_TrackChanged",
+            "SessionDisconnected"
         );
 
         let start_timer =
@@ -342,6 +346,24 @@ impl GenericPlayer for LibrespotPlayer {
                 PlayerEvents::Ended,
                 stop_and_clear_timer
             ),
+            (
+                "librespot_event_TrackChanged",
+                PlayerEvents::Ended,
+                stop_and_clear_timer
+            ),
+            ("SessionDisconnected", PlayerEvents::Ended, stop_timer)
         );
+    }
+
+    fn stop(&mut self) -> types::errors::errors::Result<()> {
+        self.pause()?;
+
+        for listener in &self.listeners {
+            listener.call0(&JsValue::undefined());
+        }
+
+        self.listeners.clear();
+
+        Ok(())
     }
 }

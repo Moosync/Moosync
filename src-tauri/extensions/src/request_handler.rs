@@ -164,8 +164,10 @@ impl ReplyHandler {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let request: PreferenceData = serde_json::from_value(data)?;
         if let Some(value) = request.value {
-            preferences
-                .save_selective(format!("extension.{}.{}", package_name, request.key), value)?;
+            preferences.save_selective(
+                format!("extension.{}.{}", package_name, request.key),
+                Some(value),
+            )?;
         }
         Ok(Value::Null)
     }
@@ -184,7 +186,10 @@ impl ReplyHandler {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let request: PreferenceData = serde_json::from_value(data)?;
         if let Some(value) = request.value {
-            preferences.set_secure(format!("extension.{}.{}", package_name, request.key), value)?;
+            preferences.set_secure(
+                format!("extension.{}.{}", package_name, request.key),
+                Some(value),
+            )?;
         }
         Ok(Value::Null)
     }

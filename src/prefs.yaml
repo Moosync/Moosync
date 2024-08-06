@@ -117,3 +117,23 @@ page:
         name: settings.system.spotify.password
         tooltip: settings.system.spotify.password_tooltip
         key: spotify.password
+
+      - type: text
+        name: settings.system.spotify.client_id
+        tooltip: settings.system.spotify.client_id_tooltip
+        key: spotify.client_id
+
+      - type: text
+        name: settings.system.spotify.client_secret
+        tooltip: settings.system.spotify.client_secret_tooltip
+        key: spotify.client_secret
+
+      - type: text
+        name: settings.system.youtube.client_id
+        tooltip: settings.system.youtube.client_id_tooltip
+        key: youtube.client_id
+
+      - type: text
+        name: settings.system.youtube.client_secret
+        tooltip: settings.system.youtube.client_secret_tooltip
+        key: youtube.client_secret

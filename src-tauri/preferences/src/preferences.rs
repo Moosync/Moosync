@@ -94,17 +94,18 @@ impl PreferenceConfig {
         let prefs = self.memcache.lock().unwrap();
 
         let key = format!("prefs.{}", key);
-        let val: Option<Value> = prefs.dot_get(key.as_str())?;
         println!("Loading selective {}", key);
+
+        let val: Option<T> = prefs.dot_get(key.as_str())?;
         drop(prefs);
         if val.is_none() {
             return Err(format!("No value found for {}", key).into());
         }
 
-        Ok(serde_json::from_value(val.unwrap())?)
+        Ok(val.unwrap())
     }
 
-    pub fn save_selective<T>(&self, key: String, value: T) -> Result<()>
+    pub fn save_selective<T>(&self, key: String, value: Option<T>) -> Result<()>
     where
         T: Serialize + Clone,
     {
@@ -112,21 +113,24 @@ impl PreferenceConfig {
         println!("saving {}", key);
 
         let mut prefs = self.memcache.lock().unwrap();
-        let old_value: Option<Value> = prefs.dot_get(key.as_str()).unwrap();
 
-        if let Some(old_value) = old_value {
-            if old_value == serde_json::to_value(value.clone()).unwrap() {
-                println!("Value did not change");
-                return Ok(());
+        if value.is_none() {
+            prefs.dot_remove(key.as_str()).unwrap();
+        } else {
+            let old_value: Option<Value> = prefs.dot_get(key.as_str()).unwrap();
+
+            if let Some(old_value) = old_value {
+                if old_value == serde_json::to_value(value.clone()).unwrap() {
+                    return Ok(());
+                }
             }
+
+            let mut prefs_clone = prefs.clone();
+            prefs_clone.dot_set(key.as_str(), value.clone()).unwrap();
+            self.schema.validate(&prefs_clone)?;
+            prefs.dot_set(key.as_str(), value.clone()).unwrap();
         }
 
-        let mut prefs_clone = prefs.clone();
-        prefs_clone.dot_set(key.as_str(), value.clone()).unwrap();
-
-        self.schema.validate(&prefs_clone)?;
-
-        prefs.dot_set(key.as_str(), value.clone()).unwrap();
         let writable = prefs.clone();
         drop(prefs);
 
@@ -170,7 +174,7 @@ impl PreferenceConfig {
     where
         T: DeserializeOwned,
     {
-        let data: String = self.load_selective(key)?;
+        let data: String = self.load_selective(key.clone())?;
         let mut split = data.split(':');
         let nonce = split.next().unwrap();
         let nonce = GenericArray::clone_from_slice(&hex::decode(nonce).unwrap()[0..12]);
@@ -187,17 +191,26 @@ impl PreferenceConfig {
         Ok(serde_json::from_str(&plaintext)?)
     }
 
-    pub fn set_secure(&self, key: String, value: Value) -> Result<()> {
+    pub fn set_secure<T>(&self, key: String, value: Option<T>) -> Result<()>
+    where
+        T: Serialize + Clone,
+    {
+        if value.is_none() {
+            return self.save_selective(key, value);
+        }
+
+        let value = value.unwrap();
+
         let secret = self.secret.lock().unwrap();
         let cipher = ChaCha20Poly1305::new(&secret);
         let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
         let encrypted = cipher
-            .encrypt(&nonce, (value.as_str()).unwrap().as_bytes())
+            .encrypt(&nonce, (serde_json::to_string(&value)).unwrap().as_bytes())
             .unwrap();
 
         let parsed = format!("{}:{}", hex::encode(nonce), hex::encode(encrypted));
 
-        self.save_selective(key, parsed)?;
+        self.save_selective(key, Some(parsed))?;
 
         Ok(())
     }

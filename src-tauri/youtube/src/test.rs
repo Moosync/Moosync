@@ -9,16 +9,6 @@ async fn test_youtube_playlist_content() {
         .await
         .unwrap();
 
-    println!(
-        "{:?} {}",
-        res.songs
-            .clone()
-            .into_iter()
-            .map(|v| v.song.title.clone().unwrap())
-            .collect::<Vec<String>>(),
-        res.songs.clone().len()
-    );
-
     let mut continuation = res.next_page_token.clone();
     loop {
         let res1 = scraper
@@ -27,14 +17,6 @@ async fn test_youtube_playlist_content() {
             .unwrap();
 
         continuation.clone_from(&res1.next_page_token);
-
-        println!(
-            "{:?}",
-            res1.songs
-                .into_iter()
-                .map(|v| v.song.title.clone().unwrap())
-                .collect::<Vec<String>>()
-        );
 
         if res1.next_page_token.is_none() {
             println!("Breaking loop");

@@ -193,7 +193,7 @@ pub struct SearchableSong {
     pub show_in_library: Option<bool>,
 }
 
-#[derive(Debug, Deserialize, Clone, Serialize)]
+#[derive(Debug, Deserialize, Clone, Serialize, Default)]
 pub struct GetSongOptions {
     pub song: Option<SearchableSong>,
     pub artist: Option<QueryableArtist>,
@@ -201,19 +201,6 @@ pub struct GetSongOptions {
     pub genre: Option<QueryableGenre>,
     pub playlist: Option<QueryablePlaylist>,
     pub inclusive: Option<bool>,
-}
-
-impl Default for GetSongOptions {
-    fn default() -> Self {
-        Self {
-            song: Some(SearchableSong::default()),
-            artist: None,
-            album: None,
-            genre: None,
-            playlist: None,
-            inclusive: None,
-        }
-    }
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq)]

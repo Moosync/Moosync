@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use js_sys::Function;
 use leptos::{spawn_local, SignalSet};
 use serde::Deserialize;
@@ -11,6 +13,7 @@ use wasm_bindgen::{JsCast, JsValue};
 use web_sys::BeforeUnloadEvent;
 
 use crate::console_log;
+use crate::utils::common::listen_event;
 
 use super::common::{invoke, listen};
 
@@ -30,19 +33,24 @@ where
     T: DeserializeOwned,
 {
     spawn_local(async move {
-        let args = to_value(&KeyArgs { key: key.clone() }).unwrap();
-        let res = invoke("load_selective", args).await;
+        let res = load_selective_async(key.clone()).await;
         if res.is_err() {
             console_log!("Failed to load preference: {}", key);
             return;
         }
-        let parsed = serde_wasm_bindgen::from_value(res.unwrap());
-        if parsed.is_err() {
-            console_log!("Failed to parse preference: {}", key);
-            return;
-        }
-        setter.set(parsed.unwrap());
+        setter.set(res.unwrap());
     });
+}
+
+pub async fn load_selective_async<T>(key: String) -> Result<T>
+where
+    T: DeserializeOwned,
+{
+    let args = to_value(&KeyArgs { key: key.clone() }).unwrap();
+    let res = invoke("load_selective", args).await?;
+    let parsed = serde_wasm_bindgen::from_value(res);
+
+    Ok(parsed?)
 }
 
 pub fn save_selective_number(key: String, value: String) {
@@ -154,7 +162,7 @@ pub fn open_file_browser_single(
 }
 
 pub fn watch_preferences(cb: fn((String, JsValue))) -> js_sys::Function {
-    let closure = Closure::wrap(Box::new(move |data: JsValue| {
+    listen_event("preference-changed", move |data: JsValue| {
         let res = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
         if res.is_array() {
             let key = js_sys::Reflect::get(&res, &JsValue::from_f64(0f64))
@@ -165,24 +173,6 @@ pub fn watch_preferences(cb: fn((String, JsValue))) -> js_sys::Function {
             cb((key, value));
             return;
         }
-        console_log!("Received invalid preference change: {:?}", data)
-    }) as Box<dyn Fn(JsValue)>);
-    let res = listen("preference-changed", closure.into_js_value());
-    console_log!("ret = {:?}", res);
-
-    let data = Box::new(move |ev: BeforeUnloadEvent| {
-        let unlisten = wasm_bindgen_futures::JsFuture::from(res.clone());
-        spawn_local(async move {
-            let unlisten = unlisten.await.unwrap();
-            if unlisten.is_function() {
-                let func = js_sys::Function::from(unlisten);
-                console_log!("Cleaning up preference listener");
-                func.call0(&JsValue::NULL).unwrap();
-            }
-        });
-    }) as Box<dyn FnMut(BeforeUnloadEvent)>;
-
-    let unlisten = Closure::wrap(data);
-
-    js_sys::Function::from(unlisten.into_js_value())
+        console_log!("Received invalid preference change: {:?}", data);
+    })
 }

@@ -263,8 +263,6 @@ impl GenericProvider for YoutubeProvider {
             println!("youtube refresh login err: {:?}", err);
         }
 
-        println!("initialized {:?}", self.config);
-
         Ok(())
     }
 

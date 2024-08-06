@@ -42,7 +42,7 @@ where
             children=move |data| {
                 let data = card_item(data);
                 view! {
-                    <A href=data.id.clone()>
+                    <A href=format!("single?id={}", data.id.clone())>
                         <CardItem item=data />
                     </A>
                 }

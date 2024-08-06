@@ -1,6 +1,5 @@
-use futures::lock::Mutex;
+use futures::{future::join_all, lock::Mutex};
 use std::{collections::HashMap, sync::Arc};
-
 
 use database::cache::CacheHolder;
 use macros::{generate_command, generate_command_async, generate_command_async_cached};
@@ -97,10 +96,14 @@ impl ProviderHandler {
     }
 
     pub async fn initialize_all_providers(&self) -> Result<()> {
-        for (_, provider) in &self.provider_store {
+        let mut fut = vec![];
+        for (key, provider) in &self.provider_store {
             let mut provider = provider.lock().await;
-            provider.initialize().await?;
+            fut.push(Box::pin(async move {
+                provider.initialize().await;
+            }));
         }
+        join_all(fut).await;
         Ok(())
     }
 

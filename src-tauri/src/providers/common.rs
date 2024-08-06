@@ -60,12 +60,10 @@ pub fn set_tokens(
             as i64,
     };
 
-    println!("Setting token {:?}", refresh_token);
-
     let preferences: State<PreferenceConfig> = app.state();
     preferences
         .inner()
-        .set_secure(key.into(), Value::String(refresh_token))?;
+        .set_secure(key.into(), Some(refresh_token))?;
 
     Ok(token_holder)
 }
@@ -76,9 +74,14 @@ pub async fn refresh_login(
     app: &AppHandle,
 ) -> Result<TokenHolder> {
     let preferences: State<PreferenceConfig> = app.state();
-    let refresh_token: String = preferences.inner().get_secure(key.into())?;
-    println!("refresh token {:?}", refresh_token);
+    let refresh_token: Result<String> = preferences.inner().get_secure(key.into());
+    if refresh_token.is_err() {
+        let preferences: State<PreferenceConfig> = app.state();
+        preferences.inner().set_secure::<String>(key.into(), None);
+        return Err("Refresh token not found or corrupted".into());
+    }
 
+    let refresh_token = refresh_token.unwrap();
     if !refresh_token.is_empty() {
         let res = client
             .exchange_refresh_token(&RefreshToken::new(refresh_token.to_string()))

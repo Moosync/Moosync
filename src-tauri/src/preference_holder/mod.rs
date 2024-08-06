@@ -19,6 +19,7 @@ const UI_KEYS: &[&str] = &[
     "prefs.audio_settings",
     "prefs.gapless_skip",
     "prefs.volume_persist_mode",
+    "prefs.spotify.enable",
 ];
 
 macro_rules! generate_states {
@@ -71,17 +72,17 @@ pub fn initial(app: &mut App) {
     let pref_config: State<PreferenceConfig> = app.state();
     if !pref_config.has_key("thumbnail_path") {
         let path = app.path().app_local_data_dir().unwrap().join("thumbnails");
-        let _ = pref_config.save_selective("thumbnail_path".to_string(), path);
+        let _ = pref_config.save_selective("thumbnail_path".to_string(), Some(path));
     }
 
     if !pref_config.has_key("artwork_path") {
         let path = app.path().app_local_data_dir().unwrap().join("artwork");
-        let _ = pref_config.save_selective("artwork_path".to_string(), path);
+        let _ = pref_config.save_selective("artwork_path".to_string(), Some(path));
     }
 }
 
 generate_command!(load_selective, PreferenceConfig, Value, key: String);
-generate_command!(save_selective, PreferenceConfig, (), key: String, value: Value);
+generate_command!(save_selective, PreferenceConfig, (), key: String, value: Option<Value>);
 generate_command!(get_secure, PreferenceConfig, Value, key: String);
-generate_command!(set_secure, PreferenceConfig, (), key: String, value: Value);
+generate_command!(set_secure, PreferenceConfig, (), key: String, value: Option<Value>);
 generate_command!(load_selective_array, PreferenceConfig, Value, key: String);

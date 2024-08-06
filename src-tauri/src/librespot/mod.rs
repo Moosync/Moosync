@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-
 use database::cache::CacheHolder;
 use librespot::{
     spirc::ParsedToken, utils::event_to_map, Bitrate, Cache, ConnectConfig, Credentials,
@@ -8,6 +7,7 @@ use librespot::{
 };
 use macros::{generate_command, generate_command_cached};
 
+use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State, Window};
 use types::{
@@ -24,31 +24,14 @@ pub fn initialize_librespot(
     app: AppHandle,
     window: Window,
     librespot: State<LibrespotHolder>,
-    config: Value,
-    id: String,
 ) -> Result<()> {
-    println!(
-        "Initializing librespot {:?}",
-        serde_json::to_string_pretty(&config)
-    );
+    let prefs: State<PreferenceConfig> = app.state();
+    let username: String = prefs.load_selective("spotify.username".into())?;
+    let password: String = prefs.load_selective("spotify.password".into())?;
 
-    let auth_config = config.get("auth").unwrap();
-    let connect_config = config.get("connectConfig").unwrap();
+    println!("Initializing librespot");
 
-    let credentials = Credentials::with_password(
-        auth_config
-            .get("username")
-            .unwrap()
-            .as_str()
-            .unwrap_or_default()
-            .to_string(),
-        auth_config
-            .get("password")
-            .unwrap()
-            .as_str()
-            .unwrap_or_default()
-            .to_string(),
-    );
+    let credentials = Credentials::with_password(username, password);
 
     let player_config = PlayerConfig {
         bitrate: Bitrate::Bitrate320,
@@ -56,41 +39,12 @@ pub fn initialize_librespot(
     };
 
     let connect_config = ConnectConfig {
-        name: connect_config
-            .get("name")
-            .unwrap()
-            .as_str()
-            .unwrap_or_default()
-            .to_string(),
-        device_type: DeviceType::from_str(
-            connect_config
-                .get("deviceType")
-                .unwrap()
-                .as_str()
-                .unwrap_or_default(),
-        )
-        .map_err(|_| MoosyncError::String("Failed to parse device type".to_string()))?,
-        initial_volume: connect_config
-            .get("initialVolume")
-            .unwrap()
-            .as_u64()
-            .map(|v| v as u16),
-        has_volume_ctrl: connect_config
-            .get("hasVolumeControl")
-            .unwrap()
-            .as_bool()
-            .unwrap_or_default(),
+        name: "Moosync".into(),
+        device_type: DeviceType::Computer,
+        initial_volume: Some(0),
+        has_volume_ctrl: true,
         is_group: false,
     };
-
-    let volume_ctrl = config
-        .get("volumeCtrl")
-        .unwrap()
-        .as_str()
-        .unwrap()
-        .to_string();
-
-    let backend = "".to_string();
 
     let credentials_path = app.path().app_config_dir()?;
     let audio_path = app.path().app_cache_dir()?;
@@ -106,8 +60,8 @@ pub fn initialize_librespot(
         player_config,
         connect_config,
         cache_config,
-        backend,
-        volume_ctrl,
+        "".to_string(),
+        "".to_string(),
     )?;
 
     // TODO: Check if event loop ends on closing librespot
@@ -122,18 +76,13 @@ pub fn initialize_librespot(
 
                     let registered_events = REGISTERED_EVENTS.lock().unwrap();
                     if registered_events.contains(&format!(
-                        "librespot_event_{}_{}",
+                        "librespot_event_{}",
                         parsed_event.get("event").unwrap(),
-                        id.clone()
                     )) {
                         window
                             .emit(
-                                format!(
-                                    "librespot_event_{}_{}",
-                                    parsed_event.get("event").unwrap(),
-                                    id.clone()
-                                )
-                                .as_str(),
+                                format!("librespot_event_{}", parsed_event.get("event").unwrap(),)
+                                    .as_str(),
                                 parsed_event,
                             )
                             .unwrap();

@@ -21,7 +21,10 @@ use leptos::{
 
 use crate::{
     console_log,
-    players::{generic::GenericPlayer, local::LocalPlayer, youtube::YoutubePlayer},
+    players::{
+        generic::GenericPlayer, librespot::LibrespotPlayer, local::LocalPlayer,
+        youtube::YoutubePlayer,
+    },
     store::{player_store::PlayerStore, provider_store::ProviderStore},
 };
 
@@ -53,6 +56,9 @@ impl PlayerHolder {
 
         let youtube_player = YoutubePlayer::new();
         players.push(Box::new(youtube_player));
+
+        let librespot_player = LibrespotPlayer::new();
+        players.push(Box::new(librespot_player));
 
         drop(players);
 

@@ -9,7 +9,7 @@ use leptos::{
     component, create_rw_signal, expect_context, spawn_local, use_context, view, IntoView,
     SignalUpdate, SignalWith,
 };
-use leptos_router::use_params_map;
+use leptos_router::{use_params_map, use_query_map};
 use types::entities::QueryablePlaylist;
 use types::songs::GetSongOptions;
 
@@ -18,8 +18,9 @@ use crate::{icons::plus_button::PlusIcon, utils::db_utils::get_playlists_by_opti
 
 #[component()]
 pub fn SinglePlaylist() -> impl IntoView {
-    let params = use_params_map();
+    let params = use_query_map();
     let playlist_id = params.with(|params| params.get("id").cloned()).unwrap();
+    console_log!("In single playlists {:?}", playlist_id);
 
     let songs = create_rw_signal(vec![]);
 
@@ -67,6 +68,7 @@ pub fn AllPlaylists() -> impl IntoView {
     let provider_store = expect_context::<Rc<ProviderStore>>();
     spawn_local(async move {
         for key in provider_store.get_provider_keys() {
+            console_log!("Fetching playlists from {}", key);
             let playlist_write_signal = playlists.write_only();
             fetch_infinite!(
                 provider_store,

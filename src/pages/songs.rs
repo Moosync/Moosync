@@ -8,7 +8,13 @@ use crate::components::songview::SongView;
 #[component()]
 pub fn AllSongs() -> impl IntoView {
     let songs = create_rw_signal(vec![]);
-    get_songs_by_option(GetSongOptions::default(), songs);
+    get_songs_by_option(
+        GetSongOptions {
+            song: Some(Default::default()),
+            ..Default::default()
+        },
+        songs,
+    );
 
     view! { <SongView songs=songs /> }
 }

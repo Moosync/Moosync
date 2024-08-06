@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::{
     components::prefs::static_components::SettingRoutes, console_log,
-    utils::prefs::watch_preferences,
+    players::librespot::LibrespotPlayer, utils::prefs::watch_preferences,
 };
 use leptos::{
     component, create_rw_signal, expect_context, on_cleanup, provide_context, view, window,
@@ -10,6 +10,7 @@ use leptos::{
 };
 use leptos_i18n::provide_i18n_context;
 use leptos_router::{Outlet, Redirect, Route, Router, Routes};
+use types::preferences::CheckboxPreference;
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::BeforeUnloadEvent;
@@ -87,6 +88,19 @@ pub fn App() -> impl IntoView {
             player_store.update(|store| {
                 store.update_volume_mode(serde_wasm_bindgen::from_value(value).unwrap())
             });
+        } else if key == "prefs.spotify.enable" {
+            let enabled: Vec<CheckboxPreference> = serde_wasm_bindgen::from_value(value).unwrap();
+            for pref in enabled {
+                if pref.key == "enable" {
+                    LibrespotPlayer::set_enabled(pref.enabled)
+                }
+            }
+        } else if key == "prefs.spotify.username" {
+            let value = value.as_string().unwrap();
+            LibrespotPlayer::set_has_username(!value.is_empty())
+        } else if key == "prefs.spotify.password" {
+            let value = value.as_string().unwrap();
+            LibrespotPlayer::set_has_password(!value.is_empty())
         }
     });
 
@@ -104,13 +118,13 @@ pub fn App() -> impl IntoView {
                             <Route path="main" view=MainApp>
                                 <Route path="" view=AllSongs />
                                 <Route path="playlists" view=AllPlaylists />
-                                <Route path="playlists/:id" view=SinglePlaylist />
+                                <Route path="playlists/single" view=SinglePlaylist />
                                 <Route path="artists" view=AllArtists />
-                                <Route path="artists/:id" view=SingleArtist />
+                                <Route path="artists/single" view=SingleArtist />
                                 <Route path="albums" view=AllAlbums />
-                                <Route path="albums/:id" view=SingleAlbum />
+                                <Route path="albums/single" view=SingleAlbum />
                                 <Route path="genres" view=AllGenres />
-                                <Route path="genres/:id" view=SingleGenre />
+                                <Route path="genres/single" view=SingleGenre />
                                 <Route path="search" view=Search />
                             </Route>
                             <SettingRoutes />

@@ -55,6 +55,7 @@ macro_rules! generate_command_async_cached {
         // #[flame]
         #[tauri::command(async)]
         pub async fn $method_name(db: State<'_, $state>, cache: State<'_, CacheHolder>, $($v: $t),*) -> types::errors::errors::Result<$ret> {
+            println!("calling cached async {}", stringify!($method_name));
             let mut cache_string = String::new();
             cache_string.push_str(stringify!($method_name));
             $(
@@ -64,7 +65,9 @@ macro_rules! generate_command_async_cached {
             )*
 
             let cached = cache.get(cache_string.as_str());
+
             if cached.is_ok() {
+                println!("got cached data {}", cache_string);
                 return cached;
             }
 

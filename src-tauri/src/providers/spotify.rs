@@ -93,7 +93,6 @@ impl SpotifyProvider {
     }
 
     fn create_api_client(&mut self) {
-        println!("Creating api client");
         if let Some(token) = &self.config.tokens {
             self.api_client = Some(AuthCodePkceSpotify::from_token(Token {
                 access_token: token.access_token.clone(),
@@ -187,7 +186,6 @@ impl GenericProvider for SpotifyProvider {
     async fn initialize(&mut self) -> Result<()> {
         let preferences: State<PreferenceConfig> = self.app.state();
         let spotify_config: Value = preferences.inner().load_selective("spotify".into())?;
-        println!("{:?}", spotify_config);
         let client_id = spotify_config.get("client_id");
         let client_secret = spotify_config.get("client_secret");
 
@@ -205,8 +203,6 @@ impl GenericProvider for SpotifyProvider {
         if let Err(err) = res {
             println!("spotify refresh login err: {:?}", err);
         }
-
-        println!("initialized {:?}", self.config);
 
         Ok(())
     }
@@ -256,7 +252,6 @@ impl GenericProvider for SpotifyProvider {
         println!("Fetchinf user details {:?}", self.api_client);
         if let Some(api_client) = &self.api_client {
             let token = api_client.token.lock().await.unwrap();
-            println!("tokens {:?}", token.clone().unwrap().is_expired());
             drop(token);
 
             let user = api_client.current_user().await?;
@@ -276,6 +271,7 @@ impl GenericProvider for SpotifyProvider {
         pagination: Pagination,
     ) -> Result<(Vec<QueryablePlaylist>, Pagination)> {
         let mut ret = vec![];
+        println!("Fetching spotify playlists {:?}", self.api_client);
         if let Some(api_client) = &self.api_client {
             let playlists = api_client
                 .current_user_playlists_manual(Some(pagination.limit), Some(pagination.offset))
@@ -285,8 +281,11 @@ impl GenericProvider for SpotifyProvider {
                     ret.push(self.parse_playlist(playlist))
                 }
             }
+            println!("Got user playlists {:?}", ret);
+            return Ok((ret, pagination.next_page()));
         }
-        Ok((ret, pagination.next_page()))
+
+        Err("API client not initialized".into())
     }
 
     async fn get_playlist_content(
@@ -324,8 +323,9 @@ impl GenericProvider for SpotifyProvider {
                     }
                 }
             }
+            return Ok((ret, pagination.next_page()));
         }
-        Ok((ret, pagination.next_page()))
+        Err("API client not initialized".into())
     }
 
     async fn get_playback_url(&self, _: Song, _: String) -> Result<String> {
@@ -380,8 +380,8 @@ impl GenericProvider for SpotifyProvider {
                     )
                 ]
             );
+            return Ok(ret);
         }
-
-        Ok(ret)
+        Err("API client not initialized".into())
     }
 }

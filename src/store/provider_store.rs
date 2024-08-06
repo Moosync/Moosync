@@ -69,7 +69,12 @@ impl ProviderStore {
 
             #[cfg(not(feature = "mock"))]
             {
-                invoke("initialize_all_providers", JsValue::undefined()).await;
+                let res = invoke("initialize_all_providers", JsValue::undefined()).await;
+                if res.is_err() {
+                    console_log!("Failed to initialize providers");
+                    return;
+                }
+
                 let provider_keys = invoke("get_provider_keys", JsValue::undefined()).await;
                 if provider_keys.is_err() {
                     console_log!("Failed to get provider keys");
@@ -102,7 +107,6 @@ impl ProviderStore {
     }
 
     pub async fn get_provider_key_by_id(&self, id: String) -> Result<String> {
-        // TODO: Fetch valid key
         #[derive(Debug, Serialize)]
         struct Args {
             id: String,

@@ -147,4 +147,33 @@ macro_rules! fetch_infinite {
     };
 }
 
+pub fn listen_event<F>(event: &str, cb: F) -> js_sys::Function
+where
+    F: Fn(JsValue) + 'static,
+{
+    let closure = Closure::wrap(Box::new(move |data: JsValue| {
+        cb(data);
+    }) as Box<dyn Fn(JsValue)>);
+    let res = listen(event, closure.into_js_value());
+
+    let event = event.to_string();
+    let data = Box::new(move || {
+        let event = event.clone();
+        let unlisten = wasm_bindgen_futures::JsFuture::from(res.clone());
+        spawn_local(async move {
+            let unlisten = unlisten.await.unwrap();
+            if unlisten.is_function() {
+                let func = js_sys::Function::from(unlisten);
+                console_log!("Cleaning up listener for {}", event.clone());
+                func.call0(&JsValue::NULL).unwrap();
+            }
+        });
+    }) as Box<dyn FnMut()>;
+
+    let unlisten = Closure::wrap(data);
+
+    js_sys::Function::from(unlisten.into_js_value())
+}
+
 pub(crate) use fetch_infinite;
+use wasm_bindgen_futures::spawn_local;

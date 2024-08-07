@@ -1,16 +1,25 @@
 use std::rc::Rc;
 
 use crate::{
-    components::prefs::static_components::SettingRoutes, console_log,
-    players::librespot::LibrespotPlayer, utils::prefs::watch_preferences,
+    components::prefs::static_components::SettingRoutes,
+    console_log,
+    players::librespot::LibrespotPlayer,
+    utils::{
+        common::invoke,
+        prefs::{load_selective_async, watch_preferences},
+    },
 };
 use leptos::{
-    component, create_rw_signal, expect_context, provide_context, view, window,
-    IntoView, RwSignal, SignalUpdate,
+    component, create_rw_signal, document, expect_context, provide_context, view, window, IntoView,
+    RwSignal, SignalUpdate,
 };
 use leptos_i18n::provide_i18n_context;
 use leptos_router::{Outlet, Redirect, Route, Router, Routes};
-use types::preferences::CheckboxPreference;
+use serde::Serialize;
+use types::{preferences::CheckboxPreference, themes::ThemeDetails};
+use wasm_bindgen::{convert::IntoWasmAbi, JsCast};
+use wasm_bindgen_futures::spawn_local;
+use web_sys::HtmlElement;
 
 use crate::{
     components::{
@@ -70,6 +79,66 @@ pub fn MainApp() -> impl IntoView {
     }
 }
 
+fn handle_theme(id: String) {
+    #[derive(Serialize)]
+    struct LoadThemeArgs {
+        id: String,
+    }
+    spawn_local(async move {
+        let theme = invoke(
+            "load_theme",
+            serde_wasm_bindgen::to_value(&LoadThemeArgs { id }).unwrap(),
+        )
+        .await
+        .unwrap();
+        let theme: ThemeDetails = serde_wasm_bindgen::from_value(theme).unwrap();
+
+        let document_element = document()
+            .document_element()
+            .unwrap()
+            .dyn_into::<HtmlElement>()
+            .unwrap();
+
+        let style = document_element.style();
+        style.set_css_text("");
+
+        style
+            .set_property("--primary", &theme.theme.primary)
+            .unwrap();
+        style
+            .set_property("--secondary", &theme.theme.secondary)
+            .unwrap();
+        style
+            .set_property("--tertiary", &theme.theme.tertiary)
+            .unwrap();
+        style
+            .set_property("--textPrimary", &theme.theme.textPrimary)
+            .unwrap();
+        style
+            .set_property("--textSecondary", &theme.theme.textSecondary)
+            .unwrap();
+        style
+            .set_property("--textInverse", &theme.theme.textInverse)
+            .unwrap();
+        style.set_property("--accent", &theme.theme.accent).unwrap();
+        style
+            .set_property("--divider", &theme.theme.divider)
+            .unwrap();
+
+        if let Some(custom_css) = theme.theme.customCSS {
+            let mut custom_style_sheet = document().get_element_by_id("custom-css");
+            if custom_style_sheet.is_none() {
+                let el = document().create_element("style").unwrap();
+                el.set_id("css-element");
+                custom_style_sheet = Some(el);
+            }
+
+            let custom_style_sheet = custom_style_sheet.unwrap();
+            custom_style_sheet.set_inner_html(custom_css.as_str());
+        }
+    });
+}
+
 #[component]
 pub fn App() -> impl IntoView {
     provide_context(create_rw_signal(PlayerStore::new()));
@@ -77,6 +146,13 @@ pub fn App() -> impl IntoView {
     provide_context(create_rw_signal(ModalStore::default()));
 
     provide_i18n_context::<Locale>();
+
+    spawn_local(async move {
+        let id = load_selective_async("themes.active_theme".into())
+            .await
+            .unwrap();
+        handle_theme(id);
+    });
 
     let unlisten = watch_preferences(|(key, value)| {
         console_log!("Preferences changed: {} = {:?}", key, value);
@@ -98,6 +174,9 @@ pub fn App() -> impl IntoView {
         } else if key == "prefs.spotify.password" {
             let value = value.as_string().unwrap();
             LibrespotPlayer::set_has_password(!value.is_empty())
+        } else if key == "prefs.themes.active_theme" {
+            let value = value.as_string().unwrap();
+            handle_theme(value);
         }
     });
 

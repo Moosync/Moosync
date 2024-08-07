@@ -137,3 +137,12 @@ page:
         name: settings.system.youtube.client_secret
         tooltip: settings.system.youtube.client_secret_tooltip
         key: youtube.client_secret
+
+  - title: sidebar.tabs.themes
+    path: themes
+    icon: Themes
+    data:
+      - type: theme-selector
+        name: settings.themes.themes
+        tooltip: settings.themes.themes_tooltip
+        key: themes.active_theme

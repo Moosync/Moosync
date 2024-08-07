@@ -19,6 +19,7 @@ const UI_KEYS: &[&str] = &[
     "prefs.spotify.enable",
     "prefs.spotify.username",
     "prefs.spotify.password",
+    "prefs.themes.active_theme",
 ];
 
 macro_rules! generate_states {

@@ -34,6 +34,7 @@ pub mod shuffle_icon;
 pub mod song_default_icon;
 pub mod sort_icon;
 pub mod system_icon;
+pub mod theme_view_icon;
 pub mod themes_icon;
 pub mod tooltip;
 pub mod trash_icon;

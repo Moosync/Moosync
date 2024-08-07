@@ -38,7 +38,6 @@ pub fn generate_components(input: TokenStream) -> TokenStream {
         serde_yaml::from_str(&yaml_content).expect("Invalid YAML format");
 
     let components = generate_component(&config);
-
     TokenStream::from(components)
 }
 
@@ -93,21 +92,26 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
 
     quote! {
         use crate::console_log;
-        use crate::icons::folder_icon::FolderIcon;
+        use crate::icons::{folder_icon::FolderIcon, theme_view_icon::ThemeViewIcon};
         use crate::{
             i18n::use_i18n,
             icons::tooltip::Tooltip,
-            utils::prefs::{load_selective, open_file_browser, open_file_browser_single, save_selective, save_selective_number},
+            utils::prefs::{load_selective, load_selective_async, open_file_browser, open_file_browser_single, save_selective, save_selective_number},
+            utils::common::invoke,
         };
         use leptos::{
             component, create_effect, create_rw_signal, event_target_checked, event_target_value, view,
-            For, IntoView, SignalGet, SignalSet, SignalUpdate, RwSignal, SignalSetUntracked
+            CollectView, For, IntoView, SignalGet, SignalSet, SignalUpdate, RwSignal, SignalSetUntracked
         };
         use leptos_i18n::t;
         use leptos_use::use_debounce_fn_with_arg;
         use types::preferences::CheckboxPreference;
         use crate::components::sidebar::{Sidebar, Tab};
         use leptos_router::{Outlet, Redirect, Route, Router, Routes};
+        use wasm_bindgen::JsValue;
+        use wasm_bindgen_futures::spawn_local;
+        use types::themes::ThemeDetails;
+        use std::collections::HashMap;
 
 
         #(#ret)*
@@ -155,6 +159,7 @@ fn generate_children(data: &[PreferenceUIData]) -> Vec<(syn::Ident, proc_macro2:
             | types::ui::preferences::PreferenceTypes::Number
             | types::ui::preferences::PreferenceTypes::FilePicker => generate_input(item),
             types::ui::preferences::PreferenceTypes::Checkbox => generate_checkbox(item),
+            types::ui::preferences::PreferenceTypes::ThemeSelector => generate_themes(item),
         };
         ret.push(stream);
     }
@@ -170,7 +175,9 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
     let tooltip = get_path(data.tooltip.clone());
 
     let fn_name = syn::Ident::new(
-        format!("Checkbox{}Pref", data.key.replace(".", "_")).as_str(),
+        format!("Checkbox{}Pref", data.key)
+            .replace(".", "")
+            .as_str(),
         proc_macro2::Span::call_site(),
     );
 
@@ -302,7 +309,7 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
     };
 
     let fn_name = syn::Ident::new(
-        format!("Input{}Pref", data.key.replace(".", "_")).as_str(),
+        format!("Input{}Pref", data.key).replace(".", "").as_str(),
         proc_macro2::Span::call_site(),
     );
 
@@ -413,7 +420,7 @@ fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
     let tooltip = get_path(data.tooltip.clone());
 
     let fn_name = syn::Ident::new(
-        format!("Paths{}Pref", data.key.replace(".", "_")).as_str(),
+        format!("Paths{}Pref", data.key).replace(".", "").as_str(),
         proc_macro2::Span::call_site(),
     );
     let stream = quote! {
@@ -498,6 +505,89 @@ fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
                             }
                         />
                     </div>
+                </div>
+            }
+        }
+    };
+
+    (fn_name, stream)
+}
+
+fn generate_themes(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
+    let key = data.key.clone();
+
+    let name = get_path(data.name.clone());
+
+    let tooltip = get_path(data.tooltip.clone());
+
+    let fn_name = syn::Ident::new(
+        format!("Themes{}Pref", data.key).replace(".", "").as_str(),
+        proc_macro2::Span::call_site(),
+    );
+
+    let stream = quote! {
+        #[component]
+        pub fn #fn_name() -> impl IntoView {
+            let all_themes: RwSignal<HashMap<String, ThemeDetails>> = create_rw_signal(Default::default());
+            spawn_local(async move {
+                let themes = invoke("load_all_themes", JsValue::undefined())
+                    .await
+                    .unwrap();
+                all_themes.set(serde_wasm_bindgen::from_value(themes).unwrap());
+            });
+
+            let active_themes = create_rw_signal(vec![]);
+
+            let active_theme_id = create_rw_signal(String::new());
+            load_selective(#key.into(), active_theme_id);
+
+            let render_themes = move || {
+                let mut views = vec![];
+                let active_theme_id = active_theme_id.get();
+                for (key, theme) in all_themes.get() {
+                    let signal = create_rw_signal(key == active_theme_id);
+                    active_themes.update(|at| at.push(signal));
+                    views.push(view! {
+                        <div class="col-xl-3 col-5 p-2">
+                            <div
+                                class="theme-component-container"
+                                on:click=move |_| {
+                                    active_themes
+                                        .update(|at| {
+                                            for s in at.iter() {
+                                                s.set(false);
+                                            }
+                                            signal.set(true);
+                                        });
+                                    let theme_id = key.clone();
+                                    console_log!("Setting active theme: {}", theme_id);
+                                    save_selective(#key.into(), theme_id);
+                                }
+                            >
+                                <ThemeViewIcon active=signal.read_only() theme=theme.clone() />
+                                <div class="theme-title">{theme.name}</div>
+                                <div class="theme-author">{theme.author}</div>
+                            </div>
+                        </div>
+                    });
+                }
+                views.collect_view()
+            };
+
+            let i18n = use_i18n();
+            view! {
+                <div class="container-fluid">
+                    <div class="row no-gutters">
+                        <div class="col-auto align-self-center title d-flex preference-title">
+                            {t!(i18n, #name)}
+                        </div>
+                        <div class="col-auto ml-2">
+                            <Tooltip>{t!(i18n, #tooltip)}</Tooltip>
+                        </div>
+                    </div>
+
+                    <div class="row no-gutters w-100">{render_themes}</div>
+
                 </div>
             }
         }

@@ -4,29 +4,10 @@ use fs_extra::dir::CopyOptions;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use types::errors::errors::{MoosyncError, Result};
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-
-pub struct ThemeItem {
-    primary: String,
-    secondary: String,
-    tertiary: String,
-    textPrimary: String,
-    textSecondary: String,
-    textInverse: String,
-    accent: String,
-    divider: String,
-    customCSS: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ThemeDetails {
-    id: String,
-    name: String,
-    author: Option<String>,
-    theme: ThemeItem,
-}
+use types::{
+    errors::errors::{MoosyncError, Result},
+    themes::ThemeDetails,
+};
 
 pub struct ThemeHolder {
     pub theme_dir: PathBuf,
@@ -38,23 +19,14 @@ impl ThemeHolder {
         Self { theme_dir, tmp_dir }
     }
 
-    fn validate_theme(&self, theme: Value) -> Result<ThemeDetails> {
-        if !theme.is_object() {
-            return Err(MoosyncError::String("Theme is not an object".to_string()));
-        }
-
-        Ok(serde_json::from_value(theme)?)
-    }
-
-    pub fn save_theme(&self, theme: Value) -> Result<()> {
-        let parsed = self.validate_theme(theme)?;
-        let theme_path = self.theme_dir.join(parsed.id.clone());
+    pub fn save_theme(&self, theme: ThemeDetails) -> Result<()> {
+        let theme_path = self.theme_dir.join(theme.id.clone());
 
         if !theme_path.exists() {
             fs::create_dir_all(&theme_path)?;
         }
         let theme_config = theme_path.join("config.json");
-        fs::write(theme_config, serde_json::to_string(&parsed)?)?;
+        fs::write(theme_config, serde_json::to_string(&theme)?)?;
 
         Ok(())
     }
@@ -123,6 +95,9 @@ impl ThemeHolder {
             }
         }
 
+        let theme_dir = parsed_path.parent().unwrap();
+        css = css.replace("%themeDir%", theme_dir.to_str().unwrap());
+
         Ok(css)
     }
 
@@ -139,9 +114,7 @@ impl ThemeHolder {
                 let item = item.unwrap().path();
                 if item.is_file() && item.file_name().unwrap().to_string_lossy() == "config.json" {
                     let config = fs::read(item)?;
-                    let parsed = serde_json::from_slice(config.as_slice())?;
-                    let parsed = self.validate_theme(parsed)?;
-
+                    let parsed: ThemeDetails = serde_json::from_slice(config.as_slice())?;
                     let final_theme_path = self.theme_dir.join(parsed.id);
                     let options = CopyOptions::default().overwrite(true);
 

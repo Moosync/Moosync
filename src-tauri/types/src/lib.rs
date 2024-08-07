@@ -17,4 +17,5 @@ pub mod ui;
 #[cfg(feature = "core")]
 pub mod oauth;
 
+pub mod themes;
 pub mod window;

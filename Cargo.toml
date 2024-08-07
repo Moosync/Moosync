@@ -34,7 +34,13 @@ url = "2.5.2"
 rspotify = "0.13.2"
 web-time = "1.1.0"
 futures = "0.3.30"
-web-sys = "0.3.69"
+web-sys = { version = "0.3.69", features = [
+    "Window",
+    "Document",
+    "HtmlElement",
+    "Element",
+    "CssStyleDeclaration",
+] }
 regex = "1.10.5"
 colors-transform = "0.2.11"
 leptos_i18n = { version = "0.3.3" }

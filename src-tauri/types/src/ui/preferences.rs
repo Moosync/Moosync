@@ -14,6 +14,7 @@ pub enum PreferenceTypes {
     Number,
     FilePicker,
     Checkbox,
+    ThemeSelector,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

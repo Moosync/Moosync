@@ -35,7 +35,7 @@ impl Pagination {
     pub fn next_page(&self) -> Self {
         Pagination {
             limit: self.limit,
-            offset: self.offset + self.limit,
+            offset: self.offset + self.limit.max(1),
             token: self.token.clone(),
             is_first: false,
         }
@@ -73,7 +73,7 @@ impl ProviderStatus {
 #[async_trait]
 pub trait GenericProvider: std::fmt::Debug + Send {
     async fn initialize(&mut self) -> Result<()>;
-    fn key(&self) -> &str;
+    fn key(&self) -> String;
     fn match_id(&self, id: String) -> bool;
 
     async fn login(&mut self) -> Result<()>;

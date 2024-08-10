@@ -1,4 +1,7 @@
-#[derive(Debug, Default, PartialEq, Clone, Copy)]
+use serde::Serialize;
+
+#[derive(Serialize, Debug, Default, PartialEq, Clone, Copy)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum PlayerState {
     Playing,
     Paused,

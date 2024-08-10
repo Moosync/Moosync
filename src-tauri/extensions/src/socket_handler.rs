@@ -1,49 +1,52 @@
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader, ErrorKind, Read, Write},
-    sync::mpsc::{Receiver, Sender},
+    thread,
 };
 
-use interprocess::local_socket::Stream as LocalSocketStream;
-use serde_json::Value;
-use tauri::AppHandle;
-use types::errors::errors::{MoosyncError, Result};
+use futures::{
+    channel::mpsc::{channel, Receiver, Sender, UnboundedReceiver, UnboundedSender},
+    executor::block_on,
+    SinkExt, StreamExt,
+};
 
-use crate::request_handler::ReplyHandler;
+use interprocess::{local_socket::Stream as LocalSocketStream, TryClone};
+use serde_json::Value;
+use types::errors::errors::{MoosyncError, Result};
 
 pub type CommandSender = Sender<Result<Value>>;
 
-pub struct SocketHandler<'a> {
+pub struct SocketHandler {
     conn: LocalSocketStream,
-    request_handler: ReplyHandler,
-    rx_command: &'a Receiver<(Sender<Result<Value>>, Value)>,
+    tx_ext_command: UnboundedSender<(Value, Sender<Vec<u8>>)>,
+    rx_main_command: UnboundedReceiver<(Sender<Result<Value>>, Value)>,
     reply_map: HashMap<String, CommandSender>,
 }
 
-impl<'a> SocketHandler<'a> {
+impl<'a> SocketHandler {
     pub fn new(
         conn: LocalSocketStream,
-        app_handle: AppHandle,
-        rx_command: &'a Receiver<(Sender<Result<Value>>, Value)>,
-    ) -> SocketHandler<'a> {
+        rx_main_command: UnboundedReceiver<(Sender<Result<Value>>, Value)>,
+        tx_ext_command: UnboundedSender<(Value, Sender<Vec<u8>>)>,
+    ) -> SocketHandler {
         SocketHandler {
             conn,
-            request_handler: ReplyHandler::new(app_handle),
-            rx_command,
+            tx_ext_command,
+            rx_main_command,
             reply_map: HashMap::new(),
         }
     }
 
-    fn write_command(&mut self, tx_reply: Sender<Result<Value>>, value: &mut Value) {
+    async fn write_command(&mut self, mut tx_reply: Sender<Result<Value>>, value: &mut Value) {
         let channel = uuid::Uuid::new_v4().to_string();
         if let Some(value) = value.as_object_mut() {
             value.insert("channel".to_string(), Value::String(channel.clone()));
             match serde_json::to_vec(value) {
                 Ok(bytes) => {
                     self.reply_map.insert(channel, tx_reply);
-                    self.write_data(bytes)
+                    Self::write_data(&mut self.conn, bytes)
                 }
-                Err(e) => tx_reply.send(Err(e.into())).unwrap(),
+                Err(e) => tx_reply.send(Err(e.into())).await.unwrap(),
             }
         }
     }
@@ -94,13 +97,15 @@ impl<'a> SocketHandler<'a> {
         (lines, remaining)
     }
 
-    fn send_reply(&self, data: &Value) -> bool {
+    async fn send_reply(&self, data: &Value) -> bool {
         if let Some(channel) = data.get("channel") {
             let channel = channel.as_str().unwrap();
             let reply = self.reply_map.get(channel);
             if let Some(reply) = reply {
                 reply
+                    .clone()
                     .send(Ok(data.get("data").unwrap_or(&Value::Null).clone()))
+                    .await
                     .unwrap();
                 return true;
             }
@@ -109,21 +114,25 @@ impl<'a> SocketHandler<'a> {
         false
     }
 
-    pub fn write_data(&mut self, mut data: Vec<u8>) {
+    pub fn write_data(conn: &mut LocalSocketStream, mut data: Vec<u8>) {
         data.push(b'\n');
-        self.conn.write_all(&data).unwrap();
-        self.conn.flush().unwrap();
+        conn.write_all(&data).unwrap();
+        conn.flush().unwrap();
     }
 
-    pub fn handle_connection(&mut self) {
+    // TODO: Make this blocking somehow
+    pub async fn handle_connection(&mut self) {
         let mut old_buf = vec![];
+
         loop {
-            if let Ok((tx_reply, mut value)) = self.rx_command.try_recv() {
-                self.write_command(tx_reply, &mut value);
+            if let Ok(Some((tx_reply, mut value))) = self.rx_main_command.try_next() {
+                println!("Got command {:?}", value);
+                self.write_command(tx_reply, &mut value).await;
             }
 
             let res = self.read_fixed_buf();
             if res.is_err() {
+                println!("Failed to read from socket {}", res.unwrap_err());
                 break;
             }
 
@@ -142,16 +151,16 @@ impl<'a> SocketHandler<'a> {
                 match parsed {
                     Ok(data) => {
                         // TODO: Validate request object
-                        if !self.send_reply(&data) {
-                            let res = self.request_handler.handle_request(&data);
-                            match res {
-                                Err(e) => {
-                                    println!("{:}", e);
-                                }
-                                Ok(res) => {
-                                    self.write_data(res);
-                                }
-                            }
+                        if !self.send_reply(&data).await {
+                            let (tx, mut rx) = channel(1);
+                            let mut conn = self.conn.try_clone().unwrap();
+
+                            thread::spawn(move || {
+                                let res = block_on(rx.next()).unwrap();
+                                Self::write_data(&mut conn, res);
+                            });
+
+                            self.tx_ext_command.clone().send((data, tx)).await.unwrap();
                         }
                     }
                     Err(e) => {

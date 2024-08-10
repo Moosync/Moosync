@@ -10,12 +10,13 @@ use types::songs::Song;
 use wasm_bindgen::JsValue;
 
 use crate::console_log;
-use crate::utils::common::invoke;
+use crate::utils::common::{invoke, listen_event};
 
 #[derive(Debug, Default)]
 pub struct ProviderStore {
     keys: RwSignal<Vec<String>>,
     statuses: RwSignal<Vec<RwSignal<ProviderStatus>>>,
+    unlisten_provider_key: Option<js_sys::Function>,
 }
 
 #[cfg(not(feature = "mock"))]
@@ -63,7 +64,26 @@ macro_rules! generate_async_functions {
 impl ProviderStore {
     pub fn new() -> Self {
         console_log!("Creating provider store");
-        let store = Self::default();
+        let mut store = Self::default();
+
+        let fetch_provider_keys = move || {
+            spawn_local(async move {
+                let provider_keys = invoke("get_provider_keys", JsValue::undefined()).await;
+                if provider_keys.is_err() {
+                    console_log!("Failed to get provider keys");
+                    return;
+                }
+                store.keys.set(from_value(provider_keys.unwrap()).unwrap());
+                console_log!("Updated provider keys {:?}", store.keys.get());
+            });
+        };
+
+        store.unlisten_provider_key = Some(listen_event("providers-updated", move |_| {
+            fetch_provider_keys();
+        }));
+
+        fetch_provider_keys();
+
         spawn_local(async move {
             console_log!("Initializing providers");
 
@@ -72,15 +92,7 @@ impl ProviderStore {
                 let res = invoke("initialize_all_providers", JsValue::undefined()).await;
                 if res.is_err() {
                     console_log!("Failed to initialize providers");
-                    return;
                 }
-
-                let provider_keys = invoke("get_provider_keys", JsValue::undefined()).await;
-                if provider_keys.is_err() {
-                    console_log!("Failed to get provider keys");
-                    return;
-                }
-                store.keys.set(from_value(provider_keys.unwrap()).unwrap());
             }
         });
 

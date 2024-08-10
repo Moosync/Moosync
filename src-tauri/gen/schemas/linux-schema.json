@@ -2172,12 +2172,6 @@
           "enum": [
             "deep-link:deny-unregister"
           ]
-        },
-        {
-          "type": "string",
-          "enum": [
-            "devtools:default"
-          ]
         }
       ]
     },

@@ -111,6 +111,7 @@ default-features = false
 [dependencies.tauri]
 version = "2.0.0-beta.24"
 features = ["protocol-asset", "devtools"]
+default-features = false
 optional = true
 
 [dependencies.uuid]

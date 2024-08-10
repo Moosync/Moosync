@@ -11,17 +11,9 @@ uuid = "1.10.0"
 zip = "2.1"
 zip-extensions = "0.8"
 
-[dependencies.database]
-path = "../database"
-features = []
-
 [dependencies.interprocess]
 version = "2.2.1"
 features = ["tokio"]
-
-[dependencies.preferences]
-path = "../preferences"
-features = []
 
 [dependencies.reqwest]
 version = "0.12.5"
@@ -31,10 +23,6 @@ features = ["stream"]
 version = "1.0.120"
 features = []
 default-features = false
-
-[dependencies.tauri]
-version = "2.0.0-beta.24"
-features = []
 
 [dependencies.types]
 path = "../types"

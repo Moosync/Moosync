@@ -266,8 +266,8 @@ impl GenericProvider for YoutubeProvider {
         Ok(())
     }
 
-    fn key(&self) -> &str {
-        "youtube"
+    fn key(&self) -> String {
+        "youtube".into()
     }
 
     fn match_id(&self, id: String) -> bool {

@@ -1,4 +1,5 @@
 use std::{
+    borrow::BorrowMut,
     collections::HashMap,
     env,
     fs::{self, File},
@@ -6,25 +7,165 @@ use std::{
     path::PathBuf,
     process::Command,
     str::FromStr,
-    sync::{
-        mpsc::{self, Sender},
-        Mutex,
-    },
+    sync::Arc,
     thread, u64,
 };
 
 use fs_extra::dir::CopyOptions;
-use futures::StreamExt;
+use futures::{
+    channel::mpsc::{channel, unbounded, Receiver, Sender, UnboundedReceiver, UnboundedSender},
+    lock::Mutex,
+    SinkExt,
+};
+use futures::{executor::block_on, StreamExt};
 use interprocess::local_socket::{traits::ListenerExt, GenericFilePath, ListenerOptions, ToFsName};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use socket_handler::{CommandSender, SocketHandler};
-use tauri::{AppHandle, Manager};
-use types::errors::errors::{MoosyncError, Result};
+use types::{
+    errors::errors::{MoosyncError, Result},
+    extensions::{
+        AccountLoginArgs, ContextMenuActionArgs, ExtensionAccountDetail, ExtensionContextMenuItem,
+        ExtensionDetail, ExtensionExtraEventArgs, ExtensionProviderScope,
+        GenericExtensionHostRequest, PackageNameArgs, ToggleExtArgs,
+    },
+};
+use uuid::Uuid;
 use zip_extensions::zip_extract;
 
-mod request_handler;
 mod socket_handler;
+
+macro_rules! helper1 {
+    // Empty
+    ($arg:ident, $res:expr, ()) => {{
+        Ok(())
+    }};
+    // Internal helper macro to handle request creation and transformation
+    ($self:ident, $req_type:expr, $data:expr) => {
+        async {
+            let value = GenericExtensionHostRequest {
+                type_: $req_type.into(),
+                channel: Uuid::new_v4().to_string(),
+                data: $data,
+            };
+            $self.broadcast(serde_json::to_value(value).unwrap()).await
+        }
+    };
+
+    // Any other type
+    ($arg:ident, $res:expr, $ret_type:ty) => {{
+        let package_name = if let Some(arg) = $arg {
+            arg.package_name
+        } else {
+            String::new()
+        };
+
+        let first = $res.values().next().map(|v| v);
+        if let Some(first) = first {
+            let parsed = serde_json::from_value::<HashMap<String, Value>>(first.clone());
+            if let Ok(parsed) = parsed {
+                if package_name.is_empty() {
+                    // I hope this is never called.
+                    // But as a TODO, find a better way to handle this
+                    let inner_parsed =
+                        serde_json::from_value(serde_json::to_value(parsed.clone()).unwrap());
+                    if let Ok(inner_parsed) = inner_parsed {
+                        return Ok(inner_parsed);
+                    }
+                    return Err(format!(
+                        "Failed to parse {:?} as {}",
+                        parsed,
+                        stringify!($ret_type)
+                    )
+                    .into());
+                }
+
+                let first_result = parsed.get(&package_name);
+                if let Some(first_result) = first_result {
+                    let parsed = serde_json::from_value(first_result.clone()).unwrap();
+                    return Ok(parsed);
+                }
+            }
+
+            return Err(format!("Failed to parse {:?} as {}", first, stringify!($ret_type)).into());
+        }
+        Err("Received null from ext host".into())
+    }};
+}
+
+macro_rules! helper {
+    ($func_name:ident, $req_type:expr, $ret_type:ty, $arg:ty) => {
+        pub async fn $func_name(&self, arg: $arg) -> Result<$ret_type> {
+            let res = helper1!(self, $req_type, Some(arg.clone())).await?;
+
+            let arg = Some(arg);
+            helper1!(arg, res, $ret_type)
+        }
+    };
+
+    ($func_name:ident, $req_type:expr, $ret_type:ty) => {
+        pub async fn $func_name(&self) -> Result<$ret_type> {
+            let res = helper1!(self, $req_type, None::<()>).await?;
+
+            let arg = None::<PackageNameArgs>;
+            helper1!(arg, res, $ret_type)
+        }
+    };
+}
+
+macro_rules! create_extension_function {
+    (
+            $(
+                ($func_name:ident, $req_type:expr, $ret_type:ty $(, $arg:ty)?)
+            ),+ $(,)?
+        ) => {
+            $(
+
+                helper!($func_name, $req_type, $ret_type $(, $arg)?);
+            )+
+
+        }
+}
+
+macro_rules! helper_raw {
+    // HashMap
+    ($res:expr, $ret_type:ty) => {{
+        let res = $res
+            .into_iter()
+            .map(|(key, value)| (key, serde_json::from_value(value.clone()).unwrap()))
+            .collect();
+
+        Ok(res)
+    }};
+
+    ($func_name:ident, $req_type:expr, $ret_type:ty, $arg:ty) => {
+        pub async fn $func_name(&self, arg: $arg) -> Result<$ret_type> {
+            let res = helper1!(self, $req_type, Some(arg)).await?;
+            helper1_raw!(res, $ret_type)
+        }
+    };
+
+    ($func_name:ident, $req_type:expr, $ret_type:ty) => {
+        pub async fn $func_name(&self) -> Result<$ret_type> {
+            let res = helper1!(self, $req_type, None::<()>).await?;
+            helper_raw!(res, $ret_type)
+        }
+    };
+}
+
+macro_rules! create_extension_function_raw {
+    (
+            $(
+                ($func_name:ident, $req_type:expr, $ret_type:ty $(, $arg:ty)?)
+            ),+ $(,)?
+        ) => {
+            $(
+
+                helper_raw!($func_name, $req_type, $ret_type $(, $arg)?);
+            )+
+
+        }
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -54,22 +195,18 @@ struct ExtensionManifest {
     version: String,
 }
 
-type SenderMap = HashMap<String, Sender<(CommandSender, Value)>>;
+type SenderMap = HashMap<String, UnboundedSender<(CommandSender, Value)>>;
 
 pub struct ExtensionHandler {
     pub ipc_path: PathBuf,
-    pub app_handle: AppHandle,
     pub extensions_dir: PathBuf,
-    sender_map: Mutex<SenderMap>,
+    pub tmp_dir: PathBuf,
+    sender_map: Arc<Mutex<SenderMap>>,
 }
 
 impl ExtensionHandler {
-    pub fn new(app_handle: AppHandle) -> Self {
-        let ipc_path = app_handle
-            .path()
-            .app_data_dir()
-            .unwrap()
-            .join("extensions/ipc/ipc.sock");
+    pub fn new(extensions_dir: PathBuf, tmp_dir: PathBuf) -> Self {
+        let ipc_path = extensions_dir.join("ipc/ipc.sock");
         if !ipc_path.parent().unwrap().exists() {
             fs::create_dir_all(ipc_path.parent().unwrap()).unwrap();
         }
@@ -78,45 +215,38 @@ impl ExtensionHandler {
             fs::remove_file(ipc_path.clone()).unwrap();
         }
 
-        let extensions_dir = app_handle.path().app_data_dir().unwrap().join("extensions");
-        if !extensions_dir.exists() {
-            fs::create_dir_all(extensions_dir.clone()).unwrap();
-        }
-
         Self {
             ipc_path,
-            app_handle,
             extensions_dir,
-            sender_map: Mutex::new(HashMap::new()),
+            tmp_dir,
+            sender_map: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
-    pub fn listen_socket(&self) -> Result<()> {
+    pub fn listen_socket(&self) -> Result<Receiver<UnboundedReceiver<(Value, Sender<Vec<u8>>)>>> {
         let opts =
             ListenerOptions::new().name(self.ipc_path.clone().to_fs_name::<GenericFilePath>()?);
         let sock_listener = opts.create_sync()?;
-        let app_handler = self.app_handle.clone();
 
-        let (tx_command, rx_command) = mpsc::channel::<(CommandSender, Value)>();
+        let sender_map = self.sender_map.clone();
+        let (mut tx_listen, rx_listen) = channel(1);
 
         thread::spawn(move || {
+            println!("Listening on socket");
             for conn in sock_listener.incoming() {
+                let (tx_main_command, rx_main_command) = unbounded();
+                let (tx_ext_command, rx_ext_command) = unbounded();
                 match conn {
                     Ok(conn) => {
-                        let mut handler =
-                            SocketHandler::new(conn, app_handler.clone(), &rx_command);
-                        handler.handle_connection();
+                        let mut handler = SocketHandler::new(conn, rx_main_command, tx_ext_command);
+                        let mut sender_map = block_on(sender_map.lock());
+                        sender_map.insert(uuid::Uuid::new_v4().to_string(), tx_main_command);
+                        drop(sender_map);
+                        block_on(tx_listen.send(rx_ext_command)).unwrap();
+                        println!("Handling extension socket connections");
+                        block_on(handler.handle_connection());
                     }
-                    Err(e) => {
-                        if e.kind() == ErrorKind::WouldBlock {
-                            if let Ok((recv, _)) = rx_command.try_recv() {
-                                recv.send(Err(MoosyncError::String(
-                                    "Extension backend not yet connected".to_string(),
-                                )))
-                                .unwrap();
-                            }
-                        }
-                    }
+                    Err(e) => println!("Extension socket failed to listen {}", e),
                 };
             }
         });
@@ -124,46 +254,47 @@ impl ExtensionHandler {
         let exe_path = env::current_exe().unwrap();
         let _handle = Command::new(exe_path.clone().parent().unwrap().join("exthost"))
             .args([
+                "-ipcPath",
+                self.ipc_path.to_str().unwrap(),
                 "-extensionPath",
                 self.extensions_dir.to_str().unwrap(),
-                "-logPath",
-                self.app_handle
-                    .path()
-                    .app_log_dir()
-                    .unwrap()
-                    .to_str()
-                    .unwrap(),
                 "-installPath",
                 exe_path.to_str().unwrap(),
             ])
             .spawn()
             .unwrap();
 
-        let mut sender_map = self.sender_map.lock().unwrap();
-        sender_map.insert(uuid::Uuid::new_v4().to_string(), tx_command);
-        Ok(())
+        Ok(rx_listen)
     }
 
-    pub fn broadcast(&self, value: Value) -> Result<HashMap<String, Value>> {
-        let sender_map = self.sender_map.lock().unwrap();
+    pub async fn broadcast(&self, value: Value) -> Result<HashMap<String, Value>> {
+        let sender_map = self.sender_map.lock().await;
+        println!("In broadcast {:?}", sender_map);
         let mut rx_map = HashMap::new();
         for (key, tx) in sender_map.iter() {
-            let (tx_r, rx_r) = mpsc::channel();
-            tx.send((tx_r, value.clone())).map_err(|_| {
-                MoosyncError::String("Failed to send command to extension backend".to_string())
+            println!("Broadcasting command {:?}", value);
+            let (tx_r, rx_r) = channel(1);
+            tx.clone().send((tx_r, value.clone())).await.map_err(|_| {
+                MoosyncError::String(format!(
+                    "Failed to send command to extension backend {}",
+                    key
+                ))
             })?;
-            rx_map.insert(key.clone(), rx_r);
+            rx_map.insert(key.clone(), Mutex::new(rx_r));
+            println!("Broadcasted command {:?}", value);
         }
 
         drop(sender_map);
 
         let mut ret = HashMap::new();
         for (key, rx) in rx_map.iter() {
-            if let Ok(res) = rx.recv() {
+            if let Some(res) = rx.lock().await.next().await {
                 let res = res?;
                 ret.insert(key.clone(), res);
             }
         }
+
+        println!("Got response {:?}", ret);
 
         Ok(ret)
     }
@@ -192,10 +323,7 @@ impl ExtensionHandler {
             PathBuf::from_str(&ext_path).map_err(|e| MoosyncError::String(e.to_string()))?;
 
         let tmp_dir = self
-            .app_handle
-            .path()
-            .temp_dir()
-            .unwrap()
+            .tmp_dir
             .join(format!("moosync_ext_{}", uuid::Uuid::new_v4()));
 
         zip_extract(&ext_path, &tmp_dir)?;
@@ -259,7 +387,7 @@ impl ExtensionHandler {
             .replace("{version}", &fetched_ext.release.version)
             .replace("{platform}", env::consts::OS)
             .replace("{arch}", env::consts::ARCH);
-        let file_path = self.app_handle.path().temp_dir().unwrap().join(format!(
+        let file_path = self.tmp_dir.join(format!(
             "{}-{}.msox",
             fetched_ext.package_name,
             uuid::Uuid::new_v4()
@@ -281,4 +409,23 @@ impl ExtensionHandler {
 
         Ok(())
     }
+
+    create_extension_function_raw!(
+        (get_installed_extensions, "getInstalledExtensions", HashMap<String, Vec<ExtensionDetail>>)
+    );
+
+    create_extension_function!(
+        (find_new_extensions, "findNewExtensions", ()),
+        (get_provider_scopes, "getExtensionProviderScopes", Vec<ExtensionProviderScope>, PackageNameArgs),
+        (get_extension_icon, "getExtensionIcon", String, PackageNameArgs),
+        (toggle_extension, "toggleExtensionStatus", (), ToggleExtArgs),
+        (remove_extension, "removeExtension", (), PackageNameArgs),
+        (stop_process, "stopProcess", ()),
+        (get_context_menu, "getExtensionContextMenu", Vec<ExtensionContextMenuItem>, PackageNameArgs),
+        (fire_context_menu_action, "onClickedContextMenu", (), ContextMenuActionArgs),
+        (get_accounts, "getAccounts", Vec<ExtensionAccountDetail>, PackageNameArgs),
+        (account_login, "performAccountLogin", (), AccountLoginArgs),
+        (account_logout, "getDisplayName", String, PackageNameArgs),
+        (send_extra_event, "extraExtensionEvents", Value, ExtensionExtraEventArgs),
+    );
 }

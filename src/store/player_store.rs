@@ -1,10 +1,12 @@
 use std::{cmp::min, collections::HashMap};
 
+use serde::{de::DeserializeOwned, Serialize};
 use types::{preferences::CheckboxPreference, songs::Song, ui::player_details::PlayerState};
+use wasm_bindgen_futures::spawn_local;
 
 use crate::console_log;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, PartialEq, Clone, Serialize)]
 pub struct Queue {
     pub song_queue: Vec<String>,
     pub current_index: usize,
@@ -79,6 +81,10 @@ impl PlayerStore {
 
     pub fn update_time(&mut self, new_time: f64) {
         self.player_details.current_time = new_time;
+    }
+
+    pub fn get_time(&self) -> f64 {
+        self.player_details.current_time
     }
 
     pub fn force_seek_percent(&mut self, new_time: f64) {

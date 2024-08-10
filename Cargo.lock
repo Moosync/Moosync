@@ -251,14 +251,13 @@ version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd884d7c72877a94102c3715f3b1cd09ff4fac28221add3e57cfbe25c236d093"
 dependencies = [
- "async-fs 2.1.2",
- "async-net",
  "enumflags2",
  "futures-channel",
  "futures-util",
  "rand 0.8.5",
  "serde",
  "serde_repr",
+ "tokio",
  "url 2.5.2",
  "zbus 4.0.1",
 ]
@@ -403,17 +402,6 @@ dependencies = [
  "event-listener 5.3.1",
  "event-listener-strategy",
  "pin-project-lite",
-]
-
-[[package]]
-name = "async-net"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b948000fad4873c1c9339d60f2623323a0cfd3816e5181033c6a5cb68b2accf7"
-dependencies = [
- "async-io 2.3.3",
- "blocking",
- "futures-lite 2.3.0",
 ]
 
 [[package]]
@@ -607,51 +595,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "876c75a42f6364451a033496a14c44bffe41f5f4a8236f697391f11024e596d2"
 dependencies = [
  "arrayvec",
-]
-
-[[package]]
-name = "axum"
-version = "0.6.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b829e4e32b91e643de6eafe82b1d90675f5874230191a4ffbc1b336dec4d6bf"
-dependencies = [
- "async-trait",
- "axum-core",
- "bitflags 1.3.2",
- "bytes",
- "futures-util",
- "http 0.2.12",
- "http-body 0.4.6",
- "hyper 0.14.30",
- "itoa 1.0.11",
- "matchit",
- "memchr",
- "mime",
- "percent-encoding 2.3.1",
- "pin-project-lite",
- "rustversion",
- "serde",
- "sync_wrapper 0.1.2",
- "tower",
- "tower-layer",
- "tower-service",
-]
-
-[[package]]
-name = "axum-core"
-version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "759fa577a247914fd3f7f76d62972792636412fbfd634cd452f6a385a74d2d2c"
-dependencies = [
- "async-trait",
- "bytes",
- "futures-util",
- "http 0.2.12",
- "http-body 0.4.6",
- "mime",
- "rustversion",
- "tower-layer",
- "tower-service",
 ]
 
 [[package]]
@@ -1378,16 +1321,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d3fd119d74b830634cea2a0f58bbd0d54540518a14397557951e79340abc28c0"
 
 [[package]]
-name = "colored"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbf2150cce219b664a8a70df7a1f933836724b503f8a413af9365b4dcc4d90b8"
-dependencies = [
- "lazy_static 1.5.0",
- "windows-sys 0.48.0",
-]
-
-[[package]]
 name = "colors-transform"
 version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1970,46 +1903,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "devtools-core"
-version = "0.3.4"
-source = "git+https://github.com/crabnebula-dev/devtools#a33d7c06216ee0c58e15109b761ee24cbaaafa44"
-dependencies = [
- "async-stream",
- "bytes",
- "devtools-wire-format",
- "futures",
- "http 0.2.12",
- "hyper 0.14.30",
- "log",
- "prost-types",
- "ringbuf",
- "thiserror",
- "tokio",
- "tokio-stream",
- "tonic",
- "tonic-health",
- "tonic-web",
- "tower",
- "tower-http",
- "tower-layer",
- "tracing",
- "tracing-core",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "devtools-wire-format"
-version = "0.5.1"
-source = "git+https://github.com/crabnebula-dev/devtools#a33d7c06216ee0c58e15109b761ee24cbaaafa44"
-dependencies = [
- "bitflags 2.6.0",
- "prost",
- "prost-types",
- "tonic",
- "tracing-core",
-]
-
-[[package]]
 name = "diesel"
 version = "2.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2410,15 +2303,12 @@ dependencies = [
 name = "extensions"
 version = "0.1.0"
 dependencies = [
- "database",
  "fs_extra",
  "futures",
  "interprocess",
- "preferences",
  "reqwest 0.12.5",
  "serde",
  "serde_json",
- "tauri",
  "types",
  "uuid",
  "zip",
@@ -3461,12 +3351,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "21dec9db110f5f872ed9699c3ecf50cf16f423502706ba5c72462e28d3157573"
 
 [[package]]
-name = "http-range-header"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "add0ab9360ddbd88cfeb3bd9574a1d85cfdfa14db10b3e21d3700dbc4328758f"
-
-[[package]]
 name = "httparse"
 version = "1.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3615,18 +3499,6 @@ dependencies = [
  "tokio",
  "tokio-rustls 0.26.0",
  "tower-service",
-]
-
-[[package]]
-name = "hyper-timeout"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbb958482e8c7be4bc3cf272a766a2b0bf1a6755e7a6ae777f017a31d11b13b1"
-dependencies = [
- "hyper 0.14.30",
- "pin-project-lite",
- "tokio",
- "tokio-io-timeout",
 ]
 
 [[package]]
@@ -4898,18 +4770,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "local-ip-address"
-version = "0.5.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "612ed4ea9ce5acfb5d26339302528a5e1e59dfed95e9e11af3c083236ff1d15d"
-dependencies = [
- "libc",
- "neli",
- "thiserror",
- "windows-sys 0.48.0",
-]
-
-[[package]]
 name = "lock_api"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5116,12 +4976,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2532096657941c2fea9c289d370a250971c689d4f143798ff67113ec042024a5"
 
 [[package]]
-name = "matchit"
-version = "0.7.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e7465ac9959cc2b1404e8e2367b43684a6d13790fe23056cc8c6c5a6b7bcb94"
-
-[[package]]
 name = "maybe-async"
 version = "0.2.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5252,7 +5106,6 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-deep-link",
- "tauri-plugin-devtools",
  "tauri-plugin-single-instance",
  "themes",
  "thiserror",
@@ -5367,31 +5220,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8c196769dd60fd4f363e11d948139556a344e79d451aeb2fa2fd040738ef7691"
 dependencies = [
  "jni-sys",
-]
-
-[[package]]
-name = "neli"
-version = "0.6.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1100229e06604150b3becd61a4965d5c70f3be1759544ea7274166f4be41ef43"
-dependencies = [
- "byteorder",
- "libc",
- "log",
- "neli-proc-macros",
-]
-
-[[package]]
-name = "neli-proc-macros"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c168194d373b1e134786274020dae7fc5513d565ea2ebb9bc9ff17ffb69106d4"
-dependencies = [
- "either",
- "proc-macro2",
- "quote",
- "serde",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -6620,38 +6448,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "prost"
-version = "0.12.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "deb1435c188b76130da55f17a466d252ff7b1418b2ad3e037d127b94e3411f29"
-dependencies = [
- "bytes",
- "prost-derive",
-]
-
-[[package]]
-name = "prost-derive"
-version = "0.12.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
-dependencies = [
- "anyhow",
- "itertools 0.12.1",
- "proc-macro2",
- "quote",
- "syn 2.0.72",
-]
-
-[[package]]
-name = "prost-types"
-version = "0.12.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9091c90b0a32608e984ff2fa4091273cbdd755d54935c51d520887f4a1dbd5b0"
-dependencies = [
- "prost",
-]
-
-[[package]]
 name = "protobuf"
 version = "3.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7255,15 +7051,6 @@ dependencies = [
  "spin",
  "untrusted",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "ringbuf"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c65e4c865bc3d2e3294493dff0acf7e6c259d066e34e22059fa9c39645c3636"
-dependencies = [
- "crossbeam-utils",
 ]
 
 [[package]]
@@ -8710,7 +8497,6 @@ dependencies = [
  "tauri-utils",
  "thiserror",
  "tokio",
- "tracing",
  "tray-icon",
  "url 2.5.2",
  "urlpattern",
@@ -8820,32 +8606,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tauri-plugin-devtools"
-version = "2.0.0-rc.0"
-source = "git+https://github.com/crabnebula-dev/devtools#a33d7c06216ee0c58e15109b761ee24cbaaafa44"
-dependencies = [
- "async-stream",
- "bytes",
- "cocoa 0.25.0",
- "colored",
- "devtools-core",
- "futures",
- "local-ip-address",
- "log",
- "objc",
- "serde",
- "serde_json",
- "swift-rs",
- "tauri",
- "tauri-plugin",
- "tokio",
- "tonic",
- "tonic-health",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "tauri-plugin-single-instance"
 version = "2.0.0-rc.0"
 source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#f8925b96873c845550fb53967fd0b5dff55b2884"
@@ -8895,7 +8655,6 @@ dependencies = [
  "tao",
  "tauri-runtime",
  "tauri-utils",
- "tracing",
  "url 2.5.2",
  "webkit2gtk",
  "webview2-com",
@@ -9154,17 +8913,8 @@ dependencies = [
  "signal-hook-registry",
  "socket2 0.5.7",
  "tokio-macros",
+ "tracing",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "tokio-io-timeout"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30b74022ada614a1b4834de765f9bb43877f910cc8ce4be40e89042c9223a8bf"
-dependencies = [
- "pin-project-lite",
- "tokio",
 ]
 
 [[package]]
@@ -9332,66 +9082,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tonic"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d560933a0de61cf715926b9cac824d4c883c2c43142f787595e48280c40a1d0e"
-dependencies = [
- "async-stream",
- "async-trait",
- "axum",
- "base64 0.21.7",
- "bytes",
- "h2 0.3.26",
- "http 0.2.12",
- "http-body 0.4.6",
- "hyper 0.14.30",
- "hyper-timeout",
- "percent-encoding 2.3.1",
- "pin-project",
- "prost",
- "tokio",
- "tokio-stream",
- "tower",
- "tower-layer",
- "tower-service",
- "tracing",
-]
-
-[[package]]
-name = "tonic-health"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f80db390246dfb46553481f6024f0082ba00178ea495dbb99e70ba9a4fafb5e1"
-dependencies = [
- "async-stream",
- "prost",
- "tokio",
- "tokio-stream",
- "tonic",
-]
-
-[[package]]
-name = "tonic-web"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fddb2a37b247e6adcb9f239f4e5cefdcc5ed526141a416b943929f13aea2cce"
-dependencies = [
- "base64 0.21.7",
- "bytes",
- "http 0.2.12",
- "http-body 0.4.6",
- "hyper 0.14.30",
- "pin-project",
- "tokio-stream",
- "tonic",
- "tower-http",
- "tower-layer",
- "tower-service",
- "tracing",
-]
-
-[[package]]
 name = "tower"
 version = "0.4.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9399,32 +9089,9 @@ checksum = "b8fa9be0de6cf49e536ce1851f987bd21a43b771b09473c3549a6c853db37c1c"
 dependencies = [
  "futures-core",
  "futures-util",
- "indexmap 1.9.3",
  "pin-project",
  "pin-project-lite",
- "rand 0.8.5",
- "slab",
  "tokio",
- "tokio-util",
- "tower-layer",
- "tower-service",
- "tracing",
-]
-
-[[package]]
-name = "tower-http"
-version = "0.4.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61c5bb1d698276a2443e5ecfabc1008bf15a36c12e6a7176e7bf089ea9131140"
-dependencies = [
- "bitflags 2.6.0",
- "bytes",
- "futures-core",
- "futures-util",
- "http 0.2.12",
- "http-body 0.4.6",
- "http-range-header",
- "pin-project-lite",
  "tower-layer",
  "tower-service",
 ]
@@ -9447,7 +9114,6 @@ version = "0.1.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3523ab5a71916ccf420eebdf5521fcef02141234bbc0b8a49f2fdc4544364ef"
 dependencies = [
- "log",
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
@@ -10651,7 +10317,6 @@ dependencies = [
  "soup3",
  "tao-macros",
  "thiserror",
- "tracing",
  "webkit2gtk",
  "webkit2gtk-sys",
  "webview2-com",
@@ -10815,6 +10480,7 @@ dependencies = [
  "serde_repr",
  "sha1",
  "static_assertions",
+ "tokio",
  "tracing",
  "uds_windows",
  "windows-sys 0.52.0",

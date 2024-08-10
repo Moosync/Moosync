@@ -10,6 +10,9 @@ extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "event"])]
     pub fn listen(event: &str, cb: JsValue) -> js_sys::Promise;
 
+    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "event"])]
+    pub fn emit(event: &str, value: JsValue) -> js_sys::Promise;
+
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
     fn convertFileSrc(path: &str, protocol: &str) -> JsValue;
 

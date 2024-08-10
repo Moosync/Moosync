@@ -1,14 +1,18 @@
 use std::{sync::mpsc, time::Duration};
 
 use database::database::Database;
+use futures::channel::{mpsc::unbounded, oneshot};
 use preferences::preferences::PreferenceConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use types::{
     errors::errors::{MoosyncError, Result},
+    extensions::ExtensionUIRequest,
     songs::{GetSongOptions, SearchableSong, Song},
 };
+
+use crate::window::handler::WindowHandler;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AddToPlaylistRequest {
@@ -25,16 +29,7 @@ struct PreferenceData {
     default_value: Option<Value>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct BasicRequest {
-    #[serde(rename = "type")]
-    type_: String,
-    #[serde(rename = "extensionName")]
-    extension_name: String,
-    data: Option<Value>,
-    channel: String,
-}
-
+#[derive(Clone)]
 pub struct ReplyHandler {
     app_handle: AppHandle,
 }
@@ -46,38 +41,36 @@ impl ReplyHandler {
 
     fn is_main_command(&self, type_: &str) -> bool {
         [
-            "get-songs",
-            "get-entity",
-            "add-songs",
+            "getSongs",
+            "getEntity",
+            "updateSong",
             "update-song",
-            "add-playlist",
-            "add-song-to-playlist",
-            "remove-song",
-            "get-preferences",
-            "get-secure-preferences",
-            "set-preferences",
-            "set-secure-preferences",
-            "register-oauth",
-            "open-external",
-            "register-account",
-            "set-artist-editable-info",
-            "set-album-editable-info",
+            "addPlaylist",
+            "addSongToPlaylist",
+            "removeSong",
+            "getPreferences",
+            "setPreferences",
+            "setPreferences",
+            "setSecurePreferences",
+            "registerOauth",
+            "openExternal",
+            "registerAccount",
+            "setArtistEditableInfo",
+            "setAlbumEditableInfo",
         ]
         .contains(&type_)
     }
 
     fn is_ui_request(&self, type_: &str) -> bool {
         [
-            "get-current-song",
-            "get-volume",
-            "get-time",
-            "get-queue",
-            "get-player-state",
-            "open-login-modal",
-            "close-login-modal",
-            "show-toast",
-            "update-preferences",
-            "extension-updated",
+            "getCurrentSong",
+            "getVolume",
+            "getTime",
+            "getQueue",
+            "getPlayerState",
+            "openLoginModal",
+            "closeLoginModal",
+            "showToast",
         ]
         .contains(&type_)
     }
@@ -107,8 +100,8 @@ impl ReplyHandler {
     pub fn add_songs(&self, data: Value) -> Result<Value> {
         let database: State<'_, Database> = self.app_handle.state();
         // TODO: Add song
-        // let ret = database.(serde_json::from_value(data)?)?;
-        Ok(Value::Null)
+        let ret = database.insert_songs(serde_json::from_value(data.clone())?)?;
+        Ok(serde_json::to_value(ret)?)
     }
 
     pub fn update_song(&self, data: Value) -> Result<Value> {
@@ -163,34 +156,27 @@ impl ReplyHandler {
     pub fn set_preferences(&self, package_name: String, data: Value) -> Result<Value> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let request: PreferenceData = serde_json::from_value(data)?;
-        if let Some(value) = request.value {
-            preferences.save_selective(
-                format!("extension.{}.{}", package_name, request.key),
-                Some(value),
-            )?;
-        }
+        preferences.save_selective(
+            format!("extension.{}.{}", package_name, request.key),
+            request.value,
+        )?;
         Ok(Value::Null)
     }
 
     pub fn get_secure(&self, package_name: String, data: Value) -> Result<Value> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let request: PreferenceData = serde_json::from_value(data)?;
-        let ret = preferences.get_secure(format!("extension.{}.{}", package_name, request.key));
-        Ok(match ret {
-            Ok(v) => v,
-            Err(_) => serde_json::to_value(&request.default_value)?,
-        })
+        preferences.get_secure(format!("extension.{}.{}", package_name, request.key))
     }
 
     pub fn set_secure(&self, package_name: String, data: Value) -> Result<Value> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let request: PreferenceData = serde_json::from_value(data)?;
-        if let Some(value) = request.value {
-            preferences.set_secure(
-                format!("extension.{}.{}", package_name, request.key),
-                Some(value),
-            )?;
-        }
+        preferences.set_secure(
+            format!("extension.{}.{}", package_name, request.key),
+            request.value,
+        )?;
+
         Ok(Value::Null)
     }
 
@@ -200,7 +186,10 @@ impl ReplyHandler {
     }
 
     pub fn open_external(&self, data: Value) -> Result<Value> {
-        // TODO: Implement open external
+        if data.is_string() {
+            let window_handler: State<WindowHandler> = self.app_handle.state();
+            window_handler.open_external(data.as_str().unwrap().into())?;
+        }
         Ok(Value::Null)
     }
 
@@ -209,23 +198,22 @@ impl ReplyHandler {
         Ok(Value::Null)
     }
 
-    fn send_ui_request(&self, request: BasicRequest) -> Result<Value> {
+    async fn send_ui_request(&self, request: ExtensionUIRequest) -> Result<Value> {
         if self.app_handle.webview_windows().is_empty() {
             return Ok(Value::Null);
         }
 
-        let (tx, rx) = mpsc::channel::<String>();
+        let (tx, rx) = oneshot::channel();
         self.app_handle
             .once(format!("ui-reply-{}", request.channel), move |f| {
                 let payload = f.payload().to_string();
-                println!("event payload {:?}", payload);
                 let _ = tx.send(payload);
             });
         println!("Sending ui request {:?}", request);
         self.app_handle.emit("ui-requests", request.clone())?;
         println!("sent ui request {:?}", request);
 
-        let res = rx.recv_timeout(Duration::from_secs(1));
+        let res = rx.await;
         if let Ok(data) = res {
             println!("got ui reply {:?}", data);
             Ok(serde_json::from_str(&data)?)
@@ -236,8 +224,8 @@ impl ReplyHandler {
         // Ok(Value::Null)
     }
 
-    pub fn handle_request(&self, value: &Value) -> Result<Vec<u8>> {
-        let request: BasicRequest = serde_json::from_value(value.clone())?;
+    pub async fn handle_request(&self, value: &Value) -> Result<Vec<u8>> {
+        let request: ExtensionUIRequest = serde_json::from_value(value.clone())?;
         let mut ret = request.clone();
 
         let res = if self.is_main_command(&request.type_) {
@@ -246,38 +234,40 @@ impl ReplyHandler {
             }
 
             match request.type_.as_str() {
-                "get-songs" => self.get_songs(request.data.unwrap()),
-                "get-entity" => self.get_entity(request.data.unwrap()),
-                "add-songs" => self.add_songs(request.data.unwrap()),
+                "getSongs" => self.get_songs(request.data.unwrap()),
+                "getEntity" => self.get_entity(request.data.unwrap()),
+                "updateSong" => self.add_songs(request.data.unwrap()),
                 "update-song" => self.update_song(request.data.unwrap()),
-                "add-playlist" => self.add_playlist(request.data.unwrap()),
-                "add-song-to-playlist" => self.add_to_playlist(request.data.unwrap()),
-                "remove-song" => self.remove_song(request.data.unwrap()),
-                "get-preferences" => {
+                "addPlaylist" => self.add_playlist(request.data.unwrap()),
+                "addSongToPlaylist" => self.add_to_playlist(request.data.unwrap()),
+                "removeSong" => self.remove_song(request.data.unwrap()),
+                "getPreferences" => {
                     self.get_preferences(request.extension_name, request.data.unwrap())
                 }
-                "get-secure-preferences" => {
+                "getSecurePreferences" => {
                     self.get_secure(request.extension_name, request.data.unwrap())
                 }
-                "set-preferences" => {
+                "setPreferences" => {
                     self.set_preferences(request.extension_name, request.data.unwrap())
                 }
-                "set-secure-preferences" => {
+                "setSecurePreferences" => {
                     self.set_secure(request.extension_name, request.data.unwrap())
                 }
-                "register-oauth" => self.register_oauth(request.data.unwrap()),
-                "open-external" => self.open_external(request.data.unwrap()),
-                "register-account" => self.register_account(request.data.unwrap()),
-                "set-artist-editable-info" => self.set_artist_editable_info(request.data.unwrap()),
-                "set-album-editable-info" => self.set_album_editable_info(request.data.unwrap()),
+                "registerOauth" => self.register_oauth(request.data.unwrap()),
+                "openExternal" => self.open_external(request.data.unwrap()),
+                "registerAccount" => self.register_account(request.data.unwrap()),
+                "setArtistEditableInfo" => self.set_artist_editable_info(request.data.unwrap()),
+                "setAlbumEditableInfo" => self.set_album_editable_info(request.data.unwrap()),
                 _ => unreachable!(),
-            }?
+            }
         } else if self.is_ui_request(&request.type_) {
-            self.send_ui_request(request)?
+            self.send_ui_request(request).await
         } else {
-            return Err(MoosyncError::String("Not a valid request".into()));
-        };
+            println!("Not a valid request {:?}", request);
+            Ok(Value::Null)
+        }?;
 
+        // TODO: Perform extension error handling
         ret.data = Some(res);
         Ok(serde_json::to_vec(&ret)?)
     }

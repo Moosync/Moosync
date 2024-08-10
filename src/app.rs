@@ -5,19 +5,21 @@ use crate::{
     console_log,
     players::librespot::LibrespotPlayer,
     utils::{
-        common::invoke,
+        common::{emit, invoke, listen_event},
         prefs::{load_selective_async, watch_preferences},
     },
 };
 use leptos::{
-    component, create_rw_signal, document, expect_context, provide_context, view, window, IntoView,
-    RwSignal, SignalUpdate,
+    component, create_read_slice, create_rw_signal, document, expect_context, provide_context,
+    view, window, IntoView, RwSignal, SignalGet, SignalGetUntracked, SignalUpdate,
 };
 use leptos_i18n::provide_i18n_context;
 use leptos_router::{Outlet, Redirect, Route, Router, Routes};
-use serde::Serialize;
-use types::{preferences::CheckboxPreference, themes::ThemeDetails};
-use wasm_bindgen::{convert::IntoWasmAbi, JsCast};
+use serde::{de::DeserializeOwned, Serialize};
+use types::{
+    extensions::ExtensionUIRequest, preferences::CheckboxPreference, themes::ThemeDetails,
+};
+use wasm_bindgen::{convert::IntoWasmAbi, JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlElement;
 
@@ -42,7 +44,6 @@ use crate::{
 
 #[component]
 pub fn RedirectAll() -> impl IntoView {
-    // TODO: Change to all songs
     view! { <Redirect path="/main" /> }
 }
 
@@ -154,7 +155,63 @@ pub fn App() -> impl IntoView {
         handle_theme(id);
     });
 
-    let unlisten = watch_preferences(|(key, value)| {
+    let ui_requests_unlisten = listen_event("ui-requests", move |data| {
+        console_log!("Got UI request {:?}", data);
+        let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
+        let payload: ExtensionUIRequest = serde_wasm_bindgen::from_value(payload).unwrap();
+
+        fn send_reply<T>(payload: ExtensionUIRequest, data: T)
+        where
+            T: Serialize + Clone,
+        {
+            let value = serde_wasm_bindgen::to_value(&data).unwrap();
+            spawn_local(async move {
+                console_log!("Emitting value {:?}", value);
+                let res = emit(format!("ui-reply-{}", payload.channel).as_str(), value);
+                wasm_bindgen_futures::JsFuture::from(res).await.unwrap();
+            });
+        }
+
+        match payload.type_.as_str() {
+            "getCurrentSong" => {
+                let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
+                    p.current_song.clone()
+                })
+                .get_untracked();
+                send_reply(payload, data);
+            }
+            "getVolume" => {
+                let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
+                    p.get_volume()
+                })
+                .get_untracked();
+                send_reply(payload, data);
+            }
+            "getTime" => {
+                let data =
+                    create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| p.get_time())
+                        .get_untracked();
+                send_reply(payload, data);
+            }
+            "getQueue" => {
+                let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
+                    p.queue.clone()
+                })
+                .get_untracked();
+                send_reply(payload, data);
+            }
+            "getPlayerState" => {
+                let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
+                    p.player_details.state
+                })
+                .get_untracked();
+                send_reply(payload, data);
+            }
+            _ => {}
+        };
+    });
+
+    let watch_prefs_unlisten = watch_preferences(|(key, value)| {
         console_log!("Preferences changed: {} = {:?}", key, value);
         if key == "prefs.volume_persist_mode" {
             let player_store = expect_context::<RwSignal<PlayerStore>>();
@@ -181,7 +238,11 @@ pub fn App() -> impl IntoView {
     });
 
     let window = window();
-    if let Err(e) = window.add_event_listener_with_callback("beforeunload", &unlisten) {
+    if let Err(e) = window.add_event_listener_with_callback("beforeunload", &watch_prefs_unlisten) {
+        console_log!("Failed to set unmount hook: {:?}", e);
+    }
+
+    if let Err(e) = window.add_event_listener_with_callback("beforeunload", &ui_requests_unlisten) {
         console_log!("Failed to set unmount hook: {:?}", e);
     }
 

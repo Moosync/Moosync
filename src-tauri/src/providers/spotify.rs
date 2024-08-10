@@ -207,8 +207,8 @@ impl GenericProvider for SpotifyProvider {
         Ok(())
     }
 
-    fn key(&self) -> &str {
-        "spotify"
+    fn key(&self) -> String {
+        "spotify".into()
     }
 
     fn match_id(&self, id: String) -> bool {

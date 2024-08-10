@@ -20,7 +20,7 @@ use themes::{
     transform_css,
 };
 
-use extensions::{broadcast, download_extension, install_extension};
+use extensions::{download_extension, install_extension};
 use providers::handler::{
     fetch_playback_url, fetch_playlist_content, fetch_user_details, fetch_user_playlists,
     get_provider_key_by_id, get_provider_keys, initialize_all_providers, provider_authorize,
@@ -64,7 +64,6 @@ mod scanner;
 mod themes;
 mod window;
 mod youtube;
-
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -156,7 +155,6 @@ pub fn run() {
             // Lyrics
             get_lyrics,
             // Extensions
-            broadcast,
             install_extension,
             download_extension,
             //Provider Handler

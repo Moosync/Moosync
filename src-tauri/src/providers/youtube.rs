@@ -331,7 +331,7 @@ impl GenericProvider for YoutubeProvider {
                 }
             }
             return Ok(ProviderStatus {
-                key: self.key().into(),
+                key: self.key(),
                 name: "Youtube".into(),
                 user_name: username,
                 logged_in: true,

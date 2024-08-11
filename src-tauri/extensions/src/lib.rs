@@ -1,9 +1,8 @@
 use std::{
-    borrow::BorrowMut,
     collections::HashMap,
     env,
     fs::{self, File},
-    io::{BufRead, ErrorKind, Write},
+    io::{BufRead, Write},
     path::PathBuf,
     process::Command,
     str::FromStr,
@@ -12,12 +11,12 @@ use std::{
 };
 
 use fs_extra::dir::CopyOptions;
+use futures::StreamExt;
 use futures::{
     channel::mpsc::{channel, unbounded, Receiver, Sender, UnboundedReceiver, UnboundedSender},
     lock::Mutex,
     SinkExt,
 };
-use futures::{executor::block_on, StreamExt};
 use interprocess::local_socket::{
     traits::tokio::Listener, GenericFilePath, ListenerOptions, ToFsName,
 };
@@ -433,13 +432,13 @@ impl ExtensionHandler {
         (find_new_extensions, "findNewExtensions", Option<()>),
         (get_provider_scopes, "getExtensionProviderScopes", Vec<ExtensionProviderScope>, PackageNameArgs),
         (get_extension_icon, "getExtensionIcon", String, PackageNameArgs),
-        (toggle_extension, "toggleExtensionStatus", (), ToggleExtArgs),
-        (remove_extension, "removeExtension", (), PackageNameArgs),
-        (stop_process, "stopProcess", ()),
+        (toggle_extension, "toggleExtensionStatus", Option<()>, ToggleExtArgs),
+        (remove_extension, "removeExtension", Option<()>, PackageNameArgs),
+        (stop_process, "stopProcess", Option<()>),
         (get_context_menu, "getExtensionContextMenu", Vec<ExtensionContextMenuItem>, PackageNameArgs),
-        (fire_context_menu_action, "onClickedContextMenu", (), ContextMenuActionArgs),
+        (fire_context_menu_action, "onClickedContextMenu", Option<()>, ContextMenuActionArgs),
         (get_accounts, "getAccounts", Vec<ExtensionAccountDetail>, PackageNameArgs),
-        (account_login, "performAccountLogin", (), AccountLoginArgs),
+        (account_login, "performAccountLogin", Option<()>, AccountLoginArgs),
         (account_logout, "getDisplayName", String, PackageNameArgs),
         (send_extra_event, "extraExtensionEvents", Value, ExtensionExtraEventArgs),
     );

@@ -1,10 +1,9 @@
-use extensions::ExtensionHandler;
 use futures::{future::join_all, lock::Mutex};
 use serde_json::Value;
 use std::{collections::HashMap, sync::Arc};
 
 use database::cache::CacheHolder;
-use macros::{generate_command, generate_command_async, generate_command_async_cached};
+use macros::{generate_command_async, generate_command_async_cached};
 use tauri::{
     async_runtime::{self, block_on},
     AppHandle, Emitter, Manager, State,

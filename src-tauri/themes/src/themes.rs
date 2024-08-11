@@ -2,8 +2,6 @@ use std::{collections::HashMap, fs, path::PathBuf, str::FromStr};
 
 use fs_extra::dir::CopyOptions;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use types::{
     errors::errors::{MoosyncError, Result},
     themes::ThemeDetails,

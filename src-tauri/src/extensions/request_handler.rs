@@ -1,7 +1,6 @@
-use std::{sync::mpsc, time::Duration};
 
 use database::database::Database;
-use futures::channel::{mpsc::unbounded, oneshot};
+use futures::channel::oneshot;
 use preferences::preferences::PreferenceConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

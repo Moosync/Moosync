@@ -1,8 +1,7 @@
 use std::fmt::Debug;
 
 use async_trait::async_trait;
-use extensions::ExtensionHandler;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager};
 use types::{
     entities::{QueryablePlaylist, SearchResult},
     errors::errors::Result,

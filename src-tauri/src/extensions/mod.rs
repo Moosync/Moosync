@@ -1,16 +1,11 @@
 use std::collections::HashMap;
-use std::sync::Arc;
-use std::sync::Mutex;
-use std::thread;
 
 use extensions::ExtensionHandler;
 use extensions::FetchedExtensionManifest;
 use futures::SinkExt;
 use futures::StreamExt;
-use macros::generate_command;
 use macros::generate_command_async;
 use request_handler::ReplyHandler;
-use serde_json::Value;
 use tauri::async_runtime;
 use tauri::AppHandle;
 use tauri::Manager;

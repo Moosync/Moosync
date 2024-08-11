@@ -1,8 +1,7 @@
 use std::{cmp::min, collections::HashMap};
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::Serialize;
 use types::{preferences::CheckboxPreference, songs::Song, ui::player_details::PlayerState};
-use wasm_bindgen_futures::spawn_local;
 
 use crate::console_log;
 

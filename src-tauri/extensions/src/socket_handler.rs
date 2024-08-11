@@ -2,12 +2,10 @@ use std::{
     collections::HashMap,
     io::{BufRead, BufReader, ErrorKind, Read, Write},
     sync::Arc,
-    thread,
 };
 
 use futures::{
-    channel::mpsc::{channel, Receiver, Sender, UnboundedReceiver, UnboundedSender},
-    executor::block_on,
+    channel::mpsc::{channel, Sender, UnboundedReceiver, UnboundedSender},
     SinkExt, StreamExt,
 };
 
@@ -15,7 +13,6 @@ use interprocess::local_socket::tokio::Stream as LocalSocketStream;
 use serde_json::Value;
 use tokio::{
     io::{split, AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf},
-    join, select,
     sync::Mutex,
 };
 use types::errors::errors::{MoosyncError, Result};

@@ -256,7 +256,7 @@ impl GenericProvider for SpotifyProvider {
 
             let user = api_client.current_user().await?;
             return Ok(ProviderStatus {
-                key: self.key().into(),
+                key: self.key(),
                 name: "Spotify".into(),
                 user_name: user.display_name,
                 logged_in: true,

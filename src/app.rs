@@ -11,15 +11,15 @@ use crate::{
 };
 use leptos::{
     component, create_read_slice, create_rw_signal, document, expect_context, provide_context,
-    view, window, IntoView, RwSignal, SignalGet, SignalGetUntracked, SignalUpdate,
+    view, window, IntoView, RwSignal, SignalGetUntracked, SignalUpdate,
 };
 use leptos_i18n::provide_i18n_context;
 use leptos_router::{Outlet, Redirect, Route, Router, Routes};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::Serialize;
 use types::{
     extensions::ExtensionUIRequest, preferences::CheckboxPreference, themes::ThemeDetails,
 };
-use wasm_bindgen::{convert::IntoWasmAbi, JsCast, JsValue};
+use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlElement;
 

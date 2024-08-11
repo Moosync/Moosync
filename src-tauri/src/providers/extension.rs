@@ -6,8 +6,8 @@ use types::{
     entities::{QueryablePlaylist, SearchResult},
     errors::errors::Result,
     extensions::{
-        ExtensionDetail, ExtensionExtraEvent, ExtensionExtraEventArgs, ExtensionProviderScope,
-        PlaybackDetailsReturnType, PlaylistReturnType, SearchReturnType,
+        CustomRequestReturnType, ExtensionDetail, ExtensionExtraEvent, ExtensionExtraEventArgs,
+        ExtensionProviderScope, PlaybackDetailsReturnType, PlaylistReturnType, SearchReturnType,
         SongsWithPageTokenReturnType,
     },
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
@@ -25,7 +25,9 @@ macro_rules! send_extension_event {
                 package_name: $self.extension.package_name.clone(),
             })
             .await?;
+        println!("parsing res {:?} as {}", res, stringify!($return_type));
         let res = serde_json::from_value::<$return_type>(res)?;
+        println!("parsed res");
         res
     }};
 }
@@ -125,6 +127,18 @@ impl GenericProvider for ExtensionProvider {
         ))
     }
     async fn get_playback_url(&self, song: Song, player: String) -> Result<String> {
+        if let Some(playback_url) = song.song.playback_url.clone() {
+            if playback_url.starts_with("extension://") {
+                let res = send_extension_event!(
+                    self,
+                    ExtensionExtraEvent::CustomRequest([playback_url.clone()]),
+                    CustomRequestReturnType
+                );
+                println!("Got custom request {:?}", res);
+                return Ok(res.redirect_url.unwrap_or(playback_url));
+            }
+        }
+
         let res = send_extension_event!(
             self,
             ExtensionExtraEvent::PlaybackDetailsRequested([song]),

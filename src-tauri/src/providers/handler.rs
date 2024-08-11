@@ -118,6 +118,7 @@ impl ProviderHandler {
                 let provides = ext_handler
                     .get_provider_scopes(extension.package_name.clone().into())
                     .await;
+                println!("Got provider scopes from {}", extension.package_name);
                 if let Ok(provides) = provides {
                     if provides.is_empty() {
                         continue;
@@ -134,7 +135,10 @@ impl ProviderHandler {
                         self.app_handle.clone(),
                     );
                     let mut provider_store = self.provider_store.lock().await;
+                    provider_store.remove(provider.key().as_str());
                     provider_store.insert(provider.key(), Arc::new(Mutex::new(provider.clone())));
+
+                    println!("provider_store: {:?}", provider_store);
                     async_runtime::spawn(async move {
                         let res = provider.initialize().await;
                         if let Err(err) = res {

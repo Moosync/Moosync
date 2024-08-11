@@ -248,8 +248,14 @@ export class ExtensionRequestGenerator implements ExtendedExtensionAPI {
     );
   }
 
+  private _extensionUpdateDebounce: ReturnType<typeof setTimeout> | undefined;
   private async extensionUpdated() {
-    return sendAsync<void>(this.#bus, this.packageName, "extensionUpdated");
+    if (this._extensionUpdateDebounce) {
+      clearTimeout(this._extensionUpdateDebounce);
+    }
+    this._extensionUpdateDebounce = setTimeout(() => {
+      return sendAsync<void>(this.#bus, this.packageName, "extensionUpdated");
+    }, 300);
   }
 
   public on(eventName: ExtraExtensionEventTypes, callback: unknown) {

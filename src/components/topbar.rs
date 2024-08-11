@@ -152,7 +152,10 @@ pub fn TopBar() -> impl IntoView {
         ev.prevent_default();
         let text = input_value.get();
         let navigate = leptos_router::use_navigate();
-        navigate(format!("/search?q={}", text).as_str(), Default::default());
+        navigate(
+            format!("/main/search?q={}", text).as_str(),
+            Default::default(),
+        );
     };
 
     let handle_text_change = move |ev: Event| {

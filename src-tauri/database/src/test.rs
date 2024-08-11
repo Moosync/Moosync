@@ -2,9 +2,9 @@ use std::{fs, path::PathBuf, str::FromStr};
 
 use crate::database::Database;
 use types::{
+    common::SearchByTerm,
     entities::{QueryableAlbum, QueryableArtist},
     songs::Song,
-    traits::SearchByTerm,
 };
 
 fn cleanup() {

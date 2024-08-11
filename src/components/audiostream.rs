@@ -97,6 +97,7 @@ impl PlayerHolder {
             let mut song_tmp = song.clone();
             for (i, player) in players.iter().enumerate() {
                 let playback_url = self.get_playback_url(song, player.key()).await?;
+                console_log!("Got new playback url {}", playback_url);
                 song_tmp.song.playback_url = Some(playback_url);
                 if player.can_play(&song_tmp) {
                     return Ok((i, Some(song_tmp)));

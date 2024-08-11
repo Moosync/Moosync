@@ -344,6 +344,13 @@ ansi-styles@^4.0.0, ansi-styles@^4.1.0:
   dependencies:
     color-convert "^2.0.1"
 
+async-mutex@^0.5.0:
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/async-mutex/-/async-mutex-0.5.0.tgz#353c69a0b9e75250971a64ac203b0ebfddd75482"
+  integrity sha512-1A94B18jkJ3DYq284ohPxoXbfTA5HsQ7/Mf4DEhcyLx3Bz27Rh59iScbB6EPiP+B+joue6YCxcMXSbFC1tZKwA==
+  dependencies:
+    tslib "^2.4.0"
+
 at-least-node@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/at-least-node/-/at-least-node-1.0.0.tgz#602cd4b46e844ad4effc92a8011a3c46e0238dc2"
@@ -1029,10 +1036,10 @@ postject@^1.0.0-alpha.5:
   dependencies:
     commander "^9.4.0"
 
-proto@1.0.0:
-  version "1.0.19"
-  resolved "https://registry.yarnpkg.com/proto/-/proto-1.0.19.tgz#4dba250b34398ae242de24153e7bf9dab2fe4385"
-  integrity sha512-NNRn4T3FAcMbiRZAr6HlAP3PyqSv79bcYdfiZbY1nognRTVeGAd5Ncg4yHZdM2ey9ovP/sOg/0lfalvaj3ZpHA==
+proto@1.0.9:
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/proto/-/proto-1.0.9.tgz#249b2dcf1b47db0f8a79abba474fd10747e9eb1c"
+  integrity sha512-QP/jcZW3JquBdyEBCIdfkMr/0EMA/W6sCcpMZzs0AwlK04yZQ2D/w3cNvbYD0xoncSnHIIgB8Np5uwbDuo3XAw==
 
 protobufjs@^7.2.4, protobufjs@^7.2.6:
   version "7.2.6"
@@ -1277,7 +1284,7 @@ tsc@^2.0.4:
   resolved "https://registry.yarnpkg.com/tsc/-/tsc-2.0.4.tgz#5f6499146abea5dca4420b451fa4f2f9345238f5"
   integrity sha512-fzoSieZI5KKJVBYGvwbVZs/J5za84f2lSTLPYf6AGiIf43tZ3GNrI1QzTLcjtyDDP4aLxd46RTZq1nQxe7+k5Q==
 
-tslib@^2.6.3:
+tslib@^2.4.0, tslib@^2.6.3:
   version "2.6.3"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.6.3.tgz#0438f810ad7a9edcde7a241c3d80db693c8cbfe0"
   integrity sha512-xNvxJEOUiWPGhUuUdQgAJPKOOJfGnIyKySOc09XkKsgdUV/3E2zvwZYdejjmRgPCgcym1juLH3226yA7sEFJKQ==

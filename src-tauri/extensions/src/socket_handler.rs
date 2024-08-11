@@ -1,3 +1,4 @@
+use core::str;
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader, ErrorKind, Read, Write},
@@ -83,7 +84,7 @@ impl<'a> SocketHandler {
         let mut lines = vec![];
         let mut remaining = vec![];
 
-        let i = 0;
+        let mut i = 0;
 
         loop {
             let mut parsed_buf = vec![];
@@ -102,6 +103,7 @@ impl<'a> SocketHandler {
             }
 
             lines.push(parsed_buf);
+            i += 1;
         }
 
         (lines, remaining)
@@ -173,8 +175,9 @@ impl<'a> SocketHandler {
 
                             tokio::spawn(async move {
                                 let conn = conn.clone();
-                                let res = rx.next().await.unwrap();
-                                Self::write_data(conn, res).await;
+                                if let Some(res) = rx.next().await {
+                                    Self::write_data(conn, res).await;
+                                }
                             });
 
                             let tx_ext_command = self.tx_ext_command.lock().await;
@@ -182,7 +185,11 @@ impl<'a> SocketHandler {
                         }
                     }
                     Err(e) => {
-                        println!("Failed to parsed response as json {:?}", e);
+                        println!(
+                            "Failed to parsed response {} as json {:?}",
+                            str::from_utf8(&line).unwrap(),
+                            e
+                        );
                     }
                 }
             }

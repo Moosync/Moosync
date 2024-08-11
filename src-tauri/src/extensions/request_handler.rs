@@ -1,4 +1,3 @@
-
 use database::database::Database;
 use futures::channel::oneshot;
 use preferences::preferences::PreferenceConfig;
@@ -11,7 +10,7 @@ use types::{
     songs::{GetSongOptions, SearchableSong, Song},
 };
 
-use crate::window::handler::WindowHandler;
+use crate::{providers::handler::ProviderHandler, window::handler::WindowHandler};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AddToPlaylistRequest {
@@ -58,6 +57,10 @@ impl ReplyHandler {
             "setAlbumEditableInfo",
         ]
         .contains(&type_)
+    }
+
+    fn is_update(&self, type_: &str) -> bool {
+        type_ == "extensionUpdated"
     }
 
     fn is_ui_request(&self, type_: &str) -> bool {
@@ -223,6 +226,14 @@ impl ReplyHandler {
         // Ok(Value::Null)
     }
 
+    pub async fn extension_updated(&self) -> Result<Value> {
+        println!("Got extension updated");
+        let provider_handle: State<ProviderHandler> = self.app_handle.state();
+        provider_handle.discover_provider_extensions().await?;
+        println!("Updated extension");
+        Ok(Value::Null)
+    }
+
     pub async fn handle_request(&self, value: &Value) -> Result<Vec<u8>> {
         let request: ExtensionUIRequest = serde_json::from_value(value.clone())?;
         let mut ret = request.clone();
@@ -259,15 +270,23 @@ impl ReplyHandler {
                 "setAlbumEditableInfo" => self.set_album_editable_info(request.data.unwrap()),
                 _ => unreachable!(),
             }
+        } else if self.is_update(&request.type_) {
+            self.extension_updated().await
         } else if self.is_ui_request(&request.type_) {
             self.send_ui_request(request).await
         } else {
             println!("Not a valid request {:?}", request);
             Ok(Value::Null)
-        }?;
+        };
+
+        match res {
+            Ok(v) => ret.data = Some(v),
+            Err(e) => {
+                println!("Error handling request {:?}: {}", value, e);
+            }
+        }
 
         // TODO: Perform extension error handling
-        ret.data = Some(res);
         Ok(serde_json::to_vec(&ret)?)
     }
 }

@@ -189,8 +189,8 @@ export class ExtensionManager extends AbstractExtensionManager {
         extension.entry,
       );
 
-      const preferences = await (vmObj.factory.registerPreferences?.() ??
-        vmObj.factory.registerUserPreferences?.() ??
+      const preferences = await (vmObj.factory.registerUserPreferences?.() ??
+        vmObj.factory.registerPreferences?.() ??
         []);
 
       const instance = await vmObj.factory.create();

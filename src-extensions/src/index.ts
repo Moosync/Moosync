@@ -1,6 +1,7 @@
 import { createConnection } from "node:net";
 import { ExtensionHostIPCHandler } from "./sandbox";
 import { EventEmitter } from "node:events";
+import { Mutex } from "async-mutex";
 
 const IPC_PATH =
   process.argv[process.argv.findIndex((val) => val === "-ipcPath") + 1];
@@ -9,8 +10,9 @@ console.log("got IPC path", IPC_PATH);
 
 const client = createConnection(IPC_PATH);
 
+const mutex = new Mutex();
+
 client.on("connect", (err) => {
-  console.log("client connected", err);
   if (err) {
     console.error(err);
     return;
@@ -24,7 +26,10 @@ client.on("connect", (err) => {
     const channel = data?.channel;
     if (channel) {
       channelMap[channel] = true;
-      client.write(`${JSON.stringify(data)}\n`);
+
+      mutex.runExclusive(() => {
+        client.write(`${JSON.stringify(data)}\n`);
+      });
     }
   });
 
@@ -59,7 +64,9 @@ client.on("connect", (err) => {
           extensionName: parsed.extensionName,
         };
 
-        client.write(`${JSON.stringify(ret)}\n`);
+        mutex.runExclusive(() => {
+          client.write(`${JSON.stringify(ret)}\n`);
+        });
       } catch (e) {
         console.error(e);
       }

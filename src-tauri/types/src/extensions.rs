@@ -168,22 +168,26 @@ pub struct ExtensionExtraEventArgs {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlaylistReturnType {
     pub playlists: Vec<QueryablePlaylist>,
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SongsReturnType {
     pub songs: Vec<Song>,
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SongsWithPageTokenReturnType {
     pub songs: Vec<Song>,
     pub next_page_token: Option<serde_json::Value>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct SearchReturnType {
     pub songs: Vec<Song>,
     pub playlists: Vec<QueryablePlaylist>,
@@ -192,12 +196,14 @@ pub struct SearchReturnType {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlaybackDetailsReturnType {
     pub duration: u32,
     pub url: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct CustomRequestReturnType {
     pub mime_type: Option<String>,
     pub data: Option<Vec<u8>>, // Buffer is typically represented as Vec<u8> in Rust
@@ -205,26 +211,29 @@ pub struct CustomRequestReturnType {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SongReturnType {
     pub song: Song,
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PlaylistAndSongsReturnType {
     pub playlist: QueryablePlaylist,
     pub songs: Vec<Song>,
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RecommendationsReturnType {
     pub songs: Vec<Song>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct ExtensionUIRequest {
     #[serde(rename = "type")]
     pub type_: String,
-    #[serde(rename = "extensionName")]
     pub extension_name: String,
     pub data: Option<Value>,
     pub channel: String,

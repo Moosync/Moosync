@@ -114,6 +114,7 @@ export class ExtensionHostIPCHandler {
   }
 
   public async parseMessage(message: extensionHostMessage) {
+    await this.extensionHandler.initialized;
     if (this.isExtensionEvent(message.type as keyof MoosyncExtensionTemplate)) {
       this.extensionHandler.sendEvent(message as extensionEventMessage);
       return;

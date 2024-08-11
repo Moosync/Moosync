@@ -18,8 +18,8 @@ use uuid::Uuid;
 use crate::schema::allsongs;
 
 use super::{
+    common::{deserialize_default, SearchByTerm},
     entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist},
-    traits::SearchByTerm,
 };
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq, Copy)]
@@ -207,7 +207,10 @@ pub struct GetSongOptions {
 pub struct Song {
     #[serde(flatten)]
     pub song: QueryableSong,
+    #[serde(default, deserialize_with = "deserialize_default")]
     pub album: Option<QueryableAlbum>,
+    #[serde(default, deserialize_with = "deserialize_default")]
     pub artists: Option<Vec<QueryableArtist>>,
+    #[serde(default, deserialize_with = "deserialize_default")]
     pub genre: Option<Vec<QueryableGenre>>,
 }

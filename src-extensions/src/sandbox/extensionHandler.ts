@@ -31,7 +31,8 @@ type CombinedSongsType =
 export class ExtensionHandler {
   private extensionManager: AbstractExtensionManager;
   private extensionFinder: AbstractExtensionFinder;
-  private initialized = false;
+  private _initialized_resolver: () => void;
+  initialized = new Promise<void>((r) => (this._initialized_resolver = r));
   // eslint-disable-next-line @typescript-eslint/ban-types
   // biome-ignore lint/complexity/noBannedTypes: <explanation>
   private preInitializedCalls: { func: Function; args?: unknown[] }[];
@@ -47,7 +48,7 @@ export class ExtensionHandler {
     this.extensionFinder = new ExtensionFinder(searchPaths);
 
     this.registerPlugins().then(() => {
-      this.initialized = true;
+      this._initialized_resolver();
       for (const [index, f] of this.preInitializedCalls.entries()) {
         if (f.args) {
           f.func.bind(this)(...f.args);
@@ -83,11 +84,8 @@ export class ExtensionHandler {
   }
 
   public async startAll() {
-    if (this.initialized) {
-      await this.toggleExtStatus(undefined, true);
-    } else {
-      this.preInitializedCalls.push({ func: this.startAll });
-    }
+    await this.initialized;
+    await this.toggleExtStatus(undefined, true);
   }
 
   public async toggleExtStatus(
@@ -296,10 +294,12 @@ export class ExtensionHandler {
         )[0]?.replace(`${ext.packageName}:`, "");
       }
 
+      console.log("emitting", event.type, event.data);
       const resp = await ext.global.api._emit<T>({
         type: event.type,
         data: event.data,
       });
+      console.log("got resp", resp);
 
       const packageName = ext.packageName;
 

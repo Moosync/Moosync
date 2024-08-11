@@ -17,8 +17,8 @@ use crate::schema::{
 };
 
 use super::{
+    common::{deserialize_default, BridgeUtils, SearchByTerm},
     songs::Song,
-    traits::{BridgeUtils, SearchByTerm},
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -269,10 +269,15 @@ impl SearchByTerm for QueryablePlaylist {
 
 #[derive(Deserialize, Serialize, Debug, Default, Clone)]
 pub struct SearchResult {
+    #[serde(deserialize_with = "deserialize_default")]
     pub songs: Vec<Song>,
+    #[serde(deserialize_with = "deserialize_default")]
     pub artists: Vec<QueryableArtist>,
+    #[serde(deserialize_with = "deserialize_default")]
     pub playlists: Vec<QueryablePlaylist>,
+    #[serde(deserialize_with = "deserialize_default")]
     pub albums: Vec<QueryableAlbum>,
+    #[serde(deserialize_with = "deserialize_default")]
     pub genres: Vec<QueryableGenre>,
 }
 

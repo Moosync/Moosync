@@ -15,12 +15,12 @@ use macros::{filter_field, filter_field_like};
 use serde_json::Value;
 use uuid::Uuid;
 
+use types::common::{BridgeUtils, SearchByTerm};
 use types::entities::{Analytics, EntityInfo, PlaylistBridge, SearchResult};
 use types::errors::errors::{MoosyncError, Result};
 use types::schema::analytics::dsl::analytics;
 use types::schema::playlists::dsl::playlists;
 use types::songs::SearchableSong;
-use types::traits::{BridgeUtils, SearchByTerm};
 use types::{
     schema::{
         self,

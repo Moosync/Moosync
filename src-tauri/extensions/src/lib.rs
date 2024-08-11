@@ -67,25 +67,16 @@ macro_rules! helper1 {
             let parsed = serde_json::from_value::<HashMap<String, Value>>(first.clone());
             if let Ok(parsed) = parsed {
                 if package_name.is_empty() {
-                    // I hope this is never called.
-                    // But as a TODO, find a better way to handle this
-                    let inner_parsed =
-                        serde_json::from_value(serde_json::to_value(parsed.clone()).unwrap());
-                    if let Ok(inner_parsed) = inner_parsed {
-                        return Ok(inner_parsed);
-                    }
-                    return Err(format!(
-                        "Failed to parse {:?} as {}",
-                        parsed,
-                        stringify!($ret_type)
-                    )
-                    .into());
+                    return Err(format!("Need package name in args").into());
                 }
 
                 let first_result = parsed.get(&package_name);
                 if let Some(first_result) = first_result {
                     let parsed = serde_json::from_value(first_result.clone()).unwrap();
                     return Ok(parsed);
+                } else {
+                    println!("Extension  did not reply");
+                    return Ok(Default::default());
                 }
             }
 
@@ -272,8 +263,6 @@ impl ExtensionHandler {
                 ret.insert(key.clone(), res);
             }
         }
-
-        println!("Got response {:?}", ret);
 
         Ok(ret)
     }

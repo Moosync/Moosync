@@ -10,6 +10,7 @@ console.log("got IPC path", IPC_PATH);
 const client = createConnection(IPC_PATH);
 
 client.on("connect", (err) => {
+  console.log("client connected", err);
   if (err) {
     console.error(err);
     return;
@@ -44,7 +45,6 @@ client.on("connect", (err) => {
       try {
         const parsed = JSON.parse(line.toString().trim());
         const channel = parsed?.channel;
-        console.log("got data", parsed);
         if (channel && channelMap[channel]) {
           bus.emit(channel, parsed);
           continue;
@@ -59,7 +59,6 @@ client.on("connect", (err) => {
           extensionName: parsed.extensionName,
         };
 
-        console.log("replying with ret", ret);
         client.write(`${JSON.stringify(ret)}\n`);
       } catch (e) {
         console.error(e);

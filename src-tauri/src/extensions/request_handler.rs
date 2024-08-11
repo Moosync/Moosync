@@ -49,7 +49,7 @@ impl ReplyHandler {
             "addSongToPlaylist",
             "removeSong",
             "getPreferences",
-            "setPreferences",
+            "getSecurePreferences",
             "setPreferences",
             "setSecurePreferences",
             "registerOauth",

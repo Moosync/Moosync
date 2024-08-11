@@ -3,16 +3,12 @@ use std::{collections::HashMap, rc::Rc};
 use crate::components::cardview::{CardView, SimplifiedCardItem};
 use colors_transform::{Color, Rgb};
 use leptos::{
-    component, create_effect, create_node_ref, create_rw_signal,
-    ev::wheel,
-    expect_context,
-    html::Div,
-    view, For, IntoView, Params, RwSignal, Show, SignalGet, SignalSet, SignalUpdate, SignalWith,
+    component, create_effect, create_node_ref, create_rw_signal, ev::wheel, expect_context,
+    html::Div, view, For, IntoView, Params, RwSignal, Show, SignalGet, SignalSet, SignalUpdate,
+    SignalWith,
 };
 use leptos_router::{use_query, Params};
-use leptos_use::{
-    use_event_listener, use_resize_observer,
-};
+use leptos_use::{use_event_listener, use_resize_observer};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::window;
 
@@ -20,7 +16,7 @@ use crate::{
     components::songlist::SongList,
     console_log,
     icons::{next_icon::NextIcon, prev_icon::PrevIcon},
-    store::provider_store::{ProviderStore},
+    store::provider_store::ProviderStore,
 };
 
 #[derive(Params, PartialEq)]

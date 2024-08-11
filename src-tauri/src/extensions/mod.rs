@@ -16,6 +16,7 @@ use tauri::AppHandle;
 use tauri::Manager;
 use tauri::State;
 use types::errors::errors::Result;
+use types::extensions::ExtensionDetail;
 
 use crate::providers::handler::ProviderHandler;
 
@@ -70,5 +71,6 @@ pub fn get_extension_handler(app: &AppHandle) -> State<'_, ExtensionHandler> {
     ext_state
 }
 
-generate_command!(install_extension, ExtensionHandler, (), ext_path: String);
+generate_command_async!(install_extension, ExtensionHandler, (), ext_path: String);
 generate_command_async!(download_extension, ExtensionHandler, (), fetched_ext: FetchedExtensionManifest);
+generate_command_async!(get_installed_extensions, ExtensionHandler, HashMap<String, Vec<ExtensionDetail>>, );

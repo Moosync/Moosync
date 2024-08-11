@@ -156,7 +156,6 @@ pub fn App() -> impl IntoView {
     });
 
     let ui_requests_unlisten = listen_event("ui-requests", move |data| {
-        console_log!("Got UI request {:?}", data);
         let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
         let payload: ExtensionUIRequest = serde_wasm_bindgen::from_value(payload).unwrap();
 
@@ -166,7 +165,6 @@ pub fn App() -> impl IntoView {
         {
             let value = serde_wasm_bindgen::to_value(&data).unwrap();
             spawn_local(async move {
-                console_log!("Emitting value {:?}", value);
                 let res = emit(format!("ui-reply-{}", payload.channel).as_str(), value);
                 wasm_bindgen_futures::JsFuture::from(res).await.unwrap();
             });

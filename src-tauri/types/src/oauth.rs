@@ -1,6 +1,7 @@
 use oauth2::{
-    basic::{BasicErrorResponseType, BasicTokenType}, Client, CsrfToken, EmptyExtraTokenFields, RevocationErrorResponseType, StandardErrorResponse, StandardRevocableToken, StandardTokenIntrospectionResponse,
-    StandardTokenResponse,
+    basic::{BasicErrorResponseType, BasicTokenType},
+    Client, CsrfToken, EmptyExtraTokenFields, RevocationErrorResponseType, StandardErrorResponse,
+    StandardRevocableToken, StandardTokenIntrospectionResponse, StandardTokenResponse,
 };
 
 pub type OAuthTokenResponse = StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>;

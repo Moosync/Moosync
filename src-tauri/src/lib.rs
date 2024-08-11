@@ -20,7 +20,7 @@ use themes::{
     transform_css,
 };
 
-use extensions::{download_extension, install_extension};
+use extensions::{download_extension, get_installed_extensions, install_extension};
 use providers::handler::{
     fetch_playback_url, fetch_playlist_content, fetch_user_details, fetch_user_playlists,
     get_provider_key_by_id, get_provider_keys, initialize_all_providers, provider_authorize,
@@ -157,6 +157,7 @@ pub fn run() {
             // Extensions
             install_extension,
             download_extension,
+            get_installed_extensions,
             //Provider Handler
             get_provider_keys,
             initialize_all_providers,

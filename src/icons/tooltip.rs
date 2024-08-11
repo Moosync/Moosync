@@ -1,9 +1,6 @@
 use std::time::Duration;
 
-use leptos::{
-    component, create_rw_signal, view, AnimatedShow, ChildrenFn, IntoView,
-    SignalSet,
-};
+use leptos::{component, create_rw_signal, view, AnimatedShow, ChildrenFn, IntoView, SignalSet};
 
 #[component]
 pub fn Tooltip(children: ChildrenFn) -> impl IntoView {

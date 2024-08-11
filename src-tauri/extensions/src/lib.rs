@@ -18,10 +18,13 @@ use futures::{
     SinkExt,
 };
 use futures::{executor::block_on, StreamExt};
-use interprocess::local_socket::{traits::ListenerExt, GenericFilePath, ListenerOptions, ToFsName};
+use interprocess::local_socket::{
+    traits::tokio::Listener, GenericFilePath, ListenerOptions, ToFsName,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use socket_handler::{CommandSender, SocketHandler};
+use tokio::join;
 use types::{
     errors::errors::{MoosyncError, Result},
     extensions::{
@@ -36,10 +39,6 @@ use zip_extensions::zip_extract;
 mod socket_handler;
 
 macro_rules! helper1 {
-    // Empty
-    ($arg:ident, $res:expr, ()) => {{
-        Ok(())
-    }};
     // Internal helper macro to handle request creation and transformation
     ($self:ident, $req_type:expr, $data:expr) => {
         async {
@@ -62,6 +61,10 @@ macro_rules! helper1 {
 
         let first = $res.values().next().map(|v| v);
         if let Some(first) = first {
+            if first.is_null() {
+                return Ok(Default::default());
+            }
+
             let parsed = serde_json::from_value::<HashMap<String, Value>>(first.clone());
             if let Ok(parsed) = parsed {
                 if package_name.is_empty() {
@@ -127,46 +130,6 @@ macro_rules! create_extension_function {
         }
 }
 
-macro_rules! helper_raw {
-    // HashMap
-    ($res:expr, $ret_type:ty) => {{
-        let res = $res
-            .into_iter()
-            .map(|(key, value)| (key, serde_json::from_value(value.clone()).unwrap()))
-            .collect();
-
-        Ok(res)
-    }};
-
-    ($func_name:ident, $req_type:expr, $ret_type:ty, $arg:ty) => {
-        pub async fn $func_name(&self, arg: $arg) -> Result<$ret_type> {
-            let res = helper1!(self, $req_type, Some(arg)).await?;
-            helper1_raw!(res, $ret_type)
-        }
-    };
-
-    ($func_name:ident, $req_type:expr, $ret_type:ty) => {
-        pub async fn $func_name(&self) -> Result<$ret_type> {
-            let res = helper1!(self, $req_type, None::<()>).await?;
-            helper_raw!(res, $ret_type)
-        }
-    };
-}
-
-macro_rules! create_extension_function_raw {
-    (
-            $(
-                ($func_name:ident, $req_type:expr, $ret_type:ty $(, $arg:ty)?)
-            ),+ $(,)?
-        ) => {
-            $(
-
-                helper_raw!($func_name, $req_type, $ret_type $(, $arg)?);
-            )+
-
-        }
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FetchedExtensionManifest {
@@ -224,31 +187,48 @@ impl ExtensionHandler {
     }
 
     pub fn listen_socket(&self) -> Result<Receiver<UnboundedReceiver<(Value, Sender<Vec<u8>>)>>> {
-        let opts =
-            ListenerOptions::new().name(self.ipc_path.clone().to_fs_name::<GenericFilePath>()?);
-        let sock_listener = opts.create_sync()?;
-
         let sender_map = self.sender_map.clone();
-        let (mut tx_listen, rx_listen) = channel(1);
+        let (tx_listen, rx_listen) = channel(1);
 
+        let ipc_path = self.ipc_path.clone();
         thread::spawn(move || {
-            println!("Listening on socket");
-            for conn in sock_listener.incoming() {
-                let (tx_main_command, rx_main_command) = unbounded();
-                let (tx_ext_command, rx_ext_command) = unbounded();
-                match conn {
-                    Ok(conn) => {
-                        let mut handler = SocketHandler::new(conn, rx_main_command, tx_ext_command);
-                        let mut sender_map = block_on(sender_map.lock());
-                        sender_map.insert(uuid::Uuid::new_v4().to_string(), tx_main_command);
-                        drop(sender_map);
-                        block_on(tx_listen.send(rx_ext_command)).unwrap();
-                        println!("Handling extension socket connections");
-                        block_on(handler.handle_connection());
-                    }
-                    Err(e) => println!("Extension socket failed to listen {}", e),
-                };
-            }
+            let runtime = tokio::runtime::Builder::new_current_thread()
+                .enable_io()
+                .build()
+                .unwrap();
+            let ipc_path = ipc_path.clone();
+            println!("Inside thread");
+            runtime.block_on(async move {
+                println!("inside async runtime");
+                let opts =
+                    ListenerOptions::new().name(ipc_path.to_fs_name::<GenericFilePath>().unwrap());
+                let sock_listener = opts.create_tokio().unwrap();
+
+                loop {
+                    println!("Listening on socket");
+                    let conn = sock_listener.accept().await;
+                    let (tx_main_command, rx_main_command) = unbounded();
+                    let (tx_ext_command, rx_ext_command) = unbounded();
+                    match conn {
+                        Ok(conn) => {
+                            let sender_map = sender_map.clone();
+                            let mut tx_listen = tx_listen.clone();
+                            tokio::spawn(async move {
+                                let handler =
+                                    SocketHandler::new(conn, rx_main_command, tx_ext_command);
+                                let mut sender_map = sender_map.lock().await;
+                                sender_map
+                                    .insert(uuid::Uuid::new_v4().to_string(), tx_main_command);
+                                drop(sender_map);
+                                tx_listen.send(rx_ext_command).await.unwrap();
+                                println!("Handling extension socket connections");
+                                join!(handler.handle_main_command(), handler.handle_connection());
+                            });
+                        }
+                        Err(e) => println!("Extension socket failed to listen {}", e),
+                    };
+                }
+            });
         });
 
         let exe_path = env::current_exe().unwrap();
@@ -317,7 +297,7 @@ impl ExtensionHandler {
         )?)
     }
 
-    pub fn install_extension(&self, ext_path: String) -> Result<()> {
+    pub async fn install_extension(&self, ext_path: String) -> Result<()> {
         println!("ext path {}", ext_path);
         let ext_path =
             PathBuf::from_str(&ext_path).map_err(|e| MoosyncError::String(e.to_string()))?;
@@ -377,6 +357,8 @@ impl ExtensionHandler {
             parent_dir.join(package_manifest.name),
         )?;
 
+        self.find_new_extensions().await.unwrap();
+
         Ok(())
     }
 
@@ -405,17 +387,50 @@ impl ExtensionHandler {
 
         println!("Wrote file");
 
-        self.install_extension(file_path.to_string_lossy().to_string())?;
+        self.install_extension(file_path.to_string_lossy().to_string())
+            .await?;
 
         Ok(())
     }
 
-    create_extension_function_raw!(
-        (get_installed_extensions, "getInstalledExtensions", HashMap<String, Vec<ExtensionDetail>>)
-    );
+    pub async fn get_installed_extensions(&self) -> Result<HashMap<String, Vec<ExtensionDetail>>> {
+        let args = serde_json::to_value(GenericExtensionHostRequest {
+            type_: "getInstalledExtensions".to_string(),
+            channel: Uuid::new_v4().to_string(),
+            data: None::<()>,
+        })
+        .unwrap();
+        let mut res = self.broadcast(args).await?;
+
+        Ok(res
+            .iter_mut()
+            .filter_map(|(key, value)| {
+                let value = serde_json::from_value::<Vec<ExtensionDetail>>(value.clone());
+                if let Ok(mut value) = value {
+                    for extension in value.iter_mut() {
+                        for preferences in extension.preferences.iter_mut() {
+                            if !preferences
+                                .key
+                                .starts_with(&format!("extension.{}", extension.package_name))
+                            {
+                                preferences.key = format!(
+                                    "extension.{}.{}",
+                                    extension.package_name, preferences.key
+                                );
+                            }
+                        }
+                    }
+                    return Some((key.clone(), value));
+                } else {
+                    println!("Error parsing extension detail {:?}", value);
+                }
+                None
+            })
+            .collect())
+    }
 
     create_extension_function!(
-        (find_new_extensions, "findNewExtensions", ()),
+        (find_new_extensions, "findNewExtensions", Option<()>),
         (get_provider_scopes, "getExtensionProviderScopes", Vec<ExtensionProviderScope>, PackageNameArgs),
         (get_extension_icon, "getExtensionIcon", String, PackageNameArgs),
         (toggle_extension, "toggleExtensionStatus", (), ToggleExtArgs),

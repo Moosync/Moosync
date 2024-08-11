@@ -1,4 +1,3 @@
-
 use database::cache::CacheHolder;
 use librespot::{
     spirc::ParsedToken, utils::event_to_map, Bitrate, Cache, ConnectConfig, Credentials,
@@ -8,10 +7,7 @@ use macros::{generate_command, generate_command_cached};
 
 use preferences::preferences::PreferenceConfig;
 use tauri::{AppHandle, Emitter, Manager, State, Window};
-use types::{
-    canvaz::CanvazResponse,
-    errors::errors::Result,
-};
+use types::{canvaz::CanvazResponse, errors::errors::Result};
 
 pub fn get_librespot_state() -> LibrespotHolder {
     LibrespotHolder::new()

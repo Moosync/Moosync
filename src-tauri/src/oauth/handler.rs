@@ -4,7 +4,6 @@ use macros::generate_command;
 use tauri::{AppHandle, Emitter, State};
 use uuid::Uuid;
 
-
 use types::errors::errors::Result;
 
 pub struct OAuthHandler {

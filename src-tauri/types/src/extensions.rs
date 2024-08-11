@@ -1,10 +1,11 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, hash};
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
     entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist},
+    preferences::PreferenceUIData,
     songs::Song,
     ui::player_details::PlayerState,
 };
@@ -56,7 +57,7 @@ pub struct AccountLoginArgs {
     pub login_status: bool,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionDetail {
     pub name: String,
@@ -67,9 +68,21 @@ pub struct ExtensionDetail {
     pub has_started: bool,
     pub entry: String,
     // TODO: Use a concrete type for this
-    pub preferences: Vec<Value>,
+    pub preferences: Vec<PreferenceUIData>,
     pub extension_path: String,
     pub extension_icon: String,
+}
+
+impl hash::Hash for ExtensionDetail {
+    fn hash<H: hash::Hasher>(&self, state: &mut H) {
+        self.package_name.hash(state)
+    }
+}
+
+impl PartialEq for ExtensionDetail {
+    fn eq(&self, other: &Self) -> bool {
+        self.package_name == other.package_name
+    }
 }
 
 #[derive(Deserialize, Debug, Clone)]

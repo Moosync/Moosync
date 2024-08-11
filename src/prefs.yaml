@@ -3,146 +3,165 @@ page:
     path: paths
     icon: Paths
     data:
-      - type: paths
-        tooltip: settings.paths.songDirectories_tooltip
-        name: settings.paths.songDirectories
+      - type: DirectoryGroup
+        description: settings.paths.songDirectories_tooltip
+        title: settings.paths.songDirectories
         key: music_paths
 
-      - type: paths
-        tooltip: settings.paths.songDirectories_exclude_tooltip
-        name: settings.paths.songDirectories_exclude
+      - type: DirectoryGroup
+        description: settings.paths.songDirectories_exclude_tooltip
+        title: settings.paths.songDirectories_exclude
         key: exclude_music_paths
 
-      - type: number
-        tooltip: settings.paths.scan_threads_tooltip
-        name: settings.paths.scan_threads
+      - type: EditText
+        description: settings.paths.scan_threads_tooltip
+        title: settings.paths.scan_threads
+        inputType: number
         key: scan_threads
 
-      - type: text
-        tooltip: settings.paths.splitter_tooltip
-        name: settings.paths.splitter
+      - type: EditText
+        description: settings.paths.splitter_tooltip
+        title: settings.paths.splitter
+        inputType: text
         key: artist_splitter
 
-      - type: number
-        tooltip: settings.paths.scan_interval_tooltip
-        name: settings.paths.scan_interval
+      - type: EditText
+        description: settings.paths.scan_interval_tooltip
+        title: settings.paths.scan_interval
+        inputType: number
         key: scan_interval
 
-      - type: file-picker
-        tooltip: settings.paths.thumbnailPath_tooltip
-        name: settings.paths.thumbnailPath
+      - type: FilePicker
+        description: settings.paths.thumbnailPath_tooltip
+        title: settings.paths.thumbnailPath
         key: thumbnail_path
 
-      - type: file-picker
-        tooltip: settings.paths.artworkPath_tooltip
-        name: settings.paths.artworkPath
+      - type: FilePicker
+        description: settings.paths.artworkPath_tooltip
+        title: settings.paths.artworkPath
         key: artwork_path
   - title: sidebar.tabs.system
     path: system
     icon: System
     data:
-      - type: checkbox
-        name: settings.system.systemSettings.title
-        tooltip: settings.system.systemSettings_tooltip
+      - type: CheckboxGroup
+        title: settings.system.systemSettings.title
+        description: settings.system.systemSettings_tooltip
         key: system_settings
         items:
-          - name: settings.system.systemSettings.systemStartup
+          - title: settings.system.systemSettings.systemStartup
             key: auto_startup
-          - name: settings.system.systemSettings.minimizeTray
+          - title: settings.system.systemSettings.minimizeTray
             key: minimize_to_tray
-          - name: settings.system.systemSettings.hardwareAcceleration
+          - title: settings.system.systemSettings.hardwareAcceleration
             key: hardware_acceleration
-          - name: settings.system.systemSettings.watchFileChanges
+          - title: settings.system.systemSettings.watchFileChanges
             key: watch_file_changes
-          - name: settings.system.systemSettings.enableJukeboxMode
+          - title: settings.system.systemSettings.enableJukeboxMode
             key: jukebox_mode
-          - name: settings.system.systemSettings.lastLoadedPlaybackState
+          - title: settings.system.systemSettings.lastLoadedPlaybackState
             key: last_loaded_playback_state
 
-      - type: checkbox
-        name: settings.system.queueSettings.title
-        tooltip: settings.system.queueSettings.tooltip
+      - type: CheckboxGroup
+        title: settings.system.queueSettings.title
+        description: settings.system.queueSettings.tooltip
         key: queue_settings
         items:
-          - name: settings.system.queueSettings.clearQueue
+          - title: settings.system.queueSettings.clearQueue
             key: clear_queue
 
-      - type: checkbox
-        name: settings.system.audioSettings.title
-        tooltip: settings.system.audioSettings_tooltip
+      - type: CheckboxGroup
+        title: settings.system.audioSettings.title
+        description: settings.system.audioSettings_tooltip
         key: audio_settings
         items:
-          - name: settings.system.audioSettings.gaplessPlayback
+          - title: settings.system.audioSettings.gaplessPlayback
             key: gapless_playback
-          - name: settings.system.audioSettings.sponsorBlock
+          - title: settings.system.audioSettings.sponsorBlock
             key: sponsor_block
 
-      - type: number
-        name: settings.system.gapless_skip
-        tooltip: settings.system.gapless_skip_tooltip
+      - type: EditText
+        title: settings.system.gapless_skip
+        inputType: number
+        description: settings.system.gapless_skip_tooltip
         key: gapless_skip
 
-      - type: checkbox
-        name: settings.system.volumePersistMode.title
-        tooltip: settings.system.volumePersistMode.tooltip
+      - type: CheckboxGroup
+        title: settings.system.volumePersistMode.title
+        description: settings.system.volumePersistMode.tooltip
         single: true
         key: volume_persist_mode
         items:
-          - name: settings.system.volumePersistMode.noPersist
+          - title: settings.system.volumePersistMode.noPersist
             key: no_persist
-          - name: settings.system.volumePersistMode.persistSeparateVolumes
+          - title: settings.system.volumePersistMode.persistSeparateVolumes
             key: persist_separate
-          - name: settings.system.volumePersistMode.persistClampVolume
+          - title: settings.system.volumePersistMode.persistClampVolume
             key: persist_clamp
 
-      # - type: checkbox
-      #   name: settings.system.scrobble.provider_toggle.title
-      #   tooltip: settings.system.scrobble.provider_toggle.tooltip
+      # - type: CheckboxGroup
+      #   title: settings.system.scrobble.provider_toggle.title
+      #   description: settings.system.scrobble.provider_toggle.tooltip
       #   items:
 
-      - type: checkbox
-        name: settings.system.spotify.title
-        tooltip: settings.system.spotify.tooltip
+      - type: CheckboxGroup
+        title: settings.system.spotify.title
+        description: settings.system.spotify.tooltip
         key: spotify.enable
         items:
-          - name: settings.system.spotify.librespotEnable
+          - title: settings.system.spotify.librespotEnable
             key: enable
 
-      - type: text
-        name: settings.system.spotify.username
-        tooltip: settings.system.spotify.username_tooltip
+      - type: EditText
+        title: settings.system.spotify.username
+        inputType: text
+        description: settings.system.spotify.username_tooltip
         key: spotify.username
 
-      - type: text
-        name: settings.system.spotify.password
-        tooltip: settings.system.spotify.password_tooltip
+      - type: EditText
+        title: settings.system.spotify.password
+        inputType: text
+        description: settings.system.spotify.password_tooltip
         key: spotify.password
 
-      - type: text
-        name: settings.system.spotify.client_id
-        tooltip: settings.system.spotify.client_id_tooltip
+      - type: EditText
+        title: settings.system.spotify.client_id
+        inputType: text
+        description: settings.system.spotify.client_id_tooltip
         key: spotify.client_id
 
-      - type: text
-        name: settings.system.spotify.client_secret
-        tooltip: settings.system.spotify.client_secret_tooltip
+      - type: EditText
+        title: settings.system.spotify.client_secret
+        inputType: text
+        description: settings.system.spotify.client_secret_tooltip
         key: spotify.client_secret
 
-      - type: text
-        name: settings.system.youtube.client_id
-        tooltip: settings.system.youtube.client_id_tooltip
+      - type: EditText
+        title: settings.system.youtube.client_id
+        inputType: text
+        description: settings.system.youtube.client_id_tooltip
         key: youtube.client_id
 
-      - type: text
-        name: settings.system.youtube.client_secret
-        tooltip: settings.system.youtube.client_secret_tooltip
+      - type: EditText
+        title: settings.system.youtube.client_secret
+        inputType: text
+        description: settings.system.youtube.client_secret_tooltip
         key: youtube.client_secret
 
   - title: sidebar.tabs.themes
     path: themes
     icon: Themes
     data:
-      - type: theme-selector
-        name: settings.themes.themes
-        tooltip: settings.themes.themes_tooltip
+      - type: ThemeSelector
+        title: settings.themes.themes
+        description: settings.themes.themes_tooltip
         key: themes.active_theme
+
+  - title: sidebar.tabs.extensions
+    path: extensions
+    icon: Extensions
+    data:
+      - type: Extensions
+        title: settings.extensions.extensions
+        description: settings.extensions.extensions_tooltip
+        key: extensions

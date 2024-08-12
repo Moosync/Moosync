@@ -2,29 +2,10 @@ use std::rc::Rc;
 
 use leptos::{
     component, create_action, create_rw_signal, event_target_value, expect_context, spawn_local,
-    view, Children, IntoView, SignalGet, SignalGetUntracked, SignalSet,
+    view, IntoView, SignalGet, SignalGetUntracked, SignalSet,
 };
 
-use crate::store::provider_store::ProviderStore;
-
-#[component]
-pub fn GenericModal(children: Children) -> impl IntoView {
-    view! {
-        <div style="position: absolute; z-index: 1040;">
-            <div class="modal fade show">
-                <div class="modal-dialog modal-sm modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-body">
-
-                            {children()}
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
-}
+use crate::{modals::common::GenericModal, store::provider_store::ProviderStore};
 
 #[component]
 pub fn LoginModal(#[prop()] key: String) -> impl IntoView {
@@ -52,7 +33,7 @@ pub fn LoginModal(#[prop()] key: String) -> impl IntoView {
     });
 
     view! {
-        <GenericModal>
+        <GenericModal size="modal-sm".into()>
             <div class="w-100 h-100">
                 <div class="container response-container">
                     <div class="row no-gutters d-flex">

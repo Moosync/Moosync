@@ -16,7 +16,7 @@
           "requireLiteralLeadingDot": false
         }
       },
-      "csp": "default-src 'self'; img-src 'self' asset: media: https://asset.localhost; media-src 'self' http: https: asset: media: https://asset.localhost; connect-src ipc: tauri: http://ipc.localhost asset: ; style-src 'unsafe-inline' tauri:; frame-src youtube.com https://www.youtube.com; script-src 'wasm-unsafe-eval';",
+      "csp": "default-src tauri: 'self'; img-src tauri: 'self' asset: media: https://asset.localhost; media-src blob: tauri: 'self' http: https: asset: media: https://asset.localhost ; connect-src ipc: tauri: http://ipc.localhost asset: ; style-src 'unsafe-inline' tauri:; frame-src youtube.com https://www.youtube.com; script-src 'wasm-unsafe-eval';",
       "dangerousDisableAssetCspModification": false,
       "freezePrototype": false,
       "pattern": {

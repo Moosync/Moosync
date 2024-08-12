@@ -1,17 +1,21 @@
 use std::collections::HashMap;
 
+use database::cache::CacheHolder;
 use extensions::ExtensionHandler;
-use extensions::FetchedExtensionManifest;
 use futures::SinkExt;
 use futures::StreamExt;
 use macros::generate_command_async;
+use macros::generate_command_async_cached;
 use request_handler::ReplyHandler;
+use serde_json::Value;
 use tauri::async_runtime;
 use tauri::AppHandle;
 use tauri::Manager;
 use tauri::State;
 use types::errors::errors::Result;
 use types::extensions::ExtensionDetail;
+use types::extensions::ExtensionExtraEventArgs;
+use types::extensions::FetchedExtensionManifest;
 
 use crate::providers::handler::ProviderHandler;
 
@@ -66,6 +70,18 @@ pub fn get_extension_handler(app: &AppHandle) -> State<'_, ExtensionHandler> {
     ext_state
 }
 
+generate_command_async_cached!(
+    get_extension_manifest,
+    ExtensionHandler,
+    Vec<FetchedExtensionManifest>,
+);
 generate_command_async!(install_extension, ExtensionHandler, (), ext_path: String);
+generate_command_async!(remove_extension, ExtensionHandler, (), ext_path: String);
 generate_command_async!(download_extension, ExtensionHandler, (), fetched_ext: FetchedExtensionManifest);
 generate_command_async!(get_installed_extensions, ExtensionHandler, HashMap<String, Vec<ExtensionDetail>>, );
+generate_command_async!(
+    send_extra_event,
+    ExtensionHandler,
+    Value,
+    args: ExtensionExtraEventArgs
+);

@@ -62,15 +62,15 @@ pub struct AccountLoginArgs {
 pub struct ExtensionDetail {
     pub name: String,
     pub package_name: String,
-    pub desc: String,
-    pub author: String,
+    pub desc: Option<String>,
+    pub author: Option<String>,
     pub version: String,
     pub has_started: bool,
     pub entry: String,
     // TODO: Use a concrete type for this
     pub preferences: Vec<PreferenceUIData>,
     pub extension_path: String,
-    pub extension_icon: String,
+    pub extension_icon: Option<String>,
 }
 
 impl hash::Hash for ExtensionDetail {
@@ -140,7 +140,7 @@ pub enum ExtensionExtraEvent {
     Seeked([f64; 1]),
     VolumeChanged([f64; 1]),
     PlayerStateChanged([PlayerState; 1]),
-    SongChanged([Song; 1]),
+    SongChanged([Option<Song>; 1]),
     PreferenceChanged([PreferenceArgs; 1]),
     PlaybackDetailsRequested([Song; 1]),
     CustomRequest([String; 1]),
@@ -237,4 +237,32 @@ pub struct ExtensionUIRequest {
     pub extension_name: String,
     pub data: Option<Value>,
     pub channel: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct FetchedExtensionManifest {
+    pub name: String,
+    pub package_name: String,
+    pub logo: Option<String>,
+    pub description: Option<String>,
+    pub url: String,
+    pub release: Release,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Release {
+    pub r#type: Option<String>,
+    pub url: String,
+    pub version: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtensionManifest {
+    pub moosync_extension: bool,
+    pub display_name: String,
+    pub extension_entry: String,
+    pub name: String,
+    pub version: String,
 }

@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use leptos::{
-    component, create_effect, create_rw_signal, event_target_checked, event_target_value, view,
-    CollectView, For, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
+    component, create_effect, create_rw_signal, event_target_checked, event_target_value,
+    expect_context, view, CollectView, For, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
 };
 use leptos_i18n::t;
 use leptos_use::use_debounce_fn_with_arg;
@@ -20,6 +20,7 @@ use crate::{
     console_log,
     i18n::use_i18n,
     icons::{folder_icon::FolderIcon, theme_view_icon::ThemeViewIcon, tooltip::Tooltip},
+    store::modal_store::{ModalStore, Modals},
     utils::{
         common::invoke,
         prefs::{
@@ -355,6 +356,12 @@ pub fn ThemesPref(
     }
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct InstallExtensionArgs {
+    ext_path: String,
+}
+
 #[component]
 pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl IntoView {
     let extensions = create_rw_signal::<Vec<ExtensionDetail>>(Default::default());
@@ -363,6 +370,7 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
             let res = invoke("get_installed_extensions", JsValue::undefined())
                 .await
                 .unwrap();
+            console_log!("Got res {:?}", res);
             let res = serde_wasm_bindgen::from_value::<HashMap<String, Vec<ExtensionDetail>>>(res)
                 .unwrap();
             console_log!("got extensions {:?}", res);
@@ -370,6 +378,7 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
         })
     };
     fetch_extensions();
+
     let i18n = use_i18n();
 
     let extension_path = create_rw_signal(String::new());
@@ -391,11 +400,6 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
         }
 
         spawn_local(async move {
-            #[derive(Serialize)]
-            #[serde(rename_all = "camelCase")]
-            struct InstallExtensionArgs {
-                ext_path: String,
-            }
             invoke(
                 "install_extension",
                 serde_wasm_bindgen::to_value(&InstallExtensionArgs {
@@ -409,6 +413,8 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
         });
     });
 
+    let modal_store = expect_context::<RwSignal<ModalStore>>();
+
     view! {
         <div class="container-fluid mt-4">
             <div class="row no-gutters align-items-center">
@@ -421,7 +427,9 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
                     </div>
                 </div>
                 <div class="col-auto new-directories ml-auto justify-content-center">
-                    <div on:click=move |_| {}>{"Discover"}</div>
+                    <div on:click=move |_| {
+                        modal_store.update(|m| m.set_active_modal(Modals::DiscoverExtensions))
+                    }>{"Discover"}</div>
                 </div>
                 <div class="col-auto new-directories ml-4">
                     <div class="add-directories-button" on:click=install_extension>
@@ -442,7 +450,26 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
                                     </div>
                                 </div>
                                 <div class="col-auto align-self-center ml-auto">
-                                    <div class="remove-button w-100" on:click=move |_| {}>
+                                    <div
+                                        class="remove-button w-100"
+                                        on:click=move |_| {
+                                            let package_name = extension.package_name.clone();
+                                            spawn_local(async move {
+                                                invoke(
+                                                        "remove_extension",
+                                                        serde_wasm_bindgen::to_value(
+                                                                &InstallExtensionArgs {
+                                                                    ext_path: package_name,
+                                                                },
+                                                            )
+                                                            .unwrap(),
+                                                    )
+                                                    .await
+                                                    .unwrap();
+                                                fetch_extensions()
+                                            });
+                                        }
+                                    >
                                         {t!(i18n, settings.paths.remove)}
                                     </div>
                                 </div>

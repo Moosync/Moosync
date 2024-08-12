@@ -1,9 +1,12 @@
 use std::{cmp::min, collections::HashMap};
 
 use serde::Serialize;
-use types::{preferences::CheckboxPreference, songs::Song, ui::player_details::PlayerState};
+use types::{
+    extensions::ExtensionExtraEvent, preferences::CheckboxPreference, songs::Song,
+    ui::player_details::PlayerState,
+};
 
-use crate::console_log;
+use crate::{console_log, utils::extensions::send_extension_event};
 
 #[derive(Debug, Default, PartialEq, Clone, Serialize)]
 pub struct Queue {
@@ -55,7 +58,9 @@ impl PlayerStore {
         }
 
         console_log!("Upading song in queue");
-        self.current_song = song;
+        self.current_song = song.clone();
+
+        send_extension_event(ExtensionExtraEvent::SongChanged([song]))
     }
 
     pub fn add_to_queue(&mut self, song: Song) {
@@ -94,10 +99,12 @@ impl PlayerStore {
         };
 
         self.player_details.force_seek = new_time;
+        send_extension_event(ExtensionExtraEvent::Seeked([new_time]))
     }
 
     pub fn set_state(&mut self, state: PlayerState) {
         self.player_details.state = state;
+        send_extension_event(ExtensionExtraEvent::PlayerStateChanged([state]))
     }
 
     fn get_song_key(&self) -> String {
@@ -120,6 +127,8 @@ impl PlayerStore {
             }
         }
         self.player_details.volume = volume;
+
+        send_extension_event(ExtensionExtraEvent::VolumeChanged([volume]))
     }
 
     pub fn get_volume(&self) -> f64 {

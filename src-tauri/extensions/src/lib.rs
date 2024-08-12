@@ -10,6 +10,7 @@ use std::{
     thread, u64,
 };
 
+use base64::Engine;
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
 use futures::{
@@ -28,8 +29,8 @@ use types::{
     errors::errors::{MoosyncError, Result},
     extensions::{
         AccountLoginArgs, ContextMenuActionArgs, ExtensionAccountDetail, ExtensionContextMenuItem,
-        ExtensionDetail, ExtensionExtraEventArgs, ExtensionProviderScope,
-        GenericExtensionHostRequest, PackageNameArgs, ToggleExtArgs,
+        ExtensionDetail, ExtensionExtraEventArgs, ExtensionManifest, ExtensionProviderScope,
+        FetchedExtensionManifest, GenericExtensionHostRequest, PackageNameArgs, ToggleExtArgs,
     },
 };
 use uuid::Uuid;
@@ -118,34 +119,6 @@ macro_rules! create_extension_function {
             )+
 
         }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct FetchedExtensionManifest {
-    pub name: String,
-    pub package_name: String,
-    pub logo: Option<String>,
-    pub description: Option<String>,
-    pub url: String,
-    pub release: Release,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Release {
-    pub r#type: Option<String>,
-    pub url: String,
-    pub version: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ExtensionManifest {
-    moosync_extension: bool,
-    display_name: String,
-    extension_entry: String,
-    name: String,
-    version: String,
 }
 
 type SenderMap = HashMap<String, UnboundedSender<(CommandSender, Value)>>;
@@ -350,6 +323,19 @@ impl ExtensionHandler {
         Ok(())
     }
 
+    pub async fn remove_extension(&self, package_name: String) -> Result<()> {
+        let ext_path = self.extensions_dir.join(package_name.clone());
+        if ext_path.exists() {
+            fs::remove_dir_all(ext_path)?;
+            self.send_remove_extension(PackageNameArgs { package_name })
+                .await?;
+            self.find_new_extensions().await?;
+            Ok(())
+        } else {
+            Err(MoosyncError::String("Extension not found".to_string()))
+        }
+    }
+
     pub async fn download_extension(&self, fetched_ext: FetchedExtensionManifest) -> Result<()> {
         let parsed_url = fetched_ext
             .release
@@ -417,12 +403,75 @@ impl ExtensionHandler {
             .collect())
     }
 
+    pub async fn get_extension_manifest(&self) -> Result<Vec<FetchedExtensionManifest>> {
+        #[derive(serde::Deserialize, Debug)]
+        struct GithubTreeItem {
+            path: String,
+            mode: String,
+            r#type: String,
+            sha: String,
+            size: Option<u64>,
+            url: String,
+        }
+
+        #[derive(serde::Deserialize, Debug)]
+        struct GithubTreeResponse {
+            sha: String,
+            url: String,
+            tree: Vec<GithubTreeItem>,
+            truncated: bool,
+        }
+
+        #[derive(serde::Deserialize, Debug)]
+        struct BlockResponse {
+            sha: String,
+            node_id: String,
+            size: u64,
+            content: String,
+            encoding: String,
+        }
+
+        println!("Getting extension manifest");
+        let client = reqwest::Client::new();
+        let res = client.get(
+            "https://api.github.com/repos/Moosync/moosync-exts/git/trees/main?recursive=1",
+        )
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
+        .header("Accept", "application/json")
+        .send()
+        .await?;
+        let res = res.json::<GithubTreeResponse>().await?;
+
+        let mut ret = vec![];
+        for item in res.tree {
+            if item.path.ends_with("/extension.yml") && item.r#type == "blob" {
+                let res = client.get(&item.url).header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
+                .header("Accept", "application/json")
+                .send().await?;
+                let res = res.json::<BlockResponse>().await?;
+
+                if res.encoding == "base64" {
+                    let content = base64::prelude::BASE64_STANDARD
+                        .decode(res.content.replace("\n", ""))
+                        .unwrap();
+
+                    let content = serde_yaml::from_slice::<FetchedExtensionManifest>(&content);
+                    if let Ok(content) = content {
+                        ret.push(content);
+                    }
+                }
+            }
+        }
+
+        Ok(ret)
+    }
+
     create_extension_function!(
         (find_new_extensions, "findNewExtensions", Option<()>),
         (get_provider_scopes, "getExtensionProviderScopes", Vec<ExtensionProviderScope>, PackageNameArgs),
         (get_extension_icon, "getExtensionIcon", String, PackageNameArgs),
         (toggle_extension, "toggleExtensionStatus", Option<()>, ToggleExtArgs),
-        (remove_extension, "removeExtension", Option<()>, PackageNameArgs),
+        (send_remove_extension, "removeExtension", Option<()>, PackageNameArgs),
         (stop_process, "stopProcess", Option<()>),
         (get_context_menu, "getExtensionContextMenu", Vec<ExtensionContextMenuItem>, PackageNameArgs),
         (fire_context_menu_action, "onClickedContextMenu", Option<()>, ContextMenuActionArgs),

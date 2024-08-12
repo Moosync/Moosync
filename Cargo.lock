@@ -2303,12 +2303,14 @@ dependencies = [
 name = "extensions"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "fs_extra",
  "futures",
  "interprocess",
  "reqwest 0.12.5",
  "serde",
  "serde_json",
+ "serde_yaml",
  "tokio",
  "types",
  "uuid",

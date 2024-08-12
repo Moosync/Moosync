@@ -3,7 +3,8 @@ use leptos::{
 };
 
 use crate::{
-    modals::login_modal::LoginModal,
+    console_log,
+    modals::{discover_extensions::DiscoverExtensionsModal, login_modal::LoginModal},
     store::modal_store::{ModalStore, Modals},
 };
 
@@ -15,11 +16,17 @@ pub fn ModalManager() -> impl IntoView {
         <div>
             {move || {
                 let active_modal = modal_store.get().active_modal;
+                console_log!("Got active modal {:?}", active_modal);
                 if active_modal.is_none() {
                     return view! {}.into_view();
                 }
                 let ret = match active_modal.unwrap() {
-                    Modals::LoginModal(key) => view! { <LoginModal key=key /> },
+                    Modals::LoginModal(key) => {
+                        view! { <LoginModal key=key /> }
+                    }
+                    Modals::DiscoverExtensions => {
+                        view! { <DiscoverExtensionsModal /> }
+                    }
                 }
                     .into_view();
                 modal_store.update_untracked(move |m| m.clear_active_modal());

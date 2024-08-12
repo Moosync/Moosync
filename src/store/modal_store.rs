@@ -1,6 +1,7 @@
 #[derive(Debug, Clone)]
 pub enum Modals {
     LoginModal(String),
+    DiscoverExtensions,
 }
 
 #[derive(Debug, Clone, Default)]

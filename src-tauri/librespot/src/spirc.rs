@@ -157,6 +157,9 @@ impl SpircWrapper {
                 {
                     return;
                 }
+            } else {
+                println!("Closing spirc event listener");
+                return;
             }
         })
     }

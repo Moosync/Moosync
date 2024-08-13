@@ -5,3 +5,4 @@ node_modules
 report.json
 src-extensions/*.blob
 src-extensions/server
+perf.data*

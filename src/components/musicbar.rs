@@ -1,5 +1,5 @@
 use leptos::*;
-use leptos::{component, view, IntoView, RwSignal, SignalSet};
+use leptos::{component, view, IntoView, RwSignal, SignalGet, SignalSet};
 use types::entities::QueryableArtist;
 use types::ui::player_details::PlayerState;
 
@@ -14,7 +14,7 @@ use crate::icons::prev_track_icon::PrevTrackIcon;
 use crate::icons::repeat_icon::RepeatIcon;
 use crate::icons::shuffle_icon::ShuffleIcon;
 use crate::icons::volume_icon::VolumeIcon;
-use crate::store::player_store::PlayerStore;
+use crate::store::player_store::{PlayerStore};
 use crate::utils::common::{format_duration, get_low_img};
 
 #[component]
@@ -49,7 +49,15 @@ fn Details() -> impl IntoView {
 
                 {move || {
                     let cover_img = cover_img.get();
-                    view! { <LowImg cover_img=cover_img show_play_button=false play_now=|| {} /> }
+                    view! {
+                        <LowImg
+                            show_eq=|| false
+                            eq_playing=|| false
+                            cover_img=cover_img
+                            show_play_button=false
+                            play_now=|| {}
+                        />
+                    }
                 }}
 
             </div>
@@ -92,69 +100,56 @@ fn Details() -> impl IntoView {
 
 #[component]
 pub fn Controls() -> impl IntoView {
-    let prev_track_dis = create_rw_signal(true);
-    let next_track_dis = create_rw_signal(true);
-    let is_play = create_rw_signal(true);
-    let is_fav = create_rw_signal(false);
-    let is_repeat = create_rw_signal(false);
-    let is_shuffle = create_rw_signal(false);
-    let current_time_sig = create_rw_signal("".to_string());
-    let total_duration_sig = create_rw_signal("".to_string());
-
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
-    let current_song = create_read_slice(player_store, |player_store| {
-        player_store.current_song.clone()
+
+    let prev_track_dis = create_read_slice(player_store, |p| p.queue.song_queue.len() <= 1);
+    let next_track_dis = create_read_slice(player_store, |p| p.queue.song_queue.len() <= 1);
+    let is_play = create_read_slice(player_store, |p| {
+        p.player_details.state == PlayerState::Playing
     });
-    let current_time = create_read_slice(player_store, |player_store| {
-        player_store.player_details.current_time
-    });
-    let (current_state, set_current_state) = create_slice(
+    let is_fav = create_rw_signal(false);
+    let (repeat_mode, toggle_repeat) = create_slice(
         player_store,
-        |player| player.player_details.state,
-        |player, n| player.set_state(n),
+        |p| p.player_details.repeat,
+        |p, _| p.toggle_repeat(),
     );
-
-    create_effect(move |_| {
-        let current_song = current_song.get();
-        if let Some(current_song) = current_song {
-            let fmt_dur = format_duration(current_song.song.duration.unwrap_or(-1f64));
-            total_duration_sig.set(fmt_dur)
+    let is_shuffle = create_rw_signal(true);
+    let shuffle_queue = create_write_slice(player_store, |p, _| p.shuffle_queue());
+    let current_time_sig = create_read_slice(player_store, |p| {
+        format_duration(p.player_details.current_time)
+    });
+    let total_duration_sig = create_read_slice(player_store, |p| {
+        if let Some(current_song) = &p.current_song {
+            format_duration(current_song.song.duration.unwrap_or(-1f64))
         } else {
-            total_duration_sig.set("00:00".to_string())
+            "00:00".to_string()
         }
     });
 
-    create_effect(move |_| {
-        let state = current_state.get();
-        match state {
-            types::ui::player_details::PlayerState::Playing => is_play.set(true),
-            types::ui::player_details::PlayerState::Paused => is_play.set(false),
-            types::ui::player_details::PlayerState::Stopped => is_play.set(false),
-            types::ui::player_details::PlayerState::Loading => is_play.set(false),
-        }
-    });
-
-    create_effect(move |_| {
-        let current_time = current_time.get();
-        let fmt_dur = format_duration(current_time);
-        current_time_sig.set(fmt_dur)
-    });
+    let set_current_state = create_write_slice(player_store, |player, n| player.set_state(n));
+    let next_song_setter = create_write_slice(player_store, |p, _| p.next_song());
+    let prev_song_setter = create_write_slice(player_store, |p, _| p.prev_song());
 
     view! {
         <div class="row no-gutters align-items-center justify-content-center">
             <div class="col col-button">
-                <PrevTrackIcon disabled=prev_track_dis.read_only() />
+                <PrevTrackIcon
+                    disabled=prev_track_dis
+                    on:click=move |_| {
+                        if !prev_track_dis.get() {
+                            prev_song_setter.set(())
+                        }
+                    }
+                />
             </div>
             <div class="col col-button">
-
-                // TODO: Add repeat once icon
-                <RepeatIcon filled=is_repeat.read_only() />
+                <RepeatIcon mode=repeat_mode on:click=move |_| { toggle_repeat.set(()) } />
             </div>
             <div class="col col-play-button">
                 <PlayIcon
-                    play=is_play.read_only()
+                    play=is_play
                     on:click=move |_| {
-                        let is_playing = is_play.read_only().get();
+                        let is_playing = is_play.get();
                         if is_playing {
                             set_current_state.set(PlayerState::Paused)
                         } else {
@@ -165,10 +160,22 @@ pub fn Controls() -> impl IntoView {
 
             </div>
             <div class="col col-button">
-                <NextTrackIcon disabled=next_track_dis.read_only() />
+                <NextTrackIcon
+                    disabled=next_track_dis
+                    on:click=move |_| {
+                        if !next_track_dis.get() {
+                            next_song_setter.set(())
+                        }
+                    }
+                />
             </div>
             <div class="col col-button">
-                <ShuffleIcon filled=is_shuffle.read_only() />
+                <ShuffleIcon
+                    filled=is_shuffle.read_only()
+                    on:click=move |_| {
+                        shuffle_queue.set(());
+                    }
+                />
             </div>
             <div class="col col-button mr-1">
                 <FavIcon filled=is_fav.read_only() />

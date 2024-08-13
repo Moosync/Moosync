@@ -19,7 +19,7 @@ pub struct GenericExtensionHostRequest<T: Serialize> {
     pub data: Option<T>,
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageNameArgs {
     pub package_name: String,

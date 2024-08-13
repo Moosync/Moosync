@@ -1,7 +1,10 @@
-use leptos::{component, view, IntoView, ReadSignal, SignalGet};
+use leptos::{component, view, IntoView, SignalGet};
 
 #[component]
-pub fn PrevTrackIcon(#[prop()] disabled: ReadSignal<bool>) -> impl IntoView {
+pub fn PrevTrackIcon<T>(#[prop()] disabled: T) -> impl IntoView
+where
+    T: SignalGet<Value = bool> + 'static,
+{
     view! {
         <svg
             class="button-grow"

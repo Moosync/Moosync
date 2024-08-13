@@ -37,6 +37,9 @@ $theme-colors: ("primary": #212121, "secondary": #282828, "tertiary": #151515, "
 *:focus
   outline: none
 
+html
+  scroll-behavior: smooth
+
 body
   background-color: var(--primary) !important
   color: var(--textPrimary) !important
@@ -326,6 +329,10 @@ img
   width: 300px !important
   border: none !important
   box-shadow: 4px 4px 14px 3px rgba(0, 0, 0, 0.25)
+  position: fixed
+  top: 60px
+  right: 45px
+  padding: 5px 15px 10px 15px
   .arrow
     &::after
       border-bottom-color: var(--tertiary) !important

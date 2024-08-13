@@ -16,6 +16,7 @@ use types::errors::errors::Result;
 use types::extensions::ExtensionDetail;
 use types::extensions::ExtensionExtraEventArgs;
 use types::extensions::FetchedExtensionManifest;
+use types::extensions::PackageNameArgs;
 
 use crate::providers::handler::ProviderHandler;
 
@@ -85,3 +86,4 @@ generate_command_async!(
     Value,
     args: ExtensionExtraEventArgs
 );
+generate_command_async_cached!(get_extension_icon, ExtensionHandler, String, args: PackageNameArgs);

@@ -42,6 +42,8 @@ pub fn SearchResultItem(song: Song) -> impl IntoView {
         <div class="container-fluid single-result-container single-result">
             <div class="row justify-content-around">
                 <LowImg
+                    show_eq=|| false
+                    eq_playing=|| false
                     cover_img=get_low_img(&song)
                     play_now=move || play_now.set(song_cloned.clone())
                 />

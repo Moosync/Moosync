@@ -21,8 +21,8 @@ use themes::{
 };
 
 use extensions::{
-    download_extension, get_extension_manifest, get_installed_extensions, install_extension,
-    remove_extension,
+    download_extension, get_extension_icon, get_extension_manifest, get_installed_extensions,
+    install_extension, remove_extension,
 };
 use providers::handler::{
     fetch_playback_url, fetch_playlist_content, fetch_user_details, fetch_user_playlists,
@@ -163,6 +163,7 @@ pub fn run() {
             download_extension,
             get_installed_extensions,
             get_extension_manifest,
+            get_extension_icon,
             //Provider Handler
             get_provider_keys,
             initialize_all_providers,

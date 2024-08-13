@@ -32,7 +32,7 @@ macro_rules! listen_event {
                 // }
             });
         });
-        $self.listeners.push(Box::new(unlisten));
+        $self.listeners.push(Rc::new(Box::new(unlisten)));
     }};
 }
 
@@ -46,10 +46,11 @@ macro_rules! generate_event_listeners {
     };
 }
 
+#[derive(Clone)]
 pub struct LocalPlayer {
     pub audio_element: HtmlElement<Audio>,
     node_ref: NodeRef<Audio>,
-    listeners: Vec<Box<dyn Fn()>>,
+    listeners: Vec<Rc<Box<dyn Fn()>>>,
 }
 
 impl std::fmt::Debug for LocalPlayer {

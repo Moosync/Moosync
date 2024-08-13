@@ -1,13 +1,13 @@
 use leptos::{
-    component, create_effect, create_rw_signal, view, IntoView, Show, SignalGet, SignalSet,
+    component, create_effect, create_rw_signal, view, CollectView,
+    IntoView, RwSignal, SignalGet, SignalSet,
 };
-use types::songs::Song;
+use types::{songs::Song, ui::song_details::SongDetailIcons};
 
 use crate::{
     console_log,
     icons::{
-        add_to_library_icon::AddToLibraryIcon, add_to_queue_icon::AddToQueueIcon,
-        fetch_all_icon::FetchAllIcon, plain_play_icon::PlainPlayIcon, random_icon::RandomIcon,
+        add_to_library_icon::AddToLibraryIcon, add_to_queue_icon::AddToQueueIcon, plain_play_icon::PlainPlayIcon, random_icon::RandomIcon,
         song_default_icon::SongDefaultIcon,
     },
     utils::common::{format_duration, get_high_img},
@@ -16,7 +16,7 @@ use crate::{
 #[component()]
 pub fn SongDetails<T>(
     #[prop()] selected_song: T,
-    #[prop(default = true)] show_icons: bool,
+    #[prop()] icons: RwSignal<SongDetailIcons>,
 ) -> impl IntoView
 where
     T: SignalGet<Value = Option<Song>> + 'static,
@@ -116,28 +116,56 @@ where
                 </div>
             </div>
 
-            <Show when=move || show_icons fallback=|| view! {}.into_view()>
-                <div class="row no-gutters flex-fill mt-2">
-                    <div class="col">
-                        <div class="button-group d-flex">
+            <div class="row no-gutters flex-fill mt-2">
+                <div class="col">
+                    <div class="button-group d-flex">
 
-                            {move || {
-                                let title = selected_title.get();
-                                if let Some(title) = title {
-                                    view! {
-                                        <PlainPlayIcon title=title.clone() />
-                                        <AddToQueueIcon title=title.clone() />
-                                        <AddToLibraryIcon title=title />
-                                    }
-                                        .into_view()
-                                } else {
-                                    view! {}.into_view()
-                                }
-                            }} <RandomIcon /> <FetchAllIcon />
-                        </div>
+                        {move || {
+                            let title = selected_title.get();
+                            let icons = icons.get();
+                            let mut icons_ret = vec![];
+                            if let Some(play_cb) = icons.play {
+                                icons_ret
+                                    .push(
+                                        view! {
+                                            <PlainPlayIcon
+                                                title=title.clone().unwrap_or_default()
+                                                on:click=move |_| play_cb()
+                                            />
+                                        },
+                                    );
+                            }
+                            if let Some(add_to_queue_cb) = icons.add_to_queue {
+                                icons_ret
+                                    .push(
+                                        view! {
+                                            <AddToQueueIcon
+                                                title=title.clone().unwrap_or_default()
+                                                on:click=move |_| add_to_queue_cb()
+                                            />
+                                        },
+                                    );
+                            }
+                            if let Some(add_to_library_cb) = icons.add_to_library {
+                                icons_ret
+                                    .push(
+                                        view! {
+                                            <AddToLibraryIcon
+                                                title=title.unwrap_or_default()
+                                                on:click=move |_| add_to_library_cb()
+                                            />
+                                        },
+                                    );
+                            }
+                            if let Some(random_cb) = icons.random {
+                                icons_ret
+                                    .push(view! { <RandomIcon on:click=move |_| random_cb() /> });
+                            }
+                            icons_ret.collect_view()
+                        }}
                     </div>
                 </div>
-            </Show>
+            </div>
 
         </div>
     }

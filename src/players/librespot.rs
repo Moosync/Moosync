@@ -62,6 +62,7 @@ macro_rules! register_events {
     };
 }
 
+#[derive(Clone)]
 pub struct LibrespotPlayer {
     listeners: Vec<js_sys::Function>,
     timer: Rc<Mutex<Option<IntervalHandle>>>,

@@ -1,8 +1,9 @@
+use futures::lock::Mutex;
 use std::{
     rc::Rc,
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Arc, Mutex,
+        Arc,
     },
     vec,
 };
@@ -14,9 +15,9 @@ use types::{
 };
 
 use leptos::{
-    component, create_effect, create_node_ref, create_read_slice, create_slice, create_write_slice,
-    html::Div, spawn_local, use_context, view, IntoView, NodeRef, RwSignal, SignalGet,
-    SignalGetUntracked,
+    component, create_effect, create_node_ref, create_read_slice, create_slice,
+    create_write_slice, html::Div, spawn_local, use_context, view, IntoView, NodeRef, RwSignal,
+    SignalGet, SignalGetUntracked,
 };
 
 use crate::{
@@ -30,7 +31,7 @@ use crate::{
 
 pub struct PlayerHolder {
     providers: Rc<ProviderStore>,
-    players: Arc<Mutex<Vec<Box<dyn GenericPlayer>>>>,
+    players: Rc<Mutex<Vec<Box<dyn GenericPlayer>>>>,
     active_player: Arc<AtomicUsize>,
     state_setter: Rc<Box<dyn Fn(PlayerEvents)>>,
     player_container: NodeRef<Div>,
@@ -40,18 +41,13 @@ impl PlayerHolder {
     pub fn new(player_container: NodeRef<Div>, providers: Rc<ProviderStore>) -> PlayerHolder {
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
         let state_setter = Rc::new(Self::register_internal_state_listeners(player_store));
-        let holder = PlayerHolder {
-            players: Arc::new(Mutex::new(vec![])),
-            state_setter,
-            active_player: Arc::new(AtomicUsize::new(0)),
-            providers,
-            player_container,
-        };
-        holder.register_external_state_listeners(player_store);
 
-        let mut players = holder.players.lock().unwrap();
+        let mut players: Vec<Box<dyn GenericPlayer>> = vec![];
+        let mut local_player = LocalPlayer::new();
 
-        let local_player = LocalPlayer::new();
+        // Initialize listeners on first player
+        local_player.add_listeners(state_setter.clone());
+
         players.push(Box::new(local_player));
 
         let youtube_player = YoutubePlayer::new();
@@ -60,21 +56,29 @@ impl PlayerHolder {
         let librespot_player = LibrespotPlayer::new();
         players.push(Box::new(librespot_player));
 
-        drop(players);
+        let holder = PlayerHolder {
+            players: Rc::new(Mutex::new(players)),
+            state_setter,
+            active_player: Arc::new(AtomicUsize::new(0)),
+            providers,
+            player_container,
+        };
+        holder.register_external_state_listeners(player_store);
 
         holder
     }
 
-    pub fn initialize_players(&self) {
-        for player in self.players.lock().unwrap().iter_mut() {
+    pub async fn initialize_players(&self) {
+        let players = self.players.lock().await;
+        for player in players.iter() {
             player.initialize(self.player_container);
         }
         console_log!("Initialized players")
     }
 
-    pub fn stop_playback(&self) -> Result<()> {
+    pub async fn stop_playback(&self) -> Result<()> {
         let active_player = self.active_player.load(Ordering::Relaxed);
-        let mut players = self.players.lock().unwrap();
+        let mut players = self.players.lock().await;
         if let Some(player) = players.get_mut(active_player) {
             player.stop()?;
         }
@@ -83,7 +87,7 @@ impl PlayerHolder {
     }
 
     pub async fn get_player(&self, song: &Song) -> Result<(usize, Option<Song>)> {
-        let players = self.players.lock().unwrap();
+        let players = self.players.lock().await;
         let player = players
             .iter()
             .position(|p| p.provides().contains(&song.song.type_) && p.can_play(song));
@@ -108,9 +112,9 @@ impl PlayerHolder {
         Err(MoosyncError::String("Player not found".into()))
     }
 
-    pub fn set_volume(&self, volume: f64) -> Result<()> {
+    pub async fn set_volume(&self, volume: f64) -> Result<()> {
+        let players = self.players.lock().await;
         let active_player_pos = self.active_player.load(Ordering::Relaxed);
-        let players = self.players.lock().unwrap();
         let active = players.get(active_player_pos);
         if active.is_none() {
             return Ok(());
@@ -134,7 +138,7 @@ impl PlayerHolder {
         // Stop current player only if we need to switch;
         let old_pos = self.active_player.load(Ordering::Relaxed);
         if old_pos != pos {
-            self.stop_playback()?;
+            self.stop_playback().await?;
         }
 
         let ret = new_song.clone();
@@ -147,11 +151,13 @@ impl PlayerHolder {
         } else {
             song.song.playback_url.clone().or(song.song.path.clone())
         };
-        self.active_player.store(pos, Ordering::Relaxed);
 
-        let mut players = self.players.lock().unwrap();
+        let mut players = self.players.lock().await;
         let player = players.get_mut(pos).unwrap();
-        player.add_listeners(self.state_setter.clone());
+        if old_pos != pos {
+            self.active_player.store(pos, Ordering::Relaxed);
+            player.add_listeners(self.state_setter.clone());
+        }
 
         let (resolver_tx, resolver_rx) = oneshot::channel();
         player.load(src.unwrap(), resolver_tx);
@@ -169,28 +175,31 @@ impl PlayerHolder {
         let active_player = self.active_player.clone();
         create_effect(move |_| {
             let player_state = player_state_getter.get();
-            let players = players.lock().unwrap();
 
             let active_player_pos = active_player.load(Ordering::Relaxed);
 
-            let active = players.get(active_player_pos);
-            if active.is_none() {
-                return;
-            }
-            let active = active.unwrap();
+            let players = players.clone();
+            spawn_local(async move {
+                let players = players.lock().await;
+                let active = players.get(active_player_pos);
+                if active.is_none() {
+                    return;
+                }
+                let active = active.unwrap();
 
-            match player_state {
-                PlayerState::Playing => {
-                    active.play().unwrap();
+                match player_state {
+                    PlayerState::Playing => {
+                        active.play().unwrap();
+                    }
+                    PlayerState::Paused => {
+                        active.pause().unwrap();
+                    }
+                    PlayerState::Stopped => {
+                        active.pause().unwrap();
+                    }
+                    PlayerState::Loading => {}
                 }
-                PlayerState::Paused => {
-                    active.pause().unwrap();
-                }
-                PlayerState::Stopped => {
-                    active.pause().unwrap();
-                }
-                PlayerState::Loading => {}
-            }
+            });
         });
     }
 
@@ -208,19 +217,21 @@ impl PlayerHolder {
                 return;
             }
 
-            let players = players.lock().unwrap();
-
             let active_player_pos = active_player.load(Ordering::Relaxed);
 
-            let active = players.get(active_player_pos);
-            if active.is_none() {
-                return;
-            }
-            let active = active.unwrap();
+            let players = players.clone();
+            spawn_local(async move {
+                let players = players.lock().await;
+                let active = players.get(active_player_pos);
+                if active.is_none() {
+                    return;
+                }
+                let active = active.unwrap();
 
-            active.seek(force_seek).unwrap();
+                active.seek(force_seek).unwrap();
 
-            reset_force_seek.set(-1f64);
+                reset_force_seek.set(-1f64);
+            });
         });
     }
 
@@ -236,6 +247,25 @@ impl PlayerHolder {
             store.set_state(state);
         });
 
+        let next_song_setter = create_write_slice(player_store, move |store, _| {
+            match store.player_details.repeat {
+                types::ui::player_details::RepeatModes::None => store.next_song(),
+                types::ui::player_details::RepeatModes::Once => {
+                    if !store.player_details.has_repeated {
+                        store.force_seek_percent(0f64);
+                        store.player_details.has_repeated = true;
+                    } else {
+                        store.player_details.has_repeated = false;
+                        store.next_song();
+                    }
+                }
+                types::ui::player_details::RepeatModes::Loop => {
+                    store.force_seek_percent(0f64);
+                }
+            }
+            store.next_song();
+        });
+
         let player_time_setter = create_write_slice(player_store, move |store, time| {
             store.update_time(time);
         });
@@ -245,7 +275,7 @@ impl PlayerHolder {
             PlayerEvents::Pause => player_state_setter.set(PlayerState::Paused),
             PlayerEvents::Loading => player_state_setter.set(PlayerState::Loading),
             PlayerEvents::Ended => {
-                console_log!("ended")
+                next_song_setter.set(());
             }
             PlayerEvents::TimeUpdate(t) => player_time_setter.set(t),
         };
@@ -262,30 +292,38 @@ pub fn AudioStream() -> impl IntoView {
     let player_container_ref = create_node_ref::<Div>();
 
     let players = PlayerHolder::new(player_container_ref, provider_store);
-    players.initialize_players();
+    let players = Rc::new(Mutex::new(players));
+    let players_clone = players.clone();
+    spawn_local(async move {
+        let players = players_clone.lock().await;
+        players.initialize_players().await;
+    });
 
     let current_song_sig = create_read_slice(player_store, |player_store| {
         player_store.current_song.clone()
     });
     let current_volume = create_read_slice(player_store, |player_store| player_store.get_volume());
 
-    let players = Rc::new(Mutex::new(players));
-    let players_copy = players.clone();
+    let players_clone = players.clone();
     create_effect(move |_| {
         let current_volume = current_volume.get();
-        let player = players.lock().unwrap();
-        player
-            .set_volume(current_volume)
-            .expect("Failed to set volume");
+        let players = players.clone();
+        spawn_local(async move {
+            let players = players.lock().await;
+            players
+                .set_volume(current_volume)
+                .await
+                .expect("Failed to set volume");
+        });
     });
 
     create_effect(move |_| {
         let current_song = current_song_sig.get();
-        console_log!("Loading song {:?}", current_song);
         if let Some(current_song) = current_song {
-            let players = players_copy.clone();
+            console_log!("Loading song {:?}", current_song.song.title);
+            let players = players_clone.clone();
             spawn_local(async move {
-                let mut players = players.lock().unwrap();
+                let mut players = players.lock().await;
                 let updated_song = players
                     .load_audio(&current_song, current_volume.get_untracked())
                     .await

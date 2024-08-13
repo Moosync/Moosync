@@ -2,10 +2,11 @@ use leptos::{
     component, create_effect, create_node_ref, create_rw_signal, create_write_slice,
     ev::{keydown, keyup},
     event_target_value,
-    html::Input,
+    html::{Div, Input},
     use_context, view, window_event_listener, HtmlElement, IntoView, ReadSignal, RwSignal, Show,
     SignalGet, SignalSet, SignalUpdate,
 };
+use leptos_use::on_click_outside;
 use leptos_virtual_scroller::VirtualScroller;
 use types::songs::Song;
 
@@ -32,6 +33,8 @@ pub fn SongListItem(
         <div class="container-fluid wrapper w-100 mb-3" class:selectedItem=is_selected>
             <div class="row no-gutters align-content-center w-100">
                 <LowImg
+                    show_eq=|| false
+                    eq_playing=|| false
                     cover_img=get_low_img(&song)
                     play_now=move || play_now.set(song_cloned.clone())
                 />
@@ -40,9 +43,9 @@ pub fn SongListItem(
                     <div class="row no-gutters align-items-center">
                         <div class="col-auto d-flex">
                             <div class="title text-truncate mr-2">
-                                {song.song.title.unwrap_or_default()}
+                                {song.song.title.clone().unwrap_or_default()}
                             </div>
-                            <ProviderIcon extension=song.song.provider_extension />
+                            <ProviderIcon song=song.clone() />
                         </div>
                     </div>
                     <div class="row no-gutters flex-nowrap">
@@ -151,6 +154,11 @@ pub fn SongList(
         selected_songs_sig.set(vec![index]);
     };
 
+    let target = create_node_ref::<Div>();
+    on_click_outside(target, move |_| {
+        selected_songs_sig.update(|s| s.clear());
+    });
+
     view! {
         <div class=move || {
             if !expand {
@@ -222,6 +230,7 @@ pub fn SongList(
                         <div
                             class="scroller w-100 full-height"
                             style="height: calc(100% - 53px) !important;"
+                            node_ref=target
                         >
 
                             <VirtualScroller

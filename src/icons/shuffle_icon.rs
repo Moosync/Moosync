@@ -1,7 +1,10 @@
-use leptos::{component, view, IntoView, ReadSignal, SignalGet};
+use leptos::{component, view, IntoView, SignalGet};
 
 #[component]
-pub fn ShuffleIcon(#[prop()] filled: ReadSignal<bool>) -> impl IntoView {
+pub fn ShuffleIcon<T>(#[prop()] filled: T) -> impl IntoView
+where
+    T: SignalGet<Value = bool> + 'static + Copy,
+{
     view! {
         <svg
             class="button-grow"

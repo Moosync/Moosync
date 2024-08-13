@@ -39,14 +39,15 @@ macro_rules! listen_event {
     }};
 }
 
+#[derive(Clone)]
 pub struct YoutubePlayer {
-    player: YTPlayer,
+    player: Rc<YTPlayer>,
 }
 
 impl YoutubePlayer {
     pub fn new() -> Self {
         Self {
-            player: YTPlayer::new("yt-player"),
+            player: Rc::new(YTPlayer::new("yt-player")),
         }
     }
 }

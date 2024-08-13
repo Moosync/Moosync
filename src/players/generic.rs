@@ -1,5 +1,6 @@
 use std::rc::Rc;
 
+use dyn_clone::DynClone;
 use leptos::{html::Div, NodeRef};
 use tokio::sync::oneshot::Sender as OneShotSender;
 use types::{
@@ -8,7 +9,7 @@ use types::{
     ui::player_details::PlayerEvents,
 };
 
-pub trait GenericPlayer: std::fmt::Debug {
+pub trait GenericPlayer: std::fmt::Debug + DynClone {
     fn initialize(&self, element: NodeRef<Div>);
     fn key(&self) -> String;
     fn load(&self, src: String, resolver: OneShotSender<()>);
@@ -22,3 +23,5 @@ pub trait GenericPlayer: std::fmt::Debug {
     fn get_volume(&self) -> Result<f64>;
     fn add_listeners(&mut self, state_setter: Rc<Box<dyn Fn(PlayerEvents)>>);
 }
+
+dyn_clone::clone_trait_object!(GenericPlayer);

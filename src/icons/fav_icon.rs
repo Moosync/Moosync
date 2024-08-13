@@ -1,7 +1,10 @@
-use leptos::{component, view, IntoView, ReadSignal, SignalGet};
+use leptos::{component, view, IntoView, SignalGet};
 
 #[component]
-pub fn FavIcon(#[prop()] filled: ReadSignal<bool>) -> impl IntoView {
+pub fn FavIcon<T>(#[prop()] filled: T) -> impl IntoView
+where
+    T: SignalGet<Value = bool> + 'static,
+{
     view! {
         <svg
             class="button-grow"

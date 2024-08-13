@@ -1,5 +1,5 @@
 use leptos::{
-    component, expect_context, view, IntoView, RwSignal, SignalGet, SignalUpdateUntracked,
+    component, expect_context, view, IntoView, RwSignal, SignalGet,
 };
 
 use crate::{
@@ -20,7 +20,8 @@ pub fn ModalManager() -> impl IntoView {
                 if active_modal.is_none() {
                     return view! {}.into_view();
                 }
-                let ret = match active_modal.unwrap() {
+                
+                match active_modal.unwrap() {
                     Modals::LoginModal(key) => {
                         view! { <LoginModal key=key /> }
                     }
@@ -28,9 +29,7 @@ pub fn ModalManager() -> impl IntoView {
                         view! { <DiscoverExtensionsModal /> }
                     }
                 }
-                    .into_view();
-                modal_store.update_untracked(move |m| m.clear_active_modal());
-                ret
+                    .into_view()
             }}
 
         </div>

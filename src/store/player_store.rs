@@ -1,9 +1,11 @@
-use std::{cmp::min, collections::HashMap};
-
+use rand::seq::SliceRandom;
 use serde::Serialize;
+use std::{cmp::min, collections::HashMap};
 use types::{
-    extensions::ExtensionExtraEvent, preferences::CheckboxPreference, songs::Song,
-    ui::player_details::PlayerState,
+    extensions::ExtensionExtraEvent,
+    preferences::CheckboxPreference,
+    songs::Song,
+    ui::player_details::{PlayerState, RepeatModes, VolumeMode},
 };
 
 use crate::{console_log, utils::extensions::send_extension_event};
@@ -20,18 +22,12 @@ pub struct PlayerDetails {
     pub current_time: f64,
     pub force_seek: f64,
     pub state: PlayerState,
+    pub has_repeated: bool,
+    pub repeat: RepeatModes,
     volume: f64,
     volume_mode: VolumeMode,
     volume_map: HashMap<String, f64>,
     clamp_map: HashMap<String, f64>,
-}
-
-#[derive(Debug, Default)]
-enum VolumeMode {
-    #[default]
-    Normal,
-    PersistSeparate,
-    PersistClamp,
 }
 
 #[derive(Debug, Default)]
@@ -63,10 +59,12 @@ impl PlayerStore {
         send_extension_event(ExtensionExtraEvent::SongChanged([song]))
     }
 
-    pub fn add_to_queue(&mut self, song: Song) {
-        let song_id = song.song._id.clone().unwrap();
-        self.queue.data.insert(song_id.clone(), song);
-        self.queue.song_queue.push(song_id);
+    pub fn add_to_queue(&mut self, songs: Vec<Song>) {
+        for song in songs {
+            let song_id = song.song._id.clone().unwrap();
+            self.queue.data.insert(song_id.clone(), song);
+            self.queue.song_queue.push(song_id);
+        }
         self.update_current_song();
     }
 
@@ -80,6 +78,15 @@ impl PlayerStore {
         let insertion_index = min(self.queue.song_queue.len(), self.queue.current_index + 1);
         self.queue.song_queue.insert(insertion_index, song_id);
         self.queue.current_index = insertion_index;
+        self.update_current_song();
+    }
+
+    pub fn change_index(&mut self, new_index: usize) {
+        if new_index >= self.queue.song_queue.len() {
+            return;
+        }
+
+        self.queue.current_index = new_index;
         self.update_current_song();
     }
 
@@ -196,5 +203,45 @@ impl PlayerStore {
         }
 
         self.player_details.volume_mode = VolumeMode::Normal;
+    }
+
+    pub fn next_song(&mut self) {
+        self.queue.current_index += 1;
+        if self.queue.current_index >= self.queue.song_queue.len() {
+            self.queue.current_index = 0;
+        }
+        self.update_current_song();
+    }
+
+    pub fn prev_song(&mut self) {
+        if self.queue.current_index == 0 {
+            self.queue.current_index = self.queue.song_queue.len() - 1;
+        } else {
+            self.queue.current_index -= 1;
+        }
+        self.update_current_song();
+    }
+
+    pub fn toggle_repeat(&mut self) {
+        let new_mode = match self.player_details.repeat {
+            RepeatModes::None => RepeatModes::Once,
+            RepeatModes::Once => RepeatModes::Loop,
+            RepeatModes::Loop => RepeatModes::None,
+        };
+        self.player_details.repeat = new_mode;
+    }
+
+    pub fn shuffle_queue(&mut self) {
+        let binding = self.queue.song_queue.clone();
+        let current_song = binding.get(self.queue.current_index).unwrap();
+        let mut rng = rand::thread_rng();
+        self.queue.song_queue.shuffle(&mut rng);
+        let new_index = self
+            .queue
+            .song_queue
+            .iter()
+            .position(|v| v == current_song)
+            .unwrap();
+        self.queue.current_index = new_index;
     }
 }

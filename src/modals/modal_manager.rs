@@ -1,6 +1,4 @@
-use leptos::{
-    component, expect_context, view, IntoView, RwSignal, SignalGet,
-};
+use leptos::{component, expect_context, view, IntoView, RwSignal, SignalGet};
 
 use crate::{
     console_log,
@@ -20,10 +18,9 @@ pub fn ModalManager() -> impl IntoView {
                 if active_modal.is_none() {
                     return view! {}.into_view();
                 }
-                
                 match active_modal.unwrap() {
-                    Modals::LoginModal(key) => {
-                        view! { <LoginModal key=key /> }
+                    Modals::LoginModal(key, name) => {
+                        view! { <LoginModal key=key name=name /> }
                     }
                     Modals::DiscoverExtensions => {
                         view! { <DiscoverExtensionsModal /> }

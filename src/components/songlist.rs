@@ -27,8 +27,10 @@ pub fn SongListItem(
 ) -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
     let play_now = create_write_slice(player_store, |store, value| store.play_now(value));
-
+    let add_to_queue =
+        create_write_slice(player_store, |store, song| store.add_to_queue(vec![song]));
     let song_cloned = song.clone();
+    let song_cloned1 = song.clone();
     view! {
         <div class="container-fluid wrapper w-100 mb-3" class:selectedItem=is_selected>
             <div class="row no-gutters align-content-center w-100">
@@ -68,7 +70,12 @@ pub fn SongListItem(
                 </div>
 
                 <div class="col-auto align-self-center button-icon ml-5">
-                    <AddToQueueIcon title="test".to_string() />
+                    <AddToQueueIcon
+                        title="Add to queue".into()
+                        on:click=move |_| {
+                            add_to_queue.set(song_cloned1.clone());
+                        }
+                    />
                 </div>
 
                 <div class="col-auto align-self-center ml-5 mr-3 py-2 ellipsis-icon">

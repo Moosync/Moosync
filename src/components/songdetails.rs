@@ -1,13 +1,14 @@
 use leptos::{
-    component, create_effect, create_rw_signal, view, CollectView,
-    IntoView, RwSignal, SignalGet, SignalSet,
+    component, create_effect, create_rw_signal, view, CollectView, IntoView, RwSignal, SignalGet,
+    SignalSet,
 };
 use types::{songs::Song, ui::song_details::SongDetailIcons};
 
 use crate::{
     console_log,
     icons::{
-        add_to_library_icon::AddToLibraryIcon, add_to_queue_icon::AddToQueueIcon, plain_play_icon::PlainPlayIcon, random_icon::RandomIcon,
+        add_to_library_icon::AddToLibraryIcon, add_to_queue_icon::AddToQueueIcon,
+        plain_play_icon::PlainPlayIcon, random_icon::RandomIcon,
         song_default_icon::SongDefaultIcon,
     },
     utils::common::{format_duration, get_high_img},
@@ -73,7 +74,6 @@ where
 
                                 {move || {
                                     let cover_path = selected_cover_path.get();
-                                    console_log!("got coverpath {}", cover_path);
                                     if !show_default_cover_img.get() {
                                         view! {
                                             <img

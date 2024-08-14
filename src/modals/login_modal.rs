@@ -8,7 +8,7 @@ use leptos::{
 use crate::{modals::common::GenericModal, store::provider_store::ProviderStore};
 
 #[component]
-pub fn LoginModal(#[prop()] key: String) -> impl IntoView {
+pub fn LoginModal(#[prop()] key: String, #[prop()] name: String) -> impl IntoView {
     let having_trouble = create_rw_signal(false);
     let code = create_rw_signal(String::new());
 
@@ -39,7 +39,7 @@ pub fn LoginModal(#[prop()] key: String) -> impl IntoView {
                     <div class="row no-gutters d-flex">
                         <div class="col-auto title">Logging in to</div>
                         <div class="col-auto title ml-1" style="color: var(--accent)">
-                            Spotify
+                            {name}
                         </div>
                     </div>
 

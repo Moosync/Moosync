@@ -33,6 +33,7 @@ pub fn get_songs_by_option(
         let res = invoke("get_songs_by_options", args).await;
         if res.is_err() {
             console_log!("Failed to load songs {:?}", res.unwrap_err());
+            setter.set(vec![]);
             return;
         }
         let songs: Vec<Song> = from_value(res.unwrap()).unwrap();

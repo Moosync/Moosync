@@ -1,4 +1,6 @@
 use async_trait::async_trait;
+use futures::channel::mpsc::UnboundedSender;
+use futures::SinkExt;
 use google_youtube3::api::{Channel, ChannelSnippet, Playlist, PlaylistSnippet, Video};
 use google_youtube3::hyper::client::HttpConnector;
 use google_youtube3::hyper_rustls::HttpsConnector;
@@ -12,6 +14,7 @@ use preferences::preferences::PreferenceConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::sync::mpsc::Sender;
 use tauri::{AppHandle, Manager, State};
 use types::entities::{
     EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult,
@@ -66,6 +69,7 @@ pub struct YoutubeProvider {
     config: YoutubeConfig,
     verifier: Option<(OAuth2Client, PkceCodeVerifier, CsrfToken)>,
     api_client: Option<YouTube<HttpsConnector<HttpConnector>>>,
+    status_tx: UnboundedSender<ProviderStatus>,
 }
 
 impl std::fmt::Debug for YoutubeProvider {
@@ -75,12 +79,13 @@ impl std::fmt::Debug for YoutubeProvider {
 }
 
 impl YoutubeProvider {
-    pub fn new(app: AppHandle) -> Self {
+    pub fn new(app: AppHandle, status_tx: UnboundedSender<ProviderStatus>) -> Self {
         Self {
             app,
             config: YoutubeConfig::default(),
             verifier: None,
             api_client: None,
+            status_tx,
         }
     }
 
@@ -96,7 +101,7 @@ impl YoutubeProvider {
         .set_redirect_uri(RedirectUrl::new(self.config.redirect_uri.to_string()).unwrap())
     }
 
-    fn create_api_client(&mut self) {
+    async fn create_api_client(&mut self) {
         if let Some(token) = &self.config.tokens {
             let client = hyper::Client::builder().build(
                 hyper_rustls::HttpsConnectorBuilder::new()
@@ -111,6 +116,22 @@ impl YoutubeProvider {
                 client,
                 token.access_token.clone(),
             ));
+
+            let res = self.fetch_user_details().await;
+            if let Ok(res) = res {
+                let _ = self.status_tx.send(res).await;
+            } else {
+                let _ = self
+                    .status_tx
+                    .send(ProviderStatus {
+                        key: self.key(),
+                        name: "Youtube".into(),
+                        user_name: None,
+                        logged_in: true,
+                        bg_color: "#E62017".into(),
+                    })
+                    .await;
+            }
         }
     }
 
@@ -123,7 +144,7 @@ impl YoutubeProvider {
             )
             .await?,
         );
-        self.create_api_client();
+        self.create_api_client().await;
 
         Ok(())
     }
@@ -242,11 +263,51 @@ impl YoutubeProvider {
             genre: None,
         }
     }
+
+    async fn fetch_user_details(&self) -> Result<ProviderStatus> {
+        if let Some(api_client) = &self.api_client {
+            let (_, user_info) = api_client
+                .channels()
+                .list(&vec!["snippet".into()])
+                .mine(true)
+                .max_results(1)
+                .doit()
+                .await?;
+
+            let mut username = Some("".to_string());
+            if let Some(items) = user_info.items {
+                let channel = items.first().unwrap();
+                if let Some(snippet) = &channel.snippet {
+                    username = snippet.title.clone();
+                }
+            }
+            return Ok(ProviderStatus {
+                key: self.key(),
+                name: "Youtube".into(),
+                user_name: username,
+                logged_in: true,
+                bg_color: "#E62017".into(),
+            });
+        }
+
+        Err("API client not initialized".into())
+    }
 }
 
 #[async_trait]
 impl GenericProvider for YoutubeProvider {
     async fn initialize(&mut self) -> Result<()> {
+        let _ = self
+            .status_tx
+            .send(ProviderStatus {
+                key: self.key(),
+                name: "Youtube".into(),
+                user_name: None,
+                logged_in: false,
+                bg_color: "#E62017".into(),
+            })
+            .await;
+
         let preferences: State<PreferenceConfig> = self.app.state();
         let youtube_config: Value = preferences.inner().load_selective("youtube".into())?;
         println!("{:?}", youtube_config);
@@ -306,39 +367,11 @@ impl GenericProvider for YoutubeProvider {
             .await?,
         );
 
-        self.create_api_client();
+        self.create_api_client().await;
 
         // Remove
         self.fetch_user_details().await.unwrap();
         Ok(())
-    }
-
-    async fn fetch_user_details(&self) -> Result<ProviderStatus> {
-        if let Some(api_client) = &self.api_client {
-            let (_, user_info) = api_client
-                .channels()
-                .list(&vec!["snippet".into()])
-                .mine(true)
-                .max_results(1)
-                .doit()
-                .await?;
-
-            let mut username = Some("".to_string());
-            if let Some(items) = user_info.items {
-                let channel = items.first().unwrap();
-                if let Some(snippet) = &channel.snippet {
-                    username = snippet.title.clone();
-                }
-            }
-            return Ok(ProviderStatus {
-                key: self.key(),
-                name: "Youtube".into(),
-                user_name: username,
-                logged_in: true,
-            });
-        }
-
-        Err("API client not initialized".into())
     }
 
     async fn fetch_user_playlists(

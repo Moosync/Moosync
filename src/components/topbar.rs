@@ -1,13 +1,15 @@
 use std::rc::Rc;
 
+use crate::icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon};
 use leptos::{
     component, create_effect, create_rw_signal, create_write_slice, ev::Event, event_target_value,
-    expect_context, view, CollectView, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
+    expect_context, view, CollectView, For, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
 };
 use leptos_router::use_navigate;
 use leptos_virtual_scroller::VirtualScroller;
 use types::{
     entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist},
+    providers::generic::ProviderStatus,
     songs::{GetSongOptions, SearchableSong, Song},
 };
 use web_sys::SubmitEvent;
@@ -87,9 +89,8 @@ pub fn Accounts() -> impl IntoView {
     let statuses = provider_store.get_all_statuses();
 
     let modal_store = expect_context::<RwSignal<ModalStore>>();
-    let show_login_modal = move |key: String| {
-        console_log!("Showing login modal");
-        modal_store.update(|m| m.set_active_modal(Modals::LoginModal(key)))
+    let show_login_modal = move |key: String, name: String| {
+        modal_store.update(|m| m.set_active_modal(Modals::LoginModal(key, name)))
     };
 
     view! {
@@ -101,23 +102,56 @@ pub fn Accounts() -> impl IntoView {
                     view! {
                         <div class="accounts-popover custom-popover">
                             <div class="buttons">
-                                {move || {
-                                    let statuses = statuses.get();
-                                    console_log!("Rerendering accounts");
-                                    let mut ret = vec![];
-                                    for s in statuses {
-                                        let status = s.get();
-                                        ret.push(
-                                            view! {
-                                                <div on:click=move |_| show_login_modal(
-                                                    status.key.clone(),
-                                                )>{status.name.clone()}- {status.user_name.clone()}</div>
-                                            },
-                                        );
+                                <For
+                                    each=move || {
+                                        statuses
+                                            .get()
+                                            .values()
+                                            .cloned()
+                                            .collect::<Vec<ProviderStatus>>()
                                     }
-                                    ret.collect_view()
-                                }}
+                                    key=|s| s.key.clone()
+                                    children=move |status| {
+                                        let key = status.key.clone();
+                                        let name = status.name.clone();
+                                        let title = create_rw_signal("Connect".into());
+                                        view! {
+                                            <div
+                                                class="button-bg d-flex ripple w-100"
+                                                on:mouseover=move |_| {
+                                                    title.set(status.name.clone());
+                                                }
+                                                on:mouseout=move |_| {
+                                                    title.set("Connect".into());
+                                                }
+                                                on:click=move |_| show_login_modal(
+                                                    key.clone(),
+                                                    name.clone(),
+                                                )
+                                            >
 
+                                                <div
+                                                    class="d-flex w-100 h-100"
+                                                    style=("background-color", status.bg_color)
+                                                >
+                                                    <div class="icon-wrapper d-flex my-auto">
+                                                        {if status.key == "spotify" {
+                                                            view! { <SpotifyIcon fill="#07C330".into() /> }
+                                                        } else if status.key == "youtube" {
+                                                            view! { <YoutubeIcon fill="#E62017".into() /> }
+                                                        } else {
+                                                            view! {}.into_view()
+                                                        }}
+                                                    </div>
+
+                                                    <div class="title-wrapper flex-grow-1 my-auto text-truncate">
+                                                        {title}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                />
                             </div>
                         </div>
                     }
@@ -244,6 +278,7 @@ pub fn TopBar() -> impl IntoView {
                                         each=results
                                         item_height=95usize
                                         children=move |(_, song)| {
+                                            console_log!("Song {:?}", song);
                                             view! { <SearchResultItem song=song.clone() /> }
                                         }
                                     />

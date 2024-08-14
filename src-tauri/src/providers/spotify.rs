@@ -1,8 +1,9 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::mpsc::Sender};
 
 use async_trait::async_trait;
 
 use chrono::{DateTime, TimeDelta};
+use futures::{channel::mpsc::UnboundedSender, SinkExt};
 use oauth2::{CsrfToken, PkceCodeVerifier, TokenResponse};
 use preferences::preferences::PreferenceConfig;
 use rspotify::{
@@ -58,6 +59,7 @@ pub struct SpotifyProvider {
     config: SpotifyConfig,
     verifier: Option<(OAuth2Client, PkceCodeVerifier, CsrfToken)>,
     api_client: Option<AuthCodePkceSpotify>,
+    status_tx: UnboundedSender<ProviderStatus>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -71,12 +73,13 @@ pub struct SpotifyExtraInfo {
 }
 
 impl SpotifyProvider {
-    pub fn new(app: AppHandle) -> Self {
+    pub fn new(app: AppHandle, status_tx: UnboundedSender<ProviderStatus>) -> Self {
         Self {
             app,
             config: SpotifyConfig::default(),
             verifier: None,
             api_client: None,
+            status_tx,
         }
     }
 }
@@ -92,7 +95,7 @@ impl SpotifyProvider {
         })
     }
 
-    fn create_api_client(&mut self) {
+    async fn create_api_client(&mut self) {
         if let Some(token) = &self.config.tokens {
             self.api_client = Some(AuthCodePkceSpotify::from_token(Token {
                 access_token: token.access_token.clone(),
@@ -101,6 +104,22 @@ impl SpotifyProvider {
                 refresh_token: Some(token.refresh_token.clone()),
                 scopes: HashSet::from_iter(self.config.scopes.iter().map(|v| v.to_string())),
             }));
+
+            let res = self.fetch_user_details().await;
+            if let Ok(res) = res {
+                let _ = self.status_tx.send(res).await;
+            } else {
+                let _ = self
+                    .status_tx
+                    .send(ProviderStatus {
+                        key: self.key(),
+                        name: "Youtube".into(),
+                        user_name: None,
+                        logged_in: true,
+                        bg_color: "#07C330".into(),
+                    })
+                    .await;
+            }
         }
     }
 
@@ -113,7 +132,7 @@ impl SpotifyProvider {
             )
             .await?,
         );
-        self.create_api_client();
+        self.create_api_client().await;
 
         Ok(())
     }
@@ -179,11 +198,41 @@ impl SpotifyProvider {
             ..Default::default()
         }
     }
+
+    async fn fetch_user_details(&self) -> Result<ProviderStatus> {
+        println!("Fetchinf user details {:?}", self.api_client);
+        if let Some(api_client) = &self.api_client {
+            let token = api_client.token.lock().await.unwrap();
+            drop(token);
+
+            let user = api_client.current_user().await?;
+            return Ok(ProviderStatus {
+                key: self.key(),
+                name: "Spotify".into(),
+                user_name: user.display_name,
+                logged_in: true,
+                bg_color: "#07C330".into(),
+            });
+        }
+
+        Err("API client not initialized".into())
+    }
 }
 
 #[async_trait]
 impl GenericProvider for SpotifyProvider {
     async fn initialize(&mut self) -> Result<()> {
+        let _ = self
+            .status_tx
+            .send(ProviderStatus {
+                key: self.key(),
+                name: "Spotify".into(),
+                user_name: None,
+                logged_in: false,
+                bg_color: "#07C330".into(),
+            })
+            .await;
+
         let preferences: State<PreferenceConfig> = self.app.state();
         let spotify_config: Value = preferences.inner().load_selective("spotify".into())?;
         let client_id = spotify_config.get("client_id");
@@ -244,26 +293,8 @@ impl GenericProvider for SpotifyProvider {
             .await?,
         );
 
-        self.create_api_client();
+        self.create_api_client().await;
         Ok(())
-    }
-
-    async fn fetch_user_details(&self) -> Result<ProviderStatus> {
-        println!("Fetchinf user details {:?}", self.api_client);
-        if let Some(api_client) = &self.api_client {
-            let token = api_client.token.lock().await.unwrap();
-            drop(token);
-
-            let user = api_client.current_user().await?;
-            return Ok(ProviderStatus {
-                key: self.key(),
-                name: "Spotify".into(),
-                user_name: user.display_name,
-                logged_in: true,
-            });
-        }
-
-        Err("API client not initialized".into())
     }
 
     async fn fetch_user_playlists(

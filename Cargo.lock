@@ -4406,7 +4406,7 @@ dependencies = [
 [[package]]
 name = "leptos_virtual_scroller"
 version = "0.1.0"
-source = "git+https://github.com/Ovenoboyo/leptos_virtual_scroller#014185ef7998c8a99434bcadcf481ed621c00604"
+source = "git+https://github.com/Ovenoboyo/leptos_virtual_scroller#cebbe0e67ffb7a44744e493457b9002a34f4e6ff"
 dependencies = [
  "leptos",
  "leptos-use",
@@ -9848,7 +9848,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]

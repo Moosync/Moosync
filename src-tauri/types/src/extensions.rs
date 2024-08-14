@@ -124,13 +124,13 @@ pub enum ExtensionProviderScope {
     SearchArtist,
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PreferenceArgs {
     key: String,
     value: Value,
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", tag = "type", content = "data")]
 pub enum ExtensionExtraEvent {
     RequestedPlaylists([bool; 1]),
@@ -159,7 +159,7 @@ pub enum ExtensionExtraEvent {
     GetRemoteURL([Song; 1]),
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionExtraEventArgs {
     #[serde(flatten)]

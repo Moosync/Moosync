@@ -22,10 +22,10 @@ use themes::{
 
 use extensions::{
     download_extension, get_extension_icon, get_extension_manifest, get_installed_extensions,
-    install_extension, remove_extension,
+    install_extension, remove_extension, send_extra_event,
 };
 use providers::handler::{
-    fetch_playback_url, fetch_playlist_content, fetch_user_details, fetch_user_playlists,
+    fetch_playback_url, fetch_playlist_content, fetch_user_playlists, get_all_status,
     get_provider_key_by_id, get_provider_keys, initialize_all_providers, provider_authorize,
     provider_login, provider_search,
 };
@@ -164,17 +164,18 @@ pub fn run() {
             get_installed_extensions,
             get_extension_manifest,
             get_extension_icon,
+            send_extra_event,
             //Provider Handler
             get_provider_keys,
             initialize_all_providers,
             provider_login,
             provider_authorize,
             get_provider_key_by_id,
-            fetch_user_details,
             fetch_user_playlists,
             fetch_playlist_content,
             fetch_playback_url,
             provider_search,
+            get_all_status,
         ])
         .setup(|app| {
             let db = get_db_state(app);

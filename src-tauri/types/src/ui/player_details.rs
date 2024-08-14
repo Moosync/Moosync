@@ -1,6 +1,6 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Debug, Default, PartialEq, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Default, PartialEq, Clone, Copy)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum PlayerState {
     Playing,

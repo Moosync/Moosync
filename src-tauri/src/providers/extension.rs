@@ -1,6 +1,7 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::mpsc::Sender};
 
 use async_trait::async_trait;
+use futures::channel::mpsc::UnboundedSender;
 use tauri::{AppHandle, Manager};
 use types::{
     entities::{QueryablePlaylist, SearchResult},
@@ -37,6 +38,7 @@ pub struct ExtensionProvider {
     extension: ExtensionDetail,
     provides: Vec<ExtensionProviderScope>,
     app_handle: AppHandle,
+    status_tx: UnboundedSender<ProviderStatus>,
 }
 
 impl ExtensionProvider {
@@ -44,11 +46,13 @@ impl ExtensionProvider {
         extension: ExtensionDetail,
         provides: Vec<ExtensionProviderScope>,
         app_handle: AppHandle,
+        status_tx: UnboundedSender<ProviderStatus>,
     ) -> Self {
         Self {
             extension,
             provides,
             app_handle,
+            status_tx,
         }
     }
 }
@@ -81,9 +85,6 @@ impl GenericProvider for ExtensionProvider {
         Ok(())
     }
 
-    async fn fetch_user_details(&self) -> Result<ProviderStatus> {
-        Ok(ProviderStatus::default())
-    }
     async fn fetch_user_playlists(
         &self,
         pagination: Pagination,

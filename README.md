@@ -22,13 +22,13 @@ You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/
 - Implement lyrics
 - Context menu
 - Extension accounts
+- Provider suggestions
 - System theme fetch
+- Logging
+- Playlist export
 - Extension preference items
 - Rodio player
-- Logging
 - Auto updater
-- Playlist export
-- Provider suggestions
 - Spotify canvas
 - Optimize cloning in leptos
 - Optimize DB queries

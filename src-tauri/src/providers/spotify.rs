@@ -25,7 +25,6 @@ use types::{
     songs::{QueryableSong, Song, SongType},
 };
 use types::{errors::errors::MoosyncError, providers::generic::GenericProvider};
-use url::Url;
 
 use crate::oauth::handler::OAuthHandler;
 

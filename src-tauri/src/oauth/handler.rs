@@ -1,9 +1,7 @@
 use std::{collections::HashMap, sync::Mutex};
 
-use macros::generate_command;
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Manager, State};
 use url::Url;
-use uuid::Uuid;
 
 use types::errors::errors::Result;
 

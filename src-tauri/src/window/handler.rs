@@ -4,6 +4,7 @@ use macros::{generate_command, generate_command_async};
 use open;
 use preferences::preferences::PreferenceConfig;
 use tauri::{AppHandle, Manager, State, WebviewWindow, WebviewWindowBuilder, Window};
+use tauri_plugin_dialog::DialogExt;
 use types::errors::errors::Result;
 use types::window::{DialogFilter, FileResponse};
 
@@ -122,33 +123,44 @@ impl WindowHandler {
 
     pub async fn open_file_browser(
         &self,
+        app: AppHandle,
         directory: bool,
         multiple: bool,
         filters: Vec<DialogFilter>,
     ) -> Result<Vec<FileResponse>> {
-        let mut dialog = rfd::AsyncFileDialog::new();
+        let mut dialog = app.dialog().file();
         for filter in filters {
-            dialog = dialog.add_filter(filter.name, filter.extensions.as_slice());
+            dialog = dialog.add_filter(
+                filter.name,
+                filter
+                    .extensions
+                    .iter()
+                    .map(|e| e.as_str())
+                    .collect::<Vec<&str>>()
+                    .as_slice(),
+            );
         }
 
         let files = if directory {
             if multiple {
-                dialog.pick_folders().await
+                dialog.blocking_pick_folders()
             } else {
-                dialog.pick_folder().await.map(|v| vec![v])
+                dialog.blocking_pick_folder().map(|v| vec![v])
             }
         } else if multiple {
-            dialog.pick_files().await
+            dialog
+                .blocking_pick_files()
+                .map(|v| v.iter().map(|f| f.path.clone()).collect())
         } else {
-            dialog.pick_file().await.map(|v| vec![v])
+            dialog.blocking_pick_file().map(|v| vec![v.path])
         };
 
         let mut ret = vec![];
         if let Some(files) = files {
             for file in files {
                 ret.push(FileResponse {
-                    name: file.file_name(),
-                    path: file.path().to_string_lossy().to_string(),
+                    name: file.file_name().unwrap().to_string_lossy().to_string(),
+                    path: file.to_string_lossy().to_string(),
                     size: 0,
                 })
             }
@@ -176,4 +188,4 @@ generate_command!(disable_fullscreen, WindowHandler, (), window: Window);
 generate_command!(toggle_fullscreen, WindowHandler, (), window: Window);
 generate_command!(toggle_dev_tools, WindowHandler, (), window: WebviewWindow);
 generate_command!(restart_app, WindowHandler, (), app: AppHandle);
-generate_command_async!(open_file_browser, WindowHandler, Vec<FileResponse>, directory: bool, multiple: bool, filters: Vec<DialogFilter>);
+generate_command_async!(open_file_browser, WindowHandler, Vec<FileResponse>, app: AppHandle, directory: bool, multiple: bool, filters: Vec<DialogFilter>);

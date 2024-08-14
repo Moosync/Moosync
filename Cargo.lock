@@ -261,7 +261,7 @@ dependencies = [
  "serde_repr",
  "tokio",
  "url 2.5.2",
- "zbus 4.0.1",
+ "zbus 4.4.0",
 ]
 
 [[package]]
@@ -2917,7 +2917,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0bb0228f477c0900c880fd78c8759b95c7636dbd7842707f49e132378aa2acdc"
 dependencies = [
  "heck 0.4.1",
- "proc-macro-crate 2.0.2",
+ "proc-macro-crate 2.0.0",
  "proc-macro-error",
  "proc-macro2",
  "quote",
@@ -5114,13 +5114,13 @@ dependencies = [
  "open",
  "preferences",
  "reqwest 0.12.5",
- "rfd",
  "rspotify",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-deep-link",
+ "tauri-plugin-dialog",
  "tauri-plugin-single-instance",
  "themes",
  "thiserror",
@@ -5277,6 +5277,19 @@ dependencies = [
  "cfg-if",
  "cfg_aliases 0.1.1",
  "libc",
+]
+
+[[package]]
+name = "nix"
+version = "0.29.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "71e2746dc3a24dd78b3cfcb7be93368c6de9963d30f43a6a73998a9cf4b17b46"
+dependencies = [
+ "bitflags 2.6.0",
+ "cfg-if",
+ "cfg_aliases 0.2.1",
+ "libc",
+ "memoffset 0.9.1",
 ]
 
 [[package]]
@@ -5494,7 +5507,7 @@ version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af1844ef2428cc3e1cb900be36181049ef3d3193c63e43026cfe202983b27a56"
 dependencies = [
- "proc-macro-crate 2.0.2",
+ "proc-macro-crate 3.1.0",
  "proc-macro2",
  "quote",
  "syn 2.0.74",
@@ -6336,12 +6349,20 @@ dependencies = [
 
 [[package]]
 name = "proc-macro-crate"
-version = "2.0.2"
+version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b00f26d3400549137f92511a46ac1cd8ce37cb5598a96d382381458b992a5d24"
+checksum = "7e8366a6159044a37876a2b9817124296703c586a5c92e2c53751fa06d8d43e8"
 dependencies = [
- "toml_datetime",
  "toml_edit 0.20.2",
+]
+
+[[package]]
+name = "proc-macro-crate"
+version = "3.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d37c51ca738a55da99dc0c4a34860fd675453b8b36209178c2249bb13651284"
+dependencies = [
+ "toml_edit 0.21.1",
 ]
 
 [[package]]
@@ -6983,14 +7004,15 @@ dependencies = [
  "ashpd",
  "block",
  "dispatch",
+ "glib-sys",
+ "gobject-sys",
+ "gtk-sys",
  "js-sys",
  "log",
  "objc",
  "objc-foundation",
  "objc_id",
- "pollster",
  "raw-window-handle 0.6.2",
- "urlencoding",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -8579,7 +8601,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-deep-link"
 version = "2.0.0-rc.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#584eb61f1694bcc621fd1b64c204e135a2e0a746"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#bc7eecf4202e7d23b987440c1cbd2da0f68c8bef"
 dependencies = [
  "dunce",
  "log",
@@ -8596,9 +8618,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "tauri-plugin-dialog"
+version = "2.0.0-rc.0"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#bc7eecf4202e7d23b987440c1cbd2da0f68c8bef"
+dependencies = [
+ "dunce",
+ "log",
+ "raw-window-handle 0.6.2",
+ "rfd",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "tauri-plugin-fs",
+ "thiserror",
+]
+
+[[package]]
+name = "tauri-plugin-fs"
+version = "2.0.0-rc.0"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#bc7eecf4202e7d23b987440c1cbd2da0f68c8bef"
+dependencies = [
+ "anyhow",
+ "glob",
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_repr",
+ "tauri",
+ "tauri-plugin",
+ "thiserror",
+ "url 2.5.2",
+ "uuid",
+]
+
+[[package]]
 name = "tauri-plugin-single-instance"
 version = "2.0.0-rc.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#584eb61f1694bcc621fd1b64c204e135a2e0a746"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#bc7eecf4202e7d23b987440c1cbd2da0f68c8bef"
 dependencies = [
  "log",
  "serde",
@@ -8606,7 +8663,7 @@ dependencies = [
  "tauri",
  "thiserror",
  "windows-sys 0.52.0",
- "zbus 4.0.1",
+ "zbus 4.4.0",
 ]
 
 [[package]]
@@ -9038,9 +9095,9 @@ dependencies = [
 
 [[package]]
 name = "toml_datetime"
-version = "0.6.3"
+version = "0.6.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7cda73e2f1397b1262d6dfdcef8aafae14d1de7748d66822d3bfeeb6d03e5e4b"
+checksum = "0dd7358ecb8fc2f8d014bf86f6f638ce72ba252a2c3a2572f2a795f1d23efb41"
 dependencies = [
  "serde",
 ]
@@ -9067,6 +9124,17 @@ dependencies = [
  "indexmap 2.3.0",
  "serde",
  "serde_spanned",
+ "toml_datetime",
+ "winnow",
+]
+
+[[package]]
+name = "toml_edit"
+version = "0.21.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6a8534fd7f78b5405e860340ad6575217ce99f38d4d5c8f2442cb5ecb50090e1"
+dependencies = [
+ "indexmap 2.3.0",
  "toml_datetime",
  "winnow",
 ]
@@ -9848,7 +9916,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -10442,9 +10510,9 @@ dependencies = [
 
 [[package]]
 name = "zbus"
-version = "4.0.1"
+version = "4.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7b8e3d6ae3342792a6cc2340e4394334c7402f3d793b390d2c5494a4032b3030"
+checksum = "bb97012beadd29e654708a0fdb4c84bc046f537aecfde2c3ee0a9e4b4d48c725"
 dependencies = [
  "async-broadcast 0.7.1",
  "async-executor",
@@ -10456,14 +10524,13 @@ dependencies = [
  "async-task",
  "async-trait",
  "blocking",
- "derivative",
  "enumflags2",
  "event-listener 5.3.1",
  "futures-core",
  "futures-sink",
  "futures-util",
  "hex",
- "nix 0.27.1",
+ "nix 0.29.0",
  "ordered-stream",
  "rand 0.8.5",
  "serde",
@@ -10475,9 +10542,9 @@ dependencies = [
  "uds_windows",
  "windows-sys 0.52.0",
  "xdg-home",
- "zbus_macros 4.0.1",
+ "zbus_macros 4.4.0",
  "zbus_names 3.0.0",
- "zvariant 4.0.0",
+ "zvariant 4.2.0",
 ]
 
 [[package]]
@@ -10491,21 +10558,20 @@ dependencies = [
  "quote",
  "regex",
  "syn 1.0.109",
- "zvariant_utils",
+ "zvariant_utils 1.1.0",
 ]
 
 [[package]]
 name = "zbus_macros"
-version = "4.0.1"
+version = "4.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7a3e850ff1e7217a3b7a07eba90d37fe9bb9e89a310f718afcde5885ca9b6d7"
+checksum = "267db9407081e90bbfa46d841d3cbc60f59c0351838c4bc65199ecd79ab1983e"
 dependencies = [
- "proc-macro-crate 1.3.1",
+ "proc-macro-crate 3.1.0",
  "proc-macro2",
  "quote",
- "regex",
- "syn 1.0.109",
- "zvariant_utils",
+ "syn 2.0.74",
+ "zvariant_utils 2.1.0",
 ]
 
 [[package]]
@@ -10527,7 +10593,7 @@ checksum = "4b9b1fef7d021261cc16cba64c351d291b715febe0fa10dc3a443ac5a5022e6c"
 dependencies = [
  "serde",
  "static_assertions",
- "zvariant 4.0.0",
+ "zvariant 4.2.0",
 ]
 
 [[package]]
@@ -10734,16 +10800,16 @@ dependencies = [
 
 [[package]]
 name = "zvariant"
-version = "4.0.0"
+version = "4.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e09e8be97d44eeab994d752f341e67b3b0d80512a8b315a0671d47232ef1b65"
+checksum = "2084290ab9a1c471c38fc524945837734fbf124487e105daec2bb57fd48c81fe"
 dependencies = [
  "endi",
  "enumflags2",
  "serde",
  "static_assertions",
  "url 2.5.2",
- "zvariant_derive 4.0.0",
+ "zvariant_derive 4.2.0",
 ]
 
 [[package]]
@@ -10756,20 +10822,20 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
- "zvariant_utils",
+ "zvariant_utils 1.1.0",
 ]
 
 [[package]]
 name = "zvariant_derive"
-version = "4.0.0"
+version = "4.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "72a5857e2856435331636a9fbb415b09243df4521a267c5bedcd5289b4d5799e"
+checksum = "73e2ba546bda683a90652bac4a279bc146adad1386f25379cf73200d2002c449"
 dependencies = [
- "proc-macro-crate 1.3.1",
+ "proc-macro-crate 3.1.0",
  "proc-macro2",
  "quote",
- "syn 1.0.109",
- "zvariant_utils",
+ "syn 2.0.74",
+ "zvariant_utils 2.1.0",
 ]
 
 [[package]]
@@ -10781,4 +10847,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "zvariant_utils"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c51bcff7cc3dbb5055396bcf774748c3dab426b4b8659046963523cee4808340"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.74",
 ]

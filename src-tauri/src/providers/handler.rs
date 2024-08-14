@@ -1,11 +1,11 @@
 use futures::{
-    channel::mpsc::{channel, unbounded, Sender, UnboundedReceiver, UnboundedSender},
+    channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
     future::join_all,
     lock::Mutex,
     StreamExt,
 };
 use serde_json::Value;
-use std::{collections::HashMap, rc::Rc, sync::Arc, thread};
+use std::{collections::HashMap, sync::Arc};
 
 use database::cache::CacheHolder;
 use macros::{generate_command_async, generate_command_async_cached};

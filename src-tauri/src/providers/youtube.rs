@@ -14,7 +14,6 @@ use preferences::preferences::PreferenceConfig;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use std::sync::mpsc::Sender;
 use tauri::{AppHandle, Manager, State};
 use types::entities::{
     EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult,
@@ -25,6 +24,8 @@ use types::songs::{QueryableSong, Song, SongType};
 use types::{oauth::OAuth2Client, providers::generic::GenericProvider};
 use youtube::types::ContinuationToken;
 use youtube::youtube::YoutubeScraper;
+
+use crate::oauth::handler::OAuthHandler;
 
 use super::common::{authorize, login, refresh_login, LoginArgs, TokenHolder};
 
@@ -352,6 +353,9 @@ impl GenericProvider for YoutubeProvider {
             self.get_oauth_client(),
             &self.app,
         )?;
+
+        let oauth_handler: State<OAuthHandler> = self.app.state();
+        oauth_handler.register_oauth_path("youtubeoauthcallback".into(), self.key());
 
         Ok(())
     }

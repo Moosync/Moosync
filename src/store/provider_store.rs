@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-use leptos::{spawn_local, RwSignal, SignalGet, SignalSet, SignalUpdate};
+use leptos::{spawn_local, RwSignal, SignalGet, SignalSet};
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
 use types::entities::{QueryablePlaylist, SearchResult};

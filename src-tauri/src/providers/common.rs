@@ -149,7 +149,7 @@ pub async fn authorize(
         return Err("OAuth not initiated".into());
     }
 
-    let parsed_code = Url::parse(format!("https://moosync.app/{}", code).as_str()).unwrap();
+    let parsed_code = Url::parse(code.as_str()).unwrap();
     let code = parsed_code
         .query_pairs()
         .find(|p| p.0 == "code")
@@ -164,7 +164,17 @@ pub async fn authorize(
         .set_pkce_verifier(verifier)
         .request_async(async_http_client)
         .await
-        .map_err(|err| MoosyncError::String(err.to_string()))?;
+        .map_err(|err| match err {
+            oauth2::RequestTokenError::ServerResponse(e) => MoosyncError::String(format!(
+                "{:?}: {:?} {:?}",
+                e.error(),
+                e.error_description(),
+                serde_json::to_string(&e)
+            )),
+            oauth2::RequestTokenError::Request(_) => todo!(),
+            oauth2::RequestTokenError::Parse(_, _) => todo!(),
+            oauth2::RequestTokenError::Other(_) => todo!(),
+        })?;
 
     set_tokens(key, app, res, None)
 }

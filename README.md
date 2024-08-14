@@ -17,15 +17,18 @@ You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/
 
 ## TODO
 
-- Implement toggle for lyric providers
-- Extension system
-- Rodio player
+- Songlist Sorting and filtering
+- Playlist / song from URL
+- Implement lyrics
+- Context menu
+- Extension accounts
 - System theme fetch
-- File logging
-- ~~Theme CSS import parsing~~
+- Extension preference items
+- Rodio player
+- Logging
 - Auto updater
 - Playlist export
-- ~~Youtube playlists, artists, albums and suggestions~~
-- ~~Spotify canvas~~
-- ~~File browser~~
-- Optimize cloning in songlists
+- Provider suggestions
+- Spotify canvas
+- Optimize cloning in leptos
+- Optimize DB queries

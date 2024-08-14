@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::mpsc::Sender};
+use std::collections::HashSet;
 
 use async_trait::async_trait;
 
@@ -25,6 +25,9 @@ use types::{
     songs::{QueryableSong, Song, SongType},
 };
 use types::{errors::errors::MoosyncError, providers::generic::GenericProvider};
+use url::Url;
+
+use crate::oauth::handler::OAuthHandler;
 
 use super::common::{
     authorize, get_oauth_client, login, refresh_login, LoginArgs, OAuthClientArgs, TokenHolder,
@@ -279,10 +282,14 @@ impl GenericProvider for SpotifyProvider {
             &self.app,
         )?;
 
+        let oauth_handler: State<OAuthHandler> = self.app.state();
+        oauth_handler.register_oauth_path("spotifyoauthcallback".into(), self.key());
+
         Ok(())
     }
 
     async fn authorize(&mut self, code: String) -> Result<()> {
+        println!("Authorizing with code {}", code);
         self.config.tokens = Some(
             authorize(
                 "MoosyncSpotifyRefreshToken",

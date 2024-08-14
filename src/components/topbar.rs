@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon};
 use leptos::{
     component, create_effect, create_rw_signal, create_write_slice, ev::Event, event_target_value,
-    expect_context, view, CollectView, For, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
+    expect_context, view, For, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
 };
 use leptos_router::use_navigate;
 use leptos_virtual_scroller::VirtualScroller;
@@ -113,20 +113,24 @@ pub fn Accounts() -> impl IntoView {
                                     key=|s| s.key.clone()
                                     children=move |status| {
                                         let key = status.key.clone();
-                                        let name = status.name.clone();
-                                        let title = create_rw_signal("Connect".into());
+                                        let (title_out, title_in) = if status.logged_in {
+                                            (status.user_name.unwrap_or_default(), "Sign out".into())
+                                        } else {
+                                            ("Connect".into(), status.name.clone())
+                                        };
+                                        let title = create_rw_signal(title_out.clone());
                                         view! {
                                             <div
                                                 class="button-bg d-flex ripple w-100"
                                                 on:mouseover=move |_| {
-                                                    title.set(status.name.clone());
+                                                    title.set(title_in.clone());
                                                 }
                                                 on:mouseout=move |_| {
-                                                    title.set("Connect".into());
+                                                    title.set(title_out.clone());
                                                 }
                                                 on:click=move |_| show_login_modal(
                                                     key.clone(),
-                                                    name.clone(),
+                                                    status.name.clone(),
                                                 )
                                             >
 

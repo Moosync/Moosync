@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::thread;
+
 use extensions::get_extension_state;
 use librespot::{
     get_canvaz, get_librespot_state, initialize_librespot, librespot_close, librespot_get_token,
@@ -52,8 +54,6 @@ use {
     youtube::get_youtube_scraper_state,
 };
 
-use crate::oauth::handler::{register_oauth_path, unregister_oauth_path};
-
 mod db;
 mod extensions;
 mod librespot;
@@ -72,12 +72,11 @@ mod youtube;
 pub fn run() {
     env_logger::init();
 
-    // let devtools = tauri_plugin_devtools::init();
-
     tauri::Builder::default()
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if let Some(url) = argv.get(1) {
+                println!("Got url {}", url);
                 let state: State<OAuthHandler> = app.state();
                 state.handle_oauth(app.clone(), url.to_string()).unwrap();
             }
@@ -112,9 +111,6 @@ pub fn run() {
             update_lyrics,
             increment_play_count,
             increment_play_time,
-            // OAuth
-            register_oauth_path,
-            unregister_oauth_path,
             // Window
             is_maximized,
             has_frame,

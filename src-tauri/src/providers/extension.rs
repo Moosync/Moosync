@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::mpsc::Sender};
+use std::fmt::Debug;
 
 use async_trait::async_trait;
 use futures::channel::mpsc::UnboundedSender;

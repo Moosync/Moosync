@@ -1,10 +1,13 @@
 use std::{collections::HashMap, sync::Mutex};
 
 use macros::generate_command;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
+use url::Url;
 use uuid::Uuid;
 
 use types::errors::errors::Result;
+
+use crate::providers::handler::ProviderHandler;
 
 pub struct OAuthHandler {
     pub oauth_map: Mutex<HashMap<String, String>>,
@@ -17,37 +20,36 @@ impl OAuthHandler {
         }
     }
 
-    pub fn register_oauth_path(&self, path: String) -> Result<String> {
+    pub fn register_oauth_path(&self, path: String, key: String) {
         let mut oauth_map = self.oauth_map.lock().unwrap();
-        if let Some(channel) = oauth_map.get(path.as_str()) {
-            return Ok(channel.to_string());
-        }
-        let id = Uuid::new_v4().to_string();
-        oauth_map.insert(path, id.clone());
-        Ok(id)
+        oauth_map.insert(path, key.clone());
     }
 
-    pub fn unregister_oauth_path(&self, path: String) -> Result<()> {
+    pub fn unregister_oauth_path(&self, path: String) {
         let mut oauth_map = self.oauth_map.lock().unwrap();
         oauth_map.remove(&path);
-        Ok(())
     }
 
     pub fn handle_oauth(&self, app: AppHandle, url: String) -> Result<()> {
         let oauth_map = self.oauth_map.lock().unwrap();
-        let query = url.replace("moosync://", "");
-        let path = query.split('?').nth(0).unwrap();
-        if let Some(channel) = oauth_map.get(path) {
-            app.emit(channel.as_str(), url)?;
+        let url_parsed = Url::parse(url.as_str()).unwrap();
+        let path = url_parsed.host_str().unwrap();
+        if let Some(key) = oauth_map.get(path) {
+            let app = app.clone();
+            let key = key.clone();
+            tauri::async_runtime::spawn(async move {
+                println!("Authorizing {}", key);
+                let provider_handler: State<ProviderHandler> = app.state();
+                let err = provider_handler.provider_authorize(key.clone(), url).await;
+                if let Err(err) = err {
+                    println!("Error authorizing {}: {:?}", key, err);
+                }
+            });
         }
 
         Ok(())
     }
 }
-
-generate_command!(register_oauth_path, OAuthHandler, String, path: String);
-generate_command!(unregister_oauth_path, OAuthHandler, (), path: String);
-generate_command!(handle_oauth, OAuthHandler, (), app: AppHandle, url: String);
 
 pub fn get_oauth_state() -> Result<OAuthHandler> {
     Ok(OAuthHandler::new())

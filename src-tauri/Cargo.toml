@@ -70,11 +70,6 @@ version = "0.12.5"
 features = ["http2", "charset", "macos-system-configuration"]
 default-features = false
 
-[dependencies.rfd]
-version = "0.14.1"
-features = ["ashpd", "tokio", "pollster", "xdg-portal"]
-default-features = false
-
 [dependencies.serde]
 version = "1.0"
 features = ["derive"]
@@ -82,17 +77,22 @@ features = ["derive"]
 [dependencies.tauri]
 version = "2.0.0-beta.24"
 features = [
+    "protocol-asset",
     "objc-exception",
     "http-range",
     "compression",
     "common-controls-v6",
-    "protocol-asset",
     "tauri-runtime-wry",
     "wry",
 ]
 default-features = false
 
 [dependencies.tauri-plugin-deep-link]
+git = "https://github.com/tauri-apps/plugins-workspace"
+branch = "v2"
+features = []
+
+[dependencies.tauri-plugin-dialog]
 git = "https://github.com/tauri-apps/plugins-workspace"
 branch = "v2"
 features = []

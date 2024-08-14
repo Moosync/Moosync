@@ -21,7 +21,6 @@ use futures::{
 use interprocess::local_socket::{
     traits::tokio::Listener, GenericFilePath, ListenerOptions, ToFsName,
 };
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use socket_handler::{CommandSender, SocketHandler};
 use tokio::join;

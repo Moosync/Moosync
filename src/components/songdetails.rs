@@ -5,7 +5,6 @@ use leptos::{
 use types::{songs::Song, ui::song_details::SongDetailIcons};
 
 use crate::{
-    console_log,
     icons::{
         add_to_library_icon::AddToLibraryIcon, add_to_queue_icon::AddToQueueIcon,
         plain_play_icon::PlainPlayIcon, random_icon::RandomIcon,

@@ -291,12 +291,14 @@ pub fn Search() -> impl IntoView {
                                 return match active_category.as_str() {
                                     "Songs" => {
                                         view! {
-                                            <SongList
-                                                hide_search_bar=true
-                                                expand=true
-                                                song_list=create_rw_signal(res.songs.clone()).read_only()
-                                                selected_songs_sig=create_rw_signal(vec![])
-                                            />
+                                            <div class="col h-100 song-list-compact">
+                                                <SongList
+                                                    hide_search_bar=true
+                                                    song_list=create_rw_signal(res.songs.clone()).read_only()
+                                                    selected_songs_sig=create_rw_signal(vec![])
+                                                    filtered_selected=create_rw_signal(vec![])
+                                                />
+                                            </div>
                                         }
                                             .into_view()
                                     }

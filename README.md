@@ -17,10 +17,10 @@ You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/
 
 ## TODO
 
-- Songlist Sorting and filtering
 - Playlist / song from URL
 - Implement lyrics
 - Context menu
+- Songlist Sorting
 - Extension accounts
 - Provider suggestions
 - System theme fetch

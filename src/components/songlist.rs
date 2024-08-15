@@ -1,5 +1,5 @@
 use leptos::{
-    component, create_effect, create_node_ref, create_rw_signal, create_write_slice,
+    component, create_effect, create_memo, create_node_ref, create_rw_signal, create_write_slice,
     ev::{keydown, keyup},
     event_target_value,
     html::{Div, Input},
@@ -12,6 +12,7 @@ use types::songs::Song;
 
 use crate::{
     components::{low_img::LowImg, provider_icon::ProviderIcon},
+    console_log,
     icons::{
         add_to_queue_icon::AddToQueueIcon, ellipsis_icon::EllipsisIcon, search_icon::SearchIcon,
         sort_icon::SortIcon,
@@ -90,7 +91,7 @@ pub fn SongListItem(
 pub fn SongList(
     #[prop()] song_list: ReadSignal<Vec<Song>>,
     #[prop()] selected_songs_sig: RwSignal<Vec<usize>>,
-    #[prop(default = false)] expand: bool,
+    #[prop()] filtered_selected: RwSignal<Vec<usize>>,
     #[prop(default = false)] hide_search_bar: bool,
 ) -> impl IntoView {
     let is_ctrl_pressed = create_rw_signal(false);
@@ -100,6 +101,34 @@ pub fn SongList(
     let searchbar_ref = create_node_ref();
 
     let filter = create_rw_signal(None::<String>);
+
+    let filtered_songs = create_memo(move |_| {
+        let filter = filter.get();
+        if filter.is_none() {
+            return song_list.get();
+        }
+        let binding = filter.unwrap();
+        let binding = binding.to_lowercase();
+        let filter = binding.as_str();
+
+        song_list
+            .get()
+            .into_iter()
+            .filter(|s| {
+                if let Some(title) = &s.song.title {
+                    title.to_lowercase().contains(filter)
+                } else {
+                    false
+                }
+            })
+            .collect()
+    });
+
+    create_effect(move |_| {
+        let _ = filtered_songs.get();
+        filtered_selected.update(|s| s.clear());
+        selected_songs_sig.update(|s| s.clear());
+    });
 
     create_effect(move |_| {
         let show_searchbar = show_searchbar.get();
@@ -132,133 +161,144 @@ pub fn SongList(
         }
     });
 
+    let get_actual_position = move |filtered_index: usize| {
+        let filtered_songs = filtered_songs.get();
+        console_log!("Filtered index {}", filtered_index);
+        let filtered_song = filtered_songs.get(filtered_index).unwrap();
+        song_list
+            .get()
+            .iter()
+            .position(|s| s == filtered_song)
+            .unwrap()
+    };
+
     let add_to_selected = move |index: usize| {
         let is_ctrl_pressed = is_ctrl_pressed.get();
         let is_shift_pressed = is_shift_pressed.get();
 
         if is_shift_pressed {
-            let selected_songs = selected_songs_sig.get();
+            let selected_songs = filtered_selected.get();
             let first_selected = selected_songs.first();
 
-            if let Some(first_selected) = first_selected.cloned() {
+            if let Some(&first_selected) = first_selected {
                 let (i, j) = if first_selected < index {
                     (first_selected, index)
                 } else {
                     (index, first_selected)
                 };
-                selected_songs_sig.set((i..=j).collect::<Vec<usize>>());
+
+                console_log!("First selected {}, index {}", i, j);
+
+                let mut ret = vec![];
+                for k in i..=j {
+                    ret.push(get_actual_position(k));
+                }
+
+                filtered_selected.set((i..=j).collect());
+                selected_songs_sig.set(ret);
             }
             return;
         }
 
         if is_ctrl_pressed {
             selected_songs_sig.update(move |s| {
+                s.push(get_actual_position(index));
+            });
+            filtered_selected.update(|s| {
                 s.push(index);
             });
             return;
         }
 
-        selected_songs_sig.set(vec![index]);
+        selected_songs_sig.set(vec![get_actual_position(index)]);
+        filtered_selected.set(vec![index]);
+        console_log!("{:?}", selected_songs_sig.get());
     };
 
-    let target = create_node_ref::<Div>();
-    on_click_outside(target, move |_| {
-        selected_songs_sig.update(|s| s.clear());
-    });
-
     view! {
-        <div class=move || {
-            if !expand {
-                "col-xl-9 col-8 h-100 song-list-compact"
-            } else {
-                "col h-100 song-list-compact"
-            }
-        }>
-            <div class="d-flex h-100 w-100">
-                <div class="container-fluid">
+        <div class="d-flex h-100 w-100">
+            <div class="container-fluid">
 
-                    <Show
-                        when=move || hide_search_bar
-                        fallback=move || {
-                            view! {
-                                <div class="container-fluid tab-carousel">
-                                    <div class="row no-gutters">
-                                        <div class="col song-header-options w-100">
-                                            <div class="row no-gutters align-items-center h-100">
-                                                // Sort icons here
-                                                <div class="col-auto ml-auto d-flex">
+                <Show
+                    when=move || hide_search_bar
+                    fallback=move || {
+                        view! {
+                            <div class="container-fluid tab-carousel">
+                                <div class="row no-gutters">
+                                    <div class="col song-header-options w-100">
+                                        <div class="row no-gutters align-items-center h-100">
+                                            // Sort icons here
+                                            <div class="col-auto ml-auto d-flex">
 
-                                                    {move || {
-                                                        if show_searchbar.get() {
-                                                            view! {
-                                                                <div class="searchbar-container mr-3">
-                                                                    <input
-                                                                        ref=searchbar_ref
-                                                                        on:input=move |ev| {
-                                                                            let text = event_target_value(&ev);
-                                                                            if text.is_empty() {
-                                                                                filter.set(None);
-                                                                            } else {
-                                                                                filter.set(Some(text));
-                                                                            }
+                                                {move || {
+                                                    if show_searchbar.get() {
+                                                        view! {
+                                                            <div class="songlist-searchbar-container mr-3">
+                                                                <input
+                                                                    ref=searchbar_ref
+                                                                    on:input=move |ev| {
+                                                                        let text = event_target_value(&ev);
+                                                                        if text.is_empty() {
+                                                                            filter.set(None);
+                                                                        } else {
+                                                                            filter.set(Some(text));
                                                                         }
+                                                                    }
 
-                                                                        type="text"
-                                                                        class="searchbar"
-                                                                        placeholder="search"
-                                                                    />
-                                                                </div>
-                                                            }
-                                                                .into_view()
-                                                        } else {
-                                                            view! {}.into_view()
+                                                                    type="text"
+                                                                    class="songlist-searchbar"
+                                                                    placeholder="search"
+                                                                />
+                                                            </div>
                                                         }
-                                                    }}
-                                                    <div
-                                                        class="mr-3 align-self-center"
-                                                        on:click=move |_| show_searchbar.set(!show_searchbar.get())
-                                                    >
-                                                        <SearchIcon accent=false />
-                                                    </div> <div class="align-self-center">
-                                                        <SortIcon />
-                                                    </div>
+                                                            .into_view()
+                                                    } else {
+                                                        view! {}.into_view()
+                                                    }
+                                                }}
+                                                <div
+                                                    class="mr-3 align-self-center"
+                                                    on:click=move |_| show_searchbar.set(!show_searchbar.get())
+                                                >
+                                                    <SearchIcon accent=false />
+                                                </div> <div class="align-self-center">
+                                                    <SortIcon />
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            }
+                            </div>
                         }
+                    }
+                >
+                    <div></div>
+                </Show>
+
+                <div class="row no-gutters h-100">
+                    <div
+                        class="scroller w-100 full-height"
+                        style="height: calc(100% - 53px) !important;"
                     >
-                        <div></div>
-                    </Show>
 
-                    <div class="row no-gutters h-100">
-                        <div
-                            class="scroller w-100 full-height"
-                            style="height: calc(100% - 53px) !important;"
-                            node_ref=target
-                        >
+                        <VirtualScroller
+                            each=filtered_songs
+                            item_height=95usize
+                            inner_el_style="width: calc(100% - 15px);"
+                            children=move |(index, song)| {
+                                view! {
+                                    <SongListItem
+                                        on:click=move |_| add_to_selected(index)
+                                        is_selected=Box::new(move || {
+                                            filtered_selected.get().contains(&index)
+                                        })
 
-                            <VirtualScroller
-                                each=song_list
-                                item_height=95usize
-                                inner_el_style="width: calc(100% - 15px);"
-                                children=move |(index, song)| {
-                                    view! {
-                                        <SongListItem
-                                            on:click=move |_| add_to_selected(index)
-                                            is_selected=Box::new(move || {
-                                                selected_songs_sig.get().contains(&index)
-                                            })
-
-                                            song=song.clone()
-                                        />
-                                    }
+                                        song=song.clone()
+                                    />
                                 }
-                            />
+                            }
+                        />
 
-                        </div>
                     </div>
                 </div>
             </div>

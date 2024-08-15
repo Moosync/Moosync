@@ -1,13 +1,14 @@
 use leptos::{
-    component, create_rw_signal, create_write_slice, expect_context, view,
-    IntoView, RwSignal, SignalGet,
+    component, create_rw_signal, create_write_slice, expect_context, view, IntoView, RwSignal,
+    SignalGet,
 };
 use rand::seq::SliceRandom;
 use std::rc::Rc;
 use types::songs::{GetSongOptions, Song};
 use types::ui::song_details::SongDetailIcons;
 
-use crate::store::player_store::{PlayerStore};
+use crate::console_log;
+use crate::store::player_store::PlayerStore;
 use crate::utils::db_utils::get_songs_by_option;
 
 use crate::components::songview::SongView;
@@ -53,6 +54,7 @@ pub fn AllSongs() -> impl IntoView {
 
     let add_to_queue = move || {
         let selected_songs = selected_songs.get();
+        console_log!("selected: {:?}", selected_songs);
         let songs = songs.get();
         if selected_songs.is_empty() {
             add_to_queue_setter.set(songs.clone());

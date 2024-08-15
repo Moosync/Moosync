@@ -63,7 +63,7 @@ where
     });
 
     view! {
-        <div class="container-fluid h-100 scrollable">
+        <div class="container-fluid scrollable" style="max-height: 100%;">
             <div class="row no-gutters">
                 <div class="col position-relative">
 

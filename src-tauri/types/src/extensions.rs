@@ -108,7 +108,7 @@ pub struct ExtensionAccountDetail {
     pub username: Option<String>,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum ExtensionProviderScope {
     Search,
@@ -122,6 +122,7 @@ pub enum ExtensionProviderScope {
     SongFromUrl,
     SearchAlbum,
     SearchArtist,
+    PlaybackDetails,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -219,8 +220,8 @@ pub struct SongReturnType {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistAndSongsReturnType {
-    pub playlist: QueryablePlaylist,
-    pub songs: Vec<Song>,
+    pub playlist: Option<QueryablePlaylist>,
+    pub songs: Option<Vec<Song>>,
 }
 
 #[derive(Deserialize)]

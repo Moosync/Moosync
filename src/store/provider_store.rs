@@ -169,6 +169,18 @@ impl ProviderStore {
                 term: String
             },
             result_type: SearchResult,
+        },
+        playlist_from_url {
+            args: {
+                url: String
+            },
+            result_type: QueryablePlaylist,
+        },
+        match_url {
+            args: {
+                url: String
+            },
+            result_type: bool,
         }
     );
 }

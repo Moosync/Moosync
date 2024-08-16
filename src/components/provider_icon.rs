@@ -1,4 +1,3 @@
-
 use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
 use serde::Serialize;
 use types::{
@@ -13,10 +12,11 @@ use crate::{
 };
 
 #[component]
-pub fn ProviderIcon(#[prop()] song: Song) -> impl IntoView {
+pub fn ProviderIcon(#[prop()] extension: String) -> impl IntoView {
     let provider_icon = create_rw_signal(String::new());
+    let extension_clone = extension.clone();
     spawn_local(async move {
-        if let Some(extension) = song.song.provider_extension {
+        if !extension_clone.is_empty() {
             #[derive(Serialize)]
             struct ExtensionIconArgs {
                 args: PackageNameArgs,
@@ -25,7 +25,7 @@ pub fn ProviderIcon(#[prop()] song: Song) -> impl IntoView {
                 "get_extension_icon",
                 serde_wasm_bindgen::to_value(&ExtensionIconArgs {
                     args: PackageNameArgs {
-                        package_name: extension,
+                        package_name: extension_clone,
                     },
                 })
                 .unwrap(),
@@ -38,9 +38,10 @@ pub fn ProviderIcon(#[prop()] song: Song) -> impl IntoView {
     view! {
         <div class="d-flex provider-icon">
             {move || {
-                if song.song.type_ == SongType::YOUTUBE {
+                let extension = extension.as_str();
+                if extension == "youtube" {
                     view! { <YoutubeIcon /> }
-                } else if song.song.type_ == SongType::SPOTIFY {
+                } else if extension == "spotify" {
                     view! { <SpotifyIcon /> }
                 } else {
                     view! {

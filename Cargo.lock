@@ -5113,6 +5113,7 @@ dependencies = [
  "oauth2",
  "open",
  "preferences",
+ "regex",
  "reqwest 0.12.5",
  "rspotify",
  "serde",

@@ -33,7 +33,7 @@ pub fn LoginModal(#[prop()] key: String, #[prop()] name: String) -> impl IntoVie
     });
 
     view! {
-        <GenericModal size="modal-sm".into()>
+        <GenericModal size=move || "modal-sm".into()>
             <div class="w-100 h-100">
                 <div class="container response-container">
                     <div class="row no-gutters d-flex">

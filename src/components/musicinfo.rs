@@ -44,7 +44,14 @@ where
                         <div class="text-left song-title text-truncate">
                             {song.song.title.clone()}
                         </div>
-                        <ProviderIcon song=song.clone() />
+                        {move || {
+                            let extension = song.song.provider_extension.clone();
+                            if let Some(extension) = extension {
+                                view! { <ProviderIcon extension=extension /> }.into_view()
+                            } else {
+                                view! {}.into_view()
+                            }
+                        }}
                     </div>
                     <div class="text-left song-subtitle text-truncate">
                         {song

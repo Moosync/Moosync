@@ -1,3 +1,4 @@
+use crate::components::provider_icon::ProviderIcon;
 use leptos::{component, view, IntoView, SignalGet};
 use leptos_router::A;
 use leptos_virtual_scroller::VirtualGridScroller;
@@ -6,6 +7,7 @@ pub struct SimplifiedCardItem {
     pub title: String,
     pub cover: Option<String>,
     pub id: String,
+    pub icon: Option<String>,
 }
 
 #[component()]
@@ -16,7 +18,13 @@ pub fn CardItem(#[prop()] item: SimplifiedCardItem) -> impl IntoView {
                 <div class="embed-responsive embed-responsive-1by1">
                     <div class="embed-responsive-item img-container">
                         // Ext icon
-                        <div class="overlay me-auto justify-content-center d-flex align-items-center h-100 w-100"></div>
+                        <div class="provider-icon-overlay me-auto justify-content-center d-flex align-items-center">
+                            {if let Some(icon) = item.icon.clone() {
+                                view! { <ProviderIcon extension=icon /> }
+                            } else {
+                                view! {}.into_view()
+                            }}
+                        </div>
                         <img src=item.cover class="img-fluid w-100 h-100" />
                     </div>
                 </div>

@@ -48,7 +48,14 @@ pub fn SongListItem(
                             <div class="title text-truncate mr-2">
                                 {song.song.title.clone().unwrap_or_default()}
                             </div>
-                            <ProviderIcon song=song.clone() />
+                            {move || {
+                                let extension = song.song.provider_extension.clone();
+                                if let Some(extension) = extension {
+                                    view! { <ProviderIcon extension=extension /> }
+                                } else {
+                                    view! {}.into_view()
+                                }
+                            }}
                         </div>
                     </div>
                     <div class="row no-gutters flex-nowrap">

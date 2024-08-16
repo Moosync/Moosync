@@ -393,8 +393,7 @@ impl YoutubeScraper {
         Err(MoosyncError::String("No data found".to_string()))
     }
 
-    pub async fn search_yt(&self, title: String, artists: Vec<String>) -> Result<SearchResult> {
-        let query = format!("{} - {}", artists.join(", "), title);
+    pub async fn search_yt(&self, query: String) -> Result<SearchResult> {
         let res = self
             .youtube
             .search(

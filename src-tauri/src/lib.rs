@@ -1,7 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-
 use extensions::get_extension_state;
 use librespot::{
     get_canvaz, get_librespot_state, initialize_librespot, librespot_close, librespot_get_token,
@@ -27,8 +26,8 @@ use extensions::{
 };
 use providers::handler::{
     fetch_playback_url, fetch_playlist_content, fetch_user_playlists, get_all_status,
-    get_provider_key_by_id, get_provider_keys, initialize_all_providers, provider_authorize,
-    provider_login, provider_search,
+    get_provider_key_by_id, get_provider_keys, initialize_all_providers, match_url,
+    playlist_from_url, provider_authorize, provider_login, provider_search,
 };
 use scanner::{get_scanner_state, start_scan};
 use tauri::{Listener, Manager, State};
@@ -171,6 +170,8 @@ pub fn run() {
             fetch_playback_url,
             provider_search,
             get_all_status,
+            match_url,
+            playlist_from_url,
         ])
         .setup(|app| {
             let db = get_db_state(app);

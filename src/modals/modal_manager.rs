@@ -2,7 +2,10 @@ use leptos::{component, expect_context, view, IntoView, RwSignal, SignalGet};
 
 use crate::{
     console_log,
-    modals::{discover_extensions::DiscoverExtensionsModal, login_modal::LoginModal},
+    modals::{
+        discover_extensions::DiscoverExtensionsModal, login_modal::LoginModal,
+        new_playlist_modal::NewPlaylistModal,
+    },
     store::modal_store::{ModalStore, Modals},
 };
 
@@ -24,6 +27,9 @@ pub fn ModalManager() -> impl IntoView {
                     }
                     Modals::DiscoverExtensions => {
                         view! { <DiscoverExtensionsModal /> }
+                    }
+                    Modals::NewPlaylistModal => {
+                        view! { <NewPlaylistModal /> }
                     }
                 }
                     .into_view()

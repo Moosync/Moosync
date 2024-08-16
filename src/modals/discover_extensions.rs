@@ -1,14 +1,8 @@
-
-use leptos::{
-    component, create_rw_signal, spawn_local,
-    view, For, IntoView, SignalGet, SignalSet,
-};
+use leptos::{component, create_rw_signal, spawn_local, view, For, IntoView, SignalGet, SignalSet};
 use types::extensions::FetchedExtensionManifest;
 use wasm_bindgen::JsValue;
 
-use crate::{
-    modals::common::GenericModal, utils::common::invoke,
-};
+use crate::{modals::common::GenericModal, utils::common::invoke};
 
 #[component]
 pub fn DiscoverExtensionsModal() -> impl IntoView {
@@ -23,7 +17,7 @@ pub fn DiscoverExtensionsModal() -> impl IntoView {
     });
 
     view! {
-        <GenericModal size="modal-xl".into()>
+        <GenericModal size=move || "modal-xl".into()>
             <div class="w-100 h-100">
                 <div class="container overflow-container">
                     <div class="row no-gutters d-flex">

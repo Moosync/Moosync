@@ -23,6 +23,7 @@ You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/
 - Songlist Sorting
 - Extension accounts
 - Provider suggestions
+- Sanitize extension response
 - System theme fetch
 - Logging
 - Playlist export

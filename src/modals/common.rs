@@ -7,7 +7,10 @@ use leptos_use::on_click_outside;
 use crate::store::modal_store;
 
 #[component]
-pub fn GenericModal(#[prop()] size: String, children: Children) -> impl IntoView {
+pub fn GenericModal<T>(#[prop()] size: T, children: Children) -> impl IntoView
+where
+    T: Fn() -> String + 'static,
+{
     let target = create_node_ref::<Div>();
     let modal_store = expect_context::<RwSignal<modal_store::ModalStore>>();
 
@@ -18,7 +21,10 @@ pub fn GenericModal(#[prop()] size: String, children: Children) -> impl IntoView
     view! {
         <div style="position: absolute; z-index: 1040;">
             <div class="modal fade show">
-                <div node_ref=target class=format!("modal-dialog {} modal-dialog-centered", size)>
+                <div
+                    node_ref=target
+                    class=move || format!("modal-dialog {} modal-dialog-centered", size())
+                >
                     <div class="modal-content">
                         <div class="modal-body">
 

@@ -2,6 +2,7 @@
 pub enum Modals {
     LoginModal(String, String),
     DiscoverExtensions,
+    NewPlaylistModal,
 }
 
 #[derive(Debug, Clone, Default)]

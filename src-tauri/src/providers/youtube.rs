@@ -11,6 +11,7 @@ use oauth2::{
     TokenUrl,
 };
 use preferences::preferences::PreferenceConfig;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -22,6 +23,7 @@ use types::errors::errors::{MoosyncError, Result};
 use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::{QueryableSong, Song, SongType};
 use types::{oauth::OAuth2Client, providers::generic::GenericProvider};
+use url::Url;
 use youtube::types::ContinuationToken;
 use youtube::youtube::YoutubeScraper;
 
@@ -167,7 +169,7 @@ impl YoutubeProvider {
             playlist_song_count: content_details.item_count.unwrap_or_default() as f64,
             playlist_desc: snippet.description,
             playlist_path: None,
-            extension: None,
+            extension: Some(self.key()),
             icon: None,
         }
     }
@@ -248,6 +250,7 @@ impl YoutubeProvider {
                     .thumbnails
                     .map(|t| t.standard.unwrap_or_default().url.unwrap_or_default()),
                 date_added: snippet.published_at.map(|v| v.timestamp_millis()),
+                provider_extension: Some(self.key()),
                 ..Default::default()
             },
             album: Some(QueryableAlbum {
@@ -553,9 +556,56 @@ impl GenericProvider for YoutubeProvider {
             });
         }
 
-        Err(MoosyncError::String("TODO".into()))
+        let youtube_scraper: State<YoutubeScraper> = self.app.state();
+        youtube_scraper.search_yt(term).await
+    }
 
-        // let youtube_scraper: State<YoutubeScraper> = self.app.state();
-        // return youtube_scraper.search(term).await;
+    async fn match_url(&self, url: String) -> Result<bool> {
+        let re = Regex::new(
+            r"^((?:https?:)?\/\/)?((?:www|m|music)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w-]+\?v=|embed\/|v\/)?)([\w-]+)(\S+)?$",
+        ).unwrap();
+
+        Ok(re.is_match(url.as_str()))
+    }
+
+    async fn playlist_from_url(&self, url: String) -> Result<QueryablePlaylist> {
+        let playlist_id = Url::parse(url.as_str())
+            .map_err(|_| MoosyncError::String(format!("Failed to parse URL {}", url)))?;
+        let playlist_id = playlist_id.query_pairs().find(|(k, _)| k == "list");
+
+        if playlist_id.is_none() {
+            return Err("Invalid URL".into());
+        }
+
+        let playlist_id = playlist_id.unwrap().1.to_string();
+
+        if let Some(api_client) = &self.api_client {
+            let (_, playlists) = api_client
+                .playlists()
+                .list(&vec![
+                    "id".into(),
+                    "contentDetails".into(),
+                    "snippet".into(),
+                ])
+                .add_id(playlist_id.as_str())
+                .max_results(1)
+                .doit()
+                .await?;
+
+            if let Some(items) = playlists.items {
+                if let Some(first) = items.first() {
+                    let parsed = self.parse_playlist(first.clone());
+                    return Ok(parsed);
+                }
+            }
+        }
+
+        let youtube_scraper: State<YoutubeScraper> = self.app.state();
+        let res = youtube_scraper.search_yt(playlist_id).await?;
+        if let Some(first) = res.playlists.first() {
+            return Ok(first.clone());
+        }
+
+        Err("Playlist not found".into())
     }
 }

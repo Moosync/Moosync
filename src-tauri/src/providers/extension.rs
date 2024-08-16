@@ -8,8 +8,8 @@ use types::{
     errors::errors::Result,
     extensions::{
         CustomRequestReturnType, ExtensionDetail, ExtensionExtraEvent, ExtensionExtraEventArgs,
-        ExtensionProviderScope, PlaybackDetailsReturnType, PlaylistReturnType, SearchReturnType,
-        SongsWithPageTokenReturnType,
+        ExtensionProviderScope, PlaybackDetailsReturnType, PlaylistAndSongsReturnType,
+        PlaylistReturnType, SearchReturnType, SongsWithPageTokenReturnType,
     },
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
@@ -89,6 +89,9 @@ impl GenericProvider for ExtensionProvider {
         &self,
         pagination: Pagination,
     ) -> Result<(Vec<QueryablePlaylist>, Pagination)> {
+        if !self.provides.contains(&ExtensionProviderScope::Playlists) {
+            return Err("Extension does not have this capability".into());
+        }
         if pagination.offset > 0 {
             return Ok((vec![], pagination.next_page()));
         }
@@ -105,6 +108,13 @@ impl GenericProvider for ExtensionProvider {
         playlist_id: String,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
+        if !self
+            .provides
+            .contains(&ExtensionProviderScope::PlaylistSongs)
+        {
+            return Err("Extension does not have this capability".into());
+        }
+
         if pagination.offset > 0 {
             return Ok((vec![], pagination.next_page()));
         }
@@ -128,6 +138,13 @@ impl GenericProvider for ExtensionProvider {
         ))
     }
     async fn get_playback_url(&self, song: Song, player: String) -> Result<String> {
+        if !self
+            .provides
+            .contains(&ExtensionProviderScope::PlaybackDetails)
+        {
+            return Err("Extension does not have this capability".into());
+        }
+
         if let Some(playback_url) = song.song.playback_url.clone() {
             if playback_url.starts_with("extension://") {
                 let res = send_extension_event!(
@@ -150,6 +167,10 @@ impl GenericProvider for ExtensionProvider {
     }
 
     async fn search(&self, term: String) -> Result<SearchResult> {
+        if !self.provides.contains(&ExtensionProviderScope::Search) {
+            return Err("Extension does not have this capability".into());
+        }
+
         let res = send_extension_event!(
             self,
             ExtensionExtraEvent::RequestedSearchResult([term]),
@@ -163,5 +184,35 @@ impl GenericProvider for ExtensionProvider {
             albums: res.albums,
             genres: vec![],
         })
+    }
+
+    async fn match_url(&self, url: String) -> Result<bool> {
+        let res = send_extension_event!(
+            self,
+            ExtensionExtraEvent::RequestedPlaylistFromURL(url, false),
+            PlaylistAndSongsReturnType
+        );
+
+        Ok(res.playlist.is_some())
+    }
+
+    async fn playlist_from_url(&self, url: String) -> Result<QueryablePlaylist> {
+        if !self
+            .provides
+            .contains(&ExtensionProviderScope::PlaylistFromUrl)
+        {
+            return Err("Extension does not have this capability".into());
+        }
+
+        let res = send_extension_event!(
+            self,
+            ExtensionExtraEvent::RequestedPlaylistFromURL(url, false),
+            PlaylistAndSongsReturnType
+        );
+
+        if let Some(playlist) = res.playlist {
+            return Ok(playlist);
+        }
+        Err("Playlist not found".into())
     }
 }

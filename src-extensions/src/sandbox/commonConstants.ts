@@ -10,6 +10,7 @@ export enum ProviderScopes {
   SONG_FROM_URL = "songFromUrl",
   SEARCH_ALBUM = "searchAlbum",
   SEARCH_ARTIST = "searchArtist",
+  PLAYBACK_DETAILS = "playbackDetails",
 }
 
 export const FAVORITES_PLAYLIST_ID = "favorites_playlist";

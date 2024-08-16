@@ -114,7 +114,6 @@ impl Database {
         _playlist: QueryablePlaylist,
     ) -> Result<String> {
         let mut cloned = _playlist.clone();
-        cloned.playlist_id = Some(Uuid::new_v4().to_string());
         insert_into(playlists).values(&cloned).execute(conn)?;
         Ok(cloned.playlist_id.unwrap())
     }

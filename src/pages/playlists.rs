@@ -4,6 +4,7 @@ use std::rc::Rc;
 use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songview::SongView;
 use crate::console_log;
+use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::player_store::PlayerStore;
 use crate::utils::common::fetch_infinite;
 use crate::utils::db_utils::get_songs_by_option;
@@ -140,13 +141,20 @@ pub fn AllPlaylists() -> impl IntoView {
         }
     });
 
+    let modal_manager = expect_context::<RwSignal<ModalStore>>();
+
     view! {
         <div class="w-100 h-100">
             <div class="container-fluid song-container h-100 d-flex flex-column">
                 <div class="row page-title no-gutters">
 
                     <div class="col-auto">Playlists</div>
-                    <div class="col-auto button-grow playlists-plus-icon">
+                    <div
+                        class="col-auto button-grow playlists-plus-icon"
+                        on:click=move |_| {
+                            modal_manager.update(|m| m.set_active_modal(Modals::NewPlaylistModal))
+                        }
+                    >
                         <PlusIcon />
                     </div>
 
@@ -163,10 +171,12 @@ pub fn AllPlaylists() -> impl IntoView {
                             let playlist_name = item.playlist_name.clone();
                             let playlist_coverpath = item.playlist_coverpath.clone();
                             let playlist_id = item.playlist_id.clone().unwrap_or_default();
+                            let playlist_extension = item.extension.clone();
                             SimplifiedCardItem {
                                 title: playlist_name,
                                 cover: playlist_coverpath,
                                 id: playlist_id,
+                                icon: playlist_extension,
                             }
                         }
                     />

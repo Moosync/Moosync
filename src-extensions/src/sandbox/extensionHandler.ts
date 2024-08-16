@@ -180,6 +180,10 @@ export class ExtensionHandler {
       if (e.global.api._isEventCallbackRegistered("requestedRecommendations")) {
         providesMap[e.packageName].push(ProviderScopes.RECOMMENDATIONS);
       }
+
+      if (e.global.api._isEventCallbackRegistered("playbackDetailsRequested")) {
+        providesMap[e.packageName].push(ProviderScopes.PLAYBACK_DETAILS);
+      }
     }
 
     return providesMap;

@@ -6,11 +6,12 @@ use chrono::{DateTime, TimeDelta};
 use futures::{channel::mpsc::UnboundedSender, SinkExt};
 use oauth2::{CsrfToken, PkceCodeVerifier, TokenResponse};
 use preferences::preferences::PreferenceConfig;
+use regex::Regex;
 use rspotify::{
     clients::{BaseClient, OAuthClient},
     model::{
-        FullArtist, FullTrack, Id, PlaylistId, SearchType, SimplifiedAlbum, SimplifiedArtist,
-        SimplifiedPlaylist,
+        FullArtist, FullTrack, Id, PlaylistId, PlaylistTracksRef, SearchType, SimplifiedAlbum,
+        SimplifiedArtist, SimplifiedPlaylist,
     },
     AuthCodePkceSpotify, Token,
 };
@@ -25,6 +26,7 @@ use types::{
     songs::{QueryableSong, Song, SongType},
 };
 use types::{errors::errors::MoosyncError, providers::generic::GenericProvider};
+use url::Url;
 
 use crate::oauth::handler::OAuthHandler;
 
@@ -145,6 +147,7 @@ impl SpotifyProvider {
             playlist_name: playlist.name,
             playlist_coverpath: playlist.images.first().map(|i| i.url.clone()),
             playlist_song_count: playlist.tracks.total as f64,
+            extension: Some(self.key()),
             ..Default::default()
         }
     }
@@ -188,6 +191,7 @@ impl SpotifyProvider {
                 song_cover_path_high: item.album.images.first().map(|i| i.url.clone()),
                 playback_url: Some(id),
                 track_no: Some(item.disc_number as f64),
+                provider_extension: Some(self.key()),
                 ..Default::default()
             },
             album: Some(self.parse_album(item.album)),
@@ -420,5 +424,61 @@ impl GenericProvider for SpotifyProvider {
             return Ok(ret);
         }
         Err("API client not initialized".into())
+    }
+
+    async fn match_url(&self, url: String) -> Result<bool> {
+        let re = Regex::new(
+            r"^(https:\/\/open.spotify.com\/(track|embed)\/|spotify:track:)([a-zA-Z0-9]+)(.*)$",
+        )
+        .unwrap();
+        if re.is_match(url.as_str()) {
+            return Ok(true);
+        }
+
+        let re = Regex::new(
+            r"^(https:\/\/open.spotify.com\/playlist\/|spotify:playlist:)([a-zA-Z0-9]+)(.*)$",
+        )
+        .unwrap();
+        if re.is_match(url.as_str()) {
+            return Ok(true);
+        }
+        Ok(false)
+    }
+
+    async fn playlist_from_url(&self, url: String) -> Result<QueryablePlaylist> {
+        let playlist_id = Url::parse(url.as_str());
+        let playlist_id = if let Ok(playlist_id) = playlist_id {
+            playlist_id.path().to_string()
+        } else {
+            url
+        };
+
+        if let Some(api_client) = &self.api_client {
+            let playlists = api_client
+                .playlist(
+                    PlaylistId::from_id_or_uri(playlist_id.as_str())
+                        .map_err(|_| MoosyncError::String("Invalid playlist url".into()))?,
+                    None,
+                    None,
+                )
+                .await?;
+
+            let res = self.parse_playlist(SimplifiedPlaylist {
+                collaborative: playlists.collaborative,
+                external_urls: playlists.external_urls,
+                href: playlists.href,
+                id: playlists.id,
+                images: playlists.images,
+                name: playlists.name,
+                owner: playlists.owner,
+                public: playlists.public,
+                snapshot_id: playlists.snapshot_id,
+                tracks: PlaylistTracksRef::default(),
+            });
+
+            return Ok(res);
+        }
+
+        Err("API Client not initialized".into())
     }
 }

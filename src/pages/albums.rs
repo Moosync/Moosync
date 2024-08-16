@@ -123,6 +123,7 @@ pub fn AllAlbums() -> impl IntoView {
                                 title: album_name,
                                 cover: album_coverpath,
                                 id: album_id,
+                                icon: None,
                             }
                         }
                     />

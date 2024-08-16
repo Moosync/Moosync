@@ -6,6 +6,7 @@ use leptos::{
 };
 use serde::Serialize;
 use types::entities::QueryablePlaylist;
+use web_sys::MouseEvent;
 
 use crate::console_log;
 use crate::icons::{
@@ -55,7 +56,7 @@ pub fn NewPlaylistModal() -> impl IntoView {
     });
 
     let modal_store: RwSignal<ModalStore> = expect_context();
-    let close_modal = move |_| modal_store.update(|m| m.clear_active_modal());
+    let close_modal = move || modal_store.update(|m| m.clear_active_modal());
 
     let create_new_playlist = move |_| {
         let playlist = playlist.get();
@@ -83,6 +84,7 @@ pub fn NewPlaylistModal() -> impl IntoView {
             if let Err(res) = res {
                 console_log!("Failed to create playlist");
             }
+            close_modal();
         });
     };
 
@@ -210,7 +212,7 @@ pub fn NewPlaylistModal() -> impl IntoView {
                             </div>
                             <button
                                 class="btn btn-secondary close-button ml-3"
-                                on:click=close_modal
+                                on:click=move |_| close_modal()
                             >
                                 Close
                             </button>
@@ -323,7 +325,12 @@ pub fn NewPlaylistModal() -> impl IntoView {
                                     </div>
                                 </div>
                             </div>
-                            <button class="btn btn-secondary close-button ml-3">Close</button>
+                            <button
+                                class="btn btn-secondary close-button ml-3"
+                                on:click=move |_| close_modal()
+                            >
+                                Close
+                            </button>
                             <button
                                 class:disabled=move || {
                                     let playlist = playlist.get();

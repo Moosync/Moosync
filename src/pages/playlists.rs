@@ -127,21 +127,15 @@ pub fn AllPlaylists() -> impl IntoView {
     let playlists = create_rw_signal(vec![]);
     get_playlists_by_option(QueryablePlaylist::default(), playlists.write_only());
 
-    let provider_store = expect_context::<Rc<ProviderStore>>();
-    spawn_local(async move {
-        for key in provider_store.get_provider_keys() {
-            console_log!("Fetching playlists from {}", key);
-            let playlist_write_signal = playlists.write_only();
-            fetch_infinite!(
-                provider_store,
-                key,
-                fetch_user_playlists,
-                playlist_write_signal,
-            );
-        }
-    });
-
     let modal_manager = expect_context::<RwSignal<ModalStore>>();
+    let open_new_playlist_modal = move |_| {
+        modal_manager.update(|m| {
+            m.set_active_modal(Modals::NewPlaylistModal);
+            m.on_modal_close(move || {
+                get_playlists_by_option(QueryablePlaylist::default(), playlists.write_only());
+            });
+        });
+    };
 
     view! {
         <div class="w-100 h-100">
@@ -151,9 +145,7 @@ pub fn AllPlaylists() -> impl IntoView {
                     <div class="col-auto">Playlists</div>
                     <div
                         class="col-auto button-grow playlists-plus-icon"
-                        on:click=move |_| {
-                            modal_manager.update(|m| m.set_active_modal(Modals::NewPlaylistModal))
-                        }
+                        on:click=open_new_playlist_modal
                     >
                         <PlusIcon />
                     </div>

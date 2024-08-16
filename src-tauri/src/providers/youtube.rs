@@ -423,14 +423,13 @@ impl GenericProvider for YoutubeProvider {
         playlist_id: String,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
+        let playlist_id = playlist_id
+            .strip_prefix("youtube-playlist:")
+            .unwrap_or(&playlist_id);
         if let Some(api_client) = &self.api_client {
             if !pagination.is_first && pagination.token.is_none() {
                 return Ok((vec![], pagination));
             }
-
-            let playlist_id = playlist_id
-                .strip_prefix("youtube-playlist:")
-                .unwrap_or(&playlist_id);
 
             let mut builder = api_client
                 .playlist_items()
@@ -466,23 +465,16 @@ impl GenericProvider for YoutubeProvider {
             return Ok((ret, pagination.next_page_wtoken(resp.next_page_token)));
         }
 
-        let continuation = pagination
-            .clone()
-            .token
-            .map(|token| serde_json::from_str::<ContinuationToken>(&token).unwrap());
+        if !pagination.is_first {
+            return Ok((vec![], pagination.next_page()));
+        }
 
         let youtube_scraper: State<YoutubeScraper> = self.app.state();
         let res = youtube_scraper
-            .get_playlist_content(playlist_id, continuation)
+            .get_playlist_content(playlist_id.to_string(), pagination.clone())
             .await?;
 
-        return Ok((
-            res.songs,
-            pagination.next_page_wtoken(
-                res.next_page_token
-                    .map(|token| serde_json::to_string(&token).unwrap()),
-            ),
-        ));
+        return Ok((res.songs, pagination.next_page()));
     }
 
     async fn get_playback_url(&self, song: Song, player: String) -> Result<String> {

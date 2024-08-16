@@ -1,4 +1,4 @@
-use leptos::{spawn_local, SignalSet};
+use leptos::{spawn_local, SignalSet, SignalUpdate};
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
 use types::entities::QueryableAlbum;
@@ -137,12 +137,19 @@ pub fn get_genres_by_option(
 }
 
 #[cfg(not(feature = "mock"))]
-pub fn get_playlists_by_option(
-    options: QueryablePlaylist,
-    setter: impl SignalSet<Value = Vec<QueryablePlaylist>> + 'static,
-) {
-    use crate::console_log;
+pub fn get_playlists_by_option<T>(options: QueryablePlaylist, setter: T)
+where
+    T: SignalSet<Value = Vec<QueryablePlaylist>>
+        + SignalUpdate<Value = Vec<QueryablePlaylist>>
+        + 'static,
+{
+    use std::rc::Rc;
 
+    use leptos::expect_context;
+
+    use crate::{console_log, store::provider_store::ProviderStore, utils::common::fetch_infinite};
+
+    let provider_store = expect_context::<Rc<ProviderStore>>();
     spawn_local(async move {
         let args = to_value(&GetEntityOptionsArgs {
             options: GetEntityOptions {
@@ -158,6 +165,11 @@ pub fn get_playlists_by_option(
         }
         let songs: Vec<QueryablePlaylist> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
+
+        for key in provider_store.get_provider_keys() {
+            console_log!("Fetching playlists from {}", key);
+            fetch_infinite!(provider_store, key, fetch_user_playlists, setter,);
+        }
     });
 }
 

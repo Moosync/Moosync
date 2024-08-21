@@ -1,32 +1,86 @@
 use leptos::{
-    component, create_effect, create_rw_signal, view, CollectView, IntoView, RwSignal, SignalGet,
-    SignalSet,
+    component, create_effect, create_rw_signal, view, AnimatedShow, CollectView, IntoView,
+    RwSignal, SignalGet, SignalGetUntracked, SignalSet, SignalUpdate,
 };
+use serde::Serialize;
 use types::{songs::Song, ui::song_details::SongDetailIcons};
+use wasm_bindgen_futures::spawn_local;
 
 use crate::{
+    console_log,
     icons::{
         add_to_library_icon::AddToLibraryIcon, add_to_queue_icon::AddToQueueIcon,
-        plain_play_icon::PlainPlayIcon, random_icon::RandomIcon,
+        pin_icon::PinIcon, plain_play_icon::PlainPlayIcon, random_icon::RandomIcon,
         song_default_icon::SongDefaultIcon,
     },
-    utils::common::{format_duration, get_high_img},
+    utils::common::{format_duration, get_high_img, invoke},
 };
+use std::time::Duration;
 
 #[component()]
 pub fn SongDetails<T>(
     #[prop()] selected_song: T,
     #[prop()] icons: RwSignal<SongDetailIcons>,
+    #[prop(optional, default = false)] show_lyrics: bool,
 ) -> impl IntoView
 where
-    T: SignalGet<Value = Option<Song>> + 'static,
+    T: SignalGet<Value = Option<Song>> + Copy + 'static,
 {
     let selected_title = create_rw_signal(None::<String>);
     let selected_artists = create_rw_signal(None::<String>);
     let selected_duration = create_rw_signal(None::<String>);
     let selected_cover_path = create_rw_signal("".to_string());
 
+    let selected_lyrics = create_rw_signal(None::<String>);
     let show_default_cover_img = create_rw_signal(true);
+    let show_lyrics_div = create_rw_signal(false);
+    let show_lyrics_always = create_rw_signal(false);
+
+    if show_lyrics {
+        create_effect(move |_| {
+            console_log!("Fetching lyrics");
+            let song = selected_song.get();
+            if let Some(song) = song {
+                let lyrics = song.song.lyrics.clone();
+                if lyrics.is_none() {
+                    spawn_local(async move {
+                        #[derive(Serialize)]
+                        struct GetLyricsArgs {
+                            id: String,
+                            url: String,
+                            artists: Vec<String>,
+                            title: String,
+                        }
+                        let res = invoke(
+                            "get_lyrics",
+                            serde_wasm_bindgen::to_value(&GetLyricsArgs {
+                                id: song.song._id.clone().unwrap_or_default(),
+                                url: song.song.playback_url.clone().unwrap_or_default(),
+                                artists: song
+                                    .artists
+                                    .clone()
+                                    .unwrap_or_default()
+                                    .iter()
+                                    .map(|a| a.artist_name.clone().unwrap_or_default())
+                                    .collect::<Vec<String>>(),
+                                title: song.song.title.clone().unwrap_or_default(),
+                            })
+                            .unwrap(),
+                        )
+                        .await;
+                        if let Ok(res) = res {
+                            let lyrics = res.as_string().unwrap();
+                            selected_lyrics.set(Some(lyrics));
+                        } else {
+                            console_log!("Failed to fetch lyrics: {:?}", res.unwrap_err());
+                        }
+                    });
+                    return;
+                }
+                selected_lyrics.set(lyrics);
+            }
+        });
+    }
 
     create_effect(move |_| {
         let selected_song = selected_song.get();
@@ -69,7 +123,20 @@ where
 
                     <div class="image-container w-100">
                         <div class="embed-responsive embed-responsive-1by1">
-                            <div class="embed-responsive-item albumart">
+                            <div
+                                class="embed-responsive-item albumart"
+                                on:mouseenter=move |_| {
+                                    if show_lyrics {
+                                        console_log!("showing lyrics");
+                                        show_lyrics_div.set(true)
+                                    }
+                                }
+                                on:mouseleave=move |_| {
+                                    if show_lyrics && !show_lyrics_always.get_untracked() {
+                                        show_lyrics_div.set(false)
+                                    }
+                                }
+                            >
 
                                 {move || {
                                     let cover_path = selected_cover_path.get();
@@ -88,6 +155,27 @@ where
                                             .into_view()
                                     }
                                 }}
+                                <AnimatedShow
+                                    when=show_lyrics_div
+                                    show_class="fade-in-lyrics"
+                                    hide_class="fade-out-lyrics"
+                                    hide_delay=Duration::from_millis(200)
+                                >
+                                    <div class="lyrics-container">
+                                        <div class="lyrics-background"></div>
+                                        <pre>{move || selected_lyrics.get()}</pre>
+                                        <PinIcon
+                                            filled=show_lyrics_always
+                                            on:click=move |_| {
+                                                if show_lyrics_always.get() {
+                                                    show_lyrics_always.set(false)
+                                                } else {
+                                                    show_lyrics_always.set(true)
+                                                }
+                                            }
+                                        />
+                                    </div>
+                                </AnimatedShow>
 
                             </div>
                         </div>

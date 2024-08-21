@@ -127,6 +127,7 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
                             <SongDetails
                                 icons=create_rw_signal(SongDetailIcons::default())
                                 selected_song=current_song
+                                show_lyrics=true
                             />
                         </div>
                         <div class="col-7 offset-1 right-container h-100">

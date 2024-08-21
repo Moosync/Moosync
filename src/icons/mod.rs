@@ -20,6 +20,7 @@ pub mod next_icon;
 pub mod next_track_icon;
 pub mod paths_icon;
 pub mod person_icon;
+pub mod pin_icon;
 pub mod plain_play_icon;
 pub mod play_hover_icon;
 pub mod play_icon;

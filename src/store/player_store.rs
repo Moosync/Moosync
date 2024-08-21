@@ -270,6 +270,7 @@ impl PlayerStore {
             RepeatModes::Once => RepeatModes::Loop,
             RepeatModes::Loop => RepeatModes::None,
         };
+        console_log!("new mode {:?}", new_mode);
         self.player_details.repeat = new_mode;
     }
 

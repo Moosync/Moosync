@@ -9,7 +9,7 @@ use types::{
     extensions::{
         CustomRequestReturnType, ExtensionDetail, ExtensionExtraEvent, ExtensionExtraEventArgs,
         ExtensionProviderScope, PlaybackDetailsReturnType, PlaylistAndSongsReturnType,
-        PlaylistReturnType, SearchReturnType, SongsWithPageTokenReturnType,
+        PlaylistReturnType, SearchReturnType, SongReturnType, SongsWithPageTokenReturnType,
     },
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
@@ -214,5 +214,19 @@ impl GenericProvider for ExtensionProvider {
             return Ok(playlist);
         }
         Err("Playlist not found".into())
+    }
+
+    async fn song_from_url(&self, url: String) -> Result<Song> {
+        if !self.provides.contains(&ExtensionProviderScope::SongFromUrl) {
+            return Err("Extension does not have this capability".into());
+        }
+
+        let res = send_extension_event!(
+            self,
+            ExtensionExtraEvent::RequestedSongFromURL(url, false),
+            SongReturnType
+        );
+
+        Ok(res.song)
     }
 }

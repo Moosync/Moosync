@@ -9,6 +9,8 @@ use types::{
     songs::{GetSongOptions, Song},
 };
 
+use crate::console_log;
+
 use super::common::invoke;
 
 #[derive(Serialize)]
@@ -137,6 +139,31 @@ pub fn get_genres_by_option(
 }
 
 #[cfg(not(feature = "mock"))]
+pub fn get_playlists_local<T>(setter: T)
+where
+    T: SignalSet<Value = Vec<QueryablePlaylist>>
+        + SignalUpdate<Value = Vec<QueryablePlaylist>>
+        + 'static,
+{
+    spawn_local(async move {
+        let args = to_value(&GetEntityOptionsArgs {
+            options: GetEntityOptions {
+                playlist: Some(QueryablePlaylist::default()),
+                ..Default::default()
+            },
+        })
+        .unwrap();
+        let res = invoke("get_entity_by_options", args).await;
+        if res.is_err() {
+            console_log!("Error getting playlists: {:?}", res);
+            return;
+        }
+        let songs: Vec<QueryablePlaylist> = from_value(res.unwrap()).unwrap();
+        setter.set(songs);
+    });
+}
+
+#[cfg(not(feature = "mock"))]
 pub fn get_playlists_by_option<T>(options: QueryablePlaylist, setter: T)
 where
     T: SignalSet<Value = Vec<QueryablePlaylist>>
@@ -245,5 +272,64 @@ pub fn get_genres_by_option(
         }
         let songs: Vec<QueryableGenre> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
+    });
+}
+
+pub fn add_songs_to_library(songs: Vec<Song>) {
+    #[derive(Serialize)]
+    struct AddSongsArgs {
+        songs: Vec<Song>,
+    }
+
+    spawn_local(async move {
+        let res = invoke(
+            "insert_songs",
+            serde_wasm_bindgen::to_value(&AddSongsArgs { songs }).unwrap(),
+        )
+        .await;
+        if res.is_err() {
+            console_log!("Error adding songs: {:?}", res);
+        }
+    });
+}
+
+pub fn remove_songs_from_library(songs: Vec<Song>) {
+    #[derive(Serialize)]
+    struct RemoveSongsArgs {
+        songs: Vec<String>,
+    }
+    spawn_local(async move {
+        let res = invoke(
+            "remove_songs",
+            serde_wasm_bindgen::to_value(&RemoveSongsArgs {
+                songs: songs
+                    .iter()
+                    .map(|s| s.song._id.clone().unwrap_or_default())
+                    .collect(),
+            })
+            .unwrap(),
+        )
+        .await;
+        if res.is_err() {
+            console_log!("Error removing songs: {:?}", res);
+        }
+    });
+}
+
+pub fn add_to_playlist(id: String, songs: Vec<Song>) {
+    #[derive(Serialize)]
+    struct AddToPlaylistArgs {
+        id: String,
+        songs: Vec<Song>,
+    }
+    spawn_local(async move {
+        let res = invoke(
+            "add_to_playlist",
+            serde_wasm_bindgen::to_value(&AddToPlaylistArgs { id, songs }).unwrap(),
+        )
+        .await;
+        if res.is_err() {
+            console_log!("Error adding to playlist: {:?}", res);
+        }
     });
 }

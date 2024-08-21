@@ -54,7 +54,7 @@ features = []
 optional = true
 
 [dependencies.keyring]
-version = "2.3.3"
+version = "3.2.0"
 features = []
 optional = true
 
@@ -65,7 +65,7 @@ features = ["default"]
 optional = true
 
 [dependencies.lofty]
-version = "0.20.1"
+version = "0.21.0"
 features = []
 optional = true
 

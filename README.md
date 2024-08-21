@@ -17,10 +17,7 @@ You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/
 
 ## TODO
 
-- Playlist / song from URL
 - Implement lyrics
-- Context menu
-- Songlist Sorting
 - Extension accounts
 - Provider suggestions
 - Sanitize extension response

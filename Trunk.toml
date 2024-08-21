@@ -1,8 +1,8 @@
 [build]
-target = "./index.html"
+target = "index.html"
 
 [watch]
-ignore = ["./src-tauri", "./target", "./target-ui", "./src-extensions"]
+ignore = ["src-tauri", "target", "src-extensions"]
 
 [serve]
 address = "127.0.0.1"

@@ -16,7 +16,10 @@ pub fn ProviderIcon(#[prop()] extension: String) -> impl IntoView {
     let provider_icon = create_rw_signal(String::new());
     let extension_clone = extension.clone();
     spawn_local(async move {
-        if !extension_clone.is_empty() {
+        if !extension_clone.is_empty()
+            && extension_clone != "youtube"
+            && extension_clone != "spotify"
+        {
             #[derive(Serialize)]
             struct ExtensionIconArgs {
                 args: PackageNameArgs,

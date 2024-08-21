@@ -5,7 +5,9 @@
       {
         "url": "/mainWindow",
         "height": 800,
-        "width": 1024
+        "width": 1024,
+        "decorations": true,
+        "resizable": true
       }
     ],
     "security": {
@@ -26,7 +28,7 @@
     "withGlobalTauri": true
   },
   "build": {
-    "beforeDevCommand": "CARGO_TARGET_DIR=./target-ui trunk serve",
+    "beforeDevCommand": "trunk serve --config ../Trunk.toml",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },

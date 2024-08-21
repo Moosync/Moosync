@@ -97,6 +97,7 @@ impl SpircWrapper {
 
                 let events_channel = player.get_player_event_channel();
 
+                println!("Creating spirc");
                 let res = Spirc::new(
                     connect_config.clone(),
                     session.clone(),
@@ -105,6 +106,7 @@ impl SpircWrapper {
                     mixer,
                 )
                 .await;
+                println!("Spirc created");
 
                 match res {
                     Ok((spirc, spirc_task)) => {
@@ -123,23 +125,17 @@ impl SpircWrapper {
                         events_thread.join().unwrap();
                     }
                     Err(e) => {
-                        player_creation_tx
-                            .send(Err(MoosyncError::Librespot(e)))
-                            .unwrap();
+                        println!("Error creating spirc: {:?}", e);
                     }
                 }
             });
         });
 
-        let res = player_creation_rx.recv();
-        match res.unwrap() {
-            Ok(device_id) => Ok(Self {
-                tx,
-                device_id,
-                events_channel: Arc::new(Mutex::new(player_events_rx)),
-            }),
-            Err(e) => Err(e),
-        }
+        Ok(Self {
+            tx,
+            device_id: String::new(),
+            events_channel: Arc::new(Mutex::new(player_events_rx)),
+        })
     }
 
     fn listen_events(

@@ -1,4 +1,6 @@
+use leptos_context_menu::{ContextMenu, ContextMenuData, ContextMenuItemInner};
 use rand::seq::SliceRandom;
+use std::cmp::Ordering;
 use std::rc::Rc;
 
 use crate::components::cardview::{CardView, SimplifiedCardItem};
@@ -6,11 +8,15 @@ use crate::components::songview::SongView;
 use crate::console_log;
 use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::player_store::PlayerStore;
+use crate::store::ui_store::{PlaylistSortBy, PlaylistSortByColumns, UiStore};
 use crate::utils::common::fetch_infinite;
 use crate::utils::db_utils::get_songs_by_option;
+use crate::utils::entities::get_playlist_sort_cx_items;
+use crate::utils::songs::get_songs_from_indices;
 use leptos::{
-    component, create_rw_signal, create_write_slice, expect_context, spawn_local, use_context,
-    view, IntoView, RwSignal, SignalGet, SignalUpdate, SignalWith,
+    component, create_memo, create_read_slice, create_rw_signal, create_write_slice,
+    expect_context, spawn_local, use_context, view, IntoView, RwSignal, SignalGet, SignalUpdate,
+    SignalWith,
 };
 use leptos_router::use_query_map;
 use types::entities::QueryablePlaylist;
@@ -19,6 +25,21 @@ use types::ui::song_details::SongDetailIcons;
 
 use crate::store::provider_store::ProviderStore;
 use crate::{icons::plus_button::PlusIcon, utils::db_utils::get_playlists_by_option};
+
+struct PlaylistContextMenu {
+    ui_store: RwSignal<UiStore>,
+}
+
+impl PlaylistContextMenu {}
+
+impl ContextMenuData<Self> for PlaylistContextMenu {
+    fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
+        vec![
+            ContextMenuItemInner::new("Import from Url".into(), None),
+            ContextMenuItemInner::new("Sort by".into(), Some(get_playlist_sort_cx_items())),
+        ]
+    }
+}
 
 #[component()]
 pub fn SinglePlaylist() -> impl IntoView {
@@ -64,45 +85,25 @@ pub fn SinglePlaylist() -> impl IntoView {
 
     let player_store = expect_context::<RwSignal<PlayerStore>>();
     let play_songs_setter = create_write_slice(player_store, |p, song| p.play_now(song));
+    let play_songs_multiple_setter =
+        create_write_slice(player_store, |p, songs| p.play_now_multiple(songs));
     let add_to_queue_setter = create_write_slice(player_store, |p, songs| p.add_to_queue(songs));
 
     let play_songs = move || {
-        let selected_songs = selected_songs.get();
-        let songs = songs.get();
-
-        let selected_songs = if selected_songs.is_empty() {
-            songs
+        let selected_songs = if selected_songs.get().is_empty() {
+            songs.get()
         } else {
-            selected_songs
-                .into_iter()
-                .map(|song_index| {
-                    let song: &Song = songs.get(song_index).unwrap();
-                    song.clone()
-                })
-                .collect()
+            get_songs_from_indices(songs, selected_songs)
         };
 
-        let first_song = selected_songs.first();
-        if let Some(first_song) = first_song {
-            play_songs_setter.set(first_song.clone())
-        }
-        add_to_queue_setter.set(selected_songs[1..].to_vec());
+        play_songs_multiple_setter.set(selected_songs);
     };
 
     let add_to_queue = move || {
-        let selected_songs = selected_songs.get();
-        let songs = songs.get();
-        if selected_songs.is_empty() {
-            add_to_queue_setter.set(songs.clone());
+        if selected_songs.get().is_empty() {
+            add_to_queue_setter.set(songs.get());
         } else {
-            let selected_songs = selected_songs
-                .into_iter()
-                .map(|song_index| {
-                    let song: &Song = songs.get(song_index).unwrap();
-                    song.clone()
-                })
-                .collect();
-            add_to_queue_setter.set(selected_songs);
+            add_to_queue_setter.set(get_songs_from_indices(songs, selected_songs));
         }
     };
 
@@ -137,9 +138,33 @@ pub fn AllPlaylists() -> impl IntoView {
         });
     };
 
+    let ui_store = expect_context::<RwSignal<UiStore>>();
+    let playlist_context_menu = ContextMenu::new(PlaylistContextMenu { ui_store });
+
+    let playlist_sort = create_read_slice(ui_store, |u| u.get_playlist_sort_by());
+
+    let sorted_playlists = create_memo(move |_| {
+        let mut playlists = playlists.get();
+        let sort = playlist_sort.get();
+        match sort.sort_by {
+            PlaylistSortByColumns::Title => {
+                playlists.sort_by(|a, b| a.playlist_name.cmp(&b.playlist_name))
+            }
+            PlaylistSortByColumns::Provider => {
+                playlists.sort_by(|a, b| a.extension.cmp(&b.extension))
+            }
+        }
+        playlists
+    });
+
     view! {
         <div class="w-100 h-100">
-            <div class="container-fluid song-container h-100 d-flex flex-column">
+            <div
+                on:contextmenu=move |ev| {
+                    playlist_context_menu.show(ev);
+                }
+                class="container-fluid song-container h-100 d-flex flex-column"
+            >
                 <div class="row page-title no-gutters">
 
                     <div class="col-auto">Playlists</div>
@@ -158,7 +183,7 @@ pub fn AllPlaylists() -> impl IntoView {
                     style="align-items: flex-start; height: 70%"
                 >
                     <CardView
-                        items=playlists
+                        items=sorted_playlists
                         card_item=move |(_, item)| {
                             let playlist_name = item.playlist_name.clone();
                             let playlist_coverpath = item.playlist_coverpath.clone();

@@ -27,7 +27,7 @@ use extensions::{
 use providers::handler::{
     fetch_playback_url, fetch_playlist_content, fetch_user_playlists, get_all_status,
     get_provider_key_by_id, get_provider_keys, initialize_all_providers, match_url,
-    playlist_from_url, provider_authorize, provider_login, provider_search,
+    playlist_from_url, provider_authorize, provider_login, provider_search, song_from_url,
 };
 use scanner::{get_scanner_state, start_scan};
 use tauri::{Listener, Manager, State};
@@ -172,6 +172,7 @@ pub fn run() {
             get_all_status,
             match_url,
             playlist_from_url,
+            song_from_url,
         ])
         .setup(|app| {
             let db = get_db_state(app);

@@ -4,7 +4,7 @@ use crate::{
     console_log,
     modals::{
         discover_extensions::DiscoverExtensionsModal, login_modal::LoginModal,
-        new_playlist_modal::NewPlaylistModal,
+        new_playlist_modal::NewPlaylistModal, song_from_url_modal::SongFromUrlModal,
     },
     store::modal_store::{ModalStore, Modals},
 };
@@ -30,6 +30,9 @@ pub fn ModalManager() -> impl IntoView {
                     }
                     Modals::NewPlaylistModal => {
                         view! { <NewPlaylistModal /> }
+                    }
+                    Modals::SongFromUrlModal => {
+                        view! { <SongFromUrlModal /> }
                     }
                 }
                     .into_view()

@@ -50,6 +50,7 @@ diesel::table! {
         icon -> Nullable<Text>,
         show_in_library -> Nullable<Bool>,
         track_no -> Nullable<Double>,
+        library_item -> Nullable<Bool>,
     }
 }
 

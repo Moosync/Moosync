@@ -34,6 +34,10 @@ pub fn NewPlaylistModal() -> impl IntoView {
     let provider_store: Rc<ProviderStore> = expect_context();
     create_effect(move |_| {
         let import_url = import_url.get().clone();
+        if import_url.is_empty() {
+            playlist.set(None);
+            return;
+        }
         let provider_store = provider_store.clone();
         spawn_local(async move {
             let import_url = import_url.clone();

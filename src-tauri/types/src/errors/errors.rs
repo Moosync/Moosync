@@ -17,7 +17,7 @@ use google_youtube3::Error as YoutubeError;
 #[cfg(feature = "core")]
 use jsonschema::ValidationError;
 #[cfg(feature = "core")]
-use rspotify::ClientError;
+use rspotify::{model::IdError, ClientError};
 
 use serde_json::Value;
 #[cfg(feature = "ui")]
@@ -103,6 +103,9 @@ pub enum MoosyncError {
     #[cfg_attr(feature = "core", error(transparent))]
     #[cfg(feature = "core")]
     SpotifyError(#[from] ClientError),
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
+    SpotifyIdError(#[from] IdError),
     #[cfg_attr(feature = "core", error(transparent))]
     #[cfg(feature = "core")]
     YoutubeError(#[from] YoutubeError),

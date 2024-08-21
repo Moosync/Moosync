@@ -37,7 +37,7 @@ const ALBUM_REGEX: &str = r"^(RDC|O)LAK5uy_[a-zA-Z0-9-_]{33}$";
 const CHANNEL_REGEX: &str = r"^UC[a-zA-Z0-9-_]{22,32}$";
 
 impl YoutubeScraper {
-    pub fn parse_song(&self, v: &rusty_ytdl::search::Video) -> Song {
+    fn parse_song(&self, v: &rusty_ytdl::search::Video) -> Song {
         Song {
             song: QueryableSong {
                 _id: Some(format!("youtube:{}", v.id.clone())),
@@ -65,12 +65,42 @@ impl YoutubeScraper {
         }
     }
 
+    fn parse_video_info(&self, v: &rusty_ytdl::VideoInfo) -> Song {
+        let details = &v.video_details;
+        Song {
+            song: QueryableSong {
+                _id: Some(format!("youtube:{}", details.video_id.clone())),
+                deviceno: None,
+                title: Some(details.title.clone()),
+                duration: Some(details.length_seconds.parse().unwrap_or_default()),
+                type_: SongType::YOUTUBE,
+                url: Some(details.video_id.clone()),
+                song_cover_path_high: details.thumbnails.first().map(|d| d.url.clone()),
+                song_cover_path_low: details.thumbnails.get(1).map(|d| d.url.clone()),
+                playback_url: Some(details.video_id.clone()),
+                provider_extension: Some("youtube".into()),
+                ..Default::default()
+            },
+            album: Some(QueryableAlbum {
+                album_name: Some("Misc".to_string()),
+                ..Default::default()
+            }),
+            artists: Some(vec![QueryableArtist {
+                artist_id: Some(format!("youtube-author:{}", details.channel_id)),
+                artist_name: Some(details.owner_channel_name.clone()),
+                ..Default::default()
+            }]),
+            genre: Some(vec![]),
+        }
+    }
+
     fn parse_playlist(&self, playlist: &Playlist) -> QueryablePlaylist {
         QueryablePlaylist {
             playlist_id: Some(format!("youtube-playlist:{}", playlist.id)),
             playlist_name: playlist.name.clone(),
             playlist_coverpath: playlist.thumbnails.first().map(|v| v.url.clone()),
             playlist_song_count: playlist.videos.capacity() as f64,
+            extension: Some("youtube".into()),
             ..Default::default()
         }
     }
@@ -113,6 +143,12 @@ impl YoutubeScraper {
         })
 
         // Err(MoosyncError::String("No data found".to_string()))
+    }
+
+    pub async fn get_video_by_id(&self, id: String) -> Result<Song> {
+        let video = rusty_ytdl::Video::new(id)?;
+        let info = video.get_basic_info().await?;
+        Ok(self.parse_video_info(&info))
     }
 
     pub async fn search_yt(&self, query: String) -> Result<SearchResult> {

@@ -600,4 +600,26 @@ impl GenericProvider for YoutubeProvider {
 
         Err("Playlist not found".into())
     }
+
+    async fn song_from_url(&self, url: String) -> Result<Song> {
+        let parsed_url = Url::parse(url.as_str())
+            .map_err(|_| MoosyncError::String(format!("Failed to parse URL {}", url)))?;
+        let video_id = parsed_url.query_pairs().find(|(k, _)| k == "v");
+        if video_id.is_none() {
+            return Err("Invalid URL".into());
+        }
+
+        let video_id = video_id.unwrap().1.to_string();
+
+        let res = self.fetch_song_details(vec![video_id.clone()]).await;
+        if let Ok(songs) = res {
+            if let Some(song) = songs.first() {
+                return Ok(song.clone());
+            }
+        }
+
+        let youtube_scraper: State<YoutubeScraper> = self.app.state();
+        let res = youtube_scraper.get_video_by_id(video_id).await?;
+        Ok(res)
+    }
 }

@@ -7,9 +7,9 @@ version = "0.1.0"
 base64 = "0.22.1"
 fs_extra = "1.3.0"
 futures = "0.3.30"
-serde = "1.0.204"
+serde = "1.0.208"
 serde_yaml = "0.9.34"
-tokio = "1.39.2"
+tokio = "1.39.3"
 uuid = "1.10.0"
 zip = "2.1"
 zip-extensions = "0.8"
@@ -23,7 +23,7 @@ version = "0.12.5"
 features = ["stream"]
 
 [dependencies.serde_json]
-version = "1.0.120"
+version = "1.0.125"
 features = []
 default-features = false
 

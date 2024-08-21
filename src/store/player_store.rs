@@ -44,7 +44,7 @@ impl PlayerStore {
 
     pub fn update_current_song(&mut self) {
         if self.queue.current_index >= self.queue.song_queue.len() {
-            return;
+            self.queue.current_index = 0;
         }
         let id = self.queue.song_queue[self.queue.current_index].clone();
         let song = self.queue.data.get(&id).cloned();
@@ -60,25 +60,67 @@ impl PlayerStore {
     }
 
     pub fn add_to_queue(&mut self, songs: Vec<Song>) {
-        for song in songs {
-            let song_id = song.song._id.clone().unwrap();
-            self.queue.data.insert(song_id.clone(), song);
-            self.queue.song_queue.push(song_id);
-        }
+        self.add_to_queue_at_index(songs, self.queue.song_queue.len());
         self.update_current_song();
+    }
+
+    fn add_to_queue_at_index(&mut self, songs: Vec<Song>, index: usize) {
+        let mut index = index;
+        for song in songs {
+            self.insert_song_at_index(song, index);
+            index += 1;
+        }
     }
 
     pub fn remove_from_queue(&mut self, index: usize) {
         self.queue.song_queue.remove(index);
     }
 
-    pub fn play_now(&mut self, song: Song) {
+    fn insert_song_at_index(&mut self, song: Song, index: usize) {
         let song_id = song.song._id.clone().unwrap();
         self.queue.data.insert(song_id.clone(), song);
-        let insertion_index = min(self.queue.song_queue.len(), self.queue.current_index + 1);
+        let insertion_index = min(self.queue.song_queue.len(), index);
         self.queue.song_queue.insert(insertion_index, song_id);
-        self.queue.current_index = insertion_index;
+    }
+
+    pub fn play_now(&mut self, song: Song) {
+        self.insert_song_at_index(song, self.queue.current_index + 1);
+        self.queue.current_index += 1;
         self.update_current_song();
+    }
+
+    pub fn play_now_multiple(&mut self, songs: Vec<Song>) {
+        if songs.is_empty() {
+            return;
+        }
+
+        let first_song = songs.first();
+        if let Some(first_song) = first_song {
+            self.play_now(first_song.clone())
+        }
+
+        if songs.len() > 1 {
+            self.add_to_queue_at_index(songs[1..].to_vec(), self.queue.current_index + 1);
+        }
+    }
+
+    pub fn play_next(&mut self, song: Song) {
+        self.insert_song_at_index(song, self.queue.current_index + 1);
+    }
+
+    pub fn play_next_multiple(&mut self, songs: Vec<Song>) {
+        if songs.is_empty() {
+            return;
+        }
+
+        let first_song = songs.first();
+        if let Some(first_song) = first_song {
+            self.play_next(first_song.clone())
+        }
+
+        if songs.len() > 1 {
+            self.add_to_queue_at_index(songs[1..].to_vec(), self.queue.current_index + 1);
+        }
     }
 
     pub fn change_index(&mut self, new_index: usize) {
@@ -243,5 +285,11 @@ impl PlayerStore {
             .position(|v| v == current_song)
             .unwrap();
         self.queue.current_index = new_index;
+    }
+
+    pub fn clear_queue(&mut self) {
+        self.queue.song_queue.clear();
+        self.queue.current_index = 0;
+        self.update_current_song();
     }
 }

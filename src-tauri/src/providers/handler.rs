@@ -278,6 +278,13 @@ impl ProviderHandler {
             result_type: QueryablePlaylist,
             method_name: playlist_from_url,
         },
+        song_from_url {
+            args: {
+                url: String
+            },
+            result_type: Song,
+            method_name: song_from_url,
+        },
         match_url {
             args: {
                 url: String
@@ -303,4 +310,5 @@ generate_command_async_cached!(fetch_playback_url, ProviderHandler, String, key:
 generate_command_async_cached!(provider_search, ProviderHandler, SearchResult, key: String, term: String);
 generate_command_async!(get_all_status, ProviderHandler, HashMap<String, ProviderStatus>, );
 generate_command_async_cached!(playlist_from_url, ProviderHandler, QueryablePlaylist, key: String, url: String);
+generate_command_async_cached!(song_from_url, ProviderHandler, Song, key: String, url: String);
 generate_command_async_cached!(match_url, ProviderHandler, bool, key: String, url: String);

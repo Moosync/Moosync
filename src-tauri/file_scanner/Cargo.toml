@@ -13,10 +13,10 @@ blake3 = { version = "1.5.3", features = ["std"] }
 fast_image_resize = "4.2.1"
 image = "0.25.2"
 lazy_static = "1.5.0"
-lofty = "0.20.1"
-regex = "1.10.5"
+lofty = "0.21.0"
+regex = "1.10.6"
 threadpool = "1.8.1"
 num_cpus = "1.16.0"
 uuid = { version = "1.10.0", features = ["v4"] }
 jwalk = "0.8.1"
-dunce = "1.0.4"
+dunce = "1.0.5"

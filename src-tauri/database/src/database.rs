@@ -189,6 +189,7 @@ impl Database {
 
                 AlbumBridge::insert_value(album_id_.clone(), song.song._id.clone().unwrap())
                     .insert_into(album_bridge)
+                    .on_conflict_do_nothing()
                     .execute(&mut conn)?;
 
                 _album.album_id = Some(album_id_);
@@ -208,6 +209,7 @@ impl Database {
 
                     ArtistBridge::insert_value(artist_id_.clone(), song.song._id.clone().unwrap())
                         .insert_into(artist_bridge)
+                        .on_conflict_do_nothing()
                         .execute(&mut conn)?;
 
                     _artist.artist_id = Some(artist_id_);
@@ -228,6 +230,7 @@ impl Database {
 
                     GenreBridge::insert_value(genre_id_.clone(), song.song._id.clone().unwrap())
                         .insert_into(genre_bridge)
+                        .on_conflict_do_nothing()
                         .execute(&mut conn)?;
 
                     _genre.genre_id = Some(genre_id_);

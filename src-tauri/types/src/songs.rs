@@ -154,8 +154,8 @@ pub struct QueryableSong {
     pub provider_extension: Option<String>,
     pub icon: Option<String>,
     pub show_in_library: Option<bool>,
-
     pub track_no: Option<f64>,
+    pub library_item: Option<bool>,
 }
 
 impl QueryableSong {

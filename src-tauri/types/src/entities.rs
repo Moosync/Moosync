@@ -54,7 +54,7 @@ where
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Clone, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Default, Clone, Debug)]
 #[cfg_attr(
     feature = "core",
     derive(Insertable, Queryable, Identifiable, AsChangeset,)
@@ -73,6 +73,29 @@ pub struct QueryableAlbum {
     #[serde(rename = "album_coverPath_low")]
     pub album_coverpath_low: Option<String>,
     pub album_extra_info: Option<EntityInfo>,
+}
+
+impl PartialEq for QueryableAlbum {
+    fn eq(&self, other: &Self) -> bool {
+        self.album_id == other.album_id
+    }
+}
+
+impl Eq for QueryableAlbum {}
+
+impl PartialOrd for QueryableAlbum {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for QueryableAlbum {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.album_name
+            .as_ref()
+            .unwrap_or(&String::new())
+            .cmp(other.album_name.as_ref().unwrap_or(&String::new()))
+    }
 }
 
 impl SearchByTerm for QueryableAlbum {
@@ -107,7 +130,7 @@ impl BridgeUtils for AlbumBridge {
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Clone, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Default, Clone, Debug)]
 #[cfg_attr(
     feature = "core",
     derive(Insertable, Queryable, Identifiable, AsChangeset)
@@ -124,6 +147,29 @@ pub struct QueryableArtist {
     pub artist_song_count: f64,
     pub artist_extra_info: Option<EntityInfo>,
     pub sanitized_artist_name: Option<String>,
+}
+
+impl PartialEq for QueryableArtist {
+    fn eq(&self, other: &Self) -> bool {
+        self.artist_id == other.artist_id
+    }
+}
+
+impl Eq for QueryableArtist {}
+
+impl PartialOrd for QueryableArtist {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for QueryableArtist {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.artist_name
+            .as_ref()
+            .unwrap_or(&String::new())
+            .cmp(other.artist_name.as_ref().unwrap_or(&String::new()))
+    }
 }
 
 impl SearchByTerm for QueryableArtist {
@@ -158,7 +204,7 @@ impl BridgeUtils for ArtistBridge {
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Clone, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Default, Clone, Debug)]
 #[cfg_attr(
     feature = "core",
     derive(Insertable, Queryable, Identifiable, AsChangeset,)
@@ -170,6 +216,29 @@ pub struct QueryableGenre {
     pub genre_name: Option<String>,
     #[serde(default)]
     pub genre_song_count: f64,
+}
+
+impl PartialEq for QueryableGenre {
+    fn eq(&self, other: &Self) -> bool {
+        self.genre_id == other.genre_id
+    }
+}
+
+impl Eq for QueryableGenre {}
+
+impl PartialOrd for QueryableGenre {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for QueryableGenre {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.genre_name
+            .as_ref()
+            .unwrap_or(&String::new())
+            .cmp(other.genre_name.as_ref().unwrap_or(&String::new()))
+    }
 }
 
 impl SearchByTerm for QueryableGenre {
@@ -256,6 +325,26 @@ pub struct QueryablePlaylist {
     pub playlist_path: Option<String>,
     pub extension: Option<String>,
     pub icon: Option<String>,
+}
+
+impl PartialEq for QueryablePlaylist {
+    fn eq(&self, other: &Self) -> bool {
+        self.playlist_id == other.playlist_id
+    }
+}
+
+impl Eq for QueryablePlaylist {}
+
+impl PartialOrd for QueryablePlaylist {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for QueryablePlaylist {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.playlist_name.cmp(&other.playlist_name)
+    }
 }
 
 impl SearchByTerm for QueryablePlaylist {

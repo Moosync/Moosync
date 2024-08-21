@@ -67,7 +67,7 @@ macro_rules! helper1 {
             let parsed = serde_json::from_value::<HashMap<String, Value>>(first.clone());
             if let Ok(parsed) = parsed {
                 if package_name.is_empty() {
-                    return Err(format!("Need package name in args").into());
+                    return Err(format!("Need package name in args to get back response").into());
                 }
 
                 let first_result = parsed.get(&package_name);

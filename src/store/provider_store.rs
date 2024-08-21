@@ -176,6 +176,12 @@ impl ProviderStore {
             },
             result_type: QueryablePlaylist,
         },
+        song_from_url {
+            args: {
+                url: String
+            },
+            result_type: Song,
+        },
         match_url {
             args: {
                 url: String

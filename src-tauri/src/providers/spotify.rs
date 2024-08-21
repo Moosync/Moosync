@@ -11,7 +11,7 @@ use rspotify::{
     clients::{BaseClient, OAuthClient},
     model::{
         FullArtist, FullTrack, Id, PlaylistId, PlaylistTracksRef, SearchType, SimplifiedAlbum,
-        SimplifiedArtist, SimplifiedPlaylist,
+        SimplifiedArtist, SimplifiedPlaylist, TrackId,
     },
     AuthCodePkceSpotify, Token,
 };
@@ -477,6 +477,25 @@ impl GenericProvider for SpotifyProvider {
             });
 
             return Ok(res);
+        }
+
+        Err("API Client not initialized".into())
+    }
+
+    async fn song_from_url(&self, url: String) -> Result<Song> {
+        let track_id = Url::parse(url.as_str());
+        let track_id = if let Ok(track_id) = track_id {
+            track_id.path().to_string()
+        } else {
+            url
+        };
+
+        if let Some(api_client) = &self.api_client {
+            let res = api_client
+                .track(TrackId::from_id_or_uri(track_id.as_str())?, None)
+                .await?;
+
+            return Ok(self.parse_playlist_item(res));
         }
 
         Err("API Client not initialized".into())

@@ -12,6 +12,7 @@ use crate::store::player_store::PlayerStore;
 use crate::utils::db_utils::get_songs_by_option;
 
 use crate::components::songview::SongView;
+use crate::utils::songs::get_songs_from_indices;
 
 #[component()]
 pub fn AllSongs() -> impl IntoView {
@@ -27,46 +28,26 @@ pub fn AllSongs() -> impl IntoView {
 
     let player_store = expect_context::<RwSignal<PlayerStore>>();
     let play_songs_setter = create_write_slice(player_store, |p, song| p.play_now(song));
+    let play_songs_multiple_setter =
+        create_write_slice(player_store, |p, songs| p.play_now_multiple(songs));
+
     let add_to_queue_setter = create_write_slice(player_store, |p, songs| p.add_to_queue(songs));
 
     let play_songs = move || {
-        let selected_songs = selected_songs.get();
-        let songs = songs.get();
-
-        let selected_songs = if selected_songs.is_empty() {
-            songs
+        let selected_songs = if selected_songs.get().is_empty() {
+            songs.get()
         } else {
-            selected_songs
-                .into_iter()
-                .map(|song_index| {
-                    let song: &Song = songs.get(song_index).unwrap();
-                    song.clone()
-                })
-                .collect()
+            get_songs_from_indices(songs, selected_songs)
         };
 
-        let first_song = selected_songs.first();
-        if let Some(first_song) = first_song {
-            play_songs_setter.set(first_song.clone())
-        }
-        add_to_queue_setter.set(selected_songs[1..].to_vec());
+        play_songs_multiple_setter.set(selected_songs);
     };
 
     let add_to_queue = move || {
-        let selected_songs = selected_songs.get();
-        console_log!("selected: {:?}", selected_songs);
-        let songs = songs.get();
-        if selected_songs.is_empty() {
-            add_to_queue_setter.set(songs.clone());
+        if selected_songs.get().is_empty() {
+            add_to_queue_setter.set(songs.get());
         } else {
-            let selected_songs = selected_songs
-                .into_iter()
-                .map(|song_index| {
-                    let song: &Song = songs.get(song_index).unwrap();
-                    song.clone()
-                })
-                .collect();
-            add_to_queue_setter.set(selected_songs);
+            add_to_queue_setter.set(get_songs_from_indices(songs, selected_songs));
         }
     };
 
@@ -83,5 +64,21 @@ pub fn AllSongs() -> impl IntoView {
         ..Default::default()
     });
 
-    view! { <SongView icons=icons songs=songs selected_songs=selected_songs /> }
+    view! {
+        <SongView
+            icons=icons
+            songs=songs
+            selected_songs=selected_songs
+            song_update_request=Box::new(move || {
+                console_log!("Song update request");
+                get_songs_by_option(
+                    GetSongOptions {
+                        song: Some(Default::default()),
+                        ..Default::default()
+                    },
+                    songs,
+                );
+            })
+        />
+    }
 }

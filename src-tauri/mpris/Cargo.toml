@@ -12,5 +12,5 @@ souvlaki = { version = "0.7.3", default-features = false, features = [
 types = { path = "../types" }
 
 [target.'cfg(target_os = "windows")'.dependencies.windows]
-version = "0.57"
+version = "0.58"
 features = ["Win32_Foundation"]

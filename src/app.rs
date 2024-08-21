@@ -4,6 +4,7 @@ use crate::{
     components::prefs::static_components::SettingRoutes,
     console_log,
     players::librespot::LibrespotPlayer,
+    store::ui_store::UiStore,
     utils::{
         common::{emit, invoke, listen_event},
         prefs::{load_selective_async, watch_preferences},
@@ -11,8 +12,9 @@ use crate::{
 };
 use leptos::{
     component, create_read_slice, create_rw_signal, document, expect_context, provide_context,
-    view, window, IntoView, RwSignal, SignalGetUntracked, SignalUpdate,
+    view, window, window_event_listener, IntoView, RwSignal, SignalGetUntracked, SignalUpdate,
 };
+use leptos_context_menu::provide_context_menu_state;
 use leptos_i18n::provide_i18n_context;
 use leptos_router::{Outlet, Redirect, Route, Router, Routes};
 use serde::Serialize;
@@ -142,9 +144,15 @@ fn handle_theme(id: String) {
 
 #[component]
 pub fn App() -> impl IntoView {
+    // window_event_listener(leptos::ev::contextmenu, move |ev| {
+    //     ev.prevent_default();
+    // });
+
+    provide_context_menu_state();
     provide_context(create_rw_signal(PlayerStore::new()));
     provide_context(Rc::new(ProviderStore::new()));
     provide_context(create_rw_signal(ModalStore::default()));
+    provide_context(create_rw_signal(UiStore::new()));
 
     provide_i18n_context::<Locale>();
 

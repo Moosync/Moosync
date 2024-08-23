@@ -117,10 +117,11 @@ impl SpotifyProvider {
                     .status_tx
                     .send(ProviderStatus {
                         key: self.key(),
-                        name: "Youtube".into(),
+                        name: "Spotify".into(),
                         user_name: None,
                         logged_in: true,
                         bg_color: "#07C330".into(),
+                        account_id: "spotify".into(),
                     })
                     .await;
             }
@@ -218,6 +219,7 @@ impl SpotifyProvider {
                 user_name: user.display_name,
                 logged_in: true,
                 bg_color: "#07C330".into(),
+                account_id: "spotify".into(),
             });
         }
 
@@ -236,6 +238,7 @@ impl GenericProvider for SpotifyProvider {
                 user_name: None,
                 logged_in: false,
                 bg_color: "#07C330".into(),
+                account_id: "spotify".into(),
             })
             .await;
 
@@ -273,7 +276,7 @@ impl GenericProvider for SpotifyProvider {
             || id.starts_with("spotify:")
     }
 
-    async fn login(&mut self) -> Result<()> {
+    async fn login(&mut self, _: String) -> Result<()> {
         self.verifier = login(
             LoginArgs {
                 client_id: self.config.client_id.clone(),
@@ -288,6 +291,28 @@ impl GenericProvider for SpotifyProvider {
         let oauth_handler: State<OAuthHandler> = self.app.state();
         oauth_handler.register_oauth_path("spotifyoauthcallback".into(), self.key());
 
+        Ok(())
+    }
+
+    async fn signout(&mut self, _: String) -> Result<()> {
+        self.config.tokens = None;
+        self.api_client = None;
+        self.verifier = None;
+
+        let preferences: State<PreferenceConfig> = self.app.state();
+        preferences.set_secure("MoosyncSpotifyRefreshToken".into(), None::<String>)?;
+
+        let _ = self
+            .status_tx
+            .send(ProviderStatus {
+                key: self.key(),
+                name: "Spotify".into(),
+                user_name: None,
+                logged_in: false,
+                bg_color: "#07C330".into(),
+                account_id: "spotify".into(),
+            })
+            .await;
         Ok(())
     }
 

@@ -7,6 +7,7 @@ use types::{
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
+    console_log,
     icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon},
     utils::common::invoke,
 };
@@ -35,7 +36,11 @@ pub fn ProviderIcon(#[prop()] extension: String) -> impl IntoView {
             )
             .await;
 
-            provider_icon.set(res.unwrap().as_string().unwrap());
+            if let Ok(res) = res {
+                provider_icon.set(res.as_string().unwrap());
+            } else {
+                console_log!("Failed to get provider icon {:?}", res);
+            }
         }
     });
     view! {

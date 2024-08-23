@@ -52,16 +52,22 @@ impl PreferenceConfig {
         }
 
         let entry = Entry::new("moosync", whoami::username().as_str())?;
-        let secret = if let Ok(password) = entry.get_password() {
-            let decoded = hex::decode(password)?;
-            Key::from(GenericArray::clone_from_slice(
-                &decoded[0..ChaCha20Poly1305::key_size()],
-            ))
-        } else {
-            let key = ChaCha20Poly1305::generate_key(&mut OsRng);
-            let encoded = hex::encode(key).to_string();
-            entry.set_password(encoded.as_str())?;
-            key
+
+        let secret = match entry.get_password() {
+            Ok(password) => {
+                println!("Got keystore password");
+                let decoded = hex::decode(password)?;
+                Key::from(GenericArray::clone_from_slice(
+                    &decoded[0..ChaCha20Poly1305::key_size()],
+                ))
+            }
+            Err(e) => {
+                println!("Error getting keystore password: {:?}", e);
+                let key = ChaCha20Poly1305::generate_key(&mut OsRng);
+                let encoded = hex::encode(key).to_string();
+                entry.set_password(encoded.as_str())?;
+                key
+            }
         };
 
         let mut config_file = File::open(config_file_path.clone())?;

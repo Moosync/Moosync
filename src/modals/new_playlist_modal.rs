@@ -16,6 +16,7 @@ use crate::icons::{
 use crate::store::modal_store::ModalStore;
 use crate::store::provider_store;
 use crate::utils::common::invoke;
+use crate::utils::db_utils::create_playlist;
 use crate::{modals::common::GenericModal, store::provider_store::ProviderStore};
 
 #[derive(Debug, Clone)]
@@ -74,22 +75,8 @@ pub fn NewPlaylistModal() -> impl IntoView {
             return;
         }
 
-        spawn_local(async move {
-            #[derive(Serialize)]
-            struct CreatePlaylistArgs {
-                playlist: QueryablePlaylist,
-            }
-
-            let res = invoke(
-                "create_playlist",
-                serde_wasm_bindgen::to_value(&CreatePlaylistArgs { playlist }).unwrap(),
-            )
-            .await;
-            if let Err(res) = res {
-                console_log!("Failed to create playlist");
-            }
-            close_modal();
-        });
+        create_playlist(playlist);
+        close_modal();
     };
 
     view! {

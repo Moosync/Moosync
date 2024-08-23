@@ -195,8 +195,12 @@ impl ReplyHandler {
         Ok(Value::Null)
     }
 
-    pub fn register_account(&self, data: Value) -> Result<Value> {
-        // TODO: Implement
+    fn register_account(&self, package_name: String) -> Result<Value> {
+        let app_handle = self.app_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            let provider_handler: State<ProviderHandler> = app_handle.state();
+            provider_handler.initialize_provider(package_name).await;
+        });
         Ok(Value::Null)
     }
 
@@ -265,7 +269,7 @@ impl ReplyHandler {
                 }
                 "registerOauth" => self.register_oauth(request.data.unwrap()),
                 "openExternal" => self.open_external(request.data.unwrap()),
-                "registerAccount" => self.register_account(request.data.unwrap()),
+                "registerAccount" => self.register_account(request.extension_name),
                 "setArtistEditableInfo" => self.set_artist_editable_info(request.data.unwrap()),
                 "setAlbumEditableInfo" => self.set_album_editable_info(request.data.unwrap()),
                 _ => unreachable!(),

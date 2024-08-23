@@ -8,7 +8,7 @@ use serde_json::Value;
 use tauri::{async_runtime, App, AppHandle, Emitter, Manager, State};
 use types::errors::errors::Result;
 
-use crate::scanner::start_scan;
+use crate::{providers::handler::ProviderHandler, scanner::start_scan};
 
 const UI_KEYS: &[&str] = &[
     "prefs.system_settings",
@@ -57,6 +57,24 @@ pub fn handle_pref_changes(app: AppHandle) {
                     if let Err(e) = start_scan(scanner, database, pref_config, None, true) {
                         println!("{}", e);
                     }
+                });
+            }
+
+            if key.starts_with("prefs.youtube") {
+                let app = app.clone();
+                async_runtime::spawn(async move {
+                    let app = app.clone();
+                    let provider_state: State<ProviderHandler> = app.state();
+                    provider_state.initialize_provider("youtube".into()).await;
+                });
+            }
+
+            if key.starts_with("prefs.spotify") {
+                let app = app.clone();
+                async_runtime::spawn(async move {
+                    let app = app.clone();
+                    let provider_state: State<ProviderHandler> = app.state();
+                    provider_state.initialize_provider("spotify".into()).await;
                 });
             }
         }

@@ -33,8 +33,9 @@ macro_rules! generate_wrapper {
         $(
             pub async fn $func_name(&self, key: String, $($param_name: $param_type),*) -> Result<$result_type> {
                 let mut provider_key = key;
+                let provider_store = self.provider_store.lock().await;
                 loop {
-                    let provider_store = self.provider_store.lock().await;
+                    println!("provider store: {:?}", provider_store);
                     let provider = provider_store.get(&provider_key);
                     if let Some(provider) = provider {
                         let provider = provider.lock().await;
@@ -42,12 +43,12 @@ macro_rules! generate_wrapper {
                         let res = provider.$method_name($($param_name.clone()),*).await;
                         match res {
                             Ok(result) => return Ok(result),
-                            Err(MoosyncError::SwitchProviders(e)) => provider_key = e,
+                            Err(MoosyncError::SwitchProviders(e)) => {provider_key = e; continue;},
                             Err(err) => return Err(err),
                         }
                     }
 
-                    return Err(format!("Provider ({}) not found", provider_key).into());
+                    return Err(format!("Provider ({}) not found for method {}", provider_key, stringify!($method_name)).into());
                 }
             }
         )*
@@ -63,8 +64,9 @@ macro_rules! generate_wrapper_mut {
         $(
             pub async fn $func_name(&self, key: String, $($param_name: $param_type),*) -> Result<$result_type> {
                 let mut provider_key = key;
+                let provider_store = self.provider_store.lock().await;
                 loop {
-                    let provider_store = self.provider_store.lock().await;
+                    println!("provider store: {:?}", provider_store);
                     let provider = provider_store.get(&provider_key);
                     if let Some(provider) = provider {
                         println!("calling provider {} - {}", provider_key, stringify!($method_name));
@@ -72,12 +74,12 @@ macro_rules! generate_wrapper_mut {
                         let res = provider.$method_name($($param_name.clone()),*).await;
                         match res {
                             Ok(result) => return Ok(result),
-                            Err(MoosyncError::SwitchProviders(e)) => provider_key = e,
+                            Err(MoosyncError::SwitchProviders(e)) => {provider_key = e; continue;},
                             Err(err) => return Err(err),
                         }
                     }
 
-                    return Err(format!("Provider ({}) not found", provider_key).into());
+                    return Err(format!("Provider ({}) not found for method {}", provider_key, stringify!($method_name)).into());
                 }
             }
         )*
@@ -139,7 +141,7 @@ impl ProviderHandler {
                 if let Err(e) = res {
                     println!("Error emitting status update: {:?}", e);
                 }
-                println!("Emitted status update");
+                println!("Emitted status update {:?}", provider_status);
             }
         });
     }
@@ -191,6 +193,15 @@ impl ProviderHandler {
         Ok(())
     }
 
+    pub async fn initialize_provider(&self, key: String) {
+        let provider_store = self.provider_store.lock().await;
+        let provider = provider_store.get(&key);
+        if let Some(provider) = provider {
+            let mut provider = provider.lock().await;
+            provider.initialize().await;
+        }
+    }
+
     pub async fn initialize_all_providers(&self) -> Result<()> {
         let mut fut = vec![];
         let provider_store = self.provider_store.lock().await;
@@ -199,8 +210,12 @@ impl ProviderHandler {
             fut.push(Box::pin(async move {
                 let mut provider = provider.lock().await;
                 println!("Initializing {}", provider.key());
-                provider.initialize().await;
-                println!("Initialized {}", provider.key());
+                let err = provider.initialize().await;
+                if let Err(err) = err {
+                    println!("Error initializing {}: {:?}", provider.key(), err);
+                } else {
+                    println!("Initialized {}", provider.key());
+                }
             }));
         }
         join_all(fut).await;
@@ -229,9 +244,18 @@ impl ProviderHandler {
 
     generate_wrapper_mut!(
         provider_login {
-            args: {},
+            args: {
+                account_id: String
+            },
             result_type: (),
             method_name: login,
+        },
+        provider_signout {
+            args: {
+                account_id: String
+            },
+            result_type: (),
+            method_name: signout,
         },
         provider_authorize {
             args: { code: String },
@@ -301,7 +325,8 @@ pub fn get_provider_handler_state(app: AppHandle) -> ProviderHandler {
 
 generate_command_async!(get_provider_keys, ProviderHandler, Vec<String>,);
 generate_command_async!(initialize_all_providers, ProviderHandler, (),);
-generate_command_async!(provider_login, ProviderHandler, (), key: String);
+generate_command_async!(provider_login, ProviderHandler, (), key: String, account_id: String);
+generate_command_async!(provider_signout, ProviderHandler, (), key: String, account_id: String);
 generate_command_async!(provider_authorize, ProviderHandler, (), key: String, code: String);
 generate_command_async!(get_provider_key_by_id, ProviderHandler, String, id: String);
 generate_command_async_cached!(fetch_user_playlists, ProviderHandler, (Vec<QueryablePlaylist>, Pagination), key: String, pagination: Pagination);

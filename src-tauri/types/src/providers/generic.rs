@@ -58,6 +58,7 @@ pub struct ProviderStatus {
     pub user_name: Option<String>,
     pub logged_in: bool,
     pub bg_color: String,
+    pub account_id: String,
 }
 
 #[async_trait]
@@ -66,7 +67,9 @@ pub trait GenericProvider: std::fmt::Debug + Send {
     fn key(&self) -> String;
     fn match_id(&self, id: String) -> bool;
 
-    async fn login(&mut self) -> Result<()>;
+    async fn login(&mut self, account_id: String) -> Result<()>;
+    async fn signout(&mut self, account_id: String) -> Result<()>;
+
     async fn authorize(&mut self, code: String) -> Result<()>;
 
     async fn fetch_user_playlists(

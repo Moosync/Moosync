@@ -312,6 +312,7 @@ pub fn Search() -> impl IntoView {
                                                         cover: item.album_coverpath_high.clone(),
                                                         id: item.album_id.clone().unwrap_or_default(),
                                                         icon: None,
+                                                        context_menu: None,
                                                     }
                                                 }
                                             />
@@ -328,6 +329,7 @@ pub fn Search() -> impl IntoView {
                                                         cover: item.artist_coverpath.clone(),
                                                         id: item.artist_id.clone().unwrap_or_default(),
                                                         icon: None,
+                                                        context_menu: None,
                                                     }
                                                 }
                                             />
@@ -344,6 +346,7 @@ pub fn Search() -> impl IntoView {
                                                         cover: item.playlist_coverpath.clone(),
                                                         id: item.playlist_id.clone().unwrap_or_default(),
                                                         icon: None,
+                                                        context_menu: None,
                                                     }
                                                 }
                                             />

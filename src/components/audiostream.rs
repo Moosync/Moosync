@@ -1,4 +1,8 @@
-use futures::lock::Mutex;
+use futures::{
+    channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
+    lock::Mutex,
+    SinkExt, StreamExt,
+};
 use std::{
     rc::Rc,
     sync::{
@@ -15,9 +19,9 @@ use types::{
 };
 
 use leptos::{
-    component, create_effect, create_node_ref, create_read_slice, create_slice,
-    create_write_slice, html::Div, spawn_local, use_context, view, IntoView, NodeRef, RwSignal,
-    SignalGet, SignalGetUntracked,
+    component, create_effect, create_node_ref, create_read_slice, create_slice, create_write_slice,
+    html::Div, spawn_local, use_context, view, IntoView, NodeRef, RwSignal, SignalGet,
+    SignalGetUntracked, SignalUpdate,
 };
 
 use crate::{
@@ -35,12 +39,18 @@ pub struct PlayerHolder {
     active_player: Arc<AtomicUsize>,
     state_setter: Rc<Box<dyn Fn(PlayerEvents)>>,
     player_container: NodeRef<Div>,
+    player_blacklist_receiver: Rc<Mutex<UnboundedReceiver<()>>>,
 }
 
 impl PlayerHolder {
     pub fn new(player_container: NodeRef<Div>, providers: Rc<ProviderStore>) -> PlayerHolder {
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
-        let state_setter = Rc::new(Self::register_internal_state_listeners(player_store));
+
+        let (player_blacklist_sender, player_blacklist_receiver) = unbounded();
+        let state_setter = Rc::new(Self::register_internal_state_listeners(
+            player_store,
+            player_blacklist_sender,
+        ));
 
         let mut players: Vec<Box<dyn GenericPlayer>> = vec![];
         let mut local_player = LocalPlayer::new();
@@ -62,8 +72,10 @@ impl PlayerHolder {
             active_player: Arc::new(AtomicUsize::new(0)),
             providers,
             player_container,
+            player_blacklist_receiver: Rc::new(Mutex::new(player_blacklist_receiver)),
         };
         holder.register_external_state_listeners(player_store);
+        holder.listen_player_blacklist(player_store);
 
         holder
     }
@@ -86,11 +98,20 @@ impl PlayerHolder {
         Ok(())
     }
 
-    pub async fn get_player(&self, song: &Song) -> Result<(usize, Option<Song>)> {
+    pub async fn get_player(
+        &self,
+        player_store: RwSignal<PlayerStore>,
+        song: &Song,
+    ) -> Result<(usize, Option<Song>)> {
         let players = self.players.lock().await;
-        let player = players
-            .iter()
-            .position(|p| p.provides().contains(&song.song.type_) && p.can_play(song));
+        let player_blacklist = create_read_slice(player_store, |player_store| {
+            player_store.player_blacklist.clone()
+        });
+        let player = players.iter().position(|p| {
+            !player_blacklist.get_untracked().contains(&p.key())
+                && p.provides().contains(&song.song.type_)
+                && p.can_play(song)
+        });
 
         if let Some(player) = player {
             return Ok((player, None));
@@ -100,11 +121,19 @@ impl PlayerHolder {
             console_log!("Found no players, trying to refetch playback url");
             let mut song_tmp = song.clone();
             for (i, player) in players.iter().enumerate() {
-                let playback_url = self.get_playback_url(song, player.key()).await?;
-                console_log!("Got new playback url {}", playback_url);
-                song_tmp.song.playback_url = Some(playback_url);
-                if player.can_play(&song_tmp) {
-                    return Ok((i, Some(song_tmp)));
+                let playback_url = self.get_playback_url(song, player.key()).await;
+                if let Ok(playback_url) = playback_url {
+                    console_log!("Got new playback url {}", playback_url);
+                    song_tmp.song.playback_url = Some(playback_url);
+                    if player.can_play(&song_tmp) {
+                        return Ok((i, Some(song_tmp)));
+                    }
+                } else {
+                    console_log!(
+                        "Failed to get playback url for player {}: {:?}",
+                        player.key(),
+                        playback_url
+                    );
                 }
             }
         }
@@ -132,8 +161,13 @@ impl PlayerHolder {
             .await
     }
 
-    pub async fn load_audio(&mut self, song: &Song, current_volume: f64) -> Result<Option<Song>> {
-        let (pos, new_song) = self.get_player(song).await?;
+    pub async fn load_audio(
+        &mut self,
+        song: &Song,
+        current_volume: f64,
+        player_store: RwSignal<PlayerStore>,
+    ) -> Result<Option<Song>> {
+        let (pos, new_song) = self.get_player(player_store, song).await?;
 
         // Stop current player only if we need to switch;
         let old_pos = self.active_player.load(Ordering::Relaxed);
@@ -213,6 +247,7 @@ impl PlayerHolder {
         let active_player = self.active_player.clone();
         create_effect(move |_| {
             let force_seek = force_seek.get();
+            console_log!("Got force seek {}", force_seek);
             if force_seek < 0f64 {
                 return;
             }
@@ -228,6 +263,7 @@ impl PlayerHolder {
                 }
                 let active = active.unwrap();
 
+                console_log!("Seeking player");
                 active.seek(force_seek).unwrap();
 
                 reset_force_seek.set(-1f64);
@@ -242,6 +278,7 @@ impl PlayerHolder {
 
     fn register_internal_state_listeners(
         player_store: RwSignal<PlayerStore>,
+        player_blacklist_sender: UnboundedSender<()>,
     ) -> Box<dyn Fn(PlayerEvents)> {
         let player_state_setter = create_write_slice(player_store, move |store, state| {
             store.set_state(state);
@@ -260,6 +297,7 @@ impl PlayerHolder {
                     }
                 }
                 types::ui::player_details::RepeatModes::Loop => {
+                    console_log!("repeating now");
                     store.force_seek_percent(0f64);
                 }
             }
@@ -278,9 +316,37 @@ impl PlayerHolder {
                 next_song_setter.set(());
             }
             PlayerEvents::TimeUpdate(t) => player_time_setter.set(t),
+            PlayerEvents::Error(err) => {
+                console_log!("Error playing song: {:?}", err);
+                let mut player_blacklist_sender = player_blacklist_sender.clone();
+                spawn_local(async move {
+                    player_blacklist_sender.send(()).await.unwrap();
+                });
+                // player_state_setter.set(PlayerState::Stopped);
+            }
         };
 
         Box::new(setter)
+    }
+
+    fn listen_player_blacklist(&self, player_store: RwSignal<PlayerStore>) {
+        let player_blacklist_receiver = self.player_blacklist_receiver.clone();
+        let active_player = self.active_player.clone();
+        let players = self.players.clone();
+        spawn_local(async move {
+            let mut player_blacklist_receiver = player_blacklist_receiver.lock().await;
+            loop {
+                player_blacklist_receiver.next().await;
+                let active_player_pos = active_player.load(Ordering::Relaxed);
+                let players = players.lock().await;
+                let active_player = players.get(active_player_pos);
+                if let Some(active_player) = active_player {
+                    let player_key = active_player.key();
+                    console_log!("blacklisting player {}", player_key);
+                    player_store.update(|p| p.blacklist_player(player_key))
+                }
+            }
+        });
     }
 }
 
@@ -302,6 +368,9 @@ pub fn AudioStream() -> impl IntoView {
     let current_song_sig = create_read_slice(player_store, |player_store| {
         player_store.current_song.clone()
     });
+
+    let force_load_sig =
+        create_read_slice(player_store, |player_store| player_store.force_load_song);
     let current_volume = create_read_slice(player_store, |player_store| player_store.get_volume());
 
     let players_clone = players.clone();
@@ -319,13 +388,14 @@ pub fn AudioStream() -> impl IntoView {
 
     create_effect(move |_| {
         let current_song = current_song_sig.get();
+        let _ = force_load_sig.get();
+        console_log!("Loading song {:?}", current_song);
         if let Some(current_song) = current_song {
-            console_log!("Loading song {:?}", current_song.song.title);
             let players = players_clone.clone();
             spawn_local(async move {
                 let mut players = players.lock().await;
                 let updated_song = players
-                    .load_audio(&current_song, current_volume.get_untracked())
+                    .load_audio(&current_song, current_volume.get_untracked(), player_store)
                     .await
                     .unwrap();
 

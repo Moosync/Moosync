@@ -35,6 +35,8 @@ pub struct PlayerStore {
     pub queue: Queue,
     pub current_song: Option<Song>,
     pub player_details: PlayerDetails,
+    pub player_blacklist: Vec<String>,
+    pub force_load_song: bool,
 }
 
 impl PlayerStore {
@@ -49,12 +51,14 @@ impl PlayerStore {
         let id = self.queue.song_queue[self.queue.current_index].clone();
         let song = self.queue.data.get(&id).cloned();
 
-        if song == self.current_song {
+        if song == self.current_song && self.player_blacklist.is_empty() {
             return;
         }
 
         console_log!("Upading song in queue");
         self.current_song = song.clone();
+
+        self.clear_blacklist();
 
         send_extension_event(ExtensionExtraEvent::SongChanged([song]))
     }
@@ -292,5 +296,14 @@ impl PlayerStore {
         self.queue.song_queue.clear();
         self.queue.current_index = 0;
         self.update_current_song();
+    }
+
+    pub fn blacklist_player(&mut self, key: String) {
+        self.player_blacklist.push(key);
+        self.force_load_song = !self.force_load_song
+    }
+
+    fn clear_blacklist(&mut self) {
+        self.player_blacklist.clear();
     }
 }

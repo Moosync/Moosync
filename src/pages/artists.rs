@@ -106,6 +106,7 @@ pub fn AllArtists() -> impl IntoView {
                                 cover: artist_coverpath,
                                 id: artist_id,
                                 icon: None,
+                                context_menu: None,
                             }
                         }
                     />

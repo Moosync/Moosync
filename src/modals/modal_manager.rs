@@ -4,7 +4,8 @@ use crate::{
     console_log,
     modals::{
         discover_extensions::DiscoverExtensionsModal, login_modal::LoginModal,
-        new_playlist_modal::NewPlaylistModal, song_from_url_modal::SongFromUrlModal,
+        new_playlist_modal::NewPlaylistModal, signout_modal::SignoutModal,
+        song_from_url_modal::SongFromUrlModal,
     },
     store::modal_store::{ModalStore, Modals},
 };
@@ -22,8 +23,8 @@ pub fn ModalManager() -> impl IntoView {
                     return view! {}.into_view();
                 }
                 match active_modal.unwrap() {
-                    Modals::LoginModal(key, name) => {
-                        view! { <LoginModal key=key name=name /> }
+                    Modals::LoginModal(key, name, account_id) => {
+                        view! { <LoginModal key=key name=name account_id=account_id /> }
                     }
                     Modals::DiscoverExtensions => {
                         view! { <DiscoverExtensionsModal /> }
@@ -33,6 +34,9 @@ pub fn ModalManager() -> impl IntoView {
                     }
                     Modals::SongFromUrlModal => {
                         view! { <SongFromUrlModal /> }
+                    }
+                    Modals::SignoutModal(key, name, account_id) => {
+                        view! { <SignoutModal key=key name=name account_id=account_id /> }
                     }
                 }
                     .into_view()

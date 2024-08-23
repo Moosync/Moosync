@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon};
 use leptos::{
     component, create_effect, create_rw_signal, create_write_slice, ev::Event, event_target_value,
-    expect_context, view, For, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
+    expect_context, view, CollectView, For, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
 };
 use leptos_router::use_navigate;
 use leptos_virtual_scroller::VirtualScroller;
@@ -89,8 +89,12 @@ pub fn Accounts() -> impl IntoView {
     let statuses = provider_store.get_all_statuses();
 
     let modal_store = expect_context::<RwSignal<ModalStore>>();
-    let show_login_modal = move |key: String, name: String| {
-        modal_store.update(|m| m.set_active_modal(Modals::LoginModal(key, name)))
+    let show_login_modal = move |key: String, name: String, account_id: String, logged_in: bool| {
+        if logged_in {
+            modal_store.update(|m| m.set_active_modal(Modals::SignoutModal(key, name, account_id)))
+        } else {
+            modal_store.update(|m| m.set_active_modal(Modals::LoginModal(key, name, account_id)))
+        }
     };
 
     view! {
@@ -102,60 +106,61 @@ pub fn Accounts() -> impl IntoView {
                     view! {
                         <div class="accounts-popover custom-popover">
                             <div class="buttons">
-                                <For
-                                    each=move || {
-                                        statuses
-                                            .get()
-                                            .values()
-                                            .cloned()
-                                            .collect::<Vec<ProviderStatus>>()
-                                    }
-                                    key=|s| s.key.clone()
-                                    children=move |status| {
-                                        let key = status.key.clone();
-                                        let (title_out, title_in) = if status.logged_in {
-                                            (status.user_name.unwrap_or_default(), "Sign out".into())
-                                        } else {
-                                            ("Connect".into(), status.name.clone())
-                                        };
-                                        let title = create_rw_signal(title_out.clone());
-                                        view! {
-                                            <div
-                                                class="button-bg d-flex ripple w-100"
-                                                on:mouseover=move |_| {
-                                                    title.set(title_in.clone());
-                                                }
-                                                on:mouseout=move |_| {
-                                                    title.set(title_out.clone());
-                                                }
-                                                on:click=move |_| show_login_modal(
-                                                    key.clone(),
-                                                    status.name.clone(),
+                                {move || {
+                                    let binding = statuses.get();
+                                    binding
+                                        .into_iter()
+                                        .map(|status| {
+                                            let key = status.key.clone();
+                                            let (title_out, title_in) = if status.logged_in {
+                                                (
+                                                    status.user_name.clone().unwrap_or_default(),
+                                                    "Sign out".into(),
                                                 )
-                                            >
-
+                                            } else {
+                                                ("Connect".into(), status.name.clone())
+                                            };
+                                            let title = create_rw_signal(title_out.clone());
+                                            view! {
                                                 <div
-                                                    class="d-flex w-100 h-100"
-                                                    style=("background-color", status.bg_color)
+                                                    class="button-bg d-flex ripple w-100"
+                                                    on:mouseover=move |_| {
+                                                        title.set(title_in.clone());
+                                                    }
+                                                    on:mouseout=move |_| {
+                                                        title.set(title_out.clone());
+                                                    }
+                                                    on:click=move |_| show_login_modal(
+                                                        key.clone(),
+                                                        status.name.clone(),
+                                                        status.account_id.clone(),
+                                                        status.logged_in,
+                                                    )
                                                 >
-                                                    <div class="icon-wrapper d-flex my-auto">
-                                                        {if status.key == "spotify" {
-                                                            view! { <SpotifyIcon fill="#07C330".into() /> }
-                                                        } else if status.key == "youtube" {
-                                                            view! { <YoutubeIcon fill="#E62017".into() /> }
-                                                        } else {
-                                                            view! {}.into_view()
-                                                        }}
-                                                    </div>
 
-                                                    <div class="title-wrapper flex-grow-1 my-auto text-truncate">
-                                                        {title}
+                                                    <div
+                                                        class="d-flex w-100 h-100"
+                                                        style=("background-color", status.bg_color.clone())
+                                                    >
+                                                        <div class="icon-wrapper d-flex my-auto">
+                                                            {if status.key == "spotify" {
+                                                                view! { <SpotifyIcon fill="#07C330".into() /> }
+                                                            } else if status.key == "youtube" {
+                                                                view! { <YoutubeIcon fill="#E62017".into() /> }
+                                                            } else {
+                                                                view! {}.into_view()
+                                                            }}
+                                                        </div>
+
+                                                        <div class="title-wrapper flex-grow-1 my-auto text-truncate">
+                                                            {title}
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        }
-                                    }
-                                />
+                                            }
+                                        })
+                                        .collect_view()
+                                }}
                             </div>
                         </div>
                     }

@@ -96,6 +96,10 @@ class YTPlayer {
     this.listeners[event].splice(callback, 1);
   }
 
+  removeAllListeners() {
+    this.listeners = {};
+  }
+
   once(event, callback) {
     const cb = (...args) => {
       callback(...args);
@@ -131,6 +135,7 @@ class YTPlayer {
     console.log("Playing video ID", videoId);
     if (autoplay) {
       this.run("loadVideoById", videoId, start);
+      this.play();
     } else {
       this.run("loadVideoById", videoId, start);
     }
@@ -170,6 +175,10 @@ class YTPlayer {
         break;
     }
     this.emit("stateChange", state);
+  }
+
+  onError(err) {
+    this.emit("error", JSON.stringify(err));
   }
 
   onPlaybackQualityChange(data) {

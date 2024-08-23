@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use leptos::{
     create_node_ref,
-    ev::{ended, loadeddata, loadstart, pause, play, timeupdate},
+    ev::{ended, error, loadeddata, loadstart, pause, play, timeupdate},
     event_target,
     html::{audio, Audio, Div},
     spawn_local, HtmlElement, NodeRef,
@@ -26,7 +26,7 @@ macro_rules! listen_event {
             let tx = $tx.clone();
             spawn_local(async move {
                 let val = $handler(evt);
-                let res = tx(val);
+                let _ = tx(val);
                 // if let Err(res) = res {
                 //     console_log!("Error sending event: {:?}", res);
                 // }
@@ -81,6 +81,7 @@ impl LocalPlayer {
         listen_onended => ended => |_| PlayerEvents::Ended,
         listen_onloadstart => loadstart => |_| PlayerEvents::Loading,
         listen_onloadend => loadeddata => |_| PlayerEvents::Play,
+        listen_onerror => error => |err| PlayerEvents::Error(format!("{:?}", err).into()),
         listen_ontimeupdate => timeupdate => |evt|{
             let target = event_target::<leptos::web_sys::HtmlAudioElement>(&evt);
             let time = target.current_time();
@@ -160,6 +161,7 @@ impl GenericPlayer for LocalPlayer {
         self.listen_onloadstart(tx.clone());
         self.listen_onloadend(tx.clone());
         self.listen_ontimeupdate(tx.clone());
+        self.listen_onerror(tx.clone());
     }
 
     fn seek(&self, pos: f64) -> Result<()> {

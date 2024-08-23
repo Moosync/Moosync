@@ -8,7 +8,11 @@ use leptos::{
 use crate::{modals::common::GenericModal, store::provider_store::ProviderStore};
 
 #[component]
-pub fn LoginModal(#[prop()] key: String, #[prop()] name: String) -> impl IntoView {
+pub fn LoginModal(
+    #[prop()] key: String,
+    #[prop()] name: String,
+    account_id: String,
+) -> impl IntoView {
     let having_trouble = create_rw_signal(false);
     let code = create_rw_signal(String::new());
 
@@ -27,7 +31,7 @@ pub fn LoginModal(#[prop()] key: String, #[prop()] name: String) -> impl IntoVie
 
     spawn_local(async move {
         provider_store_cloned
-            .provider_login(key_cloned)
+            .provider_login(key_cloned, account_id)
             .await
             .unwrap();
     });

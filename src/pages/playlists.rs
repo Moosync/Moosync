@@ -10,7 +10,7 @@ use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::{PlaylistSortBy, PlaylistSortByColumns, UiStore};
 use crate::utils::common::fetch_infinite;
-use crate::utils::db_utils::get_songs_by_option;
+use crate::utils::db_utils::{create_playlist, get_songs_by_option, remove_playlist};
 use crate::utils::entities::get_playlist_sort_cx_items;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
@@ -30,14 +30,66 @@ struct PlaylistContextMenu {
     ui_store: RwSignal<UiStore>,
 }
 
-impl PlaylistContextMenu {}
+impl PlaylistContextMenu {
+    fn open_import_from_url_modal(&self) {
+        let modal_store: RwSignal<ModalStore> = expect_context();
+        modal_store.update(|modal_store| {
+            modal_store.set_active_modal(Modals::NewPlaylistModal);
+        });
+    }
+}
 
 impl ContextMenuData<Self> for PlaylistContextMenu {
     fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
         vec![
-            ContextMenuItemInner::new("Import from Url".into(), None),
+            ContextMenuItemInner::new_with_handler(
+                "Import from Url".into(),
+                |_, cx| cx.open_import_from_url_modal(),
+                None,
+            ),
             ContextMenuItemInner::new("Sort by".into(), Some(get_playlist_sort_cx_items())),
         ]
+    }
+}
+
+struct PlaylistItemContextMenu {
+    playlist: Option<QueryablePlaylist>,
+}
+
+impl PlaylistItemContextMenu {
+    fn add_to_library(&self) {
+        if let Some(playlist) = &self.playlist {
+            create_playlist(playlist.clone());
+        }
+    }
+
+    fn remove_from_library(&self) {
+        if let Some(playlist) = &self.playlist {
+            remove_playlist(playlist.clone());
+        }
+    }
+}
+
+impl ContextMenuData<Self> for PlaylistItemContextMenu {
+    fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
+        if let Some(playlist) = &self.playlist {
+            if let Some(library_item) = playlist.library_item {
+                if library_item {
+                    return vec![ContextMenuItemInner::new_with_handler(
+                        "Remove from library".into(),
+                        |_, cx| cx.remove_from_library(),
+                        None,
+                    )];
+                }
+            }
+
+            return vec![ContextMenuItemInner::new_with_handler(
+                "Add to library".into(),
+                |_, cx| cx.add_to_library(),
+                None,
+            )];
+        }
+        vec![]
     }
 }
 
@@ -157,6 +209,9 @@ pub fn AllPlaylists() -> impl IntoView {
         playlists
     });
 
+    let playlist_item_context_menu =
+        Rc::new(ContextMenu::new(PlaylistItemContextMenu { playlist: None }));
+
     view! {
         <div class="w-100 h-100">
             <div
@@ -189,11 +244,24 @@ pub fn AllPlaylists() -> impl IntoView {
                             let playlist_coverpath = item.playlist_coverpath.clone();
                             let playlist_id = item.playlist_id.clone().unwrap_or_default();
                             let playlist_extension = item.extension.clone();
+                            let playlist_item_context_menu = playlist_item_context_menu.clone();
                             SimplifiedCardItem {
                                 title: playlist_name,
                                 cover: playlist_coverpath,
                                 id: playlist_id,
                                 icon: playlist_extension,
+                                context_menu: Some(
+                                    Rc::new(
+                                        Box::new(move |ev, playlist| {
+                                            ev.prevent_default();
+                                            ev.stop_propagation();
+                                            let mut data = playlist_item_context_menu.get_data();
+                                            data.playlist = Some(playlist);
+                                            drop(data);
+                                            playlist_item_context_menu.show(ev);
+                                        }),
+                                    ),
+                                ),
                             }
                         }
                     />

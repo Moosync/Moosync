@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-use leptos::{spawn_local, RwSignal, SignalGet, SignalSet};
+use leptos::{
+    create_read_slice, expect_context, spawn_local, RwSignal, SignalGet, SignalSet, SignalUpdate,
+};
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
 use types::entities::{QueryablePlaylist, SearchResult};
@@ -11,12 +13,13 @@ use types::songs::Song;
 use wasm_bindgen::JsValue;
 
 use crate::console_log;
+use crate::store::modal_store::{ModalStore, Modals};
 use crate::utils::common::{invoke, listen_event};
 
 #[derive(Debug, Default)]
 pub struct ProviderStore {
     keys: RwSignal<Vec<String>>,
-    statuses: RwSignal<HashMap<String, ProviderStatus>>,
+    statuses: RwSignal<Vec<ProviderStatus>>,
     unlisten_provider_key: Option<js_sys::Function>,
 }
 
@@ -86,10 +89,19 @@ impl ProviderStore {
         fetch_provider_keys();
 
         listen_event("provider-status-update", move |data: JsValue| {
-            println!("Got status update {:?}", data);
             let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
-            let provider_status = serde_wasm_bindgen::from_value(payload).unwrap();
-            store.statuses.set(provider_status);
+            let provider_status: HashMap<String, ProviderStatus> =
+                serde_wasm_bindgen::from_value(payload).unwrap();
+            console_log!("Got status update {:?}", provider_status);
+            store
+                .statuses
+                .set(provider_status.values().cloned().collect());
+
+            let modal_store: RwSignal<ModalStore> = expect_context();
+            let get_active_modal = create_read_slice(modal_store, |m| m.get_active_modal());
+            if let Some(Modals::LoginModal(_, _, _)) = get_active_modal.get() {
+                modal_store.update(|m| m.clear_active_modal());
+            }
         });
 
         spawn_local(async move {
@@ -105,16 +117,16 @@ impl ProviderStore {
                     .await
                     .unwrap();
 
-                store
-                    .statuses
-                    .set(serde_wasm_bindgen::from_value(status).unwrap());
+                let statuses: HashMap<String, ProviderStatus> =
+                    serde_wasm_bindgen::from_value(status).unwrap();
+                store.statuses.set(statuses.values().cloned().collect());
             }
         });
 
         store
     }
 
-    pub fn get_all_statuses(&self) -> RwSignal<HashMap<String, ProviderStatus>> {
+    pub fn get_all_statuses(&self) -> RwSignal<Vec<ProviderStatus>> {
         self.statuses
     }
 
@@ -134,7 +146,13 @@ impl ProviderStore {
     generate_async_functions!(
         provider_login {
             args: {
-
+                accountId: String
+            },
+            result_type: (),
+        },
+        provider_signout {
+            args: {
+                accountId: String
             },
             result_type: (),
         },

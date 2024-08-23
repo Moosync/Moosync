@@ -106,6 +106,7 @@ pub fn AllAlbums() -> impl IntoView {
                                 cover: album_coverpath,
                                 id: album_id,
                                 icon: None,
+                                context_menu: None,
                             }
                         }
                     />

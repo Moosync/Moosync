@@ -27,7 +27,8 @@ use extensions::{
 use providers::handler::{
     fetch_playback_url, fetch_playlist_content, fetch_user_playlists, get_all_status,
     get_provider_key_by_id, get_provider_keys, initialize_all_providers, match_url,
-    playlist_from_url, provider_authorize, provider_login, provider_search, song_from_url,
+    playlist_from_url, provider_authorize, provider_login, provider_search, provider_signout,
+    song_from_url,
 };
 use scanner::{get_scanner_state, start_scan};
 use tauri::{Listener, Manager, State};
@@ -79,6 +80,7 @@ pub fn run() {
                 state.handle_oauth(app.clone(), url.to_string()).unwrap();
             }
         }))
+        .plugin(tauri_plugin_dialog::init())
         // .plugin(devtools)
         .invoke_handler(tauri::generate_handler![
             // Preferences
@@ -163,6 +165,7 @@ pub fn run() {
             get_provider_keys,
             initialize_all_providers,
             provider_login,
+            provider_signout,
             provider_authorize,
             get_provider_key_by_id,
             fetch_user_playlists,

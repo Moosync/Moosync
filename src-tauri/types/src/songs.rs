@@ -103,7 +103,7 @@ where
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Default, Clone)]
 #[cfg_attr(
     feature = "core",
     derive(
@@ -158,6 +158,20 @@ pub struct QueryableSong {
     pub library_item: Option<bool>,
 }
 
+impl std::hash::Hash for QueryableSong {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self._id.hash(state);
+    }
+}
+
+impl PartialEq for QueryableSong {
+    fn eq(&self, other: &Self) -> bool {
+        self._id == other._id
+    }
+}
+
+impl Eq for QueryableSong {}
+
 impl QueryableSong {
     pub fn empty() -> Self {
         Self {
@@ -203,7 +217,7 @@ pub struct GetSongOptions {
     pub inclusive: Option<bool>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq)]
+#[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq)]
 pub struct Song {
     #[serde(flatten)]
     pub song: QueryableSong,
@@ -213,4 +227,10 @@ pub struct Song {
     pub artists: Option<Vec<QueryableArtist>>,
     #[serde(default, deserialize_with = "deserialize_default")]
     pub genre: Option<Vec<QueryableGenre>>,
+}
+
+impl std::hash::Hash for Song {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.song._id.hash(state);
+    }
 }

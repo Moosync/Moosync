@@ -49,6 +49,7 @@ leptos_i18n = { version = "0.3.3" }
 pref_gen = { path = "src/pref_gen" }
 rand = "0.8.5"
 dyn-clone = "1.0.17"
+itertools = "0.13.0"
 
 [workspace]
 resolver = "2"

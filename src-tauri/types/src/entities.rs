@@ -75,6 +75,12 @@ pub struct QueryableAlbum {
     pub album_extra_info: Option<EntityInfo>,
 }
 
+impl std::hash::Hash for QueryableAlbum {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.album_id.hash(state);
+    }
+}
+
 impl PartialEq for QueryableAlbum {
     fn eq(&self, other: &Self) -> bool {
         self.album_id == other.album_id
@@ -149,6 +155,12 @@ pub struct QueryableArtist {
     pub sanitized_artist_name: Option<String>,
 }
 
+impl std::hash::Hash for QueryableArtist {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.artist_id.hash(state);
+    }
+}
+
 impl PartialEq for QueryableArtist {
     fn eq(&self, other: &Self) -> bool {
         self.artist_id == other.artist_id
@@ -216,6 +228,12 @@ pub struct QueryableGenre {
     pub genre_name: Option<String>,
     #[serde(default)]
     pub genre_song_count: f64,
+}
+
+impl std::hash::Hash for QueryableGenre {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.genre_id.hash(state);
+    }
 }
 
 impl PartialEq for QueryableGenre {
@@ -325,6 +343,13 @@ pub struct QueryablePlaylist {
     pub playlist_path: Option<String>,
     pub extension: Option<String>,
     pub icon: Option<String>,
+    pub library_item: Option<bool>,
+}
+
+impl std::hash::Hash for QueryablePlaylist {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.playlist_id.hash(state);
+    }
 }
 
 impl PartialEq for QueryablePlaylist {

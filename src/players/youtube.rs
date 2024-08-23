@@ -8,7 +8,7 @@ use regex::bytes::Regex;
 use tokio::sync::oneshot::Sender as OneShotSender;
 use types::errors::errors::Result;
 use types::{errors::errors::MoosyncError, songs::SongType, ui::player_details::PlayerEvents};
-use wasm_bindgen::closure::Closure;
+use wasm_bindgen::{closure::Closure, JsValue};
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{console_log, utils::yt_player::YTPlayer};
@@ -32,7 +32,7 @@ macro_rules! listen_event {
                     }
                 };
             });
-        }) as Box<dyn Fn(f64)>);
+        }) as Box<dyn Fn($data)>);
 
         let js_value = callback.into_js_value();
         $self.player.on($event, &js_value)
@@ -106,7 +106,8 @@ impl GenericPlayer for YoutubePlayer {
     }
 
     fn set_volume(&self, volume: f64) -> types::errors::errors::Result<()> {
-        self.player.setVolume(volume * 100f64);
+        console_log!("Setting youtube volume {}", volume);
+        self.player.setVolume(volume);
         Ok(())
     }
 
@@ -131,6 +132,10 @@ impl GenericPlayer for YoutubePlayer {
 
         listen_event!(self, tx.clone(), "timeUpdate", f64, |time| {
             Ok(PlayerEvents::TimeUpdate(time))
+        });
+
+        listen_event!(self, tx.clone(), "error", JsValue, |error| {
+            Ok(PlayerEvents::Error(format!("{:?}", error).into()))
         })
     }
 

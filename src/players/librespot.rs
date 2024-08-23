@@ -67,6 +67,7 @@ pub struct LibrespotPlayer {
     listeners: Vec<js_sys::Function>,
     timer: Rc<Mutex<Option<IntervalHandle>>>,
     time: Rc<Mutex<f64>>,
+    player_state_tx: Option<Rc<Box<dyn Fn(PlayerEvents)>>>,
 }
 
 static ENABLED: Mutex<bool> = Mutex::new(false);
@@ -86,6 +87,7 @@ impl LibrespotPlayer {
             listeners: vec![],
             timer: Default::default(),
             time: Default::default(),
+            player_state_tx: None,
         }
     }
 
@@ -153,6 +155,7 @@ impl GenericPlayer for LibrespotPlayer {
     }
 
     fn load(&self, src: String, resolver: tokio::sync::oneshot::Sender<()>) {
+        let player_state_tx = self.player_state_tx.clone();
         spawn_local(async move {
             #[derive(Serialize)]
             struct LoadArgs {
@@ -169,8 +172,10 @@ impl GenericPlayer for LibrespotPlayer {
             )
             .await;
 
-            if res.is_err() {
-                console_log!("Error loading track {}: {:?}", src, res.unwrap_err());
+            if let Err(err) = res {
+                if let Some(player_state_tx) = player_state_tx {
+                    player_state_tx(PlayerEvents::Error(format!("{:?}", err).into()))
+                }
             }
 
             resolver.send(()).unwrap();
@@ -266,6 +271,8 @@ impl GenericPlayer for LibrespotPlayer {
         &mut self,
         tx: std::rc::Rc<Box<dyn Fn(types::ui::player_details::PlayerEvents)>>,
     ) {
+        self.player_state_tx = Some(tx.clone());
+
         #[derive(Serialize)]
         struct RegisterEventArgs {
             event: String,
@@ -344,7 +351,7 @@ impl GenericPlayer for LibrespotPlayer {
             ),
             (
                 "librespot_event_Unavailable",
-                PlayerEvents::Ended,
+                PlayerEvents::Error("Track unavailable".into()),
                 stop_and_clear_timer
             ),
             (
@@ -352,7 +359,11 @@ impl GenericPlayer for LibrespotPlayer {
                 PlayerEvents::Ended,
                 stop_and_clear_timer
             ),
-            ("SessionDisconnected", PlayerEvents::Ended, stop_timer)
+            (
+                "SessionDisconnected",
+                PlayerEvents::Error("Session ended".into()),
+                stop_timer
+            )
         );
     }
 

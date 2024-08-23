@@ -197,6 +197,8 @@ where
             console_log!("Fetching playlists from {}", key);
             fetch_infinite!(provider_store, key, fetch_user_playlists, setter,);
         }
+
+        setter.update(|p| p.dedup_by(|a, b| a == b));
     });
 }
 
@@ -330,6 +332,49 @@ pub fn add_to_playlist(id: String, songs: Vec<Song>) {
         .await;
         if res.is_err() {
             console_log!("Error adding to playlist: {:?}", res);
+        }
+    });
+}
+
+pub fn create_playlist(playlist: QueryablePlaylist) {
+    spawn_local(async move {
+        #[derive(Serialize)]
+        struct CreatePlaylistArgs {
+            playlist: QueryablePlaylist,
+        }
+
+        let res = invoke(
+            "create_playlist",
+            serde_wasm_bindgen::to_value(&CreatePlaylistArgs { playlist }).unwrap(),
+        )
+        .await;
+        if let Err(res) = res {
+            console_log!("Failed to create playlist: {:?}", res);
+        }
+    });
+}
+
+pub fn remove_playlist(playlist: QueryablePlaylist) {
+    if playlist.playlist_id.is_none() {
+        return;
+    }
+
+    spawn_local(async move {
+        #[derive(Serialize)]
+        struct RemovePlaylistArgs {
+            id: String,
+        }
+
+        let res = invoke(
+            "remove_playlist",
+            serde_wasm_bindgen::to_value(&RemovePlaylistArgs {
+                id: playlist.playlist_id.unwrap(),
+            })
+            .unwrap(),
+        )
+        .await;
+        if let Err(res) = res {
+            console_log!("Failed to remove playlist: {:?}", res);
         }
     });
 }

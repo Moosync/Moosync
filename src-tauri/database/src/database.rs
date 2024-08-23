@@ -728,6 +728,7 @@ impl Database {
                 playlist_path: Some(term.clone()),
                 extension: None,
                 icon: None,
+                library_item: None,
             },
             false,
             &mut conn,

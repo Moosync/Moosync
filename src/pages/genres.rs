@@ -121,6 +121,7 @@ pub fn AllGenres() -> impl IntoView {
                                 cover: None,
                                 id: genre_id,
                                 icon: None,
+                                context_menu: None,
                             }
                         }
                     />

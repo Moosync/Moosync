@@ -60,9 +60,7 @@ pub fn set_tokens(
     };
 
     let preferences: State<PreferenceConfig> = app.state();
-    preferences
-        .inner()
-        .set_secure(key.into(), Some(refresh_token))?;
+    preferences.set_secure(key.into(), Some(refresh_token))?;
 
     Ok(token_holder)
 }
@@ -76,8 +74,13 @@ pub async fn refresh_login(
     let refresh_token: Result<String> = preferences.inner().get_secure(key.into());
     if refresh_token.is_err() {
         let preferences: State<PreferenceConfig> = app.state();
-        preferences.inner().set_secure::<String>(key.into(), None);
-        return Err("Refresh token not found or corrupted".into());
+        let res = preferences.inner().set_secure::<String>(key.into(), None);
+        println!("Set secure token: {:?}", res);
+        return Err(format!(
+            "Refresh token not found or corrupted: {:?}",
+            refresh_token.unwrap_err()
+        )
+        .into());
     }
 
     let refresh_token = refresh_token.unwrap();
@@ -149,7 +152,11 @@ pub async fn authorize(
         return Err("OAuth not initiated".into());
     }
 
-    let parsed_code = Url::parse(code.as_str()).unwrap();
+    let parsed_code = if code.starts_with("?") {
+        Url::parse(format!("https://moosync.app/login{}", code).as_str()).unwrap()
+    } else {
+        Url::parse(code.as_str()).unwrap()
+    };
     let code = parsed_code
         .query_pairs()
         .find(|p| p.0 == "code")

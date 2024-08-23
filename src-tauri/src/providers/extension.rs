@@ -1,15 +1,17 @@
 use std::fmt::Debug;
 
 use async_trait::async_trait;
-use futures::channel::mpsc::UnboundedSender;
+use futures::{channel::mpsc::UnboundedSender, SinkExt};
+use serde_json::Value;
 use tauri::{AppHandle, Manager};
 use types::{
     entities::{QueryablePlaylist, SearchResult},
     errors::errors::Result,
     extensions::{
-        CustomRequestReturnType, ExtensionDetail, ExtensionExtraEvent, ExtensionExtraEventArgs,
-        ExtensionProviderScope, PlaybackDetailsReturnType, PlaylistAndSongsReturnType,
-        PlaylistReturnType, SearchReturnType, SongReturnType, SongsWithPageTokenReturnType,
+        AccountLoginArgs, CustomRequestReturnType, ExtensionDetail, ExtensionExtraEvent,
+        ExtensionExtraEventArgs, ExtensionProviderScope, PackageNameArgs,
+        PlaybackDetailsReturnType, PlaylistAndSongsReturnType, PlaylistReturnType,
+        SearchReturnType, SongReturnType, SongsWithPageTokenReturnType,
     },
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
@@ -69,6 +71,26 @@ impl Debug for ExtensionProvider {
 #[async_trait]
 impl GenericProvider for ExtensionProvider {
     async fn initialize(&mut self) -> Result<()> {
+        let extension_handler = get_extension_handler(&self.app_handle);
+        let accounts = extension_handler
+            .get_accounts(PackageNameArgs {
+                package_name: self.extension.package_name.clone(),
+            })
+            .await?;
+
+        for account in accounts {
+            let _ = self
+                .status_tx
+                .send(ProviderStatus {
+                    key: self.key(),
+                    name: account.name,
+                    user_name: account.username,
+                    logged_in: account.logged_in,
+                    bg_color: account.bg_color,
+                    account_id: account.id,
+                })
+                .await;
+        }
         Ok(())
     }
     fn key(&self) -> String {
@@ -78,10 +100,33 @@ impl GenericProvider for ExtensionProvider {
         id.starts_with(&format!("{}:", self.extension.package_name))
     }
 
-    async fn login(&mut self) -> Result<()> {
+    async fn login(&mut self, account_id: String) -> Result<()> {
+        let extension_handler = get_extension_handler(&self.app_handle);
+        extension_handler
+            .account_login(AccountLoginArgs {
+                package_name: self.extension.package_name.clone(),
+                account_id,
+                login_status: true,
+            })
+            .await?;
+
         Ok(())
     }
+
+    async fn signout(&mut self, account_id: String) -> Result<()> {
+        let extension_handler = get_extension_handler(&self.app_handle);
+        extension_handler
+            .account_login(AccountLoginArgs {
+                package_name: self.extension.package_name.clone(),
+                account_id,
+                login_status: false,
+            })
+            .await?;
+        Ok(())
+    }
+
     async fn authorize(&mut self, code: String) -> Result<()> {
+        let _ = send_extension_event!(self, ExtensionExtraEvent::OauthCallback([code]), Value);
         Ok(())
     }
 

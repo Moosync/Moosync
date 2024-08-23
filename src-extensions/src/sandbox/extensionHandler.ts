@@ -115,7 +115,7 @@ export class ExtensionHandler {
   public getExtensionIcon(packageName: string) {
     const ext = this.extensionManager.getExtensions({ packageName });
     for (const e of ext) {
-      return e.extensionIcon;
+      return { [packageName]: e.extensionIcon };
     }
     return undefined;
   }

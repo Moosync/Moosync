@@ -4,9 +4,10 @@ use std::{
     sync::Mutex,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Modals {
-    LoginModal(String, String),
+    LoginModal(String, String, String),
+    SignoutModal(String, String, String),
     DiscoverExtensions,
     NewPlaylistModal,
     SongFromUrlModal,
@@ -29,6 +30,10 @@ impl ModalStore {
         if let Some(cb) = self.on_modal_close.take() {
             cb();
         }
+    }
+
+    pub fn get_active_modal(&self) -> Option<Modals> {
+        self.active_modal.clone()
     }
 
     pub fn on_modal_close<T>(&mut self, cb: T)

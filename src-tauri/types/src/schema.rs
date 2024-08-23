@@ -117,6 +117,7 @@ diesel::table! {
         playlist_path -> Nullable<Text>,
         extension -> Nullable<Text>,
         icon -> Nullable<Text>,
+        library_item -> Nullable<Bool>
     }
 }
 

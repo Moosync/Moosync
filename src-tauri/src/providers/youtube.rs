@@ -132,6 +132,7 @@ impl YoutubeProvider {
                         user_name: None,
                         logged_in: true,
                         bg_color: "#E62017".into(),
+                        account_id: "youtube".into(),
                     })
                     .await;
             }
@@ -171,6 +172,7 @@ impl YoutubeProvider {
             playlist_path: None,
             extension: Some(self.key()),
             icon: None,
+            library_item: None,
         }
     }
 
@@ -291,6 +293,7 @@ impl YoutubeProvider {
                 user_name: username,
                 logged_in: true,
                 bg_color: "#E62017".into(),
+                account_id: "youtube".into(),
             });
         }
 
@@ -309,6 +312,7 @@ impl GenericProvider for YoutubeProvider {
                 user_name: None,
                 logged_in: false,
                 bg_color: "#E62017".into(),
+                account_id: "youtube".into(),
             })
             .await;
 
@@ -342,7 +346,7 @@ impl GenericProvider for YoutubeProvider {
             || id.starts_with("youtube:")
     }
 
-    async fn login(&mut self) -> Result<()> {
+    async fn login(&mut self, _: String) -> Result<()> {
         self.verifier = login(
             LoginArgs {
                 client_id: self.config.client_id.clone(),
@@ -359,6 +363,29 @@ impl GenericProvider for YoutubeProvider {
 
         let oauth_handler: State<OAuthHandler> = self.app.state();
         oauth_handler.register_oauth_path("youtubeoauthcallback".into(), self.key());
+
+        Ok(())
+    }
+
+    async fn signout(&mut self, _: String) -> Result<()> {
+        self.api_client = None;
+        self.verifier = None;
+        self.config.tokens = None;
+
+        let preferences: State<PreferenceConfig> = self.app.state();
+        preferences.set_secure("MoosyncYoutubeRefreshToken".into(), None::<String>)?;
+
+        let _ = self
+            .status_tx
+            .send(ProviderStatus {
+                key: self.key(),
+                name: "Youtube".into(),
+                user_name: None,
+                logged_in: false,
+                bg_color: "#E62017".into(),
+                account_id: "youtube".into(),
+            })
+            .await;
 
         Ok(())
     }
@@ -478,7 +505,25 @@ impl GenericProvider for YoutubeProvider {
     }
 
     async fn get_playback_url(&self, song: Song, player: String) -> Result<String> {
-        // TODO: Search spotify song
+        if song.song.provider_extension.unwrap_or_default() != self.key() && player == "youtube" {
+            let youtube_scraper: State<YoutubeScraper> = self.app.state();
+            let res = youtube_scraper
+                .search_yt(format!(
+                    "{} - {}",
+                    song.artists
+                        .unwrap_or_default()
+                        .iter()
+                        .filter_map(|a| a.artist_name.clone())
+                        .collect::<Vec<String>>()
+                        .join(", "),
+                    song.song.title.unwrap_or_default()
+                ))
+                .await?;
+            if let Some(first) = res.songs.first() {
+                return Ok(first.song.url.clone().unwrap());
+            }
+        }
+
         println!("Fetching song for {} player", player);
         if player == "local" {
             let youtube_scraper: State<YoutubeScraper> = self.app.state();

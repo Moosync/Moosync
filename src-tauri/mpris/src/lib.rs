@@ -9,16 +9,13 @@ use std::{
 pub use souvlaki::{MediaControlEvent, SeekDirection};
 
 use souvlaki::{MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
-use types::{
-    errors::errors::Result,
-    mpris::{MprisPlayerDetails, PlaybackState},
-};
+use types::{errors::errors::Result, mpris::MprisPlayerDetails, ui::player_details::PlayerState};
 
 pub struct MprisHolder {
     controls: Mutex<MediaControls>,
     pub event_rx: Arc<Mutex<Receiver<MediaControlEvent>>>,
     last_duration: Mutex<u64>,
-    last_state: Mutex<PlaybackState>,
+    last_state: Mutex<PlayerState>,
 }
 
 impl MprisHolder {
@@ -63,7 +60,7 @@ impl MprisHolder {
             controls: Mutex::new(controls),
             event_rx: Arc::new(Mutex::new(event_rx)),
             last_duration: Mutex::new(0),
-            last_state: Mutex::new(PlaybackState::STOPPED),
+            last_state: Mutex::new(PlayerState::Stopped),
         })
     }
 
@@ -81,20 +78,20 @@ impl MprisHolder {
         Ok(())
     }
 
-    pub fn set_playback_state(&self, state: PlaybackState) -> Result<()> {
+    pub fn set_playback_state(&self, state: PlayerState) -> Result<()> {
         let last_duration = self.last_duration.lock().unwrap();
         let parsed = match state {
-            PlaybackState::PLAYING => MediaPlayback::Playing {
+            PlayerState::Playing => MediaPlayback::Playing {
                 progress: Some(MediaPosition(Duration::from_millis(
                     last_duration.to_owned(),
                 ))),
             },
-            PlaybackState::PAUSED | PlaybackState::LOADING => MediaPlayback::Paused {
+            PlayerState::Paused | PlayerState::Loading => MediaPlayback::Paused {
                 progress: Some(MediaPosition(Duration::from_millis(
                     last_duration.to_owned(),
                 ))),
             },
-            PlaybackState::STOPPED => MediaPlayback::Stopped,
+            PlayerState::Stopped => MediaPlayback::Stopped,
         };
 
         let mut controls = self.controls.lock().unwrap();

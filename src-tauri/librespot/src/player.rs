@@ -12,10 +12,12 @@ use librespot::playback::mixer::{Mixer, MixerConfig};
 use librespot::playback::player::Player;
 use librespot::playback::{audio_backend, mixer};
 use protobuf::Message;
+use regex::Regex;
 use reqwest::header::{CONTENT_LENGTH, CONTENT_TYPE};
 
 use types::canvaz::{Canvaz, CanvazArtist, CanvazResponse, Type};
 use types::errors::errors::Result;
+use url::Url;
 
 use crate::canvaz::entity_canvaz_request::Entity;
 use crate::canvaz::{EntityCanvazRequest, EntityCanvazResponse};
@@ -129,7 +131,57 @@ fn parse_canvaz(canvaz: EntityCanvazResponse) -> Result<CanvazResponse> {
     })
 }
 
+fn validate_uri(val: &str) -> (Option<String>, Option<String>) {
+    let track_regex = Regex::new(
+            r"^(?P<urlType>(?:spotify:|(?:https?:\/\/(?:open|play)\.spotify\.com\/)))(?:embed)?\/?(?P<type>album|track|playlist|artist)(?::|\/)((?:[0-9a-zA-Z]){22})"
+        ).unwrap();
+    if let Some(captures) = track_regex.captures(val) {
+        if let Some(url_type) = captures.name("urlType") {
+            if let Some(match_type) = captures.name("type") {
+                if url_type.as_str().starts_with("https") {
+                    if let Ok(parsed_url) = Url::parse(val) {
+                        if let Some(last_segment) = parsed_url
+                            .path_segments()
+                            .and_then(|segments| segments.last())
+                        {
+                            return (
+                                Some(format!("spotify:{}:{}", match_type.as_str(), last_segment)),
+                                Some(match_type.as_str().to_string()),
+                            );
+                        }
+                    }
+                } else {
+                    return (Some(val.to_string()), Some(match_type.as_str().to_string()));
+                }
+            }
+        }
+    }
+
+    (None, None)
+}
+
 pub fn get_canvas(track_uri: String, session: Session) -> Result<CanvazResponse> {
+    let (uri, type_) = validate_uri(&track_uri);
+    if let Some(type_) = type_ {
+        if type_ != "track" {
+            return Err(format!(
+                "Spotify URI is not of a track: {}, {}, {:?}",
+                track_uri, type_, uri
+            )
+            .into());
+        }
+
+        if uri.is_none() {
+            return Err(format!(
+                "Failed to parse spotify URI: {}, {}, {:?}",
+                track_uri, type_, uri
+            )
+            .into());
+        }
+    }
+
+    let uri = uri.unwrap();
+
     let session_clone = session.clone();
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_io()
@@ -142,7 +194,7 @@ pub fn get_canvas(track_uri: String, session: Session) -> Result<CanvazResponse>
 
         let mut req = EntityCanvazRequest::new();
         let mut entity = Entity::new();
-        entity.entity_uri.clone_from(&track_uri);
+        entity.entity_uri.clone_from(&uri);
         req.entities.push(entity.clone());
 
         println!("{}", protobuf::text_format::print_to_string(&req));

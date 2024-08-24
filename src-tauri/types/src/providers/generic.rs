@@ -88,4 +88,5 @@ pub trait GenericProvider: std::fmt::Debug + Send {
     async fn match_url(&self, url: String) -> Result<bool>;
     async fn playlist_from_url(&self, url: String) -> Result<QueryablePlaylist>;
     async fn song_from_url(&self, url: String) -> Result<Song>;
+    async fn get_suggestions(&self) -> Result<Vec<Song>>;
 }

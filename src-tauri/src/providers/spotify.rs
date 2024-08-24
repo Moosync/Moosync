@@ -1,17 +1,17 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 
 use chrono::{DateTime, TimeDelta};
-use futures::{channel::mpsc::UnboundedSender, SinkExt};
+use futures::{channel::mpsc::UnboundedSender, SinkExt, StreamExt};
 use oauth2::{CsrfToken, PkceCodeVerifier, TokenResponse};
 use preferences::preferences::PreferenceConfig;
 use regex::Regex;
 use rspotify::{
     clients::{BaseClient, OAuthClient},
     model::{
-        FullArtist, FullTrack, Id, PlaylistId, PlaylistTracksRef, SearchType, SimplifiedAlbum,
-        SimplifiedArtist, SimplifiedPlaylist, TrackId,
+        FullArtist, FullTrack, Id, PlaylistId, PlaylistTracksRef, RecommendationsAttribute,
+        SearchType, SimplifiedAlbum, SimplifiedArtist, SimplifiedPlaylist, TrackId,
     },
     AuthCodePkceSpotify, Token,
 };
@@ -255,6 +255,8 @@ impl GenericProvider for SpotifyProvider {
             "user-top-read",
             "user-library-read",
             "user-read-private",
+            "streaming",
+            "app-remote-control",
         ];
 
         let res = self.refresh_login().await;
@@ -523,6 +525,62 @@ impl GenericProvider for SpotifyProvider {
             return Ok(self.parse_playlist_item(res));
         }
 
+        Err("API Client not initialized".into())
+    }
+
+    async fn get_suggestions(&self) -> Result<Vec<Song>> {
+        if let Some(api_client) = &self.api_client {
+            let mut i = 0;
+            let mut ret = vec![];
+            while i < 5 {
+                let user_top_tracks = api_client.current_user_top_tracks(None).next().await;
+                if let Some(track) = user_top_tracks {
+                    let track = track?;
+                    if let Some(track_id) = track.id {
+                        ret.push(track_id);
+                        i += 1;
+                    }
+                } else {
+                    break;
+                }
+            }
+            let recom = api_client
+                .recommendations(
+                    vec![],
+                    Some(vec![]),
+                    Some(vec![]),
+                    Some(ret),
+                    None,
+                    Some(100),
+                )
+                .await?;
+            return Ok(recom
+                .tracks
+                .iter()
+                .map(|t| {
+                    self.parse_playlist_item(FullTrack {
+                        album: t.album.clone().unwrap_or_default(),
+                        artists: t.artists.clone(),
+                        disc_number: t.disc_number,
+                        duration: t.duration,
+                        id: t.id.clone(),
+                        name: t.name.clone(),
+                        track_number: t.track_number,
+                        available_markets: vec![],
+                        explicit: t.explicit,
+                        external_urls: t.external_urls.clone(),
+                        external_ids: HashMap::new(),
+                        href: None,
+                        is_local: false,
+                        is_playable: None,
+                        linked_from: None,
+                        restrictions: None,
+                        popularity: 0,
+                        preview_url: t.preview_url.clone(),
+                    })
+                })
+                .collect());
+        }
         Err("API Client not initialized".into())
     }
 }

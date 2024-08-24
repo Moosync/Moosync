@@ -41,7 +41,7 @@ pub struct ParsedToken {
 pub struct SpircWrapper {
     tx: mpsc::Sender<(Message, Sender<Result<MessageReply>>)>,
     pub events_channel: Arc<Mutex<mpsc::Receiver<PlayerEvent>>>,
-    device_id: String,
+    device_id: Arc<Mutex<Option<String>>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -73,20 +73,20 @@ impl SpircWrapper {
         backend: String,
         volume_ctrl: String,
     ) -> Result<Self> {
-        // env_logger::builder()
-        //     .filter_level(get_log_level(filter_level.as_str()))
-        //     .init();
+        let device_id_mutex = Arc::new(Mutex::new(None));
         let (tx, rx) = mpsc::channel::<(Message, Sender<Result<MessageReply>>)>();
 
-        let (player_creation_tx, player_creation_rx) = mpsc::channel::<Result<String>>();
         let (player_events_tx, player_events_rx) = mpsc::channel::<PlayerEvent>();
 
+        let binding = device_id_mutex.clone();
         thread::spawn(move || {
             let runtime = Builder::new_multi_thread()
                 .enable_io()
                 .enable_time()
                 .build()
                 .unwrap();
+
+            let device_id_mutex = binding.clone();
             runtime.block_on(async move {
                 let session = create_session(cache_config).clone();
 
@@ -97,7 +97,7 @@ impl SpircWrapper {
 
                 let events_channel = player.get_player_event_channel();
 
-                println!("Creating spirc");
+                println!("Creating spirc {:?}", credentials);
                 let res = Spirc::new(
                     connect_config.clone(),
                     session.clone(),
@@ -106,18 +106,21 @@ impl SpircWrapper {
                     mixer,
                 )
                 .await;
-                println!("Spirc created");
 
                 match res {
                     Ok((spirc, spirc_task)) => {
+                        println!("Spirc created");
+
                         spirc.activate().unwrap();
                         let commands_thread =
                             SpircWrapper::listen_commands(rx, spirc, session.clone());
                         let events_thread =
                             SpircWrapper::listen_events(player_events_tx, events_channel);
 
-                        // Panic thread if send fails
-                        player_creation_tx.send(Ok(device_id)).unwrap();
+                        {
+                            let mut device_id_mutex = device_id_mutex.lock().unwrap();
+                            *device_id_mutex = Some(device_id);
+                        }
 
                         spirc_task.await;
 
@@ -133,7 +136,7 @@ impl SpircWrapper {
 
         Ok(Self {
             tx,
-            device_id: String::new(),
+            device_id: device_id_mutex,
             events_channel: Arc::new(Mutex::new(player_events_rx)),
         })
     }
@@ -342,7 +345,7 @@ impl SpircWrapper {
         }
     }
 
-    pub fn get_device_id(&self) -> String {
+    pub fn get_device_id(&self) -> Arc<Mutex<Option<String>>> {
         self.device_id.clone()
     }
 }

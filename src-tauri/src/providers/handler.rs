@@ -315,7 +315,14 @@ impl ProviderHandler {
             },
             result_type: bool,
             method_name: match_url,
-        }
+        },
+        get_suggestions {
+            args: {
+
+            },
+            result_type: Vec<Song>,
+            method_name: get_suggestions,
+        },
     );
 }
 
@@ -337,3 +344,4 @@ generate_command_async!(get_all_status, ProviderHandler, HashMap<String, Provide
 generate_command_async_cached!(playlist_from_url, ProviderHandler, QueryablePlaylist, key: String, url: String);
 generate_command_async_cached!(song_from_url, ProviderHandler, Song, key: String, url: String);
 generate_command_async_cached!(match_url, ProviderHandler, bool, key: String, url: String);
+generate_command_async_cached!(get_suggestions, ProviderHandler, Vec<Song>, key: String);

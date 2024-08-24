@@ -205,6 +205,12 @@ impl ProviderStore {
                 url: String
             },
             result_type: bool,
-        }
+        },
+        get_suggestions {
+            args: {
+
+            },
+            result_type: Vec<Song>,
+        },
     );
 }

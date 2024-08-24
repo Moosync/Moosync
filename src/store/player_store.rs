@@ -8,7 +8,13 @@ use types::{
     ui::player_details::{PlayerState, RepeatModes, VolumeMode},
 };
 
-use crate::{console_log, utils::extensions::send_extension_event};
+use crate::{
+    console_log,
+    utils::{
+        extensions::send_extension_event,
+        mpris::{set_metadata, set_playback_state, set_position},
+    },
+};
 
 #[derive(Debug, Default, PartialEq, Clone, Serialize)]
 pub struct Queue {
@@ -60,6 +66,7 @@ impl PlayerStore {
 
         self.clear_blacklist();
 
+        set_metadata(&song.clone().unwrap_or_default());
         send_extension_event(ExtensionExtraEvent::SongChanged([song]))
     }
 
@@ -138,6 +145,7 @@ impl PlayerStore {
 
     pub fn update_time(&mut self, new_time: f64) {
         self.player_details.current_time = new_time;
+        set_position(new_time);
     }
 
     pub fn get_time(&self) -> f64 {
@@ -151,12 +159,20 @@ impl PlayerStore {
             0f64
         };
 
+        console_log!("Got seek {}", new_time);
+        self.player_details.force_seek = new_time;
+        send_extension_event(ExtensionExtraEvent::Seeked([new_time]))
+    }
+
+    pub fn force_seek(&mut self, new_time: f64) {
         self.player_details.force_seek = new_time;
         send_extension_event(ExtensionExtraEvent::Seeked([new_time]))
     }
 
     pub fn set_state(&mut self, state: PlayerState) {
         self.player_details.state = state;
+
+        set_playback_state(state);
         send_extension_event(ExtensionExtraEvent::PlayerStateChanged([state]))
     }
 

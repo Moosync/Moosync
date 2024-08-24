@@ -667,4 +667,29 @@ impl GenericProvider for YoutubeProvider {
         let res = youtube_scraper.get_video_by_id(video_id).await?;
         Ok(res)
     }
+
+    async fn get_suggestions(&self) -> Result<Vec<Song>> {
+        if let Some(api_client) = &self.api_client {
+            let (_, resp) = api_client
+                .search()
+                .list(&vec!["snippet".into()])
+                .video_category_id("10")
+                .max_results(50)
+                .add_type("video")
+                .doit()
+                .await?;
+
+            if let Some(items) = resp.items {
+                let ids: Vec<String> = items
+                    .iter()
+                    .filter_map(|item| item.id.as_ref().and_then(|id| id.video_id.clone()))
+                    .collect();
+                if !ids.is_empty() {
+                    return self.fetch_song_details(ids).await;
+                }
+            }
+        }
+
+        Err("Api Client not initialized".into())
+    }
 }

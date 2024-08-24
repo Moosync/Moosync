@@ -14,12 +14,3 @@ pub struct MprisPlayerDetails {
     pub duration: Option<f64>,
     pub thumbnail: Option<String>,
 }
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-
-pub enum PlaybackState {
-    PLAYING,
-    PAUSED,
-    STOPPED,
-    LOADING,
-}

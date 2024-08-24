@@ -1,7 +1,10 @@
 use std::rc::Rc;
 
-use crate::components::provider_icon::ProviderIcon;
-use leptos::{component, view, IntoView, SignalGet};
+use crate::{
+    components::provider_icon::ProviderIcon, console_log, icons::play_hover_icon::PlayHoverIcon,
+    store::player_store::PlayerStore,
+};
+use leptos::{component, expect_context, view, IntoView, RwSignal, SignalGet, SignalUpdate};
 use leptos_router::A;
 use leptos_virtual_scroller::VirtualGridScroller;
 
@@ -15,13 +18,41 @@ pub struct SimplifiedCardItem<T> {
 }
 
 #[component()]
-pub fn CardItem<T>(#[prop()] item: SimplifiedCardItem<T>) -> impl IntoView {
+pub fn CardItem<T>(
+    #[prop()] item: SimplifiedCardItem<T>,
+    #[prop(optional, default = false)] songs_view: bool,
+    #[prop(optional)] on_click: Option<Rc<Box<dyn Fn()>>>,
+) -> impl IntoView {
     view! {
         <div class="card mb-2 card-grow" style="width: 200px;">
             <div class="card-img-top">
                 <div class="embed-responsive embed-responsive-1by1">
                     <div class="embed-responsive-item img-container">
-                        // Ext icon
+
+                        <div class="card_overlay">
+                            {move || {
+                                let on_click = on_click.clone();
+                                if songs_view {
+                                    view! {
+                                        <div
+                                            class="play-button-song-list card-overlay-background d-flex justify-content-center w-100 h-100"
+                                            on:click=move |_| {
+                                                let on_click = on_click.clone();
+                                                if let Some(cb) = on_click {
+                                                    cb();
+                                                }
+                                            }
+                                        >
+                                            <PlayHoverIcon />
+                                        </div>
+                                    }
+                                        .into_view()
+                                } else {
+                                    view! {}.into_view()
+                                }
+                            }}
+                        </div>
+
                         <div class="provider-icon-overlay me-auto justify-content-center d-flex align-items-center">
                             {if let Some(icon) = item.icon.clone() {
                                 view! { <ProviderIcon extension=icon /> }
@@ -41,12 +72,18 @@ pub fn CardItem<T>(#[prop()] item: SimplifiedCardItem<T>) -> impl IntoView {
 }
 
 #[component()]
-pub fn CardView<T, S, C>(#[prop()] items: S, #[prop()] card_item: C) -> impl IntoView
+pub fn CardView<T, S, C>(
+    #[prop()] items: S,
+    #[prop()] card_item: C,
+    #[prop(optional, default = false)] songs_view: bool,
+    #[prop(optional)] on_click: Option<Box<dyn Fn(T)>>,
+) -> impl IntoView
 where
     T: 'static + Clone,
     C: Fn((usize, &T)) -> SimplifiedCardItem<T> + 'static,
     S: SignalGet<Value = Vec<T>> + Copy + 'static,
 {
+    let on_click = on_click.map(|cl| Rc::new(cl));
     view! {
         <VirtualGridScroller
             each=items
@@ -54,10 +91,12 @@ where
             item_height=275
             children=move |data| {
                 let data1 = data.1.clone();
+                let data2 = data.1.clone();
                 let card_item_data = card_item(data);
                 let card_item_data1 = card_item_data.clone();
-                view! {
-                    <A href=format!("single?id={}", card_item_data.id.clone())>
+                let on_click = on_click.clone();
+                if songs_view {
+                    view! {
                         <CardItem
                             on:contextmenu=move |ev| {
                                 if let Some(cb) = &card_item_data1.context_menu {
@@ -65,8 +104,30 @@ where
                                 }
                             }
                             item=card_item_data
+                            songs_view=songs_view
+                            on_click=Rc::new(
+                                Box::new(move || {
+                                    if let Some(cb) = on_click.clone() {
+                                        cb(data2.clone());
+                                    }
+                                }),
+                            )
                         />
-                    </A>
+                    }
+                } else {
+                    view! {
+                        <A href=format!("single?id={}", card_item_data.id.clone())>
+                            <CardItem
+                                on:contextmenu=move |ev| {
+                                    if let Some(cb) = &card_item_data1.context_menu {
+                                        cb(ev, data1.clone());
+                                    }
+                                }
+                                item=card_item_data
+                                songs_view=songs_view
+                            />
+                        </A>
+                    }
                 }
             }
         />

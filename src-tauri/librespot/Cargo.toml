@@ -5,6 +5,8 @@ version = "0.1.0"
 
 [dependencies]
 quote = "1.0.36"
+regex = "1.10.6"
+url = "2.5.2"
 
 [dependencies.futures-util]
 version = "0.3.30"

@@ -23,7 +23,11 @@ pub fn initialize_librespot(
     let username: String = prefs.load_selective("spotify.username".into())?;
     let password: String = prefs.load_selective("spotify.password".into())?;
 
-    println!("Initializing librespot");
+    println!(
+        "Initializing librespot {}@{}",
+        username.trim(),
+        password.trim()
+    );
 
     let credentials = Credentials::with_password(username, password);
 

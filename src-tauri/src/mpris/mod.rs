@@ -4,10 +4,7 @@ use macros::generate_command;
 use mpris::MprisHolder;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, State};
-use types::{
-    errors::errors::Result,
-    mpris::{MprisPlayerDetails, PlaybackState},
-};
+use types::{errors::errors::Result, mpris::MprisPlayerDetails, ui::player_details::PlayerState};
 
 pub fn get_mpris_state(app: AppHandle) -> Result<MprisHolder> {
     let mpris_holder = MprisHolder::new()?;
@@ -35,6 +32,7 @@ pub fn get_mpris_state(app: AppHandle) -> Result<MprisHolder> {
                     (12, json!(pos.as_secs()))
                 }
                 mpris::MediaControlEvent::SetPosition(pos) => (12, json!(pos.0.as_secs())),
+
                 mpris::MediaControlEvent::SetVolume(vol) => (15, json!(vol)),
                 mpris::MediaControlEvent::OpenUri(uri) => (16, Value::String(uri)),
                 mpris::MediaControlEvent::Raise => (17, Value::Null),
@@ -48,5 +46,5 @@ pub fn get_mpris_state(app: AppHandle) -> Result<MprisHolder> {
 }
 
 generate_command!(set_metadata, MprisHolder, (), metadata: MprisPlayerDetails);
-generate_command!(set_playback_state, MprisHolder, (), state: PlaybackState);
+generate_command!(set_playback_state, MprisHolder, (), state: PlayerState);
 generate_command!(set_position, MprisHolder, (), duration: f64);

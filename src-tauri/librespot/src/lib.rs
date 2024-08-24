@@ -108,26 +108,15 @@ impl LibrespotHolder {
     }
 
     fn check_initialized(&self) -> Result<()> {
-        if self.instance.lock().unwrap().is_some() {
-            return Ok(());
+        if let Some(instance) = &mut *self.instance.lock().unwrap() {
+            let device_id = instance.get_device_id();
+            let device_id = device_id.lock().unwrap();
+            if device_id.is_some() {
+                return Ok(());
+            }
         }
 
-        let config_mutex = self.config.lock().unwrap();
-        let config = config_mutex.clone();
-        drop(config_mutex);
-
-        if let Some(config) = config.as_ref() {
-            self.initialize(
-                config.credentials.clone(),
-                config.player_config.clone(),
-                config.connect_config.clone(),
-                config.cache_config.clone(),
-                config.backend.clone(),
-                config.volume_ctrl.clone(),
-            )?;
-        }
-
-        Ok(())
+        Err("Librespot not initialized".into())
     }
 
     pub fn get_events_channel(&self) -> Result<Arc<Mutex<mpsc::Receiver<PlayerEvent>>>> {
@@ -148,13 +137,13 @@ impl LibrespotHolder {
     }
 }
 
-generate_methods!(LibrespotHolder, 
-    librespot_play() -> (), 
+generate_methods!(LibrespotHolder,
+    librespot_play() -> (),
     librespot_pause() -> (),
-    librespot_close() -> (), 
-    librespot_get_token(scopes: String) -> ParsedToken, 
-    librespot_volume(vol: u16) -> (), 
-    librespot_load(uri: String, autoplay: bool) -> (), 
+    librespot_close() -> (),
+    librespot_get_token(scopes: String) -> ParsedToken,
+    librespot_volume(vol: u16) -> (),
+    librespot_load(uri: String, autoplay: bool) -> (),
     librespot_seek(pos: u32) -> (),
     get_lyrics(uri: String) -> String,
     get_canvaz(uri: String) -> CanvazResponse);

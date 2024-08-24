@@ -1,5 +1,7 @@
+use itertools::Itertools;
 use leptos::{expect_context, RwSignal, SignalUpdate};
 use leptos_context_menu::ContextMenuItemInner;
+use types::entities::QueryableArtist;
 
 use crate::store::ui_store::{PlaylistSortBy, PlaylistSortByColumns, UiStore};
 
@@ -28,4 +30,10 @@ pub fn get_playlist_sort_cx_items<T>() -> Vec<ContextMenuItemInner<T>> {
         ContextMenuItemInner::new_with_handler("Title".into(), |_, _| sort_by_name(), None),
         ContextMenuItemInner::new_with_handler("Provider".into(), |_, _| sort_by_provider(), None),
     ]
+}
+
+pub fn get_artist_string(artists: Option<Vec<QueryableArtist>>) -> String {
+    artists
+        .map(|a| a.iter().filter_map(|a| a.artist_name.clone()).join(", "))
+        .unwrap_or_default()
 }

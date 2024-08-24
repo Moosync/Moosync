@@ -11,7 +11,7 @@ use types::{
         AccountLoginArgs, CustomRequestReturnType, ExtensionDetail, ExtensionExtraEvent,
         ExtensionExtraEventArgs, ExtensionProviderScope, PackageNameArgs,
         PlaybackDetailsReturnType, PlaylistAndSongsReturnType, PlaylistReturnType,
-        SearchReturnType, SongReturnType, SongsWithPageTokenReturnType,
+        RecommendationsReturnType, SearchReturnType, SongReturnType, SongsWithPageTokenReturnType,
     },
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
@@ -273,5 +273,22 @@ impl GenericProvider for ExtensionProvider {
         );
 
         Ok(res.song)
+    }
+
+    async fn get_suggestions(&self) -> Result<Vec<Song>> {
+        if !self
+            .provides
+            .contains(&ExtensionProviderScope::Recommendations)
+        {
+            return Err("Extension does not have this capability".into());
+        }
+
+        let res = send_extension_event!(
+            self,
+            ExtensionExtraEvent::RequestedRecommendations,
+            RecommendationsReturnType
+        );
+
+        Ok(res.songs)
     }
 }

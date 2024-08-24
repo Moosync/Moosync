@@ -1,14 +1,16 @@
 use leptos::{
-    component, create_read_slice, create_rw_signal, create_write_slice, expect_context, view,
-    IntoView, RwSignal, SignalGet, SignalSet,
+    component, create_effect, create_read_slice, create_rw_signal, create_write_slice,
+    expect_context, spawn_local, view, IntoView, RwSignal, SignalGet, SignalSet,
 };
 use leptos_virtual_scroller::VirtualScroller;
-use types::songs::Song;
+use serde::Serialize;
+use types::songs::{Song, SongType};
 use types::ui::player_details::PlayerState;
 use types::ui::song_details::SongDetailIcons;
 
 use crate::components::audiostream::AudioStream;
-use crate::utils::common::get_high_img;
+use crate::console_log;
+use crate::utils::common::{get_high_img, invoke};
 use crate::{
     components::{low_img::LowImg, provider_icon::ProviderIcon, songdetails::SongDetails},
     icons::{cross_icon::CrossIcon, trash_icon::TrashIcon},
@@ -85,6 +87,36 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
     });
     let play_now = create_write_slice(player_store, |p, val| p.change_index(val));
     let remove_from_queue = create_write_slice(player_store, |p, val| p.remove_from_queue(val));
+
+    create_effect(move |_| {
+        let current_song = current_song.get();
+        if let Some(current_song) = current_song {
+            if current_song.song.type_ == SongType::SPOTIFY
+                && current_song.song.playback_url.is_some()
+            {
+                spawn_local(async move {
+                    #[derive(Serialize)]
+                    struct GetCanvasArgs {
+                        uri: String,
+                    }
+
+                    let res = invoke(
+                        "get_canvaz",
+                        serde_wasm_bindgen::to_value(&GetCanvasArgs {
+                            uri: current_song.song.playback_url.clone().unwrap(),
+                        })
+                        .unwrap(),
+                    )
+                    .await;
+                    if let Ok(res) = res {
+                        console_log!("Got canvas: {:?}", res);
+                    } else {
+                        console_log!("Failed to get canvaz {:?}", res)
+                    }
+                });
+            }
+        }
+    });
 
     view! {
         <div

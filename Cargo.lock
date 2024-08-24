@@ -4581,10 +4581,12 @@ dependencies = [
  "librespot 0.5.0-dev",
  "protobuf",
  "quote",
+ "regex",
  "reqwest 0.12.5",
  "serde",
  "tokio",
  "types",
+ "url 2.5.2",
 ]
 
 [[package]]

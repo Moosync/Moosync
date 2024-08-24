@@ -301,7 +301,6 @@ impl PlayerHolder {
                     store.force_seek_percent(0f64);
                 }
             }
-            store.next_song();
         });
 
         let player_time_setter = create_write_slice(player_store, move |store, time| {

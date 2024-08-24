@@ -3,6 +3,7 @@ use std::rc::Rc;
 use crate::{
     components::prefs::static_components::SettingRoutes,
     console_log,
+    pages::explore::Explore,
     players::librespot::LibrespotPlayer,
     store::ui_store::UiStore,
     utils::{
@@ -20,6 +21,7 @@ use leptos_router::{Outlet, Redirect, Route, Router, Routes};
 use serde::Serialize;
 use types::{
     extensions::ExtensionUIRequest, preferences::CheckboxPreference, themes::ThemeDetails,
+    ui::player_details::PlayerState,
 };
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
@@ -243,12 +245,38 @@ pub fn App() -> impl IntoView {
         }
     });
 
+    let unlisten_mpris = listen_event("media_button_press", move |data: JsValue| {
+        let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
+        let (key, value): (i32, Option<f64>) = serde_wasm_bindgen::from_value(payload).unwrap();
+        let player_store: RwSignal<PlayerStore> = expect_context();
+
+        match key {
+            0 => player_store.update(|p| p.set_state(PlayerState::Playing)),
+            1 => player_store.update(|p| p.set_state(PlayerState::Paused)),
+            2 => player_store.update(|p| p.set_state(PlayerState::Stopped)),
+            6 => player_store.update(|p| p.next_song()),
+            7 => player_store.update(|p| p.prev_song()),
+            12 => player_store.update(|p| p.force_seek(value.unwrap_or_default())),
+            13 => player_store.update(|p| match p.player_details.state {
+                PlayerState::Playing => p.set_state(PlayerState::Paused),
+                _ => p.set_state(PlayerState::Playing),
+            }),
+            15 => player_store.update(|p| p.set_volume(value.unwrap_or_default())),
+
+            _ => {}
+        }
+    });
+
     let window = window();
     if let Err(e) = window.add_event_listener_with_callback("beforeunload", &watch_prefs_unlisten) {
         console_log!("Failed to set unmount hook: {:?}", e);
     }
 
     if let Err(e) = window.add_event_listener_with_callback("beforeunload", &ui_requests_unlisten) {
+        console_log!("Failed to set unmount hook: {:?}", e);
+    }
+
+    if let Err(e) = window.add_event_listener_with_callback("beforeunload", &unlisten_mpris) {
         console_log!("Failed to set unmount hook: {:?}", e);
     }
 
@@ -269,6 +297,7 @@ pub fn App() -> impl IntoView {
                                 <Route path="genres" view=AllGenres />
                                 <Route path="genres/single" view=SingleGenre />
                                 <Route path="search" view=Search />
+                                <Route path="explore" view=Explore />
                             </Route>
                             <SettingRoutes />
                         </Route>

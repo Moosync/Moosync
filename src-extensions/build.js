@@ -8,7 +8,7 @@ const nodePath = which
     all: true,
   })
   .filter(
-    (v) => !v.startsWith("/tmp") || !v.includes("Temp") || !v.includes("/T/"),
+    (v) => !v.startsWith("/tmp") && !v.includes("Temp") && !v.includes("/T/"),
   )[0];
 console.log(nodePath);
 

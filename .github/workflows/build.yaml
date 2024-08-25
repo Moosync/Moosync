@@ -37,6 +37,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
+          cache-dependency-path: "src-extensions/yarn.lock"
           cache: "yarn" # Set this to npm, yarn or pnpm.
 
       - name: install Rust nightly

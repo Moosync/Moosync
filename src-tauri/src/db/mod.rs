@@ -29,6 +29,7 @@ generate_command!(update_lyrics, Database, (), id: String, lyrics: String);
 generate_command!(increment_play_count, Database, (), id: String);
 generate_command!(increment_play_time, Database, (), id: String, duration: f64);
 
+#[tracing::instrument(level = "trace", skip(app))]
 pub fn get_cache_state(app: &mut App) -> CacheHolder {
     let path = app.path().app_cache_dir().unwrap().join("http_cache.db");
     if let Some(parent) = path.parent() {
@@ -40,6 +41,7 @@ pub fn get_cache_state(app: &mut App) -> CacheHolder {
     CacheHolder::new(path)
 }
 
+#[tracing::instrument(level = "trace", skip(app))]
 pub fn get_db_state(app: &mut App) -> Database {
     let path = app.path().app_data_dir().unwrap().join("songs.db");
     if let Some(parent) = path.parent() {

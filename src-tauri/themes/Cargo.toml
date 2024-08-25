@@ -16,3 +16,4 @@ types = { path = "../types" }
 uuid = "1.10.0"
 zip = "2.1.6"
 zip-extensions = "0.8.1"
+tracing = { version = "0.1.40", features = ["attributes"] }

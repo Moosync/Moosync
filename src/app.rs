@@ -13,7 +13,7 @@ use crate::{
 };
 use leptos::{
     component, create_read_slice, create_rw_signal, document, expect_context, provide_context,
-    view, window, window_event_listener, IntoView, RwSignal, SignalGetUntracked, SignalUpdate,
+    view, window, IntoView, RwSignal, SignalGetUntracked, SignalUpdate,
 };
 use leptos_context_menu::provide_context_menu_state;
 use leptos_i18n::provide_i18n_context;
@@ -117,20 +117,20 @@ fn handle_theme(id: String) {
             .set_property("--tertiary", &theme.theme.tertiary)
             .unwrap();
         style
-            .set_property("--textPrimary", &theme.theme.textPrimary)
+            .set_property("--textPrimary", &theme.theme.text_primary)
             .unwrap();
         style
-            .set_property("--textSecondary", &theme.theme.textSecondary)
+            .set_property("--textSecondary", &theme.theme.text_secondary)
             .unwrap();
         style
-            .set_property("--textInverse", &theme.theme.textInverse)
+            .set_property("--textInverse", &theme.theme.text_inverse)
             .unwrap();
         style.set_property("--accent", &theme.theme.accent).unwrap();
         style
             .set_property("--divider", &theme.theme.divider)
             .unwrap();
 
-        if let Some(custom_css) = theme.theme.customCSS {
+        if let Some(custom_css) = theme.theme.custom_css {
             let mut custom_style_sheet = document().get_element_by_id("custom-css");
             if custom_style_sheet.is_none() {
                 let el = document().create_element("style").unwrap();

@@ -5,6 +5,7 @@ use tauri::{App, Manager, State};
 use themes::themes::ThemeHolder;
 use types::themes::ThemeDetails;
 
+#[tracing::instrument(level = "trace", skip(app))]
 pub fn get_theme_handler_state(app: &mut App) -> ThemeHolder {
     let path = app.path().app_local_data_dir().unwrap().join("themes");
     if !path.exists() {

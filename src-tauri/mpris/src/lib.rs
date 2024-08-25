@@ -1,3 +1,4 @@
+pub use souvlaki::{MediaControlEvent, SeekDirection};
 use std::{
     sync::{
         mpsc::{self, Receiver},
@@ -6,11 +7,10 @@ use std::{
     time::Duration,
 };
 
-pub use souvlaki::{MediaControlEvent, SeekDirection};
-
 use souvlaki::{MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 use types::{errors::errors::Result, mpris::MprisPlayerDetails, ui::player_details::PlayerState};
 
+#[derive(Debug)]
 pub struct MprisHolder {
     controls: Mutex<MediaControls>,
     pub event_rx: Arc<Mutex<Receiver<MediaControlEvent>>>,
@@ -19,6 +19,7 @@ pub struct MprisHolder {
 }
 
 impl MprisHolder {
+    #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> Result<MprisHolder> {
         #[cfg(not(target_os = "windows"))]
         let hwnd = None;
@@ -64,6 +65,7 @@ impl MprisHolder {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip(self, metadata))]
     pub fn set_metadata(&self, metadata: MprisPlayerDetails) -> Result<()> {
         let mut controls = self.controls.lock().unwrap();
         let duration = metadata.duration.map(|d| (d * 1000.0) as u64);
@@ -78,6 +80,7 @@ impl MprisHolder {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, state))]
     pub fn set_playback_state(&self, state: PlayerState) -> Result<()> {
         let last_duration = self.last_duration.lock().unwrap();
         let parsed = match state {
@@ -103,13 +106,15 @@ impl MprisHolder {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, duration))]
     pub fn set_position(&self, duration: f64) -> Result<()> {
         let mut last_duration = self.last_duration.lock().unwrap();
         *last_duration = (duration * 1000.0) as u64;
         drop(last_duration);
 
-        let last_state = self.last_state.lock().unwrap().clone();
-        self.set_playback_state(last_state)?;
+        let last_state = self.last_state.lock().unwrap();
+        #[allow(clippy::clone_on_copy)]
+        self.set_playback_state(last_state.clone())?;
         Ok(())
     }
 }

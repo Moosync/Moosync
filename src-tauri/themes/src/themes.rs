@@ -7,16 +7,19 @@ use types::{
     themes::ThemeDetails,
 };
 
+#[derive(Debug)]
 pub struct ThemeHolder {
     pub theme_dir: PathBuf,
     pub tmp_dir: PathBuf,
 }
 
 impl ThemeHolder {
+    #[tracing::instrument(level = "trace", skip(theme_dir, tmp_dir))]
     pub fn new(theme_dir: PathBuf, tmp_dir: PathBuf) -> Self {
         Self { theme_dir, tmp_dir }
     }
 
+    #[tracing::instrument(level = "trace", skip(self, theme))]
     pub fn save_theme(&self, theme: ThemeDetails) -> Result<()> {
         let theme_path = self.theme_dir.join(theme.id.clone());
 
@@ -29,6 +32,7 @@ impl ThemeHolder {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, id))]
     pub fn remove_theme(&self, id: String) -> Result<()> {
         let theme_path = self.theme_dir.join(id.clone());
         if theme_path.exists() {
@@ -38,6 +42,7 @@ impl ThemeHolder {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, id))]
     pub fn load_theme(&self, id: String) -> Result<ThemeDetails> {
         let theme_config = self.theme_dir.join(id.clone()).join("config.json");
         if theme_config.exists() {
@@ -48,6 +53,7 @@ impl ThemeHolder {
         Err(MoosyncError::String("Theme not found".to_string()))
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn load_all_themes(&self) -> Result<HashMap<String, ThemeDetails>> {
         let theme_dir = self.theme_dir.clone();
         let entries = fs::read_dir(theme_dir)?;
@@ -63,6 +69,7 @@ impl ThemeHolder {
         Ok(ret)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, css_path, root))]
     pub fn transform_css(&self, css_path: String, root: Option<String>) -> Result<String> {
         let parsed_path = if let Some(root) = root {
             PathBuf::from(root).join(css_path)
@@ -99,6 +106,7 @@ impl ThemeHolder {
         Ok(css)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, theme_path))]
     pub fn import_theme(&self, theme_path: String) -> Result<()> {
         let extract_dir = self
             .tmp_dir
@@ -122,7 +130,7 @@ impl ThemeHolder {
                     for items in extract_dir.read_dir()? {
                         item_list.push(items.unwrap().path());
                     }
-                    println!("Moving from {:?} to {:?}", item_list, final_theme_path);
+                    tracing::info!("Moving from {:?} to {:?}", item_list, final_theme_path);
                     fs_extra::move_items(item_list.as_slice(), final_theme_path, &options)?;
 
                     return Ok(());

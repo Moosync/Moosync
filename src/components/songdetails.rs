@@ -1,6 +1,6 @@
 use leptos::{
     component, create_effect, create_rw_signal, view, AnimatedShow, CollectView, IntoView,
-    RwSignal, SignalGet, SignalGetUntracked, SignalSet, SignalUpdate,
+    RwSignal, SignalGet, SignalGetUntracked, SignalSet,
 };
 use serde::Serialize;
 use types::{songs::Song, ui::song_details::SongDetailIcons};

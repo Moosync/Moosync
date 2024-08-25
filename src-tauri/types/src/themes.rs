@@ -5,12 +5,16 @@ pub struct ThemeItem {
     pub primary: String,
     pub secondary: String,
     pub tertiary: String,
-    pub textPrimary: String,
-    pub textSecondary: String,
-    pub textInverse: String,
+    #[serde(rename = "textPrimary")]
+    pub text_primary: String,
+    #[serde(rename = "textSecondary")]
+    pub text_secondary: String,
+    #[serde(rename = "textInverse")]
+    pub text_inverse: String,
     pub accent: String,
     pub divider: String,
-    pub customCSS: Option<String>,
+    #[serde(rename = "customCSS")]
+    pub custom_css: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

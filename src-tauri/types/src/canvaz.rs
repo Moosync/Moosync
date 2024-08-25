@@ -2,11 +2,11 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Type {
-    IMAGE = 0,
-    VIDEO = 1,
-    VIDEO_LOOPING = 2,
-    VIDEO_LOOPING_RANDOM = 3,
-    GIF = 4,
+    Image = 0,
+    Video = 1,
+    VideoLooping = 2,
+    VideoLoopingRandom = 3,
+    Gif = 4,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

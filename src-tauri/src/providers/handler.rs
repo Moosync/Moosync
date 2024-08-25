@@ -31,15 +31,15 @@ macro_rules! generate_wrapper {
         method_name: $method_name:ident,
     }),* $(,)?) => {
         $(
+            #[tracing::instrument(level = "trace", skip(self))]
             pub async fn $func_name(&self, key: String, $($param_name: $param_type),*) -> Result<$result_type> {
                 let mut provider_key = key;
                 let provider_store = self.provider_store.lock().await;
                 loop {
-                    println!("provider store: {:?}", provider_store);
                     let provider = provider_store.get(&provider_key);
                     if let Some(provider) = provider {
                         let provider = provider.lock().await;
-                        println!("calling provider {} - {}", provider_key, stringify!($method_name));
+                        tracing::info!("calling provider {} - {}", provider_key, stringify!($method_name));
                         let res = provider.$method_name($($param_name.clone()),*).await;
                         match res {
                             Ok(result) => return Ok(result),
@@ -62,14 +62,13 @@ macro_rules! generate_wrapper_mut {
         method_name: $method_name:ident,
     }),* $(,)?) => {
         $(
+            #[tracing::instrument(level = "trace", skip(self))]
             pub async fn $func_name(&self, key: String, $($param_name: $param_type),*) -> Result<$result_type> {
                 let mut provider_key = key;
                 let provider_store = self.provider_store.lock().await;
                 loop {
-                    println!("provider store: {:?}", provider_store);
                     let provider = provider_store.get(&provider_key);
                     if let Some(provider) = provider {
-                        println!("calling provider {} - {}", provider_key, stringify!($method_name));
                         let mut provider = provider.lock().await;
                         let res = provider.$method_name($($param_name.clone()),*).await;
                         match res {
@@ -95,6 +94,7 @@ pub struct ProviderHandler {
 }
 
 impl ProviderHandler {
+    #[tracing::instrument(level = "trace", skip(app))]
     pub fn new(app: AppHandle) -> Self {
         let (status_tx, status_rx) = unbounded();
         let store = Self {
@@ -123,6 +123,7 @@ impl ProviderHandler {
         store
     }
 
+    #[tracing::instrument(level = "trace", skip(self, status_rx))]
     pub fn listen_status_changes(&self, status_rx: UnboundedReceiver<ProviderStatus>) {
         let status_rx = Arc::new(Mutex::new(status_rx));
         let provider_status = self.provider_status.clone();
@@ -134,18 +135,19 @@ impl ProviderHandler {
             let app_handle = app_handle.clone();
 
             while let Some(status) = status_rx.next().await {
-                println!("Got provider status update {:?}", status);
+                tracing::info!("Got provider status update {:?}", status);
                 let mut provider_status = provider_status.lock().await;
                 provider_status.insert(status.key.clone(), status);
                 let res = app_handle.emit("provider-status-update", provider_status.clone());
                 if let Err(e) = res {
-                    println!("Error emitting status update: {:?}", e);
+                    tracing::error!("Error emitting status update: {:?}", e);
                 }
-                println!("Emitted status update {:?}", provider_status);
+                tracing::info!(provider_status = ?provider_status, "Emitted status update");
             }
         });
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn discover_provider_extensions(&self) -> Result<()> {
         let ext_handler = get_extension_handler(&self.app_handle);
         let extensions_res = ext_handler.get_installed_extensions().await?;
@@ -154,15 +156,16 @@ impl ProviderHandler {
                 let provides = ext_handler
                     .get_provider_scopes(extension.package_name.clone().into())
                     .await;
-                println!("Got provider scopes from {}", extension.package_name);
+                tracing::info!("Got provider scopes from {}", extension.package_name);
                 if let Ok(provides) = provides {
                     if provides.is_empty() {
                         continue;
                     }
 
-                    println!(
+                    tracing::info!(
                         "Inserting extension provider {:?} {:?}",
-                        extension, provides
+                        extension,
+                        provides
                     );
 
                     let mut provider = ExtensionProvider::new(
@@ -175,11 +178,11 @@ impl ProviderHandler {
                     provider_store.remove(provider.key().as_str());
                     provider_store.insert(provider.key(), Arc::new(Mutex::new(provider.clone())));
 
-                    println!("provider_store: {:?}", provider_store);
+                    tracing::info!("provider_store: {:?}", provider_store);
                     async_runtime::spawn(async move {
                         let res = provider.initialize().await;
                         if let Err(err) = res {
-                            println!(
+                            tracing::error!(
                                 "Error initializing extension provider {}: {:?}",
                                 provider.key(),
                                 err
@@ -193,15 +196,19 @@ impl ProviderHandler {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, key))]
     pub async fn initialize_provider(&self, key: String) {
         let provider_store = self.provider_store.lock().await;
         let provider = provider_store.get(&key);
         if let Some(provider) = provider {
             let mut provider = provider.lock().await;
-            provider.initialize().await;
+            if let Err(e) = provider.initialize().await {
+                tracing::error!("Error initializing provider {}: {:?}", provider.key(), e);
+            }
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn initialize_all_providers(&self) -> Result<()> {
         let mut fut = vec![];
         let provider_store = self.provider_store.lock().await;
@@ -209,12 +216,12 @@ impl ProviderHandler {
             let provider = provider.clone();
             fut.push(Box::pin(async move {
                 let mut provider = provider.lock().await;
-                println!("Initializing {}", provider.key());
+                tracing::info!("Initializing {}", provider.key());
                 let err = provider.initialize().await;
                 if let Err(err) = err {
-                    println!("Error initializing {}: {:?}", provider.key(), err);
+                    tracing::error!("Error initializing {}: {:?}", provider.key(), err);
                 } else {
-                    println!("Initialized {}", provider.key());
+                    tracing::info!("Initialized {}", provider.key());
                 }
             }));
         }
@@ -222,6 +229,7 @@ impl ProviderHandler {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, id))]
     pub async fn get_provider_key_by_id(&self, id: String) -> Result<String> {
         let provider_store = self.provider_store.lock().await;
         for (key, provider) in provider_store.iter() {
@@ -233,11 +241,13 @@ impl ProviderHandler {
         Err(format!("Provider for id {} not found", id).into())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn get_provider_keys(&self) -> Result<Vec<String>> {
         let provider_store = self.provider_store.lock().await;
         Ok(provider_store.keys().cloned().collect())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn get_all_status(&self) -> Result<HashMap<String, ProviderStatus>> {
         Ok(self.provider_status.lock().await.clone())
     }
@@ -326,6 +336,7 @@ impl ProviderHandler {
     );
 }
 
+#[tracing::instrument(level = "trace", skip(app))]
 pub fn get_provider_handler_state(app: AppHandle) -> ProviderHandler {
     ProviderHandler::new(app)
 }

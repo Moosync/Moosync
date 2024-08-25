@@ -14,6 +14,6 @@ async fn test_youtube_playlist_content() {
         .await
         .unwrap();
 
-    println!("res: {:?}", res);
+    tracing::info!("res: {:?}", res);
     assert!(!res.songs.is_empty());
 }

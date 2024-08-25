@@ -5,7 +5,7 @@ use wasm_bindgen_futures::spawn_local;
 use crate::{
     console_log,
     utils::{
-        common::{get_high_img, invoke},
+        common::invoke,
         entities::get_artist_string,
     },
 };

@@ -1,10 +1,9 @@
 use std::rc::Rc;
 
 use crate::{
-    components::provider_icon::ProviderIcon, console_log, icons::play_hover_icon::PlayHoverIcon,
-    store::player_store::PlayerStore,
+    components::provider_icon::ProviderIcon, icons::play_hover_icon::PlayHoverIcon,
 };
-use leptos::{component, expect_context, view, IntoView, RwSignal, SignalGet, SignalUpdate};
+use leptos::{component, view, IntoView, SignalGet};
 use leptos_router::A;
 use leptos_virtual_scroller::VirtualGridScroller;
 
@@ -83,7 +82,7 @@ where
     C: Fn((usize, &T)) -> SimplifiedCardItem<T> + 'static,
     S: SignalGet<Value = Vec<T>> + Copy + 'static,
 {
-    let on_click = on_click.map(|cl| Rc::new(cl));
+    let on_click = on_click.map(Rc::new);
     view! {
         <VirtualGridScroller
             each=items

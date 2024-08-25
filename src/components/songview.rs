@@ -1,41 +1,29 @@
-use std::{ops::Deref, rc::Rc};
+use std::rc::Rc;
 
 use leptos::{
-    component, create_effect, create_node_ref, create_read_slice, create_rw_signal, event_target,
-    expect_context, html::Div, leptos_dom::Element, view, HtmlElement, IntoView, RwSignal, Signal,
-    SignalGet, SignalSet, SignalUpdate,
+    component, create_effect, create_node_ref, create_rw_signal, event_target, expect_context,
+    html::Div, view, HtmlElement, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
 };
 use leptos_context_menu::{ContextMenu, ContextMenuData, ContextMenuItemInner};
-use leptos_use::{on_click_outside, on_click_outside_with_options, OnClickOutsideOptions};
+use leptos_use::on_click_outside;
 use types::{songs::Song, ui::song_details::SongDetailIcons};
-use wasm_bindgen::JsCast;
 use web_sys::{Event, Node};
 
 use crate::{
     components::{songdetails::SongDetails, songlist::SongList},
     console_log,
-    store::{
-        modal_store::{ModalStore, Modals},
-        ui_store::{SongSortBy, SongSortByColumns, UiStore},
-    },
-    utils::songs::{
-        get_sort_cx_items, sort_by_album, sort_by_artist, sort_by_date, sort_by_genre,
-        sort_by_playcount, sort_by_title,
-    },
+    store::modal_store::{ModalStore, Modals},
+    utils::songs::get_sort_cx_items,
 };
 
 struct SongsContextMenu {
-    ui_store: RwSignal<UiStore>,
-    current_sort: Signal<SongSortBy>,
     song_update_request: Option<Rc<Box<dyn Fn()>>>,
 }
 
 impl SongsContextMenu {
-    pub fn new(ui_store: RwSignal<UiStore>, song_update_request: Option<Box<dyn Fn()>>) -> Self {
+    pub fn new(song_update_request: Option<Box<dyn Fn()>>) -> Self {
         Self {
-            ui_store,
-            current_sort: create_read_slice(ui_store, |ui_store| ui_store.get_song_sort_by()),
-            song_update_request: song_update_request.map(|c| Rc::new(c)),
+            song_update_request: song_update_request.map(Rc::new),
         }
     }
 
@@ -145,8 +133,7 @@ pub fn SongView(
         }
     });
 
-    let ui_store: RwSignal<UiStore> = expect_context();
-    let song_context_menu = ContextMenu::new(SongsContextMenu::new(ui_store, song_update_request));
+    let song_context_menu = ContextMenu::new(SongsContextMenu::new(song_update_request));
 
     view! {
         <div

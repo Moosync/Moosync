@@ -1,9 +1,6 @@
 use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
 use serde::Serialize;
-use types::{
-    extensions::PackageNameArgs,
-    songs::{Song, SongType},
-};
+use types::extensions::PackageNameArgs;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{

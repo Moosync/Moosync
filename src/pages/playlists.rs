@@ -1,6 +1,5 @@
 use leptos_context_menu::{ContextMenu, ContextMenuData, ContextMenuItemInner};
 use rand::seq::SliceRandom;
-use std::cmp::Ordering;
 use std::rc::Rc;
 
 use crate::components::cardview::{CardView, SimplifiedCardItem};
@@ -8,7 +7,7 @@ use crate::components::songview::SongView;
 use crate::console_log;
 use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::player_store::PlayerStore;
-use crate::store::ui_store::{PlaylistSortBy, PlaylistSortByColumns, UiStore};
+use crate::store::ui_store::{PlaylistSortByColumns, UiStore};
 use crate::utils::common::fetch_infinite;
 use crate::utils::db_utils::{create_playlist, get_songs_by_option, remove_playlist};
 use crate::utils::entities::get_playlist_sort_cx_items;
@@ -20,15 +19,13 @@ use leptos::{
 };
 use leptos_router::use_query_map;
 use types::entities::QueryablePlaylist;
-use types::songs::{GetSongOptions, Song};
+use types::songs::GetSongOptions;
 use types::ui::song_details::SongDetailIcons;
 
 use crate::store::provider_store::ProviderStore;
 use crate::{icons::plus_button::PlusIcon, utils::db_utils::get_playlists_by_option};
 
-struct PlaylistContextMenu {
-    ui_store: RwSignal<UiStore>,
-}
+struct PlaylistContextMenu {}
 
 impl PlaylistContextMenu {
     fn open_import_from_url_modal(&self) {
@@ -191,7 +188,7 @@ pub fn AllPlaylists() -> impl IntoView {
     };
 
     let ui_store = expect_context::<RwSignal<UiStore>>();
-    let playlist_context_menu = ContextMenu::new(PlaylistContextMenu { ui_store });
+    let playlist_context_menu = ContextMenu::new(PlaylistContextMenu {});
 
     let playlist_sort = create_read_slice(ui_store, |u| u.get_playlist_sort_by());
 

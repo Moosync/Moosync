@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration, u16};
+use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration};
 
 use leptos::{leptos_dom::helpers::IntervalHandle, set_interval_with_handle};
 use serde::Serialize;
@@ -371,7 +371,7 @@ impl GenericPlayer for LibrespotPlayer {
         self.pause()?;
 
         for listener in &self.listeners {
-            listener.call0(&JsValue::undefined());
+            let _ = listener.call0(&JsValue::undefined());
         }
 
         self.listeners.clear();

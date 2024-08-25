@@ -4,44 +4,53 @@ use macros::{generate_command, generate_command_async};
 use open;
 use preferences::preferences::PreferenceConfig;
 use tauri::{AppHandle, Manager, State, WebviewWindow, WebviewWindowBuilder, Window};
-use tauri_plugin_dialog::DialogExt;
+use tauri_plugin_dialog::{DialogExt, FilePath};
 use types::errors::errors::Result;
 use types::window::{DialogFilter, FileResponse};
 
+#[derive(Debug)]
 pub struct WindowHandler {}
 
 impl WindowHandler {
+    #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> WindowHandler {
         WindowHandler {}
     }
 
+    #[tracing::instrument(level = "trace", skip(self, window))]
     pub fn is_maximized(&self, window: Window) -> Result<bool> {
         Ok(window.is_maximized()?)
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn has_frame(&self) -> Result<bool> {
         Ok(cfg!(unix) || cfg!(target_os = "macos"))
     }
 
+    #[tracing::instrument(level = "trace", skip(self, window))]
     pub fn close_window(&self, window: Window) -> Result<()> {
         window.close()?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn get_platform(&self) -> Result<String> {
         Ok(env::consts::OS.to_string())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, window))]
     pub fn maximize_window(&self, window: Window) -> Result<()> {
         window.maximize()?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, window))]
     pub fn minimize_window(&self, window: Window) -> Result<()> {
         window.minimize()?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, app, preference))]
     pub fn update_zoom(&self, app: AppHandle, preference: State<PreferenceConfig>) -> Result<()> {
         let scale_factor: f64 = preference.load_selective("zoomFactor".into())?;
         let windows = app.webview_windows();
@@ -71,11 +80,13 @@ impl WindowHandler {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, url))]
     pub fn open_external(&self, url: String) -> Result<()> {
         open::that(url)?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, app, is_main_window))]
     pub fn open_window(&self, app: AppHandle, is_main_window: bool) -> Result<()> {
         if !is_main_window {
             WebviewWindowBuilder::new(
@@ -89,22 +100,26 @@ impl WindowHandler {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, window))]
     pub fn enable_fullscreen(&self, window: Window) -> Result<()> {
         window.set_fullscreen(true)?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, window))]
     pub fn disable_fullscreen(&self, window: Window) -> Result<()> {
         window.set_fullscreen(false)?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, window))]
     pub fn toggle_fullscreen(&self, window: Window) -> Result<()> {
         let is_fullscreen = window.is_fullscreen()?;
         window.set_fullscreen(!is_fullscreen)?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, window))]
     pub fn toggle_dev_tools(&self, window: WebviewWindow) -> Result<()> {
         let is_devtools_open = window.is_devtools_open();
         if !is_devtools_open {
@@ -116,11 +131,12 @@ impl WindowHandler {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, app))]
     pub fn restart_app(&self, app: AppHandle) -> Result<()> {
         app.restart();
-        Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, app, directory, multiple, filters))]
     pub async fn open_file_browser(
         &self,
         app: AppHandle,
@@ -143,16 +159,44 @@ impl WindowHandler {
 
         let files = if directory {
             if multiple {
-                dialog.blocking_pick_folders()
+                dialog.blocking_pick_folders().map(|v| {
+                    v.iter()
+                        .filter_map(|f| {
+                            if let FilePath::Path(path) = f {
+                                Some(path.clone())
+                            } else {
+                                None
+                            }
+                        })
+                        .collect()
+                })
             } else {
-                dialog.blocking_pick_folder().map(|v| vec![v])
+                let file_path = dialog.blocking_pick_folder();
+                if let Some(FilePath::Path(path)) = file_path {
+                    Some(vec![path])
+                } else {
+                    Some(vec![])
+                }
             }
         } else if multiple {
-            dialog
-                .blocking_pick_files()
-                .map(|v| v.iter().map(|f| f.path.clone()).collect())
+            dialog.blocking_pick_files().map(|v| {
+                v.iter()
+                    .filter_map(|f| {
+                        if let FilePath::Path(path) = f {
+                            Some(path.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect()
+            })
         } else {
-            dialog.blocking_pick_file().map(|v| vec![v.path])
+            let file_path = dialog.blocking_pick_file();
+            if let Some(FilePath::Path(path)) = file_path {
+                Some(vec![path])
+            } else {
+                Some(vec![])
+            }
         };
 
         let mut ret = vec![];
@@ -170,6 +214,7 @@ impl WindowHandler {
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 pub fn get_window_state() -> WindowHandler {
     WindowHandler::new()
 }

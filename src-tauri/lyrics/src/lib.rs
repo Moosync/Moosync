@@ -4,19 +4,23 @@ use regex::Regex;
 use serde_json::Value;
 use types::errors::errors::Result;
 
+#[derive(Debug)]
 pub struct LyricsFetcher {}
 
 impl Default for LyricsFetcher {
+    #[tracing::instrument(level = "trace", skip())]
     fn default() -> Self {
         Self::new()
     }
 }
 
 impl LyricsFetcher {
+    #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> LyricsFetcher {
         LyricsFetcher {}
     }
 
+    #[tracing::instrument(level = "trace", skip(self, title))]
     fn sanitize_title(&self, title: &str) -> String {
         let re1 = Regex::new(r"\((.*?)\)|\[(.*?)\]").unwrap();
         let re2 =
@@ -37,6 +41,7 @@ impl LyricsFetcher {
             .replace("video", "")
     }
 
+    #[tracing::instrument(level = "trace", skip(self, base, artists, title, append_lyrics))]
     fn get_url(
         &self,
         base: &str,
@@ -57,6 +62,7 @@ impl LyricsFetcher {
         format!("{}{} - {}", base, artists.join(", ").as_str(), parsed_title)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, artists, title))]
     async fn get_genius_lyrics(&self, artists: Vec<String>, title: String) -> Result<String> {
         let url = self.get_url(
             "https://genius.com/api/search/song?q=",
@@ -72,7 +78,7 @@ impl LyricsFetcher {
         let resp = client.get(url).send().await?.text().await?;
         let json: Value = serde_json::from_str(resp.as_str())?;
 
-        // println!("{}", resp);
+        // tracing::info!("{}", resp);
 
         if let Some(resp) = json.get("response") {
             if let Some(result) = resp.get("sections") {
@@ -126,6 +132,7 @@ impl LyricsFetcher {
         Ok(String::new())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, artists, title))]
     async fn get_az_lyrics(&self, artists: Vec<String>, title: String) -> Result<String> {
         let url = self.get_url(
             "https://search.azlyrics.com/suggest.php?q=",
@@ -183,6 +190,7 @@ impl LyricsFetcher {
         Ok(String::new())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, _artists, _title))]
     async fn get_google_lyrics(&self, _artists: Vec<String>, _title: String) -> Result<String> {
         // let url = self.get_url("https://www.google.com/search?q=", artists, title, true);
 
@@ -192,7 +200,7 @@ impl LyricsFetcher {
 
         // let request = client.get(url).send().await?;
         // let body = request.text().await?;
-        // println!("{}", body);
+        // tracing::info!("{}", body);
 
         // let scraped = scraper::html::Html::parse_document(body.as_str());
         // let selector = &Selector::parse("div.BNeawe.s3v9rd.AP7Wnd").unwrap();
@@ -213,6 +221,7 @@ impl LyricsFetcher {
         Ok(String::new())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, librespot, uri))]
     fn get_spotify_lyrics(&self, librespot: &LibrespotHolder, uri: String) -> Result<String> {
         let res = librespot.get_lyrics(format!("spotify:track:{}", uri))?;
         let parsed: Value = serde_json::from_str(&res)?;
@@ -233,6 +242,7 @@ impl LyricsFetcher {
         Ok(String::new())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, librespot, id, url, artists, title))]
     pub async fn get_lyrics(
         &self,
         librespot: &LibrespotHolder,
@@ -258,4 +268,5 @@ impl LyricsFetcher {
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 pub fn main() {}

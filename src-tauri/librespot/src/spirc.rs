@@ -38,6 +38,7 @@ pub struct ParsedToken {
     pub expiry_from_epoch: u128,
 }
 
+#[derive(Debug)]
 pub struct SpircWrapper {
     tx: mpsc::Sender<(Message, Sender<Result<MessageReply>>)>,
     pub events_channel: Arc<Mutex<mpsc::Receiver<PlayerEvent>>>,
@@ -65,6 +66,17 @@ pub enum MessageReply {
 }
 
 impl SpircWrapper {
+    #[tracing::instrument(
+        level = "trace",
+        skip(
+            credentials,
+            player_config,
+            connect_config,
+            cache_config,
+            backend,
+            volume_ctrl
+        )
+    )]
     pub fn new(
         credentials: Credentials,
         player_config: PlayerConfig,
@@ -97,7 +109,7 @@ impl SpircWrapper {
 
                 let events_channel = player.get_player_event_channel();
 
-                println!("Creating spirc {:?}", credentials);
+                tracing::info!("Creating spirc {:?}", credentials);
                 let res = Spirc::new(
                     connect_config.clone(),
                     session.clone(),
@@ -109,7 +121,7 @@ impl SpircWrapper {
 
                 match res {
                     Ok((spirc, spirc_task)) => {
-                        println!("Spirc created");
+                        tracing::info!("Spirc created");
 
                         spirc.activate().unwrap();
                         let commands_thread =
@@ -128,7 +140,7 @@ impl SpircWrapper {
                         events_thread.join().unwrap();
                     }
                     Err(e) => {
-                        println!("Error creating spirc: {:?}", e);
+                        tracing::info!("Error creating spirc: {:?}", e);
                     }
                 }
             });
@@ -141,6 +153,7 @@ impl SpircWrapper {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip(tx, events_channel))]
     fn listen_events(
         tx: Sender<PlayerEvent>,
         mut events_channel: PlayerEventChannel,
@@ -157,12 +170,13 @@ impl SpircWrapper {
                     return;
                 }
             } else {
-                println!("Closing spirc event listener");
+                tracing::info!("Closing spirc event listener");
                 return;
             }
         })
     }
 
+    #[tracing::instrument(level = "trace", skip(message, tx, spirc, session))]
     fn handle_command(
         message: Message,
         tx: Sender<Result<MessageReply>>,
@@ -254,6 +268,7 @@ impl SpircWrapper {
         };
     }
 
+    #[tracing::instrument(level = "trace", skip(rx, spirc, session))]
     pub fn listen_commands(
         rx: Receiver<(Message, Sender<Result<MessageReply>>)>,
         mut spirc: Spirc,
@@ -269,11 +284,12 @@ impl SpircWrapper {
                 }
 
                 Self::handle_command(message.clone(), tx, &mut spirc, &mut session);
-                println!("Finished handling: {:?}", message);
+                tracing::info!("Finished handling: {:?}", message);
             }
         })
     }
 
+    #[tracing::instrument(level = "trace", skip(self, command))]
     pub fn send(&self, command: Message) -> Result<MessageReply> {
         let (tx, rx) = mpsc::channel::<Result<MessageReply>>();
         self.tx
@@ -283,36 +299,43 @@ impl SpircWrapper {
         rx.recv().unwrap()
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn librespot_close(&self) -> Result<()> {
         self.send(Message::Close)?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn librespot_play(&self) -> Result<()> {
         self.send(Message::Play)?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn librespot_pause(&self) -> Result<()> {
         self.send(Message::Pause)?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, pos))]
     pub fn librespot_seek(&self, pos: u32) -> Result<()> {
         self.send(Message::Seek(pos))?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, volume))]
     pub fn librespot_volume(&self, volume: u16) -> Result<()> {
         self.send(Message::Volume(volume))?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, uri, autoplay))]
     pub fn librespot_load(&self, uri: String, autoplay: bool) -> Result<()> {
         self.send(Message::Load(uri, autoplay))?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, scopes))]
     pub fn librespot_get_token(&self, scopes: String) -> Result<ParsedToken> {
         let res = self.send(Message::GetToken(scopes))?;
         match res {
@@ -329,6 +352,7 @@ impl SpircWrapper {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self, uri))]
     pub fn get_lyrics(&self, uri: String) -> Result<String> {
         let res = self.send(Message::GetLyrics(uri))?;
         match res {
@@ -337,6 +361,7 @@ impl SpircWrapper {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self, uri))]
     pub fn get_canvaz(&self, uri: String) -> Result<CanvazResponse> {
         let res = self.send(Message::GetCanvaz(uri))?;
         match res {
@@ -345,6 +370,7 @@ impl SpircWrapper {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn get_device_id(&self) -> Arc<Mutex<Option<String>>> {
         self.device_id.clone()
     }

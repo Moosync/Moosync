@@ -65,6 +65,7 @@ pub struct PreferenceUIData {
 }
 
 impl PartialEq for PreferenceUIData {
+    #[tracing::instrument(level = "trace", skip(self, other))]
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key
     }
@@ -73,6 +74,7 @@ impl PartialEq for PreferenceUIData {
 impl std::cmp::Eq for PreferenceUIData {}
 
 impl std::hash::Hash for PreferenceUIData {
+    #[tracing::instrument(level = "trace", skip(self, state))]
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.key.hash(state)
     }

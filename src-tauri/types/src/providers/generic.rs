@@ -15,6 +15,7 @@ pub struct Pagination {
 }
 
 impl Pagination {
+    #[tracing::instrument(level = "trace", skip(limit, offset))]
     pub fn new_limit(limit: u32, offset: u32) -> Self {
         Pagination {
             limit,
@@ -24,6 +25,7 @@ impl Pagination {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(token))]
     pub fn new_token(token: Option<String>) -> Self {
         Pagination {
             token,
@@ -32,6 +34,7 @@ impl Pagination {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn next_page(&self) -> Self {
         Pagination {
             limit: self.limit,
@@ -41,6 +44,7 @@ impl Pagination {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self, token))]
     pub fn next_page_wtoken(&self, token: Option<String>) -> Self {
         Pagination {
             limit: self.limit,

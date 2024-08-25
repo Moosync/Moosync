@@ -29,6 +29,7 @@ pub struct OAuthClientArgs {
     pub client_secret: String,
 }
 
+#[tracing::instrument(level = "trace", skip(config))]
 pub fn get_oauth_client(config: OAuthClientArgs) -> OAuth2Client {
     BasicClient::new(
         ClientId::new(config.client_id),
@@ -39,13 +40,14 @@ pub fn get_oauth_client(config: OAuthClientArgs) -> OAuth2Client {
     .set_redirect_uri(RedirectUrl::new(config.redirect_url).unwrap())
 }
 
+#[tracing::instrument(level = "trace", skip(key, app, res, default_refresh))]
 pub fn set_tokens(
     key: &str,
     app: &AppHandle,
     res: OAuthTokenResponse,
     default_refresh: Option<String>,
 ) -> Result<TokenHolder> {
-    println!("token response: {:?}", res);
+    tracing::info!("token response: {:?}", res);
     let refresh_token = res
         .refresh_token()
         .map(|r| r.secret().clone())
@@ -65,6 +67,7 @@ pub fn set_tokens(
     Ok(token_holder)
 }
 
+#[tracing::instrument(level = "trace", skip(key, client, app))]
 pub async fn refresh_login(
     key: &str,
     client: OAuth2Client,
@@ -75,7 +78,7 @@ pub async fn refresh_login(
     if refresh_token.is_err() {
         let preferences: State<PreferenceConfig> = app.state();
         let res = preferences.inner().set_secure::<String>(key.into(), None);
-        println!("Set secure token: {:?}", res);
+        tracing::info!("Set secure token: {:?}", res);
         return Err(format!(
             "Refresh token not found or corrupted: {:?}",
             refresh_token.unwrap_err()
@@ -114,6 +117,7 @@ pub struct LoginArgs {
     pub extra_params: Option<HashMap<&'static str, &'static str>>,
 }
 
+#[tracing::instrument(level = "trace", skip(config, client, app))]
 pub fn login(config: LoginArgs, client: OAuth2Client, app: &AppHandle) -> Result<OAuth2Verifier> {
     if config.client_id.is_none() || config.client_secret.is_none() {
         return Err("Client ID not set".into());
@@ -137,11 +141,14 @@ pub fn login(config: LoginArgs, client: OAuth2Client, app: &AppHandle) -> Result
     let verifier = Some((client, pkce_verifier, csrf_token.clone()));
     let window: State<WindowHandler> = app.state();
 
-    println!("Opening url {:?}", auth_url);
-    window.inner().open_external(auth_url.to_string());
+    tracing::info!("Opening url {:?}", auth_url);
+    if let Err(e) = window.inner().open_external(auth_url.to_string()) {
+        tracing::error!("Error opening URL: {:?}", e);
+    }
     Ok(verifier)
 }
 
+#[tracing::instrument(level = "trace", skip(key, code, verifier, app))]
 pub async fn authorize(
     key: &str,
     code: String,
@@ -164,7 +171,7 @@ pub async fn authorize(
         .1
         .to_string();
 
-    let (client, verifier, csrf) = verifier.take().unwrap();
+    let (client, verifier, _csrf) = verifier.take().unwrap();
 
     let res = client
         .exchange_code(AuthorizationCode::new(code))

@@ -125,6 +125,7 @@ pub enum MoosyncError {
 
 #[cfg(feature = "ui")]
 impl From<serde_wasm_bindgen::Error> for MoosyncError {
+    #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: serde_wasm_bindgen::Error) -> Self {
         Self::String(value.to_string())
     }
@@ -132,6 +133,7 @@ impl From<serde_wasm_bindgen::Error> for MoosyncError {
 
 #[cfg(feature = "core")]
 impl<'a> From<Box<dyn Iterator<Item = ValidationError<'a>> + Sync + Send + 'a>> for MoosyncError {
+    #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: Box<dyn Iterator<Item = ValidationError<'a>> + Sync + Send + 'a>) -> Self {
         let mut res = String::new();
         for error in value {
@@ -144,6 +146,7 @@ impl<'a> From<Box<dyn Iterator<Item = ValidationError<'a>> + Sync + Send + 'a>> 
 
 #[cfg(feature = "ui")]
 impl From<JsValue> for MoosyncError {
+    #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: JsValue) -> Self {
         let parsed: Value = serde_wasm_bindgen::from_value(value).unwrap();
         Self::String(format!("{}", parsed))
@@ -152,24 +155,28 @@ impl From<JsValue> for MoosyncError {
 
 #[cfg(feature = "core")]
 impl From<souvlaki::Error> for MoosyncError {
+    #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: souvlaki::Error) -> Self {
         Self::MediaControlError(value)
     }
 }
 
 impl From<&'static str> for MoosyncError {
+    #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: &'static str) -> Self {
         Self::String(value.to_string())
     }
 }
 
 impl From<String> for MoosyncError {
+    #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: String) -> Self {
         Self::String(value)
     }
 }
 
 impl serde::Serialize for MoosyncError {
+    #[tracing::instrument(level = "trace", skip(self, serializer))]
     fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
     where
         S: serde::ser::Serializer,

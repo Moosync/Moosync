@@ -11,7 +11,7 @@ use leptos::{
 use leptos_router::use_query_map;
 use rand::seq::SliceRandom;
 use types::entities::QueryableAlbum;
-use types::songs::{GetSongOptions, Song};
+use types::songs::GetSongOptions;
 use types::ui::song_details::SongDetailIcons;
 
 use crate::utils::db_utils::{get_albums_by_option, get_songs_by_option};

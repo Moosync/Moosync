@@ -4,7 +4,7 @@ use leptos::{
 };
 use rand::seq::SliceRandom;
 use std::rc::Rc;
-use types::songs::{GetSongOptions, Song};
+use types::songs::GetSongOptions;
 use types::ui::song_details::SongDetailIcons;
 
 use crate::console_log;

@@ -5,15 +5,13 @@ use leptos::{
     create_write_slice,
     ev::{keydown, keyup},
     event_target_value, expect_context,
-    html::{Div, Input},
+    html::Input,
     use_context, view, window_event_listener, HtmlElement, IntoView, ReadSignal, RwSignal, Show,
     SignalGet, SignalSet, SignalUpdate,
 };
-use leptos_context_menu::{ContextMenu, ContextMenuData, ContextMenuItemInner, ContextMenuItems};
-use leptos_router::{use_navigate, NavigateOptions};
-use leptos_use::on_click_outside;
+use leptos_context_menu::ContextMenu;
 use leptos_virtual_scroller::VirtualScroller;
-use types::{entities::QueryablePlaylist, songs::Song};
+use types::songs::Song;
 
 use crate::{
     components::{low_img::LowImg, provider_icon::ProviderIcon},
@@ -29,11 +27,7 @@ use crate::{
     utils::{
         common::{format_duration, get_low_img},
         context_menu::{SongItemContextMenu, SortContextMenu},
-        db_utils::{
-            add_songs_to_library, add_to_playlist, get_playlists_by_option, get_playlists_local,
-            remove_songs_from_library,
-        },
-        songs::{get_songs_from_indices, get_sort_cx_items},
+        db_utils::get_playlists_local,
     },
 };
 

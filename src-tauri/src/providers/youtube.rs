@@ -24,7 +24,6 @@ use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::{QueryableSong, Song, SongType};
 use types::{oauth::OAuth2Client, providers::generic::GenericProvider};
 use url::Url;
-use youtube::types::ContinuationToken;
 use youtube::youtube::YoutubeScraper;
 
 use crate::oauth::handler::OAuthHandler;
@@ -76,12 +75,14 @@ pub struct YoutubeProvider {
 }
 
 impl std::fmt::Debug for YoutubeProvider {
+    #[tracing::instrument(level = "trace", skip(self, f))]
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         <YoutubeConfig as std::fmt::Debug>::fmt(&self.config, f)
     }
 }
 
 impl YoutubeProvider {
+    #[tracing::instrument(level = "trace", skip(app, status_tx))]
     pub fn new(app: AppHandle, status_tx: UnboundedSender<ProviderStatus>) -> Self {
         Self {
             app,
@@ -92,6 +93,7 @@ impl YoutubeProvider {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn get_oauth_client(&self) -> OAuth2Client {
         BasicClient::new(
             ClientId::new(self.config.client_id.clone().unwrap()),
@@ -104,6 +106,7 @@ impl YoutubeProvider {
         .set_redirect_uri(RedirectUrl::new(self.config.redirect_uri.to_string()).unwrap())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn create_api_client(&mut self) {
         if let Some(token) = &self.config.tokens {
             let client = hyper::Client::builder().build(
@@ -139,6 +142,7 @@ impl YoutubeProvider {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn refresh_login(&mut self) -> Result<()> {
         self.config.tokens = Some(
             refresh_login(
@@ -153,6 +157,7 @@ impl YoutubeProvider {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, resp))]
     fn parse_playlist(&self, resp: Playlist) -> QueryablePlaylist {
         let snippet = resp.snippet.unwrap_or_default();
         let content_details = resp.content_details.unwrap_or_default();
@@ -176,6 +181,7 @@ impl YoutubeProvider {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self, resp))]
     fn parse_channel(&self, resp: Channel) -> QueryableArtist {
         let snippet = resp.snippet.as_ref().unwrap();
         QueryableArtist {
@@ -200,8 +206,9 @@ impl YoutubeProvider {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self, ids))]
     async fn fetch_song_details(&self, ids: Vec<String>) -> Result<Vec<Song>> {
-        println!("Fetching song details for {:?}", ids);
+        tracing::info!("Fetching song details for {:?}", ids);
         if let Some(api_client) = &self.api_client {
             let mut ret = vec![];
 
@@ -214,7 +221,7 @@ impl YoutubeProvider {
                 }
 
                 let (_, resp) = builder.doit().await?;
-                println!("Got song response {:?}", resp);
+                tracing::info!("Got song response {:?}", resp);
                 if let Some(videos) = resp.items {
                     for v in videos {
                         ret.push(self.parse_video_item(v));
@@ -228,6 +235,7 @@ impl YoutubeProvider {
         Err("API client not initialized".into())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, resp))]
     fn parse_video_item(&self, resp: Video) -> Song {
         let snippet = resp.snippet.unwrap_or_default();
         let content_details = resp.content_details.unwrap_or_default();
@@ -270,6 +278,7 @@ impl YoutubeProvider {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn fetch_user_details(&self) -> Result<ProviderStatus> {
         if let Some(api_client) = &self.api_client {
             let (_, user_info) = api_client
@@ -303,6 +312,7 @@ impl YoutubeProvider {
 
 #[async_trait]
 impl GenericProvider for YoutubeProvider {
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn initialize(&mut self) -> Result<()> {
         let _ = self
             .status_tx
@@ -318,7 +328,7 @@ impl GenericProvider for YoutubeProvider {
 
         let preferences: State<PreferenceConfig> = self.app.state();
         let youtube_config: Value = preferences.inner().load_selective("youtube".into())?;
-        println!("{:?}", youtube_config);
+        tracing::info!("{:?}", youtube_config);
         let client_id = youtube_config.get("client_id");
         let client_secret = youtube_config.get("client_secret");
 
@@ -329,16 +339,18 @@ impl GenericProvider for YoutubeProvider {
 
         let res = self.refresh_login().await;
         if let Err(err) = res {
-            println!("youtube refresh login err: {:?}", err);
+            tracing::error!("youtube refresh login err: {:?}", err);
         }
 
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn key(&self) -> String {
         "youtube".into()
     }
 
+    #[tracing::instrument(level = "trace", skip(self, id))]
     fn match_id(&self, id: String) -> bool {
         id.starts_with("youtube-playlist:")
             || id.starts_with("youtube-artist:")
@@ -346,6 +358,7 @@ impl GenericProvider for YoutubeProvider {
             || id.starts_with("youtube:")
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn login(&mut self, _: String) -> Result<()> {
         self.verifier = login(
             LoginArgs {
@@ -367,6 +380,7 @@ impl GenericProvider for YoutubeProvider {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn signout(&mut self, _: String) -> Result<()> {
         self.api_client = None;
         self.verifier = None;
@@ -390,6 +404,7 @@ impl GenericProvider for YoutubeProvider {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, code))]
     async fn authorize(&mut self, code: String) -> Result<()> {
         self.config.tokens = Some(
             authorize(
@@ -408,6 +423,7 @@ impl GenericProvider for YoutubeProvider {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, pagination))]
     async fn fetch_user_playlists(
         &self,
         pagination: Pagination,
@@ -438,13 +454,14 @@ impl GenericProvider for YoutubeProvider {
                 vec![]
             };
 
-            println!("got user playlists: {:?}", ret);
+            tracing::info!("got user playlists: {:?}", ret);
             return Ok((ret, pagination.next_page_wtoken(resp.next_page_token)));
         }
 
         Err("API client not initialized".into())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, playlist_id, pagination))]
     async fn get_playlist_content(
         &self,
         playlist_id: String,
@@ -504,6 +521,7 @@ impl GenericProvider for YoutubeProvider {
         return Ok((res.songs, pagination.next_page()));
     }
 
+    #[tracing::instrument(level = "trace", skip(self, song, player))]
     async fn get_playback_url(&self, song: Song, player: String) -> Result<String> {
         if song.song.provider_extension.unwrap_or_default() != self.key() && player == "youtube" {
             let youtube_scraper: State<YoutubeScraper> = self.app.state();
@@ -524,7 +542,7 @@ impl GenericProvider for YoutubeProvider {
             }
         }
 
-        println!("Fetching song for {} player", player);
+        tracing::info!("Fetching song for {} player", player);
         if player == "local" {
             let youtube_scraper: State<YoutubeScraper> = self.app.state();
             return youtube_scraper
@@ -535,6 +553,7 @@ impl GenericProvider for YoutubeProvider {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self, term))]
     async fn search(&self, term: String) -> Result<SearchResult> {
         if let Some(api_client) = &self.api_client {
             let mut songs = vec![];
@@ -597,6 +616,7 @@ impl GenericProvider for YoutubeProvider {
         youtube_scraper.search_yt(term).await
     }
 
+    #[tracing::instrument(level = "trace", skip(self, url))]
     async fn match_url(&self, url: String) -> Result<bool> {
         let re = Regex::new(
             r"^((?:https?:)?\/\/)?((?:www|m|music)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w-]+\?v=|embed\/|v\/)?)([\w-]+)(\S+)?$",
@@ -605,6 +625,7 @@ impl GenericProvider for YoutubeProvider {
         Ok(re.is_match(url.as_str()))
     }
 
+    #[tracing::instrument(level = "trace", skip(self, url))]
     async fn playlist_from_url(&self, url: String) -> Result<QueryablePlaylist> {
         let playlist_id = Url::parse(url.as_str())
             .map_err(|_| MoosyncError::String(format!("Failed to parse URL {}", url)))?;
@@ -646,6 +667,7 @@ impl GenericProvider for YoutubeProvider {
         Err("Playlist not found".into())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, url))]
     async fn song_from_url(&self, url: String) -> Result<Song> {
         let parsed_url = Url::parse(url.as_str())
             .map_err(|_| MoosyncError::String(format!("Failed to parse URL {}", url)))?;
@@ -668,6 +690,7 @@ impl GenericProvider for YoutubeProvider {
         Ok(res)
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn get_suggestions(&self) -> Result<Vec<Song>> {
         if let Some(api_client) = &self.api_client {
             let (_, resp) = api_client

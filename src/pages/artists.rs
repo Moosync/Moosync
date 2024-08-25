@@ -10,7 +10,7 @@ use leptos::{
 };
 use leptos_router::use_query_map;
 use types::entities::QueryableArtist;
-use types::songs::{GetSongOptions, Song};
+use types::songs::GetSongOptions;
 use types::ui::song_details::SongDetailIcons;
 
 use crate::components::songview::SongView;

@@ -28,6 +28,7 @@ pub struct PlaylistScanner<'a> {
 }
 
 impl<'a> PlaylistScanner<'a> {
+    #[tracing::instrument(level = "trace", skip(dir, thumbnail_dir, song_scanner))]
     pub fn new(dir: PathBuf, thumbnail_dir: PathBuf, song_scanner: SongScanner<'a>) -> Self {
         Self {
             dir,
@@ -36,10 +37,12 @@ impl<'a> PlaylistScanner<'a> {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn check_dirs(&self) -> Result<()> {
         check_directory(self.thumbnail_dir.clone())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, artists))]
     fn parse_artists(&self, artists: Option<String>) -> Vec<QueryableArtist> {
         let mut ret: Vec<QueryableArtist> = vec![];
         if artists.is_some() {
@@ -54,6 +57,7 @@ impl<'a> PlaylistScanner<'a> {
         ret
     }
 
+    #[tracing::instrument(level = "trace", skip(self, path))]
     fn scan_playlist(&self, path: &PathBuf) -> Result<(QueryablePlaylist, Vec<Song>)> {
         let file = File::open(path)?;
         let lines = io::BufReader::new(file).lines();
@@ -184,6 +188,7 @@ impl<'a> PlaylistScanner<'a> {
         ))
     }
 
+    #[tracing::instrument(level = "trace", skip(self, tx_song, s, playlist_id))]
     fn scan_song_in_pool(
         &self,
         tx_song: Sender<(Option<String>, Result<Song>)>,
@@ -204,6 +209,7 @@ impl<'a> PlaylistScanner<'a> {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self, tx_song, tx_playlist))]
     pub fn start(
         &self,
         tx_song: Sender<(Option<String>, Result<Song>)>,

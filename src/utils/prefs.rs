@@ -1,6 +1,5 @@
 use leptos::{spawn_local, SignalSet};
 use serde::{de::DeserializeOwned, Serialize};
-use serde_json::Value;
 use serde_wasm_bindgen::{from_value, to_value};
 use types::errors::errors::Result;
 use types::window::{DialogFilter, FileResponse};
@@ -62,7 +61,7 @@ where
             value,
         })
         .unwrap();
-        invoke("save_selective", args).await;
+        let _ = invoke("save_selective", args).await;
     });
 }
 
@@ -74,26 +73,6 @@ pub fn load_selective_mock(key: &'static str) -> Result<Value> {
     };
 
     Ok(ret)
-}
-
-#[cfg(not(feature = "mock"))]
-pub async fn set_secure_async(key: String, value: Value) -> Result<()> {
-    let args = to_value(&SetKeyArgs { key, value }).unwrap();
-    invoke("set_secure", args).await;
-    Ok(())
-}
-
-#[cfg(feature = "mock")]
-pub async fn set_secure_async(key: &'static str, value: Value) -> Result<()> {
-    let local_sotrage = leptos::web_sys::window()
-        .unwrap()
-        .local_storage()
-        .unwrap()
-        .unwrap();
-    local_sotrage
-        .set(key, serde_json::to_string(&value).unwrap().as_str())
-        .unwrap();
-    Ok(())
 }
 
 pub fn open_file_browser(

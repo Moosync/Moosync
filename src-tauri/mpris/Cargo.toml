@@ -10,6 +10,7 @@ souvlaki = { version = "0.7.3", default-features = false, features = [
     "use_zbus",
 ] }
 types = { path = "../types" }
+tracing = { version = "0.1.40", features = ["attributes"] }
 
 [target.'cfg(target_os = "windows")'.dependencies.windows]
 version = "0.58"

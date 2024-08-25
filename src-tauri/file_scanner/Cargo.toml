@@ -20,3 +20,4 @@ num_cpus = "1.16.0"
 uuid = { version = "1.10.0", features = ["v4"] }
 jwalk = "0.8.1"
 dunce = "1.0.5"
+tracing = { version = "0.1.40", features = ["attributes"] }

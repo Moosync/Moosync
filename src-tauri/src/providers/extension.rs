@@ -28,9 +28,9 @@ macro_rules! send_extension_event {
                 package_name: $self.extension.package_name.clone(),
             })
             .await?;
-        println!("parsing res {:?} as {}", res, stringify!($return_type));
+        tracing::info!("parsing res {:?} as {}", res, stringify!($return_type));
         let res = serde_json::from_value::<$return_type>(res)?;
-        println!("parsed res");
+        tracing::info!("parsed res");
         res
     }};
 }
@@ -44,6 +44,7 @@ pub struct ExtensionProvider {
 }
 
 impl ExtensionProvider {
+    #[tracing::instrument(level = "trace", skip(extension, provides, app_handle, status_tx))]
     pub fn new(
         extension: ExtensionDetail,
         provides: Vec<ExtensionProviderScope>,
@@ -60,6 +61,7 @@ impl ExtensionProvider {
 }
 
 impl Debug for ExtensionProvider {
+    #[tracing::instrument(level = "trace", skip(self, f))]
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("ExtensionProvider")
             .field("extension", &self.extension)
@@ -70,6 +72,7 @@ impl Debug for ExtensionProvider {
 
 #[async_trait]
 impl GenericProvider for ExtensionProvider {
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn initialize(&mut self) -> Result<()> {
         let extension_handler = get_extension_handler(&self.app_handle);
         let accounts = extension_handler
@@ -93,13 +96,16 @@ impl GenericProvider for ExtensionProvider {
         }
         Ok(())
     }
+    #[tracing::instrument(level = "trace", skip(self))]
     fn key(&self) -> String {
         format!("extension:{}", self.extension.package_name)
     }
+    #[tracing::instrument(level = "trace", skip(self))]
     fn match_id(&self, id: String) -> bool {
         id.starts_with(&format!("{}:", self.extension.package_name))
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn login(&mut self, account_id: String) -> Result<()> {
         let extension_handler = get_extension_handler(&self.app_handle);
         extension_handler
@@ -113,6 +119,7 @@ impl GenericProvider for ExtensionProvider {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn signout(&mut self, account_id: String) -> Result<()> {
         let extension_handler = get_extension_handler(&self.app_handle);
         extension_handler
@@ -125,11 +132,13 @@ impl GenericProvider for ExtensionProvider {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn authorize(&mut self, code: String) -> Result<()> {
         let _ = send_extension_event!(self, ExtensionExtraEvent::OauthCallback([code]), Value);
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn fetch_user_playlists(
         &self,
         pagination: Pagination,
@@ -148,6 +157,7 @@ impl GenericProvider for ExtensionProvider {
         );
         Ok((res.playlists, pagination.next_page()))
     }
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn get_playlist_content(
         &self,
         playlist_id: String,
@@ -182,6 +192,7 @@ impl GenericProvider for ExtensionProvider {
             ),
         ))
     }
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn get_playback_url(&self, song: Song, player: String) -> Result<String> {
         if !self
             .provides
@@ -197,7 +208,7 @@ impl GenericProvider for ExtensionProvider {
                     ExtensionExtraEvent::CustomRequest([playback_url.clone()]),
                     CustomRequestReturnType
                 );
-                println!("Got custom request {:?}", res);
+                tracing::info!("Got custom request {:?}", res);
                 return Ok(res.redirect_url.unwrap_or(playback_url));
             }
         }
@@ -211,6 +222,7 @@ impl GenericProvider for ExtensionProvider {
         Ok(res.url)
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn search(&self, term: String) -> Result<SearchResult> {
         if !self.provides.contains(&ExtensionProviderScope::Search) {
             return Err("Extension does not have this capability".into());
@@ -231,6 +243,7 @@ impl GenericProvider for ExtensionProvider {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn match_url(&self, url: String) -> Result<bool> {
         let res = send_extension_event!(
             self,
@@ -241,6 +254,7 @@ impl GenericProvider for ExtensionProvider {
         Ok(res.playlist.is_some())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn playlist_from_url(&self, url: String) -> Result<QueryablePlaylist> {
         if !self
             .provides
@@ -261,6 +275,7 @@ impl GenericProvider for ExtensionProvider {
         Err("Playlist not found".into())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn song_from_url(&self, url: String) -> Result<Song> {
         if !self.provides.contains(&ExtensionProviderScope::SongFromUrl) {
             return Err("Extension does not have this capability".into());
@@ -275,6 +290,7 @@ impl GenericProvider for ExtensionProvider {
         Ok(res.song)
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn get_suggestions(&self) -> Result<Vec<Song>> {
         if !self
             .provides

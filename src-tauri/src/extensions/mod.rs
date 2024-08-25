@@ -22,6 +22,7 @@ use crate::providers::handler::ProviderHandler;
 
 mod request_handler;
 
+#[tracing::instrument(level = "trace", skip(app_handle))]
 async fn extension_runner_connected(app_handle: AppHandle) {
     let provider_handler: State<ProviderHandler> = app_handle.state();
     provider_handler
@@ -30,6 +31,7 @@ async fn extension_runner_connected(app_handle: AppHandle) {
         .unwrap();
 }
 
+#[tracing::instrument(level = "trace", skip(app))]
 pub fn get_extension_state(app: AppHandle) -> Result<ExtensionHandler> {
     let ext_path = app.path().app_data_dir().unwrap().join("extensions");
     let tmp_dir = app.path().temp_dir().unwrap();
@@ -66,6 +68,7 @@ pub fn get_extension_state(app: AppHandle) -> Result<ExtensionHandler> {
     Ok(ext_handler)
 }
 
+#[tracing::instrument(level = "trace", skip(app))]
 pub fn get_extension_handler(app: &AppHandle) -> State<'_, ExtensionHandler> {
     let ext_state = app.state();
     ext_state

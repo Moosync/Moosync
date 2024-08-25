@@ -7,6 +7,7 @@ use types::{
     songs::Song,
 };
 
+#[tracing::instrument(level = "trace", skip())]
 fn cleanup() {
     fs::remove_file(PathBuf::from_str("test.db").unwrap()).unwrap();
     fs::remove_file(PathBuf::from_str("test.db-shm").unwrap()).unwrap();

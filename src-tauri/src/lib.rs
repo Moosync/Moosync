@@ -1,5 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+use std::fs;
 
 use extensions::get_extension_state;
 use librespot::{
@@ -7,7 +8,6 @@ use librespot::{
     librespot_load, librespot_pause, librespot_play, librespot_seek, librespot_volume,
     register_event,
 };
-use logger::logger::{log_debug, log_error, log_info, log_warn};
 use lyrics::{get_lyrics, get_lyrics_state};
 use mpris::{get_mpris_state, set_metadata, set_playback_state, set_position};
 use preference_holder::{
@@ -32,6 +32,12 @@ use providers::handler::{
 };
 use scanner::{get_scanner_state, start_scan};
 use tauri::{Listener, Manager, State};
+use tracing_appender::rolling::{RollingFileAppender, Rotation};
+use tracing_subscriber::{
+    filter::EnvFilter,
+    fmt::{self},
+    layer::SubscriberExt,
+};
 
 use {
     db::{
@@ -56,7 +62,6 @@ use {
 mod db;
 mod extensions;
 mod librespot;
-mod logger;
 mod lyrics;
 mod mpris;
 mod oauth;
@@ -67,15 +72,14 @@ mod themes;
 mod window;
 mod youtube;
 
+#[tracing::instrument(level = "trace", skip())]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    env_logger::init();
-
     tauri::Builder::default()
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             if let Some(url) = argv.get(1) {
-                println!("Got url {}", url);
+                tracing::info!("Got url {}", url);
                 let state: State<OAuthHandler> = app.state();
                 state.handle_oauth(app.clone(), url.to_string()).unwrap();
             }
@@ -89,11 +93,6 @@ pub fn run() {
             load_selective_array,
             get_secure,
             set_secure,
-            // Logger
-            log_error,
-            log_debug,
-            log_info,
-            log_warn,
             // DB
             insert_songs,
             remove_songs,
@@ -179,6 +178,25 @@ pub fn run() {
             get_suggestions,
         ])
         .setup(|app| {
+            let filter = EnvFilter::from_env("MOOSYNC_LOG");
+            let layer = fmt::layer().pretty().with_target(true);
+            let log_path = app.path().app_log_dir()?;
+            if !log_path.exists() {
+                fs::create_dir_all(log_path.clone())?;
+            }
+            let file_appender = RollingFileAppender::new(Rotation::DAILY, log_path, "moosync");
+            let log_layer = fmt::layer()
+                .pretty()
+                .with_ansi(false)
+                .with_target(true)
+                .with_writer(file_appender);
+            let subscriber = tracing_subscriber::registry()
+                .with(layer)
+                .with(log_layer)
+                .with(filter);
+
+            tracing::subscriber::set_global_default(subscriber).unwrap();
+
             let db = get_db_state(app);
             app.manage(db);
 
@@ -222,7 +240,7 @@ pub fn run() {
             handle_pref_changes(app.handle().clone());
 
             app.listen("deep-link://new-url", |url| {
-                println!("got url {:?}", url);
+                tracing::info!("got url {:?}", url);
             });
 
             Ok(())

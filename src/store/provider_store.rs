@@ -32,6 +32,7 @@ macro_rules! generate_async_functions {
         $(
             pub async fn $func_name(&self, key: String, $($arg_name: $arg_type),*) -> Result<$result_type> {
                 #[derive(Debug, Serialize)]
+                #[serde(rename_all = "camelCase")]
                 struct Args {
                     key: String,
                     $($arg_name: $arg_type),*
@@ -146,13 +147,13 @@ impl ProviderStore {
     generate_async_functions!(
         provider_login {
             args: {
-                accountId: String
+                account_id: String
             },
             result_type: (),
         },
         provider_signout {
             args: {
-                accountId: String
+                account_id: String
             },
             result_type: (),
         },
@@ -170,7 +171,7 @@ impl ProviderStore {
         },
         fetch_playlist_content {
             args: {
-                playlistId: String,
+                playlist_id: String,
                 pagination: Pagination
             },
             result_type: (Vec<Song>, Pagination),

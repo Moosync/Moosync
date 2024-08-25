@@ -23,6 +23,7 @@ use whoami;
 
 use types::errors::errors::{MoosyncError, Result};
 
+#[derive(Debug)]
 pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,
     pub secret: Mutex<Key>,
@@ -33,6 +34,7 @@ pub struct PreferenceConfig {
 }
 
 impl PreferenceConfig {
+    #[tracing::instrument(level = "trace", skip(data_dir))]
     pub fn new(data_dir: PathBuf) -> Result<Self> {
         let schema = serde_json::from_str(include_str!("./schema.json")).unwrap();
         let schema = match JSONSchema::options().compile(&schema) {
@@ -55,14 +57,14 @@ impl PreferenceConfig {
 
         let secret = match entry.get_password() {
             Ok(password) => {
-                println!("Got keystore password");
+                tracing::info!("Got keystore password");
                 let decoded = hex::decode(password)?;
                 Key::from(GenericArray::clone_from_slice(
                     &decoded[0..ChaCha20Poly1305::key_size()],
                 ))
             }
             Err(e) => {
-                println!("Error getting keystore password: {:?}", e);
+                tracing::info!("Error getting keystore password: {:?}", e);
                 let key = ChaCha20Poly1305::generate_key(&mut OsRng);
                 let encoded = hex::encode(key).to_string();
                 entry.set_password(encoded.as_str())?;
@@ -90,6 +92,7 @@ impl PreferenceConfig {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip(self, key))]
     pub fn load_selective<T>(&self, key: String) -> Result<T>
     where
         T: DeserializeOwned,
@@ -97,7 +100,7 @@ impl PreferenceConfig {
         let prefs = self.memcache.lock().unwrap();
 
         let key = format!("prefs.{}", key);
-        println!("Loading selective {}", key);
+        tracing::info!("Loading selective {}", key);
 
         let val: Option<T> = prefs.dot_get(key.as_str())?;
         drop(prefs);
@@ -108,12 +111,13 @@ impl PreferenceConfig {
         Ok(val.unwrap())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, key, value))]
     pub fn save_selective<T>(&self, key: String, value: Option<T>) -> Result<()>
     where
         T: Serialize + Clone,
     {
         let key = format!("prefs.{}", key);
-        println!("saving {}", key);
+        tracing::info!("saving {}", key);
 
         let mut prefs = self.memcache.lock().unwrap();
 
@@ -150,11 +154,12 @@ impl PreferenceConfig {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, key))]
     pub fn load_selective_array<T>(&self, key: String) -> Result<T>
     where
         T: DeserializeOwned,
     {
-        println!("Loading selective array {}", key);
+        tracing::info!("Loading selective array {}", key);
         let mut split: Vec<&str> = key.split('.').collect();
         let child = split.pop().unwrap();
         let parent = split.join(".");
@@ -173,6 +178,7 @@ impl PreferenceConfig {
         Err(MoosyncError::String("Value is not an array".into()))
     }
 
+    #[tracing::instrument(level = "trace", skip(self, key))]
     pub fn get_secure<T>(&self, key: String) -> Result<T>
     where
         T: DeserializeOwned,
@@ -194,6 +200,7 @@ impl PreferenceConfig {
         Ok(serde_json::from_str(&plaintext)?)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, key, value))]
     pub fn set_secure<T>(&self, key: String, value: Option<T>) -> Result<()>
     where
         T: Serialize + Clone,
@@ -218,10 +225,12 @@ impl PreferenceConfig {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn get_receiver(&self) -> Receiver<(String, Value)> {
         self.receiver.clone()
     }
 
+    #[tracing::instrument(level = "trace", skip(self, key))]
     pub fn has_key(&self, key: &str) -> bool {
         let prefs = self.memcache.lock().unwrap();
         let val: Option<Value> = prefs.dot_get(format!("prefs.{}", key).as_str()).unwrap();

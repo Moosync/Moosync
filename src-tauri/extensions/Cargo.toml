@@ -13,6 +13,8 @@ tokio = "1.39.3"
 uuid = "1.10.0"
 zip = "2.1"
 zip-extensions = "0.8"
+tracing = { version = "0.1.40", features = ["attributes"] }
+
 
 [dependencies.interprocess]
 version = "2.2.1"

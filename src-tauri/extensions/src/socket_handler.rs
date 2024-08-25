@@ -29,6 +29,7 @@ pub struct SocketHandler {
 }
 
 impl<'a> SocketHandler {
+    #[tracing::instrument(level = "trace", skip(conn, rx_main_command, tx_ext_command))]
     pub fn new(
         conn: LocalSocketStream,
         rx_main_command: UnboundedReceiver<(Sender<Result<Value>>, Value)>,
@@ -44,6 +45,7 @@ impl<'a> SocketHandler {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self, tx_reply, value))]
     async fn write_command(&self, mut tx_reply: Sender<Result<Value>>, value: &mut Value) {
         let channel = uuid::Uuid::new_v4().to_string();
         if let Some(value) = value.as_object_mut() {
@@ -59,6 +61,7 @@ impl<'a> SocketHandler {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn read_fixed_buf(&self) -> Result<(Vec<u8>, usize)> {
         let mut buf = [0u8; 1024];
 
@@ -70,7 +73,7 @@ impl<'a> SocketHandler {
             if e.kind() == ErrorKind::WouldBlock {
                 return Ok((vec![], 0));
             }
-            println!("{:?}", e);
+            tracing::info!("{:?}", e);
             return Err(MoosyncError::String("Failed to read from socket".into()));
         }
 
@@ -78,6 +81,7 @@ impl<'a> SocketHandler {
         Ok((buf[..n].to_vec(), n))
     }
 
+    #[tracing::instrument(level = "trace", skip(self, buf, old_buf))]
     fn read_lines(&self, buf: &[u8], old_buf: &[u8]) -> (Vec<Vec<u8>>, Vec<u8>) {
         let mut reader = BufReader::new(buf);
 
@@ -109,6 +113,7 @@ impl<'a> SocketHandler {
         (lines, remaining)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, data))]
     async fn send_reply(&self, data: &Value) -> bool {
         if let Some(channel) = data.get("channel") {
             let channel = channel.as_str().unwrap();
@@ -127,6 +132,7 @@ impl<'a> SocketHandler {
         false
     }
 
+    #[tracing::instrument(level = "trace", skip(conn, data))]
     pub async fn write_data(conn: Arc<Mutex<WriteHalf<LocalSocketStream>>>, mut data: Vec<u8>) {
         let mut conn = conn.lock().await;
         data.push(b'\n');
@@ -134,6 +140,7 @@ impl<'a> SocketHandler {
         conn.flush().await.unwrap();
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn handle_main_command(&self) {
         loop {
             let mut rx_main_command = self.rx_main_command.lock().await;
@@ -144,13 +151,14 @@ impl<'a> SocketHandler {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn handle_connection(&self) {
         let mut old_buf = vec![];
         loop {
             let ext_resp = self.read_fixed_buf().await;
 
             if ext_resp.is_err() {
-                println!("Failed to read from socket {}", ext_resp.unwrap_err());
+                tracing::info!("Failed to read from socket {}", ext_resp.unwrap_err());
                 break;
             }
 
@@ -185,7 +193,7 @@ impl<'a> SocketHandler {
                         }
                     }
                     Err(e) => {
-                        println!(
+                        tracing::info!(
                             "Failed to parsed response {} as json {:?}",
                             str::from_utf8(&line).unwrap(),
                             e

@@ -26,6 +26,7 @@ pub struct PackageNameArgs {
 }
 
 impl From<String> for PackageNameArgs {
+    #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: String) -> Self {
         Self {
             package_name: value,
@@ -74,12 +75,14 @@ pub struct ExtensionDetail {
 }
 
 impl hash::Hash for ExtensionDetail {
+    #[tracing::instrument(level = "trace", skip(self, state))]
     fn hash<H: hash::Hasher>(&self, state: &mut H) {
         self.package_name.hash(state)
     }
 }
 
 impl PartialEq for ExtensionDetail {
+    #[tracing::instrument(level = "trace", skip(self, other))]
     fn eq(&self, other: &Self) -> bool {
         self.package_name == other.package_name
     }

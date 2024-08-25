@@ -2,7 +2,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use crate::modals::common::GenericModal;
-use crate::store::provider_store::{self, ProviderStore};
+use crate::store::provider_store::{ProviderStore};
 use crate::utils::common::get_high_img;
 use crate::utils::db_utils::add_songs_to_library;
 use crate::{icons::song_default_icon::SongDefaultIcon, store::modal_store::ModalStore};
@@ -71,7 +71,7 @@ pub fn SongFromUrlModal() -> impl IntoView {
                         <div class="col-auto playlist-url-cover" cols="auto">
                             {move || {
                                 if let Some(song) = imported_song.get() {
-                                    if let Some(_) = &song.song.song_cover_path_high {
+                                    if song.song.song_cover_path_high.is_some() {
                                         return view! {
                                             <img class="h-100 w-100" src=get_high_img(&song) />
                                         }

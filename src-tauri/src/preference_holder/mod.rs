@@ -32,19 +32,20 @@ macro_rules! generate_states {
     };
 }
 
+#[tracing::instrument(level = "trace", skip(app))]
 pub fn handle_pref_changes(app: AppHandle) {
     async_runtime::spawn(async move {
         let pref_config: State<PreferenceConfig> = app.state::<PreferenceConfig>().clone();
         let receiver = pref_config.get_receiver();
         for (key, value) in receiver {
-            println!("Received key: {} value: {}", key, value);
+            tracing::info!("Received key: {} value: {}", key, value);
             if UI_KEYS.contains(&key.as_str()) {
                 let app = app.clone();
-                println!("Emitting preference-changed event");
+                tracing::info!("Emitting preference-changed event");
                 if let Err(e) = app.emit("preference-changed", (key.clone(), value.clone())) {
-                    println!("Error emitting preference-changed event{}", e);
+                    tracing::error!("Error emitting preference-changed event{}", e);
                 } else {
-                    println!("Emitted preference-changed event");
+                    tracing::info!("Emitted preference-changed event");
                 }
             }
 
@@ -55,7 +56,7 @@ pub fn handle_pref_changes(app: AppHandle) {
                     let (pref_config, scanner, database) =
                         generate_states!(app, PreferenceConfig, ScannerHolder, Database);
                     if let Err(e) = start_scan(scanner, database, pref_config, None, true) {
-                        println!("{}", e);
+                        tracing::error!("{}", e);
                     }
                 });
             }
@@ -81,11 +82,13 @@ pub fn handle_pref_changes(app: AppHandle) {
     });
 }
 
+#[tracing::instrument(level = "trace", skip(app))]
 pub fn get_preference_state(app: &mut App) -> Result<PreferenceConfig> {
     let data_dir = app.path().app_config_dir()?;
     PreferenceConfig::new(data_dir)
 }
 
+#[tracing::instrument(level = "trace", skip(app))]
 pub fn initial(app: &mut App) {
     let pref_config: State<PreferenceConfig> = app.state();
     if !pref_config.has_key("thumbnail_path") {

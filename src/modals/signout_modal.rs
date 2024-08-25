@@ -1,16 +1,12 @@
 use std::rc::Rc;
 
 use leptos::{
-    component, create_rw_signal, expect_context, spawn_local, view, For, IntoView, RwSignal,
-    SignalGet, SignalSet, SignalUpdate,
+    component, expect_context, spawn_local, view, IntoView, RwSignal, SignalUpdate,
 };
-use types::extensions::FetchedExtensionManifest;
-use wasm_bindgen::JsValue;
 
 use crate::{
     modals::common::GenericModal,
     store::{modal_store::ModalStore, provider_store::ProviderStore},
-    utils::common::invoke,
 };
 
 #[component]

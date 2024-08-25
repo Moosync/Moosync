@@ -3,13 +3,12 @@ use std::rc::Rc;
 use crate::icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon};
 use leptos::{
     component, create_effect, create_rw_signal, create_write_slice, ev::Event, event_target_value,
-    expect_context, view, CollectView, For, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
+    expect_context, view, CollectView, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
 };
 use leptos_router::use_navigate;
 use leptos_virtual_scroller::VirtualScroller;
 use types::{
     entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist},
-    providers::generic::ProviderStatus,
     songs::{GetSongOptions, SearchableSong, Song},
 };
 use web_sys::SubmitEvent;

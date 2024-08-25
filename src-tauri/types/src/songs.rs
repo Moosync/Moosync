@@ -35,6 +35,7 @@ pub enum SongType {
     HLS,
 }
 impl Display for SongType {
+    #[tracing::instrument(level = "trace", skip(self, f))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let data = match self {
             SongType::LOCAL => "LOCAL",
@@ -51,6 +52,7 @@ impl Display for SongType {
 impl FromStr for SongType {
     type Err = MoosyncError;
 
+    #[tracing::instrument(level = "trace", skip(s))]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "LOCAL" => Ok(SongType::LOCAL),
@@ -69,6 +71,7 @@ impl ToSql<Text, Sqlite> for SongType
 where
     String: ToSql<Text, Sqlite>,
 {
+    #[tracing::instrument(level = "trace", skip(self, out))]
     fn to_sql<'b>(
         &'b self,
         out: &mut diesel::serialize::Output<'b, '_, Sqlite>,
@@ -90,6 +93,7 @@ where
     DB: Backend,
     String: FromSql<Text, DB>,
 {
+    #[tracing::instrument(level = "trace", skip(bytes))]
     fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
         match String::from_sql(bytes)?.as_str() {
             "LOCAL" => Ok(SongType::LOCAL),
@@ -159,12 +163,14 @@ pub struct QueryableSong {
 }
 
 impl std::hash::Hash for QueryableSong {
+    #[tracing::instrument(level = "trace", skip(self, state))]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self._id.hash(state);
     }
 }
 
 impl PartialEq for QueryableSong {
+    #[tracing::instrument(level = "trace", skip(self, other))]
     fn eq(&self, other: &Self) -> bool {
         self._id == other._id
     }
@@ -173,6 +179,7 @@ impl PartialEq for QueryableSong {
 impl Eq for QueryableSong {}
 
 impl QueryableSong {
+    #[tracing::instrument(level = "trace", skip())]
     pub fn empty() -> Self {
         Self {
             _id: Some(Uuid::new_v4().to_string()),
@@ -182,6 +189,7 @@ impl QueryableSong {
 }
 
 impl SearchByTerm for QueryableSong {
+    #[tracing::instrument(level = "trace", skip(term))]
     fn search_by_term(term: Option<String>) -> Self {
         let mut data = Self::empty();
         data.title.clone_from(&term);
@@ -230,6 +238,7 @@ pub struct Song {
 }
 
 impl std::hash::Hash for Song {
+    #[tracing::instrument(level = "trace", skip(self, state))]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.song._id.hash(state);
     }

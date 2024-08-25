@@ -9,10 +9,12 @@ use preferences::preferences::PreferenceConfig;
 use tauri::{AppHandle, Emitter, Manager, State, Window};
 use types::{canvaz::CanvazResponse, errors::errors::Result};
 
+#[tracing::instrument(level = "trace", skip())]
 pub fn get_librespot_state() -> LibrespotHolder {
     LibrespotHolder::new()
 }
 
+#[tracing::instrument(level = "trace", skip(app, window, librespot))]
 #[tauri::command()]
 pub fn initialize_librespot(
     app: AppHandle,
@@ -23,7 +25,7 @@ pub fn initialize_librespot(
     let username: String = prefs.load_selective("spotify.username".into())?;
     let password: String = prefs.load_selective("spotify.password".into())?;
 
-    println!(
+    tracing::info!(
         "Initializing librespot {}@{}",
         username.trim(),
         password.trim()
@@ -87,7 +89,7 @@ pub fn initialize_librespot(
                     }
                 }
                 Err(e) => {
-                    println!("Ending event loop {:?}", e);
+                    tracing::error!("Ending event loop {:?}", e);
                     break;
                 }
             }

@@ -7,7 +7,7 @@ use std::{
     process::Command,
     str::FromStr,
     sync::Arc,
-    thread, u64,
+    thread,
 };
 
 use base64::Engine;
@@ -75,7 +75,7 @@ macro_rules! helper1 {
                     let parsed = serde_json::from_value(first_result.clone()).unwrap();
                     return Ok(parsed);
                 } else {
-                    println!("Extension  did not reply");
+                    tracing::info!("Extension  did not reply");
                     return Ok(Default::default());
                 }
             }
@@ -88,6 +88,7 @@ macro_rules! helper1 {
 
 macro_rules! helper {
     ($func_name:ident, $req_type:expr, $ret_type:ty, $arg:ty) => {
+        #[tracing::instrument(level = "trace", skip(self))]
         pub async fn $func_name(&self, arg: $arg) -> Result<$ret_type> {
             let res = helper1!(self, $req_type, Some(arg.clone())).await?;
 
@@ -97,6 +98,7 @@ macro_rules! helper {
     };
 
     ($func_name:ident, $req_type:expr, $ret_type:ty) => {
+        #[tracing::instrument(level = "trace", skip(self))]
         pub async fn $func_name(&self) -> Result<$ret_type> {
             let res = helper1!(self, $req_type, None::<()>).await?;
 
@@ -122,6 +124,7 @@ macro_rules! create_extension_function {
 
 type SenderMap = HashMap<String, UnboundedSender<(CommandSender, Value)>>;
 
+#[derive(Debug)]
 pub struct ExtensionHandler {
     pub ipc_path: PathBuf,
     pub extensions_dir: PathBuf,
@@ -130,6 +133,7 @@ pub struct ExtensionHandler {
 }
 
 impl ExtensionHandler {
+    #[tracing::instrument(level = "trace", skip(extensions_dir, tmp_dir))]
     pub fn new(extensions_dir: PathBuf, tmp_dir: PathBuf) -> Self {
         let ipc_path = extensions_dir.join("ipc/ipc.sock");
         if !ipc_path.parent().unwrap().exists() {
@@ -148,6 +152,7 @@ impl ExtensionHandler {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn listen_socket(&self) -> Result<Receiver<UnboundedReceiver<(Value, Sender<Vec<u8>>)>>> {
         let sender_map = self.sender_map.clone();
         let (tx_listen, rx_listen) = channel(1);
@@ -159,15 +164,15 @@ impl ExtensionHandler {
                 .build()
                 .unwrap();
             let ipc_path = ipc_path.clone();
-            println!("Inside thread");
+            tracing::info!("Inside thread");
             runtime.block_on(async move {
-                println!("inside async runtime");
+                tracing::info!("inside async runtime");
                 let opts =
                     ListenerOptions::new().name(ipc_path.to_fs_name::<GenericFilePath>().unwrap());
                 let sock_listener = opts.create_tokio().unwrap();
 
                 loop {
-                    println!("Listening on socket");
+                    tracing::info!("Listening on socket");
                     let conn = sock_listener.accept().await;
                     let (tx_main_command, rx_main_command) = unbounded();
                     let (tx_ext_command, rx_ext_command) = unbounded();
@@ -183,11 +188,11 @@ impl ExtensionHandler {
                                     .insert(uuid::Uuid::new_v4().to_string(), tx_main_command);
                                 drop(sender_map);
                                 tx_listen.send(rx_ext_command).await.unwrap();
-                                println!("Handling extension socket connections");
+                                tracing::info!("Handling extension socket connections");
                                 join!(handler.handle_main_command(), handler.handle_connection());
                             });
                         }
-                        Err(e) => println!("Extension socket failed to listen {}", e),
+                        Err(e) => tracing::info!("Extension socket failed to listen {}", e),
                     };
                 }
             });
@@ -209,12 +214,13 @@ impl ExtensionHandler {
         Ok(rx_listen)
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn broadcast(&self, value: Value) -> Result<HashMap<String, Value>> {
         let sender_map = self.sender_map.lock().await;
-        println!("In broadcast {:?}", sender_map);
+        tracing::trace!("Broadcasting command");
         let mut rx_map = HashMap::new();
         for (key, tx) in sender_map.iter() {
-            println!("Broadcasting command {:?}", value);
+            tracing::info!("Broadcasting command {:?}", value);
             let (tx_r, rx_r) = channel(1);
             tx.clone().send((tx_r, value.clone())).await.map_err(|_| {
                 MoosyncError::String(format!(
@@ -223,7 +229,7 @@ impl ExtensionHandler {
                 ))
             })?;
             rx_map.insert(key.clone(), Mutex::new(rx_r));
-            println!("Broadcasted command {:?}", value);
+            tracing::info!("Broadcasted command");
         }
 
         drop(sender_map);
@@ -236,9 +242,12 @@ impl ExtensionHandler {
             }
         }
 
+        tracing::trace!(result = ?ret, "Got extension runner response");
+
         Ok(ret)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, ext_path))]
     fn get_extension_version(&self, ext_path: PathBuf) -> Result<String> {
         let manifest_path = ext_path.join("package.json");
         if manifest_path.exists() {
@@ -251,14 +260,16 @@ impl ExtensionHandler {
         Err(MoosyncError::String("No extension found".into()))
     }
 
+    #[tracing::instrument(level = "trace", skip(self, version))]
     fn get_ext_version(&self, version: String) -> Result<u64> {
         Ok(u64::from_str(
             &version.split('.').collect::<Vec<&str>>().join(""),
         )?)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, ext_path))]
     pub async fn install_extension(&self, ext_path: String) -> Result<()> {
-        println!("ext path {}", ext_path);
+        tracing::info!("ext path {}", ext_path);
         let ext_path =
             PathBuf::from_str(&ext_path).map_err(|e| MoosyncError::String(e.to_string()))?;
 
@@ -300,14 +311,14 @@ impl ExtensionHandler {
 
         let options = CopyOptions::default().overwrite(true);
         let parent_dir = ext_extract_path.parent().unwrap();
-        println!(
+        tracing::info!(
             "Moving items from {:?} to {:?}",
             tmp_dir.clone(),
             parent_dir
         );
         fs_extra::move_items(&[tmp_dir.clone()], parent_dir, &options)?;
 
-        println!(
+        tracing::info!(
             "Renaming {:?} to {:?}",
             parent_dir.join(tmp_dir.file_name().unwrap()),
             parent_dir.join(package_manifest.name.clone())
@@ -322,6 +333,7 @@ impl ExtensionHandler {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, package_name))]
     pub async fn remove_extension(&self, package_name: String) -> Result<()> {
         let ext_path = self.extensions_dir.join(package_name.clone());
         if ext_path.exists() {
@@ -335,6 +347,7 @@ impl ExtensionHandler {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self, fetched_ext))]
     pub async fn download_extension(&self, fetched_ext: FetchedExtensionManifest) -> Result<()> {
         let parsed_url = fetched_ext
             .release
@@ -348,7 +361,7 @@ impl ExtensionHandler {
             uuid::Uuid::new_v4()
         ));
 
-        println!("parsed url {}", parsed_url);
+        tracing::info!("parsed url {}", parsed_url);
 
         let mut stream = reqwest::get(parsed_url).await?.bytes_stream();
         let mut file = File::create(file_path.clone())?;
@@ -358,7 +371,7 @@ impl ExtensionHandler {
             file.write_all(&chunk)?;
         }
 
-        println!("Wrote file");
+        tracing::info!("Wrote file");
 
         self.install_extension(file_path.to_string_lossy().to_string())
             .await?;
@@ -366,6 +379,7 @@ impl ExtensionHandler {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn get_installed_extensions(&self) -> Result<HashMap<String, Vec<ExtensionDetail>>> {
         let args = serde_json::to_value(GenericExtensionHostRequest {
             type_: "getInstalledExtensions".to_string(),
@@ -395,42 +409,34 @@ impl ExtensionHandler {
                     }
                     return Some((key.clone(), value));
                 } else {
-                    println!("Error parsing extension detail {:?}", value);
+                    tracing::info!("Error parsing extension detail {:?}", value);
                 }
                 None
             })
             .collect())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn get_extension_manifest(&self) -> Result<Vec<FetchedExtensionManifest>> {
         #[derive(serde::Deserialize, Debug)]
         struct GithubTreeItem {
             path: String,
-            mode: String,
             r#type: String,
-            sha: String,
-            size: Option<u64>,
             url: String,
         }
 
         #[derive(serde::Deserialize, Debug)]
         struct GithubTreeResponse {
-            sha: String,
-            url: String,
             tree: Vec<GithubTreeItem>,
-            truncated: bool,
         }
 
         #[derive(serde::Deserialize, Debug)]
         struct BlockResponse {
-            sha: String,
-            node_id: String,
-            size: u64,
             content: String,
             encoding: String,
         }
 
-        println!("Getting extension manifest");
+        tracing::info!("Getting extension manifest");
         let client = reqwest::Client::new();
         let res = client.get(
             "https://api.github.com/repos/Moosync/moosync-exts/git/trees/main?recursive=1",

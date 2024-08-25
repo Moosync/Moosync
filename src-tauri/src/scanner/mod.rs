@@ -4,10 +4,12 @@ use preferences::preferences::PreferenceConfig;
 use tauri::State;
 use types::errors::errors::Result;
 
+#[tracing::instrument(level = "trace", skip())]
 pub fn get_scanner_state() -> ScannerHolder {
     ScannerHolder::new()
 }
 
+#[tracing::instrument(level = "trace", skip(preferences))]
 fn get_scan_paths(preferences: &State<PreferenceConfig>) -> Result<Vec<String>> {
     let tmp: Vec<String> = preferences.load_selective("music_paths".to_string())?;
 
@@ -15,6 +17,7 @@ fn get_scan_paths(preferences: &State<PreferenceConfig>) -> Result<Vec<String>> 
     Ok(tmp)
 }
 
+#[tracing::instrument(level = "trace", skip(scanner, database, preferences, paths, force))]
 #[tauri::command(async)]
 pub fn start_scan(
     scanner: State<ScannerHolder>,
@@ -38,7 +41,7 @@ pub fn start_scan(
         .unwrap_or(-1f64);
 
     for path in paths.unwrap() {
-        println!("Scanning path: {}", path);
+        tracing::info!("Scanning path: {}", path);
         scanner.start_scan(
             database.inner(),
             path,

@@ -25,12 +25,14 @@ pub struct ScannerHolder {
 }
 
 impl Default for ScannerHolder {
+    #[tracing::instrument(level = "trace", skip())]
     fn default() -> Self {
         Self::new()
     }
 }
 
 impl ScannerHolder {
+    #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> Self {
         Self {
             state: Mutex::new(ScanState::UNDEFINED),
@@ -38,10 +40,15 @@ impl ScannerHolder {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn get_progress(&self) -> u8 {
         *self.progress.lock().unwrap()
     }
 
+    #[tracing::instrument(
+        level = "trace",
+        skip(self, database, dir, thumbnail_dir, artist_split, scan_threads, force)
+    )]
     pub fn start_scan(
         &self,
         database: &Database,
@@ -93,14 +100,14 @@ impl ScannerHolder {
                 Ok(playlist) => {
                     let _ = database.create_playlist(playlist);
                 }
-                Err(e) => println!("Scan playlist error: {:}", e),
+                Err(e) => tracing::error!("Scan playlist error: {:}", e),
             }
         }
 
         for item in rx_song {
             match item.1 {
                 Ok(song) => {
-                    println!("Scanned song {:?}", song);
+                    tracing::info!("Scanned song {:?}", song);
                     let res = database.insert_songs(vec![song]);
                     if item.0.is_some() {
                         if let Ok(res) = res {
@@ -111,7 +118,7 @@ impl ScannerHolder {
                         }
                     }
                 }
-                Err(e) => println!("Scan error: {:}", e),
+                Err(e) => tracing::error!("Scan error: {:}", e),
             }
         }
 

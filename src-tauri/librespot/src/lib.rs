@@ -3,6 +3,7 @@ mod player;
 pub mod spirc;
 pub mod utils;
 
+use std::fmt::Debug;
 use std::sync::{mpsc, Arc, Mutex};
 
 pub use librespot::connect::config::ConnectConfig;
@@ -23,11 +24,23 @@ use types::errors::errors::{MoosyncError, Result};
 #[derive(Clone)]
 pub struct ConfigHolder {
     credentials: Credentials,
-    player_config: PlayerConfig,
+    _player_config: PlayerConfig,
     connect_config: ConnectConfig,
-    cache_config: Cache,
+    _cache_config: Cache,
     backend: String,
     volume_ctrl: String,
+}
+
+impl Debug for ConfigHolder {
+    #[tracing::instrument(level = "trace", skip(self, f))]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ConfigHolder")
+            .field("credentials", &self.credentials)
+            .field("connect_config", &self.connect_config)
+            .field("backend", &self.backend)
+            .field("volume_ctrl", &self.volume_ctrl)
+            .finish()
+    }
 }
 
 #[macro_export]
@@ -35,6 +48,7 @@ macro_rules! generate_methods {
     ($struct_name:ident, $($method_name:ident($($arg:ident: $arg_type:ty),*) -> $return_type:ty),*) => {
         impl $struct_name {
             $(
+                #[tracing::instrument(level = "trace", skip(self))]
                 pub fn $method_name(&self, $($arg : $arg_type),*) -> Result<$return_type> {
                     self.check_initialized()?;
                     let mut instance = self.instance.lock().unwrap();
@@ -51,19 +65,32 @@ macro_rules! generate_methods {
 
 pub static REGISTERED_EVENTS: Mutex<Vec<String>> = Mutex::new(vec![]);
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct LibrespotHolder {
     instance: Mutex<Option<SpircWrapper>>,
     config: Mutex<Option<ConfigHolder>>,
 }
 
 impl LibrespotHolder {
+    #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> Self {
         Self {
             ..Default::default()
         }
     }
 
+    #[tracing::instrument(
+        level = "trace",
+        skip(
+            self,
+            credentials,
+            player_config,
+            connect_config,
+            cache_config,
+            backend,
+            volume_ctrl
+        )
+    )]
     pub fn initialize(
         &self,
         credentials: Credentials,
@@ -80,9 +107,9 @@ impl LibrespotHolder {
         let mut config = self.config.lock().unwrap();
         *config = Some(ConfigHolder {
             credentials: credentials.clone(),
-            player_config: player_config.clone(),
+            _player_config: player_config.clone(),
             connect_config: connect_config.clone(),
-            cache_config: cache_config.clone(),
+            _cache_config: cache_config.clone(),
             backend: backend.clone(),
             volume_ctrl: volume_ctrl.clone(),
         });
@@ -107,6 +134,7 @@ impl LibrespotHolder {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn check_initialized(&self) -> Result<()> {
         if let Some(instance) = &mut *self.instance.lock().unwrap() {
             let device_id = instance.get_device_id();
@@ -119,6 +147,7 @@ impl LibrespotHolder {
         Err("Librespot not initialized".into())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn get_events_channel(&self) -> Result<Arc<Mutex<mpsc::Receiver<PlayerEvent>>>> {
         let instance_lock = self.instance.lock().unwrap();
 
@@ -130,6 +159,7 @@ impl LibrespotHolder {
         Err(MoosyncError::String("Not initialized".to_string()))
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn register_event(&self, event_name: String) -> Result<()> {
         let mut events = REGISTERED_EVENTS.lock().unwrap();
         events.push(event_name.clone());

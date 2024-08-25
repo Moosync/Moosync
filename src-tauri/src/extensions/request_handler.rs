@@ -33,10 +33,12 @@ pub struct ReplyHandler {
 }
 
 impl ReplyHandler {
+    #[tracing::instrument(level = "trace", skip(app_handle))]
     pub fn new(app_handle: AppHandle) -> Self {
         ReplyHandler { app_handle }
     }
 
+    #[tracing::instrument(level = "trace", skip(self, type_))]
     fn is_main_command(&self, type_: &str) -> bool {
         [
             "getSongs",
@@ -59,10 +61,12 @@ impl ReplyHandler {
         .contains(&type_)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, type_))]
     fn is_update(&self, type_: &str) -> bool {
         type_ == "extensionUpdated"
     }
 
+    #[tracing::instrument(level = "trace", skip(self, type_))]
     fn is_ui_request(&self, type_: &str) -> bool {
         [
             "getCurrentSong",
@@ -77,6 +81,7 @@ impl ReplyHandler {
         .contains(&type_)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, data))]
     pub fn get_songs(&self, data: Value) -> Result<Value> {
         let database: State<'_, Database> = self.app_handle.state();
         let mut request: GetSongOptions = serde_json::from_value(data)?;
@@ -93,12 +98,14 @@ impl ReplyHandler {
         Ok(serde_json::to_value(ret)?)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, data))]
     pub fn get_entity(&self, data: Value) -> Result<Value> {
         let database: State<'_, Database> = self.app_handle.state();
         let ret = database.get_entity_by_options(serde_json::from_value(data)?)?;
         Ok(serde_json::to_value(ret)?)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, data))]
     pub fn add_songs(&self, data: Value) -> Result<Value> {
         let database: State<'_, Database> = self.app_handle.state();
         // TODO: Add song
@@ -106,18 +113,21 @@ impl ReplyHandler {
         Ok(serde_json::to_value(ret)?)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, data))]
     pub fn update_song(&self, data: Value) -> Result<Value> {
         let database: State<'_, Database> = self.app_handle.state();
         database.update_songs(vec![serde_json::from_value(data.clone())?])?;
         Ok(data)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, data))]
     pub fn add_playlist(&self, data: Value) -> Result<Value> {
         let database: State<'_, Database> = self.app_handle.state();
         let ret = database.create_playlist(serde_json::from_value(data)?)?;
         Ok(serde_json::to_value(ret)?)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, data))]
     pub fn add_to_playlist(&self, data: Value) -> Result<Value> {
         let database: State<'_, Database> = self.app_handle.state();
         let request: AddToPlaylistRequest = serde_json::from_value(data)?;
@@ -125,6 +135,7 @@ impl ReplyHandler {
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, data))]
     pub fn remove_song(&self, data: Value) -> Result<Value> {
         let database: State<'_, Database> = self.app_handle.state();
         let request: Song = serde_json::from_value(data)?;
@@ -134,16 +145,19 @@ impl ReplyHandler {
         Ok(Value::Null)
     }
 
-    pub fn set_artist_editable_info(&self, data: Value) -> Result<Value> {
+    #[tracing::instrument(level = "trace", skip(self, _data))]
+    pub fn set_artist_editable_info(&self, _data: Value) -> Result<Value> {
         // TODO: Implement
         Ok(Value::Null)
     }
 
-    pub fn set_album_editable_info(&self, data: Value) -> Result<Value> {
+    #[tracing::instrument(level = "trace", skip(self, _data))]
+    pub fn set_album_editable_info(&self, _data: Value) -> Result<Value> {
         // TODO: Implement
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, package_name, data))]
     pub fn get_preferences(&self, package_name: String, data: Value) -> Result<Value> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let request: PreferenceData = serde_json::from_value(data)?;
@@ -155,6 +169,7 @@ impl ReplyHandler {
         })
     }
 
+    #[tracing::instrument(level = "trace", skip(self, package_name, data))]
     pub fn set_preferences(&self, package_name: String, data: Value) -> Result<Value> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let request: PreferenceData = serde_json::from_value(data)?;
@@ -165,12 +180,14 @@ impl ReplyHandler {
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, package_name, data))]
     pub fn get_secure(&self, package_name: String, data: Value) -> Result<Value> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let request: PreferenceData = serde_json::from_value(data)?;
         preferences.get_secure(format!("extension.{}.{}", package_name, request.key))
     }
 
+    #[tracing::instrument(level = "trace", skip(self, package_name, data))]
     pub fn set_secure(&self, package_name: String, data: Value) -> Result<Value> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let request: PreferenceData = serde_json::from_value(data)?;
@@ -182,11 +199,13 @@ impl ReplyHandler {
         Ok(Value::Null)
     }
 
-    pub fn register_oauth(&self, data: Value) -> Result<Value> {
+    #[tracing::instrument(level = "trace", skip(self, _data))]
+    pub fn register_oauth(&self, _data: Value) -> Result<Value> {
         // TODO: Implement oauth registration
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, data))]
     pub fn open_external(&self, data: Value) -> Result<Value> {
         if data.is_string() {
             let window_handler: State<WindowHandler> = self.app_handle.state();
@@ -195,6 +214,7 @@ impl ReplyHandler {
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, package_name))]
     fn register_account(&self, package_name: String) -> Result<Value> {
         let app_handle = self.app_handle.clone();
         tauri::async_runtime::spawn(async move {
@@ -204,6 +224,7 @@ impl ReplyHandler {
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, request))]
     async fn send_ui_request(&self, request: ExtensionUIRequest) -> Result<Value> {
         if self.app_handle.webview_windows().is_empty() {
             return Ok(Value::Null);
@@ -215,13 +236,13 @@ impl ReplyHandler {
                 let payload = f.payload().to_string();
                 let _ = tx.send(payload);
             });
-        println!("Sending ui request {:?}", request);
+        tracing::info!("Sending ui request {:?}", request);
         self.app_handle.emit("ui-requests", request.clone())?;
-        println!("sent ui request {:?}", request);
+        tracing::info!("sent ui request {:?}", request);
 
         let res = rx.await;
         if let Ok(data) = res {
-            println!("got ui reply {:?}", data);
+            tracing::info!("got ui reply {:?}", data);
             Ok(serde_json::from_str(&data)?)
         } else {
             Ok(Value::Null)
@@ -230,14 +251,16 @@ impl ReplyHandler {
         // Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn extension_updated(&self) -> Result<Value> {
-        println!("Got extension updated");
+        tracing::info!("Got extension updated");
         let provider_handle: State<ProviderHandler> = self.app_handle.state();
         provider_handle.discover_provider_extensions().await?;
-        println!("Updated extension");
+        tracing::info!("Updated extension");
         Ok(Value::Null)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, value))]
     pub async fn handle_request(&self, value: &Value) -> Result<Vec<u8>> {
         let request: ExtensionUIRequest = serde_json::from_value(value.clone())?;
         let mut ret = request.clone();
@@ -279,14 +302,14 @@ impl ReplyHandler {
         } else if self.is_ui_request(&request.type_) {
             self.send_ui_request(request).await
         } else {
-            println!("Not a valid request {:?}", request);
+            tracing::info!("Not a valid request {:?}", request);
             Ok(Value::Null)
         };
 
         match res {
             Ok(v) => ret.data = Some(v),
             Err(e) => {
-                println!("Error handling request {:?}: {}", value, e);
+                tracing::error!("Error handling request {:?}: {}", value, e);
             }
         }
 

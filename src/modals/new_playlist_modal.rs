@@ -1,21 +1,16 @@
 use std::rc::Rc;
 
 use leptos::{
-    component, create_action, create_effect, create_rw_signal, event_target_value, expect_context,
-    spawn_local, view, IntoView, RwSignal, SignalGet, SignalGetUntracked, SignalSet, SignalUpdate,
+    component, create_effect, create_rw_signal, event_target_value, expect_context,
+    spawn_local, view, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
 };
-use serde::Serialize;
 use types::entities::QueryablePlaylist;
-use web_sys::MouseEvent;
 
-use crate::console_log;
 use crate::icons::{
     import_playlist_icon::ImportPlaylistIcon, new_playlist_icon::NewPlaylistIcon,
     song_default_icon::SongDefaultIcon,
 };
 use crate::store::modal_store::ModalStore;
-use crate::store::provider_store;
-use crate::utils::common::invoke;
 use crate::utils::db_utils::create_playlist;
 use crate::{modals::common::GenericModal, store::provider_store::ProviderStore};
 

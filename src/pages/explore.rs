@@ -1,19 +1,16 @@
 use std::rc::Rc;
 
 use leptos::{
-    component, create_effect, create_rw_signal, create_write_slice, expect_context, view, IntoView,
-    ReadSignal, RwSignal, SignalUpdate,
+    component, create_rw_signal, create_write_slice, expect_context, view, IntoView, RwSignal, SignalUpdate,
 };
 use leptos_context_menu::ContextMenu;
-use types::ui::player_details::PlayerState;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
     components::cardview::{CardView, SimplifiedCardItem},
-    console_log,
     store::{
         player_store::PlayerStore,
-        provider_store::{self, ProviderStore},
+        provider_store::{ProviderStore},
     },
     utils::{
         common::get_high_img, context_menu::SongItemContextMenu, db_utils::get_playlists_local,

@@ -14,6 +14,7 @@ pub struct SongScanner<'a> {
 }
 
 impl<'a> SongScanner<'a> {
+    #[tracing::instrument(level = "trace", skip(dir, pool, thumbnail_dir, artist_split))]
     pub fn new(
         dir: PathBuf,
         pool: &'a mut ThreadPool,
@@ -28,12 +29,14 @@ impl<'a> SongScanner<'a> {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn check_dirs(&self) -> Result<()> {
         check_directory(self.thumbnail_dir.clone())?;
 
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, tx, size, path, playlist_id))]
     pub fn scan_in_pool(
         &self,
         tx: Sender<(Option<String>, Result<Song>)>,
@@ -54,6 +57,7 @@ impl<'a> SongScanner<'a> {
         });
     }
 
+    #[tracing::instrument(level = "trace", skip(self, db, tx_song, force))]
     pub fn start(
         &self,
         db: &Database,

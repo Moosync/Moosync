@@ -22,6 +22,10 @@ use url::Url;
 use crate::canvaz::entity_canvaz_request::Entity;
 use crate::canvaz::{EntityCanvazRequest, EntityCanvazResponse};
 
+#[tracing::instrument(
+    level = "trace",
+    skip(backend_str, session, player_config, volume_ctrl)
+)]
 pub fn new_player(
     backend_str: String,
     session: Session,
@@ -55,12 +59,14 @@ pub fn new_player(
     (p, mixer)
 }
 
+#[tracing::instrument(level = "trace", skip(cache_config))]
 pub fn create_session(cache_config: Cache) -> Session {
     let session_config = SessionConfig::default();
 
     Session::new(session_config, Some(cache_config))
 }
 
+#[tracing::instrument(level = "trace", skip(client_id))]
 #[allow(dead_code)]
 #[tokio::main]
 pub async fn start_discovery(client_id: String) -> Credentials {
@@ -76,6 +82,7 @@ pub async fn start_discovery(client_id: String) -> Credentials {
     discovery.next().await.unwrap()
 }
 
+#[tracing::instrument(level = "trace", skip(track_uri, session))]
 pub fn get_lyrics(track_uri: String, session: Session) -> Result<String> {
     let session_clone = session.clone();
     let runtime = tokio::runtime::Builder::new_multi_thread()
@@ -94,6 +101,7 @@ pub fn get_lyrics(track_uri: String, session: Session) -> Result<String> {
     })
 }
 
+#[tracing::instrument(level = "trace", skip(canvaz))]
 fn parse_canvaz(canvaz: EntityCanvazResponse) -> Result<CanvazResponse> {
     Ok(CanvazResponse {
         canvases: canvaz
@@ -106,11 +114,11 @@ fn parse_canvaz(canvaz: EntityCanvazResponse) -> Result<CanvazResponse> {
                     avatar: c.artist.avatar.clone(),
                 };
                 let type_ = match c.type_.enum_value_or_default() {
-                    crate::canvaz::Type::IMAGE => Type::IMAGE,
-                    crate::canvaz::Type::VIDEO => Type::VIDEO,
-                    crate::canvaz::Type::VIDEO_LOOPING => Type::VIDEO_LOOPING,
-                    crate::canvaz::Type::VIDEO_LOOPING_RANDOM => Type::VIDEO_LOOPING_RANDOM,
-                    crate::canvaz::Type::GIF => Type::GIF,
+                    crate::canvaz::Type::IMAGE => Type::Image,
+                    crate::canvaz::Type::VIDEO => Type::Video,
+                    crate::canvaz::Type::VIDEO_LOOPING => Type::VideoLooping,
+                    crate::canvaz::Type::VIDEO_LOOPING_RANDOM => Type::VideoLoopingRandom,
+                    crate::canvaz::Type::GIF => Type::Gif,
                 };
                 Canvaz {
                     id: c.id.clone(),
@@ -131,6 +139,7 @@ fn parse_canvaz(canvaz: EntityCanvazResponse) -> Result<CanvazResponse> {
     })
 }
 
+#[tracing::instrument(level = "trace", skip(val))]
 fn validate_uri(val: &str) -> (Option<String>, Option<String>) {
     let track_regex = Regex::new(
             r"^(?P<urlType>(?:spotify:|(?:https?:\/\/(?:open|play)\.spotify\.com\/)))(?:embed)?\/?(?P<type>album|track|playlist|artist)(?::|\/)((?:[0-9a-zA-Z]){22})"
@@ -160,6 +169,7 @@ fn validate_uri(val: &str) -> (Option<String>, Option<String>) {
     (None, None)
 }
 
+#[tracing::instrument(level = "trace", skip(track_uri, session))]
 pub fn get_canvas(track_uri: String, session: Session) -> Result<CanvazResponse> {
     let (uri, type_) = validate_uri(&track_uri);
     if let Some(type_) = type_ {
@@ -197,7 +207,7 @@ pub fn get_canvas(track_uri: String, session: Session) -> Result<CanvazResponse>
         entity.entity_uri.clone_from(&uri);
         req.entities.push(entity.clone());
 
-        println!("{}", protobuf::text_format::print_to_string(&req));
+        tracing::info!("{}", protobuf::text_format::print_to_string(&req));
 
         let url = format!(
             "{}/canvaz-cache/v0/canvases",

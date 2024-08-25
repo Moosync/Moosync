@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use librespot::playback::player::PlayerEvent;
 
+#[tracing::instrument(level = "trace", skip(event))]
 pub fn event_to_map(event: PlayerEvent) -> HashMap<String, String> {
     let mut map = HashMap::new();
 

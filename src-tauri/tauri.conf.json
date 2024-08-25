@@ -18,7 +18,7 @@
           "requireLiteralLeadingDot": false
         }
       },
-      "csp": "default-src tauri: 'self'; img-src tauri: 'self' asset: media: https://asset.localhost; media-src blob: tauri: 'self' http: https: asset: media: https://asset.localhost ; connect-src ipc: tauri: http://ipc.localhost asset: ; style-src 'unsafe-inline' tauri:; frame-src youtube.com https://www.youtube.com; script-src 'wasm-unsafe-eval';",
+      "csp": "default-src tauri: 'self'; img-src tauri: 'self' asset: media: https://asset.localhost https: http:; media-src blob: tauri: 'self' http: https: asset: media: https://asset.localhost ; connect-src ipc: tauri: http://ipc.localhost asset: ; style-src 'unsafe-inline' tauri:; frame-src youtube.com https://www.youtube.com; script-src 'wasm-unsafe-eval';",
       "dangerousDisableAssetCspModification": false,
       "freezePrototype": false,
       "pattern": {
@@ -35,13 +35,7 @@
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
-    "externalBin": [
-      "binaries/exthost",
-      "binaries/bridge.js",
-      "binaries/events.js",
-      "binaries/setup-sandbox.js",
-      "binaries/setup-node-sandbox.js"
-    ],
+    "externalBin": ["binaries/exthost"],
     "resources": [],
     "icon": [
       "icons/32x32.png",

@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const which = require("which");
 const { exec } = require("node:child_process");
 
-const overrideTarget = process.argv[2]?.split(" ")[1];
+const overrideTarget = process.argv[3];
 console.log(overrideTarget);
 
 const nodePath = which

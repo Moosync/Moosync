@@ -58,6 +58,7 @@ jobs:
       - name: Build frontend
         run: |
           cargo install --locked trunk
+          mkdir -p target
           trunk build --release
 
       - name: Install tauri CLI

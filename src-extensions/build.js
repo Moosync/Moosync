@@ -7,7 +7,9 @@ const nodePath = which
   .sync("node", {
     all: true,
   })
-  .filter((v) => !v.startsWith("/tmp"))[0];
+  .filter(
+    (v) => !v.startsWith("/tmp") || v.includes("Temp") || v.includes("/T/"),
+  )[0];
 console.log(nodePath);
 
 fs.copyFile(nodePath, "./server", (err) => {

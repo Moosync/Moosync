@@ -48,14 +48,15 @@ jobs:
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
-        with:
-          workspaces: "./src-tauri -> target"
 
       - name: install extensions host
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
         run: |
           yarn --cwd ./src-extensions install
           yarn --cwd ./src-extensions build
+
+      - name: Install tauri CLI
+        run: npm install -g @tauri-apps/cli@2.0.0-rc.7
 
       - uses: tauri-apps/tauri-action@v0
         env:

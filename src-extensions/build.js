@@ -43,21 +43,15 @@ fs.copyFile(nodePath, "./server", (err) => {
           "./server",
           `../src-tauri/binaries/exthost-${stdout.trim()}`,
         );
-        fs.copyFileSync(
-          "./dist/bridge.js",
-          `../src-tauri/binaries/bridge.js-${stdout.trim()}`,
-        );
-        fs.copyFileSync(
-          "./dist/events.js",
-          `../src-tauri/binaries/events.js-${stdout.trim()}`,
-        );
+        fs.copyFileSync("./dist/bridge.js", `../src-tauri/bridge.js`);
+        fs.copyFileSync("./dist/events.js", `../src-tauri/events.js`);
         fs.copyFileSync(
           "./dist/setup-sandbox.js",
-          `../src-tauri/binaries/setup-sandbox.js-${stdout.trim()}`,
+          `../src-tauri/setup-sandbox.js`,
         );
         fs.copyFileSync(
           "./dist/setup-node-sandbox.js",
-          `../src-tauri/binaries/setup-node-sandbox.js-${stdout.trim()}`,
+          `../src-tauri/setup-node-sandbox.js`,
         );
       },
     );

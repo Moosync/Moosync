@@ -55,7 +55,13 @@
         "desktopTemplate": "./moosync.desktop"
       },
       "appimage": {
-        "bundleMediaFramework": true
+        "bundleMediaFramework": true,
+        "files": {
+          "/usr/bin/bridge.js": "./bridge.js",
+          "/usr/bin/events.js": "./events.js",
+          "/usr/bin/setup-sandbox.js": "./setup-sandbox.js",
+          "/usr/bin/setup-node-sandbox.js": "./setup-node-sandbox.js"
+        }
       }
     }
   },

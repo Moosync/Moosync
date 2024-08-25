@@ -66,6 +66,7 @@ jobs:
         run: |
           mkdir -p target
           trunk build --release
+        shell: bash
 
       - name: Install tauri CLI
         run: npm install -g @tauri-apps/cli@next

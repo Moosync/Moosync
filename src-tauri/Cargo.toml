@@ -143,3 +143,6 @@ lto = false
 incremental = true
 
 [profile.dev.package]
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2.0.0-rc.1"

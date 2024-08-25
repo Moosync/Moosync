@@ -9,7 +9,10 @@ pub fn get_lyrics_state() -> LyricsFetcher {
     LyricsFetcher::new()
 }
 
-#[tracing::instrument(level = "trace", skip(lyrics, librespot, cache, id, url, artists, title))]
+#[tracing::instrument(
+    level = "trace",
+    skip(lyrics, librespot, cache, id, url, artists, title)
+)]
 #[tauri::command()]
 pub async fn get_lyrics(
     lyrics: State<'_, LyricsFetcher>,

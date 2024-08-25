@@ -5306,10 +5306,11 @@ dependencies = [
 name = "mpris"
 version = "0.1.0"
 dependencies = [
+ "raw-window-handle 0.5.2",
  "souvlaki",
  "tracing",
  "types",
- "windows 0.58.0",
+ "windows 0.44.0",
 ]
 
 [[package]]
@@ -5382,7 +5383,7 @@ dependencies = [
  "log",
  "ndk-sys 0.6.0+11769913",
  "num_enum",
- "raw-window-handle",
+ "raw-window-handle 0.6.2",
  "thiserror",
 ]
 
@@ -6926,6 +6927,12 @@ dependencies = [
 
 [[package]]
 name = "raw-window-handle"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f2ff9a1f06a88b01621b7ae906ef0211290d1c8a168a15542486a8f61c0833b9"
+
+[[package]]
+name = "raw-window-handle"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
@@ -7212,7 +7219,7 @@ dependencies = [
  "objc",
  "objc-foundation",
  "objc_id",
- "raw-window-handle",
+ "raw-window-handle 0.6.2",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -8194,7 +8201,7 @@ dependencies = [
  "objc2-app-kit",
  "objc2-foundation",
  "objc2-quartz-core",
- "raw-window-handle",
+ "raw-window-handle 0.6.2",
  "redox_syscall 0.5.3",
  "wasm-bindgen",
  "web-sys",
@@ -8609,7 +8616,7 @@ dependencies = [
  "objc",
  "once_cell",
  "parking_lot 0.12.3",
- "raw-window-handle",
+ "raw-window-handle 0.6.2",
  "scopeguard",
  "tao-macros",
  "unicode-segmentation",
@@ -8680,7 +8687,7 @@ dependencies = [
  "muda",
  "objc",
  "percent-encoding 2.3.1",
- "raw-window-handle",
+ "raw-window-handle 0.6.2",
  "reqwest 0.12.5",
  "serde",
  "serde_json",
@@ -8810,7 +8817,7 @@ source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#448846b8
 dependencies = [
  "dunce",
  "log",
- "raw-window-handle",
+ "raw-window-handle 0.6.2",
  "rfd",
  "serde",
  "serde_json",
@@ -8892,7 +8899,7 @@ dependencies = [
  "gtk",
  "http 1.1.0",
  "jni",
- "raw-window-handle",
+ "raw-window-handle 0.6.2",
  "serde",
  "serde_json",
  "tauri-utils",
@@ -8913,7 +8920,7 @@ dependencies = [
  "jni",
  "log",
  "percent-encoding 2.3.1",
- "raw-window-handle",
+ "raw-window-handle 0.6.2",
  "softbuffer",
  "tao",
  "tauri-runtime",
@@ -10203,7 +10210,7 @@ checksum = "33082acd404763b315866e14a0d5193f3422c81086657583937a750cdd3ec340"
 dependencies = [
  "cocoa 0.25.0",
  "objc",
- "raw-window-handle",
+ "raw-window-handle 0.6.2",
  "windows-sys 0.52.0",
  "windows-version",
 ]
@@ -10639,7 +10646,7 @@ dependencies = [
  "objc_id",
  "once_cell",
  "percent-encoding 2.3.1",
- "raw-window-handle",
+ "raw-window-handle 0.6.2",
  "sha2",
  "soup3",
  "tao-macros",

@@ -41,7 +41,7 @@ fs.copyFile(nodePath, "./server", (err) => {
 
         fs.renameSync(
           "./server",
-          `../src-tauri/binaries/exthost-${stdout.trim()}`,
+          `../src-tauri/binaries/exthost-${stdout.trim()}${stdout.includes("windows") ? ".exe" : ""}`,
         );
         fs.copyFileSync("./dist/bridge.js", `../src-tauri/bridge.js`);
         fs.copyFileSync("./dist/events.js", `../src-tauri/events.js`);

@@ -1,4 +1,5 @@
 use std::{
+    fmt::Error as FmtError,
     num::{ParseFloatError, ParseIntError},
     string::FromUtf8Error,
 };
@@ -121,6 +122,8 @@ pub enum MoosyncError {
     #[cfg(feature = "core")]
     #[cfg_attr(feature = "core", error("JSON validation failed: {0}"))]
     JSONValidationError(String),
+    #[error(transparent)]
+    FmtError(#[from] FmtError),
 }
 
 #[cfg(feature = "ui")]

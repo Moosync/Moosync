@@ -93,12 +93,7 @@ pub async fn refresh_login(
             .request_async(async_http_client)
             .await
             .map_err(|err| match err {
-                oauth2::RequestTokenError::ServerResponse(e) => MoosyncError::String(format!(
-                    "{:?}: {:?} {:?}",
-                    e.error(),
-                    e.error_description(),
-                    serde_json::to_string(&e)
-                )),
+                oauth2::RequestTokenError::ServerResponse(e) => MoosyncError::String(e.to_string()),
                 oauth2::RequestTokenError::Request(_) => todo!(),
                 oauth2::RequestTokenError::Parse(_, _) => todo!(),
                 oauth2::RequestTokenError::Other(_) => todo!(),

@@ -17,10 +17,6 @@ You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/
 
 ## TODO
 
-- Provider suggestions
-- Spotify canvas
-- Logging
-- Playlist export
 - Auto updater
 - Sanitize extension response
 - System theme fetch

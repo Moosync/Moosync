@@ -1,5 +1,6 @@
 use std::cmp::min;
 
+use std::fmt::Write;
 use std::str::FromStr;
 use std::{path::PathBuf, vec};
 
@@ -1097,6 +1098,110 @@ impl Database {
         info!("Incremented playtime");
 
         Ok(())
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    pub fn export_playlist(&self, playlist_id: String) -> Result<String> {
+        let mut conn = self.pool.get().unwrap();
+
+        let binding = self.get_playlists(
+            QueryablePlaylist {
+                playlist_id: Some(playlist_id.clone()),
+                ..Default::default()
+            },
+            true,
+            &mut conn,
+        )?;
+        let playlist = binding.first();
+
+        if playlist.is_none() {
+            return Err("Playlist not found".into());
+        }
+
+        let playlist = playlist.unwrap();
+
+        let playlist_songs = self.get_songs_by_options(GetSongOptions {
+            playlist: Some(QueryablePlaylist {
+                playlist_id: Some(playlist_id),
+                ..Default::default()
+            }),
+            ..Default::default()
+        })?;
+
+        let mut ret = format!("#EXTM3U\n#PLAYLIST:{}\n", playlist.playlist_name);
+
+        for s in playlist_songs {
+            if let Some(path) = &s.song.path {
+                let duration = s.song.duration.unwrap_or(0f64);
+                let title = s.song.title.unwrap_or_default();
+                let album_info = s.album.as_ref().map_or(String::new(), |album| {
+                    format!("#EXTALB:{}", album.album_name.clone().unwrap_or_default())
+                });
+                let genre_info = if let Some(genre) = &s.genre {
+                    if !genre.is_empty() {
+                        format!(
+                            "#EXTGENRE:{}",
+                            genre
+                                .iter()
+                                .filter_map(|g| g.genre_name.clone())
+                                .collect::<Vec<String>>()
+                                .join(",")
+                        )
+                    } else {
+                        String::new()
+                    }
+                } else {
+                    String::new()
+                };
+                let cover_path = match s.song.song_cover_path_high {
+                    Some(cover) => format!("#EXTIMG:{}", cover),
+                    None => String::new(),
+                };
+                let song_info = format!("#MOOSINF:{}", s.song.type_);
+                let file_path = format!("file://{}", path);
+
+                write!(
+                    ret,
+                    "#EXTINF:{},{}\n{}\n{}\n{}\n{}\n{}\n",
+                    duration, title, album_info, genre_info, cover_path, song_info, file_path
+                )?;
+            } else if let Some(url) = &s.song.url {
+                let duration = s.song.duration.unwrap_or(0f64);
+                let title = s.song.title.unwrap_or_default();
+                let album_info = s.album.as_ref().map_or(String::new(), |album| {
+                    format!("#EXTALB:{}", album.album_name.clone().unwrap_or_default())
+                });
+                let genre_info = if let Some(genre) = &s.genre {
+                    if !genre.is_empty() {
+                        format!(
+                            "#EXTGENRE:{}",
+                            genre
+                                .iter()
+                                .filter_map(|g| g.genre_name.clone())
+                                .collect::<Vec<String>>()
+                                .join(",")
+                        )
+                    } else {
+                        String::new()
+                    }
+                } else {
+                    String::new()
+                };
+                let cover_path = match s.song.song_cover_path_high {
+                    Some(cover) => format!("#EXTIMG:{}", cover),
+                    None => String::new(),
+                };
+                let song_info = format!("#MOOSINF:{}", s.song.type_);
+
+                write!(
+                    ret,
+                    "#EXTINF:{},{}\n{}\n{}\n{}\n{}\n{}\n",
+                    duration, title, album_info, genre_info, cover_path, song_info, url
+                )?;
+            }
+        }
+
+        Ok(ret.replace("\n\n", "\n"))
     }
 }
 

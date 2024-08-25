@@ -43,7 +43,7 @@ use {
     db::{
         get_cache_state,
         {
-            add_to_playlist, create_playlist, get_db_state, get_entity_by_options,
+            add_to_playlist, create_playlist, export_playlist, get_db_state, get_entity_by_options,
             get_songs_by_options, increment_play_count, increment_play_time, insert_songs,
             remove_from_playlist, remove_playlist, remove_songs, search_all, update_album,
             update_artist, update_lyrics, update_playlist, update_songs,
@@ -110,6 +110,7 @@ pub fn run() {
             update_lyrics,
             increment_play_count,
             increment_play_time,
+            export_playlist,
             // Window
             is_maximized,
             has_frame,

@@ -9,7 +9,9 @@ use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::{PlaylistSortByColumns, UiStore};
 use crate::utils::common::fetch_infinite;
-use crate::utils::db_utils::{create_playlist, get_songs_by_option, remove_playlist};
+use crate::utils::db_utils::{
+    create_playlist, export_playlist, get_songs_by_option, remove_playlist,
+};
 use crate::utils::entities::get_playlist_sort_cx_items;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
@@ -65,6 +67,12 @@ impl PlaylistItemContextMenu {
             remove_playlist(playlist.clone());
         }
     }
+
+    fn export_playlist(&self) {
+        if let Some(playlist) = &self.playlist {
+            export_playlist(playlist.clone());
+        }
+    }
 }
 
 impl ContextMenuData<Self> for PlaylistItemContextMenu {
@@ -72,11 +80,18 @@ impl ContextMenuData<Self> for PlaylistItemContextMenu {
         if let Some(playlist) = &self.playlist {
             if let Some(library_item) = playlist.library_item {
                 if library_item {
-                    return vec![ContextMenuItemInner::new_with_handler(
-                        "Remove from library".into(),
-                        |_, cx| cx.remove_from_library(),
-                        None,
-                    )];
+                    return vec![
+                        ContextMenuItemInner::new_with_handler(
+                            "Remove from library".into(),
+                            |_, cx| cx.remove_from_library(),
+                            None,
+                        ),
+                        ContextMenuItemInner::new_with_handler(
+                            "Export playlist".into(),
+                            |_, cx| cx.export_playlist(),
+                            None,
+                        ),
+                    ];
                 }
             }
 

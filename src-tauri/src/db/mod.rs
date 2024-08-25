@@ -3,13 +3,32 @@ use std::fs;
 use database::{cache::CacheHolder, database::Database};
 use macros::generate_command;
 use serde_json::Value;
-use tauri::{App, Manager, State};
+use tauri::{App, AppHandle, Manager, State};
+use tracing::{info, trace};
+use types::errors::errors::Result;
 use types::{
     entities::{
         GetEntityOptions, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult,
     },
     songs::{GetSongOptions, QueryableSong, Song},
 };
+
+use crate::window::handler::WindowHandler;
+
+#[tracing::instrument(level = "trace", skip(app, db, window_handler))]
+#[tauri::command(async)]
+pub fn export_playlist(
+    app: AppHandle,
+    db: State<Database>,
+    window_handler: State<WindowHandler>,
+    id: String,
+) -> Result<()> {
+    info!("Exporting playlist");
+    let exported = db.export_playlist(id)?;
+    let selected_file = window_handler.open_save_file(app)?;
+    trace!("Exported playlist");
+    Ok(fs::write(selected_file, exported)?)
+}
 
 generate_command!(insert_songs, Database, Vec<Song>, songs: Vec<Song>);
 generate_command!(remove_songs, Database, (), songs: Vec<String>);

@@ -1,4 +1,5 @@
 use std::env;
+use std::path::PathBuf;
 
 use macros::{generate_command, generate_command_async};
 use open;
@@ -211,6 +212,17 @@ impl WindowHandler {
         }
 
         Ok(ret)
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    pub fn open_save_file(&self, app: AppHandle) -> Result<PathBuf> {
+        let res = app.dialog().file().blocking_save_file();
+        if let Some(res) = res {
+            if let FilePath::Path(path) = res {
+                return Ok(path.clone());
+            }
+        }
+        Err("No file selected".into())
     }
 }
 

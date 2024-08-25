@@ -378,3 +378,24 @@ pub fn remove_playlist(playlist: QueryablePlaylist) {
         }
     });
 }
+
+pub fn export_playlist(playlist: QueryablePlaylist) {
+    spawn_local(async move {
+        #[derive(Serialize)]
+        struct ExportPlaylistArgs {
+            id: String,
+        }
+
+        let res = invoke(
+            "export_playlist",
+            serde_wasm_bindgen::to_value(&ExportPlaylistArgs {
+                id: playlist.playlist_id.unwrap(),
+            })
+            .unwrap(),
+        )
+        .await;
+        if let Err(res) = res {
+            console_log!("Failed to export playlist: {:?}", res);
+        }
+    });
+}

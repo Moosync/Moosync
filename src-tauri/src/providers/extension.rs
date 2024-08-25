@@ -193,7 +193,7 @@ impl GenericProvider for ExtensionProvider {
         ))
     }
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn get_playback_url(&self, song: Song, player: String) -> Result<String> {
+    async fn get_playback_url(&self, song: Song, _player: String) -> Result<String> {
         if !self
             .provides
             .contains(&ExtensionProviderScope::PlaybackDetails)

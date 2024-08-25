@@ -30,6 +30,9 @@ url = "2.5.2"
 [target.'cfg(target_os = "linux")'.dependencies]
 webkit2gtk = "2.0.1"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc = "0.2.7"
+
 [dependencies.database]
 path = "./database"
 features = []

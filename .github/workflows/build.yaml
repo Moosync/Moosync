@@ -53,6 +53,8 @@ jobs:
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
 
       - name: install extensions host
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.

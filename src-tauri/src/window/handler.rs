@@ -73,7 +73,7 @@ impl WindowHandler {
 
                 #[cfg(target_os = "macos")]
                 unsafe {
-                    let () = msg_send![webview.inner(), setPageZoom: scale_factor];
+                    let () = objc::msg_send![webview.inner(), setPageZoom: scale_factor];
                 }
             })?;
         }

@@ -46,6 +46,11 @@ jobs:
           # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
+      - uses: jetli/trunk-action@v0.5.0
+        with:
+          # Optional version of trunk to install(eg. 'v0.19.1', 'latest')
+          version: "latest"
+
       - name: Rust cache
         uses: swatinem/rust-cache@v2
 

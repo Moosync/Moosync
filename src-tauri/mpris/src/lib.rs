@@ -46,17 +46,6 @@ impl MprisHolder {
             event_tx.send(event).unwrap();
         })?;
 
-        #[cfg(target_os = "windows")]
-        thread::spawn(|| {
-            loop {
-                std::thread::sleep(std::time::Duration::from_millis(100));
-
-                // this must be run repeatedly by your program to ensure
-                // the Windows event queue is processed by your application
-                windows::pump_event_queue();
-            }
-        });
-
         Ok(MprisHolder {
             controls: Mutex::new(controls),
             event_rx: Arc::new(Mutex::new(event_rx)),

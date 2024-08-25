@@ -26,11 +26,13 @@ impl MprisHolder {
 
         #[cfg(target_os = "windows")]
         let hwnd = {
-            use windows::Win32::UI::Input::KeyboardAndMouse::GetActiveWindow;
+            use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
-            let console_window = unsafe { GetActiveWindow() };
-            let hwnd = console_window as *mut c_void;
-            Some(hwnd)
+            let handle = match window.raw_window_handle() {
+                RawWindowHandle::Win32(h) => h,
+                _ => unreachable!(),
+            };
+            Some(handle.hwnd)
         };
 
         let config = PlatformConfig {

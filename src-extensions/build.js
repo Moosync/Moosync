@@ -3,6 +3,9 @@ const fs = require("node:fs");
 const which = require("which");
 const { exec } = require("node:child_process");
 
+const overrideTarget = process.argv[2]?.split(" ")[1];
+console.log(overrideTarget);
+
 const nodePath = which
   .sync("node", {
     all: true,
@@ -29,6 +32,8 @@ fs.copyFile(nodePath, "./server", (err) => {
           console.error("error", err);
           return;
         }
+
+        stdout = overrideTarget ? overrideTarget : stdout;
 
         fs.mkdirSync("../src-tauri/binaries", {
           recursive: true,

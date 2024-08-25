@@ -31,7 +31,7 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf alsa-tools
 
       - name: setup node
         uses: actions/setup-node@v4
@@ -58,7 +58,7 @@ jobs:
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
         run: |
           yarn --cwd ./src-extensions install
-          yarn --cwd ./src-extensions build
+          yarn --cwd ./src-extensions build ${{ matrix.args }}
 
       - name: Build frontend
         run: |

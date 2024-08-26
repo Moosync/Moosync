@@ -197,6 +197,7 @@
       },
       "audioSettings_tooltip": "相关的音频回放设置",
       "gapless_skip": "在结束前跳过歌曲 (秒)",
+      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
       "invidiousUrlUnsupported": "此URL不支持邀请API。",
       "invidious_tooltip": "提示：要使用 Invidious 的服务而不是 YouTube",
       "restartApp": "重启Moosync",

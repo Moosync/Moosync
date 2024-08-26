@@ -197,6 +197,7 @@
       },
       "audioSettings_tooltip": "Ajustes relacionados con la reproducción de audio",
       "gapless_skip": "Saltar canción antes del final (segundos)",
+      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
       "invidiousUrlUnsupported": "Esta url no soporta API Invidious",
       "invidious_tooltip": "Instancia invidiosa a usar en lugar de youtube",
       "restartApp": "Reiniciar Moosync",

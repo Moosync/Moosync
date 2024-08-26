@@ -197,6 +197,7 @@
       },
       "audioSettings_tooltip": "Nastavení související přehrávání zvuku",
       "gapless_skip": "Skip song before end (seconds)",
+      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
       "invidiousUrlUnsupported": "Tato url nepodporuje Invidious API",
       "invidious_tooltip": "Invidious instance k použití místo youtube",
       "restartApp": "Restartovat Moosync",

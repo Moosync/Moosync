@@ -197,6 +197,7 @@
       },
       "audioSettings_tooltip": "音声再生の設定",
       "gapless_skip": "曲が終わる前にスキップ(秒)",
+      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
       "invidiousUrlUnsupported": "このURLはInvidious APIに対応していません",
       "invidious_tooltip": "YouTubeの代わりに使用する Invidious インスタンス",
       "restartApp": "Moosyncを再起動",

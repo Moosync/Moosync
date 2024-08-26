@@ -197,6 +197,7 @@
       },
       "audioSettings_tooltip": "Inställningar som är relaterade ljud uppspelning",
       "gapless_skip": "Skip song before end (seconds)",
+      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
       "invidiousUrlUnsupported": "Denna url stöder inte Invidious API",
       "invidious_tooltip": "Olivlig instans att använda istället för youtube",
       "restartApp": "Starta om Moosync",

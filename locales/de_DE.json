@@ -197,6 +197,7 @@
       },
       "audioSettings_tooltip": "Zugehörige Audio-Wiedergabe",
       "gapless_skip": "Titel vor Ende überspringen (Sekunden)",
+      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
       "invidiousUrlUnsupported": "Diese URL unterstützt keine Invidious API",
       "invidious_tooltip": "Unheilvolle Instanz anstelle von youtube",
       "restartApp": "Moosync neu starten",

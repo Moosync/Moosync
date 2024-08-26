@@ -4,34 +4,13 @@ edition = "2021"
 version = "0.1.0"
 
 [dependencies]
-env_logger = "0.11.5"
 log = "0.4.22"
-serde_json = "1.0"
+serde_json = { default-features = false, version = "1.0" }
 diesel_logger = { git = "https://github.com/Ovenoboyo/diesel-logger.git" }
-tracing = { version = "0.1.40", features = ["attributes"] }
-
-
-[dependencies.diesel]
-version = "2.2.2"
-features = ["sqlite", "r2d2", "serde_json"]
-
-[dependencies.diesel_migrations]
-version = "2.2.0"
-features = ["sqlite"]
-
-[dependencies.macros]
-path = "../macros"
-features = []
-
-[dependencies.serde]
-version = "1.0"
-features = ["derive", "serde_derive"]
-default-features = false
-
-[dependencies.types]
-path = "../types"
-features = []
-
-[dependencies.uuid]
-version = "1.10.0"
-features = ["std", "v4"]
+tracing = { version = "0.1.40", default-features = false }
+diesel = { version = "2.2.2", default-features = false }
+diesel_migrations = { version = "2.2.0", default-features = false }
+macros = { path = "../macros", features = [] }
+serde = { version = "1.0", default-features = false }
+types = { path = "../types", features = [] }
+uuid = { version = "1.10.0", default-features = false }

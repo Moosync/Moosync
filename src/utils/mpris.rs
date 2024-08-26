@@ -4,10 +4,7 @@ use wasm_bindgen_futures::spawn_local;
 
 use crate::{
     console_log,
-    utils::{
-        common::invoke,
-        entities::get_artist_string,
-    },
+    utils::{common::invoke, entities::get_artist_string},
 };
 
 pub fn set_metadata(song: &Song) {

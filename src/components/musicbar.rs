@@ -14,7 +14,7 @@ use crate::icons::prev_track_icon::PrevTrackIcon;
 use crate::icons::repeat_icon::RepeatIcon;
 use crate::icons::shuffle_icon::ShuffleIcon;
 use crate::icons::volume_icon::VolumeIcon;
-use crate::store::player_store::{PlayerStore};
+use crate::store::player_store::PlayerStore;
 use crate::utils::common::{format_duration, get_low_img};
 
 #[component]

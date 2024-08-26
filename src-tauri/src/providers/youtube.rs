@@ -6,10 +6,7 @@ use google_youtube3::hyper::client::HttpConnector;
 use google_youtube3::hyper_rustls::HttpsConnector;
 use google_youtube3::{hyper, hyper_rustls, YouTube};
 use oauth2::basic::BasicClient;
-use oauth2::{
-    AuthUrl, ClientId, ClientSecret, CsrfToken, PkceCodeVerifier, RedirectUrl, TokenResponse,
-    TokenUrl,
-};
+use oauth2::{AuthUrl, ClientId, ClientSecret, CsrfToken, PkceCodeVerifier, RedirectUrl, TokenUrl};
 use preferences::preferences::PreferenceConfig;
 use regex::Regex;
 use serde::{Deserialize, Serialize};

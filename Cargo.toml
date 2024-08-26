@@ -16,25 +16,16 @@ wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
-stylers = "0.3.2"
 types = { path = "src-tauri/types", default-features = false, features = [
     "ui",
 ] }
-uuid = "1.10.0"
 chrono = "0.4.38"
 leptos-use = "0.12.0"
-async-channel = "2.3.1"
 tokio = { version = "1.39.3", features = ["rt", "sync"] }
 serde_json = "1.0.125"
 leptos_router = { version = "0.6.14", features = ["csr"] }
 leptos_virtual_scroller = { git = "https://github.com/Ovenoboyo/leptos_virtual_scroller" }
 leptos_context_menu = { git = "https://github.com/Ovenoboyo/leptos_context_menu" }
-
-oauth2 = "4.4.2"
-async-trait = "0.1.81"
-url = "2.5.2"
-rspotify = "0.13.2"
-web-time = "1.1.0"
 futures = "0.3.30"
 web-sys = { version = "=0.3.70", features = [
     "Window",
@@ -50,8 +41,6 @@ pref_gen = { path = "src/pref_gen" }
 rand = "0.8.5"
 dyn-clone = "1.0.17"
 itertools = "0.13.0"
-num-traits = "0.2.19"
-approx = "0.5.1"
 
 [workspace]
 resolver = "2"

@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use chrono::{DateTime, TimeDelta};
 use futures::{channel::mpsc::UnboundedSender, SinkExt, StreamExt};
-use oauth2::{CsrfToken, PkceCodeVerifier, TokenResponse};
+use oauth2::{CsrfToken, PkceCodeVerifier};
 use preferences::preferences::PreferenceConfig;
 use regex::Regex;
 use rspotify::{

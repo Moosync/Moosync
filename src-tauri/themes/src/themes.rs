@@ -4,7 +4,7 @@ use fs_extra::dir::CopyOptions;
 use regex::Regex;
 use types::{
     errors::errors::{MoosyncError, Result},
-    themes::{ThemeDetails, ThemeItem},
+    themes::ThemeDetails,
 };
 
 #[derive(Debug)]

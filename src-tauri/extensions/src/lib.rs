@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     env,
     fs::{self, File},
-    io::{BufRead, Write},
+    io::Write,
     path::PathBuf,
     process::Command,
     str::FromStr,

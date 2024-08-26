@@ -18,7 +18,7 @@ use uuid::Uuid;
 use image::ColorType;
 use types::errors::errors::Result;
 
-use fast_image_resize::{self as fr, IntoImageView, ResizeOptions};
+use fast_image_resize::{self as fr, ResizeOptions};
 
 use crate::types::FileList;
 

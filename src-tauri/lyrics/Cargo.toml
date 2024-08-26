@@ -6,12 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-regex = "1.10.6"
-reqwest = "0.12.5"
-scraper = "0.20.0"
-serde = "1.0.208"
-serde_json = "1.0.125"
-tokio = "1.39.3"
-types = { path = "../types" }
-librespot = { path = "../librespot" }
-tracing = { version = "0.1.40", features = ["attributes"] }
+regex = { default-features = false, version = "1.10.6" }
+reqwest = { default-features = false, version = "0.12.5" }
+serde_json = { default-features = false, version = "1.0.125" }
+types = { path = "../types" , default-features = false }
+librespot = { path = "../librespot" , default-features = false }
+tracing = { version = "0.1.40", default-features = false }

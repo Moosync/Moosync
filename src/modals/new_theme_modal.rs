@@ -1,6 +1,5 @@
 use crate::{
     components::color_picker::ColorPicker,
-    console_log,
     icons::{
         folder_icon::FolderIcon, import_theme_icon::ImportThemeIcon,
         new_theme_button_icon::NewThemeButtonIcon, theme_view_icon::ThemeViewIcon,
@@ -10,7 +9,7 @@ use crate::{
     utils::prefs::{import_theme, open_file_browser_single, save_theme},
 };
 use leptos::{
-    component, create_effect, create_memo, create_node_ref, create_read_slice, create_rw_signal,
+    component, create_effect, create_node_ref, create_read_slice, create_rw_signal,
     event_target_value, expect_context, view, CollectView, IntoView, RwSignal, SignalGet,
     SignalGetUntracked, SignalSet, SignalUpdate,
 };
@@ -19,7 +18,6 @@ use types::{
     themes::{ThemeDetails, ThemeItem},
     window::DialogFilter,
 };
-use web_sys::MouseEvent;
 
 use crate::modals::common::GenericModal;
 

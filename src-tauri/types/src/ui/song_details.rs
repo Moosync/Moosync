@@ -1,6 +1,5 @@
 use std::rc::Rc;
 
-
 #[derive(Default, Clone)]
 pub struct SongDetailIcons {
     pub play: Option<Rc<Box<dyn Fn()>>>,

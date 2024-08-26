@@ -20,6 +20,7 @@ use jsonschema::ValidationError;
 #[cfg(feature = "core")]
 use rspotify::{model::IdError, ClientError};
 
+#[cfg(feature = "core")]
 use serde_json::Value;
 #[cfg(feature = "ui")]
 use wasm_bindgen::JsValue;
@@ -147,7 +148,7 @@ impl<'a> From<Box<dyn Iterator<Item = ValidationError<'a>> + Sync + Send + 'a>> 
     }
 }
 
-#[cfg(feature = "ui")]
+#[cfg(feature = "core")]
 impl From<JsValue> for MoosyncError {
     #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: JsValue) -> Self {

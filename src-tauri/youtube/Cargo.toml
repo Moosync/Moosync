@@ -6,13 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rusty_ytdl = "0.7.4"
+rusty_ytdl = { default-features = false, version = "0.7.4", features = [
+    "search",
+] }
 types = { path = "../types" }
-serde_json = "1.0.125"
-reqwest = { version = "0.12.5", features = ["json"] }
+serde_json = { default-features = false, version = "1.0.125" }
 tokio = "1.39.3"
-serde_derive = "1.0.208"
-serde = "1.0.208"
-regex = "1.10.6"
-url = "2.5.2"
-tracing = { version = "0.1.40", features = ["attributes"] }
+serde = { default-features = false, version = "1.0.208" }
+tracing = { version = "0.1.40", default-features = false }

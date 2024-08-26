@@ -11,7 +11,7 @@ use database::cache::CacheHolder;
 use macros::{generate_command_async, generate_command_async_cached};
 use tauri::{
     async_runtime::{self, block_on},
-    AppHandle, Emitter, Manager, State,
+    AppHandle, Emitter, State,
 };
 use types::{
     entities::{QueryablePlaylist, SearchResult},

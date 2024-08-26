@@ -1,0 +1,6 @@
+commit_message: "[ci skip]"
+
+preserve_hierarchy: true
+files:
+  - source: /locales/en_US.json
+    translation: /locales/%locale_with_underscore%.json

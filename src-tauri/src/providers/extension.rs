@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use futures::{channel::mpsc::UnboundedSender, SinkExt};
 use serde_json::Value;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 use types::{
     entities::{QueryablePlaylist, SearchResult},
     errors::errors::Result,

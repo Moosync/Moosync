@@ -7,131 +7,56 @@ description = "A Tauri App"
 
 [dependencies]
 async-trait = "0.1.81"
-chrono = "0.4.38"
-ctrlc = "3.4.4"
-env_logger = "0.11.5"
-flame = "0.2.2"
-flamer = "0.5.0"
-futures = "0.3.30"
-iso8601 = "0.6.1"
-log = "0.4.22"
+chrono = { default-features = false, version = "0.4.38" }
+futures = { default-features = false, version = "0.3.30" }
+iso8601 = { default-features = false, version = "0.6.1" }
 open = "5.3.0"
-regex = "1.10.6"
-rolling-file = "0.2.0"
-rspotify = "0.13.2"
-serde_json = "1.0"
-thiserror = "1.0.63"
-tracing = { version = "0.1.40", features = ["attributes"] }
+rspotify = { default-features = false, version = "0.13.2" }
+serde_json = { default-features = false, version = "1.0" }
 tracing-appender = "0.2.3"
-tracing-flame = "0.2.0"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 url = "2.5.2"
-
-[target.'cfg(target_os = "linux")'.dependencies]
-webkit2gtk = "2.0.1"
-
-[target.'cfg(target_os = "macos")'.dependencies]
-objc = "0.2.7"
-
-[dependencies.database]
-path = "./database"
-features = []
-
-[dependencies.extensions]
-path = "./extensions"
-features = []
-
-[dependencies.file_scanner]
-path = "./file_scanner"
-features = []
-
-[dependencies.google-youtube3]
-version = "5.0.5"
-features = []
-default-features = false
-
-[dependencies.librespot]
-path = "./librespot"
-features = []
-default-features = false
-
-[dependencies.lyrics]
-path = "./lyrics"
-features = []
-
-[dependencies.macros]
-path = "./macros"
-features = []
-
-[dependencies.mpris]
-path = "./mpris"
-features = []
-
-[dependencies.oauth2]
-version = "4.4.2"
-features = ["reqwest"]
-default-features = false
-
-[dependencies.preferences]
-path = "./preferences"
-features = []
-
-[dependencies.reqwest]
-version = "0.12.5"
-features = ["http2", "charset", "macos-system-configuration"]
-default-features = false
-
-[dependencies.serde]
-version = "1.0"
-features = ["derive"]
-
-[dependencies.tauri]
-version = "2.0.0-beta.24"
-features = [
-    "protocol-asset",
-    "objc-exception",
-    "http-range",
-    "compression",
+database = { path = "./database" }
+extensions = { path = "./extensions" }
+file_scanner = { path = "./file_scanner" }
+librespot = { path = "./librespot" }
+lyrics = { path = "./lyrics" }
+macros = { path = "./macros" }
+mpris = { path = "./mpris" }
+preferences = { path = "./preferences" }
+themes = { path = "./themes" }
+types = { path = "./types", default-features = false }
+youtube = { path = "./youtube" }
+google-youtube3 = "5.0.5"
+oauth2 = { default-features = false, version = "4.4.2", features = ["reqwest"] }
+regex = { default-features = false, version = "1.10.6" }
+reqwest = { default-features = false, version = "0.12.5" }
+serde = { default-features = false, version = "1.0" }
+tauri = { version = "2.0.0-beta.24", features = [
     "common-controls-v6",
-    "tauri-runtime-wry",
     "wry",
-]
-default-features = false
-
-[dependencies.tauri-plugin-deep-link]
-git = "https://github.com/tauri-apps/plugins-workspace"
-branch = "v2"
-features = []
-
-[dependencies.tauri-plugin-dialog]
-git = "https://github.com/tauri-apps/plugins-workspace"
-branch = "v2"
-features = []
-
-[dependencies.tauri-plugin-single-instance]
-git = "https://github.com/tauri-apps/plugins-workspace"
-branch = "v2"
-features = []
-
-[dependencies.themes]
-path = "./themes"
-features = []
-
-[dependencies.types]
-path = "./types"
-features = []
-
-[dependencies.uuid]
-version = "1.10.0"
-features = ["std", "v4"]
-
-[dependencies.youtube]
-path = "./youtube"
-features = []
+    "protocol-asset",
+], default-features = false }
+tauri-plugin-deep-link = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
+tauri-plugin-dialog = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
+tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
+tracing = { default-features = false, version = "0.1.40" }
+tracing-subscriber = { features = [
+    "ansi",
+    "env-filter",
+], default-features = false, version = "0.3.18" }
 
 [build-dependencies.tauri-build]
 version = "2.0.0-beta.19"
 features = []
+
+[target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
+tauri-plugin-updater = "2.0.0-rc.1"
+
+[target."cfg(target_os = \"linux\")".dependencies]
+webkit2gtk = "2.0.1"
+
+[target."cfg(target_os = \"macos\")".dependencies]
+objc = "0.2.7"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
@@ -148,6 +73,3 @@ lto = false
 incremental = true
 
 [profile.dev.package]
-
-[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-tauri-plugin-updater = "2.0.0-rc.1"

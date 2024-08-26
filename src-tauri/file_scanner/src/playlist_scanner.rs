@@ -130,24 +130,22 @@ impl<'a> PlaylistScanner<'a> {
 
                 if song.type_ == SongType::LOCAL {
                     let song_path = PathBuf::from_str(line.as_str());
-                    if let Ok(mut path_parsed) = song_path {
-                        if path_parsed.is_relative() {
-                            path_parsed =
-                                path.parent().unwrap().join(path_parsed).canonicalize()?;
-                        }
-
-                        if !path_parsed.exists() {
-                            artists = None;
-                            duration = None;
-                            title = None;
-                            song_type = None;
-                            continue;
-                        }
-
-                        let metadata = fs::metadata(&path_parsed)?;
-                        song.size = Some(metadata.len() as f64);
-                        song.path = Some(path_parsed.to_string_lossy().to_string());
+                    let Ok(mut path_parsed) = song_path;
+                    if path_parsed.is_relative() {
+                        path_parsed = path.parent().unwrap().join(path_parsed).canonicalize()?;
                     }
+
+                    if !path_parsed.exists() {
+                        artists = None;
+                        duration = None;
+                        title = None;
+                        song_type = None;
+                        continue;
+                    }
+
+                    let metadata = fs::metadata(&path_parsed)?;
+                    song.size = Some(metadata.len() as f64);
+                    song.path = Some(path_parsed.to_string_lossy().to_string());
 
                     if song.path.is_none() {
                         song.path = Some(line);

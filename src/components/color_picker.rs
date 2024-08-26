@@ -3,8 +3,6 @@
 use leptos::{ev::*, html::*, logging::log, *};
 use std::{fmt::Display, str::FromStr};
 
-use crate::console_log;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ColorSpaceInfo {
     pub labels: (&'static str, &'static str, &'static str),
@@ -23,31 +21,6 @@ pub enum ColorSpace {
 }
 
 impl ColorSpace {
-    pub fn info(&self) -> ColorSpaceInfo {
-        match self {
-            ColorSpace::Rgb => ColorSpaceInfo {
-                labels: ("R", "G", "B"),
-                units: (None, None, None),
-            },
-            ColorSpace::Hsl => ColorSpaceInfo {
-                labels: ("H", "S", "L"),
-                units: (Some("°"), Some("%"), Some("%")),
-            },
-            ColorSpace::Hsv => ColorSpaceInfo {
-                labels: ("H", "S", "V"),
-                units: (Some("°"), Some("%"), Some("%")),
-            },
-        }
-    }
-
-    pub const fn color_component_maxes(&self) -> (f32, f32, f32) {
-        match self {
-            ColorSpace::Rgb => Rgb::COMPONENT_MAXES,
-            ColorSpace::Hsl => Hsl::COMPONENT_MAXES,
-            ColorSpace::Hsv => Hsv::COMPONENT_MAXES,
-        }
-    }
-
     pub fn clamp_color_components(&self, components: (f32, f32, f32)) -> (f32, f32, f32) {
         let clamp = match self {
             ColorSpace::Rgb => Rgb::clamp_components,
@@ -56,16 +29,6 @@ impl ColorSpace {
         };
 
         clamp(components)
-    }
-
-    fn components_to_floats(&self, components: (f32, f32, f32)) -> (f32, f32, f32) {
-        let convert = match self {
-            ColorSpace::Rgb => Rgb::components_to_floats,
-            ColorSpace::Hsl => Hsl::components_to_floats,
-            ColorSpace::Hsv => Hsv::components_to_floats,
-        };
-
-        convert(components)
     }
 
     fn floats_to_components(&self, floats: (f32, f32, f32)) -> (f32, f32, f32) {
@@ -145,44 +108,6 @@ impl DynamicColor {
         C::from_components(self.set_color_space(C::COLOR_SPACE).components)
     }
 
-    pub fn components(&self) -> (f32, f32, f32) {
-        self.components
-    }
-
-    pub fn set_components(mut self, components: (f32, f32, f32)) -> Self {
-        self.components = self.color_space.clamp_color_components(components);
-        self
-    }
-
-    pub fn set_component_0(mut self, component: f32) -> Self {
-        self.components.0 = component;
-        self
-    }
-    pub fn set_component_1(mut self, component: f32) -> Self {
-        self.components.1 = component;
-        self
-    }
-    pub fn set_component_2(mut self, component: f32) -> Self {
-        self.components.2 = component;
-        self
-    }
-
-    pub fn set_float_0(self, float: f32) -> Self {
-        let mut floats = self.as_floats();
-        floats.0 = float;
-        self.set_floats(floats)
-    }
-    pub fn set_float_1(self, float: f32) -> Self {
-        let mut floats = self.as_floats();
-        floats.1 = float;
-        self.set_floats(floats)
-    }
-    pub fn set_float_2(self, float: f32) -> Self {
-        let mut floats = self.as_floats();
-        floats.2 = float;
-        self.set_floats(floats)
-    }
-
     pub fn color_space(&self) -> ColorSpace {
         self.color_space
     }
@@ -194,15 +119,6 @@ impl DynamicColor {
 
         self.color_space = color_space;
 
-        self
-    }
-
-    pub fn as_floats(&self) -> (f32, f32, f32) {
-        self.color_space.components_to_floats(self.components)
-    }
-
-    pub fn set_floats(mut self, floats: (f32, f32, f32)) -> Self {
-        self.components = self.color_space.floats_to_components(floats);
         self
     }
 }

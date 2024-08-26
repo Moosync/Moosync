@@ -14,7 +14,7 @@ where
     let target = create_node_ref::<Div>();
     let modal_store = expect_context::<RwSignal<modal_store::ModalStore>>();
 
-    on_click_outside(target, move |_| {
+    let _ = on_click_outside(target, move |_| {
         modal_store.update(|s| s.clear_active_modal());
     });
 

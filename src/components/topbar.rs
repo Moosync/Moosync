@@ -3,8 +3,8 @@ use std::rc::Rc;
 use crate::icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon};
 use leptos::{
     component, create_effect, create_node_ref, create_rw_signal, create_write_slice, ev::Event,
-    event_target_value, expect_context, html::Svg, view, CollectView, IntoView, RwSignal,
-    SignalGet, SignalGetUntracked, SignalSet, SignalUpdate,
+    event_target_value, expect_context, view, CollectView, IntoView, RwSignal, SignalGet,
+    SignalGetUntracked, SignalSet, SignalUpdate,
 };
 use leptos_router::use_navigate;
 use leptos_use::on_click_outside;

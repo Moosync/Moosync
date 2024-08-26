@@ -6,11 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-souvlaki = { version = "0.7.3", default-features = false, features = [
-    "use_zbus",
-] }
+souvlaki = { version = "0.7.3", default-features = false }
 types = { path = "../types" }
-tracing = { version = "0.1.40", features = ["attributes"] }
+tracing = { version = "0.1.40", default-features = false }
 
 [target.'cfg(target_os = "windows")'.dependencies.windows]
 version = "0.44"

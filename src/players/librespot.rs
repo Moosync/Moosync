@@ -124,7 +124,7 @@ impl LibrespotPlayer {
 }
 
 impl GenericPlayer for LibrespotPlayer {
-    fn initialize(&self, element: leptos::NodeRef<leptos::html::Div>) {
+    fn initialize(&self, _: leptos::NodeRef<leptos::html::Div>) {
         spawn_local(async move {
             let enabled: Vec<CheckboxPreference> =
                 load_selective_async("spotify.enable".into()).await.unwrap();

@@ -6,7 +6,6 @@ use std::{
     },
     time::Duration,
 };
-use tracing::info;
 
 use souvlaki::{MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 use types::{errors::errors::Result, mpris::MprisPlayerDetails, ui::player_details::PlayerState};

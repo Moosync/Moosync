@@ -197,6 +197,7 @@
       },
       "audioSettings_tooltip": "الإعدادات ذات الصلة بتشغيل الصوت",
       "gapless_skip": "Skip song before end (seconds)",
+      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
       "invidiousUrlUnsupported": "عنوان URL هذا لا يدعم API المدعو",
       "invidious_tooltip": "مثال دعوي لاستخدام بدلا من يوتيوب",
       "restartApp": "إعادة تشغيل موسينك",

@@ -197,6 +197,7 @@
       },
       "audioSettings_tooltip": "Paramètres qui sont liés à la lecture audio",
       "gapless_skip": "Skip song before end (seconds)",
+      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
       "invidiousUrlUnsupported": "Cette url ne supporte pas l'API Invidious",
       "invidious_tooltip": "Instance insensée à utiliser à la place de youtube",
       "restartApp": "Redémarrer Moosync",

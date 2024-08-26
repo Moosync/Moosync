@@ -1,9 +1,10 @@
 use std::rc::Rc;
 
 use crate::{
-    components::provider_icon::ProviderIcon, icons::play_hover_icon::PlayHoverIcon,
+    components::provider_icon::ProviderIcon,
+    icons::{play_hover_icon::PlayHoverIcon, song_default_icon::SongDefaultIcon},
 };
-use leptos::{component, view, IntoView, SignalGet};
+use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
 use leptos_router::A;
 use leptos_virtual_scroller::VirtualGridScroller;
 
@@ -22,6 +23,8 @@ pub fn CardItem<T>(
     #[prop(optional, default = false)] songs_view: bool,
     #[prop(optional)] on_click: Option<Rc<Box<dyn Fn()>>>,
 ) -> impl IntoView {
+    let show_default_icon = create_rw_signal(item.cover.is_none());
+
     view! {
         <div class="card mb-2 card-grow" style="width: 200px;">
             <div class="card-img-top">
@@ -59,7 +62,25 @@ pub fn CardItem<T>(
                                 view! {}.into_view()
                             }}
                         </div>
-                        <img src=item.cover class="img-fluid w-100 h-100" />
+                        {move || {
+                            if show_default_icon.get() {
+                                view! {
+                                    <SongDefaultIcon class="rounded-corners img-fluid w-100 h-100"
+                                        .into() />
+                                }
+                                    .into_view()
+                            } else {
+                                view! {
+                                    <img
+                                        src=item.cover.clone()
+                                        class="rounded-corners img-fluid w-100 h-100"
+                                        on:error=move |_| show_default_icon.set(true)
+                                    />
+                                }
+                                    .into_view()
+                            }
+                        }}
+
                     </div>
                 </div>
             </div>

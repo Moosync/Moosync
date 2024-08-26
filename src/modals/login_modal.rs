@@ -95,7 +95,7 @@ pub fn LoginModal(
                                     <div class="row">
                                         <div class="col">
                                             <input
-                                                class="ext-input mt-3"
+                                                class="login-input mt-3"
                                                 placeholder="Code"
                                                 on:input=move |ev| code.set(event_target_value(&ev))
                                             />

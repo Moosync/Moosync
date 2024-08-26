@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use leptos::{
-    component, create_effect, create_rw_signal, event_target_value, expect_context,
-    spawn_local, view, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
+    component, create_effect, create_rw_signal, event_target_value, expect_context, spawn_local,
+    view, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
 };
 use types::entities::QueryablePlaylist;
 
@@ -99,7 +99,7 @@ pub fn NewPlaylistModal() -> impl IntoView {
                                             class="col-auto d-flex playlist-modal-item-container w-100"
                                             cols="auto"
                                         >
-                                            <div class="row  w-100">
+                                            <div class="row w-100">
                                                 <div class="col d-flex justify-content-center w-100">
                                                     <div class="item-icon">
                                                         <NewPlaylistIcon />

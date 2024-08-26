@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct ThemeItem {
     pub primary: String,
     pub secondary: String,
@@ -23,4 +23,35 @@ pub struct ThemeDetails {
     pub name: String,
     pub author: Option<String>,
     pub theme: ThemeItem,
+}
+
+impl ThemeDetails {
+    pub fn new() -> Self {
+        Self {
+            name: "New theme".into(),
+            id: uuid::Uuid::new_v4().to_string(),
+            ..Default::default()
+        }
+    }
+}
+
+impl Default for ThemeDetails {
+    fn default() -> Self {
+        Self {
+            id: "default".into(),
+            name: "Default".into(),
+            author: Some("Moosync".into()),
+            theme: ThemeItem {
+                primary: "#212121".into(),
+                secondary: "#282828".into(),
+                tertiary: "#151515".into(),
+                text_primary: "#ffffff".into(),
+                text_secondary: "#565656".into(),
+                text_inverse: "#000000".into(),
+                accent: "#65CB88".into(),
+                divider: "rgba(79, 79, 79, 0.67)".into(),
+                custom_css: None,
+            },
+        }
+    }
 }

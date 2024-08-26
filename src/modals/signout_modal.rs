@@ -1,8 +1,6 @@
 use std::rc::Rc;
 
-use leptos::{
-    component, expect_context, spawn_local, view, IntoView, RwSignal, SignalUpdate,
-};
+use leptos::{component, expect_context, spawn_local, view, IntoView, RwSignal, SignalUpdate};
 
 use crate::{
     modals::common::GenericModal,
@@ -35,7 +33,7 @@ pub fn SignoutModal(#[prop()] key: String, account_id: String, name: String) -> 
                     <div class="col">
                         <h4>
                             Are you sure you want to <span class="keyword">log out from</span>
-                            <span class="item">{name}</span>?
+                            <span class="logout-item">{name}</span>?
                         </h4>
                         <h6 class="mt-3">Press Confirm if you are sure</h6>
                     </div>

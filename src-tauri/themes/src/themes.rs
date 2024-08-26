@@ -4,7 +4,7 @@ use fs_extra::dir::CopyOptions;
 use regex::Regex;
 use types::{
     errors::errors::{MoosyncError, Result},
-    themes::ThemeDetails,
+    themes::{ThemeDetails, ThemeItem},
 };
 
 #[derive(Debug)]
@@ -44,6 +44,9 @@ impl ThemeHolder {
 
     #[tracing::instrument(level = "trace", skip(self, id))]
     pub fn load_theme(&self, id: String) -> Result<ThemeDetails> {
+        if id == "default" {
+            return Ok(ThemeDetails::default());
+        }
         let theme_config = self.theme_dir.join(id.clone()).join("config.json");
         if theme_config.exists() {
             let data = fs::read_to_string(theme_config)?;
@@ -58,6 +61,7 @@ impl ThemeHolder {
         let theme_dir = self.theme_dir.clone();
         let entries = fs::read_dir(theme_dir)?;
         let mut ret = HashMap::new();
+        ret.insert("default".into(), ThemeDetails::default());
         for theme_dir in entries.flatten() {
             if theme_dir.path().is_dir() {
                 let id = theme_dir.file_name().to_str().unwrap().to_string();

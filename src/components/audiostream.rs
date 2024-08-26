@@ -290,15 +290,18 @@ impl PlayerHolder {
                 types::ui::player_details::RepeatModes::Once => {
                     if !store.player_details.has_repeated {
                         store.force_seek_percent(0f64);
+                        store.set_state(PlayerState::Playing);
                         store.player_details.has_repeated = true;
                     } else {
                         store.player_details.has_repeated = false;
                         store.next_song();
+                        store.set_state(PlayerState::Playing);
                     }
                 }
                 types::ui::player_details::RepeatModes::Loop => {
                     console_log!("repeating now");
                     store.force_seek_percent(0f64);
+                    store.set_state(PlayerState::Playing);
                 }
             }
         });

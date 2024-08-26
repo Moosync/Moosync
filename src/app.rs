@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use crate::{
-    components::prefs::static_components::SettingRoutes,
+    components::{color_picker::ColorPicker, prefs::static_components::SettingRoutes},
     console_log,
     pages::explore::Explore,
     players::librespot::LibrespotPlayer,

@@ -1,5 +1,6 @@
 pub mod audiostream;
 pub mod cardview;
+pub mod color_picker;
 pub mod low_img;
 pub mod musicbar;
 pub mod musicinfo;

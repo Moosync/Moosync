@@ -7,6 +7,7 @@ pub enum Modals {
     DiscoverExtensions,
     NewPlaylistModal,
     SongFromUrlModal,
+    ThemeModal,
 }
 
 #[derive(Clone, Default)]

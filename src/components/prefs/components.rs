@@ -19,7 +19,10 @@ use wasm_bindgen_futures::spawn_local;
 use crate::{
     console_log,
     i18n::use_i18n,
-    icons::{folder_icon::FolderIcon, theme_view_icon::ThemeViewIcon, tooltip::Tooltip},
+    icons::{
+        folder_icon::FolderIcon, new_theme_icon::NewThemeIcon, theme_view_icon::ThemeViewIcon,
+        tooltip::Tooltip,
+    },
     store::modal_store::{ModalStore, Modals},
     utils::{
         common::invoke,
@@ -173,7 +176,7 @@ pub fn InputPref(
                 } else {
                     view! {}.into_view()
                 }}
-                <div class="col-auto ml-3 align-self-center flex-grow-1 justify-content-start">
+                <div class="col-auto ml-3 mr-3 h-100 align-self-center flex-grow-1">
                     {if show_input {
                         view! {
                             <input
@@ -302,15 +305,20 @@ pub fn ThemesPref(
     #[prop()] tooltip: String,
 ) -> impl IntoView {
     let all_themes: RwSignal<HashMap<String, ThemeDetails>> = create_rw_signal(Default::default());
-    spawn_local(async move {
-        let themes = invoke("load_all_themes", JsValue::undefined())
-            .await
-            .unwrap();
-        all_themes.set(serde_wasm_bindgen::from_value(themes).unwrap());
-    });
+    let load_themes = move || {
+        spawn_local(async move {
+            let themes = invoke("load_all_themes", JsValue::undefined())
+                .await
+                .unwrap();
+            all_themes.set(serde_wasm_bindgen::from_value(themes).unwrap());
+        })
+    };
+    load_themes();
     let active_themes = create_rw_signal(vec![]);
     let active_theme_id = create_rw_signal(String::new());
     load_selective(key, active_theme_id);
+
+    let modal_store: RwSignal<ModalStore> = expect_context();
     let render_themes = move || {
         let mut views = vec![];
         let active_theme_id = active_theme_id.get();
@@ -341,6 +349,24 @@ pub fn ThemesPref(
                 </div>
             });
         }
+
+        views.push(view! {
+            <div
+                class="col-xl-3 col-5 p-2"
+                on:click=move |_| {
+                    modal_store
+                        .update(|m| {
+                            m.set_active_modal(Modals::ThemeModal);
+                            m.on_modal_close(load_themes);
+                        })
+                }
+            >
+                <div class="theme-component-container">
+                    <NewThemeIcon />
+                    <div class="theme-title">{"New Theme"}</div>
+                </div>
+            </div>
+        });
         views.collect_view()
     };
     view! {

@@ -35,6 +35,7 @@ where
                     } else {
                         view! {
                             // class="fade-in-image"
+                            // class="fade-in-image"
                             <SongDefaultIcon />
                         }
                             .into_view()

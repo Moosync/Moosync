@@ -2,10 +2,12 @@ use std::rc::Rc;
 
 use crate::icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon};
 use leptos::{
-    component, create_effect, create_rw_signal, create_write_slice, ev::Event, event_target_value,
-    expect_context, view, CollectView, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
+    component, create_effect, create_node_ref, create_rw_signal, create_write_slice, ev::Event,
+    event_target_value, expect_context, html::Svg, view, CollectView, IntoView, RwSignal,
+    SignalGet, SignalGetUntracked, SignalSet, SignalUpdate,
 };
 use leptos_router::use_navigate;
+use leptos_use::on_click_outside;
 use leptos_virtual_scroller::VirtualScroller;
 use types::{
     entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist},
@@ -96,8 +98,15 @@ pub fn Accounts() -> impl IntoView {
         }
     };
 
+    let target = create_node_ref();
+    let _ = on_click_outside(target, move |_| {
+        if show_accounts_popover.get_untracked() {
+            show_accounts_popover.set(false);
+        }
+    });
+
     view! {
-        <div>
+        <div node_ref=target>
             <PersonIcon on:click=move |_| show_accounts_popover.set(!show_accounts_popover.get()) />
 
             {move || {

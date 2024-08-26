@@ -1,7 +1,10 @@
+use std::rc::Rc;
+
 use leptos::{spawn_local, SignalSet};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
 use types::errors::errors::Result;
+use types::themes::ThemeDetails;
 use types::window::{DialogFilter, FileResponse};
 use wasm_bindgen::JsValue;
 
@@ -148,4 +151,48 @@ pub fn watch_preferences(cb: fn((String, JsValue))) -> js_sys::Function {
         }
         console_log!("Received invalid preference change: {:?}", data);
     })
+}
+
+pub fn import_theme<T>(path: String, cb: T)
+where
+    T: Fn() + 'static,
+{
+    let cb = Rc::new(Box::new(cb));
+    #[derive(Serialize)]
+    struct ImportThemeArgs {
+        path: String,
+    }
+    spawn_local(async move {
+        let args = to_value(&ImportThemeArgs { path }).unwrap();
+
+        let res = invoke("import_theme", args).await;
+        if res.is_err() {
+            console_log!("Failed to import theme");
+        }
+
+        let cb = cb.clone();
+        cb();
+    })
+}
+
+pub fn save_theme<T>(theme: ThemeDetails, cb: T)
+where
+    T: Fn() + 'static,
+{
+    let cb = Rc::new(Box::new(cb));
+    #[derive(Serialize)]
+    struct SaveThemeArgs {
+        theme: ThemeDetails,
+    }
+    spawn_local(async move {
+        let args = to_value(&SaveThemeArgs { theme }).unwrap();
+
+        let res = invoke("save_theme", args).await;
+        if res.is_err() {
+            console_log!("Failed to save theme");
+        }
+
+        let cb = cb.clone();
+        cb();
+    });
 }

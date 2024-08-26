@@ -16,10 +16,13 @@ Since TypeScript cannot handle type information for `.vue` imports, they are shi
 You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/volar/discussions/471).
 
 ## TODO
-
+- Store UI state
+- Single entity details on its page
+- Theme export
+- Preferences
+- wasm extensions
 - Sanitize extension response
 - System theme fetch
-- Extension preference items
 - Rodio player
 - Optimize cloning in leptos
 - Optimize DB queries

@@ -19,7 +19,7 @@ where
     });
 
     view! {
-        <div style="position: absolute; z-index: 1040;">
+        <div style="position: absolute; z-index: 9999;">
             <div class="modal fade show">
                 <div
                     node_ref=target

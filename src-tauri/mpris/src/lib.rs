@@ -6,6 +6,7 @@ use std::{
     },
     time::Duration,
 };
+use tracing::info;
 
 use souvlaki::{MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 use types::{errors::errors::Result, mpris::MprisPlayerDetails, ui::player_details::PlayerState};
@@ -99,6 +100,7 @@ impl MprisHolder {
             },
             PlayerState::Stopped => MediaPlayback::Stopped,
         };
+        drop(last_duration);
 
         let mut controls = self.controls.lock().unwrap();
         controls.set_playback(parsed)?;
@@ -115,9 +117,9 @@ impl MprisHolder {
         *last_duration = (duration * 1000.0) as u64;
         drop(last_duration);
 
-        let last_state = self.last_state.lock().unwrap();
         #[allow(clippy::clone_on_copy)]
-        self.set_playback_state(last_state.clone())?;
+        let last_state = self.last_state.lock().unwrap().clone();
+        self.set_playback_state(last_state)?;
         Ok(())
     }
 }

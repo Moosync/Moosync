@@ -193,7 +193,6 @@ export class ExtensionHandler {
     type: providerFetchRequests,
     packageName: string,
   ) {
-    console.log("getting provider scope for", packageName);
     if (type === "getExtensionProviderScopes") {
       return this.extensionProvides(packageName);
     }
@@ -298,12 +297,10 @@ export class ExtensionHandler {
         )[0]?.replace(`${ext.packageName}:`, "");
       }
 
-      console.log("emitting", event.type, event.data);
       const resp = await ext.global.api._emit<T>({
         type: event.type,
         data: event.data,
       });
-      console.log("got resp", resp);
 
       const packageName = ext.packageName;
 

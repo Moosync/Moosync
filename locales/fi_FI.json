@@ -197,6 +197,7 @@
       },
       "audioSettings_tooltip": "Asetukset, jotka liittyvät äänen toistoon",
       "gapless_skip": "Skip song before end (seconds)",
+      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
       "invidiousUrlUnsupported": "Tämä url ei tue Invidious API",
       "invidious_tooltip": "Invidious instanssi käyttää sijasta youtube",
       "restartApp": "Käynnistä Moosync Uudelleen",

@@ -197,6 +197,7 @@
       },
       "audioSettings_tooltip": "Instellingen voor verwante audio afspelen",
       "gapless_skip": "Skip song before end (seconds)",
+      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
       "invidiousUrlUnsupported": "Deze url biedt geen ondersteuning voor Invidious API",
       "invidious_tooltip": "Onbenauwde instantie om te gebruiken in plaats van youtube",
       "restartApp": "Herstart Moosync",

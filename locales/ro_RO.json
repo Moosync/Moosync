@@ -197,6 +197,7 @@
       },
       "audioSettings_tooltip": "Setări care sunt legate de redarea audio",
       "gapless_skip": "Skip song before end (seconds)",
+      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
       "invidiousUrlUnsupported": "Acest url nu acceptă API Invidious",
       "invidious_tooltip": "Instanță invidioasă de folosit în loc de youtub",
       "restartApp": "Repornește Moosync",

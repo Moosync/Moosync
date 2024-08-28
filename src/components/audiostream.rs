@@ -13,7 +13,7 @@ use std::{
 };
 use tokio::sync::oneshot;
 use types::{
-    errors::errors::{MoosyncError, Result},
+    errors::{MoosyncError, Result},
     songs::Song,
     ui::player_details::{PlayerEvents, PlayerState},
 };
@@ -105,7 +105,7 @@ impl PlayerHolder {
     ) -> Result<(usize, Option<Song>)> {
         let players = self.players.lock().await;
         let player_blacklist = create_read_slice(player_store, |player_store| {
-            player_store.player_blacklist.clone()
+            player_store.get_player_blacklist()
         });
         let player = players.iter().position(|p| {
             !player_blacklist.get_untracked().contains(&p.key())
@@ -204,7 +204,7 @@ impl PlayerHolder {
     }
 
     fn listen_player_state(&self, player_store: RwSignal<PlayerStore>) {
-        let player_state_getter = create_read_slice(player_store, move |p| p.player_details.state);
+        let player_state_getter = create_read_slice(player_store, move |p| p.get_player_state());
         let players = self.players.clone();
         let active_player = self.active_player.clone();
         create_effect(move |_| {
@@ -240,7 +240,7 @@ impl PlayerHolder {
     fn listen_force_seek(&self, player_store: RwSignal<PlayerStore>) {
         let (force_seek, reset_force_seek) = create_slice(
             player_store,
-            |p| p.player_details.force_seek,
+            |p| p.get_force_seek(),
             |p, _| p.force_seek_percent(-1f64),
         );
         let players = self.players.clone();
@@ -284,16 +284,16 @@ impl PlayerHolder {
             store.set_state(state);
         });
 
-        let next_song_setter = create_write_slice(player_store, move |store, _| {
-            match store.player_details.repeat {
+        let next_song_setter =
+            create_write_slice(player_store, move |store, _| match store.get_repeat() {
                 types::ui::player_details::RepeatModes::None => store.next_song(),
                 types::ui::player_details::RepeatModes::Once => {
-                    if !store.player_details.has_repeated {
+                    if !store.get_has_repeated() {
                         store.force_seek_percent(0f64);
                         store.set_state(PlayerState::Playing);
-                        store.player_details.has_repeated = true;
+                        store.set_has_repeated(true);
                     } else {
-                        store.player_details.has_repeated = false;
+                        store.set_has_repeated(false);
                         store.next_song();
                         store.set_state(PlayerState::Playing);
                     }
@@ -303,8 +303,7 @@ impl PlayerHolder {
                     store.force_seek_percent(0f64);
                     store.set_state(PlayerState::Playing);
                 }
-            }
-        });
+            });
 
         let player_time_setter = create_write_slice(player_store, move |store, time| {
             store.update_time(time);
@@ -367,12 +366,11 @@ pub fn AudioStream() -> impl IntoView {
         players.initialize_players().await;
     });
 
-    let current_song_sig = create_read_slice(player_store, |player_store| {
-        player_store.current_song.clone()
-    });
+    let current_song_sig =
+        create_read_slice(player_store, |player_store| player_store.get_current_song());
 
     let force_load_sig =
-        create_read_slice(player_store, |player_store| player_store.force_load_song);
+        create_read_slice(player_store, |player_store| player_store.get_force_load());
     let current_volume = create_read_slice(player_store, |player_store| player_store.get_volume());
 
     let players_clone = players.clone();

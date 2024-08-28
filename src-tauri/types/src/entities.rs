@@ -1,3 +1,4 @@
+use bitcode::{Decode, Encode};
 #[cfg(feature = "core")]
 use diesel::{
     backend::Backend,
@@ -21,10 +22,10 @@ use super::{
     songs::Song,
 };
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Encode, Decode)]
 #[cfg_attr(feature = "core", derive(FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "core", diesel(sql_type = diesel::sql_types::Text))]
-pub struct EntityInfo(pub serde_json::Value);
+pub struct EntityInfo(pub String);
 
 #[cfg(feature = "core")]
 impl<DB> FromSql<Text, DB> for EntityInfo
@@ -56,7 +57,7 @@ where
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Clone, Debug)]
+#[derive(Deserialize, Serialize, Default, Clone, Debug, Encode, Decode)]
 #[cfg_attr(
     feature = "core",
     derive(Insertable, Queryable, Identifiable, AsChangeset,)
@@ -144,7 +145,7 @@ impl BridgeUtils for AlbumBridge {
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Clone, Debug)]
+#[derive(Deserialize, Serialize, Default, Clone, Debug, Encode, Decode)]
 #[cfg_attr(
     feature = "core",
     derive(Insertable, Queryable, Identifiable, AsChangeset)
@@ -230,7 +231,7 @@ impl BridgeUtils for ArtistBridge {
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Clone, Debug)]
+#[derive(Deserialize, Serialize, Default, Clone, Debug, Encode, Decode)]
 #[cfg_attr(
     feature = "core",
     derive(Insertable, Queryable, Identifiable, AsChangeset,)

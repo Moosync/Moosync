@@ -3,7 +3,10 @@ use leptos::{
     RwSignal, SignalGet, SignalGetUntracked, SignalSet,
 };
 use serde::Serialize;
-use types::{songs::Song, ui::song_details::SongDetailIcons};
+use types::{
+    songs::Song,
+    ui::song_details::{DefaultDetails, SongDetailIcons},
+};
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
@@ -22,14 +25,15 @@ pub fn SongDetails<T>(
     #[prop()] selected_song: T,
     #[prop()] icons: RwSignal<SongDetailIcons>,
     #[prop(optional, default = false)] show_lyrics: bool,
+    #[prop(optional)] default_details: RwSignal<DefaultDetails>,
 ) -> impl IntoView
 where
     T: SignalGet<Value = Option<Song>> + Copy + 'static,
 {
-    let selected_title = create_rw_signal(None::<String>);
-    let selected_artists = create_rw_signal(None::<String>);
+    let selected_title = create_rw_signal(default_details.get().title);
+    let selected_artists = create_rw_signal(default_details.get().subtitle);
     let selected_duration = create_rw_signal(None::<String>);
-    let selected_cover_path = create_rw_signal("".to_string());
+    let selected_cover_path = create_rw_signal(default_details.get().icon);
 
     let selected_lyrics = create_rw_signal(None::<String>);
     let show_default_cover_img = create_rw_signal(true);
@@ -84,35 +88,26 @@ where
 
     create_effect(move |_| {
         let selected_song = selected_song.get();
-
-        selected_title.set(
-            selected_song
-                .clone()
-                .map(|s| s.song.clone().title.unwrap_or_default()),
-        );
-        selected_artists.set(Some(
-            selected_song
-                .as_ref()
-                .map(|s| s.clone().artists.unwrap_or_default())
-                .unwrap_or_default()
-                .iter()
-                .map(|a| a.artist_name.clone().unwrap_or_default())
-                .collect::<Vec<String>>()
-                .join(", "),
-        ));
-
-        selected_duration.set(
-            selected_song
-                .clone()
-                .map(|s| format_duration(s.song.duration.unwrap_or(-1f64))),
-        );
+        let default_details = default_details.get();
 
         if let Some(selected_song) = selected_song {
-            selected_cover_path.set(get_high_img(&selected_song));
+            selected_title.set(selected_song.song.title.clone());
+            selected_artists.set(selected_song.artists.as_ref().map(|a| {
+                a.iter()
+                    .map(|a| a.artist_name.clone().unwrap_or_default())
+                    .collect::<Vec<String>>()
+                    .join(", ")
+            }));
+            selected_duration.set(Some(format_duration(
+                selected_song.song.duration.unwrap_or(-1f64),
+            )));
+            selected_cover_path.set(Some(get_high_img(&selected_song)));
             show_default_cover_img.set(false);
         } else {
-            selected_cover_path.set("".to_string());
-            show_default_cover_img.set(true);
+            show_default_cover_img.set(default_details.icon.is_none());
+            selected_cover_path.set(default_details.icon);
+            selected_title.set(default_details.title);
+            selected_artists.set(default_details.subtitle);
         }
     });
 
@@ -149,10 +144,7 @@ where
                                         }
                                             .into_view()
                                     } else {
-                                        view! {
-                                            <SongDefaultIcon class="fade-in-image".to_string() />
-                                        }
-                                            .into_view()
+                                        view! { <SongDefaultIcon /> }.into_view()
                                     }
                                 }}
                                 <AnimatedShow

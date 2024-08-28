@@ -1,6 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::errors::errors::MoosyncError;
+use crate::errors::MoosyncError;
+use bitcode::{Decode, Encode};
 #[cfg(feature = "core")]
 use diesel::{
     backend::Backend,
@@ -22,7 +23,7 @@ use super::{
     entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist},
 };
 
-#[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq, Copy, Encode, Decode)]
 #[cfg_attr(feature = "core", derive(FromSqlRow, AsExpression))]
 #[cfg_attr(feature = "core", diesel(sql_type = diesel::sql_types::Text))]
 pub enum SongType {
@@ -107,7 +108,7 @@ where
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Default, Clone)]
+#[derive(Debug, Deserialize, Serialize, Default, Clone, Encode, Decode)]
 #[cfg_attr(
     feature = "core",
     derive(
@@ -225,7 +226,7 @@ pub struct GetSongOptions {
     pub inclusive: Option<bool>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq, Encode, Decode)]
 pub struct Song {
     #[serde(flatten)]
     pub song: QueryableSong,

@@ -1,0 +1,25 @@
+.route-out {
+    animation: 0.2s slide-out ease-in-out;
+}
+
+.route-in {
+    animation: 0.2s slide-in ease-in-out;
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slide-out {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-100%);
+    }
+}

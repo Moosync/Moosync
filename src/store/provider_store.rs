@@ -7,7 +7,7 @@ use leptos::{
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
 use types::entities::{QueryablePlaylist, SearchResult};
-use types::errors::errors::Result;
+use types::errors::Result;
 use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::Song;
 use wasm_bindgen::JsValue;

@@ -12,7 +12,7 @@ use types::{
 };
 
 use substring::Substring;
-use types::errors::errors::{MoosyncError, Result};
+use types::errors::{MoosyncError, Result};
 
 use uuid::Uuid;
 

@@ -19,7 +19,7 @@ pub use librespot::playback::config::{
 pub use librespot::protocol::authentication::AuthenticationType;
 use spirc::{ParsedToken, SpircWrapper};
 use types::canvaz::CanvazResponse;
-use types::errors::errors::{MoosyncError, Result};
+use types::errors::{MoosyncError, Result};
 
 #[derive(Clone)]
 pub struct ConfigHolder {

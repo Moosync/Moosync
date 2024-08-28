@@ -1,8 +1,9 @@
+use bitcode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
-use crate::errors::errors::MoosyncError;
+use crate::errors::MoosyncError;
 
-#[derive(Serialize, Deserialize, Debug, Default, PartialEq, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Default, PartialEq, Clone, Copy, Encode, Decode)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum PlayerState {
     Playing,
@@ -22,7 +23,7 @@ pub enum PlayerEvents {
     Error(MoosyncError),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Copy, Clone, Encode, Decode)]
 pub enum VolumeMode {
     #[default]
     Normal,
@@ -30,7 +31,7 @@ pub enum VolumeMode {
     PersistClamp,
 }
 
-#[derive(Debug, Default, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Copy, Clone, Encode, Decode)]
 pub enum RepeatModes {
     #[default]
     None,

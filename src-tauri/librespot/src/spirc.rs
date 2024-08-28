@@ -26,7 +26,7 @@ use tokio::runtime::Builder;
 use crate::player::{create_session, get_canvas, get_lyrics, new_player};
 use types::{
     canvaz::CanvazResponse,
-    errors::errors::{MoosyncError, Result},
+    errors::{MoosyncError, Result},
 };
 
 #[derive(Debug, Serialize, Deserialize)]

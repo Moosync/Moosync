@@ -6,7 +6,7 @@ use serde_json::Value;
 use tauri::AppHandle;
 use types::{
     entities::{QueryablePlaylist, SearchResult},
-    errors::errors::Result,
+    errors::Result,
     extensions::{
         AccountLoginArgs, CustomRequestReturnType, ExtensionDetail, ExtensionExtraEvent,
         ExtensionExtraEventArgs, ExtensionProviderScope, PackageNameArgs,

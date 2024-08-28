@@ -1,11 +1,14 @@
 use leptos::{use_context, ReadSignal, RwSignal, SignalGet, SignalUpdate};
 use leptos_context_menu::{ContextMenuData, ContextMenuItemInner, ContextMenuItems};
 use leptos_router::{use_navigate, NavigateOptions};
+use serde::Serialize;
 use types::{entities::QueryablePlaylist, songs::Song};
+use wasm_bindgen_futures::spawn_local;
 
 use crate::{console_log, store::player_store::PlayerStore, utils::songs::get_songs_from_indices};
 
 use super::{
+    common::invoke,
     db_utils::{add_songs_to_library, add_to_playlist, remove_songs_from_library},
     songs::get_sort_cx_items,
 };
@@ -174,5 +177,41 @@ pub struct SortContextMenu {}
 impl ContextMenuData<Self> for SortContextMenu {
     fn get_menu_items(&self) -> ContextMenuItems<Self> {
         get_sort_cx_items()
+    }
+}
+
+pub struct ThemesContextMenu {
+    pub id: Option<String>,
+}
+
+impl ThemesContextMenu {
+    fn export_theme(&self) {
+        let id = self.id.clone();
+        if let Some(id) = id {
+            #[derive(Serialize)]
+            struct ExportThemeArgs {
+                id: String,
+            }
+            spawn_local(async move {
+                let res = invoke(
+                    "export_theme",
+                    serde_wasm_bindgen::to_value(&ExportThemeArgs { id }).unwrap(),
+                )
+                .await;
+                if let Err(err) = res {
+                    console_log!("Error exporting theme {:?}", err);
+                }
+            });
+        }
+    }
+}
+
+impl ContextMenuData<Self> for ThemesContextMenu {
+    fn get_menu_items(&self) -> ContextMenuItems<Self> {
+        vec![ContextMenuItemInner::new_with_handler(
+            "Export theme".into(),
+            |_, cx| cx.export_theme(),
+            None,
+        )]
     }
 }

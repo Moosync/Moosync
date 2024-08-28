@@ -5,7 +5,7 @@ use macros::generate_command;
 use serde_json::Value;
 use tauri::{App, AppHandle, Manager, State};
 use tracing::{info, trace};
-use types::errors::errors::Result;
+use types::errors::Result;
 use types::{
     entities::{
         GetEntityOptions, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult,

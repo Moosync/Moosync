@@ -4,7 +4,7 @@ use macros::generate_command;
 use mpris::MprisHolder;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, State};
-use types::{errors::errors::Result, mpris::MprisPlayerDetails, ui::player_details::PlayerState};
+use types::{errors::Result, mpris::MprisPlayerDetails, ui::player_details::PlayerState};
 
 #[tracing::instrument(level = "trace", skip(app))]
 pub fn get_mpris_state(app: AppHandle) -> Result<MprisHolder> {

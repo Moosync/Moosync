@@ -20,12 +20,12 @@ use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
 use types::{
     entities::{EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
-    errors::errors::Result,
+    errors::Result,
     oauth::OAuth2Client,
     providers::generic::{Pagination, ProviderStatus},
     songs::{QueryableSong, Song, SongType},
 };
-use types::{errors::errors::MoosyncError, providers::generic::GenericProvider};
+use types::{errors::MoosyncError, providers::generic::GenericProvider};
 use url::Url;
 
 use crate::oauth::handler::OAuthHandler;
@@ -162,7 +162,7 @@ impl SpotifyProvider {
             artist_id: Some(format!("spotify-artist:{}", artist.id.clone().unwrap())),
             artist_name: Some(artist.name),
             artist_extra_info: Some(EntityInfo(
-                serde_json::to_value(SpotifyExtraInfo {
+                serde_json::to_string(&SpotifyExtraInfo {
                     spotify: ArtistExtraInfo {
                         artist_id: artist.id.clone().unwrap().to_string(),
                     },

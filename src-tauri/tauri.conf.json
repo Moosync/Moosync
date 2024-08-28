@@ -36,7 +36,12 @@
     "active": true,
     "createUpdaterArtifacts": true,
     "externalBin": ["binaries/exthost"],
-    "resources": [],
+    "resources": [
+      "bridge.js",
+      "events.js",
+      "setup-sandbox.js",
+      "setup-node-sandbox.js"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

@@ -16,16 +16,19 @@ use tokio::{
     io::{split, AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf},
     sync::Mutex,
 };
-use types::errors::errors::{MoosyncError, Result};
+use types::errors::{MoosyncError, Result};
 
-pub type CommandSender = Sender<Result<Value>>;
+pub type MainCommandSender = Sender<Result<Value>>;
+pub type MainCommandReceiver = UnboundedReceiver<(Sender<Result<Value>>, Value)>;
+pub type ExtensionCommandSender = UnboundedSender<(Value, Sender<Vec<u8>>)>;
+pub type ExtensionCommandReceiver = UnboundedReceiver<(Value, Sender<Vec<u8>>)>;
 
 pub struct SocketHandler {
     read_conn: Arc<Mutex<ReadHalf<LocalSocketStream>>>,
     write_conn: Arc<Mutex<WriteHalf<LocalSocketStream>>>,
-    tx_ext_command: Arc<Mutex<UnboundedSender<(Value, Sender<Vec<u8>>)>>>,
-    rx_main_command: Arc<Mutex<UnboundedReceiver<(Sender<Result<Value>>, Value)>>>,
-    reply_map: Arc<Mutex<HashMap<String, CommandSender>>>,
+    tx_ext_command: Arc<Mutex<ExtensionCommandSender>>,
+    rx_main_command: Arc<Mutex<MainCommandReceiver>>,
+    reply_map: Arc<Mutex<HashMap<String, MainCommandSender>>>,
 }
 
 impl<'a> SocketHandler {

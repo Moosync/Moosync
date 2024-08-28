@@ -1,7 +1,9 @@
 use std::rc::Rc;
 
 use crate::{
-    components::prefs::static_components::SettingRoutes,
+    components::{
+        better_animated_outlet::AnimatedOutletSimultaneous, prefs::static_components::SettingRoutes,
+    },
     console_log,
     pages::explore::Explore,
     players::librespot::LibrespotPlayer,
@@ -17,7 +19,7 @@ use leptos::{
 };
 use leptos_context_menu::provide_context_menu_state;
 use leptos_i18n::provide_i18n_context;
-use leptos_router::{Outlet, Redirect, Route, Router, Routes};
+use leptos_router::{AnimatedOutlet, AnimatedRoutes, Outlet, Redirect, Route, Router, Routes};
 use serde::Serialize;
 use types::{
     extensions::ExtensionUIRequest, preferences::CheckboxPreference, themes::ThemeDetails,
@@ -48,7 +50,7 @@ use crate::{
 
 #[component]
 pub fn RedirectAll() -> impl IntoView {
-    view! { <Redirect path="/main" /> }
+    view! { <Redirect path="/main/allsongs" /> }
 }
 
 #[component]
@@ -66,7 +68,7 @@ fn CommonApp() -> impl IntoView {
 pub fn MainApp() -> impl IntoView {
     let tabs = vec![
         Tab::new("Queue", "Queue", ""),
-        Tab::new("All Songs", "All Songs", "/main"),
+        Tab::new("All Songs", "All Songs", "/main/allsongs"),
         Tab::new("Playlists", "Playlists", "/main/playlists"),
         Tab::new("Artists", "Artists", "/main/artists"),
         Tab::new("Albums", "Albums", "/main/albums"),
@@ -77,9 +79,7 @@ pub fn MainApp() -> impl IntoView {
         <div>
             <TopBar />
             <Sidebar tabs=tabs />
-            <div class="main-container">
-                <Outlet />
-            </div>
+            <AnimatedOutletSimultaneous class="main-container" outro="route-out" intro="route-in" />
         </div>
     }
 }
@@ -151,7 +151,7 @@ pub fn App() -> impl IntoView {
     // });
 
     provide_context_menu_state();
-    provide_context(create_rw_signal(PlayerStore::new()));
+    provide_context(PlayerStore::new());
     provide_context(Rc::new(ProviderStore::new()));
     provide_context(create_rw_signal(ModalStore::default()));
     provide_context(create_rw_signal(UiStore::new()));
@@ -183,7 +183,7 @@ pub fn App() -> impl IntoView {
         match payload.type_.as_str() {
             "getCurrentSong" => {
                 let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
-                    p.current_song.clone()
+                    p.get_current_song()
                 })
                 .get_untracked();
                 send_reply(payload, data);
@@ -202,15 +202,14 @@ pub fn App() -> impl IntoView {
                 send_reply(payload, data);
             }
             "getQueue" => {
-                let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
-                    p.queue.clone()
-                })
-                .get_untracked();
+                let data =
+                    create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| p.get_queue())
+                        .get_untracked();
                 send_reply(payload, data);
             }
             "getPlayerState" => {
                 let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
-                    p.player_details.state
+                    p.get_player_state()
                 })
                 .get_untracked();
                 send_reply(payload, data);
@@ -257,7 +256,7 @@ pub fn App() -> impl IntoView {
             6 => player_store.update(|p| p.next_song()),
             7 => player_store.update(|p| p.prev_song()),
             12 => player_store.update(|p| p.force_seek(value.unwrap_or_default())),
-            13 => player_store.update(|p| match p.player_details.state {
+            13 => player_store.update(|p| match p.get_player_state() {
                 PlayerState::Playing => p.set_state(PlayerState::Paused),
                 _ => p.set_state(PlayerState::Playing),
             }),
@@ -287,7 +286,7 @@ pub fn App() -> impl IntoView {
                     <Routes>
                         <Route path="/" view=CommonApp>
                             <Route path="main" view=MainApp>
-                                <Route path="" view=AllSongs />
+                                <Route path="allsongs" view=AllSongs />
                                 <Route path="playlists" view=AllPlaylists />
                                 <Route path="playlists/single" view=SinglePlaylist />
                                 <Route path="artists" view=AllArtists />

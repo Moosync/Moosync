@@ -6,7 +6,7 @@ use std::{
 
 use database::database::Database;
 use threadpool::ThreadPool;
-use types::errors::errors::Result;
+use types::errors::Result;
 use types::{entities::QueryablePlaylist, songs::Song};
 
 use crate::{playlist_scanner::PlaylistScanner, song_scanner::SongScanner};

@@ -10,7 +10,7 @@ use diesel::{
 
 use serde::{Deserialize, Serialize};
 use types::cache::CacheModel;
-use types::errors::errors::Result;
+use types::errors::Result;
 
 use super::migrations::run_migration_cache;
 use types::cache_schema::{

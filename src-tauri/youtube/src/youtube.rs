@@ -5,7 +5,7 @@ use rusty_ytdl::{
 
 use types::{
     entities::{EntityInfo, QueryablePlaylist},
-    errors::errors::{MoosyncError, Result},
+    errors::{MoosyncError, Result},
     providers::generic::Pagination,
 };
 use types::{

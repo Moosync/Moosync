@@ -6,7 +6,7 @@ use macros::generate_command;
 use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
 use tauri::{async_runtime, App, AppHandle, Emitter, Manager, State};
-use types::errors::errors::Result;
+use types::errors::Result;
 
 use crate::{providers::handler::ProviderHandler, scanner::start_scan};
 

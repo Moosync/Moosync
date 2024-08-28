@@ -3,7 +3,7 @@ macro_rules! generate_command {
     ($method_name:ident, $state:ident, $ret:ty, $($v:ident: $t:ty),*) => {
         #[tracing::instrument(level = "trace", skip(db))]
         #[tauri::command(async)]
-        pub fn $method_name(db: State<$state>, $($v: $t),*) -> types::errors::errors::Result<$ret> {
+        pub fn $method_name(db: State<$state>, $($v: $t),*) -> types::errors::Result<$ret> {
             tracing::info!("calling {}", stringify!($method_name));
             let ret = db.$method_name($($v,)*);
             if let Ok(ret) = &ret {
@@ -22,7 +22,7 @@ macro_rules! generate_command_cached {
         // #[flame]
         #[tracing::instrument(level = "trace", skip(db, cache))]
         #[tauri::command(async)]
-        pub async fn $method_name(db: State<'_, $state>, cache: State<'_, CacheHolder>, $($v: $t),*) -> types::errors::errors::Result<$ret> {
+        pub async fn $method_name(db: State<'_, $state>, cache: State<'_, CacheHolder>, $($v: $t),*) -> types::errors::Result<$ret> {
             tracing::info!("calling cached {}", stringify!($method_name));
             let mut cache_string = String::new();
             cache_string.push_str(stringify!($method_name));
@@ -63,7 +63,7 @@ macro_rules! generate_command_async {
         // #[flame]
         #[tracing::instrument(level = "trace", skip(db))]
         #[tauri::command(async)]
-        pub async fn $method_name(db: State<'_, $state>, $($v: $t),*) -> types::errors::errors::Result<$ret> {
+        pub async fn $method_name(db: State<'_, $state>, $($v: $t),*) -> types::errors::Result<$ret> {
             tracing::info!("calling async {}", stringify!($method_name));
             let ret = db.$method_name($($v,)*).await;
             if let Ok(ret) = &ret {
@@ -82,7 +82,7 @@ macro_rules! generate_command_async_cached {
         // #[flame]
         #[tracing::instrument(level = "trace", skip(db, cache))]
         #[tauri::command(async)]
-        pub async fn $method_name(db: State<'_, $state>, cache: State<'_, CacheHolder>, $($v: $t),*) -> types::errors::errors::Result<$ret> {
+        pub async fn $method_name(db: State<'_, $state>, cache: State<'_, CacheHolder>, $($v: $t),*) -> types::errors::Result<$ret> {
             tracing::info!("calling cached async {}", stringify!($method_name));
             let mut cache_string = String::new();
             cache_string.push_str(stringify!($method_name));

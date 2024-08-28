@@ -21,7 +21,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use whoami;
 
-use types::errors::errors::{MoosyncError, Result};
+use types::errors::{MoosyncError, Result};
 
 #[derive(Debug)]
 pub struct PreferenceConfig {

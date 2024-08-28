@@ -7,7 +7,7 @@ use macros::{generate_command, generate_command_cached};
 
 use preferences::preferences::PreferenceConfig;
 use tauri::{AppHandle, Emitter, Manager, State, Window};
-use types::{canvaz::CanvazResponse, errors::errors::Result};
+use types::{canvaz::CanvazResponse, errors::Result};
 
 #[tracing::instrument(level = "trace", skip())]
 pub fn get_librespot_state() -> LibrespotHolder {

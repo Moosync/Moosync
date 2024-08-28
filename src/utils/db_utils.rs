@@ -1,3 +1,8 @@
+use std::rc::Rc;
+
+use futures::lock::Mutex;
+use indexed_db_futures::IdbDatabase;
+use indexed_db_futures::IdbQuerySource;
 use leptos::{spawn_local, SignalSet, SignalUpdate};
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
@@ -8,6 +13,9 @@ use types::{
     entities::{GetEntityOptions, QueryablePlaylist},
     songs::{GetSongOptions, Song},
 };
+use wasm_bindgen::JsValue;
+use web_sys::DomException;
+use web_sys::IdbTransactionMode;
 
 use crate::console_log;
 
@@ -398,4 +406,35 @@ pub fn export_playlist(playlist: QueryablePlaylist) {
             console_log!("Failed to export playlist: {:?}", res);
         }
     });
+}
+
+pub async fn write_to_indexed_db(
+    db: Rc<Mutex<Option<Rc<IdbDatabase>>>>,
+    store: &str,
+    key: &str,
+    value: &JsValue,
+) -> Result<(), DomException> {
+    let db = db.lock().await.clone();
+    if let Some(db) = db {
+        let tx = db.transaction_on_one_with_mode(store, IdbTransactionMode::Readwrite)?;
+        let store = tx.object_store(store)?;
+        store.put_key_val_owned(key, value)?.await?;
+        console_log!("Wrote to indexed db");
+    }
+    Ok(())
+}
+
+pub async fn read_from_indexed_db(
+    db: Rc<Mutex<Option<Rc<IdbDatabase>>>>,
+    store: &str,
+    key: &str,
+) -> Result<Option<JsValue>, DomException> {
+    let db = db.lock().await.clone();
+    if let Some(db) = db {
+        let tx = db.transaction_on_one(store)?;
+        let store = tx.object_store(store)?;
+        let res = store.get_owned(key)?.await?;
+        return Ok(res);
+    }
+    Ok(None)
 }

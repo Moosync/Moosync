@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf, str::FromStr};
 
-use types::errors::errors::Result;
+use types::errors::Result;
 
 use crate::themes::ThemeHolder;
 

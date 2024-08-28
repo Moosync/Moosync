@@ -70,7 +70,6 @@ pub fn AllSongs() -> impl IntoView {
             songs=songs
             selected_songs=selected_songs
             song_update_request=Box::new(move || {
-                console_log!("Song update request");
                 get_songs_by_option(
                     GetSongOptions {
                         song: Some(Default::default()),

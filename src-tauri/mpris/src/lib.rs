@@ -8,7 +8,7 @@ use std::{
 };
 
 use souvlaki::{MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
-use types::{errors::errors::Result, mpris::MprisPlayerDetails, ui::player_details::PlayerState};
+use types::{errors::Result, mpris::MprisPlayerDetails, ui::player_details::PlayerState};
 
 #[derive(Debug)]
 pub struct MprisHolder {

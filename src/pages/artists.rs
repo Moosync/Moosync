@@ -5,13 +5,13 @@ use crate::store::player_store::PlayerStore;
 use crate::utils::db_utils::get_artists_by_option;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
-    component, create_rw_signal, create_write_slice, expect_context, view, IntoView, RwSignal,
-    SignalGet, SignalWith,
+    component, create_effect, create_rw_signal, create_write_slice, expect_context, view, IntoView,
+    RwSignal, SignalGet, SignalUpdate, SignalWith,
 };
 use leptos_router::use_query_map;
 use types::entities::QueryableArtist;
 use types::songs::GetSongOptions;
-use types::ui::song_details::SongDetailIcons;
+use types::ui::song_details::{DefaultDetails, SongDetailIcons};
 
 use crate::components::songview::SongView;
 use crate::utils::db_utils::get_songs_by_option;
@@ -21,6 +21,27 @@ use rand::seq::SliceRandom;
 pub fn SingleArtist() -> impl IntoView {
     let params = use_query_map();
     let artist_id = params.with(|params| params.get("id").cloned()).unwrap();
+
+    let artist = create_rw_signal(vec![]);
+    let default_details = create_rw_signal(DefaultDetails::default());
+    get_artists_by_option(
+        QueryableArtist {
+            artist_id: Some(artist_id.clone()),
+            ..Default::default()
+        },
+        artist,
+    );
+
+    create_effect(move |_| {
+        let binding = artist.get();
+        let artist = binding.first();
+        if let Some(artist) = artist {
+            default_details.update(|d| {
+                d.title = artist.artist_name.clone();
+                d.icon = artist.artist_coverpath.clone();
+            });
+        }
+    });
 
     let songs = create_rw_signal(vec![]);
     let selected_songs = create_rw_signal(vec![]);
@@ -74,7 +95,14 @@ pub fn SingleArtist() -> impl IntoView {
         ..Default::default()
     });
 
-    view! { <SongView songs=songs icons=icons selected_songs=selected_songs /> }
+    view! {
+        <SongView
+            default_details=default_details
+            songs=songs
+            icons=icons
+            selected_songs=selected_songs
+        />
+    }
 }
 
 #[component()]

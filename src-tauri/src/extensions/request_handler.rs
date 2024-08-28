@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use types::{
-    errors::errors::{MoosyncError, Result},
+    errors::{MoosyncError, Result},
     extensions::ExtensionUIRequest,
     songs::{GetSongOptions, SearchableSong, Song},
 };

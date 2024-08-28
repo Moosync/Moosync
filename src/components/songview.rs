@@ -6,7 +6,7 @@ use leptos::{
 };
 use leptos_context_menu::{ContextMenu, ContextMenuData, ContextMenuItemInner};
 use leptos_use::on_click_outside;
-use types::{songs::Song, ui::song_details::SongDetailIcons};
+use types::{songs::Song, ui::song_details::DefaultDetails, ui::song_details::SongDetailIcons};
 use web_sys::{Event, Node};
 
 use crate::{
@@ -61,6 +61,7 @@ pub fn SongView(
     #[prop()] icons: RwSignal<SongDetailIcons>,
     #[prop()] selected_songs: RwSignal<Vec<usize>>,
     #[prop(optional)] song_update_request: Option<Box<dyn Fn()>>,
+    #[prop(optional)] default_details: RwSignal<DefaultDetails>,
 ) -> impl IntoView {
     let last_selected_song = create_rw_signal(None::<Song>);
 
@@ -149,7 +150,11 @@ pub fn SongView(
                         style="max-height: 100%; height: fit-content;"
                         class="col-xl-3 col-4"
                     >
-                        <SongDetails selected_song=last_selected_song.read_only() icons=icons />
+                        <SongDetails
+                            default_details=default_details
+                            selected_song=last_selected_song.read_only()
+                            icons=icons
+                        />
                     </div>
                     <div
                         node_ref=song_list_container

@@ -1,12 +1,15 @@
+use leptos::html::Div;
 use leptos::{
-    component, create_effect, create_read_slice, create_rw_signal, create_write_slice,
-    expect_context, spawn_local, view, IntoView, RwSignal, SignalGet, SignalSet,
+    component, create_effect, create_node_ref, create_read_slice, create_rw_signal,
+    create_write_slice, expect_context, spawn_local, view, IntoView, NodeRef, RwSignal, SignalGet,
+    SignalSet,
 };
 use leptos_virtual_scroller::VirtualScroller;
 use serde::Serialize;
 use types::songs::{Song, SongType};
 use types::ui::player_details::PlayerState;
 use types::ui::song_details::SongDetailIcons;
+use web_sys::{ScrollBehavior, ScrollToOptions};
 
 use crate::components::audiostream::AudioStream;
 use crate::console_log;
@@ -28,7 +31,7 @@ pub fn QueueItem<T, D, P>(
     remove_from_queue: P,
 ) -> impl IntoView
 where
-    T: SignalGet<Value = usize> + 'static,
+    T: SignalGet<Value = usize> + Copy + 'static,
     D: SignalGet<Value = bool> + 'static,
     P: SignalSet<Value = usize> + 'static,
 {
@@ -79,11 +82,11 @@ where
 #[component]
 pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
     let player_store = expect_context::<RwSignal<PlayerStore>>();
-    let current_song = create_read_slice(player_store, move |p| p.current_song.clone());
+    let current_song = create_read_slice(player_store, move |p| p.get_current_song());
     let queue_songs = create_read_slice(player_store, move |p| p.get_queue_songs());
-    let current_song_index = create_read_slice(player_store, |p| p.queue.current_index);
+    let current_song_index = create_read_slice(player_store, |p| p.get_queue_index());
     let is_playing = create_read_slice(player_store, |p| {
-        p.player_details.state == PlayerState::Playing
+        p.get_player_state() == PlayerState::Playing
     });
     let play_now = create_write_slice(player_store, |p, val| p.change_index(val));
     let remove_from_queue = create_write_slice(player_store, |p, val| p.remove_from_queue(val));
@@ -115,6 +118,18 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
                     }
                 });
             }
+        }
+    });
+
+    let scroller_ref: NodeRef<Div> = create_node_ref();
+    create_effect(move |_| {
+        let current_song_index = current_song_index.get();
+        if let Some(el) = scroller_ref.get_untracked() {
+            let el_top = 95usize * current_song_index;
+            let options = ScrollToOptions::new();
+            options.set_behavior(ScrollBehavior::Smooth);
+            options.set_top(el_top as f64);
+            el.scroll_with_scroll_to_options(&options);
         }
     });
 
@@ -178,6 +193,7 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
                                                 each=queue_songs
                                                 item_height=95usize
                                                 inner_el_style="width: calc(100% - 15px);"
+                                                node_ref=scroller_ref
                                                 children=move |(index, song)| {
                                                     view! {
                                                         <QueueItem

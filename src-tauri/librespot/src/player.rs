@@ -16,7 +16,7 @@ use regex::Regex;
 use reqwest::header::{CONTENT_LENGTH, CONTENT_TYPE};
 
 use types::canvaz::{Canvaz, CanvazArtist, CanvazResponse, Type};
-use types::errors::errors::Result;
+use types::errors::Result;
 use url::Url;
 
 use crate::canvaz::entity_canvaz_request::Entity;
@@ -33,7 +33,7 @@ pub fn new_player(
     volume_ctrl: String,
 ) -> (Arc<Player>, Arc<dyn Mixer>) {
     let backend = if backend_str.is_empty() {
-        audio_backend::find(Some("rodio".to_string())).unwrap()
+        audio_backend::BACKENDS[0].1
     } else {
         audio_backend::find(Some(backend_str)).unwrap()
     };

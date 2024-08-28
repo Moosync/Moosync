@@ -3,7 +3,7 @@ use std::{collections::HashMap, fs, path::PathBuf, str::FromStr};
 use fs_extra::dir::CopyOptions;
 use regex::Regex;
 use types::{
-    errors::errors::{MoosyncError, Result},
+    errors::{MoosyncError, Result},
     themes::ThemeDetails,
 };
 
@@ -142,5 +142,34 @@ impl ThemeHolder {
             }
         }
         Err(MoosyncError::String("Failed to parse theme".to_string()))
+    }
+
+    pub fn export_theme(&self, id: String, export_path: PathBuf) -> Result<()> {
+        let mut theme = self.load_theme(id.clone())?;
+        let theme_dir = self.tmp_dir.join(format!("theme-unpacked-{}", id));
+        if !theme_dir.exists() {
+            fs::create_dir_all(theme_dir.clone())?;
+        }
+
+        let config_path = theme_dir.clone().join("config.json");
+
+        if let Some(custom_css) = theme.theme.custom_css {
+            let transformed = self.transform_css(custom_css, None)?;
+            let custom_css_path = theme_dir.join("custom.css");
+            fs::write(custom_css_path.clone(), transformed)?;
+            theme.theme.custom_css = Some(custom_css_path.to_string_lossy().to_string());
+        }
+
+        fs::write(config_path.clone(), serde_json::to_string_pretty(&theme)?)?;
+
+        zip_extensions::zip_create_from_directory(&export_path, &theme_dir)?;
+
+        if let Some(custom_css_path) = theme.theme.custom_css {
+            fs::remove_file(custom_css_path)?;
+        }
+        fs::remove_file(config_path)?;
+        fs::remove_dir(theme_dir)?;
+
+        Ok(())
     }
 }

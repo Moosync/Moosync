@@ -62,12 +62,14 @@ macro_rules! register_events {
     };
 }
 
+type PlayerStateSender = Option<Rc<Box<dyn Fn(PlayerEvents)>>>;
+
 #[derive(Clone)]
 pub struct LibrespotPlayer {
     listeners: Vec<js_sys::Function>,
     timer: Rc<Mutex<Option<IntervalHandle>>>,
     time: Rc<Mutex<f64>>,
-    player_state_tx: Option<Rc<Box<dyn Fn(PlayerEvents)>>>,
+    player_state_tx: PlayerStateSender,
 }
 
 static ENABLED: Mutex<bool> = Mutex::new(false);
@@ -182,7 +184,7 @@ impl GenericPlayer for LibrespotPlayer {
         });
     }
 
-    fn play(&self) -> types::errors::errors::Result<()> {
+    fn play(&self) -> types::errors::Result<()> {
         spawn_local(async move {
             let res = invoke("librespot_play", JsValue::undefined()).await;
 
@@ -193,7 +195,7 @@ impl GenericPlayer for LibrespotPlayer {
         Ok(())
     }
 
-    fn pause(&self) -> types::errors::errors::Result<()> {
+    fn pause(&self) -> types::errors::Result<()> {
         spawn_local(async move {
             let res = invoke("librespot_pause", JsValue::undefined()).await;
 
@@ -204,7 +206,7 @@ impl GenericPlayer for LibrespotPlayer {
         Ok(())
     }
 
-    fn seek(&self, pos: f64) -> types::errors::errors::Result<()> {
+    fn seek(&self, pos: f64) -> types::errors::Result<()> {
         let time = self.time.clone();
         spawn_local(async move {
             #[derive(Serialize)]
@@ -239,7 +241,7 @@ impl GenericPlayer for LibrespotPlayer {
         *INITIALIZED.lock().unwrap() && song.song.type_ == types::songs::SongType::SPOTIFY
     }
 
-    fn set_volume(&self, volume: f64) -> types::errors::errors::Result<()> {
+    fn set_volume(&self, volume: f64) -> types::errors::Result<()> {
         let parsed_volume = (volume / 100f64 * (u16::MAX as f64)) as u16;
         spawn_local(async move {
             #[derive(Serialize)]
@@ -263,7 +265,7 @@ impl GenericPlayer for LibrespotPlayer {
         Ok(())
     }
 
-    fn get_volume(&self) -> types::errors::errors::Result<f64> {
+    fn get_volume(&self) -> types::errors::Result<f64> {
         Ok(0f64)
     }
 
@@ -367,7 +369,7 @@ impl GenericPlayer for LibrespotPlayer {
         );
     }
 
-    fn stop(&mut self) -> types::errors::errors::Result<()> {
+    fn stop(&mut self) -> types::errors::Result<()> {
         self.pause()?;
 
         for listener in &self.listeners {

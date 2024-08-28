@@ -2,7 +2,7 @@ use database::cache::CacheHolder;
 use librespot::LibrespotHolder;
 use lyrics::LyricsFetcher;
 use tauri::State;
-use types::errors::errors::Result;
+use types::errors::Result;
 
 #[tracing::instrument(level = "trace", skip())]
 pub fn get_lyrics_state() -> LyricsFetcher {

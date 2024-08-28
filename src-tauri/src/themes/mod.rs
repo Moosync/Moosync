@@ -1,9 +1,11 @@
 use std::{collections::HashMap, fs};
 
 use macros::generate_command;
-use tauri::{App, Manager, State};
+use tauri::{App, AppHandle, Manager, State};
 use themes::themes::ThemeHolder;
-use types::themes::ThemeDetails;
+use types::{errors::Result, themes::ThemeDetails};
+
+use crate::window::handler::WindowHandler;
 
 #[tracing::instrument(level = "trace", skip(app))]
 pub fn get_theme_handler_state(app: &mut App) -> ThemeHolder {
@@ -15,6 +17,19 @@ pub fn get_theme_handler_state(app: &mut App) -> ThemeHolder {
     let tmp_dir = app.path().temp_dir().unwrap();
 
     ThemeHolder::new(path, tmp_dir)
+}
+
+#[tracing::instrument(level = "trace", skip(app, theme_handler, window_handler))]
+#[tauri::command(async)]
+pub fn export_theme(
+    app: AppHandle,
+    theme_handler: State<ThemeHolder>,
+    window_handler: State<WindowHandler>,
+    id: String,
+) -> Result<()> {
+    let selected_file = window_handler.open_save_file(app)?;
+    theme_handler.export_theme(id, selected_file)?;
+    Ok(())
 }
 
 generate_command!(save_theme, ThemeHolder, (), theme: ThemeDetails);

@@ -8,13 +8,15 @@ use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
 use leptos_router::A;
 use leptos_virtual_scroller::VirtualGridScroller;
 
+type CardContextMenu<T> = Option<Rc<Box<dyn Fn(leptos::ev::MouseEvent, T)>>>;
+
 #[derive(Clone)]
 pub struct SimplifiedCardItem<T> {
     pub title: String,
     pub cover: Option<String>,
     pub id: String,
     pub icon: Option<String>,
-    pub context_menu: Option<Rc<Box<dyn Fn(leptos::ev::MouseEvent, T)>>>,
+    pub context_menu: CardContextMenu<T>,
 }
 
 #[component()]

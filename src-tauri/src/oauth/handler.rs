@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Mutex};
 use tauri::{AppHandle, Manager, State};
 use url::Url;
 
-use types::errors::errors::Result;
+use types::errors::Result;
 
 use crate::providers::handler::ProviderHandler;
 

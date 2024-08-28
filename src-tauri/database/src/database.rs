@@ -20,7 +20,7 @@ use uuid::Uuid;
 
 use types::common::{BridgeUtils, SearchByTerm};
 use types::entities::{Analytics, EntityInfo, PlaylistBridge, SearchResult};
-use types::errors::errors::{MoosyncError, Result};
+use types::errors::{MoosyncError, Result};
 use types::schema::analytics::dsl::analytics;
 use types::schema::playlists::dsl::playlists;
 use types::songs::SearchableSong;
@@ -931,7 +931,10 @@ impl Database {
         }
 
         let mut res = old_info.clone().unwrap();
-        merge(&mut res.0, new_info.unwrap().0);
+        let mut a: Value = serde_json::from_str(res.0.as_str()).unwrap();
+        let b: Value = serde_json::from_str(new_info.unwrap().0.as_str()).unwrap();
+        merge(&mut a, b);
+        res.0 = serde_json::to_string(&a).unwrap();
         Some(res)
     }
 

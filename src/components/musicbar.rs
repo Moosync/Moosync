@@ -21,9 +21,8 @@ use crate::utils::common::{format_duration, get_low_img};
 fn Details() -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
 
-    let current_song = create_read_slice(player_store, |player_store| {
-        player_store.current_song.clone()
-    });
+    let current_song =
+        create_read_slice(player_store, |player_store| player_store.get_current_song());
 
     let title = create_rw_signal("-".to_string());
     let artists_list = create_rw_signal::<Vec<QueryableArtist>>(vec![]);
@@ -102,24 +101,20 @@ fn Details() -> impl IntoView {
 pub fn Controls() -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
 
-    let prev_track_dis = create_read_slice(player_store, |p| p.queue.song_queue.len() <= 1);
-    let next_track_dis = create_read_slice(player_store, |p| p.queue.song_queue.len() <= 1);
+    let prev_track_dis = create_read_slice(player_store, |p| p.get_queue_len() <= 1);
+    let next_track_dis = create_read_slice(player_store, |p| p.get_queue_len() <= 1);
     let is_play = create_read_slice(player_store, |p| {
-        p.player_details.state == PlayerState::Playing
+        p.get_player_state() == PlayerState::Playing
     });
     let is_fav = create_rw_signal(false);
-    let (repeat_mode, toggle_repeat) = create_slice(
-        player_store,
-        |p| p.player_details.repeat,
-        |p, _| p.toggle_repeat(),
-    );
+    let (repeat_mode, toggle_repeat) =
+        create_slice(player_store, |p| p.get_repeat(), |p, _| p.toggle_repeat());
     let is_shuffle = create_rw_signal(true);
     let shuffle_queue = create_write_slice(player_store, |p, _| p.shuffle_queue());
-    let current_time_sig = create_read_slice(player_store, |p| {
-        format_duration(p.player_details.current_time)
-    });
+    let current_time_sig =
+        create_read_slice(player_store, |p| format_duration(p.get_current_time()));
     let total_duration_sig = create_read_slice(player_store, |p| {
-        if let Some(current_song) = &p.current_song {
+        if let Some(current_song) = p.get_current_song() {
             format_duration(current_song.song.duration.unwrap_or(-1f64))
         } else {
             "00:00".to_string()
@@ -250,7 +245,7 @@ pub fn Slider() -> impl IntoView {
     });
     let (current_time, set_current_time) = create_slice(
         player_store,
-        |p| p.player_details.current_time,
+        |p| p.get_current_time(),
         move |p, val: f64| {
             p.force_seek_percent(
                 val / slider_process.get_untracked().unwrap().offset_width() as f64,
@@ -258,7 +253,7 @@ pub fn Slider() -> impl IntoView {
         },
     );
 
-    let current_song = create_read_slice(player_store, |p| p.current_song.clone());
+    let current_song = create_read_slice(player_store, |p| p.get_current_song());
     let total_time = create_rw_signal(1f64);
 
     create_effect(move |_| {

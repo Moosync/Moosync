@@ -1,6 +1,6 @@
 use crate::{
     entities::{QueryablePlaylist, SearchResult},
-    errors::errors::Result,
+    errors::Result,
     songs::Song,
 };
 use async_trait::async_trait;

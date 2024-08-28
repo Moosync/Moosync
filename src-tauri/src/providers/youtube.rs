@@ -16,7 +16,7 @@ use tauri::{AppHandle, Manager, State};
 use types::entities::{
     EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult,
 };
-use types::errors::errors::{MoosyncError, Result};
+use types::errors::{MoosyncError, Result};
 use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::{QueryableSong, Song, SongType};
 use types::{oauth::OAuth2Client, providers::generic::GenericProvider};
@@ -192,7 +192,7 @@ impl YoutubeProvider {
                     .unwrap_or_default()
             }),
             artist_extra_info: Some(EntityInfo(
-                serde_json::to_value(YoutubeExtraInfo {
+                serde_json::to_string(&YoutubeExtraInfo {
                     youtube: ArtistExtraInfo {
                         artist_id: resp.id.unwrap(),
                     },

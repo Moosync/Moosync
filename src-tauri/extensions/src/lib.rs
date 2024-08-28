@@ -14,7 +14,7 @@ use base64::Engine;
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
 use futures::{
-    channel::mpsc::{channel, unbounded, Receiver, Sender, UnboundedReceiver, UnboundedSender},
+    channel::mpsc::{channel, unbounded, Receiver, UnboundedSender},
     lock::Mutex,
     SinkExt,
 };
@@ -22,10 +22,10 @@ use interprocess::local_socket::{
     traits::tokio::Listener, GenericFilePath, ListenerOptions, ToFsName,
 };
 use serde_json::Value;
-use socket_handler::{CommandSender, SocketHandler};
+use socket_handler::{ExtensionCommandReceiver, MainCommandSender, SocketHandler};
 use tokio::join;
 use types::{
-    errors::errors::{MoosyncError, Result},
+    errors::{MoosyncError, Result},
     extensions::{
         AccountLoginArgs, ContextMenuActionArgs, ExtensionAccountDetail, ExtensionContextMenuItem,
         ExtensionDetail, ExtensionExtraEventArgs, ExtensionManifest, ExtensionProviderScope,
@@ -66,9 +66,9 @@ macro_rules! helper1 {
 
             let parsed = serde_json::from_value::<HashMap<String, Value>>(first.clone());
             if let Ok(parsed) = parsed {
-                if package_name.is_empty() {
-                    return Err(format!("Need package name in args to get back response").into());
-                }
+                // if package_name.is_empty() {
+                //     return Err(format!("Need package name in args to get back response").into());
+                // }
 
                 let first_result = parsed.get(&package_name);
                 if let Some(first_result) = first_result {
@@ -122,7 +122,7 @@ macro_rules! create_extension_function {
         }
 }
 
-type SenderMap = HashMap<String, UnboundedSender<(CommandSender, Value)>>;
+type SenderMap = HashMap<String, UnboundedSender<(MainCommandSender, Value)>>;
 
 #[derive(Debug)]
 pub struct ExtensionHandler {
@@ -153,7 +153,7 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    pub fn listen_socket(&self) -> Result<Receiver<UnboundedReceiver<(Value, Sender<Vec<u8>>)>>> {
+    pub fn listen_socket(&self) -> Result<Receiver<ExtensionCommandReceiver>> {
         let sender_map = self.sender_map.clone();
         let (tx_listen, rx_listen) = channel(1);
 

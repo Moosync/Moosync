@@ -4,7 +4,7 @@ use dyn_clone::DynClone;
 use leptos::{html::Div, NodeRef};
 use tokio::sync::oneshot::Sender as OneShotSender;
 use types::{
-    errors::errors::Result,
+    errors::Result,
     songs::{Song, SongType},
     ui::player_details::PlayerEvents,
 };

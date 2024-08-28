@@ -5,14 +5,14 @@ use crate::components::songview::SongView;
 use crate::store::player_store::PlayerStore;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
-    component, create_rw_signal, create_write_slice, expect_context, view, IntoView, RwSignal,
-    SignalGet, SignalWith,
+    component, create_effect, create_rw_signal, create_write_slice, expect_context, view, IntoView,
+    RwSignal, SignalGet, SignalUpdate, SignalWith,
 };
 use leptos_router::use_query_map;
 use rand::seq::SliceRandom;
 use types::entities::QueryableAlbum;
 use types::songs::GetSongOptions;
-use types::ui::song_details::SongDetailIcons;
+use types::ui::song_details::{DefaultDetails, SongDetailIcons};
 
 use crate::utils::db_utils::{get_albums_by_option, get_songs_by_option};
 
@@ -23,6 +23,27 @@ pub fn SingleAlbum() -> impl IntoView {
 
     let songs = create_rw_signal(vec![]);
     let selected_songs = create_rw_signal(vec![]);
+
+    let album = create_rw_signal(vec![]);
+    let default_details = create_rw_signal(DefaultDetails::default());
+    get_albums_by_option(
+        QueryableAlbum {
+            album_id: Some(album_id.clone()),
+            ..Default::default()
+        },
+        album,
+    );
+
+    create_effect(move |_| {
+        let binding = album.get();
+        let album = binding.first();
+        if let Some(album) = album {
+            default_details.update(|d| {
+                d.title = album.album_name.clone();
+                d.icon = album.album_coverpath_high.clone();
+            });
+        }
+    });
 
     get_songs_by_option(
         GetSongOptions {
@@ -73,7 +94,14 @@ pub fn SingleAlbum() -> impl IntoView {
         ..Default::default()
     });
 
-    view! { <SongView songs=songs icons=icons selected_songs=selected_songs /> }
+    view! {
+        <SongView
+            default_details=default_details
+            songs=songs
+            icons=icons
+            selected_songs=selected_songs
+        />
+    }
 }
 
 #[component()]

@@ -6,8 +6,8 @@ use leptos::{
 };
 use regex::bytes::Regex;
 use tokio::sync::oneshot::Sender as OneShotSender;
-use types::errors::errors::Result;
-use types::{errors::errors::MoosyncError, songs::SongType, ui::player_details::PlayerEvents};
+use types::errors::Result;
+use types::{errors::MoosyncError, songs::SongType, ui::player_details::PlayerEvents};
 use wasm_bindgen::{closure::Closure, JsValue};
 use wasm_bindgen_futures::spawn_local;
 
@@ -81,17 +81,17 @@ impl GenericPlayer for YoutubePlayer {
         }
     }
 
-    fn play(&self) -> types::errors::errors::Result<()> {
+    fn play(&self) -> types::errors::Result<()> {
         self.player.play();
         Ok(())
     }
 
-    fn pause(&self) -> types::errors::errors::Result<()> {
+    fn pause(&self) -> types::errors::Result<()> {
         self.player.pause();
         Ok(())
     }
 
-    fn seek(&self, pos: f64) -> types::errors::errors::Result<()> {
+    fn seek(&self, pos: f64) -> types::errors::Result<()> {
         self.player.seek(pos);
         Ok(())
     }
@@ -105,13 +105,13 @@ impl GenericPlayer for YoutubePlayer {
         re.is_match(song.song.playback_url.clone().unwrap().as_bytes())
     }
 
-    fn set_volume(&self, volume: f64) -> types::errors::errors::Result<()> {
+    fn set_volume(&self, volume: f64) -> types::errors::Result<()> {
         console_log!("Setting youtube volume {}", volume);
         self.player.setVolume(volume);
         Ok(())
     }
 
-    fn get_volume(&self) -> types::errors::errors::Result<f64> {
+    fn get_volume(&self) -> types::errors::Result<f64> {
         Ok(self.player.getVolume())
     }
 

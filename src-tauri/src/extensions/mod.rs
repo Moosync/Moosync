@@ -12,7 +12,7 @@ use tauri::async_runtime;
 use tauri::AppHandle;
 use tauri::Manager;
 use tauri::State;
-use types::errors::errors::Result;
+use types::errors::Result;
 use types::extensions::ExtensionDetail;
 use types::extensions::ExtensionExtraEventArgs;
 use types::extensions::FetchedExtensionManifest;

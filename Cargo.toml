@@ -41,6 +41,9 @@ pref_gen = { path = "src/pref_gen" }
 rand = "0.8.5"
 dyn-clone = "1.0.17"
 itertools = "0.13.0"
+bitcode = { version = "0.6.3" }
+indexed_db_futures = "0.5.0"
+lazy_static = "1.5.0"
 
 [workspace]
 resolver = "2"

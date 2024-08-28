@@ -16,8 +16,8 @@ use preference_holder::{
 };
 use providers::handler::get_provider_handler_state;
 use themes::{
-    get_theme_handler_state, import_theme, load_all_themes, load_theme, remove_theme, save_theme,
-    transform_css,
+    export_theme, get_theme_handler_state, import_theme, load_all_themes, load_theme, remove_theme,
+    save_theme, transform_css,
 };
 
 use extensions::{
@@ -147,6 +147,7 @@ pub fn run() {
             save_theme,
             remove_theme,
             import_theme,
+            export_theme,
             transform_css,
             // MPRIS
             set_metadata,

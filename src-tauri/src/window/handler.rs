@@ -6,7 +6,7 @@ use open;
 use preferences::preferences::PreferenceConfig;
 use tauri::{AppHandle, Manager, State, WebviewWindow, WebviewWindowBuilder, Window};
 use tauri_plugin_dialog::{DialogExt, FilePath};
-use types::errors::errors::Result;
+use types::errors::Result;
 use types::window::{DialogFilter, FileResponse};
 
 #[derive(Debug)]
@@ -218,10 +218,8 @@ impl WindowHandler {
     #[tracing::instrument(level = "trace", skip(self))]
     pub fn open_save_file(&self, app: AppHandle) -> Result<PathBuf> {
         let res = app.dialog().file().blocking_save_file();
-        if let Some(res) = res {
-            if let FilePath::Path(path) = res {
-                return Ok(path.clone());
-            }
+        if let Some(FilePath::Path(path)) = res {
+            return Ok(path.clone());
         }
         Err("No file selected".into())
     }

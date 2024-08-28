@@ -15,14 +15,14 @@ use crate::utils::db_utils::{
 use crate::utils::entities::get_playlist_sort_cx_items;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
-    component, create_memo, create_read_slice, create_rw_signal, create_write_slice,
+    component, create_effect, create_memo, create_read_slice, create_rw_signal, create_write_slice,
     expect_context, spawn_local, use_context, view, IntoView, RwSignal, SignalGet, SignalUpdate,
     SignalWith,
 };
 use leptos_router::use_query_map;
 use types::entities::QueryablePlaylist;
 use types::songs::GetSongOptions;
-use types::ui::song_details::SongDetailIcons;
+use types::ui::song_details::{DefaultDetails, SongDetailIcons};
 
 use crate::store::provider_store::ProviderStore;
 use crate::{icons::plus_button::PlusIcon, utils::db_utils::get_playlists_by_option};
@@ -116,6 +116,27 @@ pub fn SinglePlaylist() -> impl IntoView {
 
     let provider_store = use_context::<Rc<ProviderStore>>().unwrap();
 
+    let playlist = create_rw_signal(vec![]);
+    let default_details = create_rw_signal(DefaultDetails::default());
+    get_playlists_by_option(
+        QueryablePlaylist {
+            playlist_id: Some(playlist_id.clone()),
+            ..Default::default()
+        },
+        playlist,
+    );
+
+    create_effect(move |_| {
+        let binding = playlist.get();
+        let playlist = binding.first();
+        if let Some(playlist) = playlist {
+            default_details.update(|d| {
+                d.title = Some(playlist.playlist_name.clone());
+                d.icon = playlist.playlist_coverpath.clone();
+            });
+        }
+    });
+
     let playlist_id_tmp = playlist_id.clone();
     spawn_local(async move {
         let provider = provider_store
@@ -184,7 +205,14 @@ pub fn SinglePlaylist() -> impl IntoView {
         ..Default::default()
     });
 
-    view! { <SongView songs=songs icons=icons selected_songs=selected_songs /> }
+    view! {
+        <SongView
+            default_details=default_details
+            songs=songs
+            icons=icons
+            selected_songs=selected_songs
+        />
+    }
 }
 
 #[component()]

@@ -2,7 +2,7 @@ use database::database::Database;
 use file_scanner::scanner::ScannerHolder;
 use preferences::preferences::PreferenceConfig;
 use tauri::State;
-use types::errors::errors::Result;
+use types::errors::Result;
 
 #[tracing::instrument(level = "trace", skip())]
 pub fn get_scanner_state() -> ScannerHolder {

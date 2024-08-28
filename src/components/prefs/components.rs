@@ -1,9 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, rc::Rc};
 
 use leptos::{
     component, create_effect, create_rw_signal, event_target_checked, event_target_value,
     expect_context, view, CollectView, For, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
 };
+use leptos_context_menu::ContextMenu;
 use leptos_i18n::t;
 use leptos_use::use_debounce_fn_with_arg;
 use serde::Serialize;
@@ -26,6 +27,7 @@ use crate::{
     store::modal_store::{ModalStore, Modals},
     utils::{
         common::invoke,
+        context_menu::ThemesContextMenu,
         prefs::{
             load_selective, open_file_browser, open_file_browser_single, save_selective,
             save_selective_number,
@@ -318,6 +320,8 @@ pub fn ThemesPref(
     let active_theme_id = create_rw_signal(String::new());
     load_selective(key, active_theme_id);
 
+    let context_menu = Rc::new(ContextMenu::new(ThemesContextMenu { id: None }));
+
     let modal_store: RwSignal<ModalStore> = expect_context();
     let render_themes = move || {
         let mut views = vec![];
@@ -325,10 +329,19 @@ pub fn ThemesPref(
         for (key, theme) in all_themes.get() {
             let signal = create_rw_signal(key == active_theme_id);
             active_themes.update(|at| at.push(signal));
+            let context_menu = context_menu.clone();
+            let key_clone = key.clone();
             views.push(view! {
                 <div class="col-xl-3 col-5 p-2">
                     <div
                         class="theme-component-container"
+                        on:contextmenu=move |ev| {
+                            let context_menu = context_menu.clone();
+                            let mut data = context_menu.get_data();
+                            data.id = Some(key_clone.clone());
+                            drop(data);
+                            context_menu.show(ev);
+                        }
                         on:click=move |_| {
                             active_themes
                                 .update(|at| {

@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::mpsc::Sender};
 use crate::utils::{check_directory, get_files_recursively, scan_file};
 use database::database::Database;
 use threadpool::ThreadPool;
-use types::errors::errors::Result;
+use types::errors::Result;
 use types::songs::Song;
 
 pub struct SongScanner<'a> {

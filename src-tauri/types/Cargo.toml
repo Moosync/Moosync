@@ -4,35 +4,43 @@ edition = "2021"
 version = "0.1.0"
 
 [dependencies]
-jsonschema = { version = "0.18.0", optional = true , default-features = false }
+jsonschema = { version = "0.18.0", optional = true, default-features = false }
 serde_json = { default-features = false, version = "1.0" }
 thiserror = "1.0.63"
 tracing = { version = "0.1.40", default-features = false }
 async-trait = { version = "0.1.81", features = [] }
-diesel = { version = "2.2.2", features = ["32-column-tables", "sqlite"], optional = true, default-features = false }
+diesel = { version = "2.2.2", features = [
+    "32-column-tables",
+    "sqlite",
+], optional = true, default-features = false }
 fast_image_resize = { version = "4.2.1", features = [], optional = true }
 fs_extra = { version = "1.3.0", features = [], optional = true }
 google-youtube3 = { version = "5.0.5", features = [
 ], optional = true, default-features = false }
-hex = { version = "0.4.3", optional = true , default-features = false }
-image = { version = "0.25.2", optional = true , default-features = false }
+hex = { version = "0.4.3", optional = true, default-features = false }
+image = { version = "0.25.2", optional = true, default-features = false }
 json_dotpath = { version = "1.1.0", features = [] }
 jwalk = { version = "0.8.1", features = [], optional = true }
 keyring = { version = "3.2.0", features = [], optional = true }
-librespot = { git = "https://github.com/librespot-org/librespot", branch = "dev", optional = true , default-features = false }
-lofty = { version = "0.21.0", optional = true , default-features = false }
-oauth2 = { version = "4.4.2", optional = true , default-features = false }
-protobuf = { version = "3.5.0", optional = true , default-features = false }
+librespot = { git = "https://github.com/librespot-org/librespot", branch = "dev", optional = true, default-features = false }
+lofty = { version = "0.21.0", optional = true, default-features = false }
+oauth2 = { version = "4.4.2", optional = true, default-features = false }
+protobuf = { version = "3.5.0", optional = true, default-features = false }
 reqwest = { version = "0.12.5", default-features = false }
-rspotify = { version = "0.13.2", features = ["client-reqwest"], optional = true , default-features = false }
-rusty_ytdl = { version = "0.7.3", optional = true , default-features = false }
+rspotify = { version = "0.13.2", features = [
+    "client-reqwest",
+], optional = true, default-features = false }
+rusty_ytdl = { version = "0.7.3", optional = true, default-features = false }
 serde = { version = "1.0", default-features = false }
 serde-wasm-bindgen = { version = "0.6", features = [], optional = true }
-souvlaki = { version = "0.7.3", features = ["use_zbus"], optional = true, default-features = false }
+souvlaki = { version = "0.7.3", features = [
+    "use_zbus",
+], optional = true, default-features = false }
 tauri = { version = "2.0.0-beta.24", default-features = false, optional = true }
 uuid = { version = "1.10.0", default-features = false }
-wasm-bindgen = { version = "0.2", optional = true , default-features = false }
-zip = { version = "2.1.5", optional = true , default-features = false }
+wasm-bindgen = { version = "0.2", optional = true, default-features = false }
+zip = { version = "2.1.5", optional = true, default-features = false }
+bitcode = { version = "0.6.3" }
 
 [features]
 core = [

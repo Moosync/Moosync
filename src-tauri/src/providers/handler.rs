@@ -15,7 +15,7 @@ use tauri::{
 };
 use types::{
     entities::{QueryablePlaylist, SearchResult},
-    errors::errors::{MoosyncError, Result},
+    errors::{MoosyncError, Result},
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
 };

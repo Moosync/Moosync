@@ -3,7 +3,7 @@ use std::rc::Rc;
 use leptos::{spawn_local, SignalSet};
 use serde::{de::DeserializeOwned, Serialize};
 use serde_wasm_bindgen::{from_value, to_value};
-use types::errors::errors::Result;
+use types::errors::Result;
 use types::themes::ThemeDetails;
 use types::window::{DialogFilter, FileResponse};
 use wasm_bindgen::JsValue;

@@ -2,7 +2,7 @@ use librespot::LibrespotHolder;
 use regex::Regex;
 
 use serde_json::Value;
-use types::errors::errors::Result;
+use types::errors::Result;
 
 #[derive(Debug)]
 pub struct LyricsFetcher {}

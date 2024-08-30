@@ -13,6 +13,8 @@ use diesel::{
     AsChangeset, Identifiable, Insertable, Queryable, Selectable,
 };
 use serde::{Deserialize, Serialize};
+
+#[cfg(not(feature = "extensions"))]
 use uuid::Uuid;
 
 #[cfg(feature = "core")]
@@ -179,6 +181,7 @@ impl PartialEq for QueryableSong {
 
 impl Eq for QueryableSong {}
 
+#[cfg(not(feature = "extensions"))]
 impl QueryableSong {
     #[tracing::instrument(level = "trace", skip())]
     pub fn empty() -> Self {

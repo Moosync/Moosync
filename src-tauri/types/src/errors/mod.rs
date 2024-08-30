@@ -169,6 +169,7 @@ impl From<souvlaki::Error> for MoosyncError {
     }
 }
 
+#[cfg(not(feature = "extensions"))]
 impl From<&'static str> for MoosyncError {
     #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: &'static str) -> Self {
@@ -176,6 +177,7 @@ impl From<&'static str> for MoosyncError {
     }
 }
 
+#[cfg(not(feature = "extensions"))]
 impl From<String> for MoosyncError {
     #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: String) -> Self {
@@ -183,6 +185,7 @@ impl From<String> for MoosyncError {
     }
 }
 
+#[cfg(not(feature = "extensions"))]
 impl serde::Serialize for MoosyncError {
     #[tracing::instrument(level = "trace", skip(self, serializer))]
     fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
@@ -194,6 +197,6 @@ impl serde::Serialize for MoosyncError {
 }
 
 #[cfg(feature = "extensions")]
-pub struct MoosyncError;
+pub type MoosyncError = std::error::Error;
 
 pub type Result<T> = std::result::Result<T, MoosyncError>;

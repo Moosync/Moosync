@@ -131,7 +131,7 @@ pub enum MoosyncError {
     FmtError(#[from] FmtError),
 }
 
-#[cfg(feature = "ui")]
+#[cfg(all(not(feature = "extensions"), feature = "ui"))]
 impl From<serde_wasm_bindgen::Error> for MoosyncError {
     #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: serde_wasm_bindgen::Error) -> Self {
@@ -139,7 +139,7 @@ impl From<serde_wasm_bindgen::Error> for MoosyncError {
     }
 }
 
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 impl<'a> From<Box<dyn Iterator<Item = ValidationError<'a>> + Sync + Send + 'a>> for MoosyncError {
     #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: Box<dyn Iterator<Item = ValidationError<'a>> + Sync + Send + 'a>) -> Self {
@@ -152,7 +152,7 @@ impl<'a> From<Box<dyn Iterator<Item = ValidationError<'a>> + Sync + Send + 'a>> 
     }
 }
 
-#[cfg(feature = "ui")]
+#[cfg(all(not(feature = "extensions"), feature = "ui"))]
 impl From<JsValue> for MoosyncError {
     #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: JsValue) -> Self {
@@ -161,7 +161,7 @@ impl From<JsValue> for MoosyncError {
     }
 }
 
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 impl From<souvlaki::Error> for MoosyncError {
     #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: souvlaki::Error) -> Self {
@@ -169,7 +169,6 @@ impl From<souvlaki::Error> for MoosyncError {
     }
 }
 
-#[cfg(not(feature = "extensions"))]
 impl From<&'static str> for MoosyncError {
     #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: &'static str) -> Self {
@@ -177,7 +176,6 @@ impl From<&'static str> for MoosyncError {
     }
 }
 
-#[cfg(not(feature = "extensions"))]
 impl From<String> for MoosyncError {
     #[tracing::instrument(level = "trace", skip(value))]
     fn from(value: String) -> Self {
@@ -185,7 +183,6 @@ impl From<String> for MoosyncError {
     }
 }
 
-#[cfg(not(feature = "extensions"))]
 impl serde::Serialize for MoosyncError {
     #[tracing::instrument(level = "trace", skip(self, serializer))]
     fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
@@ -197,6 +194,10 @@ impl serde::Serialize for MoosyncError {
 }
 
 #[cfg(feature = "extensions")]
-pub type MoosyncError = std::error::Error;
+#[derive(Debug, thiserror::Error)]
+pub enum MoosyncError {
+    #[error("{0}")]
+    String(String),
+}
 
 pub type Result<T> = std::result::Result<T, MoosyncError>;

@@ -15,7 +15,6 @@ pub mod songs;
 
 pub mod providers;
 
-#[cfg(not(feature = "extensions"))]
 pub mod ui;
 
 #[cfg(feature = "core")]

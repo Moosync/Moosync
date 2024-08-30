@@ -10,7 +10,7 @@ use crate::{
     ui::player_details::PlayerState,
 };
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct GenericExtensionHostRequest<T: Serialize> {
     #[serde(rename = "type")]
@@ -34,7 +34,7 @@ impl From<String> for PackageNameArgs {
     }
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 
 pub struct ToggleExtArgs {
@@ -42,7 +42,7 @@ pub struct ToggleExtArgs {
     pub toggle: bool,
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ContextMenuActionArgs {
     pub package_name: String,
@@ -50,7 +50,7 @@ pub struct ContextMenuActionArgs {
     pub arg: Value,
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountLoginArgs {
     pub package_name: String,
@@ -88,7 +88,7 @@ impl PartialEq for ExtensionDetail {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionContextMenuItem {
     #[serde(rename = "type")]
@@ -99,7 +99,7 @@ pub struct ExtensionContextMenuItem {
     pub handler: String,
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionAccountDetail {
     pub id: String,
@@ -111,7 +111,7 @@ pub struct ExtensionAccountDetail {
     pub username: Option<String>,
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum ExtensionProviderScope {
     Search,
@@ -171,26 +171,26 @@ pub struct ExtensionExtraEventArgs {
     pub package_name: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistReturnType {
     pub playlists: Vec<QueryablePlaylist>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SongsReturnType {
     pub songs: Vec<Song>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SongsWithPageTokenReturnType {
     pub songs: Vec<Song>,
     pub next_page_token: Option<serde_json::Value>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchReturnType {
     pub songs: Vec<Song>,
@@ -199,14 +199,14 @@ pub struct SearchReturnType {
     pub albums: Vec<QueryableAlbum>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaybackDetailsReturnType {
     pub duration: u32,
     pub url: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomRequestReturnType {
     pub mime_type: Option<String>,
@@ -214,20 +214,20 @@ pub struct CustomRequestReturnType {
     pub redirect_url: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SongReturnType {
     pub song: Song,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistAndSongsReturnType {
     pub playlist: Option<QueryablePlaylist>,
     pub songs: Option<Vec<Song>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RecommendationsReturnType {
     pub songs: Vec<Song>,

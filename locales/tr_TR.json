@@ -110,10 +110,10 @@
     "incorrectPlayback": "Yanlış mı oynatılıyor?"
   },
   "explore": {
-    "you_listened_to": "You've listened to",
+    "you_listened_to": "Şunu dinlediniz",
     "of_music": "müsik dan",
     "played_for": "Oynadi icin",
-    "hot_from": "Hot from"
+    "hot_from": "Sıcak gelen"
   },
   "providers": {
     "youtube": "YouTube",
@@ -129,7 +129,7 @@
     "paths": {
       "songDirectories": "Şarkı Dizinleri",
       "songDirectories_tooltip": "Tüm yerel müziğinizin depolandığı dizinler",
-      "songDirectories_exclude": "Blacklisted Directories",
+      "songDirectories_exclude": "Kara Listeye Alınmış Dizinler",
       "songDirectories_exclude_tooltip": "Songs in these directories would not be scanned",
       "addFolder": "Klasör Ekle...",
       "remove": "Kaldır",

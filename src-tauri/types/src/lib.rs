@@ -4,8 +4,6 @@ pub mod cache_schema;
 pub mod canvaz;
 pub mod common;
 pub mod entities;
-
-#[cfg(not(feature = "extensions"))]
 pub mod errors;
 
 #[cfg(not(feature = "extensions"))]

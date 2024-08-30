@@ -1,46 +1,48 @@
+#[cfg(not(feature = "extensions"))]
 use std::{
     fmt::Error as FmtError,
     num::{ParseFloatError, ParseIntError},
     string::FromUtf8Error,
 };
 
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use std::io;
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use std::time::SystemTimeError;
 
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use fast_image_resize::ResizeError;
 
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use google_youtube3::Error as YoutubeError;
 
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use jsonschema::ValidationError;
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use rspotify::{model::IdError, ClientError};
 
-#[cfg(feature = "ui")]
+#[cfg(all(not(feature = "extensions"), feature = "ui"))]
 use serde_json::Value;
 
-#[cfg(feature = "ui")]
+#[cfg(all(not(feature = "extensions"), feature = "ui"))]
 use wasm_bindgen::JsValue;
 
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use fast_image_resize::ImageBufferError;
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use hex::FromHexError;
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use image::ImageError;
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use keyring::Error as KeyringError;
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use librespot::core::Error as LibrespotError;
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use lofty::error::LoftyError;
-#[cfg(feature = "core")]
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use rusty_ytdl::VideoError;
 
+#[cfg(not(feature = "extensions"))]
 #[derive(Debug, thiserror::Error)]
 pub enum MoosyncError {
     #[cfg_attr(feature = "core", error(transparent))]
@@ -190,5 +192,8 @@ impl serde::Serialize for MoosyncError {
         serializer.serialize_str(self.to_string().as_ref())
     }
 }
+
+#[cfg(feature = "extensions")]
+pub struct MoosyncError;
 
 pub type Result<T> = std::result::Result<T, MoosyncError>;

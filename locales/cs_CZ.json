@@ -192,7 +192,7 @@
       "systemSettings_tooltip": "Nastavení vztahující se k vašemu systému",
       "audioSettings": {
         "title": "Nastavení zvuku",
-        "gaplessPlayback": "Používejte přehrávání bez mezer všude, kde je to možné",
+        "gaplessPlayback": "Použít přehrávání bez mezer všude, kde je to možné",
         "sponsorBlock": "Použít SponsorBlock k automatickému přeskočení zvýrazněné části Youtube písně"
       },
       "audioSettings_tooltip": "Nastavení související přehrávání zvuku",
@@ -206,11 +206,11 @@
       "spotify": {
         "client_id": "Spotify ID klienta",
         "client_id_tooltip": "Pro přihlášení do Spotify je vyžadováno ID klienta. Klikněte pro více informací",
-        "client_secret": "Tajný Spotify klient",
+        "client_secret": "Tajný klíč klienta Spotify",
         "client_secret_tooltip": "Spotify klient Secret je vyžadován pro přihlášení do Spotify. Klikněte pro více informací",
         "autoFetchButton": "Automaticky získat Spotify podrobnosti",
         "autoFetchPreTitle": "Získat",
-        "autoFetchTitle": "KlientID a tajný klíč",
+        "autoFetchTitle": "ID klienta a tajný klíč",
         "autoFetchDisclaimer": "Okno se nyní otevře, kde budete požádáni o přihlášení ke svému účtu Spotify. Po přihlášení prosím neklikejte nikde a celý proces bude automatizován",
         "openWindow": "Otevřít okno",
         "title": "Spotify nastavení",
@@ -283,7 +283,7 @@
         "title": "Poskytovatel textů písní",
         "tooltip": "Vyberte, kteří poskytovatelé textů písní budou aktivní",
         "az_lyrics": "Použít AZLyrics",
-        "google_lyrics": "Použít Google Search texty",
+        "google_lyrics": "Použít texty z vyhledávače Google",
         "spotify_lyrics": "Použít Spotify pro texty (vyžaduje librespot)",
         "genius_lyrics": "Použít Genius"
       },

@@ -57,7 +57,8 @@ pub enum MoosyncError {
     #[cfg_attr(feature = "core", error(transparent))]
     #[cfg(feature = "core")]
     Youtube(#[from] VideoError),
-    #[error(transparent)]
+    #[cfg_attr(feature = "core", error(transparent))]
+    #[cfg(feature = "core")]
     DotPaths(#[from] json_dotpath::Error),
     #[cfg_attr(feature = "core", error(transparent))]
     #[cfg(feature = "core")]

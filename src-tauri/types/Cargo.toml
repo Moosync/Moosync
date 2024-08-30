@@ -37,12 +37,13 @@ souvlaki = { version = "0.7.3", features = [
     "use_zbus",
 ], optional = true, default-features = false }
 tauri = { version = "2.0.0-beta.24", default-features = false, optional = true }
-uuid = { version = "1.10.0", default-features = false }
+uuid = { version = "1.10.0", default-features = false, optional = true }
 wasm-bindgen = { version = "0.2", optional = true, default-features = false }
 zip = { version = "2.1.5", optional = true, default-features = false }
 bitcode = { version = "0.6.3" }
 
 [features]
+ui = ["dep:wasm-bindgen", "dep:serde-wasm-bindgen"]
 core = [
     "dep:souvlaki",
     "dep:rusty_ytdl",
@@ -62,6 +63,7 @@ core = [
     "dep:hex",
     "dep:keyring",
     "dep:jsonschema",
+    "dep:uuid",
 ]
+extensions = []
 default = ["core"]
-ui = ["dep:wasm-bindgen", "dep:serde-wasm-bindgen"]

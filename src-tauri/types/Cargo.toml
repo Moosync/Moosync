@@ -44,10 +44,10 @@ uuid = { version = "1.10.0", default-features = false, optional = true, features
 ] }
 wasm-bindgen = { version = "0.2", optional = true, default-features = false }
 zip = { version = "2.1.5", optional = true, default-features = false }
-bitcode = { version = "0.6.3", optional = true }
+bitcode = { version = "0.6.3" }
 
 [features]
-ui = ["dep:wasm-bindgen", "dep:serde-wasm-bindgen", "dep:bitcode", "dep:uuid"]
+ui = ["dep:wasm-bindgen", "dep:serde-wasm-bindgen", "dep:uuid"]
 core = [
     "dep:souvlaki",
     "dep:rusty_ytdl",

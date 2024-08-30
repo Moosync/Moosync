@@ -192,6 +192,7 @@ impl QueryableSong {
     }
 }
 
+#[cfg(not(feature = "extensions"))]
 impl SearchByTerm for QueryableSong {
     #[tracing::instrument(level = "trace", skip(term))]
     fn search_by_term(term: Option<String>) -> Self {

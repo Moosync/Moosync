@@ -127,12 +127,12 @@ impl WindowHandler {
 
     #[tracing::instrument(level = "trace", skip(self, window))]
     pub fn toggle_dev_tools(&self, window: WebviewWindow) -> Result<()> {
-        let is_devtools_open = window.is_devtools_open();
-        if !is_devtools_open {
-            window.open_devtools();
-        } else {
-            window.close_devtools();
-        }
+        // let is_devtools_open = window.is_devtools_open();
+        // if !is_devtools_open {
+        //     window.open_devtools();
+        // } else {
+        //     window.close_devtools();
+        // }
 
         Ok(())
     }

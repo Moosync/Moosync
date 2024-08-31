@@ -199,7 +199,7 @@ pub struct SearchReturnType {
     pub albums: Vec<QueryableAlbum>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaybackDetailsReturnType {
     pub duration: u32,

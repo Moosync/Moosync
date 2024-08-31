@@ -6,7 +6,7 @@ import { Mutex } from "async-mutex";
 const IPC_PATH =
   process.argv[process.argv.findIndex((val) => val === "-ipcPath") + 1];
 
-console.log("got IPC path", IPC_PATH);
+console.log("got IPC path", process.argv);
 
 const client = createConnection(IPC_PATH);
 

@@ -49,7 +49,11 @@ impl<'a> SocketHandler {
     }
 
     #[tracing::instrument(level = "trace", skip(self, tx_reply, value))]
-    async fn write_command(&self, mut tx_reply: Sender<Result<Value>>, value: &mut Value) {
+    async fn write_command(
+        &self,
+        mut tx_reply: Sender<Result<Value>>,
+        value: &mut Value,
+    ) -> Result<()> {
         let channel = uuid::Uuid::new_v4().to_string();
         if let Some(value) = value.as_object_mut() {
             value.insert("channel".to_string(), Value::String(channel.clone()));
@@ -57,11 +61,12 @@ impl<'a> SocketHandler {
                 Ok(bytes) => {
                     let mut reply_map = self.reply_map.lock().await;
                     reply_map.insert(channel, tx_reply);
-                    Self::write_data(self.write_conn.clone(), bytes).await
+                    Self::write_data(self.write_conn.clone(), bytes).await;
                 }
                 Err(e) => tx_reply.send(Err(e.into())).await.unwrap(),
             }
         }
+        Ok(())
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -136,11 +141,15 @@ impl<'a> SocketHandler {
     }
 
     #[tracing::instrument(level = "trace", skip(conn, data))]
-    pub async fn write_data(conn: Arc<Mutex<WriteHalf<LocalSocketStream>>>, mut data: Vec<u8>) {
+    pub async fn write_data(
+        conn: Arc<Mutex<WriteHalf<LocalSocketStream>>>,
+        mut data: Vec<u8>,
+    ) -> Result<()> {
         let mut conn = conn.lock().await;
         data.push(b'\n');
-        conn.write_all(&data).await.unwrap();
-        conn.flush().await.unwrap();
+        conn.write_all(&data).await?;
+        conn.flush().await?;
+        Ok(())
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -155,7 +164,7 @@ impl<'a> SocketHandler {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    pub async fn handle_connection(&self) {
+    pub async fn handle_connection(&self) -> Result<()> {
         let mut old_buf = vec![];
         loop {
             let ext_resp = self.read_fixed_buf().await;
@@ -205,5 +214,6 @@ impl<'a> SocketHandler {
                 }
             }
         }
+        Ok(())
     }
 }

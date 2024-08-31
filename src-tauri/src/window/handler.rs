@@ -4,9 +4,13 @@ use std::path::PathBuf;
 use macros::{generate_command, generate_command_async};
 use open;
 use preferences::preferences::PreferenceConfig;
-use tauri::{AppHandle, Manager, State, WebviewWindow, WebviewWindowBuilder, Window};
+use serde_json::Value;
+use tauri::menu::{MenuBuilder, MenuItemBuilder};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
+use tauri::{App, AppHandle, Emitter, Manager, State, WebviewWindow, WebviewWindowBuilder, Window};
 use tauri_plugin_dialog::{DialogExt, FilePath};
 use types::errors::Result;
+use types::preferences::CheckboxPreference;
 use types::window::{DialogFilter, FileResponse};
 
 #[derive(Debug)]
@@ -228,6 +232,76 @@ impl WindowHandler {
 #[tracing::instrument(level = "trace", skip())]
 pub fn get_window_state() -> WindowHandler {
     WindowHandler::new()
+}
+
+pub fn handle_window_close(app: &AppHandle) -> Result<bool> {
+    let preferences: State<PreferenceConfig> = app.state();
+    let preferences: CheckboxPreference =
+        preferences.load_selective_array("system_settings.minimize_to_tray".into())?;
+    if preferences.enabled {
+        return Ok(false);
+    }
+
+    Ok(true)
+}
+
+pub fn build_tray_menu(app: &App) -> Result<()> {
+    let menu = MenuBuilder::new(app)
+        .icon(
+            "show",
+            "Show App",
+            app.default_window_icon().cloned().unwrap(),
+        )
+        .icon("play", "Play", app.default_window_icon().cloned().unwrap())
+        .icon(
+            "pause",
+            "Pause",
+            app.default_window_icon().cloned().unwrap(),
+        )
+        .icon("next", "Next", app.default_window_icon().cloned().unwrap())
+        .icon("prev", "Prev", app.default_window_icon().cloned().unwrap())
+        .icon("quit", "Quit", app.default_window_icon().cloned().unwrap())
+        .build()?;
+
+    tauri::tray::TrayIconBuilder::new()
+        .menu(&menu)
+        .on_menu_event(move |app, event| match event.id().as_ref() {
+            "show" => {
+                let _ = app.get_webview_window("main").unwrap().show();
+            }
+            "play" => {
+                let _ = app.emit("media_button_press", (0, Value::Null));
+            }
+            "pause" => {
+                let _ = app.emit("media_button_press", (1, Value::Null));
+            }
+            "next" => {
+                let _ = app.emit("media_button_press", (6, Value::Null));
+            }
+            "prev" => {
+                let _ = app.emit("media_button_press", (7, Value::Null));
+            }
+            "quit" => {
+                app.exit(0);
+            }
+            _ => (),
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                let app = tray.app_handle();
+                if let Some(webview_window) = app.get_webview_window("main") {
+                    let _ = webview_window.show();
+                    let _ = webview_window.set_focus();
+                }
+            }
+        })
+        .build(app)?;
+    Ok(())
 }
 
 generate_command!(is_maximized, WindowHandler, bool, window: Window);

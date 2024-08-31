@@ -16,8 +16,14 @@ Since TypeScript cannot handle type information for `.vue` imports, they are shi
 You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/volar/discussions/471).
 
 ## TODO
-- Single entity details on its page
 - Preferences
+  - App on startup
+  - Minimize to tray
+  - Jukebox mode
+  - Clear queue before adding playlist
+  - gapless playback
+  - sponsorblock
+- i18n
 - wasm extensions
 - Sanitize extension response
 - System theme fetch

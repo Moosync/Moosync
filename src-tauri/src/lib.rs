@@ -38,6 +38,7 @@ use tracing_subscriber::{
     fmt::{self},
     layer::SubscriberExt,
 };
+use window::handler::{build_tray_menu, handle_window_close};
 
 use {
     db::{
@@ -246,7 +247,20 @@ pub fn run() {
                 tracing::info!("got url {:?}", url);
             });
 
+            build_tray_menu(app)?;
+
             Ok(())
+        })
+        .on_window_event(|window, event| match event {
+            tauri::WindowEvent::CloseRequested { api, .. } => {
+                if let Ok(should_close) = handle_window_close(window.app_handle()) {
+                    if !should_close {
+                        window.hide().unwrap();
+                        api.prevent_close();
+                    }
+                }
+            }
+            _ => {}
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

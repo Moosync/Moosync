@@ -216,6 +216,7 @@ pub fn CheckboxPref(
     let should_write = create_rw_signal(false);
     let pref_value = create_rw_signal::<Vec<CheckboxPreference>>(Default::default());
     let pref_key = key;
+    let pref_key_clone = pref_key.clone();
     load_selective(pref_key.clone(), pref_value.write_only());
     let last_enabled = create_rw_signal(String::new());
     create_effect(move |_| {
@@ -246,6 +247,8 @@ pub fn CheckboxPref(
                 key=|p| p.key.clone()
                 children=move |item| {
                     let item_key_clone = item.key.clone();
+                    let item_key_clone_1 = item_key_clone.clone();
+                    let pref_key = pref_key_clone.clone();
                     view! {
                         <div class="row no-gutters item w-100">
                             <div class="col-auto align-self-center">
@@ -253,6 +256,11 @@ pub fn CheckboxPref(
                                     <input
                                         type="checkbox"
                                         class="custom-control-input"
+                                        id=format!(
+                                            "checkbox-{}-{}",
+                                            pref_key.clone(),
+                                            item_key_clone.clone(),
+                                        )
                                         prop:checked=move || {
                                             pref_value
                                                 .get()
@@ -261,7 +269,6 @@ pub fn CheckboxPref(
                                                 .map(|item| item.enabled)
                                                 .unwrap_or(false)
                                         }
-                                        id="checkbox-system_settings-auto_startup"
                                         on:change=move |ev| {
                                             let enabled = event_target_checked(&ev);
                                             pref_value
@@ -284,7 +291,11 @@ pub fn CheckboxPref(
                                         }
                                     />
                                     <label
-                                        for="checkbox-system_settings-auto_startup"
+                                        for=format!(
+                                            "checkbox-{}-{}",
+                                            pref_key.clone(),
+                                            item_key_clone_1.clone(),
+                                        )
                                         class="custom-control-label"
                                     ></label>
                                 </div>

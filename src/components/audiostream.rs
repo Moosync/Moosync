@@ -198,7 +198,13 @@ impl PlayerHolder {
 
         resolver_rx.await.expect("Load failed to resolve");
         player.set_volume(current_volume).unwrap();
-        player.play()?;
+
+        let is_playing = create_read_slice(player_store, |p| {
+            p.get_player_state() == PlayerState::Playing
+        });
+        if is_playing.get_untracked() {
+            player.play()?;
+        }
 
         Ok(ret)
     }

@@ -23,7 +23,7 @@ use interprocess::local_socket::{
 };
 use serde_json::Value;
 use socket_handler::{ExtensionCommandReceiver, MainCommandSender, SocketHandler};
-use tokio::join;
+use tokio::{join, select};
 use types::{
     errors::{MoosyncError, Result},
     extensions::{
@@ -183,13 +183,18 @@ impl ExtensionHandler {
                             tokio::spawn(async move {
                                 let handler =
                                     SocketHandler::new(conn, rx_main_command, tx_ext_command);
-                                let mut sender_map = sender_map.lock().await;
-                                sender_map
-                                    .insert(uuid::Uuid::new_v4().to_string(), tx_main_command);
-                                drop(sender_map);
+                                let uuid = uuid::Uuid::new_v4().to_string();
+                                let mut sender_map_lock = sender_map.lock().await;
+                                sender_map_lock.insert(uuid.clone(), tx_main_command);
+                                drop(sender_map_lock);
                                 tx_listen.send(rx_ext_command).await.unwrap();
                                 tracing::info!("Handling extension socket connections");
-                                join!(handler.handle_main_command(), handler.handle_connection());
+                                tokio::select! {
+                                    _ = handler.handle_main_command() => {}
+                                    _ = handler.handle_connection() => {}
+                                };
+                                let mut sender_map = sender_map.lock().await;
+                                sender_map.remove(&uuid)
                             });
                         }
                         Err(e) => tracing::info!("Extension socket failed to listen {}", e),
@@ -216,20 +221,32 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn broadcast(&self, value: Value) -> Result<HashMap<String, Value>> {
-        let sender_map = self.sender_map.lock().await;
+        let mut to_remove_senders = vec![];
+        let mut sender_map = self.sender_map.lock().await;
         tracing::trace!("Broadcasting command");
         let mut rx_map = HashMap::new();
         for (key, tx) in sender_map.iter() {
             tracing::info!("Broadcasting command {:?}", value);
             let (tx_r, rx_r) = channel(1);
-            tx.clone().send((tx_r, value.clone())).await.map_err(|_| {
+            let res = tx.clone().send((tx_r, value.clone())).await.map_err(|_| {
                 MoosyncError::String(format!(
                     "Failed to send command to extension backend {}",
                     key
                 ))
-            })?;
+            });
+            if let Err(e) = res {
+                tracing::error!("Failed to send command to extension backend {}", e);
+                to_remove_senders.push(key.clone());
+                continue;
+            }
             rx_map.insert(key.clone(), Mutex::new(rx_r));
             tracing::info!("Broadcasted command");
+        }
+
+        if !to_remove_senders.is_empty() {
+            for key in to_remove_senders {
+                sender_map.remove(&key);
+            }
         }
 
         drop(sender_map);

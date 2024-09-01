@@ -46,6 +46,10 @@ wasm-bindgen = { version = "0.2", optional = true, default-features = false }
 zip = { version = "2.1.5", optional = true, default-features = false }
 bitcode = { version = "0.6.3" }
 
+[target.'cfg(windows)'.dependencies]
+libsqlite3-sys = { version = "0.30.1", optional = true, features = ["bundled"] }
+
+
 [features]
 ui = ["dep:wasm-bindgen", "dep:serde-wasm-bindgen", "dep:uuid"]
 core = [
@@ -70,6 +74,7 @@ core = [
     "dep:reqwest",
     "dep:json_dotpath",
     "dep:uuid",
+    "dep:libsqlite3-sys",
 ]
 extensions = []
 default = ["core"]

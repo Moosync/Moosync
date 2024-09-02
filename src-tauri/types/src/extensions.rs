@@ -170,19 +170,19 @@ pub struct ExtensionExtraEventArgs {
     pub package_name: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistReturnType {
     pub playlists: Vec<QueryablePlaylist>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SongsReturnType {
     pub songs: Vec<Song>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SongsWithPageTokenReturnType {
     pub songs: Vec<Song>,
@@ -213,20 +213,20 @@ pub struct CustomRequestReturnType {
     pub redirect_url: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SongReturnType {
     pub song: Song,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistAndSongsReturnType {
     pub playlist: Option<QueryablePlaylist>,
     pub songs: Option<Vec<Song>>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RecommendationsReturnType {
     pub songs: Vec<Song>,

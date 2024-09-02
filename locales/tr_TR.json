@@ -110,10 +110,10 @@
     "incorrectPlayback": "Yanlış mı oynatılıyor?"
   },
   "explore": {
-    "you_listened_to": "You've listened to",
+    "you_listened_to": "Şunu dinlediniz",
     "of_music": "müsik dan",
     "played_for": "Oynadi icin",
-    "hot_from": "Hot from"
+    "hot_from": "Sıcak gelen"
   },
   "providers": {
     "youtube": "YouTube",
@@ -129,20 +129,20 @@
     "paths": {
       "songDirectories": "Şarkı Dizinleri",
       "songDirectories_tooltip": "Tüm yerel müziğinizin depolandığı dizinler",
-      "songDirectories_exclude": "Blacklisted Directories",
-      "songDirectories_exclude_tooltip": "Songs in these directories would not be scanned",
+      "songDirectories_exclude": "Kara Listeye Alınmış Dizinler",
+      "songDirectories_exclude_tooltip": "Bu dizinlerdeki şarkılar taranmayacaktır",
       "addFolder": "Klasör Ekle...",
       "remove": "Kaldır",
       "artworkPath": "İndirilen Çizim Konumu",
       "artworkPath_tooltip": "İndirilen çizimlerin depolandığı dizin",
       "thumbnailPath": "İndirilen Küçük Resim Yolu",
       "thumbnailPath_tooltip": "Oluşturulan küçük resimlerin depolandığı dizin",
-      "splitter": "Artist name split pattern",
-      "splitter_tooltip": "Regex to split artist names. Leave empty to disable splitting.",
-      "scan_interval": "Scan interval",
-      "scan_interval_tooltip": "Interval in minutes to trigger a scan task. Set to -1 to disable automatic scanning",
-      "scan_threads": "Scan CPU threads",
-      "scan_threads_tooltip": "Number of threads to use when scanning for local music"
+      "splitter": "Sanatçı adı bölünmüş desen",
+      "splitter_tooltip": "Sanatçı adlarını bölmek için regex. Bölmeyi devre dışı bırakmak için boş bırakın.",
+      "scan_interval": "Tarama aralığı",
+      "scan_interval_tooltip": "Bir tarama görevini tetiklemek için dakika cinsinden aralık. Otomatik taramayı devre dışı bırakmak için -1 olarak ayarlayın",
+      "scan_threads": "CPU iş parçacıklarını tara",
+      "scan_threads_tooltip": "Yerel müzik taraması yaparken kullanılacak iş parçacığı sayısı"
     },
     "themes": {
       "songView": "Şarkıların Görünümü",
@@ -160,7 +160,7 @@
         "colors": "Renkler",
         "colors_tooltip": "Kullanıcı arayüzünü özelleştirmek için renkleri değiştirin",
         "css": "Özel CSS",
-        "watch_css": "Watch CSS for file changes"
+        "watch_css": "Dosya değişiklikleri için CSS'yi izleyin"
       },
       "primary": "Birincil",
       "secondary": "İkincil",
@@ -186,7 +186,7 @@
         "minimizeTray": "Kapatıldığında sistem tepsisine küçült",
         "hardwareAcceleration": "GPU donanım hızlandırması kullan",
         "watchFileChanges": "Değişiklikler için müzik dizinlerini takip et",
-        "enableJukeboxMode": "Enable toggle for Jukebox mode",
+        "enableJukeboxMode": "Jukebox modu için geçişi etkinleştir",
         "lastLoadedPlaybackState": "Uygulama başlangıcında son oynatılanı başlat"
       },
       "systemSettings_tooltip": "Sisteminizle ilgili ayarlar",
@@ -196,8 +196,8 @@
         "sponsorBlock": "YouTube şarkısının vurgulanan bölümüne otomatik olarak atlamak için SponsorBlock kullan"
       },
       "audioSettings_tooltip": "Ses çalma ile ilgili ayarlar",
-      "gapless_skip": "Skip song before end (seconds)",
-      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
+      "gapless_skip": "Şarkıyı bitmeden önce atla (saniye)",
+      "gapless_skip_tooltip": "Geçerli şarkı bitmeden önce bir sonraki şarkıya (saniye) zorla geçer",
       "invidiousUrlUnsupported": "Bu URL Invidious API'yi desteklemiyor",
       "invidious_tooltip": "YouTube kullanmak yerine kullanılacak Invidious oluşumu",
       "restartApp": "Moosync'i yeniden başlat",
@@ -206,7 +206,7 @@
       "spotify": {
         "client_id": "Spotify İstemci Kimliği",
         "client_id_tooltip": "Spotify'a giriş yapmak için Spotify istemci kimliği gereklidir. Daha fazla bilgi için tıklayın",
-        "client_secret": "Spotify Client Secret",
+        "client_secret": "Spotify İstemci Kimliği",
         "client_secret_tooltip": "Spotify istemcisi, Spotify'a giriş yapmak için Secret gereklidir. Daha fazla bilgi için tıklayın",
         "autoFetchButton": "Spotify ayrıntılarını otomatik olarak al",
         "autoFetchPreTitle": "Al",
@@ -214,7 +214,7 @@
         "autoFetchDisclaimer": "Şimdi Spotify hesabınıza giriş yapmanızın isteneceği bir pencere açılacaktır. Giriş yaptıktan sonra lütfen hiçbir yere tıklamayın çünkü tüm süreç otomatik olacaktır",
         "openWindow": "Pencere Aç",
         "title": "Spotify ayarları",
-        "tooltip": "Options to change the behavior of spotify playback",
+        "tooltip": "Spotify oynatma davranışını değiştirme seçenekleri",
         "librespotEnable": "Librespot kullan (Spotify Premium gerektirir)",
         "username": "Spotify kullanıcı adı",
         "username_tooltip": "Spotify kullanıcı adın. Genelde e-posta adresindir.",
@@ -223,45 +223,45 @@
         "librespot": {
           "title": "Librespot ayarları",
           "tooltip": "Librespot davranışlarını değiştirme ayarları",
-          "useSpotifyCanvas": "Show spotify canvas video in background",
-          "useLibrespotPlayback": "Use librespot for song playback"
+          "useSpotifyCanvas": "Spotify canvas videosunu arka planda göster",
+          "useLibrespotPlayback": "Şarkı çalmak için librespot kullan"
         }
       },
       "youtube": {
         "client_id": "Youtube İstemci Kimliği",
-        "client_secret": "Youtube Client Secret",
-        "client_id_tooltip": "Youtube client ID required to login to Youtube. Click to know more",
-        "client_secret_tooltip": "Youtube client Secret required to login to Youtube. Click to know more"
+        "client_secret": "Spotify İstemci Kimliği",
+        "client_id_tooltip": "Youtube'a giriş yapmak için Youtube müşteri kimliği gereklidir. Daha fazla bilgi için tıklayın",
+        "client_secret_tooltip": "Youtube istemcisi Youtube'a giriş yapmak için gizli bilgi gereklidir. Daha fazla bilgi için tıklayın"
       },
       "lastfm": {
         "client_id": "LastFM Api Anahtarı",
-        "client_secret": "LastFM Client Secret"
+        "client_secret": "LastFM İstemci Kimliği"
       },
       "youtubeAlternative": {
-        "title": "Youtube Alternative services",
-        "tooltip": "Get data from Youtube through a 3rd party provider",
-        "useYoutube": "Use default Youtube services",
+        "title": "Youtube Alternatif hizmetleri",
+        "tooltip": "Üçüncü taraf bir sağlayıcı aracılığıyla Youtube'dan veri alın",
+        "useYoutube": "Varsayılan Youtube hizmetlerini kullan",
         "useInvidious": "Indivious servislerini kullan (Alternatif Youtube)",
         "usePiped": "Piped servislerini kullan",
         "piped": {
-          "url": "Piped Instance",
-          "url_tooltip": "URL of Piped instance to use",
+          "url": "Piped Örneği",
+          "url_tooltip": "Kullanılacak Piped örneğinin URL'si",
           "username": "Kullanıcı adın",
-          "username_tooltip": "Your piped username at the selected instance",
+          "username_tooltip": "Seçilen örnekteki piped kullanıcı adınız",
           "password": "Şifre",
-          "password_tooltip": "Your piped password at the selected instance"
+          "password_tooltip": "Seçilen örnekteki piped parolanız"
         },
         "invidious": {
-          "url": "Invidious Instance",
-          "url_tooltip": "URL of Invidious instance to use",
-          "options": "Advanced Invidious options",
-          "options_tooltip": "Options to fine control Invidious playback",
-          "always_proxy": "Always play audio from Invidious proxy instead of Google video"
+          "url": "Invidious Örneği",
+          "url_tooltip": "Kullanılacak Invidious örneğinin URL'si",
+          "options": "Gelişmiş Invidious seçenekleri",
+          "options_tooltip": "İnce kontrol seçenekleri Invidious oynatma",
+          "always_proxy": "Google video yerine her zaman Invidious proxy'den ses oynatın"
         },
         "youtube": {
-          "options": "Advanced Youtube options",
-          "options_tooltip": "Options to fine control Youtube playback",
-          "useEmbeds": "Use Youtube embeds for playing audio from Youtube"
+          "options": "Gelişmiş Youtube seçenekleri",
+          "options_tooltip": "Youtube oynatımını hassas şekilde kontrol etme seçenekleri",
+          "useEmbeds": "Youtube'dan ses çalmak için Youtube yerleştirmelerini kullanın"
         }
       },
       "language": "Dil",
@@ -271,11 +271,11 @@
       "clear_preferences": "Her şey varsayılan ayarlara sıfırlanacak bunu yapmak istediğine emin misin? Uygulama yeniden başlayacak.",
       "clear_preferences_button": "Onayla",
       "jukebox": {
-        "pin": "Jukebox mode pin",
-        "pin_tooltip": "This pin will be required to exit Jukebox Mode. Should be numeric.",
-        "optionalFields": "Button visibility",
-        "optionalFields_tooltip": "Toggle optional buttons to show in Jukebox mode",
-        "optional_skip": "Track Skip buttons",
+        "pin": "Jukebox modu pini",
+        "pin_tooltip": "Bu pin Jukebox Modundan çıkmak için gerekli olacaktır. Sayısal olmalıdır.",
+        "optionalFields": "Düğme görünürlüğü",
+        "optionalFields_tooltip": "Müzik Kutusu modunda göstermek için isteğe bağlı düğmeleri aç/kapat",
+        "optional_skip": "Parça Atlama düğmeleri",
         "optional_shuffle": "Karıştırma butonu",
         "optional_repeat": "Tekrarlama butonu"
       },
@@ -289,13 +289,13 @@
       },
       "queueSettings": {
         "title": "Oynatma sırası ayarları",
-        "tooltip": "Options to tweak the behavior of song queue",
-        "clearQueue": "Clear queue before adding playing a playlist"
+        "tooltip": "Şarkı kuyruğunun davranışını değiştirmek için seçenekler",
+        "clearQueue": "Oynatma listesi eklemeden önce kuyruğu temizleyin"
       },
       "scrobble": {
         "provider_toggle": {
-          "title": "Scrobble whitelist",
-          "tooltip": "Enable providers whose songs you want to be scrobble'd"
+          "title": "Scrobble beyaz listesi",
+          "tooltip": "Şarkılarının scrobble'lanmasını istediğiniz sağlayıcıları etkinleştirin"
         }
       },
       "volumePersistMode": {
@@ -350,16 +350,16 @@
     "prev_song": "Önceki şarkı",
     "seek_forward": "5 saniye ileri sar",
     "seek_backwards": "5 saniye geri sar",
-    "seek_0": "Seek to 0%",
-    "seek_1": "Seek to 10%",
-    "seek_2": "Seek to 20%",
-    "seek_3": "Seek to 30%",
-    "seek_4": "Seek to 40%",
-    "seek_5": "Seek to 50%",
-    "seek_6": "Seek to 60%",
-    "seek_7": "Seek to 70%",
-    "seek_8": "Seek to 80%",
-    "seek_9": "Seek to 90%"
+    "seek_0": "0'a kadar ara",
+    "seek_1": "10'a kadar ara",
+    "seek_2": "20'a kadar ara",
+    "seek_3": "30'a kadar ara",
+    "seek_4": "40'a kadar ara",
+    "seek_5": "50'a kadar ara",
+    "seek_6": "60'a kadar ara",
+    "seek_7": "70'a kadar ara",
+    "seek_8": "80'a kadar ara",
+    "seek_9": "90'a kadar ara"
   },
   "tray": {
     "play": "Oynat",
@@ -369,7 +369,7 @@
     "repeat": "Tekrarla",
     "no_repeat": "Tekrarlama yok",
     "shuffle": "Karıştır",
-    "show_app": "Show app",
+    "show_app": "Uygulamayı göster",
     "quit": "Çıkış"
   },
   "toasts": {

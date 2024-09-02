@@ -198,6 +198,8 @@ impl serde::Serialize for MoosyncError {
 pub enum MoosyncError {
     #[error("{0}")]
     String(String),
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
 }
 
 pub type Result<T> = std::result::Result<T, MoosyncError>;

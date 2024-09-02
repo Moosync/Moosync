@@ -156,7 +156,11 @@ impl ProviderHandler {
                 let provides = ext_handler
                     .get_provider_scopes(extension.package_name.clone().into())
                     .await;
-                tracing::info!("Got provider scopes from {}", extension.package_name);
+                tracing::info!(
+                    "Got provider scopes from {} {:?}",
+                    extension.package_name,
+                    provides
+                );
                 if let Ok(provides) = provides {
                     if provides.is_empty() {
                         continue;

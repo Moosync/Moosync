@@ -287,7 +287,11 @@ impl GenericProvider for ExtensionProvider {
             SongReturnType
         );
 
-        Ok(res.song)
+        if let Some(song) = res.song {
+            return Ok(song);
+        }
+
+        Err("Song not found".into())
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

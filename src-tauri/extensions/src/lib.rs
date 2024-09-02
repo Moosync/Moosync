@@ -46,7 +46,7 @@ macro_rules! helper1 {
                 channel: Uuid::new_v4().to_string(),
                 data: $data,
             };
-            $self.broadcast(serde_json::to_value(value).unwrap()).await
+            $self.broadcast(serde_json::to_value(value)?).await
         }
     };
 
@@ -66,14 +66,13 @@ macro_rules! helper1 {
 
             let parsed = serde_json::from_value::<HashMap<String, Value>>(first.clone());
             if let Ok(parsed) = parsed {
-                println!("Parsed: {:?}", parsed);
                 if package_name.is_empty() {
                     return Ok(Default::default());
                 }
 
                 let first_result = parsed.get(&package_name);
                 if let Some(first_result) = first_result {
-                    let parsed = serde_json::from_value(first_result.clone()).unwrap();
+                    let parsed = serde_json::from_value(first_result.clone())?;
                     return Ok(parsed);
                 } else {
                     tracing::info!("Extension  did not reply");
@@ -204,18 +203,18 @@ impl ExtensionHandler {
             });
         });
 
-        let exe_path = env::current_exe().unwrap();
-        let _handle = Command::new(exe_path.clone().parent().unwrap().join("exthost"))
-            .args([
-                "-ipcPath",
-                self.ipc_path.to_str().unwrap(),
-                "-extensionPath",
-                self.extensions_dir.to_str().unwrap(),
-                "-installPath",
-                exe_path.to_str().unwrap(),
-            ])
-            .spawn()
-            .unwrap();
+        // let exe_path = env::current_exe().unwrap();
+        // let _handle = Command::new(exe_path.clone().parent().unwrap().join("exthost"))
+        //     .args([
+        //         "-ipcPath",
+        //         self.ipc_path.to_str().unwrap(),
+        //         "-extensionPath",
+        //         self.extensions_dir.to_str().unwrap(),
+        //         "-installPath",
+        //         exe_path.to_str().unwrap(),
+        //     ])
+        //     .spawn()
+        //     .unwrap();
 
         Ok(rx_listen)
     }

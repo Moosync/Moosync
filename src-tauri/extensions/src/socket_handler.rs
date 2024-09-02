@@ -79,13 +79,15 @@ impl<'a> SocketHandler {
 
         if let Err(e) = res {
             if e.kind() == ErrorKind::WouldBlock {
-                return Ok((vec![], 0));
+                return Err("something went wrong".into());
             }
-            tracing::info!("{:?}", e);
             return Err(MoosyncError::String("Failed to read from socket".into()));
         }
 
         let n = res.unwrap();
+        if n == 0 {
+            return Err(MoosyncError::String("Failed to read from socket".into()));
+        }
         Ok((buf[..n].to_vec(), n))
     }
 
@@ -121,13 +123,14 @@ impl<'a> SocketHandler {
         (lines, remaining)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, data))]
+    #[tracing::instrument(level = "trace", skip(self))]
     async fn send_reply(&self, data: &Value) -> bool {
         if let Some(channel) = data.get("channel") {
             let channel = channel.as_str().unwrap();
             let reply_map = self.reply_map.lock().await;
             let reply = reply_map.get(channel);
             if let Some(reply) = reply {
+                tracing::trace!("Handling as reply");
                 reply
                     .clone()
                     .send(Ok(data.get("data").unwrap_or(&Value::Null).clone()))
@@ -170,7 +173,7 @@ impl<'a> SocketHandler {
             let ext_resp = self.read_fixed_buf().await;
 
             if ext_resp.is_err() {
-                tracing::info!("Failed to read from socket {}", ext_resp.unwrap_err());
+                tracing::error!("Failed to read from socket {}", ext_resp.unwrap_err());
                 break;
             }
 
@@ -178,6 +181,7 @@ impl<'a> SocketHandler {
             if n == 0 {
                 continue;
             }
+            tracing::trace!("Raw runner response: {:?}", buf);
 
             let (lines, remaining) = self.read_lines(&buf, &old_buf);
             old_buf = remaining;
@@ -188,8 +192,10 @@ impl<'a> SocketHandler {
 
                 match parsed {
                     Ok(data) => {
+                        tracing::trace!("Got extension runner response: {:?}", data);
                         // TODO: Validate request object
                         if !self.send_reply(&data).await {
+                            tracing::trace!("Not a reply, handling as request");
                             let (tx, mut rx) = channel(1);
                             let conn = self.write_conn.clone();
 
@@ -205,7 +211,7 @@ impl<'a> SocketHandler {
                         }
                     }
                     Err(e) => {
-                        tracing::info!(
+                        tracing::error!(
                             "Failed to parsed response {} as json {:?}",
                             str::from_utf8(&line).unwrap(),
                             e

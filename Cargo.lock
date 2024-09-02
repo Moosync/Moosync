@@ -8808,6 +8808,7 @@ dependencies = [
  "jwalk",
  "keyring",
  "librespot 0.5.0-dev",
+ "libsqlite3-sys",
  "lofty",
  "oauth2",
  "protobuf",

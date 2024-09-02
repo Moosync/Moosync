@@ -12,12 +12,12 @@ use std::{
 
 use base64::Engine;
 use fs_extra::dir::CopyOptions;
-use futures::StreamExt;
 use futures::{
     channel::mpsc::{channel, unbounded, Receiver, UnboundedSender},
     lock::Mutex,
     SinkExt,
 };
+use futures::{future::join_all, StreamExt};
 use interprocess::local_socket::{
     traits::tokio::Listener, GenericFilePath, ListenerOptions, ToFsName,
 };
@@ -66,9 +66,10 @@ macro_rules! helper1 {
 
             let parsed = serde_json::from_value::<HashMap<String, Value>>(first.clone());
             if let Ok(parsed) = parsed {
-                // if package_name.is_empty() {
-                //     return Err(format!("Need package name in args to get back response").into());
-                // }
+                println!("Parsed: {:?}", parsed);
+                if package_name.is_empty() {
+                    return Ok(Default::default());
+                }
 
                 let first_result = parsed.get(&package_name);
                 if let Some(first_result) = first_result {
@@ -226,7 +227,7 @@ impl ExtensionHandler {
         tracing::trace!("Broadcasting command");
         let mut rx_map = HashMap::new();
         for (key, tx) in sender_map.iter() {
-            tracing::info!("Broadcasting command {:?}", value);
+            tracing::info!("Broadcasting command to {} {:?}", key, value);
             let (tx_r, rx_r) = channel(1);
             let res = tx.clone().send((tx_r, value.clone())).await.map_err(|_| {
                 MoosyncError::String(format!(
@@ -235,7 +236,7 @@ impl ExtensionHandler {
                 ))
             });
             if let Err(e) = res {
-                tracing::error!("Failed to send command to extension backend {}", e);
+                tracing::error!("{}", e);
                 to_remove_senders.push(key.clone());
                 continue;
             }
@@ -251,17 +252,32 @@ impl ExtensionHandler {
 
         drop(sender_map);
 
-        let mut ret = HashMap::new();
+        let ret = Arc::new(Mutex::new(HashMap::new()));
+        let mut promises = vec![];
         for (key, rx) in rx_map.iter() {
-            if let Some(res) = rx.lock().await.next().await {
-                let res = res?;
-                ret.insert(key.clone(), res);
-            }
+            let ret = ret.clone();
+            let promise = async move {
+                if let Some(res) = rx.lock().await.next().await {
+                    tracing::trace!("Got reply from runner {}: {:?}", key, res);
+                    match res {
+                        Ok(res) => {
+                            let mut ret = ret.lock().await;
+                            ret.insert(key.clone(), res);
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to get response from extension runner {}", e)
+                        }
+                    }
+                }
+            };
+            promises.push(promise);
         }
 
-        tracing::trace!(result = ?ret, "Got extension runner response");
+        join_all(promises).await;
 
-        Ok(ret)
+        let ret = ret.lock().await;
+        tracing::trace!(result = ?ret, "Got extension runners response");
+        Ok(ret.clone())
     }
 
     #[tracing::instrument(level = "trace", skip(self, ext_path))]
@@ -427,8 +443,8 @@ impl ExtensionHandler {
                     return Some((key.clone(), value));
                 } else {
                     tracing::info!("Error parsing extension detail {:?}", value);
+                    None
                 }
-                None
             })
             .collect())
     }
@@ -499,7 +515,7 @@ impl ExtensionHandler {
         (fire_context_menu_action, "onClickedContextMenu", Option<()>, ContextMenuActionArgs),
         (get_accounts, "getAccounts", Vec<ExtensionAccountDetail>, PackageNameArgs),
         (account_login, "performAccountLogin", Option<()>, AccountLoginArgs),
-        (account_logout, "getDisplayName", String, PackageNameArgs),
+        (get_display_name, "getDisplayName", String, PackageNameArgs),
         (send_extra_event, "extraExtensionEvents", Value, ExtensionExtraEventArgs),
     );
 }

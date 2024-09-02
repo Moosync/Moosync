@@ -43,18 +43,24 @@ pub fn get_extension_state(app: AppHandle) -> Result<ExtensionHandler> {
         loop {
             let rx_ext_command = rx_listen.next().await;
             if let Some(mut rx_ext_command) = rx_ext_command {
+                tracing::trace!("Got extension connection");
                 let app_handle = app_handle.clone();
                 let app_handle_1 = app_handle.clone();
                 async_runtime::spawn(async move {
                     let request_handler = ReplyHandler::new(app_handle);
-                    loop {
-                        let message = rx_ext_command.next().await;
+                    while let Some((message, mut tx_reply)) = rx_ext_command.next().await {
+                        tracing::trace!("Got extension command request");
                         let request_handler = request_handler.clone();
                         async_runtime::spawn(async move {
-                            if let Some((message, mut tx_reply)) = message {
-                                let data = request_handler.handle_request(&message).await;
-                                if let Ok(data) = data {
+                            tracing::trace!("Got extension command {:?}", message);
+                            let data = request_handler.handle_request(&message).await;
+                            match data {
+                                Ok(data) => {
                                     tx_reply.send(data).await.unwrap();
+                                }
+                                Err(e) => {
+                                    tracing::error!("Failed to handle extension request: {:?}", e);
+                                    tx_reply.send(vec![]).await.unwrap();
                                 }
                             }
                         });

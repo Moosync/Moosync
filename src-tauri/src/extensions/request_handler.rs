@@ -6,26 +6,11 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use types::{
     errors::{MoosyncError, Result},
-    extensions::ExtensionUIRequest,
+    extensions::{AddToPlaylistRequest, ExtensionUIRequest, PreferenceData},
     songs::{GetSongOptions, SearchableSong, Song},
 };
 
 use crate::{providers::handler::ProviderHandler, window::handler::WindowHandler};
-
-#[derive(Debug, Serialize, Deserialize)]
-struct AddToPlaylistRequest {
-    #[serde(rename = "playlistID")]
-    playlist_id: String,
-    songs: Vec<Song>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct PreferenceData {
-    key: String,
-    value: Option<Value>,
-    #[serde(rename = "defaultValue")]
-    default_value: Option<Value>,
-}
 
 #[derive(Clone)]
 pub struct ReplyHandler {
@@ -43,8 +28,8 @@ impl ReplyHandler {
         [
             "getSongs",
             "getEntity",
+            "addSong",
             "updateSong",
-            "update-song",
             "addPlaylist",
             "addSongToPlaylist",
             "removeSong",
@@ -108,7 +93,6 @@ impl ReplyHandler {
     #[tracing::instrument(level = "trace", skip(self, data))]
     pub fn add_songs(&self, data: Value) -> Result<Value> {
         let database: State<'_, Database> = self.app_handle.state();
-        // TODO: Add song
         let ret = database.insert_songs(serde_json::from_value(data.clone())?)?;
         Ok(serde_json::to_value(ret)?)
     }
@@ -273,8 +257,8 @@ impl ReplyHandler {
             match request.type_.as_str() {
                 "getSongs" => self.get_songs(request.data.unwrap()),
                 "getEntity" => self.get_entity(request.data.unwrap()),
-                "updateSong" => self.add_songs(request.data.unwrap()),
-                "update-song" => self.update_song(request.data.unwrap()),
+                "addSong" => self.add_songs(request.data.unwrap()),
+                "updateSong" => self.update_song(request.data.unwrap()),
                 "addPlaylist" => self.add_playlist(request.data.unwrap()),
                 "addSongToPlaylist" => self.add_to_playlist(request.data.unwrap()),
                 "removeSong" => self.remove_song(request.data.unwrap()),

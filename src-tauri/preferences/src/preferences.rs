@@ -50,7 +50,7 @@ impl PreferenceConfig {
 
         if !config_file_path.exists() {
             let mut file = File::create(config_file_path.clone())?;
-            file.write_all(b"{}")?;
+            file.write_all(b"{\"prefs\": {}}")?;
         }
 
         let entry = Entry::new("moosync", whoami::username().as_str())?;

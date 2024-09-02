@@ -68,7 +68,6 @@ pub struct ExtensionDetail {
     pub version: String,
     pub has_started: bool,
     pub entry: String,
-    // TODO: Use a concrete type for this
     pub preferences: Vec<PreferenceUIData>,
     pub extension_path: String,
     pub extension_icon: Option<String>,
@@ -269,4 +268,11 @@ pub struct ExtensionManifest {
     pub extension_entry: String,
     pub name: String,
     pub version: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AddToPlaylistRequest {
+    #[serde(rename = "playlistID")]
+    pub playlist_id: String,
+    pub songs: Vec<Song>,
 }

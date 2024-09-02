@@ -276,3 +276,11 @@ pub struct AddToPlaylistRequest {
     pub playlist_id: String,
     pub songs: Vec<Song>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PreferenceData {
+    pub key: String,
+    pub value: Option<Value>,
+    #[serde(rename = "defaultValue")]
+    pub default_value: Option<Value>,
+}

@@ -216,7 +216,7 @@ pub struct CustomRequestReturnType {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SongReturnType {
-    pub song: Song,
+    pub song: Option<Song>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

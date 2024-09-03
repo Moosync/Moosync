@@ -19,7 +19,7 @@ class YTPlayer {
         clearInterval(this._instanceWatcher);
         this._instanceWatcher = undefined;
 
-        this.playerInstance = new YT.Player(YTPlayer.element, {
+        YTPlayer.playerInstance = new YT.Player(YTPlayer.element, {
           height: "390",
           width: "390",
           playerVars: {

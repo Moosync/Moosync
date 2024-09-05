@@ -26,6 +26,7 @@ pub struct ThemeDetails {
 }
 
 impl ThemeDetails {
+    #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> Self {
         Self {
             name: "New theme".into(),
@@ -36,6 +37,7 @@ impl ThemeDetails {
 }
 
 impl Default for ThemeDetails {
+    #[tracing::instrument(level = "trace", skip())]
     fn default() -> Self {
         Self {
             id: "default".into(),

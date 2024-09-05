@@ -35,7 +35,7 @@
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
-    "externalBin": ["binaries/exthost"],
+    "externalBin": ["binaries/exthost", "binaries/exthost-wasm"],
     "resources": [
       "bridge.js",
       "events.js",

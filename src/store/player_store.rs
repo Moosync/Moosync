@@ -440,6 +440,9 @@ impl PlayerStore {
     }
 
     pub fn blacklist_player(&mut self, key: String) {
+        if self.data.player_blacklist.contains(&key) {
+            return;
+        }
         self.data.player_blacklist.push(key);
         self.data.force_load_song = !self.data.force_load_song
     }

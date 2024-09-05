@@ -144,6 +144,7 @@ impl ThemeHolder {
         Err(MoosyncError::String("Failed to parse theme".to_string()))
     }
 
+    #[tracing::instrument(level = "trace", skip(self, id, export_path))]
     pub fn export_theme(&self, id: String, export_path: PathBuf) -> Result<()> {
         let mut theme = self.load_theme(id.clone())?;
         let theme_dir = self.tmp_dir.join(format!("theme-unpacked-{}", id));

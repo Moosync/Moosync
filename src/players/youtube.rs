@@ -74,6 +74,7 @@ impl GenericPlayer for YoutubePlayer {
 
     fn load(&self, src: String, resolver: OneShotSender<()>) {
         self.player.load(src.as_str(), false);
+        console_log!("Loaded youtube embed {}", src);
         // TODO: Resolve when player state changes
         let res = resolver.send(());
         if res.is_err() {

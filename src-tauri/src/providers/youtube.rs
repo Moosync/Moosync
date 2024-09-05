@@ -540,7 +540,7 @@ impl GenericProvider for YoutubeProvider {
         }
 
         tracing::info!("Fetching song for {} player", player);
-        if player == "local" {
+        if player == "local" || player == "rodio" {
             let youtube_scraper: State<YoutubeScraper> = self.app.state();
             return youtube_scraper
                 .get_video_url(song.song.url.clone().unwrap())

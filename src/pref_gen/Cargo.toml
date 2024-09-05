@@ -11,5 +11,6 @@ serde_yaml = "0.9"
 types = { path = "../../src-tauri/types", default-features = false, features = [
     "ui",
 ] }
+tracing = "0.1.40"
 [lib]
 proc-macro = true

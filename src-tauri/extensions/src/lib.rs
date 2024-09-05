@@ -153,6 +153,34 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
+    fn spawn_ext_runners(&self) {
+        let exe_path = env::current_exe().unwrap();
+        let _handle = Command::new(exe_path.clone().parent().unwrap().join("exthost"))
+            .args([
+                "-ipcPath",
+                self.ipc_path.to_str().unwrap(),
+                "-extensionPath",
+                self.extensions_dir.to_str().unwrap(),
+                "-installPath",
+                exe_path.to_str().unwrap(),
+            ])
+            .spawn()
+            .unwrap();
+
+        let _handle_wasm = Command::new(exe_path.clone().parent().unwrap().join("exthost-wasm"))
+            .args([
+                "-ipcPath",
+                self.ipc_path.to_str().unwrap(),
+                "-extensionPath",
+                self.extensions_dir.to_str().unwrap(),
+                "-installPath",
+                exe_path.to_str().unwrap(),
+            ])
+            .spawn()
+            .unwrap();
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn listen_socket(&self) -> Result<Receiver<ExtensionCommandReceiver>> {
         let sender_map = self.sender_map.clone();
         let (tx_listen, rx_listen) = channel(1);
@@ -203,18 +231,7 @@ impl ExtensionHandler {
             });
         });
 
-        // let exe_path = env::current_exe().unwrap();
-        // let _handle = Command::new(exe_path.clone().parent().unwrap().join("exthost"))
-        //     .args([
-        //         "-ipcPath",
-        //         self.ipc_path.to_str().unwrap(),
-        //         "-extensionPath",
-        //         self.extensions_dir.to_str().unwrap(),
-        //         "-installPath",
-        //         exe_path.to_str().unwrap(),
-        //     ])
-        //     .spawn()
-        //     .unwrap();
+        self.spawn_ext_runners();
 
         Ok(rx_listen)
     }

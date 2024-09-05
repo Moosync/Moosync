@@ -26,6 +26,7 @@ preferences = { path = "./preferences" }
 themes = { path = "./themes" }
 types = { path = "./types", default-features = false }
 youtube = { path = "./youtube" }
+rodio-player = { path = "./rodio-player" }
 google-youtube3 = "5.0.5"
 oauth2 = { default-features = false, version = "4.4.2", features = ["reqwest"] }
 regex = { default-features = false, version = "1.10.6" }

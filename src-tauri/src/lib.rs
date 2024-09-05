@@ -15,6 +15,10 @@ use preference_holder::{
     load_selective_array, save_selective, set_secure,
 };
 use providers::handler::get_provider_handler_state;
+use rodio::{
+    get_rodio_state, rodio_get_volume, rodio_load, rodio_pause, rodio_play, rodio_seek,
+    rodio_set_volume, rodio_stop,
+};
 use themes::{
     export_theme, get_theme_handler_state, import_theme, load_all_themes, load_theme, remove_theme,
     save_theme, transform_css,
@@ -68,6 +72,7 @@ mod mpris;
 mod oauth;
 mod preference_holder;
 mod providers;
+mod rodio;
 mod scanner;
 mod themes;
 mod window;
@@ -180,6 +185,14 @@ pub fn run() {
             playlist_from_url,
             song_from_url,
             get_suggestions,
+            // Rodio player
+            rodio_get_volume,
+            rodio_load,
+            rodio_pause,
+            rodio_play,
+            rodio_seek,
+            rodio_set_volume,
+            rodio_stop,
         ])
         .setup(|app| {
             let filter = EnvFilter::from_env("MOOSYNC_LOG");
@@ -240,6 +253,9 @@ pub fn run() {
             let provider_handler_state = get_provider_handler_state(app.app_handle().clone());
             app.manage(provider_handler_state);
 
+            let rodio_state = get_rodio_state(app.app_handle().clone());
+            app.manage(rodio_state);
+
             initial(app);
             handle_pref_changes(app.handle().clone());
 
@@ -251,8 +267,8 @@ pub fn run() {
 
             Ok(())
         })
-        .on_window_event(|window, event| match event {
-            tauri::WindowEvent::CloseRequested { api, .. } => {
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 if let Ok(should_close) = handle_window_close(window.app_handle()) {
                     if !should_close {
                         window.hide().unwrap();
@@ -260,7 +276,6 @@ pub fn run() {
                     }
                 }
             }
-            _ => {}
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

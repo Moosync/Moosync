@@ -126,7 +126,9 @@ impl GenericPlayer for LocalPlayer {
     fn play(&self) -> Result<()> {
         let promise = self.audio_element.play()?;
         spawn_local(async move {
-            JsFuture::from(promise).await.unwrap();
+            if let Err(e) = JsFuture::from(promise).await {
+                console_log!("Error playing audio: {:?}", e);
+            }
         });
         Ok(())
     }

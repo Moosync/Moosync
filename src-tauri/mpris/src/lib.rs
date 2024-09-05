@@ -142,6 +142,7 @@ mod windows {
     }
 
     impl DummyWindow {
+        #[tracing::instrument(level = "trace", skip())]
         pub fn new() -> Result<DummyWindow, String> {
             let class_name = w!("SimpleTray");
 
@@ -191,6 +192,7 @@ mod windows {
 
             handle_result.map(|handle| DummyWindow { handle })
         }
+        #[tracing::instrument(level = "trace", skip(hwnd, msg, wparam, lparam))]
         extern "system" fn wnd_proc(
             hwnd: HWND,
             msg: u32,
@@ -202,6 +204,7 @@ mod windows {
     }
 
     impl Drop for DummyWindow {
+        #[tracing::instrument(level = "trace", skip(self))]
         fn drop(&mut self) {
             unsafe {
                 DestroyWindow(self.handle);
@@ -209,6 +212,7 @@ mod windows {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip())]
     pub fn pump_event_queue() -> bool {
         unsafe {
             let mut msg: MSG = std::mem::zeroed();

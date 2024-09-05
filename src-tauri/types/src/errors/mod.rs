@@ -129,6 +129,15 @@ pub enum MoosyncError {
     JSONValidationError(String),
     #[error(transparent)]
     FmtError(#[from] FmtError),
+    #[cfg(feature = "core")]
+    #[error(transparent)]
+    RodioError(#[from] rodio::StreamError),
+    #[cfg(feature = "core")]
+    #[error(transparent)]
+    RodioDecoderError(#[from] rodio::decoder::DecoderError),
+    #[cfg(feature = "core")]
+    #[error(transparent)]
+    RodioSeekError(#[from] rodio::source::SeekError),
 }
 
 #[cfg(all(not(feature = "extensions"), feature = "ui"))]

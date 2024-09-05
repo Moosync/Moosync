@@ -234,6 +234,7 @@ pub fn get_window_state() -> WindowHandler {
     WindowHandler::new()
 }
 
+#[tracing::instrument(level = "trace", skip(app))]
 pub fn handle_window_close(app: &AppHandle) -> Result<bool> {
     let preferences: State<PreferenceConfig> = app.state();
     let preferences: CheckboxPreference =
@@ -245,6 +246,7 @@ pub fn handle_window_close(app: &AppHandle) -> Result<bool> {
     Ok(true)
 }
 
+#[tracing::instrument(level = "trace", skip(app))]
 pub fn build_tray_menu(app: &App) -> Result<()> {
     let menu = MenuBuilder::new(app)
         .icon(

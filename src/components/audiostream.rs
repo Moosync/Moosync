@@ -27,7 +27,7 @@ use leptos::{
 use crate::{
     console_log,
     players::{
-        generic::GenericPlayer, librespot::LibrespotPlayer, local::LocalPlayer,
+        generic::GenericPlayer, librespot::LibrespotPlayer, local::LocalPlayer, rodio::RodioPlayer,
         youtube::YoutubePlayer,
     },
     store::{player_store::PlayerStore, provider_store::ProviderStore},
@@ -53,11 +53,14 @@ impl PlayerHolder {
         ));
 
         let mut players: Vec<Box<dyn GenericPlayer>> = vec![];
-        let mut local_player = LocalPlayer::new();
 
+        let mut rodio_player = RodioPlayer::new();
         // Initialize listeners on first player
-        local_player.add_listeners(state_setter.clone());
+        rodio_player.add_listeners(state_setter.clone());
 
+        players.push(Box::new(rodio_player));
+
+        let local_player = LocalPlayer::new();
         players.push(Box::new(local_player));
 
         let youtube_player = YoutubePlayer::new();
@@ -121,11 +124,16 @@ impl PlayerHolder {
             console_log!("Found no players, trying to refetch playback url");
             let mut song_tmp = song.clone();
             for (i, player) in players.iter().enumerate() {
+                if player_blacklist.get_untracked().contains(&player.key()) {
+                    continue;
+                }
+                console_log!("Trying player {}", player.key());
                 let playback_url = self.get_playback_url(song, player.key()).await;
                 if let Ok(playback_url) = playback_url {
                     console_log!("Got new playback url {}", playback_url);
                     song_tmp.song.playback_url = Some(playback_url);
                     if player.can_play(&song_tmp) {
+                        console_log!("Using player {}", player.key());
                         return Ok((i, Some(song_tmp)));
                     }
                 } else {
@@ -149,6 +157,7 @@ impl PlayerHolder {
             return Ok(());
         }
 
+        console_log!("Active player {}", active.unwrap().key());
         active.unwrap().set_volume(volume)?;
         Ok(())
     }

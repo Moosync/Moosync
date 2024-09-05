@@ -53,7 +53,7 @@ class YTPlayer {
     }
 
     this._timeEmitter = setInterval(() => {
-      this.emit("timeUpdate", this.playerInstance.getCurrentTime());
+      this.emit("timeUpdate", YTPlayer.playerInstance.getCurrentTime());
     }, 300);
   }
 
@@ -68,13 +68,18 @@ class YTPlayer {
     for ({ command, args } of this.queue) {
       // Execute all queued commands
       console.log("Executing", command, args);
-      this.playerInstance[command](...args);
+      YTPlayer.playerInstance[command](...args);
     }
+    this.queue = [];
   }
 
   run(command, ...args) {
-    if (YTPlayer._isReady && this.playerInstance) {
-      this.playerInstance[command](...args);
+    if (
+      YTPlayer._isReady &&
+      YTPlayer.playerInstance &&
+      YTPlayer.playerInstance[command]
+    ) {
+      YTPlayer.playerInstance[command](...args);
     } else {
       this.queue.push({ command, args });
     }
@@ -146,7 +151,7 @@ class YTPlayer {
   }
 
   getVolume() {
-    const volume = this.playerInstance.getVolume();
+    const volume = YTPlayer.playerInstance.getVolume();
     if (typeof volume === "undefined") {
       return 0;
     }
@@ -158,6 +163,7 @@ class YTPlayer {
   }
 
   onReady() {
+    console.log("YT player ready");
     this.flushQueue();
   }
 

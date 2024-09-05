@@ -160,6 +160,7 @@ pub enum ExtensionExtraEvent {
     PlaylistRemoved([Vec<QueryablePlaylist>; 1]),
     RequestedSongFromId([String; 1]),
     GetRemoteURL([Song; 1]),
+    Scrobble([Song; 1]),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

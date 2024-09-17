@@ -13,6 +13,7 @@ use crate::icons::{
     logs_icon::{LogsIcon, LogsIconProps},
     paths_icon::{PathsIcon, PathsIconProps},
     playlists_icon::{PlaylistsIcon, PlaylistsIconProps},
+    prev_icon::PrevIcon,
     queue_icon::{QueueIcon, QueueIconProps},
     system_icon::{SystemIcon, SystemIconProps},
     themes_icon::{ThemesIcon, ThemesIconProps},
@@ -89,7 +90,10 @@ fn TabItem(
 }
 
 #[component]
-pub fn Sidebar(#[prop()] tabs: Vec<Tab>) -> impl IntoView {
+pub fn Sidebar(
+    #[prop()] tabs: Vec<Tab>,
+    #[prop(optional = true, default = false)] show_back: bool,
+) -> impl IntoView {
     let mut active_write_signals = vec![];
     let mut active_read_signals = vec![];
     for _ in 0..tabs.len() {
@@ -134,6 +138,14 @@ pub fn Sidebar(#[prop()] tabs: Vec<Tab>) -> impl IntoView {
                     </header>
                     <div class="b-sidebar-body">
                         <div class="extra-margin-top">
+                            <Show when=move || show_back fallback=|| view! {}>
+                                <div class="icon-padding-open d-flex">
+                                    <PrevIcon on:click=move |_| {
+                                        let navigate = leptos_router::use_navigate();
+                                        navigate("/main/allsongs", Default::default());
+                                    } />
+                                </div>
+                            </Show>
                             <div class="d-flex flex-column">
 
                                 {tabs

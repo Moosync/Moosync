@@ -32,10 +32,10 @@ macro_rules! generate_command_cached {
             )*
 
             tracing::info!("calling cached {}: {}", stringify!($method_name), cache_string);
-            // let cached = cache.get(cache_string.as_str());
-            // if cached.is_ok() {
-            //     return cached;
-            // }
+            let cached = cache.get(cache_string.as_str());
+            if cached.is_ok() {
+                return cached;
+            }
 
             let res = db.$method_name($($v,)*);
             match &res {
@@ -92,12 +92,12 @@ macro_rules! generate_command_async_cached {
             )*
 
             tracing::info!("calling cached async {}: {}", stringify!($method_name), cache_string);
-            // let cached = cache.get(cache_string.as_str());
+            let cached = cache.get(cache_string.as_str());
 
-            // if cached.is_ok() {
-            //     tracing::info!("got cached data");
-            //     return cached;
-            // }
+            if cached.is_ok() {
+                tracing::info!("got cached data");
+                return cached;
+            }
 
             let res = db.$method_name($($v,)*).await;
             match &res {

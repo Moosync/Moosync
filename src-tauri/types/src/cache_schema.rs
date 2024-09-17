@@ -5,6 +5,6 @@ diesel::table! {
         id -> Nullable<Integer>,
         url -> Text,
         blob -> Binary,
-        expires -> Integer,
+        expires -> BigInt,
     }
 }

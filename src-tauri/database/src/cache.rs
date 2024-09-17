@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    time::{Duration, SystemTime},
+};
 
 use diesel::{
     connection::SimpleConnection,
@@ -9,6 +12,7 @@ use diesel::{
 };
 
 use serde::{Deserialize, Serialize};
+use tracing::info;
 use types::cache::CacheModel;
 use types::errors::Result;
 
@@ -57,11 +61,14 @@ impl CacheHolder {
     {
         let mut conn = self.pool.get().unwrap();
 
+        let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
+        let new_expires = current_time + Duration::from_secs(expires.unsigned_abs() as u64);
+
         let cache_model = CacheModel {
             id: None,
             url: _url.to_string(),
             blob: serde_json::to_vec(blob)?,
-            expires,
+            expires: new_expires.as_secs() as i64,
         };
         insert_into(cache)
             .values(cache_model.clone())
@@ -80,6 +87,14 @@ impl CacheHolder {
         let mut conn = self.pool.get().unwrap();
 
         let data: CacheModel = cache.filter(url.eq(_url)).first::<CacheModel>(&mut conn)?;
+        let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
+
+        let expires = Duration::from_secs(data.expires as u64);
+        if current_time > expires {
+            info!("Cache expired");
+            return Err("Cache expired".into());
+        }
+
         let parsed: T = serde_json::from_slice(&data.blob)?;
         Ok(parsed)
     }

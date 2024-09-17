@@ -58,10 +58,15 @@ jobs:
           cache-all-crates: true
 
       - name: install extensions host
-        # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
         run: |
           yarn --cwd ./src-extensions install
           yarn --cwd ./src-extensions build ${{ matrix.args }}
+
+      - name: install extensions host wasm
+        run: |
+          chmod +x ./buildext.sh
+          ./buildext.sh
+        shell: bash
 
       - name: Build frontend
         run: |

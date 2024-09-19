@@ -149,7 +149,7 @@ impl ProviderStore {
             args: {
                 account_id: String
             },
-            result_type: (),
+            result_type: String,
         },
         provider_signout {
             args: {

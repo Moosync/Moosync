@@ -289,8 +289,8 @@ impl GenericProvider for SpotifyProvider {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn login(&mut self, _: String) -> Result<()> {
-        self.verifier = login(
+    async fn login(&mut self, _: String) -> Result<String> {
+        let (url, verifier) = login(
             LoginArgs {
                 client_id: self.config.client_id.clone(),
                 client_secret: self.config.client_secret.clone(),
@@ -300,11 +300,12 @@ impl GenericProvider for SpotifyProvider {
             self.get_oauth_client(),
             &self.app,
         )?;
+        self.verifier = verifier;
 
         let oauth_handler: State<OAuthHandler> = self.app.state();
         oauth_handler.register_oauth_path("spotifyoauthcallback".into(), self.key());
 
-        Ok(())
+        Ok(url)
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

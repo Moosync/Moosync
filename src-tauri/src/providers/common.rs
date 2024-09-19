@@ -113,7 +113,11 @@ pub struct LoginArgs {
 }
 
 #[tracing::instrument(level = "trace", skip(config, client, app))]
-pub fn login(config: LoginArgs, client: OAuth2Client, app: &AppHandle) -> Result<OAuth2Verifier> {
+pub fn login(
+    config: LoginArgs,
+    client: OAuth2Client,
+    app: &AppHandle,
+) -> Result<(String, OAuth2Verifier)> {
     if config.client_id.is_none() || config.client_secret.is_none() {
         return Err("Client ID not set".into());
     }
@@ -140,7 +144,7 @@ pub fn login(config: LoginArgs, client: OAuth2Client, app: &AppHandle) -> Result
     if let Err(e) = window.inner().open_external(auth_url.to_string()) {
         tracing::error!("Error opening URL: {:?}", e);
     }
-    Ok(verifier)
+    Ok((auth_url.to_string(), verifier))
 }
 
 #[tracing::instrument(level = "trace", skip(key, code, verifier, app))]

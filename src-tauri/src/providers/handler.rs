@@ -261,7 +261,7 @@ impl ProviderHandler {
             args: {
                 account_id: String
             },
-            result_type: (),
+            result_type: String,
             method_name: login,
         },
         provider_signout {
@@ -347,7 +347,7 @@ pub fn get_provider_handler_state(app: AppHandle) -> ProviderHandler {
 
 generate_command_async!(get_provider_keys, ProviderHandler, Vec<String>,);
 generate_command_async!(initialize_all_providers, ProviderHandler, (),);
-generate_command_async!(provider_login, ProviderHandler, (), key: String, account_id: String);
+generate_command_async!(provider_login, ProviderHandler, String, key: String, account_id: String);
 generate_command_async!(provider_signout, ProviderHandler, (), key: String, account_id: String);
 generate_command_async!(provider_authorize, ProviderHandler, (), key: String, code: String);
 generate_command_async!(get_provider_key_by_id, ProviderHandler, String, id: String);

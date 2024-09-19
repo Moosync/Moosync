@@ -106,7 +106,7 @@ impl GenericProvider for ExtensionProvider {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn login(&mut self, account_id: String) -> Result<()> {
+    async fn login(&mut self, account_id: String) -> Result<String> {
         let extension_handler = get_extension_handler(&self.app_handle);
         extension_handler
             .account_login(AccountLoginArgs {
@@ -116,7 +116,7 @@ impl GenericProvider for ExtensionProvider {
             })
             .await?;
 
-        Ok(())
+        Ok(String::new())
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

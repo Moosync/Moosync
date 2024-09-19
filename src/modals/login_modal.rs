@@ -4,8 +4,11 @@ use leptos::{
     component, create_action, create_rw_signal, event_target_value, expect_context, spawn_local,
     view, IntoView, SignalGet, SignalGetUntracked, SignalSet,
 };
+use serde::Serialize;
 
-use crate::{modals::common::GenericModal, store::provider_store::ProviderStore};
+use crate::{
+    modals::common::GenericModal, store::provider_store::ProviderStore, utils::common::invoke,
+};
 
 #[component]
 pub fn LoginModal(
@@ -15,6 +18,7 @@ pub fn LoginModal(
 ) -> impl IntoView {
     let having_trouble = create_rw_signal(false);
     let code = create_rw_signal(String::new());
+    let url = create_rw_signal(String::new());
 
     let provider_store = expect_context::<Rc<ProviderStore>>();
 
@@ -30,11 +34,29 @@ pub fn LoginModal(
     });
 
     spawn_local(async move {
-        provider_store_cloned
+        let ret = provider_store_cloned
             .provider_login(key_cloned, account_id)
             .await
             .unwrap();
+        url.set(ret);
     });
+
+    let open_external = move |_| {
+        let url = url.get();
+
+        #[derive(Serialize)]
+        struct OpenExternalArgs {
+            url: String,
+        }
+
+        spawn_local(async move {
+            let _ = invoke(
+                "open_external",
+                serde_wasm_bindgen::to_value(&OpenExternalArgs { url }).unwrap(),
+            )
+            .await;
+        });
+    };
 
     view! {
         <GenericModal size=move || "modal-sm".into()>
@@ -58,7 +80,10 @@ pub fn LoginModal(
                                     </div>
                                     <div class="row">
                                         <div class="col d-flex justify-content-center">
-                                            <div class="start-button button-grow mt-4 d-flex justify-content-center align-items-center">
+                                            <div
+                                                on:click=open_external
+                                                class="start-button button-grow mt-4 d-flex justify-content-center align-items-center"
+                                            >
                                                 Open browser
                                             </div>
                                         </div>
@@ -84,7 +109,11 @@ pub fn LoginModal(
                                     </div>
                                     <div class="row">
                                         <div class="col">
-                                            <input class="ext-input mt-3" readonly />
+                                            <input
+                                                class="ext-input mt-3"
+                                                readonly
+                                                prop:value=move || url.get()
+                                            />
                                         </div>
                                     </div>
                                     <div class="row">

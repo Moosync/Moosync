@@ -75,6 +75,7 @@ impl RodioPlayer {
                 let reader = BufReader::new(file);
                 let decoder = Decoder::new(reader)?;
                 sink.append(decoder);
+                return Ok(());
             }
 
             Err("Failed to read src".into())

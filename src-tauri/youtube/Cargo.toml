@@ -10,7 +10,7 @@ rusty_ytdl = { default-features = false, version = "0.7.4", features = [
     "search",
 ] }
 types = { path = "../types" }
-serde_json = { default-features = false, version = "1.0.125" }
-tokio = "1.39.3"
-serde = { default-features = false, version = "1.0.208" }
+serde_json = { default-features = false, version = "1.0.128" }
+tokio = "1.40.0"
+serde = { default-features = false, version = "1.0.210" }
 tracing = { version = "0.1.40", default-features = false }

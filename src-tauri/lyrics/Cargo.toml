@@ -7,8 +7,8 @@ edition = "2021"
 
 [dependencies]
 regex = { default-features = false, version = "1.10.6" }
-reqwest = { default-features = false, version = "0.12.5" }
-serde_json = { default-features = false, version = "1.0.125" }
+reqwest = { default-features = false, version = "0.12.7" }
+serde_json = { default-features = false, version = "1.0.128" }
 types = { path = "../types" , default-features = false }
 librespot = { path = "../librespot" , default-features = false }
 tracing = { version = "0.1.40", default-features = false }

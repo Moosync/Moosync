@@ -18,10 +18,7 @@ pub fn get_librespot_state() -> LibrespotHolder {
 pub fn initialize_librespot(app: AppHandle, access_token: String) -> Result<()> {
     let credentials = Credentials::with_access_token(access_token);
 
-    let player_config = PlayerConfig {
-        bitrate: Bitrate::Bitrate320,
-        ..Default::default()
-    };
+    let player_config = PlayerConfig::default();
 
     let connect_config = ConnectConfig {
         name: "Moosync".into(),

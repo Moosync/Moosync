@@ -8,7 +8,7 @@ log = "0.4.22"
 serde_json = { default-features = false, version = "1.0" }
 diesel_logger = { git = "https://github.com/Ovenoboyo/diesel-logger.git" }
 tracing = { version = "0.1.40", default-features = false }
-diesel = { version = "2.2.2", default-features = false }
+diesel = { version = "2.2.4", default-features = false }
 diesel_migrations = { version = "2.2.0", default-features = false }
 macros = { path = "../macros", features = [] }
 serde = { version = "1.0", default-features = false }

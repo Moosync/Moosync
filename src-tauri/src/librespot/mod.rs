@@ -5,7 +5,6 @@ use librespot::{
 };
 use macros::{generate_command, generate_command_cached};
 
-use preferences::preferences::PreferenceConfig;
 use tauri::{AppHandle, Emitter, Manager, State, Window};
 use types::{canvaz::CanvazResponse, errors::Result};
 
@@ -14,24 +13,10 @@ pub fn get_librespot_state() -> LibrespotHolder {
     LibrespotHolder::new()
 }
 
-#[tracing::instrument(level = "trace", skip(app, window, librespot))]
+#[tracing::instrument(level = "trace", skip(app))]
 #[tauri::command()]
-pub fn initialize_librespot(
-    app: AppHandle,
-    window: Window,
-    librespot: State<LibrespotHolder>,
-) -> Result<()> {
-    let prefs: State<PreferenceConfig> = app.state();
-    let username: String = prefs.load_selective("spotify.username".into())?;
-    let password: String = prefs.load_selective("spotify.password".into())?;
-
-    tracing::info!(
-        "Initializing librespot {}@{}",
-        username.trim(),
-        password.trim()
-    );
-
-    let credentials = Credentials::with_password(username, password);
+pub fn initialize_librespot(app: AppHandle, access_token: String) -> Result<()> {
+    let credentials = Credentials::with_access_token(access_token);
 
     let player_config = PlayerConfig {
         bitrate: Bitrate::Bitrate320,
@@ -55,6 +40,7 @@ pub fn initialize_librespot(
         None,
     )?;
 
+    let librespot: State<LibrespotHolder> = app.state();
     librespot.initialize(
         credentials,
         player_config,
@@ -79,13 +65,13 @@ pub fn initialize_librespot(
                         "librespot_event_{}",
                         parsed_event.get("event").unwrap(),
                     )) {
-                        window
-                            .emit(
-                                format!("librespot_event_{}", parsed_event.get("event").unwrap(),)
-                                    .as_str(),
-                                parsed_event,
-                            )
-                            .unwrap();
+                        tracing::info!("Emitting event {:?}", parsed_event);
+                        app.emit(
+                            format!("librespot_event_{}", parsed_event.get("event").unwrap(),)
+                                .as_str(),
+                            parsed_event,
+                        )
+                        .unwrap();
                     }
                 }
                 Err(e) => {
@@ -99,6 +85,7 @@ pub fn initialize_librespot(
     Ok(())
 }
 
+generate_command!(is_initialized, LibrespotHolder, bool,);
 generate_command!(librespot_play, LibrespotHolder, (),);
 generate_command!(librespot_pause, LibrespotHolder, (),);
 generate_command!(librespot_close, LibrespotHolder, (),);

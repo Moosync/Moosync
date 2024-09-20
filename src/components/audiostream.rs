@@ -202,6 +202,8 @@ impl PlayerHolder {
             player.add_listeners(self.state_setter.clone());
         }
 
+        console_log!("Active player: {}", player.key());
+
         let (resolver_tx, resolver_rx) = oneshot::channel();
         player.load(src.unwrap(), resolver_tx);
 

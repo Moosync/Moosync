@@ -165,6 +165,10 @@ impl LibrespotHolder {
         events.push(event_name.clone());
         Ok(())
     }
+
+    pub fn is_initialized(&self) -> Result<bool> {
+        Ok(self.check_initialized().is_ok())
+    }
 }
 
 generate_methods!(LibrespotHolder,

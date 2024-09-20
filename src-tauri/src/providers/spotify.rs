@@ -1,4 +1,9 @@
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    io::{BufRead, BufReader},
+    net::{SocketAddr, TcpListener},
+    thread,
+};
 
 use async_trait::async_trait;
 
@@ -28,7 +33,7 @@ use types::{
 use types::{errors::MoosyncError, providers::generic::GenericProvider};
 use url::Url;
 
-use crate::oauth::handler::OAuthHandler;
+use crate::{librespot::initialize_librespot, oauth::handler::OAuthHandler};
 
 use super::common::{
     authorize, get_oauth_client, login, refresh_login, LoginArgs, OAuthClientArgs, TokenHolder,
@@ -95,7 +100,7 @@ impl SpotifyProvider {
             token_url: "https://accounts.spotify.com/api/token".to_string(),
             redirect_url: self.config.redirect_uri.to_string(),
             client_id: self.config.client_id.clone().unwrap(),
-            client_secret: self.config.client_secret.clone().unwrap(),
+            client_secret: self.config.client_secret.clone().unwrap_or_default(),
         })
     }
 
@@ -257,7 +262,23 @@ impl GenericProvider for SpotifyProvider {
 
         self.config.client_id = client_id.map(|v| v.as_str().unwrap().to_string());
         self.config.client_secret = client_secret.map(|v| v.as_str().unwrap().to_string());
-        self.config.redirect_uri = "https://moosync.app/spotify";
+
+        if self
+            .config
+            .client_id
+            .as_ref()
+            .map_or(true, |id| id.is_empty())
+            || self
+                .config
+                .client_secret
+                .as_ref()
+                .map_or(true, |secret| secret.is_empty())
+        {
+            self.config.redirect_uri = "http://127.0.0.1:8898/login";
+            self.config.client_id = Some("65b708073fc0480ea92a077233ca87bd".into())
+        } else {
+            self.config.redirect_uri = "https://moosync.app/spotify";
+        }
         self.config.scopes = vec![
             "playlist-read-private",
             "user-top-read",
@@ -302,6 +323,40 @@ impl GenericProvider for SpotifyProvider {
         )?;
         self.verifier = verifier;
 
+        let redirect_uri = self.config.redirect_uri;
+        if redirect_uri.starts_with("http://127.0.0.1:8898") {
+            let app_handle = self.app.clone();
+            thread::spawn(move || {
+                let socket_addr = Url::parse(redirect_uri)
+                    .unwrap()
+                    .socket_addrs(|| None)
+                    .unwrap()
+                    .pop()
+                    .unwrap();
+
+                tracing::info!("Listening {:?}", socket_addr);
+
+                let listener = TcpListener::bind(socket_addr).unwrap();
+                let stream = listener.incoming().flatten().next().unwrap();
+                let mut reader = BufReader::new(&stream);
+                let mut request_line = String::new();
+                reader.read_line(&mut request_line).unwrap();
+
+                let code = request_line.split_whitespace().nth(1);
+                if let Some(code) = code {
+                    tracing::info!("Got redirect URI {:?}", code);
+                    let parsed_code = code.replace("/login", "");
+                    let oauth_handler: State<OAuthHandler> = app_handle.state();
+                    oauth_handler
+                        .handle_oauth(
+                            app_handle.clone(),
+                            format!("moosync://spotifyoauthcallback{}", parsed_code),
+                        )
+                        .unwrap();
+                }
+            });
+        }
+
         let oauth_handler: State<OAuthHandler> = self.app.state();
         oauth_handler.register_oauth_path("spotifyoauthcallback".into(), self.key());
 
@@ -345,6 +400,11 @@ impl GenericProvider for SpotifyProvider {
         );
 
         self.create_api_client().await;
+        if let Some(tokens) = &self.config.tokens {
+            if let Err(err) = initialize_librespot(self.app.clone(), tokens.access_token.clone()) {
+                tracing::error!("Error initializing librespot {:?}", err);
+            }
+        }
         Ok(())
     }
 

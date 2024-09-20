@@ -31,9 +31,15 @@ pub struct OAuthClientArgs {
 
 #[tracing::instrument(level = "trace", skip(config))]
 pub fn get_oauth_client(config: OAuthClientArgs) -> OAuth2Client {
+    let client_secret = if config.client_secret.is_empty() {
+        None
+    } else {
+        Some(ClientSecret::new(config.client_secret))
+    };
+
     BasicClient::new(
         ClientId::new(config.client_id),
-        Some(ClientSecret::new(config.client_secret)),
+        client_secret,
         AuthUrl::new(config.auth_url).unwrap(),
         Some(TokenUrl::new(config.token_url).unwrap()),
     )
@@ -118,7 +124,7 @@ pub fn login(
     client: OAuth2Client,
     app: &AppHandle,
 ) -> Result<(String, OAuth2Verifier)> {
-    if config.client_id.is_none() || config.client_secret.is_none() {
+    if config.client_id.is_none() {
         return Err("Client ID not set".into());
     }
 

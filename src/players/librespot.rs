@@ -73,8 +73,6 @@ pub struct LibrespotPlayer {
 }
 
 static ENABLED: Mutex<bool> = Mutex::new(false);
-static HAS_USERNAME: Mutex<bool> = Mutex::new(false);
-static HAS_PASSWORD: Mutex<bool> = Mutex::new(false);
 static INITIALIZED: Mutex<bool> = Mutex::new(false);
 
 impl std::fmt::Debug for LibrespotPlayer {
@@ -98,28 +96,18 @@ impl LibrespotPlayer {
         LibrespotPlayer::initialize_librespot();
     }
 
-    pub fn set_has_username(en: bool) {
-        *(HAS_USERNAME.lock().unwrap()) = en;
-        LibrespotPlayer::initialize_librespot();
-    }
-
-    pub fn set_has_password(en: bool) {
-        *(HAS_PASSWORD.lock().unwrap()) = en;
-        LibrespotPlayer::initialize_librespot();
-    }
-
     fn initialize_librespot() {
-        if *ENABLED.lock().unwrap()
-            && *HAS_USERNAME.lock().unwrap()
-            && *HAS_PASSWORD.lock().unwrap()
-        {
+        if *ENABLED.lock().unwrap() {
             spawn_local(async move {
-                let res = invoke("initialize_librespot", JsValue::undefined()).await;
-                if res.is_err() {
-                    console_log!("Error initializing librespot: {:?}", res.unwrap_err());
-                    return;
+                let res = invoke("is_initialized", JsValue::undefined()).await;
+                console_log!("Librespot initialized: {:?}", res);
+                if let Ok(res) = res {
+                    if let Some(initialized) = res.as_bool() {
+                        *INITIALIZED.lock().unwrap() = initialized;
+                        return;
+                    }
                 }
-                *INITIALIZED.lock().unwrap() = true;
+                *INITIALIZED.lock().unwrap() = false;
             })
         }
     }
@@ -128,27 +116,17 @@ impl LibrespotPlayer {
 impl GenericPlayer for LibrespotPlayer {
     fn initialize(&self, _: leptos::NodeRef<leptos::html::Div>) {
         spawn_local(async move {
-            let enabled: Vec<CheckboxPreference> =
-                load_selective_async("spotify.enable".into()).await.unwrap();
+            let enabled: Vec<CheckboxPreference> = load_selective_async("spotify.enable".into())
+                .await
+                .unwrap_or(vec![CheckboxPreference {
+                    key: "enable".into(),
+                    enabled: true,
+                }]);
             for pref in enabled {
                 if pref.key == "enable" {
                     LibrespotPlayer::set_enabled(pref.enabled)
                 }
             }
-        });
-
-        spawn_local(async move {
-            let enabled: String = load_selective_async("spotify.username".into())
-                .await
-                .unwrap();
-            LibrespotPlayer::set_has_username(!enabled.is_empty())
-        });
-
-        spawn_local(async move {
-            let enabled: String = load_selective_async("spotify.password".into())
-                .await
-                .unwrap();
-            LibrespotPlayer::set_has_password(!enabled.is_empty())
         });
     }
 
@@ -238,6 +216,7 @@ impl GenericPlayer for LibrespotPlayer {
     }
 
     fn can_play(&self, song: &types::songs::Song) -> bool {
+        Self::initialize_librespot();
         *INITIALIZED.lock().unwrap() && song.song.type_ == types::songs::SongType::SPOTIFY
     }
 

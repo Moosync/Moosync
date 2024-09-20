@@ -4,7 +4,7 @@ use std::fs;
 
 use extensions::get_extension_state;
 use librespot::{
-    get_canvaz, get_librespot_state, initialize_librespot, librespot_close, librespot_get_token,
+    get_canvaz, get_librespot_state, is_initialized, librespot_close, librespot_get_token,
     librespot_load, librespot_pause, librespot_play, librespot_seek, librespot_volume,
     register_event,
 };
@@ -81,6 +81,10 @@ mod youtube;
 #[tracing::instrument(level = "trace", skip())]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_deep_link::init())
@@ -137,7 +141,7 @@ pub fn run() {
             // Scanner
             start_scan,
             // Librespot
-            initialize_librespot,
+            is_initialized,
             librespot_play,
             librespot_pause,
             librespot_close,

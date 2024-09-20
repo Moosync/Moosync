@@ -47,6 +47,7 @@ tracing-subscriber = { features = [
     "ansi",
     "env-filter",
 ], default-features = false, version = "0.3.18" }
+rustls = { version = "0.23.13", features = ["ring"] }
 
 [build-dependencies.tauri-build]
 version = "2.0.0-beta.19"

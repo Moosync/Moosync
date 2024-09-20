@@ -232,12 +232,6 @@ pub fn App() -> impl IntoView {
                     LibrespotPlayer::set_enabled(pref.enabled)
                 }
             }
-        } else if key == "prefs.spotify.username" {
-            let value = value.as_string().unwrap();
-            LibrespotPlayer::set_has_username(!value.is_empty())
-        } else if key == "prefs.spotify.password" {
-            let value = value.as_string().unwrap();
-            LibrespotPlayer::set_has_password(!value.is_empty())
         } else if key == "prefs.themes.active_theme" {
             let value = value.as_string().unwrap();
             handle_theme(value);

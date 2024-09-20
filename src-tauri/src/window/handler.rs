@@ -75,11 +75,11 @@ impl WindowHandler {
                     webview.controller().SetZoomFactor(scale_factor).unwrap();
                 }
 
-                #[cfg(target_os = "macos")]
-                unsafe {
-                    use objc::{sel, sel_impl};
-                    let () = objc::msg_send![webview.inner(), setPageZoom: scale_factor];
-                }
+                // #[cfg(target_os = "macos")]
+                // unsafe {
+                //     use objc::{sel, sel_impl};
+                //     let () = objc::msg_send![webview.inner(), setPageZoom: scale_factor];
+                // }
             })?;
         }
 

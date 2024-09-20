@@ -91,6 +91,8 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
     let play_now = create_write_slice(player_store, |p, val| p.change_index(val));
     let remove_from_queue = create_write_slice(player_store, |p, val| p.remove_from_queue(val));
 
+    let clear_queue = create_write_slice(player_store, |p, _| p.clear_queue_except_current());
+
     create_effect(move |_| {
         let current_song = current_song.get();
         if let Some(current_song) = current_song {
@@ -182,7 +184,12 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
                                 <div class="row">
                                     <div class="col-auto d-flex">
                                         <div class="rounded-btn">Save as playlist</div>
-                                        <div class="rounded-btn">Clear</div>
+                                        <div
+                                            class="rounded-btn"
+                                            on:click=move |_| clear_queue.set(())
+                                        >
+                                            Clear
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="row queue-container-outer">

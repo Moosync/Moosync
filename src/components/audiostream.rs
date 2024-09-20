@@ -170,6 +170,15 @@ impl PlayerHolder {
             .await
     }
 
+    pub async fn unload_audio(&mut self) {
+        let mut players = self.players.lock().await;
+        let active_player_pos = self.active_player.load(Ordering::Relaxed);
+        let active = players.get_mut(active_player_pos);
+        if let Some(active) = active {
+            active.stop().unwrap();
+        }
+    }
+
     pub async fn load_audio(
         &mut self,
         song: &Song,
@@ -419,6 +428,12 @@ pub fn AudioStream() -> impl IntoView {
                 if updated_song.is_some() {
                     // TODO: Update song in DB
                 }
+            });
+        } else {
+            let players = players_clone.clone();
+            spawn_local(async move {
+                let mut players = players.lock().await;
+                players.unload_audio().await;
             });
         }
     });

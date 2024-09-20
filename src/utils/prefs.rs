@@ -104,6 +104,7 @@ pub fn open_file_browser(
             return;
         }
         let file_resp: Vec<FileResponse> = from_value(res.unwrap()).unwrap();
+        console_log!("Got file response {:?}", file_resp);
         setter.set(file_resp.iter().map(|f| f.path.clone()).collect());
     })
 }

@@ -167,7 +167,14 @@ impl PlayerStore {
         if self.data.queue.current_index >= self.data.queue.song_queue.len() {
             self.data.queue.current_index = 0;
         }
-        let id = self.data.queue.song_queue[self.data.queue.current_index].clone();
+        let id = self
+            .data
+            .queue
+            .song_queue
+            .get(self.data.queue.current_index)
+            .cloned()
+            .unwrap_or_default();
+
         let song = self.data.queue.data.get(&id).cloned();
 
         if song == self.data.current_song && self.data.player_blacklist.is_empty() {
@@ -436,6 +443,21 @@ impl PlayerStore {
     pub fn clear_queue(&mut self) {
         self.data.queue.song_queue.clear();
         self.data.queue.current_index = 0;
+        self.update_current_song();
+    }
+
+    pub fn clear_queue_except_current(&mut self) {
+        let current_song = self.get_current_song();
+
+        let only_one_song = self.get_queue().song_queue.len() == 1;
+        self.data.queue.song_queue.clear();
+        self.data.queue.current_index = 0;
+
+        if !only_one_song {
+            if let Some(current_song) = current_song {
+                self.add_to_queue(vec![current_song]);
+            }
+        }
         self.update_current_song();
     }
 

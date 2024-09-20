@@ -47,6 +47,7 @@ pub fn PathsPref(
     let selected_paths = create_rw_signal(vec![]);
     create_effect(move |_| {
         let new_paths = selected_paths.get();
+        console_log!("Got new paths: {:?}", new_paths);
         if !new_paths.is_empty() {
             paths.update(|paths| paths.extend(new_paths.iter().cloned()));
         }
@@ -54,11 +55,13 @@ pub fn PathsPref(
 
     let key_clone = key.clone();
     create_effect(move |_| {
+        let value = paths.get();
+        console_log!("Should write {}, {:?}", should_write.get(), value);
         if !should_write.get() {
             should_write.set(true);
             return;
         }
-        let value = paths.get();
+        console_log!("Saving paths: {:?}", value);
         save_selective(key_clone.clone(), value);
     });
     let i18n = use_i18n();

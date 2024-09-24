@@ -20,7 +20,7 @@
       },
       "csp": {
         "default-src": "'self' tauri: asset: http://tauri.localhost http://asset.localhost",
-        "connect-src": "tauri: http://tauri.localhost",
+        "connect-src": "ipc: http://ipc.localhost tauri: http://tauri.localhost",
         "media-src": "'self' blob: asset: https://asset.localhost tauri: http://tauri.localhost https: http:",
         "img-src": "'self' asset: https://asset.localhost https: http:",
         "style-src": "'unsafe-inline' 'self' https://fonts.googleapis.com",
@@ -37,6 +37,7 @@
   },
   "build": {
     "beforeDevCommand": "trunk serve --config ../Trunk.toml",
+    "beforeBuildCommand": "trunk build --release --config ../Trunk.toml",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },

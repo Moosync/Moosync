@@ -105,20 +105,14 @@ impl YoutubeScraper {
         QueryableArtist {
             artist_id: Some(format!("youtube-author:{}", artist.id)),
             artist_name: Some(artist.name.clone()),
-            artist_extra_info: Some(EntityInfo(
-                serde_json::from_str(
-                    format!(
-                        r#"{{
+            artist_extra_info: Some(EntityInfo(format!(
+                r#"{{
                 "youtube": {{
                     "channel_id": "{}"
                 }}
             }}"#,
-                        artist.id
-                    )
-                    .as_str(),
-                )
-                .unwrap(),
-            )),
+                artist.id
+            ))),
             artist_coverpath: artist.icon.first().map(|v| v.url.clone()),
             ..Default::default()
         }

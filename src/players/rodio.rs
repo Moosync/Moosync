@@ -184,8 +184,10 @@ impl GenericPlayer for RodioPlayer {
         &mut self,
         state_setter: std::rc::Rc<Box<dyn Fn(types::ui::player_details::PlayerEvents)>>,
     ) {
+        console_log!("Adding rodio listeners");
         let start_timer =
             |timer: Rc<Mutex<Option<IntervalHandle>>>, time: Rc<Mutex<f64>>, tx: Callback| {
+                console_log!("Starting timer");
                 let mut timer = timer.lock().unwrap();
                 if timer.is_some() {
                     let handle = timer.unwrap();
@@ -207,6 +209,7 @@ impl GenericPlayer for RodioPlayer {
         type Callback = RefCell<Rc<Box<dyn Fn(PlayerEvents)>>>;
 
         let stop_timer = |timer: Rc<Mutex<Option<IntervalHandle>>>, _, _| {
+            console_log!("pausing timer");
             let mut timer = timer.lock().unwrap();
             if timer.is_some() {
                 let handle = timer.unwrap();
@@ -217,6 +220,7 @@ impl GenericPlayer for RodioPlayer {
 
         let stop_and_clear_timer =
             |timer: Rc<Mutex<Option<IntervalHandle>>>, time: Rc<Mutex<f64>>, tx: Callback| {
+                console_log!("Stopping timer");
                 let mut timer = timer.lock().unwrap();
                 if timer.is_some() {
                     let handle = timer.unwrap();
@@ -234,6 +238,7 @@ impl GenericPlayer for RodioPlayer {
         let time = self.time.clone();
 
         let unlisten = listen_event("rodio_event", move |data| {
+            console_log!("Got rodio event {:?}", data);
             let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
             let event: PlayerEvents = serde_wasm_bindgen::from_value(payload).unwrap();
 

@@ -15,7 +15,11 @@ pub fn get_rodio_state(app: AppHandle) -> RodioPlayer {
     thread::spawn(move || {
         let events_rx = events_rx.lock().unwrap();
         while let Ok(event) = events_rx.recv() {
-            let _ = app.emit("rodio_event", event);
+            tracing::info!("Sending rodio event {:?}", event);
+            let res = app.emit("rodio_event", event);
+            if res.is_err() {
+                tracing::error!("Error sending rodio event {:?}", res);
+            }
         }
     });
 

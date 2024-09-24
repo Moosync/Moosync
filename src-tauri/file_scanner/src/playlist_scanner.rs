@@ -130,7 +130,7 @@ impl<'a> PlaylistScanner<'a> {
 
                 if song.type_ == SongType::LOCAL {
                     let song_path = PathBuf::from_str(line.as_str());
-                    let Ok(mut path_parsed) = song_path;
+                    let mut path_parsed = song_path.unwrap();
                     if path_parsed.is_relative() {
                         path_parsed = path.parent().unwrap().join(path_parsed).canonicalize()?;
                     }

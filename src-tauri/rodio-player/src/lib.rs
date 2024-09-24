@@ -69,7 +69,7 @@ impl RodioPlayer {
 
             Ok(())
         } else {
-            let Ok(path) = PathBuf::from_str(src.as_str());
+            let path = PathBuf::from_str(src.as_str()).unwrap();
             if path.exists() {
                 let file = fs::File::open(path)?;
                 let reader = BufReader::new(file);

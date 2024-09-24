@@ -3,7 +3,7 @@
     "macOSPrivateApi": false,
     "windows": [
       {
-        "url": "/mainWindow",
+        "url": "/main/allsongs",
         "height": 800,
         "width": 1024,
         "decorations": true,
@@ -18,7 +18,15 @@
           "requireLiteralLeadingDot": false
         }
       },
-      "csp": "default-src tauri: 'self'; img-src tauri: 'self' asset: media: https://asset.localhost https: http:; media-src blob: tauri: 'self' http: https: asset: media: https://asset.localhost ; connect-src ipc: tauri: http://ipc.localhost asset: ; style-src 'unsafe-inline' tauri:; frame-src youtube.com https://www.youtube.com; script-src 'wasm-unsafe-eval';",
+      "csp": {
+        "default-src": "'self' tauri: asset: http://tauri.localhost http://asset.localhost",
+        "connect-src": "tauri: http://tauri.localhost",
+        "media-src": "'self' blob: asset: https://asset.localhost tauri: http://tauri.localhost https: http:",
+        "img-src": "'self' asset: https://asset.localhost https: http:",
+        "style-src": "'unsafe-inline' 'self' https://fonts.googleapis.com",
+        "frame-src": "youtube.com https://www.youtube.com",
+        "script-src": "'wasm-unsafe-eval' tauri: http://tauri.localhost"
+      },
       "dangerousDisableAssetCspModification": false,
       "freezePrototype": false,
       "pattern": {
@@ -90,5 +98,5 @@
     }
   },
   "productName": "Moosync",
-  "version": "0.0.0"
+  "version": "0.0.1"
 }

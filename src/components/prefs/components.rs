@@ -2,7 +2,8 @@ use std::{collections::HashMap, rc::Rc};
 
 use leptos::{
     component, create_effect, create_rw_signal, event_target_checked, event_target_value,
-    expect_context, view, CollectView, For, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
+    expect_context, view, CollectView, For, IntoView, RwSignal, SignalGet, SignalSet,
+    SignalSetUntracked, SignalUpdate,
 };
 use leptos_context_menu::ContextMenu;
 use leptos_i18n::t;
@@ -223,17 +224,18 @@ pub fn CheckboxPref(
     load_selective(pref_key.clone(), pref_value.write_only());
     let last_enabled = create_rw_signal(String::new());
     create_effect(move |_| {
-        let mut value = pref_value.get();
+        let value = pref_value.get();
         if !should_write.get() {
-            should_write.set(true);
+            should_write.set_untracked(true);
             return;
         }
-        if single {
-            let last_enabled = last_enabled.get();
-            for items in value.iter_mut() {
-                items.enabled = items.key == last_enabled;
-            }
-        }
+        // if single {
+        //     let last_enabled = last_enabled.get();
+        //     for items in value.iter_mut() {
+        //         items.enabled = items.key == last_enabled;
+        //     }
+        // }
+
         save_selective(pref_key.clone(), value.clone());
     });
     view! {
@@ -257,13 +259,14 @@ pub fn CheckboxPref(
                             <div class="col-auto align-self-center">
                                 <div class="custom-control custom-checkbox">
                                     <input
-                                        type="checkbox"
+                                        type=move || if single { "radio" } else { "checkbox" }
                                         class="custom-control-input"
                                         id=format!(
                                             "checkbox-{}-{}",
                                             pref_key.clone(),
                                             item_key_clone.clone(),
                                         )
+                                        name=pref_key.clone()
                                         prop:checked=move || {
                                             pref_value
                                                 .get()

@@ -100,15 +100,22 @@ impl RodioPlayer {
 
             let events_tx = events_tx.clone();
             runtime.block_on(async move {
-                let mut last_src = None;
+                let last_src = Arc::new(Mutex::new(None));
                 while let Ok(command) = rx.recv() {
                     let sink = sink.clone();
 
                     match command {
                         RodioCommand::SetSrc(src) => {
+                            let last_src = last_src.clone();
+                            {
+                                let mut last_src = last_src.lock().unwrap();
+                                *last_src = Some(src.clone());
+                            }
+
                             sink.clear();
                             Self::send_event(events_tx.clone(), PlayerEvents::TimeUpdate(0f64));
                             Self::send_event(events_tx.clone(), PlayerEvents::Loading);
+
                             if let Err(err) =
                                 Self::set_src(cache_dir.clone(), src.clone(), &sink).await
                             {
@@ -116,13 +123,25 @@ impl RodioPlayer {
                                 Self::send_event(events_tx.clone(), PlayerEvents::Error(err))
                             } else {
                                 info!("Set src");
+                                let src_clone = src.clone();
 
-                                last_src = Some(src);
                                 let events_tx = events_tx.clone();
                                 let sink = sink.clone();
+
+                                // Send ended event only if song hasn't changed yet
                                 thread::spawn(move || {
                                     sink.sleep_until_end();
-                                    Self::send_event(events_tx.clone(), PlayerEvents::Ended);
+                                    let last_src = last_src.clone();
+                                    let last_src = last_src.lock().unwrap();
+                                    if let Some(last_src) = last_src.clone() {
+                                        info!("last src={}, current src={}", last_src, src_clone);
+                                        if last_src == src_clone {
+                                            Self::send_event(
+                                                events_tx.clone(),
+                                                PlayerEvents::Ended,
+                                            );
+                                        }
+                                    }
                                 });
                             }
                         }
@@ -160,10 +179,14 @@ impl RodioPlayer {
                                         PlayerEvents::TimeUpdate(pos as f64),
                                     )
                                 }
-                            } else if let Some(last_src) = last_src.clone() {
-                                tx.send(RodioCommand::SetSrc(last_src.clone())).unwrap();
-                                tx.send(RodioCommand::Seek(pos)).unwrap();
-                                tx.send(RodioCommand::Play).unwrap();
+                            } else {
+                                let last_src = last_src.clone();
+                                let last_src = last_src.lock().unwrap();
+                                if let Some(last_src) = last_src.clone() {
+                                    tx.send(RodioCommand::SetSrc(last_src.clone())).unwrap();
+                                    tx.send(RodioCommand::Seek(pos)).unwrap();
+                                    tx.send(RodioCommand::Play).unwrap();
+                                }
                             }
                         }
                     }

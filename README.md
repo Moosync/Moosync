@@ -24,9 +24,7 @@ You can learn more about Take Over mode [here](https://github.com/johnsoncodehk/
   - gapless playback
   - sponsorblock
 - i18n
-- wasm extensions
 - Sanitize extension response
 - System theme fetch
-- Rodio player
 - Optimize cloning in leptos
 - Optimize DB queries

@@ -27,7 +27,7 @@
         "frame-src": "youtube.com https://www.youtube.com",
         "script-src": "'wasm-unsafe-eval' tauri: http://tauri.localhost"
       },
-      "dangerousDisableAssetCspModification": false,
+      "dangerousDisableAssetCspModification": true,
       "freezePrototype": false,
       "pattern": {
         "use": "brownfield"

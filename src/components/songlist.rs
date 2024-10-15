@@ -250,7 +250,6 @@ pub fn SongList(
 
         selected_songs_sig.set(vec![get_actual_position(index)]);
         filtered_selected.set(vec![index]);
-        console_log!("{:?}", selected_songs_sig.get());
     };
 
     let context_menu_data = SongItemContextMenu {

@@ -4,7 +4,7 @@ use std::{
         Arc, Mutex,
     },
     thread::{self, JoinHandle},
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Instant, SystemTime, UNIX_EPOCH},
 };
 
 use librespot::{
@@ -20,6 +20,7 @@ use librespot::{
     },
     protocol::spirc::TrackRef,
 };
+use protobuf::well_known_types::duration::Duration;
 use serde::{Deserialize, Serialize};
 use tokio::runtime::Builder;
 
@@ -42,6 +43,7 @@ pub struct ParsedToken {
 pub struct SpircWrapper {
     tx: mpsc::Sender<(Message, Sender<Result<MessageReply>>)>,
     pub events_channel: Arc<Mutex<mpsc::Receiver<PlayerEvent>>>,
+    channel_close_rx: Arc<Mutex<mpsc::Receiver<()>>>,
     device_id: Arc<Mutex<Option<String>>>,
 }
 
@@ -89,6 +91,7 @@ impl SpircWrapper {
         let (tx, rx) = mpsc::channel::<(Message, Sender<Result<MessageReply>>)>();
 
         let (player_events_tx, player_events_rx) = mpsc::channel::<PlayerEvent>();
+        let (channel_close_tx, channel_close_rx) = mpsc::channel::<()>();
 
         let binding = device_id_mutex.clone();
         thread::spawn(move || {
@@ -124,8 +127,12 @@ impl SpircWrapper {
                         tracing::info!("Spirc created");
 
                         spirc.activate().unwrap();
-                        let commands_thread =
-                            SpircWrapper::listen_commands(rx, spirc, session.clone());
+                        let commands_thread = SpircWrapper::listen_commands(
+                            rx,
+                            channel_close_tx,
+                            spirc,
+                            session.clone(),
+                        );
                         let events_thread =
                             SpircWrapper::listen_events(player_events_tx, events_channel);
 
@@ -146,11 +153,26 @@ impl SpircWrapper {
             });
         });
 
-        Ok(Self {
+        let spirc = Self {
             tx,
             device_id: device_id_mutex,
             events_channel: Arc::new(Mutex::new(player_events_rx)),
-        })
+            channel_close_rx: Arc::new(Mutex::new(channel_close_rx)),
+        };
+        spirc.listen_channel_close();
+        Ok(spirc)
+    }
+
+    fn listen_channel_close(&self) {
+        let channel_close_rx = self.channel_close_rx.clone();
+        let device_id = self.device_id.clone();
+        thread::spawn(move || {
+            let channel_close_rx = channel_close_rx.lock().unwrap();
+            while channel_close_rx.recv().is_ok() {
+                let mut device_id = device_id.lock().unwrap();
+                device_id.take();
+            }
+        });
     }
 
     #[tracing::instrument(level = "trace", skip(tx, events_channel))]
@@ -256,7 +278,9 @@ impl SpircWrapper {
                     .map_err(MoosyncError::Librespot);
                 tx.send(res).unwrap();
             }
-            Message::Close => {}
+            Message::Close => {
+                tx.send(Ok(MessageReply::None)).unwrap();
+            }
             Message::GetLyrics(uri) => {
                 let lyrics = get_lyrics(uri, session.clone()).map(MessageReply::GetLyrics);
                 tx.send(lyrics).unwrap();
@@ -271,20 +295,25 @@ impl SpircWrapper {
     #[tracing::instrument(level = "trace", skip(rx, spirc, session))]
     pub fn listen_commands(
         rx: Receiver<(Message, Sender<Result<MessageReply>>)>,
+        channel_close_tx: Sender<()>,
         mut spirc: Spirc,
         mut session: Session,
     ) -> JoinHandle<()> {
-        thread::spawn(move || {
-            while let Ok((message, tx)) = rx.recv() {
+        thread::spawn(move || loop {
+            if let Ok((message, tx)) = rx.recv() {
                 if message == Message::Close {
                     spirc.shutdown().unwrap();
                     session.shutdown();
                     tx.send(Ok(MessageReply::None)).unwrap();
+                    channel_close_tx.send(()).unwrap();
                     return;
                 }
 
                 Self::handle_command(message.clone(), tx, &mut spirc, &mut session);
                 tracing::info!("Finished handling: {:?}", message);
+            } else {
+                channel_close_tx.send(()).unwrap();
+                return;
             }
         })
     }

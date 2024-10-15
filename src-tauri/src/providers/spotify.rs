@@ -131,6 +131,10 @@ impl SpotifyProvider {
                     })
                     .await;
             }
+
+            if let Err(err) = initialize_librespot(self.app.clone(), token.access_token.clone()) {
+                tracing::error!("Error initializing librespot {:?}", err);
+            }
         }
     }
 
@@ -400,11 +404,6 @@ impl GenericProvider for SpotifyProvider {
         );
 
         self.create_api_client().await;
-        if let Some(tokens) = &self.config.tokens {
-            if let Err(err) = initialize_librespot(self.app.clone(), tokens.access_token.clone()) {
-                tracing::error!("Error initializing librespot {:?}", err);
-            }
-        }
         Ok(())
     }
 

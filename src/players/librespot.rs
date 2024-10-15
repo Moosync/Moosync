@@ -337,7 +337,7 @@ impl GenericPlayer for LibrespotPlayer {
             ),
             (
                 "librespot_event_TrackChanged",
-                PlayerEvents::Ended,
+                PlayerEvents::Loading,
                 stop_and_clear_timer
             ),
             (

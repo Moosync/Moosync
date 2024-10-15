@@ -103,10 +103,10 @@ impl PlayerStore {
             Self::restore_store(db_rc_clone, data_signal);
             create_effect(move |_| {
                 let data = data_signal.get();
-                console_log!("Got data {:?}", data);
                 signal.update(|s| {
                     if let Some(data) = data {
                         s.data = data;
+                        s.data.player_details.current_time = 0f64;
                     }
                 });
             });
@@ -495,7 +495,6 @@ impl PlayerStore {
                 let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
                 let deserialized = bitcode::decode::<'_, PlayerStoreData>(&bytes);
                 if let Ok(deserialized) = deserialized {
-                    console_log!("Got decoded {:?}", deserialized);
                     signal.set(Some(deserialized));
                 }
             } else {

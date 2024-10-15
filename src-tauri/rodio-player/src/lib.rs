@@ -109,6 +109,7 @@ impl RodioPlayer {
                     match command {
                         RodioCommand::SetSrc(src) => {
                             sink.clear();
+                            Self::send_event(events_tx.clone(), PlayerEvents::TimeUpdate(0f64));
                             Self::send_event(events_tx.clone(), PlayerEvents::Loading);
                             if let Err(err) = Self::set_src(cache_dir.clone(), src, sink).await {
                                 error!("Failed to set src: {:?}", err);
@@ -186,7 +187,7 @@ impl RodioPlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, pos))]
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn rodio_seek(&self, pos: f64) -> Result<()> {
         self.tx
             .send(RodioCommand::Seek(pos.abs().round() as u64))

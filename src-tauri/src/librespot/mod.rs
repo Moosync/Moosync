@@ -1,12 +1,12 @@
 use database::cache::CacheHolder;
 use librespot::{
     spirc::ParsedToken, utils::event_to_map, Bitrate, Cache, ConnectConfig, Credentials,
-    DeviceType, LibrespotHolder, PlayerConfig, REGISTERED_EVENTS,
+    DeviceType, LibrespotHolder, PlayerConfig, PlayerEvent, REGISTERED_EVENTS,
 };
 use macros::{generate_command, generate_command_cached};
 
 use tauri::{AppHandle, Emitter, Manager, State, Window};
-use types::{canvaz::CanvazResponse, errors::Result};
+use types::{canvaz::CanvazResponse, errors::Result, ui::player_details::PlayerEvents};
 
 #[tracing::instrument(level = "trace", skip())]
 pub fn get_librespot_state() -> LibrespotHolder {
@@ -55,6 +55,15 @@ pub fn initialize_librespot(app: AppHandle, access_token: String) -> Result<()> 
             let event = events_channel.recv();
             match event {
                 Ok(event) => {
+                    if let PlayerEvent::Unavailable {
+                        play_request_id: _,
+                        track_id: _,
+                    } = event
+                    {
+                        tracing::error!("Got track unavailable {:?}", event);
+                        continue;
+                    }
+
                     let parsed_event = event_to_map(event.clone());
 
                     let registered_events = REGISTERED_EVENTS.lock().unwrap();

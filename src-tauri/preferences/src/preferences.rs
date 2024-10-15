@@ -55,19 +55,23 @@ impl PreferenceConfig {
 
         let entry = Entry::new("moosync", whoami::username().as_str())?;
 
-        let secret = match entry.get_password() {
+        let secret = match entry.get_secret() {
             Ok(password) => {
                 tracing::info!("Got keystore password");
-                let decoded = hex::decode(password)?;
                 Key::from(GenericArray::clone_from_slice(
-                    &decoded[0..ChaCha20Poly1305::key_size()],
+                    &password[0..ChaCha20Poly1305::key_size()],
                 ))
             }
             Err(e) => {
                 tracing::info!("Error getting keystore password: {:?}", e);
                 let key = ChaCha20Poly1305::generate_key(&mut OsRng);
-                let encoded = hex::encode(key).to_string();
-                entry.set_password(encoded.as_str())?;
+                entry.set_secret(key.as_slice())?;
+
+                let entry = Entry::new("moosync", whoami::username().as_str())?;
+                match entry.get_secret() {
+                    Ok(_) => {}
+                    Err(_) => panic!("Failed to set secret key"),
+                };
                 key
             }
         };

@@ -81,6 +81,8 @@ impl std::fmt::Debug for LibrespotPlayer {
     }
 }
 
+type Callback = RefCell<Rc<Box<dyn Fn(PlayerEvents)>>>;
+
 impl LibrespotPlayer {
     pub fn new() -> Self {
         LibrespotPlayer {
@@ -110,6 +112,51 @@ impl LibrespotPlayer {
                 *INITIALIZED.lock().unwrap() = false;
             })
         }
+    }
+
+    fn start_timer(timer: Rc<Mutex<Option<IntervalHandle>>>, time: Rc<Mutex<f64>>, tx: Callback) {
+        let mut timer = timer.lock().unwrap();
+        if timer.is_some() {
+            let handle = timer.unwrap();
+            handle.clear();
+        }
+        let res = set_interval_with_handle(
+            move || {
+                let mut time = time.lock().unwrap();
+                *time += 1f64;
+                let tx = tx.borrow_mut();
+                tx(PlayerEvents::TimeUpdate(*time));
+            },
+            Duration::from_secs(1),
+        )
+        .unwrap();
+        *timer = Some(res);
+    }
+
+    fn stop_timer(timer: Rc<Mutex<Option<IntervalHandle>>>, _: Rc<Mutex<f64>>, _: Callback) {
+        let mut timer = timer.lock().unwrap();
+        if timer.is_some() {
+            let handle = timer.unwrap();
+            handle.clear();
+        }
+        *timer = None;
+    }
+
+    fn stop_and_clear_timer(
+        timer: Rc<Mutex<Option<IntervalHandle>>>,
+        time: Rc<Mutex<f64>>,
+        tx: Callback,
+    ) {
+        let mut timer = timer.lock().unwrap();
+        if timer.is_some() {
+            let handle = timer.unwrap();
+            handle.clear();
+        }
+        *timer = None;
+
+        *time.lock().unwrap() = 0f64;
+        let tx = tx.borrow_mut();
+        tx(PlayerEvents::TimeUpdate(0f64));
     }
 }
 
@@ -269,87 +316,61 @@ impl GenericPlayer for LibrespotPlayer {
             "SessionDisconnected"
         );
 
-        let start_timer =
-            |timer: Rc<Mutex<Option<IntervalHandle>>>, time: Rc<Mutex<f64>>, tx: Callback| {
-                let mut timer = timer.lock().unwrap();
-                if timer.is_some() {
-                    let handle = timer.unwrap();
-                    handle.clear();
-                }
-                let res = set_interval_with_handle(
-                    move || {
-                        let mut time = time.lock().unwrap();
-                        *time += 1f64;
-                        let tx = tx.borrow_mut();
-                        tx(PlayerEvents::TimeUpdate(*time));
-                    },
-                    Duration::from_secs(1),
-                )
-                .unwrap();
-                *timer = Some(res);
-            };
-
-        type Callback = RefCell<Rc<Box<dyn Fn(PlayerEvents)>>>;
-
-        let stop_timer = |timer: Rc<Mutex<Option<IntervalHandle>>>, _, _| {
-            let mut timer = timer.lock().unwrap();
-            if timer.is_some() {
-                let handle = timer.unwrap();
-                handle.clear();
-            }
-            *timer = None;
-        };
-
-        let stop_and_clear_timer =
-            |timer: Rc<Mutex<Option<IntervalHandle>>>, time: Rc<Mutex<f64>>, tx: Callback| {
-                let mut timer = timer.lock().unwrap();
-                if timer.is_some() {
-                    let handle = timer.unwrap();
-                    handle.clear();
-                }
-                *timer = None;
-
-                *time.lock().unwrap() = 0f64;
-                let tx = tx.borrow_mut();
-                tx(PlayerEvents::TimeUpdate(0f64));
-            };
-
         listen_events!(
             self,
             tx.clone(),
             (
                 "librespot_event_Stopped",
                 PlayerEvents::Ended,
-                stop_and_clear_timer
+                Self::stop_and_clear_timer
             ),
-            ("librespot_event_Playing", PlayerEvents::Play, start_timer),
-            ("librespot_event_Paused", PlayerEvents::Pause, stop_timer),
-            ("librespot_event_Loading", PlayerEvents::Loading, stop_timer),
+            (
+                "librespot_event_Playing",
+                PlayerEvents::Play,
+                Self::start_timer
+            ),
+            (
+                "librespot_event_Paused",
+                PlayerEvents::Pause,
+                Self::stop_timer
+            ),
+            (
+                "librespot_event_Loading",
+                PlayerEvents::Loading,
+                Self::stop_timer
+            ),
             (
                 "librespot_event_EndOfTrack",
                 PlayerEvents::Ended,
-                stop_and_clear_timer
+                Self::stop_and_clear_timer
             ),
             (
                 "librespot_event_Unavailable",
                 PlayerEvents::Error("Track unavailable".into()),
-                stop_and_clear_timer
+                Self::stop_and_clear_timer
             ),
             (
                 "librespot_event_TrackChanged",
                 PlayerEvents::Loading,
-                stop_and_clear_timer
+                Self::stop_and_clear_timer
             ),
             (
                 "SessionDisconnected",
                 PlayerEvents::Error("Session ended".into()),
-                stop_timer
+                Self::stop_timer
             )
         );
     }
 
     fn stop(&mut self) -> types::errors::Result<()> {
         self.pause()?;
+
+        let timer = self.timer.clone();
+        let time = self.time.clone();
+        let tx = self.player_state_tx.clone();
+        if let Some(tx) = tx {
+            Self::stop_and_clear_timer(timer, time, RefCell::new(tx));
+        }
 
         for listener in &self.listeners {
             let _ = listener.call0(&JsValue::undefined());

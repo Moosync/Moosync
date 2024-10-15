@@ -111,6 +111,7 @@ pub async fn refresh_login(
     Err("Refresh token not found".into())
 }
 
+#[allow(dead_code)]
 pub struct LoginArgs {
     pub client_id: Option<String>,
     pub client_secret: Option<String>,

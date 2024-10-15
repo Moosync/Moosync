@@ -5,7 +5,7 @@ use macros::{generate_command, generate_command_async};
 use open;
 use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
-use tauri::menu::{MenuBuilder, MenuItemBuilder};
+use tauri::menu::MenuBuilder;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
 use tauri::{App, AppHandle, Emitter, Manager, State, WebviewWindow, WebviewWindowBuilder, Window};
 use tauri_plugin_dialog::{DialogExt, FilePath};
@@ -125,8 +125,8 @@ impl WindowHandler {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, window))]
-    pub fn toggle_dev_tools(&self, window: WebviewWindow) -> Result<()> {
+    #[tracing::instrument(level = "trace", skip(self, _window))]
+    pub fn toggle_dev_tools(&self, _window: WebviewWindow) -> Result<()> {
         // let is_devtools_open = window.is_devtools_open();
         // if !is_devtools_open {
         //     window.open_devtools();

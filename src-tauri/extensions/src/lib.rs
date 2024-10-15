@@ -23,7 +23,6 @@ use interprocess::local_socket::{
 };
 use serde_json::Value;
 use socket_handler::{ExtensionCommandReceiver, MainCommandSender, SocketHandler};
-use tokio::{join, select};
 use types::{
     errors::{MoosyncError, Result},
     extensions::{
@@ -456,7 +455,7 @@ impl ExtensionHandler {
                             }
                         }
                     }
-                    return Some((key.clone(), value));
+                    Some((key.clone(), value))
                 } else {
                     tracing::info!("Error parsing extension detail {:?}", value);
                     None

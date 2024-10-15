@@ -4,7 +4,7 @@ use std::{
         Arc, Mutex,
     },
     thread::{self, JoinHandle},
-    time::{Instant, SystemTime, UNIX_EPOCH},
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use librespot::{
@@ -20,7 +20,6 @@ use librespot::{
     },
     protocol::spirc::TrackRef,
 };
-use protobuf::well_known_types::duration::Duration;
 use serde::{Deserialize, Serialize};
 use tokio::runtime::Builder;
 

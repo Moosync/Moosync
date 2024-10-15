@@ -19,7 +19,7 @@ use leptos::{
 };
 use leptos_context_menu::provide_context_menu_state;
 use leptos_i18n::provide_i18n_context;
-use leptos_router::{AnimatedOutlet, AnimatedRoutes, Outlet, Redirect, Route, Router, Routes};
+use leptos_router::{Outlet, Redirect, Route, Router, Routes};
 use serde::Serialize;
 use types::{
     extensions::ExtensionUIRequest, preferences::CheckboxPreference, themes::ThemeDetails,

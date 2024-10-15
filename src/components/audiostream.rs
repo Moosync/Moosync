@@ -55,20 +55,19 @@ impl PlayerHolder {
 
         let mut players: Vec<Box<dyn GenericPlayer>> = vec![];
 
-        // let mut rodio_player = RodioPlayer::new();
-        // // Initialize listeners on first player
-        // rodio_player.add_listeners(state_setter.clone());
+        let mut rodio_player = RodioPlayer::new();
+        // Initialize listeners on first player
+        rodio_player.add_listeners(state_setter.clone());
 
-        // players.push(Box::new(rodio_player));
+        players.push(Box::new(rodio_player));
 
-        // let local_player = LocalPlayer::new();
-        // players.push(Box::new(local_player));
+        let local_player = LocalPlayer::new();
+        players.push(Box::new(local_player));
 
-        // let youtube_player = YoutubePlayer::new();
-        // players.push(Box::new(youtube_player));
+        let youtube_player = YoutubePlayer::new();
+        players.push(Box::new(youtube_player));
 
-        let mut librespot_player = LibrespotPlayer::new();
-        librespot_player.add_listeners(state_setter.clone());
+        let librespot_player = LibrespotPlayer::new();
         players.push(Box::new(librespot_player));
 
         let holder = PlayerHolder {
@@ -122,7 +121,7 @@ impl PlayerHolder {
                 && p.can_play(song);
 
             console_log!("Checked player capabilities {}", p.key());
-            return res;
+            res
         });
 
         if let Some(player) = player {
@@ -442,7 +441,7 @@ pub fn AudioStream() -> impl IntoView {
             let players = players_clone.clone();
             spawn_local(async move {
                 console_log!("Unloading audio");
-                let mut players = players.lock().await;
+                let players = players.lock().await;
                 let _ = players.stop_playback().await;
             });
         }

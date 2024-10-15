@@ -1,7 +1,6 @@
 use database::database::Database;
 use futures::channel::oneshot;
 use preferences::preferences::PreferenceConfig;
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use types::{

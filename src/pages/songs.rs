@@ -7,7 +7,6 @@ use std::rc::Rc;
 use types::songs::GetSongOptions;
 use types::ui::song_details::SongDetailIcons;
 
-use crate::console_log;
 use crate::store::player_store::PlayerStore;
 use crate::utils::db_utils::get_songs_by_option;
 

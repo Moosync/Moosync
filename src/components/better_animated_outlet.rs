@@ -1,16 +1,11 @@
-use std::{
-    cell::{Cell, RefCell},
-    rc::Rc,
-    time::Duration,
-};
 
 use leptos::{
-    as_child_of_current_owner, component, create_effect, create_isomorphic_effect, create_memo,
-    create_node_ref, create_render_effect, create_rw_signal, create_signal, html::Div,
-    provide_context, set_timeout, view, IntoView, NodeRef, RwSignal, SignalGet, SignalGetUntracked,
+    as_child_of_current_owner, component,
+    create_node_ref, create_render_effect, create_rw_signal, html::Div,
+    provide_context, view, IntoView, NodeRef, RwSignal, SignalGet, SignalGetUntracked,
     SignalSet, SignalWith, TextProp, View,
 };
-use leptos_router::{use_location, use_route, use_router, Outlet, RouteContext};
+use leptos_router::{use_location, use_route, RouteContext};
 use web_sys::AnimationEvent;
 
 fn get_class_str(

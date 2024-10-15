@@ -49,24 +49,22 @@ impl<'a> SocketHandler {
     }
 
     #[tracing::instrument(level = "trace", skip(self, tx_reply, value))]
-    async fn write_command(
-        &self,
-        mut tx_reply: Sender<Result<Value>>,
-        value: &mut Value,
-    ) -> Result<()> {
+    async fn write_command(&self, mut tx_reply: Sender<Result<Value>>, value: &mut Value) {
         let channel = uuid::Uuid::new_v4().to_string();
         if let Some(value) = value.as_object_mut() {
             value.insert("channel".to_string(), Value::String(channel.clone()));
             match serde_json::to_vec(value) {
                 Ok(bytes) => {
                     let mut reply_map = self.reply_map.lock().await;
-                    reply_map.insert(channel, tx_reply);
-                    Self::write_data(self.write_conn.clone(), bytes).await;
+                    reply_map.insert(channel, tx_reply.clone());
+                    if let Err(e) = Self::write_data(self.write_conn.clone(), bytes).await {
+                        tracing::error!("Failed to write command to extension: {:?}", e);
+                        tx_reply.send(Err(e)).await.unwrap()
+                    }
                 }
                 Err(e) => tx_reply.send(Err(e.into())).await.unwrap(),
             }
         }
-        Ok(())
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -202,7 +200,9 @@ impl<'a> SocketHandler {
                             tokio::spawn(async move {
                                 let conn = conn.clone();
                                 if let Some(res) = rx.next().await {
-                                    Self::write_data(conn, res).await;
+                                    if let Err(e) = Self::write_data(conn, res).await {
+                                        tracing::error!("Failed to write data to ext: {:?}", e);
+                                    }
                                 }
                             });
 

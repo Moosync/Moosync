@@ -1,12 +1,12 @@
 use database::cache::CacheHolder;
 use librespot::{
-    spirc::ParsedToken, utils::event_to_map, Bitrate, Cache, ConnectConfig, Credentials,
+    spirc::ParsedToken, utils::event_to_map, Cache, ConnectConfig, Credentials,
     DeviceType, LibrespotHolder, PlayerConfig, PlayerEvent, REGISTERED_EVENTS,
 };
 use macros::{generate_command, generate_command_cached};
 
-use tauri::{AppHandle, Emitter, Manager, State, Window};
-use types::{canvaz::CanvazResponse, errors::Result, ui::player_details::PlayerEvents};
+use tauri::{AppHandle, Emitter, Manager, State};
+use types::{canvaz::CanvazResponse, errors::Result};
 
 #[tracing::instrument(level = "trace", skip())]
 pub fn get_librespot_state() -> LibrespotHolder {

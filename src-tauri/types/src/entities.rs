@@ -94,13 +94,6 @@ impl PartialEq for QueryableAlbum {
 
 impl Eq for QueryableAlbum {}
 
-impl PartialOrd for QueryableAlbum {
-    #[tracing::instrument(level = "trace", skip(self, other))]
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 impl Ord for QueryableAlbum {
     #[tracing::instrument(level = "trace", skip(self, other))]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
@@ -108,6 +101,12 @@ impl Ord for QueryableAlbum {
             .as_ref()
             .unwrap_or(&String::new())
             .cmp(other.album_name.as_ref().unwrap_or(&String::new()))
+    }
+}
+
+impl PartialOrd for QueryableAlbum {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -181,7 +180,6 @@ impl PartialEq for QueryableArtist {
 impl Eq for QueryableArtist {}
 
 impl PartialOrd for QueryableArtist {
-    #[tracing::instrument(level = "trace", skip(self, other))]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
@@ -262,7 +260,6 @@ impl PartialEq for QueryableGenre {
 impl Eq for QueryableGenre {}
 
 impl PartialOrd for QueryableGenre {
-    #[tracing::instrument(level = "trace", skip(self, other))]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
@@ -385,7 +382,6 @@ impl PartialEq for QueryablePlaylist {
 impl Eq for QueryablePlaylist {}
 
 impl PartialOrd for QueryablePlaylist {
-    #[tracing::instrument(level = "trace", skip(self, other))]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }

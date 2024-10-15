@@ -2,7 +2,6 @@ use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration};
 
 use leptos::{leptos_dom::helpers::IntervalHandle, set_interval_with_handle, spawn_local};
 use serde::Serialize;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 use types::{songs::SongType, ui::player_details::PlayerEvents};
 use wasm_bindgen::JsValue;
 

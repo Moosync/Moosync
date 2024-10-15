@@ -1,12 +1,11 @@
 use std::{
-    f64::consts::PI,
     fs,
-    io::{BufReader, Read},
+    io::BufReader,
     path::PathBuf,
     str::FromStr,
     sync::{
         mpsc::{channel, Receiver, Sender},
-        Arc, Mutex, MutexGuard,
+        Arc, Mutex,
     },
     thread,
     time::Duration,
@@ -14,8 +13,6 @@ use std::{
 
 use rodio::{Decoder, OutputStream, Sink};
 use stream_download::{
-    http::{reqwest::Client, HttpStream},
-    source::SourceStream,
     storage::temp::TempStorageProvider,
     Settings, StreamDownload,
 };

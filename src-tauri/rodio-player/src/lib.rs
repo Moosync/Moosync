@@ -4,6 +4,7 @@ use std::{
     path::PathBuf,
     str::FromStr,
     sync::{
+        atomic::AtomicBool,
         mpsc::{channel, Receiver, Sender},
         Arc, Mutex,
     },
@@ -12,10 +13,7 @@ use std::{
 };
 
 use rodio::{Decoder, OutputStream, Sink};
-use stream_download::{
-    storage::temp::TempStorageProvider,
-    Settings, StreamDownload,
-};
+use stream_download::{storage::temp::TempStorageProvider, Settings, StreamDownload};
 use tracing::{error, info, trace};
 use types::{errors::Result, ui::player_details::PlayerEvents};
 
@@ -48,7 +46,7 @@ impl RodioPlayer {
         }
     }
 
-    async fn set_src(cache_dir: PathBuf, src: String, sink: Arc<Sink>) -> Result<()> {
+    async fn set_src(cache_dir: PathBuf, src: String, sink: &Arc<Sink>) -> Result<()> {
         if src.starts_with("http") {
             trace!("Creating stream");
             let reader = StreamDownload::new_http(
@@ -89,6 +87,8 @@ impl RodioPlayer {
 
     fn initialize(events_tx: Sender<PlayerEvents>, cache_dir: PathBuf) -> Sender<RodioCommand> {
         let (tx, rx) = channel::<RodioCommand>();
+        let ret = tx.clone();
+
         thread::spawn(move || {
             let (_stream, stream_handle) = OutputStream::try_default().unwrap();
             let sink = Arc::new(rodio::Sink::try_new(&stream_handle).unwrap());
@@ -100,6 +100,7 @@ impl RodioPlayer {
 
             let events_tx = events_tx.clone();
             runtime.block_on(async move {
+                let mut last_src = None;
                 while let Ok(command) = rx.recv() {
                     let sink = sink.clone();
 
@@ -108,11 +109,21 @@ impl RodioPlayer {
                             sink.clear();
                             Self::send_event(events_tx.clone(), PlayerEvents::TimeUpdate(0f64));
                             Self::send_event(events_tx.clone(), PlayerEvents::Loading);
-                            if let Err(err) = Self::set_src(cache_dir.clone(), src, sink).await {
+                            if let Err(err) =
+                                Self::set_src(cache_dir.clone(), src.clone(), &sink).await
+                            {
                                 error!("Failed to set src: {:?}", err);
                                 Self::send_event(events_tx.clone(), PlayerEvents::Error(err))
                             } else {
                                 info!("Set src");
+
+                                last_src = Some(src);
+                                let events_tx = events_tx.clone();
+                                let sink = sink.clone();
+                                thread::spawn(move || {
+                                    sink.sleep_until_end();
+                                    Self::send_event(events_tx.clone(), PlayerEvents::Ended);
+                                });
                             }
                         }
                         RodioCommand::Play => {
@@ -149,6 +160,10 @@ impl RodioPlayer {
                                         PlayerEvents::TimeUpdate(pos as f64),
                                     )
                                 }
+                            } else if let Some(last_src) = last_src.clone() {
+                                tx.send(RodioCommand::SetSrc(last_src.clone())).unwrap();
+                                tx.send(RodioCommand::Seek(pos)).unwrap();
+                                tx.send(RodioCommand::Play).unwrap();
                             }
                         }
                     }
@@ -156,13 +171,13 @@ impl RodioPlayer {
             });
         });
 
-        tx
+        ret
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn rodio_load(&self, src: String) -> Result<()> {
         info!("Loading src={}", src);
-        self.tx.send(RodioCommand::SetSrc(src)).unwrap();
+        self.tx.send(RodioCommand::SetSrc(src.clone())).unwrap();
         Ok(())
     }
 

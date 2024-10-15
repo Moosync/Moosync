@@ -292,7 +292,7 @@ impl PlayerHolder {
                 }
                 let active = active.unwrap();
 
-                console_log!("Seeking player");
+                console_log!("Seeking player {}", active.key());
                 active.seek(force_seek).unwrap();
 
                 reset_force_seek.set(-1f64);
@@ -344,8 +344,7 @@ impl PlayerHolder {
             PlayerEvents::Loading => player_state_setter.set(PlayerState::Loading),
             PlayerEvents::Ended => {
                 console_log!("Got ended");
-                let _: SignalSetter<()> = next_song_setter;
-                // next_song_setter.set(());
+                next_song_setter.set(());
             }
             PlayerEvents::TimeUpdate(t) => player_time_setter.set(t),
             PlayerEvents::Error(err) => {

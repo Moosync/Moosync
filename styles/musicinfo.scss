@@ -90,6 +90,7 @@
 }
 .musicinfo-close {
     transform: translateY(100vh);
+    z-index: 9999;
 }
 .item-container {
     position: relative;

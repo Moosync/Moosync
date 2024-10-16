@@ -57,6 +57,13 @@ impl GenericPlayer for RodioPlayer {
     }
 
     fn stop(&mut self) -> types::errors::Result<()> {
+        let unlisten = self.unlisten.take();
+        if let Some(unlisten) = &unlisten {
+            if let Err(e) = unlisten.call0(&JsValue::NULL) {
+                console_log!("Error removing listeners {:?}", e);
+            }
+        }
+
         spawn_local(async move {
             let res = invoke("rodio_stop", JsValue::undefined()).await;
 
@@ -74,12 +81,6 @@ impl GenericPlayer for RodioPlayer {
 
         *self.time.lock().unwrap() = 0f64;
 
-        let unlisten = self.unlisten.take();
-        if let Some(unlisten) = &unlisten {
-            if let Err(e) = unlisten.call0(&JsValue::undefined()) {
-                console_log!("Error removing listeners {:?}", e);
-            }
-        }
         Ok(())
     }
 
@@ -183,6 +184,10 @@ impl GenericPlayer for RodioPlayer {
         &mut self,
         state_setter: std::rc::Rc<Box<dyn Fn(types::ui::player_details::PlayerEvents)>>,
     ) {
+        if let Some(unlisten) = self.unlisten.take() {
+            unlisten.call0(&JsValue::NULL).unwrap();
+        }
+
         console_log!("Adding rodio listeners");
         let start_timer =
             |timer: Rc<Mutex<Option<IntervalHandle>>>, time: Rc<Mutex<f64>>, tx: Callback| {

@@ -28,7 +28,7 @@
         "script-src": "'wasm-unsafe-eval' tauri: http://tauri.localhost"
       },
       "dangerousDisableAssetCspModification": false,
-      "freezePrototype": true,
+      "freezePrototype": false,
       "pattern": {
         "use": "brownfield"
       }

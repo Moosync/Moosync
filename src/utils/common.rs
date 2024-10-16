@@ -169,6 +169,7 @@ where
                 let func = js_sys::Function::from(unlisten);
                 console_log!("Cleaning up listener for {}", event.clone());
                 func.call0(&JsValue::NULL).unwrap();
+                console_log!("Cleaned up listener for {}", event.clone());
             }
         });
     }) as Box<dyn FnMut()>;

@@ -13,10 +13,7 @@ use tokio::sync::oneshot::Sender as OneShotSender;
 use types::{errors::Result, songs::SongType, ui::player_details::PlayerEvents};
 use wasm_bindgen_futures::JsFuture;
 
-use crate::{
-    console_log,
-    utils::common::{convert_file_src, get_blob_url},
-};
+use crate::utils::common::{convert_file_src, get_blob_url};
 
 use super::generic::GenericPlayer;
 
@@ -54,6 +51,7 @@ pub struct LocalPlayer {
 }
 
 impl std::fmt::Debug for LocalPlayer {
+    #[tracing::instrument(level = "trace", skip(self, f))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LocalPlayer")
             .field("audio_element", &self.audio_element.tag_name())
@@ -62,6 +60,7 @@ impl std::fmt::Debug for LocalPlayer {
 }
 
 impl LocalPlayer {
+    #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> Self {
         let mut audio_element = audio();
         let node_ref = create_node_ref();
@@ -91,24 +90,27 @@ impl LocalPlayer {
 }
 
 impl GenericPlayer for LocalPlayer {
+    #[tracing::instrument(level = "trace", skip(self, player_container))]
     fn initialize(&self, player_container: NodeRef<Div>) {
         let node_ref = self.node_ref;
         player_container.on_load(move |elem| {
             let audio_elem = node_ref.get().unwrap();
             if let Err(e) = elem.append_child(&audio_elem) {
-                console_log!("Error initializing local player: {:?}", e);
+                tracing::error!("Error initializing local player: {:?}", e);
             }
         });
-        console_log!("Returning from local player initialize")
+        tracing::debug!("Returning from local player initialize")
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn key(&self) -> String {
         "local".into()
     }
 
+    #[tracing::instrument(level = "trace", skip(self, src, resolver))]
     fn load(&self, src: String, resolver: OneShotSender<()>) {
         let mut src = convert_file_src(src);
-        console_log!("Loading audio {}", src);
+        tracing::debug!("Loading audio {}", src);
 
         let audio_element = self.audio_element.clone();
         spawn_local(async move {
@@ -123,21 +125,24 @@ impl GenericPlayer for LocalPlayer {
         });
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn play(&self) -> Result<()> {
         let promise = self.audio_element.play()?;
         spawn_local(async move {
             if let Err(e) = JsFuture::from(promise).await {
-                console_log!("Error playing audio: {:?}", e);
+                tracing::error!("Error playing audio: {:?}", e);
             }
         });
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn pause(&self) -> Result<()> {
         self.audio_element.pause()?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn provides(&self) -> &[SongType] {
         &[
             SongType::LOCAL,
@@ -147,15 +152,18 @@ impl GenericPlayer for LocalPlayer {
         ]
     }
 
+    #[tracing::instrument(level = "trace", skip(self, volume))]
     fn set_volume(&self, volume: f64) -> Result<()> {
         self.audio_element.set_volume(volume / 100f64);
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn get_volume(&self) -> Result<f64> {
         Ok(self.audio_element.volume())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, tx))]
     fn add_listeners(&mut self, tx: Rc<Box<dyn Fn(PlayerEvents)>>) {
         self.listen_onplay(tx.clone());
         self.listen_onpause(tx.clone());
@@ -166,10 +174,12 @@ impl GenericPlayer for LocalPlayer {
         self.listen_onerror(tx.clone());
     }
 
+    #[tracing::instrument(level = "trace", skip(self, pos))]
     fn seek(&self, pos: f64) -> Result<()> {
         Ok(self.audio_element.fast_seek(pos)?)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, song))]
     fn can_play(&self, song: &types::songs::Song) -> bool {
         let playback_url = song
             .song
@@ -177,7 +187,7 @@ impl GenericPlayer for LocalPlayer {
             .clone()
             .map(convert_file_src)
             .or(song.song.playback_url.clone());
-        console_log!("Checking playback url {:?}", playback_url);
+        tracing::debug!("Checking playback url {:?}", playback_url);
         if let Some(playback_url) = playback_url {
             return playback_url.starts_with("http://")
                 || playback_url.starts_with("https://")
@@ -187,6 +197,7 @@ impl GenericPlayer for LocalPlayer {
         false
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn stop(&mut self) -> Result<()> {
         self.pause()?;
         self.audio_element.set_src_object(None);

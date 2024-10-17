@@ -5,6 +5,7 @@ use crate::icons::{
     song_default_icon::SongDefaultIcon,
 };
 
+#[tracing::instrument(level = "trace", skip(cover_img, show_play_button, show_eq, eq_playing, play_now))]
 #[component]
 pub fn LowImg<T, D, E>(
     #[prop()] cover_img: String,

@@ -6,6 +6,7 @@ use leptos_use::on_click_outside;
 
 use crate::store::modal_store;
 
+#[tracing::instrument(level = "trace", skip(size, children))]
 #[component]
 pub fn GenericModal<T>(#[prop()] size: T, children: Children) -> impl IntoView
 where

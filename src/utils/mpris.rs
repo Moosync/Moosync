@@ -2,11 +2,9 @@ use serde::Serialize;
 use types::{mpris::MprisPlayerDetails, songs::Song, ui::player_details::PlayerState};
 use wasm_bindgen_futures::spawn_local;
 
-use crate::{
-    console_log,
-    utils::{common::invoke, entities::get_artist_string},
-};
+use crate::utils::{common::invoke, entities::get_artist_string};
 
+#[tracing::instrument(level = "trace", skip(song))]
 pub fn set_metadata(song: &Song) {
     #[derive(Serialize)]
     struct SetMetadataArgs {
@@ -31,11 +29,12 @@ pub fn set_metadata(song: &Song) {
         .await;
 
         if let Err(err) = res {
-            console_log!("Failed to set mpris metadata {:?}", err);
+            tracing::error!("Failed to set mpris metadata {:?}", err);
         }
     })
 }
 
+#[tracing::instrument(level = "trace", skip(state))]
 pub fn set_playback_state(state: PlayerState) {
     #[derive(Serialize)]
     struct SetPlaybackStateArgs {
@@ -50,11 +49,12 @@ pub fn set_playback_state(state: PlayerState) {
         .await;
 
         if let Err(err) = res {
-            console_log!("Failed to set mpris playback state {:?}", err);
+            tracing::error!("Failed to set mpris playback state {:?}", err);
         }
     })
 }
 
+#[tracing::instrument(level = "trace", skip(duration))]
 pub fn set_position(duration: f64) {
     #[derive(Serialize)]
     struct SetPositionArgs {
@@ -69,7 +69,7 @@ pub fn set_position(duration: f64) {
         .await;
 
         if let Err(err) = res {
-            console_log!("Failed to set mpris position {:?}", err);
+            tracing::error!("Failed to set mpris position {:?}", err);
         }
     })
 }

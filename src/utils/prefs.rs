@@ -8,7 +8,6 @@ use types::themes::ThemeDetails;
 use types::window::{DialogFilter, FileResponse};
 use wasm_bindgen::JsValue;
 
-use crate::console_log;
 use crate::utils::common::listen_event;
 
 use super::common::invoke;
@@ -24,6 +23,7 @@ struct SetKeyArgs<T: Serialize> {
     value: T,
 }
 
+#[tracing::instrument(level = "trace", skip(key, setter))]
 pub fn load_selective<T>(key: String, setter: impl SignalSet<Value = T> + 'static)
 where
     T: DeserializeOwned,
@@ -31,13 +31,14 @@ where
     spawn_local(async move {
         let res = load_selective_async(key.clone()).await;
         if res.is_err() {
-            console_log!("Failed to load preference: {}", key);
+            tracing::error!("Failed to load preference: {}", key);
             return;
         }
         setter.set(res.unwrap());
     });
 }
 
+#[tracing::instrument(level = "trace", skip(key))]
 pub async fn load_selective_async<T>(key: String) -> Result<T>
 where
     T: DeserializeOwned,
@@ -49,11 +50,13 @@ where
     Ok(parsed?)
 }
 
+#[tracing::instrument(level = "trace", skip(key, value))]
 pub fn save_selective_number(key: String, value: String) {
     let val = value.parse::<f64>().unwrap();
     save_selective(key, val)
 }
 
+#[tracing::instrument(level = "trace", skip(key, value))]
 pub fn save_selective<T>(key: String, value: T)
 where
     T: Serialize + 'static,
@@ -68,6 +71,7 @@ where
     });
 }
 
+#[tracing::instrument(level = "trace", skip(key))]
 #[cfg(feature = "mock")]
 pub fn load_selective_mock(key: &'static str) -> Result<Value> {
     let ret = match key {
@@ -78,6 +82,7 @@ pub fn load_selective_mock(key: &'static str) -> Result<Value> {
     Ok(ret)
 }
 
+#[tracing::instrument(level = "trace", skip(directory, multiple, filters, setter))]
 pub fn open_file_browser(
     directory: bool,
     multiple: bool,
@@ -100,15 +105,16 @@ pub fn open_file_browser(
 
         let res = invoke("open_file_browser", args).await;
         if res.is_err() {
-            console_log!("Failed to open file browser");
+            tracing::error!("Failed to open file browser");
             return;
         }
         let file_resp: Vec<FileResponse> = from_value(res.unwrap()).unwrap();
-        console_log!("Got file response {:?}", file_resp);
+        tracing::debug!("Got file response {:?}", file_resp);
         setter.set(file_resp.iter().map(|f| f.path.clone()).collect());
     })
 }
 
+#[tracing::instrument(level = "trace", skip(directory, filters, setter))]
 pub fn open_file_browser_single(
     directory: bool,
     filters: Vec<DialogFilter>,
@@ -130,7 +136,7 @@ pub fn open_file_browser_single(
 
         let res = invoke("open_file_browser", args).await;
         if res.is_err() {
-            console_log!("Failed to open file browser");
+            tracing::error!("Failed to open file browser");
             return;
         }
         let file_resp: Vec<FileResponse> = from_value(res.unwrap()).unwrap();
@@ -138,6 +144,7 @@ pub fn open_file_browser_single(
     })
 }
 
+#[tracing::instrument(level = "trace", skip(cb))]
 pub fn watch_preferences(cb: fn((String, JsValue))) -> js_sys::Function {
     listen_event("preference-changed", move |data: JsValue| {
         let res = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
@@ -150,10 +157,11 @@ pub fn watch_preferences(cb: fn((String, JsValue))) -> js_sys::Function {
             cb((key, value));
             return;
         }
-        console_log!("Received invalid preference change: {:?}", data);
+        tracing::error!("Received invalid preference change: {:?}", data);
     })
 }
 
+#[tracing::instrument(level = "trace", skip(path, cb))]
 pub fn import_theme<T>(path: String, cb: T)
 where
     T: Fn() + 'static,
@@ -168,7 +176,7 @@ where
 
         let res = invoke("import_theme", args).await;
         if res.is_err() {
-            console_log!("Failed to import theme");
+            tracing::error!("Failed to import theme");
         }
 
         let cb = cb.clone();
@@ -176,6 +184,7 @@ where
     })
 }
 
+#[tracing::instrument(level = "trace", skip(theme, cb))]
 pub fn save_theme<T>(theme: ThemeDetails, cb: T)
 where
     T: Fn() + 'static,
@@ -190,7 +199,7 @@ where
 
         let res = invoke("save_theme", args).await;
         if res.is_err() {
-            console_log!("Failed to save theme");
+            tracing::error!("Failed to save theme");
         }
 
         let cb = cb.clone();

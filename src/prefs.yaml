@@ -70,16 +70,6 @@ page:
           - title: settings.system.queueSettings.clearQueue
             key: clear_queue
 
-      - type: CheckboxGroup
-        title: settings.system.audioSettings.title
-        description: settings.system.audioSettings_tooltip
-        key: audio_settings
-        items:
-          - title: settings.system.audioSettings.gaplessPlayback
-            key: gapless_playback
-          - title: settings.system.audioSettings.sponsorBlock
-            key: sponsor_block
-
       - type: EditText
         title: settings.system.gapless_skip
         inputType: number

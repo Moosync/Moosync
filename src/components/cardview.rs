@@ -19,6 +19,7 @@ pub struct SimplifiedCardItem<T> {
     pub context_menu: CardContextMenu<T>,
 }
 
+#[tracing::instrument(level = "trace", skip(item, songs_view, on_click))]
 #[component()]
 pub fn CardItem<T>(
     #[prop()] item: SimplifiedCardItem<T>,
@@ -93,6 +94,7 @@ pub fn CardItem<T>(
     }
 }
 
+#[tracing::instrument(level = "trace", skip(items, card_item, songs_view, on_click))]
 #[component()]
 pub fn CardView<T, S, C>(
     #[prop()] items: S,

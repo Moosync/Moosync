@@ -14,6 +14,7 @@ use types::entities::QueryableGenre;
 use types::songs::{GetSongOptions, Song};
 use types::ui::song_details::SongDetailIcons;
 
+#[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn SingleGenre() -> impl IntoView {
     let params = use_query_map();
@@ -93,6 +94,7 @@ pub fn SingleGenre() -> impl IntoView {
     view! { <SongView songs=songs icons=icons selected_songs=selected_songs /> }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn AllGenres() -> impl IntoView {
     let genres = create_rw_signal(vec![]);

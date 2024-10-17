@@ -17,7 +17,6 @@ use web_sys::SubmitEvent;
 
 use crate::{
     components::low_img::LowImg,
-    console_log,
     icons::{
         next_icon::NextIcon, person_icon::PersonIcon, prev_icon::PrevIcon, search_icon::SearchIcon,
         settings_icon::SettingsIcon,
@@ -35,6 +34,7 @@ enum InputFocus {
     Blur,
 }
 
+#[tracing::instrument(level = "trace", skip(song))]
 #[component]
 pub fn SearchResultItem(song: Song) -> impl IntoView {
     let player_store = expect_context::<RwSignal<PlayerStore>>();
@@ -69,19 +69,21 @@ pub fn SearchResultItem(song: Song) -> impl IntoView {
     }
 }
 
+#[tracing::instrument(level = "trace", skip(class))]
 #[component]
 pub fn Settings(#[prop(optional)] class: &'static str) -> impl IntoView {
     let navigate = use_navigate();
     view! {
         <div class=class>
             <SettingsIcon on:click=move |_| {
-                console_log!("Navigating to settings");
+                tracing::debug!("Navigating to settings");
                 navigate("/prefs/paths", Default::default())
             } />
         </div>
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn Accounts() -> impl IntoView {
     let show_accounts_popover = create_rw_signal(false);
@@ -182,6 +184,7 @@ pub fn Accounts() -> impl IntoView {
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn TopBar() -> impl IntoView {
     let show_searchbar = create_rw_signal(false);
@@ -295,7 +298,7 @@ pub fn TopBar() -> impl IntoView {
                                         each=results
                                         item_height=95usize
                                         children=move |(_, song)| {
-                                            console_log!("Song {:?}", song);
+                                            tracing::debug!("Song {:?}", song);
                                             view! { <SearchResultItem song=song.clone() /> }
                                         }
                                     />

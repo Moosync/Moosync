@@ -12,7 +12,6 @@ use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::Song;
 use wasm_bindgen::JsValue;
 
-use crate::console_log;
 use crate::store::modal_store::{ModalStore, Modals};
 use crate::utils::common::{invoke, listen_event};
 
@@ -30,6 +29,7 @@ macro_rules! generate_async_functions {
         result_type: $result_type:ty,
     }),* $(,)?) => {
         $(
+            #[tracing::instrument(level = "trace", skip(self))]
             pub async fn $func_name(&self, key: String, $($arg_name: $arg_type),*) -> Result<$result_type> {
                 #[derive(Debug, Serialize)]
                 #[serde(rename_all = "camelCase")]
@@ -59,6 +59,7 @@ macro_rules! generate_async_functions {
         result_type: $result_type:ty,
     }),* $(,)?) => {
         $(
+            #[tracing::instrument(level = "trace", skip(self))]
             pub async fn $func_name(&self, key: String, $($arg_name: $arg_type),*) -> Result<$result_type> {
                 Ok(Default::default())
             }
@@ -67,19 +68,20 @@ macro_rules! generate_async_functions {
 }
 
 impl ProviderStore {
+    #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> Self {
-        console_log!("Creating provider store");
+        tracing::debug!("Creating provider store");
         let mut store = Self::default();
 
         let fetch_provider_keys = move || {
             spawn_local(async move {
                 let provider_keys = invoke("get_provider_keys", JsValue::undefined()).await;
                 if provider_keys.is_err() {
-                    console_log!("Failed to get provider keys");
+                    tracing::debug!("Failed to get provider keys");
                     return;
                 }
                 store.keys.set(from_value(provider_keys.unwrap()).unwrap());
-                console_log!("Updated provider keys {:?}", store.keys.get());
+                tracing::debug!("Updated provider keys {:?}", store.keys.get());
             });
         };
 
@@ -93,7 +95,7 @@ impl ProviderStore {
             let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
             let provider_status: HashMap<String, ProviderStatus> =
                 serde_wasm_bindgen::from_value(payload).unwrap();
-            console_log!("Got status update {:?}", provider_status);
+            tracing::debug!("Got status update {:?}", provider_status);
             store
                 .statuses
                 .set(provider_status.values().cloned().collect());
@@ -106,13 +108,13 @@ impl ProviderStore {
         });
 
         spawn_local(async move {
-            console_log!("Initializing providers");
+            tracing::debug!("Initializing providers");
 
             #[cfg(not(feature = "mock"))]
             {
                 let res = invoke("initialize_all_providers", JsValue::undefined()).await;
                 if res.is_err() {
-                    console_log!("Failed to initialize providers");
+                    tracing::error!("Failed to initialize providers");
                 }
                 let status = invoke("get_all_status", JsValue::undefined())
                     .await
@@ -127,10 +129,12 @@ impl ProviderStore {
         store
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn get_all_statuses(&self) -> RwSignal<Vec<ProviderStatus>> {
         self.statuses
     }
 
+    #[tracing::instrument(level = "trace", skip(self, id))]
     pub async fn get_provider_key_by_id(&self, id: String) -> Result<String> {
         #[derive(Debug, Serialize)]
         struct Args {
@@ -140,6 +144,7 @@ impl ProviderStore {
         Ok(from_value(res)?)
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn get_provider_keys(&self) -> Vec<String> {
         self.keys.get()
     }

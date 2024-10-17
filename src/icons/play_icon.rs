@@ -1,5 +1,6 @@
 use leptos::{component, view, IntoView, SignalGet};
 
+#[tracing::instrument(level = "trace", skip(play))]
 #[component]
 pub fn PlayIcon<T>(#[prop()] play: T) -> impl IntoView
 where

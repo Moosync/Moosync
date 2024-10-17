@@ -27,6 +27,21 @@ extern "C" {
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
     pub fn log(s: &str);
+
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn warn(s: &str);
+
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn error(s: &str);
+
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn info(s: &str);
+
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn debug(s: &str);
+
+    #[wasm_bindgen(js_namespace = console)]
+    pub fn trace(s: &str);
 }
 
 #[macro_export]
@@ -36,6 +51,42 @@ macro_rules! console_log {
     ($($t:tt)*) => ($crate::utils::common::log(&format_args!($($t)*).to_string()))
 }
 
+#[macro_export]
+macro_rules! console_warn {
+    // Note that this is using the `log` function imported above during
+    // `bare_bones`
+    ($($t:tt)*) => ($crate::utils::common::warn(&format_args!($($t)*).to_string()))
+}
+
+#[macro_export]
+macro_rules! console_error {
+    // Note that this is using the `log` function imported above during
+    // `bare_bones`
+    ($($t:tt)*) => ($crate::utils::common::error(&format_args!($($t)*).to_string()))
+}
+
+#[macro_export]
+macro_rules! console_info {
+    // Note that this is using the `log` function imported above during
+    // `bare_bones`
+    ($($t:tt)*) => ($crate::utils::common::info(&format_args!($($t)*).to_string()))
+}
+
+#[macro_export]
+macro_rules! console_debug {
+    // Note that this is using the `log` function imported above during
+    // `bare_bones`
+    ($($t:tt)*) => ($crate::utils::common::debug(&format_args!($($t)*).to_string()))
+}
+
+#[macro_export]
+macro_rules! console_trace {
+    // Note that this is using the `log` function imported above during
+    // `bare_bones`
+    ($($t:tt)*) => ($crate::utils::common::trace(&format_args!($($t)*).to_string()))
+}
+
+#[tracing::instrument(level = "trace", skip(secs))]
 pub fn format_duration(secs: f64) -> String {
     if secs < 0.0 {
         return "Live".into();
@@ -50,6 +101,7 @@ pub fn format_duration(secs: f64) -> String {
     }
 }
 
+#[tracing::instrument(level = "trace", skip(path))]
 pub fn convert_file_src(path: String) -> String {
     if path.is_empty() {
         return path;
@@ -62,12 +114,14 @@ pub fn convert_file_src(path: String) -> String {
     path
 }
 
+#[tracing::instrument(level = "trace", skip(src))]
 pub async fn get_blob_url(src: String) -> String {
     let res = getBlobUrl(src.as_str()).await;
-    console_log!("Got blob url {}", res.as_string().unwrap());
+    tracing::debug!("Got blob url {}", res.as_string().unwrap());
     res.as_string().unwrap()
 }
 
+#[tracing::instrument(level = "trace", skip(song))]
 pub fn get_low_img(song: &Song) -> String {
     if let Some(cover) = &song.song.song_cover_path_low {
         return convert_file_src(cover.to_string());
@@ -96,6 +150,7 @@ pub fn get_low_img(song: &Song) -> String {
     String::new()
 }
 
+#[tracing::instrument(level = "trace", skip(song))]
 pub fn get_high_img(song: &Song) -> String {
     if let Some(cover) = &song.song.song_cover_path_high {
         return convert_file_src(cover.to_string());
@@ -150,6 +205,7 @@ macro_rules! fetch_infinite {
     };
 }
 
+#[tracing::instrument(level = "trace", skip(event, cb))]
 pub fn listen_event<F>(event: &str, cb: F) -> js_sys::Function
 where
     F: Fn(JsValue) + 'static,
@@ -167,9 +223,9 @@ where
             let unlisten = unlisten.await.unwrap();
             if unlisten.is_function() {
                 let func = js_sys::Function::from(unlisten);
-                console_log!("Cleaning up listener for {}", event.clone());
+                tracing::debug!("Cleaning up listener for {}", event.clone());
                 func.call0(&JsValue::NULL).unwrap();
-                console_log!("Cleaned up listener for {}", event.clone());
+                tracing::debug!("Cleaned up listener for {}", event.clone());
             }
         });
     }) as Box<dyn FnMut()>;

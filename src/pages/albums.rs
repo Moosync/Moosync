@@ -16,6 +16,7 @@ use types::ui::song_details::{DefaultDetails, SongDetailIcons};
 
 use crate::utils::db_utils::{get_albums_by_option, get_songs_by_option};
 
+#[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn SingleAlbum() -> impl IntoView {
     let params = use_query_map();
@@ -104,6 +105,7 @@ pub fn SingleAlbum() -> impl IntoView {
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn AllAlbums() -> impl IntoView {
     let albums = create_rw_signal(vec![]);

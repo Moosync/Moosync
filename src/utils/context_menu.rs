@@ -5,7 +5,7 @@ use serde::Serialize;
 use types::{entities::QueryablePlaylist, songs::Song};
 use wasm_bindgen_futures::spawn_local;
 
-use crate::{console_log, store::player_store::PlayerStore, utils::songs::get_songs_from_indices};
+use crate::{store::player_store::PlayerStore, utils::songs::get_songs_from_indices};
 
 use super::{
     common::invoke,
@@ -22,6 +22,7 @@ pub struct SongItemContextMenu {
 }
 
 impl SongItemContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
     fn current_or_list(&self) -> Vec<Song> {
         let selected_songs = self.selected_songs.get();
         let ret = if selected_songs.is_empty() {
@@ -34,25 +35,29 @@ impl SongItemContextMenu {
             get_songs_from_indices(self.song_list, self.selected_songs)
         };
 
-        console_log!("Got songs {:?}", ret);
+        tracing::debug!("Got songs {:?}", ret);
         ret
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn play_now(&self) {
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
         player_store.update(|store| store.play_now_multiple(self.current_or_list()));
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn add_to_queue(&self) {
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
         player_store.update(|store| store.add_to_queue(self.current_or_list()));
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn play_next(&self) {
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
         player_store.update(|store| store.play_next_multiple(self.current_or_list()));
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn clear_queue_and_play(&self) {
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
         player_store.update(|store| {
@@ -61,18 +66,22 @@ impl SongItemContextMenu {
         });
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn add_to_library(&self) {
         add_songs_to_library(self.current_or_list());
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn remove_from_library(&self) {
         remove_songs_from_library(self.current_or_list());
     }
 
+    #[tracing::instrument(level = "trace", skip(self, id))]
     pub fn add_to_playlist(&self, id: String) {
         add_to_playlist(id, self.current_or_list());
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn goto_album(&self) {
         let navigate = use_navigate();
         if let Some(song) = &self.current_song {
@@ -87,6 +96,7 @@ impl SongItemContextMenu {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self, id))]
     pub fn goto_artist(&self, id: String) {
         let navigate = use_navigate();
         navigate(
@@ -97,6 +107,7 @@ impl SongItemContextMenu {
 }
 
 impl ContextMenuData<Self> for SongItemContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
     fn get_menu_items(&self) -> ContextMenuItems<Self> {
         let mut artist_items = vec![];
         if let Some(song) = &self.current_song {
@@ -175,6 +186,7 @@ impl ContextMenuData<Self> for SongItemContextMenu {
 pub struct SortContextMenu {}
 
 impl ContextMenuData<Self> for SortContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
     fn get_menu_items(&self) -> ContextMenuItems<Self> {
         get_sort_cx_items()
     }
@@ -185,6 +197,7 @@ pub struct ThemesContextMenu {
 }
 
 impl ThemesContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
     fn export_theme(&self) {
         let id = self.id.clone();
         if let Some(id) = id {
@@ -199,7 +212,7 @@ impl ThemesContextMenu {
                 )
                 .await;
                 if let Err(err) = res {
-                    console_log!("Error exporting theme {:?}", err);
+                    tracing::error!("Error exporting theme {:?}", err);
                 }
             });
         }
@@ -207,6 +220,7 @@ impl ThemesContextMenu {
 }
 
 impl ContextMenuData<Self> for ThemesContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
     fn get_menu_items(&self) -> ContextMenuItems<Self> {
         vec![ContextMenuItemInner::new_with_handler(
             "Export theme".into(),

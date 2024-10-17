@@ -1,5 +1,6 @@
 use leptos::{component, view, IntoView};
 
+#[tracing::instrument(level = "trace", skip(class))]
 #[component]
 pub fn SongDefaultIcon(#[prop(optional = true)] class: String) -> impl IntoView {
     view! {

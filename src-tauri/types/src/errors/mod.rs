@@ -28,6 +28,8 @@ use serde_json::Value;
 use wasm_bindgen::JsValue;
 
 #[cfg(all(not(feature = "extensions"), feature = "core"))]
+use core::str;
+#[cfg(all(not(feature = "extensions"), feature = "core"))]
 use fast_image_resize::ImageBufferError;
 #[cfg(all(not(feature = "extensions"), feature = "core"))]
 use hex::FromHexError;
@@ -138,6 +140,9 @@ pub enum MoosyncError {
     #[cfg(feature = "core")]
     #[error(transparent)]
     RodioSeekError(#[from] rodio::source::SeekError),
+    #[cfg(feature = "core")]
+    #[error(transparent)]
+    UTF8Error(#[from] str::Utf8Error),
 }
 
 #[cfg(all(not(feature = "extensions"), feature = "ui"))]

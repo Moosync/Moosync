@@ -11,7 +11,6 @@ use web_sys::{Event, Node};
 
 use crate::{
     components::{songdetails::SongDetails, songlist::SongList},
-    console_log,
     store::modal_store::{ModalStore, Modals},
     utils::songs::get_sort_cx_items,
 };
@@ -21,12 +20,14 @@ struct SongsContextMenu {
 }
 
 impl SongsContextMenu {
+    #[tracing::instrument(level = "trace", skip(song_update_request))]
     pub fn new(song_update_request: Option<Box<dyn Fn()>>) -> Self {
         Self {
             song_update_request: song_update_request.map(Rc::new),
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub fn add_song_from_url(&self) {
         let modal_store: RwSignal<ModalStore> = expect_context();
         modal_store.update(|modal_store| {
@@ -43,6 +44,7 @@ impl SongsContextMenu {
 }
 
 impl ContextMenuData<Self> for SongsContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
     fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
         vec![
             ContextMenuItemInner::new("Sort by".into(), Some(get_sort_cx_items())),
@@ -55,6 +57,7 @@ impl ContextMenuData<Self> for SongsContextMenu {
     }
 }
 
+#[tracing::instrument(level = "trace", skip(songs, icons, selected_songs, song_update_request, default_details))]
 #[component()]
 pub fn SongView(
     #[prop()] songs: RwSignal<Vec<Song>>,
@@ -71,7 +74,7 @@ pub fn SongView(
         let selected_song = selected_songs.get().last().cloned();
         if let Some(selected_song) = selected_song {
             let all_songs = songs.get();
-            console_log!("selected {:?}", all_songs.get(selected_song).unwrap());
+            tracing::debug!("selected {:?}", all_songs.get(selected_song).unwrap());
             last_selected_song.set(all_songs.get(selected_song).cloned());
         } else {
             last_selected_song.set(None);

@@ -17,7 +17,6 @@ use wasm_bindgen::JsValue;
 use web_sys::DomException;
 use web_sys::IdbTransactionMode;
 
-use crate::console_log;
 
 use super::common::invoke;
 
@@ -31,18 +30,19 @@ struct GetEntityOptionsArgs {
     options: GetEntityOptions,
 }
 
+#[tracing::instrument(level = "trace", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
 pub fn get_songs_by_option(
     options: GetSongOptions,
     setter: impl SignalSet<Value = Vec<Song>> + 'static,
 ) {
-    use crate::console_log;
+    
 
     spawn_local(async move {
         let args = to_value(&GetSongOptionsArgs { options }).unwrap();
         let res = invoke("get_songs_by_options", args).await;
         if res.is_err() {
-            console_log!("Failed to load songs {:?}", res.unwrap_err());
+            tracing::error!("Failed to load songs {:?}", res.unwrap_err());
             setter.set(vec![]);
             return;
         }
@@ -51,6 +51,7 @@ pub fn get_songs_by_option(
     });
 }
 
+#[tracing::instrument(level = "trace", skip(options, setter))]
 #[cfg(feature = "mock")]
 pub fn get_songs_by_option(
     options: GetSongOptions,
@@ -79,6 +80,7 @@ pub fn get_songs_by_option(
     setter.set(songs);
 }
 
+#[tracing::instrument(level = "trace", skip(options, setter))]
 #[cfg(feature = "mock")]
 pub fn get_playlists_by_option(
     options: QueryablePlaylist,
@@ -96,6 +98,7 @@ pub fn get_playlists_by_option(
     setter.set(songs);
 }
 
+#[tracing::instrument(level = "trace", skip(options, setter))]
 #[cfg(feature = "mock")]
 pub fn get_artists_by_option(
     options: QueryableArtist,
@@ -113,6 +116,7 @@ pub fn get_artists_by_option(
     setter.set(songs);
 }
 
+#[tracing::instrument(level = "trace", skip(options, setter))]
 #[cfg(feature = "mock")]
 pub fn get_albums_by_option(
     options: QueryableAlbum,
@@ -130,6 +134,7 @@ pub fn get_albums_by_option(
     setter.set(songs);
 }
 
+#[tracing::instrument(level = "trace", skip(options, setter))]
 #[cfg(feature = "mock")]
 pub fn get_genres_by_option(
     options: QueryableGenre,
@@ -146,6 +151,7 @@ pub fn get_genres_by_option(
     setter.set(songs);
 }
 
+#[tracing::instrument(level = "trace", skip(setter))]
 #[cfg(not(feature = "mock"))]
 pub fn get_playlists_local<T>(setter: T)
 where
@@ -163,7 +169,7 @@ where
         .unwrap();
         let res = invoke("get_entity_by_options", args).await;
         if res.is_err() {
-            console_log!("Error getting playlists: {:?}", res);
+            tracing::error!("Error getting playlists: {:?}", res);
             return;
         }
         let songs: Vec<QueryablePlaylist> = from_value(res.unwrap()).unwrap();
@@ -171,6 +177,7 @@ where
     });
 }
 
+#[tracing::instrument(level = "trace", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
 pub fn get_playlists_by_option<T>(options: QueryablePlaylist, setter: T)
 where
@@ -182,7 +189,7 @@ where
 
     use leptos::expect_context;
 
-    use crate::{console_log, store::provider_store::ProviderStore, utils::common::fetch_infinite};
+    use crate::{store::provider_store::ProviderStore, utils::common::fetch_infinite};
 
     let provider_store = expect_context::<Rc<ProviderStore>>();
     spawn_local(async move {
@@ -195,14 +202,14 @@ where
         .unwrap();
         let res = invoke("get_entity_by_options", args).await;
         if res.is_err() {
-            console_log!("Error getting playlists: {:?}", res);
+            tracing::error!("Error getting playlists: {:?}", res);
             return;
         }
         let songs: Vec<QueryablePlaylist> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
 
         for key in provider_store.get_provider_keys() {
-            console_log!("Fetching playlists from {}", key);
+            tracing::debug!("Fetching playlists from {}", key);
             fetch_infinite!(provider_store, key, fetch_user_playlists, setter,);
         }
 
@@ -210,12 +217,13 @@ where
     });
 }
 
+#[tracing::instrument(level = "trace", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
 pub fn get_artists_by_option(
     options: QueryableArtist,
     setter: impl SignalSet<Value = Vec<QueryableArtist>> + 'static,
 ) {
-    use crate::console_log;
+    
 
     spawn_local(async move {
         let args = to_value(&GetEntityOptionsArgs {
@@ -227,7 +235,7 @@ pub fn get_artists_by_option(
         .unwrap();
         let res = invoke("get_entity_by_options", args).await;
         if res.is_err() {
-            console_log!("Error getting artists: {:?}", res);
+            tracing::error!("Error getting artists: {:?}", res);
             return;
         }
         let songs: Vec<QueryableArtist> = from_value(res.unwrap()).unwrap();
@@ -235,12 +243,13 @@ pub fn get_artists_by_option(
     });
 }
 
+#[tracing::instrument(level = "trace", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
 pub fn get_albums_by_option(
     options: QueryableAlbum,
     setter: impl SignalSet<Value = Vec<QueryableAlbum>> + 'static,
 ) {
-    use crate::console_log;
+    
 
     spawn_local(async move {
         let args = to_value(&GetEntityOptionsArgs {
@@ -252,7 +261,7 @@ pub fn get_albums_by_option(
         .unwrap();
         let res = invoke("get_entity_by_options", args).await;
         if res.is_err() {
-            console_log!("Error getting albums: {:?}", res);
+            tracing::error!("Error getting albums: {:?}", res);
             return;
         }
         let songs: Vec<QueryableAlbum> = from_value(res.unwrap()).unwrap();
@@ -260,12 +269,13 @@ pub fn get_albums_by_option(
     });
 }
 
+#[tracing::instrument(level = "trace", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
 pub fn get_genres_by_option(
     options: QueryableGenre,
     setter: impl SignalSet<Value = Vec<QueryableGenre>> + 'static,
 ) {
-    use crate::console_log;
+    
 
     spawn_local(async move {
         let args = to_value(&GetEntityOptionsArgs {
@@ -277,7 +287,7 @@ pub fn get_genres_by_option(
         .unwrap();
         let res = invoke("get_entity_by_options", args).await;
         if res.is_err() {
-            console_log!("Error getting genres: {:?}", res);
+            tracing::error!("Error getting genres: {:?}", res);
             return;
         }
         let songs: Vec<QueryableGenre> = from_value(res.unwrap()).unwrap();
@@ -285,6 +295,7 @@ pub fn get_genres_by_option(
     });
 }
 
+#[tracing::instrument(level = "trace", skip(songs))]
 pub fn add_songs_to_library(songs: Vec<Song>) {
     #[derive(Serialize)]
     struct AddSongsArgs {
@@ -298,11 +309,12 @@ pub fn add_songs_to_library(songs: Vec<Song>) {
         )
         .await;
         if res.is_err() {
-            console_log!("Error adding songs: {:?}", res);
+            tracing::error!("Error adding songs: {:?}", res);
         }
     });
 }
 
+#[tracing::instrument(level = "trace", skip(songs))]
 pub fn remove_songs_from_library(songs: Vec<Song>) {
     #[derive(Serialize)]
     struct RemoveSongsArgs {
@@ -321,11 +333,12 @@ pub fn remove_songs_from_library(songs: Vec<Song>) {
         )
         .await;
         if res.is_err() {
-            console_log!("Error removing songs: {:?}", res);
+            tracing::error!("Error removing songs: {:?}", res);
         }
     });
 }
 
+#[tracing::instrument(level = "trace", skip(id, songs))]
 pub fn add_to_playlist(id: String, songs: Vec<Song>) {
     #[derive(Serialize)]
     struct AddToPlaylistArgs {
@@ -339,11 +352,12 @@ pub fn add_to_playlist(id: String, songs: Vec<Song>) {
         )
         .await;
         if res.is_err() {
-            console_log!("Error adding to playlist: {:?}", res);
+            tracing::error!("Error adding to playlist: {:?}", res);
         }
     });
 }
 
+#[tracing::instrument(level = "trace", skip(playlist))]
 pub fn create_playlist(playlist: QueryablePlaylist) {
     spawn_local(async move {
         #[derive(Serialize)]
@@ -357,11 +371,12 @@ pub fn create_playlist(playlist: QueryablePlaylist) {
         )
         .await;
         if let Err(res) = res {
-            console_log!("Failed to create playlist: {:?}", res);
+            tracing::error!("Failed to create playlist: {:?}", res);
         }
     });
 }
 
+#[tracing::instrument(level = "trace", skip(playlist))]
 pub fn remove_playlist(playlist: QueryablePlaylist) {
     if playlist.playlist_id.is_none() {
         return;
@@ -382,11 +397,12 @@ pub fn remove_playlist(playlist: QueryablePlaylist) {
         )
         .await;
         if let Err(res) = res {
-            console_log!("Failed to remove playlist: {:?}", res);
+            tracing::error!("Failed to remove playlist: {:?}", res);
         }
     });
 }
 
+#[tracing::instrument(level = "trace", skip(playlist))]
 pub fn export_playlist(playlist: QueryablePlaylist) {
     spawn_local(async move {
         #[derive(Serialize)]
@@ -403,11 +419,12 @@ pub fn export_playlist(playlist: QueryablePlaylist) {
         )
         .await;
         if let Err(res) = res {
-            console_log!("Failed to export playlist: {:?}", res);
+            tracing::error!("Failed to export playlist: {:?}", res);
         }
     });
 }
 
+#[tracing::instrument(level = "trace", skip(db, store, key, value))]
 pub async fn write_to_indexed_db(
     db: Rc<Mutex<Option<Rc<IdbDatabase>>>>,
     store: &str,
@@ -419,11 +436,12 @@ pub async fn write_to_indexed_db(
         let tx = db.transaction_on_one_with_mode(store, IdbTransactionMode::Readwrite)?;
         let store = tx.object_store(store)?;
         store.put_key_val_owned(key, value)?.await?;
-        console_log!("Wrote to indexed db");
+        tracing::debug!("Wrote to indexed db");
     }
     Ok(())
 }
 
+#[tracing::instrument(level = "trace", skip(db, store, key))]
 pub async fn read_from_indexed_db(
     db: Rc<Mutex<Option<Rc<IdbDatabase>>>>,
     store: &str,

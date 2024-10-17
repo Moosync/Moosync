@@ -1,6 +1,7 @@
 use leptos::{component, view, IntoView, ReadSignal, SignalGet};
 use types::themes::ThemeDetails;
 
+#[tracing::instrument(level = "trace", skip(active, theme))]
 #[component]
 pub fn ThemeViewIcon(
     #[prop()] active: ReadSignal<bool>,

@@ -21,11 +21,10 @@ use types::{
 use leptos::{
     component, create_effect, create_node_ref, create_read_slice, create_slice, create_write_slice,
     html::Div, spawn_local, use_context, view, IntoView, NodeRef, RwSignal, SignalGet,
-    SignalGetUntracked, SignalSetter, SignalUpdate,
+    SignalGetUntracked, SignalUpdate,
 };
 
 use crate::{
-    console_log,
     players::{
         generic::GenericPlayer, librespot::LibrespotPlayer, local::LocalPlayer, rodio::RodioPlayer,
         youtube::YoutubePlayer,
@@ -44,6 +43,7 @@ pub struct PlayerHolder {
 }
 
 impl PlayerHolder {
+    #[tracing::instrument(level = "trace", skip(player_container, providers))]
     pub fn new(player_container: NodeRef<Div>, providers: Rc<ProviderStore>) -> PlayerHolder {
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
 
@@ -85,14 +85,16 @@ impl PlayerHolder {
         holder
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn initialize_players(&self) {
         let players = self.players.lock().await;
         for player in players.iter() {
             player.initialize(self.player_container);
         }
-        console_log!("Initialized players")
+        tracing::debug!("Initialized players")
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     pub async fn stop_playback(&self) -> Result<()> {
         let active_player = self.active_player.load(Ordering::Relaxed);
         let mut players = self.players.lock().await;
@@ -104,49 +106,50 @@ impl PlayerHolder {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, player_store, song))]
     pub async fn get_player(
         &self,
         player_store: RwSignal<PlayerStore>,
         song: &Song,
     ) -> Result<(usize, Option<Song>)> {
-        console_log!("Getting players for song {:?}", song);
+        tracing::info!("Getting players for song {:?}", song);
         let players = self.players.lock().await;
         let player_blacklist = create_read_slice(player_store, |player_store| {
             player_store.get_player_blacklist()
         });
         let player = players.iter().position(|p| {
-            console_log!("Checking player capabilities {}", p.key());
+            tracing::info!("Checking player capabilities {}", p.key());
             let res = !player_blacklist.get_untracked().contains(&p.key())
                 && p.provides().contains(&song.song.type_)
                 && p.can_play(song);
 
-            console_log!("Checked player capabilities {}", p.key());
+            tracing::info!("Checked player capabilities {}", p.key());
             res
         });
 
         if let Some(player) = player {
-            console_log!("Found player {}", player);
+            tracing::info!("Found player {}", player);
             return Ok((player, None));
         }
 
         if player.is_none() {
-            console_log!("Found no players, trying to refetch playback url");
+            tracing::warn!("Found no players, trying to refetch playback url");
             let mut song_tmp = song.clone();
             for (i, player) in players.iter().enumerate() {
                 if player_blacklist.get_untracked().contains(&player.key()) {
                     continue;
                 }
-                console_log!("Trying player {}", player.key());
+                tracing::debug!("Trying player {}", player.key());
                 let playback_url = self.get_playback_url(song, player.key()).await;
                 if let Ok(playback_url) = playback_url {
-                    console_log!("Got new playback url {}", playback_url);
+                    tracing::info!("Got new playback url {}", playback_url);
                     song_tmp.song.playback_url = Some(playback_url);
                     if player.can_play(&song_tmp) {
-                        console_log!("Using player {}", player.key());
+                        tracing::info!("Using player {}", player.key());
                         return Ok((i, Some(song_tmp)));
                     }
                 } else {
-                    console_log!(
+                    tracing::error!(
                         "Failed to get playback url for player {}: {:?}",
                         player.key(),
                         playback_url
@@ -158,6 +161,7 @@ impl PlayerHolder {
         Err(MoosyncError::String("Player not found".into()))
     }
 
+    #[tracing::instrument(level = "trace", skip(self, volume))]
     pub async fn set_volume(&self, volume: f64) -> Result<()> {
         let players = self.players.lock().await;
         let active_player_pos = self.active_player.load(Ordering::Relaxed);
@@ -166,11 +170,12 @@ impl PlayerHolder {
             return Ok(());
         }
 
-        console_log!("Active player {}", active.unwrap().key());
+        tracing::info!("Active player {}", active.unwrap().key());
         active.unwrap().set_volume(volume)?;
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, song, player))]
     pub async fn get_playback_url(&self, song: &Song, player: String) -> Result<String> {
         let id = song.song._id.clone().unwrap();
         let provider = self.providers.get_provider_key_by_id(id.clone()).await?;
@@ -179,6 +184,7 @@ impl PlayerHolder {
             .await
     }
 
+    #[tracing::instrument(level = "trace", skip(self, song, current_volume, player_store))]
     pub async fn load_audio(
         &mut self,
         song: &Song,
@@ -216,7 +222,7 @@ impl PlayerHolder {
             player.add_listeners(self.state_setter.clone());
         }
 
-        console_log!("Active player: {}", player.key());
+        tracing::info!("Active player: {}", player.key());
 
         let (resolver_tx, resolver_rx) = oneshot::channel();
         player.load(src.unwrap(), resolver_tx);
@@ -225,13 +231,14 @@ impl PlayerHolder {
         player.set_volume(current_volume).unwrap();
 
         if autoplay {
-            console_log!("Autoplaying");
+            tracing::info!("Autoplaying");
             player.play()?;
         }
 
         Ok(ret)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, player_store))]
     fn listen_player_state(&self, player_store: RwSignal<PlayerStore>) {
         let player_state_getter = create_read_slice(player_store, move |p| p.get_player_state());
         let players = self.players.clone();
@@ -266,6 +273,7 @@ impl PlayerHolder {
         });
     }
 
+    #[tracing::instrument(level = "trace", skip(self, player_store))]
     fn listen_force_seek(&self, player_store: RwSignal<PlayerStore>) {
         let (force_seek, reset_force_seek) = create_slice(
             player_store,
@@ -276,7 +284,7 @@ impl PlayerHolder {
         let active_player = self.active_player.clone();
         create_effect(move |_| {
             let force_seek = force_seek.get();
-            console_log!("Got force seek {}", force_seek);
+            tracing::info!("Got force seek {}", force_seek);
             if force_seek < 0f64 {
                 return;
             }
@@ -292,7 +300,7 @@ impl PlayerHolder {
                 }
                 let active = active.unwrap();
 
-                console_log!("Seeking player {}", active.key());
+                tracing::info!("Seeking player {}", active.key());
                 active.seek(force_seek).unwrap();
 
                 reset_force_seek.set(-1f64);
@@ -300,11 +308,13 @@ impl PlayerHolder {
         });
     }
 
+    #[tracing::instrument(level = "trace", skip(self, player_store))]
     fn register_external_state_listeners(&self, player_store: RwSignal<PlayerStore>) {
         self.listen_player_state(player_store);
         self.listen_force_seek(player_store);
     }
 
+    #[tracing::instrument(level = "trace", skip(player_store, player_blacklist_sender))]
     fn register_internal_state_listeners(
         player_store: RwSignal<PlayerStore>,
         player_blacklist_sender: UnboundedSender<()>,
@@ -328,7 +338,7 @@ impl PlayerHolder {
                     }
                 }
                 types::ui::player_details::RepeatModes::Loop => {
-                    console_log!("repeating now");
+                    tracing::info!("repeating now");
                     store.force_seek_percent(0f64);
                     store.set_state(PlayerState::Playing);
                 }
@@ -343,12 +353,12 @@ impl PlayerHolder {
             PlayerEvents::Pause => player_state_setter.set(PlayerState::Paused),
             PlayerEvents::Loading => player_state_setter.set(PlayerState::Loading),
             PlayerEvents::Ended => {
-                console_log!("Got ended");
+                tracing::info!("Got ended");
                 next_song_setter.set(());
             }
             PlayerEvents::TimeUpdate(t) => player_time_setter.set(t),
             PlayerEvents::Error(err) => {
-                console_log!("Error playing song: {:?}", err);
+                tracing::info!("Error playing song: {:?}", err);
                 let mut player_blacklist_sender = player_blacklist_sender.clone();
                 spawn_local(async move {
                     player_blacklist_sender.send(()).await.unwrap();
@@ -360,6 +370,7 @@ impl PlayerHolder {
         Box::new(setter)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, player_store))]
     fn listen_player_blacklist(&self, player_store: RwSignal<PlayerStore>) {
         let player_blacklist_receiver = self.player_blacklist_receiver.clone();
         let active_player = self.active_player.clone();
@@ -373,7 +384,7 @@ impl PlayerHolder {
                 let active_player = players.get(active_player_pos);
                 if let Some(active_player) = active_player {
                     let player_key = active_player.key();
-                    console_log!("blacklisting player {}", player_key);
+                    tracing::info!("blacklisting player {}", player_key);
                     player_store.update(|p| p.blacklist_player(player_key))
                 }
             }
@@ -381,6 +392,7 @@ impl PlayerHolder {
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn AudioStream() -> impl IntoView {
     let provider_store = use_context::<Rc<ProviderStore>>().unwrap();
@@ -420,7 +432,7 @@ pub fn AudioStream() -> impl IntoView {
         let current_song = current_song_sig.get();
         let _ = force_load_sig.get();
         if let Some(current_song) = current_song {
-            console_log!("Loading song {:?}", current_song.song.title);
+            tracing::info!("Loading song {:?}", current_song.song.title);
             let players = players_clone.clone();
             spawn_local(async move {
                 let mut players = players.lock().await;
@@ -433,13 +445,13 @@ pub fn AudioStream() -> impl IntoView {
                         // TODO: Update song in DB
                     }
                 } else {
-                    console_log!("Failed to load Song {:?}", updated_song);
+                    tracing::info!("Failed to load Song {:?}", updated_song);
                 }
             });
         } else {
             let players = players_clone.clone();
             spawn_local(async move {
-                console_log!("Unloading audio");
+                tracing::debug!("Unloading audio");
                 let players = players.lock().await;
                 let _ = players.stop_playback().await;
             });

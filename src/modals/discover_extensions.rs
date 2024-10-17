@@ -4,6 +4,7 @@ use wasm_bindgen::JsValue;
 
 use crate::{modals::common::GenericModal, utils::common::invoke};
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn DiscoverExtensionsModal() -> impl IntoView {
     let extensions = create_rw_signal(vec![]);

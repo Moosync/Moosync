@@ -21,6 +21,7 @@ enum State {
     ImportPlaylist,
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn NewPlaylistModal() -> impl IntoView {
     let state = create_rw_signal(State::None);

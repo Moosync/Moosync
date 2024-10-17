@@ -6,13 +6,10 @@ use types::{preferences::CheckboxPreference, ui::player_details::PlayerEvents};
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
-use crate::{
-    console_log,
-    utils::{
+use crate::utils::{
         common::{invoke, listen_event},
         prefs::load_selective_async,
-    },
-};
+    };
 
 use super::generic::GenericPlayer;
 
@@ -76,6 +73,7 @@ static ENABLED: Mutex<bool> = Mutex::new(false);
 static INITIALIZED: Mutex<bool> = Mutex::new(false);
 
 impl std::fmt::Debug for LibrespotPlayer {
+    #[tracing::instrument(level = "trace", skip(self, f))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LibrespotPlayer").finish()
     }
@@ -84,6 +82,7 @@ impl std::fmt::Debug for LibrespotPlayer {
 type Callback = RefCell<Rc<Box<dyn Fn(PlayerEvents)>>>;
 
 impl LibrespotPlayer {
+    #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> Self {
         LibrespotPlayer {
             listeners: vec![],
@@ -93,16 +92,18 @@ impl LibrespotPlayer {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(en))]
     pub fn set_enabled(en: bool) {
         *(ENABLED.lock().unwrap()) = en;
         LibrespotPlayer::initialize_librespot();
     }
 
+    #[tracing::instrument(level = "trace", skip())]
     fn initialize_librespot() {
         if *ENABLED.lock().unwrap() {
             spawn_local(async move {
                 let res = invoke("is_initialized", JsValue::undefined()).await;
-                console_log!("Librespot initialized: {:?}", res);
+                tracing::debug!("Librespot initialized: {:?}", res);
                 if let Ok(res) = res {
                     if let Some(initialized) = res.as_bool() {
                         *INITIALIZED.lock().unwrap() = initialized;
@@ -114,6 +115,7 @@ impl LibrespotPlayer {
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(timer, time, tx))]
     fn start_timer(timer: Rc<Mutex<Option<IntervalHandle>>>, time: Rc<Mutex<f64>>, tx: Callback) {
         let mut timer = timer.lock().unwrap();
         if timer.is_some() {
@@ -133,6 +135,7 @@ impl LibrespotPlayer {
         *timer = Some(res);
     }
 
+    #[tracing::instrument(level = "trace", skip(timer))]
     fn stop_timer(timer: Rc<Mutex<Option<IntervalHandle>>>, _: Rc<Mutex<f64>>, _: Callback) {
         let mut timer = timer.lock().unwrap();
         if timer.is_some() {
@@ -142,6 +145,7 @@ impl LibrespotPlayer {
         *timer = None;
     }
 
+    #[tracing::instrument(level = "trace", skip(timer, time, tx))]
     fn stop_and_clear_timer(
         timer: Rc<Mutex<Option<IntervalHandle>>>,
         time: Rc<Mutex<f64>>,
@@ -161,6 +165,7 @@ impl LibrespotPlayer {
 }
 
 impl GenericPlayer for LibrespotPlayer {
+    #[tracing::instrument(level = "trace", skip(self))]
     fn initialize(&self, _: leptos::NodeRef<leptos::html::Div>) {
         spawn_local(async move {
             let enabled: Vec<CheckboxPreference> = load_selective_async("spotify.enable".into())
@@ -177,10 +182,12 @@ impl GenericPlayer for LibrespotPlayer {
         });
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn key(&self) -> String {
         "spotify".into()
     }
 
+    #[tracing::instrument(level = "trace", skip(self, src, resolver))]
     fn load(&self, src: String, resolver: tokio::sync::oneshot::Sender<()>) {
         let player_state_tx = self.player_state_tx.clone();
         spawn_local(async move {
@@ -209,28 +216,31 @@ impl GenericPlayer for LibrespotPlayer {
         });
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn play(&self) -> types::errors::Result<()> {
         spawn_local(async move {
             let res = invoke("librespot_play", JsValue::undefined()).await;
 
             if res.is_err() {
-                console_log!("Error playing {:?}", res.unwrap_err());
+                tracing::error!("Error playing {:?}", res.unwrap_err());
             }
         });
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn pause(&self) -> types::errors::Result<()> {
         spawn_local(async move {
             let res = invoke("librespot_pause", JsValue::undefined()).await;
 
             if res.is_err() {
-                console_log!("Error pausing {:?}", res.unwrap_err());
+                tracing::error!("Error pausing {:?}", res.unwrap_err());
             }
         });
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, pos))]
     fn seek(&self, pos: f64) -> types::errors::Result<()> {
         let time = self.time.clone();
         spawn_local(async move {
@@ -248,7 +258,7 @@ impl GenericPlayer for LibrespotPlayer {
             .await;
 
             if res.is_err() {
-                console_log!("Error seeking to {}: {:?}", pos, res.unwrap_err());
+                tracing::error!("Error seeking to {}: {:?}", pos, res.unwrap_err());
                 return;
             }
 
@@ -258,15 +268,18 @@ impl GenericPlayer for LibrespotPlayer {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn provides(&self) -> &[types::songs::SongType] {
         &[types::songs::SongType::SPOTIFY]
     }
 
+    #[tracing::instrument(level = "trace", skip(self, song))]
     fn can_play(&self, song: &types::songs::Song) -> bool {
         Self::initialize_librespot();
         *INITIALIZED.lock().unwrap() && song.song.type_ == types::songs::SongType::SPOTIFY
     }
 
+    #[tracing::instrument(level = "trace", skip(self, volume))]
     fn set_volume(&self, volume: f64) -> types::errors::Result<()> {
         let parsed_volume = (volume / 100f64 * (u16::MAX as f64)) as u16;
         spawn_local(async move {
@@ -284,17 +297,19 @@ impl GenericPlayer for LibrespotPlayer {
             .await;
 
             if res.is_err() {
-                console_log!("Error setting volume {}: {:?}", volume, res.unwrap_err());
+                tracing::error!("Error setting volume {}: {:?}", volume, res.unwrap_err());
             }
         });
 
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn get_volume(&self) -> types::errors::Result<f64> {
         Ok(0f64)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, tx))]
     fn add_listeners(
         &mut self,
         tx: std::rc::Rc<Box<dyn Fn(types::ui::player_details::PlayerEvents)>>,
@@ -362,6 +377,7 @@ impl GenericPlayer for LibrespotPlayer {
         );
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn stop(&mut self) -> types::errors::Result<()> {
         self.pause()?;
 

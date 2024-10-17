@@ -1,5 +1,6 @@
 use leptos::{component, view, IntoView, ReadSignal, SignalGet};
 
+#[tracing::instrument(level = "trace", skip(filled))]
 #[component]
 pub fn RepeatOnceIcon(#[prop()] filled: ReadSignal<bool>) -> impl IntoView {
     view! {

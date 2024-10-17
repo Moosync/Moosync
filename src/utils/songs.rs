@@ -4,6 +4,7 @@ use types::songs::Song;
 
 use crate::store::ui_store::{SongSortBy, SongSortByColumns, UiStore};
 
+#[tracing::instrument(level = "trace", skip(song_list, song_indices))]
 pub fn get_songs_from_indices<T, Y>(song_list: T, song_indices: Y) -> Vec<Song>
 where
     T: SignalGet<Value = Vec<Song>>,
@@ -17,6 +18,7 @@ where
         .collect()
 }
 
+#[tracing::instrument(level = "trace", skip())]
 pub fn sort_by_album() {
     let ui_store: RwSignal<UiStore> = expect_context();
     ui_store.update(|ui_store| {
@@ -26,6 +28,7 @@ pub fn sort_by_album() {
         })
     });
 }
+#[tracing::instrument(level = "trace", skip())]
 pub fn sort_by_artist() {
     let ui_store: RwSignal<UiStore> = expect_context();
     ui_store.update(|ui_store| {
@@ -35,6 +38,7 @@ pub fn sort_by_artist() {
         })
     });
 }
+#[tracing::instrument(level = "trace", skip())]
 pub fn sort_by_date() {
     let ui_store: RwSignal<UiStore> = expect_context();
     ui_store.update(|ui_store| {
@@ -44,6 +48,7 @@ pub fn sort_by_date() {
         })
     });
 }
+#[tracing::instrument(level = "trace", skip())]
 pub fn sort_by_genre() {
     let ui_store: RwSignal<UiStore> = expect_context();
     ui_store.update(|ui_store| {
@@ -53,6 +58,7 @@ pub fn sort_by_genre() {
         })
     });
 }
+#[tracing::instrument(level = "trace", skip())]
 pub fn sort_by_playcount() {
     let ui_store: RwSignal<UiStore> = expect_context();
     ui_store.update(|ui_store| {
@@ -62,6 +68,7 @@ pub fn sort_by_playcount() {
         })
     });
 }
+#[tracing::instrument(level = "trace", skip())]
 pub fn sort_by_title() {
     let ui_store: RwSignal<UiStore> = expect_context();
     ui_store.update(|ui_store| {
@@ -72,6 +79,7 @@ pub fn sort_by_title() {
     });
 }
 
+#[tracing::instrument(level = "trace", skip())]
 pub fn get_sort_cx_items<T>() -> Vec<ContextMenuItemInner<T>> {
     vec![
         ContextMenuItemInner::new_with_handler(

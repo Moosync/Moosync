@@ -1,5 +1,6 @@
 use leptos::{component, view, IntoView};
 
+#[tracing::instrument(level = "trace", skip(color))]
 #[component]
 pub fn CrossIcon(#[prop(default = "var(--textPrimary)".into())] color: String) -> impl IntoView {
     view! {

@@ -15,7 +15,6 @@ use types::songs::Song;
 
 use crate::{
     components::{low_img::LowImg, provider_icon::ProviderIcon},
-    console_log,
     icons::{
         add_to_queue_icon::AddToQueueIcon, ellipsis_icon::EllipsisIcon, search_icon::SearchIcon,
         sort_icon::SortIcon,
@@ -31,6 +30,7 @@ use crate::{
     },
 };
 
+#[tracing::instrument(level = "trace", skip(song, is_selected))]
 #[component()]
 pub fn SongListItem(
     #[prop()] song: Song,
@@ -104,6 +104,7 @@ pub fn SongListItem(
     }
 }
 
+#[tracing::instrument(level = "trace", skip(song_list, selected_songs_sig, filtered_selected, hide_search_bar))]
 #[component()]
 pub fn SongList(
     #[prop()] song_list: ReadSignal<Vec<Song>>,
@@ -201,7 +202,7 @@ pub fn SongList(
 
     let get_actual_position = move |filtered_index: usize| {
         let filtered_songs = filtered_songs.get();
-        console_log!("Filtered index {}", filtered_index);
+        tracing::debug!("Filtered index {}", filtered_index);
         let filtered_song = filtered_songs.get(filtered_index).unwrap();
         song_list
             .get()
@@ -225,7 +226,7 @@ pub fn SongList(
                     (index, first_selected)
                 };
 
-                console_log!("First selected {}, index {}", i, j);
+                tracing::debug!("First selected {}, index {}", i, j);
 
                 let mut ret = vec![];
                 for k in i..=j {

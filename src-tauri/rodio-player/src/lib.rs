@@ -4,7 +4,6 @@ use std::{
     path::PathBuf,
     str::FromStr,
     sync::{
-        atomic::AtomicBool,
         mpsc::{channel, Receiver, Sender},
         Arc, Mutex,
     },

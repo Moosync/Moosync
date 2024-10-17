@@ -1,5 +1,6 @@
 use leptos::{component, view, IntoView};
 
+#[tracing::instrument(level = "trace", skip(fill))]
 #[component]
 pub fn YoutubeIcon(#[prop(optional)] fill: String) -> impl IntoView {
     view! {

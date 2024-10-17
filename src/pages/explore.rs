@@ -15,6 +15,7 @@ use crate::{
     },
 };
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn Explore() -> impl IntoView {
     let provider_store: Rc<ProviderStore> = expect_context();

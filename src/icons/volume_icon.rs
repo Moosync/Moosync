@@ -1,5 +1,6 @@
 use leptos::{component, view, IntoView, ReadSignal, SignalGet};
 
+#[tracing::instrument(level = "trace", skip(cut))]
 #[component]
 pub fn VolumeIcon(#[prop()] cut: ReadSignal<bool>) -> impl IntoView {
     view! {

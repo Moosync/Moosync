@@ -27,6 +27,7 @@ pub struct Tab {
 }
 
 impl Tab {
+    #[tracing::instrument(level = "trace", skip(title, icon, url))]
     pub fn new(title: &str, icon: &str, url: &str) -> Self {
         let icon = match icon {
             "Queue" => |active| QueueIcon(QueueIconProps { active }).into_view(),
@@ -52,6 +53,7 @@ impl Tab {
     }
 }
 
+#[tracing::instrument(level = "trace", skip(tab, index, active_tab, active_tab_icon_signal, set_active_tab))]
 #[component]
 fn TabItem(
     #[prop()] tab: Tab,
@@ -89,6 +91,7 @@ fn TabItem(
     }
 }
 
+#[tracing::instrument(level = "trace", skip(tabs, show_back))]
 #[component]
 pub fn Sidebar(
     #[prop()] tabs: Vec<Tab>,

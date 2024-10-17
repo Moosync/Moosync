@@ -86,11 +86,9 @@
 }
 .musicinfo-open {
     transform: translateY(-4px);
-    z-index: 9999;
 }
 .musicinfo-close {
     transform: translateY(100vh);
-    z-index: 9999;
 }
 .item-container {
     position: relative;

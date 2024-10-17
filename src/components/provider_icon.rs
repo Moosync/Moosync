@@ -4,11 +4,11 @@ use types::extensions::PackageNameArgs;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
-    console_log,
     icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon},
     utils::common::invoke,
 };
 
+#[tracing::instrument(level = "trace", skip(extension))]
 #[component]
 pub fn ProviderIcon(#[prop()] extension: String) -> impl IntoView {
     let provider_icon = create_rw_signal(String::new());
@@ -36,7 +36,7 @@ pub fn ProviderIcon(#[prop()] extension: String) -> impl IntoView {
             if let Ok(res) = res {
                 provider_icon.set(res.as_string().unwrap());
             } else {
-                console_log!("Failed to get provider icon {:?}", res);
+                tracing::error!("Failed to get provider icon {:?}", res);
             }
         }
     });

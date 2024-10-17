@@ -10,7 +10,6 @@ use types::{
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
-    console_log,
     icons::{
         add_to_library_icon::AddToLibraryIcon, add_to_queue_icon::AddToQueueIcon,
         pin_icon::PinIcon, plain_play_icon::PlainPlayIcon, random_icon::RandomIcon,
@@ -20,6 +19,7 @@ use crate::{
 };
 use std::time::Duration;
 
+#[tracing::instrument(level = "trace", skip(selected_song, icons, show_lyrics, default_details))]
 #[component()]
 pub fn SongDetails<T>(
     #[prop()] selected_song: T,
@@ -42,7 +42,7 @@ where
 
     if show_lyrics {
         create_effect(move |_| {
-            console_log!("Fetching lyrics");
+            tracing::debug!("Fetching lyrics");
             let song = selected_song.get();
             if let Some(song) = song {
                 let lyrics = song.song.lyrics.clone();
@@ -76,7 +76,7 @@ where
                             let lyrics = res.as_string().unwrap();
                             selected_lyrics.set(Some(lyrics));
                         } else {
-                            console_log!("Failed to fetch lyrics: {:?}", res.unwrap_err());
+                            tracing::error!("Failed to fetch lyrics: {:?}", res.unwrap_err());
                         }
                     });
                     return;
@@ -122,7 +122,7 @@ where
                                 class="embed-responsive-item albumart"
                                 on:mouseenter=move |_| {
                                     if show_lyrics {
-                                        console_log!("showing lyrics");
+                                        tracing::debug!("showing lyrics");
                                         show_lyrics_div.set(true)
                                     }
                                 }

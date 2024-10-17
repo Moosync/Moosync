@@ -8,6 +8,7 @@ use librespot::{
     librespot_load, librespot_pause, librespot_play, librespot_seek, librespot_volume,
     register_event,
 };
+use logger::{get_logger_state, renderer_write};
 use lyrics::{get_lyrics, get_lyrics_state};
 use mpris::{get_mpris_state, set_metadata, set_playback_state, set_position};
 use preference_holder::{
@@ -67,6 +68,7 @@ use {
 mod db;
 mod extensions;
 mod librespot;
+mod logger;
 mod lyrics;
 mod mpris;
 mod oauth;
@@ -197,6 +199,8 @@ pub fn run() {
             rodio_seek,
             rodio_set_volume,
             rodio_stop,
+            // Logger
+            renderer_write,
         ])
         .setup(|app| {
             let filter = EnvFilter::from_env("MOOSYNC_LOG");
@@ -259,6 +263,9 @@ pub fn run() {
 
             let rodio_state = get_rodio_state(app.app_handle().clone());
             app.manage(rodio_state);
+
+            let logger = get_logger_state(app.app_handle().clone());
+            app.manage(logger);
 
             initial(app);
             handle_pref_changes(app.handle().clone());

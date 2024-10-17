@@ -1,7 +1,6 @@
 use leptos::{component, expect_context, view, IntoView, RwSignal, SignalGet};
 
 use crate::{
-    console_log,
     modals::{
         discover_extensions::DiscoverExtensionsModal, login_modal::LoginModal,
         new_playlist_modal::NewPlaylistModal, new_theme_modal::NewThemeModal,
@@ -10,6 +9,7 @@ use crate::{
     store::modal_store::{ModalStore, Modals},
 };
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn ModalManager() -> impl IntoView {
     let modal_store = expect_context::<RwSignal<ModalStore>>();
@@ -18,7 +18,7 @@ pub fn ModalManager() -> impl IntoView {
         <div>
             {move || {
                 let active_modal = modal_store.get().active_modal;
-                console_log!("Got active modal {:?}", active_modal);
+                tracing::debug!("Got active modal {:?}", active_modal);
                 if active_modal.is_none() {
                     return view! {}.into_view();
                 }

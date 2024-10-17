@@ -19,7 +19,6 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
-    console_log,
     i18n::use_i18n,
     icons::{
         folder_icon::FolderIcon, new_theme_icon::NewThemeIcon, theme_view_icon::ThemeViewIcon,
@@ -36,6 +35,7 @@ use crate::{
     },
 };
 
+#[tracing::instrument(level = "trace", skip(key, title, tooltip))]
 #[component]
 pub fn PathsPref(
     #[prop()] key: String,
@@ -48,7 +48,7 @@ pub fn PathsPref(
     let selected_paths = create_rw_signal(vec![]);
     create_effect(move |_| {
         let new_paths = selected_paths.get();
-        console_log!("Got new paths: {:?}", new_paths);
+        tracing::debug!("Got new paths: {:?}", new_paths);
         if !new_paths.is_empty() {
             paths.update(|paths| paths.extend(new_paths.iter().cloned()));
         }
@@ -57,12 +57,12 @@ pub fn PathsPref(
     let key_clone = key.clone();
     create_effect(move |_| {
         let value = paths.get();
-        console_log!("Should write {}, {:?}", should_write.get(), value);
+        tracing::debug!("Should write {}, {:?}", should_write.get(), value);
         if !should_write.get() {
             should_write.set(true);
             return;
         }
-        console_log!("Saving paths: {:?}", value);
+        tracing::debug!("Saving paths: {:?}", value);
         save_selective(key_clone.clone(), value);
     });
     let i18n = use_i18n();
@@ -120,6 +120,7 @@ pub fn PathsPref(
     }
 }
 
+#[tracing::instrument(level = "trace", skip(key, title, tooltip, show_input, inp_type))]
 #[component()]
 pub fn InputPref(
     #[prop()] key: String,
@@ -152,7 +153,7 @@ pub fn InputPref(
         move |event: web_sys::Event| {
             let value = event_target_value(&event);
             if inp_type_clone.clone() == "number" && value.parse::<f64>().is_err() {
-                console_log!("Invalid number");
+                tracing::debug!("Invalid number");
                 return;
             }
             pref_value.set(value);
@@ -209,6 +210,7 @@ pub fn InputPref(
     }
 }
 
+#[tracing::instrument(level = "trace", skip(key, title, tooltip, items, single))]
 #[component()]
 pub fn CheckboxPref(
     #[prop()] key: String,
@@ -317,6 +319,7 @@ pub fn CheckboxPref(
     }
 }
 
+#[tracing::instrument(level = "trace", skip(key, title, tooltip))]
 #[component]
 pub fn ThemesPref(
     #[prop()] key: String,
@@ -368,7 +371,7 @@ pub fn ThemesPref(
                                     signal.set(true);
                                 });
                             let theme_id = key.clone();
-                            console_log!("Setting active theme: {}", theme_id);
+                            tracing::debug!("Setting active theme: {}", theme_id);
                             save_selective("themes.active_theme".into(), theme_id);
                         }
                     >
@@ -418,6 +421,7 @@ struct InstallExtensionArgs {
     ext_path: String,
 }
 
+#[tracing::instrument(level = "trace", skip(title, tooltip))]
 #[component]
 pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl IntoView {
     let extensions = create_rw_signal::<Vec<ExtensionDetail>>(Default::default());
@@ -426,10 +430,10 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
             let res = invoke("get_installed_extensions", JsValue::undefined())
                 .await
                 .unwrap();
-            console_log!("Got res {:?}", res);
+            tracing::debug!("Got res {:?}", res);
             let res = serde_wasm_bindgen::from_value::<HashMap<String, Vec<ExtensionDetail>>>(res)
                 .unwrap();
-            console_log!("got extensions {:?}", res);
+            tracing::debug!("got extensions {:?}", res);
             extensions.set(res.values().flatten().cloned().collect());
         })
     };

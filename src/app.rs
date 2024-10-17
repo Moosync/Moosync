@@ -4,7 +4,6 @@ use crate::{
     components::{
         better_animated_outlet::AnimatedOutletSimultaneous, prefs::static_components::SettingRoutes,
     },
-    console_log,
     pages::explore::Explore,
     players::librespot::LibrespotPlayer,
     store::ui_store::UiStore,
@@ -48,11 +47,13 @@ use crate::{
     store::{modal_store::ModalStore, player_store::PlayerStore, provider_store::ProviderStore},
 };
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn RedirectAll() -> impl IntoView {
     view! { <Redirect path="/main/allsongs" /> }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 fn CommonApp() -> impl IntoView {
     view! {
@@ -64,6 +65,7 @@ fn CommonApp() -> impl IntoView {
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn MainApp() -> impl IntoView {
     let tabs = vec![
@@ -84,6 +86,7 @@ pub fn MainApp() -> impl IntoView {
     }
 }
 
+#[tracing::instrument(level = "trace", skip(id))]
 fn handle_theme(id: String) {
     #[derive(Serialize)]
     struct LoadThemeArgs {
@@ -144,6 +147,7 @@ fn handle_theme(id: String) {
     });
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn App() -> impl IntoView {
     // window_event_listener(leptos::ev::contextmenu, move |ev| {
@@ -169,6 +173,7 @@ pub fn App() -> impl IntoView {
         let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
         let payload: ExtensionUIRequest = serde_wasm_bindgen::from_value(payload).unwrap();
 
+        #[tracing::instrument(level = "trace", skip(payload, data))]
         fn send_reply<T>(payload: ExtensionUIRequest, data: T)
         where
             T: Serialize + Clone,
@@ -219,7 +224,7 @@ pub fn App() -> impl IntoView {
     });
 
     let watch_prefs_unlisten = watch_preferences(|(key, value)| {
-        console_log!("Preferences changed: {} = {:?}", key, value);
+        tracing::debug!("Preferences changed: {} = {:?}", key, value);
         if key == "prefs.volume_persist_mode" {
             let player_store = expect_context::<RwSignal<PlayerStore>>();
             player_store.update(|store| {
@@ -262,15 +267,15 @@ pub fn App() -> impl IntoView {
 
     let window = window();
     if let Err(e) = window.add_event_listener_with_callback("beforeunload", &watch_prefs_unlisten) {
-        console_log!("Failed to set unmount hook: {:?}", e);
+        tracing::error!("Failed to set unmount hook: {:?}", e);
     }
 
     if let Err(e) = window.add_event_listener_with_callback("beforeunload", &ui_requests_unlisten) {
-        console_log!("Failed to set unmount hook: {:?}", e);
+        tracing::error!("Failed to set unmount hook: {:?}", e);
     }
 
     if let Err(e) = window.add_event_listener_with_callback("beforeunload", &unlisten_mpris) {
-        console_log!("Failed to set unmount hook: {:?}", e);
+        tracing::error!("Failed to set unmount hook: {:?}", e);
     }
 
     view! {

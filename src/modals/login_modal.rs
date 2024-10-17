@@ -10,6 +10,7 @@ use crate::{
     modals::common::GenericModal, store::provider_store::ProviderStore, utils::common::invoke,
 };
 
+#[tracing::instrument(level = "trace", skip(key, name, account_id))]
 #[component]
 pub fn LoginModal(
     #[prop()] key: String,

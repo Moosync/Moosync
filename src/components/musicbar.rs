@@ -5,7 +5,6 @@ use types::ui::player_details::PlayerState;
 
 use crate::components::low_img::LowImg;
 use crate::components::musicinfo::MusicInfo;
-use crate::console_log;
 use crate::icons::expand_icon::ExpandIcon;
 use crate::icons::fav_icon::FavIcon;
 use crate::icons::next_track_icon::NextTrackIcon;
@@ -17,6 +16,7 @@ use crate::icons::volume_icon::VolumeIcon;
 use crate::store::player_store::PlayerStore;
 use crate::utils::common::{format_duration, get_low_img};
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 fn Details() -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
@@ -97,6 +97,7 @@ fn Details() -> impl IntoView {
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn Controls() -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
@@ -187,6 +188,7 @@ pub fn Controls() -> impl IntoView {
     }
 }
 
+#[tracing::instrument(level = "trace", skip(musicinfo_cb))]
 #[component]
 pub fn ExtraControls<T>(musicinfo_cb: T) -> impl IntoView
 where
@@ -234,6 +236,7 @@ where
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn Slider() -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
@@ -275,7 +278,7 @@ pub fn Slider() -> impl IntoView {
                     class="time-slider-rail"
                     ref=slider_process
                     on:click=move |ev| {
-                        console_log!("offset {}", ev.offset_x());
+                        tracing::debug!("offset {}", ev.offset_x());
                         set_current_time.set(ev.offset_x() as f64);
                     }
                 >
@@ -311,6 +314,7 @@ pub fn Slider() -> impl IntoView {
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn MusicBar() -> impl IntoView {
     let show_musicinfo = create_rw_signal(false);

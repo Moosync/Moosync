@@ -1,5 +1,6 @@
 use leptos::{component, view, IntoView};
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn FetchAllIcon() -> impl IntoView {
     view! {

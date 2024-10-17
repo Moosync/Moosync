@@ -4,7 +4,6 @@ use std::rc::Rc;
 
 use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songview::SongView;
-use crate::console_log;
 use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::{PlaylistSortByColumns, UiStore};
@@ -30,6 +29,7 @@ use crate::{icons::plus_button::PlusIcon, utils::db_utils::get_playlists_by_opti
 struct PlaylistContextMenu {}
 
 impl PlaylistContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
     fn open_import_from_url_modal(&self) {
         let modal_store: RwSignal<ModalStore> = expect_context();
         modal_store.update(|modal_store| {
@@ -39,6 +39,7 @@ impl PlaylistContextMenu {
 }
 
 impl ContextMenuData<Self> for PlaylistContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
     fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
         vec![
             ContextMenuItemInner::new_with_handler(
@@ -56,18 +57,21 @@ struct PlaylistItemContextMenu {
 }
 
 impl PlaylistItemContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
     fn add_to_library(&self) {
         if let Some(playlist) = &self.playlist {
             create_playlist(playlist.clone());
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn remove_from_library(&self) {
         if let Some(playlist) = &self.playlist {
             remove_playlist(playlist.clone());
         }
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn export_playlist(&self) {
         if let Some(playlist) = &self.playlist {
             export_playlist(playlist.clone());
@@ -76,6 +80,7 @@ impl PlaylistItemContextMenu {
 }
 
 impl ContextMenuData<Self> for PlaylistItemContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
     fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
         if let Some(playlist) = &self.playlist {
             if let Some(library_item) = playlist.library_item {
@@ -105,11 +110,12 @@ impl ContextMenuData<Self> for PlaylistItemContextMenu {
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn SinglePlaylist() -> impl IntoView {
     let params = use_query_map();
     let playlist_id = params.with(|params| params.get("id").cloned()).unwrap();
-    console_log!("In single playlists {:?}", playlist_id);
+    tracing::debug!("In single playlists {:?}", playlist_id);
 
     let songs = create_rw_signal(vec![]);
     let selected_songs = create_rw_signal(vec![]);
@@ -153,7 +159,7 @@ pub fn SinglePlaylist() -> impl IntoView {
                     playlist_id.clone()
                 );
             }
-            Err(e) => console_log!("{}", e),
+            Err(e) => tracing::error!("{}", e),
         }
     });
 
@@ -215,6 +221,7 @@ pub fn SinglePlaylist() -> impl IntoView {
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn AllPlaylists() -> impl IntoView {
     let playlists = create_rw_signal(vec![]);

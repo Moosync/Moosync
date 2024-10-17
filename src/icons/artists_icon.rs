@@ -1,5 +1,6 @@
 use leptos::{component, view, IntoView, ReadSignal, SignalGet};
 
+#[tracing::instrument(level = "trace", skip(active))]
 #[component]
 pub fn ArtistsIcon(#[prop()] active: ReadSignal<bool>) -> impl IntoView {
     view! {

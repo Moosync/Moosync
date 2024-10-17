@@ -1,5 +1,6 @@
 use leptos::{component, view, IntoView};
 
+#[tracing::instrument(level = "trace", skip(title))]
 #[component]
 pub fn AddToQueueIcon(#[prop()] title: String) -> impl IntoView {
     view! {

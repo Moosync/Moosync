@@ -12,7 +12,6 @@ use types::ui::song_details::SongDetailIcons;
 use web_sys::{ScrollBehavior, ScrollToOptions};
 
 use crate::components::audiostream::AudioStream;
-use crate::console_log;
 use crate::utils::common::{get_high_img, invoke};
 use crate::{
     components::{low_img::LowImg, provider_icon::ProviderIcon, songdetails::SongDetails},
@@ -21,6 +20,7 @@ use crate::{
     utils::common::get_low_img,
 };
 
+#[tracing::instrument(level = "trace", skip(song, index, current_song_index, eq_playing, play_now, remove_from_queue))]
 #[component]
 pub fn QueueItem<T, D, P>(
     #[prop()] song: Song,
@@ -79,6 +79,7 @@ where
     }
 }
 
+#[tracing::instrument(level = "trace", skip(show))]
 #[component]
 pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
     let player_store = expect_context::<RwSignal<PlayerStore>>();
@@ -114,9 +115,9 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
                     )
                     .await;
                     if let Ok(res) = res {
-                        console_log!("Got canvas: {:?}", res);
+                        tracing::debug!("Got canvas: {:?}", res);
                     } else {
-                        console_log!("Failed to get canvaz {:?}", res)
+                        tracing::error!("Failed to get canvaz {:?}", res)
                     }
                 });
             }

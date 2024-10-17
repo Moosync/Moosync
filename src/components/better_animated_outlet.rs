@@ -8,6 +8,7 @@ use leptos::{
 use leptos_router::{use_location, use_route, RouteContext};
 use web_sys::AnimationEvent;
 
+#[tracing::instrument(level = "trace", skip(class, additional_class))]
 fn get_class_str(
     class: Option<TextProp>,
     additional_class: Option<&'static str>,
@@ -22,6 +23,7 @@ fn get_class_str(
     None
 }
 
+#[tracing::instrument(level = "trace", skip(class_setter1, class_setter2, default_class, class1, class2))]
 fn set_classes(
     class_setter1: RwSignal<Option<String>>,
     class_setter2: RwSignal<Option<String>>,
@@ -33,6 +35,7 @@ fn set_classes(
     class_setter2.set(get_class_str(default_class, class2));
 }
 
+#[tracing::instrument(level = "trace", skip(class, intro, outro))]
 #[component]
 pub fn AnimatedOutletSimultaneous(
     #[prop(optional, into)] class: Option<TextProp>,

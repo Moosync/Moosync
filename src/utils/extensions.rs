@@ -1,8 +1,9 @@
 use leptos::spawn_local;
 use types::extensions::{ExtensionExtraEvent, ExtensionExtraEventArgs};
 
-use crate::{console_log, utils::common::invoke};
+use crate::utils::common::invoke;
 
+#[tracing::instrument(level = "trace", skip(args))]
 pub fn send_extension_event(args: ExtensionExtraEvent) {
     spawn_local(async move {
         #[derive(serde::Serialize)]
@@ -22,7 +23,7 @@ pub fn send_extension_event(args: ExtensionExtraEvent) {
         .await;
 
         if let Err(e) = res {
-            console_log!("Failed to send extension event: {:?}", e);
+            tracing::error!("Failed to send extension event: {:?}", e);
         }
     });
 }

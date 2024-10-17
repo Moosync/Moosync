@@ -28,6 +28,7 @@ enum State {
     ImportTheme,
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn NewThemeModal() -> impl IntoView {
     let state = create_rw_signal(State::None);

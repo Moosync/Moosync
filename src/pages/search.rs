@@ -14,7 +14,6 @@ use web_sys::window;
 
 use crate::{
     components::songlist::SongList,
-    console_log,
     icons::{next_icon::NextIcon, prev_icon::PrevIcon},
     store::provider_store::ProviderStore,
 };
@@ -24,6 +23,7 @@ struct SearchQuery {
     q: Option<String>,
 }
 
+#[tracing::instrument(level = "trace", skip(keys, selected, single_select))]
 #[component()]
 pub fn TabCarousel(
     #[prop()] keys: Vec<String>,
@@ -191,6 +191,7 @@ pub fn TabCarousel(
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn Search() -> impl IntoView {
     let query = use_query::<SearchQuery>();
@@ -230,7 +231,7 @@ pub fn Search() -> impl IntoView {
             if search_term.is_empty() {
                 return;
             }
-            console_log!("Searching for: {}", search_term);
+            tracing::debug!("Searching for: {}", search_term);
 
             let provider_store = provider_store.clone();
 
@@ -247,7 +248,7 @@ pub fn Search() -> impl IntoView {
                             });
                         }
                         Err(err) => {
-                            console_log!(
+                            tracing::error!(
                                 "Error searching for {} ({}): {:?}",
                                 search_term,
                                 key,

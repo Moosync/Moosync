@@ -1,5 +1,6 @@
 use leptos::{component, view, IntoView, SignalGet};
 
+#[tracing::instrument(level = "trace", skip(disabled))]
 #[component]
 pub fn PrevTrackIcon<T>(#[prop()] disabled: T) -> impl IntoView
 where

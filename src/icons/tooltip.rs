@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use leptos::{component, create_rw_signal, view, AnimatedShow, ChildrenFn, IntoView, SignalSet};
 
+#[tracing::instrument(level = "trace", skip(children))]
 #[component]
 pub fn Tooltip(children: ChildrenFn) -> impl IntoView {
     let show_tooltip = create_rw_signal(false);

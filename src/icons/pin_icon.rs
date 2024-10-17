@@ -1,5 +1,6 @@
 use leptos::{component, view, IntoView, SignalGet};
 
+#[tracing::instrument(level = "trace", skip(filled))]
 #[component]
 pub fn PinIcon<T>(#[prop()] filled: T) -> impl IntoView
 where

@@ -17,6 +17,7 @@ use crate::components::songview::SongView;
 use crate::utils::db_utils::get_songs_by_option;
 use rand::seq::SliceRandom;
 
+#[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn SingleArtist() -> impl IntoView {
     let params = use_query_map();
@@ -105,6 +106,7 @@ pub fn SingleArtist() -> impl IntoView {
     }
 }
 
+#[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn AllArtists() -> impl IntoView {
     let artists = create_rw_signal(vec![]);

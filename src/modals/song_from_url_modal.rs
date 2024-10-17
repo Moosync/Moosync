@@ -13,6 +13,7 @@ use leptos::{
 use types::songs::Song;
 use wasm_bindgen_futures::spawn_local;
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn SongFromUrlModal() -> impl IntoView {
     let modal_store: RwSignal<ModalStore> = expect_context();

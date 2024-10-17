@@ -5,10 +5,7 @@ use serde::Serialize;
 use types::{songs::SongType, ui::player_details::PlayerEvents};
 use wasm_bindgen::JsValue;
 
-use crate::{
-    console_log,
-    utils::common::{convert_file_src, invoke, listen_event},
-};
+use crate::utils::common::{convert_file_src, invoke, listen_event};
 
 use super::generic::GenericPlayer;
 
@@ -20,6 +17,7 @@ pub struct RodioPlayer {
 }
 
 impl RodioPlayer {
+    #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> Self {
         Self {
             unlisten: None,
@@ -30,12 +28,15 @@ impl RodioPlayer {
 }
 
 impl GenericPlayer for RodioPlayer {
+    #[tracing::instrument(level = "trace", skip(self))]
     fn initialize(&self, _: leptos::NodeRef<leptos::html::Div>) {}
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn key(&self) -> String {
         "rodio".into()
     }
 
+    #[tracing::instrument(level = "trace", skip(self, src, resolver))]
     fn load(&self, src: String, resolver: tokio::sync::oneshot::Sender<()>) {
         spawn_local(async move {
             #[derive(Serialize)]
@@ -49,18 +50,19 @@ impl GenericPlayer for RodioPlayer {
             .await;
 
             if let Err(err) = res {
-                console_log!("Rodio error {:?}", err);
+                tracing::error!("Rodio error {:?}", err);
             }
 
             resolver.send(()).unwrap();
         });
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn stop(&mut self) -> types::errors::Result<()> {
         let unlisten = self.unlisten.take();
         if let Some(unlisten) = &unlisten {
             if let Err(e) = unlisten.call0(&JsValue::NULL) {
-                console_log!("Error removing listeners {:?}", e);
+                tracing::error!("Error removing listeners {:?}", e);
             }
         }
 
@@ -68,7 +70,7 @@ impl GenericPlayer for RodioPlayer {
             let res = invoke("rodio_stop", JsValue::undefined()).await;
 
             if res.is_err() {
-                console_log!("Error stopping {:?}", res.unwrap_err());
+                tracing::error!("Error stopping {:?}", res.unwrap_err());
             }
         });
 
@@ -84,28 +86,31 @@ impl GenericPlayer for RodioPlayer {
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn play(&self) -> types::errors::Result<()> {
         spawn_local(async move {
             let res = invoke("rodio_play", JsValue::undefined()).await;
 
             if res.is_err() {
-                console_log!("Error playing {:?}", res.unwrap_err());
+                tracing::error!("Error playing {:?}", res.unwrap_err());
             }
         });
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn pause(&self) -> types::errors::Result<()> {
         spawn_local(async move {
             let res = invoke("rodio_pause", JsValue::undefined()).await;
 
             if res.is_err() {
-                console_log!("Error playing {:?}", res.unwrap_err());
+                tracing::error!("Error playing {:?}", res.unwrap_err());
             }
         });
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self, pos))]
     fn seek(&self, pos: f64) -> types::errors::Result<()> {
         spawn_local(async move {
             #[derive(Serialize)]
@@ -120,12 +125,13 @@ impl GenericPlayer for RodioPlayer {
             .await;
 
             if res.is_err() {
-                console_log!("Error playing {:?}", res.unwrap_err());
+                tracing::error!("Error playing {:?}", res.unwrap_err());
             }
         });
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn provides(&self) -> &[types::songs::SongType] {
         &[
             SongType::LOCAL,
@@ -135,6 +141,7 @@ impl GenericPlayer for RodioPlayer {
         ]
     }
 
+    #[tracing::instrument(level = "trace", skip(self, song))]
     fn can_play(&self, song: &types::songs::Song) -> bool {
         let playback_url = song
             .song
@@ -142,7 +149,7 @@ impl GenericPlayer for RodioPlayer {
             .clone()
             .map(convert_file_src)
             .or(song.song.playback_url.clone());
-        console_log!("Checking playback url {:?}", playback_url);
+        tracing::debug!("Checking playback url {:?}", playback_url);
         if let Some(playback_url) = playback_url {
             return playback_url.starts_with("http://")
                 || playback_url.starts_with("https://")
@@ -151,9 +158,10 @@ impl GenericPlayer for RodioPlayer {
         false
     }
 
+    #[tracing::instrument(level = "trace", skip(self, volume))]
     fn set_volume(&self, volume: f64) -> types::errors::Result<()> {
         let parsed_volume = volume / 100f64;
-        console_log!("Setting volume {}", parsed_volume);
+        tracing::debug!("Setting volume {}", parsed_volume);
         spawn_local(async move {
             #[derive(Serialize)]
             struct VolumeArgs {
@@ -169,17 +177,19 @@ impl GenericPlayer for RodioPlayer {
             .await;
 
             if res.is_err() {
-                console_log!("Error setting volume {}: {:?}", volume, res.unwrap_err());
+                tracing::error!("Error setting volume {}: {:?}", volume, res.unwrap_err());
             }
         });
 
         Ok(())
     }
 
+    #[tracing::instrument(level = "trace", skip(self))]
     fn get_volume(&self) -> types::errors::Result<f64> {
         Ok(0f64)
     }
 
+    #[tracing::instrument(level = "trace", skip(self, state_setter))]
     fn add_listeners(
         &mut self,
         state_setter: std::rc::Rc<Box<dyn Fn(types::ui::player_details::PlayerEvents)>>,
@@ -188,10 +198,10 @@ impl GenericPlayer for RodioPlayer {
             unlisten.call0(&JsValue::NULL).unwrap();
         }
 
-        console_log!("Adding rodio listeners");
+        tracing::debug!("Adding rodio listeners");
         let start_timer =
             |timer: Rc<Mutex<Option<IntervalHandle>>>, time: Rc<Mutex<f64>>, tx: Callback| {
-                console_log!("Starting timer");
+                tracing::debug!("Starting timer");
                 let mut timer = timer.lock().unwrap();
                 if timer.is_some() {
                     let handle = timer.unwrap();
@@ -213,7 +223,7 @@ impl GenericPlayer for RodioPlayer {
         type Callback = RefCell<Rc<Box<dyn Fn(PlayerEvents)>>>;
 
         let stop_timer = |timer: Rc<Mutex<Option<IntervalHandle>>>, _, _| {
-            console_log!("pausing timer");
+            tracing::debug!("pausing timer");
             let mut timer = timer.lock().unwrap();
             if timer.is_some() {
                 let handle = timer.unwrap();
@@ -224,7 +234,7 @@ impl GenericPlayer for RodioPlayer {
 
         let stop_and_clear_timer =
             |timer: Rc<Mutex<Option<IntervalHandle>>>, time: Rc<Mutex<f64>>, tx: Callback| {
-                console_log!("Stopping timer");
+                tracing::debug!("Stopping timer");
                 let mut timer = timer.lock().unwrap();
                 if timer.is_some() {
                     let handle = timer.unwrap();
@@ -242,7 +252,7 @@ impl GenericPlayer for RodioPlayer {
         let time = self.time.clone();
 
         let unlisten = listen_event("rodio_event", move |data| {
-            console_log!("Got rodio event {:?}", data);
+            tracing::debug!("Got rodio event {:?}", data);
             let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
             let event: PlayerEvents = serde_wasm_bindgen::from_value(payload).unwrap();
 

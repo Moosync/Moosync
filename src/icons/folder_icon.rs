@@ -1,5 +1,6 @@
 use leptos::{component, view, IntoView};
 
+#[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn FolderIcon() -> impl IntoView {
     view! {

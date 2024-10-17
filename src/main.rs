@@ -28,7 +28,7 @@ fn main() {
     let layer = fmt::layer()
         .pretty()
         .with_target(true)
-        .with_ansi(false)
+        .with_ansi(true)
         .without_time()
         .with_writer(MakeConsoleWriter::new_log_file());
 

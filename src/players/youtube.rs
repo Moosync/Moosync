@@ -89,6 +89,7 @@ impl GenericPlayer for YoutubePlayer {
 
     #[tracing::instrument(level = "trace", skip(self))]
     fn play(&self) -> types::errors::Result<()> {
+        tracing::debug!("Youtube player playing");
         self.player.play();
         Ok(())
     }

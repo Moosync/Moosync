@@ -64,8 +64,8 @@ impl PlayerHolder {
         let local_player = LocalPlayer::new();
         players.push(Box::new(local_player));
 
-        let youtube_player = YoutubePlayer::new();
-        players.push(Box::new(youtube_player));
+        // let youtube_player = YoutubePlayer::new();
+        // players.push(Box::new(youtube_player));
 
         let librespot_player = LibrespotPlayer::new();
         players.push(Box::new(librespot_player));
@@ -184,6 +184,13 @@ impl PlayerHolder {
             .await
     }
 
+    fn set_player_listeners(&self, player: &mut Box<dyn GenericPlayer>) {
+        if !self.listeners_active.load(Ordering::Relaxed) {
+            player.add_listeners(self.state_setter.clone());
+            self.listeners_active.store(true, Ordering::Relaxed);
+        }
+    }
+
     #[tracing::instrument(level = "trace", skip(self, song, current_volume, player_store))]
     pub async fn load_audio(
         &mut self,
@@ -217,11 +224,9 @@ impl PlayerHolder {
 
         let mut players = self.players.lock().await;
         let player = players.get_mut(pos).unwrap();
-        if !self.listeners_active.load(Ordering::Relaxed) {
-            self.active_player.store(pos, Ordering::Relaxed);
-            player.add_listeners(self.state_setter.clone());
-        }
 
+        self.set_player_listeners(player);
+        self.active_player.store(pos, Ordering::Relaxed);
         tracing::info!("Active player: {}", player.key());
 
         let (resolver_tx, resolver_rx) = oneshot::channel();
@@ -233,6 +238,8 @@ impl PlayerHolder {
         if autoplay {
             tracing::info!("Autoplaying");
             player.play()?;
+        } else {
+            player.pause()?;
         }
 
         Ok(ret)

@@ -10,7 +10,15 @@ use crate::{console_debug, console_error, console_info, console_trace, console_w
 use super::common::invoke;
 
 #[derive(Clone, Copy, Debug, Default)]
-pub struct MakeConsoleWriter {}
+pub struct MakeConsoleWriter {
+    log_file: bool,
+}
+
+impl MakeConsoleWriter {
+    pub fn new_log_file() -> Self {
+        Self { log_file: true }
+    }
+}
 
 impl<'a> MakeWriter<'a> for MakeConsoleWriter {
     type Writer = ConsoleWriter;
@@ -20,6 +28,7 @@ impl<'a> MakeWriter<'a> for MakeConsoleWriter {
         ConsoleWriter {
             level: tracing::Level::DEBUG,
             data: vec![],
+            log_file: self.log_file,
         }
     }
 
@@ -28,6 +37,7 @@ impl<'a> MakeWriter<'a> for MakeConsoleWriter {
         ConsoleWriter {
             level: *meta.level(),
             data: vec![],
+            log_file: self.log_file,
         }
     }
 }
@@ -35,6 +45,7 @@ impl<'a> MakeWriter<'a> for MakeConsoleWriter {
 pub struct ConsoleWriter {
     level: tracing::Level,
     data: Vec<u8>,
+    log_file: bool,
 }
 
 #[derive(Serialize)]
@@ -50,38 +61,39 @@ impl Write for ConsoleWriter {
 
     #[tracing::instrument(level = "trace", skip(self))]
     fn flush(&mut self) -> io::Result<()> {
-        let parsed = str::from_utf8(&self.data)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
-
-        match self.level {
-            tracing::Level::DEBUG => {
-                console_debug!("{}", parsed);
-            }
-            tracing::Level::ERROR => {
-                console_error!("{}", parsed);
-            }
-            tracing::Level::INFO => {
-                console_info!("{}", parsed);
-            }
-            tracing::Level::TRACE => {
-                console_trace!("{}", parsed);
-            }
-            tracing::Level::WARN => {
-                console_warn!("{}", parsed);
-            }
-        };
-
-        let data = self.data.clone();
-        spawn_local(async move {
-            if let Err(e) = invoke(
-                "renderer_write",
-                serde_wasm_bindgen::to_value(&RendererWriteArgs { data }).unwrap(),
-            )
-            .await
-            {
-                console_error!("Failed to write log: {:?}", e);
-            }
-        });
+        if !self.log_file {
+            let parsed = str::from_utf8(&self.data)
+                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e.to_string()))?;
+            match self.level {
+                tracing::Level::DEBUG => {
+                    console_debug!("{}", parsed);
+                }
+                tracing::Level::ERROR => {
+                    console_error!("{}", parsed);
+                }
+                tracing::Level::INFO => {
+                    console_info!("{}", parsed);
+                }
+                tracing::Level::TRACE => {
+                    console_trace!("{}", parsed);
+                }
+                tracing::Level::WARN => {
+                    console_warn!("{}", parsed);
+                }
+            };
+        } else {
+            let data = self.data.clone();
+            spawn_local(async move {
+                if let Err(e) = invoke(
+                    "renderer_write",
+                    serde_wasm_bindgen::to_value(&RendererWriteArgs { data }).unwrap(),
+                )
+                .await
+                {
+                    console_error!("Failed to write log: {:?}", e);
+                }
+            });
+        }
 
         Ok(())
     }

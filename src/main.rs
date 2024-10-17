@@ -24,7 +24,18 @@ fn main() {
         .with_target(true)
         .without_time()
         .with_writer(MakeConsoleWriter::default());
-    let subscriber = tracing_subscriber::registry().with(log_layer).with(filter);
+
+    let layer = fmt::layer()
+        .pretty()
+        .with_target(true)
+        .with_ansi(false)
+        .without_time()
+        .with_writer(MakeConsoleWriter::new_log_file());
+
+    let subscriber = tracing_subscriber::registry()
+        .with(layer)
+        .with(log_layer)
+        .with(filter);
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
     mount_to_body(|| {

@@ -112,18 +112,18 @@ impl PlayerHolder {
         player_store: RwSignal<PlayerStore>,
         song: &Song,
     ) -> Result<(usize, Option<Song>)> {
-        tracing::info!("Getting players for song {:?}", song);
+        tracing::debug!("Getting players for song {:?}", song);
         let players = self.players.lock().await;
         let player_blacklist = create_read_slice(player_store, |player_store| {
             player_store.get_player_blacklist()
         });
         let player = players.iter().position(|p| {
-            tracing::info!("Checking player capabilities {}", p.key());
+            tracing::debug!("Checking player capabilities {}", p.key());
             let res = !player_blacklist.get_untracked().contains(&p.key())
                 && p.provides().contains(&song.song.type_)
                 && p.can_play(song);
 
-            tracing::info!("Checked player capabilities {}", p.key());
+            tracing::debug!("Checked player capabilities {}", p.key());
             res
         });
 
@@ -284,7 +284,7 @@ impl PlayerHolder {
         let active_player = self.active_player.clone();
         create_effect(move |_| {
             let force_seek = force_seek.get();
-            tracing::info!("Got force seek {}", force_seek);
+            tracing::debug!("Got force seek {}", force_seek);
             if force_seek < 0f64 {
                 return;
             }
@@ -300,7 +300,7 @@ impl PlayerHolder {
                 }
                 let active = active.unwrap();
 
-                tracing::info!("Seeking player {}", active.key());
+                tracing::debug!("Seeking player {}", active.key());
                 active.seek(force_seek).unwrap();
 
                 reset_force_seek.set(-1f64);
@@ -328,6 +328,7 @@ impl PlayerHolder {
                 types::ui::player_details::RepeatModes::None => store.next_song(),
                 types::ui::player_details::RepeatModes::Once => {
                     if !store.get_has_repeated() {
+                        tracing::info!("repeating now");
                         store.force_seek_percent(0f64);
                         store.set_state(PlayerState::Playing);
                         store.set_has_repeated(true);
@@ -353,12 +354,12 @@ impl PlayerHolder {
             PlayerEvents::Pause => player_state_setter.set(PlayerState::Paused),
             PlayerEvents::Loading => player_state_setter.set(PlayerState::Loading),
             PlayerEvents::Ended => {
-                tracing::info!("Got ended");
+                tracing::debug!("Got ended");
                 next_song_setter.set(());
             }
             PlayerEvents::TimeUpdate(t) => player_time_setter.set(t),
             PlayerEvents::Error(err) => {
-                tracing::info!("Error playing song: {:?}", err);
+                tracing::error!("Error playing song: {:?}", err);
                 let mut player_blacklist_sender = player_blacklist_sender.clone();
                 spawn_local(async move {
                     player_blacklist_sender.send(()).await.unwrap();
@@ -384,7 +385,7 @@ impl PlayerHolder {
                 let active_player = players.get(active_player_pos);
                 if let Some(active_player) = active_player {
                     let player_key = active_player.key();
-                    tracing::info!("blacklisting player {}", player_key);
+                    tracing::warn!("blacklisting player {}", player_key);
                     player_store.update(|p| p.blacklist_player(player_key))
                 }
             }
@@ -451,7 +452,7 @@ pub fn AudioStream() -> impl IntoView {
         } else {
             let players = players_clone.clone();
             spawn_local(async move {
-                tracing::debug!("Unloading audio");
+                tracing::info!("Unloading audio");
                 let players = players.lock().await;
                 let _ = players.stop_playback().await;
             });

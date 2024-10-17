@@ -28,7 +28,7 @@ macro_rules! listen_event {
                         tx(val);
                     }
                     Err(e) => {
-                        tracing::error!("Error sending event: {:?}", e);
+                        tracing::warn!("Error sending event: {:?}", e);
                     }
                 };
             });

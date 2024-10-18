@@ -123,6 +123,16 @@ impl ProviderHandler {
         store
     }
 
+    pub async fn request_account_status(&self, key: String) -> Result<()> {
+        let provider_store = self.provider_store.lock().await;
+        if let Some(provider) = provider_store.get(&key) {
+            let mut provider = provider.lock().await;
+            provider.requested_account_status().await;
+        }
+
+        Err("Provider not found".into())
+    }
+
     #[tracing::instrument(level = "trace", skip(self, status_rx))]
     pub fn listen_status_changes(&self, status_rx: UnboundedReceiver<ProviderStatus>) {
         let status_rx = Arc::new(Mutex::new(status_rx));

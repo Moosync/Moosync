@@ -355,6 +355,11 @@ impl GenericProvider for YoutubeProvider {
             || id.starts_with("youtube:")
     }
 
+    async fn requested_account_status(&mut self) -> Result<()> {
+        // TODO: Get account status from youtube
+        Ok(())
+    }
+
     #[tracing::instrument(level = "trace", skip(self))]
     async fn login(&mut self, _: String) -> Result<String> {
         let (url, verifier) = login(

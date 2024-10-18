@@ -73,6 +73,7 @@ pub trait GenericProvider: std::fmt::Debug + Send {
 
     async fn login(&mut self, account_id: String) -> Result<String>;
     async fn signout(&mut self, account_id: String) -> Result<()>;
+    async fn requested_account_status(&mut self) -> Result<()>;
 
     async fn authorize(&mut self, code: String) -> Result<()>;
 

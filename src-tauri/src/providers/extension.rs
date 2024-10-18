@@ -58,22 +58,8 @@ impl ExtensionProvider {
             status_tx,
         }
     }
-}
 
-impl Debug for ExtensionProvider {
-    #[tracing::instrument(level = "trace", skip(self, f))]
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        f.debug_struct("ExtensionProvider")
-            .field("extension", &self.extension)
-            .field("provides", &self.provides)
-            .finish()
-    }
-}
-
-#[async_trait]
-impl GenericProvider for ExtensionProvider {
-    #[tracing::instrument(level = "trace", skip(self))]
-    async fn initialize(&mut self) -> Result<()> {
+    async fn get_accounts(&mut self) -> Result<()> {
         let extension_handler = get_extension_handler(&self.app_handle);
         let accounts = extension_handler
             .get_accounts(PackageNameArgs {
@@ -94,15 +80,40 @@ impl GenericProvider for ExtensionProvider {
                 })
                 .await;
         }
+
         Ok(())
     }
+}
+
+impl Debug for ExtensionProvider {
+    #[tracing::instrument(level = "trace", skip(self, f))]
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("ExtensionProvider")
+            .field("extension", &self.extension)
+            .field("provides", &self.provides)
+            .finish()
+    }
+}
+
+#[async_trait]
+impl GenericProvider for ExtensionProvider {
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn initialize(&mut self) -> Result<()> {
+        self.get_accounts().await
+    }
+
     #[tracing::instrument(level = "trace", skip(self))]
     fn key(&self) -> String {
         format!("extension:{}", self.extension.package_name)
     }
+
     #[tracing::instrument(level = "trace", skip(self))]
     fn match_id(&self, id: String) -> bool {
         id.starts_with(&format!("{}:", self.extension.package_name))
+    }
+
+    async fn requested_account_status(&mut self) -> Result<()> {
+        self.get_accounts().await
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

@@ -4,10 +4,11 @@ use indexed_db_futures::{
     request::{IdbOpenDbRequestLike, OpenDbRequest},
     IdbDatabase, IdbVersionChangeEvent,
 };
+use itertools::max;
 use leptos::{create_effect, create_rw_signal, RwSignal, SignalGet, SignalSet, SignalUpdate};
 use rand::seq::SliceRandom;
 use serde::Serialize;
-use std::{cmp::min, collections::HashMap, rc::Rc};
+use std::{cmp::min, collections::HashMap, rc::Rc, time::Instant};
 use types::{
     extensions::ExtensionExtraEvent,
     preferences::CheckboxPreference,
@@ -18,10 +19,10 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::utils::{
-        db_utils::{read_from_indexed_db, write_to_indexed_db},
-        extensions::send_extension_event,
-        mpris::{set_metadata, set_playback_state, set_position},
-    };
+    db_utils::{read_from_indexed_db, write_to_indexed_db},
+    extensions::send_extension_event,
+    mpris::{set_metadata, set_playback_state, set_position},
+};
 
 #[derive(Debug, Default, PartialEq, Clone, Serialize, Encode, Decode)]
 pub struct Queue {
@@ -56,6 +57,8 @@ pub struct PlayerStoreData {
 pub struct PlayerStore {
     pub data: PlayerStoreData,
     db: Rc<Mutex<Option<Rc<IdbDatabase>>>>,
+    scrobble_time: f64,
+    scrobbled: bool,
 }
 
 impl PlayerStore {
@@ -67,48 +70,11 @@ impl PlayerStore {
         let signal = create_rw_signal(Self {
             data: PlayerStoreData::default(),
             db: db_rc,
+            scrobble_time: 0f64,
+            scrobbled: false,
         });
-        spawn_local(async move {
-            let mut db_req: OpenDbRequest = if let Ok(db_req) = IdbDatabase::open_u32("moosync", 1)
-            {
-                db_req
-            } else {
-                tracing::error!("Failed to get indexed db req");
-                return;
-            };
-            db_req.set_on_upgrade_needed(Some(
-                |evt: &IdbVersionChangeEvent| -> Result<(), JsValue> {
-                    // Check if the object store exists; create it if it doesn't
-                    if !evt.db().object_store_names().any(|n| n == "player_store") {
-                        evt.db().create_object_store("player_store")?;
-                    }
-                    Ok(())
-                },
-            ));
 
-            let db: Option<Rc<IdbDatabase>> = if let Ok(db) = db_req.await {
-                Some(Rc::new(db))
-            } else {
-                tracing::error!("Failed to open indexed db");
-                None
-            };
-
-            let mut db_rc = db_rc_clone.lock().await;
-            *db_rc = db;
-            drop(db_rc);
-
-            let data_signal = create_rw_signal(None);
-            Self::restore_store(db_rc_clone, data_signal);
-            create_effect(move |_| {
-                let data = data_signal.get();
-                signal.update(|s| {
-                    if let Some(data) = data {
-                        s.data = data;
-                        s.data.player_details.current_time = 0f64;
-                    }
-                });
-            });
-        });
+        Self::load_state_from_idb(db_rc_clone, signal);
 
         signal
     }
@@ -196,6 +162,9 @@ impl PlayerStore {
         self.data.current_song = song.clone();
 
         self.clear_blacklist();
+
+        self.scrobble_time = 0f64;
+        self.scrobbled = false;
 
         set_metadata(&song.clone().unwrap_or_default());
         send_extension_event(ExtensionExtraEvent::SongChanged([song]));
@@ -290,7 +259,16 @@ impl PlayerStore {
 
     #[tracing::instrument(level = "trace", skip(self, new_time))]
     pub fn update_time(&mut self, new_time: f64) {
+        self.scrobble_time += 0f64.max(new_time - self.data.player_details.current_time);
         self.data.player_details.current_time = new_time;
+
+        if self.scrobble_time > 20f64 && !self.scrobbled {
+            if let Some(current_song) = self.get_current_song() {
+                self.scrobbled = true;
+                send_extension_event(ExtensionExtraEvent::Scrobble([current_song]));
+            }
+        }
+
         set_position(new_time);
     }
 
@@ -510,6 +488,53 @@ impl PlayerStore {
     #[tracing::instrument(level = "trace", skip(self))]
     fn clear_blacklist(&mut self) {
         self.data.player_blacklist.clear();
+    }
+
+    pub fn load_state_from_idb(
+        db_rc_clone: Rc<Mutex<Option<Rc<IdbDatabase>>>>,
+        signal: RwSignal<PlayerStore>,
+    ) {
+        spawn_local(async move {
+            let mut db_req: OpenDbRequest = if let Ok(db_req) = IdbDatabase::open_u32("moosync", 1)
+            {
+                db_req
+            } else {
+                tracing::error!("Failed to get indexed db req");
+                return;
+            };
+            db_req.set_on_upgrade_needed(Some(
+                |evt: &IdbVersionChangeEvent| -> Result<(), JsValue> {
+                    // Check if the object store exists; create it if it doesn't
+                    if !evt.db().object_store_names().any(|n| n == "player_store") {
+                        evt.db().create_object_store("player_store")?;
+                    }
+                    Ok(())
+                },
+            ));
+
+            let db: Option<Rc<IdbDatabase>> = if let Ok(db) = db_req.await {
+                Some(Rc::new(db))
+            } else {
+                tracing::error!("Failed to open indexed db");
+                None
+            };
+
+            let mut db_rc = db_rc_clone.lock().await;
+            *db_rc = db;
+            drop(db_rc);
+
+            let data_signal = create_rw_signal(None);
+            Self::restore_store(db_rc_clone, data_signal);
+            create_effect(move |_| {
+                let data = data_signal.get();
+                signal.update(|s| {
+                    if let Some(data) = data {
+                        s.data = data;
+                        s.data.player_details.current_time = 0f64;
+                    }
+                });
+            });
+        });
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

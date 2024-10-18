@@ -313,6 +313,11 @@ impl GenericProvider for SpotifyProvider {
             || id.starts_with("spotify:")
     }
 
+    async fn requested_account_status(&mut self) -> Result<()> {
+        // TODO: Get account status from spotify
+        Ok(())
+    }
+
     #[tracing::instrument(level = "trace", skip(self))]
     async fn login(&mut self, _: String) -> Result<String> {
         let (url, verifier) = login(

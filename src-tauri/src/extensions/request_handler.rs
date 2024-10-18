@@ -207,6 +207,15 @@ impl ReplyHandler {
         Ok(Value::Null)
     }
 
+    fn update_accounts(&self, key: String) -> Result<Value> {
+        let app_handle = self.app_handle.clone();
+        tauri::async_runtime::spawn(async move {
+            let provider_handler: State<ProviderHandler> = app_handle.state();
+            let _ = provider_handler.request_account_status(key).await;
+        });
+        Ok(Value::Null)
+    }
+
     #[tracing::instrument(level = "trace", skip(self, request))]
     async fn send_ui_request(&self, request: ExtensionUIRequest) -> Result<Value> {
         if self.app_handle.webview_windows().is_empty() {
@@ -245,6 +254,7 @@ impl ReplyHandler {
 
     #[tracing::instrument(level = "trace", skip(self, value))]
     pub async fn handle_request(&self, value: &Value) -> Result<Vec<u8>> {
+        tracing::info!("Got request from extension {:?}", value);
         let request: ExtensionUIRequest = serde_json::from_value(value.clone())?;
         let mut ret = request.clone();
 
@@ -278,7 +288,8 @@ impl ReplyHandler {
                 "registerAccount" => self.register_account(request.extension_name),
                 "setArtistEditableInfo" => self.set_artist_editable_info(request.data.unwrap()),
                 "setAlbumEditableInfo" => self.set_album_editable_info(request.data.unwrap()),
-                _ => unreachable!(),
+                "updateAccount" => self.update_accounts(request.extension_name),
+                _ => Err("Not a valid request".into()),
             }
         } else if self.is_update(&request.type_) {
             self.extension_updated().await

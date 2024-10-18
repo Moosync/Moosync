@@ -50,38 +50,51 @@ macro_rules! helper1 {
     };
 
     // Any other type
-    ($arg:ident, $res:expr, $ret_type:ty) => {{
+    ($self:ident, $arg:ident, $res:expr, $ret_type:ty) => {{
+        tracing::info!("parsing response {:?} {:?}", $arg, $res);
         let package_name = if let Some(arg) = $arg {
             arg.package_name
         } else {
             String::new()
         };
 
-        let first = $res.values().next().map(|v| v);
-        if let Some(first) = first {
-            if first.is_null() {
-                return Ok(Default::default());
-            }
-
-            let parsed = serde_json::from_value::<HashMap<String, Value>>(first.clone());
-            if let Ok(parsed) = parsed {
-                if package_name.is_empty() {
-                    return Ok(Default::default());
-                }
-
-                let first_result = parsed.get(&package_name);
-                if let Some(first_result) = first_result {
-                    let parsed = serde_json::from_value(first_result.clone())?;
-                    return Ok(parsed);
-                } else {
-                    tracing::info!("Extension  did not reply");
-                    return Ok(Default::default());
-                }
-            }
-
-            return Err(format!("Failed to parse {:?} as {}", first, stringify!($ret_type)).into());
+        if package_name.is_empty() {
+            return Ok(Default::default());
         }
-        Err("Received null from ext host".into())
+
+        if let Ok(data) = $self.get_extension_response(package_name.clone(), &mut $res).await {
+            tracing::info!("parsed response {:?}", data);
+            let parsed = serde_json::from_value(data)?;
+            return Ok(parsed);
+        }
+
+        return Err(format!("Failed to parse data from {} in {:?} as {}", package_name, $res, stringify!($ret_type)).into());
+
+        // let first = $res.values().next().map(|v| v);
+        // if let Some(first) = first {
+        //     if first.is_null() {
+        //         return Ok(Default::default());
+        //     }
+
+        //     let parsed = serde_json::from_value::<HashMap<String, Value>>(first.clone());
+        //     if let Ok(parsed) = parsed {
+        //         if package_name.is_empty() {
+        //             return Ok(Default::default());
+        //         }
+
+        //         let first_result = parsed.get(&package_name);
+        //         if let Some(first_result) = first_result {
+        //             let parsed = serde_json::from_value(first_result.clone())?;
+        //             return Ok(parsed);
+        //         } else {
+        //             tracing::info!("Extension did not reply. Resp={:?}", $res);
+        //             return Ok(Default::default());
+        //         }
+        //     }
+
+        //     return Err(format!("Failed to parse {:?} as {}", first, stringify!($ret_type)).into());
+        // }
+        // Err("Received null from ext host".into())
     }};
 }
 
@@ -89,20 +102,20 @@ macro_rules! helper {
     ($func_name:ident, $req_type:expr, $ret_type:ty, $arg:ty) => {
         #[tracing::instrument(level = "trace", skip(self))]
         pub async fn $func_name(&self, arg: $arg) -> Result<$ret_type> {
-            let res = helper1!(self, $req_type, Some(arg.clone())).await?;
+            let mut res = helper1!(self, $req_type, Some(arg.clone())).await?;
 
             let arg = Some(arg);
-            helper1!(arg, res, $ret_type)
+            helper1!(self, arg, res, $ret_type)
         }
     };
 
     ($func_name:ident, $req_type:expr, $ret_type:ty) => {
         #[tracing::instrument(level = "trace", skip(self))]
         pub async fn $func_name(&self) -> Result<$ret_type> {
-            let res = helper1!(self, $req_type, None::<()>).await?;
+            let mut res = helper1!(self, $req_type, None::<()>).await?;
 
             let arg = None::<PackageNameArgs>;
-            helper1!(arg, res, $ret_type)
+            helper1!(self, arg, res, $ret_type)
         }
     };
 }
@@ -129,6 +142,7 @@ pub struct ExtensionHandler {
     pub extensions_dir: PathBuf,
     pub tmp_dir: PathBuf,
     sender_map: Arc<Mutex<SenderMap>>,
+    extension_runner_map: Mutex<HashMap<String, String>>,
 }
 
 impl ExtensionHandler {
@@ -148,6 +162,7 @@ impl ExtensionHandler {
             extensions_dir,
             tmp_dir,
             sender_map: Arc::new(Mutex::new(HashMap::new())),
+            extension_runner_map: Mutex::new(HashMap::new()),
         }
     }
 
@@ -437,12 +452,17 @@ impl ExtensionHandler {
         .unwrap();
         let mut res = self.broadcast(args).await?;
 
+        let mut extension_runner_map = self.extension_runner_map.lock().await;
+
         Ok(res
             .iter_mut()
             .filter_map(|(key, value)| {
                 let value = serde_json::from_value::<Vec<ExtensionDetail>>(value.clone());
                 if let Ok(mut value) = value {
                     for extension in value.iter_mut() {
+                        // Record runner for each extension
+                        extension_runner_map.insert(extension.package_name.clone(), key.clone());
+
                         for preferences in extension.preferences.iter_mut() {
                             if !preferences
                                 .key
@@ -455,6 +475,7 @@ impl ExtensionHandler {
                             }
                         }
                     }
+
                     Some((key.clone(), value))
                 } else {
                     tracing::info!("Error parsing extension detail {:?}", value);
@@ -517,6 +538,24 @@ impl ExtensionHandler {
         }
 
         Ok(ret)
+    }
+
+    async fn get_extension_response(
+        &self,
+        ext_name: String,
+        data: &mut HashMap<String, Value>,
+    ) -> Result<Value> {
+        let ext_runner_map = self.extension_runner_map.lock().await;
+        if let Some(runner_id) = ext_runner_map.get(&ext_name) {
+            if let Some(value) = data.remove(runner_id) {
+                let mut parsed_value: HashMap<String, Value> = serde_json::from_value(value)?;
+                if let Some(value) = parsed_value.remove(&ext_name) {
+                    return Ok(value);
+                }
+            }
+        }
+
+        Err("Cannot extract data".into())
     }
 
     create_extension_function!(

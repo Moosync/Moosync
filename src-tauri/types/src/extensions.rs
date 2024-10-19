@@ -129,8 +129,8 @@ pub enum ExtensionProviderScope {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PreferenceArgs {
-    key: String,
-    value: Value,
+    pub key: String,
+    pub value: Value,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

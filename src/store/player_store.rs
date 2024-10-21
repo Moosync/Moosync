@@ -4,11 +4,10 @@ use indexed_db_futures::{
     request::{IdbOpenDbRequestLike, OpenDbRequest},
     IdbDatabase, IdbVersionChangeEvent,
 };
-use itertools::max;
 use leptos::{create_effect, create_rw_signal, RwSignal, SignalGet, SignalSet, SignalUpdate};
 use rand::seq::SliceRandom;
 use serde::Serialize;
-use std::{cmp::min, collections::HashMap, rc::Rc, time::Instant};
+use std::{cmp::min, collections::HashMap, rc::Rc};
 use types::{
     extensions::ExtensionExtraEvent,
     preferences::CheckboxPreference,

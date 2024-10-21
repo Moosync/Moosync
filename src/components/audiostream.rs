@@ -27,7 +27,6 @@ use leptos::{
 use crate::{
     players::{
         generic::GenericPlayer, librespot::LibrespotPlayer, local::LocalPlayer, rodio::RodioPlayer,
-        youtube::YoutubePlayer,
     },
     store::{player_store::PlayerStore, provider_store::ProviderStore},
 };

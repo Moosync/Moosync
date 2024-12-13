@@ -16,3 +16,4 @@ reqwest = { version = "0.12.9", default-features = false }
 serde = { version = "1.0", default-features = false }
 tokio = { version = "1.42.0", default-features = false }
 types = { path = "../types", features = [] }
+futures = "0.3.31"

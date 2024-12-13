@@ -7,6 +7,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use futures::executor::block_on;
 use librespot::{
     connect::{
         spirc::{PlayingTrack, Spirc, SpircLoadCommand},
@@ -20,7 +21,7 @@ use librespot::{
     },
 };
 use serde::{Deserialize, Serialize};
-use tokio::runtime::Builder;
+use tokio::{runtime::Builder, sync::Mutex as AsyncMutex};
 
 use crate::player::{create_session, get_canvas, get_lyrics, new_player};
 use types::{
@@ -42,7 +43,7 @@ pub struct SpircWrapper {
     tx: mpsc::Sender<(Message, Sender<Result<MessageReply>>)>,
     pub events_channel: Arc<Mutex<mpsc::Receiver<PlayerEvent>>>,
     channel_close_rx: Arc<Mutex<mpsc::Receiver<()>>>,
-    device_id: Arc<Mutex<Option<String>>>,
+    device_id: Arc<AsyncMutex<Option<String>>>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -85,7 +86,7 @@ impl SpircWrapper {
         backend: String,
         volume_ctrl: String,
     ) -> Result<Self> {
-        let device_id_mutex = Arc::new(Mutex::new(None));
+        let device_id_mutex = Arc::new(AsyncMutex::new(None));
         let (tx, rx) = mpsc::channel::<(Message, Sender<Result<MessageReply>>)>();
 
         let (player_events_tx, player_events_rx) = mpsc::channel::<PlayerEvent>();
@@ -101,6 +102,7 @@ impl SpircWrapper {
 
             let device_id_mutex = binding.clone();
             runtime.block_on(async move {
+                let mut device_id_mutex = device_id_mutex.lock().await;
                 let session = create_session(cache_config).clone();
 
                 let device_id = session.device_id().to_string();
@@ -134,10 +136,8 @@ impl SpircWrapper {
                         let events_thread =
                             SpircWrapper::listen_events(player_events_tx, events_channel);
 
-                        {
-                            let mut device_id_mutex = device_id_mutex.lock().unwrap();
-                            *device_id_mutex = Some(device_id);
-                        }
+                        *device_id_mutex = Some(device_id);
+                        drop(device_id_mutex);
 
                         spirc_task.await;
 
@@ -150,6 +150,10 @@ impl SpircWrapper {
                 }
             });
         });
+
+        {
+            let _ = block_on(device_id_mutex.lock());
+        }
 
         let spirc = Self {
             tx,
@@ -167,7 +171,7 @@ impl SpircWrapper {
         thread::spawn(move || {
             let channel_close_rx = channel_close_rx.lock().unwrap();
             while channel_close_rx.recv().is_ok() {
-                let mut device_id = device_id.lock().unwrap();
+                let mut device_id = block_on(device_id.lock());
                 device_id.take();
             }
         });
@@ -398,7 +402,7 @@ impl SpircWrapper {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    pub fn get_device_id(&self) -> Arc<Mutex<Option<String>>> {
+    pub fn get_device_id(&self) -> Arc<AsyncMutex<Option<String>>> {
         self.device_id.clone()
     }
 }

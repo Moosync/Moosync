@@ -48,6 +48,7 @@ pub struct LocalPlayer {
     pub audio_element: HtmlElement<Audio>,
     node_ref: NodeRef<Audio>,
     listeners: Vec<Rc<Box<dyn Fn()>>>,
+    event_tx: Option<Rc<Box<dyn Fn(PlayerEvents)>>>,
 }
 
 impl std::fmt::Debug for LocalPlayer {
@@ -71,6 +72,7 @@ impl LocalPlayer {
             audio_element,
             node_ref,
             listeners: vec![],
+            event_tx: None,
         }
     }
 
@@ -128,9 +130,15 @@ impl GenericPlayer for LocalPlayer {
     #[tracing::instrument(level = "trace", skip(self))]
     fn play(&self) -> Result<()> {
         let promise = self.audio_element.play()?;
+        let event_tx = self.event_tx.clone();
         spawn_local(async move {
             if let Err(e) = JsFuture::from(promise).await {
                 tracing::error!("Error playing audio: {:?}", e);
+                if let Some(tx) = event_tx {
+                    tx(PlayerEvents::Error(
+                        format!("Error playing audio: {:?}", e).into(),
+                    ));
+                }
             }
         });
         Ok(())
@@ -172,6 +180,7 @@ impl GenericPlayer for LocalPlayer {
         self.listen_onloadend(tx.clone());
         self.listen_ontimeupdate(tx.clone());
         self.listen_onerror(tx.clone());
+        self.event_tx = Some(tx)
     }
 
     #[tracing::instrument(level = "trace", skip(self, pos))]
@@ -206,6 +215,7 @@ impl GenericPlayer for LocalPlayer {
             listener();
         }
         self.listeners.clear();
+        self.event_tx = None;
         Ok(())
     }
 }

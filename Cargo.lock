@@ -4660,6 +4660,7 @@ dependencies = [
 name = "librespot"
 version = "0.1.0"
 dependencies = [
+ "futures",
  "futures-util",
  "librespot 0.6.0-dev",
  "protobuf",

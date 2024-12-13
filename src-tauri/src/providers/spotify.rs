@@ -106,6 +106,7 @@ impl SpotifyProvider {
 
     #[tracing::instrument(level = "trace", skip(self))]
     async fn create_api_client(&mut self) {
+        tracing::debug!("Creating spotify api client");
         if let Some(token) = &self.config.tokens {
             self.api_client = Some(AuthCodePkceSpotify::from_token(Token {
                 access_token: token.access_token.clone(),
@@ -132,6 +133,7 @@ impl SpotifyProvider {
                     .await;
             }
 
+            tracing::debug!("Initializing librespot");
             if let Err(err) = initialize_librespot(self.app.clone(), token.access_token.clone()) {
                 tracing::error!("Error initializing librespot {:?}", err);
             }
@@ -140,6 +142,7 @@ impl SpotifyProvider {
 
     #[tracing::instrument(level = "trace", skip(self))]
     async fn refresh_login(&mut self) -> Result<()> {
+        tracing::debug!("Refreshing spotify login");
         self.config.tokens = Some(
             refresh_login(
                 "MoosyncSpotifyRefreshToken",

@@ -12,6 +12,7 @@ use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::Song;
 use wasm_bindgen::JsValue;
 
+use crate::players::librespot::LibrespotPlayer;
 use crate::store::modal_store::{ModalStore, Modals};
 use crate::utils::common::{invoke, listen_event};
 
@@ -20,6 +21,7 @@ pub struct ProviderStore {
     keys: RwSignal<Vec<String>>,
     statuses: RwSignal<Vec<ProviderStatus>>,
     unlisten_provider_key: Option<js_sys::Function>,
+    pub is_initialized: RwSignal<bool>,
 }
 
 #[cfg(not(feature = "mock"))]
@@ -72,6 +74,7 @@ impl ProviderStore {
     pub fn new() -> Self {
         tracing::debug!("Creating provider store");
         let mut store = Self::default();
+        store.is_initialized.set(false);
 
         let fetch_provider_keys = move || {
             spawn_local(async move {
@@ -105,6 +108,12 @@ impl ProviderStore {
             if let Some(Modals::LoginModal(_, _, _)) = get_active_modal.get() {
                 modal_store.update(|m| m.clear_active_modal());
             }
+
+            if let Some(spotify) = provider_status.get("spotify") {
+                if spotify.user_name.is_some() {
+                    LibrespotPlayer::set_initialized(true);
+                }
+            }
         });
 
         spawn_local(async move {
@@ -123,6 +132,7 @@ impl ProviderStore {
                 let statuses: HashMap<String, ProviderStatus> =
                     serde_wasm_bindgen::from_value(status).unwrap();
                 store.statuses.set(statuses.values().cloned().collect());
+                store.is_initialized.set(true);
             }
         });
 

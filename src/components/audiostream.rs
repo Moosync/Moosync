@@ -407,7 +407,7 @@ pub fn AudioStream() -> impl IntoView {
 
     let player_container_ref = create_node_ref::<Div>();
 
-    let players = PlayerHolder::new(player_container_ref, provider_store);
+    let players = PlayerHolder::new(player_container_ref, provider_store.clone());
     let players = Rc::new(Mutex::new(players));
     let players_clone = players.clone();
     spawn_local(async move {
@@ -436,6 +436,10 @@ pub fn AudioStream() -> impl IntoView {
     });
 
     create_effect(move |_| {
+        let is_providers_initialized = provider_store.is_initialized.get();
+        if !is_providers_initialized {
+            return;
+        }
         let current_song = current_song_sig.get();
         let _ = force_load_sig.get();
         if let Some(current_song) = current_song {

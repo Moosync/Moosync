@@ -7,9 +7,9 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::utils::{
-        common::{invoke, listen_event},
-        prefs::load_selective_async,
-    };
+    common::{invoke, listen_event},
+    prefs::load_selective_async,
+};
 
 use super::generic::GenericPlayer;
 
@@ -96,6 +96,11 @@ impl LibrespotPlayer {
     pub fn set_enabled(en: bool) {
         *(ENABLED.lock().unwrap()) = en;
         LibrespotPlayer::initialize_librespot();
+    }
+
+    #[tracing::instrument(level = "trace", skip(init))]
+    pub fn set_initialized(init: bool) {
+        *(INITIALIZED.lock().unwrap()) = init;
     }
 
     #[tracing::instrument(level = "trace", skip())]

@@ -6,6 +6,7 @@ pub mod utils;
 use std::fmt::Debug;
 use std::sync::{mpsc, Arc, Mutex};
 
+use futures::executor::block_on;
 pub use librespot::connect::state::ConnectStateConfig;
 pub use librespot::core::authentication::Credentials;
 pub use librespot::core::cache::Cache;
@@ -138,7 +139,7 @@ impl LibrespotHolder {
     fn check_initialized(&self) -> Result<()> {
         if let Some(instance) = &mut *self.instance.lock().unwrap() {
             let device_id = instance.get_device_id();
-            let device_id = device_id.lock().unwrap();
+            let device_id = block_on(device_id.lock());
             if device_id.is_some() {
                 return Ok(());
             }

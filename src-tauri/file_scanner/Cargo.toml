@@ -9,14 +9,14 @@ edition = "2021"
 database = { path = "../database" }
 substring = "1.4.5"
 types = { path = "../types", default-features = false }
-blake3 = { version = "1.5.4", default-features = false }
+blake3 = { version = "1.5.5", default-features = false }
 fast_image_resize = "4.2.1"
-image = { version = "0.25.2" }
+image = { version = "0.25.5" }
 lazy_static = "1.5.0"
 lofty = { default-features = false, version = "0.21.1" }
-regex = { default-features = false, version = "1.10.6" }
+regex = { default-features = false, version = "1.11.1" }
 threadpool = "1.8.1"
 num_cpus = "1.16.0"
-uuid = { version = "1.10.0", default-features = false }
+uuid = { version = "1.11.0", default-features = false }
 dunce = "1.0.5"
-tracing = { version = "0.1.40", default-features = false }
+tracing = { version = "0.1.41", default-features = false }

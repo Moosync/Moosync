@@ -6,15 +6,15 @@ authors = ["you"]
 description = "A Tauri App"
 
 [dependencies]
-async-trait = "0.1.82"
-chrono = { default-features = false, version = "0.4.38" }
-futures = { default-features = false, version = "0.3.30" }
+async-trait = "0.1.83"
+chrono = { default-features = false, version = "0.4.39" }
+futures = { default-features = false, version = "0.3.31" }
 iso8601 = { default-features = false, version = "0.6.1" }
-open = "5.3.0"
+open = "5.3.1"
 rspotify = { default-features = false, version = "0.13.3" }
 serde_json = { default-features = false, version = "1.0" }
 tracing-appender = "0.2.3"
-url = "2.5.2"
+url = "2.5.4"
 database = { path = "./database" }
 extensions = { path = "./extensions" }
 file_scanner = { path = "./file_scanner" }
@@ -29,10 +29,10 @@ youtube = { path = "./youtube" }
 rodio-player = { path = "./rodio-player" }
 google-youtube3 = "5.0.5"
 oauth2 = { default-features = false, version = "4.4.2", features = ["reqwest"] }
-regex = { default-features = false, version = "1.10.6" }
-reqwest = { default-features = false, version = "0.12.7" }
+regex = { default-features = false, version = "1.11.1" }
+reqwest = { default-features = false, version = "0.12.9" }
 serde = { default-features = false, version = "1.0" }
-tauri = { version = "2.0.0-rc.15", features = [
+tauri = { version = "2.1.1", features = [
     "common-controls-v6",
     "wry",
     "protocol-asset",
@@ -42,19 +42,19 @@ tauri = { version = "2.0.0-rc.15", features = [
 tauri-plugin-deep-link = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-dialog = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
-tracing = { default-features = false, version = "0.1.40" }
+tracing = { default-features = false, version = "0.1.41" }
 tracing-subscriber = { features = [
     "ansi",
     "env-filter",
-], default-features = false, version = "0.3.18" }
-rustls = { version = "0.23.13", features = ["ring"] }
+], default-features = false, version = "0.3.19" }
+rustls = { version = "0.23.20", features = ["ring"] }
 
 [build-dependencies.tauri-build]
-version = "2.0.0-rc.12"
+version = "2.0.3"
 features = []
 
 [target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
-tauri-plugin-updater = "2.0.0-rc.3"
+tauri-plugin-updater = "2.3.0"
 
 [target."cfg(target_os = \"linux\")".dependencies]
 webkit2gtk = "2.0.1"

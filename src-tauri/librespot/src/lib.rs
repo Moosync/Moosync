@@ -6,7 +6,7 @@ pub mod utils;
 use std::fmt::Debug;
 use std::sync::{mpsc, Arc, Mutex};
 
-pub use librespot::connect::config::ConnectConfig;
+pub use librespot::connect::state::ConnectStateConfig;
 pub use librespot::core::authentication::Credentials;
 pub use librespot::core::cache::Cache;
 pub use librespot::core::config::DeviceType;
@@ -25,7 +25,7 @@ use types::errors::{MoosyncError, Result};
 pub struct ConfigHolder {
     credentials: Credentials,
     _player_config: PlayerConfig,
-    connect_config: ConnectConfig,
+    connect_config: ConnectStateConfig,
     _cache_config: Cache,
     backend: String,
     volume_ctrl: String,
@@ -95,7 +95,7 @@ impl LibrespotHolder {
         &self,
         credentials: Credentials,
         player_config: PlayerConfig,
-        connect_config: ConnectConfig,
+        connect_config: ConnectStateConfig,
         cache_config: Cache,
         backend: String,
         volume_ctrl: String,

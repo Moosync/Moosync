@@ -7,13 +7,13 @@ version = "0.1.0"
 log = "0.4.22"
 serde_json = { default-features = false, version = "1.0" }
 diesel_logger = { git = "https://github.com/Ovenoboyo/diesel-logger.git" }
-tracing = { version = "0.1.40", default-features = false }
-diesel = { version = "2.2.4", default-features = false }
+tracing = { version = "0.1.41", default-features = false }
+diesel = { version = "2.2.6", default-features = false }
 diesel_migrations = { version = "2.2.0", default-features = false }
 macros = { path = "../macros", features = [] }
 serde = { version = "1.0", default-features = false }
 types = { path = "../types", features = [] }
-uuid = { version = "1.10.0", default-features = false }
+uuid = { version = "1.11.0", default-features = false }
 
 [target.'cfg(windows)'.dependencies]
 libsqlite3-sys = { version = "0.30.1", optional = true, features = ["bundled"] }

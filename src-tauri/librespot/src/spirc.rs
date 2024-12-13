@@ -9,8 +9,8 @@ use std::{
 
 use librespot::{
     connect::{
-        config::ConnectConfig,
-        spirc::{Spirc, SpircLoadCommand},
+        spirc::{PlayingTrack, Spirc, SpircLoadCommand},
+        state::ConnectStateConfig,
     },
     core::{cache::Cache, token::Token, Session, SpotifyId},
     discovery::Credentials,
@@ -18,7 +18,6 @@ use librespot::{
         config::PlayerConfig,
         player::{PlayerEvent, PlayerEventChannel},
     },
-    protocol::spirc::TrackRef,
 };
 use serde::{Deserialize, Serialize};
 use tokio::runtime::Builder;
@@ -81,7 +80,7 @@ impl SpircWrapper {
     pub fn new(
         credentials: Credentials,
         player_config: PlayerConfig,
-        connect_config: ConnectConfig,
+        connect_config: ConnectStateConfig,
         cache_config: Cache,
         backend: String,
         volume_ctrl: String,
@@ -249,16 +248,16 @@ impl SpircWrapper {
                     Err(e) => {
                         tx.send(Err(e)).unwrap();
                     }
-                    Ok(track_id) => {
-                        let mut track_ref = TrackRef::new();
-                        track_ref.set_gid(Vec::from(track_id.to_raw()));
+                    Ok(_track_id) => {
+                        // track_ref.set_gid(Vec::from(track_id.to_raw()));
                         let command = SpircLoadCommand {
                             context_uri: uri,
                             start_playing: autoplay,
                             shuffle: false,
+                            repeat_track: false,
                             repeat: false,
-                            playing_track_index: 0,
-                            tracks: vec![track_ref],
+                            playing_track: PlayingTrack::Index(0),
+                            seek_to: 0,
                         };
 
                         let res = spirc

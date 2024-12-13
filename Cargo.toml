@@ -19,14 +19,14 @@ serde-wasm-bindgen = "0.6"
 types = { path = "src-tauri/types", default-features = false, features = [
     "ui",
 ] }
-chrono = "0.4.38"
+chrono = "0.4.39"
 leptos-use = "0.12.0"
-tokio = { version = "1.40.0", features = ["rt", "sync"] }
-serde_json = "1.0.128"
+tokio = { version = "1.42.0", features = ["rt", "sync"] }
+serde_json = "1.0.133"
 leptos_router = { version = "0.6.15", features = ["csr"] }
 leptos_virtual_scroller = { git = "https://github.com/Ovenoboyo/leptos_virtual_scroller" }
 leptos_context_menu = { git = "https://github.com/Ovenoboyo/leptos_context_menu" }
-futures = "0.3.30"
+futures = "0.3.31"
 web-sys = { version = "=0.3.70", features = [
     "Window",
     "Document",
@@ -34,7 +34,7 @@ web-sys = { version = "=0.3.70", features = [
     "Element",
     "CssStyleDeclaration",
 ] }
-regex = "1.10.6"
+regex = "1.11.1"
 colors-transform = "0.2.11"
 leptos_i18n = { version = "0.3.3" }
 pref_gen = { path = "src/pref_gen" }
@@ -44,8 +44,8 @@ itertools = "0.13.0"
 bitcode = { version = "0.6.3" }
 indexed_db_futures = "0.5.0"
 lazy_static = "1.5.0"
-tracing = "0.1.40"
-tracing-subscriber = "0.3.18"
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
 
 [workspace]
 resolver = "2"

@@ -7,9 +7,9 @@ edition = "2021"
 
 [dependencies]
 fs_extra = "1.3.0"
-regex = { default-features = false, version = "1.10.6" }
+regex = { default-features = false, version = "1.11.1" }
 serde_json = { default-features = false, version = "1.0" }
 types = { path = "../types" , default-features = false }
-uuid = { default-features = false, version = "1.10.0" }
+uuid = { default-features = false, version = "1.11.0" }
 zip-extensions = { default-features = false, version = "0.8.1" }
-tracing = { version = "0.1.40", default-features = false }
+tracing = { version = "0.1.41", default-features = false }

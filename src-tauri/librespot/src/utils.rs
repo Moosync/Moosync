@@ -125,8 +125,9 @@ pub fn event_to_map(event: PlayerEvent) -> HashMap<String, String> {
             map.insert("shuffle".to_string(), shuffle.to_string());
             map.insert("event".to_string(), "ShuffleChanged".to_string());
         }
-        PlayerEvent::RepeatChanged { repeat } => {
-            map.insert("repeat".to_string(), repeat.to_string());
+        PlayerEvent::RepeatChanged { context, track } => {
+            map.insert("context".to_string(), context.to_string());
+            map.insert("track".to_string(), track.to_string());
             map.insert("event".to_string(), "RepeatChanged".to_string());
         }
         PlayerEvent::AutoPlayChanged { auto_play } => {

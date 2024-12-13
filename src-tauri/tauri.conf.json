@@ -44,13 +44,7 @@
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
-    "externalBin": ["binaries/exthost", "binaries/exthost-wasm"],
-    "resources": [
-      "bridge.js",
-      "events.js",
-      "setup-sandbox.js",
-      "setup-node-sandbox.js"
-    ],
+    "externalBin": ["binaries/exthost-wasm"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -60,22 +54,10 @@
     ],
     "linux": {
       "deb": {
-        "desktopTemplate": "./moosync.desktop",
-        "files": {
-          "/usr/bin/bridge.js": "./bridge.js",
-          "/usr/bin/events.js": "./events.js",
-          "/usr/bin/setup-sandbox.js": "./setup-sandbox.js",
-          "/usr/bin/setup-node-sandbox.js": "./setup-node-sandbox.js"
-        }
+        "desktopTemplate": "./moosync.desktop"
       },
       "appimage": {
-        "bundleMediaFramework": true,
-        "files": {
-          "/usr/bin/bridge.js": "./bridge.js",
-          "/usr/bin/events.js": "./events.js",
-          "/usr/bin/setup-sandbox.js": "./setup-sandbox.js",
-          "/usr/bin/setup-node-sandbox.js": "./setup-node-sandbox.js"
-        }
+        "bundleMediaFramework": true
       }
     }
   },

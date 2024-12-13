@@ -169,17 +169,17 @@ impl ExtensionHandler {
     #[tracing::instrument(level = "trace", skip(self))]
     fn spawn_ext_runners(&self) {
         let exe_path = env::current_exe().unwrap();
-        let _handle = Command::new(exe_path.clone().parent().unwrap().join("exthost"))
-            .args([
-                "-ipcPath",
-                self.ipc_path.to_str().unwrap(),
-                "-extensionPath",
-                self.extensions_dir.to_str().unwrap(),
-                "-installPath",
-                exe_path.to_str().unwrap(),
-            ])
-            .spawn()
-            .unwrap();
+        // let _handle = Command::new(exe_path.clone().parent().unwrap().join("exthost"))
+        //     .args([
+        //         "-ipcPath",
+        //         self.ipc_path.to_str().unwrap(),
+        //         "-extensionPath",
+        //         self.extensions_dir.to_str().unwrap(),
+        //         "-installPath",
+        //         exe_path.to_str().unwrap(),
+        //     ])
+        //     .spawn()
+        //     .unwrap();
 
         let _handle_wasm = Command::new(exe_path.clone().parent().unwrap().join("exthost-wasm"))
             .args([

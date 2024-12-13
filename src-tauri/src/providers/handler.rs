@@ -44,7 +44,7 @@ macro_rules! generate_wrapper {
                         match res {
                             Ok(result) => return Ok(result),
                             Err(MoosyncError::SwitchProviders(e)) => {provider_key = e; continue;},
-                            Err(err) => return Err(err),
+                            Err(err) => return Err(format!("{} - {}", provider_key, err).into()),
                         }
                     }
 
@@ -127,7 +127,7 @@ impl ProviderHandler {
         let provider_store = self.provider_store.lock().await;
         if let Some(provider) = provider_store.get(&key) {
             let mut provider = provider.lock().await;
-            provider.requested_account_status().await;
+            provider.requested_account_status().await?;
         }
 
         Err("Provider not found".into())

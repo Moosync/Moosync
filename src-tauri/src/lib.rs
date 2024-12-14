@@ -20,6 +20,7 @@ use rodio::{
     get_rodio_state, rodio_get_volume, rodio_load, rodio_pause, rodio_play, rodio_seek,
     rodio_set_volume, rodio_stop,
 };
+use tauri_plugin_autostart::MacosLauncher;
 use themes::{
     export_theme, get_theme_handler_state, import_theme, load_all_themes, load_theme, remove_theme,
     save_theme, transform_css,
@@ -98,6 +99,10 @@ pub fn run() {
             }
         }))
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            None,
+        ))
         // .plugin(devtools)
         .invoke_handler(tauri::generate_handler![
             // Preferences

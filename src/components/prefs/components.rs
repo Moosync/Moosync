@@ -141,6 +141,8 @@ pub fn InputPref(
             should_write.set(true);
             return;
         }
+
+        tracing::debug!("Input type - {}", inp_type_clone);
         if inp_type_clone.clone() == "number" {
             save_selective_number(pref_key.clone(), value);
         } else {

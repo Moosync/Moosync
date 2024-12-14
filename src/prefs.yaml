@@ -53,8 +53,6 @@ page:
             key: auto_startup
           - title: settings.system.systemSettings.minimizeTray
             key: minimize_to_tray
-          - title: settings.system.systemSettings.watchFileChanges
-            key: watch_file_changes
           - title: settings.system.systemSettings.enableJukeboxMode
             key: jukebox_mode
 
@@ -65,12 +63,6 @@ page:
         items:
           - title: settings.system.queueSettings.clearQueue
             key: clear_queue
-
-      - type: EditText
-        title: settings.system.gapless_skip
-        inputType: number
-        description: settings.system.gapless_skip_tooltip
-        key: gapless_skip
 
       - type: CheckboxGroup
         title: settings.system.volumePersistMode.title
@@ -84,11 +76,6 @@ page:
             key: persist_separate
           - title: settings.system.volumePersistMode.persistClampVolume
             key: persist_clamp
-
-      # - type: CheckboxGroup
-      #   title: settings.system.scrobble.provider_toggle.title
-      #   description: settings.system.scrobble.provider_toggle.tooltip
-      #   items:
 
       - type: EditText
         title: settings.system.spotify.client_id

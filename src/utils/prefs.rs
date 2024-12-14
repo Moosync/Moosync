@@ -53,6 +53,7 @@ where
 #[tracing::instrument(level = "trace", skip(key, value))]
 pub fn save_selective_number(key: String, value: String) {
     let val = value.parse::<f64>().unwrap();
+    tracing::debug!("Parsed {} as f64", value);
     save_selective(key, val)
 }
 

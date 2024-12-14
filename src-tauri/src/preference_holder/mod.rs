@@ -9,7 +9,10 @@ use tauri::{async_runtime, App, AppHandle, Emitter, Manager, State};
 use tauri_plugin_autostart::AutoLaunchManager;
 use types::{errors::Result, preferences::CheckboxPreference};
 
-use crate::{providers::handler::ProviderHandler, scanner::start_scan};
+use crate::{
+    providers::handler::ProviderHandler,
+    scanner::{start_scan, ScanTask},
+};
 
 const UI_KEYS: &[&str] = &[
     "prefs.system_settings",
@@ -90,6 +93,11 @@ pub fn handle_pref_changes(app: AppHandle) {
                     }
                 }
             }
+
+            if key.starts_with("prefs.scan_interval") {
+                let scan_task: State<ScanTask> = app.state();
+                scan_task.spawn_scan_task(app.clone(), value.as_u64().unwrap());
+            }
         }
     });
 }
@@ -111,6 +119,15 @@ pub fn initial(app: &mut App) {
     if !pref_config.has_key("artwork_path") {
         let path = app.path().app_local_data_dir().unwrap().join("artwork");
         let _ = pref_config.save_selective("artwork_path".to_string(), Some(path));
+    }
+
+    // Spawn scan task
+    let scan_task: State<ScanTask> = app.state();
+    let scan_duration = pref_config.load_selective("scan_interval".into());
+    if let Ok(scan_duration) = scan_duration {
+        scan_task.spawn_scan_task(app.handle().clone(), scan_duration);
+    } else {
+        tracing::warn!("Could not spawn scan task, no / invalid duration found");
     }
 }
 

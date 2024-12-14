@@ -1,4 +1,5 @@
 use std::{
+    fmt::Debug,
     fs::{self, File},
     io::{Read, Write},
     path::PathBuf,
@@ -118,10 +119,10 @@ impl PreferenceConfig {
     #[tracing::instrument(level = "trace", skip(self, key, value))]
     pub fn save_selective<T>(&self, key: String, value: Option<T>) -> Result<()>
     where
-        T: Serialize + Clone,
+        T: Serialize + Clone + Debug,
     {
         let key = format!("prefs.{}", key);
-        tracing::info!("saving {}", key);
+        tracing::info!("saving {} - {:?}", key, value);
 
         let mut prefs = self.memcache.lock().unwrap();
 
@@ -207,7 +208,7 @@ impl PreferenceConfig {
     #[tracing::instrument(level = "trace", skip(self, key, value))]
     pub fn set_secure<T>(&self, key: String, value: Option<T>) -> Result<()>
     where
-        T: Serialize + Clone,
+        T: Serialize + Clone + Debug,
     {
         if value.is_none() {
             return self.save_selective(key, value);

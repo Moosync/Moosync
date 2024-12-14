@@ -36,7 +36,7 @@ use providers::handler::{
     match_url, playlist_from_url, provider_authorize, provider_login, provider_search,
     provider_signout, song_from_url,
 };
-use scanner::{get_scanner_state, start_scan};
+use scanner::{get_scanner_state, start_scan, ScanTask};
 use tauri::{Listener, Manager, State};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{
@@ -247,6 +247,9 @@ pub fn run() {
 
             let scanner_state = get_scanner_state();
             app.manage(scanner_state);
+
+            let scan_task = ScanTask::default();
+            app.manage(scan_task);
 
             let librespot_state = get_librespot_state();
             app.manage(librespot_state);

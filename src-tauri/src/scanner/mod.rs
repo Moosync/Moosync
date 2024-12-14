@@ -1,7 +1,17 @@
+use std::{
+    sync::{
+        atomic::AtomicBool,
+        mpsc::{Receiver, Sender},
+        Arc, Mutex,
+    },
+    thread::{self, JoinHandle},
+    time::Duration,
+};
+
 use database::database::Database;
 use file_scanner::scanner::ScannerHolder;
 use preferences::preferences::PreferenceConfig;
-use tauri::State;
+use tauri::{AppHandle, Manager, State};
 use types::errors::Result;
 
 #[tracing::instrument(level = "trace", skip())]
@@ -15,6 +25,44 @@ fn get_scan_paths(preferences: &State<PreferenceConfig>) -> Result<Vec<String>> 
 
     // TODO: Filter using exclude paths
     Ok(tmp)
+}
+
+#[derive(Default)]
+pub struct ScanTask {
+    cancellation_token: Mutex<Option<Arc<AtomicBool>>>,
+}
+
+impl ScanTask {
+    pub fn spawn_scan_task(&self, app: AppHandle, scan_duration_s: u64) {
+        {
+            let mut cancellation_token = self.cancellation_token.lock().unwrap();
+            if let Some(cancellation_token) = cancellation_token.as_mut() {
+                cancellation_token.store(true, std::sync::atomic::Ordering::Release);
+            }
+        }
+
+        let cancellation_token = Arc::new(AtomicBool::new(false));
+        let cancellation_token_inner = Arc::clone(&cancellation_token);
+
+        thread::spawn(move || loop {
+            thread::sleep(Duration::from_secs(scan_duration_s));
+
+            tracing::info!("Running scan task - {}s", scan_duration_s);
+            if cancellation_token_inner.load(std::sync::atomic::Ordering::Acquire) {
+                tracing::info!("Scan task cancelled - {}s", scan_duration_s);
+                break;
+            }
+
+            let scanner = app.state();
+            let database = app.state();
+            let preferences = app.state();
+
+            let _ = start_scan(scanner, database, preferences, None, false);
+        });
+
+        let mut cancellation_token_lock = self.cancellation_token.lock().unwrap();
+        *cancellation_token_lock = Some(cancellation_token);
+    }
 }
 
 #[tracing::instrument(level = "trace", skip(scanner, database, preferences, paths, force))]

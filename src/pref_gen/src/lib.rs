@@ -234,7 +234,7 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
         PreferenceTypes::FilePicker => (false, ""),
         PreferenceTypes::EditText => match data.input_type.clone().unwrap() {
             InputType::Text => (true, "text"),
-            InputType::Number => (true, "text"),
+            InputType::Number => (true, "number"),
         },
         // Below case should never happen
         _ => (true, ""),

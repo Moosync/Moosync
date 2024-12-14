@@ -3,7 +3,7 @@ use std::{collections::HashMap, rc::Rc};
 use leptos::{
     component, create_effect, create_rw_signal, event_target_checked, event_target_value,
     expect_context, view, CollectView, For, IntoView, RwSignal, SignalGet, SignalSet,
-    SignalSetUntracked, SignalUpdate,
+    SignalSetUntracked, SignalUpdate, SignalUpdateUntracked,
 };
 use leptos_context_menu::ContextMenu;
 use leptos_i18n::t;
@@ -226,17 +226,11 @@ pub fn CheckboxPref(
     load_selective(pref_key.clone(), pref_value.write_only());
     let last_enabled = create_rw_signal(String::new());
     create_effect(move |_| {
-        let value = pref_value.get();
+        let mut value = pref_value.get();
         if !should_write.get() {
             should_write.set_untracked(true);
             return;
         }
-        // if single {
-        //     let last_enabled = last_enabled.get();
-        //     for items in value.iter_mut() {
-        //         items.enabled = items.key == last_enabled;
-        //     }
-        // }
 
         save_selective(pref_key.clone(), value.clone());
     });
@@ -279,6 +273,16 @@ pub fn CheckboxPref(
                                         }
                                         on:change=move |ev| {
                                             let enabled = event_target_checked(&ev);
+                                            tracing::info!("values changed");
+                                            if single {
+                                                pref_value
+                                                    .update_untracked(|val| {
+                                                        val.iter_mut()
+                                                            .for_each(|v| {
+                                                                v.enabled = false;
+                                                            });
+                                                    })
+                                            }
                                             pref_value
                                                 .update(|val| {
                                                     let found = val
@@ -292,10 +296,10 @@ pub fn CheckboxPref(
                                                             enabled,
                                                         });
                                                     }
-                                                    if enabled {
-                                                        last_enabled.set(item.key.clone());
-                                                    }
                                                 });
+                                            if enabled {
+                                                last_enabled.set(item.key.clone());
+                                            }
                                         }
                                     />
                                     <label

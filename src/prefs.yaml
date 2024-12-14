@@ -94,26 +94,6 @@ page:
       #   description: settings.system.scrobble.provider_toggle.tooltip
       #   items:
 
-      - type: CheckboxGroup
-        title: settings.system.spotify.title
-        description: settings.system.spotify.tooltip
-        key: spotify.enable
-        items:
-          - title: settings.system.spotify.librespotEnable
-            key: enable
-
-      - type: EditText
-        title: settings.system.spotify.username
-        inputType: text
-        description: settings.system.spotify.username_tooltip
-        key: spotify.username
-
-      - type: EditText
-        title: settings.system.spotify.password
-        inputType: text
-        description: settings.system.spotify.password_tooltip
-        key: spotify.password
-
       - type: EditText
         title: settings.system.spotify.client_id
         inputType: text

@@ -30,8 +30,8 @@ where
 {
     spawn_local(async move {
         let res = load_selective_async(key.clone()).await;
-        if res.is_err() {
-            tracing::error!("Failed to load preference: {}", key);
+        if let Err(e) = res {
+            tracing::error!("Failed to load preference: {}: {:?}", key, e);
             return;
         }
         setter.set(res.unwrap());

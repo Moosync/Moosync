@@ -132,8 +132,17 @@ pub fn InputPref(
     let should_write = create_rw_signal(false);
     let pref_value = create_rw_signal(Default::default());
     let pref_key = key.clone();
-    load_selective(pref_key.clone(), pref_value.write_only());
 
+    if inp_type == "number" {
+        let num_pref = create_rw_signal(f64::default());
+        load_selective(pref_key.clone(), num_pref.write_only());
+        create_effect(move |_| {
+            let num_pref = num_pref.get();
+            pref_value.set(format!("{}", num_pref));
+        });
+    } else {
+        load_selective(pref_key.clone(), pref_value.write_only());
+    }
     let inp_type_clone = inp_type.clone();
     create_effect(move |_| {
         let value = pref_value.get();
@@ -185,7 +194,7 @@ pub fn InputPref(
                 } else {
                     view! {}.into_view()
                 }}
-                <div class="col-auto ml-3 mr-3 h-100 align-self-center flex-grow-1">
+                <div class="col-auto ml-3 mr-3 h-100 align-self-center flex-grow-1 d-flex">
                     {if show_input {
                         view! {
                             <input
@@ -200,7 +209,7 @@ pub fn InputPref(
                             .into_view()
                     } else {
                         view! {
-                            <div class="item-text text-truncate file-picker-text">
+                            <div class="item-text text-truncate file-picker-text align-self-center">
                                 {move || pref_value.get()}
                             </div>
                         }

@@ -4,10 +4,14 @@ use indexed_db_futures::{
     request::{IdbOpenDbRequestLike, OpenDbRequest},
     IdbDatabase, IdbVersionChangeEvent,
 };
-use leptos::{create_effect, create_rw_signal, RwSignal, SignalGet, SignalSet, SignalUpdate};
+use leptos::{
+    create_effect, create_read_slice, create_rw_signal, RwSignal, SignalGet, SignalSet,
+    SignalUpdate,
+};
 use rand::seq::SliceRandom;
 use serde::Serialize;
 use std::{cmp::min, collections::HashMap, rc::Rc};
+use tracing::debug;
 use types::{
     extensions::ExtensionExtraEvent,
     preferences::CheckboxPreference,
@@ -18,6 +22,7 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::utils::{
+    common::info,
     db_utils::{read_from_indexed_db, write_to_indexed_db},
     extensions::send_extension_event,
     mpris::{set_metadata, set_playback_state, set_position},
@@ -66,12 +71,15 @@ impl PlayerStore {
         let db_rc = Rc::new(Mutex::new(None));
         let db_rc_clone = db_rc.clone();
 
-        let signal = create_rw_signal(Self {
+        let player_store = Self {
             data: PlayerStoreData::default(),
             db: db_rc,
             scrobble_time: 0f64,
             scrobbled: false,
-        });
+        };
+
+        tracing::debug!("Created player store {:?}", player_store);
+        let signal = create_rw_signal(player_store);
 
         Self::load_state_from_idb(db_rc_clone, signal);
 
@@ -297,7 +305,9 @@ impl PlayerStore {
 
     #[tracing::instrument(level = "trace", skip(self, state))]
     pub fn set_state(&mut self, state: PlayerState) {
+        tracing::debug!("Setting player state {:?}", state);
         self.data.player_details.state = state;
+        self.dump_store();
 
         set_playback_state(state);
         send_extension_event(ExtensionExtraEvent::PlayerStateChanged([state]))
@@ -528,6 +538,7 @@ impl PlayerStore {
                 let data = data_signal.get();
                 signal.update(|s| {
                     if let Some(data) = data {
+                        tracing::debug!("Restored player store data {:?}", data);
                         s.data = data;
                         s.data.player_details.current_time = 0f64;
                     }

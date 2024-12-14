@@ -53,14 +53,10 @@ page:
             key: auto_startup
           - title: settings.system.systemSettings.minimizeTray
             key: minimize_to_tray
-          - title: settings.system.systemSettings.hardwareAcceleration
-            key: hardware_acceleration
           - title: settings.system.systemSettings.watchFileChanges
             key: watch_file_changes
           - title: settings.system.systemSettings.enableJukeboxMode
             key: jukebox_mode
-          - title: settings.system.systemSettings.lastLoadedPlaybackState
-            key: last_loaded_playback_state
 
       - type: CheckboxGroup
         title: settings.system.queueSettings.title

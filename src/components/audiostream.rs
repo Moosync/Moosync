@@ -202,6 +202,9 @@ impl PlayerHolder {
         })
         .get();
 
+        let player_state = create_read_slice(player_store, |p| p.get_player_state());
+        tracing::debug!("Autoplay {} {:?}", autoplay, player_state.get());
+
         let (pos, new_song) = self.get_player(player_store, song).await?;
 
         // Stop current player only if we need to switch;

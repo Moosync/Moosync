@@ -20,7 +20,6 @@ fn main() {
     let filter = tracing_subscriber::filter::LevelFilter::DEBUG;
     let log_layer = fmt::layer()
         .pretty()
-        .with_ansi(true)
         .with_target(true)
         .without_time()
         .with_writer(MakeConsoleWriter::default());

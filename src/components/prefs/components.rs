@@ -226,7 +226,7 @@ pub fn CheckboxPref(
     load_selective(pref_key.clone(), pref_value.write_only());
     let last_enabled = create_rw_signal(String::new());
     create_effect(move |_| {
-        let mut value = pref_value.get();
+        let value = pref_value.get();
         if !should_write.get() {
             should_write.set_untracked(true);
             return;

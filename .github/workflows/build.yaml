@@ -55,8 +55,6 @@ jobs:
           echo "OPENSSL_DIR=\"C:\\Program Files\\OpenSSL\"" >> $env:GITHUB_ENV
           echo "OPENSSL_STATIC=\"true\"" >> $env:GITHUB_ENV
           echo "OPENSSL_LIB_DIR=\"C:\\Program Files\\OpenSSL\\lib\\VC\\x64\\MD\"" >> $env:GITHUB_ENV
-
-          refreshenv
         if: matrix.platform == 'windows-latest'
 
       - name: install Rust stable

@@ -1,0 +1,5 @@
+OPENSSL_STATIC="true"
+OPENSSL_DIR="C:\Program Files\OpenSSL"
+OPENSSL_LIB_DIR="C:\Program Files\OpenSSL\lib\VCd\MD"
+OPENSSL_LIB_DIR="C:\Program Files\OpenSSL\lib\VCd\MD"
+OPENSSL_LIB_DIR="C:\Program Files\OpenSSL\lib\VC\x64\MD"

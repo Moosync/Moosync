@@ -39,14 +39,15 @@ jobs:
         if: matrix.platform == 'macos-latest' # This must match the platform value defined above.
         run: |
           brew update
-          brew install openssl
+          brew upgrade
+          brew install openssl@3
 
-      - name: setup node
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-          cache-dependency-path: "src-extensions/yarn.lock"
-          cache: "yarn" # Set this to npm, yarn or pnpm.
+      # - name: setup node
+      #   uses: actions/setup-node@v4
+      #   with:
+      #     node-version: lts/*
+      #     cache-dependency-path: "src-extensions/yarn.lock"
+      #     cache: "yarn" # Set this to npm, yarn or pnpm.
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -54,10 +55,13 @@ jobs:
           # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin,wasm32-unknown-unknown' || 'wasm32-unknown-unknown' }}
 
-      - uses: jetli/trunk-action@v0.5.0
-        with:
-          # Optional version of trunk to install(eg. 'v0.19.1', 'latest')
-          version: "latest"
+      # - uses: jetli/trunk-action@v0.5.0
+      #   with:
+      #     # Optional version of trunk to install(eg. 'v0.19.1', 'latest')
+      #     version: "latest"
+      #
+      - name: Install trunk
+        run: cargo install --locked trunk
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -65,10 +69,10 @@ jobs:
           cache-on-failure: true
           cache-all-crates: true
 
-      - name: install extensions host
-        run: |
-          yarn --cwd ./src-extensions install
-          yarn --cwd ./src-extensions build ${{ matrix.args }}
+      # - name: install extensions host
+      #   run: |
+      #     yarn --cwd ./src-extensions install
+      #     yarn --cwd ./src-extensions build ${{ matrix.args }}
 
       - name: install extensions host wasm
         run: |

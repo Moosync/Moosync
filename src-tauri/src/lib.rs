@@ -88,6 +88,8 @@ pub fn run() {
         .install_default()
         .expect("Failed to install rustls crypto provider");
 
+    let filter = EnvFilter::from_env("MOOSYNC_LOG");
+
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_deep_link::init())
@@ -102,6 +104,12 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::init(
             MacosLauncher::LaunchAgent,
             None,
+        ))
+        .append_invoke_initialization_script(format!(
+            r#"
+            window.LOGGING_FILTER = "{}";
+            h"#,
+            filter
         ))
         // .plugin(devtools)
         .invoke_handler(tauri::generate_handler![
@@ -208,7 +216,6 @@ pub fn run() {
             renderer_write,
         ])
         .setup(|app| {
-            let filter = EnvFilter::from_env("MOOSYNC_LOG");
             let layer = fmt::layer().pretty().with_target(true);
             let log_path = app.path().app_log_dir()?;
             if !log_path.exists() {

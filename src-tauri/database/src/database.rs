@@ -452,7 +452,6 @@ impl Database {
         );
 
         let fetched: Vec<QueryablePlaylist> = predicate.load(conn)?;
-        info!("Fetched playlists");
         Ok(fetched)
     }
 

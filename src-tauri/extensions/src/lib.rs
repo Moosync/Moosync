@@ -26,9 +26,10 @@ use socket_handler::{ExtensionCommandReceiver, MainCommandSender, SocketHandler}
 use types::{
     errors::{MoosyncError, Result},
     extensions::{
-        AccountLoginArgs, ContextMenuActionArgs, ExtensionAccountDetail, ExtensionContextMenuItem,
-        ExtensionDetail, ExtensionExtraEventArgs, ExtensionManifest, ExtensionProviderScope,
-        FetchedExtensionManifest, GenericExtensionHostRequest, PackageNameArgs, ToggleExtArgs,
+        AccountLoginArgs, ContextMenuActionArgs, EmptyResp, ExtensionAccountDetail,
+        ExtensionContextMenuItem, ExtensionDetail, ExtensionExtraEventArgs, ExtensionManifest,
+        ExtensionProviderScope, FetchedExtensionManifest, GenericExtensionHostRequest,
+        PackageNameArgs, ToggleExtArgs,
     },
 };
 use uuid::Uuid;
@@ -51,7 +52,7 @@ macro_rules! helper1 {
 
     // Any other type
     ($self:ident, $arg:ident, $res:expr, $ret_type:ty) => {{
-        tracing::info!("parsing response {:?} {:?}", $arg, $res);
+        tracing::debug!("parsing response {:?} {:?}", $arg, $res);
         let package_name = if let Some(arg) = $arg {
             arg.package_name
         } else {
@@ -62,39 +63,25 @@ macro_rules! helper1 {
             return Ok(Default::default());
         }
 
-        if let Ok(data) = $self.get_extension_response(package_name.clone(), &mut $res).await {
-            tracing::info!("parsed response {:?}", data);
+        if let Ok(data) = $self
+            .get_extension_response(package_name.clone(), &mut $res)
+            .await
+        {
+            tracing::debug!("parsed response {:?}", data);
+            if data.is_null() {
+                return Ok(Default::default());
+            }
             let parsed = serde_json::from_value(data)?;
             return Ok(parsed);
         }
 
-        return Err(format!("Failed to parse data from {} in {:?} as {}", package_name, $res, stringify!($ret_type)).into());
-
-        // let first = $res.values().next().map(|v| v);
-        // if let Some(first) = first {
-        //     if first.is_null() {
-        //         return Ok(Default::default());
-        //     }
-
-        //     let parsed = serde_json::from_value::<HashMap<String, Value>>(first.clone());
-        //     if let Ok(parsed) = parsed {
-        //         if package_name.is_empty() {
-        //             return Ok(Default::default());
-        //         }
-
-        //         let first_result = parsed.get(&package_name);
-        //         if let Some(first_result) = first_result {
-        //             let parsed = serde_json::from_value(first_result.clone())?;
-        //             return Ok(parsed);
-        //         } else {
-        //             tracing::info!("Extension did not reply. Resp={:?}", $res);
-        //             return Ok(Default::default());
-        //         }
-        //     }
-
-        //     return Err(format!("Failed to parse {:?} as {}", first, stringify!($ret_type)).into());
-        // }
-        // Err("Received null from ext host".into())
+        return Err(format!(
+            "Failed to parse data from {} in {:?} as {}",
+            package_name,
+            $res,
+            stringify!($ret_type)
+        )
+        .into());
     }};
 }
 
@@ -206,9 +193,7 @@ impl ExtensionHandler {
                 .build()
                 .unwrap();
             let ipc_path = ipc_path.clone();
-            tracing::info!("Inside thread");
             runtime.block_on(async move {
-                tracing::info!("inside async runtime");
                 let opts =
                     ListenerOptions::new().name(ipc_path.to_fs_name::<GenericFilePath>().unwrap());
                 let sock_listener = opts.create_tokio().unwrap();
@@ -257,7 +242,7 @@ impl ExtensionHandler {
         tracing::trace!("Broadcasting command");
         let mut rx_map = HashMap::new();
         for (key, tx) in sender_map.iter() {
-            tracing::info!("Broadcasting command to {} {:?}", key, value);
+            tracing::debug!("Broadcasting command to {} {:?}", key, value);
             let (tx_r, rx_r) = channel(1);
             let res = tx.clone().send((tx_r, value.clone())).await.map_err(|_| {
                 MoosyncError::String(format!(
@@ -271,7 +256,7 @@ impl ExtensionHandler {
                 continue;
             }
             rx_map.insert(key.clone(), Mutex::new(rx_r));
-            tracing::info!("Broadcasted command");
+            tracing::debug!("Broadcasted command");
         }
 
         if !to_remove_senders.is_empty() {
@@ -548,6 +533,9 @@ impl ExtensionHandler {
         let ext_runner_map = self.extension_runner_map.lock().await;
         if let Some(runner_id) = ext_runner_map.get(&ext_name) {
             if let Some(value) = data.remove(runner_id) {
+                if value.is_null() {
+                    return Ok(Value::Null);
+                }
                 let mut parsed_value: HashMap<String, Value> = serde_json::from_value(value)?;
                 if let Some(value) = parsed_value.remove(&ext_name) {
                     return Ok(value);

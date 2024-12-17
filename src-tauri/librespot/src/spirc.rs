@@ -112,7 +112,7 @@ impl SpircWrapper {
 
                 let events_channel = player.get_player_event_channel();
 
-                tracing::info!("Creating spirc {:?}", credentials);
+                tracing::info!("Creating spirc");
                 let res = Spirc::new(
                     connect_config.clone(),
                     session.clone(),

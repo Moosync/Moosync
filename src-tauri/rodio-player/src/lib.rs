@@ -13,7 +13,7 @@ use std::{
 
 use rodio::{Decoder, OutputStream, Sink};
 use stream_download::{storage::temp::TempStorageProvider, Settings, StreamDownload};
-use tracing::{error, info, trace};
+use tracing::{debug, error, info, trace};
 use types::{errors::Result, ui::player_details::PlayerEvents};
 
 pub struct RodioPlayer {
@@ -121,7 +121,7 @@ impl RodioPlayer {
                                 error!("Failed to set src: {:?}", err);
                                 Self::send_event(events_tx.clone(), PlayerEvents::Error(err))
                             } else {
-                                info!("Set src");
+                                debug!("Set src");
                                 let src_clone = src.clone();
 
                                 let events_tx = events_tx.clone();

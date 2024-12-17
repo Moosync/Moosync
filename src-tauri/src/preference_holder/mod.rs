@@ -42,7 +42,7 @@ pub fn handle_pref_changes(app: AppHandle) {
         let pref_config: State<PreferenceConfig> = app.state::<PreferenceConfig>();
         let receiver = pref_config.get_receiver();
         for (key, value) in receiver {
-            tracing::info!("Received key: {} value: {}", key, value);
+            tracing::debug!("Received key: {} value: {}", key, value);
             if UI_KEYS.contains(&key.as_str()) {
                 tracing::info!("Emitting preference-changed event");
                 if let Err(e) = app.emit("preference-changed", (key.clone(), value.clone())) {

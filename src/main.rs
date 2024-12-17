@@ -17,7 +17,15 @@ leptos_i18n::load_locales!();
 #[tracing::instrument(level = "trace", skip())]
 fn main() {
     console_error_panic_hook::set_once();
-    let filter = tracing_subscriber::filter::LevelFilter::DEBUG;
+
+    let filter = window().get("LOGGING_FILTER");
+    let filter = if let Some(filter) = filter {
+        filter.as_string().unwrap()
+    } else {
+        "error".into()
+    };
+
+    let filter = tracing_subscriber::filter::EnvFilter::try_new(filter).unwrap_or_default();
     let log_layer = fmt::layer()
         .pretty()
         .with_target(true)

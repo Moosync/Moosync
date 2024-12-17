@@ -145,14 +145,14 @@ impl ProviderHandler {
             let app_handle = app_handle.clone();
 
             while let Some(status) = status_rx.next().await {
-                tracing::info!("Got provider status update {:?}", status);
+                tracing::debug!("Got provider status update {:?}", status);
                 let mut provider_status = provider_status.lock().await;
                 provider_status.insert(status.key.clone(), status);
                 let res = app_handle.emit("provider-status-update", provider_status.clone());
                 if let Err(e) = res {
                     tracing::error!("Error emitting status update: {:?}", e);
                 }
-                tracing::info!(provider_status = ?provider_status, "Emitted status update");
+                tracing::debug!(provider_status = ?provider_status, "Emitted status update");
             }
         });
     }

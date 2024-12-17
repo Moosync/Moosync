@@ -53,7 +53,6 @@ pub fn set_tokens(
     res: OAuthTokenResponse,
     default_refresh: Option<String>,
 ) -> Result<TokenHolder> {
-    tracing::info!("token response: {:?}", res);
     let refresh_token = res
         .refresh_token()
         .map(|r| r.secret().clone())

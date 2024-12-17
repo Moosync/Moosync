@@ -4,7 +4,7 @@ macro_rules! generate_command {
         #[tracing::instrument(level = "trace", skip(db))]
         #[tauri::command(async)]
         pub fn $method_name(db: State<$state>, $($v: $t),*) -> types::errors::Result<$ret> {
-            tracing::info!("calling {}", stringify!($method_name));
+            tracing::debug!("calling {}", stringify!($method_name));
             let ret = db.$method_name($($v,)*);
             if let Ok(ret) = &ret {
                 tracing::trace!("Got result {:?}", ret);
@@ -31,7 +31,7 @@ macro_rules! generate_command_cached {
                 }
             )*
 
-            tracing::info!("calling cached {}: {}", stringify!($method_name), cache_string);
+            tracing::debug!("calling cached {}: {}", stringify!($method_name), cache_string);
             let cached = cache.get(cache_string.as_str());
             if cached.is_ok() {
                 return cached;
@@ -64,7 +64,7 @@ macro_rules! generate_command_async {
         #[tracing::instrument(level = "trace", skip(db))]
         #[tauri::command(async)]
         pub async fn $method_name(db: State<'_, $state>, $($v: $t),*) -> types::errors::Result<$ret> {
-            tracing::info!("calling async {}", stringify!($method_name));
+            tracing::debug!("calling async {}", stringify!($method_name));
             let ret = db.$method_name($($v,)*).await;
             if let Ok(ret) = &ret {
                 tracing::trace!("Got result {:?}", ret);
@@ -91,11 +91,11 @@ macro_rules! generate_command_async_cached {
                 }
             )*
 
-            tracing::info!("calling cached async {}: {}", stringify!($method_name), cache_string);
+            tracing::debug!("calling cached async {}: {}", stringify!($method_name), cache_string);
             let cached = cache.get(cache_string.as_str());
 
             if cached.is_ok() {
-                tracing::info!("got cached data");
+                tracing::debug!("got cached data");
                 return cached;
             }
 

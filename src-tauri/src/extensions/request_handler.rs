@@ -228,13 +228,13 @@ impl ReplyHandler {
                 let payload = f.payload().to_string();
                 let _ = tx.send(payload);
             });
-        tracing::info!("Sending ui request {:?}", request);
+        tracing::debug!("Sending ui request {:?}", request);
         self.app_handle.emit("ui-requests", request.clone())?;
-        tracing::info!("sent ui request {:?}", request);
+        tracing::debug!("sent ui request {:?}", request);
 
         let res = rx.await;
         if let Ok(data) = res {
-            tracing::info!("got ui reply {:?}", data);
+            tracing::debug!("got ui reply {:?}", data);
             Ok(serde_json::from_str(&data)?)
         } else {
             Ok(Value::Null)
@@ -254,7 +254,7 @@ impl ReplyHandler {
 
     #[tracing::instrument(level = "trace", skip(self, value))]
     pub async fn handle_request(&self, value: &Value) -> Result<Vec<u8>> {
-        tracing::info!("Got request from extension {:?}", value);
+        tracing::debug!("Got request from extension {:?}", value);
         let request: ExtensionUIRequest = serde_json::from_value(value.clone())?;
         let mut ret = request.clone();
 

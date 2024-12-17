@@ -58,13 +58,13 @@ impl PreferenceConfig {
 
         let secret = match entry.get_secret() {
             Ok(password) => {
-                tracing::info!("Got keystore password");
+                tracing::debug!("Got keystore password");
                 Key::from(GenericArray::clone_from_slice(
                     &password[0..ChaCha20Poly1305::key_size()],
                 ))
             }
             Err(e) => {
-                tracing::info!("Error getting keystore password: {:?}", e);
+                tracing::warn!("Error getting keystore password: {:?} (May happen if the app is run for the first time)", e);
                 let key = ChaCha20Poly1305::generate_key(&mut OsRng);
                 entry.set_secret(key.as_slice())?;
 
@@ -105,7 +105,7 @@ impl PreferenceConfig {
         let prefs = self.memcache.lock().unwrap();
 
         let key = format!("prefs.{}", key);
-        tracing::info!("Loading selective {}", key);
+        tracing::debug!("Loading selective {}", key);
 
         let val: Option<T> = prefs.dot_get(key.as_str())?;
         drop(prefs);
@@ -122,7 +122,7 @@ impl PreferenceConfig {
         T: Serialize + Clone + Debug,
     {
         let key = format!("prefs.{}", key);
-        tracing::info!("saving {} - {:?}", key, value);
+        tracing::debug!("saving {} - {:?}", key, value);
 
         let mut prefs = self.memcache.lock().unwrap();
 
@@ -164,7 +164,7 @@ impl PreferenceConfig {
     where
         T: DeserializeOwned,
     {
-        tracing::info!("Loading selective array {}", key);
+        tracing::debug!("Loading selective array {}", key);
         let mut split: Vec<&str> = key.split('.').collect();
         let child = split.pop().unwrap();
         let parent = split.join(".");

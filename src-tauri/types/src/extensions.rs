@@ -285,3 +285,6 @@ pub struct PreferenceData {
     #[serde(rename = "defaultValue")]
     pub default_value: Option<Value>,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct EmptyResp {}

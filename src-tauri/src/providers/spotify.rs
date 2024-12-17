@@ -226,7 +226,7 @@ impl SpotifyProvider {
 
     #[tracing::instrument(level = "trace", skip(self))]
     async fn fetch_user_details(&self) -> Result<ProviderStatus> {
-        tracing::info!("Fetchinf user details {:?}", self.api_client);
+        tracing::info!("Fetching user details for spotify");
         if let Some(api_client) = &self.api_client {
             let token = api_client.token.lock().await.unwrap();
             drop(token);

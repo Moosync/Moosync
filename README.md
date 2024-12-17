@@ -1,11 +1,8 @@
 # TODO
 - Preferences
-  - App on startup
   - Minimize to tray
   - Jukebox mode
   - Clear queue before adding playlist
-  - gapless playback
-  - sponsorblock
 - i18n
 - Sanitize extension response
 - System theme fetch

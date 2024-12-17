@@ -47,10 +47,17 @@ jobs:
       - name: Install Openssl (Windows only)
         run: |
           choco install openssl
-          $env:OPENSSL_DIR = "C:\Program Files\OpenSSL-Win64";
+
+          $env:OPENSSL_DIR = "C:\Program Files\OpenSSL";
           $env:OPENSSL_STATIC = "true";
-          $env:OPENSSL_LIB_DIR = 'C:\Program Files\OpenSSL-Win64\lib\VC\x64\MD';
-        if: runner.os == 'Windows'
+          $env:OPENSSL_LIB_DIR = 'C:\Program Files\OpenSSL\lib\VC\x64\MD';
+
+          OPENSSL_DIR="C:\Program Files\OpenSSL" >> $env:GITHUB_ENV
+          OPENSSL_STATIC="true" >> $env:GITHUB_ENV
+          OPENSSL_LIB_DIR="C:\Program Files\OpenSSL\lib\VC\x64\MD" >> $env:GITHUB_ENV
+
+          refreshenv
+        if: matrix.platform == 'windows-latest'
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -64,7 +71,9 @@ jobs:
       #     version: "latest"
       #
       - name: Install trunk
-        run: cargo install --locked trunk
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: trunk
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2

@@ -99,4 +99,3 @@ jobs:
           releaseDraft: true
           prerelease: true
           args: ${{ matrix.args }}
-          tauriScript: tauri

@@ -14,9 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: "macos-latest" # for Arm based macs (M1 and above).
+          - platform: "macos-latest"
             args: "--target aarch64-apple-darwin"
-          - platform: "macos-13" # for Intel based macs.
+          - platform: "macos-13"
             args: "--target x86_64-apple-darwin"
           - platform: "ubuntu-22.04"
             args: ""
@@ -30,32 +30,27 @@ jobs:
           submodules: recursive
 
       - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libunwind-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf alsa-tools libasound2-dev libudev-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
+        if: matrix.platform == 'ubuntu-22.04'
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libunwind-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf alsa-tools libasound2-dev libudev-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
+          version: 1.0
 
       - name: install dependencies (macos only)
-        if: matrix.platform == 'macos-latest' # This must match the platform value defined above.
+        if: matrix.platform == 'macos-latest'
         run: |
           brew update
           brew upgrade
           brew install openssl@3
 
-      - name: Install VCPKG (Windows only)
-        run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
-        if: runner.os == 'Windows'
-
+      # https://github.com/sfackler/rust-openssl/issues/1542
       - name: Install Openssl (Windows only)
-        run: vcpkg install openssl:x64-windows-static-md
+        run: |
+          choco install openssl
+          $env:OPENSSL_DIR = "C:\Program Files\OpenSSL-Win64";
+          $env:OPENSSL_STATIC = "true";
+          $env:OPENSSL_LIB_DIR = 'C:\Program Files\OpenSSL-Win64\lib\VC\x64\MD';
         if: runner.os == 'Windows'
-
-      # - name: setup node
-      #   uses: actions/setup-node@v4
-      #   with:
-      #     node-version: lts/*
-      #     cache-dependency-path: "src-extensions/yarn.lock"
-      #     cache: "yarn" # Set this to npm, yarn or pnpm.
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -76,11 +71,6 @@ jobs:
         with:
           cache-on-failure: true
           cache-all-crates: true
-
-      # - name: install extensions host
-      #   run: |
-      #     yarn --cwd ./src-extensions install
-      #     yarn --cwd ./src-extensions build ${{ matrix.args }}
 
       - name: install extensions host wasm
         run: |

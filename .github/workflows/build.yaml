@@ -43,16 +43,13 @@ jobs:
           brew upgrade
           brew install openssl@3
 
-      # https://github.com/sfackler/rust-openssl/issues/1542
-      - name: Install Openssl (Windows only)
-        run: |
-          choco install openssl
+      # https://github.com/sfackler/rust-openssl/blob/master/.github/workflows/ci.yml#L94
+      - name: Install vcpkg (Windows only)
+        run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+        if: matrix.platform == 'windows-latest'
 
-          $env:OPENSSL_DIR = "C:\Program Files\OpenSSL";
-          $env:OPENSSL_STATIC = "true";
-          $env:OPENSSL_LIB_DIR = 'C:\Program Files\OpenSSL\lib\VC\x64\MD';
-          $env:PATH = "C:\Program Files\OpenSSL\bin;$env:PATH";
-
+      - name: Install OpenSSL (Windows only)
+        run: vcpkg install openssl:x64-windows-static-md
         if: matrix.platform == 'windows-latest'
 
       - name: install Rust stable

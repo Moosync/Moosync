@@ -42,6 +42,14 @@ jobs:
           brew upgrade
           brew install openssl@3
 
+      - name: Install VCPKG (Windows only)
+        run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+        if: runner.os == 'Windows'
+
+      - name: Install Openssl (Windows only)
+        run: vcpkg install openssl:x64-windows-static-md
+        if: runner.os == 'Windows'
+
       # - name: setup node
       #   uses: actions/setup-node@v4
       #   with:
@@ -80,6 +88,9 @@ jobs:
           chmod +x ./buildext.sh
           ./buildext.sh
         shell: bash
+
+      - name: Current PWD
+        run: pwd
 
       - name: Install tauri CLI
         run: npm install -g @tauri-apps/cli@next

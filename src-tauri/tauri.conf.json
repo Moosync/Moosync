@@ -37,7 +37,7 @@
   },
   "build": {
     "beforeDevCommand": "trunk serve --config ../Trunk.toml",
-    "beforeBuildCommand": "trunk build --release",
+    "beforeBuildCommand": "trunk build --release --config ../Trunk.toml",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },

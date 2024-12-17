@@ -1,4 +1,4 @@
 [submodule "src-extensions-wasm"]
-	path = src-extensions-wasm
+	path = lib/extensions-wasm
 	url = https://github.com/Moosync/wasm-extension-runner
 	branch = main

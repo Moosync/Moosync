@@ -2,7 +2,7 @@
 target = "index.html"
 
 [watch]
-ignore = ["src-tauri", "target", "src-extensions"]
+ignore = ["src-tauri", "target", "lib"]
 
 [serve]
 address = "127.0.0.1"

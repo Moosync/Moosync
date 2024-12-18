@@ -74,8 +74,8 @@ jobs:
           cache-on-failure: true
           cache-all-crates: true
           workspaces: |
-            ". -> target"
-            "lib/extensions-wasm -> target"
+            . -> target
+            lib/extensions-wasm -> target
 
       - name: install extensions host wasm
         run: |
@@ -88,7 +88,10 @@ jobs:
         run: pwd
 
       - name: Install tauri CLI
-        run: npm install -g @tauri-apps/cli@next
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: tauri-cli
+          version: ^2.0.0-rc
 
       - uses: tauri-apps/tauri-action@v0
         env:
@@ -102,3 +105,5 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
+          tauriScript: cargo tauri
+          projectPath: "."

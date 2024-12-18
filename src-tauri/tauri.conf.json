@@ -1,0 +1,85 @@
+{
+  "app": {
+    "macOSPrivateApi": false,
+    "windows": [
+      {
+        "url": "/main/allsongs",
+        "height": 800,
+        "width": 1024,
+        "decorations": true,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "assetProtocol": {
+        "enable": true,
+        "scope": {
+          "allow": ["**/*"],
+          "requireLiteralLeadingDot": false
+        }
+      },
+      "csp": {
+        "default-src": "'self' tauri: ipc: http://ipc.localhost asset: http://tauri.localhost http://asset.localhost",
+        "connect-src": "ipc: http://ipc.localhost tauri: http://tauri.localhost",
+        "media-src": "'self' blob: asset: https://asset.localhost tauri: http://tauri.localhost ipc: http://ipc.localhost https: http:",
+        "img-src": "'self' asset: https://asset.localhost https: http:",
+        "style-src": "'unsafe-inline' 'self' tauri: ipc: http://ipc.localhost asset: http://tauri.localhost http://asset.localhost",
+        "frame-src": "youtube.com https://www.youtube.com",
+        "script-src": "'wasm-unsafe-eval' tauri: http://tauri.localhost"
+      },
+      "dangerousDisableAssetCspModification": false,
+      "freezePrototype": false,
+      "pattern": {
+        "use": "brownfield"
+      }
+    },
+    "withGlobalTauri": true
+  },
+  "build": {
+    "beforeDevCommand": "trunk serve --config ../Trunk.toml",
+    "beforeBuildCommand": "trunk build --release --config ../Trunk.toml",
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "externalBin": ["binaries/exthost-wasm"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "linux": {
+      "deb": {
+        "desktopTemplate": "./moosync.desktop"
+      },
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    }
+  },
+  "identifier": "app.moosync.moosync",
+  "plugins": {
+    "deep-link": {
+      "mobile": [
+        { "host": "moosync.app", "pathPrefix": ["/youtube", "/spotify"] }
+      ],
+      "desktop": {
+        "schemes": ["moosync"]
+      }
+    },
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/Moosync/tauri/releases/latest/download/latest.json"
+      ],
+      "dialog": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ4MDc4MUJFMTA3QzM2RjYKUldUMk5ud1F2b0VIMkNtSlZMcDhBSWxkVUxCaWNkYUZ6RGRHMC9PSkd1bEdscnhRY3lHNFRTYlEK"
+    }
+  },
+  "productName": "Moosync",
+  "version": "0.0.2"
+}

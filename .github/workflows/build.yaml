@@ -87,11 +87,11 @@ jobs:
       - name: Current PWD
         run: pwd
 
-      - name: Install tauri CLI
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: tauri-cli
-          version: ^2.0.0-rc
+      - name: Install binstall
+        uses: cargo-bins/cargo-binstall@main
+
+      - name: Install tauri cli
+        run: cargo binstall tauri-cli -y --force
 
       - uses: tauri-apps/tauri-action@v0
         env:

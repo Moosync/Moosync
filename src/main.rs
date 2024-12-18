@@ -30,6 +30,7 @@ fn main() {
         .pretty()
         .with_target(true)
         .without_time()
+        .with_ansi(false)
         .with_writer(MakeConsoleWriter::default());
 
     let layer = fmt::layer()

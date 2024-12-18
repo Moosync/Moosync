@@ -307,6 +307,7 @@ pub fn Search() -> impl IntoView {
                                         view! {
                                             <CardView
                                                 items=create_rw_signal(res.albums.clone())
+                                                redirect_root="/main/albums"
                                                 card_item=move |(_, item)| {
                                                     SimplifiedCardItem {
                                                         title: item.album_name.clone().unwrap_or_default(),
@@ -324,6 +325,7 @@ pub fn Search() -> impl IntoView {
                                         view! {
                                             <CardView
                                                 items=create_rw_signal(res.artists.clone())
+                                                redirect_root="/main/artists"
                                                 card_item=move |(_, item)| {
                                                     SimplifiedCardItem {
                                                         title: item.artist_name.clone().unwrap_or_default(),
@@ -341,6 +343,7 @@ pub fn Search() -> impl IntoView {
                                         view! {
                                             <CardView
                                                 items=create_rw_signal(res.playlists.clone())
+                                                redirect_root="/main/playlists/"
                                                 card_item=move |(_, item)| {
                                                     SimplifiedCardItem {
                                                         title: item.playlist_name.clone(),

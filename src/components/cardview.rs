@@ -101,6 +101,7 @@ pub fn CardView<T, S, C>(
     #[prop()] card_item: C,
     #[prop(optional, default = false)] songs_view: bool,
     #[prop(optional)] on_click: Option<Box<dyn Fn(T)>>,
+    #[prop(optional, default = "")] redirect_root: &'static str,
 ) -> impl IntoView
 where
     T: 'static + Clone,
@@ -140,7 +141,11 @@ where
                     }
                 } else {
                     view! {
-                        <A href=format!("single?id={}", card_item_data.id.clone())>
+                        <A href=format!(
+                            "{}/single?id={}",
+                            redirect_root,
+                            card_item_data.id.clone(),
+                        )>
                             <CardItem
                                 on:contextmenu=move |ev| {
                                     if let Some(cb) = &card_item_data1.context_menu {

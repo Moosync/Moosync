@@ -4,6 +4,7 @@ use crate::{
     components::{
         better_animated_outlet::AnimatedOutletSimultaneous, prefs::static_components::SettingRoutes,
     },
+    console_info,
     pages::explore::Explore,
     players::librespot::LibrespotPlayer,
     store::ui_store::UiStore,
@@ -50,6 +51,7 @@ use crate::{
 #[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn RedirectAll() -> impl IntoView {
+    tracing::info!("Current location {:?}", window().location().href());
     view! { <Redirect path="/main/allsongs" /> }
 }
 

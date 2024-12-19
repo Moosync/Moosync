@@ -14,7 +14,7 @@ use tauri::{
     AppHandle, Emitter, State,
 };
 use types::{
-    entities::{QueryablePlaylist, SearchResult},
+    entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
     errors::{MoosyncError, Result},
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
@@ -347,6 +347,22 @@ impl ProviderHandler {
             result_type: Vec<Song>,
             method_name: get_suggestions,
         },
+        get_album_content {
+            args: {
+                album: QueryableAlbum,
+                pagination: Pagination
+            },
+            result_type: (Vec<Song>, Pagination),
+            method_name: get_album_content,
+        },
+        get_artist_content {
+            args: {
+                artist: QueryableArtist,
+                pagination: Pagination
+            },
+            result_type: (Vec<Song>, Pagination),
+            method_name: get_artist_content,
+        },
     );
 }
 
@@ -370,3 +386,5 @@ generate_command_async_cached!(playlist_from_url, ProviderHandler, QueryablePlay
 generate_command_async_cached!(song_from_url, ProviderHandler, Song, key: String, url: String);
 generate_command_async_cached!(match_url, ProviderHandler, bool, key: String, url: String);
 generate_command_async_cached!(get_suggestions, ProviderHandler, Vec<Song>, key: String);
+generate_command_async_cached!(get_artist_content, ProviderHandler, (Vec<Song>, Pagination), key: String, artist: QueryableArtist, pagination: Pagination);
+generate_command_async_cached!(get_album_content, ProviderHandler, (Vec<Song>, Pagination), key: String, album: QueryableAlbum, pagination: Pagination);

@@ -29,6 +29,7 @@ pub fn TabCarousel(
     #[prop()] keys: Vec<String>,
     #[prop()] selected: RwSignal<Vec<String>>,
     #[prop()] single_select: bool,
+    #[prop(optional, default = true)] align_left: bool,
 ) -> impl IntoView {
     let provider_container = create_node_ref::<Div>();
 
@@ -131,7 +132,11 @@ pub fn TabCarousel(
                         <div class="col provider-outer-container">
                             <div class="gradient-overlay" style=move || gradient_style.get()></div>
 
-                            <div node_ref=provider_container class="provider-container d-flex">
+                            <div
+                                node_ref=provider_container
+                                class="provider-container d-flex"
+                                class:justify-content-end=move || !align_left
+                            >
 
                                 <For
                                     each=move || keys.clone()

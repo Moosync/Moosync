@@ -31,10 +31,10 @@ use extensions::{
     install_extension, remove_extension, send_extra_event,
 };
 use providers::handler::{
-    fetch_playback_url, fetch_playlist_content, fetch_user_playlists, get_all_status,
-    get_provider_key_by_id, get_provider_keys, get_suggestions, initialize_all_providers,
-    match_url, playlist_from_url, provider_authorize, provider_login, provider_search,
-    provider_signout, song_from_url,
+    fetch_playback_url, fetch_playlist_content, fetch_user_playlists, get_album_content,
+    get_all_status, get_artist_content, get_provider_key_by_id, get_provider_keys, get_suggestions,
+    initialize_all_providers, match_url, playlist_from_url, provider_authorize, provider_login,
+    provider_search, provider_signout, song_from_url,
 };
 use scanner::{get_scanner_state, start_scan, ScanTask};
 use tauri::{Listener, Manager, State};
@@ -204,6 +204,8 @@ pub fn run() {
             playlist_from_url,
             song_from_url,
             get_suggestions,
+            get_album_content,
+            get_artist_content,
             // Rodio player
             rodio_get_volume,
             rodio_load,

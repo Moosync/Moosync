@@ -6,7 +6,7 @@ use leptos::{
 };
 use serde::Serialize;
 use serde_wasm_bindgen::{from_value, to_value};
-use types::entities::{QueryablePlaylist, SearchResult};
+use types::entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult};
 use types::errors::Result;
 use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::Song;
@@ -227,6 +227,20 @@ impl ProviderStore {
 
             },
             result_type: Vec<Song>,
+        },
+        get_album_content {
+            args: {
+                album: QueryableAlbum,
+                pagination: Pagination
+            },
+            result_type: (Vec<Song>, Pagination),
+        },
+        get_artist_content {
+            args: {
+                artist: QueryableArtist,
+                pagination: Pagination
+            },
+            result_type: (Vec<Song>, Pagination),
         },
     );
 }

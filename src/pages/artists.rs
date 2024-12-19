@@ -1,7 +1,10 @@
 use std::rc::Rc;
 
 use crate::components::cardview::{CardView, SimplifiedCardItem};
+use crate::components::songlist::ShowProvidersArgs;
 use crate::store::player_store::PlayerStore;
+use crate::store::provider_store::ProviderStore;
+use crate::utils::common::fetch_infinite;
 use crate::utils::db_utils::get_artists_by_option;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
@@ -12,6 +15,7 @@ use leptos_router::use_query_map;
 use types::entities::QueryableArtist;
 use types::songs::GetSongOptions;
 use types::ui::song_details::{DefaultDetails, SongDetailIcons};
+use wasm_bindgen_futures::spawn_local;
 
 use crate::components::songview::SongView;
 use crate::utils::db_utils::get_songs_by_option;
@@ -96,12 +100,41 @@ pub fn SingleArtist() -> impl IntoView {
         ..Default::default()
     });
 
+    let provider_store = expect_context::<Rc<ProviderStore>>();
+    let selected_providers = create_rw_signal::<Vec<String>>(vec![]);
+    create_effect(move |_| {
+        let selected_providers = selected_providers.get();
+        let artist = artist.get();
+        let artist = artist.first();
+        if artist.is_none() {
+            return;
+        }
+        let artist = artist.unwrap();
+        for provider in selected_providers {
+            let provider_store = provider_store.clone();
+            let artist = artist.clone();
+            spawn_local(async move {
+                fetch_infinite!(
+                    provider_store,
+                    provider,
+                    get_artist_content,
+                    songs,
+                    artist.clone()
+                );
+            });
+        }
+    });
+
     view! {
         <SongView
             default_details=default_details
             songs=songs
             icons=icons
             selected_songs=selected_songs
+            providers=ShowProvidersArgs {
+                show_providers: true,
+                selected_providers,
+            }
         />
     }
 }
@@ -127,6 +160,7 @@ pub fn AllArtists() -> impl IntoView {
                 >
                     <CardView
                         items=artists
+                        redirect_root="/main/artists"
                         card_item=move |(_, item)| {
                             let artist_name = item.artist_name.clone().unwrap_or_default();
                             let artist_coverpath = item.artist_coverpath.clone();

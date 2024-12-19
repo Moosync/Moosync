@@ -10,7 +10,10 @@ use types::{songs::Song, ui::song_details::DefaultDetails, ui::song_details::Son
 use web_sys::{Event, Node};
 
 use crate::{
-    components::{songdetails::SongDetails, songlist::SongList},
+    components::{
+        songdetails::SongDetails,
+        songlist::{ShowProvidersArgs, SongList},
+    },
     store::modal_store::{ModalStore, Modals},
     utils::songs::get_sort_cx_items,
 };
@@ -57,7 +60,10 @@ impl ContextMenuData<Self> for SongsContextMenu {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(songs, icons, selected_songs, song_update_request, default_details))]
+#[tracing::instrument(
+    level = "trace",
+    skip(songs, icons, selected_songs, song_update_request, default_details)
+)]
 #[component()]
 pub fn SongView(
     #[prop()] songs: RwSignal<Vec<Song>>,
@@ -65,6 +71,7 @@ pub fn SongView(
     #[prop()] selected_songs: RwSignal<Vec<usize>>,
     #[prop(optional)] song_update_request: Option<Box<dyn Fn()>>,
     #[prop(optional)] default_details: RwSignal<DefaultDetails>,
+    #[prop(optional, default=ShowProvidersArgs::default())] providers: ShowProvidersArgs,
 ) -> impl IntoView {
     let last_selected_song = create_rw_signal(None::<Song>);
 
@@ -167,6 +174,7 @@ pub fn SongView(
                             song_list=songs.read_only()
                             selected_songs_sig=selected_songs
                             filtered_selected=filtered_selected
+                            providers=providers
                         />
                     </div>
                 </div>

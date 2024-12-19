@@ -144,7 +144,7 @@ impl YoutubeScraper {
     }
 
     #[tracing::instrument(level = "trace", skip(self, query))]
-    pub async fn search_yt(&self, query: String) -> Result<SearchResult> {
+    pub async fn search_yt(&self, query: impl Into<String>) -> Result<SearchResult> {
         let res = self
             .youtube
             .search(

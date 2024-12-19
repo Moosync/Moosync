@@ -7,7 +7,7 @@
     "Rust": {
       "formatter": {
         "external": {
-          "command": "leptosfmt",
+          "command": "/home/ovenoboyo/.cargo/bin/leptosfmt",
           "arguments": ["--stdin", "--rustfmt"]
         }
       }

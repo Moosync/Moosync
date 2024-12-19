@@ -15,8 +15,9 @@ use regex::Regex;
 use rspotify::{
     clients::{BaseClient, OAuthClient},
     model::{
-        FullArtist, FullTrack, Id, PlaylistId, PlaylistTracksRef, SearchType, SimplifiedAlbum,
-        SimplifiedArtist, SimplifiedPlaylist, TrackId,
+        AlbumId, AlbumType, ArtistId, FullAlbum, FullArtist, FullTrack, Id, PlaylistId,
+        PlaylistTracksRef, SearchType, SimplifiedAlbum, SimplifiedArtist, SimplifiedPlaylist,
+        SimplifiedTrack, TrackId,
     },
     AuthCodePkceSpotify, Token,
 };
@@ -213,7 +214,11 @@ impl SpotifyProvider {
                 provider_extension: Some(self.key()),
                 ..Default::default()
             },
-            album: Some(self.parse_album(item.album)),
+            album: if item.album.id.is_some() {
+                Some(self.parse_album(item.album))
+            } else {
+                None
+            },
             artists: Some(
                 item.artists
                     .into_iter()
@@ -243,6 +248,47 @@ impl SpotifyProvider {
         }
 
         Err("API client not initialized".into())
+    }
+
+    fn get_full_track(&self, track: SimplifiedTrack) -> FullTrack {
+        FullTrack {
+            album: track.album.unwrap_or_default(),
+            artists: track.artists,
+            available_markets: track.available_markets.unwrap_or_default(),
+            disc_number: track.disc_number,
+            duration: track.duration,
+            explicit: track.explicit,
+            external_ids: HashMap::new(),
+            external_urls: track.external_urls,
+            href: track.href,
+            id: track.id,
+            is_local: track.is_local,
+            is_playable: track.is_playable,
+            linked_from: track.linked_from,
+            restrictions: track.restrictions,
+            name: track.name,
+            popularity: 0,
+            preview_url: track.preview_url,
+            track_number: track.track_number,
+        }
+    }
+
+    fn get_simple_album(&self, album: FullAlbum) -> SimplifiedAlbum {
+        let album_type: &'static str = album.album_type.into();
+        SimplifiedAlbum {
+            album_group: None,
+            album_type: Some(album_type.to_string()),
+            artists: album.artists,
+            available_markets: album.available_markets.unwrap_or_default(),
+            external_urls: album.external_urls,
+            href: Some(album.href),
+            id: Some(album.id),
+            images: album.images,
+            name: album.name,
+            release_date: Some(album.release_date),
+            release_date_precision: None,
+            restrictions: None,
+        }
     }
 }
 
@@ -669,6 +715,123 @@ impl GenericProvider for SpotifyProvider {
                     })
                 })
                 .collect());
+        }
+        Err("API Client not initialized".into())
+    }
+
+    async fn get_album_content(
+        &self,
+        album: QueryableAlbum,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
+        if let Some(api_client) = &self.api_client {
+            let mut raw_id = album.album_id;
+            if let Some(id) = &raw_id {
+                if !self.match_id(id.clone()) {
+                    if let Some(album_name) = album.album_name {
+                        let res = self.search(album_name).await?;
+                        if let Some(album) = res.albums.first() {
+                            raw_id = album.album_id.clone();
+                        } else {
+                            raw_id = None;
+                        }
+                    } else {
+                        raw_id = None;
+                    }
+                }
+            }
+
+            if let Some(id) = &raw_id {
+                tracing::debug!("Got album id: {}", id);
+                let id = id.replace("spotify-album:", "");
+                let id = AlbumId::from_id_or_uri(id.as_str())?;
+                let album = api_client.album(id.clone(), None).await?;
+                let album_tracks = api_client
+                    .album_track_manual(id, None, Some(pagination.limit), Some(pagination.offset))
+                    .await?;
+                let mut items = album_tracks.items.clone();
+                let songs = items
+                    .iter_mut()
+                    .map(|t| {
+                        t.album = Some(self.get_simple_album(album.clone()));
+                        self.parse_playlist_item(self.get_full_track(t.clone()))
+                    })
+                    .collect::<Vec<_>>();
+
+                return Ok((songs, pagination.next_page()));
+            }
+        }
+        Err("API Client not initialized".into())
+    }
+
+    async fn get_artist_content(
+        &self,
+        artist: QueryableArtist,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
+        if let Some(api_client) = &self.api_client {
+            if let Some(next_page_token) = &pagination.token {
+                // TODO: Fetch next pages
+                let tokens = next_page_token.split(";").collect::<Vec<_>>();
+                return Ok((vec![], pagination.next_page_wtoken(None)));
+            }
+
+            let mut raw_id = artist.artist_id;
+            if let Some(id) = &raw_id {
+                if !self.match_id(id.clone()) {
+                    if let Some(artist_name) = artist.artist_name {
+                        let res = self.search(artist_name).await?;
+                        if let Some(artist) = res.artists.first() {
+                            raw_id = artist.artist_id.clone();
+                        } else {
+                            raw_id = None;
+                        }
+                    } else {
+                        raw_id = None;
+                    }
+                }
+            }
+
+            if let Some(id) = &raw_id {
+                tracing::debug!("Got artist id: {}", id);
+                let mut songs = vec![];
+                let mut next_page_tokens = vec![];
+                let id = id.replace("spotify-artist:", "");
+                let albums =
+                    api_client.artist_albums(ArtistId::from_id_or_uri(id.as_str())?, [], None);
+
+                let album_ids = albums.filter_map(|a| async {
+                    if let Ok(a) = a {
+                        if let Some(id) = a.id {
+                            return Some(id);
+                        }
+                    }
+                    None
+                });
+
+                let album_ids = album_ids.collect::<Vec<_>>().await;
+
+                for chunk in album_ids.chunks(20) {
+                    let albums = api_client.albums(chunk.to_vec(), None).await?;
+                    tracing::debug!("Got albums {:?}", albums);
+                    for a in albums {
+                        let mut tracks = a.tracks.items.clone();
+                        let parsed = tracks.iter_mut().map(|t| {
+                            t.album = Some(self.get_simple_album(a.clone()));
+                            self.parse_playlist_item(self.get_full_track(t.clone()))
+                        });
+
+                        songs.extend(parsed);
+
+                        if let Some(next) = a.tracks.next {
+                            next_page_tokens.push(next);
+                        }
+                    }
+                }
+
+                let next_page_token = next_page_tokens.join(";");
+                return Ok((songs, pagination.next_page_wtoken(Some(next_page_token))));
+            }
         }
         Err("API Client not initialized".into())
     }

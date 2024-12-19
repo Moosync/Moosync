@@ -186,6 +186,7 @@ macro_rules! fetch_infinite {
             loop {
                 let res = $provider_store.$fetch_content($provider.clone(), $($arg,)* pagination).await;
                 if res.is_err() {
+                    tracing::error!("Error fetching content {:?}", res);
                     break;
                 }
 

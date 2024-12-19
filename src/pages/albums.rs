@@ -1,8 +1,11 @@
 use std::rc::Rc;
 
 use crate::components::cardview::{CardView, SimplifiedCardItem};
+use crate::components::songlist::ShowProvidersArgs;
 use crate::components::songview::SongView;
 use crate::store::player_store::PlayerStore;
+use crate::store::provider_store::ProviderStore;
+use crate::utils::common::fetch_infinite;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
     component, create_effect, create_rw_signal, create_write_slice, expect_context, view, IntoView,
@@ -13,6 +16,7 @@ use rand::seq::SliceRandom;
 use types::entities::QueryableAlbum;
 use types::songs::GetSongOptions;
 use types::ui::song_details::{DefaultDetails, SongDetailIcons};
+use wasm_bindgen_futures::spawn_local;
 
 use crate::utils::db_utils::{get_albums_by_option, get_songs_by_option};
 
@@ -95,12 +99,45 @@ pub fn SingleAlbum() -> impl IntoView {
         ..Default::default()
     });
 
+    let provider_store = expect_context::<Rc<ProviderStore>>();
+    let selected_providers = create_rw_signal::<Vec<String>>(vec![]);
+    create_effect(move |_| {
+        let selected_providers = selected_providers.get();
+        tracing::debug!("Providers selected: {:?}", selected_providers);
+
+        let album = album.get();
+        let album = album.first();
+        tracing::debug!("Album {:?}", album);
+        if album.is_none() {
+            return;
+        }
+        let album = album.unwrap();
+        for provider in selected_providers {
+            let provider_store = provider_store.clone();
+            let album = album.clone();
+            spawn_local(async move {
+                tracing::debug!("Querying {}", provider);
+                fetch_infinite!(
+                    provider_store,
+                    provider,
+                    get_album_content,
+                    songs,
+                    album.clone()
+                );
+            });
+        }
+    });
+
     view! {
         <SongView
             default_details=default_details
             songs=songs
             icons=icons
             selected_songs=selected_songs
+            providers=ShowProvidersArgs {
+                show_providers: true,
+                selected_providers,
+            }
         />
     }
 }
@@ -127,6 +164,7 @@ pub fn AllAlbums() -> impl IntoView {
 
                     <CardView
                         items=albums
+                        redirect_root="/main/albums"
                         card_item=move |(_, item)| {
                             let album_id = item.album_id.clone().unwrap_or_default();
                             let album_name = item.album_name.clone().unwrap_or_default();

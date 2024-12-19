@@ -5,7 +5,7 @@ use futures::{channel::mpsc::UnboundedSender, SinkExt};
 use serde_json::Value;
 use tauri::AppHandle;
 use types::{
-    entities::{QueryablePlaylist, SearchResult},
+    entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
     errors::Result,
     extensions::{
         AccountLoginArgs, CustomRequestReturnType, ExtensionDetail, ExtensionExtraEvent,
@@ -321,5 +321,21 @@ impl GenericProvider for ExtensionProvider {
         );
 
         Ok(res.songs)
+    }
+
+    async fn get_album_content(
+        &self,
+        album: QueryableAlbum,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
+        todo!()
+    }
+
+    async fn get_artist_content(
+        &self,
+        artist: QueryableArtist,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
+        todo!()
     }
 }

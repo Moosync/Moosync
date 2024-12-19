@@ -1,5 +1,5 @@
 use crate::{
-    entities::{QueryablePlaylist, SearchResult},
+    entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
     errors::Result,
     songs::Song,
 };
@@ -94,4 +94,15 @@ pub trait GenericProvider: std::fmt::Debug + Send {
     async fn playlist_from_url(&self, url: String) -> Result<QueryablePlaylist>;
     async fn song_from_url(&self, url: String) -> Result<Song>;
     async fn get_suggestions(&self) -> Result<Vec<Song>>;
+
+    async fn get_album_content(
+        &self,
+        album: QueryableAlbum,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)>;
+    async fn get_artist_content(
+        &self,
+        artist: QueryableArtist,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)>;
 }

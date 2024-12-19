@@ -19,8 +19,10 @@ use crate::{
         add_to_queue_icon::AddToQueueIcon, ellipsis_icon::EllipsisIcon, search_icon::SearchIcon,
         sort_icon::SortIcon,
     },
+    pages::search::TabCarousel,
     store::{
         player_store::PlayerStore,
+        provider_store::ProviderStore,
         ui_store::{SongSortByColumns, UiStore},
     },
     utils::{
@@ -104,19 +106,31 @@ pub fn SongListItem(
     }
 }
 
-#[tracing::instrument(level = "trace", skip(song_list, selected_songs_sig, filtered_selected, hide_search_bar))]
+#[derive(Debug, Default, Copy, Clone)]
+pub struct ShowProvidersArgs {
+    pub show_providers: bool,
+    pub selected_providers: RwSignal<Vec<String>>,
+}
+
+#[tracing::instrument(
+    level = "trace",
+    skip(song_list, selected_songs_sig, filtered_selected, hide_search_bar)
+)]
 #[component()]
 pub fn SongList(
     #[prop()] song_list: ReadSignal<Vec<Song>>,
     #[prop()] selected_songs_sig: RwSignal<Vec<usize>>,
     #[prop()] filtered_selected: RwSignal<Vec<usize>>,
     #[prop(default = false)] hide_search_bar: bool,
+    #[prop(optional, default = ShowProvidersArgs::default())] providers: ShowProvidersArgs,
 ) -> impl IntoView {
     let is_ctrl_pressed = create_rw_signal(false);
     let is_shift_pressed = create_rw_signal(false);
 
     let show_searchbar = create_rw_signal(false);
     let searchbar_ref = create_node_ref();
+
+    let provider_store = expect_context::<Rc<ProviderStore>>();
 
     let filter = create_rw_signal(None::<String>);
 
@@ -262,6 +276,7 @@ pub fn SongList(
     let song_context_menu = Rc::new(ContextMenu::new(context_menu_data));
 
     let sort_context_menu = Rc::new(ContextMenu::new(SortContextMenu {}));
+
     view! {
         <div class="d-flex h-100 w-100">
             <div class="container-fluid">
@@ -274,9 +289,24 @@ pub fn SongList(
                             <div class="container-fluid tab-carousel">
                                 <div class="row no-gutters">
                                     <div class="col song-header-options w-100">
-                                        <div class="row no-gutters align-items-center h-100">
+                                        <div class="row no-gutters align-items-center h-100 d-flex justify-content-end">
                                             // Sort icons here
-                                            <div class="col-auto ml-auto d-flex">
+                                            {if providers.show_providers {
+                                                view! {
+                                                    <div class="col-9 d-flex">
+                                                        <TabCarousel
+                                                            keys=provider_store.get_provider_keys()
+                                                            selected=providers.selected_providers
+                                                            single_select=false
+                                                            align_left=false
+                                                        />
+                                                    </div>
+                                                }
+                                                    .into_view()
+                                            } else {
+                                                view! {}.into_view()
+                                            }}
+                                            <div class="col-auto d-flex">
 
                                                 {move || {
                                                     if show_searchbar.get() {

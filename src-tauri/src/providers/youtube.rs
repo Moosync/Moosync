@@ -305,6 +305,100 @@ impl YoutubeProvider {
 
         Err("API client not initialized".into())
     }
+
+    async fn search_playlists(&self, term: &str) -> Result<Vec<QueryablePlaylist>> {
+        if let Some(api_client) = &self.api_client {
+            return Ok(search_and_parse!(api_client, term, "playlist", |item| {
+                item.id.as_ref().and_then(|id| {
+                    id.playlist_id.as_ref().map(|playlist_id| {
+                        let snippet = item.snippet.as_ref().unwrap();
+                        let playlist = Playlist {
+                            id: Some(playlist_id.clone()),
+                            snippet: Some(PlaylistSnippet {
+                                description: snippet.description.clone(),
+                                thumbnails: snippet.thumbnails.clone(),
+                                title: snippet.title.clone(),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        };
+                        self.parse_playlist(playlist)
+                    })
+                })
+            }));
+        }
+
+        let youtube_scraper: State<YoutubeScraper> = self.app.state();
+        let search_res = youtube_scraper.search_yt(term).await?;
+
+        Ok(search_res.playlists)
+    }
+
+    async fn search_artists(&self, term: &str) -> Result<Vec<QueryableArtist>> {
+        if let Some(api_client) = &self.api_client {
+            return Ok(search_and_parse!(api_client, &term, "channel", |item| {
+                item.id.as_ref().and_then(|id| {
+                    id.channel_id.as_ref().map(|channel_id| {
+                        let snippet = item.snippet.as_ref().unwrap();
+                        let channel = Channel {
+                            id: Some(channel_id.clone()),
+                            snippet: Some(ChannelSnippet {
+                                description: snippet.description.clone(),
+                                thumbnails: snippet.thumbnails.clone(),
+                                title: snippet.title.clone(),
+                                ..Default::default()
+                            }),
+                            ..Default::default()
+                        };
+                        self.parse_channel(channel)
+                    })
+                })
+            }));
+        }
+
+        let youtube_scraper: State<YoutubeScraper> = self.app.state();
+        let search_res = youtube_scraper.search_yt(term).await?;
+
+        Ok(search_res.artists)
+    }
+
+    async fn fetch_artist_content(
+        &self,
+        artist_id: &str,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
+        if let Some(api_client) = &self.api_client {
+            let mut builder = api_client
+                .channels()
+                .list(&vec!["contentDetails".into()])
+                .max_results(50)
+                .add_id(artist_id.replace("youtube-artist:", "").as_str());
+
+            if let Some(next_page) = pagination.token.clone() {
+                builder = builder.page_token(next_page.as_str());
+            }
+
+            let (_, resp) = builder.doit().await?;
+            if let Some(items) = resp.items {
+                if let Some(items) = items.first() {
+                    if let Some(content_details) = &items.content_details {
+                        if let Some(related_playlists) = &content_details.related_playlists {
+                            if let Some(playlist_id) = &related_playlists.uploads {
+                                return self
+                                    .get_playlist_content(playlist_id.to_string(), pagination)
+                                    .await;
+                            }
+                        }
+                    }
+                }
+            };
+        }
+
+        let youtube_scraper: State<YoutubeScraper> = self.app.state();
+        let search_res = youtube_scraper.search_yt(artist_id).await?;
+
+        Ok((search_res.songs, pagination.next_page()))
+    }
 }
 
 #[async_trait]
@@ -570,43 +664,8 @@ impl GenericProvider for YoutubeProvider {
                 songs.extend(self.fetch_song_details(song_details).await?);
             }
 
-            let playlists = search_and_parse!(api_client, &term, "playlist", |item| {
-                item.id.as_ref().and_then(|id| {
-                    id.playlist_id.as_ref().map(|playlist_id| {
-                        let snippet = item.snippet.as_ref().unwrap();
-                        let playlist = Playlist {
-                            id: Some(playlist_id.clone()),
-                            snippet: Some(PlaylistSnippet {
-                                description: snippet.description.clone(),
-                                thumbnails: snippet.thumbnails.clone(),
-                                title: snippet.title.clone(),
-                                ..Default::default()
-                            }),
-                            ..Default::default()
-                        };
-                        self.parse_playlist(playlist)
-                    })
-                })
-            });
-
-            let artists = search_and_parse!(api_client, &term, "channel", |item| {
-                item.id.as_ref().and_then(|id| {
-                    id.channel_id.as_ref().map(|channel_id| {
-                        let snippet = item.snippet.as_ref().unwrap();
-                        let channel = Channel {
-                            id: Some(channel_id.clone()),
-                            snippet: Some(ChannelSnippet {
-                                description: snippet.description.clone(),
-                                thumbnails: snippet.thumbnails.clone(),
-                                title: snippet.title.clone(),
-                                ..Default::default()
-                            }),
-                            ..Default::default()
-                        };
-                        self.parse_channel(channel)
-                    })
-                })
-            });
+            let playlists = self.search_playlists(&term).await?;
+            let artists = self.search_artists(&term).await?;
 
             return Ok(SearchResult {
                 songs,
@@ -718,5 +777,74 @@ impl GenericProvider for YoutubeProvider {
         }
 
         Err("Api Client not initialized".into())
+    }
+
+    async fn get_album_content(
+        &self,
+        album: QueryableAlbum,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
+        let mut id_raw = album.album_id;
+        if let Some(id) = &id_raw {
+            if !self.match_id(id.clone()) {
+                if let Some(album_name) = album.album_name {
+                    if let Some(playlist) = self.search_playlists(&album_name).await?.first() {
+                        if let Some(id) = &playlist.playlist_id {
+                            id_raw = Some(id.clone());
+                        } else {
+                            id_raw = None;
+                        }
+                    } else {
+                        id_raw = None;
+                    }
+                } else {
+                    id_raw = None;
+                }
+            }
+        }
+
+        if let Some(id) = id_raw {
+            return self
+                .get_playlist_content(
+                    id.replace("youtube-album:", "youtube-playlist:"),
+                    pagination,
+                )
+                .await;
+        } else {
+            return Err("No album found".into());
+        }
+    }
+
+    async fn get_artist_content(
+        &self,
+        artist: QueryableArtist,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
+        let mut id_raw = artist.artist_id;
+        if let Some(id) = &id_raw {
+            if !self.match_id(id.clone()) {
+                tracing::info!("ID doesn't match, searching for new ID");
+                if let Some(artist_name) = artist.artist_name {
+                    if let Some(artist) = self.search_artists(&artist_name).await?.first() {
+                        if let Some(id) = &artist.artist_id {
+                            id_raw = Some(id.clone());
+                        } else {
+                            id_raw = None;
+                        }
+                    } else {
+                        id_raw = None;
+                    }
+                } else {
+                    id_raw = None;
+                }
+            }
+        }
+
+        if let Some(id) = id_raw {
+            tracing::info!("Found artist id {}. Now fetching contents", id);
+            return self.fetch_artist_content(id.as_str(), pagination).await;
+        } else {
+            return Err("No artist found".into());
+        }
     }
 }

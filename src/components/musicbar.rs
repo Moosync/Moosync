@@ -14,6 +14,7 @@ use crate::icons::repeat_icon::RepeatIcon;
 use crate::icons::shuffle_icon::ShuffleIcon;
 use crate::icons::volume_icon::VolumeIcon;
 use crate::store::player_store::PlayerStore;
+use crate::store::ui_store::UiStore;
 use crate::utils::common::{format_duration, get_low_img};
 
 #[tracing::instrument(level = "trace", skip())]
@@ -188,12 +189,9 @@ pub fn Controls() -> impl IntoView {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(musicinfo_cb))]
+#[tracing::instrument(level = "trace", skip())]
 #[component]
-pub fn ExtraControls<T>(musicinfo_cb: T) -> impl IntoView
-where
-    T: Fn() + 'static,
-{
+pub fn ExtraControls() -> impl IntoView {
     let is_cut = create_rw_signal(false);
 
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
@@ -202,6 +200,8 @@ where
         |player_store| player_store.get_raw_volume(),
         |player_store, volume| player_store.set_volume(volume),
     );
+
+    let ui_store = expect_context::<RwSignal<UiStore>>();
     view! {
         <div class="row no-gutters align-items-center justify-content-end">
             <div class="col-auto volume-slider-container d-flex">
@@ -230,7 +230,7 @@ where
                 <VolumeIcon cut=is_cut.read_only() />
             </div>
             <div class="col-auto expand-icon ml-3">
-                <ExpandIcon on:click=move |_| musicinfo_cb() />
+                <ExpandIcon on:click=move |_| { ui_store.update(move |s| s.toggle_show_queue()) } />
             </div>
         </div>
     }
@@ -314,10 +314,11 @@ pub fn Slider() -> impl IntoView {
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "trace")]
 #[component]
 pub fn MusicBar() -> impl IntoView {
-    let show_musicinfo = create_rw_signal(false);
+    let ui_store = expect_context::<RwSignal<UiStore>>();
+    let show_musicinfo = create_read_slice(ui_store, move |s| s.get_show_queue());
     view! {
         <div class="musicbar-content d-flex">
             <MusicInfo show=show_musicinfo />
@@ -334,9 +335,7 @@ pub fn MusicBar() -> impl IntoView {
                                 <Controls />
                             </div>
                             <div class="col-lg-auto col-1 align-self-center no-gutters extra-col">
-                                <ExtraControls musicinfo_cb=move || {
-                                    show_musicinfo.set(!show_musicinfo.get())
-                                } />
+                                <ExtraControls />
                             </div>
                         </div>
                     </div>

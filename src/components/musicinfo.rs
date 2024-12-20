@@ -1,8 +1,8 @@
 use leptos::html::Div;
 use leptos::{
     component, create_effect, create_node_ref, create_read_slice, create_rw_signal,
-    create_write_slice, expect_context, spawn_local, view, IntoView, NodeRef, RwSignal, SignalGet,
-    SignalSet,
+    create_write_slice, expect_context, spawn_local, view, IntoView, NodeRef, RwSignal, Signal,
+    SignalGet, SignalSet, SignalUpdate,
 };
 use leptos_virtual_scroller::VirtualScroller;
 use serde::Serialize;
@@ -12,6 +12,7 @@ use types::ui::song_details::SongDetailIcons;
 use web_sys::{ScrollBehavior, ScrollToOptions};
 
 use crate::components::audiostream::AudioStream;
+use crate::store::ui_store::UiStore;
 use crate::utils::common::{get_high_img, invoke};
 use crate::{
     components::{low_img::LowImg, provider_icon::ProviderIcon, songdetails::SongDetails},
@@ -20,7 +21,17 @@ use crate::{
     utils::common::get_low_img,
 };
 
-#[tracing::instrument(level = "trace", skip(song, index, current_song_index, eq_playing, play_now, remove_from_queue))]
+#[tracing::instrument(
+    level = "trace",
+    skip(
+        song,
+        index,
+        current_song_index,
+        eq_playing,
+        play_now,
+        remove_from_queue
+    )
+)]
 #[component]
 pub fn QueueItem<T, D, P>(
     #[prop()] song: Song,
@@ -81,7 +92,7 @@ where
 
 #[tracing::instrument(level = "trace", skip(show))]
 #[component]
-pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
+pub fn MusicInfo(#[prop()] show: Signal<bool>) -> impl IntoView {
     let player_store = expect_context::<RwSignal<PlayerStore>>();
     let current_song = create_read_slice(player_store, move |p| p.get_current_song());
     let queue_songs = create_read_slice(player_store, move |p| p.get_queue_songs());
@@ -93,6 +104,8 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
     let remove_from_queue = create_write_slice(player_store, |p, val| p.remove_from_queue(val));
 
     let clear_queue = create_write_slice(player_store, |p, _| p.clear_queue_except_current());
+
+    let ui_store = expect_context::<RwSignal<UiStore>>();
 
     create_effect(move |_| {
         let current_song = current_song.get();
@@ -161,7 +174,9 @@ pub fn MusicInfo(#[prop()] show: RwSignal<bool>) -> impl IntoView {
                         // Close button
                         <div class="col-auto">
                             <div class="cross-icon button-grow">
-                                <CrossIcon />
+                                <CrossIcon on:click=move |_| {
+                                    ui_store.update(|s| s.show_queue(false));
+                                } />
                             </div>
                         </div>
                     </div>

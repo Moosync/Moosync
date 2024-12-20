@@ -29,6 +29,7 @@ pub struct PlaylistSortBy {
 pub struct UiStore {
     song_sort_by: SongSortBy,
     playlist_sort_by: PlaylistSortBy,
+    show_queue: bool,
 }
 
 impl UiStore {
@@ -43,6 +44,7 @@ impl UiStore {
                 asc: true,
                 sort_by: PlaylistSortByColumns::Provider,
             },
+            show_queue: false,
         }
     }
 
@@ -64,5 +66,16 @@ impl UiStore {
     #[tracing::instrument(level = "trace", skip(self))]
     pub fn get_playlist_sort_by(&self) -> PlaylistSortBy {
         self.playlist_sort_by
+    }
+    pub fn show_queue(&mut self, show: bool) {
+        self.show_queue = show;
+    }
+
+    pub fn get_show_queue(&self) -> bool {
+        self.show_queue
+    }
+
+    pub fn toggle_show_queue(&mut self) {
+        self.show_queue = !self.show_queue;
     }
 }

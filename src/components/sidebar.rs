@@ -1,22 +1,25 @@
 use leptos::{
-    component, create_effect, create_signal, view, CollectView, IntoView, ReadSignal, Show,
-    SignalGet, SignalSet, View, WriteSignal,
+    component, create_effect, create_signal, expect_context, view, CollectView, IntoView,
+    ReadSignal, RwSignal, Show, SignalGet, SignalSet, SignalUpdate, View, WriteSignal,
 };
 
-use crate::icons::{
-    albums_icon::{AlbumsIcon, AlbumsIconProps},
-    allsongs_icon::{AllSongsIcon, AllSongsIconProps},
-    artists_icon::{ArtistsIcon, ArtistsIconProps},
-    explore_icon::{ExploreIcon, ExploreIconProps},
-    extensions_icon::{ExtensionsIcon, ExtensionsIconProps},
-    genres_icon::{GenresIcon, GenresIconProps},
-    logs_icon::{LogsIcon, LogsIconProps},
-    paths_icon::{PathsIcon, PathsIconProps},
-    playlists_icon::{PlaylistsIcon, PlaylistsIconProps},
-    prev_icon::PrevIcon,
-    queue_icon::{QueueIcon, QueueIconProps},
-    system_icon::{SystemIcon, SystemIconProps},
-    themes_icon::{ThemesIcon, ThemesIconProps},
+use crate::{
+    icons::{
+        albums_icon::{AlbumsIcon, AlbumsIconProps},
+        allsongs_icon::{AllSongsIcon, AllSongsIconProps},
+        artists_icon::{ArtistsIcon, ArtistsIconProps},
+        explore_icon::{ExploreIcon, ExploreIconProps},
+        extensions_icon::{ExtensionsIcon, ExtensionsIconProps},
+        genres_icon::{GenresIcon, GenresIconProps},
+        logs_icon::{LogsIcon, LogsIconProps},
+        paths_icon::{PathsIcon, PathsIconProps},
+        playlists_icon::{PlaylistsIcon, PlaylistsIconProps},
+        prev_icon::PrevIcon,
+        queue_icon::{QueueIcon, QueueIconProps},
+        system_icon::{SystemIcon, SystemIconProps},
+        themes_icon::{ThemesIcon, ThemesIconProps},
+    },
+    store::ui_store::UiStore,
 };
 
 #[derive(Debug, Clone)]
@@ -53,7 +56,10 @@ impl Tab {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(tab, index, active_tab, active_tab_icon_signal, set_active_tab))]
+#[tracing::instrument(
+    level = "trace",
+    skip(tab, index, active_tab, active_tab_icon_signal, set_active_tab)
+)]
 #[component]
 fn TabItem(
     #[prop()] tab: Tab,
@@ -112,6 +118,8 @@ pub fn Sidebar(
 
     let navigate = leptos_router::use_navigate();
 
+    let ui_store = expect_context::<RwSignal<UiStore>>();
+
     create_effect(move |_| {
         let active_tab = active_tab.get();
         for (i, signal) in active_write_signals.iter().enumerate() {
@@ -119,7 +127,11 @@ pub fn Sidebar(
         }
         let url = tab_urls.get(active_tab);
         if let Some(url) = url {
-            navigate(url.as_str(), Default::default());
+            if url == "queue" {
+                ui_store.update(|s| s.show_queue(true));
+            } else {
+                navigate(url.as_str(), Default::default());
+            }
         }
     });
 

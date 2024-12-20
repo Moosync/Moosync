@@ -71,7 +71,7 @@ fn CommonApp() -> impl IntoView {
 #[component]
 pub fn MainApp() -> impl IntoView {
     let tabs = vec![
-        Tab::new("Queue", "Queue", ""),
+        Tab::new("Queue", "Queue", "queue"),
         Tab::new("All Songs", "All Songs", "/main/allsongs"),
         Tab::new("Playlists", "Playlists", "/main/playlists"),
         Tab::new("Artists", "Artists", "/main/artists"),

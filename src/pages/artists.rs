@@ -2,18 +2,20 @@ use std::rc::Rc;
 
 use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songlist::ShowProvidersArgs;
+use crate::dyn_provider_songs;
 use crate::store::player_store::PlayerStore;
 use crate::store::provider_store::ProviderStore;
 use crate::utils::common::fetch_infinite;
 use crate::utils::db_utils::get_artists_by_option;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
-    component, create_effect, create_rw_signal, create_write_slice, expect_context, view, IntoView,
-    RwSignal, SignalGet, SignalUpdate, SignalWith,
+    component, create_effect, create_memo, create_rw_signal, create_write_slice, expect_context,
+    view, IntoView, RwSignal, SignalGet, SignalUpdate, SignalWith,
 };
 use leptos_router::use_query_map;
+use std::collections::HashMap;
 use types::entities::QueryableArtist;
-use types::songs::GetSongOptions;
+use types::songs::{GetSongOptions, Song};
 use types::ui::song_details::{DefaultDetails, SongDetailIcons};
 use wasm_bindgen_futures::spawn_local;
 
@@ -73,7 +75,7 @@ pub fn SingleArtist() -> impl IntoView {
         let selected_songs = if selected_songs.get().is_empty() {
             songs.get()
         } else {
-            get_songs_from_indices(songs, selected_songs)
+            get_songs_from_indices(&songs, selected_songs)
         };
 
         play_songs_multiple_setter.set(selected_songs);
@@ -83,7 +85,7 @@ pub fn SingleArtist() -> impl IntoView {
         if selected_songs.get().is_empty() {
             add_to_queue_setter.set(songs.get());
         } else {
-            add_to_queue_setter.set(get_songs_from_indices(songs, selected_songs));
+            add_to_queue_setter.set(get_songs_from_indices(&songs, selected_songs));
         }
     };
 
@@ -102,33 +104,19 @@ pub fn SingleArtist() -> impl IntoView {
 
     let provider_store = expect_context::<Rc<ProviderStore>>();
     let selected_providers = create_rw_signal::<Vec<String>>(vec![]);
-    create_effect(move |_| {
-        let selected_providers = selected_providers.get();
-        let artist = artist.get();
-        let artist = artist.first();
-        if artist.is_none() {
-            return;
-        }
-        let artist = artist.unwrap();
-        for provider in selected_providers {
-            let provider_store = provider_store.clone();
-            let artist = artist.clone();
-            spawn_local(async move {
-                fetch_infinite!(
-                    provider_store,
-                    provider,
-                    get_artist_content,
-                    songs,
-                    artist.clone()
-                );
-            });
-        }
-    });
+
+    let (_, filtered_songs) = dyn_provider_songs!(
+        selected_providers,
+        artist,
+        provider_store,
+        songs,
+        get_artist_content
+    );
 
     view! {
         <SongView
             default_details=default_details
-            songs=songs
+            songs=filtered_songs
             icons=icons
             selected_songs=selected_songs
             providers=ShowProvidersArgs {

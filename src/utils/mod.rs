@@ -5,6 +5,7 @@ pub mod entities;
 pub mod extensions;
 pub mod mpris;
 pub mod prefs;
+pub mod providers;
 pub mod songs;
 pub mod tracing_writer;
 pub mod window;

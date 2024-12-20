@@ -5,7 +5,7 @@ use types::songs::Song;
 use crate::store::ui_store::{SongSortBy, SongSortByColumns, UiStore};
 
 #[tracing::instrument(level = "trace", skip(song_list, song_indices))]
-pub fn get_songs_from_indices<T, Y>(song_list: T, song_indices: Y) -> Vec<Song>
+pub fn get_songs_from_indices<T, Y>(song_list: &T, song_indices: Y) -> Vec<Song>
 where
     T: SignalGet<Value = Vec<Song>>,
     Y: SignalGet<Value = Vec<usize>>,

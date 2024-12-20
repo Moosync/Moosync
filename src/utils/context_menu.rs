@@ -14,14 +14,20 @@ use super::{
 };
 
 #[derive(Clone)]
-pub struct SongItemContextMenu {
+pub struct SongItemContextMenu<T>
+where
+    T: SignalGet<Value = Vec<Song>>,
+{
     pub current_song: Option<Song>,
-    pub song_list: ReadSignal<Vec<Song>>,
+    pub song_list: T,
     pub selected_songs: RwSignal<Vec<usize>>,
     pub playlists: RwSignal<Vec<QueryablePlaylist>>,
 }
 
-impl SongItemContextMenu {
+impl<T> SongItemContextMenu<T>
+where
+    T: SignalGet<Value = Vec<Song>>,
+{
     #[tracing::instrument(level = "trace", skip(self))]
     fn current_or_list(&self) -> Vec<Song> {
         let selected_songs = self.selected_songs.get();
@@ -32,7 +38,7 @@ impl SongItemContextMenu {
                 vec![]
             }
         } else {
-            get_songs_from_indices(self.song_list, self.selected_songs)
+            get_songs_from_indices(&self.song_list, self.selected_songs)
         };
 
         tracing::debug!("Got songs {:?}", ret);
@@ -106,7 +112,10 @@ impl SongItemContextMenu {
     }
 }
 
-impl ContextMenuData<Self> for SongItemContextMenu {
+impl<T> ContextMenuData<Self> for SongItemContextMenu<T>
+where
+    T: SignalGet<Value = Vec<Song>>,
+{
     #[tracing::instrument(level = "trace", skip(self))]
     fn get_menu_items(&self) -> ContextMenuItems<Self> {
         let mut artist_items = vec![];

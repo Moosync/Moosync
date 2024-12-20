@@ -118,7 +118,7 @@ pub struct ShowProvidersArgs {
 )]
 #[component()]
 pub fn SongList(
-    #[prop()] song_list: ReadSignal<Vec<Song>>,
+    #[prop()] song_list: impl SignalGet<Value = Vec<Song>> + Copy + 'static,
     #[prop()] selected_songs_sig: RwSignal<Vec<usize>>,
     #[prop()] filtered_selected: RwSignal<Vec<usize>>,
     #[prop(default = false)] hide_search_bar: bool,

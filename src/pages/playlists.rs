@@ -184,7 +184,7 @@ pub fn SinglePlaylist() -> impl IntoView {
         let selected_songs = if selected_songs.get().is_empty() {
             songs.get()
         } else {
-            get_songs_from_indices(songs, selected_songs)
+            get_songs_from_indices(&songs, selected_songs)
         };
 
         play_songs_multiple_setter.set(selected_songs);
@@ -194,7 +194,7 @@ pub fn SinglePlaylist() -> impl IntoView {
         if selected_songs.get().is_empty() {
             add_to_queue_setter.set(songs.get());
         } else {
-            add_to_queue_setter.set(get_songs_from_indices(songs, selected_songs));
+            add_to_queue_setter.set(get_songs_from_indices(&songs, selected_songs));
         }
     };
 

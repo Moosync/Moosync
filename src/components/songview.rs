@@ -66,7 +66,7 @@ impl ContextMenuData<Self> for SongsContextMenu {
 )]
 #[component()]
 pub fn SongView(
-    #[prop()] songs: RwSignal<Vec<Song>>,
+    #[prop()] songs: impl SignalGet<Value = Vec<Song>> + Copy + 'static,
     #[prop()] icons: RwSignal<SongDetailIcons>,
     #[prop()] selected_songs: RwSignal<Vec<usize>>,
     #[prop(optional)] song_update_request: Option<Box<dyn Fn()>>,
@@ -171,7 +171,7 @@ pub fn SongView(
                         class="col-xl-9 col-8 h-100 song-list-compact"
                     >
                         <SongList
-                            song_list=songs.read_only()
+                            song_list=songs
                             selected_songs_sig=selected_songs
                             filtered_selected=filtered_selected
                             providers=providers

@@ -68,7 +68,7 @@ pub fn Explore() -> impl IntoView {
                             SimplifiedCardItem {
                                 title: item.song.title.clone().unwrap_or_default(),
                                 cover: Some(get_high_img(item)),
-                                id: item.song._id.clone().unwrap_or_default(),
+                                id: item.clone(),
                                 icon: item.song.provider_extension.clone(),
                                 context_menu: Some(
                                     Rc::new(

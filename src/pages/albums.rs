@@ -26,42 +26,48 @@ use crate::utils::db_utils::{get_albums_by_option, get_songs_by_option};
 #[component()]
 pub fn SingleAlbum() -> impl IntoView {
     let params = use_query_map();
-    let album_id = params.with(|params| params.get("id").cloned()).unwrap();
+    let album = create_memo(move |_| {
+        params.with(|params| {
+            let entity = params.get("entity");
+            if let Some(entity) = entity {
+                let album = serde_json::from_str::<QueryableAlbum>(entity);
+                if let Ok(album) = album {
+                    return Some(album);
+                }
+            }
+            None
+        })
+    });
+    if album.get().is_none() {
+        tracing::error!("Failed to parse album");
+        return view! {}.into_view();
+    }
 
     let songs = create_rw_signal(vec![]);
     let selected_songs = create_rw_signal(vec![]);
 
-    let album = create_rw_signal(vec![]);
     let default_details = create_rw_signal(DefaultDetails::default());
-    get_albums_by_option(
-        QueryableAlbum {
-            album_id: Some(album_id.clone()),
-            ..Default::default()
-        },
-        album,
-    );
 
     create_effect(move |_| {
-        let binding = album.get();
-        let album = binding.first();
+        let album = album.get();
         if let Some(album) = album {
             default_details.update(|d| {
                 d.title = album.album_name.clone();
                 d.icon = album.album_coverpath_high.clone();
             });
+
+            get_songs_by_option(
+                GetSongOptions {
+                    album: Some(QueryableAlbum {
+                        album_id: album.album_id,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+                songs,
+            );
         }
     });
-
-    get_songs_by_option(
-        GetSongOptions {
-            album: Some(QueryableAlbum {
-                album_id: Some(album_id),
-                ..Default::default()
-            }),
-            ..Default::default()
-        },
-        songs,
-    );
 
     let player_store = expect_context::<RwSignal<PlayerStore>>();
     let play_songs_setter = create_write_slice(player_store, |p, song| p.play_now(song));
@@ -150,13 +156,12 @@ pub fn AllAlbums() -> impl IntoView {
                         items=albums
                         redirect_root="/main/albums"
                         card_item=move |(_, item)| {
-                            let album_id = item.album_id.clone().unwrap_or_default();
                             let album_name = item.album_name.clone().unwrap_or_default();
                             let album_coverpath = item.album_coverpath_high.clone();
                             SimplifiedCardItem {
                                 title: album_name,
                                 cover: album_coverpath,
-                                id: album_id,
+                                id: item.clone(),
                                 icon: None,
                                 context_menu: None,
                             }

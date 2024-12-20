@@ -114,65 +114,67 @@ impl ContextMenuData<Self> for PlaylistItemContextMenu {
 #[component()]
 pub fn SinglePlaylist() -> impl IntoView {
     let params = use_query_map();
-    let playlist_id = params.with(|params| params.get("id").cloned()).unwrap();
-    tracing::debug!("In single playlists {:?}", playlist_id);
+    let playlist = create_memo(move |_| {
+        params.with(|params| {
+            let entity = params.get("entity");
+            if let Some(entity) = entity {
+                let album = serde_json::from_str::<QueryablePlaylist>(entity);
+                if let Ok(album) = album {
+                    return Some(album);
+                }
+            }
+            None
+        })
+    });
 
     let songs = create_rw_signal(vec![]);
     let selected_songs = create_rw_signal(vec![]);
 
     let provider_store = use_context::<Rc<ProviderStore>>().unwrap();
 
-    let playlist = create_rw_signal(vec![]);
     let default_details = create_rw_signal(DefaultDetails::default());
-    get_playlists_by_option(
-        QueryablePlaylist {
-            playlist_id: Some(playlist_id.clone()),
-            ..Default::default()
-        },
-        playlist,
-    );
 
     create_effect(move |_| {
-        let binding = playlist.get();
-        let playlist = binding.first();
+        let playlist = playlist.get();
         if let Some(playlist) = playlist {
             default_details.update(|d| {
                 d.title = Some(playlist.playlist_name.clone());
                 d.icon = playlist.playlist_coverpath.clone();
             });
+
+            let playlist_id = playlist.playlist_id.clone().unwrap();
+            let provider_store = provider_store.clone();
+            spawn_local(async move {
+                let provider = provider_store
+                    .get_provider_key_by_id(playlist_id.clone())
+                    .await;
+                match provider {
+                    Ok(provider) => {
+                        let playlist_id = playlist_id.clone();
+                        fetch_infinite!(
+                            provider_store,
+                            provider,
+                            fetch_playlist_content,
+                            songs,
+                            playlist_id.clone()
+                        );
+                    }
+                    Err(e) => tracing::error!("{}", e),
+                }
+            });
+
+            get_songs_by_option(
+                GetSongOptions {
+                    playlist: Some(QueryablePlaylist {
+                        playlist_id: Some(playlist.playlist_id.unwrap()),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+                songs,
+            );
         }
     });
-
-    let playlist_id_tmp = playlist_id.clone();
-    spawn_local(async move {
-        let provider = provider_store
-            .get_provider_key_by_id(playlist_id_tmp.clone())
-            .await;
-        match provider {
-            Ok(provider) => {
-                let playlist_id = playlist_id_tmp.clone();
-                fetch_infinite!(
-                    provider_store,
-                    provider,
-                    fetch_playlist_content,
-                    songs,
-                    playlist_id.clone()
-                );
-            }
-            Err(e) => tracing::error!("{}", e),
-        }
-    });
-
-    get_songs_by_option(
-        GetSongOptions {
-            playlist: Some(QueryablePlaylist {
-                playlist_id: Some(playlist_id),
-                ..Default::default()
-            }),
-            ..Default::default()
-        },
-        songs,
-    );
 
     let player_store = expect_context::<RwSignal<PlayerStore>>();
     let play_songs_setter = create_write_slice(player_store, |p, song| p.play_now(song));
@@ -286,16 +288,16 @@ pub fn AllPlaylists() -> impl IntoView {
                 >
                     <CardView
                         items=sorted_playlists
+                        redirect_root="/main/playlists"
                         card_item=move |(_, item)| {
                             let playlist_name = item.playlist_name.clone();
                             let playlist_coverpath = item.playlist_coverpath.clone();
-                            let playlist_id = item.playlist_id.clone().unwrap_or_default();
                             let playlist_extension = item.extension.clone();
                             let playlist_item_context_menu = playlist_item_context_menu.clone();
                             SimplifiedCardItem {
                                 title: playlist_name,
                                 cover: playlist_coverpath,
-                                id: playlist_id,
+                                id: item.clone(),
                                 icon: playlist_extension,
                                 context_menu: Some(
                                     Rc::new(

@@ -7,14 +7,18 @@ use crate::{
 use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
 use leptos_router::A;
 use leptos_virtual_scroller::VirtualGridScroller;
+use serde::Serialize;
 
 type CardContextMenu<T> = Option<Rc<Box<dyn Fn(leptos::ev::MouseEvent, T)>>>;
 
 #[derive(Clone)]
-pub struct SimplifiedCardItem<T> {
+pub struct SimplifiedCardItem<T>
+where
+    T: Serialize,
+{
     pub title: String,
     pub cover: Option<String>,
-    pub id: String,
+    pub id: T,
     pub icon: Option<String>,
     pub context_menu: CardContextMenu<T>,
 }
@@ -25,7 +29,10 @@ pub fn CardItem<T>(
     #[prop()] item: SimplifiedCardItem<T>,
     #[prop(optional, default = false)] songs_view: bool,
     #[prop(optional)] on_click: Option<Rc<Box<dyn Fn()>>>,
-) -> impl IntoView {
+) -> impl IntoView
+where
+    T: Serialize,
+{
     let show_default_icon = create_rw_signal(item.cover.is_none());
 
     view! {
@@ -104,7 +111,7 @@ pub fn CardView<T, S, C>(
     #[prop(optional, default = "")] redirect_root: &'static str,
 ) -> impl IntoView
 where
-    T: 'static + Clone,
+    T: 'static + Clone + Serialize,
     C: Fn((usize, &T)) -> SimplifiedCardItem<T> + 'static,
     S: SignalGet<Value = Vec<T>> + Copy + 'static,
 {
@@ -142,9 +149,9 @@ where
                 } else {
                     view! {
                         <A href=format!(
-                            "{}/single?id={}",
+                            "{}/single?entity={}",
                             redirect_root,
-                            card_item_data.id.clone(),
+                            serde_json::to_string(&card_item_data.id).unwrap(),
                         )>
                             <CardItem
                                 on:contextmenu=move |ev| {

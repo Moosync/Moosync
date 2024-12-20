@@ -27,42 +27,48 @@ use rand::seq::SliceRandom;
 #[component()]
 pub fn SingleArtist() -> impl IntoView {
     let params = use_query_map();
-    let artist_id = params.with(|params| params.get("id").cloned()).unwrap();
+    let artist = create_memo(move |_| {
+        params.with(|params| {
+            let entity = params.get("entity");
+            if let Some(entity) = entity {
+                let album = serde_json::from_str::<QueryableArtist>(entity);
+                if let Ok(album) = album {
+                    return Some(album);
+                }
+            }
+            None
+        })
+    });
+    if artist.get().is_none() {
+        tracing::error!("Failed to parse artist");
+        return view! {}.into_view();
+    }
 
-    let artist = create_rw_signal(vec![]);
+    let songs = create_rw_signal(vec![]);
+    let selected_songs = create_rw_signal(vec![]);
+
     let default_details = create_rw_signal(DefaultDetails::default());
-    get_artists_by_option(
-        QueryableArtist {
-            artist_id: Some(artist_id.clone()),
-            ..Default::default()
-        },
-        artist,
-    );
 
     create_effect(move |_| {
-        let binding = artist.get();
-        let artist = binding.first();
+        let artist = artist.get();
         if let Some(artist) = artist {
             default_details.update(|d| {
                 d.title = artist.artist_name.clone();
                 d.icon = artist.artist_coverpath.clone();
             });
+
+            get_songs_by_option(
+                GetSongOptions {
+                    artist: Some(QueryableArtist {
+                        artist_id: artist.artist_id,
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+                songs,
+            );
         }
     });
-
-    let songs = create_rw_signal(vec![]);
-    let selected_songs = create_rw_signal(vec![]);
-
-    get_songs_by_option(
-        GetSongOptions {
-            artist: Some(QueryableArtist {
-                artist_id: Some(artist_id),
-                ..Default::default()
-            }),
-            ..Default::default()
-        },
-        songs,
-    );
 
     let player_store = expect_context::<RwSignal<PlayerStore>>();
     let play_songs_setter = create_write_slice(player_store, |p, song| p.play_now(song));
@@ -152,11 +158,10 @@ pub fn AllArtists() -> impl IntoView {
                         card_item=move |(_, item)| {
                             let artist_name = item.artist_name.clone().unwrap_or_default();
                             let artist_coverpath = item.artist_coverpath.clone();
-                            let artist_id = item.artist_id.clone().unwrap_or_default();
                             SimplifiedCardItem {
                                 title: artist_name,
                                 cover: artist_coverpath,
-                                id: artist_id,
+                                id: item.clone(),
                                 icon: None,
                                 context_menu: None,
                             }

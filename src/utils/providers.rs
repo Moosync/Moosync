@@ -9,7 +9,6 @@ macro_rules! dyn_provider_songs {
             tracing::debug!("Providers selected: {:?}", $selected_providers);
 
             let $entity = $entity.get();
-            let $entity = $entity.first();
             if $entity.is_none() {
                 return;
             }

@@ -1,5 +1,7 @@
+use ev::mouseup;
 use leptos::*;
 use leptos::{component, view, IntoView, RwSignal, SignalGet, SignalSet};
+use leptos_use::{use_document, use_event_listener, use_mouse, UseMouseReturn};
 use types::entities::QueryableArtist;
 use types::ui::player_details::PlayerState;
 
@@ -259,6 +261,16 @@ pub fn Slider() -> impl IntoView {
     let current_song = create_read_slice(player_store, |p| p.get_current_song());
     let total_time = create_rw_signal(1f64);
 
+    let is_dragging = create_rw_signal(false);
+
+    let _ = use_event_listener(use_document(), mouseup, move |evt| {
+        if is_dragging.get_untracked() {
+            tracing::debug!("dragging stop {}", evt.client_x());
+            set_current_time.set(evt.client_x() as f64);
+            is_dragging.set(false);
+        }
+    });
+
     create_effect(move |_| {
         let current_song = current_song.get();
         if let Some(current_song) = current_song {
@@ -302,6 +314,10 @@ pub fn Slider() -> impl IntoView {
                                     "width: 10px; height: 10px; transform: translate(-50%, -50%); top: 50%; left: {}%; transition: left 0.1s ease 0s;",
                                     (current_time.get() / total_time.get()) * 100f64,
                                 )
+                            }
+                            on:mousedown=move |_| {
+                                tracing::debug!("dragging start");
+                                is_dragging.set(true);
                             }
                         >
 

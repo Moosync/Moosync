@@ -151,8 +151,9 @@ impl PreferenceConfig {
         config_file.write_all(&serde_json::to_vec(&writable)?)?;
         config_file.flush()?;
 
-        let sender = self.sender.clone();
         let parsed = serde_json::to_value(value).unwrap();
+
+        let sender = self.sender.clone();
         thread::spawn(move || {
             sender.send((key, parsed)).unwrap();
         });

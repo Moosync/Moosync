@@ -54,6 +54,13 @@ pub fn PathsPref(
         }
     });
 
+    let start_scan = move |_| {
+        tracing::info!("Starting scan");
+        spawn_local(async move {
+            let _ = crate::utils::invoke::start_scan(None, true).await;
+        })
+    };
+
     let key_clone = key.clone();
     create_effect(move |_| {
         let value = paths.get();
@@ -78,9 +85,7 @@ pub fn PathsPref(
                     </div>
                 </div>
                 <div class="col-auto new-directories ml-auto justify-content-center">
-                    <div on:click=move |_| {
-                        save_selective(key.clone(), paths.get())
-                    }>{"Refresh"}</div>
+                    <div on:click=start_scan>{"Refresh"}</div>
                 </div>
                 <div class="col-auto new-directories ml-4">
                     <div

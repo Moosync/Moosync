@@ -4,7 +4,6 @@ use futures::lock::Mutex;
 use indexed_db_futures::IdbDatabase;
 use indexed_db_futures::IdbQuerySource;
 use leptos::{spawn_local, SignalSet, SignalUpdate};
-use serde::Serialize;
 use serde_wasm_bindgen::from_value;
 use types::entities::QueryableAlbum;
 use types::entities::QueryableArtist;

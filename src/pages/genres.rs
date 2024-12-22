@@ -118,7 +118,6 @@ pub fn AllGenres() -> impl IntoView {
                         redirect_root="/main/genre"
                         card_item=move |(_, item)| {
                             let genre_name = item.genre_name.clone().unwrap_or_default();
-                            let genre_id = item.genre_id.clone().unwrap_or_default();
                             SimplifiedCardItem {
                                 title: genre_name,
                                 cover: None,

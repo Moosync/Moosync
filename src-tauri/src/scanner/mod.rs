@@ -62,6 +62,7 @@ impl ScanTask {
 }
 
 #[tracing::instrument(level = "trace", skip(scanner, database, preferences, paths, force))]
+#[tauri_invoke_proc::parse_tauri_command]
 #[tauri::command(async)]
 pub fn start_scan(
     scanner: State<ScannerHolder>,

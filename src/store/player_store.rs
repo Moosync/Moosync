@@ -4,10 +4,7 @@ use indexed_db_futures::{
     request::{IdbOpenDbRequestLike, OpenDbRequest},
     IdbDatabase, IdbVersionChangeEvent,
 };
-use leptos::{
-    create_effect, create_rw_signal, RwSignal, SignalGet, SignalSet,
-    SignalUpdate,
-};
+use leptos::{create_effect, create_rw_signal, RwSignal, SignalGet, SignalSet, SignalUpdate};
 use rand::seq::SliceRandom;
 use serde::Serialize;
 use std::{cmp::min, collections::HashMap, rc::Rc};
@@ -210,6 +207,7 @@ impl PlayerStore {
 
     #[tracing::instrument(level = "trace", skip(self, song))]
     pub fn play_now(&mut self, song: Song) {
+        self.set_state(PlayerState::Playing);
         self.insert_song_at_index(song, self.data.queue.current_index + 1);
         self.data.queue.current_index += 1;
         self.update_current_song();

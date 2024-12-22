@@ -45,8 +45,7 @@ impl Tab {
             "Logs" => |active| LogsIcon(LogsIconProps { active }).into_view(),
             "Extensions" => |active| ExtensionsIcon(ExtensionsIconProps { active }).into_view(),
             "Themes" => |active| ThemesIcon(ThemesIconProps { active }).into_view(),
-
-            _ => todo!("Icon not found: {}", icon),
+            _ => panic!("Icon not found: {}", icon),
         };
         Tab {
             title: title.to_string(),

@@ -30,6 +30,7 @@ use crate::{
         youtube::YoutubePlayer,
     },
     store::{player_store::PlayerStore, provider_store::ProviderStore},
+    utils::invoke::update_song,
 };
 
 pub struct PlayerHolder {
@@ -456,8 +457,11 @@ pub fn AudioStream() -> impl IntoView {
                     .await;
 
                 if let Ok(updated_song) = updated_song {
-                    if updated_song.is_some() {
-                        // TODO: Update song in DB
+                    if let Some(updated_song) = updated_song {
+                        let res = update_song(updated_song.song).await;
+                        if let Err(err) = res {
+                            tracing::error!("Failed to update song {:?}", err);
+                        }
                     }
                 } else {
                     tracing::info!("Failed to load Song {:?}", updated_song);

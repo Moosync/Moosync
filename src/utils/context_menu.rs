@@ -2,7 +2,10 @@ use leptos::{use_context, RwSignal, SignalGet, SignalUpdate};
 use leptos_context_menu::{ContextMenuData, ContextMenuItemInner, ContextMenuItems};
 use leptos_router::{use_navigate, NavigateOptions};
 use serde::Serialize;
-use types::{entities::QueryablePlaylist, songs::Song};
+use types::{
+    entities::{QueryableArtist, QueryablePlaylist},
+    songs::Song,
+};
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{store::player_store::PlayerStore, utils::songs::get_songs_from_indices};
@@ -92,21 +95,27 @@ where
         let navigate = use_navigate();
         if let Some(song) = &self.current_song {
             if let Some(album) = &song.album {
-                if let Some(id) = album.album_id.clone() {
-                    navigate(
-                        format!("/main/albums/single?id={}", id).as_str(),
-                        NavigateOptions::default(),
-                    );
-                }
+                navigate(
+                    format!(
+                        "/main/albums/single?entity={}",
+                        serde_json::to_string(&album).unwrap()
+                    )
+                    .as_str(),
+                    NavigateOptions::default(),
+                );
             }
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, id))]
-    pub fn goto_artist(&self, id: String) {
+    #[tracing::instrument(level = "trace", skip(self, artist))]
+    pub fn goto_artist(&self, artist: QueryableArtist) {
         let navigate = use_navigate();
         navigate(
-            format!("/main/artists/single?id={}", id).as_str(),
+            format!(
+                "/main/artists/single?entity={}",
+                serde_json::to_string(&artist).unwrap()
+            )
+            .as_str(),
             NavigateOptions::default(),
         );
     }
@@ -123,10 +132,9 @@ where
             if let Some(artists) = &song.artists {
                 for artist in artists.clone() {
                     let artist_name = artist.artist_name.clone().unwrap_or_default();
-                    let artist_id = artist.artist_id.clone().unwrap_or_default();
                     artist_items.push(ContextMenuItemInner::<Self>::new_with_handler(
                         artist_name,
-                        move |_, cx| cx.goto_artist(artist_id.clone()),
+                        move |_, cx| cx.goto_artist(artist.clone()),
                         None,
                     ))
                 }

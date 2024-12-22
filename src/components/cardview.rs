@@ -3,11 +3,13 @@ use std::rc::Rc;
 use crate::{
     components::provider_icon::ProviderIcon,
     icons::{play_hover_icon::PlayHoverIcon, song_default_icon::SongDefaultIcon},
+    utils::common::convert_file_src,
 };
 use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
 use leptos_router::A;
 use leptos_virtual_scroller::VirtualGridScroller;
 use serde::Serialize;
+use types::errors::MoosyncError;
 
 type CardContextMenu<T> = Option<Rc<Box<dyn Fn(leptos::ev::MouseEvent, T)>>>;
 
@@ -82,9 +84,14 @@ where
                             } else {
                                 view! {
                                     <img
-                                        src=item.cover.clone()
+                                        src=item.cover.clone().map(convert_file_src)
                                         class="rounded-corners img-fluid w-100 h-100"
-                                        on:error=move |_| show_default_icon.set(true)
+                                        on:error=move |e| {
+                                            tracing::error!(
+                                                "Error loading cover image {:?}", MoosyncError::from(e.error())
+                                            );
+                                            show_default_icon.set(true);
+                                        }
                                     />
                                 }
                                     .into_view()

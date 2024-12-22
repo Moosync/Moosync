@@ -7,7 +7,7 @@ use crate::components::songview::SongView;
 use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::{PlaylistSortByColumns, UiStore};
-use crate::utils::common::fetch_infinite;
+use crate::utils::common::{convert_file_src, fetch_infinite};
 use crate::utils::db_utils::{
     create_playlist, export_playlist, get_songs_by_option, remove_playlist,
 };
@@ -139,7 +139,7 @@ pub fn SinglePlaylist() -> impl IntoView {
         if let Some(playlist) = playlist {
             default_details.update(|d| {
                 d.title = Some(playlist.playlist_name.clone());
-                d.icon = playlist.playlist_coverpath.clone();
+                d.icon = playlist.playlist_coverpath.clone().map(convert_file_src);
             });
 
             let playlist_id = playlist.playlist_id.clone().unwrap();

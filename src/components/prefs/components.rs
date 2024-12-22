@@ -55,7 +55,6 @@ pub fn PathsPref(
     });
 
     let start_scan = move |_| {
-        tracing::info!("Starting scan");
         spawn_local(async move {
             let _ = crate::utils::invoke::start_scan(None, true).await;
         })

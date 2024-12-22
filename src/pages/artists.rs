@@ -5,7 +5,7 @@ use crate::components::songlist::ShowProvidersArgs;
 use crate::dyn_provider_songs;
 use crate::store::player_store::PlayerStore;
 use crate::store::provider_store::ProviderStore;
-use crate::utils::common::fetch_infinite;
+use crate::utils::common::{convert_file_src, fetch_infinite};
 use crate::utils::db_utils::get_artists_by_option;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
@@ -54,7 +54,7 @@ pub fn SingleArtist() -> impl IntoView {
         if let Some(artist) = artist {
             default_details.update(|d| {
                 d.title = artist.artist_name.clone();
-                d.icon = artist.artist_coverpath.clone();
+                d.icon = artist.artist_coverpath.clone().map(convert_file_src);
             });
 
             get_songs_by_option(

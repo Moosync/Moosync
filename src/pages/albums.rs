@@ -7,7 +7,7 @@ use crate::components::songview::SongView;
 use crate::dyn_provider_songs;
 use crate::store::player_store::PlayerStore;
 use crate::store::provider_store::ProviderStore;
-use crate::utils::common::fetch_infinite;
+use crate::utils::common::{convert_file_src, fetch_infinite};
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
     component, create_effect, create_memo, create_rw_signal, create_write_slice, expect_context,
@@ -53,7 +53,7 @@ pub fn SingleAlbum() -> impl IntoView {
         if let Some(album) = album {
             default_details.update(|d| {
                 d.title = album.album_name.clone();
-                d.icon = album.album_coverpath_high.clone();
+                d.icon = album.album_coverpath_high.clone().map(convert_file_src);
             });
 
             get_songs_by_option(

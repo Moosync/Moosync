@@ -103,6 +103,11 @@ jobs:
       - name: Install tauri cli
         run: cargo binstall tauri-cli -y --force ${{ matrix.args }}
 
+      - name: Run cargo check
+        run: |
+          cd src-tauri
+          cargo check ${{ matrix.args }}
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

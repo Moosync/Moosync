@@ -5,13 +5,12 @@ use indexed_db_futures::{
     IdbDatabase, IdbVersionChangeEvent,
 };
 use leptos::{
-    create_effect, create_read_slice, create_rw_signal, RwSignal, SignalGet, SignalSet,
+    create_effect, create_rw_signal, RwSignal, SignalGet, SignalSet,
     SignalUpdate,
 };
 use rand::seq::SliceRandom;
 use serde::Serialize;
 use std::{cmp::min, collections::HashMap, rc::Rc};
-use tracing::debug;
 use types::{
     extensions::ExtensionExtraEvent,
     preferences::CheckboxPreference,
@@ -22,7 +21,6 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::utils::{
-    common::info,
     db_utils::{read_from_indexed_db, write_to_indexed_db},
     extensions::send_extension_event,
     mpris::{set_metadata, set_playback_state, set_position},

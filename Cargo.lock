@@ -28,6 +28,7 @@ dependencies = [
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
+ "tauri-invoke-proc",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -5311,6 +5312,7 @@ dependencies = [
  "serde_json",
  "tauri",
  "tauri-build",
+ "tauri-invoke-proc",
  "tauri-plugin-autostart",
  "tauri-plugin-deep-link",
  "tauri-plugin-dialog",
@@ -9004,6 +9006,22 @@ dependencies = [
  "url 2.5.4",
  "uuid",
  "walkdir",
+]
+
+[[package]]
+name = "tauri-invoke-proc"
+version = "0.1.0"
+dependencies = [
+ "ctor",
+ "lazy_static",
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "serde",
+ "serde_json",
+ "syn 2.0.90",
+ "tracing",
 ]
 
 [[package]]

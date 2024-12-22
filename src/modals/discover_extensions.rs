@@ -1,18 +1,17 @@
 use leptos::{component, create_rw_signal, spawn_local, view, For, IntoView, SignalGet, SignalSet};
 use types::extensions::FetchedExtensionManifest;
-use wasm_bindgen::JsValue;
 
-use crate::{modals::common::GenericModal, utils::common::invoke};
+use crate::{
+    modals::common::GenericModal,
+    utils::{common::invoke, invoke::get_extension_manifest},
+};
 
 #[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn DiscoverExtensionsModal() -> impl IntoView {
     let extensions = create_rw_signal(vec![]);
     spawn_local(async move {
-        let res = invoke("get_extension_manifest", JsValue::undefined())
-            .await
-            .unwrap();
-        let res: Vec<FetchedExtensionManifest> = serde_wasm_bindgen::from_value(res).unwrap();
+        let res = get_extension_manifest().await.unwrap();
 
         extensions.set(res);
     });

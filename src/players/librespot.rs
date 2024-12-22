@@ -8,7 +8,7 @@ use wasm_bindgen_futures::spawn_local;
 
 use crate::utils::{
     common::{invoke, listen_event},
-    prefs::load_selective_async,
+    invoke::{is_initialized, librespot_pause, librespot_play, load_selective},
 };
 
 use super::generic::GenericPlayer;
@@ -107,14 +107,13 @@ impl LibrespotPlayer {
     fn initialize_librespot() {
         if *ENABLED.lock().unwrap() {
             spawn_local(async move {
-                let res = invoke("is_initialized", JsValue::undefined()).await;
+                let res = is_initialized().await;
                 tracing::debug!("Librespot initialized: {:?}", res);
-                if let Ok(res) = res {
-                    if let Some(initialized) = res.as_bool() {
-                        *INITIALIZED.lock().unwrap() = initialized;
-                        return;
-                    }
+                if let Ok(initialized) = res {
+                    *INITIALIZED.lock().unwrap() = initialized;
+                    return;
                 }
+
                 *INITIALIZED.lock().unwrap() = false;
             })
         }
@@ -173,12 +172,19 @@ impl GenericPlayer for LibrespotPlayer {
     #[tracing::instrument(level = "trace", skip(self))]
     fn initialize(&self, _: leptos::NodeRef<leptos::html::Div>) {
         spawn_local(async move {
-            let enabled: Vec<CheckboxPreference> = load_selective_async("spotify.enable".into())
-                .await
-                .unwrap_or(vec![CheckboxPreference {
+            let data = load_selective("spotify.enable".into()).await;
+
+            let enabled: Vec<CheckboxPreference> = if let Ok(data) = data {
+                serde_wasm_bindgen::from_value(data).unwrap_or(vec![CheckboxPreference {
                     key: "enable".into(),
                     enabled: true,
-                }]);
+                }])
+            } else {
+                vec![CheckboxPreference {
+                    key: "enable".into(),
+                    enabled: true,
+                }]
+            };
             for pref in enabled {
                 if pref.key == "enable" {
                     LibrespotPlayer::set_enabled(pref.enabled)
@@ -224,7 +230,7 @@ impl GenericPlayer for LibrespotPlayer {
     #[tracing::instrument(level = "trace", skip(self))]
     fn play(&self) -> types::errors::Result<()> {
         spawn_local(async move {
-            let res = invoke("librespot_play", JsValue::undefined()).await;
+            let res = librespot_play().await;
 
             if res.is_err() {
                 tracing::error!("Error playing {:?}", res.unwrap_err());
@@ -236,7 +242,7 @@ impl GenericPlayer for LibrespotPlayer {
     #[tracing::instrument(level = "trace", skip(self))]
     fn pause(&self) -> types::errors::Result<()> {
         spawn_local(async move {
-            let res = invoke("librespot_pause", JsValue::undefined()).await;
+            let res = librespot_pause().await;
 
             if res.is_err() {
                 tracing::error!("Error pausing {:?}", res.unwrap_err());

@@ -15,6 +15,9 @@ use wasm_bindgen::JsValue;
 use crate::players::librespot::LibrespotPlayer;
 use crate::store::modal_store::{ModalStore, Modals};
 use crate::utils::common::{invoke, listen_event};
+use crate::utils::invoke::{
+    get_all_status, get_provider_key_by_id, get_provider_keys, initialize_all_providers,
+};
 
 #[derive(Debug, Default)]
 pub struct ProviderStore {
@@ -78,12 +81,12 @@ impl ProviderStore {
 
         let fetch_provider_keys = move || {
             spawn_local(async move {
-                let provider_keys = invoke("get_provider_keys", JsValue::undefined()).await;
+                let provider_keys = get_provider_keys().await;
                 if provider_keys.is_err() {
                     tracing::debug!("Failed to get provider keys");
                     return;
                 }
-                store.keys.set(from_value(provider_keys.unwrap()).unwrap());
+                store.keys.set(provider_keys.unwrap());
                 tracing::debug!("Updated provider keys {:?}", store.keys.get());
             });
         };
@@ -121,16 +124,12 @@ impl ProviderStore {
 
             #[cfg(not(feature = "mock"))]
             {
-                let res = invoke("initialize_all_providers", JsValue::undefined()).await;
+                let res = initialize_all_providers().await;
                 if res.is_err() {
                     tracing::error!("Failed to initialize providers");
                 }
-                let status = invoke("get_all_status", JsValue::undefined())
-                    .await
-                    .unwrap();
+                let statuses = get_all_status().await.unwrap();
 
-                let statuses: HashMap<String, ProviderStatus> =
-                    serde_wasm_bindgen::from_value(status).unwrap();
                 store.statuses.set(statuses.values().cloned().collect());
                 store.is_initialized.set(true);
             }
@@ -146,12 +145,7 @@ impl ProviderStore {
 
     #[tracing::instrument(level = "trace", skip(self, id))]
     pub async fn get_provider_key_by_id(&self, id: String) -> Result<String> {
-        #[derive(Debug, Serialize)]
-        struct Args {
-            id: String,
-        }
-        let res = invoke("get_provider_key_by_id", to_value(&Args { id }).unwrap()).await?;
-        Ok(from_value(res)?)
+        get_provider_key_by_id(id).await
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

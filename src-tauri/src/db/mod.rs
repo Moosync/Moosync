@@ -1,8 +1,7 @@
-use std::fs;
-
 use database::{cache::CacheHolder, database::Database};
 use macros::generate_command;
 use serde_json::Value;
+use std::fs;
 use tauri::{App, AppHandle, Manager, State};
 use tracing::{info, trace};
 use types::errors::Result;
@@ -16,6 +15,7 @@ use types::{
 use crate::window::handler::WindowHandler;
 
 #[tracing::instrument(level = "trace", skip(app, db, window_handler))]
+#[tauri_invoke_proc::parse_tauri_command]
 #[tauri::command(async)]
 pub fn export_playlist(
     app: AppHandle,

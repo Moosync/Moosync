@@ -5,7 +5,7 @@ use indexed_db_futures::IdbDatabase;
 use indexed_db_futures::IdbQuerySource;
 use leptos::{spawn_local, SignalSet, SignalUpdate};
 use serde::Serialize;
-use serde_wasm_bindgen::{from_value, to_value};
+use serde_wasm_bindgen::from_value;
 use types::entities::QueryableAlbum;
 use types::entities::QueryableArtist;
 use types::entities::QueryableGenre;
@@ -17,36 +17,14 @@ use wasm_bindgen::JsValue;
 use web_sys::DomException;
 use web_sys::IdbTransactionMode;
 
-
-use super::common::invoke;
-
-#[derive(Serialize)]
-struct GetSongOptionsArgs {
-    options: GetSongOptions,
-}
-
-#[derive(Serialize)]
-struct GetEntityOptionsArgs {
-    options: GetEntityOptions,
-}
-
 #[tracing::instrument(level = "trace", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
 pub fn get_songs_by_option(
     options: GetSongOptions,
     setter: impl SignalSet<Value = Vec<Song>> + 'static,
 ) {
-    
-
     spawn_local(async move {
-        let args = to_value(&GetSongOptionsArgs { options }).unwrap();
-        let res = invoke("get_songs_by_options", args).await;
-        if res.is_err() {
-            tracing::error!("Failed to load songs {:?}", res.unwrap_err());
-            setter.set(vec![]);
-            return;
-        }
-        let songs: Vec<Song> = from_value(res.unwrap()).unwrap();
+        let songs = super::invoke::get_songs_by_options(options).await.unwrap();
         setter.set(songs);
     });
 }
@@ -160,19 +138,15 @@ where
         + 'static,
 {
     spawn_local(async move {
-        let args = to_value(&GetEntityOptionsArgs {
-            options: GetEntityOptions {
+        let songs = serde_wasm_bindgen::from_value(
+            super::invoke::get_entity_by_options(GetEntityOptions {
                 playlist: Some(QueryablePlaylist::default()),
                 ..Default::default()
-            },
-        })
+            })
+            .await
+            .unwrap(),
+        )
         .unwrap();
-        let res = invoke("get_entity_by_options", args).await;
-        if res.is_err() {
-            tracing::error!("Error getting playlists: {:?}", res);
-            return;
-        }
-        let songs: Vec<QueryablePlaylist> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
     });
 }
@@ -193,14 +167,11 @@ where
 
     let provider_store = expect_context::<Rc<ProviderStore>>();
     spawn_local(async move {
-        let args = to_value(&GetEntityOptionsArgs {
-            options: GetEntityOptions {
-                playlist: Some(options),
-                ..Default::default()
-            },
+        let res = super::invoke::get_entity_by_options(GetEntityOptions {
+            playlist: Some(options),
+            ..Default::default()
         })
-        .unwrap();
-        let res = invoke("get_entity_by_options", args).await;
+        .await;
         if res.is_err() {
             tracing::error!("Error getting playlists: {:?}", res);
             return;
@@ -223,17 +194,12 @@ pub fn get_artists_by_option(
     options: QueryableArtist,
     setter: impl SignalSet<Value = Vec<QueryableArtist>> + 'static,
 ) {
-    
-
     spawn_local(async move {
-        let args = to_value(&GetEntityOptionsArgs {
-            options: GetEntityOptions {
-                artist: Some(options),
-                ..Default::default()
-            },
+        let res = super::invoke::get_entity_by_options(GetEntityOptions {
+            artist: Some(options),
+            ..Default::default()
         })
-        .unwrap();
-        let res = invoke("get_entity_by_options", args).await;
+        .await;
         if res.is_err() {
             tracing::error!("Error getting artists: {:?}", res);
             return;
@@ -249,17 +215,12 @@ pub fn get_albums_by_option(
     options: QueryableAlbum,
     setter: impl SignalSet<Value = Vec<QueryableAlbum>> + 'static,
 ) {
-    
-
     spawn_local(async move {
-        let args = to_value(&GetEntityOptionsArgs {
-            options: GetEntityOptions {
-                album: Some(options),
-                ..Default::default()
-            },
+        let res = super::invoke::get_entity_by_options(GetEntityOptions {
+            album: Some(options),
+            ..Default::default()
         })
-        .unwrap();
-        let res = invoke("get_entity_by_options", args).await;
+        .await;
         if res.is_err() {
             tracing::error!("Error getting albums: {:?}", res);
             return;
@@ -275,17 +236,12 @@ pub fn get_genres_by_option(
     options: QueryableGenre,
     setter: impl SignalSet<Value = Vec<QueryableGenre>> + 'static,
 ) {
-    
-
     spawn_local(async move {
-        let args = to_value(&GetEntityOptionsArgs {
-            options: GetEntityOptions {
-                genre: Some(options),
-                ..Default::default()
-            },
+        let res = super::invoke::get_entity_by_options(GetEntityOptions {
+            genre: Some(options),
+            ..Default::default()
         })
-        .unwrap();
-        let res = invoke("get_entity_by_options", args).await;
+        .await;
         if res.is_err() {
             tracing::error!("Error getting genres: {:?}", res);
             return;
@@ -297,17 +253,8 @@ pub fn get_genres_by_option(
 
 #[tracing::instrument(level = "trace", skip(songs))]
 pub fn add_songs_to_library(songs: Vec<Song>) {
-    #[derive(Serialize)]
-    struct AddSongsArgs {
-        songs: Vec<Song>,
-    }
-
     spawn_local(async move {
-        let res = invoke(
-            "insert_songs",
-            serde_wasm_bindgen::to_value(&AddSongsArgs { songs }).unwrap(),
-        )
-        .await;
+        let res = super::invoke::insert_songs(songs).await;
         if res.is_err() {
             tracing::error!("Error adding songs: {:?}", res);
         }
@@ -316,20 +263,12 @@ pub fn add_songs_to_library(songs: Vec<Song>) {
 
 #[tracing::instrument(level = "trace", skip(songs))]
 pub fn remove_songs_from_library(songs: Vec<Song>) {
-    #[derive(Serialize)]
-    struct RemoveSongsArgs {
-        songs: Vec<String>,
-    }
     spawn_local(async move {
-        let res = invoke(
-            "remove_songs",
-            serde_wasm_bindgen::to_value(&RemoveSongsArgs {
-                songs: songs
-                    .iter()
-                    .map(|s| s.song._id.clone().unwrap_or_default())
-                    .collect(),
-            })
-            .unwrap(),
+        let res = super::invoke::remove_songs(
+            songs
+                .iter()
+                .map(|s| s.song._id.clone().unwrap_or_default())
+                .collect(),
         )
         .await;
         if res.is_err() {
@@ -340,17 +279,8 @@ pub fn remove_songs_from_library(songs: Vec<Song>) {
 
 #[tracing::instrument(level = "trace", skip(id, songs))]
 pub fn add_to_playlist(id: String, songs: Vec<Song>) {
-    #[derive(Serialize)]
-    struct AddToPlaylistArgs {
-        id: String,
-        songs: Vec<Song>,
-    }
     spawn_local(async move {
-        let res = invoke(
-            "add_to_playlist",
-            serde_wasm_bindgen::to_value(&AddToPlaylistArgs { id, songs }).unwrap(),
-        )
-        .await;
+        let res = super::invoke::add_to_playlist(id, songs).await;
         if res.is_err() {
             tracing::error!("Error adding to playlist: {:?}", res);
         }
@@ -360,16 +290,7 @@ pub fn add_to_playlist(id: String, songs: Vec<Song>) {
 #[tracing::instrument(level = "trace", skip(playlist))]
 pub fn create_playlist(playlist: QueryablePlaylist) {
     spawn_local(async move {
-        #[derive(Serialize)]
-        struct CreatePlaylistArgs {
-            playlist: QueryablePlaylist,
-        }
-
-        let res = invoke(
-            "create_playlist",
-            serde_wasm_bindgen::to_value(&CreatePlaylistArgs { playlist }).unwrap(),
-        )
-        .await;
+        let res = super::invoke::create_playlist(playlist).await;
         if let Err(res) = res {
             tracing::error!("Failed to create playlist: {:?}", res);
         }
@@ -383,19 +304,7 @@ pub fn remove_playlist(playlist: QueryablePlaylist) {
     }
 
     spawn_local(async move {
-        #[derive(Serialize)]
-        struct RemovePlaylistArgs {
-            id: String,
-        }
-
-        let res = invoke(
-            "remove_playlist",
-            serde_wasm_bindgen::to_value(&RemovePlaylistArgs {
-                id: playlist.playlist_id.unwrap(),
-            })
-            .unwrap(),
-        )
-        .await;
+        let res = super::invoke::remove_playlist(playlist.playlist_id.unwrap()).await;
         if let Err(res) = res {
             tracing::error!("Failed to remove playlist: {:?}", res);
         }
@@ -405,19 +314,7 @@ pub fn remove_playlist(playlist: QueryablePlaylist) {
 #[tracing::instrument(level = "trace", skip(playlist))]
 pub fn export_playlist(playlist: QueryablePlaylist) {
     spawn_local(async move {
-        #[derive(Serialize)]
-        struct ExportPlaylistArgs {
-            id: String,
-        }
-
-        let res = invoke(
-            "export_playlist",
-            serde_wasm_bindgen::to_value(&ExportPlaylistArgs {
-                id: playlist.playlist_id.unwrap(),
-            })
-            .unwrap(),
-        )
-        .await;
+        let res = super::invoke::export_playlist(playlist.playlist_id.unwrap()).await;
         if let Err(res) = res {
             tracing::error!("Failed to export playlist: {:?}", res);
         }

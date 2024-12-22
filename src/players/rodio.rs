@@ -5,7 +5,10 @@ use serde::Serialize;
 use types::{songs::SongType, ui::player_details::PlayerEvents};
 use wasm_bindgen::JsValue;
 
-use crate::utils::common::{convert_file_src, invoke, listen_event};
+use crate::utils::{
+    common::{convert_file_src, invoke, listen_event},
+    invoke::{rodio_pause, rodio_play, rodio_stop},
+};
 
 use super::generic::GenericPlayer;
 
@@ -67,7 +70,7 @@ impl GenericPlayer for RodioPlayer {
         }
 
         spawn_local(async move {
-            let res = invoke("rodio_stop", JsValue::undefined()).await;
+            let res = rodio_stop().await;
 
             if res.is_err() {
                 tracing::error!("Error stopping {:?}", res.unwrap_err());
@@ -89,7 +92,7 @@ impl GenericPlayer for RodioPlayer {
     #[tracing::instrument(level = "trace", skip(self))]
     fn play(&self) -> types::errors::Result<()> {
         spawn_local(async move {
-            let res = invoke("rodio_play", JsValue::undefined()).await;
+            let res = rodio_play().await;
 
             if res.is_err() {
                 tracing::error!("Error playing {:?}", res.unwrap_err());
@@ -101,7 +104,7 @@ impl GenericPlayer for RodioPlayer {
     #[tracing::instrument(level = "trace", skip(self))]
     fn pause(&self) -> types::errors::Result<()> {
         spawn_local(async move {
-            let res = invoke("rodio_pause", JsValue::undefined()).await;
+            let res = rodio_pause().await;
 
             if res.is_err() {
                 tracing::error!("Error playing {:?}", res.unwrap_err());

@@ -1,10 +1,6 @@
 use std::{
-    sync::{
-        atomic::AtomicBool,
-        mpsc::{Receiver, Sender},
-        Arc, Mutex,
-    },
-    thread::{self, JoinHandle},
+    sync::{atomic::AtomicBool, Arc, Mutex},
+    thread::{self},
     time::Duration,
 };
 

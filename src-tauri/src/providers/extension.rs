@@ -325,16 +325,16 @@ impl GenericProvider for ExtensionProvider {
 
     async fn get_album_content(
         &self,
-        album: QueryableAlbum,
-        pagination: Pagination,
+        _album: QueryableAlbum,
+        _pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
         todo!()
     }
 
     async fn get_artist_content(
         &self,
-        artist: QueryableArtist,
-        pagination: Pagination,
+        _artist: QueryableArtist,
+        _pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
         todo!()
     }

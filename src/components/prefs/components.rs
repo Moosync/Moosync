@@ -15,7 +15,6 @@ use types::{
     themes::ThemeDetails,
     window::DialogFilter,
 };
-use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
@@ -28,6 +27,7 @@ use crate::{
     utils::{
         common::invoke,
         context_menu::ThemesContextMenu,
+        invoke::{get_installed_extensions, load_all_themes},
         prefs::{
             load_selective, open_file_browser, open_file_browser_single, save_selective,
             save_selective_number,
@@ -344,10 +344,8 @@ pub fn ThemesPref(
     let all_themes: RwSignal<HashMap<String, ThemeDetails>> = create_rw_signal(Default::default());
     let load_themes = move || {
         spawn_local(async move {
-            let themes = invoke("load_all_themes", JsValue::undefined())
-                .await
-                .unwrap();
-            all_themes.set(serde_wasm_bindgen::from_value(themes).unwrap());
+            let themes = load_all_themes().await.unwrap();
+            all_themes.set(themes);
         })
     };
     load_themes();
@@ -442,12 +440,7 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
     let extensions = create_rw_signal::<Vec<ExtensionDetail>>(Default::default());
     let fetch_extensions = move || {
         spawn_local(async move {
-            let res = invoke("get_installed_extensions", JsValue::undefined())
-                .await
-                .unwrap();
-            tracing::debug!("Got res {:?}", res);
-            let res = serde_wasm_bindgen::from_value::<HashMap<String, Vec<ExtensionDetail>>>(res)
-                .unwrap();
+            let res = get_installed_extensions().await.unwrap();
             tracing::debug!("got extensions {:?}", res);
             extensions.set(res.values().flatten().cloned().collect());
         })

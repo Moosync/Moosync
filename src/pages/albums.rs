@@ -11,7 +11,7 @@ use crate::utils::common::fetch_infinite;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
     component, create_effect, create_memo, create_rw_signal, create_write_slice, expect_context,
-    view, IntoView, RwSignal, SignalGet, SignalUpdate, SignalUpdateUntracked, SignalWith,
+    view, IntoView, RwSignal, SignalGet, SignalUpdate, SignalWith,
 };
 use leptos_router::use_query_map;
 use rand::seq::SliceRandom;

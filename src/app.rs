@@ -4,13 +4,13 @@ use crate::{
     components::{
         better_animated_outlet::AnimatedOutletSimultaneous, prefs::static_components::SettingRoutes,
     },
-    console_info,
     pages::explore::Explore,
     players::librespot::LibrespotPlayer,
     store::ui_store::UiStore,
     utils::{
         common::{emit, invoke, listen_event},
-        prefs::{load_selective_async, watch_preferences},
+        invoke::load_selective,
+        prefs::watch_preferences,
     },
 };
 use leptos::{
@@ -165,10 +165,8 @@ pub fn App() -> impl IntoView {
     provide_i18n_context::<Locale>();
 
     spawn_local(async move {
-        let id = load_selective_async("themes.active_theme".into())
-            .await
-            .unwrap();
-        handle_theme(id);
+        let id = load_selective("themes.active_theme".into()).await.unwrap();
+        handle_theme(serde_wasm_bindgen::from_value(id).unwrap());
     });
 
     let ui_requests_unlisten = listen_event("ui-requests", move |data| {

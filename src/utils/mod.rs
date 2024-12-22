@@ -3,6 +3,7 @@ pub mod context_menu;
 pub mod db_utils;
 pub mod entities;
 pub mod extensions;
+pub mod invoke;
 pub mod mpris;
 pub mod prefs;
 pub mod providers;

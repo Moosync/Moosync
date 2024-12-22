@@ -26,10 +26,9 @@ use socket_handler::{ExtensionCommandReceiver, MainCommandSender, SocketHandler}
 use types::{
     errors::{MoosyncError, Result},
     extensions::{
-        AccountLoginArgs, ContextMenuActionArgs, EmptyResp, ExtensionAccountDetail,
-        ExtensionContextMenuItem, ExtensionDetail, ExtensionExtraEventArgs, ExtensionManifest,
-        ExtensionProviderScope, FetchedExtensionManifest, GenericExtensionHostRequest,
-        PackageNameArgs, ToggleExtArgs,
+        AccountLoginArgs, ContextMenuActionArgs, ExtensionAccountDetail, ExtensionContextMenuItem,
+        ExtensionDetail, ExtensionExtraEventArgs, ExtensionManifest, ExtensionProviderScope,
+        FetchedExtensionManifest, GenericExtensionHostRequest, PackageNameArgs, ToggleExtArgs,
     },
 };
 use uuid::Uuid;

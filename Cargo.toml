@@ -46,6 +46,7 @@ indexed_db_futures = "0.5.0"
 lazy_static = "1.5.0"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tauri-invoke-proc = { path = "src-tauri/tauri-invoke-proc" }
 
 [workspace]
 resolver = "2"
@@ -64,6 +65,7 @@ members = [
     "src-tauri/youtube",
     "src-tauri/rodio-player",
     "src/pref_gen",
+    "src-tauri/tauri-invoke-proc",
 ]
 
 [package.metadata.leptos-i18n]

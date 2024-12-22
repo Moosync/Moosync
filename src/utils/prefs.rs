@@ -2,26 +2,11 @@ use std::rc::Rc;
 
 use leptos::{spawn_local, SignalSet};
 use serde::{de::DeserializeOwned, Serialize};
-use serde_wasm_bindgen::{from_value, to_value};
-use types::errors::Result;
 use types::themes::ThemeDetails;
-use types::window::{DialogFilter, FileResponse};
+use types::window::DialogFilter;
 use wasm_bindgen::JsValue;
 
 use crate::utils::common::listen_event;
-
-use super::common::invoke;
-
-#[derive(Serialize)]
-struct KeyArgs {
-    key: String,
-}
-
-#[derive(Serialize)]
-struct SetKeyArgs<T: Serialize> {
-    key: String,
-    value: T,
-}
 
 #[tracing::instrument(level = "trace", skip(key, setter))]
 pub fn load_selective<T>(key: String, setter: impl SignalSet<Value = T> + 'static)
@@ -29,25 +14,13 @@ where
     T: DeserializeOwned,
 {
     spawn_local(async move {
-        let res = load_selective_async(key.clone()).await;
+        let res = super::invoke::load_selective(key.clone()).await;
         if let Err(e) = res {
             tracing::error!("Failed to load preference: {}: {:?}", key, e);
             return;
         }
-        setter.set(res.unwrap());
+        setter.set(serde_wasm_bindgen::from_value(res.unwrap()).unwrap());
     });
-}
-
-#[tracing::instrument(level = "trace", skip(key))]
-pub async fn load_selective_async<T>(key: String) -> Result<T>
-where
-    T: DeserializeOwned,
-{
-    let args = to_value(&KeyArgs { key: key.clone() }).unwrap();
-    let res = invoke("load_selective", args).await?;
-    let parsed = serde_wasm_bindgen::from_value(res);
-
-    Ok(parsed?)
 }
 
 #[tracing::instrument(level = "trace", skip(key, value))]
@@ -63,12 +36,10 @@ where
     T: Serialize + 'static,
 {
     spawn_local(async move {
-        let args = to_value(&SetKeyArgs {
-            key: key.clone(),
-            value,
-        })
-        .unwrap();
-        let _ = invoke("save_selective", args).await;
+        let res = super::invoke::save_selective(key.clone(), Some(value)).await;
+        if let Err(e) = res {
+            tracing::error!("Error saving selective {}: {:?}", key, e);
+        }
     });
 }
 
@@ -90,28 +61,14 @@ pub fn open_file_browser(
     filters: Vec<DialogFilter>,
     setter: impl SignalSet<Value = Vec<String>> + 'static,
 ) {
-    #[derive(Serialize)]
-    struct FileBrowserArgs {
-        directory: bool,
-        multiple: bool,
-        filters: Vec<DialogFilter>,
-    }
     spawn_local(async move {
-        let args = to_value(&FileBrowserArgs {
-            directory,
-            multiple,
-            filters,
-        })
-        .unwrap();
-
-        let res = invoke("open_file_browser", args).await;
+        let res = super::invoke::open_file_browser(directory, multiple, filters).await;
         if res.is_err() {
             tracing::error!("Failed to open file browser");
             return;
         }
-        let file_resp: Vec<FileResponse> = from_value(res.unwrap()).unwrap();
-        tracing::debug!("Got file response {:?}", file_resp);
-        setter.set(file_resp.iter().map(|f| f.path.clone()).collect());
+        tracing::debug!("Got file response {:?}", res);
+        setter.set(res.unwrap().iter().map(|f| f.path.clone()).collect());
     })
 }
 
@@ -121,27 +78,13 @@ pub fn open_file_browser_single(
     filters: Vec<DialogFilter>,
     setter: impl SignalSet<Value = String> + 'static,
 ) {
-    #[derive(Serialize)]
-    struct FileBrowserArgs {
-        directory: bool,
-        multiple: bool,
-        filters: Vec<DialogFilter>,
-    }
     spawn_local(async move {
-        let args = to_value(&FileBrowserArgs {
-            directory,
-            multiple: false,
-            filters,
-        })
-        .unwrap();
-
-        let res = invoke("open_file_browser", args).await;
-        if res.is_err() {
+        let file_resp = super::invoke::open_file_browser(directory, false, filters).await;
+        if file_resp.is_err() {
             tracing::error!("Failed to open file browser");
             return;
         }
-        let file_resp: Vec<FileResponse> = from_value(res.unwrap()).unwrap();
-        setter.set(file_resp.first().unwrap().path.clone());
+        setter.set(file_resp.unwrap().first().unwrap().path.clone());
     })
 }
 
@@ -168,14 +111,8 @@ where
     T: Fn() + 'static,
 {
     let cb = Rc::new(Box::new(cb));
-    #[derive(Serialize)]
-    struct ImportThemeArgs {
-        path: String,
-    }
     spawn_local(async move {
-        let args = to_value(&ImportThemeArgs { path }).unwrap();
-
-        let res = invoke("import_theme", args).await;
+        let res = super::invoke::import_theme(path).await;
         if res.is_err() {
             tracing::error!("Failed to import theme");
         }
@@ -191,14 +128,8 @@ where
     T: Fn() + 'static,
 {
     let cb = Rc::new(Box::new(cb));
-    #[derive(Serialize)]
-    struct SaveThemeArgs {
-        theme: ThemeDetails,
-    }
     spawn_local(async move {
-        let args = to_value(&SaveThemeArgs { theme }).unwrap();
-
-        let res = invoke("save_theme", args).await;
+        let res = super::invoke::save_theme(theme).await;
         if res.is_err() {
             tracing::error!("Failed to save theme");
         }

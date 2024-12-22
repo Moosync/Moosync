@@ -6,7 +6,7 @@ use leptos::{
     ev::{keydown, keyup},
     event_target_value, expect_context,
     html::Input,
-    use_context, view, window_event_listener, HtmlElement, IntoView, ReadSignal, RwSignal, Show,
+    use_context, view, window_event_listener, HtmlElement, IntoView, RwSignal, Show,
     SignalGet, SignalSet, SignalUpdate,
 };
 use leptos_context_menu::ContextMenu;

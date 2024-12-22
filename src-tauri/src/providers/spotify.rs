@@ -15,9 +15,9 @@ use regex::Regex;
 use rspotify::{
     clients::{BaseClient, OAuthClient},
     model::{
-        AlbumId, AlbumType, ArtistId, FullAlbum, FullArtist, FullTrack, Id, PlaylistId,
-        PlaylistTracksRef, SearchType, SimplifiedAlbum, SimplifiedArtist, SimplifiedPlaylist,
-        SimplifiedTrack, TrackId,
+        AlbumId, ArtistId, FullAlbum, FullArtist, FullTrack, Id, PlaylistId, PlaylistTracksRef,
+        SearchType, SimplifiedAlbum, SimplifiedArtist, SimplifiedPlaylist, SimplifiedTrack,
+        TrackId,
     },
     AuthCodePkceSpotify, Token,
 };
@@ -772,7 +772,7 @@ impl GenericProvider for SpotifyProvider {
         if let Some(api_client) = &self.api_client {
             if let Some(next_page_token) = &pagination.token {
                 // TODO: Fetch next pages
-                let tokens = next_page_token.split(";").collect::<Vec<_>>();
+                let _tokens = next_page_token.split(";").collect::<Vec<_>>();
                 return Ok((vec![], pagination.next_page_wtoken(None)));
             }
 

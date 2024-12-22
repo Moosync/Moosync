@@ -106,7 +106,8 @@ jobs:
       - name: Run cargo check
         run: |
           cd src-tauri
-          cargo check ${{ matrix.args }}
+          cargo build --release ${{ matrix.args }}
+          ls ../target/
 
       - uses: tauri-apps/tauri-action@v0
         env:

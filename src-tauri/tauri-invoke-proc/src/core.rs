@@ -288,5 +288,6 @@ fn write_function_details_to_file() {
     let json_output =
         serde_json::to_string_pretty(&existing_data).expect("Failed to serialize JSON data");
 
+    eprintln!("Writing output to {:?}", file_path);
     std::fs::write(file_path, json_output).expect("Failed to write JSON data to file");
 }

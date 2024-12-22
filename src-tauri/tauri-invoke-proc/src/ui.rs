@@ -25,7 +25,7 @@ pub fn generate_tauri_invoke_wrapper(input: TokenStream) -> TokenStream {
     let out_dir = env::var("TAURI_INVOKE_PROC_DIR")
         .expect("TAURI_INVOKE_PROC_DIR environment variable is not set");
 
-    let file_path = Path::new(&out_dir).join("function_details.json");
+    let file_path = Path::new(&out_dir);
 
     let json_content = fs::read_to_string(file_path).expect("Failed to read function_details.json");
     let json: HashMap<String, Vec<FnDetails>> = serde_json::from_str(&json_content)

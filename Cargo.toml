@@ -107,9 +107,8 @@ locales = [
 
 [profile.release]
 strip = "symbols"
-
-[profile.dev]
-# debug = 0
-# opt-level = 0
-# lto = false
-incremental = true
+debug = 0
+opt-level = 3
+lto = true
+incremental = false
+codegen-units = 1

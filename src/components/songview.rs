@@ -163,12 +163,9 @@ pub fn SongView(
         >
             <div class="container-fluid song-container h-100">
                 <div class="row no-gutters h-100 compact-container">
-                    <div
-                        node_ref=song_details_container
-                        style="max-height: 100%; height: fit-content;"
-                        class="col-xl-3 col-4"
-                    >
+                    <div style="max-height: 100%; height: fit-content;" class="col-xl-3 col-4">
                         <SongDetails
+                            buttons_ref=song_details_container
                             default_details=default_details
                             selected_song=last_selected_song.read_only()
                             icons=icons

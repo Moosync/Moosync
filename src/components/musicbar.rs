@@ -1,7 +1,7 @@
 use ev::mouseup;
 use leptos::*;
 use leptos::{component, view, IntoView, RwSignal, SignalGet, SignalSet};
-use leptos_use::{use_document, use_event_listener, use_mouse, UseMouseReturn};
+use leptos_use::{use_document, use_event_listener};
 use types::entities::QueryableArtist;
 use types::ui::player_details::PlayerState;
 
@@ -42,7 +42,9 @@ fn Details() -> impl IntoView {
             }
             return;
         }
-        title.set("-".into())
+        title.set("-".into());
+        artists_list.set(vec![]);
+        cover_img.set("".to_string());
     });
 
     view! {
@@ -194,8 +196,6 @@ pub fn Controls() -> impl IntoView {
 #[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn ExtraControls() -> impl IntoView {
-    let is_cut = create_rw_signal(false);
-
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
     let (current_volume, set_current_volume) = create_slice(
         player_store,
@@ -203,7 +203,17 @@ pub fn ExtraControls() -> impl IntoView {
         |player_store, volume| player_store.set_volume(volume),
     );
 
+    let is_cut = create_memo(move |_| current_volume.get() == 0f64);
     let ui_store = expect_context::<RwSignal<UiStore>>();
+
+    let toggle_mute_sig = create_write_slice(player_store, |p, _| {
+        p.toggle_mute();
+    });
+
+    let toggle_mute = move |_| {
+        toggle_mute_sig.set(());
+    };
+
     view! {
         <div class="row no-gutters align-items-center justify-content-end">
             <div class="col-auto volume-slider-container d-flex">
@@ -229,7 +239,7 @@ pub fn ExtraControls() -> impl IntoView {
 
             </div>
             <div class="col-auto">
-                <VolumeIcon cut=is_cut.read_only() />
+                <VolumeIcon on:click=toggle_mute cut=is_cut />
             </div>
             <div class="col-auto expand-icon ml-3">
                 <ExpandIcon on:click=move |_| { ui_store.update(move |s| s.toggle_show_queue()) } />

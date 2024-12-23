@@ -305,6 +305,11 @@ pub fn SongList(
 
     let sort_context_menu = Rc::new(ContextMenu::new(SortContextMenu {}));
 
+    let should_add_to_selected = move |index: usize| {
+        let selected = filtered_selected.get_untracked();
+        selected.len() < 2 || !selected.contains(&index)
+    };
+
     view! {
         <div class="d-flex h-100 w-100">
             <div class="container-fluid">
@@ -402,6 +407,9 @@ pub fn SongList(
                                     <SongListItem
                                         on:contextmenu=move |ev| {
                                             ev.stop_propagation();
+                                            if should_add_to_selected(index) {
+                                                add_to_selected(index);
+                                            }
                                             let mut data = song_context_menu.get_data();
                                             data.current_song = Some(song.clone());
                                             drop(data);

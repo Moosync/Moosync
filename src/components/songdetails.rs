@@ -1,6 +1,6 @@
 use leptos::{
-    component, create_effect, create_rw_signal, view, AnimatedShow, CollectView, IntoView,
-    RwSignal, SignalGet, SignalGetUntracked, SignalSet,
+    component, create_effect, create_node_ref, create_rw_signal, html::Div, view, AnimatedShow,
+    CollectView, IntoView, NodeRef, RwSignal, SignalGet, SignalGetUntracked, SignalSet,
 };
 use serde::Serialize;
 use types::{
@@ -19,13 +19,17 @@ use crate::{
 };
 use std::time::Duration;
 
-#[tracing::instrument(level = "trace", skip(selected_song, icons, show_lyrics, default_details))]
+#[tracing::instrument(
+    level = "trace",
+    skip(selected_song, icons, show_lyrics, default_details, buttons_ref)
+)]
 #[component()]
 pub fn SongDetails<T>(
     #[prop()] selected_song: T,
     #[prop()] icons: RwSignal<SongDetailIcons>,
     #[prop(optional, default = false)] show_lyrics: bool,
     #[prop(optional)] default_details: RwSignal<DefaultDetails>,
+    #[prop(optional)] buttons_ref: Option<NodeRef<Div>>,
 ) -> impl IntoView
 where
     T: SignalGet<Value = Option<Song>> + Copy + 'static,
@@ -39,6 +43,12 @@ where
     let show_default_cover_img = create_rw_signal(true);
     let show_lyrics_div = create_rw_signal(false);
     let show_lyrics_always = create_rw_signal(false);
+
+    let buttons_ref = if buttons_ref.is_some() {
+        buttons_ref.unwrap()
+    } else {
+        create_node_ref()
+    };
 
     if show_lyrics {
         create_effect(move |_| {
@@ -108,6 +118,7 @@ where
             selected_cover_path.set(default_details.icon);
             selected_title.set(default_details.title);
             selected_artists.set(default_details.subtitle);
+            selected_duration.set(None);
         }
     });
 
@@ -197,7 +208,7 @@ where
 
             <div class="row no-gutters flex-fill mt-2">
                 <div class="col">
-                    <div class="button-group d-flex">
+                    <div class="button-group d-flex" node_ref=buttons_ref>
 
                         {move || {
                             let title = selected_title.get();

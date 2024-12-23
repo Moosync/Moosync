@@ -162,11 +162,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>) -> impl IntoView {
                 <img
                     class="bg-img"
                     src=move || {
-                        if let Some(current_song) = current_song.get() {
-                            get_high_img(&current_song)
-                        } else {
-                            String::new()
-                        }
+                        current_song.get().map(|current_song| get_high_img(&current_song))
                     }
                 />
                 <div class="container-fluid w-100 h-100 music-info-container">

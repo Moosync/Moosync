@@ -37,6 +37,7 @@ pub struct PlayerDetails {
     pub state: PlayerState,
     pub has_repeated: bool,
     pub repeat: RepeatModes,
+    old_volume: f64,
     volume: f64,
     volume_mode: VolumeMode,
     volume_map: HashMap<String, f64>,
@@ -162,6 +163,9 @@ impl PlayerStore {
 
         tracing::debug!("Upading song in queue");
         self.data.current_song = song.clone();
+        if self.data.current_song.is_none() {
+            self.data.player_details.current_time = 0f64;
+        }
 
         self.clear_blacklist();
 
@@ -334,6 +338,17 @@ impl PlayerStore {
 
         self.dump_store();
         send_extension_event(ExtensionExtraEvent::VolumeChanged([volume]))
+    }
+
+    pub fn toggle_mute(&mut self) {
+        if self.data.player_details.volume > 0f64 {
+            self.data.player_details.old_volume = self.data.player_details.volume;
+            self.set_volume(0f64);
+        } else if self.data.player_details.old_volume > 0f64 {
+            self.set_volume(self.data.player_details.old_volume);
+        } else {
+            self.set_volume(50f64);
+        }
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

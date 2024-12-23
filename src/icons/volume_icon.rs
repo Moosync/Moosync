@@ -1,8 +1,8 @@
-use leptos::{component, view, IntoView, ReadSignal, SignalGet};
+use leptos::{component, view, IntoView, SignalGet};
 
 #[tracing::instrument(level = "trace", skip(cut))]
 #[component]
-pub fn VolumeIcon(#[prop()] cut: ReadSignal<bool>) -> impl IntoView {
+pub fn VolumeIcon(#[prop()] cut: impl SignalGet<Value = bool> + 'static) -> impl IntoView {
     view! {
         <svg
             class="vol-icon button-grow volume-icon align-self-center"

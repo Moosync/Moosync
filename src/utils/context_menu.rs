@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use leptos::{use_context, RwSignal, SignalGet, SignalUpdate};
 use leptos_context_menu::{ContextMenuData, ContextMenuItemInner, ContextMenuItems};
 use leptos_router::{use_navigate, NavigateOptions};
@@ -25,6 +27,7 @@ where
     pub song_list: T,
     pub selected_songs: RwSignal<Vec<usize>>,
     pub playlists: RwSignal<Vec<QueryablePlaylist>>,
+    pub refresh_cb: Rc<Box<dyn Fn()>>,
 }
 
 impl<T> SongItemContextMenu<T>
@@ -77,12 +80,12 @@ where
 
     #[tracing::instrument(level = "trace", skip(self))]
     pub fn add_to_library(&self) {
-        add_songs_to_library(self.current_or_list());
+        add_songs_to_library(self.current_or_list(), self.refresh_cb.clone());
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
     pub fn remove_from_library(&self) {
-        remove_songs_from_library(self.current_or_list());
+        remove_songs_from_library(self.current_or_list(), self.refresh_cb.clone());
     }
 
     #[tracing::instrument(level = "trace", skip(self, id))]

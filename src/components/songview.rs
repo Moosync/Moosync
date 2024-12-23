@@ -62,13 +62,21 @@ impl ContextMenuData<Self> for SongsContextMenu {
 
 #[tracing::instrument(
     level = "trace",
-    skip(songs, icons, selected_songs, song_update_request, default_details)
+    skip(
+        songs,
+        icons,
+        selected_songs,
+        song_update_request,
+        default_details,
+        refresh_cb
+    )
 )]
 #[component()]
 pub fn SongView(
     #[prop()] songs: impl SignalGet<Value = Vec<Song>> + Copy + 'static,
     #[prop()] icons: RwSignal<SongDetailIcons>,
     #[prop()] selected_songs: RwSignal<Vec<usize>>,
+    #[prop()] refresh_cb: impl Fn() + 'static,
     #[prop(optional)] song_update_request: Option<Box<dyn Fn()>>,
     #[prop(optional)] default_details: RwSignal<DefaultDetails>,
     #[prop(optional, default=ShowProvidersArgs::default())] providers: ShowProvidersArgs,
@@ -175,6 +183,7 @@ pub fn SongView(
                             selected_songs_sig=selected_songs
                             filtered_selected=filtered_selected
                             providers=providers
+                            refresh_cb=refresh_cb
                         />
                     </div>
                 </div>

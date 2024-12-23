@@ -36,11 +36,14 @@ pub fn Explore() -> impl IntoView {
     let playlists = create_rw_signal(vec![]);
     get_playlists_local(playlists);
 
+    let refresh_songs = move || {};
+
     let context_menu_data = SongItemContextMenu {
         current_song: None,
         song_list: suggestion_items.read_only(),
         selected_songs: create_rw_signal(vec![]),
         playlists,
+        refresh_cb: Rc::new(Box::new(refresh_songs)),
     };
     let song_context_menu = Rc::new(ContextMenu::new(context_menu_data));
 

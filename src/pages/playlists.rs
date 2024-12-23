@@ -213,12 +213,15 @@ pub fn SinglePlaylist() -> impl IntoView {
         ..Default::default()
     });
 
+    let refresh_songs = move || {};
+
     view! {
         <SongView
             default_details=default_details
             songs=songs
             icons=icons
             selected_songs=selected_songs
+            refresh_cb=refresh_songs
         />
     }
 }

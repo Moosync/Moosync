@@ -55,7 +55,10 @@ pub fn SongFromUrlModal() -> impl IntoView {
         if song.is_none() {
             return;
         }
-        add_songs_to_library(vec![song.unwrap()]);
+
+        // TODO: Update all songs after importing song
+        let refresh_songs = move || {};
+        add_songs_to_library(vec![song.unwrap()], Rc::new(Box::new(refresh_songs)));
         set_timeout(
             move || {
                 modal_store.update(|m| m.clear_active_modal());

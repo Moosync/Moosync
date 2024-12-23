@@ -91,7 +91,11 @@ pub fn SingleGenre() -> impl IntoView {
         ..Default::default()
     });
 
-    view! { <SongView songs=songs icons=icons selected_songs=selected_songs /> }
+    let refresh_songs = move || {};
+
+    view! {
+        <SongView songs=songs icons=icons selected_songs=selected_songs refresh_cb=refresh_songs />
+    }
 }
 
 #[tracing::instrument(level = "trace", skip())]

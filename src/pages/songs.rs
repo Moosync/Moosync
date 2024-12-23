@@ -18,13 +18,16 @@ use crate::utils::songs::get_songs_from_indices;
 pub fn AllSongs() -> impl IntoView {
     let songs = create_rw_signal(vec![]);
     let selected_songs = create_rw_signal(vec![]);
-    get_songs_by_option(
-        GetSongOptions {
-            song: Some(Default::default()),
-            ..Default::default()
-        },
-        songs,
-    );
+    let refresh_songs = move || {
+        tracing::debug!("Calling refresh cb");
+        get_songs_by_option(
+            GetSongOptions {
+                song: Some(Default::default()),
+                ..Default::default()
+            },
+            songs,
+        );
+    };
 
     let player_store = expect_context::<RwSignal<PlayerStore>>();
     let play_songs_setter = create_write_slice(player_store, |p, song| p.play_now(song));
@@ -64,6 +67,8 @@ pub fn AllSongs() -> impl IntoView {
         ..Default::default()
     });
 
+    refresh_songs();
+
     view! {
         <SongView
             icons=icons
@@ -78,6 +83,7 @@ pub fn AllSongs() -> impl IntoView {
                     songs,
                 );
             })
+            refresh_cb=refresh_songs
         />
     }
 }

@@ -108,7 +108,7 @@ pub fn run() {
         .append_invoke_initialization_script(format!(
             r#"
             window.LOGGING_FILTER = "{}";
-            h"#,
+            "#,
             filter
         ))
         // .plugin(devtools)

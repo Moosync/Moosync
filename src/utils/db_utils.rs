@@ -250,18 +250,20 @@ pub fn get_genres_by_option(
     });
 }
 
-#[tracing::instrument(level = "trace", skip(songs))]
-pub fn add_songs_to_library(songs: Vec<Song>) {
+#[tracing::instrument(level = "trace", skip(songs, refresh_cb))]
+pub fn add_songs_to_library(songs: Vec<Song>, refresh_cb: Rc<Box<dyn Fn()>>) {
     spawn_local(async move {
         let res = super::invoke::insert_songs(songs).await;
         if res.is_err() {
             tracing::error!("Error adding songs: {:?}", res);
+        } else {
+            refresh_cb.as_ref()();
         }
     });
 }
 
-#[tracing::instrument(level = "trace", skip(songs))]
-pub fn remove_songs_from_library(songs: Vec<Song>) {
+#[tracing::instrument(level = "trace", skip(songs, refresh_cb))]
+pub fn remove_songs_from_library(songs: Vec<Song>, refresh_cb: Rc<Box<dyn Fn()>>) {
     spawn_local(async move {
         let res = super::invoke::remove_songs(
             songs
@@ -272,6 +274,8 @@ pub fn remove_songs_from_library(songs: Vec<Song>) {
         .await;
         if res.is_err() {
             tracing::error!("Error removing songs: {:?}", res);
+        } else {
+            refresh_cb.as_ref()();
         }
     });
 }

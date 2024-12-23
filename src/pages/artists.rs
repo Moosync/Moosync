@@ -119,6 +119,8 @@ pub fn SingleArtist() -> impl IntoView {
         get_artist_content
     );
 
+    let refresh_songs = move || {};
+
     view! {
         <SongView
             default_details=default_details
@@ -129,6 +131,7 @@ pub fn SingleArtist() -> impl IntoView {
                 show_providers: true,
                 selected_providers,
             }
+            refresh_cb=refresh_songs
         />
     }
 }

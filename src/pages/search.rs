@@ -266,6 +266,8 @@ pub fn Search() -> impl IntoView {
         }
     });
 
+    let refresh_songs = move || {};
+
     view! {
         <div class="w-100 h-100">
             <div class="container-fluid h-100 d-flex flex-column">
@@ -303,6 +305,7 @@ pub fn Search() -> impl IntoView {
                                                     song_list=create_rw_signal(res.songs.clone()).read_only()
                                                     selected_songs_sig=create_rw_signal(vec![])
                                                     filtered_selected=create_rw_signal(vec![])
+                                                    refresh_cb=refresh_songs
                                                 />
                                             </div>
                                         }

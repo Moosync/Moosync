@@ -118,6 +118,8 @@ pub fn SingleAlbum() -> impl IntoView {
         get_album_content
     );
 
+    let refresh_songs = move || {};
+
     view! {
         <SongView
             default_details=default_details
@@ -128,6 +130,7 @@ pub fn SingleAlbum() -> impl IntoView {
                 show_providers: true,
                 selected_providers,
             }
+            refresh_cb=refresh_songs
         />
     }
 }

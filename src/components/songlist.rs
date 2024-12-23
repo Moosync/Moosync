@@ -115,7 +115,13 @@ pub struct ShowProvidersArgs {
 
 #[tracing::instrument(
     level = "trace",
-    skip(song_list, selected_songs_sig, filtered_selected, hide_search_bar)
+    skip(
+        song_list,
+        selected_songs_sig,
+        filtered_selected,
+        hide_search_bar,
+        refresh_cb
+    )
 )]
 #[component()]
 /// filtered_selected is the list of song indices from the **filtered song list** after they have been filtered (search / sort)
@@ -124,6 +130,7 @@ pub fn SongList(
     #[prop()] song_list: impl SignalGet<Value = Vec<Song>> + Copy + 'static,
     #[prop()] selected_songs_sig: RwSignal<Vec<usize>>,
     #[prop()] filtered_selected: RwSignal<Vec<usize>>,
+    #[prop()] refresh_cb: impl Fn() + 'static,
     #[prop(default = false)] hide_search_bar: bool,
     #[prop(optional, default = ShowProvidersArgs::default())] providers: ShowProvidersArgs,
 ) -> impl IntoView {
@@ -292,6 +299,7 @@ pub fn SongList(
         song_list,
         selected_songs: selected_songs_sig,
         playlists,
+        refresh_cb: Rc::new(Box::new(refresh_cb)),
     };
     let song_context_menu = Rc::new(ContextMenu::new(context_menu_data));
 

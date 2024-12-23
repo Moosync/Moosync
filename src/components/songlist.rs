@@ -1,13 +1,14 @@
 use std::rc::Rc;
 
+use itertools::Itertools;
 use leptos::{
     component, create_effect, create_memo, create_node_ref, create_read_slice, create_rw_signal,
     create_write_slice,
     ev::{keydown, keyup},
     event_target_value, expect_context,
     html::Input,
-    use_context, view, window_event_listener, HtmlElement, IntoView, RwSignal, Show,
-    SignalGet, SignalSet, SignalUpdate,
+    use_context, view, window_event_listener, HtmlElement, IntoView, RwSignal, Show, SignalGet,
+    SignalGetUntracked, SignalSet, SignalSetUntracked, SignalUpdate,
 };
 use leptos_context_menu::ContextMenu;
 use leptos_virtual_scroller::VirtualScroller;
@@ -117,6 +118,8 @@ pub struct ShowProvidersArgs {
     skip(song_list, selected_songs_sig, filtered_selected, hide_search_bar)
 )]
 #[component()]
+/// filtered_selected is the list of song indices from the **filtered song list** after they have been filtered (search / sort)
+/// selected_songs_sig is the list of song indices from the **original song list**
 pub fn SongList(
     #[prop()] song_list: impl SignalGet<Value = Vec<Song>> + Copy + 'static,
     #[prop()] selected_songs_sig: RwSignal<Vec<usize>>,
@@ -126,6 +129,7 @@ pub fn SongList(
 ) -> impl IntoView {
     let is_ctrl_pressed = create_rw_signal(false);
     let is_shift_pressed = create_rw_signal(false);
+    let select_all = create_rw_signal(false);
 
     let show_searchbar = create_rw_signal(false);
     let searchbar_ref = create_node_ref();
@@ -202,6 +206,10 @@ pub fn SongList(
         if ev.ctrl_key() {
             is_ctrl_pressed.set(true);
         }
+
+        if ev.code() == "KeyA" && is_ctrl_pressed.get_untracked() {
+            select_all.set(true);
+        }
     });
 
     window_event_listener(keyup, move |ev| {
@@ -266,6 +274,18 @@ pub fn SongList(
         selected_songs_sig.set(vec![get_actual_position(index)]);
         filtered_selected.set(vec![index]);
     };
+
+    create_effect(move |_| {
+        let select_all_val = select_all.get();
+        if select_all_val {
+            select_all.set_untracked(false);
+
+            let song_space = (0..song_list.get().len()).collect_vec();
+
+            selected_songs_sig.set(song_space.clone());
+            filtered_selected.set(song_space);
+        }
+    });
 
     let context_menu_data = SongItemContextMenu {
         current_song: None,

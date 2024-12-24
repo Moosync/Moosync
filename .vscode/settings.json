@@ -1,11 +1,13 @@
 {
   "typescript.tsdk": "node_modules/typescript/lib",
-  "rust-analyzer.rustfmt.overrideCommand": [
-    "/home/ovenoboyo/.cargo/bin/leptosfmt",
-    "--stdin",
-    "--rustfmt"
+  // "rust-analyzer.rustfmt.overrideCommand": [
+  //   "/home/ovenoboyo/.cargo/bin/leptosfmt",
+  //   "--stdin",
+  //   "--rustfmt"
+  // ],
+  "rust-analyzer.cargo.features": [
+    "core"
   ],
-  "rust-analyzer.cargo.features": ["core"],
   "rust-analyzer.showUnlinkedFileNotification": false,
   "editor.formatOnSave": true,
   "rust-analyzer.checkOnSave": false

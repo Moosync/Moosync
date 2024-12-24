@@ -91,16 +91,20 @@ impl YoutubeProvider {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    fn get_oauth_client(&self) -> OAuth2Client {
-        BasicClient::new(
-            ClientId::new(self.config.client_id.clone().unwrap()),
-            Some(ClientSecret::new(
-                self.config.client_secret.clone().unwrap(),
-            )),
-            AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string()).unwrap(),
-            Some(TokenUrl::new("https://oauth2.googleapis.com/token".to_string()).unwrap()),
-        )
-        .set_redirect_uri(RedirectUrl::new(self.config.redirect_uri.to_string()).unwrap())
+    fn get_oauth_client(&self) -> Option<OAuth2Client> {
+        if self.config.client_id.is_some() && self.config.client_secret.is_some() {
+            let client = BasicClient::new(
+                ClientId::new(self.config.client_id.clone().unwrap()),
+                Some(ClientSecret::new(
+                    self.config.client_secret.clone().unwrap(),
+                )),
+                AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string()).unwrap(),
+                Some(TokenUrl::new("https://oauth2.googleapis.com/token".to_string()).unwrap()),
+            )
+            .set_redirect_uri(RedirectUrl::new(self.config.redirect_uri.to_string()).unwrap());
+            return Some(client);
+        }
+        None
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -141,15 +145,12 @@ impl YoutubeProvider {
 
     #[tracing::instrument(level = "trace", skip(self))]
     async fn refresh_login(&mut self) -> Result<()> {
-        self.config.tokens = Some(
-            refresh_login(
-                "MoosyncYoutubeRefreshToken",
-                self.get_oauth_client(),
-                &self.app,
-            )
-            .await?,
-        );
-        self.create_api_client().await;
+        let client = self.get_oauth_client();
+        if let Some(client) = client {
+            self.config.tokens =
+                Some(refresh_login("MoosyncYoutubeRefreshToken", client, &self.app).await?);
+            self.create_api_client().await;
+        }
 
         Ok(())
     }
@@ -418,7 +419,11 @@ impl GenericProvider for YoutubeProvider {
             .await;
 
         let preferences: State<PreferenceConfig> = self.app.state();
-        let youtube_config: Value = preferences.inner().load_selective("youtube".into())?;
+        let youtube_config: Value = preferences
+            .inner()
+            .load_selective("youtube".into())
+            .unwrap_or_default();
+
         tracing::info!("{:?}", youtube_config);
         let client_id = youtube_config.get("client_id");
         let client_secret = youtube_config.get("client_secret");
@@ -456,26 +461,31 @@ impl GenericProvider for YoutubeProvider {
 
     #[tracing::instrument(level = "trace", skip(self))]
     async fn login(&mut self, _: String) -> Result<String> {
-        let (url, verifier) = login(
-            LoginArgs {
-                client_id: self.config.client_id.clone(),
-                client_secret: self.config.client_secret.clone(),
-                scopes: self.config.scopes.clone(),
-                extra_params: Some(HashMap::from([
-                    ("prompt", "consent"),
-                    ("access_type", "offline"),
-                ])),
-            },
-            self.get_oauth_client(),
-            &self.app,
-        )?;
+        let client = self.get_oauth_client();
+        if let Some(client) = client {
+            let (url, verifier) = login(
+                LoginArgs {
+                    client_id: self.config.client_id.clone(),
+                    client_secret: self.config.client_secret.clone(),
+                    scopes: self.config.scopes.clone(),
+                    extra_params: Some(HashMap::from([
+                        ("prompt", "consent"),
+                        ("access_type", "offline"),
+                    ])),
+                },
+                client,
+                &self.app,
+            )?;
 
-        self.verifier = verifier;
+            self.verifier = verifier;
 
-        let oauth_handler: State<OAuthHandler> = self.app.state();
-        oauth_handler.register_oauth_path("youtubeoauthcallback".into(), self.key());
+            let oauth_handler: State<OAuthHandler> = self.app.state();
+            oauth_handler.register_oauth_path("youtubeoauthcallback".into(), self.key());
 
-        Ok(url)
+            Ok(url)
+        } else {
+            Err("Could not create OAuth client, client_id and secret likely not set".into())
+        }
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

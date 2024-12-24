@@ -309,7 +309,9 @@ impl GenericProvider for SpotifyProvider {
             .await;
 
         let preferences: State<PreferenceConfig> = self.app.state();
-        let spotify_config: Value = preferences.inner().load_selective("spotify".into())?;
+        let spotify_config: Value = preferences
+            .load_selective("spotify".into())
+            .unwrap_or_default();
         let client_id = spotify_config.get("client_id");
         let client_secret = spotify_config.get("client_secret");
 

@@ -3,13 +3,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-fn find_function_details_json(target_dir: &Path) -> Option<PathBuf> {
+fn find_function_details_json(target_dir: &Path) -> Option<PathBuf> { 
     for entry in fs::read_dir(target_dir).ok()? {
         let entry = entry.ok()?;
         let path = entry.path();
 
         if path.is_dir() {
-            if let Some(found) = find_function_details_json(&path) {
+            if let Some(found) = find_function_details_json(&path.join("build")) {
                 return Some(found);
             }
         } else if path.ends_with("function_details.json") {

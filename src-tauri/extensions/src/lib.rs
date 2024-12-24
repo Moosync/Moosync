@@ -3,6 +3,7 @@ use std::{
     env,
     fs::{self, File},
     io::Write,
+    os::windows::process::CommandExt,
     path::PathBuf,
     process::Command,
     str::FromStr,
@@ -19,7 +20,8 @@ use futures::{
 };
 use futures::{future::join_all, StreamExt};
 use interprocess::local_socket::{
-    traits::tokio::Listener, GenericFilePath, ListenerOptions, ToFsName,
+    traits::tokio::Listener, GenericFilePath, GenericNamespaced, ListenerOptions, NameType,
+    ToFsName, ToNsName,
 };
 use serde_json::Value;
 use socket_handler::{ExtensionCommandReceiver, MainCommandSender, SocketHandler};
@@ -35,6 +37,8 @@ use uuid::Uuid;
 use zip_extensions::zip_extract;
 
 mod socket_handler;
+
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 macro_rules! helper1 {
     // Internal helper macro to handle request creation and transformation
@@ -152,32 +156,33 @@ impl ExtensionHandler {
         }
     }
 
+    fn get_builder(&self, exe_path: PathBuf) -> Command {
+        let exe_path_clone = exe_path.clone();
+        let mut builder = Command::new(exe_path_clone);
+        builder.args([
+            "-ipcPath",
+            self.ipc_path.to_str().unwrap(),
+            "-extensionPath",
+            self.extensions_dir.to_str().unwrap(),
+            "-installPath",
+            exe_path.to_str().unwrap(),
+        ]);
+
+        #[cfg(target_os = "windows")]
+        {
+            builder.creation_flags(CREATE_NO_WINDOW);
+        }
+
+        builder
+    }
+
     #[tracing::instrument(level = "trace", skip(self))]
     fn spawn_ext_runners(&self) {
         let exe_path = env::current_exe().unwrap();
-        // let _handle = Command::new(exe_path.clone().parent().unwrap().join("exthost"))
-        //     .args([
-        //         "-ipcPath",
-        //         self.ipc_path.to_str().unwrap(),
-        //         "-extensionPath",
-        //         self.extensions_dir.to_str().unwrap(),
-        //         "-installPath",
-        //         exe_path.to_str().unwrap(),
-        //     ])
-        //     .spawn()
-        //     .unwrap();
+        let exe_path = exe_path.parent().unwrap().join("exthost-wasm");
 
-        let _handle_wasm = Command::new(exe_path.clone().parent().unwrap().join("exthost-wasm"))
-            .args([
-                "-ipcPath",
-                self.ipc_path.to_str().unwrap(),
-                "-extensionPath",
-                self.extensions_dir.to_str().unwrap(),
-                "-installPath",
-                exe_path.to_str().unwrap(),
-            ])
-            .spawn()
-            .unwrap();
+        let mut builder = self.get_builder(exe_path.clone());
+        builder.spawn().unwrap();
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -191,10 +196,18 @@ impl ExtensionHandler {
                 .enable_io()
                 .build()
                 .unwrap();
-            let ipc_path = ipc_path.clone();
+
+            let ipc_path = if GenericNamespaced::is_supported() {
+                ipc_path
+                    .file_name()
+                    .unwrap()
+                    .to_ns_name::<GenericNamespaced>()
+            } else {
+                ipc_path.clone().to_fs_name::<GenericFilePath>()
+            };
+
             runtime.block_on(async move {
-                let opts =
-                    ListenerOptions::new().name(ipc_path.to_fs_name::<GenericFilePath>().unwrap());
+                let opts = ListenerOptions::new().name(ipc_path.unwrap());
                 let sock_listener = opts.create_tokio().unwrap();
 
                 loop {

@@ -12,6 +12,7 @@ use std::{
 };
 
 use base64::Engine;
+use command_group::CommandGroup;
 use fs_extra::dir::CopyOptions;
 use futures::{
     channel::mpsc::{channel, unbounded, Receiver, UnboundedSender},
@@ -168,10 +169,10 @@ impl ExtensionHandler {
             exe_path.to_str().unwrap(),
         ]);
 
-        #[cfg(target_os = "windows")]
-        {
-            builder.creation_flags(CREATE_NO_WINDOW);
-        }
+        // #[cfg(target_os = "windows")]
+        // {
+        //     builder.creation_flags(CREATE_NO_WINDOW);
+        // }
 
         builder
     }
@@ -182,7 +183,7 @@ impl ExtensionHandler {
         let exe_path = exe_path.parent().unwrap().join("exthost-wasm");
 
         let mut builder = self.get_builder(exe_path.clone());
-        builder.spawn().unwrap();
+        builder.group_spawn().unwrap();
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

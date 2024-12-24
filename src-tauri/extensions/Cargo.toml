@@ -13,6 +13,7 @@ tokio = "1.42.0"
 uuid = { default-features = false, version = "1.11.0" }
 zip-extensions = { default-features = false, version = "0.8" }
 tracing = { version = "0.1.41", default-features = false }
+command-group = "5.0.1"
 
 
 [dependencies.interprocess]

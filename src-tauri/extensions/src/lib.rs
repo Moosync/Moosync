@@ -3,7 +3,6 @@ use std::{
     env,
     fs::{self, File},
     io::Write,
-    os::windows::process::CommandExt,
     path::PathBuf,
     process::Command,
     str::FromStr,
@@ -39,7 +38,7 @@ use zip_extensions::zip_extract;
 
 mod socket_handler;
 
-const CREATE_NO_WINDOW: u32 = 0x08000000;
+// const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 macro_rules! helper1 {
     // Internal helper macro to handle request creation and transformation

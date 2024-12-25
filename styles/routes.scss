@@ -1,25 +1,29 @@
 .route-out {
-    animation: 0.2s slide-out ease-in-out;
+    animation: 0.5s slide-out;
 }
 
 .route-in {
-    animation: 0.2s slide-in ease-in-out;
+    animation: 0.5s slide-in;
 }
 
 @keyframes slide-in {
     from {
-        transform: translateX(100%);
+        transform: translate3d(-100%, 0, 0);
+        visibility: visible;
     }
+
     to {
-        transform: translateX(0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
 @keyframes slide-out {
     from {
-        transform: translateX(0);
+        transform: translate3d(0, 0, 0);
     }
+
     to {
-        transform: translateX(-100%);
+        visibility: hidden;
+        transform: translate3d(100%, 0, 0);
     }
 }

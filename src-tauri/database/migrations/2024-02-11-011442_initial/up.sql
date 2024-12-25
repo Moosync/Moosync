@@ -3,16 +3,16 @@ CREATE TABLE `artist_bridge`(
 	`id` INTEGER PRIMARY KEY,
 	`song` TEXT,
 	`artist` TEXT,
-	FOREIGN KEY (`song`) REFERENCES `allsongs`(`id`),
-	FOREIGN KEY (`artist`) REFERENCES `artists`(`id`)
+	FOREIGN KEY (`song`) REFERENCES `allsongs`(`_id`),
+	FOREIGN KEY (`artist`) REFERENCES `artists`(`artist_id`)
 );
 
 CREATE TABLE `playlist_bridge`(
 	`id` INTEGER PRIMARY KEY,
 	`song` TEXT,
 	`playlist` TEXT,
-	FOREIGN KEY (`song`) REFERENCES `allsongs`(`id`),
-	FOREIGN KEY (`playlist`) REFERENCES `playlists`(`id`)
+	FOREIGN KEY (`song`) REFERENCES `allsongs`(`_id`),
+	FOREIGN KEY (`playlist`) REFERENCES `playlists`(`playlist_id`)
 );
 
 CREATE TABLE `artists`(
@@ -29,8 +29,8 @@ CREATE TABLE `album_bridge`(
 	`id` INTEGER PRIMARY KEY,
 	`song` TEXT,
 	`album` TEXT,
-	FOREIGN KEY (`song`) REFERENCES `allsongs`(`id`),
-	FOREIGN KEY (`album`) REFERENCES `albums`(`id`)
+	FOREIGN KEY (`song`) REFERENCES `allsongs`(`_id`),
+	FOREIGN KEY (`album`) REFERENCES `albums`(`album_id`)
 );
 
 CREATE TABLE `genres`(
@@ -83,8 +83,8 @@ CREATE TABLE `genre_bridge`(
 	`id` INTEGER PRIMARY KEY,
 	`song` TEXT,
 	`genre` TEXT,
-	FOREIGN KEY (`song`) REFERENCES `allsongs`(`id`),
-	FOREIGN KEY (`genre`) REFERENCES `genres`(`id`)
+	FOREIGN KEY (`song`) REFERENCES `allsongs`(`_id`),
+	FOREIGN KEY (`genre`) REFERENCES `genres`(`genre_id`)
 );
 
 CREATE TABLE `albums`(

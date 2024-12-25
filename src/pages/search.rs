@@ -3,9 +3,9 @@ use std::{collections::HashMap, rc::Rc};
 use crate::components::cardview::{CardView, SimplifiedCardItem};
 use colors_transform::{Color, Rgb};
 use leptos::{
-    component, create_effect, create_node_ref, create_rw_signal, ev::wheel, expect_context,
-    html::Div, view, For, IntoView, Params, RwSignal, Show, SignalGet, SignalSet, SignalUpdate,
-    SignalWith,
+    component, create_effect, create_node_ref, create_rw_signal, create_signal, ev::wheel,
+    expect_context, html::Div, view, For, IntoView, Params, RwSignal, Show, SignalGet, SignalSet,
+    SignalUpdate, SignalWith,
 };
 use leptos_router::{use_query, Params};
 use leptos_use::{use_event_listener, use_resize_observer};
@@ -110,6 +110,8 @@ pub fn TabCarousel(
         }
     });
 
+    let provider_store = expect_context::<Rc<ProviderStore>>();
+
     view! {
         <div class="container-fluid">
             <div class="row no-gutters">
@@ -167,7 +169,15 @@ pub fn TabCarousel(
                                                         }
                                                     }
                                                 >
-                                                    <span class="align-self-center provider-title">{key}</span>
+                                                    <span class="align-self-center provider-title">
+                                                        {if let Some(provider) = provider_store
+                                                            .get_provider_name_by_key(key.clone())
+                                                        {
+                                                            provider.name
+                                                        } else {
+                                                            key
+                                                        }}
+                                                    </span>
                                                 </div>
                                             </div>
                                         }

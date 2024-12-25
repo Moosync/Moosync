@@ -44,6 +44,8 @@ pub fn SingleArtist() -> impl IntoView {
         return view! {}.into_view();
     }
 
+    tracing::debug!("Parsed artist {:?}", artist.get());
+
     let songs = create_rw_signal(vec![]);
     let selected_songs = create_rw_signal(vec![]);
 

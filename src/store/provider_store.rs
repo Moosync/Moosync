@@ -153,6 +153,10 @@ impl ProviderStore {
         self.keys.get()
     }
 
+    pub fn get_provider_name_by_key(&self, key: String) -> Option<ProviderStatus> {
+        self.statuses.get().iter().find(|s| s.key == key).cloned()
+    }
+
     generate_async_functions!(
         provider_login {
             args: {

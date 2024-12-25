@@ -15,9 +15,9 @@ use regex::Regex;
 use rspotify::{
     clients::{BaseClient, OAuthClient},
     model::{
-        AlbumId, ArtistId, FullAlbum, FullArtist, FullTrack, Id, PlaylistId, PlaylistTracksRef,
-        SearchType, SimplifiedAlbum, SimplifiedArtist, SimplifiedPlaylist, SimplifiedTrack,
-        TrackId,
+        AlbumId, ArtistId, FullAlbum, FullArtist, FullTrack, Id, Image, PlaylistId,
+        PlaylistTracksRef, SearchType, SimplifiedAlbum, SimplifiedArtist, SimplifiedPlaylist,
+        SimplifiedTrack, TrackId,
     },
     AuthCodePkceSpotify, Token,
 };
@@ -170,10 +170,15 @@ impl SpotifyProvider {
     }
 
     #[tracing::instrument(level = "trace", skip(self, artist))]
-    fn parse_artists(&self, artist: SimplifiedArtist) -> QueryableArtist {
+    fn parse_artists(
+        &self,
+        artist: SimplifiedArtist,
+        images: Option<Vec<Image>>,
+    ) -> QueryableArtist {
         QueryableArtist {
             artist_id: Some(format!("spotify-artist:{}", artist.id.clone().unwrap())),
             artist_name: Some(artist.name),
+            artist_coverpath: images.and_then(|i| i.first().map(|im| im.url.clone())),
             artist_extra_info: Some(EntityInfo(
                 serde_json::to_string(&SpotifyExtraInfo {
                     spotify: ArtistExtraInfo {
@@ -222,7 +227,7 @@ impl SpotifyProvider {
             artists: Some(
                 item.artists
                     .into_iter()
-                    .map(|a| self.parse_artists(a))
+                    .map(|a| self.parse_artists(a, None))
                     .collect(),
             ),
             ..Default::default()
@@ -564,12 +569,15 @@ impl GenericProvider for SpotifyProvider {
                         SearchType::Artist,
                         rspotify::model::SearchResult::Artists,
                         |item: FullArtist, vec: &mut Vec<QueryableArtist>| vec.push(
-                            self.parse_artists(SimplifiedArtist {
-                                external_urls: item.external_urls,
-                                href: Some(item.href),
-                                id: Some(item.id),
-                                name: item.name,
-                            })
+                            self.parse_artists(
+                                SimplifiedArtist {
+                                    external_urls: item.external_urls,
+                                    href: Some(item.href),
+                                    id: Some(item.id),
+                                    name: item.name,
+                                },
+                                Some(item.images)
+                            )
                         ),
                         ret.artists
                     ),

@@ -72,11 +72,3 @@ custom-protocol = ["tauri/custom-protocol"]
 name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 required-features = []
-
-[profile.dev]
-opt-level = 0
-debug = false
-lto = false
-incremental = true
-
-[profile.dev.package]

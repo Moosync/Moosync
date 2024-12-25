@@ -50,7 +50,7 @@ impl YoutubeScraper {
                 ..Default::default()
             }),
             artists: Some(vec![QueryableArtist {
-                artist_id: Some(format!("youtube-author:{}", v.channel.id)),
+                artist_id: Some(format!("youtube-artist:{}", v.channel.id)),
                 artist_name: Some(v.channel.name.clone()),
                 ..Default::default()
             }]),
@@ -80,7 +80,7 @@ impl YoutubeScraper {
                 ..Default::default()
             }),
             artists: Some(vec![QueryableArtist {
-                artist_id: Some(format!("youtube-author:{}", details.channel_id)),
+                artist_id: Some(format!("youtube-artist:{}", details.channel_id)),
                 artist_name: Some(details.owner_channel_name.clone()),
                 ..Default::default()
             }]),
@@ -103,7 +103,7 @@ impl YoutubeScraper {
     #[tracing::instrument(level = "trace", skip(self, artist))]
     fn parse_artist(&self, artist: &Channel) -> QueryableArtist {
         QueryableArtist {
-            artist_id: Some(format!("youtube-author:{}", artist.id)),
+            artist_id: Some(format!("youtube-artist:{}", artist.id)),
             artist_name: Some(artist.name.clone()),
             artist_extra_info: Some(EntityInfo(format!(
                 r#"{{

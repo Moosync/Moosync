@@ -368,12 +368,13 @@ impl YoutubeProvider {
         artist_id: &str,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
+        let artist_id = artist_id.replace("youtube-artist:", "");
         if let Some(api_client) = &self.api_client {
             let mut builder = api_client
                 .channels()
                 .list(&vec!["contentDetails".into()])
                 .max_results(50)
-                .add_id(artist_id.replace("youtube-artist:", "").as_str());
+                .add_id(artist_id.as_str());
 
             if let Some(next_page) = pagination.token.clone() {
                 builder = builder.page_token(next_page.as_str());

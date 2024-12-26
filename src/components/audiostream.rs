@@ -340,7 +340,7 @@ impl PlayerHolder {
                 types::ui::player_details::RepeatModes::Once => {
                     if !store.get_has_repeated() {
                         tracing::info!("repeating now");
-                        store.force_seek_percent(0f64);
+                        store.change_index(store.data.queue.current_index, true);
                         store.set_state(PlayerState::Playing);
                         store.set_has_repeated(true);
                     } else {
@@ -351,7 +351,7 @@ impl PlayerHolder {
                 }
                 types::ui::player_details::RepeatModes::Loop => {
                     tracing::info!("repeating now");
-                    store.force_seek_percent(0f64);
+                    store.change_index(store.data.queue.current_index, true);
                     store.set_state(PlayerState::Playing);
                 }
             });

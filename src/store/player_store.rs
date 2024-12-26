@@ -143,7 +143,7 @@ impl PlayerStore {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    pub fn update_current_song(&mut self) {
+    pub fn update_current_song(&mut self, force: bool) {
         if self.data.queue.current_index >= self.data.queue.song_queue.len() {
             self.data.queue.current_index = 0;
         }
@@ -157,7 +157,7 @@ impl PlayerStore {
 
         let song = self.data.queue.data.get(&id).cloned();
 
-        if song == self.data.current_song && self.data.player_blacklist.is_empty() {
+        if !force && song == self.data.current_song && self.data.player_blacklist.is_empty() {
             return;
         }
 
@@ -181,7 +181,7 @@ impl PlayerStore {
     #[tracing::instrument(level = "trace", skip(self, songs))]
     pub fn add_to_queue(&mut self, songs: Vec<Song>) {
         self.add_to_queue_at_index(songs, self.data.queue.song_queue.len());
-        self.update_current_song();
+        self.update_current_song(false);
     }
 
     #[tracing::instrument(level = "trace", skip(self, songs, index))]
@@ -214,7 +214,7 @@ impl PlayerStore {
         self.set_state(PlayerState::Playing);
         self.insert_song_at_index(song, self.data.queue.current_index + 1);
         self.data.queue.current_index += 1;
-        self.update_current_song();
+        self.update_current_song(true);
     }
 
     #[tracing::instrument(level = "trace", skip(self, songs))]
@@ -255,13 +255,13 @@ impl PlayerStore {
     }
 
     #[tracing::instrument(level = "trace", skip(self, new_index))]
-    pub fn change_index(&mut self, new_index: usize) {
+    pub fn change_index(&mut self, new_index: usize, force: bool) {
         if new_index >= self.data.queue.song_queue.len() {
             return;
         }
 
         self.data.queue.current_index = new_index;
-        self.update_current_song();
+        self.update_current_song(force);
     }
 
     #[tracing::instrument(level = "trace", skip(self, new_time))]
@@ -431,7 +431,7 @@ impl PlayerStore {
         if self.data.queue.current_index >= self.data.queue.song_queue.len() {
             self.data.queue.current_index = 0;
         }
-        self.update_current_song();
+        self.update_current_song(false);
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -441,7 +441,7 @@ impl PlayerStore {
         } else {
             self.data.queue.current_index -= 1;
         }
-        self.update_current_song();
+        self.update_current_song(false);
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -477,7 +477,7 @@ impl PlayerStore {
     pub fn clear_queue(&mut self) {
         self.data.queue.song_queue.clear();
         self.data.queue.current_index = 0;
-        self.update_current_song();
+        self.update_current_song(false);
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -493,7 +493,7 @@ impl PlayerStore {
                 self.add_to_queue(vec![current_song]);
             }
         }
-        self.update_current_song();
+        self.update_current_song(false);
     }
 
     #[tracing::instrument(level = "trace", skip(self, key))]

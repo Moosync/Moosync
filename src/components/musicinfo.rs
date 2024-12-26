@@ -100,7 +100,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>) -> impl IntoView {
     let is_playing = create_read_slice(player_store, |p| {
         p.get_player_state() == PlayerState::Playing
     });
-    let play_now = create_write_slice(player_store, |p, val| p.change_index(val));
+    let play_now = create_write_slice(player_store, |p, val| p.change_index(val, true));
     let remove_from_queue = create_write_slice(player_store, |p, val| p.remove_from_queue(val));
 
     let clear_queue = create_write_slice(player_store, |p, _| p.clear_queue_except_current());

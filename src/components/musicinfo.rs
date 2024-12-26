@@ -6,6 +6,7 @@ use leptos::{
 };
 use leptos_virtual_scroller::VirtualScroller;
 use serde::Serialize;
+use types::canvaz;
 use types::songs::{Song, SongType};
 use types::ui::player_details::PlayerState;
 use types::ui::song_details::SongDetailIcons;
@@ -101,6 +102,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>) -> impl IntoView {
     let remove_from_queue = create_write_slice(player_store, |p, val| p.remove_from_queue(val));
 
     let clear_queue = create_write_slice(player_store, |p, _| p.clear_queue_except_current());
+    let canvaz_sig = create_rw_signal(None);
 
     let get_queue = create_read_slice(player_store, |p| {
         p.get_queue()
@@ -119,21 +121,12 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>) -> impl IntoView {
                 && current_song.song.playback_url.is_some()
             {
                 spawn_local(async move {
-                    #[derive(Serialize)]
-                    struct GetCanvasArgs {
-                        uri: String,
-                    }
-
-                    let res = invoke(
-                        "get_canvaz",
-                        serde_wasm_bindgen::to_value(&GetCanvasArgs {
-                            uri: current_song.song.playback_url.clone().unwrap(),
-                        })
-                        .unwrap(),
+                    let res = crate::utils::invoke::get_canvaz(
+                        current_song.song.playback_url.unwrap().clone(),
                     )
                     .await;
                     if let Ok(res) = res {
-                        tracing::debug!("Got canvas: {:?}", res);
+                        canvaz_sig.set(res.canvases.first().map(|c| c.url.clone()));
                     } else {
                         tracing::error!("Failed to get canvaz {:?}", res)
                     }
@@ -164,12 +157,21 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>) -> impl IntoView {
             <div class="h-100 w-100">
                 // Canvas
                 <div class="dark-overlay" style="top: 0px;"></div>
-                <img
-                    class="bg-img"
-                    src=move || {
-                        current_song.get().map(|current_song| get_high_img(&current_song))
+                {move || {
+                    let current_song = current_song.get();
+                    if current_song.is_none() {
+                        return view! {}.into_view();
                     }
-                />
+                    let canvas_url = canvaz_sig.get();
+                    let high_img = current_song.map(|current_song| get_high_img(&current_song));
+                    if let Some(canvas_url) = canvas_url {
+                        view! { <video class="canvaz-vid" src=canvas_url autoplay loop muted /> }
+                            .into_view()
+                    } else {
+                        view! { <img class="bg-img" src=high_img /> }.into_view()
+                    }
+                }}
+
                 <div class="container-fluid w-100 h-100 music-info-container">
                     <div class="row no-gutters justify-content-end">
                         // Close button

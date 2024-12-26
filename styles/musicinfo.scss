@@ -23,7 +23,8 @@
 .right-container {
     margin-left: 5rem;
 }
-.bg-img {
+.bg-img,
+.canvaz-vid {
     height: 100vh;
     width: 100vw;
     object-fit: cover;
@@ -35,6 +36,7 @@
     transform: translateZ(0); /*Run on GPU*/
     will-change: transform;
 }
+
 .dark-overlay {
     height: calc(100% + 28px + 5px + 3px);
     width: 100vw;

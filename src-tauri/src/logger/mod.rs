@@ -5,6 +5,21 @@ use tauri::{AppHandle, Manager, State};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use types::errors::Result;
 
+use regex::Regex;
+use std::sync::Once;
+
+static mut REGEX: Option<Regex> = None;
+static INIT: Once = Once::new();
+
+fn get_regex() -> &'static Regex {
+    unsafe {
+        INIT.call_once(|| {
+            REGEX = Some(Regex::new(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]").unwrap());
+        });
+        REGEX.as_ref().unwrap()
+    }
+}
+
 pub struct Logger {
     file_appender: Arc<Mutex<RollingFileAppender>>,
 }
@@ -24,10 +39,15 @@ impl Logger {
 
     pub fn renderer_write(&self, data: Vec<u8>) -> Result<()> {
         let mut file_appender = self.file_appender.lock().unwrap();
-        file_appender.write_all(&data)?;
+
+        let parsed = str::from_utf8(&data)?;
+        let re = get_regex();
+        let parsed_stripped = re.replace_all(parsed, "");
+
+        file_appender.write_all(parsed_stripped.as_bytes())?;
         drop(file_appender);
 
-        println!("{}", str::from_utf8(&data)?);
+        println!("{}", parsed);
 
         Ok(())
     }

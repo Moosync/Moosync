@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon};
 use leptos::{
     component, create_effect, create_node_ref, create_rw_signal, create_write_slice, ev::Event,
-    event_target_value, expect_context, view, CollectView, IntoView, RwSignal, SignalGet,
+    event_target_value, expect_context, view, window, CollectView, IntoView, RwSignal, SignalGet,
     SignalGetUntracked, SignalSet, SignalUpdate,
 };
 use leptos_router::use_navigate;
@@ -258,10 +258,14 @@ pub fn TopBar() -> impl IntoView {
                         // Prev next buttons
                         <div class="row justify-content-between">
                             <div class="col-6">
-                                <PrevIcon />
+                                <PrevIcon on:click=move |_| {
+                                    window().history().unwrap().back().unwrap();
+                                } />
                             </div>
                             <div class="col-6">
-                                <NextIcon />
+                                <NextIcon on:click=move |_| {
+                                    window().history().unwrap().forward().unwrap();
+                                } />
                             </div>
                         </div>
                     </div>

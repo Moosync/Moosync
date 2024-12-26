@@ -74,7 +74,7 @@ pub fn SongListItem(
                         </div>
                     </div>
                     <div class="row no-gutters flex-nowrap">
-                        <div class="row no-gutters">
+                        <div class="row no-gutters w-100">
                             <ArtistList artists=song.artists />
                         </div>
                     </div>

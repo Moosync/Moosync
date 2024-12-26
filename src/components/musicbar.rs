@@ -77,7 +77,7 @@ fn Details() -> impl IntoView {
                     </div>
                 </div>
 
-                <div class="row no-gutters">
+                <div class="row no-gutters w-100">
                     {move || {
                         let artists = artists_list.get();
                         view! { <ArtistList artists=Some(artists) /> }

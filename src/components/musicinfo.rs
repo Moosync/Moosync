@@ -72,7 +72,7 @@ where
                             }
                         }}
                     </div>
-                    <div class="row no-gutters">
+                    <div class="row no-gutters w-100">
                         <ArtistList artists=song.artists />
                     </div>
 

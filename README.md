@@ -8,9 +8,8 @@
 - System theme fetch
 - Optimize cloning in leptos
 - Optimize DB queries
-- Fix single artist page
-- lowercase provider keys
 - Local songs tab in search page
+- Fix sorting
 
 - hide everything technical
 - settings is 3/4th of the width

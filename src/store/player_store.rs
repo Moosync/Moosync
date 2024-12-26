@@ -169,6 +169,10 @@ impl PlayerStore {
 
         self.clear_blacklist();
 
+        if force {
+            self.data.force_load_song = !self.data.force_load_song;
+        }
+
         self.scrobble_time = 0f64;
         self.scrobbled = false;
 
@@ -256,10 +260,6 @@ impl PlayerStore {
 
     #[tracing::instrument(level = "trace", skip(self, new_index))]
     pub fn change_index(&mut self, new_index: usize, force: bool) {
-        if new_index >= self.data.queue.song_queue.len() {
-            return;
-        }
-
         self.data.queue.current_index = new_index;
         self.update_current_song(force);
     }

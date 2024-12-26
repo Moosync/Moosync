@@ -4,16 +4,20 @@ use crate::icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon};
 use leptos::{
     component, create_effect, create_node_ref, create_rw_signal, create_write_slice, ev::Event,
     event_target_value, expect_context, view, window, CollectView, IntoView, RwSignal, SignalGet,
-    SignalGetUntracked, SignalSet, SignalUpdate,
+    SignalGetUntracked, SignalSet, SignalSetter, SignalUpdate,
 };
-use leptos_router::use_navigate;
+use leptos_router::{use_navigate, NavigateOptions};
 use leptos_use::on_click_outside;
 use leptos_virtual_scroller::VirtualScroller;
 use types::{
-    entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist},
+    entities::{
+        GetEntityOptions, QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist,
+    },
+    errors::Result,
     songs::{GetSongOptions, SearchableSong, Song},
 };
-use web_sys::SubmitEvent;
+use wasm_bindgen_futures::spawn_local;
+use web_sys::{MouseEvent, SubmitEvent};
 
 use crate::{
     components::low_img::LowImg,
@@ -34,35 +38,38 @@ enum InputFocus {
     Blur,
 }
 
-#[tracing::instrument(level = "trace", skip(song))]
-#[component]
-pub fn SearchResultItem(song: Song) -> impl IntoView {
-    let player_store = expect_context::<RwSignal<PlayerStore>>();
-    let play_now = create_write_slice(player_store, |p, val| p.play_now(val));
+#[derive(Clone)]
+pub struct SearchResultItemData {
+    pub cover: Option<String>,
+    pub title: String,
+    pub subtitle: String,
+    pub on_click: Rc<Box<dyn Fn()>>,
+    pub on_icon_click: Rc<Box<dyn Fn()>>,
+}
 
-    let song_cloned = song.clone();
+#[tracing::instrument(level = "trace", skip(item))]
+#[component]
+pub fn SearchResultItem(item: SearchResultItemData) -> impl IntoView {
     view! {
         <div class="container-fluid single-result-container single-result">
             <div class="row justify-content-around">
                 <LowImg
                     show_eq=|| false
                     eq_playing=|| false
-                    cover_img=get_low_img(&song)
-                    play_now=move || play_now.set(song_cloned.clone())
+                    cover_img=item.cover.unwrap_or_default()
+                    play_now=move || {
+                        item.on_icon_click.as_ref()();
+                    }
                 />
 
-                <div class="col text-container text-truncate my-auto">
-                    <div class="song-title text-truncate">{song.song.title.clone()}</div>
-                    <div class="song-subtitle text-truncate">
-                        {song
-                            .artists
-                            .clone()
-                            .unwrap()
-                            .iter()
-                            .filter_map(|a| a.artist_name.clone())
-                            .collect::<Vec<String>>()
-                            .join(", ")}
-                    </div>
+                <div
+                    class="col text-container text-truncate my-auto"
+                    on:click=move |_| {
+                        item.on_click.as_ref()();
+                    }
+                >
+                    <div class="song-title text-truncate">{item.title}</div>
+                    <div class="song-subtitle text-truncate">{item.subtitle}</div>
                 </div>
             </div>
         </div>
@@ -184,6 +191,189 @@ pub fn Accounts() -> impl IntoView {
     }
 }
 
+async fn get_search_res(
+    term: String,
+    location: String,
+    play_now: SignalSetter<Song>,
+) -> Result<Vec<SearchResultItemData>> {
+    match location.as_str() {
+        "/main/artists" => {
+            let res = crate::utils::invoke::get_entity_by_options(GetEntityOptions {
+                artist: Some(QueryableArtist {
+                    artist_name: Some(term.clone()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+            .await?;
+
+            let res = serde_wasm_bindgen::from_value::<Vec<QueryableArtist>>(res)?;
+            Ok(res
+                .into_iter()
+                .map(|a| SearchResultItemData {
+                    cover: a.artist_coverpath.clone(),
+                    title: a.artist_name.clone().unwrap_or_default(),
+                    subtitle: String::default(),
+                    on_click: Rc::new(Box::new(move || {
+                        use_navigate()(
+                            format!(
+                                "/main/artists/single?entity={}",
+                                serde_json::to_string(&a).unwrap()
+                            )
+                            .as_str(),
+                            NavigateOptions::default(),
+                        );
+                    })),
+                    on_icon_click: Rc::new(Box::new(move || {})),
+                })
+                .collect())
+        }
+        "/main/albums" => {
+            let res = crate::utils::invoke::get_entity_by_options(GetEntityOptions {
+                album: Some(QueryableAlbum {
+                    album_name: Some(term.clone()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+            .await?;
+
+            let res = serde_wasm_bindgen::from_value::<Vec<QueryableAlbum>>(res)?;
+            Ok(res
+                .into_iter()
+                .map(|a| SearchResultItemData {
+                    cover: a.album_coverpath_low.clone(),
+                    title: a.album_name.clone().unwrap_or_default(),
+                    subtitle: String::default(),
+                    on_click: Rc::new(Box::new(move || {
+                        use_navigate()(
+                            format!(
+                                "/main/albums/single?entity={}",
+                                serde_json::to_string(&a).unwrap()
+                            )
+                            .as_str(),
+                            NavigateOptions::default(),
+                        );
+                    })),
+                    on_icon_click: Rc::new(Box::new(move || {})),
+                })
+                .collect())
+        }
+        "/main/genres" => {
+            let res = crate::utils::invoke::get_entity_by_options(GetEntityOptions {
+                genre: Some(QueryableGenre {
+                    genre_name: Some(term.clone()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+            .await?;
+
+            let res = serde_wasm_bindgen::from_value::<Vec<QueryableGenre>>(res)?;
+            Ok(res
+                .into_iter()
+                .map(|a| SearchResultItemData {
+                    cover: None,
+                    title: a.genre_name.clone().unwrap_or_default(),
+                    subtitle: String::default(),
+                    on_click: Rc::new(Box::new(move || {
+                        use_navigate()(
+                            format!(
+                                "/main/genres/single?entity={}",
+                                serde_json::to_string(&a).unwrap()
+                            )
+                            .as_str(),
+                            NavigateOptions::default(),
+                        );
+                    })),
+                    on_icon_click: Rc::new(Box::new(move || {})),
+                })
+                .collect())
+        }
+        "/main/playlists" => {
+            let res = crate::utils::invoke::get_entity_by_options(GetEntityOptions {
+                playlist: Some(QueryablePlaylist {
+                    playlist_name: term.clone(),
+                    playlist_path: Some(term.clone()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+            .await?;
+
+            let res = serde_wasm_bindgen::from_value::<Vec<QueryablePlaylist>>(res)?;
+
+            Ok(res
+                .into_iter()
+                .map(|a| SearchResultItemData {
+                    cover: a.playlist_coverpath.clone(),
+                    title: a.playlist_name.clone(),
+                    subtitle: String::default(),
+                    on_click: Rc::new(Box::new(move || {
+                        use_navigate()(
+                            format!(
+                                "/main/playlists/single?entity={}",
+                                serde_json::to_string(&a).unwrap()
+                            )
+                            .as_str(),
+                            NavigateOptions::default(),
+                        );
+                    })),
+                    on_icon_click: Rc::new(Box::new(move || {})),
+                })
+                .collect())
+        }
+        _ => {
+            let res = crate::utils::invoke::get_songs_by_options(GetSongOptions {
+                song: Some(SearchableSong {
+                    title: Some(term.clone()),
+                    path: Some(term.clone()),
+                    ..Default::default()
+                }),
+                album: Some(QueryableAlbum {
+                    album_name: Some(term.clone()),
+                    ..Default::default()
+                }),
+                artist: Some(QueryableArtist {
+                    artist_name: Some(term.clone()),
+                    ..Default::default()
+                }),
+                genre: Some(QueryableGenre {
+                    genre_name: Some(term.clone()),
+                    ..Default::default()
+                }),
+                playlist: Some(QueryablePlaylist {
+                    playlist_name: term,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+            .await?;
+            Ok(res
+                .into_iter()
+                .map(|s| SearchResultItemData {
+                    cover: s.album.as_ref().and_then(|a| a.album_coverpath_low.clone()),
+                    title: s.song.title.clone().unwrap_or_default(),
+                    subtitle: s
+                        .artists
+                        .as_ref()
+                        .map(|a| {
+                            a.iter()
+                                .filter_map(|a| a.artist_name.clone())
+                                .collect::<Vec<_>>()
+                                .join(",")
+                        })
+                        .unwrap_or_default(),
+                    on_click: Rc::new(Box::new(move || {})),
+                    on_icon_click: Rc::new(Box::new(move || {
+                        play_now.set(s.clone());
+                    })),
+                })
+                .collect())
+        }
+    }
+}
+
 #[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn TopBar() -> impl IntoView {
@@ -214,6 +404,9 @@ pub fn TopBar() -> impl IntoView {
         );
     };
 
+    let player_store = expect_context::<RwSignal<PlayerStore>>();
+    let play_now = create_write_slice(player_store, |p, val| p.play_now(val));
+
     let handle_text_change = move |ev: Event| {
         let text = event_target_value(&ev);
         input_value.set(text.clone());
@@ -221,33 +414,20 @@ pub fn TopBar() -> impl IntoView {
             return;
         }
         let value = format!("%{}%", text);
-        get_songs_by_option(
-            GetSongOptions {
-                song: Some(SearchableSong {
-                    title: Some(value.clone()),
-                    path: Some(value.clone()),
-                    ..Default::default()
-                }),
-                album: Some(QueryableAlbum {
-                    album_name: Some(value.clone()),
-                    ..Default::default()
-                }),
-                artist: Some(QueryableArtist {
-                    artist_name: Some(value.clone()),
-                    ..Default::default()
-                }),
-                genre: Some(QueryableGenre {
-                    genre_name: Some(value.clone()),
-                    ..Default::default()
-                }),
-                playlist: Some(QueryablePlaylist {
-                    playlist_name: value,
-                    ..Default::default()
-                }),
-                ..Default::default()
-            },
-            results,
-        )
+        let current_page = window().location().pathname().unwrap();
+        tracing::debug!("current page {}", current_page);
+
+        spawn_local(async move {
+            let search_res = get_search_res(value.clone(), current_page, play_now).await;
+            match search_res {
+                Ok(res) => {
+                    results.set(res);
+                }
+                Err(e) => tracing::error!("Failed to search {}: {:?}", value, e),
+            }
+        });
+
+        //
     };
 
     view! {
@@ -297,17 +477,14 @@ pub fn TopBar() -> impl IntoView {
                                 class="search-results d-flex"
                                 class:search-invisible=move || !show_searchbar.get()
                             >
-                                <div class="w-100">
-                                    <VirtualScroller
-                                        each=results
-                                        item_height=95usize
-                                        children=move |(_, song)| {
-                                            tracing::debug!("Song {:?}", song);
-                                            view! { <SearchResultItem song=song.clone() /> }
-                                        }
-                                    />
-
-                                </div>
+                                <VirtualScroller
+                                    each=results
+                                    item_height=95usize
+                                    children=move |(_, item)| {
+                                        view! { <SearchResultItem item=item.clone() /> }
+                                    }
+                                />
+                                <div class="w-100"></div>
                             </div>
                         </div>
                     </div>

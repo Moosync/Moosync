@@ -1,11 +1,17 @@
 use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
 
-use crate::icons::{
-    animated_equalizer_icon::AnimatedEqualizerIcon, play_hover_icon::PlayHoverIcon,
-    song_default_icon::SongDefaultIcon,
+use crate::{
+    icons::{
+        animated_equalizer_icon::AnimatedEqualizerIcon, play_hover_icon::PlayHoverIcon,
+        song_default_icon::SongDefaultIcon,
+    },
+    utils::common::convert_file_src,
 };
 
-#[tracing::instrument(level = "trace", skip(cover_img, show_play_button, show_eq, eq_playing, play_now))]
+#[tracing::instrument(
+    level = "trace",
+    skip(cover_img, show_play_button, show_eq, eq_playing, play_now)
+)]
 #[component]
 pub fn LowImg<T, D, E>(
     #[prop()] cover_img: String,
@@ -28,14 +34,13 @@ where
                         view! {
                             <img
                                 // class="fade-in-image"
-                                src=cover_img.clone()
+                                src=convert_file_src(cover_img.clone())
                                 on:error=move |_| { show_default_cover_img.set(true) }
                             />
                         }
                             .into_view()
                     } else {
                         view! {
-                            // class="fade-in-image"
                             // class="fade-in-image"
                             <SongDefaultIcon />
                         }

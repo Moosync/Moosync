@@ -180,28 +180,55 @@ pub fn get_high_img(song: &Song) -> String {
 }
 
 macro_rules! fetch_infinite {
-    ($provider_store:expr, $provider:expr, $fetch_content:ident, $update_signal:expr, $($arg:expr),*) => {
-            use types::providers::generic::Pagination;
-            let mut pagination = Pagination::new_limit(50, 0);
-            loop {
-                let res = $provider_store.$fetch_content($provider.clone(), $($arg,)* pagination).await;
+    ($provider_store:expr, $provider:expr, $fetch_content:ident, $update_signal:expr, $next_page_signal:ident, $($arg:expr),*) => {
+            'fetch: {
+                use types::providers::generic::Pagination;
+                use leptos::SignalGetUntracked;
+
+                let next_page_map = $next_page_signal.get_untracked();
+                let mut pagination_lock = next_page_map.get(&$provider).cloned();
+
+                if pagination_lock.is_none() {
+                    let new_page = Rc::new(futures::lock::Mutex::new(Pagination::new_limit(50, 0)));
+                    let new_page_clone = new_page.clone();
+                    let provider = $provider.clone();
+                    $next_page_signal.update(move |signal| {
+                        signal.insert(provider, new_page_clone);
+
+                    });
+                    pagination_lock = Some(new_page);
+                }
+
+                let pagination_lock = pagination_lock.unwrap();
+                let mut pagination = pagination_lock.lock().await;
+
+                let res = $provider_store.$fetch_content($provider.clone(), $($arg,)* pagination.clone()).await;
                 if res.is_err() {
                     tracing::error!("Error fetching content {:?}", res);
-                    break;
+                    break 'fetch Err(res.unwrap());
                 }
 
                 let (mut res, next_page) = res.unwrap();
                 let len = res.len() as u32;
 
                 if len == 0 {
-                    break;
+                    tracing::debug!("got 0 len content");
+                    break 'fetch Ok(false);
                 }
 
-                pagination = next_page;
+
+                *pagination = next_page;
+                tracing::debug!("Updating pagination {:?}", pagination);
+                    //     let next_page_mut = signal.get_mut(&$provider).unwrap();
+                    //     let next_page_mut = next_page.lock().await;
+                    //     *next_page_mut = next_page;
+                    // signal.insert($provider.clone(), next_page);
 
                 $update_signal.update(|signal| {
                     signal.append(&mut res);
                 });
+
+                Ok(true)
             }
     };
 }

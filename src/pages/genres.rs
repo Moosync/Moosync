@@ -92,9 +92,16 @@ pub fn SingleGenre() -> impl IntoView {
     });
 
     let refresh_songs = move || {};
+    let fetch_next_page = move || {};
 
     view! {
-        <SongView songs=songs icons=icons selected_songs=selected_songs refresh_cb=refresh_songs />
+        <SongView
+            songs=songs
+            icons=icons
+            selected_songs=selected_songs
+            refresh_cb=refresh_songs
+            fetch_next_page=fetch_next_page
+        />
     }
 }
 

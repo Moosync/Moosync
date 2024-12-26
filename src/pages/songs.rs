@@ -68,6 +68,7 @@ pub fn AllSongs() -> impl IntoView {
     });
 
     refresh_songs();
+    let fetch_next_page = move || {};
 
     view! {
         <SongView
@@ -84,6 +85,7 @@ pub fn AllSongs() -> impl IntoView {
                 );
             })
             refresh_cb=refresh_songs
+            fetch_next_page=fetch_next_page
         />
     }
 }

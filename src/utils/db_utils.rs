@@ -156,15 +156,20 @@ pub fn get_playlists_by_option<T>(options: QueryablePlaylist, setter: T)
 where
     T: SignalSet<Value = Vec<QueryablePlaylist>>
         + SignalUpdate<Value = Vec<QueryablePlaylist>>
+        + Copy
         + 'static,
 {
-    use std::rc::Rc;
+    use std::{collections::HashMap, rc::Rc};
 
-    use leptos::expect_context;
+    use leptos::{create_rw_signal, expect_context, RwSignal};
 
     use crate::{store::provider_store::ProviderStore, utils::common::fetch_infinite};
 
     let provider_store = expect_context::<Rc<ProviderStore>>();
+    let next_page_tokens: RwSignal<
+        HashMap<String, Rc<Mutex<types::providers::generic::Pagination>>>,
+    > = create_rw_signal(HashMap::new());
+
     spawn_local(async move {
         let res = super::invoke::get_entity_by_options(GetEntityOptions {
             playlist: Some(options),
@@ -178,12 +183,36 @@ where
         let songs: Vec<QueryablePlaylist> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
 
+        tracing::debug!("provider keys {:?}", provider_store.get_provider_keys());
         for key in provider_store.get_provider_keys() {
             tracing::debug!("Fetching playlists from {}", key);
-            fetch_infinite!(provider_store, key, fetch_user_playlists, setter,);
-        }
+            let provider_store = provider_store.clone();
+            spawn_local(async move {
+                let mut should_fetch = true;
+                while should_fetch {
+                    let res = fetch_infinite!(
+                        provider_store,
+                        key,
+                        fetch_user_playlists,
+                        setter,
+                        next_page_tokens,
+                    );
+                    match res {
+                        Err(e) => {
+                            tracing::error!(
+                                "Failed to fetch playlist content from {}: {:?}",
+                                key,
+                                e
+                            );
+                            should_fetch = false;
+                        }
+                        Ok(should_fetch_inner) => should_fetch = should_fetch_inner,
+                    }
+                }
 
-        setter.update(|p| p.dedup_by(|a, b| a == b));
+                setter.update(|p| p.dedup_by(|a, b| a == b));
+            });
+        }
     });
 }
 

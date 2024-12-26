@@ -113,7 +113,7 @@ pub fn SingleArtist() -> impl IntoView {
     let provider_store = expect_context::<Rc<ProviderStore>>();
     let selected_providers = create_rw_signal::<Vec<String>>(vec![]);
 
-    let (_, filtered_songs) = dyn_provider_songs!(
+    let (_, filtered_songs, fetch_selected_providers) = dyn_provider_songs!(
         selected_providers,
         artist,
         provider_store,
@@ -122,6 +122,9 @@ pub fn SingleArtist() -> impl IntoView {
     );
 
     let refresh_songs = move || {};
+    let fetch_next_page = move || {
+        fetch_selected_providers.as_ref()();
+    };
 
     view! {
         <SongView
@@ -134,6 +137,7 @@ pub fn SingleArtist() -> impl IntoView {
                 selected_providers,
             }
             refresh_cb=refresh_songs
+            fetch_next_page=fetch_next_page
         />
     }
 }

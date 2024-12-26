@@ -491,13 +491,17 @@ impl GenericProvider for SpotifyProvider {
         Err("API client not initialized".into())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, playlist_id, pagination))]
+    #[tracing::instrument(level = "trace", skip(self, playlist, pagination))]
     async fn get_playlist_content(
         &self,
-        playlist_id: String,
+        playlist: QueryablePlaylist,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
         let mut ret = vec![];
+        if playlist.playlist_id.is_none() {
+            return Err("Playlist ID cannot be none".into());
+        }
+        let playlist_id = playlist.playlist_id.unwrap();
         if let Some(api_client) = &self.api_client {
             let playlist_id = playlist_id
                 .strip_prefix("spotify-playlist:")

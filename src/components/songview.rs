@@ -68,7 +68,8 @@ impl ContextMenuData<Self> for SongsContextMenu {
         selected_songs,
         song_update_request,
         default_details,
-        refresh_cb
+        refresh_cb,
+        fetch_next_page
     )
 )]
 #[component()]
@@ -77,6 +78,7 @@ pub fn SongView(
     #[prop()] icons: RwSignal<SongDetailIcons>,
     #[prop()] selected_songs: RwSignal<Vec<usize>>,
     #[prop()] refresh_cb: impl Fn() + 'static,
+    #[prop()] fetch_next_page: impl Fn() + 'static,
     #[prop(optional)] song_update_request: Option<Box<dyn Fn()>>,
     #[prop(optional)] default_details: RwSignal<DefaultDetails>,
     #[prop(optional, default=ShowProvidersArgs::default())] providers: ShowProvidersArgs,
@@ -181,6 +183,7 @@ pub fn SongView(
                             filtered_selected=filtered_selected
                             providers=providers
                             refresh_cb=refresh_cb
+                            fetch_next_page=fetch_next_page
                         />
                     </div>
                 </div>

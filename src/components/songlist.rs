@@ -4,15 +4,17 @@ use itertools::Itertools;
 use leptos::{
     component, create_effect, create_memo, create_node_ref, create_read_slice, create_rw_signal,
     create_write_slice,
-    ev::{keydown, keyup},
-    event_target_value, expect_context,
-    html::Input,
-    use_context, view, window_event_listener, HtmlElement, IntoView, RwSignal, Show, SignalGet,
-    SignalGetUntracked, SignalSet, SignalSetUntracked, SignalUpdate,
+    ev::{keydown, keyup, scroll},
+    event_target, event_target_value, expect_context,
+    html::{Div, Input},
+    leptos_dom, use_context, view, window_event_listener, HtmlElement, IntoView, RwSignal, Show,
+    SignalGet, SignalGetUntracked, SignalSet, SignalSetUntracked, SignalUpdate,
 };
 use leptos_context_menu::ContextMenu;
+use leptos_use::use_event_listener;
 use leptos_virtual_scroller::VirtualScroller;
 use types::songs::Song;
+use web_sys::HtmlDivElement;
 
 use crate::{
     components::{low_img::LowImg, provider_icon::ProviderIcon},
@@ -120,7 +122,8 @@ pub struct ShowProvidersArgs {
         selected_songs_sig,
         filtered_selected,
         hide_search_bar,
-        refresh_cb
+        refresh_cb,
+        fetch_next_page
     )
 )]
 #[component()]
@@ -131,6 +134,7 @@ pub fn SongList(
     #[prop()] selected_songs_sig: RwSignal<Vec<usize>>,
     #[prop()] filtered_selected: RwSignal<Vec<usize>>,
     #[prop()] refresh_cb: impl Fn() + 'static,
+    #[prop()] fetch_next_page: impl Fn() + 'static,
     #[prop(default = false)] hide_search_bar: bool,
     #[prop(optional, default = ShowProvidersArgs::default())] providers: ShowProvidersArgs,
 ) -> impl IntoView {
@@ -310,6 +314,17 @@ pub fn SongList(
         selected.len() < 2 || !selected.contains(&index)
     };
 
+    let scroller_ref = create_node_ref();
+
+    let _ = use_event_listener(scroller_ref, scroll, move |ev| {
+        let target = event_target::<HtmlDivElement>(&ev);
+        let scroll_top = target.scroll_top() + target.offset_height();
+        let height = target.scroll_height();
+        if scroll_top >= height - 10 {
+            fetch_next_page();
+        }
+    });
+
     view! {
         <div class="d-flex h-100 w-100">
             <div class="container-fluid">
@@ -397,6 +412,7 @@ pub fn SongList(
                     >
 
                         <VirtualScroller
+                            node_ref=scroller_ref
                             each=filtered_songs
                             item_height=95usize
                             inner_el_style="width: calc(100% - 15px);"

@@ -1,9 +1,6 @@
-use leptos_context_menu::{ContextMenu, ContextMenuData, ContextMenuItemInner};
-use rand::seq::SliceRandom;
-use std::rc::Rc;
-
 use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songview::SongView;
+use crate::dyn_provider_songs;
 use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::{PlaylistSortByColumns, UiStore};
@@ -18,9 +15,13 @@ use leptos::{
     expect_context, spawn_local, use_context, view, IntoView, RwSignal, SignalGet, SignalUpdate,
     SignalWith,
 };
+use leptos_context_menu::{ContextMenu, ContextMenuData, ContextMenuItemInner};
 use leptos_router::use_query_map;
+use rand::seq::SliceRandom;
+use std::collections::HashMap;
+use std::rc::Rc;
 use types::entities::QueryablePlaylist;
-use types::songs::GetSongOptions;
+use types::songs::{GetSongOptions, Song};
 use types::ui::song_details::{DefaultDetails, SongDetailIcons};
 
 use crate::store::provider_store::ProviderStore;
@@ -131,6 +132,16 @@ pub fn SinglePlaylist() -> impl IntoView {
     let selected_songs = create_rw_signal(vec![]);
 
     let provider_store = use_context::<Rc<ProviderStore>>().unwrap();
+    let provider_store_clone = provider_store.clone();
+    let selected_providers = create_rw_signal::<Vec<String>>(vec![]);
+
+    let (_, filtered_songs, fetch_selected_providers) = dyn_provider_songs!(
+        selected_providers,
+        playlist,
+        provider_store,
+        songs,
+        fetch_playlist_content
+    );
 
     let default_details = create_rw_signal(DefaultDetails::default());
 
@@ -143,21 +154,14 @@ pub fn SinglePlaylist() -> impl IntoView {
             });
 
             let playlist_id = playlist.playlist_id.clone().unwrap();
-            let provider_store = provider_store.clone();
+            let provider_store = provider_store_clone.clone();
             spawn_local(async move {
                 let provider = provider_store
                     .get_provider_key_by_id(playlist_id.clone())
                     .await;
                 match provider {
                     Ok(provider) => {
-                        let playlist_id = playlist_id.clone();
-                        fetch_infinite!(
-                            provider_store,
-                            provider,
-                            fetch_playlist_content,
-                            songs,
-                            playlist_id.clone()
-                        );
+                        selected_providers.update(|s| s.push(provider));
                     }
                     Err(e) => tracing::error!("{}", e),
                 }
@@ -214,14 +218,18 @@ pub fn SinglePlaylist() -> impl IntoView {
     });
 
     let refresh_songs = move || {};
+    let fetch_next_page = move || {
+        fetch_selected_providers.as_ref()();
+    };
 
     view! {
         <SongView
             default_details=default_details
-            songs=songs
+            songs=filtered_songs
             icons=icons
             selected_songs=selected_songs
             refresh_cb=refresh_songs
+            fetch_next_page=fetch_next_page
         />
     }
 }

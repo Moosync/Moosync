@@ -298,7 +298,7 @@ impl ProviderHandler {
         },
         fetch_playlist_content {
             args: {
-                playlist_id: String,
+                playlist: QueryablePlaylist,
                 pagination: Pagination
             },
             result_type: (Vec<Song>, Pagination),
@@ -378,7 +378,7 @@ generate_command_async!(provider_signout, ProviderHandler, (), key: String, acco
 generate_command_async!(provider_authorize, ProviderHandler, (), key: String, code: String);
 generate_command_async!(get_provider_key_by_id, ProviderHandler, String, id: String);
 generate_command_async_cached!(fetch_user_playlists, ProviderHandler, (Vec<QueryablePlaylist>, Pagination), key: String, pagination: Pagination);
-generate_command_async_cached!(fetch_playlist_content, ProviderHandler, (Vec<Song>, Pagination), key: String, playlist_id: String, pagination: Pagination);
+generate_command_async_cached!(fetch_playlist_content, ProviderHandler, (Vec<Song>, Pagination), key: String, playlist: QueryablePlaylist, pagination: Pagination);
 generate_command_async_cached!(fetch_playback_url, ProviderHandler, String, key: String, song: Song, player: String);
 generate_command_async_cached!(provider_search, ProviderHandler, SearchResult, key: String, term: String);
 generate_command_async!(get_all_status, ProviderHandler, HashMap<String, ProviderStatus>, );

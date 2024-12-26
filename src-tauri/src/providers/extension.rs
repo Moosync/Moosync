@@ -171,7 +171,7 @@ impl GenericProvider for ExtensionProvider {
     #[tracing::instrument(level = "trace", skip(self))]
     async fn get_playlist_content(
         &self,
-        playlist_id: String,
+        playlist: QueryablePlaylist,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
         if !self
@@ -181,6 +181,10 @@ impl GenericProvider for ExtensionProvider {
             return Err("Extension does not have this capability".into());
         }
 
+        if playlist.playlist_id.is_none() {
+            return Err("Playlist ID cannot be None".into());
+        }
+
         if pagination.offset > 0 {
             return Ok((vec![], pagination.next_page()));
         }
@@ -188,7 +192,7 @@ impl GenericProvider for ExtensionProvider {
         let res = send_extension_event!(
             self,
             ExtensionExtraEvent::RequestedPlaylistSongs(
-                playlist_id,
+                playlist.playlist_id.unwrap(),
                 false,
                 pagination.token.clone()
             ),

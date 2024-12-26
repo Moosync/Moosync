@@ -184,7 +184,7 @@ impl ProviderStore {
         },
         fetch_playlist_content {
             args: {
-                playlist_id: String,
+                playlist: QueryablePlaylist,
                 pagination: Pagination
             },
             result_type: (Vec<Song>, Pagination),

@@ -277,6 +277,7 @@ pub fn Search() -> impl IntoView {
     });
 
     let refresh_songs = move || {};
+    let fetch_next_page = move || {};
 
     view! {
         <div class="w-100 h-100">
@@ -316,6 +317,7 @@ pub fn Search() -> impl IntoView {
                                                     selected_songs_sig=create_rw_signal(vec![])
                                                     filtered_selected=create_rw_signal(vec![])
                                                     refresh_cb=refresh_songs
+                                                    fetch_next_page=fetch_next_page
                                                 />
                                             </div>
                                         }

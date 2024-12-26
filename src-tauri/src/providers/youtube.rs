@@ -387,7 +387,13 @@ impl YoutubeProvider {
                         if let Some(related_playlists) = &content_details.related_playlists {
                             if let Some(playlist_id) = &related_playlists.uploads {
                                 return self
-                                    .get_playlist_content(playlist_id.to_string(), pagination)
+                                    .get_playlist_content(
+                                        QueryablePlaylist {
+                                            playlist_id: Some(playlist_id.clone()),
+                                            ..Default::default()
+                                        },
+                                        pagination,
+                                    )
                                     .await;
                             }
                         }
@@ -570,12 +576,16 @@ impl GenericProvider for YoutubeProvider {
         Err("API client not initialized".into())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, playlist_id, pagination))]
+    #[tracing::instrument(level = "trace", skip(self, playlist, pagination))]
     async fn get_playlist_content(
         &self,
-        playlist_id: String,
+        playlist: QueryablePlaylist,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
+        if playlist.playlist_id.is_none() {
+            return Err("Playlist ID cannot be none".into());
+        }
+        let playlist_id = playlist.playlist_id.unwrap();
         let playlist_id = playlist_id
             .strip_prefix("youtube-playlist:")
             .unwrap_or(&playlist_id);
@@ -817,7 +827,10 @@ impl GenericProvider for YoutubeProvider {
         if let Some(id) = id_raw {
             return self
                 .get_playlist_content(
-                    id.replace("youtube-album:", "youtube-playlist:"),
+                    QueryablePlaylist {
+                        playlist_id: Some(id.replace("youtube-album:", "youtube-playlist:")),
+                        ..Default::default()
+                    },
                     pagination,
                 )
                 .await;

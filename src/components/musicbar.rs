@@ -1,10 +1,12 @@
 use ev::mouseup;
 use leptos::*;
 use leptos::{component, view, IntoView, RwSignal, SignalGet, SignalSet};
+use leptos_router::{use_navigate, NavigateOptions};
 use leptos_use::{use_document, use_event_listener};
 use types::entities::QueryableArtist;
 use types::ui::player_details::PlayerState;
 
+use crate::components::artist_list::ArtistList;
 use crate::components::low_img::LowImg;
 use crate::components::musicinfo::MusicInfo;
 use crate::icons::expand_icon::ExpandIcon;
@@ -15,6 +17,7 @@ use crate::icons::prev_track_icon::PrevTrackIcon;
 use crate::icons::repeat_icon::RepeatIcon;
 use crate::icons::shuffle_icon::ShuffleIcon;
 use crate::icons::volume_icon::VolumeIcon;
+use crate::pages::artists;
 use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::UiStore;
 use crate::utils::common::{format_duration, get_low_img};
@@ -75,25 +78,9 @@ fn Details() -> impl IntoView {
                 </div>
 
                 <div class="row no-gutters">
-
                     {move || {
-                        artists_list
-                            .get()
-                            .iter()
-                            .map(|a| {
-                                let artist_name = a.artist_name.clone().unwrap();
-                                view! {
-                                    <div class="col d-flex">
-                                        <div
-                                            class="text song-subtitle text-truncate"
-                                            title=artist_name.clone()
-                                        >
-                                            {artist_name}
-                                        </div>
-                                    </div>
-                                }
-                            })
-                            .collect_view()
+                        let artists = artists_list.get();
+                        view! { <ArtistList artists=Some(artists) /> }
                     }}
 
                 </div>

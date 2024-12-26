@@ -17,7 +17,7 @@ use types::songs::Song;
 use web_sys::HtmlDivElement;
 
 use crate::{
-    components::{low_img::LowImg, provider_icon::ProviderIcon},
+    components::{artist_list::ArtistList, low_img::LowImg, provider_icon::ProviderIcon},
     icons::{
         add_to_queue_icon::AddToQueueIcon, ellipsis_icon::EllipsisIcon, search_icon::SearchIcon,
         sort_icon::SortIcon,
@@ -74,16 +74,8 @@ pub fn SongListItem(
                         </div>
                     </div>
                     <div class="row no-gutters flex-nowrap">
-                        <div class="subtitle text-truncate">
-                            <span>
-                                {song
-                                    .artists
-                                    .unwrap_or_default()
-                                    .into_iter()
-                                    .map(|a| a.artist_name.unwrap_or_default())
-                                    .collect::<Vec<String>>()
-                                    .join(", ")}
-                            </span>
+                        <div class="row no-gutters">
+                            <ArtistList artists=song.artists />
                         </div>
                     </div>
                 </div>

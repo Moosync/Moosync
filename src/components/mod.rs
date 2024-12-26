@@ -1,3 +1,4 @@
+pub mod artist_list;
 pub mod audiostream;
 pub mod better_animated_outlet;
 pub mod cardview;

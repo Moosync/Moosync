@@ -93,20 +93,21 @@ pub fn TabCarousel(
                 Rgb::from_hex_str(primary_color.as_str())
             } else {
                 primary_color.parse::<Rgb>()
+            };
+
+            if let Ok(rgb_color) = rgb_color {
+                let rgba_string = format!(
+                    "rgba({}, {}, {}, 0)",
+                    rgb_color.get_red(),
+                    rgb_color.get_green(),
+                    rgb_color.get_blue()
+                );
+
+                gradient_style.set(format!(
+                    "background: linear-gradient(90deg, var(--primary) 0% , {} {}%, {} {}%, var(--primary) 100%);", rgba_string,
+                    gradient_left, rgba_string, gradient_right
+                ));
             }
-            .unwrap();
-
-            let rgba_string = format!(
-                "rgba({}, {}, {}, 0)",
-                rgb_color.get_red(),
-                rgb_color.get_green(),
-                rgb_color.get_blue()
-            );
-
-            gradient_style.set(format!(
-                "background: linear-gradient(90deg, var(--primary) 0% , {} {}%, {} {}%, var(--primary) 100%);", rgba_string,
-                gradient_left, rgba_string, gradient_right
-            ));
         }
     });
 

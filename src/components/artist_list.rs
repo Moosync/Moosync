@@ -8,7 +8,8 @@ pub fn ArtistList(#[prop()] artists: Option<Vec<QueryableArtist>>) -> impl IntoV
     let artists_list = artists.unwrap_or_default();
     artists_list
         .iter()
-        .map(|a| {
+        .enumerate()
+        .map(|(pos, a)| {
             let artist_name = a.artist_name.clone().unwrap();
             let artist = a.clone();
             view! {
@@ -27,7 +28,7 @@ pub fn ArtistList(#[prop()] artists: Option<Vec<QueryableArtist>>) -> impl IntoV
                 >
                     <div class="text song-subtitle text-truncate" title=artist_name.clone()>
                         {artist_name}
-                        ,
+                        {if pos == artists_list.len() - 1 { "" } else { "," }}
                     </div>
                 </div>
             }

@@ -208,27 +208,30 @@ macro_rules! fetch_infinite {
                     break 'fetch Err(res.unwrap());
                 }
 
-                let (mut res, next_page) = res.unwrap();
-                let len = res.len() as u32;
+                if let Ok(res) = res {
+                    let (mut res, next_page) = res;
+                    let len = res.len() as u32;
 
-                if len == 0 {
-                    tracing::debug!("got 0 len content");
-                    break 'fetch Ok(false);
+                    if len == 0 {
+                        tracing::debug!("got 0 len content");
+                        break 'fetch Ok(false);
+                    }
+
+
+                    *pagination = next_page;
+                    tracing::debug!("Updating pagination {:?}", pagination);
+                        //     let next_page_mut = signal.get_mut(&$provider).unwrap();
+                        //     let next_page_mut = next_page.lock().await;
+                        //     *next_page_mut = next_page;
+                        // signal.insert($provider.clone(), next_page);
+
+                    $update_signal.update(|signal| {
+                        signal.append(&mut res);
+                    });
+
+                    break 'fetch Ok(true);
                 }
-
-
-                *pagination = next_page;
-                tracing::debug!("Updating pagination {:?}", pagination);
-                    //     let next_page_mut = signal.get_mut(&$provider).unwrap();
-                    //     let next_page_mut = next_page.lock().await;
-                    //     *next_page_mut = next_page;
-                    // signal.insert($provider.clone(), next_page);
-
-                $update_signal.update(|signal| {
-                    signal.append(&mut res);
-                });
-
-                Ok(true)
+                Ok(false)
             }
     };
 }

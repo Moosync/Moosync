@@ -11,6 +11,7 @@ use types::ui::player_details::PlayerState;
 use types::ui::song_details::SongDetailIcons;
 use web_sys::{ScrollBehavior, ScrollToOptions};
 
+use crate::components::artist_list::ArtistList;
 use crate::components::audiostream::AudioStream;
 use crate::modals::new_playlist_modal::PlaylistModalState;
 use crate::store::modal_store::{ModalStore, Modals};
@@ -71,14 +72,8 @@ where
                             }
                         }}
                     </div>
-                    <div class="text-left song-subtitle text-truncate">
-                        {song
-                            .artists
-                            .unwrap_or_default()
-                            .iter()
-                            .map(|a| a.artist_name.clone().unwrap_or_default())
-                            .collect::<Vec<String>>()
-                            .join(", ")}
+                    <div class="row no-gutters">
+                        <ArtistList artists=song.artists />
                     </div>
 
                 </div>

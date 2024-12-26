@@ -326,7 +326,6 @@ pub fn create_playlist(playlist: QueryablePlaylist, songs: Option<Vec<Song>>) {
         match res {
             Err(res) => {
                 tracing::error!("Failed to create playlist: {:?}", res);
-                return;
             }
             Ok(playlist_id) => {
                 if let Some(songs) = songs {

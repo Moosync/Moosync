@@ -1,11 +1,15 @@
 use std::rc::Rc;
 
+use types::songs::Song;
+
+use crate::modals::new_playlist_modal::PlaylistModalState;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Modals {
     LoginModal(String, String, String),
     SignoutModal(String, String, String),
     DiscoverExtensions,
-    NewPlaylistModal,
+    NewPlaylistModal(PlaylistModalState, Option<Vec<Song>>),
     SongFromUrlModal,
     ThemeModal,
 }

@@ -320,11 +320,22 @@ pub fn add_to_playlist(id: String, songs: Vec<Song>) {
 }
 
 #[tracing::instrument(level = "trace", skip(playlist))]
-pub fn create_playlist(playlist: QueryablePlaylist) {
+pub fn create_playlist(playlist: QueryablePlaylist, songs: Option<Vec<Song>>) {
     spawn_local(async move {
         let res = super::invoke::create_playlist(playlist).await;
-        if let Err(res) = res {
-            tracing::error!("Failed to create playlist: {:?}", res);
+        match res {
+            Err(res) => {
+                tracing::error!("Failed to create playlist: {:?}", res);
+                return;
+            }
+            Ok(playlist_id) => {
+                if let Some(songs) = songs {
+                    let res = super::invoke::add_to_playlist(playlist_id, songs).await;
+                    if let Err(e) = res {
+                        tracing::error!("Failed to add songs to playlist: {:?}", e);
+                    }
+                }
+            }
         }
     });
 }

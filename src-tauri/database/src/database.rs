@@ -858,7 +858,14 @@ impl Database {
         songs.iter_mut().for_each(|v| {
             v.song.show_in_library = Some(false);
         });
-        self.insert_songs(songs.clone())?;
+        let res = self.insert_songs(songs.clone());
+        if let Err(e) = res {
+            // Lets hope it only fails due to unique value constrains
+            tracing::warn!(
+                "Failed to insert songs in DB, maybe they already exist: {:?}",
+                e
+            );
+        }
         self.pool
             .get()
             .unwrap()

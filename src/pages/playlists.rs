@@ -1,6 +1,7 @@
 use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songview::SongView;
 use crate::dyn_provider_songs;
+use crate::modals::new_playlist_modal::PlaylistModalState;
 use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::{PlaylistSortByColumns, UiStore};
@@ -34,7 +35,7 @@ impl PlaylistContextMenu {
     fn open_import_from_url_modal(&self) {
         let modal_store: RwSignal<ModalStore> = expect_context();
         modal_store.update(|modal_store| {
-            modal_store.set_active_modal(Modals::NewPlaylistModal);
+            modal_store.set_active_modal(Modals::NewPlaylistModal(PlaylistModalState::None, None));
         });
     }
 }
@@ -61,7 +62,7 @@ impl PlaylistItemContextMenu {
     #[tracing::instrument(level = "trace", skip(self))]
     fn add_to_library(&self) {
         if let Some(playlist) = &self.playlist {
-            create_playlist(playlist.clone());
+            create_playlist(playlist.clone(), None);
         }
     }
 
@@ -243,7 +244,7 @@ pub fn AllPlaylists() -> impl IntoView {
     let modal_manager = expect_context::<RwSignal<ModalStore>>();
     let open_new_playlist_modal = move |_| {
         modal_manager.update(|m| {
-            m.set_active_modal(Modals::NewPlaylistModal);
+            m.set_active_modal(Modals::NewPlaylistModal(PlaylistModalState::None, None));
             m.on_modal_close(move || {
                 get_playlists_by_option(QueryablePlaylist::default(), playlists.write_only());
             });

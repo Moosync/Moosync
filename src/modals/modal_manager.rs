@@ -29,8 +29,8 @@ pub fn ModalManager() -> impl IntoView {
                     Modals::DiscoverExtensions => {
                         view! { <DiscoverExtensionsModal /> }
                     }
-                    Modals::NewPlaylistModal => {
-                        view! { <NewPlaylistModal /> }
+                    Modals::NewPlaylistModal(initial_state, songs) => {
+                        view! { <NewPlaylistModal initial_state=initial_state songs=songs /> }
                     }
                     Modals::SongFromUrlModal => {
                         view! { <SongFromUrlModal /> }

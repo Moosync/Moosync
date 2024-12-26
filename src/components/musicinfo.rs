@@ -1,6 +1,6 @@
 use leptos::html::Div;
 use leptos::{
-    component, create_effect, create_node_ref, create_read_slice, create_rw_signal,
+    component, create_effect, create_node_ref, create_read_slice, create_rw_signal, create_slice,
     create_write_slice, expect_context, spawn_local, view, IntoView, NodeRef, RwSignal, Signal,
     SignalGet, SignalSet, SignalUpdate,
 };
@@ -12,6 +12,8 @@ use types::ui::song_details::SongDetailIcons;
 use web_sys::{ScrollBehavior, ScrollToOptions};
 
 use crate::components::audiostream::AudioStream;
+use crate::modals::new_playlist_modal::PlaylistModalState;
+use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::ui_store::UiStore;
 use crate::utils::common::{get_high_img, invoke};
 use crate::{
@@ -105,6 +107,14 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>) -> impl IntoView {
 
     let clear_queue = create_write_slice(player_store, |p, _| p.clear_queue_except_current());
 
+    let get_queue = create_read_slice(player_store, |p| {
+        p.get_queue()
+            .song_queue
+            .iter()
+            .filter_map(|id| p.get_queue().data.get(id).cloned())
+            .collect::<Vec<_>>()
+    });
+
     let ui_store = expect_context::<RwSignal<UiStore>>();
 
     create_effect(move |_| {
@@ -195,7 +205,24 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>) -> impl IntoView {
                             <div class="h-100">
                                 <div class="row">
                                     <div class="col-auto d-flex">
-                                        <div class="rounded-btn">Save as playlist</div>
+                                        <div
+                                            class="rounded-btn"
+                                            on:click=move |_| {
+                                                let modal_store = expect_context::<RwSignal<ModalStore>>();
+                                                modal_store
+                                                    .update(|store| {
+                                                        store
+                                                            .set_active_modal(
+                                                                Modals::NewPlaylistModal(
+                                                                    PlaylistModalState::NewPlaylist,
+                                                                    Some(get_queue.get()),
+                                                                ),
+                                                            )
+                                                    });
+                                            }
+                                        >
+                                            Save as playlist
+                                        </div>
                                         <div
                                             class="rounded-btn"
                                             on:click=move |_| clear_queue.set(())

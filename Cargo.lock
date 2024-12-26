@@ -2066,11 +2066,13 @@ dependencies = [
 
 [[package]]
 name = "diesel_logger"
-version = "0.3.0"
-source = "git+https://github.com/Ovenoboyo/diesel-logger.git#50fa413c7a46d805a8457a1183dc32d7ab1bd0ca"
+version = "0.4.0"
+source = "git+https://github.com/Ovenoboyo/diesel-logger.git#80ecd96c3f59ce44419b6b37342bfb4b9f5d61a0"
 dependencies = [
  "diesel",
  "log",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -4679,7 +4681,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]

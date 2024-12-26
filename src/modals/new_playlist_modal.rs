@@ -2,9 +2,10 @@ use std::rc::Rc;
 
 use leptos::{
     component, create_effect, create_rw_signal, event_target_value, expect_context, spawn_local,
-    view, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
+    view, IntoView, RwSignal, SignalGet, SignalGetUntracked, SignalSet, SignalUpdate,
 };
 use types::entities::QueryablePlaylist;
+use types::songs::Song;
 
 use crate::icons::{
     import_playlist_icon::ImportPlaylistIcon, new_playlist_icon::NewPlaylistIcon,
@@ -14,8 +15,8 @@ use crate::store::modal_store::ModalStore;
 use crate::utils::db_utils::create_playlist;
 use crate::{modals::common::GenericModal, store::provider_store::ProviderStore};
 
-#[derive(Debug, Clone)]
-enum State {
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum PlaylistModalState {
     None,
     NewPlaylist,
     ImportPlaylist,
@@ -23,8 +24,11 @@ enum State {
 
 #[tracing::instrument(level = "trace", skip())]
 #[component]
-pub fn NewPlaylistModal() -> impl IntoView {
-    let state = create_rw_signal(State::None);
+pub fn NewPlaylistModal(
+    #[prop()] initial_state: PlaylistModalState,
+    #[prop()] songs: Option<Vec<Song>>,
+) -> impl IntoView {
+    let state = create_rw_signal(initial_state);
 
     let playlist = create_rw_signal(None::<QueryablePlaylist>);
     let import_url = create_rw_signal(String::new());
@@ -58,9 +62,11 @@ pub fn NewPlaylistModal() -> impl IntoView {
 
     let modal_store: RwSignal<ModalStore> = expect_context();
     let close_modal = move || modal_store.update(|m| m.clear_active_modal());
+    let songs = create_rw_signal(songs);
 
     let create_new_playlist = move |_| {
         let playlist = playlist.get();
+        let songs = songs.get_untracked();
 
         if playlist.is_none() {
             return;
@@ -71,7 +77,7 @@ pub fn NewPlaylistModal() -> impl IntoView {
             return;
         }
 
-        create_playlist(playlist);
+        create_playlist(playlist, songs);
         close_modal();
     };
 
@@ -79,21 +85,21 @@ pub fn NewPlaylistModal() -> impl IntoView {
         <GenericModal size=move || {
             {
                 match state.get() {
-                    State::None => "modal-md",
-                    State::NewPlaylist => "modal-lg",
-                    State::ImportPlaylist => "modal-lg",
+                    PlaylistModalState::None => "modal-md",
+                    PlaylistModalState::NewPlaylist => "modal-lg",
+                    PlaylistModalState::ImportPlaylist => "modal-lg",
                 }
             }
                 .into()
         }>
             {move || match state.get() {
-                State::None => {
+                PlaylistModalState::None => {
                     view! {
                         <div class="container">
                             <div class="row h-100">
                                 <div
                                     class="col d-flex"
-                                    on:click=move |_| state.set(State::NewPlaylist)
+                                    on:click=move |_| state.set(PlaylistModalState::NewPlaylist)
                                 >
                                     <div class="row item-box align-self-center">
                                         <div
@@ -117,7 +123,7 @@ pub fn NewPlaylistModal() -> impl IntoView {
                                 </div>
                                 <div
                                     class="col d-flex"
-                                    on:click=move |_| state.set(State::ImportPlaylist)
+                                    on:click=move |_| state.set(PlaylistModalState::ImportPlaylist)
                                 >
                                     <div class="row item-box align-self-center">
                                         <div
@@ -144,7 +150,7 @@ pub fn NewPlaylistModal() -> impl IntoView {
                     }
                         .into_view()
                 }
-                State::NewPlaylist => {
+                PlaylistModalState::NewPlaylist => {
                     view! {
                         <div class="modal-content-container">
                             <div class="container-fluid p-0">
@@ -165,9 +171,14 @@ pub fn NewPlaylistModal() -> impl IntoView {
                                                 on:input=move |e| {
                                                     playlist
                                                         .update(|p| {
-                                                            let mut playlist = playlist.get().unwrap_or_default();
-                                                            playlist.playlist_name = event_target_value(&e);
-                                                            *p = Some(playlist);
+                                                            if let Some(p) = p {
+                                                                p.playlist_name = event_target_value(&e)
+                                                            } else {
+                                                                *p = Some(QueryablePlaylist {
+                                                                    playlist_name: event_target_value(&e),
+                                                                    ..Default::default()
+                                                                })
+                                                            }
                                                         })
                                                 }
                                             />
@@ -189,9 +200,14 @@ pub fn NewPlaylistModal() -> impl IntoView {
                                         on:input=move |e| {
                                             playlist
                                                 .update(|p| {
-                                                    let mut playlist = playlist.get().unwrap_or_default();
-                                                    playlist.playlist_desc = Some(event_target_value(&e));
-                                                    *p = Some(playlist);
+                                                    if let Some(p) = p {
+                                                        p.playlist_name = event_target_value(&e)
+                                                    } else {
+                                                        *p = Some(QueryablePlaylist {
+                                                            playlist_name: event_target_value(&e),
+                                                            ..Default::default()
+                                                        })
+                                                    }
                                                 })
                                         }
                                     ></textarea>
@@ -217,8 +233,11 @@ pub fn NewPlaylistModal() -> impl IntoView {
                     }
                         .into_view()
                 }
-                State::ImportPlaylist => {
+                PlaylistModalState::ImportPlaylist => {
                     view! {
+                        // let mut playlist = playlist.get().unwrap_or_default();
+                        // playlist.playlist_name = event_target_value(&e);
+                        // *p = Some(playlist);
                         <div class="modal-content-container">
                             <div class="container-fluid p-0">
                                 <div class="row no-gutters d-flex" no-gutters="">

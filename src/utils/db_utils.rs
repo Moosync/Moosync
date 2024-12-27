@@ -339,8 +339,8 @@ pub fn create_playlist(playlist: QueryablePlaylist, songs: Option<Vec<Song>>) {
     });
 }
 
-#[tracing::instrument(level = "trace", skip(playlist))]
-pub fn remove_playlist(playlist: QueryablePlaylist) {
+#[tracing::instrument(level = "trace", skip(playlist, refresh_cb))]
+pub fn remove_playlist(playlist: QueryablePlaylist, refresh_cb: Rc<Box<dyn Fn()>>) {
     if playlist.playlist_id.is_none() {
         return;
     }
@@ -350,6 +350,7 @@ pub fn remove_playlist(playlist: QueryablePlaylist) {
         if let Err(res) = res {
             tracing::error!("Failed to remove playlist: {:?}", res);
         }
+        refresh_cb.as_ref()();
     });
 }
 

@@ -1,8 +1,11 @@
 use std::rc::Rc;
 
-use leptos::{use_context, RwSignal, SignalGet, SignalUpdate};
+use leptos::{
+    create_memo, expect_context, use_context, window, RwSignal, SignalGet, SignalGetUntracked,
+    SignalUpdate, SignalWith,
+};
 use leptos_context_menu::{ContextMenuData, ContextMenuItemInner, ContextMenuItems};
-use leptos_router::{use_navigate, NavigateOptions};
+use leptos_router::{use_navigate, use_query, use_query_map, NavigateOptions};
 use serde::Serialize;
 use types::{
     entities::{QueryableArtist, QueryablePlaylist},
@@ -10,11 +13,21 @@ use types::{
 };
 use wasm_bindgen_futures::spawn_local;
 
-use crate::{store::player_store::PlayerStore, utils::songs::get_songs_from_indices};
+use crate::{
+    modals::new_playlist_modal::PlaylistModalState,
+    store::{
+        modal_store::{ModalStore, Modals},
+        player_store::PlayerStore,
+    },
+    utils::{entities::get_playlist_sort_cx_items, songs::get_songs_from_indices},
+};
 
 use super::{
     common::invoke,
-    db_utils::{add_songs_to_library, add_to_playlist, remove_songs_from_library},
+    db_utils::{
+        add_songs_to_library, add_to_playlist, create_playlist, export_playlist, remove_playlist,
+        remove_songs_from_library,
+    },
     songs::get_sort_cx_items,
 };
 
@@ -122,6 +135,41 @@ where
             NavigateOptions::default(),
         );
     }
+
+    pub fn remove_from_playlist(&self) {
+        let params = use_query_map();
+        let playlist = create_memo(move |_| {
+            params.with(|params| {
+                let entity = params.get("entity");
+                if let Some(entity) = entity {
+                    let playlist = serde_json::from_str::<QueryablePlaylist>(entity);
+                    if let Ok(playlist) = playlist {
+                        return Some(playlist);
+                    }
+                }
+                None
+            })
+        });
+
+        let playlist = playlist.get();
+        if let Some(playlist_id) = playlist.map(|p| p.playlist_id).flatten() {
+            let selected_songs = self
+                .current_or_list()
+                .into_iter()
+                .filter_map(|s| s.song._id)
+                .collect();
+            let refresh_cb = self.refresh_cb.clone();
+            spawn_local(async move {
+                let res =
+                    crate::utils::invoke::remove_from_playlist(playlist_id, selected_songs).await;
+                if let Err(e) = res {
+                    tracing::error!("Error removing songs from playlist: {:?}", e);
+                } else {
+                    refresh_cb.as_ref()();
+                }
+            });
+        }
+    }
 }
 
 impl<T> ContextMenuData<Self> for SongItemContextMenu<T>
@@ -174,7 +222,7 @@ where
             )
         };
 
-        vec![
+        let mut ret: ContextMenuItems<Self> = vec![
             ContextMenuItemInner::new_with_handler("Play now".into(), |_, cx| cx.play_now(), None),
             ContextMenuItemInner::new_with_handler(
                 "Play next".into(),
@@ -199,7 +247,21 @@ where
                 None,
             ),
             ContextMenuItemInner::new("Goto artists".into(), Some(artist_items)),
-        ]
+        ];
+
+        let location = window().location().pathname().unwrap();
+        if location.contains("playlists/single") {
+            ret.insert(
+                5,
+                ContextMenuItemInner::new_with_handler(
+                    "Remove from playlist".into(),
+                    |_, cx| cx.remove_from_playlist(),
+                    None,
+                ),
+            );
+        }
+
+        ret
     }
 }
 
@@ -247,5 +309,97 @@ impl ContextMenuData<Self> for ThemesContextMenu {
             |_, cx| cx.export_theme(),
             None,
         )]
+    }
+}
+
+pub struct PlaylistContextMenu {
+    pub refresh_cb: Rc<Box<dyn Fn()>>,
+}
+
+impl PlaylistContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
+    fn open_import_from_url_modal(&self) {
+        let modal_store: RwSignal<ModalStore> = expect_context();
+        modal_store.update(|modal_store| {
+            modal_store.set_active_modal(Modals::NewPlaylistModal(PlaylistModalState::None, None));
+            let cb = self.refresh_cb.clone();
+            modal_store.on_modal_close(move || {
+                cb.as_ref()();
+            });
+        });
+    }
+}
+
+impl ContextMenuData<Self> for PlaylistContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
+    fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
+        vec![
+            ContextMenuItemInner::new_with_handler(
+                "Import from Url".into(),
+                |_, cx| cx.open_import_from_url_modal(),
+                None,
+            ),
+            ContextMenuItemInner::new("Sort by".into(), Some(get_playlist_sort_cx_items())),
+        ]
+    }
+}
+
+pub struct PlaylistItemContextMenu {
+    pub playlist: Option<QueryablePlaylist>,
+    pub refresh_cb: Rc<Box<dyn Fn()>>,
+}
+
+impl PlaylistItemContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
+    fn add_to_library(&self) {
+        if let Some(playlist) = &self.playlist {
+            create_playlist(playlist.clone(), None);
+            self.refresh_cb.as_ref()();
+        }
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    fn remove_from_library(&self) {
+        if let Some(playlist) = &self.playlist {
+            remove_playlist(playlist.clone(), self.refresh_cb.clone());
+        }
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    fn export_playlist(&self) {
+        if let Some(playlist) = &self.playlist {
+            export_playlist(playlist.clone());
+        }
+    }
+}
+
+impl ContextMenuData<Self> for PlaylistItemContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
+    fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
+        if let Some(playlist) = &self.playlist {
+            if let Some(library_item) = playlist.library_item {
+                if library_item {
+                    return vec![
+                        ContextMenuItemInner::new_with_handler(
+                            "Remove from library".into(),
+                            |_, cx| cx.remove_from_library(),
+                            None,
+                        ),
+                        ContextMenuItemInner::new_with_handler(
+                            "Export playlist".into(),
+                            |_, cx| cx.export_playlist(),
+                            None,
+                        ),
+                    ];
+                }
+            }
+
+            return vec![ContextMenuItemInner::new_with_handler(
+                "Add to library".into(),
+                |_, cx| cx.add_to_library(),
+                None,
+            )];
+        }
+        vec![]
     }
 }

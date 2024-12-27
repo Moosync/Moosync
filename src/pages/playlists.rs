@@ -6,6 +6,7 @@ use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::{PlaylistSortByColumns, UiStore};
 use crate::utils::common::{convert_file_src, fetch_infinite};
+use crate::utils::context_menu::{PlaylistContextMenu, PlaylistItemContextMenu};
 use crate::utils::db_utils::{
     create_playlist, export_playlist, get_songs_by_option, remove_playlist,
 };
@@ -27,90 +28,6 @@ use types::ui::song_details::{DefaultDetails, SongDetailIcons};
 
 use crate::store::provider_store::ProviderStore;
 use crate::{icons::plus_button::PlusIcon, utils::db_utils::get_playlists_by_option};
-
-struct PlaylistContextMenu {}
-
-impl PlaylistContextMenu {
-    #[tracing::instrument(level = "trace", skip(self))]
-    fn open_import_from_url_modal(&self) {
-        let modal_store: RwSignal<ModalStore> = expect_context();
-        modal_store.update(|modal_store| {
-            modal_store.set_active_modal(Modals::NewPlaylistModal(PlaylistModalState::None, None));
-        });
-    }
-}
-
-impl ContextMenuData<Self> for PlaylistContextMenu {
-    #[tracing::instrument(level = "trace", skip(self))]
-    fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
-        vec![
-            ContextMenuItemInner::new_with_handler(
-                "Import from Url".into(),
-                |_, cx| cx.open_import_from_url_modal(),
-                None,
-            ),
-            ContextMenuItemInner::new("Sort by".into(), Some(get_playlist_sort_cx_items())),
-        ]
-    }
-}
-
-struct PlaylistItemContextMenu {
-    playlist: Option<QueryablePlaylist>,
-}
-
-impl PlaylistItemContextMenu {
-    #[tracing::instrument(level = "trace", skip(self))]
-    fn add_to_library(&self) {
-        if let Some(playlist) = &self.playlist {
-            create_playlist(playlist.clone(), None);
-        }
-    }
-
-    #[tracing::instrument(level = "trace", skip(self))]
-    fn remove_from_library(&self) {
-        if let Some(playlist) = &self.playlist {
-            remove_playlist(playlist.clone());
-        }
-    }
-
-    #[tracing::instrument(level = "trace", skip(self))]
-    fn export_playlist(&self) {
-        if let Some(playlist) = &self.playlist {
-            export_playlist(playlist.clone());
-        }
-    }
-}
-
-impl ContextMenuData<Self> for PlaylistItemContextMenu {
-    #[tracing::instrument(level = "trace", skip(self))]
-    fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
-        if let Some(playlist) = &self.playlist {
-            if let Some(library_item) = playlist.library_item {
-                if library_item {
-                    return vec![
-                        ContextMenuItemInner::new_with_handler(
-                            "Remove from library".into(),
-                            |_, cx| cx.remove_from_library(),
-                            None,
-                        ),
-                        ContextMenuItemInner::new_with_handler(
-                            "Export playlist".into(),
-                            |_, cx| cx.export_playlist(),
-                            None,
-                        ),
-                    ];
-                }
-            }
-
-            return vec![ContextMenuItemInner::new_with_handler(
-                "Add to library".into(),
-                |_, cx| cx.add_to_library(),
-                None,
-            )];
-        }
-        vec![]
-    }
-}
 
 #[tracing::instrument(level = "trace", skip())]
 #[component()]
@@ -146,6 +63,23 @@ pub fn SinglePlaylist() -> impl IntoView {
 
     let default_details = create_rw_signal(DefaultDetails::default());
 
+    let refresh_songs = move || {
+        tracing::debug!("Refreshing song list");
+        let playlist = playlist.get();
+        if let Some(playlist) = playlist {
+            get_songs_by_option(
+                GetSongOptions {
+                    playlist: Some(QueryablePlaylist {
+                        playlist_id: Some(playlist.playlist_id.unwrap()),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+                songs,
+            );
+        }
+    };
+
     create_effect(move |_| {
         let playlist = playlist.get();
         if let Some(playlist) = playlist {
@@ -168,16 +102,7 @@ pub fn SinglePlaylist() -> impl IntoView {
                 }
             });
 
-            get_songs_by_option(
-                GetSongOptions {
-                    playlist: Some(QueryablePlaylist {
-                        playlist_id: Some(playlist.playlist_id.unwrap()),
-                        ..Default::default()
-                    }),
-                    ..Default::default()
-                },
-                songs,
-            );
+            refresh_songs();
         }
     });
 
@@ -218,7 +143,6 @@ pub fn SinglePlaylist() -> impl IntoView {
         ..Default::default()
     });
 
-    let refresh_songs = move || {};
     let fetch_next_page = move || {
         fetch_selected_providers.as_ref()();
     };
@@ -239,20 +163,30 @@ pub fn SinglePlaylist() -> impl IntoView {
 #[component()]
 pub fn AllPlaylists() -> impl IntoView {
     let playlists = create_rw_signal(vec![]);
-    get_playlists_by_option(QueryablePlaylist::default(), playlists.write_only());
+
+    let refresh_playlist_items: Rc<Box<dyn Fn()>> = Rc::new(Box::new(move || {
+        tracing::debug!("Refreshing playlists");
+        get_playlists_by_option(QueryablePlaylist::default(), playlists.write_only());
+    }));
+
+    refresh_playlist_items.as_ref()();
 
     let modal_manager = expect_context::<RwSignal<ModalStore>>();
+    let refresh_item_clone = refresh_playlist_items.clone();
     let open_new_playlist_modal = move |_| {
         modal_manager.update(|m| {
             m.set_active_modal(Modals::NewPlaylistModal(PlaylistModalState::None, None));
+            let refresh_item_clone = refresh_item_clone.clone();
             m.on_modal_close(move || {
-                get_playlists_by_option(QueryablePlaylist::default(), playlists.write_only());
+                refresh_item_clone.as_ref()();
             });
         });
     };
 
     let ui_store = expect_context::<RwSignal<UiStore>>();
-    let playlist_context_menu = ContextMenu::new(PlaylistContextMenu {});
+    let playlist_context_menu = ContextMenu::new(PlaylistContextMenu {
+        refresh_cb: refresh_playlist_items.clone(),
+    });
 
     let playlist_sort = create_read_slice(ui_store, |u| u.get_playlist_sort_by());
 
@@ -270,8 +204,10 @@ pub fn AllPlaylists() -> impl IntoView {
         playlists
     });
 
-    let playlist_item_context_menu =
-        Rc::new(ContextMenu::new(PlaylistItemContextMenu { playlist: None }));
+    let playlist_item_context_menu = Rc::new(ContextMenu::new(PlaylistItemContextMenu {
+        playlist: None,
+        refresh_cb: refresh_playlist_items,
+    }));
 
     view! {
         <div class="w-100 h-100">

@@ -10,6 +10,7 @@ pub mod expand_icon;
 pub mod explore_icon;
 pub mod extensions_icon;
 pub mod fav_icon;
+pub mod fav_playlist_icon;
 pub mod fetch_all_icon;
 pub mod folder_icon;
 pub mod genres_icon;

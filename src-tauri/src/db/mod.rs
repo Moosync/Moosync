@@ -38,6 +38,7 @@ generate_command!(get_entity_by_options, Database, Value, options: GetEntityOpti
 generate_command!(search_all, Database, SearchResult, term: String);
 generate_command!(create_playlist, Database, String, playlist: QueryablePlaylist);
 generate_command!(add_to_playlist, Database, (), id: String, songs: Vec<Song>);
+generate_command!(is_song_in_playlist, Database, bool, playlist_id: String, song_id: String);
 generate_command!(remove_from_playlist, Database, (), id: String, songs: Vec<String>);
 generate_command!(remove_playlist, Database, (), id: String);
 generate_command!(update_album, Database, (), album: QueryableAlbum);

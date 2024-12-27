@@ -455,6 +455,22 @@ impl Database {
         Ok(fetched)
     }
 
+    pub fn is_song_in_playlist(&self, playlist_id: String, song_id: String) -> Result<bool> {
+        let mut conn = self.pool.get().unwrap();
+        let res: Vec<i64> = schema::playlist_bridge::table
+            .filter(
+                schema::playlist_bridge::playlist
+                    .eq(playlist_id)
+                    .and(schema::playlist_bridge::song.eq(song_id)),
+            )
+            .count()
+            .load(&mut conn)?;
+        if let Some(res) = res.first() {
+            return Ok(*res > 0);
+        }
+        Ok(false)
+    }
+
     #[tracing::instrument(level = "trace", skip(self))]
     pub fn get_entity_by_options(&self, options: GetEntityOptions) -> Result<Value> {
         let mut conn = self.pool.get().unwrap();

@@ -2,7 +2,10 @@ use std::rc::Rc;
 
 use crate::{
     components::provider_icon::ProviderIcon,
-    icons::{play_hover_icon::PlayHoverIcon, song_default_icon::SongDefaultIcon},
+    icons::{
+        fav_playlist_icon::FavPlaylistIcon, play_hover_icon::PlayHoverIcon,
+        song_default_icon::SongDefaultIcon,
+    },
     utils::common::convert_file_src,
 };
 use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
@@ -82,6 +85,14 @@ where
                                 }
                                     .into_view()
                             } else {
+                                if let Some(cover) = item.cover.clone() {
+                                    if cover == "favorites" {
+                                        return view! {
+                                            <FavPlaylistIcon class="rounded-corners img-fluid w-100 h-100" />
+                                        }
+                                            .into_view();
+                                    }
+                                }
                                 view! {
                                     <img
                                         src=item.cover.clone().map(convert_file_src)

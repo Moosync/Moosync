@@ -12,8 +12,8 @@ use wasm_bindgen_futures::spawn_local;
 use crate::{
     icons::{
         add_to_library_icon::AddToLibraryIcon, add_to_queue_icon::AddToQueueIcon,
-        pin_icon::PinIcon, plain_play_icon::PlainPlayIcon, random_icon::RandomIcon,
-        song_default_icon::SongDefaultIcon,
+        fav_playlist_icon::FavPlaylistIcon, pin_icon::PinIcon, plain_play_icon::PlainPlayIcon,
+        random_icon::RandomIcon, song_default_icon::SongDefaultIcon,
     },
     utils::common::{format_duration, get_high_img, invoke},
 };
@@ -147,6 +147,12 @@ where
                                 {move || {
                                     let cover_path = selected_cover_path.get();
                                     if !show_default_cover_img.get() {
+                                        tracing::debug!("Got cover path {:?}", cover_path);
+                                        if let Some(cover) = cover_path.clone() {
+                                            if cover == "favorites" {
+                                                return view! { <FavPlaylistIcon class="" /> }.into_view();
+                                            }
+                                        }
                                         view! {
                                             <img
                                                 src=cover_path

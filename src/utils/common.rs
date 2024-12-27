@@ -103,7 +103,7 @@ pub fn format_duration(secs: f64) -> String {
 
 #[tracing::instrument(level = "trace", skip(path))]
 pub fn convert_file_src(path: String) -> String {
-    if path.is_empty() || path.starts_with("asset:") {
+    if path.is_empty() || path.starts_with("asset:") || path == "favorites" {
         return path;
     }
 

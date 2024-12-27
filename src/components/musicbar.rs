@@ -3,7 +3,7 @@ use leptos::*;
 use leptos::{component, view, IntoView, RwSignal, SignalGet, SignalSet};
 use leptos_router::{use_navigate, NavigateOptions};
 use leptos_use::{use_document, use_event_listener};
-use types::entities::QueryableArtist;
+use types::entities::{QueryableArtist, QueryablePlaylist};
 use types::ui::player_details::PlayerState;
 
 use crate::components::artist_list::ArtistList;
@@ -94,6 +94,8 @@ fn Details() -> impl IntoView {
 pub fn Controls() -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
 
+    let current_song = create_read_slice(player_store, |p| p.get_current_song());
+
     let prev_track_dis = create_read_slice(player_store, |p| p.get_queue_len() <= 1);
     let next_track_dis = create_read_slice(player_store, |p| p.get_queue_len() <= 1);
     let is_play = create_read_slice(player_store, |p| {
@@ -117,6 +119,64 @@ pub fn Controls() -> impl IntoView {
     let set_current_state = create_write_slice(player_store, |player, n| player.set_state(n));
     let next_song_setter = create_write_slice(player_store, |p, _| p.next_song());
     let prev_song_setter = create_write_slice(player_store, |p, _| p.prev_song());
+
+    create_effect(move |_| {
+        let current_song = current_song.get();
+        if let Some(current_song) = current_song {
+            spawn_local(async move {
+                tracing::debug!("Checking song in favorites");
+                let res = crate::utils::invoke::is_song_in_playlist(
+                    "favorite".into(),
+                    current_song.song._id.unwrap_or_default(),
+                )
+                .await;
+                match res {
+                    Ok(res) => {
+                        tracing::debug!("song in favorites: {}", res);
+                        is_fav.set(res);
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to check song in favs: {:?}", e);
+                        is_fav.set(false);
+                    }
+                }
+            });
+        } else {
+            is_fav.set(false);
+        }
+    });
+
+    let add_to_fav = move |_| {
+        let current_song = current_song.get();
+        let is_fav_val = is_fav.get();
+        if let Some(current_song) = current_song {
+            spawn_local(async move {
+                // Don't care if favorites playlist already exists
+                let _ = crate::utils::invoke::create_playlist(QueryablePlaylist {
+                    playlist_id: Some("favorite".into()),
+                    playlist_name: "Favorites".into(),
+                    playlist_coverpath: Some("favorites".into()),
+                    ..Default::default()
+                })
+                .await;
+
+                let res = if !is_fav_val {
+                    crate::utils::invoke::add_to_playlist("favorite".into(), vec![current_song])
+                        .await
+                } else {
+                    crate::utils::invoke::remove_from_playlist(
+                        "favorite".into(),
+                        vec![current_song.song._id.unwrap_or_default()],
+                    )
+                    .await
+                };
+                match res {
+                    Err(e) => tracing::error!("Failed to add to favorites playlist {:?}", e),
+                    Ok(_) => is_fav.set(!is_fav_val),
+                }
+            });
+        }
+    };
 
     view! {
         <div class="row no-gutters align-items-center justify-content-center">
@@ -165,7 +225,7 @@ pub fn Controls() -> impl IntoView {
                     }
                 />
             </div>
-            <div class="col col-button mr-1">
+            <div class="col col-button mr-1" on:click=add_to_fav>
                 <FavIcon filled=is_fav.read_only() />
             </div>
             <div class="col-md-3 col-5 align-self-center timestamp-container">

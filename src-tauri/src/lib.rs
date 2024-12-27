@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use std::fs;
 
+use db::is_song_in_playlist;
 use extensions::get_extension_state;
 use librespot::{
     get_canvaz, get_librespot_state, is_initialized, librespot_close, librespot_get_token,
@@ -53,7 +54,7 @@ use {
             add_to_playlist, create_playlist, export_playlist, get_db_state, get_entity_by_options,
             get_songs_by_options, increment_play_count, increment_play_time, insert_songs,
             remove_from_playlist, remove_playlist, remove_songs, search_all, update_album,
-            update_artist, update_lyrics, update_playlist, update_songs,
+            update_artist, update_lyrics, update_playlist, update_song, update_songs,
         },
     },
     oauth::handler::{get_oauth_state, OAuthHandler},
@@ -127,12 +128,14 @@ pub fn run() {
             search_all,
             create_playlist,
             add_to_playlist,
+            is_song_in_playlist,
             remove_from_playlist,
             remove_playlist,
             update_album,
             update_artist,
             update_playlist,
             update_songs,
+            update_song,
             update_lyrics,
             increment_play_count,
             increment_play_time,

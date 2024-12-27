@@ -335,6 +335,7 @@ fn parse_fn(dets: &FnDetails, valid_crates: &Vec<String>) -> proc_macro2::TokenS
     quote! {
         pub async fn #func_name_ident #generic_params(#(#args),*) #ret_type #where_clause {
             #[derive(serde::Serialize)]
+            #[serde(rename_all="camelCase")]
             struct Args #generic_params #where_clause {
                 #(#struct_fields),*
             }

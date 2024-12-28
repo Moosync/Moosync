@@ -200,7 +200,8 @@ impl PlayerHolder {
         player_store: RwSignal<PlayerStore>,
     ) -> Result<Option<Song>> {
         let autoplay = create_read_slice(player_store, |p| {
-            p.get_player_state() == PlayerState::Playing
+            let state = p.get_player_state();
+            state != PlayerState::Paused || state != PlayerState::Stopped
         })
         .get();
 

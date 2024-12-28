@@ -251,13 +251,6 @@ pub struct FetchedExtensionManifest {
     pub logo: Option<String>,
     pub description: Option<String>,
     pub url: String,
-    pub release: Release,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct Release {
-    pub r#type: Option<String>,
-    pub url: String,
     pub version: String,
 }
 

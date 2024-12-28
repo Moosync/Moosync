@@ -409,12 +409,7 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "trace", skip(self, fetched_ext))]
     pub async fn download_extension(&self, fetched_ext: FetchedExtensionManifest) -> Result<()> {
-        let parsed_url = fetched_ext
-            .release
-            .url
-            .replace("{version}", &fetched_ext.release.version)
-            .replace("{platform}", env::consts::OS)
-            .replace("{arch}", env::consts::ARCH);
+        let parsed_url = fetched_ext.url;
         let file_path = self.tmp_dir.join(format!(
             "{}-{}.msox",
             fetched_ext.package_name,
@@ -484,53 +479,64 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn get_extension_manifest(&self) -> Result<Vec<FetchedExtensionManifest>> {
-        #[derive(serde::Deserialize, Debug)]
-        struct GithubTreeItem {
-            path: String,
-            r#type: String,
-            url: String,
+        #[derive(serde::Deserialize, Debug, Clone)]
+        struct GithubReleaseAsset {
+            browser_download_url: String,
+            name: String,
         }
 
         #[derive(serde::Deserialize, Debug)]
-        struct GithubTreeResponse {
-            tree: Vec<GithubTreeItem>,
+        struct GithubReleasesResp {
+            assets: Vec<GithubReleaseAsset>,
         }
 
         #[derive(serde::Deserialize, Debug)]
-        struct BlockResponse {
-            content: String,
-            encoding: String,
+        #[serde(rename_all = "camelCase")]
+        struct ExtensionManifestItem {
+            display_name: String,
+            version: String,
+            icon: Option<String>,
+            permissions: HashMap<String, Value>,
         }
 
         tracing::info!("Getting extension manifest");
         let client = reqwest::Client::new();
         let res = client.get(
-            "https://api.github.com/repos/Moosync/moosync-exts/git/trees/main?recursive=1",
+            "https://api.github.com/repos/Moosync/moosync-exts/releases/latest",
         )
         .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
         .header("Accept", "application/json")
         .send()
         .await?;
-        let res = res.json::<GithubTreeResponse>().await?;
+        let releases_resp = res.json::<GithubReleasesResp>().await?;
 
         let mut ret = vec![];
-        for item in res.tree {
-            if item.path.ends_with("/extension.yml") && item.r#type == "blob" {
-                let res = client.get(&item.url).header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
-                .header("Accept", "application/json")
-                .send().await?;
-                let res = res.json::<BlockResponse>().await?;
+        for item in releases_resp.assets.clone() {
+            if item.name == "manifest.json" {
+                let res = client.get(&item.browser_download_url).header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
+                        .header("Accept", "application/json")
+                        .send().await?;
 
-                if res.encoding == "base64" {
-                    let content = base64::prelude::BASE64_STANDARD
-                        .decode(res.content.replace("\n", ""))
-                        .unwrap();
-
-                    let content = serde_yaml::from_slice::<FetchedExtensionManifest>(&content);
-                    if let Ok(content) = content {
-                        ret.push(content);
+                let bytes = res.bytes().await?;
+                let manifests: HashMap<String, ExtensionManifestItem> =
+                    serde_json::from_slice(&bytes)?;
+                for (package_name, manifest) in manifests {
+                    let asset = releases_resp.assets.iter().find(|asset| {
+                        asset.name.starts_with(package_name.as_str())
+                            && asset.name.ends_with(".msox")
+                    });
+                    if let Some(asset) = asset {
+                        ret.push(FetchedExtensionManifest {
+                            name: manifest.display_name,
+                            package_name,
+                            logo: manifest.icon.map(|icon| format!("https://raw.githubusercontent.com/Moosync/moosync-exts/refs/heads/v2/{}", icon)),
+                            description: None,
+                            url: asset.browser_download_url.clone(),
+                            version: manifest.version,
+                        })
                     }
                 }
+                break;
             }
         }
 

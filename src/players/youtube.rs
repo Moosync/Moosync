@@ -1,8 +1,9 @@
 use std::{cell::RefCell, rc::Rc};
 
 use leptos::{
+    create_effect, create_rw_signal,
     html::{div, Div},
-    NodeRef,
+    NodeRef, RwSignal, SignalGet, SignalSet, SignalSetUntracked,
 };
 use regex::bytes::Regex;
 use tokio::sync::oneshot::Sender as OneShotSender;
@@ -42,6 +43,7 @@ macro_rules! listen_event {
 #[derive(Clone)]
 pub struct YoutubePlayer {
     player: Rc<YTPlayer>,
+    force_play: RwSignal<bool>,
 }
 
 impl YoutubePlayer {
@@ -49,6 +51,7 @@ impl YoutubePlayer {
     pub fn new() -> Self {
         Self {
             player: Rc::new(YTPlayer::new("yt-player")),
+            force_play: create_rw_signal(false),
         }
     }
 }
@@ -68,7 +71,17 @@ impl GenericPlayer for YoutubePlayer {
             container_div.set_id("yt-player");
             elem.append_child(&container_div).unwrap();
         });
-        tracing::debug!("Returning from YoutubePlayer initialize")
+        tracing::debug!("Returning from YoutubePlayer initialize");
+
+        let force_play_sig = self.force_play;
+        let player = self.player.clone();
+        create_effect(move |_| {
+            let force_play = force_play_sig.get();
+            if force_play {
+                force_play_sig.set_untracked(false);
+                player.play();
+            }
+        });
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -131,13 +144,17 @@ impl GenericPlayer for YoutubePlayer {
 
     #[tracing::instrument(level = "trace", skip(self, tx))]
     fn add_listeners(&mut self, tx: Rc<Box<dyn Fn(PlayerEvents)>>) {
+        let force_play = self.force_play;
         listen_event!(self, tx.clone(), "stateChange", f64, |state| {
             tracing::debug!("Youtube player Emitting {}", state);
             match state {
                 0f64 => Ok(PlayerEvents::Ended),
                 1f64 => Ok(PlayerEvents::Play),
                 2f64 => Ok(PlayerEvents::Pause),
-                3f64 => Ok(PlayerEvents::Loading),
+                3f64 => {
+                    force_play.set(true);
+                    Ok(PlayerEvents::Loading)
+                }
                 _ => Err(MoosyncError::String(format!(
                     "Youtube player ignoring event: {}",
                     state

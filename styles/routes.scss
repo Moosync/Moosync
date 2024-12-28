@@ -1,9 +1,9 @@
 .route-out {
-    animation: 0.5s slide-out;
+    animation: 0.5s ease slide-out;
 }
 
 .route-in {
-    animation: 0.5s slide-in;
+    animation: 0.5s ease slide-in;
 }
 
 @keyframes slide-in {

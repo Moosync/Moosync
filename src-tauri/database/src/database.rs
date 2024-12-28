@@ -12,10 +12,9 @@ use diesel::{
 };
 use diesel::{BoolExpressionMethods, Insertable, TextExpressionMethods};
 use diesel_logger::LoggingConnection;
-use log::trace;
 use macros::{filter_field, filter_field_like};
 use serde_json::Value;
-use tracing::info;
+use tracing::{debug, info, trace};
 use uuid::Uuid;
 
 use types::common::{BridgeUtils, SearchByTerm};
@@ -315,10 +314,14 @@ impl Database {
     #[tracing::instrument(level = "trace", skip(self, song))]
     pub fn update_song(&self, song: QueryableSong) -> Result<()> {
         trace!("Updating song");
-        update(allsongs)
-            .set(&song)
-            .execute(&mut self.pool.get().unwrap())?;
-        info!("Updated song");
+        if let Some(id) = song._id.as_ref() {
+            update(allsongs.filter(schema::allsongs::_id.eq(id.clone())))
+                .set(&song)
+                .execute(&mut self.pool.get().unwrap())?;
+            debug!("Updated song");
+        } else {
+            debug!("Song does not have an ID");
+        }
         Ok(())
     }
 

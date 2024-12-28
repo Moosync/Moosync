@@ -4,7 +4,6 @@ edition = "2021"
 version = "0.1.0"
 
 [dependencies]
-log = "0.4.22"
 serde_json = { default-features = false, version = "1.0" }
 diesel_logger = { git = "https://github.com/Ovenoboyo/diesel-logger.git" }
 tracing = { version = "0.1.41", default-features = false }

@@ -1863,7 +1863,6 @@ dependencies = [
  "diesel_logger",
  "diesel_migrations",
  "libsqlite3-sys",
- "log",
  "macros",
  "serde",
  "serde_json",

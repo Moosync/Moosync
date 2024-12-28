@@ -17,7 +17,7 @@ use rspotify::{
     model::{
         AlbumId, ArtistId, FullAlbum, FullArtist, FullTrack, Id, Image, PlaylistId,
         PlaylistTracksRef, SearchType, SimplifiedAlbum, SimplifiedArtist, SimplifiedPlaylist,
-        SimplifiedTrack, TrackId,
+        SimplifiedTrack, SubscriptionLevel, TrackId,
     },
     AuthCodePkceSpotify, Token,
 };
@@ -118,8 +118,10 @@ impl SpotifyProvider {
             }));
 
             let res = self.fetch_user_details().await;
-            if let Ok(res) = res {
+            let mut is_spotify_premium = false;
+            if let Ok((res, is_premium)) = res {
                 let _ = self.status_tx.send(res).await;
+                is_spotify_premium = is_premium;
             } else {
                 let _ = self
                     .status_tx
@@ -134,9 +136,12 @@ impl SpotifyProvider {
                     .await;
             }
 
-            tracing::debug!("Initializing librespot");
-            if let Err(err) = initialize_librespot(self.app.clone(), token.access_token.clone()) {
-                tracing::error!("Error initializing librespot {:?}", err);
+            if is_spotify_premium {
+                tracing::debug!("Initializing librespot");
+                if let Err(err) = initialize_librespot(self.app.clone(), token.access_token.clone())
+                {
+                    tracing::error!("Error initializing librespot {:?}", err);
+                }
             }
         }
     }
@@ -235,21 +240,30 @@ impl SpotifyProvider {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn fetch_user_details(&self) -> Result<ProviderStatus> {
+    async fn fetch_user_details(&self) -> Result<(ProviderStatus, bool)> {
         tracing::info!("Fetching user details for spotify");
         if let Some(api_client) = &self.api_client {
             let token = api_client.token.lock().await.unwrap();
             drop(token);
 
             let user = api_client.current_user().await?;
-            return Ok(ProviderStatus {
-                key: self.key(),
-                name: "Spotify".into(),
-                user_name: user.display_name,
-                logged_in: true,
-                bg_color: "#07C330".into(),
-                account_id: "spotify".into(),
-            });
+            let mut is_premium = false;
+            if let Some(subscription) = user.product {
+                if subscription == SubscriptionLevel::Premium {
+                    is_premium = true
+                }
+            }
+            return Ok((
+                ProviderStatus {
+                    key: self.key(),
+                    name: "Spotify".into(),
+                    user_name: user.display_name,
+                    logged_in: true,
+                    bg_color: "#07C330".into(),
+                    account_id: "spotify".into(),
+                },
+                is_premium,
+            ));
         }
 
         Err("API client not initialized".into())

@@ -44,6 +44,8 @@ macro_rules! listen_event {
 pub struct YoutubePlayer {
     player: Rc<YTPlayer>,
     force_play: RwSignal<bool>,
+    reload_audio: RwSignal<bool>,
+    last_src: RwSignal<Option<String>>,
 }
 
 impl YoutubePlayer {
@@ -52,6 +54,8 @@ impl YoutubePlayer {
         Self {
             player: Rc::new(YTPlayer::new("yt-player")),
             force_play: create_rw_signal(false),
+            reload_audio: create_rw_signal(false),
+            last_src: create_rw_signal(None),
         }
     }
 }
@@ -82,6 +86,20 @@ impl GenericPlayer for YoutubePlayer {
                 player.play();
             }
         });
+
+        let reload_audio_sig = self.reload_audio;
+        let last_src = self.last_src;
+        let player = self.player.clone();
+        create_effect(move |_| {
+            let reload_audio = reload_audio_sig.get();
+            let last_src = last_src.get();
+            if let Some(last_src) = last_src {
+                if reload_audio {
+                    reload_audio_sig.set_untracked(false);
+                    player.load(last_src.as_str(), true);
+                }
+            }
+        });
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -92,6 +110,7 @@ impl GenericPlayer for YoutubePlayer {
     #[tracing::instrument(level = "trace", skip(self, src, resolver))]
     fn load(&self, src: String, resolver: OneShotSender<()>) {
         self.player.load(src.as_str(), false);
+        self.last_src.set_untracked(Some(src.clone()));
         tracing::debug!("Loaded youtube embed {}", src);
         // TODO: Resolve when player state changes
         let res = resolver.send(());
@@ -166,7 +185,14 @@ impl GenericPlayer for YoutubePlayer {
             Ok(PlayerEvents::TimeUpdate(time))
         });
 
-        listen_event!(self, tx.clone(), "error", JsValue, |error| {
+        let reload_audio = self.reload_audio;
+        listen_event!(self, tx.clone(), "error", JsValue, |error: JsValue| {
+            if let Some(err) = error.as_f64() {
+                if err == 2f64 {
+                    reload_audio.set(true);
+                    return Err("Youtube player error (2), trying to reload audio".into());
+                }
+            }
             Ok(PlayerEvents::Error(format!("{:?}", error).into()))
         })
     }
@@ -176,6 +202,7 @@ impl GenericPlayer for YoutubePlayer {
         self.pause()?;
         self.player.stop();
         self.player.removeAllListeners();
+        self.last_src.set_untracked(None);
         Ok(())
     }
 }

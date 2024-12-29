@@ -138,6 +138,7 @@ impl PlayerHolder {
             let mut song_tmp = song.clone();
             for (i, player) in players.iter().enumerate() {
                 if player_blacklist.get_untracked().contains(&player.key()) {
+                    tracing::debug!("Player {} is blacklisted. Not trying", player.key());
                     continue;
                 }
                 tracing::debug!("Trying player {}", player.key());
@@ -464,7 +465,7 @@ pub fn AudioStream() -> impl IntoView {
                         }
                     }
                 } else {
-                    tracing::info!("Failed to load Song {:?}", updated_song);
+                    tracing::error!("Failed to load Song {:?}", updated_song);
                 }
             });
         } else {

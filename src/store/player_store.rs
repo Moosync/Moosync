@@ -582,7 +582,11 @@ impl PlayerStore {
                 let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
                 let deserialized = bitcode::decode::<'_, PlayerStoreData>(&bytes);
                 if let Ok(deserialized) = deserialized {
-                    signal.set(Some(deserialized));
+                    signal.set(Some(PlayerStoreData {
+                        player_blacklist: vec![],
+                        force_load_song: false,
+                        ..deserialized
+                    }));
                 }
             } else {
                 tracing::error!("Error reading from indexed db {:?}", bytes);

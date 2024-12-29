@@ -50,6 +50,7 @@ tracing-subscriber = { features = [
 ], default-features = false, version = "0.3.19" }
 rustls = { version = "0.23.20", features = ["ring"] }
 tauri-invoke-proc = { path = "./tauri-invoke-proc" }
+openssl-sys = { version = "*", features = ["vendored"] }
 
 
 [build-dependencies.tauri-build]

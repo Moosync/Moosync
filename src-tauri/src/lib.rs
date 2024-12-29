@@ -112,7 +112,6 @@ pub fn run() {
             "#,
             filter
         ))
-        // .plugin(devtools)
         .invoke_handler(tauri::generate_handler![
             // Preferences
             save_selective,

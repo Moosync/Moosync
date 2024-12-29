@@ -1,13 +1,12 @@
 use core::str;
 use std::io::{self, Write};
 
-use serde::Serialize;
 use tracing_subscriber::fmt::MakeWriter;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{console_debug, console_error, console_info, console_trace, console_warn};
 
-use super::common::invoke;
+use super::invoke::renderer_write;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct MakeConsoleWriter {
@@ -48,11 +47,6 @@ pub struct ConsoleWriter {
     log_file: bool,
 }
 
-#[derive(Serialize)]
-struct RendererWriteArgs {
-    data: Vec<u8>,
-}
-
 impl Write for ConsoleWriter {
     #[tracing::instrument(level = "trace", skip(self, buf))]
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
@@ -84,12 +78,7 @@ impl Write for ConsoleWriter {
         } else {
             let data = self.data.clone();
             spawn_local(async move {
-                if let Err(e) = invoke(
-                    "renderer_write",
-                    serde_wasm_bindgen::to_value(&RendererWriteArgs { data }).unwrap(),
-                )
-                .await
-                {
+                if let Err(e) = renderer_write(data).await {
                     console_error!("Failed to write log: {:?}", e);
                 }
             });

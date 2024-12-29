@@ -30,7 +30,7 @@ use crate::{
         youtube::YoutubePlayer,
     },
     store::{player_store::PlayerStore, provider_store::ProviderStore},
-    utils::invoke::update_song,
+    utils::invoke::{fetch_playback_url, update_song},
 };
 
 pub struct PlayerHolder {
@@ -180,9 +180,8 @@ impl PlayerHolder {
     pub async fn get_playback_url(&self, song: &Song, player: String) -> Result<String> {
         let id = song.song._id.clone().unwrap();
         let provider = self.providers.get_provider_key_by_id(id.clone()).await?;
-        self.providers
-            .fetch_playback_url(provider, song.clone(), player)
-            .await
+
+        fetch_playback_url(provider, song.clone(), player).await
     }
 
     fn set_player_listeners(&self, player: &mut Box<dyn GenericPlayer>) {

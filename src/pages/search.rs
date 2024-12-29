@@ -1,11 +1,14 @@
 use std::{collections::HashMap, rc::Rc};
 
-use crate::components::cardview::{CardView, SimplifiedCardItem};
+use crate::{
+    components::cardview::{CardView, SimplifiedCardItem},
+    utils::invoke::provider_search,
+};
 use colors_transform::{Color, Rgb};
 use leptos::{
-    component, create_effect, create_node_ref, create_rw_signal, create_signal, ev::wheel,
-    expect_context, html::Div, view, For, IntoView, Params, RwSignal, Show, SignalGet, SignalSet,
-    SignalUpdate, SignalWith,
+    component, create_effect, create_node_ref, create_rw_signal, ev::wheel, expect_context,
+    html::Div, view, For, IntoView, Params, RwSignal, Show, SignalGet, SignalSet, SignalUpdate,
+    SignalWith,
 };
 use leptos_router::{use_query, Params};
 use leptos_use::{use_event_listener, use_resize_observer};
@@ -254,9 +257,7 @@ pub fn Search() -> impl IntoView {
             let keys = keys_clone.clone();
             spawn_local(async move {
                 for key in keys {
-                    let res = provider_store
-                        .provider_search(key.clone(), search_term.clone())
-                        .await;
+                    let res = provider_search(key.clone(), search_term.clone()).await;
                     match res {
                         Ok(res) => {
                             search_results.update(|map| {

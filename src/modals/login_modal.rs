@@ -1,13 +1,13 @@
-use std::rc::Rc;
 
 use leptos::{
-    component, create_action, create_rw_signal, event_target_value, expect_context, spawn_local,
+    component, create_action, create_rw_signal, event_target_value, spawn_local,
     view, IntoView, SignalGet, SignalGetUntracked, SignalSet,
 };
 use serde::Serialize;
 
 use crate::{
-    modals::common::GenericModal, store::provider_store::ProviderStore, utils::common::invoke,
+    modals::common::GenericModal,
+    utils::invoke::{provider_authorize, provider_login},
 };
 
 #[tracing::instrument(level = "trace", skip(key, name, account_id))]
@@ -21,24 +21,17 @@ pub fn LoginModal(
     let code = create_rw_signal(String::new());
     let url = create_rw_signal(String::new());
 
-    let provider_store = expect_context::<Rc<ProviderStore>>();
-
-    let provider_store_cloned = provider_store.clone();
     let key_cloned = key.clone();
 
     let authorize = create_action(move |code: &String| {
-        let provider_store = provider_store.clone();
         let code = code.clone();
         let key = key.clone();
 
-        async move { provider_store.provider_authorize(key, code).await }
+        async move { provider_authorize(key, code).await }
     });
 
     spawn_local(async move {
-        let ret = provider_store_cloned
-            .provider_login(key_cloned, account_id)
-            .await
-            .unwrap();
+        let ret = provider_login(key_cloned, account_id).await.unwrap();
         url.set(ret);
     });
 
@@ -51,11 +44,10 @@ pub fn LoginModal(
         }
 
         spawn_local(async move {
-            let _ = invoke(
-                "open_external",
-                serde_wasm_bindgen::to_value(&OpenExternalArgs { url }).unwrap(),
-            )
-            .await;
+            let res = crate::utils::invoke::open_external(url).await;
+            if let Err(e) = res {
+                tracing::error!("Failed to open external: {:?}", e);
+            }
         });
     };
 

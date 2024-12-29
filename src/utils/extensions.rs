@@ -1,25 +1,15 @@
 use leptos::spawn_local;
 use types::extensions::{ExtensionExtraEvent, ExtensionExtraEventArgs};
 
-use crate::utils::common::invoke;
+use crate::utils::invoke::send_extra_event;
 
 #[tracing::instrument(level = "trace", skip(args))]
 pub fn send_extension_event(args: ExtensionExtraEvent) {
     spawn_local(async move {
-        #[derive(serde::Serialize)]
-        struct ExtraEventArgs {
-            args: ExtensionExtraEventArgs,
-        }
-        let res = invoke(
-            "send_extra_event",
-            serde_wasm_bindgen::to_value(&ExtraEventArgs {
-                args: ExtensionExtraEventArgs {
-                    data: args,
-                    package_name: "".into(),
-                },
-            })
-            .unwrap(),
-        )
+        let res = send_extra_event(ExtensionExtraEventArgs {
+            data: args,
+            package_name: "".into(),
+        })
         .await;
 
         if let Err(e) = res {

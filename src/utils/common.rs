@@ -180,7 +180,7 @@ pub fn get_high_img(song: &Song) -> String {
 }
 
 macro_rules! fetch_infinite {
-    ($provider_store:expr, $provider:expr, $fetch_content:ident, $update_signal:expr, $next_page_signal:ident, $($arg:expr),*) => {
+    ($provider:expr, $fetch_content:ident, $update_signal:expr, $next_page_signal:ident, $($arg:expr),*) => {
             'fetch: {
                 use types::providers::generic::Pagination;
                 use leptos::SignalGetUntracked;
@@ -202,7 +202,7 @@ macro_rules! fetch_infinite {
                 let pagination_lock = pagination_lock.unwrap();
                 let mut pagination = pagination_lock.lock().await;
 
-                let res = $provider_store.$fetch_content($provider.clone(), $($arg,)* pagination.clone()).await;
+                let res = crate::utils::invoke::$fetch_content($provider.clone(), $($arg,)* pagination.clone()).await;
                 if res.is_err() {
                     tracing::error!("Error fetching content {:?}", res);
                     break 'fetch Err(res.unwrap());

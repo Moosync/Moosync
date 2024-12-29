@@ -110,13 +110,8 @@ pub fn SingleAlbum() -> impl IntoView {
     let provider_store = expect_context::<Rc<ProviderStore>>();
     let selected_providers = create_rw_signal::<Vec<String>>(vec![]);
 
-    let (_, filtered_songs, fetch_selected_providers) = dyn_provider_songs!(
-        selected_providers,
-        album,
-        provider_store,
-        songs,
-        get_album_content
-    );
+    let (_, filtered_songs, fetch_selected_providers) =
+        dyn_provider_songs!(selected_providers, album, songs, get_album_content);
 
     let refresh_songs = move || {};
     let fetch_next_page = move || {

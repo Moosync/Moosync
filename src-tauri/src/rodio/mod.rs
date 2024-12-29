@@ -28,6 +28,7 @@ pub fn get_rodio_state(app: AppHandle) -> RodioPlayer {
 
 #[tracing::instrument(level = "trace", skip(app, src))]
 #[tauri::command(async)]
+#[tauri_invoke_proc::parse_tauri_command]
 pub fn rodio_load(app: AppHandle, src: String) -> Result<()> {
     tauri::async_runtime::spawn_blocking(move || {
         let rodio: State<'_, RodioPlayer> = app.state();

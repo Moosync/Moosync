@@ -1,7 +1,6 @@
 use ev::mouseup;
 use leptos::*;
 use leptos::{component, view, IntoView, RwSignal, SignalGet, SignalSet};
-use leptos_router::{use_navigate, NavigateOptions};
 use leptos_use::{use_document, use_event_listener};
 use types::entities::{QueryableArtist, QueryablePlaylist};
 use types::ui::player_details::PlayerState;
@@ -17,7 +16,6 @@ use crate::icons::prev_track_icon::PrevTrackIcon;
 use crate::icons::repeat_icon::RepeatIcon;
 use crate::icons::shuffle_icon::ShuffleIcon;
 use crate::icons::volume_icon::VolumeIcon;
-use crate::pages::artists;
 use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::UiStore;
 use crate::utils::common::{format_duration, get_low_img};

@@ -1,16 +1,10 @@
-use serde::Serialize;
 use types::{mpris::MprisPlayerDetails, songs::Song, ui::player_details::PlayerState};
 use wasm_bindgen_futures::spawn_local;
 
-use crate::utils::{common::invoke, entities::get_artist_string};
+use crate::utils::entities::get_artist_string;
 
 #[tracing::instrument(level = "trace", skip(song))]
 pub fn set_metadata(song: &Song) {
-    #[derive(Serialize)]
-    struct SetMetadataArgs {
-        metadata: MprisPlayerDetails,
-    }
-
     let metadata = MprisPlayerDetails {
         title: song.song.title.clone(),
         id: song.song._id.clone(),
@@ -22,12 +16,7 @@ pub fn set_metadata(song: &Song) {
         thumbnail: song.song.song_cover_path_high.clone(),
     };
     spawn_local(async move {
-        let res = invoke(
-            "set_metadata",
-            serde_wasm_bindgen::to_value(&SetMetadataArgs { metadata }).unwrap(),
-        )
-        .await;
-
+        let res = crate::utils::invoke::set_metadata(metadata).await;
         if let Err(err) = res {
             tracing::error!("Failed to set mpris metadata {:?}", err);
         }
@@ -36,18 +25,8 @@ pub fn set_metadata(song: &Song) {
 
 #[tracing::instrument(level = "trace", skip(state))]
 pub fn set_playback_state(state: PlayerState) {
-    #[derive(Serialize)]
-    struct SetPlaybackStateArgs {
-        state: PlayerState,
-    }
-
     spawn_local(async move {
-        let res = invoke(
-            "set_playback_state",
-            serde_wasm_bindgen::to_value(&SetPlaybackStateArgs { state }).unwrap(),
-        )
-        .await;
-
+        let res = crate::utils::invoke::set_playback_state(state).await;
         if let Err(err) = res {
             tracing::error!("Failed to set mpris playback state {:?}", err);
         }
@@ -56,18 +35,8 @@ pub fn set_playback_state(state: PlayerState) {
 
 #[tracing::instrument(level = "trace", skip(duration))]
 pub fn set_position(duration: f64) {
-    #[derive(Serialize)]
-    struct SetPositionArgs {
-        duration: f64,
-    }
-
     spawn_local(async move {
-        let res = invoke(
-            "set_position",
-            serde_wasm_bindgen::to_value(&SetPositionArgs { duration }).unwrap(),
-        )
-        .await;
-
+        let res = crate::utils::invoke::set_position(duration).await;
         if let Err(err) = res {
             tracing::error!("Failed to set mpris position {:?}", err);
         }

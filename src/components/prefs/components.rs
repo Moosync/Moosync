@@ -8,7 +8,6 @@ use leptos::{
 use leptos_context_menu::ContextMenu;
 use leptos_i18n::t;
 use leptos_use::use_debounce_fn_with_arg;
-use serde::Serialize;
 use types::{
     extensions::ExtensionDetail,
     preferences::{CheckboxItems, CheckboxPreference},
@@ -25,9 +24,8 @@ use crate::{
     },
     store::modal_store::{ModalStore, Modals},
     utils::{
-        common::invoke,
         context_menu::ThemesContextMenu,
-        invoke::{get_installed_extensions, load_all_themes},
+        invoke::{get_installed_extensions, load_all_themes, remove_extension},
         prefs::{
             load_selective, open_file_browser, open_file_browser_single, save_selective,
             save_selective_number,
@@ -432,12 +430,6 @@ pub fn ThemesPref(
     }
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct InstallExtensionArgs {
-    ext_path: String,
-}
-
 #[tracing::instrument(level = "trace", skip(title, tooltip))]
 #[component]
 pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl IntoView {
@@ -472,15 +464,9 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
         }
 
         spawn_local(async move {
-            invoke(
-                "install_extension",
-                serde_wasm_bindgen::to_value(&InstallExtensionArgs {
-                    ext_path: extension_path,
-                })
-                .unwrap(),
-            )
-            .await
-            .unwrap();
+            crate::utils::invoke::install_extension(extension_path)
+                .await
+                .unwrap();
             fetch_extensions()
         });
     });
@@ -534,17 +520,7 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
                                         on:click=move |_| {
                                             let package_name = extension.package_name.clone();
                                             spawn_local(async move {
-                                                invoke(
-                                                        "remove_extension",
-                                                        serde_wasm_bindgen::to_value(
-                                                                &InstallExtensionArgs {
-                                                                    ext_path: package_name,
-                                                                },
-                                                            )
-                                                            .unwrap(),
-                                                    )
-                                                    .await
-                                                    .unwrap();
+                                                remove_extension(package_name).await.unwrap();
                                                 fetch_extensions()
                                             });
                                         }

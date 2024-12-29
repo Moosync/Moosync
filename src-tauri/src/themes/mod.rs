@@ -21,6 +21,7 @@ pub fn get_theme_handler_state(app: &mut App) -> ThemeHolder {
 
 #[tracing::instrument(level = "trace", skip(app, theme_handler, window_handler))]
 #[tauri::command(async)]
+#[tauri_invoke_proc::parse_tauri_command]
 pub fn export_theme(
     app: AppHandle,
     theme_handler: State<ThemeHolder>,

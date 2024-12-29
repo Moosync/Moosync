@@ -12,6 +12,7 @@ use crate::{
     store::{player_store::PlayerStore, provider_store::ProviderStore},
     utils::{
         common::get_high_img, context_menu::SongItemContextMenu, db_utils::get_playlists_local,
+        invoke::get_suggestions,
     },
 };
 
@@ -23,7 +24,7 @@ pub fn Explore() -> impl IntoView {
     let suggestion_items = create_rw_signal(vec![]);
     spawn_local(async move {
         for key in provider_keys {
-            let suggestions = provider_store.get_suggestions(key).await;
+            let suggestions = get_suggestions(key).await;
             if let Ok(suggestions) = suggestions {
                 suggestion_items.update(|s| s.extend(suggestions));
             }

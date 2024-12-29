@@ -7,17 +7,14 @@ use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::{PlaylistSortByColumns, UiStore};
 use crate::utils::common::{convert_file_src, fetch_infinite};
 use crate::utils::context_menu::{PlaylistContextMenu, PlaylistItemContextMenu};
-use crate::utils::db_utils::{
-    create_playlist, export_playlist, get_songs_by_option, remove_playlist,
-};
-use crate::utils::entities::get_playlist_sort_cx_items;
+use crate::utils::db_utils::get_songs_by_option;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
     component, create_effect, create_memo, create_read_slice, create_rw_signal, create_write_slice,
     expect_context, spawn_local, use_context, view, IntoView, RwSignal, SignalGet, SignalUpdate,
     SignalWith,
 };
-use leptos_context_menu::{ContextMenu, ContextMenuData, ContextMenuItemInner};
+use leptos_context_menu::ContextMenu;
 use leptos_router::use_query_map;
 use rand::seq::SliceRandom;
 use std::collections::HashMap;
@@ -53,13 +50,8 @@ pub fn SinglePlaylist() -> impl IntoView {
     let provider_store_clone = provider_store.clone();
     let selected_providers = create_rw_signal::<Vec<String>>(vec![]);
 
-    let (_, filtered_songs, fetch_selected_providers) = dyn_provider_songs!(
-        selected_providers,
-        playlist,
-        provider_store,
-        songs,
-        fetch_playlist_content
-    );
+    let (_, filtered_songs, fetch_selected_providers) =
+        dyn_provider_songs!(selected_providers, playlist, songs, fetch_playlist_content);
 
     let default_details = create_rw_signal(DefaultDetails::default());
 

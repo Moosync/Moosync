@@ -1,11 +1,10 @@
 use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
-use serde::Serialize;
 use types::extensions::PackageNameArgs;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
     icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon},
-    utils::common::invoke,
+    utils::invoke::get_extension_icon,
 };
 
 #[tracing::instrument(level = "trace", skip(extension))]
@@ -18,23 +17,13 @@ pub fn ProviderIcon(#[prop()] extension: String) -> impl IntoView {
             && extension_clone != "youtube"
             && extension_clone != "spotify"
         {
-            #[derive(Serialize)]
-            struct ExtensionIconArgs {
-                args: PackageNameArgs,
-            }
-            let res = invoke(
-                "get_extension_icon",
-                serde_wasm_bindgen::to_value(&ExtensionIconArgs {
-                    args: PackageNameArgs {
-                        package_name: extension_clone,
-                    },
-                })
-                .unwrap(),
-            )
+            let res = get_extension_icon(PackageNameArgs {
+                package_name: extension_clone,
+            })
             .await;
 
             if let Ok(res) = res {
-                provider_icon.set(res.as_string().unwrap());
+                provider_icon.set(res);
             } else {
                 tracing::error!("Failed to get provider icon {:?}", res);
             }

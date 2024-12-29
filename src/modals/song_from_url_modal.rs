@@ -5,6 +5,7 @@ use crate::modals::common::GenericModal;
 use crate::store::provider_store::ProviderStore;
 use crate::utils::common::get_high_img;
 use crate::utils::db_utils::add_songs_to_library;
+use crate::utils::invoke::{match_url, song_from_url};
 use crate::{icons::song_default_icon::SongDefaultIcon, store::modal_store::ModalStore};
 use leptos::{
     component, create_effect, create_rw_signal, event_target_value, expect_context, set_timeout,
@@ -34,12 +35,10 @@ pub fn SongFromUrlModal() -> impl IntoView {
         let provider_keys = provider_store.get_provider_keys();
         spawn_local(async move {
             for key in provider_keys {
-                let matched = provider_store
-                    .match_url(key.clone(), song_url.clone())
-                    .await;
+                let matched = match_url(key.clone(), song_url.clone()).await;
                 if let Ok(matched) = matched {
                     if matched {
-                        let imported = provider_store.song_from_url(key, song_url).await;
+                        let imported = song_from_url(key, song_url).await;
                         if let Ok(song) = imported {
                             imported_song.set(Some(song));
                         }

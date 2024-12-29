@@ -8,8 +8,8 @@ use crate::{
     players::librespot::LibrespotPlayer,
     store::ui_store::UiStore,
     utils::{
-        common::{emit, invoke, listen_event},
-        invoke::load_selective,
+        common::{emit, listen_event},
+        invoke::{load_selective, load_theme},
         prefs::watch_preferences,
     },
 };
@@ -22,7 +22,7 @@ use leptos_i18n::provide_i18n_context;
 use leptos_router::{Outlet, Redirect, Route, Router, Routes};
 use serde::Serialize;
 use types::{
-    extensions::ExtensionUIRequest, preferences::CheckboxPreference, themes::ThemeDetails,
+    extensions::ExtensionUIRequest, preferences::CheckboxPreference,
     ui::player_details::PlayerState,
 };
 use wasm_bindgen::{JsCast, JsValue};
@@ -90,18 +90,8 @@ pub fn MainApp() -> impl IntoView {
 
 #[tracing::instrument(level = "trace", skip(id))]
 fn handle_theme(id: String) {
-    #[derive(Serialize)]
-    struct LoadThemeArgs {
-        id: String,
-    }
     spawn_local(async move {
-        let theme = invoke(
-            "load_theme",
-            serde_wasm_bindgen::to_value(&LoadThemeArgs { id }).unwrap(),
-        )
-        .await
-        .unwrap();
-        let theme: ThemeDetails = serde_wasm_bindgen::from_value(theme).unwrap();
+        let theme = load_theme(id).await.unwrap();
 
         let document_element = document()
             .document_element()

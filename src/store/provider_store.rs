@@ -4,17 +4,13 @@ use std::fmt::Debug;
 use leptos::{
     create_read_slice, expect_context, spawn_local, RwSignal, SignalGet, SignalSet, SignalUpdate,
 };
-use serde::Serialize;
-use serde_wasm_bindgen::{from_value, to_value};
-use types::entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult};
 use types::errors::Result;
-use types::providers::generic::{Pagination, ProviderStatus};
-use types::songs::Song;
+use types::providers::generic::ProviderStatus;
 use wasm_bindgen::JsValue;
 
 use crate::players::librespot::LibrespotPlayer;
 use crate::store::modal_store::{ModalStore, Modals};
-use crate::utils::common::{invoke, listen_event};
+use crate::utils::common::listen_event;
 use crate::utils::invoke::{
     get_all_status, get_provider_key_by_id, get_provider_keys, initialize_all_providers,
 };
@@ -25,51 +21,6 @@ pub struct ProviderStore {
     statuses: RwSignal<Vec<ProviderStatus>>,
     unlisten_provider_key: Option<js_sys::Function>,
     pub is_initialized: RwSignal<bool>,
-}
-
-#[cfg(not(feature = "mock"))]
-macro_rules! generate_async_functions {
-    ($($func_name:ident {
-        args: { $($arg_name:ident: $arg_type:ty),* $(,)? },
-        result_type: $result_type:ty,
-    }),* $(,)?) => {
-        $(
-            #[tracing::instrument(level = "trace", skip(self))]
-            pub async fn $func_name(&self, key: String, $($arg_name: $arg_type),*) -> Result<$result_type> {
-                #[derive(Debug, Serialize)]
-                #[serde(rename_all = "camelCase")]
-                struct Args {
-                    key: String,
-                    $($arg_name: $arg_type),*
-                }
-                let args = Args {
-                    key,
-                    $($arg_name),*
-                };
-                let res = invoke(
-                    stringify!($func_name),
-                    to_value(&args).unwrap(),
-                ).await?;
-
-                Ok(from_value(res)?)
-            }
-        )*
-    }
-}
-
-#[cfg(feature = "mock")]
-macro_rules! generate_async_functions {
-    ($($func_name:ident {
-        args: { $($arg_name:ident: $arg_type:ty),* $(,)? },
-        result_type: $result_type:ty,
-    }),* $(,)?) => {
-        $(
-            #[tracing::instrument(level = "trace", skip(self))]
-            pub async fn $func_name(&self, key: String, $($arg_name: $arg_type),*) -> Result<$result_type> {
-                Ok(Default::default())
-            }
-        )*
-    }
 }
 
 impl ProviderStore {
@@ -156,89 +107,4 @@ impl ProviderStore {
     pub fn get_provider_name_by_key(&self, key: String) -> Option<ProviderStatus> {
         self.statuses.get().iter().find(|s| s.key == key).cloned()
     }
-
-    generate_async_functions!(
-        provider_login {
-            args: {
-                account_id: String
-            },
-            result_type: String,
-        },
-        provider_signout {
-            args: {
-                account_id: String
-            },
-            result_type: (),
-        },
-        provider_authorize {
-          args: {
-              code: String
-          },
-          result_type: (),
-        },
-        fetch_user_playlists {
-            args: {
-                pagination: Pagination
-            },
-            result_type: (Vec<QueryablePlaylist>, Pagination),
-        },
-        fetch_playlist_content {
-            args: {
-                playlist: QueryablePlaylist,
-                pagination: Pagination
-            },
-            result_type: (Vec<Song>, Pagination),
-        },
-        fetch_playback_url {
-            args: {
-                song: Song,
-                player: String
-            },
-            result_type: String,
-        },
-        provider_search {
-            args: {
-                term: String
-            },
-            result_type: SearchResult,
-        },
-        playlist_from_url {
-            args: {
-                url: String
-            },
-            result_type: QueryablePlaylist,
-        },
-        song_from_url {
-            args: {
-                url: String
-            },
-            result_type: Song,
-        },
-        match_url {
-            args: {
-                url: String
-            },
-            result_type: bool,
-        },
-        get_suggestions {
-            args: {
-
-            },
-            result_type: Vec<Song>,
-        },
-        get_album_content {
-            args: {
-                album: QueryableAlbum,
-                pagination: Pagination
-            },
-            result_type: (Vec<Song>, Pagination),
-        },
-        get_artist_content {
-            args: {
-                artist: QueryableArtist,
-                pagination: Pagination
-            },
-            result_type: (Vec<Song>, Pagination),
-        },
-    );
 }

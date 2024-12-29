@@ -1,12 +1,10 @@
 use leptos::html::Div;
 use leptos::{
-    component, create_effect, create_node_ref, create_read_slice, create_rw_signal, create_slice,
+    component, create_effect, create_node_ref, create_read_slice, create_rw_signal,
     create_write_slice, expect_context, spawn_local, view, IntoView, NodeRef, RwSignal, Signal,
     SignalGet, SignalSet, SignalUpdate,
 };
 use leptos_virtual_scroller::VirtualScroller;
-use serde::Serialize;
-use types::canvaz;
 use types::songs::{Song, SongType};
 use types::ui::player_details::PlayerState;
 use types::ui::song_details::SongDetailIcons;
@@ -17,7 +15,7 @@ use crate::components::audiostream::AudioStream;
 use crate::modals::new_playlist_modal::PlaylistModalState;
 use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::ui_store::UiStore;
-use crate::utils::common::{get_high_img, invoke};
+use crate::utils::common::get_high_img;
 use crate::{
     components::{low_img::LowImg, provider_icon::ProviderIcon, songdetails::SongDetails},
     icons::{cross_icon::CrossIcon, trash_icon::TrashIcon},

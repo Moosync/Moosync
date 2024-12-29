@@ -2,7 +2,6 @@ use leptos::{
     component, create_effect, create_node_ref, create_rw_signal, html::Div, view, AnimatedShow,
     CollectView, IntoView, NodeRef, RwSignal, SignalGet, SignalGetUntracked, SignalSet,
 };
-use serde::Serialize;
 use types::{
     songs::Song,
     ui::song_details::{DefaultDetails, SongDetailIcons},
@@ -15,7 +14,10 @@ use crate::{
         fav_playlist_icon::FavPlaylistIcon, pin_icon::PinIcon, plain_play_icon::PlainPlayIcon,
         random_icon::RandomIcon, song_default_icon::SongDefaultIcon,
     },
-    utils::common::{format_duration, get_high_img, invoke},
+    utils::{
+        common::{format_duration, get_high_img},
+        invoke::get_lyrics,
+    },
 };
 use std::time::Duration;
 
@@ -58,32 +60,19 @@ where
                 let lyrics = song.song.lyrics.clone();
                 if lyrics.is_none() {
                     spawn_local(async move {
-                        #[derive(Serialize)]
-                        struct GetLyricsArgs {
-                            id: String,
-                            url: String,
-                            artists: Vec<String>,
-                            title: String,
-                        }
-                        let res = invoke(
-                            "get_lyrics",
-                            serde_wasm_bindgen::to_value(&GetLyricsArgs {
-                                id: song.song._id.clone().unwrap_or_default(),
-                                url: song.song.playback_url.clone().unwrap_or_default(),
-                                artists: song
-                                    .artists
-                                    .clone()
-                                    .unwrap_or_default()
-                                    .iter()
-                                    .map(|a| a.artist_name.clone().unwrap_or_default())
-                                    .collect::<Vec<String>>(),
-                                title: song.song.title.clone().unwrap_or_default(),
-                            })
-                            .unwrap(),
+                        let res = get_lyrics(
+                            song.song._id.clone().unwrap_or_default(),
+                            song.song.playback_url.clone().unwrap_or_default(),
+                            song.artists
+                                .clone()
+                                .unwrap_or_default()
+                                .iter()
+                                .map(|a| a.artist_name.clone().unwrap_or_default())
+                                .collect::<Vec<String>>(),
+                            song.song.title.clone().unwrap_or_default(),
                         )
                         .await;
-                        if let Ok(res) = res {
-                            let lyrics = res.as_string().unwrap();
+                        if let Ok(lyrics) = res {
                             selected_lyrics.set(Some(lyrics));
                         } else {
                             tracing::error!("Failed to fetch lyrics: {:?}", res.unwrap_err());

@@ -58,6 +58,7 @@ pub fn get_logger_state(app: AppHandle) -> Logger {
 }
 
 #[tauri::command(async)]
+#[tauri_invoke_proc::parse_tauri_command]
 pub fn renderer_write(logger: State<Logger>, data: Vec<u8>) -> Result<()> {
     logger.renderer_write(data)
 }

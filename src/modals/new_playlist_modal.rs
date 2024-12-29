@@ -13,6 +13,7 @@ use crate::icons::{
 };
 use crate::store::modal_store::ModalStore;
 use crate::utils::db_utils::create_playlist;
+use crate::utils::invoke::{match_url, playlist_from_url};
 use crate::{modals::common::GenericModal, store::provider_store::ProviderStore};
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -43,14 +44,9 @@ pub fn NewPlaylistModal(
         spawn_local(async move {
             let import_url = import_url.clone();
             for key in provider_store.get_provider_keys() {
-                if let Ok(matched) = provider_store
-                    .match_url(key.clone(), import_url.clone())
-                    .await
-                {
+                if let Ok(matched) = match_url(key.clone(), import_url.clone()).await {
                     if matched {
-                        let imported = provider_store
-                            .playlist_from_url(key.clone(), import_url.clone())
-                            .await;
+                        let imported = playlist_from_url(key.clone(), import_url.clone()).await;
                         if let Ok(imported) = imported {
                             playlist.set(Some(imported));
                         }

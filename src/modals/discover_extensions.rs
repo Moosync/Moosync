@@ -1,13 +1,12 @@
 use leptos::{
     component, create_rw_signal, create_write_slice, expect_context, spawn_local, view, For,
-    IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
+    IntoView, RwSignal, SignalGet, SignalSet,
 };
-use types::extensions::FetchedExtensionManifest;
 
 use crate::{
     modals::common::GenericModal,
     store::modal_store::ModalStore,
-    utils::{common::invoke, invoke::get_extension_manifest},
+    utils::invoke::get_extension_manifest,
 };
 
 #[tracing::instrument(level = "trace", skip())]

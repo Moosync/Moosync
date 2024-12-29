@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! dyn_provider_songs {
-    ($selected_providers:ident, $entity:ident, $provider_store:ident, $songs:ident, $fetch_fn: ident) => {{
+    ($selected_providers:ident, $entity:ident, $songs:ident, $fetch_fn: ident) => {{
         let provider_songs: RwSignal<HashMap<String, RwSignal<Vec<Song>>>> =
             create_rw_signal(HashMap::new());
         let next_page_tokens: RwSignal<
@@ -22,7 +22,6 @@ macro_rules! dyn_provider_songs {
                 entity
             );
             for provider in selected_providers {
-                let $provider_store = $provider_store.clone();
                 let entity = entity.clone();
 
                 spawn_local(async move {
@@ -40,7 +39,6 @@ macro_rules! dyn_provider_songs {
 
                     tracing::debug!("fetching infinite");
                     let res = fetch_infinite!(
-                        $provider_store,
                         provider,
                         $fetch_fn,
                         *binding.unwrap(),

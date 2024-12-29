@@ -1,10 +1,10 @@
-use std::rc::Rc;
 
 use leptos::{component, expect_context, spawn_local, view, IntoView, RwSignal, SignalUpdate};
 
 use crate::{
     modals::common::GenericModal,
-    store::{modal_store::ModalStore, provider_store::ProviderStore},
+    store::modal_store::ModalStore,
+    utils::invoke::provider_signout,
 };
 
 #[tracing::instrument(level = "trace", skip(key, account_id, name))]
@@ -13,16 +13,11 @@ pub fn SignoutModal(#[prop()] key: String, account_id: String, name: String) -> 
     let modal_store: RwSignal<ModalStore> = expect_context();
     let close_modal = move |_| modal_store.update(|m| m.clear_active_modal());
 
-    let provider_store: Rc<ProviderStore> = expect_context();
     let signout = move |_| {
-        let provider_store = provider_store.clone();
         let key = key.clone();
         let account_id = account_id.clone();
         spawn_local(async move {
-            provider_store
-                .provider_signout(key, account_id)
-                .await
-                .unwrap();
+            provider_signout(key, account_id).await.unwrap();
 
             modal_store.update(|m| m.clear_active_modal());
         });

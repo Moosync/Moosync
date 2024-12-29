@@ -1,12 +1,11 @@
 use std::rc::Rc;
 
 use leptos::{
-    create_memo, expect_context, use_context, window, RwSignal, SignalGet, SignalGetUntracked,
+    create_memo, expect_context, use_context, window, RwSignal, SignalGet,
     SignalUpdate, SignalWith,
 };
 use leptos_context_menu::{ContextMenuData, ContextMenuItemInner, ContextMenuItems};
-use leptos_router::{use_navigate, use_query, use_query_map, NavigateOptions};
-use serde::Serialize;
+use leptos_router::{use_navigate, use_query_map, NavigateOptions};
 use types::{
     entities::{QueryableArtist, QueryablePlaylist},
     songs::Song,
@@ -23,7 +22,6 @@ use crate::{
 };
 
 use super::{
-    common::invoke,
     db_utils::{
         add_songs_to_library, add_to_playlist, create_playlist, export_playlist, remove_playlist,
         remove_songs_from_library,
@@ -152,7 +150,7 @@ where
         });
 
         let playlist = playlist.get();
-        if let Some(playlist_id) = playlist.map(|p| p.playlist_id).flatten() {
+        if let Some(playlist_id) = playlist.and_then(|p| p.playlist_id) {
             let selected_songs = self
                 .current_or_list()
                 .into_iter()
@@ -283,16 +281,8 @@ impl ThemesContextMenu {
     fn export_theme(&self) {
         let id = self.id.clone();
         if let Some(id) = id {
-            #[derive(Serialize)]
-            struct ExportThemeArgs {
-                id: String,
-            }
             spawn_local(async move {
-                let res = invoke(
-                    "export_theme",
-                    serde_wasm_bindgen::to_value(&ExportThemeArgs { id }).unwrap(),
-                )
-                .await;
+                let res = crate::utils::invoke::export_theme(id).await;
                 if let Err(err) = res {
                     tracing::error!("Error exporting theme {:?}", err);
                 }

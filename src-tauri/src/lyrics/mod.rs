@@ -13,6 +13,7 @@ pub fn get_lyrics_state() -> LyricsFetcher {
     level = "trace",
     skip(lyrics, librespot, cache, id, url, artists, title)
 )]
+#[tauri_invoke_proc::parse_tauri_command]
 #[tauri::command()]
 pub async fn get_lyrics(
     lyrics: State<'_, LyricsFetcher>,

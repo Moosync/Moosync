@@ -17,7 +17,7 @@ use types::{
     songs::{GetSongOptions, SearchableSong, Song},
 };
 use wasm_bindgen_futures::spawn_local;
-use web_sys::{MouseEvent, SubmitEvent};
+use web_sys::SubmitEvent;
 
 use crate::{
     components::low_img::LowImg,
@@ -30,7 +30,6 @@ use crate::{
         player_store::PlayerStore,
         provider_store::ProviderStore,
     },
-    utils::{common::get_low_img, db_utils::get_songs_by_option},
 };
 
 enum InputFocus {

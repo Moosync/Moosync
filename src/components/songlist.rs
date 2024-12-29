@@ -6,8 +6,7 @@ use leptos::{
     create_write_slice,
     ev::{keydown, keyup, scroll},
     event_target, event_target_value, expect_context,
-    html::{Div, Input},
-    leptos_dom, use_context, view, window_event_listener, HtmlElement, IntoView, RwSignal, Show,
+    html::Input, use_context, view, window_event_listener, HtmlElement, IntoView, RwSignal, Show,
     SignalGet, SignalGetUntracked, SignalSet, SignalSetUntracked, SignalUpdate,
 };
 use leptos_context_menu::ContextMenu;

@@ -1,14 +1,16 @@
 use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration};
 
 use leptos::{leptos_dom::helpers::IntervalHandle, set_interval_with_handle};
-use serde::Serialize;
 use types::{preferences::CheckboxPreference, ui::player_details::PlayerEvents};
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::utils::{
-    common::{invoke, listen_event},
-    invoke::{is_initialized, librespot_pause, librespot_play, load_selective},
+    common::listen_event,
+    invoke::{
+        is_initialized, librespot_load, librespot_pause, librespot_play, librespot_seek,
+        librespot_volume, load_selective,
+    },
 };
 
 use super::generic::GenericPlayer;
@@ -45,13 +47,7 @@ macro_rules! register_events {
     ($($event_name:expr),* $(,)?) => {
         spawn_local(async move {
             $(
-                invoke(
-                    "register_event",
-                    serde_wasm_bindgen::to_value(&RegisterEventArgs {
-                        event: $event_name.into(),
-                    })
-                    .unwrap(),
-                )
+                crate::utils::invoke::register_event($event_name.into())
                 .await
                 .unwrap();
             )*
@@ -202,21 +198,7 @@ impl GenericPlayer for LibrespotPlayer {
     fn load(&self, src: String, resolver: tokio::sync::oneshot::Sender<()>) {
         let player_state_tx = self.player_state_tx.clone();
         spawn_local(async move {
-            #[derive(Serialize)]
-            struct LoadArgs {
-                uri: String,
-                autoplay: bool,
-            }
-            let res = invoke(
-                "librespot_load",
-                serde_wasm_bindgen::to_value(&LoadArgs {
-                    uri: src.clone(),
-                    autoplay: false,
-                })
-                .unwrap(),
-            )
-            .await;
-
+            let res = librespot_load(src.clone(), false).await;
             if let Err(err) = res {
                 if let Some(player_state_tx) = player_state_tx {
                     player_state_tx(PlayerEvents::Error(format!("{:?}", err).into()))
@@ -255,19 +237,7 @@ impl GenericPlayer for LibrespotPlayer {
     fn seek(&self, pos: f64) -> types::errors::Result<()> {
         let time = self.time.clone();
         spawn_local(async move {
-            #[derive(Serialize)]
-            struct SeekArgs {
-                pos: u32,
-            }
-            let res = invoke(
-                "librespot_seek",
-                serde_wasm_bindgen::to_value(&SeekArgs {
-                    pos: (pos * 1000f64) as u32,
-                })
-                .unwrap(),
-            )
-            .await;
-
+            let res = librespot_seek((pos * 1000f64) as u32).await;
             if res.is_err() {
                 tracing::error!("Error seeking to {}: {:?}", pos, res.unwrap_err());
                 return;
@@ -294,19 +264,7 @@ impl GenericPlayer for LibrespotPlayer {
     fn set_volume(&self, volume: f64) -> types::errors::Result<()> {
         let parsed_volume = (volume / 100f64 * (u16::MAX as f64)) as u16;
         spawn_local(async move {
-            #[derive(Serialize)]
-            struct VolumeArgs {
-                volume: u16,
-            }
-            let res = invoke(
-                "librespot_volume",
-                serde_wasm_bindgen::to_value(&VolumeArgs {
-                    volume: parsed_volume,
-                })
-                .unwrap(),
-            )
-            .await;
-
+            let res = librespot_volume(parsed_volume).await;
             if res.is_err() {
                 tracing::error!("Error setting volume {}: {:?}", volume, res.unwrap_err());
             }
@@ -326,11 +284,6 @@ impl GenericPlayer for LibrespotPlayer {
         tx: std::rc::Rc<Box<dyn Fn(types::ui::player_details::PlayerEvents)>>,
     ) {
         self.player_state_tx = Some(tx.clone());
-
-        #[derive(Serialize)]
-        struct RegisterEventArgs {
-            event: String,
-        }
         register_events!(
             "librespot_event_Playing",
             "librespot_event_Paused",

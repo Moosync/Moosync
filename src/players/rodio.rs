@@ -1,13 +1,12 @@
 use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration};
 
 use leptos::{leptos_dom::helpers::IntervalHandle, set_interval_with_handle, spawn_local};
-use serde::Serialize;
 use types::{songs::SongType, ui::player_details::PlayerEvents};
 use wasm_bindgen::JsValue;
 
 use crate::utils::{
-    common::{convert_file_src, invoke, listen_event},
-    invoke::{rodio_pause, rodio_play, rodio_stop},
+    common::{convert_file_src, listen_event},
+    invoke::{rodio_load, rodio_pause, rodio_play, rodio_seek, rodio_set_volume, rodio_stop},
 };
 
 use super::generic::GenericPlayer;
@@ -42,16 +41,7 @@ impl GenericPlayer for RodioPlayer {
     #[tracing::instrument(level = "trace", skip(self, src, resolver))]
     fn load(&self, src: String, resolver: tokio::sync::oneshot::Sender<()>) {
         spawn_local(async move {
-            #[derive(Serialize)]
-            struct RodioLoadArgs {
-                src: String,
-            }
-            let res = invoke(
-                "rodio_load",
-                serde_wasm_bindgen::to_value(&RodioLoadArgs { src }).unwrap(),
-            )
-            .await;
-
+            let res = rodio_load(src).await;
             if let Err(err) = res {
                 tracing::error!("Rodio error {:?}", err);
             }
@@ -116,17 +106,7 @@ impl GenericPlayer for RodioPlayer {
     #[tracing::instrument(level = "trace", skip(self, pos))]
     fn seek(&self, pos: f64) -> types::errors::Result<()> {
         spawn_local(async move {
-            #[derive(Serialize)]
-            struct SeekArgs {
-                pos: f64,
-            }
-
-            let res = invoke(
-                "rodio_seek",
-                serde_wasm_bindgen::to_value(&SeekArgs { pos }).unwrap(),
-            )
-            .await;
-
+            let res = rodio_seek(pos).await;
             if res.is_err() {
                 tracing::error!("Error playing {:?}", res.unwrap_err());
             }
@@ -166,19 +146,7 @@ impl GenericPlayer for RodioPlayer {
         let parsed_volume = volume / 100f64;
         tracing::debug!("Setting volume {}", parsed_volume);
         spawn_local(async move {
-            #[derive(Serialize)]
-            struct VolumeArgs {
-                volume: f64,
-            }
-            let res = invoke(
-                "rodio_set_volume",
-                serde_wasm_bindgen::to_value(&VolumeArgs {
-                    volume: parsed_volume,
-                })
-                .unwrap(),
-            )
-            .await;
-
+            let res = rodio_set_volume(parsed_volume as f32).await;
             if res.is_err() {
                 tracing::error!("Error setting volume {}: {:?}", volume, res.unwrap_err());
             }

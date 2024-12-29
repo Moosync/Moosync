@@ -190,13 +190,7 @@ where
             spawn_local(async move {
                 let mut should_fetch = true;
                 while should_fetch {
-                    let res = fetch_infinite!(
-                        provider_store,
-                        key,
-                        fetch_user_playlists,
-                        setter,
-                        next_page_tokens,
-                    );
+                    let res = fetch_infinite!(key, fetch_user_playlists, setter, next_page_tokens,);
                     match res {
                         Err(e) => {
                             tracing::error!(

@@ -10,7 +10,6 @@ use std::{
     thread,
 };
 
-use base64::Engine;
 use command_group::CommandGroup;
 use fs_extra::dir::CopyOptions;
 use futures::{

@@ -252,8 +252,6 @@ pub fn Search() -> impl IntoView {
             }
             tracing::debug!("Searching for: {}", search_term);
 
-            let provider_store = provider_store.clone();
-
             let keys = keys_clone.clone();
             spawn_local(async move {
                 for key in keys {

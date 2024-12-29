@@ -6,7 +6,6 @@ use crate::components::songlist::ShowProvidersArgs;
 use crate::components::songview::SongView;
 use crate::dyn_provider_songs;
 use crate::store::player_store::PlayerStore;
-use crate::store::provider_store::ProviderStore;
 use crate::utils::common::{convert_file_src, fetch_infinite};
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
@@ -107,7 +106,6 @@ pub fn SingleAlbum() -> impl IntoView {
         ..Default::default()
     });
 
-    let provider_store = expect_context::<Rc<ProviderStore>>();
     let selected_providers = create_rw_signal::<Vec<String>>(vec![]);
 
     let (_, filtered_songs, fetch_selected_providers) =

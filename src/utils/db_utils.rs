@@ -186,7 +186,6 @@ where
         tracing::debug!("provider keys {:?}", provider_store.get_provider_keys());
         for key in provider_store.get_provider_keys() {
             tracing::debug!("Fetching playlists from {}", key);
-            let provider_store = provider_store.clone();
             spawn_local(async move {
                 let mut should_fetch = true;
                 while should_fetch {

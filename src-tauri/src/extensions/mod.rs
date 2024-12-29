@@ -52,7 +52,7 @@ pub fn get_extension_state(app: AppHandle) -> Result<ExtensionHandler> {
                         tracing::trace!("Got extension command request");
                         let request_handler = request_handler.clone();
                         async_runtime::spawn(async move {
-                            tracing::trace!("Got extension command {:?}", message);
+                            tracing::debug!("Got extension command {:?}", message);
                             let data = request_handler.handle_request(&message).await;
                             match data {
                                 Ok(data) => {

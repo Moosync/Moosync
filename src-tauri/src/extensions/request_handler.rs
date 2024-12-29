@@ -47,7 +47,7 @@ impl ReplyHandler {
 
     #[tracing::instrument(level = "trace", skip(self, type_))]
     fn is_update(&self, type_: &str) -> bool {
-        type_ == "extensionUpdated"
+        type_ == "extensionsUpdated"
     }
 
     #[tracing::instrument(level = "trace", skip(self, type_))]
@@ -245,10 +245,10 @@ impl ReplyHandler {
 
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn extension_updated(&self) -> Result<Value> {
-        tracing::info!("Got extension updated");
+        tracing::debug!("Got extension updated");
         let provider_handle: State<ProviderHandler> = self.app_handle.state();
         provider_handle.discover_provider_extensions().await?;
-        tracing::info!("Updated extension");
+        tracing::debug!("Updated extension");
         Ok(Value::Null)
     }
 

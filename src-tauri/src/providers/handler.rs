@@ -189,7 +189,6 @@ impl ProviderHandler {
                         self.status_tx.clone(),
                     );
                     let mut provider_store = self.provider_store.lock().await;
-                    provider_store.remove(provider.key().as_str());
                     provider_store.insert(provider.key(), Arc::new(Mutex::new(provider.clone())));
 
                     tracing::info!("provider_store: {:?}", provider_store);

@@ -329,7 +329,7 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "trace", skip(self, ext_path))]
     pub async fn install_extension(&self, ext_path: String) -> Result<()> {
-        tracing::info!("ext path {}", ext_path);
+        tracing::debug!("ext path {}", ext_path);
         let ext_path =
             PathBuf::from_str(&ext_path).map_err(|e| MoosyncError::String(e.to_string()))?;
 
@@ -371,14 +371,14 @@ impl ExtensionHandler {
 
         let options = CopyOptions::default().overwrite(true);
         let parent_dir = ext_extract_path.parent().unwrap();
-        tracing::info!(
+        tracing::debug!(
             "Moving items from {:?} to {:?}",
             tmp_dir.clone(),
             parent_dir
         );
         fs_extra::move_items(&[tmp_dir.clone()], parent_dir, &options)?;
 
-        tracing::info!(
+        tracing::debug!(
             "Renaming {:?} to {:?}",
             parent_dir.join(tmp_dir.file_name().unwrap()),
             parent_dir.join(package_manifest.name.clone())

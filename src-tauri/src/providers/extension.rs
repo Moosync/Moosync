@@ -203,7 +203,7 @@ impl GenericProvider for ExtensionProvider {
             res.songs,
             pagination.next_page_wtoken(
                 res.next_page_token
-                    .map(|v| serde_json::from_value(v).unwrap()),
+                    .map(|v| serde_json::to_string(&v).unwrap_or_default()),
             ),
         ))
     }
@@ -329,17 +329,45 @@ impl GenericProvider for ExtensionProvider {
 
     async fn get_album_content(
         &self,
-        _album: QueryableAlbum,
-        _pagination: Pagination,
+        album: QueryableAlbum,
+        pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
-        todo!()
+        if !self.provides.contains(&ExtensionProviderScope::AlbumSongs) {
+            return Err("Extension does not have this capability".into());
+        }
+
+        let res = send_extension_event!(
+            self,
+            ExtensionExtraEvent::RequestedAlbumSongs(album, pagination.token.clone()),
+            SongsWithPageTokenReturnType
+        );
+
+        let pagination = pagination.next_page_wtoken(
+            res.next_page_token
+                .map(|t| serde_json::to_string(&t).unwrap_or_default()),
+        );
+        Ok((res.songs, pagination))
     }
 
     async fn get_artist_content(
         &self,
-        _artist: QueryableArtist,
-        _pagination: Pagination,
+        artist: QueryableArtist,
+        pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
-        todo!()
+        if !self.provides.contains(&ExtensionProviderScope::ArtistSongs) {
+            return Err("Extension does not have this capability".into());
+        }
+
+        let res = send_extension_event!(
+            self,
+            ExtensionExtraEvent::RequestedArtistSongs(artist, pagination.token.clone()),
+            SongsWithPageTokenReturnType
+        );
+
+        let pagination = pagination.next_page_wtoken(
+            res.next_page_token
+                .map(|t| serde_json::to_string(&t).unwrap_or_default()),
+        );
+        Ok((res.songs, pagination))
     }
 }

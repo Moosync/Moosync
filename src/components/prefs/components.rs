@@ -500,7 +500,14 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
                 </div>
                 <div class="col-auto new-directories ml-auto justify-content-center">
                     <div on:click=move |_| {
-                        modal_store.update(|m| m.set_active_modal(Modals::DiscoverExtensions))
+                        modal_store
+                            .update(|m| {
+                                m.set_active_modal(Modals::DiscoverExtensions);
+                                m.on_modal_close(move || {
+                                    tracing::info!("Fetching extensions");
+                                    fetch_extensions()
+                                });
+                            })
                     }>{"Discover"}</div>
                 </div>
                 <div class="col-auto new-directories ml-4">

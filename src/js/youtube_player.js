@@ -54,7 +54,7 @@ class YTPlayer {
 
     this._timeEmitter = setInterval(() => {
       this.emit("timeUpdate", YTPlayer.playerInstance.getCurrentTime());
-    }, 300);
+    }, 1000);
   }
 
   stopTimeEmit() {

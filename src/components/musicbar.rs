@@ -1,6 +1,9 @@
+use std::time::Duration;
+
 use ev::mouseup;
 use leptos::*;
 use leptos::{component, view, IntoView, RwSignal, SignalGet, SignalSet};
+use leptos_dom::helpers::TimeoutHandle;
 use leptos_use::{use_document, use_event_listener};
 use types::entities::{QueryableArtist, QueryablePlaylist};
 use types::ui::player_details::PlayerState;
@@ -259,9 +262,41 @@ pub fn ExtraControls() -> impl IntoView {
         toggle_mute_sig.set(());
     };
 
+    let show_popup_volume = create_rw_signal(false);
+    let interval = create_rw_signal::<Option<TimeoutHandle>>(None);
+
     view! {
         <div class="row no-gutters align-items-center justify-content-end">
-            <div class="col-auto volume-slider-container d-flex">
+            <div
+                class="col-auto volume-slider-container d-flex"
+                class:volume-slider-show=move || show_popup_volume.get()
+                on:mouseover=move |_| {
+                    interval
+                        .update(|i| {
+                            if let Some(i) = i.take() {
+                                i.clear();
+                            }
+                        });
+                    show_popup_volume.set(true);
+                }
+                on:mouseout=move |_| {
+                    interval
+                        .update(|i| {
+                            if let Some(i) = i.take() {
+                                i.clear();
+                            }
+                            *i = Some(
+                                set_timeout_with_handle(
+                                        move || {
+                                            show_popup_volume.set(false);
+                                        },
+                                        Duration::from_millis(800),
+                                    )
+                                    .unwrap(),
+                            );
+                        });
+                }
+            >
                 <input
                     type="range"
                     min="0"
@@ -284,7 +319,36 @@ pub fn ExtraControls() -> impl IntoView {
 
             </div>
             <div class="col-auto">
-                <VolumeIcon on:click=toggle_mute cut=is_cut />
+                <VolumeIcon
+                    on:click=toggle_mute
+                    cut=is_cut
+                    on:mouseover=move |_| {
+                        interval
+                            .update(|i| {
+                                if let Some(i) = i.take() {
+                                    i.clear();
+                                }
+                            });
+                        show_popup_volume.set(true);
+                    }
+                    on:mouseout=move |_| {
+                        interval
+                            .update(|i| {
+                                if let Some(i) = i.take() {
+                                    i.clear();
+                                }
+                                *i = Some(
+                                    set_timeout_with_handle(
+                                            move || {
+                                                show_popup_volume.set(false);
+                                            },
+                                            Duration::from_millis(800),
+                                        )
+                                        .unwrap(),
+                                );
+                            });
+                    }
+                />
             </div>
             <div class="col-auto expand-icon ml-3">
                 <ExpandIcon on:click=move |_| { ui_store.update(move |s| s.toggle_show_queue()) } />

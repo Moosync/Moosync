@@ -171,7 +171,8 @@ where
                         <div on:click=move |_| {
                             use_navigate()(
                                 format!(
-                                    "/main/artists/single?entity={}",
+                                    "{}/single?entity={}",
+                                    redirect_root,
                                     url_escape::encode_component(
                                         &serde_json::to_string(&id).unwrap(),
                                     ),

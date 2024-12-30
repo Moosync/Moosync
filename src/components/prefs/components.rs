@@ -12,6 +12,7 @@ use types::{
     extensions::ExtensionDetail,
     preferences::{CheckboxItems, CheckboxPreference},
     themes::ThemeDetails,
+    ui::themes::ThemeModalState,
     window::DialogFilter,
 };
 use wasm_bindgen_futures::spawn_local;
@@ -355,7 +356,10 @@ pub fn ThemesPref(
     let active_theme_id = create_rw_signal(String::new());
     load_selective(key, active_theme_id);
 
-    let context_menu = Rc::new(ContextMenu::new(ThemesContextMenu { id: None }));
+    let context_menu = Rc::new(ContextMenu::new(ThemesContextMenu {
+        id: None,
+        refresh_cb: Rc::new(Box::new(load_themes)),
+    }));
 
     let modal_store: RwSignal<ModalStore> = expect_context();
     let render_themes = move || {
@@ -391,7 +395,7 @@ pub fn ThemesPref(
                         }
                     >
                         <ThemeViewIcon active=signal.read_only() theme=theme.clone() />
-                        <div class="theme-title">{theme.name}</div>
+                        <div class="theme-title-text">{theme.name}</div>
                         <div class="theme-author">{theme.author}</div>
                     </div>
                 </div>
@@ -404,14 +408,14 @@ pub fn ThemesPref(
                 on:click=move |_| {
                     modal_store
                         .update(|m| {
-                            m.set_active_modal(Modals::ThemeModal);
+                            m.set_active_modal(Modals::ThemeModal(ThemeModalState::None));
                             m.on_modal_close(load_themes);
                         })
                 }
             >
                 <div class="theme-component-container">
                     <NewThemeIcon />
-                    <div class="theme-title">{"New Theme"}</div>
+                    <div class="theme-title-text">{"New Theme"}</div>
                 </div>
             </div>
         });

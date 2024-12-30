@@ -38,8 +38,8 @@ pub fn ModalManager() -> impl IntoView {
                     Modals::SignoutModal(key, name, account_id) => {
                         view! { <SignoutModal key=key name=name account_id=account_id /> }
                     }
-                    Modals::ThemeModal => {
-                        view! { <NewThemeModal /> }
+                    Modals::ThemeModal(initial_state) => {
+                        view! { <NewThemeModal initial_state=initial_state /> }
                     }
                 }
                     .into_view()

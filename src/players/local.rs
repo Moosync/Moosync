@@ -124,7 +124,7 @@ impl GenericPlayer for LocalPlayer {
             audio_element.load();
 
             if autoplay {
-                audio_element.play();
+                let _ = audio_element.play();
             }
 
             resolver.send(()).expect("Load failed to resolve");

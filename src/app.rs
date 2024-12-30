@@ -9,7 +9,7 @@ use crate::{
     store::ui_store::UiStore,
     utils::{
         common::{emit, listen_event},
-        invoke::{load_selective, load_theme},
+        invoke::{get_css, load_selective, load_theme},
         prefs::watch_preferences,
     },
 };
@@ -90,6 +90,30 @@ pub fn MainApp() -> impl IntoView {
 
 #[tracing::instrument(level = "trace", skip(id))]
 fn handle_theme(id: String) {
+    let update_css = move |custom_css: String| {
+        let mut custom_style_sheet = document().get_element_by_id("custom-css");
+        if custom_style_sheet.is_none() {
+            let el = document().create_element("style").unwrap();
+            el.set_id("custom-css");
+
+            if let Some(head) = document().head() {
+                head.append_child(&el).unwrap();
+            }
+
+            custom_style_sheet = Some(el);
+        }
+
+        let custom_style_sheet = custom_style_sheet.unwrap();
+        custom_style_sheet.set_inner_html(custom_css.as_str());
+    };
+
+    listen_event("theme-updated", move |data| {
+        let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
+        if let Some(custom_css) = payload.as_string() {
+            update_css(custom_css);
+        }
+    });
+
     spawn_local(async move {
         let theme = load_theme(id).await.unwrap();
 
@@ -125,16 +149,12 @@ fn handle_theme(id: String) {
             .set_property("--divider", &theme.theme.divider)
             .unwrap();
 
-        if let Some(custom_css) = theme.theme.custom_css {
-            let mut custom_style_sheet = document().get_element_by_id("custom-css");
-            if custom_style_sheet.is_none() {
-                let el = document().create_element("style").unwrap();
-                el.set_id("css-element");
-                custom_style_sheet = Some(el);
-            }
-
-            let custom_style_sheet = custom_style_sheet.unwrap();
-            custom_style_sheet.set_inner_html(custom_css.as_str());
+        if theme.theme.custom_css.is_some() {
+            spawn_local(async move {
+                if let Ok(custom_css) = get_css(theme.id).await {
+                    update_css(custom_css);
+                }
+            });
         }
     });
 }

@@ -204,7 +204,7 @@ impl GenericPlayer for LibrespotPlayer {
                     player_state_tx(PlayerEvents::Error(format!("{:?}", err).into()));
                 }
             } else if autoplay {
-                librespot_play().await;
+                let _ = librespot_play().await;
             }
 
             resolver.send(()).unwrap();

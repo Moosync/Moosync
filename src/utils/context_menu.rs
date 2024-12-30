@@ -1,8 +1,7 @@
 use std::rc::Rc;
 
 use leptos::{
-    create_memo, expect_context, use_context, window, RwSignal, SignalGet,
-    SignalUpdate, SignalWith,
+    create_memo, expect_context, use_context, window, RwSignal, SignalGet, SignalUpdate, SignalWith,
 };
 use leptos_context_menu::{ContextMenuData, ContextMenuItemInner, ContextMenuItems};
 use leptos_router::{use_navigate, use_query_map, NavigateOptions};
@@ -26,6 +25,7 @@ use super::{
         add_songs_to_library, add_to_playlist, create_playlist, export_playlist, remove_playlist,
         remove_songs_from_library,
     },
+    invoke::load_theme,
     songs::get_sort_cx_items,
 };
 
@@ -274,6 +274,7 @@ impl ContextMenuData<Self> for SortContextMenu {
 
 pub struct ThemesContextMenu {
     pub id: Option<String>,
+    pub refresh_cb: Rc<Box<dyn Fn()>>,
 }
 
 impl ThemesContextMenu {
@@ -289,16 +290,61 @@ impl ThemesContextMenu {
             });
         }
     }
+
+    fn remove_theme(&self) {
+        let id = self.id.clone();
+        if let Some(id) = id {
+            let refresh_cb = self.refresh_cb.clone();
+            spawn_local(async move {
+                let res = crate::utils::invoke::remove_theme(id).await;
+                if let Err(err) = res {
+                    tracing::error!("Error removing theme {:?}", err);
+                }
+                refresh_cb.as_ref()();
+            });
+        }
+    }
+
+    fn edit_theme(&self) {
+        let modal_store: RwSignal<ModalStore> = expect_context();
+        let id = self.id.clone();
+        let refresh_cb = self.refresh_cb.clone();
+        if let Some(id) = id {
+            spawn_local(async move {
+                let theme = load_theme(id).await;
+                if let Ok(theme) = theme {
+                    modal_store.update(|m| {
+                        m.set_active_modal(Modals::ThemeModal(
+                            types::ui::themes::ThemeModalState::NewTheme(theme),
+                        ));
+                        m.on_modal_close(move || refresh_cb.as_ref()());
+                    });
+                }
+            });
+        }
+    }
 }
 
 impl ContextMenuData<Self> for ThemesContextMenu {
     #[tracing::instrument(level = "trace", skip(self))]
     fn get_menu_items(&self) -> ContextMenuItems<Self> {
-        vec![ContextMenuItemInner::new_with_handler(
-            "Export theme".into(),
-            |_, cx| cx.export_theme(),
-            None,
-        )]
+        vec![
+            ContextMenuItemInner::new_with_handler(
+                "Edit theme".into(),
+                |_, cx| cx.edit_theme(),
+                None,
+            ),
+            ContextMenuItemInner::new_with_handler(
+                "Export theme".into(),
+                |_, cx| cx.export_theme(),
+                None,
+            ),
+            ContextMenuItemInner::new_with_handler(
+                "Remove theme".into(),
+                |_, cx| cx.remove_theme(),
+                None,
+            ),
+        ]
     }
 }
 

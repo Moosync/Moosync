@@ -17,7 +17,7 @@ pub struct ThemeItem {
     pub custom_css: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct ThemeDetails {
     pub id: String,
     pub name: String,

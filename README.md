@@ -10,6 +10,8 @@
 - Optimize DB queries
 - Local songs tab in search page
 - Fix sorting
+- Fix song details buttons
+- Sidebar toggle
 
 - hide everything technical
 - settings is 3/4th of the width

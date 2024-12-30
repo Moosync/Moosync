@@ -23,8 +23,8 @@ use rodio::{
 };
 use tauri_plugin_autostart::MacosLauncher;
 use themes::{
-    export_theme, get_theme_handler_state, import_theme, load_all_themes, load_theme, remove_theme,
-    save_theme, transform_css,
+    download_theme, export_theme, get_css, get_theme_handler_state, get_themes_manifest,
+    import_theme, load_all_themes, load_theme, remove_theme, save_theme,
 };
 
 use extensions::{
@@ -175,7 +175,9 @@ pub fn run() {
             remove_theme,
             import_theme,
             export_theme,
-            transform_css,
+            get_css,
+            get_themes_manifest,
+            download_theme,
             // MPRIS
             set_metadata,
             set_playback_state,

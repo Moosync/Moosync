@@ -45,7 +45,7 @@ impl GenericPlayer for RodioPlayer {
             if let Err(err) = res {
                 tracing::error!("Rodio error {:?}", err);
             } else {
-                rodio_play().await;
+                let _ = rodio_play().await;
             }
 
             resolver.send(()).unwrap();

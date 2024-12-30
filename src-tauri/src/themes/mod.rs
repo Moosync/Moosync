@@ -1,7 +1,7 @@
-use std::{collections::HashMap, fs};
+use std::{collections::HashMap, fs, sync::mpsc::channel};
 
-use macros::generate_command;
-use tauri::{App, AppHandle, Manager, State};
+use macros::{generate_command, generate_command_async};
+use tauri::{App, AppHandle, Emitter, Manager, State};
 use themes::themes::ThemeHolder;
 use types::{errors::Result, themes::ThemeDetails};
 
@@ -16,7 +16,18 @@ pub fn get_theme_handler_state(app: &mut App) -> ThemeHolder {
 
     let tmp_dir = app.path().temp_dir().unwrap();
 
-    ThemeHolder::new(path, tmp_dir)
+    let (tx, rx) = channel();
+
+    let app_handle = app.app_handle().clone();
+    tauri::async_runtime::spawn(async move {
+        while let Ok(event) = rx.recv() {
+            if let Err(e) = app_handle.emit("theme-updated", event) {
+                tracing::error!("Failed to emit theme_updated event: {:?}", e);
+            }
+        }
+    });
+
+    ThemeHolder::new(path, tmp_dir, tx)
 }
 
 #[tracing::instrument(level = "trace", skip(app, theme_handler, window_handler))]
@@ -38,4 +49,6 @@ generate_command!(remove_theme, ThemeHolder, (), id: String);
 generate_command!(load_theme, ThemeHolder, ThemeDetails, id: String);
 generate_command!(load_all_themes, ThemeHolder, HashMap<String, ThemeDetails>,);
 generate_command!(import_theme, ThemeHolder, (), path: String);
-generate_command!(transform_css, ThemeHolder, String, css_path: String, root: Option<String>);
+generate_command!(get_css, ThemeHolder, String, id: String);
+generate_command_async!(get_themes_manifest, ThemeHolder, HashMap<String, ThemeDetails>,);
+generate_command_async!(download_theme, ThemeHolder, (), url: String);

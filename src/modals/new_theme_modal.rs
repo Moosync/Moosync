@@ -1,42 +1,41 @@
+use std::collections::HashMap;
+
 use crate::{
     components::color_picker::ColorPicker,
     icons::{
-        folder_icon::FolderIcon, import_theme_icon::ImportThemeIcon,
+        cross_icon::CrossIcon, folder_icon::FolderIcon, import_theme_icon::ImportThemeIcon,
         new_theme_button_icon::NewThemeButtonIcon, theme_view_icon::ThemeViewIcon,
         tooltip::Tooltip,
     },
     store::modal_store::ModalStore,
-    utils::prefs::{import_theme, open_file_browser_single, save_theme},
+    utils::{
+        invoke::{download_theme, get_themes_manifest},
+        prefs::{import_theme, open_file_browser_single, save_theme},
+    },
 };
 use leptos::{
-    component, create_effect, create_node_ref, create_read_slice, create_rw_signal,
-    event_target_value, expect_context, view, CollectView, IntoView, RwSignal, SignalGet,
-    SignalGetUntracked, SignalSet, SignalUpdate,
+    component, create_effect, create_node_ref, create_read_slice, create_rw_signal, create_signal,
+    event_target_value, expect_context, spawn_local, view, CollectView, For, IntoView, RwSignal,
+    SignalGet, SignalGetUntracked, SignalSet, SignalUpdate,
 };
 use leptos_use::on_click_outside;
 use types::{
     themes::{ThemeDetails, ThemeItem},
+    ui::themes::ThemeModalState,
     window::DialogFilter,
 };
 
 use crate::modals::common::GenericModal;
 
-#[derive(Debug, Clone)]
-enum State {
-    None,
-    NewTheme,
-    ImportTheme,
-}
-
 #[tracing::instrument(level = "trace", skip())]
 #[component]
-pub fn NewThemeModal() -> impl IntoView {
-    let state = create_rw_signal(State::None);
+pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView {
+    let state = create_rw_signal(initial_state);
     let theme_path = create_rw_signal(String::new());
     create_effect(move |_| {
         let state = state.get();
 
-        if let State::ImportTheme = state {
+        if let ThemeModalState::ImportTheme = state {
             open_file_browser_single(
                 false,
                 vec![DialogFilter {
@@ -66,22 +65,25 @@ pub fn NewThemeModal() -> impl IntoView {
         <GenericModal size=move || {
             {
                 match state.get() {
-                    State::None => "modal-md",
-                    State::NewTheme => "modal-xl",
-                    State::ImportTheme => "modal-lg",
+                    ThemeModalState::None => "modal-md",
+                    ThemeModalState::NewTheme(_) => "modal-xl",
+                    ThemeModalState::ImportTheme => "modal-lg",
+                    ThemeModalState::DiscoverTheme => "modal-xl",
                 }
             }
                 .into()
         }>
 
             {move || match state.get() {
-                State::None => {
+                ThemeModalState::None => {
                     view! {
                         <div class="container">
                             <div class="row h-100">
                                 <div
                                     class="col d-flex"
-                                    on:click=move |_| state.set(State::NewTheme)
+                                    on:click=move |_| {
+                                        state.set(ThemeModalState::NewTheme(ThemeDetails::new()))
+                                    }
                                 >
                                     <div class="row item-box align-self-center">
                                         <div class="col-auto d-flex playlist-modal-item-container w-100">
@@ -102,7 +104,7 @@ pub fn NewThemeModal() -> impl IntoView {
                                 </div>
                                 <div
                                     class="col d-flex"
-                                    on:click=move |_| state.set(State::ImportTheme)
+                                    on:click=move |_| state.set(ThemeModalState::DiscoverTheme)
                                 >
                                     <div class="row item-box align-self-center">
                                         <div class="col-auto d-flex playlist-modal-item-container w-100">
@@ -127,8 +129,8 @@ pub fn NewThemeModal() -> impl IntoView {
                     }
                         .into_view()
                 }
-                State::NewTheme => {
-                    let new_theme = create_rw_signal(ThemeDetails::new());
+                ThemeModalState::NewTheme(theme) => {
+                    let new_theme = create_rw_signal(theme);
                     let active = create_rw_signal(false);
                     let show_color_picker = create_rw_signal((false, 0));
                     let colors = create_read_slice(new_theme, move |t| t.theme.clone());
@@ -314,27 +316,59 @@ pub fn NewThemeModal() -> impl IntoView {
                                         >
                                             <div
                                                 class="col-auto align-self-center ml-4 folder-icon"
-
+                                                on:click=move |_| {
+                                                    spawn_local(async move {
+                                                        if let Ok(res) = crate::utils::invoke::open_file_browser(
+                                                                false,
+                                                                false,
+                                                                vec![
+                                                                    DialogFilter {
+                                                                        name: "Css".into(),
+                                                                        extensions: vec!["css".into()],
+                                                                    },
+                                                                ],
+                                                            )
+                                                            .await
+                                                        {
+                                                            if let Some(file) = res.first() {
+                                                                new_theme
+                                                                    .update(|t| {
+                                                                        t.theme.custom_css = Some(file.path.clone());
+                                                                    });
+                                                            }
+                                                        }
+                                                    });
+                                                }
                                                 align-self="center"
                                             >
                                                 <FolderIcon />
                                             </div>
-                                            <div
-                                                class="col-auto align-self-center ml-3 justify-content-start"
-                                                id="3065be4c-d78c-4e72-b485-7b4a6ff54e21"
-
-                                                align-self="center"
-                                                title=""
-                                            >
-                                                <div class="item-text text-truncate"></div>
+                                            <div class="col-auto align-self-center ml-3 justify-content-start">
+                                                <div
+                                                    class="item-text text-truncate theme-custom-css"
+                                                    title=move || {
+                                                        let theme = new_theme.get();
+                                                        theme.theme.custom_css
+                                                    }
+                                                >
+                                                    {move || {
+                                                        let theme = new_theme.get();
+                                                        theme.theme.custom_css
+                                                    }}
+                                                </div>
                                             </div>
                                         </div>
                                         <div
                                             class="col-auto align-self-center ml-4 custom-css-cross-icon"
-
+                                            on:click=move |_| {
+                                                new_theme
+                                                    .update(|t| {
+                                                        t.theme.custom_css = None;
+                                                    });
+                                            }
                                             align-self="center"
                                         >
-                                            <FolderIcon />
+                                            <CrossIcon />
                                         </div>
                                     </div>
                                     <div class="row justify-content-end mt-5 mr-4" align-h="end">
@@ -359,7 +393,57 @@ pub fn NewThemeModal() -> impl IntoView {
                     }
                         .into_view()
                 }
-                State::ImportTheme => view! {}.into_view(),
+                ThemeModalState::ImportTheme => view! {}.into_view(),
+                ThemeModalState::DiscoverTheme => {
+                    let themes = create_rw_signal(HashMap::new());
+                    let (active, _) = create_signal(false);
+                    spawn_local(async move {
+                        if let Ok(manifest) = get_themes_manifest().await {
+                            tracing::debug!("Got themes manifest {:?}", manifest);
+                            themes.set(manifest);
+                        }
+                    });
+                    let install_theme = move |url: String| {
+                        spawn_local(async move {
+                            if let Err(e) = download_theme(url).await {
+                                tracing::error!("Failed to download theme: {:?}", e);
+                            } else {
+                                close_modal()
+                            }
+                        });
+                    };
+                    view! {
+                        <div class="container-fluid h-100 w-100">
+                            <div class="row no-gutters">
+                                <For
+                                    each=move || themes.get()
+                                    key=|(key, _)| key.clone()
+                                    children=move |(key, theme)| {
+                                        view! {
+                                            <div class="col-xl-3 col-5 p-2">
+                                                <div class="theme-component-container">
+                                                    <div
+                                                        class="theme-download-wrapper"
+                                                        on:click=move |_| {
+                                                            install_theme(key.clone());
+                                                        }
+                                                    >
+                                                        <ImportThemeIcon />
+                                                    </div>
+                                                    <ThemeViewIcon active=active theme=theme.clone() />
+                                                    <div class="theme-title-text">{theme.name}</div>
+                                                    <div class="theme-author">{theme.author}</div>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                />
+
+                            </div>
+                        </div>
+                    }
+                        .into_view()
+                }
             }}
         </GenericModal>
     }

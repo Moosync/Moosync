@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use types::songs::Song;
+use types::{songs::Song, ui::themes::ThemeModalState};
 
 use crate::modals::new_playlist_modal::PlaylistModalState;
 
@@ -11,7 +11,7 @@ pub enum Modals {
     DiscoverExtensions,
     NewPlaylistModal(PlaylistModalState, Option<Vec<Song>>),
     SongFromUrlModal,
-    ThemeModal,
+    ThemeModal(ThemeModalState),
 }
 
 #[derive(Clone, Default)]

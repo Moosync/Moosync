@@ -1,5 +1,5 @@
 use leptos::{
-    component, create_effect, create_node_ref, create_rw_signal, document, html::Div, view, window,
+    component, create_effect, create_node_ref, create_rw_signal, document, html::Div, view,
     AnimatedShow, CollectView, IntoView, NodeRef, RwSignal, SignalGet, SignalGetUntracked,
     SignalSet,
 };

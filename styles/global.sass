@@ -498,19 +498,6 @@ img
 .topbar
   display: flex
 
-@media only screen and (max-width : 800px)
-  .main-content
-    display: none
-
-  .sidebar
-    display: none
-
-  .topbar
-    display: none
-
-  .mini-player
-    display: block
-
 @import "./transitions"
 @import "./scrollbar"
 @import './bootstrap/scss/bootstrap.scss'
@@ -527,6 +514,7 @@ img
 @import "./context_menu.scss"
 @import "./color_picker.scss"
 @import "./routes.scss"
+@import "./now_playing.scss"
 
 @include media-breakpoint-up(lg)
   .slider-container

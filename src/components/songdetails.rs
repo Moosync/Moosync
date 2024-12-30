@@ -1,7 +1,9 @@
 use leptos::{
-    component, create_effect, create_node_ref, create_rw_signal, html::Div, view, AnimatedShow,
-    CollectView, IntoView, NodeRef, RwSignal, SignalGet, SignalGetUntracked, SignalSet,
+    component, create_effect, create_node_ref, create_rw_signal, document, html::Div, view, window,
+    AnimatedShow, CollectView, IntoView, NodeRef, RwSignal, SignalGet, SignalGetUntracked,
+    SignalSet,
 };
+use leptos_use::use_resize_observer;
 use types::{
     songs::Song,
     ui::song_details::{DefaultDetails, SongDetailIcons},
@@ -46,6 +48,8 @@ where
     let show_lyrics_div = create_rw_signal(false);
     let show_lyrics_always = create_rw_signal(false);
 
+    let show_lyrics_old = create_rw_signal(false);
+
     let buttons_ref = if buttons_ref.is_some() {
         buttons_ref.unwrap()
     } else {
@@ -53,6 +57,21 @@ where
     };
 
     if show_lyrics {
+        use_resize_observer(document().body(), move |entries, _| {
+            if let Some(entry) = entries.first() {
+                let rect = entry.content_rect();
+
+                if rect.width() <= 800f64 {
+                    show_lyrics_old.set(show_lyrics_div.get_untracked());
+                    show_lyrics_always.set(true);
+                    show_lyrics_div.set(true);
+                } else {
+                    show_lyrics_div.set(show_lyrics_old.get_untracked());
+                    show_lyrics_always.set(show_lyrics_old.get_untracked());
+                }
+            }
+        });
+
         create_effect(move |_| {
             tracing::debug!("Fetching lyrics");
             let song = selected_song.get();
@@ -160,6 +179,7 @@ where
                                     hide_delay=Duration::from_millis(200)
                                 >
                                     <div class="lyrics-container">
+                                        <div class="lyrics-side-decoration"></div>
                                         <div class="lyrics-background"></div>
                                         <pre>{move || selected_lyrics.get()}</pre>
                                         <PinIcon

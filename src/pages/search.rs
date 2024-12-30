@@ -2,7 +2,7 @@ use std::{collections::HashMap, rc::Rc};
 
 use crate::{
     components::cardview::{CardView, SimplifiedCardItem},
-    utils::invoke::provider_search,
+    utils::invoke::{provider_search, search_all},
 };
 use colors_transform::{Color, Rgb};
 use leptos::{
@@ -226,7 +226,8 @@ pub fn Search() -> impl IntoView {
     let search_results = create_rw_signal(HashMap::new());
 
     let provider_store = expect_context::<Rc<ProviderStore>>();
-    let keys = provider_store.get_provider_keys();
+    let mut keys = provider_store.get_provider_keys();
+    keys.insert(0, "Local".into());
 
     let selected_provider = create_rw_signal(vec![]);
     let selected_category = create_rw_signal(vec![]);
@@ -255,7 +256,11 @@ pub fn Search() -> impl IntoView {
             let keys = keys_clone.clone();
             spawn_local(async move {
                 for key in keys {
-                    let res = provider_search(key.clone(), search_term.clone()).await;
+                    let res = if key == "Local" {
+                        search_all(search_term.clone()).await
+                    } else {
+                        provider_search(key.clone(), search_term.clone()).await
+                    };
                     match res {
                         Ok(res) => {
                             search_results.update(|map| {

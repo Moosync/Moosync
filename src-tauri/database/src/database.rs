@@ -745,6 +745,8 @@ impl Database {
     #[tracing::instrument(level = "trace", skip(self))]
     pub fn search_all(&self, term: String) -> Result<SearchResult> {
         trace!("Searching all by term");
+
+        let term = format!("%{}%", term);
         let songs = self.get_songs_by_options(GetSongOptions {
             song: Some(SearchableSong {
                 _id: None,

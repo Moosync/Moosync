@@ -24,7 +24,7 @@ pub fn sort_by_album() {
     ui_store.update(|ui_store| {
         ui_store.set_song_sort_by(SongSortBy {
             sort_by: SongSortByColumns::Album,
-            asc: true,
+            asc: !ui_store.get_song_sort_by().asc,
         })
     });
 }
@@ -34,7 +34,7 @@ pub fn sort_by_artist() {
     ui_store.update(|ui_store| {
         ui_store.set_song_sort_by(SongSortBy {
             sort_by: SongSortByColumns::Artist,
-            asc: true,
+            asc: !ui_store.get_song_sort_by().asc,
         })
     });
 }
@@ -44,7 +44,7 @@ pub fn sort_by_date() {
     ui_store.update(|ui_store| {
         ui_store.set_song_sort_by(SongSortBy {
             sort_by: SongSortByColumns::Date,
-            asc: true,
+            asc: !ui_store.get_song_sort_by().asc,
         })
     });
 }
@@ -54,7 +54,7 @@ pub fn sort_by_genre() {
     ui_store.update(|ui_store| {
         ui_store.set_song_sort_by(SongSortBy {
             sort_by: SongSortByColumns::Genre,
-            asc: true,
+            asc: !ui_store.get_song_sort_by().asc,
         })
     });
 }
@@ -64,7 +64,7 @@ pub fn sort_by_playcount() {
     ui_store.update(|ui_store| {
         ui_store.set_song_sort_by(SongSortBy {
             sort_by: SongSortByColumns::PlayCount,
-            asc: true,
+            asc: !ui_store.get_song_sort_by().asc,
         })
     });
 }
@@ -74,7 +74,7 @@ pub fn sort_by_title() {
     ui_store.update(|ui_store| {
         ui_store.set_song_sort_by(SongSortBy {
             sort_by: SongSortByColumns::Title,
-            asc: true,
+            asc: !ui_store.get_song_sort_by().asc,
         })
     });
 }

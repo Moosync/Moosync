@@ -146,6 +146,7 @@ pub fn SongList(
 
     let ui_store: RwSignal<UiStore> = expect_context();
     let songs_sort = create_read_slice(ui_store, |u| u.get_song_sort_by());
+    let sort_icon_rotated = create_read_slice(ui_store, |u| u.get_song_sort_by().asc);
 
     let sorted_songs = create_memo(move |_| {
         let sort = songs_sort.get();
@@ -156,7 +157,15 @@ pub fn SongList(
             SongSortByColumns::Date => songs.sort_by(|a, b| a.song.date.cmp(&b.song.date)),
             SongSortByColumns::Genre => songs.sort_by(|a, b| a.genre.cmp(&b.genre)),
             SongSortByColumns::PlayCount => {}
-            SongSortByColumns::Title => songs.sort_by(|a, b| a.song.title.cmp(&b.song.title)),
+            SongSortByColumns::Title => songs.sort_by(|a, b| {
+                let title_a = a.song.title.as_ref().map(|t| t.to_lowercase());
+                let title_b = b.song.title.as_ref().map(|t| t.to_lowercase());
+                title_a.cmp(&title_b)
+            }),
+        }
+
+        if !sort.asc {
+            songs.reverse();
         }
 
         songs
@@ -384,7 +393,7 @@ pub fn SongList(
                                                     class="align-self-center"
                                                     on:click=move |e| { sort_context_menu.show(e) }
                                                 >
-                                                    <SortIcon />
+                                                    <SortIcon rotate=sort_icon_rotated />
                                                 </div>
                                             </div>
                                         </div>

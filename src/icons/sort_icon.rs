@@ -1,8 +1,8 @@
-use leptos::{component, view, IntoView};
+use leptos::{component, view, IntoView, SignalGet};
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "trace", skip(rotate))]
 #[component]
-pub fn SortIcon() -> impl IntoView {
+pub fn SortIcon(#[prop()] rotate: impl SignalGet<Value = bool> + 'static) -> impl IntoView {
     view! {
         <svg
             style="cursor: pointer;"
@@ -10,6 +10,7 @@ pub fn SortIcon() -> impl IntoView {
             height="22"
             viewBox="0 0 23 22"
             fill="none"
+            class=move || { if rotate.get() { "rotated" } else { "" } }
             xmlns="http://www.w3.org/2000/svg"
         >
             <path

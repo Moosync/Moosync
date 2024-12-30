@@ -97,10 +97,17 @@ impl Eq for QueryableAlbum {}
 impl Ord for QueryableAlbum {
     #[tracing::instrument(level = "trace", skip(self, other))]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.album_name
+        let album_name = self
+            .album_name
             .as_ref()
             .unwrap_or(&String::new())
-            .cmp(other.album_name.as_ref().unwrap_or(&String::new()))
+            .to_lowercase();
+        let other_album_name = other
+            .album_name
+            .as_ref()
+            .unwrap_or(&String::new())
+            .to_lowercase();
+        album_name.cmp(&other_album_name)
     }
 }
 
@@ -188,10 +195,17 @@ impl PartialOrd for QueryableArtist {
 impl Ord for QueryableArtist {
     #[tracing::instrument(level = "trace", skip(self, other))]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.artist_name
+        let artist_name = self
+            .artist_name
             .as_ref()
             .unwrap_or(&String::new())
-            .cmp(other.artist_name.as_ref().unwrap_or(&String::new()))
+            .to_lowercase();
+        let other_artist_name = other
+            .artist_name
+            .as_ref()
+            .unwrap_or(&String::new())
+            .to_lowercase();
+        artist_name.cmp(&other_artist_name)
     }
 }
 
@@ -268,10 +282,17 @@ impl PartialOrd for QueryableGenre {
 impl Ord for QueryableGenre {
     #[tracing::instrument(level = "trace", skip(self, other))]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.genre_name
+        let genre_name = self
+            .genre_name
             .as_ref()
             .unwrap_or(&String::new())
-            .cmp(other.genre_name.as_ref().unwrap_or(&String::new()))
+            .to_lowercase();
+        let other_genre_name = other
+            .genre_name
+            .as_ref()
+            .unwrap_or(&String::new())
+            .to_lowercase();
+        genre_name.cmp(&other_genre_name)
     }
 }
 
@@ -390,7 +411,9 @@ impl PartialOrd for QueryablePlaylist {
 impl Ord for QueryablePlaylist {
     #[tracing::instrument(level = "trace", skip(self, other))]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.playlist_name.cmp(&other.playlist_name)
+        self.playlist_name
+            .to_lowercase()
+            .cmp(&other.playlist_name.to_lowercase())
     }
 }
 

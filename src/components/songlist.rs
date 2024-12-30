@@ -6,8 +6,9 @@ use leptos::{
     create_write_slice,
     ev::{keydown, keyup, scroll},
     event_target, event_target_value, expect_context,
-    html::Input, use_context, view, window_event_listener, HtmlElement, IntoView, RwSignal, Show,
-    SignalGet, SignalGetUntracked, SignalSet, SignalSetUntracked, SignalUpdate,
+    html::Input,
+    use_context, view, window_event_listener, HtmlElement, IntoView, RwSignal, Show, SignalGet,
+    SignalGetUntracked, SignalSet, SignalSetUntracked, SignalUpdate,
 };
 use leptos_context_menu::ContextMenu;
 use leptos_use::use_event_listener;
@@ -332,7 +333,7 @@ pub fn SongList(
                                             // Sort icons here
                                             {if providers.show_providers {
                                                 view! {
-                                                    <div class="col-9 d-flex">
+                                                    <div class="col-auto d-flex">
                                                         <TabCarousel
                                                             keys=provider_store.get_provider_keys()
                                                             selected=providers.selected_providers

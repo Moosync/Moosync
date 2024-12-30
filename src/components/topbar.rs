@@ -217,7 +217,7 @@ async fn get_search_res(
                         use_navigate()(
                             format!(
                                 "/main/artists/single?entity={}",
-                                serde_json::to_string(&a).unwrap()
+                                url_escape::encode_component(&serde_json::to_string(&a).unwrap())
                             )
                             .as_str(),
                             NavigateOptions::default(),
@@ -248,7 +248,7 @@ async fn get_search_res(
                         use_navigate()(
                             format!(
                                 "/main/albums/single?entity={}",
-                                serde_json::to_string(&a).unwrap()
+                                url_escape::encode_component(&serde_json::to_string(&a).unwrap())
                             )
                             .as_str(),
                             NavigateOptions::default(),
@@ -279,7 +279,7 @@ async fn get_search_res(
                         use_navigate()(
                             format!(
                                 "/main/genres/single?entity={}",
-                                serde_json::to_string(&a).unwrap()
+                                url_escape::encode_component(&serde_json::to_string(&a).unwrap())
                             )
                             .as_str(),
                             NavigateOptions::default(),
@@ -312,7 +312,7 @@ async fn get_search_res(
                         use_navigate()(
                             format!(
                                 "/main/playlists/single?entity={}",
-                                serde_json::to_string(&a).unwrap()
+                                url_escape::encode_component(&serde_json::to_string(&a).unwrap())
                             )
                             .as_str(),
                             NavigateOptions::default(),

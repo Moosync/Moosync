@@ -9,7 +9,7 @@ use crate::{
     utils::common::convert_file_src,
 };
 use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
-use leptos_router::A;
+use leptos_router::{use_navigate, NavigateOptions};
 use leptos_virtual_scroller::VirtualGridScroller;
 use serde::Serialize;
 use types::errors::MoosyncError;
@@ -164,13 +164,22 @@ where
                             )
                         />
                     }
+                        .into_view()
                 } else {
+                    let id = card_item_data.id.clone();
                     view! {
-                        <A href=format!(
-                            "{}/single?entity={}",
-                            redirect_root,
-                            serde_json::to_string(&card_item_data.id).unwrap(),
-                        )>
+                        <div on:click=move |_| {
+                            use_navigate()(
+                                format!(
+                                    "/main/artists/single?entity={}",
+                                    url_escape::encode_component(
+                                        &serde_json::to_string(&id).unwrap(),
+                                    ),
+                                )
+                                    .as_str(),
+                                NavigateOptions::default(),
+                            );
+                        }>
                             <CardItem
                                 on:contextmenu=move |ev| {
                                     if let Some(cb) = &card_item_data1.context_menu {
@@ -180,8 +189,9 @@ where
                                 item=card_item_data
                                 songs_view=songs_view
                             />
-                        </A>
+                        </div>
                     }
+                        .into_view()
                 }
             }
         />

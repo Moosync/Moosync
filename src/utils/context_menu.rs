@@ -112,7 +112,7 @@ where
                 navigate(
                     format!(
                         "/main/albums/single?entity={}",
-                        serde_json::to_string(&album).unwrap()
+                        url_escape::encode_component(&serde_json::to_string(&album).unwrap())
                     )
                     .as_str(),
                     NavigateOptions::default(),
@@ -127,7 +127,7 @@ where
         navigate(
             format!(
                 "/main/artists/single?entity={}",
-                serde_json::to_string(&artist).unwrap()
+                url_escape::encode_component(&serde_json::to_string(&artist).unwrap())
             )
             .as_str(),
             NavigateOptions::default(),

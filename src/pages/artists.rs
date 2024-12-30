@@ -29,10 +29,12 @@ pub fn SingleArtist() -> impl IntoView {
     let artist = create_memo(move |_| {
         params.with(|params| {
             let entity = params.get("entity");
+            tracing::info!("Got entity {:?}", entity);
             if let Some(entity) = entity {
                 let album = serde_json::from_str::<QueryableArtist>(entity);
-                if let Ok(album) = album {
-                    return Some(album);
+                match album {
+                    Ok(album) => return Some(album),
+                    Err(e) => tracing::error!("Failed to parse artist: {:?}", e),
                 }
             }
             None

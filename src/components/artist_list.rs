@@ -19,7 +19,9 @@ pub fn ArtistList(#[prop()] artists: Option<Vec<QueryableArtist>>) -> impl IntoV
                         use_navigate()(
                             format!(
                                 "/main/artists/single?entity={}",
-                                serde_json::to_string(&artist).unwrap(),
+                                url_escape::encode_component(
+                                    &serde_json::to_string(&artist).unwrap(),
+                                ),
                             )
                                 .as_str(),
                             NavigateOptions::default(),

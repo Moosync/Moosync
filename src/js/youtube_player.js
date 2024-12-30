@@ -124,8 +124,22 @@ class YTPlayer {
     }
   }
 
-  play() {
+  play(retry = 0) {
     this.run("playVideo");
+
+    let stateChanged = false;
+    this.once("stateChange", (state) => {
+      if (state == 3 || state == 1) {
+        stateChanged = true;
+      }
+    });
+
+    setTimeout(() => {
+      if (!stateChanged && retry < 4) {
+        console.warn("state didn't change, trying to replay");
+        this.play(retry + 1);
+      }
+    }, 500);
   }
 
   pause() {

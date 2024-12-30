@@ -12,7 +12,7 @@ use diesel::{
 };
 
 use serde::{Deserialize, Serialize};
-use tracing::info;
+use tracing::debug;
 use types::cache::CacheModel;
 use types::errors::Result;
 
@@ -91,7 +91,7 @@ impl CacheHolder {
 
         let expires = Duration::from_secs(data.expires as u64);
         if current_time > expires {
-            info!("Cache expired");
+            debug!("Cache expired for {}", _url);
             return Err("Cache expired".into());
         }
 

@@ -415,7 +415,7 @@ pub fn ThemesPref(
             >
                 <div class="theme-component-container">
                     <NewThemeIcon />
-                    <div class="theme-title-text">{"New Theme"}</div>
+                    <div class="theme-title-text">{"Discover themes"}</div>
                 </div>
             </div>
         });

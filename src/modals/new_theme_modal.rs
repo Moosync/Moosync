@@ -118,7 +118,7 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                                             </div>
                                             <div class="row">
                                                 <div class="col d-flex justify-content-center item-title">
-                                                    Import theme
+                                                    Discover themes
                                                 </div>
                                             </div>
                                         </div>
@@ -438,7 +438,18 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                                         }
                                     }
                                 />
-
+                            </div>
+                            <div class="row no-gutters d-flex justify-contents-end">
+                                <div class="col col-auto">
+                                    <button
+                                        class="btn btn-secondary create-button ml-3"
+                                        on:click=move |_| {
+                                            state.set(ThemeModalState::ImportTheme);
+                                        }
+                                    >
+                                        Install from file
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     }

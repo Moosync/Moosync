@@ -39,7 +39,7 @@ macro_rules! generate_wrapper {
                     let provider = provider_store.get(&provider_key);
                     if let Some(provider) = provider {
                         let provider = provider.lock().await;
-                        tracing::info!("calling provider {} - {}", provider_key, stringify!($method_name));
+                        tracing::debug!("calling provider {} - {}", provider_key, stringify!($method_name));
                         let res = provider.$method_name($($param_name.clone()),*).await;
                         match res {
                             Ok(result) => return Ok(result),

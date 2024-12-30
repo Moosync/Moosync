@@ -232,7 +232,7 @@ impl PlayerHolder {
 
         self.set_player_listeners(player);
         self.active_player.store(pos, Ordering::Relaxed);
-        tracing::info!("Active player: {}", player.key());
+        tracing::debug!("Active player: {}", player.key());
 
         let (resolver_tx, resolver_rx) = oneshot::channel();
         player.load(src.unwrap(), autoplay, resolver_tx);

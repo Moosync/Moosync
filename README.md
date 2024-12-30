@@ -12,6 +12,8 @@
 - Fix sorting
 - Fix song details buttons
 - Sidebar toggle
+- clear thumbnails on song removal
+- remove songs on path removal
 
 - hide everything technical
 - settings is 3/4th of the width

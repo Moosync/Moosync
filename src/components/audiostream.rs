@@ -201,7 +201,7 @@ impl PlayerHolder {
     ) -> Result<Option<Song>> {
         let autoplay = create_read_slice(player_store, |p| {
             let state = p.get_player_state();
-            state != PlayerState::Paused || state != PlayerState::Stopped
+            state == PlayerState::Playing || state == PlayerState::Loading
         })
         .get();
 

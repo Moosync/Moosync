@@ -109,11 +109,13 @@ impl GenericPlayer for YoutubePlayer {
 
     #[tracing::instrument(level = "trace", skip(self, src, resolver))]
     fn load(&self, src: String, autoplay: bool, resolver: OneShotSender<()>) {
-        self.player.load(src.as_str(), autoplay);
+        self.player.load(src.as_str(), false);
         self.last_src.set_untracked(Some(src.clone()));
-        tracing::debug!("Loaded youtube embed {}", src);
+        tracing::debug!("Loaded youtube embed {}, {}", src, autoplay);
         if autoplay {
             self.play().unwrap();
+        } else {
+            self.pause().unwrap();
         }
         // TODO: Resolve when player state changes
         let res = resolver.send(());

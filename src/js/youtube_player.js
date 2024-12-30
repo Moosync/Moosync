@@ -23,7 +23,7 @@ class YTPlayer {
           height: "390",
           width: "390",
           playerVars: {
-            autoplay: 1,
+            autoplay: 0,
             controls: 2,
             disablekb: 0,
             enablejsapi: 1,
@@ -130,18 +130,16 @@ class YTPlayer {
     this.run("playVideo");
 
     let stateChanged = false;
-    this.once("stateChange", (state) => {
-      if (state == 3 || state == 1) {
-        stateChanged = true;
-      }
+    this.once("stateChange", () => {
+      stateChanged = true;
     });
 
     setTimeout(() => {
-      if (!stateChanged && retry < 4) {
+      if (!stateChanged && retry < 1) {
         console.warn("state didn't change, trying to replay");
         this.play(retry + 1);
       }
-    }, 500);
+    }, 1000);
   }
 
   pause() {
@@ -159,6 +157,7 @@ class YTPlayer {
       this.play();
     } else {
       this.run("loadVideoById", videoId, start);
+      this.pause();
     }
   }
 

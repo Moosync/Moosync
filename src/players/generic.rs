@@ -12,7 +12,7 @@ use types::{
 pub trait GenericPlayer: std::fmt::Debug + DynClone {
     fn initialize(&self, element: NodeRef<Div>);
     fn key(&self) -> String;
-    fn load(&self, src: String, resolver: OneShotSender<()>);
+    fn load(&self, src: String, autoplay: bool, resolver: OneShotSender<()>);
     fn stop(&mut self) -> Result<()>;
     fn play(&self) -> Result<()>;
     fn pause(&self) -> Result<()>;

@@ -110,7 +110,7 @@ impl GenericPlayer for LocalPlayer {
     }
 
     #[tracing::instrument(level = "trace", skip(self, src, resolver))]
-    fn load(&self, src: String, resolver: OneShotSender<()>) {
+    fn load(&self, src: String, autoplay: bool, resolver: OneShotSender<()>) {
         let mut src = convert_file_src(src);
         tracing::debug!("Loading audio {}", src);
 
@@ -122,6 +122,10 @@ impl GenericPlayer for LocalPlayer {
 
             audio_element.set_src(src.as_str());
             audio_element.load();
+
+            if autoplay {
+                audio_element.play();
+            }
 
             resolver.send(()).expect("Load failed to resolve");
         });

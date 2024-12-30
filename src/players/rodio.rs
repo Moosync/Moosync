@@ -39,11 +39,13 @@ impl GenericPlayer for RodioPlayer {
     }
 
     #[tracing::instrument(level = "trace", skip(self, src, resolver))]
-    fn load(&self, src: String, resolver: tokio::sync::oneshot::Sender<()>) {
+    fn load(&self, src: String, autoplay: bool, resolver: tokio::sync::oneshot::Sender<()>) {
         spawn_local(async move {
             let res = rodio_load(src).await;
             if let Err(err) = res {
                 tracing::error!("Rodio error {:?}", err);
+            } else {
+                rodio_play().await;
             }
 
             resolver.send(()).unwrap();

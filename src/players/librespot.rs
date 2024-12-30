@@ -195,14 +195,16 @@ impl GenericPlayer for LibrespotPlayer {
     }
 
     #[tracing::instrument(level = "trace", skip(self, src, resolver))]
-    fn load(&self, src: String, resolver: tokio::sync::oneshot::Sender<()>) {
+    fn load(&self, src: String, autoplay: bool, resolver: tokio::sync::oneshot::Sender<()>) {
         let player_state_tx = self.player_state_tx.clone();
         spawn_local(async move {
             let res = librespot_load(src.clone(), false).await;
             if let Err(err) = res {
                 if let Some(player_state_tx) = player_state_tx {
-                    player_state_tx(PlayerEvents::Error(format!("{:?}", err).into()))
+                    player_state_tx(PlayerEvents::Error(format!("{:?}", err).into()));
                 }
+            } else if autoplay {
+                librespot_play().await;
             }
 
             resolver.send(()).unwrap();

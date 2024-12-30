@@ -235,17 +235,17 @@ impl PlayerHolder {
         tracing::info!("Active player: {}", player.key());
 
         let (resolver_tx, resolver_rx) = oneshot::channel();
-        player.load(src.unwrap(), resolver_tx);
+        player.load(src.unwrap(), autoplay, resolver_tx);
 
         resolver_rx.await.expect("Load failed to resolve");
         player.set_volume(current_volume).unwrap();
 
-        if autoplay {
-            tracing::info!("Autoplaying");
-            player.play()?;
-        } else {
-            player.pause()?;
-        }
+        // if autoplay {
+        //     tracing::info!("Autoplaying");
+        //     player.play()?;
+        // } else {
+        //     player.pause()?;
+        // }
 
         Ok(ret)
     }

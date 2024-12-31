@@ -21,7 +21,6 @@ use rodio::{
     get_rodio_state, rodio_get_volume, rodio_load, rodio_pause, rodio_play, rodio_seek,
     rodio_set_volume, rodio_stop,
 };
-use tauri_plugin_autostart::MacosLauncher;
 use themes::{
     download_theme, export_theme, get_css, get_theme_handler_state, get_themes_manifest,
     import_theme, load_all_themes, load_theme, remove_theme, save_theme,
@@ -91,21 +90,38 @@ pub fn run() {
 
     let filter = EnvFilter::from_env("MOOSYNC_LOG");
 
-    tauri::Builder::default()
-        .plugin(tauri_plugin_updater::Builder::new().build())
+    let mut builder = tauri::Builder::default();
+
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    {
+        builder = builder
+            .plugin(tauri_plugin_updater::Builder::new().build())
+            .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+                if let Some(url) = argv.get(1) {
+                    tracing::info!("Got url {}", url);
+                    let state: State<OAuthHandler> = app.state();
+                    state.handle_oauth(app.clone(), url.to_string()).unwrap();
+                }
+            }))
+            .plugin(tauri_plugin_dialog::init())
+            .plugin(tauri_plugin_autostart::init(
+                tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+                None,
+            ))
+            .on_window_event(|window, event| {
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    if let Ok(should_close) = handle_window_close(window.app_handle()) {
+                        if !should_close {
+                            window.hide().unwrap();
+                            api.prevent_close();
+                        }
+                    }
+                }
+            });
+    }
+
+    builder = builder
         .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
-            if let Some(url) = argv.get(1) {
-                tracing::info!("Got url {}", url);
-                let state: State<OAuthHandler> = app.state();
-                state.handle_oauth(app.clone(), url.to_string()).unwrap();
-            }
-        }))
-        .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_autostart::init(
-            MacosLauncher::LaunchAgent,
-            None,
-        ))
         .append_invoke_initialization_script(format!(
             r#"
             window.LOGGING_FILTER = "{}";
@@ -298,17 +314,9 @@ pub fn run() {
             build_tray_menu(app)?;
 
             Ok(())
-        })
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                if let Ok(should_close) = handle_window_close(window.app_handle()) {
-                    if !should_close {
-                        window.hide().unwrap();
-                        api.prevent_close();
-                    }
-                }
-            }
-        })
+        });
+
+    builder
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .expect("error while running tauri application")
 }

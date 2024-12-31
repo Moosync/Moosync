@@ -14,5 +14,5 @@ serde = { version = "1.0", default-features = false }
 types = { path = "../types", features = [] }
 uuid = { version = "1.11.0", default-features = false }
 
-[target.'cfg(windows)'.dependencies]
-libsqlite3-sys = { version = "0.30.1", optional = true, features = ["bundled"] }
+# [target.'cfg(any(windows))'.dependencies]
+libsqlite3-sys = { version = "0.30.1", features = ["bundled"] }

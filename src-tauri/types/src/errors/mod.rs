@@ -97,9 +97,6 @@ pub enum MoosyncError {
     ProtoBuf(#[from] protobuf::Error),
     #[error("{0}")]
     String(String),
-    #[cfg_attr(feature = "core", error("Error in media controls: {0:?}"))]
-    #[cfg(feature = "core")]
-    MediaControlError(souvlaki::Error),
     #[cfg_attr(feature = "core", error(transparent))]
     #[cfg(feature = "core")]
     ZipError(#[from] zip::result::ZipError),
@@ -172,14 +169,6 @@ impl From<JsValue> for MoosyncError {
     fn from(value: JsValue) -> Self {
         let parsed: Value = serde_wasm_bindgen::from_value(value).unwrap();
         Self::String(format!("{}", parsed))
-    }
-}
-
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
-impl From<souvlaki::Error> for MoosyncError {
-    #[tracing::instrument(level = "trace", skip(value))]
-    fn from(value: souvlaki::Error) -> Self {
-        Self::MediaControlError(value)
     }
 }
 

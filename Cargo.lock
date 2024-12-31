@@ -1884,6 +1884,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "dbus-crossroads"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a4c83437187544ba5142427746835061b330446ca8902eabd70e4afb8f76de0"
+dependencies = [
+ "dbus",
+]
+
+[[package]]
 name = "dbus-secret-service"
 version = "4.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8518,6 +8527,8 @@ dependencies = [
  "block",
  "cocoa 0.24.1",
  "core-graphics 0.22.3",
+ "dbus",
+ "dbus-crossroads",
  "dispatch",
  "objc",
  "pollster",

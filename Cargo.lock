@@ -210,9 +210,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.94"
+version = "1.0.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1fd03a028ef38ba2276dce7e33fcd6369c158a1bca17946c4b1b701891c1ff7"
+checksum = "34ac096ce696dc2fcabef30516bb13c0a68a11d30131d3df6f04711467681b04"
 
 [[package]]
 name = "arbitrary"
@@ -1860,9 +1860,11 @@ checksum = "e8566979429cf69b49a5c740c60791108e86440e8be149bbea4fe54d2c32d6e2"
 name = "database"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "diesel",
  "diesel_logger",
  "diesel_migrations",
+ "glob",
  "libsqlite3-sys",
  "macros",
  "serde",
@@ -3123,9 +3125,9 @@ dependencies = [
 
 [[package]]
 name = "glob"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
+checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
 
 [[package]]
 name = "gloo-net"
@@ -5374,6 +5376,7 @@ dependencies = [
  "google-youtube3",
  "iso8601",
  "librespot 0.1.0",
+ "libsqlite3-sys",
  "lyrics",
  "macros",
  "mpris",

@@ -56,6 +56,7 @@ impl PreferenceConfig {
 
         let entry = Entry::new("moosync", whoami::username().as_str())?;
 
+        #[cfg(not(any(target_os = "android", target_os = "ios")))]
         let secret = match entry.get_secret() {
             Ok(password) => {
                 tracing::debug!("Got keystore password");
@@ -76,6 +77,9 @@ impl PreferenceConfig {
                 key
             }
         };
+
+        #[cfg(target_os = "android")]
+        let secret = ChaCha20Poly1305::generate_key(&mut OsRng);
 
         let mut config_file = File::open(config_file_path.clone())?;
         let mut prefs = String::new();

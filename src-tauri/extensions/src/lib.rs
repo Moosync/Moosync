@@ -177,11 +177,14 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "trace", skip(self))]
     fn spawn_ext_runners(&self) {
-        let exe_path = env::current_exe().unwrap();
-        let exe_path = exe_path.parent().unwrap().join("exthost-wasm");
+        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        {
+            let exe_path = env::current_exe().unwrap();
+            let exe_path = exe_path.parent().unwrap().join("exthost-wasm");
 
-        let mut builder = self.get_builder(exe_path.clone());
-        builder.group_spawn().unwrap();
+            let mut builder = self.get_builder(exe_path.clone());
+            builder.group_spawn().unwrap();
+        }
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

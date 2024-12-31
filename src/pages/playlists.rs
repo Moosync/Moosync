@@ -106,9 +106,9 @@ pub fn SinglePlaylist() -> impl IntoView {
 
     let play_songs = move || {
         let selected_songs = if selected_songs.get().is_empty() {
-            songs.get()
+            filtered_songs.get()
         } else {
-            get_songs_from_indices(&songs, selected_songs)
+            get_songs_from_indices(&filtered_songs, selected_songs)
         };
 
         play_songs_multiple_setter.set(selected_songs);
@@ -116,14 +116,14 @@ pub fn SinglePlaylist() -> impl IntoView {
 
     let add_to_queue = move || {
         if selected_songs.get().is_empty() {
-            add_to_queue_setter.set(songs.get());
+            add_to_queue_setter.set(filtered_songs.get());
         } else {
-            add_to_queue_setter.set(get_songs_from_indices(&songs, selected_songs));
+            add_to_queue_setter.set(get_songs_from_indices(&filtered_songs, selected_songs));
         }
     };
 
     let random = move || {
-        let songs = songs.get();
+        let songs = filtered_songs.get();
         let random_song = songs.choose(&mut rand::thread_rng()).unwrap();
         play_songs_setter.set(random_song.clone());
     };

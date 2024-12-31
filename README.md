@@ -8,8 +8,6 @@
 - System theme fetch
 - Optimize cloning in leptos
 - Optimize DB queries
-- Local songs tab in search page
-- Fix sorting
 - Fix song details buttons
 - Sidebar toggle
 - clear thumbnails on song removal

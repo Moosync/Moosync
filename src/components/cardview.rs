@@ -149,6 +149,7 @@ where
                     view! {
                         <CardItem
                             on:contextmenu=move |ev| {
+                                ev.prevent_default();
                                 if let Some(cb) = &card_item_data1.context_menu {
                                     cb(ev, data1.clone());
                                 }
@@ -183,6 +184,7 @@ where
                         }>
                             <CardItem
                                 on:contextmenu=move |ev| {
+                                    ev.prevent_default();
                                     if let Some(cb) = &card_item_data1.context_menu {
                                         cb(ev, data1.clone());
                                     }

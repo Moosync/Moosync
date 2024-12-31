@@ -14,12 +14,14 @@ use crate::{
     },
 };
 use leptos::{
-    component, create_read_slice, create_rw_signal, document, expect_context, provide_context,
-    view, window, IntoView, RwSignal, SignalGetUntracked, SignalUpdate,
+    component, create_effect, create_read_slice, create_rw_signal, document, ev::contextmenu,
+    expect_context, provide_context, view, window, IntoView, RwSignal, SignalGet,
+    SignalGetUntracked, SignalUpdate,
 };
 use leptos_context_menu::provide_context_menu_state;
 use leptos_i18n::provide_i18n_context;
 use leptos_router::{Outlet, Redirect, Route, Router, Routes};
+use leptos_use::use_event_listener;
 use serde::Serialize;
 use types::{
     extensions::ExtensionUIRequest, preferences::CheckboxPreference,
@@ -79,6 +81,34 @@ pub fn MainApp() -> impl IntoView {
         Tab::new("Genres", "Genres", "/main/genres"),
         Tab::new("Explore", "Explore", "/main/explore"),
     ];
+    let ui_store = expect_context::<RwSignal<UiStore>>();
+    let sidebar_open = create_read_slice(ui_store, |u| u.get_sidebar_open());
+
+    create_effect(move |_| {
+        let sidebar_open = sidebar_open.get();
+        let document = window().document().unwrap();
+        let style_element = document
+            .get_element_by_id("dynamic-styles")
+            .or_else(|| {
+                let style = document.create_element("style").unwrap();
+                style.set_id("dynamic-styles");
+                document.head().unwrap().append_child(&style).unwrap();
+                Some(style)
+            })
+            .unwrap();
+        if !sidebar_open {
+            style_element.set_inner_html(
+                r#"
+            .main-container {
+                padding-left: 70px !important;
+            }
+            "#,
+            );
+        } else {
+            style_element.set_inner_html("");
+        }
+    });
+
     view! {
         <div>
             <TopBar />
@@ -177,6 +207,10 @@ pub fn App() -> impl IntoView {
     spawn_local(async move {
         let id = load_selective("themes.active_theme".into()).await.unwrap();
         handle_theme(serde_wasm_bindgen::from_value(id).unwrap());
+    });
+
+    let _ = use_event_listener(document().body(), contextmenu, |ev| {
+        ev.prevent_default();
     });
 
     let ui_requests_unlisten = listen_event("ui-requests", move |data| {

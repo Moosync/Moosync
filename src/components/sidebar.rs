@@ -1,7 +1,7 @@
 use leptos::{
-    component, create_effect, create_rw_signal, create_signal, expect_context, view, CollectView,
-    IntoView, ReadSignal, RwSignal, Show, SignalGet, SignalGetUntracked, SignalSet, SignalUpdate,
-    View, WriteSignal,
+    component, create_effect, create_rw_signal, create_signal, create_slice, expect_context, view,
+    CollectView, IntoView, ReadSignal, RwSignal, Show, SignalGet, SignalGetUntracked, SignalSet,
+    SignalUpdate, View, WriteSignal,
 };
 
 use crate::{
@@ -121,7 +121,11 @@ pub fn Sidebar(
 
     let ui_store = expect_context::<RwSignal<UiStore>>();
 
-    let sidebar_open = create_rw_signal(true);
+    let (sidebar_open, set_sidebar_open) = create_slice(
+        ui_store,
+        |u| u.get_sidebar_open(),
+        |u, val| u.set_sidebar_open(val),
+    );
 
     create_effect(move |_| {
         let active_tab = active_tab.get();
@@ -152,11 +156,11 @@ pub fn Sidebar(
                     style:width=move || if sidebar_open.get() { "261px" } else { "70px" }
                 >
                     <header class="b-sidebar-header">
-                        <div class="d-flex w-100 mt-3 justify-content-between mb-3"></div>
+                        <div class="d-flex w-100 mt-3 justify-content-between"></div>
                     </header>
                     <div class="b-sidebar-body">
                         <div class="extra-margin-top">
-                            <div class="d-flex mr-4" style="justify-content: space-between;">
+                            <div class="d-flex mr-4 mb-3" style="justify-content: space-between;">
                                 <div class="icon-padding-open d-flex">
                                     <Show when=move || show_back fallback=|| view! {}>
                                         <PrevIcon on:click=move |_| {
@@ -167,7 +171,7 @@ pub fn Sidebar(
                                 </div>
                                 <div class="sidebar-toggle-icon d-flex justify-content-end align-self-center mt-2">
                                     <SidebarToggleIcon on:click=move |_| {
-                                        sidebar_open.set(!sidebar_open.get_untracked());
+                                        set_sidebar_open.set(!sidebar_open.get_untracked());
                                     } />
                                 </div>
                             </div>

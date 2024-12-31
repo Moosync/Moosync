@@ -375,6 +375,7 @@ pub fn ThemesPref(
                     <div
                         class="theme-component-container"
                         on:contextmenu=move |ev| {
+                            ev.prevent_default();
                             let context_menu = context_menu.clone();
                             let mut data = context_menu.get_data();
                             data.id = Some(key_clone.clone());

@@ -30,6 +30,7 @@ pub struct UiStore {
     song_sort_by: SongSortBy,
     playlist_sort_by: PlaylistSortBy,
     show_queue: bool,
+    sidebar_open: bool,
 }
 
 impl UiStore {
@@ -45,6 +46,7 @@ impl UiStore {
                 sort_by: PlaylistSortByColumns::Provider,
             },
             show_queue: false,
+            sidebar_open: true,
         }
     }
 
@@ -77,5 +79,13 @@ impl UiStore {
 
     pub fn toggle_show_queue(&mut self) {
         self.show_queue = !self.show_queue;
+    }
+
+    pub fn get_sidebar_open(&self) -> bool {
+        self.sidebar_open
+    }
+
+    pub fn set_sidebar_open(&mut self, val: bool) {
+        self.sidebar_open = val;
     }
 }

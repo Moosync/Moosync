@@ -205,6 +205,7 @@ pub fn AllPlaylists() -> impl IntoView {
         <div class="w-100 h-100">
             <div
                 on:contextmenu=move |ev| {
+                    ev.prevent_default();
                     playlist_context_menu.show(ev);
                 }
                 class="container-fluid song-container h-100 d-flex flex-column"

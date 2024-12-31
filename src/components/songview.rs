@@ -160,6 +160,7 @@ pub fn SongView(
         <div
             class="w-100 h-100"
             on:contextmenu=move |ev| {
+                ev.prevent_default();
                 song_context_menu.show(ev);
             }
         >

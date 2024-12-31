@@ -14,7 +14,7 @@ use leptos_context_menu::ContextMenu;
 use leptos_use::use_event_listener;
 use leptos_virtual_scroller::VirtualScroller;
 use types::songs::Song;
-use web_sys::HtmlDivElement;
+use web_sys::{HtmlDivElement, MouseEvent};
 
 use crate::{
     components::{artist_list::ArtistList, low_img::LowImg, provider_icon::ProviderIcon},
@@ -35,11 +35,12 @@ use crate::{
     },
 };
 
-#[tracing::instrument(level = "trace", skip(song, is_selected))]
+#[tracing::instrument(level = "trace", skip(song, is_selected, on_context_menu))]
 #[component()]
 pub fn SongListItem(
     #[prop()] song: Song,
     #[prop()] is_selected: Box<dyn Fn() -> bool>,
+    #[prop()] on_context_menu: impl Fn(MouseEvent) + 'static,
 ) -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
     let play_now = create_write_slice(player_store, |store, value| store.play_now(value));
@@ -47,8 +48,15 @@ pub fn SongListItem(
         create_write_slice(player_store, |store, song| store.add_to_queue(vec![song]));
     let song_cloned = song.clone();
     let song_cloned1 = song.clone();
+
+    let on_context_menu = Rc::new(Box::new(on_context_menu));
+    let on_context_menu_cl = on_context_menu.clone();
     view! {
-        <div class="container-fluid wrapper w-100 mb-3" class:selectedItem=is_selected>
+        <div
+            class="container-fluid wrapper w-100 mb-3"
+            class:selectedItem=is_selected
+            on:contextmenu=move |ev| on_context_menu.as_ref()(ev)
+        >
             <div class="row no-gutters align-content-center w-100">
                 <LowImg
                     show_eq=|| false
@@ -93,7 +101,10 @@ pub fn SongListItem(
                     />
                 </div>
 
-                <div class="col-auto align-self-center ml-5 mr-3 py-2 ellipsis-icon">
+                <div
+                    class="col-auto align-self-center ml-5 mr-3 py-2 ellipsis-icon"
+                    on:click=move |ev| on_context_menu_cl.as_ref()(ev)
+                >
                     <EllipsisIcon />
                 </div>
             </div>
@@ -418,24 +429,25 @@ pub fn SongList(
                             item_height=95usize
                             inner_el_style="width: calc(100% - 15px);"
                             children=move |(index, song)| {
-                                let song = song.clone();
+                                let song_cl = song.clone();
                                 let song_context_menu = song_context_menu.clone();
                                 view! {
                                     <SongListItem
-                                        on:contextmenu=move |ev| {
+                                        on:click=move |_| add_to_selected(index)
+                                        is_selected=Box::new(move || {
+                                            filtered_selected.get().contains(&index)
+                                        })
+                                        on_context_menu=move |ev: MouseEvent| {
+                                            ev.prevent_default();
                                             ev.stop_propagation();
                                             if should_add_to_selected(index) {
                                                 add_to_selected(index);
                                             }
                                             let mut data = song_context_menu.get_data();
-                                            data.current_song = Some(song.clone());
+                                            data.current_song = Some(song_cl.clone());
                                             drop(data);
                                             song_context_menu.show(ev);
                                         }
-                                        on:click=move |_| add_to_selected(index)
-                                        is_selected=Box::new(move || {
-                                            filtered_selected.get().contains(&index)
-                                        })
 
                                         song=song.clone()
                                     />

@@ -4,12 +4,12 @@ use std::{
     io::Write,
     path::PathBuf,
     str::FromStr,
-    sync::{mpsc::Sender, Mutex},
+    sync::{mpsc::Sender, Arc, Mutex},
 };
 
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
-use notify::{Event, INotifyWatcher, Watcher};
+use notify::{Event, Watcher};
 use regex::Regex;
 use types::{
     errors::{MoosyncError, Result},
@@ -19,7 +19,7 @@ use types::{
 pub struct ThemeHolder {
     pub theme_dir: PathBuf,
     pub tmp_dir: PathBuf,
-    watchers: Mutex<HashMap<PathBuf, INotifyWatcher>>,
+    watchers: Mutex<HashMap<PathBuf, Box<dyn Watcher + Send>>>,
     change_tx: Sender<String>,
 }
 
@@ -73,7 +73,7 @@ impl ThemeHolder {
                 {
                     tracing::error!("Failed to watch path {:?}: {:?}", import, e);
                 }
-                watchers.insert(import, watcher);
+                watchers.insert(import, Box::new(watcher));
             }
         }
 

@@ -23,6 +23,7 @@ const UI_KEYS: &[&str] = &[
     "prefs.spotify.username",
     "prefs.spotify.password",
     "prefs.themes.active_theme",
+    "prefs.i18n_language",
 ];
 
 macro_rules! generate_states {
@@ -121,6 +122,26 @@ pub fn initial(app: &mut App) {
     if !pref_config.has_key("artwork_path") {
         let path = app.path().app_local_data_dir().unwrap().join("artwork");
         let _ = pref_config.save_selective("artwork_path".to_string(), Some(path));
+    }
+
+    if !pref_config.has_key("i18n_language") {
+        let _ = pref_config.save_selective(
+            "i18n_language".to_string(),
+            Some(
+                [
+                    "af_ZA", "ar_SA", "ca_ES", "cs_CZ", "da_DK", "de_DE", "el_GR", "en_US",
+                    "es_ES", "fi_FI", "fr_FR", "he_IL", "hi_IN", "hu_HU", "it_IT", "ja_JP",
+                    "ko_KR", "nl_NL", "no_NO", "pl_PL", "pt_BR", "pt_PT", "ro_RO", "ru_RU",
+                    "sr_SP", "sv_SE", "tr_TR", "uk_UA", "vi_VN", "zh_CN", "zh_TW",
+                ]
+                .into_iter()
+                .map(|locale| CheckboxPreference {
+                    key: locale.to_string(),
+                    enabled: locale == "en_US",
+                })
+                .collect::<Vec<_>>(),
+            ),
+        );
     }
 
     // Spawn scan task

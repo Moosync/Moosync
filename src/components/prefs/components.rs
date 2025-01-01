@@ -1,9 +1,9 @@
 use std::{collections::HashMap, rc::Rc};
 
 use leptos::{
-    component, create_effect, create_rw_signal, event_target_checked, event_target_value,
-    expect_context, view, CollectView, For, IntoView, RwSignal, SignalGet, SignalSet,
-    SignalSetUntracked, SignalUpdate, SignalUpdateUntracked,
+    component, create_effect, create_read_slice, create_rw_signal, event_target_checked,
+    event_target_value, expect_context, view, CollectView, For, IntoView, RwSignal, SignalGet,
+    SignalSet, SignalSetUntracked, SignalUpdate, SignalUpdateUntracked,
 };
 use leptos_context_menu::ContextMenu;
 use leptos_i18n::t;
@@ -605,6 +605,15 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
                                                 />
                                             }
                                         }
+                                        types::preferences::PreferenceTypes::Dropdown => {
+                                            view! {
+                                                <DropdownPref
+                                                    key=preference.key
+                                                    title=preference.title
+                                                    tooltip=preference.description
+                                                />
+                                            }
+                                        }
                                         types::preferences::PreferenceTypes::ThemeSelector
                                         | types::preferences::PreferenceTypes::Extensions => {
                                             view! {}.into_view()
@@ -634,29 +643,75 @@ pub fn DropdownPref(
     #[prop()] title: String,
     #[prop()] tooltip: String,
 ) -> impl IntoView {
+    let should_write = create_rw_signal(false);
+    let pref_value = create_rw_signal::<Vec<CheckboxPreference>>(Default::default());
+    let pref_key = key;
+    let pref_key_clone = pref_key.clone();
+    load_selective(pref_key.clone(), pref_value.write_only());
+    let last_enabled = create_rw_signal(String::new());
+    create_effect(move |_| {
+        let value = pref_value.get();
+        if !should_write.get() {
+            should_write.set_untracked(true);
+            return;
+        }
+
+        save_selective(pref_key.clone(), value.clone());
+    });
+
+    let selected = create_read_slice(pref_value, |v| {
+        v.iter().find(|i| i.enabled).map(|v| v.key.clone())
+    });
+
     view! {
-        <div class="dropdown">
-            <button
-                class="btn btn-secondary dropdown-toggle"
-                type="button"
-                id="dropdownMenuButton"
-                data-toggle="dropdown"
-                aria-haspopup="true"
-                aria-expanded="false"
-            >
-                Dropdown button
-            </button>
-            <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                <a class="dropdown-item" href="#">
-                    Action
-                </a>
-                <a class="dropdown-item" href="#">
-                    Another action
-                </a>
-                <a class="dropdown-item" href="#">
-                    Something else here
-                </a>
+        <div class="container-fluid mt-4">
+            <div class="row no-gutters">
+                <div class="col-auto align-self-center title d-flex preference-title">{title}</div>
+                <div class="col-auto ml-2">
+                    <Tooltip>{tooltip.clone()}</Tooltip>
+                </div>
             </div>
+
+            <div class="row no-gutters">
+                <div class="col-auto">
+                    <select
+                        class="dropdown-list"
+                        on:change=move |ev| {
+                            let value = event_target_value(&ev);
+                            pref_value
+                                .update(|v| {
+                                    for item in v {
+                                        item.enabled = item.key == value;
+                                    }
+                                });
+                        }
+                    >
+                        <For
+                            each=move || pref_value.get()
+                            key=|v| v.key.clone()
+                            children=move |val| {
+                                let key = val.key.clone();
+                                let key1 = val.key.clone();
+                                view! {
+                                    <option
+                                        prop:selected=move || {
+                                            if let Some(selected) = selected.get() {
+                                                selected == key1.clone()
+                                            } else {
+                                                false
+                                            }
+                                        }
+                                        value=val.key.clone()
+                                    >
+                                        {key}
+                                    </option>
+                                }
+                            }
+                        />
+                    </select>
+                </div>
+            </div>
+
         </div>
     }
 }

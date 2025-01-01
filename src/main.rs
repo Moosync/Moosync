@@ -8,11 +8,15 @@ mod store;
 mod utils;
 
 use app::*;
-use ev::{keydown, keypress};
+use ev::keydown;
+use i18n::use_i18n;
 use leptos::*;
 use leptos_use::use_event_listener;
 use tracing_subscriber::{fmt, layer::SubscriberExt};
-use utils::{invoke::toggle_dev_tools, tracing_writer::MakeConsoleWriter};
+use utils::{
+    invoke::{save_selective, toggle_dev_tools},
+    tracing_writer::MakeConsoleWriter,
+};
 
 leptos_i18n::load_locales!();
 

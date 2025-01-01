@@ -4,6 +4,7 @@ use crate::{
     components::{
         better_animated_outlet::AnimatedOutletSimultaneous, prefs::static_components::SettingRoutes,
     },
+    i18n::{use_i18n, Locale},
     pages::explore::Explore,
     players::librespot::LibrespotPlayer,
     store::ui_store::UiStore,
@@ -37,7 +38,6 @@ use crate::{
         sidebar::{Sidebar, Tab},
         topbar::TopBar,
     },
-    i18n::Locale,
     modals::modal_manager::ModalManager,
     pages::{
         albums::{AllAlbums, SingleAlbum},
@@ -301,6 +301,18 @@ pub fn App() -> impl IntoView {
         } else if key == "prefs.themes.active_theme" {
             let value = value.as_string().unwrap();
             handle_theme(value);
+        } else if key == "prefs.i18n_language" {
+            let i18n = use_i18n();
+            let value = serde_wasm_bindgen::from_value::<Vec<CheckboxPreference>>(value).unwrap();
+            if let Some(enabled) = value.into_iter().find(|v| v.enabled) {
+                tracing::debug!("Setting locale to {:?}", enabled.key);
+                i18n.set_locale(
+                    <Locale as leptos_i18n::Locale>::from_str(&enabled.key).unwrap_or_else(|| {
+                        tracing::error!("Failed to parse locale {}", enabled.key);
+                        crate::i18n::Locale::en_US
+                    }),
+                );
+            }
         }
     });
 

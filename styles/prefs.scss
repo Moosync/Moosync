@@ -60,3 +60,12 @@
 .single-perf-row {
     margin-bottom: 15px;
 }
+
+.dropdown-list {
+    width: 250px;
+    background: var(--secondary);
+    -webkit-appearance: none;
+    border: 0px;
+    padding: 10px 15px 10px 15px;
+    color: var(--textPrimary);
+}

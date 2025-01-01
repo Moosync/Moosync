@@ -36,7 +36,7 @@ web-sys = { version = "=0.3.70", features = [
 ] }
 regex = "1.11.1"
 colors-transform = "0.2.11"
-leptos_i18n = { version = "0.3.3" }
+leptos_i18n = { version = "0.3.3", features = ["csr"] }
 pref_gen = { path = "src/pref_gen" }
 rand = "0.8.5"
 dyn-clone = "1.0.17"

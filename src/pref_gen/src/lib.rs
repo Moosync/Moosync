@@ -95,7 +95,7 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
 
     quote! {
         use crate::components::{
-            prefs::components::{CheckboxPref, ExtensionPref, InputPref, PathsPref, ThemesPref},
+            prefs::components::{CheckboxPref, ExtensionPref, InputPref, PathsPref, ThemesPref, DropdownPref},
             sidebar::{Sidebar, Tab},
         };
         use crate::i18n::use_i18n;

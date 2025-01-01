@@ -102,9 +102,9 @@ page:
         key: youtube.client_secret
 
       - type: Dropdown
-        title: settings.system.youtube.client_secret
-        description: settings.system.youtube.client_secret_tooltip
-        key: youtube.client_secret
+        title: settings.system.language
+        description: settings.system.language_tooltip
+        key: i18n_language
 
   - title: sidebar.tabs.themes
     path: themes

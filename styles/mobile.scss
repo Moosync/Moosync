@@ -1,0 +1,120 @@
+.sidebar-mobile > .b-sidebar-outer > #sidebar.b-sidebar {
+    bottom: 0;
+    top: unset !important;
+    width: 100vw !important;
+    height: 80px !important;
+
+    > .b-sidebar-header {
+        display: none;
+    }
+
+    > div > div {
+        > div.sidebar-header {
+            display: none !important;
+        }
+
+        > div.d-flex.tabs-holder {
+            flex-direction: row;
+            justify-content: space-between;
+
+            > #Queue {
+                display: none !important;
+            }
+
+            > .button-bar {
+                > .icon-padding-open.icon-transition:hover {
+                    margin-left: 0;
+                }
+
+                > .icon-padding-open > .text-padding {
+                    display: none;
+                }
+
+                > div.whitebar.whitebar-active {
+                    display: none;
+                }
+            }
+        }
+    }
+}
+
+.main-container-mobile {
+    padding-bottom: 80px;
+    padding-left: 0;
+
+    *::-webkit-scrollbar,
+    *::-webkit-scrollbar-thumb {
+        width: 0px !important;
+        display: none !important;
+    }
+
+    *::-webkit-scrollbar-thumb {
+        display: none !important;
+    }
+
+    *::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    > div
+        > div
+        > div
+        > div.col-xl-9.col-md-8.col.h-100.song-list-compact
+        > div
+        > div {
+        padding-right: 0;
+
+        > div.container-fluid.tab-carousel {
+            display: none !important;
+        }
+
+        > div.container-fluid.tab-carousel.tab-carousel-show-mobile {
+            display: flex !important;
+        }
+
+        > div.row.no-gutters.h-100 > div {
+            padding-left: 0;
+        }
+    }
+}
+
+.topbar.topbar-mobile {
+    width: 100%;
+    left: 0;
+    padding-left: 20px;
+
+    > div > div > div.col-auto.pr-5.ml-auto.my-auto.icons-bar.d-flex {
+        margin-right: 0px;
+    }
+}
+
+.musicbar-content {
+    display: none !important;
+}
+
+@media only screen and (max-width: 768px) {
+    .sidebar.sidebar-mobile {
+        display: block;
+    }
+
+    .topbar.topbar-mobile {
+        display: flex;
+    }
+
+    .main-container-mobile > div > .song-container {
+        display: block;
+
+        // Song details
+        > div > .song-details-container {
+            display: none;
+        }
+    }
+
+    .mini-player {
+        display: none;
+    }
+
+    .slider {
+        transform: translateY(0);
+    }
+}

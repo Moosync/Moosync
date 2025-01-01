@@ -5,7 +5,7 @@ use std::{
 };
 
 use database::database::Database;
-use file_scanner::scanner::ScannerHolder;
+use file_scanner::ScannerHolder;
 use preferences::preferences::PreferenceConfig;
 use tauri::{AppHandle, Manager, State};
 use types::errors::Result;

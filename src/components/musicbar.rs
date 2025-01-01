@@ -454,10 +454,13 @@ pub fn Slider() -> impl IntoView {
 pub fn MusicBar() -> impl IntoView {
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let show_musicinfo = create_read_slice(ui_store, move |s| s.get_show_queue());
+
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+
     view! {
-        <div class="musicbar-content d-flex">
+        <div class="musicbar-content d-flex" class:musicbar-content-mobile=is_mobile>
             <MusicInfo show=show_musicinfo />
-            <div class="background w-100">
+            <div class="musicbar-background w-100">
                 <div class="musicbar h-100">
                     <Slider />
                     <div class="container-fluid d-flex bar-container h-100 pb-2">

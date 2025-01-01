@@ -1,10 +1,13 @@
 use std::rc::Rc;
 
-use crate::icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon};
+use crate::{
+    icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon},
+    store::ui_store::UiStore,
+};
 use leptos::{
-    component, create_effect, create_node_ref, create_rw_signal, create_write_slice, ev::Event,
-    event_target_value, expect_context, view, window, CollectView, IntoView, RwSignal, SignalGet,
-    SignalGetUntracked, SignalSet, SignalSetter, SignalUpdate,
+    component, create_effect, create_node_ref, create_read_slice, create_rw_signal,
+    create_write_slice, ev::Event, event_target_value, expect_context, view, window, CollectView,
+    IntoView, RwSignal, SignalGet, SignalGetUntracked, SignalSet, SignalSetter, SignalUpdate,
 };
 use leptos_router::{use_navigate, NavigateOptions};
 use leptos_use::on_click_outside;
@@ -429,8 +432,14 @@ pub fn TopBar() -> impl IntoView {
         //
     };
 
+    let ui_store = expect_context::<RwSignal<UiStore>>();
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+
     view! {
-        <div class="topbar-container align-items-center topbar is-open">
+        <div
+            class="topbar-container align-items-center topbar is-open"
+            class:topbar-mobile=is_mobile
+        >
             <div class="container-fluid d-flex">
                 <div class="row justify-content-start flex-grow-1">
                     <div class="col-auto my-auto">

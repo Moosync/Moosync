@@ -35,9 +35,6 @@ rspotify = { version = "0.13.3", features = [
 rusty_ytdl = { version = "0.7.4", optional = true, default-features = false }
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = { version = "0.6", features = [], optional = true }
-souvlaki = { version = "0.7.3", features = [
-    "use_zbus",
-], optional = true, default-features = false }
 tauri = { version = "2.1.1", default-features = false, optional = true }
 uuid = { version = "1.11.0", default-features = false, optional = true, features = [
     "v4",
@@ -50,11 +47,16 @@ rodio = "0.19.0"
 [target.'cfg(windows)'.dependencies]
 libsqlite3-sys = { version = "0.30.1", optional = true, features = ["bundled"] }
 
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+souvlaki = { version = "0.7.3", features = [
+    "use_zbus",
+], optional = true, default-features = false }
+
 
 [features]
 ui = ["dep:wasm-bindgen", "dep:serde-wasm-bindgen", "dep:uuid"]
+extensions = []
 core = [
-    "dep:souvlaki",
     "dep:rusty_ytdl",
     "dep:tauri",
     "dep:diesel",
@@ -77,5 +79,4 @@ core = [
     "dep:uuid",
     "dep:libsqlite3-sys",
 ]
-extensions = []
 default = ["core"]

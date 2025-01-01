@@ -192,7 +192,7 @@ impl ReplyHandler {
     pub fn open_external(&self, data: Value) -> Result<Value> {
         if data.is_string() {
             let window_handler: State<WindowHandler> = self.app_handle.state();
-            window_handler.open_external(data.as_str().unwrap().into())?;
+            window_handler.open_external(self.app_handle.clone(), data.as_str().unwrap().into())?;
         }
         Ok(Value::Null)
     }

@@ -1,15 +1,11 @@
 # TODO
 - Preferences
-  - Minimize to tray
-  - Jukebox mode
   - Clear queue before adding playlist
 - i18n
 - Sanitize extension response
 - System theme fetch
 - Optimize cloning in leptos
 - Optimize DB queries
-- Fix song details buttons
-- Sidebar toggle
 - clear thumbnails on song removal
 - remove songs on path removal
 

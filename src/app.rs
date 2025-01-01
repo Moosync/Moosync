@@ -82,6 +82,7 @@ pub fn MainApp() -> impl IntoView {
         Tab::new("Explore", "Explore", "/main/explore"),
     ];
     let ui_store = expect_context::<RwSignal<UiStore>>();
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
     let sidebar_open = create_read_slice(ui_store, |u| u.get_sidebar_open());
 
     create_effect(move |_| {
@@ -109,11 +110,17 @@ pub fn MainApp() -> impl IntoView {
         }
     });
 
+    let class = if is_mobile {
+        "main-container main-container-mobile"
+    } else {
+        "main-container"
+    };
+
     view! {
         <div>
             <TopBar />
             <Sidebar tabs=tabs />
-            <AnimatedOutletSimultaneous class="main-container" outro="route-out" intro="route-in" />
+            <AnimatedOutletSimultaneous class=class outro="route-out" intro="route-in" />
         </div>
     }
 }
@@ -197,10 +204,20 @@ pub fn App() -> impl IntoView {
     // });
 
     provide_context_menu_state();
+    provide_context(create_rw_signal(UiStore::new()));
+
+    {
+        let ui_store = expect_context::<RwSignal<UiStore>>();
+        let is_mobile = window()
+            .get("is_mobile")
+            .and_then(|v| v.as_bool())
+            .unwrap_or_default();
+        ui_store.update(|u| u.set_is_mobile(is_mobile));
+    }
+
     provide_context(PlayerStore::new());
     provide_context(Rc::new(ProviderStore::new()));
     provide_context(create_rw_signal(ModalStore::default()));
-    provide_context(create_rw_signal(UiStore::new()));
 
     provide_i18n_context::<Locale>();
 

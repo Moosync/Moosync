@@ -81,6 +81,7 @@ pub async fn refresh_login(
     let preferences: State<PreferenceConfig> = app.state();
     let refresh_token: Result<String> = preferences.inner().get_secure(key.into());
     if refresh_token.is_err() {
+        tracing::error!("Error fetching refresh token {:?}", refresh_token);
         let preferences: State<PreferenceConfig> = app.state();
         let res = preferences.inner().set_secure::<String>(key.into(), None);
         tracing::info!("Set secure token: {:?}", res);
@@ -147,7 +148,10 @@ pub fn login(
     let window: State<WindowHandler> = app.state();
 
     tracing::info!("Opening url {:?}", auth_url);
-    if let Err(e) = window.inner().open_external(auth_url.to_string()) {
+    if let Err(e) = window
+        .inner()
+        .open_external(app.clone(), auth_url.to_string())
+    {
         tracing::error!("Error opening URL: {:?}", e);
     }
     Ok((auth_url.to_string(), verifier))

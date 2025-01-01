@@ -166,7 +166,10 @@ pub fn SongView(
         >
             <div class="container-fluid song-container h-100">
                 <div class="row no-gutters h-100 compact-container">
-                    <div style="max-height: 100%; height: fit-content;" class="col-xl-3 col-4">
+                    <div
+                        style="max-height: 100%; height: fit-content;"
+                        class="song-details-container col-xl-3 col-4"
+                    >
                         <SongDetails
                             buttons_ref=song_details_container
                             default_details=default_details
@@ -176,7 +179,7 @@ pub fn SongView(
                     </div>
                     <div
                         node_ref=song_list_container
-                        class="col-xl-9 col-8 h-100 song-list-compact"
+                        class="col-xl-9 col-md-8 col h-100 song-list-compact"
                     >
                         <SongList
                             song_list=songs

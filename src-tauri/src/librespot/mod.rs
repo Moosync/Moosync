@@ -16,6 +16,7 @@ pub fn get_librespot_state() -> LibrespotHolder {
 #[tracing::instrument(level = "trace", skip(app))]
 #[tauri::command()]
 pub fn initialize_librespot(app: AppHandle, access_token: String) -> Result<()> {
+    tracing::debug!("Initializing librespot with {:?}", access_token);
     let credentials = Credentials::with_access_token(access_token);
 
     let player_config = PlayerConfig::default();

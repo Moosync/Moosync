@@ -337,6 +337,8 @@ pub fn SongList(
         }
     });
 
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+
     view! {
         <div class="d-flex h-100 w-100">
             <div class="container-fluid">
@@ -346,9 +348,13 @@ pub fn SongList(
                     fallback=move || {
                         let sort_context_menu = sort_context_menu.clone();
                         view! {
-                            <div class="container-fluid tab-carousel">
+                            <div
+                                class="container-fluid tab-carousel"
+                                class:tab-carousel-show-mobile=is_mobile && providers.show_providers
+                            >
                                 <div class="row no-gutters">
                                     <div class="col song-header-options w-100">
+
                                         <div class="row no-gutters align-items-center h-100 d-flex justify-content-end">
                                             // Sort icons here
                                             {if providers.show_providers {

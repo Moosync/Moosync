@@ -210,9 +210,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.94"
+version = "1.0.95"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1fd03a028ef38ba2276dce7e33fcd6369c158a1bca17946c4b1b701891c1ff7"
+checksum = "34ac096ce696dc2fcabef30516bb13c0a68a11d30131d3df6f04711467681b04"
 
 [[package]]
 name = "arbitrary"
@@ -1860,9 +1860,11 @@ checksum = "e8566979429cf69b49a5c740c60791108e86440e8be149bbea4fe54d2c32d6e2"
 name = "database"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "diesel",
  "diesel_logger",
  "diesel_migrations",
+ "glob",
  "libsqlite3-sys",
  "macros",
  "serde",
@@ -1881,6 +1883,15 @@ dependencies = [
  "libc",
  "libdbus-sys",
  "winapi",
+]
+
+[[package]]
+name = "dbus-crossroads"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a4c83437187544ba5142427746835061b330446ca8902eabd70e4afb8f76de0"
+dependencies = [
+ "dbus",
 ]
 
 [[package]]
@@ -3114,9 +3125,9 @@ dependencies = [
 
 [[package]]
 name = "glob"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
+checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
 
 [[package]]
 name = "gloo-net"
@@ -3569,7 +3580,7 @@ dependencies = [
  "httpdate",
  "itoa 1.0.14",
  "pin-project-lite",
- "socket2 0.5.8",
+ "socket2 0.4.10",
  "tokio",
  "tower-service",
  "tracing",
@@ -5365,6 +5376,7 @@ dependencies = [
  "google-youtube3",
  "iso8601",
  "librespot 0.1.0",
+ "libsqlite3-sys",
  "lyrics",
  "macros",
  "mpris",
@@ -5386,6 +5398,7 @@ dependencies = [
  "tauri-plugin-autostart",
  "tauri-plugin-deep-link",
  "tauri-plugin-dialog",
+ "tauri-plugin-opener",
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
  "themes",
@@ -8518,6 +8531,8 @@ dependencies = [
  "block",
  "cocoa 0.24.1",
  "core-graphics 0.22.3",
+ "dbus",
+ "dbus-crossroads",
  "dispatch",
  "objc",
  "pollster",
@@ -9178,7 +9193,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-autostart"
 version = "2.2.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#802399a969a95c1cdd9ce8076cd1f7cbdf6d1d9e"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#b21915938ff2b8b8ec00396252f6157338988e62"
 dependencies = [
  "auto-launch",
  "serde",
@@ -9191,7 +9206,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-deep-link"
 version = "2.2.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#802399a969a95c1cdd9ce8076cd1f7cbdf6d1d9e"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#b21915938ff2b8b8ec00396252f6157338988e62"
 dependencies = [
  "dunce",
  "rust-ini",
@@ -9210,7 +9225,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-dialog"
 version = "2.2.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#802399a969a95c1cdd9ce8076cd1f7cbdf6d1d9e"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#b21915938ff2b8b8ec00396252f6157338988e62"
 dependencies = [
  "log",
  "raw-window-handle 0.6.2",
@@ -9227,7 +9242,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-fs"
 version = "2.2.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#802399a969a95c1cdd9ce8076cd1f7cbdf6d1d9e"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#b21915938ff2b8b8ec00396252f6157338988e62"
 dependencies = [
  "anyhow",
  "dunce",
@@ -9247,9 +9262,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "tauri-plugin-opener"
+version = "2.2.2"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#b21915938ff2b8b8ec00396252f6157338988e62"
+dependencies = [
+ "dunce",
+ "glob",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "open",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.6",
+ "url 2.5.4",
+ "windows 0.58.0",
+ "zbus 4.4.0",
+]
+
+[[package]]
 name = "tauri-plugin-single-instance"
 version = "2.2.0"
-source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#802399a969a95c1cdd9ce8076cd1f7cbdf6d1d9e"
+source = "git+https://github.com/tauri-apps/plugins-workspace?branch=v2#b21915938ff2b8b8ec00396252f6157338988e62"
 dependencies = [
  "serde",
  "serde_json",

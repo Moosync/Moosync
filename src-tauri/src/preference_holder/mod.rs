@@ -1,12 +1,11 @@
 use std::thread;
 
 use database::database::Database;
-use file_scanner::scanner::ScannerHolder;
+use file_scanner::ScannerHolder;
 use macros::generate_command;
 use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
 use tauri::{async_runtime, App, AppHandle, Emitter, Manager, State};
-use tauri_plugin_autostart::AutoLaunchManager;
 use types::{errors::Result, preferences::CheckboxPreference};
 
 use crate::{
@@ -75,21 +74,24 @@ pub fn handle_pref_changes(app: AppHandle) {
             }
 
             if key.starts_with("prefs.system_settings") {
-                let manager: State<AutoLaunchManager> = app.state();
+                #[cfg(not(any(target_os = "android", target_os = "ios")))]
+                {
+                    let manager: State<tauri_plugin_autostart::AutoLaunchManager> = app.state();
 
-                let auto_start = pref_config.load_selective_array::<CheckboxPreference>(
-                    "system_settings.auto_startup".into(),
-                );
-                tracing::info!("Setting autolaunch {:?}", auto_start);
-                if let Ok(auto_start) = auto_start {
-                    let res = if auto_start.enabled {
-                        manager.enable()
-                    } else {
-                        manager.disable()
-                    };
+                    let auto_start = pref_config.load_selective_array::<CheckboxPreference>(
+                        "system_settings.auto_startup".into(),
+                    );
+                    tracing::info!("Setting autolaunch {:?}", auto_start);
+                    if let Ok(auto_start) = auto_start {
+                        let res = if auto_start.enabled {
+                            manager.enable()
+                        } else {
+                            manager.disable()
+                        };
 
-                    if let Err(e) = res {
-                        tracing::error!("Error toggling autostart {:?}", e);
+                        if let Err(e) = res {
+                            tracing::error!("Error toggling autostart {:?}", e);
+                        }
                     }
                 }
             }

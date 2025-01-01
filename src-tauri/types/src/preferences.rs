@@ -28,6 +28,7 @@ pub enum PreferenceTypes {
     ProgressBar,
     TextField,
     InfoField,
+    Dropdown,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

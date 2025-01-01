@@ -4,7 +4,10 @@ use indexed_db_futures::{
     request::{IdbOpenDbRequestLike, OpenDbRequest},
     IdbDatabase, IdbVersionChangeEvent,
 };
-use leptos::{create_effect, create_rw_signal, RwSignal, SignalGet, SignalSet, SignalUpdate};
+use leptos::{
+    create_effect, create_read_slice, create_rw_signal, expect_context, RwSignal, SignalGet,
+    SignalSet, SignalUpdate,
+};
 use rand::seq::SliceRandom;
 use serde::Serialize;
 use std::{cmp::min, collections::HashMap, rc::Rc};
@@ -17,10 +20,13 @@ use types::{
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
-use crate::utils::{
-    db_utils::{read_from_indexed_db, write_to_indexed_db},
-    extensions::send_extension_event,
-    mpris::{set_metadata, set_playback_state, set_position},
+use crate::{
+    store::ui_store::UiStore,
+    utils::{
+        db_utils::{read_from_indexed_db, write_to_indexed_db},
+        extensions::send_extension_event,
+        mpris::{set_metadata, set_playback_state, set_position},
+    },
 };
 
 #[derive(Debug, Default, PartialEq, Clone, Serialize, Encode, Decode)]
@@ -59,6 +65,7 @@ pub struct PlayerStore {
     db: Rc<Mutex<Option<Rc<IdbDatabase>>>>,
     scrobble_time: f64,
     scrobbled: bool,
+    is_mobile: bool,
 }
 
 impl PlayerStore {
@@ -67,11 +74,15 @@ impl PlayerStore {
         let db_rc = Rc::new(Mutex::new(None));
         let db_rc_clone = db_rc.clone();
 
+        let ui_store = expect_context::<RwSignal<UiStore>>();
+        let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+
         let player_store = Self {
             data: PlayerStoreData::default(),
             db: db_rc,
             scrobble_time: 0f64,
             scrobbled: false,
+            is_mobile,
         };
 
         tracing::debug!("Created player store {:?}", player_store);
@@ -353,6 +364,10 @@ impl PlayerStore {
 
     #[tracing::instrument(level = "trace", skip(self))]
     pub fn get_volume(&self) -> f64 {
+        if self.is_mobile {
+            return 100f64;
+        }
+
         let mut clamp = 100f64;
         let mut volume = self.data.player_details.volume;
         let song_key = self.get_song_key();

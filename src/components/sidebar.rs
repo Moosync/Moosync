@@ -1,7 +1,7 @@
 use leptos::{
-    component, create_effect, create_rw_signal, create_signal, create_slice, expect_context, view,
-    CollectView, IntoView, ReadSignal, RwSignal, Show, SignalGet, SignalGetUntracked, SignalSet,
-    SignalUpdate, View, WriteSignal,
+    component, create_effect, create_read_slice, create_rw_signal, create_signal, create_slice,
+    expect_context, view, CollectView, IntoView, ReadSignal, RwSignal, Show, SignalGet,
+    SignalGetUntracked, SignalSet, SignalUpdate, View, WriteSignal,
 };
 
 use crate::{
@@ -72,13 +72,14 @@ fn TabItem(
     view! {
         <div
             class="d-flex button-bar"
+            id=tab.title.clone()
             class:button-active=move || active_tab.get() == index
             on:click=move |_| set_active_tab.set(index)
         >
             <Show when=move || active_tab.get() == index>
                 <div class="whitebar whitebar-active"></div>
             </Show>
-            <div class="d-flex align-items-center icon-transition icon-padding-open w-100">
+            <div class="d-flex align-items-center icon-transition icon-padding-open">
                 <div class="icon">{move || { (tab.icon)(active_tab_icon_signal) }}</div>
                 <div
                     class="text-padding"
@@ -142,8 +143,10 @@ pub fn Sidebar(
         }
     });
 
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+
     view! {
-        <div class="sidebar-container sidebar">
+        <div class="sidebar-container sidebar" class:sidebar-mobile=is_mobile>
             <div tabindex="-1" class="b-sidebar-outer">
                 <div
                     class="b-sidebar gradient sidebar-top-low-spacing"
@@ -160,7 +163,10 @@ pub fn Sidebar(
                     </header>
                     <div class="b-sidebar-body">
                         <div class="extra-margin-top">
-                            <div class="d-flex mr-4 mb-3" style="justify-content: space-between;">
+                            <div
+                                class="d-flex mr-4 mb-3 sidebar-header"
+                                style="justify-content: space-between;"
+                            >
                                 <div class="icon-padding-open d-flex">
                                     <Show when=move || show_back fallback=|| view! {}>
                                         <PrevIcon on:click=move |_| {
@@ -175,7 +181,7 @@ pub fn Sidebar(
                                     } />
                                 </div>
                             </div>
-                            <div class="d-flex flex-column">
+                            <div class="d-flex tabs-holder">
 
                                 {tabs
                                     .into_iter()

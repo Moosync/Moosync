@@ -151,6 +151,7 @@ fn generate_children(data: &[PreferenceUIData]) -> Vec<(syn::Ident, proc_macro2:
             types::preferences::PreferenceTypes::CheckboxGroup => generate_checkbox(item),
             types::preferences::PreferenceTypes::ThemeSelector => generate_themes(item),
             types::preferences::PreferenceTypes::Extensions => generate_extensions(item),
+            types::preferences::PreferenceTypes::Dropdown => generate_dropdowns(item),
             types::preferences::PreferenceTypes::ButtonGroup
             | types::preferences::PreferenceTypes::InfoField
             | types::preferences::PreferenceTypes::ProgressBar
@@ -336,6 +337,36 @@ fn generate_extensions(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Tok
             let tooltip = i18n.get_keys().#tooltip;
             view !{
                 <ExtensionPref title=title.to_string() tooltip=tooltip.to_string() />
+            }
+        }
+    };
+
+    (fn_name, stream)
+}
+
+#[tracing::instrument(level = "trace", skip(data))]
+fn generate_dropdowns(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
+    let name = get_path(data.title.clone());
+    let key = data.key.clone();
+
+    let tooltip = get_path(data.description.clone());
+
+    let fn_name = syn::Ident::new(
+        format!("Extensions{}Pref", data.key)
+            .replace(".", "")
+            .as_str(),
+        proc_macro2::Span::call_site(),
+    );
+
+    let stream = quote! {
+        #[component]
+        pub fn #fn_name() -> impl IntoView {
+            let i18n = use_i18n();
+            let title = i18n.get_keys().#name;
+            let tooltip = i18n.get_keys().#tooltip;
+
+            view !{
+                <DropdownPref title=title.to_string() tooltip=tooltip.to_string() key=#key.to_string() />
             }
         }
     };

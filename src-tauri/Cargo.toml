@@ -43,6 +43,7 @@ tauri-plugin-deep-link = { git = "https://github.com/tauri-apps/plugins-workspac
 tauri-plugin-dialog = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-single-instance = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
+tauri-plugin-opener = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tracing = { default-features = false, version = "0.1.41" }
 tracing-subscriber = { features = [
     "ansi",

@@ -137,7 +137,7 @@ where
     view! {
         <VirtualGridScroller
             each=items
-            item_width=275
+            item_width=220
             item_height=275
             children=move |data| {
                 let data1 = data.1.clone();

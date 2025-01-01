@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="GradleMigrationSettings" migrationVersion="1" />
   <component name="GradleSettings">
     <option name="linkedExternalProjectsSettings">
       <GradleProjectSettings>
@@ -14,11 +15,15 @@
             </builds>
           </compositeBuild>
         </compositeConfiguration>
+        <option name="testRunner" value="CHOOSE_PER_TEST" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
         <option name="gradleJvm" value="#GRADLE_LOCAL_JAVA_HOME" />
         <option name="modules">
           <set>
-            <option value="$USER_HOME$/.cargo/registry/src/index.crates.io-6f17d22bba15001f/tauri-2.0.0-beta.2/mobile/android" />
+            <option value="$USER_HOME$/.cargo/git/checkouts/plugins-workspace-fd0259fcb18f51ad/b219159/plugins/deep-link/android" />
+            <option value="$USER_HOME$/.cargo/git/checkouts/plugins-workspace-fd0259fcb18f51ad/b219159/plugins/dialog/android" />
+            <option value="$USER_HOME$/.cargo/git/checkouts/plugins-workspace-fd0259fcb18f51ad/b219159/plugins/opener/android" />
+            <option value="$USER_HOME$/.cargo/registry/src/index.crates.io-6f17d22bba15001f/tauri-2.1.1/mobile/android" />
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/buildSrc" />

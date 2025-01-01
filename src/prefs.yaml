@@ -101,6 +101,11 @@ page:
         description: settings.system.youtube.client_secret_tooltip
         key: youtube.client_secret
 
+      - type: Dropdown
+        title: settings.system.youtube.client_secret
+        description: settings.system.youtube.client_secret_tooltip
+        key: youtube.client_secret
+
   - title: sidebar.tabs.themes
     path: themes
     icon: Themes

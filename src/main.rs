@@ -8,9 +8,11 @@ mod store;
 mod utils;
 
 use app::*;
+use ev::{keydown, keypress};
 use leptos::*;
+use leptos_use::use_event_listener;
 use tracing_subscriber::{fmt, layer::SubscriberExt};
-use utils::tracing_writer::MakeConsoleWriter;
+use utils::{invoke::toggle_dev_tools, tracing_writer::MakeConsoleWriter};
 
 leptos_i18n::load_locales!();
 
@@ -45,6 +47,14 @@ fn main() {
         .with(log_layer)
         .with(filter);
     tracing::subscriber::set_global_default(subscriber).unwrap();
+
+    let _ = use_event_listener(document().body(), keydown, |ev| {
+        if ev.shift_key() && ev.ctrl_key() && ev.key_code() == 75 {
+            spawn_local(async move {
+                let _ = toggle_dev_tools().await;
+            });
+        }
+    });
 
     mount_to_body(|| {
         view! { <App /> }

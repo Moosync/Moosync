@@ -193,21 +193,29 @@ impl PreferenceConfig {
     where
         T: DeserializeOwned,
     {
-        let data: String = self.load_selective(key.clone())?;
-        let mut split = data.split(':');
-        let nonce = split.next().unwrap();
-        let nonce = GenericArray::clone_from_slice(&hex::decode(nonce).unwrap()[0..12]);
-        let ciphertext = hex::decode(split.next().unwrap()).unwrap();
+        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        {
+            let data: String = self.load_selective(key.clone())?;
+            let mut split = data.split(':');
+            let nonce = split.next().unwrap();
+            let nonce = GenericArray::clone_from_slice(&hex::decode(nonce).unwrap()[0..12]);
+            let ciphertext = hex::decode(split.next().unwrap()).unwrap();
 
-        let secret = self.secret.lock().unwrap();
-        let cipher = ChaCha20Poly1305::new(&secret);
-        let plaintext = String::from_utf8(
-            cipher
-                .decrypt(&nonce, ciphertext.as_slice())
-                .map_err(|e| MoosyncError::String(e.to_string()))?,
-        )?;
+            let secret = self.secret.lock().unwrap();
+            let cipher = ChaCha20Poly1305::new(&secret);
+            let plaintext = String::from_utf8(
+                cipher
+                    .decrypt(&nonce, ciphertext.as_slice())
+                    .map_err(|e| MoosyncError::String(e.to_string()))?,
+            )?;
 
-        Ok(serde_json::from_str(&plaintext)?)
+            Ok(serde_json::from_str(&plaintext)?)
+        }
+
+        #[cfg(any(target_os = "android", target_os = "ios"))]
+        {
+            self.load_selective(key.clone())
+        }
     }
 
     #[tracing::instrument(level = "trace", skip(self, key, value))]
@@ -216,21 +224,30 @@ impl PreferenceConfig {
         T: Serialize + Clone + Debug,
     {
         if value.is_none() {
+            tracing::debug!("Clearing {}", key);
             return self.save_selective(key, value);
         }
 
-        let value = value.unwrap();
+        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        {
+            let value = value.unwrap();
 
-        let secret = self.secret.lock().unwrap();
-        let cipher = ChaCha20Poly1305::new(&secret);
-        let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
-        let encrypted = cipher
-            .encrypt(&nonce, (serde_json::to_string(&value)).unwrap().as_bytes())
-            .unwrap();
+            let secret = self.secret.lock().unwrap();
+            let cipher = ChaCha20Poly1305::new(&secret);
+            let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
+            let encrypted = cipher
+                .encrypt(&nonce, (serde_json::to_string(&value)).unwrap().as_bytes())
+                .unwrap();
 
-        let parsed = format!("{}:{}", hex::encode(nonce), hex::encode(encrypted));
+            let parsed = format!("{}:{}", hex::encode(nonce), hex::encode(encrypted));
 
-        self.save_selective(key, Some(parsed))?;
+            self.save_selective(key, Some(parsed))?;
+        }
+
+        #[cfg(any(target_os = "android", target_os = "ios"))]
+        {
+            self.save_selective(key, value)?;
+        }
 
         Ok(())
     }

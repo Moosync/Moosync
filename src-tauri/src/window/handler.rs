@@ -2,12 +2,12 @@ use std::env;
 use std::path::PathBuf;
 
 use macros::{generate_command, generate_command_async};
-use open;
 use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
 use tauri::{App, AppHandle, Emitter, Manager, State, WebviewWindow, WebviewWindowBuilder, Window};
 use tauri_plugin_dialog::{DialogExt, FilePath};
-use types::errors::Result;
+use tauri_plugin_opener::OpenerExt;
+use types::errors::{MoosyncError, Result};
 use types::preferences::CheckboxPreference;
 use types::window::{DialogFilter, FileResponse};
 
@@ -88,8 +88,10 @@ impl WindowHandler {
     }
 
     #[tracing::instrument(level = "trace", skip(self, url))]
-    pub fn open_external(&self, url: String) -> Result<()> {
-        open::that(url)?;
+    pub fn open_external(&self, app: AppHandle, url: String) -> Result<()> {
+        app.opener()
+            .open_url(url, None::<&str>)
+            .map_err(|err| MoosyncError::String(err.to_string()))?;
         Ok(())
     }
 
@@ -131,14 +133,14 @@ impl WindowHandler {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, _window))]
-    pub fn toggle_dev_tools(&self, _window: WebviewWindow) -> Result<()> {
-        // let is_devtools_open = window.is_devtools_open();
-        // if !is_devtools_open {
-        //     window.open_devtools();
-        // } else {
-        //     window.close_devtools();
-        // }
+    #[tracing::instrument(level = "trace", skip(self, window))]
+    pub fn toggle_dev_tools(&self, window: WebviewWindow) -> Result<()> {
+        let is_devtools_open = window.is_devtools_open();
+        if !is_devtools_open {
+            window.open_devtools();
+        } else {
+            window.close_devtools();
+        }
 
         Ok(())
     }
@@ -335,7 +337,7 @@ generate_command!(get_platform, WindowHandler, String,);
 generate_command!(maximize_window, WindowHandler, (), window: Window);
 generate_command!(minimize_window, WindowHandler, (), window: Window);
 generate_command!(update_zoom, WindowHandler, (), app: AppHandle, preference: State<PreferenceConfig>);
-generate_command!(open_external, WindowHandler, (), url: String);
+generate_command!(open_external, WindowHandler, (), app: AppHandle, url: String);
 generate_command!(open_window, WindowHandler, (), app: AppHandle, is_main_window: bool);
 generate_command!(enable_fullscreen, WindowHandler, (), window: Window);
 generate_command!(disable_fullscreen, WindowHandler, (), window: Window);

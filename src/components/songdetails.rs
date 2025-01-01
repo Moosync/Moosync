@@ -131,7 +131,7 @@ where
     });
 
     view! {
-        <div class="container-fluid scrollable" style="max-height: 100%;">
+        <div class="container-fluid scrollable song-details" style="max-height: 100%;">
             <div class="row no-gutters">
                 <div class="col position-relative">
 

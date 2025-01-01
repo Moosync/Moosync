@@ -31,6 +31,7 @@ pub struct UiStore {
     playlist_sort_by: PlaylistSortBy,
     show_queue: bool,
     sidebar_open: bool,
+    is_mobile: bool,
 }
 
 impl UiStore {
@@ -47,6 +48,7 @@ impl UiStore {
             },
             show_queue: false,
             sidebar_open: true,
+            is_mobile: false,
         }
     }
 
@@ -87,5 +89,13 @@ impl UiStore {
 
     pub fn set_sidebar_open(&mut self, val: bool) {
         self.sidebar_open = val;
+    }
+
+    pub fn set_is_mobile(&mut self, val: bool) {
+        self.is_mobile = val;
+    }
+
+    pub fn get_is_mobile(&self) -> bool {
+        self.is_mobile
     }
 }

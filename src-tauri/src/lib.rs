@@ -88,7 +88,11 @@ pub fn run() {
         .install_default()
         .expect("Failed to install rustls crypto provider");
 
-    let filter = EnvFilter::from_env("MOOSYNC_LOG");
+    let filter = if cfg!(mobile) {
+        EnvFilter::try_new("librespot=trace").unwrap()
+    } else {
+        EnvFilter::from_env("MOOSYNC_LOG")
+    };
 
     let mut builder = tauri::Builder::default();
 
@@ -122,9 +126,11 @@ pub fn run() {
 
     builder = builder
         .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_opener::init())
         .append_invoke_initialization_script(format!(
             r#"
             window.LOGGING_FILTER = "{}";
+            window.is_mobile = false;
             "#,
             filter
         ))
@@ -238,7 +244,10 @@ pub fn run() {
             renderer_write,
         ])
         .setup(|app| {
-            let layer = fmt::layer().pretty().with_target(true);
+            let layer = fmt::layer()
+                .pretty()
+                .with_target(true)
+                .with_ansi(!cfg!(mobile));
             let log_path = app.path().app_log_dir()?;
             if !log_path.exists() {
                 fs::create_dir_all(log_path.clone())?;

@@ -10,6 +10,9 @@ extern "C" {
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "event"])]
     pub fn listen(event: &str, cb: JsValue) -> js_sys::Promise;
 
+    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"])]
+    pub fn addPluginListener(plugin: &str, event: &str, cb: JsValue) -> js_sys::Promise;
+
     #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "event"])]
     pub fn emit(event: &str, value: JsValue) -> js_sys::Promise;
 
@@ -252,6 +255,38 @@ where
         let unlisten = wasm_bindgen_futures::JsFuture::from(res.clone());
         spawn_local(async move {
             let unlisten = unlisten.await.unwrap();
+            if unlisten.is_function() {
+                let func = js_sys::Function::from(unlisten);
+                tracing::debug!("Cleaning up listener for {}", event.clone());
+                func.call0(&JsValue::NULL).unwrap();
+                tracing::debug!("Cleaned up listener for {}", event.clone());
+            }
+        });
+    }) as Box<dyn FnMut()>;
+
+    let unlisten = Closure::wrap(data);
+
+    js_sys::Function::from(unlisten.into_js_value())
+}
+
+#[tracing::instrument(level = "trace", skip(event, cb))]
+pub fn listen_plugin_event<F>(plugin: &str, event: &str, cb: F) -> js_sys::Function
+where
+    F: Fn(JsValue) + 'static,
+{
+    let closure = Closure::wrap(Box::new(move |data: JsValue| {
+        cb(data);
+    }) as Box<dyn Fn(JsValue)>);
+    let res = addPluginListener(plugin, event.clone(), closure.into_js_value());
+
+    let event = event.to_string();
+    let data = Box::new(move || {
+        let event = event.clone();
+        let unlisten = wasm_bindgen_futures::JsFuture::from(res.clone());
+        spawn_local(async move {
+            let resolved = unlisten.await.unwrap();
+            let unlisten =
+                js_sys::Reflect::get(&resolved, &JsValue::from_str("unregister")).unwrap();
             if unlisten.is_function() {
                 let func = js_sys::Function::from(unlisten);
                 tracing::debug!("Cleaning up listener for {}", event.clone());

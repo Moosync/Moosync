@@ -1,5 +1,5 @@
 use std::{
-    sync::{atomic::AtomicBool, Arc, Mutex},
+    sync::{atomic::AtomicBool, mpsc::channel, Arc, Mutex},
     thread::{self},
     time::Duration,
 };
@@ -8,7 +8,7 @@ use database::database::Database;
 use file_scanner::ScannerHolder;
 use preferences::preferences::PreferenceConfig;
 use tauri::{AppHandle, Manager, State};
-use types::errors::Result;
+use types::{errors::Result, songs::Song};
 
 #[tracing::instrument(level = "trace", skip())]
 pub fn get_scanner_state() -> ScannerHolder {
@@ -49,11 +49,11 @@ impl ScanTask {
                 break;
             }
 
-            let scanner = app.state();
-            let database = app.state();
-            let preferences = app.state();
-
-            let _ = start_scan(scanner, database, preferences, None, false);
+            let app = app.clone();
+            let res = start_scan(app, None);
+            if let Err(e) = res {
+                tracing::error!("Scan failed: {:?}", e);
+            }
         });
 
         let mut cancellation_token_lock = self.cancellation_token.lock().unwrap();
@@ -61,16 +61,16 @@ impl ScanTask {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(scanner, database, preferences, paths, force))]
+#[tracing::instrument(level = "trace", skip(app, paths))]
 #[tauri_invoke_proc::parse_tauri_command]
 #[tauri::command(async)]
-pub fn start_scan(
-    scanner: State<ScannerHolder>,
-    database: State<Database>,
-    preferences: State<PreferenceConfig>,
-    mut paths: Option<Vec<String>>,
-    force: bool,
-) -> Result<()> {
+pub fn start_scan(app: AppHandle, paths: Option<Vec<String>>) -> Result<()> {
+    start_scan_inner(app, paths)
+}
+
+#[cfg(desktop)]
+pub fn start_scan_inner(app: AppHandle, mut paths: Option<Vec<String>>) -> Result<()> {
+    let preferences = app.state::<PreferenceConfig>();
     if paths.is_none() {
         paths = Some(get_scan_paths(&preferences)?);
     }
@@ -87,15 +87,61 @@ pub fn start_scan(
 
     for path in paths.unwrap() {
         tracing::info!("Scanning path: {}", path);
+
+        let (playlist_tx, playlist_rx) = channel();
+        let (song_tx, song_rx) = channel::<(Option<String>, Vec<Song>)>();
+
+        let app_clone = app.clone();
+        thread::spawn(move || {
+            let app = app_clone;
+            let database = app.state::<Database>();
+            for item in playlist_rx {
+                for playlist in item {
+                    let _ = database.create_playlist(playlist);
+                }
+            }
+
+            for (playlist_id, songs) in song_rx {
+                let res = database.insert_songs(songs);
+                if let Ok(res) = res {
+                    if let Some(playlist_id) = playlist_id.as_ref() {
+                        for song in res {
+                            if let Some(song_id) = song.song._id {
+                                let _ =
+                                    database.add_to_playlist_bridge(playlist_id.clone(), song_id);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        let scanner = app.state::<ScannerHolder>();
         scanner.start_scan(
-            database.inner(),
             path,
             thumbnail_dir.clone(),
             artist_split.clone(),
             scan_threads,
-            force,
+            song_tx,
+            playlist_tx,
         )?;
     }
+
+    Ok(())
+}
+
+#[cfg(mobile)]
+pub fn start_scan_inner(app: AppHandle, mut paths: Option<Vec<String>>) -> Result<()> {
+    use tauri_plugin_file_scanner::FileScannerExt;
+
+    tracing::debug!("calling file scanner");
+    let file_scanner = app.file_scanner();
+    let res: Vec<Song> = file_scanner.scan_music()?;
+
+    tracing::debug!("Got scanned songs {:?}", res);
+
+    let database = app.state::<Database>();
+    database.insert_songs(res)?;
 
     Ok(())
 }

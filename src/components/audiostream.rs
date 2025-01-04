@@ -20,16 +20,16 @@ use types::{
 
 use leptos::{
     component, create_effect, create_node_ref, create_read_slice, create_slice, create_write_slice,
-    html::Div, spawn_local, use_context, view, IntoView, NodeRef, RwSignal, SignalGet,
-    SignalGetUntracked, SignalUpdate,
+    expect_context, html::Div, spawn_local, use_context, view, IntoView, NodeRef, RwSignal,
+    SignalGet, SignalGetUntracked, SignalUpdate,
 };
 
 use crate::{
     players::{
-        generic::GenericPlayer, librespot::LibrespotPlayer, local::LocalPlayer, rodio::RodioPlayer,
-        youtube::YoutubePlayer,
+        generic::GenericPlayer, librespot::LibrespotPlayer, local::LocalPlayer,
+        mobile::MobilePlayer, rodio::RodioPlayer, youtube::YoutubePlayer,
     },
-    store::{player_store::PlayerStore, provider_store::ProviderStore},
+    store::{player_store::PlayerStore, provider_store::ProviderStore, ui_store::UiStore},
     utils::invoke::{fetch_playback_url, update_song},
 };
 
@@ -56,20 +56,32 @@ impl PlayerHolder {
 
         let mut players: Vec<Box<dyn GenericPlayer>> = vec![];
 
-        let mut rodio_player = RodioPlayer::new();
-        // Initialize listeners on first player
-        rodio_player.add_listeners(state_setter.clone());
+        let ui_store = expect_context::<RwSignal<UiStore>>();
+        let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
 
-        players.push(Box::new(rodio_player));
+        if !is_mobile {
+            let mut rodio_player = RodioPlayer::new();
+            // Initialize listeners on first player
+            rodio_player.add_listeners(state_setter.clone());
 
-        let local_player = LocalPlayer::new();
-        players.push(Box::new(local_player));
+            players.push(Box::new(rodio_player));
 
-        let youtube_player = YoutubePlayer::new();
-        players.push(Box::new(youtube_player));
+            let local_player = LocalPlayer::new();
+            players.push(Box::new(local_player));
 
-        let librespot_player = LibrespotPlayer::new();
-        players.push(Box::new(librespot_player));
+            let youtube_player = YoutubePlayer::new();
+            players.push(Box::new(youtube_player));
+
+            let librespot_player = LibrespotPlayer::new();
+            players.push(Box::new(librespot_player));
+        } else {
+            let mut mobile_player_local = MobilePlayer::new("LOCAL".into());
+            mobile_player_local.add_listeners(state_setter.clone());
+            players.push(Box::new(mobile_player_local));
+
+            let mobile_player_youtube = MobilePlayer::new("YOUTUBE".into());
+            players.push(Box::new(mobile_player_youtube));
+        }
 
         let holder = PlayerHolder {
             players: Rc::new(Mutex::new(players)),

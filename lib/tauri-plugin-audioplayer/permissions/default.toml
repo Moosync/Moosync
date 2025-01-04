@@ -1,0 +1,10 @@
+[default]
+description = "Default permissions for the plugin"
+permissions = [
+    "allow-load",
+    "allow-play",
+    "allow-pause",
+    "allow-stop",
+    "allow-seek",
+    "allow-registerListener",
+]

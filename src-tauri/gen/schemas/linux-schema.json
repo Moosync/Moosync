@@ -337,6 +337,81 @@
       "description": "Permission identifier",
       "oneOf": [
         {
+          "description": "Default permissions for the plugin",
+          "type": "string",
+          "const": "audioplayer:default"
+        },
+        {
+          "description": "Enables the load command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:allow-load"
+        },
+        {
+          "description": "Enables the pause command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:allow-pause"
+        },
+        {
+          "description": "Enables the ping command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:allow-ping"
+        },
+        {
+          "description": "Enables the play command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:allow-play"
+        },
+        {
+          "description": "Enables the registerListener command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:allow-registerListener"
+        },
+        {
+          "description": "Enables the seek command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:allow-seek"
+        },
+        {
+          "description": "Enables the stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:allow-stop"
+        },
+        {
+          "description": "Denies the load command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:deny-load"
+        },
+        {
+          "description": "Denies the pause command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:deny-pause"
+        },
+        {
+          "description": "Denies the ping command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:deny-ping"
+        },
+        {
+          "description": "Denies the play command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:deny-play"
+        },
+        {
+          "description": "Denies the registerListener command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:deny-registerListener"
+        },
+        {
+          "description": "Denies the seek command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:deny-seek"
+        },
+        {
+          "description": "Denies the stop command without any pre-configured scope.",
+          "type": "string",
+          "const": "audioplayer:deny-stop"
+        },
+        {
           "description": "This permission set configures if your\napplication can enable or disable auto\nstarting the application on boot.\n\n#### Granted Permissions\n\nIt allows all to check, enable and\ndisable the automatic start on boot.\n\n",
           "type": "string",
           "const": "autostart:default"
@@ -1950,6 +2025,31 @@
           "description": "Denies the save command without any pre-configured scope.",
           "type": "string",
           "const": "dialog:deny-save"
+        },
+        {
+          "description": "Default permissions for the plugin",
+          "type": "string",
+          "const": "file-scanner:default"
+        },
+        {
+          "description": "Enables the android_scan_music command without any pre-configured scope.",
+          "type": "string",
+          "const": "file-scanner:allow-android-scan-music"
+        },
+        {
+          "description": "Enables the ping command without any pre-configured scope.",
+          "type": "string",
+          "const": "file-scanner:allow-ping"
+        },
+        {
+          "description": "Denies the android_scan_music command without any pre-configured scope.",
+          "type": "string",
+          "const": "file-scanner:deny-android-scan-music"
+        },
+        {
+          "description": "Denies the ping command without any pre-configured scope.",
+          "type": "string",
+          "const": "file-scanner:deny-ping"
         },
         {
           "description": "This permission set allows opening `mailto:`, `tel:`, `https://` and `http://` urls using their default application\nas well as reveal file in directories using default file explorer",

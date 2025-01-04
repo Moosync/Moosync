@@ -56,9 +56,7 @@ pub fn handle_pref_changes(app: AppHandle) {
                 let app = app.clone();
                 thread::spawn(move || {
                     let app = app.clone();
-                    let (pref_config, scanner, database) =
-                        generate_states!(app, PreferenceConfig, ScannerHolder, Database);
-                    if let Err(e) = start_scan(scanner, database, pref_config, None, true) {
+                    if let Err(e) = start_scan(app, None) {
                         tracing::error!("{}", e);
                     }
                 });

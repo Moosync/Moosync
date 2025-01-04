@@ -642,7 +642,9 @@ impl GenericProvider for YoutubeProvider {
 
     #[tracing::instrument(level = "trace", skip(self, song, player))]
     async fn get_playback_url(&self, song: Song, player: String) -> Result<String> {
-        if song.song.provider_extension.unwrap_or_default() != self.key() && player == "youtube" {
+        if song.song.provider_extension.unwrap_or_default() != self.key()
+            && player.to_lowercase() == "youtube"
+        {
             let youtube_scraper: State<YoutubeScraper> = self.app.state();
             let res = youtube_scraper
                 .search_yt(format!(

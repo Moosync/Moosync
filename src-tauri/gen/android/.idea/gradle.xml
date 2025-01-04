@@ -24,6 +24,8 @@
             <option value="$USER_HOME$/.cargo/git/checkouts/plugins-workspace-fd0259fcb18f51ad/b219159/plugins/dialog/android" />
             <option value="$USER_HOME$/.cargo/git/checkouts/plugins-workspace-fd0259fcb18f51ad/b219159/plugins/opener/android" />
             <option value="$USER_HOME$/.cargo/registry/src/index.crates.io-6f17d22bba15001f/tauri-2.1.1/mobile/android" />
+            <option value="$PROJECT_DIR$/../../../lib/tauri-plugin-audioplayer/android" />
+            <option value="$PROJECT_DIR$/../../../lib/tauri-plugin-file-scanner/android" />
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/buildSrc" />

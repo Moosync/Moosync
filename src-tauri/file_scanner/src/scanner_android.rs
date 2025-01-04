@@ -1,7 +1,7 @@
-use std::sync::Mutex;
+use std::sync::{mpsc::Sender, Mutex};
 
-use database::database::Database;
 use types::errors::Result;
+use types::{entities::QueryablePlaylist, songs::Song};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ScanState {
@@ -33,16 +33,24 @@ impl ScannerHolder {
 
     #[tracing::instrument(
         level = "trace",
-        skip(self, database, dir, thumbnail_dir, artist_split, scan_threads, force)
+        skip(
+            self,
+            dir,
+            thumbnail_dir,
+            artist_split,
+            scan_threads,
+            song_tx,
+            playlist_tx
+        )
     )]
     pub fn start_scan(
         &self,
-        database: &Database,
         dir: String,
         thumbnail_dir: String,
         artist_split: String,
         scan_threads: f64,
-        force: bool,
+        song_tx: Sender<(Option<String>, Vec<Song>)>,
+        playlist_tx: Sender<Vec<QueryablePlaylist>>,
     ) -> Result<()> {
         Ok(())
     }

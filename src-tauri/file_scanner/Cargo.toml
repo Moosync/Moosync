@@ -6,7 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-database = { path = "../database" }
 substring = "1.4.5"
 types = { path = "../types", default-features = false }
 blake3 = { version = "1.5.5", default-features = false }

@@ -11,6 +11,9 @@ use librespot::{
 };
 use logger::{get_logger_state, renderer_write};
 use lyrics::{get_lyrics, get_lyrics_state};
+use mobile_player::{
+    mobile_load, mobile_pause, mobile_play, mobile_seek, mobile_stop, MobilePlayer,
+};
 use mpris::{get_mpris_state, set_metadata, set_playback_state, set_position};
 use preference_holder::{
     get_preference_state, get_secure, handle_pref_changes, initial, load_selective,
@@ -71,6 +74,7 @@ mod extensions;
 mod librespot;
 mod logger;
 mod lyrics;
+mod mobile_player;
 mod mpris;
 mod oauth;
 mod preference_holder;
@@ -89,14 +93,14 @@ pub fn run() {
         .expect("Failed to install rustls crypto provider");
 
     let filter = if cfg!(mobile) {
-        EnvFilter::try_new("librespot=trace").unwrap()
+        EnvFilter::try_new("librespot=trace,debug").unwrap()
     } else {
         EnvFilter::from_env("MOOSYNC_LOG")
     };
 
     let mut builder = tauri::Builder::default();
 
-    #[cfg(not(any(target_os = "android", target_os = "ios")))]
+    #[cfg(desktop)]
     {
         builder = builder
             .plugin(tauri_plugin_updater::Builder::new().build())
@@ -124,13 +128,20 @@ pub fn run() {
             });
     }
 
+    #[cfg(mobile)]
+    {
+        builder = builder
+            .plugin(tauri_plugin_file_scanner::init())
+            .plugin(tauri_plugin_audioplayer::init());
+    }
+
     builder = builder
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .append_invoke_initialization_script(format!(
             r#"
             window.LOGGING_FILTER = "{}";
-            window.is_mobile = false;
+            window.is_mobile = true;
             "#,
             filter
         ))
@@ -242,6 +253,12 @@ pub fn run() {
             rodio_stop,
             // Logger
             renderer_write,
+            // Mobile player
+            mobile_load,
+            mobile_play,
+            mobile_pause,
+            mobile_stop,
+            mobile_seek
         ])
         .setup(|app| {
             let layer = fmt::layer()
@@ -312,6 +329,9 @@ pub fn run() {
 
             let logger = get_logger_state(app.app_handle().clone());
             app.manage(logger);
+
+            let mobile_player = MobilePlayer::new();
+            app.manage(mobile_player);
 
             initial(app);
             handle_pref_changes(app.handle().clone());

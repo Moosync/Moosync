@@ -55,7 +55,7 @@ pub fn PathsPref(
 
     let start_scan = move |_| {
         spawn_local(async move {
-            let _ = crate::utils::invoke::start_scan(None, true).await;
+            let _ = crate::utils::invoke::start_scan(None).await;
         })
     };
 

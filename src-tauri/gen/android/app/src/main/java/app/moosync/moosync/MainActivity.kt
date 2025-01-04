@@ -1,3 +1,4 @@
 package app.moosync.moosync
 
-class MainActivity : TauriActivity()
+class MainActivity : TauriActivity() {
+}

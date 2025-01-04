@@ -1,10 +1,12 @@
 use std::{
     path::PathBuf,
     str::FromStr,
-    sync::{mpsc, Mutex},
+    sync::{
+        mpsc::{self, Sender},
+        Mutex,
+    },
 };
 
-use database::database::Database;
 use threadpool::ThreadPool;
 use types::errors::Result;
 use types::{entities::QueryablePlaylist, songs::Song};
@@ -24,13 +26,6 @@ pub struct ScannerHolder {
     progress: Mutex<u8>,
 }
 
-impl Default for ScannerHolder {
-    #[tracing::instrument(level = "trace", skip())]
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl ScannerHolder {
     #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> Self {
@@ -47,16 +42,24 @@ impl ScannerHolder {
 
     #[tracing::instrument(
         level = "trace",
-        skip(self, database, dir, thumbnail_dir, artist_split, scan_threads, force)
+        skip(
+            self,
+            dir,
+            thumbnail_dir,
+            artist_split,
+            scan_threads,
+            song_tx,
+            playlist_tx
+        )
     )]
     pub fn start_scan(
         &self,
-        database: &Database,
         dir: String,
         thumbnail_dir: String,
         artist_split: String,
         scan_threads: f64,
-        force: bool,
+        song_tx: Sender<(Option<String>, Vec<Song>)>,
+        playlist_tx: Sender<Vec<QueryablePlaylist>>,
     ) -> Result<()> {
         let mut state = self.state.lock().unwrap();
         if *state != ScanState::UNDEFINED {
@@ -91,14 +94,15 @@ impl ScannerHolder {
         let (tx_song, rx_song) = mpsc::channel::<(Option<String>, Result<Song>)>();
         let (tx_playlist, rx_playlist) = mpsc::channel::<Result<QueryablePlaylist>>();
 
-        song_scanner.start(database, tx_song.clone(), force)?;
+        song_scanner.start(tx_song.clone())?;
         let playlist_scanner = PlaylistScanner::new(dir, thumbnail_dir, song_scanner);
         playlist_scanner.start(tx_song, tx_playlist)?;
 
         for item in rx_playlist {
             match item {
                 Ok(playlist) => {
-                    let _ = database.create_playlist(playlist);
+                    // let _ = database.create_playlist(playlist);
+                    playlist_tx.send(vec![playlist]).unwrap();
                 }
                 Err(e) => tracing::error!("Scan playlist error: {:}", e),
             }
@@ -108,15 +112,16 @@ impl ScannerHolder {
             match item.1 {
                 Ok(song) => {
                     tracing::info!("Scanned song {:?}", song);
-                    let res = database.insert_songs(vec![song]);
-                    if item.0.is_some() {
-                        if let Ok(res) = res {
-                            let _ = database.add_to_playlist_bridge(
-                                item.0.unwrap(),
-                                res[0].song._id.clone().unwrap(),
-                            );
-                        }
-                    }
+                    song_tx.send((item.0, vec![song])).unwrap();
+                    // let res = database.insert_songs(vec![song]);
+                    // if item.0.is_some() {
+                    //     if let Ok(res) = res {
+                    //         let _ = database.add_to_playlist_bridge(
+                    //             item.0.unwrap(),
+                    //             res[0].song._id.clone().unwrap(),
+                    //         );
+                    //     }
+                    // }
                 }
                 Err(e) => tracing::error!("Scan error: {:}", e),
             }

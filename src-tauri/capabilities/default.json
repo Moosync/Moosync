@@ -1,0 +1,7 @@
+{
+  "identifier": "default",
+  "description": "default permissions",
+  "windows": ["main"],
+  "permissions": ["audioplayer:default"],
+  "platforms": ["linux", "macOS", "windows", "android", "iOS"]
+}

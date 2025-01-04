@@ -1,7 +1,6 @@
 use std::{path::PathBuf, sync::mpsc::Sender};
 
 use crate::utils::{check_directory, get_files_recursively, scan_file};
-use database::database::Database;
 use threadpool::ThreadPool;
 use types::errors::Result;
 use types::songs::Song;
@@ -57,22 +56,13 @@ impl<'a> SongScanner<'a> {
         });
     }
 
-    #[tracing::instrument(level = "trace", skip(self, db, tx_song, force))]
-    pub fn start(
-        &self,
-        db: &Database,
-        tx_song: Sender<(Option<String>, Result<Song>)>,
-        force: bool,
-    ) -> Result<usize> {
+    #[tracing::instrument(level = "trace", skip(self, tx_song))]
+    pub fn start(&self, tx_song: Sender<(Option<String>, Result<Song>)>) -> Result<usize> {
         self.check_dirs()?;
 
         let file_list = get_files_recursively(self.dir.clone())?;
 
-        let song_list = if !force {
-            db.files_not_in_db(file_list.file_list)?
-        } else {
-            file_list.file_list
-        };
+        let song_list = file_list.file_list;
 
         let len = song_list.len();
 

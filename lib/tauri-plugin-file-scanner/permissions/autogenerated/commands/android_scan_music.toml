@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-android-scan-music"
+description = "Enables the android_scan_music command without any pre-configured scope."
+commands.allow = ["android_scan_music"]
+
+[[permission]]
+identifier = "deny-android-scan-music"
+description = "Denies the android_scan_music command without any pre-configured scope."
+commands.deny = ["android_scan_music"]

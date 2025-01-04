@@ -67,6 +67,8 @@ members = [
     "src-tauri/rodio-player",
     "src/pref_gen",
     "src-tauri/tauri-invoke-proc",
+    "lib/tauri-plugin-file-scanner",
+    "lib/tauri-plugin-audioplayer",
 ]
 
 [package.metadata.leptos-i18n]

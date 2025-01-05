@@ -3,7 +3,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::errors::MoosyncError;
 
-#[derive(Serialize, Deserialize, Debug, Default, PartialEq, Clone, Copy, Encode, Decode)]
+#[derive(Serialize, Deserialize, Debug, Default, PartialEq, Eq, Clone, Copy, Encode, Decode)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum PlayerState {
     Playing,

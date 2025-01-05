@@ -18,17 +18,13 @@ import java.io.FileOutputStream
 import java.io.InputStream
 
 public fun getUriFromID(context: Context, id: Long): String? {
-    val uri = writeCoverImage(context, id)
-    if (uri != null) {
-        return getPathFromURI(context, uri)
-    }
-    return null
+    return writeCoverImage(context, id)
 }
 
-private fun writeCoverImage(context: Context, id: Long): Uri? {
-    val fileName = File(context.getFilesDir(), "cover-${id.toString()}-high.jpg")
+private fun writeCoverImage(context: Context, id: Long): String? {
+    val fileName = File(context.filesDir.canonicalFile, "cover-${id.toString()}-high.jpg")
     if (fileName.exists()) {
-        return fileName.toUri()
+        return fileName.toString()
     }
 
     val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)
@@ -44,7 +40,7 @@ private fun writeCoverImage(context: Context, id: Long): Uri? {
             file.write(buffer, 0, bytesRead)
         }
 
-        return fileName.toUri()
+        return fileName.toString()
     }
     return null
 }

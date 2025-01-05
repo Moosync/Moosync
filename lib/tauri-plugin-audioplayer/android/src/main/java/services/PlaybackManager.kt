@@ -28,11 +28,11 @@ class PlaybackManager(mContext: Context, private val playerListeners: PlayerList
     }
 
     fun pause(key: String) {
-        players[key]?.stop()
+        players[key]?.pause()
     }
 
     fun play(key: String) {
-        players[key]?.stop()
+        players[key]?.play()
     }
 
     fun seek(key: String, pos: Int) {

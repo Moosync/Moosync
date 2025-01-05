@@ -1,32 +1,58 @@
 package app.moosync.audioplayer
 
 import android.app.Activity
+import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
+import android.webkit.WebView
+import app.moosync.audioplayer.models.MetadataArgs
+import app.moosync.audioplayer.models.Song
 import app.moosync.audioplayer.services.interfaces.MediaPlayerCallbacks
 import app.tauri.annotation.Command
+import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.TauriPlugin
+import app.tauri.plugin.Channel
 import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
 import app.tauri.plugin.Invoke
 
+@InvokeArg
 internal class LoadArgs {
     lateinit var key: String
     lateinit var src: String
     var autoplay: Boolean = false
 }
 
+@InvokeArg
 internal class KeyArgs {
     lateinit var key: String
 }
 
+@InvokeArg
 internal class SeekArgs {
     lateinit var key: String
     var seek = 0f
 }
 
+@InvokeArg
+internal class UpdateMetadataArgs {
+    lateinit var metadata: MetadataArgs
+}
+
+@InvokeArg
+internal class UpdateStateArgs {
+    var playing: Boolean = false
+    var pos: Int = 0
+}
+
+@InvokeArg
+class SetEventHandlerArgs {
+    lateinit var handler: Channel
+}
+
 @TauriPlugin
 class AudioPlayerPlugin(private val activity: Activity): Plugin(activity) {
     private val implementation = AudioPlayerRemote(activity)
+    private var channel: Channel? = null
 
     init {
         implementation.addMediaCallbacks(
@@ -69,6 +95,37 @@ class AudioPlayerPlugin(private val activity: Activity): Plugin(activity) {
                 }
             }
         )
+
+        implementation.addMediaSessionCallbacks(object : MediaSessionCompat.Callback() {
+            override fun onPlay() {
+                super.onPlay()
+                val ret = JSObject()
+                ret.put("event", "onPlay")
+                this@AudioPlayerPlugin.channel?.send(ret)
+            }
+
+            override fun onPause() {
+                super.onPause()
+                val ret = JSObject()
+                ret.put("event", "onPause")
+                this@AudioPlayerPlugin.channel?.send(ret)
+            }
+
+            override fun onSeekTo(pos: Long) {
+                super.onSeekTo(pos)
+                val ret = JSObject()
+                ret.put("event", "onSeekTo")
+                ret.put("pos", pos)
+                this@AudioPlayerPlugin.channel?.send(ret)
+            }
+
+            override fun onStop() {
+                super.onStop()
+                val ret = JSObject()
+                ret.put("event", "onStop")
+                this@AudioPlayerPlugin.channel?.send(ret)
+            }
+        })
     }
 
     @Command
@@ -114,5 +171,35 @@ class AudioPlayerPlugin(private val activity: Activity): Plugin(activity) {
         implementation.controls?.seek(args.key, args.seek.toInt())
         val ret = JSObject()
         invoke.resolve(ret)
+    }
+
+    @Command
+    fun updateNotification(invoke: Invoke) {
+        val args = invoke.parseArgs(UpdateMetadataArgs::class.java)
+        Log.d("TAG", "updateNotification: ${args.metadata.title}")
+        implementation.controls?.updateMetadata(args.metadata)
+
+        val ret = JSObject()
+        invoke.resolve(ret)
+    }
+
+    @Command
+    fun updateNotificationState(invoke: Invoke) {
+        Log.d("TAG", "updateNotification: got raw args ${invoke.getRawArgs()}")
+        val args = invoke.parseArgs(UpdateStateArgs::class.java)
+        Log.d("TAG", "updateNotificationState: isPlaying: ${args.playing}")
+        implementation.controls?.updatePlayerState(args.playing, args.pos)
+
+        val ret = JSObject()
+        invoke.resolve(ret)
+    }
+
+    // This command should not be added to the `build.rs` and exposed as it is only
+    // used internally from the rust backend.
+    @Command
+    fun setEventHandler(invoke: Invoke) {
+        val args = invoke.parseArgs(SetEventHandlerArgs::class.java)
+        this.channel = args.handler
+        invoke.resolve()
     }
 }

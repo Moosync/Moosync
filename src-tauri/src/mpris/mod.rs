@@ -10,6 +10,9 @@ use types::{errors::Result, mpris::MprisPlayerDetails, ui::player_details::Playe
 pub fn get_mpris_state(app: AppHandle) -> Result<MprisHolder> {
     let mpris_holder = MprisHolder::new()?;
 
+    #[cfg(mobile)]
+    mpris_holder.set_app_handle(app.clone());
+
     let receiver = mpris_holder.event_rx.clone();
     thread::spawn(move || {
         let receiver = receiver.lock().unwrap();

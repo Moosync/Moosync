@@ -5453,7 +5453,11 @@ name = "mpris"
 version = "0.1.0"
 dependencies = [
  "raw-window-handle 0.5.2",
+ "serde",
+ "serde_json",
  "souvlaki",
+ "tauri",
+ "tauri-plugin-audioplayer",
  "tracing",
  "types",
  "windows 0.44.0",

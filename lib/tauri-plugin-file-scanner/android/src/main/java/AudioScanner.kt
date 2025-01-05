@@ -24,6 +24,7 @@ class AudioScanner {
 
         val proj = arrayListOf(
             MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.DISPLAY_NAME,
             MediaStore.Audio.Media.ALBUM,
             MediaStore.Audio.Media.ARTIST,
@@ -61,11 +62,12 @@ class AudioScanner {
                     try {
                         val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID))
                         Log.d(TAG, "readDirectory: got id $id")
+                        val title = if (cursor.getColumnIndex(MediaStore.Audio.Media.TITLE) != -1) cursor.getColumnIndex(MediaStore.Audio.Media.TITLE) else cursor.getColumnIndex(MediaStore.Audio.Media.DISPLAY_NAME)
                         songList.add(
                             Song(
-                                title = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)),
+                                title = cursor.getString(title),
                                 duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)) / 1000,
-                                path = getPathFromURI(mContext, ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)),
+                                path = id.toString(),
                                 artist = getArtist(cursor),
                                 album = getAlbum(mContext, id, cursor),
                                 genre = getGenre(cursor),

@@ -93,7 +93,7 @@ impl MobilePlayer {
         listen_onpause => ("onPause", KeyEvent) => |_| PlayerEvents::Pause,
         listen_onended => ("onSongEnded", KeyEvent) => |_| PlayerEvents::Ended,
         listen_ontimeupdate => ("onTimeChange", TimeChangeEvent) => |evt: TimeChangeEvent|{
-            PlayerEvents::TimeUpdate(evt.pos)
+            PlayerEvents::TimeUpdate(evt.pos / 1000f64)
         }
     );
 }

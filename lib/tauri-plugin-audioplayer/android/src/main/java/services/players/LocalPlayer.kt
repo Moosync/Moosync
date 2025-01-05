@@ -71,6 +71,7 @@ class LocalPlayer : GenericPlayer() {
         val uri = buildUri(src)
         Log.d("TAG", "load: got uri $uri")
         playerInstance.setDataSource(mContext, uri)
+        playerInstance.setVolume(1.0F, 1.0F)
 
         playerInstance.setOnPreparedListener {
             if (autoPlay) {
@@ -108,7 +109,7 @@ class LocalPlayer : GenericPlayer() {
                     Log.d("TAG", "run: sending time change event")
                     playerListeners.onTimeChange(key, progress)
                 }
-                handler.postDelayed(this, 300)
+                handler.postDelayed(this, 1000)
             }
         }
 
@@ -121,7 +122,9 @@ class LocalPlayer : GenericPlayer() {
     }
 
     override fun play() {
+        Log.d("TAG", "play: playing local player")
         runAfterPlayerPrepared {
+            Log.d("TAG", "play: local player is prepared, starting")
             playerInstance.start()
         }
     }

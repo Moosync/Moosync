@@ -1,16 +1,24 @@
+use std::collections::HashMap;
+
 use serde::{de::DeserializeOwned, Serialize};
 use tauri::{
+    ipc::Channel,
     plugin::{PluginApi, PluginHandle},
-    AppHandle, Runtime,
+    utils::acl::Value,
+    AppHandle, Emitter, Runtime,
 };
-use types::errors::{MoosyncError, Result};
+use types::{
+    errors::{MoosyncError, Result},
+    mpris::MprisPlayerDetails,
+    songs::Song,
+};
 
 #[cfg(target_os = "ios")]
 tauri::ios_plugin_binding!(init_plugin_audioplayer);
 
 // initializes the Kotlin or Swift plugin classes
 pub fn init<R: Runtime, C: DeserializeOwned>(
-    _app: &AppHandle<R>,
+    app: &AppHandle<R>,
     api: PluginApi<R, C>,
 ) -> Result<Audioplayer<R>> {
     #[cfg(target_os = "android")]
@@ -21,7 +29,11 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
     let handle = api
         .register_ios_plugin(init_plugin_audioplayer)
         .map_err(|e| MoosyncError::String(e.to_string()))?;
-    Ok(Audioplayer(handle))
+
+    let ret = Audioplayer(handle);
+    ret.register_media_callback(app.clone());
+
+    Ok(ret)
 }
 
 /// Access to the audioplayer APIs.
@@ -46,6 +58,25 @@ struct KeyArgs {
 struct SeekArgs {
     key: String,
     seek: f64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateNotificationArgs {
+    metadata: MprisPlayerDetails,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateNotificationStateArgs {
+    playing: bool,
+    pos: u64,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EventHandler {
+    pub handler: Channel,
 }
 
 impl<R: Runtime> Audioplayer<R> {
@@ -86,6 +117,45 @@ impl<R: Runtime> Audioplayer<R> {
             .0
             .run_mobile_plugin("seek", SeekArgs { key, seek })
             .map_err(|e| MoosyncError::String(e.to_string()))?;
+        Ok(())
+    }
+
+    pub fn update_notification(&self, metadata: MprisPlayerDetails) -> Result<()> {
+        let res: serde_json::Value = self
+            .0
+            .run_mobile_plugin("updateNotification", UpdateNotificationArgs { metadata })
+            .map_err(|e| MoosyncError::String(e.to_string()))?;
+        Ok(())
+    }
+
+    pub fn update_notification_state(&self, playing: bool, pos: u64) -> Result<()> {
+        let res: serde_json::Value = self
+            .0
+            .run_mobile_plugin(
+                "updateNotificationState",
+                UpdateNotificationStateArgs { playing, pos },
+            )
+            .map_err(|e| MoosyncError::String(e.to_string()))?;
+        Ok(())
+    }
+
+    fn register_media_callback(&self, app: AppHandle<R>) -> Result<()> {
+        self.0.run_mobile_plugin::<()>(
+            "setEventHandler",
+            EventHandler {
+                handler: Channel::new(move |event| match event {
+                    tauri::ipc::InvokeResponseBody::Json(payload) => {
+                        app.emit(
+                            "MediaSessionCallback",
+                            serde_json::from_str::<HashMap<String, Value>>(&payload).unwrap(),
+                        );
+                        Ok(())
+                    }
+                    _ => Ok(()),
+                }),
+            },
+        );
+
         Ok(())
     }
 }

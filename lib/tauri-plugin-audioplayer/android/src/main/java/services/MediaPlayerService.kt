@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.support.v4.media.MediaBrowserCompat
+import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
 import androidx.media.MediaBrowserServiceCompat
 import app.moosync.audioplayer.R
@@ -91,6 +92,10 @@ class MediaPlayerService : MediaBrowserServiceCompat() {
 
             override fun addMediaPlayerCallbacks(callbacks: MediaPlayerCallbacks) {
                 this@MediaPlayerService.mediaController.addPlayerCallbacks(callbacks)
+            }
+
+            override fun addMediaSessionCallbacks(callbacks: MediaSessionCompat.Callback) {
+                this@MediaPlayerService.mediaController.addMediaSessionCallbacks(callbacks)
             }
         }
     }

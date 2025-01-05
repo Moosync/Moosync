@@ -7,10 +7,12 @@ import android.content.ContextWrapper
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
+import android.support.v4.media.session.MediaSessionCompat.Callback
 import android.util.Log
 import app.moosync.audioplayer.models.Song
 import app.moosync.audioplayer.services.Constants.ACTION_FROM_MAIN_ACTIVITY
 import app.moosync.audioplayer.services.MediaPlayerService
+import app.moosync.audioplayer.services.NotificationHandler
 import app.moosync.audioplayer.services.interfaces.MediaControls
 import app.moosync.audioplayer.services.interfaces.MediaPlayerCallbacks
 import app.moosync.audioplayer.services.interfaces.MediaServiceWrapper
@@ -152,6 +154,12 @@ class AudioPlayerRemote private constructor(activity: Activity) {
     fun addMediaCallbacks(callbacks: MediaPlayerCallbacks) {
         return runOrAddToQueue {
             it.addMediaPlayerCallbacks(callbacks)
+        }
+    }
+
+    fun addMediaSessionCallbacks(callback: Callback) {
+        return runOrAddToQueue {
+            it.addMediaSessionCallbacks(callback)
         }
     }
 

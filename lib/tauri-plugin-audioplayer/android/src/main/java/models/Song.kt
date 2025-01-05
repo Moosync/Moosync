@@ -19,3 +19,9 @@ data class Song(
     val song_coverPath_low: String?,
     val song_coverPath_high: String?,
 ) : Serializable
+
+fun List<Artist>.toArtistString(): String {
+    return joinToString(", ") {
+        it.artist_name
+    }
+}

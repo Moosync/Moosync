@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("com.google.devtools.ksp") version "2.1.0-1.0.29"
 }
 
 android {
@@ -8,7 +9,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 26
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
@@ -33,6 +34,8 @@ android {
 }
 
 dependencies {
+    implementation("com.github.bumptech.glide:glide:4.14.2")
+    ksp("com.github.bumptech.glide:ksp:4.14.2")
     implementation("com.pierfrancescosoffritti.androidyoutubeplayer:core:11.1.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.legacy:legacy-support-v4:1.0.0")

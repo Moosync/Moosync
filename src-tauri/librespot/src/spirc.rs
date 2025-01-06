@@ -145,7 +145,7 @@ impl SpircWrapper {
                         events_thread.join().unwrap();
                     }
                     Err(e) => {
-                        tracing::info!("Error creating spirc: {:?}", e);
+                        tracing::error!("Error creating spirc: {:?}", e);
                     }
                 }
             });

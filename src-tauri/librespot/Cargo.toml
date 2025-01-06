@@ -17,3 +17,5 @@ serde = { version = "1.0", default-features = false }
 tokio = { version = "1.42.0", default-features = false }
 types = { path = "../types", features = [] }
 futures = "0.3.31"
+env_logger = "0.11.6"
+uuid = "1.11.0"

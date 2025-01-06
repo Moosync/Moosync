@@ -93,7 +93,10 @@ pub fn run() {
         .expect("Failed to install rustls crypto provider");
 
     let filter = if cfg!(mobile) {
-        EnvFilter::try_new("librespot=trace,debug").unwrap()
+        EnvFilter::try_new(
+            "info,Moosync_ui=error,app_lib=error,diesel_logger=error,preferences=error",
+        )
+        .unwrap()
     } else {
         EnvFilter::from_env("MOOSYNC_LOG")
     };

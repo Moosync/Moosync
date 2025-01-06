@@ -59,9 +59,20 @@ pub fn new_player(
     (p, mixer)
 }
 
+pub(crate) const KEYMASTER_CLIENT_ID: &str = "65b708073fc0480ea92a077233ca87bd";
+
 #[tracing::instrument(level = "trace", skip(cache_config))]
 pub fn create_session(cache_config: Cache) -> Session {
-    let session_config = SessionConfig::default();
+    let device_id = uuid::Uuid::new_v4().as_hyphenated().to_string();
+    let client_id = KEYMASTER_CLIENT_ID.to_owned();
+    let session_config = SessionConfig {
+        client_id,
+        device_id,
+        proxy: None,
+        ap_port: None,
+        tmp_dir: std::env::temp_dir(),
+        autoplay: None,
+    };
 
     Session::new(session_config, Some(cache_config))
 }

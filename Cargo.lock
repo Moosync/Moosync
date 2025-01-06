@@ -2449,13 +2449,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f2c92ceda6ceec50f43169f9ee8424fe2db276791afde7b2cd8bc084cb376ab"
 dependencies = [
  "log",
+ "regex",
 ]
 
 [[package]]
 name = "env_logger"
-version = "0.11.5"
+version = "0.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e13fa619b91fb2381732789fc5de83b45675e882f66623b7d8cb4f643017018d"
+checksum = "dcaee3d8e3cfc3fd92428d477bc97fc29ec8716d180c0d74c643bb26166660e0"
 dependencies = [
  "anstream",
  "anstyle",
@@ -4800,6 +4801,7 @@ dependencies = [
 name = "librespot"
 version = "0.1.0"
 dependencies = [
+ "env_logger",
  "futures",
  "futures-util",
  "librespot 0.6.0-dev",
@@ -4811,6 +4813,7 @@ dependencies = [
  "tracing",
  "types",
  "url 2.5.4",
+ "uuid",
 ]
 
 [[package]]

@@ -14,6 +14,7 @@ use std::{
 use tokio::sync::oneshot;
 use types::{
     errors::{MoosyncError, Result},
+    extensions::ExtensionExtraEvent,
     songs::Song,
     ui::player_details::{PlayerEvents, PlayerState},
 };
@@ -30,7 +31,11 @@ use crate::{
         mobile::MobilePlayer, rodio::RodioPlayer, youtube::YoutubePlayer,
     },
     store::{player_store::PlayerStore, provider_store::ProviderStore, ui_store::UiStore},
-    utils::invoke::{fetch_playback_url, update_song},
+    utils::{
+        extensions::send_extension_event,
+        invoke::{fetch_playback_url, update_song},
+        mpris::set_metadata,
+    },
 };
 
 pub struct PlayerHolder {
@@ -57,7 +62,7 @@ impl PlayerHolder {
         let mut players: Vec<Box<dyn GenericPlayer>> = vec![];
 
         let ui_store = expect_context::<RwSignal<UiStore>>();
-        let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+        let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile_player()).get();
 
         if !is_mobile {
             let mut rodio_player = RodioPlayer::new();
@@ -215,7 +220,7 @@ impl PlayerHolder {
             let state = p.get_player_state();
             state == PlayerState::Playing || state == PlayerState::Loading
         })
-        .get();
+        .get_untracked();
 
         let player_state = create_read_slice(player_store, |p| p.get_player_state());
         tracing::debug!("Autoplay {} {:?}", autoplay, player_state.get());
@@ -455,13 +460,19 @@ pub fn AudioStream() -> impl IntoView {
 
     create_effect(move |_| {
         let is_providers_initialized = provider_store.is_initialized.get();
+        tracing::info!("providers initialized {}", is_providers_initialized);
         if !is_providers_initialized {
+            tracing::info!("providers not initialized");
             return;
         }
         let current_song = current_song_sig.get();
         let _ = force_load_sig.get();
+
+        send_extension_event(ExtensionExtraEvent::SongChanged([current_song.clone()]));
         if let Some(current_song) = current_song {
             tracing::info!("Loading song {:?}", current_song.song.title);
+            set_metadata(&current_song);
+
             let players = players_clone.clone();
             spawn_local(async move {
                 let mut players = players.lock().await;

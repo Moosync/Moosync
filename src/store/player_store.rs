@@ -75,7 +75,7 @@ impl PlayerStore {
         let db_rc_clone = db_rc.clone();
 
         let ui_store = expect_context::<RwSignal<UiStore>>();
-        let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+        let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile_player()).get();
 
         let player_store = Self {
             data: PlayerStoreData::default(),
@@ -186,9 +186,6 @@ impl PlayerStore {
 
         self.scrobble_time = 0f64;
         self.scrobbled = false;
-
-        set_metadata(&song.clone().unwrap_or_default());
-        send_extension_event(ExtensionExtraEvent::SongChanged([song]));
 
         self.dump_store();
     }

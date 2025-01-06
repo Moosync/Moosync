@@ -63,6 +63,7 @@ pub struct PreferenceUIData {
     pub single: Option<bool>,
     pub items: Option<Vec<CheckboxItems>>,
     pub default: Option<Value>,
+    pub mobile: Option<bool>,
 }
 
 impl PartialEq for PreferenceUIData {

@@ -58,7 +58,7 @@ impl MobilePlayer {
         #[cfg(mobile)]
         {
             let player = app.audioplayer();
-            player.seek(key, pos)?;
+            player.seek(key, pos * 1000f64)?;
         }
         Ok(())
     }

@@ -135,15 +135,27 @@ pub fn run() {
             .plugin(tauri_plugin_audioplayer::init());
     }
 
+    let is_mobile_init_script = if cfg!(mobile) {
+        r#"
+        window.is_mobile = true;
+        window.is_mobile_player = true;
+        "#
+    } else {
+        r#"
+        window.is_mobile = true;
+        window.is_mobile_player = false;
+        "#
+    };
+
     builder = builder
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .append_invoke_initialization_script(format!(
             r#"
             window.LOGGING_FILTER = "{}";
-            window.is_mobile = true;
+            {}
             "#,
-            filter
+            filter, is_mobile_init_script
         ))
         .invoke_handler(tauri::generate_handler![
             // Preferences

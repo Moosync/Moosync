@@ -11,7 +11,7 @@ pub fn AllSongsIcon(#[prop()] active: ReadSignal<bool>) -> impl IntoView {
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
         >
-            <title>All Songs</title>
+            <title>Songs</title>
             <path
                 fill-rule="evenodd"
                 clip-rule="evenodd"

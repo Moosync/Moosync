@@ -1,8 +1,19 @@
+.sidebar-mobile {
+    z-index: 1001;
+}
+
 .sidebar-mobile > .b-sidebar-outer > #sidebar.b-sidebar {
     bottom: 0;
     top: unset !important;
     width: 100vw !important;
     height: 80px !important;
+    background: var(--secondary);
+    border-radius: 0px;
+
+    > .b-sidebar-body > .extra-margin-top {
+        height: 100%;
+        display: flex;
+    }
 
     > .b-sidebar-header {
         display: none;
@@ -16,18 +27,39 @@
         > div.d-flex.tabs-holder {
             flex-direction: row;
             justify-content: space-between;
+            align-self: center;
+            width: 100%;
+            padding: 0 15px 0 15px;
 
             > #Queue {
                 display: none !important;
             }
 
+            > #Genres {
+                display: none !important;
+            }
+
             > .button-bar {
+                margin-top: 0px;
+                > .icon-padding-open.icon-transition {
+                    flex-direction: column;
+                }
+
                 > .icon-padding-open.icon-transition:hover {
                     margin-left: 0;
                 }
 
+                > .icon-padding-open {
+                    padding: 0px;
+                }
+
                 > .icon-padding-open > .text-padding {
-                    display: none;
+                    padding-left: 0px;
+                }
+
+                > .icon-padding-open > .icon {
+                    width: unset;
+                    height: 25px;
                 }
 
                 > div.whitebar.whitebar-active {
@@ -39,11 +71,145 @@
 }
 
 .musicbar-content-mobile {
-    display: none !important;
+    > .musicinfo-show {
+        visibility: hidden;
+        display: none;
+    }
+
+    > .slider.slider-mobile {
+        transform: translateY(calc(100vh - 80px));
+        z-index: 1000;
+        transition-duration: 0s;
+        height: 100vh;
+
+        > .music-info-container > .time-container {
+            margin-top: 15px;
+        }
+
+        > .music-info-container
+            > .time-container
+            > .slider-container
+            > .timeline
+            > .time-slider {
+            padding: 0 15px 0 15px;
+            > .time-slider-rail {
+                align-items: center;
+            }
+        }
+
+        > .music-info-container > .song-info-container {
+            position: unset;
+            padding-left: unset;
+            top: unset;
+            left: unset;
+            width: unset;
+            > .song-title-details,
+            .song-subtitle-details {
+                text-align: center;
+            }
+        }
+
+        > .music-info-container > .controls-container {
+            margin-top: 15px;
+        }
+    }
+
+    > .musicbar-background {
+        bottom: calc(80px + 16px);
+        height: 50px;
+        background: var(--secondary);
+        border-radius: 60px;
+
+        > .musicbar {
+            background: var(--secondary);
+            border-radius: 60px;
+            > .bar-container {
+                background: var(--secondary);
+                margin-top: 4px;
+
+                > div
+                    > div.col-lg-auto.col-1.align-self-center.no-gutters.extra-col {
+                    display: none;
+                }
+            }
+        }
+
+        // song details
+        > div
+            > div.container-fluid.d-flex.bar-container.h-100.pb-2
+            > div
+            > div.col-4.no-gutters.details-col.w-100 {
+            display: block;
+            flex: 0 0 75%;
+            max-width: 75%;
+
+            // song details image container
+            > div > div.col-auto.mr-3 > div > div {
+                margin-right: 0px;
+                display: flex;
+            }
+            // song details image
+            > div > div.col-auto.mr-3 > div > div > img,
+            svg {
+                width: 45px;
+                height: 45px;
+                min-width: 45px;
+                align-self: center;
+            }
+
+            // song title
+            > div > div.col.text-truncate {
+                > div.row.align-items-center.justify-content-start > div > div {
+                    font-size: 14px;
+                }
+
+                > div.row.no-gutters.w-100 {
+                    margin-top: -4px;
+                }
+            }
+        }
+
+        // Timeline
+        > div > div.timeline.pl-2.pr-2 {
+            padding: 0 15px 0 15px;
+        }
+        > div > div.timeline.pl-2.pr-2 > div {
+            padding: 0px 10px 0 10px;
+            > div {
+                align-items: start;
+                > div {
+                    height: 30%;
+                    > div.time-slider-dot > div {
+                        height: 0px;
+                    }
+                }
+            }
+        }
+
+        > div
+            > div.container-fluid.d-flex.bar-container.h-100.pb-2
+            > div
+            > div.col.align-self-center.no-gutters.controls-col
+            > div {
+            justify-content: end;
+
+            > .prev-button,
+            .next-button,
+            .shuffle-button,
+            .fav-button,
+            .repeat-button {
+                display: none;
+            }
+
+            .timestamp-container {
+                display: none;
+            }
+        }
+    }
 }
 
 .main-container-mobile {
-    padding-bottom: 80px;
+    padding-bottom: calc(80px + 50px + 16px);
     padding-left: 0;
 
     *::-webkit-scrollbar,
@@ -87,8 +253,16 @@
     left: 0;
     padding-left: 20px;
 
+    > div > div > .nav-icons {
+        display: none;
+    }
+
     > div > div > div.col-auto.pr-5.ml-auto.my-auto.icons-bar.d-flex {
         margin-right: 0px;
+        padding-right: 0 !important;
+        > div > div > div {
+            margin-right: 15px;
+        }
     }
 }
 
@@ -113,8 +287,17 @@
     .mini-player {
         display: none;
     }
+}
 
-    .slider {
-        transform: translateY(0);
+.musicinfo-mobile-cover {
+    width: 300px;
+    height: 300px;
+
+    > .image-container > div > div > img {
+        display: block;
     }
+}
+
+.musicinfo-mobile-cover-container {
+    justify-content: center;
 }

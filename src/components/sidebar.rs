@@ -36,7 +36,7 @@ impl Tab {
     pub fn new(title: &str, icon: &str, url: &str) -> Self {
         let icon = match icon {
             "Queue" => |active| QueueIcon(QueueIconProps { active }).into_view(),
-            "All Songs" => |active| AllSongsIcon(AllSongsIconProps { active }).into_view(),
+            "Songs" | "Home" => |active| AllSongsIcon(AllSongsIconProps { active }).into_view(),
             "Playlists" => |active| PlaylistsIcon(PlaylistsIconProps { active }).into_view(),
             "Artists" => |active| ArtistsIcon(ArtistsIconProps { active }).into_view(),
             "Albums" => |active| AlbumsIcon(AlbumsIconProps { active }).into_view(),
@@ -167,14 +167,6 @@ pub fn Sidebar(
                                 class="d-flex mr-4 mb-3 sidebar-header"
                                 style="justify-content: space-between;"
                             >
-                                <div class="icon-padding-open d-flex">
-                                    <Show when=move || show_back fallback=|| view! {}>
-                                        <PrevIcon on:click=move |_| {
-                                            let navigate = leptos_router::use_navigate();
-                                            navigate("/main/allsongs", Default::default());
-                                        } />
-                                    </Show>
-                                </div>
                                 <div class="sidebar-toggle-icon d-flex justify-content-end align-self-center mt-2">
                                     <SidebarToggleIcon on:click=move |_| {
                                         set_sidebar_open.set(!sidebar_open.get_untracked());

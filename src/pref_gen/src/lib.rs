@@ -49,6 +49,9 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
     let mut tabs = vec![];
     let mut routes = vec![];
 
+    tabs.push(quote! {
+        Tab::new("Home", "Home", "/main/allsongs"),
+    });
     for page in &config.page {
         let name = syn::Ident::new(
             format!("Preference{}Page", page.path.clone()).as_str(),
@@ -99,23 +102,28 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
             sidebar::{Sidebar, Tab},
         };
         use crate::i18n::use_i18n;
-        use leptos::{component, view, IntoView};
+        use leptos::{component, view, IntoView, RwSignal, create_read_slice, expect_context, SignalGet};
         use leptos_i18n::t;
         use leptos_router::{Outlet, Redirect, Route};
         use types::preferences::CheckboxItems;
+        use crate::store::ui_store::UiStore;
 
         #(#ret)*
 
         #[component]
         pub fn PrefApp() -> impl IntoView {
             let i18n = use_i18n();
+
+            let ui_store = expect_context::<RwSignal<UiStore>>();
+            let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+
             let mut tabs = vec![
                 #(#tabs)*
             ];
             view! {
                 <div>
                     <Sidebar tabs=tabs show_back=true />
-                    <div class="main-container">
+                        <div class="main-container" class:main-container-mobile=is_mobile>
                         <Outlet />
                     </div>
                 </div>
@@ -166,6 +174,7 @@ fn generate_children(data: &[PreferenceUIData]) -> Vec<(syn::Ident, proc_macro2:
 #[tracing::instrument(level = "trace", skip(data))]
 fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
+    let mobile = data.mobile.unwrap_or(true);
 
     let name = get_path(data.title.clone());
 
@@ -209,6 +218,7 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
             view! {
 
                 <CheckboxPref
+                    mobile=#mobile
                     key=#key.to_string()
                     title=title.to_string()
                     tooltip=tooltip.to_string()
@@ -226,6 +236,7 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
 #[tracing::instrument(level = "trace", skip(data))]
 fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
+    let mobile = data.mobile.unwrap_or(true);
 
     let name = get_path(data.title.clone());
 
@@ -253,7 +264,7 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
             let title = i18n.get_keys().#name;
             let tooltip = i18n.get_keys().#tooltip;
             view! {
-                <InputPref key=#key.to_string() title=title.to_string() tooltip=tooltip.to_string() show_input=#show_input inp_type=#inp_type.to_string() />
+                <InputPref key=#key.to_string() title=title.to_string() tooltip=tooltip.to_string() show_input=#show_input inp_type=#inp_type.to_string() mobile=#mobile />
             }
         }
     };
@@ -264,6 +275,7 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
 #[tracing::instrument(level = "trace", skip(data))]
 fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
+    let mobile = data.mobile.unwrap_or(true);
 
     let name = get_path(data.title.clone());
 
@@ -280,7 +292,7 @@ fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
             let title = i18n.get_keys().#name;
             let tooltip = i18n.get_keys().#tooltip;
             view! {
-                <PathsPref key=#key.to_string() title=title.to_string() tooltip=tooltip.to_string() />
+                <PathsPref key=#key.to_string() title=title.to_string() tooltip=tooltip.to_string() mobile=#mobile />
             }
         }
     };
@@ -348,6 +360,7 @@ fn generate_extensions(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Tok
 fn generate_dropdowns(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
     let name = get_path(data.title.clone());
     let key = data.key.clone();
+    let mobile = data.mobile.unwrap_or(true);
 
     let tooltip = get_path(data.description.clone());
 
@@ -366,7 +379,7 @@ fn generate_dropdowns(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Toke
             let tooltip = i18n.get_keys().#tooltip;
 
             view !{
-                <DropdownPref title=title.to_string() tooltip=tooltip.to_string() key=#key.to_string() />
+                <DropdownPref title=title.to_string() tooltip=tooltip.to_string() key=#key.to_string() mobile=#mobile />
             }
         }
     };

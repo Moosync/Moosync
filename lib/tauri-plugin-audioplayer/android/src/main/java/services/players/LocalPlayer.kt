@@ -131,7 +131,9 @@ class LocalPlayer : GenericPlayer() {
 
     override fun pause() {
         runAfterPlayerPrepared {
-            playerInstance.pause()
+            if (playerInstance.isPlaying) {
+                playerInstance.pause()
+            }
         }
     }
 

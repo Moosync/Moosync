@@ -82,6 +82,7 @@ impl ProviderStore {
                 let statuses = get_all_status().await.unwrap();
 
                 store.statuses.set(statuses.values().cloned().collect());
+                tracing::info!("Initialized providers");
                 store.is_initialized.set(true);
             }
         });

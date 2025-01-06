@@ -32,6 +32,7 @@ pub struct UiStore {
     show_queue: bool,
     sidebar_open: bool,
     is_mobile: bool,
+    is_mobile_player: bool,
 }
 
 impl UiStore {
@@ -49,6 +50,7 @@ impl UiStore {
             show_queue: false,
             sidebar_open: true,
             is_mobile: false,
+            is_mobile_player: false,
         }
     }
 
@@ -97,5 +99,13 @@ impl UiStore {
 
     pub fn get_is_mobile(&self) -> bool {
         self.is_mobile
+    }
+
+    pub fn set_is_mobile_player(&mut self, val: bool) {
+        self.is_mobile_player = val;
+    }
+
+    pub fn get_is_mobile_player(&self) -> bool {
+        self.is_mobile_player
     }
 }

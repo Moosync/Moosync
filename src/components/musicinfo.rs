@@ -1,6 +1,6 @@
 use leptos::html::Div;
 use leptos::{
-    component, create_effect, create_node_ref, create_read_slice, create_rw_signal,
+    component, create_effect, create_memo, create_node_ref, create_read_slice, create_rw_signal,
     create_write_slice, expect_context, spawn_local, view, IntoView, NodeRef, RwSignal, Signal,
     SignalGet, SignalSet, SignalUpdate,
 };
@@ -12,10 +12,13 @@ use web_sys::{ScrollBehavior, ScrollToOptions};
 
 use crate::components::artist_list::ArtistList;
 use crate::components::audiostream::AudioStream;
+use crate::components::musicbar_components::{Controls, Slider};
+use crate::icons::song_default_icon::SongDefaultIcon;
 use crate::modals::new_playlist_modal::PlaylistModalState;
 use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::ui_store::UiStore;
-use crate::utils::common::get_high_img;
+use crate::utils::common::{format_duration, get_high_img};
+use crate::utils::entities::get_artist_string;
 use crate::{
     components::{low_img::LowImg, provider_icon::ProviderIcon, songdetails::SongDetails},
     icons::{cross_icon::CrossIcon, trash_icon::TrashIcon},
@@ -86,9 +89,112 @@ where
     }
 }
 
-#[tracing::instrument(level = "trace", skip(show))]
+#[tracing::instrument(level = "trace", skip(show, node_ref))]
 #[component]
-pub fn MusicInfo(#[prop()] show: Signal<bool>) -> impl IntoView {
+pub fn MusicInfoMobile(
+    #[prop()] show: Signal<bool>,
+    #[prop()] node_ref: NodeRef<Div>,
+) -> impl IntoView {
+    let player_store = expect_context::<RwSignal<PlayerStore>>();
+    let current_song = create_read_slice(player_store, move |p| p.get_current_song());
+    let show_default_cover_img = create_rw_signal(false);
+    let cover_img = create_memo(move |_| {
+        if let Some(current_song) = current_song.get() {
+            return Some(get_high_img(&current_song));
+        }
+        None
+    });
+    let song_title = create_memo(move |_| {
+        if let Some(current_song) = current_song.get() {
+            return current_song.song.title;
+        }
+        None
+    });
+
+    let song_subtitle = create_memo(move |_| {
+        if let Some(current_song) = current_song.get() {
+            return Some(get_artist_string(current_song.artists));
+        }
+        None
+    });
+
+    let current_time = create_read_slice(player_store, |p| format_duration(p.get_current_time()));
+    let total_time = create_memo(move |_| {
+        if let Some(current_song) = current_song.get() {
+            if let Some(duration) = current_song.song.duration {
+                return format_duration(duration);
+            }
+        }
+        "00:00".to_string()
+    });
+
+    view! {
+        <div
+            class="slider"
+            class:slider-mobile=true
+            class:musicinfo-open=move || show.get()
+            class:musicinfo-close=move || !show.get()
+            node_ref=node_ref
+        >
+
+            <div class="container-fluid w-100 h-100 music-info-container">
+                <div class="row no-gutters">
+                    <div class="col col-auto">
+                        <AudioStream />
+                    </div>
+                    <div class="col d-flex musicinfo-mobile-cover-container">
+                        <div class="musicinfo-mobile-cover">
+                            <div class="image-container w-100">
+                                <div class="embed-responsive embed-responsive-1by1">
+                                    <div class="embed-responsive-item albumart">
+                                        {move || {
+                                            let cover_img = cover_img.get();
+                                            if !show_default_cover_img.get() {
+                                                view! {
+                                                    <img
+                                                        src=cover_img
+                                                        on:error=move |_| { show_default_cover_img.set(true) }
+                                                    />
+                                                }
+                                                    .into_view()
+                                            } else {
+                                                view! { <SongDefaultIcon /> }.into_view()
+                                            }
+                                        }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row no-gutters song-info-container">
+                    <div class="col song-title-details text-truncate">{song_title}</div>
+                </div>
+                <div class="row no-gutters song-info-container">
+                    <div class="col song-subtitle-details text-truncate">{song_subtitle}</div>
+                </div>
+
+                <div class="row no-gutters time-container">
+                    <div class="col col-auto current-time-container">{current_time}</div>
+                    <div class="col slider-container">
+                        <Slider />
+                    </div>
+                    <div class="col col-auto total-time-container">{total_time}</div>
+                </div>
+
+                <div class="row no-gutters controls-container">
+                    <div class="col">
+                        <Controls show_time=false show_fav=false />
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+#[tracing::instrument(level = "trace", skip(show, node_ref))]
+#[component]
+pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>) -> impl IntoView {
     let player_store = expect_context::<RwSignal<PlayerStore>>();
     let current_song = create_read_slice(player_store, move |p| p.get_current_song());
     let queue_songs = create_read_slice(player_store, move |p| p.get_queue_songs());
@@ -150,6 +256,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>) -> impl IntoView {
             class="slider"
             class:musicinfo-open=move || show.get()
             class:musicinfo-close=move || !show.get()
+            node_ref=node_ref
         >
 
             <div class="h-100 w-100">

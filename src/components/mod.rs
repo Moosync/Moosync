@@ -5,6 +5,7 @@ pub mod cardview;
 pub mod color_picker;
 pub mod low_img;
 pub mod musicbar;
+pub mod musicbar_components;
 pub mod musicinfo;
 pub mod prefs;
 pub mod provider_icon;

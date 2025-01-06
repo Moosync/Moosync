@@ -1,452 +1,293 @@
-use std::time::Duration;
-
-use ev::mouseup;
+use ev::{mousedown, mousemove, mouseup, touchend, touchmove, touchstart, transitionend};
+use html::Div;
 use leptos::*;
 use leptos::{component, view, IntoView, RwSignal, SignalGet, SignalSet};
-use leptos_dom::helpers::TimeoutHandle;
-use leptos_use::{use_document, use_event_listener};
-use types::entities::{QueryableArtist, QueryablePlaylist};
-use types::ui::player_details::PlayerState;
+use leptos_use::{use_event_listener, use_event_listener_with_options, UseEventListenerOptions};
+use wasm_bindgen::JsCast;
+use web_sys::HtmlElement;
 
-use crate::components::artist_list::ArtistList;
-use crate::components::low_img::LowImg;
-use crate::components::musicinfo::MusicInfo;
-use crate::icons::expand_icon::ExpandIcon;
-use crate::icons::fav_icon::FavIcon;
-use crate::icons::next_track_icon::NextTrackIcon;
-use crate::icons::play_icon::PlayIcon;
-use crate::icons::prev_track_icon::PrevTrackIcon;
-use crate::icons::repeat_icon::RepeatIcon;
-use crate::icons::shuffle_icon::ShuffleIcon;
-use crate::icons::volume_icon::VolumeIcon;
-use crate::store::player_store::PlayerStore;
+use crate::components::musicbar_components::{Controls, Details, ExtraControls, Slider};
+use crate::components::musicinfo::{MusicInfo, MusicInfoMobile};
 use crate::store::ui_store::UiStore;
-use crate::utils::common::{format_duration, get_low_img};
 
-#[tracing::instrument(level = "trace", skip())]
-#[component]
-fn Details() -> impl IntoView {
-    let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
+const MUSICBAR_HEIGHT: i32 = 50 + 16;
+const SIDEBAR_HEIGHT: i32 = 80;
 
-    let current_song =
-        create_read_slice(player_store, |player_store| player_store.get_current_song());
+fn transition_closed(
+    musicbar: NodeRef<Div>,
+    musicinfo: NodeRef<Div>,
+    sidebar: RwSignal<Option<HtmlElement>>,
+) {
+    if let Some(musicbar) = musicbar.get_untracked() {
+        let _ = musicbar
+            .style("transition", "all 0.2s")
+            .style("transform", "translateY(0px)");
+    }
 
-    let title = create_rw_signal("-".to_string());
-    let artists_list = create_rw_signal::<Vec<QueryableArtist>>(vec![]);
-    let cover_img = create_rw_signal("".to_string());
+    if let Some(musicinfo) = musicinfo.get_untracked() {
+        let _ = musicinfo.style("transition", "all 0.2s").style(
+            "transform",
+            format!("translateY(calc(100vh - {}px))", MUSICBAR_HEIGHT),
+        );
+    }
 
-    create_effect(move |_| {
-        let current_song = current_song.get().clone();
-        if let Some(current_song) = &current_song {
-            title.set(current_song.song.title.clone().unwrap());
-            cover_img.set(get_low_img(current_song));
-
-            if let Some(artists) = &current_song.artists {
-                artists_list.set(artists.clone())
-            }
-            return;
-        }
-        title.set("-".into());
-        artists_list.set(vec![]);
-        cover_img.set("".to_string());
-    });
-
-    view! {
-        <div class="row no-gutters align-items-center w-100">
-            <div class="col-auto mr-3">
-
-                {move || {
-                    let cover_img = cover_img.get();
-                    view! {
-                        <LowImg
-                            show_eq=|| false
-                            eq_playing=|| false
-                            cover_img=cover_img
-                            show_play_button=false
-                            play_now=|| {}
-                        />
-                    }
-                }}
-
-            </div>
-            <div class="col text-truncate">
-                <div class="row align-items-center justify-content-start">
-                    <div class="col-auto w-100 d-flex">
-                        <div title=move || title.get() class="text song-title text-truncate mr-2">
-                            {move || title.get()}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="row no-gutters w-100">
-                    {move || {
-                        let artists = artists_list.get();
-                        view! { <ArtistList artists=Some(artists) /> }
-                    }}
-
-                </div>
-            </div>
-        </div>
+    if let Some(sidebar) = sidebar.get_untracked() {
+        let style = sidebar.style();
+        style.set_property("display", "flex").unwrap();
+        style.set_property("transition", "all 0.2s").unwrap();
+        style.set_property("opacity", "1").unwrap();
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
-#[component]
-pub fn Controls() -> impl IntoView {
-    let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
+fn transition_opened(
+    musicbar: NodeRef<Div>,
+    musicinfo: NodeRef<Div>,
+    sidebar: RwSignal<Option<HtmlElement>>,
+) {
+    if let Some(musicbar) = musicbar.get() {
+        let _ = musicbar.style("transition", "all 0.2s").style(
+            "transform",
+            format!("translateY(calc(-100vh + {}px))", MUSICBAR_HEIGHT),
+        );
+    }
 
-    let current_song = create_read_slice(player_store, |p| p.get_current_song());
+    if let Some(musicinfo) = musicinfo.get() {
+        let _ = musicinfo
+            .style("transition", "all 0.2s")
+            .style("transform", "translateY(0px)");
+    }
 
-    let prev_track_dis = create_read_slice(player_store, |p| p.get_queue_len() <= 1);
-    let next_track_dis = create_read_slice(player_store, |p| p.get_queue_len() <= 1);
-    let is_play = create_read_slice(player_store, |p| {
-        p.get_player_state() == PlayerState::Playing
-    });
-    let is_fav = create_rw_signal(false);
-    let (repeat_mode, toggle_repeat) =
-        create_slice(player_store, |p| p.get_repeat(), |p, _| p.toggle_repeat());
-    let is_shuffle = create_rw_signal(true);
-    let shuffle_queue = create_write_slice(player_store, |p, _| p.shuffle_queue());
-    let current_time_sig =
-        create_read_slice(player_store, |p| format_duration(p.get_current_time()));
-    let total_duration_sig = create_read_slice(player_store, |p| {
-        if let Some(current_song) = p.get_current_song() {
-            format_duration(current_song.song.duration.unwrap_or(-1f64))
-        } else {
-            "00:00".to_string()
-        }
-    });
+    if let Some(sidebar) = sidebar.get_untracked() {
+        let style = sidebar.style();
+        style.set_property("transition", "all 0.2s").unwrap();
+        style.set_property("opacity", "0").unwrap();
 
-    let set_current_state = create_write_slice(player_store, |player, n| player.set_state(n));
-    let next_song_setter = create_write_slice(player_store, |p, _| p.next_song());
-    let prev_song_setter = create_write_slice(player_store, |p, _| p.prev_song());
-
-    create_effect(move |_| {
-        let current_song = current_song.get();
-        if let Some(current_song) = current_song {
-            spawn_local(async move {
-                tracing::debug!("Checking song in favorites");
-                let res = crate::utils::invoke::is_song_in_playlist(
-                    "favorite".into(),
-                    current_song.song._id.unwrap_or_default(),
-                )
-                .await;
-                match res {
-                    Ok(res) => {
-                        tracing::debug!("song in favorites: {}", res);
-                        is_fav.set(res);
-                    }
-                    Err(e) => {
-                        tracing::error!("Failed to check song in favs: {:?}", e);
-                        is_fav.set(false);
-                    }
-                }
-            });
-        } else {
-            is_fav.set(false);
-        }
-    });
-
-    let add_to_fav = move |_| {
-        let current_song = current_song.get();
-        let is_fav_val = is_fav.get();
-        if let Some(current_song) = current_song {
-            spawn_local(async move {
-                // Don't care if favorites playlist already exists
-                let _ = crate::utils::invoke::create_playlist(QueryablePlaylist {
-                    playlist_id: Some("favorite".into()),
-                    playlist_name: "Favorites".into(),
-                    playlist_coverpath: Some("favorites".into()),
-                    ..Default::default()
-                })
-                .await;
-
-                let res = if !is_fav_val {
-                    crate::utils::invoke::add_to_playlist("favorite".into(), vec![current_song])
-                        .await
-                } else {
-                    crate::utils::invoke::remove_from_playlist(
-                        "favorite".into(),
-                        vec![current_song.song._id.unwrap_or_default()],
-                    )
-                    .await
-                };
-                match res {
-                    Err(e) => tracing::error!("Failed to add to favorites playlist {:?}", e),
-                    Ok(_) => is_fav.set(!is_fav_val),
-                }
-            });
-        }
-    };
-
-    view! {
-        <div class="row no-gutters align-items-center justify-content-center">
-            <div class="col col-button">
-                <PrevTrackIcon
-                    disabled=prev_track_dis
-                    on:click=move |_| {
-                        if !prev_track_dis.get() {
-                            prev_song_setter.set(())
-                        }
-                    }
-                />
-            </div>
-            <div class="col col-button">
-                <RepeatIcon mode=repeat_mode on:click=move |_| { toggle_repeat.set(()) } />
-            </div>
-            <div class="col col-play-button">
-                <PlayIcon
-                    play=is_play
-                    on:click=move |_| {
-                        let is_playing = is_play.get();
-                        if is_playing {
-                            set_current_state.set(PlayerState::Paused)
-                        } else {
-                            set_current_state.set(PlayerState::Playing)
-                        }
-                    }
-                />
-
-            </div>
-            <div class="col col-button">
-                <NextTrackIcon
-                    disabled=next_track_dis
-                    on:click=move |_| {
-                        if !next_track_dis.get() {
-                            next_song_setter.set(())
-                        }
-                    }
-                />
-            </div>
-            <div class="col col-button">
-                <ShuffleIcon
-                    filled=is_shuffle.read_only()
-                    on:click=move |_| {
-                        shuffle_queue.set(());
-                    }
-                />
-            </div>
-            <div class="col col-button mr-1" on:click=add_to_fav>
-                <FavIcon filled=is_fav.read_only() />
-            </div>
-            <div class="col-md-3 col-5 align-self-center timestamp-container">
-                <div class="row no-gutters align-items-center timestamp">
-                    <div class="col-auto timestamp">{move || current_time_sig.get()}</div>
-                    <div class="col-auto timestamp timestamp-extra ml-1">
-                        / {move || total_duration_sig.get()}
-                    </div>
-                </div>
-            </div>
-        </div>
+        let options = UseEventListenerOptions::default().once(true);
+        let _ = use_event_listener_with_options(
+            sidebar,
+            transitionend,
+            move |_| {
+                style.set_property("display", "none").unwrap();
+            },
+            options,
+        );
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
-#[component]
-pub fn ExtraControls() -> impl IntoView {
-    let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
-    let (current_volume, set_current_volume) = create_slice(
-        player_store,
-        |player_store| player_store.get_raw_volume(),
-        |player_store, volume| player_store.set_volume(volume),
-    );
-
-    let is_cut = create_memo(move |_| current_volume.get() == 0f64);
-    let ui_store = expect_context::<RwSignal<UiStore>>();
-
-    let toggle_mute_sig = create_write_slice(player_store, |p, _| {
-        p.toggle_mute();
-    });
-
-    let toggle_mute = move |_| {
-        toggle_mute_sig.set(());
-    };
-
-    let show_popup_volume = create_rw_signal(false);
-    let interval = create_rw_signal::<Option<TimeoutHandle>>(None);
-
-    view! {
-        <div class="row no-gutters align-items-center justify-content-end">
-            <div
-                class="col-auto volume-slider-container d-flex"
-                class:volume-slider-show=move || show_popup_volume.get()
-                on:mouseover=move |_| {
-                    interval
-                        .update(|i| {
-                            if let Some(i) = i.take() {
-                                i.clear();
-                            }
-                        });
-                    show_popup_volume.set(true);
-                }
-                on:mouseout=move |_| {
-                    interval
-                        .update(|i| {
-                            if let Some(i) = i.take() {
-                                i.clear();
-                            }
-                            *i = Some(
-                                set_timeout_with_handle(
-                                        move || {
-                                            show_popup_volume.set(false);
-                                        },
-                                        Duration::from_millis(800),
-                                    )
-                                    .unwrap(),
-                            );
-                        });
-                }
-            >
-                <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    class="volume-slider w-100 align-self-center"
-                    prop:value=move || current_volume.get()
-                    on:input=move |ev| {
-                        set_current_volume.set(event_target_value(&ev).parse().unwrap())
-                    }
-
-                    id="myRange"
-                    aria-label="volume"
-                    style=move || {
-                        format!(
-                            "background: linear-gradient(90deg, var(--accent) 0%, var(--accent) {}%, var(--textSecondary) 0%);",
-                            current_volume.get(),
-                        )
-                    }
-                />
-
-            </div>
-            <div class="col-auto">
-                <VolumeIcon
-                    on:click=toggle_mute
-                    cut=is_cut
-                    on:mouseover=move |_| {
-                        interval
-                            .update(|i| {
-                                if let Some(i) = i.take() {
-                                    i.clear();
-                                }
-                            });
-                        show_popup_volume.set(true);
-                    }
-                    on:mouseout=move |_| {
-                        interval
-                            .update(|i| {
-                                if let Some(i) = i.take() {
-                                    i.clear();
-                                }
-                                *i = Some(
-                                    set_timeout_with_handle(
-                                            move || {
-                                                show_popup_volume.set(false);
-                                            },
-                                            Duration::from_millis(800),
-                                        )
-                                        .unwrap(),
-                                );
-                            });
-                    }
-                />
-            </div>
-            <div class="col-auto expand-icon ml-3">
-                <ExpandIcon on:click=move |_| { ui_store.update(move |s| s.toggle_show_queue()) } />
-            </div>
-        </div>
-    }
-}
-
-#[tracing::instrument(level = "trace", skip())]
-#[component]
-pub fn Slider() -> impl IntoView {
-    let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
-    let slider_process: NodeRef<html::Div> = create_node_ref();
-    let offset_width = create_rw_signal(0f64);
-
-    slider_process.on_load(move |s| {
-        offset_width.set(s.offset_width() as f64);
-    });
-    let (current_time, set_current_time) = create_slice(
-        player_store,
-        |p| p.get_current_time(),
-        move |p, val: f64| {
-            p.force_seek_percent(
-                val / slider_process.get_untracked().unwrap().offset_width() as f64,
-            )
-        },
-    );
-
-    let current_song = create_read_slice(player_store, |p| p.get_current_song());
-    let total_time = create_rw_signal(1f64);
-
+fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     let is_dragging = create_rw_signal(false);
+    let start_offset = create_rw_signal(0);
+    let page_height = create_rw_signal(0);
+    let sidebar = create_rw_signal(None);
+    let has_moved = create_rw_signal(false);
 
-    let _ = use_event_listener(use_document(), mouseup, move |evt| {
-        if is_dragging.get_untracked() {
-            tracing::debug!("dragging stop {}", evt.client_x());
-            set_current_time.set(evt.client_x() as f64);
-            is_dragging.set(false);
+    let listener = move |client_y: i32| {
+        tracing::info!("dragging musicinfo");
+        start_offset.set_untracked(client_y);
+        page_height.set_untracked(document().body().unwrap().client_height() - SIDEBAR_HEIGHT);
+        is_dragging.set_untracked(true);
+        has_moved.set_untracked(false);
+
+        let sidebar_elem = document()
+            .get_element_by_id("sidebar")
+            .map(|e| e.dyn_into::<HtmlElement>().unwrap());
+        if let Some(sidebar_elem) = sidebar_elem {
+            let style = sidebar_elem.style();
+            style.set_property("transition", "all 0s").unwrap();
+            style.set_property("display", "flex").unwrap();
+            sidebar.set_untracked(Some(sidebar_elem));
+        }
+
+        if let Some(musicbar) = musicbar.get() {
+            let _ = musicbar.style("transition", "all 0s");
+        }
+
+        if let Some(musicinfo) = musicinfo.get() {
+            let _ = musicinfo.style("transition", "all 0s");
+        }
+    };
+    let _ = use_event_listener(musicinfo, mousedown, move |ev| {
+        ev.stop_propagation();
+        listener(ev.client_y())
+    });
+
+    let _ = use_event_listener(musicinfo, touchstart, move |ev| {
+        ev.stop_propagation();
+        let touch = ev.touches().item(0);
+        if let Some(touch) = touch {
+            listener(touch.client_y())
         }
     });
 
-    create_effect(move |_| {
-        let current_song = current_song.get();
-        if let Some(current_song) = current_song {
-            if let Some(duration) = current_song.song.duration {
-                total_time.set(duration);
+    let listener = move || {
+        if is_dragging.get_untracked() {
+            tracing::info!("dragging musicinfo stop");
+            is_dragging.set_untracked(false);
+
+            if has_moved.get_untracked() {
+                transition_closed(musicbar, musicinfo, sidebar);
+            } else {
+                transition_opened(musicbar, musicinfo, sidebar);
             }
         }
+    };
+    let _ = use_event_listener(document().body(), mouseup, move |ev| {
+        ev.stop_propagation();
+        listener();
+    });
+    let _ = use_event_listener(document().body(), touchend, move |ev| {
+        ev.stop_propagation();
+        listener();
     });
 
-    view! {
-        <div class="timeline pl-2 pr-2">
-            <div
-                class="time-slider time-slider-ltr timeline pl-2 pr-2 timeline pl-2 pr-2"
-                style="padding: 5px 0px; width: auto; height: 4px;"
-            >
-                <div
-                    class="time-slider-rail"
-                    ref=slider_process
-                    on:click=move |ev| {
-                        tracing::debug!("offset {}", ev.offset_x());
-                        set_current_time.set(ev.offset_x() as f64);
+    let listener = move |client_y: i32| {
+        if is_dragging.get_untracked() {
+            if let Some(musicinfo) = musicinfo.get_untracked() {
+                if let Some(musicbar) = musicbar.get_untracked() {
+                    let start_offset = start_offset.get_untracked();
+                    let page_height = page_height.get_untracked();
+                    let client_y_diff =
+                        (client_y - start_offset).clamp(-MUSICBAR_HEIGHT, page_height);
+                    let musicbar_pos = client_y_diff - page_height;
+
+                    let _ =
+                        musicinfo.style("transform", format!("translateY({}px)", client_y_diff));
+                    let _ = musicbar.style("transform", format!("translateY({}px)", musicbar_pos));
+
+                    if let Some(sidebar) = sidebar.get_untracked() {
+                        let style = sidebar.style();
+                        let opacity = client_y_diff as f64 / start_offset as f64;
+                        style
+                            .set_property("opacity", &format!("{}", opacity))
+                            .unwrap();
                     }
-                >
 
-                    <div class="time-slider-bg">
-                        <div
-                            class="time-slider-process"
-                            style=move || {
-                                format!(
-                                    "height: 100%; top: 0px; left: 0%; width: {}%; transition-property: width, left; transition-duration: 0.1s;",
-                                    (current_time.get() / total_time.get()) * 100f64,
-                                )
-                            }
-                        ></div>
-                        <div
-                            class="time-slider-dot"
-                            role="slider"
-                            tabindex="0"
-                            style=move || {
-                                format!(
-                                    "width: 10px; height: 10px; transform: translate(-50%, -50%); top: 50%; left: {}%; transition: left 0.1s ease 0s;",
-                                    (current_time.get() / total_time.get()) * 100f64,
-                                )
-                            }
-                            on:mousedown=move |_| {
-                                tracing::debug!("dragging start");
-                                is_dragging.set(true);
-                            }
-                        >
+                    if client_y_diff.abs() > (0.2 * page_height as f64) as i32 {
+                        has_moved.set_untracked(true);
+                    }
+                }
+            }
+        }
+    };
+    let _ = use_event_listener(document().body(), mousemove, move |ev| {
+        ev.stop_propagation();
+        listener(ev.client_y())
+    });
+    let _ = use_event_listener(document().body(), touchmove, move |ev| {
+        ev.stop_propagation();
+        let touch = ev.touches().item(0);
+        if let Some(touch) = touch {
+            listener(touch.client_y())
+        }
+    });
+}
 
-                            <div class="time-slider-dot-handle"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
+fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
+    let is_dragging = create_rw_signal(false);
+    let start_offset = create_rw_signal(0);
+    let page_height = create_rw_signal(0);
+    let sidebar = create_rw_signal(None);
+    let has_moved = create_rw_signal(false);
+
+    let listener = move |client_y: i32| {
+        tracing::info!("dragging");
+        start_offset.set_untracked(client_y);
+        page_height.set_untracked(document().body().unwrap().client_height() - SIDEBAR_HEIGHT);
+        is_dragging.set_untracked(true);
+        has_moved.set_untracked(false);
+
+        let sidebar_elem = document()
+            .get_element_by_id("sidebar")
+            .map(|e| e.dyn_into::<HtmlElement>().unwrap());
+        if let Some(sidebar_elem) = sidebar_elem {
+            let style = sidebar_elem.style();
+            style.set_property("transition", "all 0s").unwrap();
+            sidebar.set_untracked(Some(sidebar_elem));
+        }
+
+        if let Some(musicbar) = musicbar.get_untracked() {
+            let _ = musicbar.style("transition", "all 0s");
+        }
+
+        if let Some(musicinfo) = musicinfo.get_untracked() {
+            let _ = musicinfo.style("transition", "all 0s");
+        }
+    };
+    let _ = use_event_listener(musicbar, mousedown, move |ev| {
+        ev.stop_propagation();
+        listener(ev.client_y())
+    });
+
+    let _ = use_event_listener(musicbar, touchstart, move |ev| {
+        ev.stop_propagation();
+        let touch = ev.touches().item(0);
+        if let Some(touch) = touch {
+            listener(touch.client_y())
+        }
+    });
+
+    let listener = move || {
+        if is_dragging.get_untracked() {
+            tracing::info!("dragging stop");
+            is_dragging.set_untracked(false);
+
+            if has_moved.get_untracked() {
+                transition_opened(musicbar, musicinfo, sidebar);
+            } else {
+                transition_closed(musicbar, musicinfo, sidebar);
+            }
+        }
+    };
+    let _ = use_event_listener(document().body(), mouseup, move |ev| {
+        ev.stop_propagation();
+        listener();
+    });
+    let _ = use_event_listener(document().body(), touchend, move |ev| {
+        ev.stop_propagation();
+        listener();
+    });
+
+    let listener = move |client_y: i32| {
+        if is_dragging.get_untracked() {
+            if let Some(musicinfo) = musicinfo.get_untracked() {
+                if let Some(musicbar) = musicbar.get_untracked() {
+                    let page_height = page_height.get_untracked();
+                    let start_offset = start_offset.get_untracked();
+                    let client_y_diff =
+                        (client_y - start_offset).clamp(-(page_height - MUSICBAR_HEIGHT), 0);
+                    let musicinfo_pos = page_height + client_y_diff;
+
+                    let _ =
+                        musicinfo.style("transform", format!("translateY({}px)", musicinfo_pos));
+                    let _ = musicbar.style("transform", format!("translateY({}px)", client_y_diff));
+
+                    if let Some(sidebar) = sidebar.get_untracked() {
+                        let style = sidebar.style();
+                        let opacity = client_y as f64 / start_offset as f64;
+                        style
+                            .set_property("opacity", &format!("{}", opacity))
+                            .unwrap();
+                    }
+
+                    if client_y_diff.abs() > (0.2 * page_height as f64) as i32 {
+                        has_moved.set_untracked(true);
+                    }
+                }
+            }
+        }
+    };
+
+    let _ = use_event_listener(document().body(), mousemove, move |ev| {
+        ev.stop_propagation();
+        listener(ev.client_y())
+    });
+    let _ = use_event_listener(document().body(), touchmove, move |ev| {
+        ev.stop_propagation();
+        let touch = ev.touches().item(0);
+        if let Some(touch) = touch {
+            listener(touch.client_y())
+        }
+    });
 }
 
 #[tracing::instrument(level = "trace")]
@@ -457,10 +298,28 @@ pub fn MusicBar() -> impl IntoView {
 
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
 
+    let musicinfo_ref = create_node_ref();
+    let musicbar_ref = create_node_ref();
+
+    if is_mobile {
+        musicbar_drag(musicbar_ref, musicinfo_ref);
+        musicinfo_drag(musicbar_ref, musicinfo_ref);
+    }
+
     view! {
         <div class="musicbar-content d-flex" class:musicbar-content-mobile=is_mobile>
-            <MusicInfo show=show_musicinfo />
-            <div class="musicbar-background w-100">
+            {move || {
+                if is_mobile {
+                    view! { <MusicInfoMobile show=show_musicinfo node_ref=musicinfo_ref /> }
+                } else {
+                    view! { <MusicInfo show=show_musicinfo node_ref=musicinfo_ref /> }
+                }
+            }}
+            <div
+                class="musicbar-background w-100"
+                class:musicinfo-show=show_musicinfo
+                node_ref=musicbar_ref
+            >
                 <div class="musicbar h-100">
                     <Slider />
                     <div class="container-fluid d-flex bar-container h-100 pb-2">

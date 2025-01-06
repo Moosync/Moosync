@@ -23,7 +23,10 @@ use crate::{
         folder_icon::FolderIcon, new_theme_icon::NewThemeIcon, theme_view_icon::ThemeViewIcon,
         tooltip::Tooltip,
     },
-    store::modal_store::{ModalStore, Modals},
+    store::{
+        modal_store::{ModalStore, Modals},
+        ui_store::UiStore,
+    },
     utils::{
         context_menu::ThemesContextMenu,
         invoke::{get_installed_extensions, load_all_themes, remove_extension},
@@ -40,7 +43,14 @@ pub fn PathsPref(
     #[prop()] key: String,
     #[prop()] title: String,
     #[prop()] tooltip: String,
+    #[prop()] mobile: bool,
 ) -> impl IntoView {
+    let ui_store = expect_context::<RwSignal<UiStore>>();
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+    if is_mobile && !mobile {
+        return view! {}.into_view();
+    }
+
     let should_write = create_rw_signal(false);
     let paths: RwSignal<Vec<String>> = create_rw_signal(vec![]);
     load_selective(key.clone(), paths.write_only());
@@ -120,7 +130,7 @@ pub fn PathsPref(
                 />
             </div>
         </div>
-    }
+    }.into_view()
 }
 
 #[tracing::instrument(level = "trace", skip(key, title, tooltip, show_input, inp_type))]
@@ -131,7 +141,14 @@ pub fn InputPref(
     #[prop()] tooltip: String,
     #[prop()] show_input: bool,
     #[prop()] inp_type: String,
+    #[prop()] mobile: bool,
 ) -> impl IntoView {
+    let ui_store = expect_context::<RwSignal<UiStore>>();
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+    if is_mobile && !mobile {
+        return view! {}.into_view();
+    }
+
     let should_write = create_rw_signal(false);
     let pref_value = create_rw_signal(Default::default());
     let pref_key = key.clone();
@@ -221,7 +238,7 @@ pub fn InputPref(
                 </div>
             </div>
         </div>
-    }
+    }.into_view()
 }
 
 #[tracing::instrument(level = "trace", skip(key, title, tooltip, items, single))]
@@ -232,7 +249,14 @@ pub fn CheckboxPref(
     #[prop()] tooltip: String,
     #[prop()] items: Vec<CheckboxItems>,
     #[prop()] single: bool,
+    #[prop()] mobile: bool,
 ) -> impl IntoView {
+    let ui_store = expect_context::<RwSignal<UiStore>>();
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+    if is_mobile && !mobile {
+        return view! {}.into_view();
+    }
+
     let should_write = create_rw_signal(false);
     let pref_value = create_rw_signal::<Vec<CheckboxPreference>>(Default::default());
     let pref_key = key;
@@ -334,7 +358,7 @@ pub fn CheckboxPref(
                 }
             />
         </div>
-    }
+    }.into_view()
 }
 
 #[tracing::instrument(level = "trace", skip(key, title, tooltip))]
@@ -564,6 +588,7 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
                                                     key=preference.key
                                                     title=preference.title
                                                     tooltip=preference.description
+                                                    mobile=true
                                                 />
                                             }
                                         }
@@ -580,6 +605,7 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
                                                         .unwrap()
                                                         .as_string()
                                                         .unwrap_or("text".to_string())
+                                                    mobile=true
                                                 />
                                             }
                                         }
@@ -591,6 +617,7 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
                                                     tooltip=preference.description
                                                     show_input=false
                                                     inp_type="".to_string()
+                                                    mobile=true
                                                 />
                                             }
                                         }
@@ -602,6 +629,7 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
                                                     tooltip=preference.description
                                                     items=preference.items.unwrap_or_default()
                                                     single=preference.single.unwrap_or_default()
+                                                    mobile=true
                                                 />
                                             }
                                         }
@@ -611,6 +639,7 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
                                                     key=preference.key
                                                     title=preference.title
                                                     tooltip=preference.description
+                                                    mobile=true
                                                 />
                                             }
                                         }
@@ -642,7 +671,14 @@ pub fn DropdownPref(
     #[prop()] key: String,
     #[prop()] title: String,
     #[prop()] tooltip: String,
+    #[prop()] mobile: bool,
 ) -> impl IntoView {
+    let ui_store = expect_context::<RwSignal<UiStore>>();
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+    if is_mobile && !mobile {
+        return view! {}.into_view();
+    }
+
     let should_write = create_rw_signal(false);
     let pref_value = create_rw_signal::<Vec<CheckboxPreference>>(Default::default());
     let pref_key = key;
@@ -714,4 +750,5 @@ pub fn DropdownPref(
 
         </div>
     }
+    .into_view()
 }

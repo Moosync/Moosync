@@ -442,7 +442,7 @@ pub fn TopBar() -> impl IntoView {
         >
             <div class="container-fluid d-flex">
                 <div class="row justify-content-start flex-grow-1">
-                    <div class="col-auto my-auto">
+                    <div class="col-auto my-auto nav-icons">
                         // Prev next buttons
                         <div class="row justify-content-between">
                             <div class="col-6">

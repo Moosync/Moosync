@@ -74,7 +74,7 @@ fn CommonApp() -> impl IntoView {
 pub fn MainApp() -> impl IntoView {
     let tabs = vec![
         Tab::new("Queue", "Queue", "queue"),
-        Tab::new("All Songs", "All Songs", "/main/allsongs"),
+        Tab::new("Songs", "Songs", "/main/allsongs"),
         Tab::new("Playlists", "Playlists", "/main/playlists"),
         Tab::new("Artists", "Artists", "/main/artists"),
         Tab::new("Albums", "Albums", "/main/albums"),
@@ -213,6 +213,11 @@ pub fn App() -> impl IntoView {
             .and_then(|v| v.as_bool())
             .unwrap_or_default();
         ui_store.update(|u| u.set_is_mobile(is_mobile));
+        let is_mobile_player = window()
+            .get("is_mobile_player")
+            .and_then(|v| v.as_bool())
+            .unwrap_or_default();
+        ui_store.update(|u| u.set_is_mobile_player(is_mobile_player));
     }
 
     provide_context(PlayerStore::new());

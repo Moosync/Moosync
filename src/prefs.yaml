@@ -7,17 +7,20 @@ page:
         description: settings.paths.songDirectories_tooltip
         title: settings.paths.songDirectories
         key: music_paths
+        mobile: false
 
       - type: DirectoryGroup
         description: settings.paths.songDirectories_exclude_tooltip
         title: settings.paths.songDirectories_exclude
         key: exclude_music_paths
+        mobile: false
 
       - type: EditText
         description: settings.paths.scan_threads_tooltip
         title: settings.paths.scan_threads
         inputType: number
         key: scan_threads
+        mobile: false
 
       - type: EditText
         description: settings.paths.splitter_tooltip
@@ -35,11 +38,14 @@ page:
         description: settings.paths.thumbnailPath_tooltip
         title: settings.paths.thumbnailPath
         key: thumbnail_path
+        mobile: false
 
       - type: FilePicker
         description: settings.paths.artworkPath_tooltip
         title: settings.paths.artworkPath
         key: artwork_path
+        mobile: false
+
   - title: sidebar.tabs.system
     path: system
     icon: System
@@ -51,10 +57,15 @@ page:
         items:
           - title: settings.system.systemSettings.systemStartup
             key: auto_startup
+            mobile: false
+
           - title: settings.system.systemSettings.minimizeTray
             key: minimize_to_tray
+            mobile: false
+
           - title: settings.system.systemSettings.enableJukeboxMode
             key: jukebox_mode
+            mobile: false
 
       - type: CheckboxGroup
         title: settings.system.queueSettings.title
@@ -69,6 +80,7 @@ page:
         description: settings.system.volumePersistMode.tooltip
         single: true
         key: volume_persist_mode
+        mobile: false
         items:
           - title: settings.system.volumePersistMode.noPersist
             key: no_persist

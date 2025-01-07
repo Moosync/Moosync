@@ -1,5 +1,6 @@
 package app.moosync.audioplayer
 
+import android.Manifest
 import android.app.Activity
 import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
@@ -9,6 +10,7 @@ import app.moosync.audioplayer.models.Song
 import app.moosync.audioplayer.services.interfaces.MediaPlayerCallbacks
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
+import app.tauri.annotation.Permission
 import app.tauri.annotation.TauriPlugin
 import app.tauri.plugin.Channel
 import app.tauri.plugin.JSObject
@@ -49,7 +51,11 @@ class SetEventHandlerArgs {
     lateinit var handler: Channel
 }
 
-@TauriPlugin
+@TauriPlugin(
+    permissions = [
+        Permission(strings = [Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.READ_MEDIA_IMAGES], alias = "readMedia")
+    ]
+)
 class AudioPlayerPlugin(private val activity: Activity): Plugin(activity) {
     private val implementation = AudioPlayerRemote(activity)
     private var channel: Channel? = null

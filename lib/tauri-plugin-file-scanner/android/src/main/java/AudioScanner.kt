@@ -7,11 +7,11 @@ import android.database.Cursor
 import android.provider.MediaStore
 import android.util.Log
 import java.io.FileNotFoundException
-import Song
-import Artist
-import Album
-import Genre
 import android.media.MediaScannerConnection
+import app.moosync.filescanner.utils.Album
+import app.moosync.filescanner.utils.Artist
+import app.moosync.filescanner.utils.Genre
+import app.moosync.filescanner.utils.Song
 import getPathFromURI
 import getUriFromID
 

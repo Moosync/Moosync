@@ -35,7 +35,6 @@
     *;
 }
 
-# Keep the custom model classes used in the service
 -keep class app.moosync.audioplayer.models.** {
     *;
 }

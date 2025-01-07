@@ -24,6 +24,7 @@ use rodio::{
     get_rodio_state, rodio_get_volume, rodio_load, rodio_pause, rodio_play, rodio_seek,
     rodio_set_volume, rodio_stop,
 };
+use tauri_plugin_audioplayer::AudioplayerExt;
 use themes::{
     download_theme, export_theme, get_css, get_theme_handler_state, get_themes_manifest,
     import_theme, load_all_themes, load_theme, remove_theme, save_theme,
@@ -40,7 +41,7 @@ use providers::handler::{
     provider_search, provider_signout, song_from_url,
 };
 use scanner::{get_scanner_state, start_scan, ScanTask};
-use tauri::{Listener, Manager, State};
+use tauri::{plugin::PermissionState, Listener, Manager, State};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{
     filter::EnvFilter,
@@ -344,6 +345,18 @@ pub fn run() {
 
             let mobile_player = MobilePlayer::new();
             app.manage(mobile_player);
+
+            #[cfg(mobile)]
+            {
+                let audioplayer = app.audioplayer();
+                if let Ok(permissions) = audioplayer.check_permissions() {
+                    if permissions.read_media != PermissionState::Granted {
+                        if let Err(e) = audioplayer.request_read_media_permission() {
+                            tracing::error!("Error requesting permissions {:?}", e);
+                        }
+                    }
+                }
+            }
 
             initial(app);
             handle_pref_changes(app.handle().clone());

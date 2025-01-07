@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use tauri::plugin::PermissionState;
 use tauri::{
     ipc::Channel,
     plugin::{PluginApi, PluginHandle},
@@ -77,6 +78,18 @@ struct UpdateNotificationStateArgs {
 #[serde(rename_all = "camelCase")]
 pub struct EventHandler {
     pub handler: Channel,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PermissionResponse {
+    pub read_media: PermissionState,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RequestPermission {
+    read_media: bool,
 }
 
 impl<R: Runtime> Audioplayer<R> {
@@ -157,5 +170,21 @@ impl<R: Runtime> Audioplayer<R> {
         );
 
         Ok(())
+    }
+
+    pub fn request_read_media_permission(&self) -> Result<PermissionState> {
+        self.0
+            .run_mobile_plugin::<PermissionResponse>(
+                "requestPermissions",
+                RequestPermission { read_media: true },
+            )
+            .map(|r| r.read_media)
+            .map_err(|e| MoosyncError::String(e.to_string()))
+    }
+
+    pub fn check_permissions(&self) -> Result<PermissionResponse> {
+        self.0
+            .run_mobile_plugin::<PermissionResponse>("checkPermissions", ())
+            .map_err(|e| MoosyncError::String(e.to_string()))
     }
 }

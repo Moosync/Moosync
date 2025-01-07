@@ -13,6 +13,9 @@ use desktop::Audioplayer;
 #[cfg(mobile)]
 use mobile::Audioplayer;
 
+#[cfg(mobile)]
+pub use mobile::{PermissionResponse, RequestPermission};
+
 /// Extensions to [`tauri::App`], [`tauri::AppHandle`] and [`tauri::Window`] to access the audioplayer APIs.
 pub trait AudioplayerExt<R: Runtime> {
     fn audioplayer(&self) -> &Audioplayer<R>;

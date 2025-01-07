@@ -1,3 +1,5 @@
+package app.moosync.filescanner.utils
+
 import java.io.Serializable
 
 data class Artist( val artist_name: String, val artist_coverpath: Any?) : Serializable

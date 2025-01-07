@@ -11,7 +11,9 @@ use crate::{
     components::cardview::{CardView, SimplifiedCardItem},
     store::{player_store::PlayerStore, provider_store::ProviderStore},
     utils::{
-        common::get_high_img, context_menu::SongItemContextMenu, db_utils::get_playlists_local,
+        common::get_high_img,
+        context_menu::{create_context_menu, SongItemContextMenu},
+        db_utils::get_playlists_local,
         invoke::get_suggestions,
     },
 };
@@ -46,7 +48,7 @@ pub fn Explore() -> impl IntoView {
         playlists,
         refresh_cb: Rc::new(Box::new(refresh_songs)),
     };
-    let song_context_menu = Rc::new(ContextMenu::new(context_menu_data));
+    let song_context_menu = create_context_menu(context_menu_data);
 
     view! {
         <div class="w-100 h-100">

@@ -6,7 +6,9 @@ use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::{PlaylistSortByColumns, UiStore};
 use crate::utils::common::{convert_file_src, fetch_infinite};
-use crate::utils::context_menu::{PlaylistContextMenu, PlaylistItemContextMenu};
+use crate::utils::context_menu::{
+    create_context_menu, PlaylistContextMenu, PlaylistItemContextMenu,
+};
 use crate::utils::db_utils::get_songs_by_option;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{
@@ -14,7 +16,7 @@ use leptos::{
     expect_context, spawn_local, use_context, view, IntoView, RwSignal, SignalGet, SignalUpdate,
     SignalWith,
 };
-use leptos_context_menu::ContextMenu;
+use leptos_context_menu::{ContextMenu, Menu};
 use leptos_router::use_query_map;
 use rand::seq::SliceRandom;
 use std::collections::HashMap;
@@ -176,7 +178,7 @@ pub fn AllPlaylists() -> impl IntoView {
     };
 
     let ui_store = expect_context::<RwSignal<UiStore>>();
-    let playlist_context_menu = ContextMenu::new(PlaylistContextMenu {
+    let playlist_context_menu = create_context_menu(PlaylistContextMenu {
         refresh_cb: refresh_playlist_items.clone(),
     });
 
@@ -196,10 +198,10 @@ pub fn AllPlaylists() -> impl IntoView {
         playlists
     });
 
-    let playlist_item_context_menu = Rc::new(ContextMenu::new(PlaylistItemContextMenu {
+    let playlist_item_context_menu = create_context_menu(PlaylistItemContextMenu {
         playlist: None,
         refresh_cb: refresh_playlist_items,
-    }));
+    });
 
     view! {
         <div class="w-100 h-100">

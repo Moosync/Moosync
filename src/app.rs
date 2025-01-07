@@ -218,6 +218,11 @@ pub fn App() -> impl IntoView {
             .and_then(|v| v.as_bool())
             .unwrap_or_default();
         ui_store.update(|u| u.set_is_mobile_player(is_mobile_player));
+
+        if is_mobile {
+            let body = document().body().unwrap();
+            body.set_class_name("body-mobile");
+        }
     }
 
     provide_context(PlayerStore::new());

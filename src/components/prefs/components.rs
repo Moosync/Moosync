@@ -28,7 +28,7 @@ use crate::{
         ui_store::UiStore,
     },
     utils::{
-        context_menu::ThemesContextMenu,
+        context_menu::{create_context_menu, ThemesContextMenu},
         invoke::{get_installed_extensions, load_all_themes, remove_extension},
         prefs::{
             load_selective, open_file_browser, open_file_browser_single, save_selective,
@@ -380,10 +380,10 @@ pub fn ThemesPref(
     let active_theme_id = create_rw_signal(String::new());
     load_selective(key, active_theme_id);
 
-    let context_menu = Rc::new(ContextMenu::new(ThemesContextMenu {
+    let context_menu = create_context_menu(ThemesContextMenu {
         id: None,
         refresh_cb: Rc::new(Box::new(load_themes)),
-    }));
+    });
 
     let modal_store: RwSignal<ModalStore> = expect_context();
     let render_themes = move || {

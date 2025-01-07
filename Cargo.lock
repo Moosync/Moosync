@@ -1512,16 +1512,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
 
 [[package]]
-name = "context_menu_macro"
-version = "0.1.0"
-source = "git+https://github.com/Ovenoboyo/leptos_context_menu#e0e6460474344e25e552236330787d208dcba84b"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.90",
-]
-
-[[package]]
 name = "convert_case"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4499,9 +4489,8 @@ dependencies = [
 [[package]]
 name = "leptos_context_menu"
 version = "0.1.0"
-source = "git+https://github.com/Ovenoboyo/leptos_context_menu#e0e6460474344e25e552236330787d208dcba84b"
+source = "git+https://github.com/Ovenoboyo/leptos_context_menu#144abd409f06dc55530667d21cc1635e45749f5e"
 dependencies = [
- "context_menu_macro",
  "leptos",
  "leptos-use",
  "uuid",
@@ -4777,7 +4766,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fc2f4eb4bc735547cfed7c0a4922cbd04a4655978c09b54f1f7b228750664c34"
 dependencies = [
  "cfg-if",
- "windows-targets 0.52.6",
+ "windows-targets 0.48.5",
 ]
 
 [[package]]
@@ -10799,7 +10788,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

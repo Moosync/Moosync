@@ -4,7 +4,7 @@ use leptos::{
     component, create_effect, create_node_ref, create_rw_signal, event_target, expect_context,
     html::Div, view, HtmlElement, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
 };
-use leptos_context_menu::{ContextMenu, ContextMenuData, ContextMenuItemInner};
+use leptos_context_menu::{ContextMenu, ContextMenuData, ContextMenuItemInner, Menu};
 use leptos_use::on_click_outside;
 use types::{songs::Song, ui::song_details::DefaultDetails, ui::song_details::SongDetailIcons};
 use web_sys::{Event, Node};
@@ -15,7 +15,7 @@ use crate::{
         songlist::{ShowProvidersArgs, SongList},
     },
     store::modal_store::{ModalStore, Modals},
-    utils::songs::get_sort_cx_items,
+    utils::{context_menu::create_context_menu, songs::get_sort_cx_items},
 };
 
 struct SongsContextMenu {
@@ -154,7 +154,7 @@ pub fn SongView(
         }
     });
 
-    let song_context_menu = ContextMenu::new(SongsContextMenu::new(song_update_request));
+    let song_context_menu = create_context_menu(SongsContextMenu::new(song_update_request));
 
     view! {
         <div

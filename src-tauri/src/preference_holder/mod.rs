@@ -150,6 +150,10 @@ pub fn initial(app: &mut App) {
     } else {
         tracing::warn!("Could not spawn scan task, no / invalid duration found");
     }
+
+    if let Err(e) = start_scan(app.handle().clone(), None) {
+        tracing::error!("Failed to scan: {:?}", e);
+    }
 }
 
 generate_command!(load_selective, PreferenceConfig, Value, key: String);

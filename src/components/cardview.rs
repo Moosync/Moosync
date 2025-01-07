@@ -6,9 +6,13 @@ use crate::{
         fav_playlist_icon::FavPlaylistIcon, play_hover_icon::PlayHoverIcon,
         song_default_icon::SongDefaultIcon,
     },
+    store::ui_store::UiStore,
     utils::common::convert_file_src,
 };
-use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
+use leptos::{
+    component, create_read_slice, create_rw_signal, expect_context, view, IntoView, RwSignal,
+    SignalGet, SignalSet,
+};
 use leptos_router::{use_navigate, NavigateOptions};
 use leptos_virtual_scroller::VirtualGridScroller;
 use serde::Serialize;
@@ -34,6 +38,7 @@ pub fn CardItem<T>(
     #[prop()] item: SimplifiedCardItem<T>,
     #[prop(optional, default = false)] songs_view: bool,
     #[prop(optional)] on_click: Option<Rc<Box<dyn Fn()>>>,
+    #[prop(optional)] is_mobile: bool,
 ) -> impl IntoView
 where
     T: Serialize,
@@ -41,7 +46,10 @@ where
     let show_default_icon = create_rw_signal(item.cover.is_none());
 
     view! {
-        <div class="card mb-2 card-grow" style="width: 200px;">
+        <div
+            class="card mb-2 card-grow"
+            style=move || if !is_mobile { "width: 200px;" } else { "width: 130px" }
+        >
             <div class="card-img-top">
                 <div class="embed-responsive embed-responsive-1by1">
                     <div class="embed-responsive-item img-container">
@@ -134,11 +142,18 @@ where
     S: SignalGet<Value = Vec<T>> + Copy + 'static,
 {
     let on_click = on_click.map(Rc::new);
+
+    let ui_store = expect_context::<RwSignal<UiStore>>();
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+
+    let item_width = if is_mobile { 150 } else { 220 };
+    let item_height = if is_mobile { 205 } else { 275 };
+
     view! {
         <VirtualGridScroller
             each=items
-            item_width=220
-            item_height=275
+            item_width=item_width
+            item_height=item_height
             children=move |data| {
                 let data1 = data.1.clone();
                 let data2 = data.1.clone();
@@ -156,6 +171,7 @@ where
                             }
                             item=card_item_data
                             songs_view=songs_view
+                            is_mobile=is_mobile
                             on_click=Rc::new(
                                 Box::new(move || {
                                     if let Some(cb) = on_click.clone() {
@@ -191,6 +207,7 @@ where
                                 }
                                 item=card_item_data
                                 songs_view=songs_view
+                                is_mobile=is_mobile
                             />
                         </div>
                     }

@@ -1,21 +1,30 @@
 use std::rc::Rc;
 
 use leptos::{
-    create_memo, expect_context, use_context, window, RwSignal, SignalGet, SignalUpdate, SignalWith,
+    create_memo, create_node_ref, create_read_slice, create_rw_signal, document,
+    ev::{click, mousedown, mousemove, mouseup},
+    expect_context, use_context, window, RwSignal, SignalGet, SignalGetUntracked,
+    SignalSetUntracked, SignalUpdate, SignalWith,
 };
-use leptos_context_menu::{ContextMenuData, ContextMenuItemInner, ContextMenuItems};
+use leptos_context_menu::{
+    BottomSheet, ContextMenu, ContextMenuData, ContextMenuItemInner, ContextMenuItems, Menu,
+};
 use leptos_router::{use_navigate, use_query_map, NavigateOptions};
+use leptos_use::use_event_listener;
 use types::{
     entities::{QueryableArtist, QueryablePlaylist},
     songs::Song,
 };
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
+use web_sys::HtmlElement;
 
 use crate::{
     modals::new_playlist_modal::PlaylistModalState,
     store::{
         modal_store::{ModalStore, Modals},
         player_store::PlayerStore,
+        ui_store::UiStore,
     },
     utils::{entities::get_playlist_sort_cx_items, songs::get_songs_from_indices},
 };
@@ -437,5 +446,18 @@ impl ContextMenuData<Self> for PlaylistItemContextMenu {
             )];
         }
         vec![]
+    }
+}
+
+pub fn create_context_menu<T>(data: T) -> Rc<Box<dyn Menu<T>>>
+where
+    T: ContextMenuData<T> + 'static,
+{
+    let ui_store = expect_context::<RwSignal<UiStore>>();
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+    if is_mobile {
+        Rc::new(Box::new(BottomSheet::new(data)))
+    } else {
+        Rc::new(Box::new(ContextMenu::new(data)))
     }
 }

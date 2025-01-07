@@ -74,7 +74,7 @@ where
                             }
                         }}
                     </div>
-                    <div class="row no-gutters w-100">
+                    <div class="row no-gutters w-100 flex-nowrap text-truncate">
                         <ArtistList artists=song.artists />
                     </div>
 
@@ -128,6 +128,28 @@ pub fn MusicInfoMobile(
         "00:00".to_string()
     });
 
+    let canvaz_sig = create_rw_signal(None);
+    create_effect(move |_| {
+        let current_song = current_song.get();
+        if let Some(current_song) = current_song {
+            if current_song.song.type_ == SongType::SPOTIFY
+                && current_song.song.playback_url.is_some()
+            {
+                spawn_local(async move {
+                    let res = crate::utils::invoke::get_canvaz(
+                        current_song.song.playback_url.unwrap().clone(),
+                    )
+                    .await;
+                    if let Ok(res) = res {
+                        canvaz_sig.set(res.canvases.first().map(|c| c.url.clone()));
+                    } else {
+                        tracing::error!("Failed to get canvaz {:?}", res)
+                    }
+                });
+            }
+        }
+    });
+
     view! {
         <div
             class="slider"
@@ -138,7 +160,23 @@ pub fn MusicInfoMobile(
         >
 
             <div class="container-fluid w-100 h-100 music-info-container">
-                <div class="row no-gutters">
+                {move || {
+                    let current_song = current_song.get();
+                    if current_song.is_none() {
+                        return view! {}.into_view();
+                    }
+                    let canvas_url = canvaz_sig.get();
+                    let high_img = current_song.map(|current_song| get_high_img(&current_song));
+                    if let Some(canvas_url) = canvas_url {
+                        view! {
+                            <div class="dark-overlay" style="top: 0px;"></div>
+                            <video class="canvaz-vid" src=canvas_url autoplay loop muted />
+                        }
+                            .into_view()
+                    } else {
+                        view! {}.into_view()
+                    }
+                }} <div class="row no-gutters">
                     <div class="col col-auto">
                         <AudioStream />
                     </div>
@@ -166,23 +204,17 @@ pub fn MusicInfoMobile(
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="row no-gutters song-info-container">
+                </div> <div class="row no-gutters song-info-container">
                     <div class="col song-title-details text-truncate">{song_title}</div>
-                </div>
-                <div class="row no-gutters song-info-container">
+                </div> <div class="row no-gutters song-info-container">
                     <div class="col song-subtitle-details text-truncate">{song_subtitle}</div>
-                </div>
-
-                <div class="row no-gutters time-container">
+                </div> <div class="row no-gutters time-container">
                     <div class="col col-auto current-time-container">{current_time}</div>
                     <div class="col slider-container">
                         <Slider />
                     </div>
                     <div class="col col-auto total-time-container">{total_time}</div>
-                </div>
-
-                <div class="row no-gutters controls-container">
+                </div> <div class="row no-gutters controls-container">
                     <div class="col">
                         <Controls show_time=false show_fav=false />
                     </div>

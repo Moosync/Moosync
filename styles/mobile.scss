@@ -39,6 +39,10 @@
                 display: none !important;
             }
 
+            > .button-bar.button-active > .icon-padding-open > .text-padding {
+                opacity: 1;
+            }
+
             > .button-bar {
                 margin-top: 0px;
                 > .icon-padding-open.icon-transition {
@@ -54,7 +58,11 @@
                 }
 
                 > .icon-padding-open > .text-padding {
+                    opacity: 0;
                     padding-left: 0px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    transition: opacity 0.2s;
                 }
 
                 > .icon-padding-open > .icon {
@@ -226,6 +234,28 @@
         background: transparent;
     }
 
+    > div > .song-container {
+        padding-right: 0px;
+        padding-left: 0px;
+
+        > .compact-container > .song-list-compact > div > .container-fluid {
+            padding-left: 10px;
+        }
+    }
+
+    > div
+        > .song-container
+        > div
+        > div
+        > #scroller
+        > div
+        > div
+        > .card
+        > .card-body
+        > .card-title {
+        font-size: 16px;
+    }
+
     > div
         > div
         > div
@@ -236,6 +266,58 @@
 
         > div.container-fluid.tab-carousel {
             display: none !important;
+        }
+
+        > div.row.no-gutters > .scroller {
+            padding-right: 0px;
+        }
+
+        > div.row.no-gutters > .scroller > div > #scroller > div > .wrapper {
+            padding-right: 0px;
+            > div {
+                > .img-container {
+                    width: 45px;
+                    height: 45px;
+                    margin-right: 10px;
+
+                    > .img-container {
+                        width: 45px;
+                        height: 45px;
+
+                        > img,
+                        svg {
+                            width: 45px;
+                            height: 45px;
+                            min-width: 45px;
+                            margin-right: 10px;
+                        }
+
+                        > .play-button-song-list {
+                            display: none !important;
+                        }
+                    }
+                }
+
+                > div > div > div {
+                    > .title {
+                        font-size: 14px;
+                    }
+
+                    > div > .song-subtitle {
+                        font-size: 12px;
+                    }
+                }
+
+                > .ellipsis-icon {
+                    display: block;
+                    padding: 0 !important;
+                    margin: 0 0 0 10px !important;
+                    transform: rotate(90deg);
+                }
+                > .timestamp {
+                    display: none;
+                }
+            }
         }
 
         > div.container-fluid.tab-carousel.tab-carousel-show-mobile {
@@ -278,6 +360,14 @@
     .main-container-mobile > div > .song-container {
         display: block;
 
+        > .page-title {
+            display: none;
+        }
+
+        > .compact-container {
+            padding-top: 0px;
+        }
+
         // Song details
         > div > .song-details-container {
             display: none;
@@ -300,4 +390,41 @@
 
 .musicinfo-mobile-cover-container {
     justify-content: center;
+}
+
+.body-mobile {
+    * > img,
+    svg {
+        user-drag: none;
+        -webkit-user-drag: none;
+        user-select: none;
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+    }
+}
+
+.body-mobile > .context-menu-root {
+    > .context-menu-outer {
+        background-color: rgba(0, 0, 0, 0.85) !important;
+        z-index: 1005;
+        max-width: unset !important;
+
+        :last-child {
+            margin-bottom: 0px;
+        }
+
+        :first-child {
+            margin-top: 0px;
+        }
+
+        > .bottom-sheet-container {
+            background-color: var(--secondary) !important;
+            > .context-menu-item.context-menu-open {
+                background-color: var(--secondary);
+                color: var(--textPrimary);
+                padding: 10px 15px;
+            }
+        }
+    }
 }

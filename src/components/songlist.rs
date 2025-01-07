@@ -1,4 +1,7 @@
-use std::rc::Rc;
+use std::{
+    rc::Rc,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 use itertools::Itertools;
 use leptos::{
@@ -30,17 +33,18 @@ use crate::{
     },
     utils::{
         common::{format_duration, get_low_img},
-        context_menu::{SongItemContextMenu, SortContextMenu},
+        context_menu::{create_context_menu, SongItemContextMenu, SortContextMenu},
         db_utils::get_playlists_local,
     },
 };
 
-#[tracing::instrument(level = "trace", skip(song, is_selected, on_context_menu))]
+#[tracing::instrument(level = "trace", skip(song, is_selected, on_context_menu, on_click))]
 #[component()]
 pub fn SongListItem(
     #[prop()] song: Song,
     #[prop()] is_selected: Box<dyn Fn() -> bool>,
-    #[prop()] on_context_menu: impl Fn(MouseEvent) + 'static,
+    #[prop()] on_context_menu: impl Fn((MouseEvent, bool)) + 'static,
+    #[prop()] on_click: impl Fn(MouseEvent) + 'static,
 ) -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
     let play_now = create_write_slice(player_store, |store, value| store.play_now(value));
@@ -55,7 +59,8 @@ pub fn SongListItem(
         <div
             class="container-fluid wrapper w-100 mb-3"
             class:selectedItem=is_selected
-            on:contextmenu=move |ev| on_context_menu.as_ref()(ev)
+            on:click=on_click
+            on:contextmenu=move |ev| on_context_menu.as_ref()((ev, false))
         >
             <div class="row no-gutters align-content-center w-100">
                 <LowImg
@@ -65,7 +70,7 @@ pub fn SongListItem(
                     play_now=move || play_now.set(song_cloned.clone())
                 />
 
-                <div class="col-5 align-self-center ml-2">
+                <div class="col-8 col-md-5 align-self-center ml-2">
                     <div class="row no-gutters align-items-center">
                         <div class="col-auto d-flex">
                             <div class="title text-truncate mr-2">
@@ -82,7 +87,7 @@ pub fn SongListItem(
                         </div>
                     </div>
                     <div class="row no-gutters flex-nowrap">
-                        <div class="row no-gutters w-100">
+                        <div class="row no-gutters w-100 flex-nowrap text-truncate">
                             <ArtistList artists=song.artists />
                         </div>
                     </div>
@@ -103,7 +108,12 @@ pub fn SongListItem(
 
                 <div
                     class="col-auto align-self-center ml-5 mr-3 py-2 ellipsis-icon"
-                    on:click=move |ev| on_context_menu_cl.as_ref()(ev)
+                    on:click=move |ev| {
+                        tracing::info!("got click");
+                        ev.stop_propagation();
+                        ev.prevent_default();
+                        on_context_menu_cl.as_ref()((ev, true))
+                    }
                 >
                     <EllipsisIcon />
                 </div>
@@ -150,14 +160,19 @@ pub fn SongList(
 
     let provider_store = expect_context::<Rc<ProviderStore>>();
 
+    let ui_store: RwSignal<UiStore> = expect_context();
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+
     let filter = create_rw_signal(None::<String>);
 
     let playlists = create_rw_signal(vec![]);
     get_playlists_local(playlists);
 
-    let ui_store: RwSignal<UiStore> = expect_context();
     let songs_sort = create_read_slice(ui_store, |u| u.get_song_sort_by());
     let sort_icon_rotated = create_read_slice(ui_store, |u| u.get_song_sort_by().asc);
+
+    let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
+    let play_now = create_write_slice(player_store, |store, value| store.play_now(value));
 
     let sorted_songs = create_memo(move |_| {
         let sort = songs_sort.get();
@@ -257,7 +272,7 @@ pub fn SongList(
     };
 
     let add_to_selected = move |index: usize| {
-        let is_ctrl_pressed = is_ctrl_pressed.get();
+        let is_ctrl_pressed_val = is_ctrl_pressed.get();
         let is_shift_pressed = is_shift_pressed.get();
 
         if is_shift_pressed {
@@ -284,13 +299,31 @@ pub fn SongList(
             return;
         }
 
-        if is_ctrl_pressed {
-            selected_songs_sig.update(move |s| {
-                s.push(get_actual_position(index));
+        if is_ctrl_pressed_val {
+            let is_removing = AtomicBool::new(false);
+            selected_songs_sig.update(|s| {
+                let actual_pos = get_actual_position(index);
+                if let Some((i, _)) = s.iter().find_position(|pos| **pos == actual_pos) {
+                    s.remove(i);
+                    is_removing.store(true, Ordering::Relaxed);
+                } else {
+                    s.push(actual_pos);
+                }
             });
             filtered_selected.update(|s| {
-                s.push(index);
+                if is_removing.load(Ordering::Relaxed) {
+                    if let Some((i, _)) = s.iter().find_position(|i| **i == index) {
+                        s.remove(i);
+                    }
+                } else {
+                    s.push(index);
+                }
             });
+
+            if is_ctrl_pressed_val && is_mobile && selected_songs_sig.get_untracked().is_empty() {
+                is_ctrl_pressed.set(false);
+            }
+
             return;
         }
 
@@ -317,9 +350,9 @@ pub fn SongList(
         playlists,
         refresh_cb: Rc::new(Box::new(refresh_cb)),
     };
-    let song_context_menu = Rc::new(ContextMenu::new(context_menu_data));
+    let song_context_menu = create_context_menu(context_menu_data);
 
-    let sort_context_menu = Rc::new(ContextMenu::new(SortContextMenu {}));
+    let sort_context_menu = create_context_menu(SortContextMenu {});
 
     let should_add_to_selected = move |index: usize| {
         let selected = filtered_selected.get_untracked();
@@ -336,8 +369,6 @@ pub fn SongList(
             fetch_next_page();
         }
     });
-
-    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
 
     view! {
         <div class="d-flex h-100 w-100">
@@ -426,7 +457,13 @@ pub fn SongList(
                 <div class="row no-gutters h-100">
                     <div
                         class="scroller w-100 full-height"
-                        style="height: calc(100% - 53px) !important;"
+                        style=move || {
+                            if !is_mobile {
+                                "height: calc(100% - 53px) !important;"
+                            } else {
+                                "height: 100% !important"
+                            }
+                        }
                     >
 
                         <VirtualScroller
@@ -436,23 +473,36 @@ pub fn SongList(
                             inner_el_style="width: calc(100% - 15px);"
                             children=move |(index, song)| {
                                 let song_cl = song.clone();
+                                let song_cl1 = song.clone();
                                 let song_context_menu = song_context_menu.clone();
                                 view! {
                                     <SongListItem
-                                        on:click=move |_| add_to_selected(index)
+                                        on_click=move |_| {
+                                            if is_mobile && !is_ctrl_pressed.get_untracked() {
+                                                play_now.set(song_cl1.clone());
+                                            } else {
+                                                is_ctrl_pressed.set(true);
+                                                add_to_selected(index);
+                                            }
+                                        }
                                         is_selected=Box::new(move || {
                                             filtered_selected.get().contains(&index)
                                         })
-                                        on_context_menu=move |ev: MouseEvent| {
+                                        on_context_menu=move |(ev, is_button): (MouseEvent, bool)| {
                                             ev.prevent_default();
                                             ev.stop_propagation();
-                                            if should_add_to_selected(index) {
+                                            if is_mobile && !is_button {
+                                                is_ctrl_pressed.set(true);
                                                 add_to_selected(index);
+                                            } else {
+                                                if should_add_to_selected(index) {
+                                                    add_to_selected(index);
+                                                }
+                                                let mut data = song_context_menu.get_data();
+                                                data.current_song = Some(song_cl.clone());
+                                                drop(data);
+                                                song_context_menu.show(ev);
                                             }
-                                            let mut data = song_context_menu.get_data();
-                                            data.current_song = Some(song_cl.clone());
-                                            drop(data);
-                                            song_context_menu.show(ev);
                                         }
 
                                         song=song.clone()

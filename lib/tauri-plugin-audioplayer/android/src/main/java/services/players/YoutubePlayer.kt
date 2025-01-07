@@ -27,6 +27,69 @@ class YoutubePlayer(mContext: Context) : GenericPlayer() {
             override fun onYouTubePlayer(youTubePlayer: YouTubePlayer) {
                 playerInstance = youTubePlayer
                 isInitialized = true
+                playerInstance!!.addListener(object : YouTubePlayerListener {
+                    override fun onApiChange(youTubePlayer: YouTubePlayer) {}
+
+                    override fun onCurrentSecond(youTubePlayer: YouTubePlayer, second: Float) {
+                        _progress = second
+                        emitInListeners { it.onTimeChange(key,  (second * 1000).toInt()) }
+                    }
+
+                    override fun onError(
+                        youTubePlayer: YouTubePlayer,
+                        error: PlayerConstants.PlayerError
+                    ) {
+                    }
+
+                    override fun onPlaybackQualityChange(
+                        youTubePlayer: YouTubePlayer,
+                        playbackQuality: PlayerConstants.PlaybackQuality
+                    ) {
+                    }
+
+                    override fun onPlaybackRateChange(
+                        youTubePlayer: YouTubePlayer,
+                        playbackRate: PlayerConstants.PlaybackRate
+                    ) {
+                    }
+
+                    override fun onReady(youTubePlayer: YouTubePlayer) {}
+
+                    override fun onStateChange(
+                        youTubePlayer: YouTubePlayer,
+                        state: PlayerConstants.PlayerState
+                    ) {
+                        _isPlaying = when (state) {
+                            PlayerConstants.PlayerState.UNKNOWN -> false
+                            PlayerConstants.PlayerState.UNSTARTED -> false
+                            PlayerConstants.PlayerState.ENDED -> {
+                                emitInListeners { it.onSongEnded(key) }
+                                false
+                            }
+
+                            PlayerConstants.PlayerState.PLAYING -> true
+                            PlayerConstants.PlayerState.PAUSED -> false
+                            PlayerConstants.PlayerState.BUFFERING -> false
+                            PlayerConstants.PlayerState.VIDEO_CUED -> handleVideoLoad()
+                        }
+
+                        Log.d("TAG", "onStateChange: $state")
+                    }
+
+                    override fun onVideoDuration(youTubePlayer: YouTubePlayer, duration: Float) {
+                    }
+
+                    override fun onVideoId(youTubePlayer: YouTubePlayer, videoId: String) {
+                        youTubePlayer.play()
+                    }
+
+                    override fun onVideoLoadedFraction(
+                        youTubePlayer: YouTubePlayer,
+                        loadedFraction: Float
+                    ) {
+                    }
+                })
+                Log.d("TAG", "onYouTubePlayer: Initialized youtube player")
             }
         })
     }
@@ -61,14 +124,17 @@ class YoutubePlayer(mContext: Context) : GenericPlayer() {
 
     override fun load(mContext: Context, src: String, autoPlay: Boolean) {
         val videoId = if (isVideoId(src)) src else getVideoIdFromURL(src)
+        Log.d("TAG", "load: loading video $videoId")
         if (isInitialized && videoId != null) {
             playerInstance!!.cueVideo(videoId, 0F)
+            playerInstance!!.setVolume(100)
             isLoadingVideo = true
             shouldPlayOnVideoLoad = autoPlay
         }
     }
 
     override fun play() {
+        Log.d("TAG", "play: Youtube player initialized $isInitialized")
         if (isInitialized) {
             if (isLoadingVideo) {
                 playerStateActionQueue.add(PlaybackState.PLAYING)
@@ -103,91 +169,46 @@ class YoutubePlayer(mContext: Context) : GenericPlayer() {
         _playerView.release()
     }
 
-    private var youtubePlayerListener: YoutubePlayerListener? = null
+    private var youtubePlayerListener: MutableList<PlayerListeners> = mutableListOf()
 
     override fun setPlayerListeners(playerListeners: PlayerListeners) {
-        youtubePlayerListener = YoutubePlayerListener(playerListeners)
-        playerInstance?.addListener(youtubePlayerListener!!)
+        youtubePlayerListener.add(playerListeners)
     }
 
-    override fun removePlayerListeners() {
-        if (youtubePlayerListener != null) {
-            playerInstance?.removeListener(youtubePlayerListener!!)
+    fun emitInListeners(callback: (c: PlayerListeners) -> Unit) {
+        for (listener in youtubePlayerListener) {
+            callback.invoke(listener)
         }
     }
 
-    private fun handleVideoLoad() {
+    override fun removePlayerListeners() {
+        youtubePlayerListener.clear()
+    }
+
+    private fun handleVideoLoad(): Boolean {
         val tmpList = playerStateActionQueue
 
+        var isPlaying = false
+        Log.d("TAG", "handleVideoLoad: got video load")
         if (shouldPlayOnVideoLoad) {
             if (!(tmpList.contains(PlaybackState.PAUSED) || tmpList.contains(PlaybackState.STOPPED))) {
                 playerInstance!!.play()
+                isPlaying = true
             }
         }
 
         for (action in tmpList) {
-            when(action) {
-                PlaybackState.PLAYING -> playerInstance!!.play()
+            when (action) {
+                PlaybackState.PLAYING -> {
+                    playerInstance!!.play()
+                    isPlaying = true
+                }
                 PlaybackState.PAUSED, PlaybackState.STOPPED -> playerInstance!!.pause()
             }
         }
 
         isLoadingVideo = false
+        return isPlaying
     }
 
-    inner class YoutubePlayerListener(private val playerListeners: PlayerListeners) :
-        YouTubePlayerListener {
-        override fun onApiChange(youTubePlayer: YouTubePlayer) {}
-
-        override fun onCurrentSecond(youTubePlayer: YouTubePlayer, second: Float) {
-            _progress = second
-            playerListeners.onTimeChange(key, (second * 1000).toInt())
-        }
-
-        override fun onError(youTubePlayer: YouTubePlayer, error: PlayerConstants.PlayerError) {}
-
-        override fun onPlaybackQualityChange(
-            youTubePlayer: YouTubePlayer,
-            playbackQuality: PlayerConstants.PlaybackQuality
-        ) {}
-
-        override fun onPlaybackRateChange(
-            youTubePlayer: YouTubePlayer,
-            playbackRate: PlayerConstants.PlaybackRate
-        ) {}
-
-        override fun onReady(youTubePlayer: YouTubePlayer) {}
-
-        override fun onStateChange(
-            youTubePlayer: YouTubePlayer,
-            state: PlayerConstants.PlayerState
-        ) {
-            _isPlaying = when (state) {
-                PlayerConstants.PlayerState.UNKNOWN -> false
-                PlayerConstants.PlayerState.UNSTARTED -> false
-                PlayerConstants.PlayerState.ENDED -> {
-                    playerListeners.onSongEnded(key)
-                    false
-                }
-                PlayerConstants.PlayerState.PLAYING -> true
-                PlayerConstants.PlayerState.PAUSED -> false
-                PlayerConstants.PlayerState.BUFFERING -> false
-                PlayerConstants.PlayerState.VIDEO_CUED -> {
-                    handleVideoLoad()
-                    false
-                }
-            }
-
-            Log.d("TAG", "onStateChange: $state")
-        }
-
-        override fun onVideoDuration(youTubePlayer: YouTubePlayer, duration: Float) {}
-
-        override fun onVideoId(youTubePlayer: YouTubePlayer, videoId: String) {
-            Log.d("TAG", "onVideoId: $videoId")
-            youTubePlayer.play()
-        }
-
-        override fun onVideoLoadedFraction(youTubePlayer: YouTubePlayer, loadedFraction: Float) {}
-    }
 }

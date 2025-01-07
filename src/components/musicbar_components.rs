@@ -79,7 +79,7 @@ pub fn Details() -> impl IntoView {
                     </div>
                 </div>
 
-                <div class="row no-gutters w-100">
+                <div class="row no-gutters w-100 flex-nowrap text-truncate">
                     {move || {
                         let artists = artists_list.get();
                         view! { <ArtistList artists=Some(artists) /> }

@@ -14,7 +14,7 @@ use diesel::{
 };
 use serde::{Deserialize, Serialize};
 
-#[cfg(not(feature = "extensions"))]
+#[cfg(any(feature = "core", feature = "ui"))]
 use uuid::Uuid;
 
 #[cfg(feature = "core")]
@@ -181,7 +181,7 @@ impl PartialEq for QueryableSong {
 
 impl Eq for QueryableSong {}
 
-#[cfg(not(feature = "extensions"))]
+#[cfg(any(feature = "core", feature = "ui"))]
 impl QueryableSong {
     #[tracing::instrument(level = "trace", skip())]
     pub fn empty() -> Self {
@@ -192,7 +192,7 @@ impl QueryableSong {
     }
 }
 
-#[cfg(not(feature = "extensions"))]
+#[cfg(any(feature = "core", feature = "ui"))]
 impl SearchByTerm for QueryableSong {
     #[tracing::instrument(level = "trace", skip(term))]
     fn search_by_term(term: Option<String>) -> Self {

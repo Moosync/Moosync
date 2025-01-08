@@ -43,6 +43,8 @@ wasm-bindgen = { version = "0.2", optional = true, default-features = false }
 zip = { version = "2.2.1", optional = true, default-features = false }
 bitcode = { version = "0.6.3" }
 rodio = "0.19.0"
+extism-convert = { version = "1.9.1", optional = true }
+
 
 [target.'cfg(windows)'.dependencies]
 libsqlite3-sys = { version = "0.30.1", optional = true, features = ["bundled"] }
@@ -51,8 +53,6 @@ libsqlite3-sys = { version = "0.30.1", optional = true, features = ["bundled"] }
 souvlaki = { version = "0.7.3", features = [
     "use_zbus",
 ], optional = true, default-features = false }
-
-extism-convert = { version = "1.9.1", optional = true }
 
 
 [features]
@@ -80,5 +80,7 @@ core = [
     "dep:json_dotpath",
     "dep:libsqlite3-sys",
     "dep:extism-convert",
+    "dep:uuid",
 ]
 default = ["core"]
+librespot = ["dep:librespot", "dep:reqwest", "dep:protobuf"]

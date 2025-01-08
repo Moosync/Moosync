@@ -27,6 +27,7 @@ pub struct ThemeDetails {
 
 impl ThemeDetails {
     #[tracing::instrument(level = "trace", skip())]
+    #[cfg(any(feature = "core", feature = "ui"))]
     pub fn new() -> Self {
         Self {
             name: "New theme".into(),

@@ -92,6 +92,12 @@ pub struct RequestPermission {
     read_media: bool,
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TokenArgs {
+    token: String,
+}
+
 impl<R: Runtime> Audioplayer<R> {
     pub fn load(&self, key: String, src: String, autoplay: bool) -> Result<()> {
         let res: serde_json::Value = self
@@ -185,6 +191,12 @@ impl<R: Runtime> Audioplayer<R> {
     pub fn check_permissions(&self) -> Result<PermissionResponse> {
         self.0
             .run_mobile_plugin::<PermissionResponse>("checkPermissions", ())
+            .map_err(|e| MoosyncError::String(e.to_string()))
+    }
+
+    pub fn initialize_librespot(&self, token: String) -> Result<()> {
+        self.0
+            .run_mobile_plugin("initializeLibrespot", TokenArgs { token })
             .map_err(|e| MoosyncError::String(e.to_string()))
     }
 }

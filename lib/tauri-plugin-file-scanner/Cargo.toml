@@ -12,7 +12,7 @@ links = "tauri-plugin-file-scanner"
 tauri = { version = "2.1.0" }
 serde = "1.0"
 thiserror = "2"
-types = { path = "../../src-tauri/types", default_features = false }
+types = { path = "../../src-tauri/types" }
 serde_json = "1.0.134"
 
 [build-dependencies]

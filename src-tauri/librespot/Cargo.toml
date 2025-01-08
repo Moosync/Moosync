@@ -15,7 +15,9 @@ protobuf = { version = "3.7.1", default-features = false, features = ["bytes"] }
 reqwest = { version = "0.12.9", default-features = false }
 serde = { version = "1.0", default-features = false }
 tokio = { version = "1.42.0", default-features = false }
-types = { path = "../types", features = [] }
+types = { path = "../types", features = [
+    "librespot",
+], default-features = false }
 futures = "0.3.31"
 env_logger = "0.11.6"
 uuid = "1.11.0"

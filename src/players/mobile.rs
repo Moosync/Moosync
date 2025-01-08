@@ -202,6 +202,10 @@ impl GenericPlayer for MobilePlayer {
             if self.key == "YOUTUBE" {
                 return playback_url.len() == 11 || playback_url.starts_with("https://");
             }
+
+            if self.key == "LIBRESPOT" {
+                return playback_url.starts_with("spotify:");
+            }
         }
 
         false

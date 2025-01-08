@@ -51,7 +51,10 @@ url-escape = "0.1.1"
 
 [workspace]
 resolver = "2"
-exclude = ["lib/extensions-wasm/wasm-extension-rs"]
+exclude = [
+    "lib/extensions-wasm/wasm-extension-rs",
+    "lib/tauri-plugin-audioplayer/android/librespot-jni",
+]
 members = [
     "src-tauri",
     "src-tauri/database",

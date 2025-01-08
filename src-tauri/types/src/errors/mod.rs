@@ -37,7 +37,10 @@ use hex::FromHexError;
 use image::ImageError;
 #[cfg(all(not(feature = "extensions"), feature = "core"))]
 use keyring::Error as KeyringError;
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
+#[cfg(all(
+    not(feature = "extensions"),
+    any(feature = "core", feature = "librespot")
+))]
 use librespot::core::Error as LibrespotError;
 #[cfg(all(not(feature = "extensions"), feature = "core"))]
 use lofty::error::LoftyError;
@@ -84,16 +87,16 @@ pub enum MoosyncError {
     #[cfg_attr(feature = "core", error(transparent))]
     #[cfg(feature = "core")]
     JWalkError(#[from] jwalk::Error),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
+    #[cfg_attr(any(feature = "core", feature = "librespot"), error(transparent))]
+    #[cfg(any(feature = "core", feature = "librespot"))]
     Librespot(#[from] LibrespotError),
     #[error(transparent)]
     UTF8(#[from] FromUtf8Error),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
+    #[cfg_attr(any(feature = "core", feature = "librespot"), error(transparent))]
+    #[cfg(any(feature = "core", feature = "librespot"))]
     Reqwest(#[from] reqwest::Error),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
+    #[cfg_attr(any(feature = "core", feature = "librespot"), error(transparent))]
+    #[cfg(any(feature = "core", feature = "librespot"))]
     ProtoBuf(#[from] protobuf::Error),
     #[error("{0}")]
     String(String),

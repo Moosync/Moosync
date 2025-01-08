@@ -29,6 +29,7 @@ class NotificationHandler (
     var notification: Notification? = null
 
     init {
+        createNotification()
         // Cancel all notifications
         notificationManager.cancelAll()
         createNotificationChannel()

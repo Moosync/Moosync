@@ -94,7 +94,7 @@ pub fn run() {
         .expect("Failed to install rustls crypto provider");
 
     let filter = if cfg!(mobile) {
-        EnvFilter::try_new("debug").unwrap()
+        EnvFilter::try_new("error").unwrap()
     } else {
         EnvFilter::from_env("MOOSYNC_LOG")
     };

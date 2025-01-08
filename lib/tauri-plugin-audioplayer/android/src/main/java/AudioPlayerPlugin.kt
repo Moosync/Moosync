@@ -51,6 +51,11 @@ class SetEventHandlerArgs {
     lateinit var handler: Channel
 }
 
+@InvokeArg
+class TokenArgs {
+    lateinit var token: String
+}
+
 @TauriPlugin(
     permissions = [
         Permission(strings = [Manifest.permission.READ_MEDIA_AUDIO, Manifest.permission.READ_MEDIA_IMAGES], alias = "readMedia")
@@ -206,6 +211,13 @@ class AudioPlayerPlugin(private val activity: Activity): Plugin(activity) {
     fun setEventHandler(invoke: Invoke) {
         val args = invoke.parseArgs(SetEventHandlerArgs::class.java)
         this.channel = args.handler
+        invoke.resolve()
+    }
+
+    @Command
+    fun initializeLibrespot(invoke: Invoke) {
+        val args = invoke.parseArgs(TokenArgs::class.java)
+        implementation.controls?.initializeLibrespot(args.token)
         invoke.resolve()
     }
 }

@@ -91,6 +91,9 @@ impl PlayerHolder {
 
             let librespot_player = LibrespotPlayer::new();
             players.push(Box::new(librespot_player));
+
+            // let mobile_player_librespot = MobilePlayer::new("LIBRESPOT".into());
+            // players.push(Box::new(mobile_player_librespot));
         }
 
         let holder = PlayerHolder {

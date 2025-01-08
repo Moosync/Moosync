@@ -140,7 +140,7 @@ class AudioPlayerRemote private constructor(activity: Activity) {
             intent.putExtra(ACTION_FROM_MAIN_ACTIVITY, true)
 
             // Start service as foreground
-            mContextWrapper.startService(intent)
+            mContextWrapper.startForegroundService(intent)
 
             mContextWrapper.bindService(
                 Intent().setClass(

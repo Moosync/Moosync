@@ -5,8 +5,6 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
 import app.moosync.audioplayer.R
 import app.moosync.audioplayer.models.MetadataArgs
-import app.moosync.audioplayer.models.PlaybackState
-import app.moosync.audioplayer.models.Song
 import app.moosync.audioplayer.services.interfaces.MediaControls
 import app.moosync.audioplayer.services.interfaces.MediaPlayerCallbacks
 import app.moosync.audioplayer.services.players.PlayerListeners
@@ -137,6 +135,10 @@ class MediaController(private val mContext: Context) {
             override fun updatePlayerState(isPlaying: Boolean, pos: Int) {
                 mediaSessionHandler.updatePlayerState(isPlaying, pos)
                 notificationManager.updateMetadata()
+            }
+
+            override fun initializeLibrespot(token: String) {
+                playbackManager.initializeLibrespot(token)
             }
         }
     }

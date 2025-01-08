@@ -57,7 +57,7 @@ extism-convert = { version = "1.9.1", optional = true }
 
 [features]
 ui = ["dep:wasm-bindgen", "dep:serde-wasm-bindgen", "dep:uuid"]
-extensions = []
+extensions = ["dep:uuid", "dep:extism-convert"]
 core = [
     "dep:rusty_ytdl",
     "dep:tauri",

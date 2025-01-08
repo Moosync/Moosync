@@ -10,303 +10,107 @@ use std::{
     thread,
 };
 
-use command_group::CommandGroup;
+use ext_runner::{
+    ExtCommandReceiver, ExtCommandSender, ExtensionHandlerInner, MainCommandReceiver,
+    MainCommandReplyReceiver, MainCommandReplySender, MainCommandSender,
+};
 use fs_extra::dir::CopyOptions;
-use futures::{
-    channel::mpsc::{channel, unbounded, Receiver, UnboundedSender},
-    lock::Mutex,
-    SinkExt,
-};
-use futures::{future::join_all, StreamExt};
-use interprocess::local_socket::{
-    traits::tokio::Listener, GenericFilePath, GenericNamespaced, ListenerOptions, NameType,
-    ToFsName, ToNsName,
-};
+use futures::{executor::block_on, future::join_all, StreamExt};
+use futures::{lock::Mutex, SinkExt};
 use serde_json::Value;
-use socket_handler::{ExtensionCommandReceiver, MainCommandSender, SocketHandler};
+use tokio::{
+    select,
+    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+};
 use types::{
     errors::{MoosyncError, Result},
     extensions::{
-        AccountLoginArgs, ContextMenuActionArgs, ExtensionAccountDetail, ExtensionContextMenuItem,
-        ExtensionDetail, ExtensionExtraEventArgs, ExtensionManifest, ExtensionProviderScope,
-        FetchedExtensionManifest, GenericExtensionHostRequest, PackageNameArgs, ToggleExtArgs,
+        ExtensionCommand, ExtensionCommandResponse, ExtensionManifest, ExtensionProviderScope,
+        GenericExtensionHostRequest, MainCommand, MainCommandResponse, RunnerCommand,
+        RunnerCommandResp,
+    },
+    ui::extensions::{
+        AccountLoginArgs, ExtensionAccountDetail, ExtensionDetail, ExtensionExtraEventArgs,
+        FetchedExtensionManifest, PackageNameArgs,
     },
 };
-use uuid::Uuid;
 use zip_extensions::zip_extract;
 
-mod socket_handler;
+mod ext_runner;
 
-// const CREATE_NO_WINDOW: u32 = 0x08000000;
+type ReplyMapExtReplySender =
+    UnboundedSender<GenericExtensionHostRequest<HashMap<String, ExtensionCommandResponse>>>;
 
-macro_rules! helper1 {
-    // Internal helper macro to handle request creation and transformation
-    ($self:ident, $req_type:expr, $data:expr) => {
-        async {
-            let value = GenericExtensionHostRequest {
-                type_: $req_type.into(),
-                channel: Uuid::new_v4().to_string(),
-                data: $data,
-            };
-            $self.broadcast(serde_json::to_value(value)?).await
-        }
-    };
+type UiRequestSender = UnboundedSender<GenericExtensionHostRequest<MainCommand>>;
+type UiRequestReceiver = UnboundedReceiver<GenericExtensionHostRequest<MainCommand>>;
 
-    // Any other type
-    ($self:ident, $arg:ident, $res:expr, $ret_type:ty) => {{
-        tracing::debug!("parsing response {:?} {:?}", $arg, $res);
-        let package_name = if let Some(arg) = $arg {
-            arg.package_name
-        } else {
-            String::new()
-        };
+type UiReplySender = UnboundedSender<GenericExtensionHostRequest<MainCommandResponse>>;
+type UiReplyReceiver = UnboundedReceiver<GenericExtensionHostRequest<MainCommandResponse>>;
 
-        if package_name.is_empty() {
-            return Ok(Default::default());
-        }
-
-        if let Ok(data) = $self
-            .get_extension_response(package_name.clone(), &mut $res)
-            .await
-        {
-            tracing::debug!("parsed response {:?}", data);
-            if data.is_null() {
-                return Ok(Default::default());
-            }
-            let parsed = serde_json::from_value(data)?;
-            return Ok(parsed);
-        }
-
-        return Err(format!(
-            "Failed to parse data from {} in {:?} as {}",
-            package_name,
-            $res,
-            stringify!($ret_type)
-        )
-        .into());
-    }};
+enum ExtensionCommandResponseExtended {
+    Resp(ExtensionCommandResponse),
+    None,
 }
 
-macro_rules! helper {
-    ($func_name:ident, $req_type:expr, $ret_type:ty, $arg:ty) => {
-        #[tracing::instrument(level = "trace", skip(self))]
-        pub async fn $func_name(&self, arg: $arg) -> Result<$ret_type> {
-            let mut res = helper1!(self, $req_type, Some(arg.clone())).await?;
-
-            let arg = Some(arg);
-            helper1!(self, arg, res, $ret_type)
-        }
-    };
-
-    ($func_name:ident, $req_type:expr, $ret_type:ty) => {
-        #[tracing::instrument(level = "trace", skip(self))]
-        pub async fn $func_name(&self) -> Result<$ret_type> {
-            let mut res = helper1!(self, $req_type, None::<()>).await?;
-
-            let arg = None::<PackageNameArgs>;
-            helper1!(self, arg, res, $ret_type)
-        }
-    };
-}
-
-macro_rules! create_extension_function {
-    (
-            $(
-                ($func_name:ident, $req_type:expr, $ret_type:ty $(, $arg:ty)?)
-            ),+ $(,)?
-        ) => {
-            $(
-
-                helper!($func_name, $req_type, $ret_type $(, $arg)?);
-            )+
-
-        }
-}
-
-type SenderMap = HashMap<String, UnboundedSender<(MainCommandSender, Value)>>;
-
-#[derive(Debug)]
 pub struct ExtensionHandler {
-    pub ipc_path: PathBuf,
     pub extensions_dir: PathBuf,
     pub tmp_dir: PathBuf,
-    sender_map: Arc<Mutex<SenderMap>>,
-    extension_runner_map: Mutex<HashMap<String, String>>,
+    inner: Arc<Mutex<ExtensionHandlerInner>>,
 }
 
 impl ExtensionHandler {
     #[tracing::instrument(level = "trace", skip(extensions_dir, tmp_dir))]
-    pub fn new(extensions_dir: PathBuf, tmp_dir: PathBuf) -> Self {
-        let ipc_path = extensions_dir.join("ipc/ipc.sock");
-        if !ipc_path.parent().unwrap().exists() {
-            fs::create_dir_all(ipc_path.parent().unwrap()).unwrap();
-        }
+    pub fn new(
+        extensions_dir: PathBuf,
+        tmp_dir: PathBuf,
+    ) -> (Self, UiRequestReceiver, UiReplySender) {
+        let (ext_command_tx, ext_command_rx) = unbounded_channel();
+        let (ui_request_tx, ui_request_rx) = unbounded_channel();
+        let (ui_reply_tx, ui_reply_rx) = unbounded_channel();
 
-        if ipc_path.exists() {
-            fs::remove_file(ipc_path.clone()).unwrap();
-        }
-
-        Self {
-            ipc_path,
+        let ret = Self {
+            inner: Arc::new(Mutex::new(ExtensionHandlerInner::new(
+                &extensions_dir,
+                ext_command_tx,
+            ))),
             extensions_dir,
             tmp_dir,
-            sender_map: Arc::new(Mutex::new(HashMap::new())),
-            extension_runner_map: Mutex::new(HashMap::new()),
-        }
+        };
+
+        ret.listen_ext_reply_and_command(ext_command_rx, ui_request_tx, ui_reply_rx);
+
+        (ret, ui_request_rx, ui_reply_tx)
     }
 
-    fn get_builder(&self, exe_path: PathBuf) -> Command {
-        let exe_path_clone = exe_path.clone();
-        let mut builder = Command::new(exe_path_clone);
-        builder.args([
-            "-ipcPath",
-            self.ipc_path.to_str().unwrap(),
-            "-extensionPath",
-            self.extensions_dir.to_str().unwrap(),
-            "-installPath",
-            exe_path.to_str().unwrap(),
-        ]);
-
-        // #[cfg(target_os = "windows")]
-        // {
-        //     builder.creation_flags(CREATE_NO_WINDOW);
-        // }
-
-        builder
-    }
-
-    #[tracing::instrument(level = "trace", skip(self))]
-    fn spawn_ext_runners(&self) {
-        #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        {
-            let exe_path = env::current_exe().unwrap();
-            let exe_path = exe_path.parent().unwrap().join("exthost-wasm");
-
-            let mut builder = self.get_builder(exe_path.clone());
-            builder.group_spawn().unwrap();
-        }
-    }
-
-    #[tracing::instrument(level = "trace", skip(self))]
-    pub fn listen_socket(&self) -> Result<Receiver<ExtensionCommandReceiver>> {
-        let sender_map = self.sender_map.clone();
-        let (tx_listen, rx_listen) = channel(1);
-
-        let ipc_path = self.ipc_path.clone();
+    fn listen_ext_reply_and_command(
+        &self,
+        mut ext_command_rx: ExtCommandReceiver,
+        ui_request_tx: UiRequestSender,
+        mut ui_reply_rx: UiReplyReceiver,
+    ) {
+        let inner = self.inner.clone();
         thread::spawn(move || {
-            let runtime = tokio::runtime::Builder::new_current_thread()
-                .enable_io()
-                .build()
-                .unwrap();
-
-            let ipc_path = if GenericNamespaced::is_supported() {
-                ipc_path
-                    .file_name()
-                    .unwrap()
-                    .to_ns_name::<GenericNamespaced>()
-            } else {
-                ipc_path.clone().to_fs_name::<GenericFilePath>()
-            };
-
-            runtime.block_on(async move {
-                let opts = ListenerOptions::new().name(ipc_path.unwrap());
-                let sock_listener = opts.create_tokio().unwrap();
-
+            block_on(async move {
                 loop {
-                    tracing::info!("Listening on socket");
-                    let conn = sock_listener.accept().await;
-                    let (tx_main_command, rx_main_command) = unbounded();
-                    let (tx_ext_command, rx_ext_command) = unbounded();
-                    match conn {
-                        Ok(conn) => {
-                            let sender_map = sender_map.clone();
-                            let mut tx_listen = tx_listen.clone();
-                            tokio::spawn(async move {
-                                let handler =
-                                    SocketHandler::new(conn, rx_main_command, tx_ext_command);
-                                let uuid = uuid::Uuid::new_v4().to_string();
-                                let mut sender_map_lock = sender_map.lock().await;
-                                sender_map_lock.insert(uuid.clone(), tx_main_command);
-                                drop(sender_map_lock);
-                                tx_listen.send(rx_ext_command).await.unwrap();
-                                tracing::info!("Handling extension socket connections");
-                                tokio::select! {
-                                    _ = handler.handle_main_command() => {}
-                                    _ = handler.handle_connection() => {}
-                                };
-                                let mut sender_map = sender_map.lock().await;
-                                sender_map.remove(&uuid)
-                            });
+                    tracing::info!("handling ext commands");
+                    select! {
+                        resp = ext_command_rx.recv() => {
+                            if let Some(resp) = resp {
+                                tracing::trace!("Got ext command {:?}", resp);
+                                ui_request_tx.send(resp).unwrap();
+                            }
                         }
-                        Err(e) => tracing::info!("Extension socket failed to listen {}", e),
-                    };
-                }
-            });
-        });
-
-        self.spawn_ext_runners();
-
-        Ok(rx_listen)
-    }
-
-    #[tracing::instrument(level = "trace", skip(self))]
-    pub async fn broadcast(&self, value: Value) -> Result<HashMap<String, Value>> {
-        let mut to_remove_senders = vec![];
-        let mut sender_map = self.sender_map.lock().await;
-        tracing::trace!("Broadcasting command");
-        let mut rx_map = HashMap::new();
-        for (key, tx) in sender_map.iter() {
-            tracing::debug!("Broadcasting command to {} {:?}", key, value);
-            let (tx_r, rx_r) = channel(1);
-            let res = tx.clone().send((tx_r, value.clone())).await.map_err(|_| {
-                MoosyncError::String(format!(
-                    "Failed to send command to extension backend {}",
-                    key
-                ))
-            });
-            if let Err(e) = res {
-                tracing::error!("{}", e);
-                to_remove_senders.push(key.clone());
-                continue;
-            }
-            rx_map.insert(key.clone(), Mutex::new(rx_r));
-            tracing::debug!("Broadcasted command");
-        }
-
-        if !to_remove_senders.is_empty() {
-            for key in to_remove_senders {
-                sender_map.remove(&key);
-            }
-        }
-
-        drop(sender_map);
-
-        let ret = Arc::new(Mutex::new(HashMap::new()));
-        let mut promises = vec![];
-        for (key, rx) in rx_map.iter() {
-            let ret = ret.clone();
-            let promise = async move {
-                if let Some(res) = rx.lock().await.next().await {
-                    tracing::trace!("Got reply from runner {}: {:?}", key, res);
-                    match res {
-                        Ok(res) => {
-                            let mut ret = ret.lock().await;
-                            ret.insert(key.clone(), res);
-                        }
-                        Err(e) => {
-                            tracing::error!("Failed to get response from extension runner {}", e)
+                        resp = ui_reply_rx.recv() => {
+                            if let Some(resp) = resp {
+                                tracing::trace!("Got ui reply {:?} {:?}", resp, inner);
+                                let inner = inner.lock().await;
+                                inner.handle_main_command_reply(&resp).unwrap();
+                            }
                         }
                     }
                 }
-            };
-            promises.push(promise);
-        }
-
-        join_all(promises).await;
-
-        let ret = ret.lock().await;
-        tracing::trace!(result = ?ret, "Got extension runners response");
-        Ok(ret.clone())
+            });
+        });
     }
 
     #[tracing::instrument(level = "trace", skip(self, ext_path))]
@@ -436,47 +240,125 @@ impl ExtensionHandler {
         Ok(())
     }
 
+    async fn send_remove_extension(&self, package_name: PackageNameArgs) -> Result<()> {
+        let mut inner = self.inner.lock().await;
+        inner
+            .handle_runner_command(RunnerCommand::RemoveExtension(package_name))
+            .await?;
+        Ok(())
+    }
+
+    async fn find_new_extensions(&self) -> Result<()> {
+        let mut inner = self.inner.lock().await;
+        inner
+            .handle_runner_command(RunnerCommand::FindNewExtensions)
+            .await?;
+        Ok(())
+    }
+
     #[tracing::instrument(level = "trace", skip(self))]
-    pub async fn get_installed_extensions(&self) -> Result<HashMap<String, Vec<ExtensionDetail>>> {
-        let args = serde_json::to_value(GenericExtensionHostRequest {
-            type_: "getInstalledExtensions".to_string(),
-            channel: Uuid::new_v4().to_string(),
-            data: None::<()>,
-        })
-        .unwrap();
-        let mut res = self.broadcast(args).await?;
+    pub async fn get_installed_extensions(&self) -> Result<Vec<ExtensionDetail>> {
+        let mut inner = self.inner.lock().await;
+        let ret = inner
+            .handle_runner_command(RunnerCommand::GetInstalledExtensions)
+            .await?;
+        if let RunnerCommandResp::ExtensionList(list) = ret {
+            return Ok(list);
+        }
+        Err("Failed to retrieve extensions list".into())
+    }
 
-        let mut extension_runner_map = self.extension_runner_map.lock().await;
+    pub async fn get_extension_icon(&self, args: PackageNameArgs) -> Result<String> {
+        let mut inner = self.inner.lock().await;
+        let ret = inner
+            .handle_runner_command(RunnerCommand::GetExtensionIcon(args))
+            .await?;
+        if let RunnerCommandResp::ExtensionIcon(Some(icon)) = ret {
+            return Ok(icon);
+        }
+        Err("Could not find extension icon".into())
+    }
 
-        Ok(res
-            .iter_mut()
-            .filter_map(|(key, value)| {
-                let value = serde_json::from_value::<Vec<ExtensionDetail>>(value.clone());
-                if let Ok(mut value) = value {
-                    for extension in value.iter_mut() {
-                        // Record runner for each extension
-                        extension_runner_map.insert(extension.package_name.clone(), key.clone());
+    async fn send_extension_command(
+        &self,
+        command: ExtensionCommand,
+        wait: bool,
+    ) -> Result<ExtensionCommandResponse> {
+        tracing::trace!("Sending extension command {:?}", command);
+        let (tx, mut rx) = unbounded_channel();
 
-                        for preferences in extension.preferences.iter_mut() {
-                            if !preferences
-                                .key
-                                .starts_with(&format!("extension.{}", extension.package_name))
-                            {
-                                preferences.key = format!(
-                                    "extension.{}.{}",
-                                    extension.package_name, preferences.key
-                                );
-                            }
-                        }
-                    }
+        {
+            let mut inner = self.inner.lock().await;
+            if let Err(e) = inner.handle_extension_command(&command, tx).await {
+                tracing::error!("Failed to execute command {:?}: {:?}", command, e);
+                return Err(e);
+            }
+        }
 
-                    Some((key.clone(), value))
-                } else {
-                    tracing::info!("Error parsing extension detail {:?}", value);
-                    None
-                }
-            })
-            .collect())
+        tracing::trace!("Should wait for response {}", wait);
+        if wait {
+            if let Some(resp) = rx.recv().await {
+                return Ok(resp);
+            }
+        }
+
+        Ok(ExtensionCommandResponse::Empty)
+    }
+
+    pub async fn send_extra_event(&self, args: ExtensionExtraEventArgs) -> Result<Value> {
+        let package_name = args.package_name.clone();
+        let resp = self
+            .send_extension_command(
+                ExtensionCommand::ExtraExtensionEvent(args),
+                !package_name.is_empty(),
+            )
+            .await?;
+
+        if !package_name.is_empty() {
+            if let ExtensionCommandResponse::ExtraExtensionEvent(resp) = resp {
+                return Ok(serde_json::to_value(resp).unwrap());
+            }
+
+            Err("Extension sent invalid reply".into())
+        } else {
+            Ok(Value::Null)
+        }
+    }
+
+    pub async fn get_provider_scopes(
+        &self,
+        package_name: PackageNameArgs,
+    ) -> Result<Vec<ExtensionProviderScope>> {
+        let resp = self
+            .send_extension_command(
+                ExtensionCommand::GetProviderScopes(package_name.clone()),
+                true,
+            )
+            .await?;
+        if let ExtensionCommandResponse::GetProviderScopes(scopes) = resp {
+            return Ok(scopes);
+        }
+        Ok(vec![])
+    }
+
+    pub async fn get_accounts(
+        &self,
+        package_name: PackageNameArgs,
+    ) -> Result<Vec<ExtensionAccountDetail>> {
+        let resp = self
+            .send_extension_command(ExtensionCommand::GetAccounts(package_name.clone()), true)
+            .await?;
+        if let ExtensionCommandResponse::GetAccounts(accounts) = resp {
+            return Ok(accounts);
+        }
+        Ok(vec![])
+    }
+
+    pub async fn account_login(&self, args: AccountLoginArgs) -> Result<()> {
+        self.send_extension_command(ExtensionCommand::PerformAccountLogin(args), false)
+            .await?;
+
+        Ok(())
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -545,39 +427,18 @@ impl ExtensionHandler {
         Ok(ret)
     }
 
-    async fn get_extension_response(
-        &self,
-        ext_name: String,
-        data: &mut HashMap<String, Value>,
-    ) -> Result<Value> {
-        let ext_runner_map = self.extension_runner_map.lock().await;
-        if let Some(runner_id) = ext_runner_map.get(&ext_name) {
-            if let Some(value) = data.remove(runner_id) {
-                if value.is_null() {
-                    return Ok(Value::Null);
-                }
-                let mut parsed_value: HashMap<String, Value> = serde_json::from_value(value)?;
-                if let Some(value) = parsed_value.remove(&ext_name) {
-                    return Ok(value);
-                }
-            }
-        }
-
-        Err("Cannot extract data".into())
-    }
-
-    create_extension_function!(
-        (find_new_extensions, "findNewExtensions", Option<()>),
-        (get_provider_scopes, "getExtensionProviderScopes", Vec<ExtensionProviderScope>, PackageNameArgs),
-        (get_extension_icon, "getExtensionIcon", String, PackageNameArgs),
-        (toggle_extension, "toggleExtensionStatus", Option<()>, ToggleExtArgs),
-        (send_remove_extension, "removeExtension", Option<()>, PackageNameArgs),
-        (stop_process, "stopProcess", Option<()>),
-        (get_context_menu, "getExtensionContextMenu", Vec<ExtensionContextMenuItem>, PackageNameArgs),
-        (fire_context_menu_action, "onClickedContextMenu", Option<()>, ContextMenuActionArgs),
-        (get_accounts, "getAccounts", Vec<ExtensionAccountDetail>, PackageNameArgs),
-        (account_login, "performAccountLogin", Option<()>, AccountLoginArgs),
-        (get_display_name, "getDisplayName", String, PackageNameArgs),
-        (send_extra_event, "extraExtensionEvents", Value, ExtensionExtraEventArgs),
-    );
+    // create_extension_function!(
+    //     (find_new_extensions, "findNewExtensions", Option<()>),
+    //     (get_provider_scopes, "getExtensionProviderScopes", Vec<ExtensionProviderScope>, PackageNameArgs),
+    //     (get_extension_icon, "getExtensionIcon", String, PackageNameArgs),
+    //     (toggle_extension, "toggleExtensionStatus", Option<()>, ToggleExtArgs),
+    //     (send_remove_extension, "removeExtension", Option<()>, PackageNameArgs),
+    //     (stop_process, "stopProcess", Option<()>),
+    //     (get_context_menu, "getExtensionContextMenu", Vec<ExtensionContextMenuItem>, PackageNameArgs),
+    //     (fire_context_menu_action, "onClickedContextMenu", Option<()>, ContextMenuActionArgs),
+    //     (get_accounts, "getAccounts", Vec<ExtensionAccountDetail>, PackageNameArgs),
+    //     (account_login, "performAccountLogin", Option<()>, AccountLoginArgs),
+    //     (get_display_name, "getDisplayName", String, PackageNameArgs),
+    //     (send_extra_event, "extraExtensionEvents", Value, ExtensionExtraEventArgs),
+    // );
 }

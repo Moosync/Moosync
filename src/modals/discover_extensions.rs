@@ -2,17 +2,17 @@ use leptos::{
     component, create_rw_signal, create_write_slice, expect_context, spawn_local, view, For,
     IntoView, RwSignal, SignalGet, SignalSet,
 };
+use types::ui::extensions::FetchedExtensionManifest;
 
 use crate::{
-    modals::common::GenericModal,
-    store::modal_store::ModalStore,
+    modals::common::GenericModal, store::modal_store::ModalStore,
     utils::invoke::get_extension_manifest,
 };
 
 #[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn DiscoverExtensionsModal() -> impl IntoView {
-    let extensions = create_rw_signal(vec![]);
+    let extensions = create_rw_signal::<Vec<FetchedExtensionManifest>>(vec![]);
     spawn_local(async move {
         let res = get_extension_manifest().await.unwrap();
 

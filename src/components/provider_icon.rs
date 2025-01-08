@@ -1,5 +1,5 @@
 use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
-use types::extensions::PackageNameArgs;
+use types::ui::extensions::PackageNameArgs;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{

@@ -4,9 +4,12 @@ use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use types::{
+    entities::{GetEntityOptions, QueryablePlaylist},
     errors::{MoosyncError, Result},
-    extensions::{AddToPlaylistRequest, ExtensionUIRequest, PreferenceData},
+    extensions::{MainCommand, MainCommandResponse},
     songs::{GetSongOptions, SearchableSong, Song},
+    ui::extensions::ExtensionUIRequest,
+    ui::extensions::{AddToPlaylistRequest, PreferenceData},
 };
 
 use crate::{providers::handler::ProviderHandler, window::handler::WindowHandler};
@@ -22,207 +25,150 @@ impl ReplyHandler {
         ReplyHandler { app_handle }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, type_))]
-    fn is_main_command(&self, type_: &str) -> bool {
-        [
-            "getSongs",
-            "getEntity",
-            "addSong",
-            "updateSong",
-            "addPlaylist",
-            "addSongToPlaylist",
-            "removeSong",
-            "getPreferences",
-            "getSecurePreferences",
-            "setPreferences",
-            "setSecurePreferences",
-            "registerOauth",
-            "openExternal",
-            "registerAccount",
-            "setArtistEditableInfo",
-            "setAlbumEditableInfo",
-        ]
-        .contains(&type_)
-    }
-
-    #[tracing::instrument(level = "trace", skip(self, type_))]
-    fn is_update(&self, type_: &str) -> bool {
-        type_ == "extensionsUpdated"
-    }
-
-    #[tracing::instrument(level = "trace", skip(self, type_))]
-    fn is_ui_request(&self, type_: &str) -> bool {
-        [
-            "getCurrentSong",
-            "getVolume",
-            "getTime",
-            "getQueue",
-            "getPlayerState",
-            "openLoginModal",
-            "closeLoginModal",
-            "showToast",
-        ]
-        .contains(&type_)
-    }
-
     #[tracing::instrument(level = "trace", skip(self, data))]
-    pub fn get_songs(&self, data: Value) -> Result<Value> {
+    pub fn get_songs(&self, mut data: GetSongOptions) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
-        let mut request: GetSongOptions = serde_json::from_value(data)?;
-
-        if request.album.is_none()
-            && request.artist.is_none()
-            && request.album.is_none()
-            && request.song.is_none()
+        if data.album.is_none()
+            && data.artist.is_none()
+            && data.album.is_none()
+            && data.song.is_none()
         {
-            request.song = Some(SearchableSong::default());
+            data.song = Some(SearchableSong::default());
         }
 
-        let ret = database.get_songs_by_options(request)?;
-        Ok(serde_json::to_value(ret)?)
+        let ret = database.get_songs_by_options(data)?;
+        Ok(MainCommandResponse::GetSong(ret))
     }
 
     #[tracing::instrument(level = "trace", skip(self, data))]
-    pub fn get_entity(&self, data: Value) -> Result<Value> {
+    pub fn get_entity(&self, data: GetEntityOptions) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
-        let ret = database.get_entity_by_options(serde_json::from_value(data)?)?;
-        Ok(serde_json::to_value(ret)?)
+        let ret = database.get_entity_by_options(data)?;
+        Ok(MainCommandResponse::GetEntity(ret))
     }
 
     #[tracing::instrument(level = "trace", skip(self, data))]
-    pub fn add_songs(&self, data: Value) -> Result<Value> {
+    pub fn add_songs(&self, data: Vec<Song>) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
-        let ret = database.insert_songs(serde_json::from_value(data.clone())?)?;
-        Ok(serde_json::to_value(ret)?)
+        let ret = database.insert_songs(data)?;
+        Ok(MainCommandResponse::AddSongs(ret))
     }
 
     #[tracing::instrument(level = "trace", skip(self, data))]
-    pub fn update_song(&self, data: Value) -> Result<Value> {
+    pub fn update_song(&self, data: Song) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
-        database.update_songs(vec![serde_json::from_value(data.clone())?])?;
-        Ok(data)
+        database.update_songs(vec![data.clone()])?;
+        Ok(MainCommandResponse::UpdateSong(data))
     }
 
     #[tracing::instrument(level = "trace", skip(self, data))]
-    pub fn add_playlist(&self, data: Value) -> Result<Value> {
+    pub fn add_playlist(&self, data: QueryablePlaylist) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
-        let ret = database.create_playlist(serde_json::from_value(data)?)?;
-        Ok(serde_json::to_value(ret)?)
+        let ret = database.create_playlist(data)?;
+        Ok(MainCommandResponse::AddPlaylist(ret))
     }
 
     #[tracing::instrument(level = "trace", skip(self, data))]
-    pub fn add_to_playlist(&self, data: Value) -> Result<Value> {
+    pub fn add_to_playlist(
+        &self,
+        playlist_id: String,
+        data: Vec<Song>,
+    ) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
-        let request: AddToPlaylistRequest = serde_json::from_value(data)?;
-        database.add_to_playlist(request.playlist_id, request.songs)?;
-        Ok(Value::Null)
+        if let Err(e) = database.add_to_playlist(playlist_id, data) {
+            tracing::error!("Failed to add songs to playlist {:?}", e);
+            Ok(MainCommandResponse::AddToPlaylist(false))
+        } else {
+            Ok(MainCommandResponse::AddToPlaylist(true))
+        }
     }
 
     #[tracing::instrument(level = "trace", skip(self, data))]
-    pub fn remove_song(&self, data: Value) -> Result<Value> {
+    pub fn remove_song(&self, data: Song) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
-        let request: Song = serde_json::from_value(data)?;
-        if let Some(song_id) = request.song._id {
+        if let Some(song_id) = data.song._id {
             database.remove_songs(vec![song_id])?;
         }
-        Ok(Value::Null)
+        Ok(MainCommandResponse::RemoveSong(true))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, _data))]
-    pub fn set_artist_editable_info(&self, _data: Value) -> Result<Value> {
-        // TODO: Implement
-        Ok(Value::Null)
-    }
-
-    #[tracing::instrument(level = "trace", skip(self, _data))]
-    pub fn set_album_editable_info(&self, _data: Value) -> Result<Value> {
-        // TODO: Implement
-        Ok(Value::Null)
-    }
-
-    #[tracing::instrument(level = "trace", skip(self, package_name, data))]
-    pub fn get_preferences(&self, package_name: String, data: Value) -> Result<Value> {
+    #[tracing::instrument(level = "trace", skip(self, data))]
+    pub fn get_preferences(&self, data: PreferenceData) -> Result<MainCommandResponse> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
-        let request: PreferenceData = serde_json::from_value(data)?;
-        let ret: Result<Value> =
-            preferences.load_selective(format!("extension.{}.{}", package_name, request.key));
+        let ret: Result<Value> = preferences.load_selective(data.key.clone());
         Ok(match ret {
-            Ok(v) => v,
-            Err(_) => serde_json::to_value(&request.default_value)?,
+            Ok(v) => MainCommandResponse::GetPreference(PreferenceData {
+                key: data.key,
+                value: Some(v),
+                default_value: None,
+            }),
+            Err(_) => MainCommandResponse::GetPreference(PreferenceData {
+                key: data.key,
+                value: data.default_value,
+                default_value: None,
+            }),
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self, package_name, data))]
-    pub fn set_preferences(&self, package_name: String, data: Value) -> Result<Value> {
+    #[tracing::instrument(level = "trace", skip(self, data))]
+    pub fn set_preferences(&self, data: PreferenceData) -> Result<MainCommandResponse> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
-        let request: PreferenceData = serde_json::from_value(data)?;
-        preferences.save_selective(
-            format!("extension.{}.{}", package_name, request.key),
-            request.value,
-        )?;
-        Ok(Value::Null)
-    }
-
-    #[tracing::instrument(level = "trace", skip(self, package_name, data))]
-    pub fn get_secure(&self, package_name: String, data: Value) -> Result<Value> {
-        let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
-        let request: PreferenceData = serde_json::from_value(data)?;
-        preferences.get_secure(format!("extension.{}.{}", package_name, request.key))
-    }
-
-    #[tracing::instrument(level = "trace", skip(self, package_name, data))]
-    pub fn set_secure(&self, package_name: String, data: Value) -> Result<Value> {
-        let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
-        let request: PreferenceData = serde_json::from_value(data)?;
-        preferences.set_secure(
-            format!("extension.{}.{}", package_name, request.key),
-            request.value,
-        )?;
-
-        Ok(Value::Null)
-    }
-
-    #[tracing::instrument(level = "trace", skip(self, _data))]
-    pub fn register_oauth(&self, _data: Value) -> Result<Value> {
-        // TODO: Implement oauth registration
-        Ok(Value::Null)
+        preferences.save_selective(data.key, data.value)?;
+        Ok(MainCommandResponse::SetPreference(true))
     }
 
     #[tracing::instrument(level = "trace", skip(self, data))]
-    pub fn open_external(&self, data: Value) -> Result<Value> {
-        if data.is_string() {
-            let window_handler: State<WindowHandler> = self.app_handle.state();
-            window_handler.open_external(self.app_handle.clone(), data.as_str().unwrap().into())?;
+    pub fn get_secure(&self, data: PreferenceData) -> Result<MainCommandResponse> {
+        let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
+        let val = preferences.get_secure(data.key.clone())?;
+        Ok(MainCommandResponse::GetPreference(PreferenceData {
+            key: data.key,
+            value: val,
+            default_value: None,
+        }))
+    }
+
+    #[tracing::instrument(level = "trace", skip(self, data))]
+    pub fn set_secure(&self, data: PreferenceData) -> Result<MainCommandResponse> {
+        let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
+        preferences.set_secure(data.key, data.value)?;
+
+        Ok(MainCommandResponse::SetSecure(true))
+    }
+
+    #[tracing::instrument(level = "trace", skip(self, _data))]
+    pub fn register_oauth(&self, _data: String) -> Result<MainCommandResponse> {
+        // TODO: Implement oauth registration
+        Ok(MainCommandResponse::RegisterOAuth(false))
+    }
+
+    #[tracing::instrument(level = "trace", skip(self, data))]
+    pub fn open_external(&self, data: String) -> Result<MainCommandResponse> {
+        let window_handler: State<WindowHandler> = self.app_handle.state();
+        window_handler.open_external(self.app_handle.clone(), data)?;
+
+        Ok(MainCommandResponse::OpenExternalUrl(true))
+    }
+
+    fn update_accounts(&self, key: Option<String>) -> Result<MainCommandResponse> {
+        let app_handle = self.app_handle.clone();
+        if let Some(key) = key {
+            tauri::async_runtime::spawn(async move {
+                let provider_handler: State<ProviderHandler> = app_handle.state();
+                let _ = provider_handler.request_account_status(key).await;
+            });
         }
-        Ok(Value::Null)
+        Ok(MainCommandResponse::UpdateAccounts(true))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, package_name))]
-    fn register_account(&self, package_name: String) -> Result<Value> {
-        let app_handle = self.app_handle.clone();
-        tauri::async_runtime::spawn(async move {
-            let provider_handler: State<ProviderHandler> = app_handle.state();
-            provider_handler.initialize_provider(package_name).await;
-        });
-        Ok(Value::Null)
-    }
-
-    fn update_accounts(&self, key: String) -> Result<Value> {
-        let app_handle = self.app_handle.clone();
-        tauri::async_runtime::spawn(async move {
-            let provider_handler: State<ProviderHandler> = app_handle.state();
-            let _ = provider_handler.request_account_status(key).await;
-        });
-        Ok(Value::Null)
-    }
-
-    #[tracing::instrument(level = "trace", skip(self, request))]
-    async fn send_ui_request(&self, request: ExtensionUIRequest) -> Result<Value> {
+    #[tracing::instrument(level = "trace", skip(self, command))]
+    async fn send_ui_request(&self, command: MainCommand) -> Result<MainCommandResponse> {
         if self.app_handle.webview_windows().is_empty() {
-            return Ok(Value::Null);
+            return Err("No webview spawned yet".into());
         }
 
         let (tx, rx) = oneshot::channel();
+        let request = command.to_ui_request()?;
         self.app_handle
             .once(format!("ui-reply-{}", request.channel), move |f| {
                 let payload = f.payload().to_string();
@@ -233,81 +179,69 @@ impl ReplyHandler {
         tracing::debug!("sent ui request {:?}", request);
 
         let res = rx.await;
-        if let Ok(data) = res {
-            tracing::debug!("got ui reply {:?}", data);
-            Ok(serde_json::from_str(&data)?)
-        } else {
-            Ok(Value::Null)
-        }
 
-        // Ok(Value::Null)
+        match res {
+            Ok(data) => match command {
+                MainCommand::GetCurrentSong() => Ok(MainCommandResponse::GetCurrentSong(
+                    serde_json::from_str(&data)?,
+                )),
+                MainCommand::GetPlayerState() => Ok(MainCommandResponse::GetPlayerState(
+                    serde_json::from_str(&data)?,
+                )),
+                MainCommand::GetVolume() => {
+                    Ok(MainCommandResponse::GetVolume(serde_json::from_str(&data)?))
+                }
+                MainCommand::GetTime() => {
+                    Ok(MainCommandResponse::GetTime(serde_json::from_str(&data)?))
+                }
+                MainCommand::GetQueue() => {
+                    Ok(MainCommandResponse::GetQueue(serde_json::from_str(&data)?))
+                }
+                _ => Err("Not a ui request".into()),
+            },
+            Err(_) => Err("Failed to get response from UI".into()),
+        }
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    pub async fn extension_updated(&self) -> Result<Value> {
+    pub async fn extension_updated(&self) -> Result<MainCommandResponse> {
         tracing::debug!("Got extension updated");
         let provider_handle: State<ProviderHandler> = self.app_handle.state();
         provider_handle.discover_provider_extensions().await?;
         tracing::debug!("Updated extension");
-        Ok(Value::Null)
+        Ok(MainCommandResponse::ExtensionsUpdated(true))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, value))]
-    pub async fn handle_request(&self, value: &Value) -> Result<Vec<u8>> {
-        tracing::debug!("Got request from extension {:?}", value);
-        let request: ExtensionUIRequest = serde_json::from_value(value.clone())?;
-        let mut ret = request.clone();
+    #[tracing::instrument(level = "trace", skip(self))]
+    pub async fn handle_request(&self, command: MainCommand) -> Result<MainCommandResponse> {
+        tracing::debug!("Got request from extension {:?}", command);
 
-        let res = if self.is_main_command(&request.type_) {
-            if request.data.is_none() {
-                return Err(MoosyncError::String("Missing data field".into()));
+        Ok(match command {
+            MainCommand::GetSong(get_song_options) => self.get_songs(get_song_options)?,
+            MainCommand::GetEntity(get_entity_options) => self.get_entity(get_entity_options)?,
+            MainCommand::GetCurrentSong()
+            | MainCommand::GetPlayerState()
+            | MainCommand::GetVolume()
+            | MainCommand::GetTime()
+            | MainCommand::GetQueue() => self.send_ui_request(command).await?,
+            MainCommand::GetPreference(preference_data) => self.get_preferences(preference_data)?,
+            MainCommand::SetPreference(preference_data) => self.set_preferences(preference_data)?,
+            MainCommand::GetSecure(preference_data) => self.get_secure(preference_data)?,
+            MainCommand::SetSecure(preference_data) => self.set_secure(preference_data)?,
+            MainCommand::AddSongs(vec) => self.add_songs(vec)?,
+            MainCommand::RemoveSong(song) => self.remove_song(song)?,
+            MainCommand::UpdateSong(song) => self.update_song(song)?,
+            MainCommand::AddPlaylist(queryable_playlist) => {
+                self.add_playlist(queryable_playlist)?
             }
-
-            match request.type_.as_str() {
-                "getSongs" => self.get_songs(request.data.unwrap()),
-                "getEntity" => self.get_entity(request.data.unwrap()),
-                "addSong" => self.add_songs(request.data.unwrap()),
-                "updateSong" => self.update_song(request.data.unwrap()),
-                "addPlaylist" => self.add_playlist(request.data.unwrap()),
-                "addSongToPlaylist" => self.add_to_playlist(request.data.unwrap()),
-                "removeSong" => self.remove_song(request.data.unwrap()),
-                "getPreferences" => {
-                    self.get_preferences(request.extension_name, request.data.unwrap())
-                }
-                "getSecurePreferences" => {
-                    self.get_secure(request.extension_name, request.data.unwrap())
-                }
-                "setPreferences" => {
-                    self.set_preferences(request.extension_name, request.data.unwrap())
-                }
-                "setSecurePreferences" => {
-                    self.set_secure(request.extension_name, request.data.unwrap())
-                }
-                "registerOauth" => self.register_oauth(request.data.unwrap()),
-                "openExternal" => self.open_external(request.data.unwrap()),
-                "registerAccount" => self.register_account(request.extension_name),
-                "setArtistEditableInfo" => self.set_artist_editable_info(request.data.unwrap()),
-                "setAlbumEditableInfo" => self.set_album_editable_info(request.data.unwrap()),
-                "updateAccount" => self.update_accounts(request.extension_name),
-                _ => Err("Not a valid request".into()),
-            }
-        } else if self.is_update(&request.type_) {
-            self.extension_updated().await
-        } else if self.is_ui_request(&request.type_) {
-            self.send_ui_request(request).await
-        } else {
-            tracing::info!("Not a valid request {:?}", request);
-            Ok(Value::Null)
-        };
-
-        match res {
-            Ok(v) => ret.data = Some(v),
-            Err(e) => {
-                tracing::error!("Error handling request {:?}: {}", value, e);
-            }
-        }
-
-        // TODO: Perform extension error handling
-        Ok(serde_json::to_vec(&ret)?)
+            MainCommand::AddToPlaylist(add_to_playlist_request) => self.add_to_playlist(
+                add_to_playlist_request.playlist_id,
+                add_to_playlist_request.songs,
+            )?,
+            MainCommand::RegisterOAuth(url) => self.register_oauth(url)?,
+            MainCommand::OpenExternalUrl(url) => self.open_external(url)?,
+            MainCommand::UpdateAccounts(key) => self.update_accounts(key)?,
+            MainCommand::ExtensionsUpdated() => self.extension_updated().await?,
+        })
     }
 }

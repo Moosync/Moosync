@@ -331,9 +331,6 @@ pub fn run() {
             let lyrics_state = get_lyrics_state();
             app.manage(lyrics_state);
 
-            let ext_state = get_extension_state(app.app_handle().clone())?;
-            app.manage(ext_state);
-
             let provider_handler_state = get_provider_handler_state(app.app_handle().clone());
             app.manage(provider_handler_state);
 
@@ -357,6 +354,9 @@ pub fn run() {
                     }
                 }
             }
+
+            let ext_state = get_extension_state(app.app_handle().clone())?;
+            app.manage(ext_state);
 
             initial(app);
             handle_pref_changes(app.handle().clone());

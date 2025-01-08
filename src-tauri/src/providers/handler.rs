@@ -161,49 +161,48 @@ impl ProviderHandler {
     pub async fn discover_provider_extensions(&self) -> Result<()> {
         let ext_handler = get_extension_handler(&self.app_handle);
         let extensions_res = ext_handler.get_installed_extensions().await?;
-        for ext_runner in extensions_res.values() {
-            for extension in ext_runner {
-                let provides = ext_handler
-                    .get_provider_scopes(extension.package_name.clone().into())
-                    .await;
+        for extension in extensions_res {
+            let provides = ext_handler
+                .get_provider_scopes(extension.package_name.clone().into())
+                .await;
+            tracing::info!(
+                "Got provider scopes from {} {:?}",
+                extension.package_name,
+                provides
+            );
+            if let Ok(provides) = provides {
+                if provides.is_empty() {
+                    continue;
+                }
+
                 tracing::info!(
-                    "Got provider scopes from {} {:?}",
-                    extension.package_name,
+                    "Inserting extension provider {:?} {:?}",
+                    extension,
                     provides
                 );
-                if let Ok(provides) = provides {
-                    if provides.is_empty() {
-                        continue;
+
+                let mut provider = ExtensionProvider::new(
+                    extension.clone(),
+                    provides,
+                    self.app_handle.clone(),
+                    self.status_tx.clone(),
+                );
+                let mut provider_store = self.provider_store.lock().await;
+                provider_store.insert(provider.key(), Arc::new(Mutex::new(provider.clone())));
+
+                tracing::info!("provider_store: {:?}", provider_store);
+                async_runtime::spawn(async move {
+                    let res = provider.initialize().await;
+                    if let Err(err) = res {
+                        tracing::error!(
+                            "Error initializing extension provider {}: {:?}",
+                            provider.key(),
+                            err
+                        );
                     }
-
-                    tracing::info!(
-                        "Inserting extension provider {:?} {:?}",
-                        extension,
-                        provides
-                    );
-
-                    let mut provider = ExtensionProvider::new(
-                        extension.clone(),
-                        provides,
-                        self.app_handle.clone(),
-                        self.status_tx.clone(),
-                    );
-                    let mut provider_store = self.provider_store.lock().await;
-                    provider_store.insert(provider.key(), Arc::new(Mutex::new(provider.clone())));
-
-                    tracing::info!("provider_store: {:?}", provider_store);
-                    async_runtime::spawn(async move {
-                        let res = provider.initialize().await;
-                        if let Err(err) = res {
-                            tracing::error!(
-                                "Error initializing extension provider {}: {:?}",
-                                provider.key(),
-                                err
-                            );
-                        }
-                    });
-                }
+                });
             }
+
             self.app_handle.emit("providers-updated", Value::Null)?;
         }
         Ok(())

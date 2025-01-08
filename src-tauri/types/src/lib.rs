@@ -20,6 +20,7 @@ pub mod ui;
 #[cfg(feature = "core")]
 pub mod oauth;
 
+#[cfg(any(feature = "core", feature = "extensions"))]
 pub mod extensions;
 
 #[cfg(not(feature = "extensions"))]

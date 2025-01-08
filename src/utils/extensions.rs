@@ -1,5 +1,5 @@
 use leptos::spawn_local;
-use types::extensions::{ExtensionExtraEvent, ExtensionExtraEventArgs};
+use types::ui::extensions::{ExtensionExtraEvent, ExtensionExtraEventArgs};
 
 use crate::utils::invoke::send_extra_event;
 

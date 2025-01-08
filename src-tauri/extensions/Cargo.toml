@@ -9,25 +9,19 @@ fs_extra = "1.3.0"
 futures = { default-features = false, version = "0.3.31" }
 serde = { default-features = false, version = "1.0.216" }
 serde_yaml = "0.9.34"
-tokio = "1.42.0"
 uuid = { default-features = false, version = "1.11.0" }
 zip-extensions = { default-features = false, version = "0.8" }
 tracing = { version = "0.1.41", default-features = false }
 command-group = "5.0.1"
-
-
-[dependencies.interprocess]
-version = "2.2.2"
-features = ["tokio"]
+extism = "1.9.1"
+tokio = { version = "1.42.0", features = ["rt-multi-thread", "macros"] }
+serde_json = "1.0.133"
+regex = "1.11.1"
+interprocess = { version = "2.2.2", features = ["tokio"] }
 
 [dependencies.reqwest]
 version = "0.12.9"
 features = ["stream"]
-
-[dependencies.serde_json]
-version = "1.0.133"
-features = []
-default-features = false
 
 [dependencies.types]
 path = "../types"

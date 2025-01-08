@@ -12,9 +12,9 @@ use rand::seq::SliceRandom;
 use serde::Serialize;
 use std::{cmp::min, collections::HashMap, rc::Rc};
 use types::{
-    extensions::ExtensionExtraEvent,
     preferences::CheckboxPreference,
     songs::Song,
+    ui::extensions::ExtensionExtraEvent,
     ui::player_details::{PlayerState, RepeatModes, VolumeMode},
 };
 use wasm_bindgen::JsValue;

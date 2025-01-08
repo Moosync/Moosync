@@ -52,6 +52,8 @@ souvlaki = { version = "0.7.3", features = [
     "use_zbus",
 ], optional = true, default-features = false }
 
+extism-convert = { version = "1.9.1", optional = true }
+
 
 [features]
 ui = ["dep:wasm-bindgen", "dep:serde-wasm-bindgen", "dep:uuid"]
@@ -78,5 +80,6 @@ core = [
     "dep:json_dotpath",
     "dep:uuid",
     "dep:libsqlite3-sys",
+    "dep:extism-convert",
 ]
 default = ["core"]

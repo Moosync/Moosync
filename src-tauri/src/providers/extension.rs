@@ -7,14 +7,15 @@ use tauri::AppHandle;
 use types::{
     entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
     errors::Result,
-    extensions::{
-        AccountLoginArgs, CustomRequestReturnType, ExtensionDetail, ExtensionExtraEvent,
-        ExtensionExtraEventArgs, ExtensionProviderScope, PackageNameArgs,
-        PlaybackDetailsReturnType, PlaylistAndSongsReturnType, PlaylistReturnType,
-        RecommendationsReturnType, SearchReturnType, SongReturnType, SongsWithPageTokenReturnType,
-    },
+    extensions::ExtensionProviderScope,
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
+    ui::extensions::{
+        AccountLoginArgs, CustomRequestReturnType, ExtensionDetail, ExtensionExtraEvent,
+        ExtensionExtraEventArgs, PackageNameArgs, PlaybackDetailsReturnType,
+        PlaylistAndSongsReturnType, PlaylistReturnType, RecommendationsReturnType,
+        SearchReturnType, SongReturnType, SongsWithPageTokenReturnType,
+    },
 };
 
 use crate::extensions::get_extension_handler;

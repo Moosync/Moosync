@@ -9,12 +9,12 @@ use leptos_context_menu::ContextMenu;
 use leptos_i18n::t;
 use leptos_use::use_debounce_fn_with_arg;
 use types::{
-    extensions::ExtensionDetail,
     preferences::{CheckboxItems, CheckboxPreference},
     themes::ThemeDetails,
-    ui::themes::ThemeModalState,
+    ui::{extensions::ExtensionDetail, themes::ThemeModalState},
     window::DialogFilter,
 };
+use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
@@ -28,6 +28,7 @@ use crate::{
         ui_store::UiStore,
     },
     utils::{
+        common::invoke,
         context_menu::{create_context_menu, ThemesContextMenu},
         invoke::{get_installed_extensions, load_all_themes, remove_extension},
         prefs::{
@@ -289,7 +290,7 @@ pub fn CheckboxPref(
                     let item_key_clone_1 = item_key_clone.clone();
                     let pref_key = pref_key_clone.clone();
                     view! {
-                        <div class="row no-gutters item w-100">
+                        <div class="row no-gutters item w-100 flex-nowrap">
                             <div class="col-auto align-self-center">
                                 <div class="custom-control custom-checkbox">
                                     <input
@@ -465,9 +466,15 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
     let extensions = create_rw_signal::<Vec<ExtensionDetail>>(Default::default());
     let fetch_extensions = move || {
         spawn_local(async move {
-            let res = get_installed_extensions().await.unwrap();
-            tracing::debug!("got extensions {:?}", res);
-            extensions.set(res.values().flatten().cloned().collect());
+            let res = get_installed_extensions().await;
+            match res {
+                Ok(val) => {
+                    extensions.set(val);
+                }
+                Err(e) => {
+                    tracing::error!("Failed to get installed extensions {:?}", e);
+                }
+            }
         })
     };
     fetch_extensions();

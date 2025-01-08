@@ -14,9 +14,11 @@ use std::{
 use tokio::sync::oneshot;
 use types::{
     errors::{MoosyncError, Result},
-    extensions::ExtensionExtraEvent,
     songs::Song,
-    ui::player_details::{PlayerEvents, PlayerState},
+    ui::{
+        extensions::ExtensionExtraEvent,
+        player_details::{PlayerEvents, PlayerState},
+    },
 };
 
 use leptos::{

@@ -25,7 +25,7 @@ use leptos_router::{Outlet, Redirect, Route, Router, Routes};
 use leptos_use::use_event_listener;
 use serde::Serialize;
 use types::{
-    extensions::ExtensionUIRequest, preferences::CheckboxPreference,
+    preferences::CheckboxPreference, ui::extensions::ExtensionUIRequest,
     ui::player_details::PlayerState,
 };
 use wasm_bindgen::{JsCast, JsValue};

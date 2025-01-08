@@ -12,17 +12,17 @@
         }
       }
     }
-  },
-  "lsp": {
-    "rust-analyzer": {
-      "initialization_options": {
-        "check": {
-          "extraArgs": ["--target=aarch64-linux-android"]
-        },
-        "cargo": {
-          "target": "aarch64-linux-android"
-        }
-      }
-    }
   }
+  // "lsp": {
+  //   "rust-analyzer": {
+  //     "initialization_options": {
+  //       "check": {
+  //         "extraArgs": ["--target=aarch64-linux-android"]
+  //       },
+  //       "cargo": {
+  //         "target": "aarch64-linux-android"
+  //       }
+  //     }
+  //   }
+  // }
 }

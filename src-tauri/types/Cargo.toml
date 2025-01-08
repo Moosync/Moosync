@@ -78,7 +78,6 @@ core = [
     "dep:jsonschema",
     "dep:reqwest",
     "dep:json_dotpath",
-    "dep:uuid",
     "dep:libsqlite3-sys",
     "dep:extism-convert",
 ]

@@ -162,7 +162,7 @@ impl ReplyHandler {
     }
 
     #[tracing::instrument(level = "trace", skip(self, command))]
-    async fn send_ui_request(&self, command: MainCommand) -> Result<MainCommandResponse> {
+    async fn send_ui_request(&self, mut command: MainCommand) -> Result<MainCommandResponse> {
         if self.app_handle.webview_windows().is_empty() {
             return Err("No webview spawned yet".into());
         }

@@ -490,6 +490,7 @@ pub enum MainCommandResponse {
 }
 
 impl MainCommand {
+    #[cfg(not(feature = "extensions"))]
     #[tracing::instrument(level = "trace", skip(self))]
     pub fn to_request(&self) -> MoosyncResult<GenericExtensionHostRequest<MainCommand>> {
         Ok(GenericExtensionHostRequest {
@@ -498,6 +499,7 @@ impl MainCommand {
         })
     }
 
+    #[cfg(not(feature = "extensions"))]
     pub fn to_ui_request(&mut self) -> MoosyncResult<ExtensionUIRequest> {
         let (r#type, data) = match self {
             MainCommand::GetSong(options) => ("getSongs", serde_json::to_value(options)?),

@@ -83,7 +83,6 @@ class MediaSessionHandler(private val mContext: Context) {
 
     fun updateMetadata(song: MetadataArgs?) {
         if (song != null) {
-            Log.d("TAG", "updateMetadata: $song")
             val builder = MediaMetadataCompat.Builder()
                 .putString(MediaMetadataCompat.METADATA_KEY_TITLE, song.title)
                 .putString(

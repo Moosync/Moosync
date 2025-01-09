@@ -65,7 +65,6 @@ class AudioPlayerRemote private constructor(activity: Activity) {
     init {
         serviceConnection = object : ServiceConnection {
             override fun onServiceConnected(p0: ComponentName?, p1: IBinder?) {
-                Log.d("TAG", "onServiceConnected: service connected")
                 val binder = p1 as MediaPlayerService.MediaPlayerBinder?
                 mediaService = binder?.service
                 mediaService?.let { runFromMethodQueue(it) }

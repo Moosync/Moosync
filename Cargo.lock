@@ -2811,6 +2811,7 @@ dependencies = [
  "tracing",
  "types",
  "uuid",
+ "wasmtime",
  "zip-extensions",
 ]
 

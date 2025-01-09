@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
+import androidx.core.net.toUri
 import app.moosync.audioplayer.models.Song
 import java.util.Timer
 
@@ -42,10 +43,13 @@ class LocalPlayer : GenericPlayer() {
     }
 
     private fun buildUri(id: String): Uri {
-        return ContentUris.withAppendedId(
-            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            id.toLong()
-        )
+        if (!id.startsWith("http")) {
+            return ContentUris.withAppendedId(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                id.toLong()
+            )
+        }
+        return id.toUri()
     }
 
     private fun runAfterPlayerPrepared(method: () -> Unit) {

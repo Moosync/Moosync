@@ -234,12 +234,91 @@
         background: transparent;
     }
 
-    > div > .song-container {
+    div.container-fluid.song-container.h-100.d-flex.flex-column {
         padding-right: 0px;
-        padding-left: 0px;
+        padding-left: 15px;
 
         > .compact-container > .song-list-compact > div > .container-fluid {
-            padding-left: 10px;
+            padding-left: 0px;
+        }
+    }
+
+    div.container-fluid.h-100.d-flex.flex-column {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .search-song-list-container {
+        padding-left: 15px;
+        padding-right: 0;
+    }
+
+    div.song-list-compact > div > div {
+        padding-right: 0;
+        padding-left: 0;
+
+        > div.container-fluid.tab-carousel {
+            display: none !important;
+        }
+
+        > div.row.no-gutters > .scroller {
+            padding-right: 0px;
+        }
+
+        > div.container-fluid.tab-carousel.tab-carousel-show-mobile {
+            display: flex !important;
+        }
+
+        > div.row.no-gutters.h-100 > div {
+            padding-left: 0;
+        }
+    }
+
+    #scroller > div > .wrapper {
+        padding-right: 0px;
+        > div {
+            > .img-container {
+                width: 45px;
+                height: 45px;
+                margin-right: 10px;
+
+                > .img-container {
+                    width: 45px;
+                    height: 45px;
+
+                    > img,
+                    svg {
+                        width: 45px;
+                        height: 45px;
+                        min-width: 45px;
+                        margin-right: 10px;
+                    }
+
+                    > .play-button-song-list {
+                        display: none !important;
+                    }
+                }
+            }
+
+            > div > div > div {
+                > .title {
+                    font-size: 14px;
+                }
+
+                > div > .song-subtitle {
+                    font-size: 12px;
+                }
+            }
+
+            > .ellipsis-icon {
+                display: block;
+                padding: 0 !important;
+                margin: 0 0 0 10px !important;
+                transform: rotate(90deg);
+            }
+            > .timestamp {
+                display: none;
+            }
         }
     }
 
@@ -254,79 +333,6 @@
         > .card-body
         > .card-title {
         font-size: 16px;
-    }
-
-    > div
-        > div
-        > div
-        > div.col-xl-9.col-md-8.col.h-100.song-list-compact
-        > div
-        > div {
-        padding-right: 0;
-
-        > div.container-fluid.tab-carousel {
-            display: none !important;
-        }
-
-        > div.row.no-gutters > .scroller {
-            padding-right: 0px;
-        }
-
-        > div.row.no-gutters > .scroller > div > #scroller > div > .wrapper {
-            padding-right: 0px;
-            > div {
-                > .img-container {
-                    width: 45px;
-                    height: 45px;
-                    margin-right: 10px;
-
-                    > .img-container {
-                        width: 45px;
-                        height: 45px;
-
-                        > img,
-                        svg {
-                            width: 45px;
-                            height: 45px;
-                            min-width: 45px;
-                            margin-right: 10px;
-                        }
-
-                        > .play-button-song-list {
-                            display: none !important;
-                        }
-                    }
-                }
-
-                > div > div > div {
-                    > .title {
-                        font-size: 14px;
-                    }
-
-                    > div > .song-subtitle {
-                        font-size: 12px;
-                    }
-                }
-
-                > .ellipsis-icon {
-                    display: block;
-                    padding: 0 !important;
-                    margin: 0 0 0 10px !important;
-                    transform: rotate(90deg);
-                }
-                > .timestamp {
-                    display: none;
-                }
-            }
-        }
-
-        > div.container-fluid.tab-carousel.tab-carousel-show-mobile {
-            display: flex !important;
-        }
-
-        > div.row.no-gutters.h-100 > div {
-            padding-left: 0;
-        }
     }
 }
 

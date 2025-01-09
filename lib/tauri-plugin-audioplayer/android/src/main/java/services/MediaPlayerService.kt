@@ -50,41 +50,9 @@ class MediaPlayerService : MediaBrowserServiceCompat() {
                     ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST
                 )
 
-            Log.d("TAG", "onCreate: started foreground")
         } else {
             startForeground(NOTIFICATION_ID, mediaController.notificationManager.notification)
         }
-
-        val connectivityManager = this.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val networkRequest = NetworkRequest.Builder()
-            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI) // or TRANSPORT_CELLULAR
-            .build()
-
-        val networkCallback = object : ConnectivityManager.NetworkCallback() {
-            override fun onAvailable(network: Network) {
-                // Bind the network to your process
-                connectivityManager.bindProcessToNetwork(network)
-            }
-
-            override fun onLost(network: Network) {
-                // Handle network loss
-            }
-        }
-        connectivityManager.registerNetworkCallback(networkRequest, networkCallback)
-
-        val gfgPowerDraw = getSystemService(POWER_SERVICE) as PowerManager
-        val gfgPowerLatch = gfgPowerDraw.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK,
-            "Moosync::AchieveWakeLock"
-        )
-        gfgPowerLatch.acquire(20 * 60 * 1000L)
-
-        if (wl == null) {
-            val wifi = this.getSystemService(WIFI_SERVICE) as WifiManager
-            wl = wifi.createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "Moosync::wifi_lock")
-        }
-        wl!!.acquire()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

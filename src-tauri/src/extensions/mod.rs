@@ -36,7 +36,9 @@ async fn extension_runner_connected(app_handle: AppHandle) {
 pub fn get_extension_state(app: AppHandle) -> Result<ExtensionHandler> {
     let ext_path = app.path().app_data_dir().unwrap().join("extensions");
     let tmp_dir = app.path().temp_dir().unwrap();
-    let (ext_handler, mut ui_request_rx, ui_reply_tx) = ExtensionHandler::new(ext_path, tmp_dir);
+    let cache_dir = app.path().cache_dir().unwrap();
+    let (ext_handler, mut ui_request_rx, ui_reply_tx) =
+        ExtensionHandler::new(ext_path, cache_dir, tmp_dir);
 
     let app_clone = app.clone();
     async_runtime::spawn(async move {

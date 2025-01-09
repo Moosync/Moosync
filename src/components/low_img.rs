@@ -25,7 +25,7 @@ where
     D: (Fn() -> bool) + 'static,
     E: (Fn() -> bool) + 'static,
 {
-    let show_default_cover_img = create_rw_signal(false);
+    let show_default_cover_img = create_rw_signal(cover_img.is_empty());
     view! {
         <div class="col-auto img-container h-100 d-flex justify-content-start">
             <div class="img-container justify-content-around ms-auto coverimg align-self-center">
@@ -41,6 +41,7 @@ where
                             .into_view()
                     } else {
                         view! {
+                            // class="fade-in-image"
                             // class="fade-in-image"
                             <SongDefaultIcon />
                         }

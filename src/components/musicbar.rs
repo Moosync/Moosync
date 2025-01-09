@@ -33,7 +33,7 @@ fn transition_closed(
 
     if let Some(sidebar) = sidebar.get_untracked() {
         let style = sidebar.style();
-        style.set_property("display", "flex").unwrap();
+        style.set_property("visibility", "visible").unwrap();
         style.set_property("transition", "all 0.2s").unwrap();
         style.set_property("opacity", "1").unwrap();
     }
@@ -61,16 +61,7 @@ fn transition_opened(
         let style = sidebar.style();
         style.set_property("transition", "all 0.2s").unwrap();
         style.set_property("opacity", "0").unwrap();
-
-        let options = UseEventListenerOptions::default().once(true);
-        let _ = use_event_listener_with_options(
-            sidebar,
-            transitionend,
-            move |_| {
-                style.set_property("display", "none").unwrap();
-            },
-            options,
-        );
+        style.set_property("visibility", "hidden").unwrap();
     }
 }
 
@@ -158,7 +149,7 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
                         let style = sidebar.style();
                         let opacity = client_y_diff as f64 / start_offset as f64;
                         style
-                            .set_property("opacity", &format!("{}", opacity))
+                            .set_property("opacity", &format!("{}", opacity.abs()))
                             .unwrap();
                     }
 

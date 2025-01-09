@@ -75,7 +75,6 @@ class NotificationHandler (
     }
 
     fun clearNotification() {
-        Log.d("TAG", "clearNotification: clearing")
         notificationManager.cancel(NOTIFICATION_ID)
     }
 

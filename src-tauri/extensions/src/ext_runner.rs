@@ -248,6 +248,7 @@ impl From<&Extension> for ExtensionDetail {
 #[derive(Debug)]
 pub(crate) struct ExtensionHandlerInner {
     extensions_path: String,
+    cache_path: String,
     ext_command_tx: ExtCommandSender,
     extensions_map: HashMap<String, Extension>,
     reply_map: Arc<std::sync::Mutex<HashMap<String, ExtCommandReplySender>>>,
@@ -255,10 +256,15 @@ pub(crate) struct ExtensionHandlerInner {
 
 impl ExtensionHandlerInner {
     #[tracing::instrument(level = "trace", skip(ext_command_tx))]
-    pub fn new(extensions_path: &PathBuf, ext_command_tx: ExtCommandSender) -> Self {
+    pub fn new(
+        extensions_path: &PathBuf,
+        cache_path: &PathBuf,
+        ext_command_tx: ExtCommandSender,
+    ) -> Self {
         let mut ret = Self {
             extensions_path: extensions_path.to_string_lossy().to_string(),
             ext_command_tx,
+            cache_path: cache_path.to_string_lossy().to_string(),
             extensions_map: HashMap::new(),
             reply_map: Arc::new(std::sync::Mutex::new(HashMap::new())),
         };
@@ -360,7 +366,8 @@ impl ExtensionHandlerInner {
             socks: vec![],
             allowed_paths: plugin_manifest.allowed_paths.clone(),
         });
-        let plugin = PluginBuilder::new(plugin_manifest)
+
+        let mut plugin_builder = PluginBuilder::new(plugin_manifest)
             .with_wasi(true)
             .with_function(
                 "send_main_command",
@@ -384,9 +391,35 @@ impl ExtensionHandlerInner {
                 sock_data.clone(),
                 write_sock,
             )
-            .with_function("read_sock", [I64, I64], [PTR], sock_data, read_sock)
-            .build()
+            .with_function("read_sock", [I64, I64], [PTR], sock_data, read_sock);
+
+        #[cfg(any(target_os = "android", target_os = "ios"))]
+        {
+            let cache_path = PathBuf::from(self.cache_path.clone())
+                .join("wasmtime")
+                .join("config.toml");
+            if !cache_path.exists() {
+                fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
+            }
+            fs::write(
+                &cache_path,
+                format!(
+                    r#"
+            [cache]
+            enabled = true
+            directory = "{}"
+            cleanup-interval = "30m"
+            files-total-size-soft-limit = "1Gi"
+            "#,
+                    cache_path.parent().unwrap().join("cache").to_string_lossy()
+                ),
+            )
             .unwrap();
+
+            plugin_builder = plugin_builder.with_cache_config(cache_path);
+        }
+
+        let plugin = plugin_builder.build().unwrap();
 
         Extension {
             plugin: Arc::new(Mutex::new(plugin)),

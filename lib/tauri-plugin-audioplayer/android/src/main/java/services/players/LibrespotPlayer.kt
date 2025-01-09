@@ -24,7 +24,6 @@ class LibrespotPlayer(private val context: Context): GenericPlayer() {
 
     val librespot: LibrespotWrapper = LibrespotWrapper(object: LibrespotCallbacks {
         override fun onPlay() {
-            Log.d(TAG, "onPlay: ")
             val handler = Handler(Looper.getMainLooper())
             val runnable = object: Runnable {
                 override fun run() {

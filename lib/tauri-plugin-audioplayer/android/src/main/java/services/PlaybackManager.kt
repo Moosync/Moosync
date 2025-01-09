@@ -10,7 +10,7 @@ import app.moosync.audioplayer.services.players.PlayerListeners
 import app.moosync.audioplayer.services.players.YoutubePlayer
 
 class PlaybackManager(mContext: Context, private val playerListeners: PlayerListeners) {
-    private val players: HashMap<String, GenericPlayer> = hashMapOf(Pair("LOCAL", LocalPlayer()), Pair("YOUTUBE", YoutubePlayer(mContext)), Pair("LIBRESPOT", LibrespotPlayer(mContext)))
+    private val players: HashMap<String, GenericPlayer> = hashMapOf(Pair("LOCAL", LocalPlayer()), Pair("YOUTUBE", YoutubePlayer(mContext)))
 
     init {
         for (player in players.values) {
@@ -45,7 +45,6 @@ class PlaybackManager(mContext: Context, private val playerListeners: PlayerList
     }
 
     fun load(key: String, context: Context, src: String, autoPlay: Boolean) {
-        Log.d("TAG", "load: loading in service $key, $src, $autoPlay")
         players[key]?.load(context, src, autoPlay)
     }
 

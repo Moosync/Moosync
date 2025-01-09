@@ -2,7 +2,7 @@ use leptos::html::Div;
 use leptos::{
     component, create_effect, create_memo, create_node_ref, create_read_slice, create_rw_signal,
     create_write_slice, expect_context, spawn_local, view, IntoView, NodeRef, RwSignal, Signal,
-    SignalGet, SignalSet, SignalUpdate,
+    SignalGet, SignalGetUntracked, SignalSet, SignalUpdate,
 };
 use leptos_virtual_scroller::VirtualScroller;
 use types::songs::{Song, SongType};
@@ -97,13 +97,18 @@ pub fn MusicInfoMobile(
 ) -> impl IntoView {
     let player_store = expect_context::<RwSignal<PlayerStore>>();
     let current_song = create_read_slice(player_store, move |p| p.get_current_song());
-    let show_default_cover_img = create_rw_signal(false);
     let cover_img = create_memo(move |_| {
         if let Some(current_song) = current_song.get() {
             return Some(get_high_img(&current_song));
         }
         None
     });
+    let show_default_cover_img = create_rw_signal(cover_img.get_untracked().is_none());
+
+    create_effect(move |_| {
+        show_default_cover_img.set(cover_img.get().is_none());
+    });
+
     let song_title = create_memo(move |_| {
         if let Some(current_song) = current_song.get() {
             return current_song.song.title;

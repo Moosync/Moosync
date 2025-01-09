@@ -43,25 +43,21 @@ class MediaController(private val mContext: Context) {
     }
 
     fun addPlayerCallbacks(callbacks: MediaPlayerCallbacks) {
-        Log.d("TAG", "addPlayerCallbacks: registering callback")
         mediaPlayerCallbacks.add(callbacks)
     }
 
     fun addMediaSessionCallbacks(callbacks: MediaSessionCompat.Callback) {
-        Log.d("TAG", "addMediaSessionCallbacks: registering callback")
         mediaSessionCallbacks.add(callbacks)
     }
 
     private fun emitInAllCallbacks(c: (callback: MediaPlayerCallbacks) -> Unit) {
         for (callback in this.mediaPlayerCallbacks) {
-            Log.d("TAG", "emitInAllCallbacks: emitting time change event in callback")
             c.invoke(callback)
         }
     }
 
     private fun emitInAllMediaSessionCallbacks(c: (callback: MediaSessionCompat.Callback) -> Unit) {
         for (callback in this.mediaSessionCallbacks) {
-            Log.d("TAG", "emitInAllCallbacks: emitting time change event in callback")
             c.invoke(callback)
         }
     }

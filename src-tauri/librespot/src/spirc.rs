@@ -186,16 +186,16 @@ impl SpircWrapper {
             let message = events_channel.blocking_recv();
             if let Some(m) = message {
                 tx.send(m.clone()).unwrap();
-                // if let PlayerEvent::SessionDisconnected {
-                //     connection_id: _,
-                //     user_name: _,
-                // } = m
-                // {
-                //     return;
-                // }
+                if let PlayerEvent::SessionDisconnected {
+                    connection_id: _,
+                    user_name: _,
+                } = m
+                {
+                    return;
+                }
             } else {
-                // tracing::info!("Closing spirc event listener");
-                // return;
+                tracing::info!("Closing spirc event listener");
+                return;
             }
         })
     }

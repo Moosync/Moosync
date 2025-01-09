@@ -10,8 +10,8 @@ use crate::{
     utils::common::convert_file_src,
 };
 use leptos::{
-    component, create_read_slice, create_rw_signal, expect_context, view, IntoView, RwSignal,
-    SignalGet, SignalSet,
+    component, create_read_slice, create_rw_signal, document, expect_context, view, IntoView,
+    RwSignal, SignalGet, SignalSet,
 };
 use leptos_router::{use_navigate, NavigateOptions};
 use leptos_virtual_scroller::VirtualGridScroller;
@@ -45,10 +45,22 @@ where
 {
     let show_default_icon = create_rw_signal(item.cover.is_none());
 
+    let item_width = if is_mobile {
+        (document().body().unwrap().client_width() / 2) - 30
+    } else {
+        200
+    } as usize;
+
     view! {
         <div
             class="card mb-2 card-grow"
-            style=move || if !is_mobile { "width: 200px;" } else { "width: 130px" }
+            style=move || {
+                if !is_mobile {
+                    "width: 200px;".to_string()
+                } else {
+                    format!("width: {}px;", item_width)
+                }
+            }
         >
             <div class="card-img-top">
                 <div class="embed-responsive embed-responsive-1by1">
@@ -146,8 +158,16 @@ where
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
 
-    let item_width = if is_mobile { 150 } else { 220 };
-    let item_height = if is_mobile { 205 } else { 275 };
+    let item_width = if is_mobile {
+        (document().body().unwrap().client_width() / 2) - 15
+    } else {
+        220
+    } as usize;
+    let item_height = if is_mobile {
+        (document().body().unwrap().client_width() / 2) + 55
+    } else {
+        275
+    } as usize;
 
     view! {
         <VirtualGridScroller

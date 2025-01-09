@@ -63,6 +63,7 @@ impl ExtensionHandler {
     pub fn new(
         extensions_dir: PathBuf,
         tmp_dir: PathBuf,
+        cache_dir: PathBuf,
     ) -> (Self, UiRequestReceiver, UiReplySender) {
         let (ext_command_tx, ext_command_rx) = unbounded_channel();
         let (ui_request_tx, ui_request_rx) = unbounded_channel();
@@ -71,6 +72,7 @@ impl ExtensionHandler {
         let ret = Self {
             inner: Arc::new(Mutex::new(ExtensionHandlerInner::new(
                 &extensions_dir,
+                &cache_dir,
                 ext_command_tx,
             ))),
             extensions_dir,

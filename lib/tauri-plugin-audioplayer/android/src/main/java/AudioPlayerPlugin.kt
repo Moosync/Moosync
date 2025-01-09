@@ -98,7 +98,6 @@ class AudioPlayerPlugin(private val activity: Activity): Plugin(activity) {
 
                 override fun onTimeChange(key: String, time: Int) {
                     super.onTimeChange(key, time)
-                    Log.d("TAG", "onTimeChange: emitting timechange to tauri")
                     val ret = JSObject()
                     ret.put("key", key);
                     ret.put("pos", time)
@@ -143,7 +142,6 @@ class AudioPlayerPlugin(private val activity: Activity): Plugin(activity) {
     fun load(invoke: Invoke) {
         try {
             val args = invoke.parseArgs(LoadArgs::class.java)
-            Log.d("TAG", "load: loading ${args.src} ${args.key}")
             implementation.controls?.load(args.key, args.src, args.autoplay)
         } catch (e: Exception) {
             Log.d("TAG", "load: failed to load audio $e")
@@ -187,7 +185,6 @@ class AudioPlayerPlugin(private val activity: Activity): Plugin(activity) {
     @Command
     fun updateNotification(invoke: Invoke) {
         val args = invoke.parseArgs(UpdateMetadataArgs::class.java)
-        Log.d("TAG", "updateNotification: ${args.metadata.title}")
         implementation.controls?.updateMetadata(args.metadata)
 
         val ret = JSObject()
@@ -196,9 +193,7 @@ class AudioPlayerPlugin(private val activity: Activity): Plugin(activity) {
 
     @Command
     fun updateNotificationState(invoke: Invoke) {
-        Log.d("TAG", "updateNotification: got raw args ${invoke.getRawArgs()}")
         val args = invoke.parseArgs(UpdateStateArgs::class.java)
-        Log.d("TAG", "updateNotificationState: isPlaying: ${args.playing}")
         implementation.controls?.updatePlayerState(args.playing, args.pos)
 
         val ret = JSObject()

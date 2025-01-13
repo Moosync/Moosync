@@ -98,7 +98,7 @@ fn parse_use_statements_from_source(src_path: &Path) -> HashMap<String, HashSet<
 
             if path.is_dir() {
                 recursive_scan(&path, use_map);
-            } else if path.is_file() && path.extension().map_or(false, |ext| ext == "rs") {
+            } else if path.is_file() && path.extension().is_some_and(|ext| ext == "rs") {
                 let source_code = fs::read_to_string(&path).expect("Failed to read source file");
                 parse_use_statements(&source_code, use_map);
             }

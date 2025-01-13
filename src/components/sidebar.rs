@@ -11,7 +11,6 @@ use crate::{
         logs_icon::{LogsIcon, LogsIconProps},
         paths_icon::{PathsIcon, PathsIconProps},
         playlists_icon::{PlaylistsIcon, PlaylistsIconProps},
-        prev_icon::PrevIcon,
         queue_icon::{QueueIcon, QueueIconProps},
         sidebar_toggle_icon::SidebarToggleIcon,
         system_icon::{SystemIcon, SystemIconProps},
@@ -95,21 +94,18 @@ fn TabItem(
     }
 }
 
-#[tracing::instrument(level = "trace", skip(tabs, show_back))]
+#[tracing::instrument(level = "trace", skip(tabs))]
 #[component]
-pub fn Sidebar(
-    #[prop()] tabs: Vec<Tab>,
-    #[prop(optional = true, default = false)] show_back: bool,
-) -> impl IntoView {
+pub fn Sidebar(#[prop()] tabs: Vec<Tab>) -> impl IntoView {
     let mut active_write_signals = vec![];
     let mut active_read_signals = vec![];
     for _ in 0..tabs.len() {
-        let (read, write) = create_signal(false);
+        let (read, write) = signal(false);
         active_read_signals.push(read);
         active_write_signals.push(write);
     }
 
-    let (active_tab, set_active_tab) = create_signal(1);
+    let (active_tab, set_active_tab) = signal(1);
     active_write_signals[0].set(true);
 
     let tab_urls: Vec<String> = tabs.iter().map(|v| v.url.clone()).collect();
@@ -124,7 +120,7 @@ pub fn Sidebar(
         |u, val| u.set_sidebar_open(val),
     );
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let active_tab = active_tab.get();
         for (i, signal) in active_write_signals.iter().enumerate() {
             signal.set(i == active_tab);

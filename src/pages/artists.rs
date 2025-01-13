@@ -1,4 +1,3 @@
-use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::components::cardview::{CardView, SimplifiedCardItem};
@@ -25,7 +24,7 @@ use rand::seq::SliceRandom;
 #[component()]
 pub fn SingleArtist() -> impl IntoView {
     let params = use_query_map();
-    let artist = create_memo(move |_| {
+    let artist = Memo::new(move |_| {
         params.with(|params| {
             let entity = params.get("entity");
             tracing::info!("Got entity {:?}", entity);
@@ -41,17 +40,17 @@ pub fn SingleArtist() -> impl IntoView {
     });
     if artist.get().is_none() {
         tracing::error!("Failed to parse artist");
-        return view! {}.into_any();
+        return ().into_any();
     }
 
     tracing::debug!("Parsed artist {:?}", artist.get());
 
-    let songs = create_rw_signal(vec![]);
-    let selected_songs = create_rw_signal(vec![]);
+    let songs = RwSignal::new(vec![]);
+    let selected_songs = RwSignal::new(vec![]);
 
-    let default_details = create_rw_signal(DefaultDetails::default());
+    let default_details = RwSignal::new(DefaultDetails::default());
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let artist = artist.get();
         if let Some(artist) = artist {
             default_details.update(|d| {
@@ -72,7 +71,7 @@ pub fn SingleArtist() -> impl IntoView {
         }
     });
 
-    let selected_providers = create_rw_signal::<Vec<String>>(vec![]);
+    let selected_providers = RwSignal::<Vec<String>>::new(vec![]);
 
     let (_, filtered_songs, fetch_selected_providers) =
         dyn_provider_songs!(selected_providers, artist, songs, get_artist_content);
@@ -108,7 +107,7 @@ pub fn SingleArtist() -> impl IntoView {
         play_songs_setter.set(random_song.clone());
     };
 
-    let icons = create_rw_signal(SongDetailIcons {
+    let icons = RwSignal::new(SongDetailIcons {
         play: Some(Arc::new(Box::new(play_songs))),
         add_to_queue: Some(Arc::new(Box::new(add_to_queue))),
         random: Some(Arc::new(Box::new(random))),
@@ -144,7 +143,7 @@ pub fn SingleArtist() -> impl IntoView {
 #[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn AllArtists() -> impl IntoView {
-    let artists = create_rw_signal(vec![]);
+    let artists = RwSignal::new(vec![]);
     get_artists_by_option(QueryableArtist::default(), artists.write_only());
 
     view! {

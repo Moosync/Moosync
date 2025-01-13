@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
     icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon},
@@ -94,7 +94,7 @@ pub fn Settings(#[prop(optional)] class: &'static str) -> impl IntoView {
 #[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn Accounts() -> impl IntoView {
-    let show_accounts_popover = create_rw_signal(false);
+    let show_accounts_popover = RwSignal::new(false);
     let provider_store = expect_context::<Arc<ProviderStore>>();
 
     let statuses = provider_store.get_all_statuses();
@@ -108,7 +108,7 @@ pub fn Accounts() -> impl IntoView {
         }
     };
 
-    let target = create_node_ref();
+    let target = NodeRef::new();
     let _ = on_click_outside(target, move |_| {
         if show_accounts_popover.get_untracked() {
             show_accounts_popover.set(false);
@@ -138,7 +138,7 @@ pub fn Accounts() -> impl IntoView {
                                             } else {
                                                 ("Connect".into(), status.name.clone())
                                             };
-                                            let title = create_rw_signal(title_out.clone());
+                                            let title = RwSignal::new(title_out.clone());
                                             view! {
                                                 <div
                                                     class="button-bg d-flex ripple w-100"
@@ -166,7 +166,7 @@ pub fn Accounts() -> impl IntoView {
                                                             } else if status.key == "youtube" {
                                                                 view! { <YoutubeIcon fill="#E62017".into() /> }.into_any()
                                                             } else {
-                                                                view! {}.into_any()
+                                                                ().into_any()
                                                             }}
                                                         </div>
 
@@ -184,7 +184,7 @@ pub fn Accounts() -> impl IntoView {
                     }
                         .into_any()
                 } else {
-                    view! {}.into_any()
+                    ().into_any()
                 }
             }}
 
@@ -383,9 +383,9 @@ async fn get_search_res(
 #[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn TopBar() -> impl IntoView {
-    let show_searchbar = create_rw_signal(false);
-    let input_value = create_rw_signal("".to_string());
-    let results = create_rw_signal(vec![]);
+    let show_searchbar = RwSignal::new(false);
+    let input_value = RwSignal::new("".to_string());
+    let results = RwSignal::new(vec![]);
     let handle_input_focus = move |focus: InputFocus| match focus {
         InputFocus::Focus => {
             show_searchbar.set(!results.get().is_empty());
@@ -393,7 +393,7 @@ pub fn TopBar() -> impl IntoView {
         InputFocus::Blur => show_searchbar.set(false),
     };
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let results = results.get();
         if !results.is_empty() {
             show_searchbar.set(true);

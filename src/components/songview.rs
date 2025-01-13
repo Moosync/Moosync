@@ -1,16 +1,10 @@
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 
-use leptos::{
-    component,
-    ev::{scroll, touchmove, touchstart, wheel},
-    html::{Div, HtmlElement},
-    prelude::*,
-    view,
-};
-use leptos_context_menu::{ContextMenu, ContextMenuData, ContextMenuItemInner, Menu};
-use leptos_use::{on_click_outside, use_event_listener, use_event_source};
+use leptos::{component, html::Div, prelude::*, view};
+use leptos_context_menu::{ContextMenuData, ContextMenuItemInner, Menu};
+use leptos_use::on_click_outside;
 use types::{songs::Song, ui::song_details::DefaultDetails, ui::song_details::SongDetailIcons};
-use web_sys::{Event, Node, ScrollToOptions, WheelEvent};
+use web_sys::{Event, Node};
 
 use crate::{
     components::{
@@ -87,11 +81,11 @@ pub fn SongView(
     #[prop(optional, default=ShowProvidersArgs::default())] providers: ShowProvidersArgs,
     #[prop(optional, default = false)] show_mobile_default_details: bool,
 ) -> impl IntoView {
-    let last_selected_song = create_rw_signal(None::<Song>);
+    let last_selected_song = RwSignal::new(None::<Song>);
 
-    let filtered_selected = create_rw_signal(vec![]);
+    let filtered_selected = RwSignal::new(vec![]);
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let selected_song = selected_songs.get().last().cloned();
         if let Some(selected_song) = selected_song {
             let all_songs = songs.get();
@@ -102,8 +96,8 @@ pub fn SongView(
         }
     });
 
-    let song_details_container = create_node_ref::<Div>();
-    let song_list_container = create_node_ref::<Div>();
+    let song_details_container = NodeRef::<Div>::new();
+    let song_list_container = NodeRef::<Div>::new();
 
     let ignore__class_list = &[
         "context-menu-root",
@@ -160,11 +154,11 @@ pub fn SongView(
 
     let song_context_menu = create_context_menu(SongsContextMenu::new(song_update_request));
 
-    // let song_list_ref = create_node_ref();
-    // let song_details_ref = create_node_ref::<Div>();
-    // let container_ref = create_node_ref::<Div>();
+    // let song_list_ref = NodeRef::new();
+    // let song_details_ref = NodeRef::new::<Div>();
+    // let container_ref = NodeRef::new::<Div>();
 
-    // let scroll_position = create_rw_signal(0);
+    // let scroll_position = RwSignal::new(0);
     // use_event_listener(container_ref, scroll, move |_| {
     //     let scroll_top = container_ref.get_untracked().unwrap().scroll_top();
     //     tracing::info!("scrolling {}", scroll_top);
@@ -190,7 +184,7 @@ pub fn SongView(
     //     }
     // });
 
-    // let touch_start = create_rw_signal(0);
+    // let touch_start = RwSignal::new(0);
     // use_event_listener(song_list_ref, touchstart, move |ev| {
     //     let touch = ev.touches().get(0).unwrap();
     //     touch_start.set_untracked(touch.client_y());
@@ -239,7 +233,7 @@ pub fn SongView(
                             providers=providers
                             refresh_cb=refresh_cb
                             fetch_next_page=fetch_next_page
-                            header=Some(())
+                            header=()
                         />
                     </div>
                 </div>

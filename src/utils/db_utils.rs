@@ -1,4 +1,3 @@
-use std::rc::Rc;
 use std::sync::Arc;
 
 use futures::lock::Mutex;
@@ -6,7 +5,6 @@ use indexed_db_futures::database::Database;
 use indexed_db_futures::prelude::*;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
-use serde::de::DeserializeOwned;
 use serde_wasm_bindgen::from_value;
 use types::entities::QueryableAlbum;
 use types::entities::QueryableArtist;
@@ -154,7 +152,7 @@ where
         + Copy
         + 'static,
 {
-    use std::{collections::HashMap, rc::Rc, sync::Arc};
+    use std::{collections::HashMap, sync::Arc};
 
     use leptos::{prelude::*, task::spawn_local};
 
@@ -163,7 +161,7 @@ where
     let provider_store = expect_context::<Arc<ProviderStore>>();
     let next_page_tokens: RwSignal<
         HashMap<String, Arc<Mutex<types::providers::generic::Pagination>>>,
-    > = create_rw_signal(HashMap::new());
+    > = RwSignal::new(HashMap::new());
 
     spawn_local(async move {
         let res = super::invoke::get_entity_by_options(GetEntityOptions {

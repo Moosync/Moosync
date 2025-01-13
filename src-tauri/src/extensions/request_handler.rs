@@ -5,11 +5,10 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use types::{
     entities::{GetEntityOptions, QueryablePlaylist},
-    errors::{MoosyncError, Result},
+    errors::Result,
     extensions::{MainCommand, MainCommandResponse},
     songs::{GetSongOptions, SearchableSong, Song},
-    ui::extensions::ExtensionUIRequest,
-    ui::extensions::{AddToPlaylistRequest, PreferenceData},
+    ui::extensions::PreferenceData,
 };
 
 use crate::{providers::handler::ProviderHandler, window::handler::WindowHandler};

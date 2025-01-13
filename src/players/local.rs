@@ -2,12 +2,12 @@ use std::{ops::Deref, rc::Rc};
 
 use leptos::{
     ev::{ended, error, loadeddata, loadstart, pause, play, timeupdate},
-    html::{audio, Audio, Div, HtmlElement},
+    html::{audio, Audio, Div},
     prelude::*,
     task::spawn_local,
 };
 
-use leptos_use::{core::IntoElementMaybeSignalType, use_event_listener};
+use leptos_use::use_event_listener;
 use tokio::sync::oneshot::Sender as OneShotSender;
 use types::{errors::Result, songs::SongType, ui::player_details::PlayerEvents};
 use wasm_bindgen::JsCast;
@@ -64,7 +64,7 @@ impl std::fmt::Debug for LocalPlayer {
 impl LocalPlayer {
     #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> Self {
-        let node_ref = create_node_ref();
+        let node_ref = NodeRef::new();
 
         let audio_element = audio().node_ref(node_ref);
         let build = audio_element.build();

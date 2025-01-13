@@ -25,7 +25,7 @@ where
     D: (Fn() -> bool) + 'static + Send + Sync,
     E: (Fn() -> bool) + 'static + Send + Sync,
 {
-    let show_default_cover_img = create_rw_signal(cover_img.is_empty());
+    let show_default_cover_img = RwSignal::new(cover_img.is_empty());
     view! {
         <div class="col-auto img-container h-100 d-flex justify-content-start">
             <div class="img-container justify-content-around ms-auto coverimg align-self-center">
@@ -41,6 +41,7 @@ where
                             .into_any()
                     } else {
                         view! {
+                            // class="fade-in-image"
                             // class="fade-in-image"
                             // class="fade-in-image"
                             // class="fade-in-image"
@@ -63,7 +64,7 @@ where
                     }
                         .into_any()
                 } else {
-                    view! {}.into_any()
+                    ().into_any()
                 }}
                 {move || {
                     if show_eq() {
@@ -74,7 +75,7 @@ where
                         }
                             .into_any()
                     } else {
-                        view! {}.into_any()
+                        ().into_any()
                     }
                 }}
 

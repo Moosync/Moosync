@@ -5,7 +5,6 @@ use types::{
     ui::song_details::{DefaultDetails, SongDetailIcons},
 };
 use wasm_bindgen_futures::spawn_local;
-use web_sys::HtmlElement;
 
 use crate::{
     icons::{
@@ -43,28 +42,28 @@ pub fn SongDetails<T>(
 where
     T: Get<Value = Option<Song>> + Copy + 'static,
 {
-    let selected_title = create_rw_signal(default_details.get().title);
-    let selected_artists = create_rw_signal(default_details.get().subtitle);
-    let selected_duration = create_rw_signal(None::<String>);
-    let selected_cover_path = create_rw_signal(default_details.get().icon);
+    let selected_title = RwSignal::new(default_details.get().title);
+    let selected_artists = RwSignal::new(default_details.get().subtitle);
+    let selected_duration = RwSignal::new(None::<String>);
+    let selected_cover_path = RwSignal::new(default_details.get().icon);
 
-    let selected_lyrics = create_rw_signal(None::<String>);
-    let show_default_cover_img = create_rw_signal(true);
-    let show_lyrics_div = create_rw_signal(false);
-    let show_lyrics_always = create_rw_signal(false);
+    let selected_lyrics = RwSignal::new(None::<String>);
+    let show_default_cover_img = RwSignal::new(true);
+    let show_lyrics_div = RwSignal::new(false);
+    let show_lyrics_always = RwSignal::new(false);
 
-    let show_lyrics_old = create_rw_signal(false);
+    let show_lyrics_old = RwSignal::new(false);
 
     let buttons_ref = if buttons_ref.is_some() {
         buttons_ref.unwrap()
     } else {
-        create_node_ref()
+        NodeRef::new()
     };
 
     let root_ref = if root_ref.is_some() {
         root_ref.unwrap()
     } else {
-        create_node_ref()
+        NodeRef::new()
     };
 
     if show_lyrics {
@@ -83,7 +82,7 @@ where
             }
         });
 
-        create_effect(move |_| {
+        Effect::new(move || {
             tracing::debug!("Fetching lyrics");
             let song = selected_song.get();
             if let Some(song) = song {
@@ -115,7 +114,7 @@ where
         });
     }
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let selected_song = selected_song.get();
         let default_details = default_details.get();
 

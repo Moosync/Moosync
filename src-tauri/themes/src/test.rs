@@ -6,9 +6,6 @@ use crate::themes::{transform_css, ThemeHolder};
 
 #[test]
 fn test_transformcss() -> Result<()> {
-    let (tx, _) = channel();
-    let theme_holder = ThemeHolder::new(PathBuf::new(), PathBuf::new(), tx);
-
     let root_theme = PathBuf::from_str("./test.css").unwrap();
     let subroot_theme = PathBuf::from_str("./test1.css").unwrap();
     fs::write(

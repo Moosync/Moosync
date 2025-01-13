@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 
 #[derive(Default, Clone)]
 pub struct SongDetailIcons {

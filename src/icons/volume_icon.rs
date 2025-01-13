@@ -37,7 +37,7 @@ pub fn VolumeIcon(#[prop()] cut: impl Get<Value = bool> + 'static + Send + Sync)
                     }
                         .into_any()
                 } else {
-                    view! {}.into_any()
+                    ().into_any()
                 }
             }}
 

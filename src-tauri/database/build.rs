@@ -1,4 +1,3 @@
-use anyhow::*;
 use glob::glob;
 use std::env;
 use std::result::Result::Ok;

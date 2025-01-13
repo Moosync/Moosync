@@ -1,12 +1,8 @@
-use std::{
-    rc::Rc,
-    str::{from_utf8, FromStr},
-    sync::Arc,
-};
+use std::{str::FromStr, sync::Arc};
 
 use crate::{
     components::prefs::static_components::SettingRoutes,
-    i18n::{self, use_i18n, Locale},
+    i18n::{use_i18n, Locale},
     pages::explore::Explore,
     players::librespot::LibrespotPlayer,
     store::ui_store::UiStore,
@@ -23,18 +19,13 @@ use leptos::{
     view, IntoView,
 };
 use leptos_context_menu::provide_context_menu_state;
-use leptos_i18n::{
-    provide_i18n_context,
-    reexports::icu::locid::{langid, LanguageIdentifier},
-    t,
-};
+use leptos_i18n::provide_i18n_context;
 use leptos_router::{
-    components::{Outlet, ParentRoute, Redirect, Route, RouteChildren, Router, Routes},
+    components::{Outlet, ParentRoute, Redirect, Route, Router, Routes},
     path,
 };
 use leptos_use::use_event_listener;
 use serde::Serialize;
-use serde_json::from_str;
 use types::{
     preferences::CheckboxPreference, ui::extensions::ExtensionUIRequest,
     ui::player_details::PlayerState,
@@ -96,7 +87,7 @@ pub fn MainApp() -> impl IntoView {
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
     let sidebar_open = create_read_slice(ui_store, |u| u.get_sidebar_open());
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let sidebar_open = sidebar_open.get();
         let document = window().document().unwrap();
         let style_element = document
@@ -221,8 +212,8 @@ pub fn App() -> impl IntoView {
     });
 
     provide_context_menu_state();
-    provide_context(create_rw_signal(UiStore::new()));
-    provide_context(create_rw_signal(ModalStore::default()));
+    provide_context(RwSignal::new(UiStore::new()));
+    provide_context(RwSignal::new(ModalStore::default()));
 
     {
         let ui_store = expect_context::<RwSignal<UiStore>>();
@@ -329,7 +320,7 @@ pub fn App() -> impl IntoView {
             let value = value.as_string().unwrap();
             handle_theme(value);
         } else if key == "prefs.i18n_language" {
-            let i18n = use_i18n();
+            // let i18n = use_i18n();
             let value = serde_wasm_bindgen::from_value::<Vec<CheckboxPreference>>(value).unwrap();
             if let Some(enabled) = value.into_iter().find(|v| v.enabled) {
                 // tracing::debug!("Setting locale to {:?}", enabled.key);

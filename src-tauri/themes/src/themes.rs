@@ -4,7 +4,7 @@ use std::{
     io::Write,
     path::PathBuf,
     str::FromStr,
-    sync::{mpsc::Sender, Arc, Mutex},
+    sync::{mpsc::Sender, Mutex},
 };
 
 use fs_extra::dir::CopyOptions;

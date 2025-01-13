@@ -1,7 +1,6 @@
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 
 use leptos::{component, prelude::*, view, IntoView};
-use leptos_context_menu::ContextMenu;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
@@ -20,7 +19,7 @@ use crate::{
 pub fn Explore() -> impl IntoView {
     let provider_store: Arc<ProviderStore> = expect_context();
     let provider_keys = provider_store.get_provider_keys();
-    let suggestion_items = create_rw_signal(vec![]);
+    let suggestion_items = RwSignal::new(vec![]);
     spawn_local(async move {
         for key in provider_keys {
             let suggestions = get_suggestions(key).await;
@@ -33,7 +32,7 @@ pub fn Explore() -> impl IntoView {
     let player_store: RwSignal<PlayerStore> = expect_context();
     let play_now = create_write_slice(player_store, |p, s| p.play_now(s));
 
-    let playlists = create_rw_signal(vec![]);
+    let playlists = RwSignal::new(vec![]);
     get_playlists_local(playlists);
 
     let refresh_songs = move || {};
@@ -41,7 +40,7 @@ pub fn Explore() -> impl IntoView {
     let context_menu_data = SongItemContextMenu {
         current_song: None,
         song_list: suggestion_items.read_only(),
-        selected_songs: create_rw_signal(vec![]),
+        selected_songs: RwSignal::new(vec![]),
         playlists,
         refresh_cb: Arc::new(Box::new(refresh_songs)),
     };

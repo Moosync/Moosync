@@ -1,7 +1,6 @@
 use std::time::Duration;
 
-use ev::{mousedown, mousemove, mouseup};
-use html::Div;
+use ev::mouseup;
 use leptos::*;
 use leptos::{component, prelude::*, view, IntoView};
 use leptos_dom::helpers::TimeoutHandle;
@@ -12,7 +11,6 @@ use types::ui::player_details::PlayerState;
 
 use crate::components::artist_list::ArtistList;
 use crate::components::low_img::LowImg;
-use crate::components::musicinfo::{MusicInfo, MusicInfoMobile};
 use crate::icons::expand_icon::ExpandIcon;
 use crate::icons::fav_icon::FavIcon;
 use crate::icons::next_track_icon::NextTrackIcon;
@@ -33,11 +31,11 @@ pub fn Details() -> impl IntoView {
     let current_song =
         create_read_slice(player_store, |player_store| player_store.get_current_song());
 
-    let title = create_rw_signal("-".to_string());
-    let artists_list = create_rw_signal::<Vec<QueryableArtist>>(vec![]);
-    let cover_img = create_rw_signal("".to_string());
+    let title = RwSignal::new("-".to_string());
+    let artists_list = RwSignal::<Vec<QueryableArtist>>::new(vec![]);
+    let cover_img = RwSignal::new("".to_string());
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let current_song = current_song.get().clone();
         if let Some(current_song) = &current_song {
             title.set(current_song.song.title.clone().unwrap());
@@ -107,10 +105,10 @@ pub fn Controls(
     let is_play = create_read_slice(player_store, |p| {
         p.get_player_state() == PlayerState::Playing
     });
-    let is_fav = create_rw_signal(false);
+    let is_fav = RwSignal::new(false);
     let (repeat_mode, toggle_repeat) =
         create_slice(player_store, |p| p.get_repeat(), |p, _| p.toggle_repeat());
-    let is_shuffle = create_rw_signal(true);
+    let is_shuffle = RwSignal::new(true);
     let shuffle_queue = create_write_slice(player_store, |p, _| p.shuffle_queue());
 
     let (current_time_sig, total_duration_sig) = if show_time {
@@ -133,7 +131,7 @@ pub fn Controls(
     let next_song_setter = create_write_slice(player_store, |p, _| p.next_song());
     let prev_song_setter = create_write_slice(player_store, |p, _| p.prev_song());
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let current_song = current_song.get();
         if let Some(current_song) = current_song {
             spawn_local(async move {
@@ -247,7 +245,7 @@ pub fn Controls(
                     }
                         .into_any()
                 } else {
-                    view! {}.into_any()
+                    ().into_any()
                 }
             }}
 
@@ -267,7 +265,7 @@ pub fn Controls(
                     }
                         .into_any()
                 } else {
-                    view! {}.into_any()
+                    ().into_any()
                 }
             }}
 
@@ -285,7 +283,7 @@ pub fn ExtraControls() -> impl IntoView {
         |player_store, volume| player_store.set_volume(volume),
     );
 
-    let is_cut = create_memo(move |_| current_volume.get() == 0f64);
+    let is_cut = Memo::new(move |_| current_volume.get() == 0f64);
     let ui_store = expect_context::<RwSignal<UiStore>>();
 
     let toggle_mute_sig = create_write_slice(player_store, |p, _| {
@@ -296,8 +294,8 @@ pub fn ExtraControls() -> impl IntoView {
         toggle_mute_sig.set(());
     };
 
-    let show_popup_volume = create_rw_signal(false);
-    let interval = create_rw_signal::<Option<TimeoutHandle>>(None);
+    let show_popup_volume = RwSignal::new(false);
+    let interval = RwSignal::<Option<TimeoutHandle>>::new(None);
 
     view! {
         <div class="row no-gutters align-items-center justify-content-end">
@@ -395,8 +393,8 @@ pub fn ExtraControls() -> impl IntoView {
 #[component]
 pub fn Slider() -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
-    let slider_process: NodeRef<html::Div> = create_node_ref();
-    let offset_width = create_rw_signal(0f64);
+    let slider_process: NodeRef<html::Div> = NodeRef::new();
+    let offset_width = RwSignal::new(0f64);
 
     slider_process.on_load(move |s| {
         offset_width.set(s.offset_width() as f64);
@@ -412,9 +410,9 @@ pub fn Slider() -> impl IntoView {
     );
 
     let current_song = create_read_slice(player_store, |p| p.get_current_song());
-    let total_time = create_rw_signal(1f64);
+    let total_time = RwSignal::new(1f64);
 
-    let is_dragging = create_rw_signal(false);
+    let is_dragging = RwSignal::new(false);
 
     let _ = use_event_listener(use_document(), mouseup, move |evt| {
         if is_dragging.get_untracked() {
@@ -424,7 +422,7 @@ pub fn Slider() -> impl IntoView {
         }
     });
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let current_song = current_song.get();
         if let Some(current_song) = current_song {
             if let Some(duration) = current_song.song.duration {

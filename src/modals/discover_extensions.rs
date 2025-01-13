@@ -9,7 +9,7 @@ use crate::{
 #[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn DiscoverExtensionsModal() -> impl IntoView {
-    let extensions = create_rw_signal::<Vec<FetchedExtensionManifest>>(vec![]);
+    let extensions = RwSignal::<Vec<FetchedExtensionManifest>>::new(vec![]);
     spawn_local(async move {
         let res = get_extension_manifest().await.unwrap();
 

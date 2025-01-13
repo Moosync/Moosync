@@ -1,4 +1,4 @@
-use std::{hash::Hash, rc::Rc, sync::Arc};
+use std::{hash::Hash, sync::Arc};
 
 use crate::{
     components::provider_icon::ProviderIcon,
@@ -40,7 +40,7 @@ pub fn CardItem<T>(
 where
     T: Serialize + Send + Sync,
 {
-    let show_default_icon = create_rw_signal(item.cover.is_none());
+    let show_default_icon = RwSignal::new(item.cover.is_none());
 
     let item_width = if is_mobile {
         (document().body().unwrap().client_width() / 2) - 30
@@ -82,7 +82,7 @@ where
                                     }
                                         .into_any()
                                 } else {
-                                    view! {}.into_any()
+                                    ().into_any()
                                 }
                             }}
                         </div>
@@ -91,7 +91,7 @@ where
                             {if let Some(icon) = item.icon.clone() {
                                 view! { <ProviderIcon extension=icon /> }.into_any()
                             } else {
-                                view! {}.into_any()
+                                ().into_any()
                             }}
                         </div>
                         {move || {

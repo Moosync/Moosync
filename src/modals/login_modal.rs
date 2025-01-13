@@ -13,9 +13,9 @@ pub fn LoginModal(
     #[prop()] name: String,
     account_id: String,
 ) -> impl IntoView {
-    let having_trouble = create_rw_signal(false);
-    let code = create_rw_signal(String::new());
-    let url = create_rw_signal(String::new());
+    let having_trouble = RwSignal::new(false);
+    let code = RwSignal::new(String::new());
+    let url = RwSignal::new(String::new());
 
     let key_cloned = key.clone();
 

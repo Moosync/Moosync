@@ -1,4 +1,3 @@
-use std::rc::Rc;
 use std::sync::Arc;
 
 use leptos::task::spawn_local;
@@ -28,12 +27,12 @@ pub fn NewPlaylistModal(
     #[prop()] initial_state: PlaylistModalState,
     #[prop()] songs: Option<Vec<Song>>,
 ) -> impl IntoView {
-    let state = create_rw_signal(initial_state);
+    let state = RwSignal::new(initial_state);
 
-    let playlist = create_rw_signal(None::<QueryablePlaylist>);
-    let import_url = create_rw_signal(String::new());
+    let playlist = RwSignal::new(None::<QueryablePlaylist>);
+    let import_url = RwSignal::new(String::new());
     let provider_store: Arc<ProviderStore> = expect_context();
-    create_effect(move |_| {
+    Effect::new(move || {
         let import_url = import_url.get().clone();
         if import_url.is_empty() {
             playlist.set(None);
@@ -57,7 +56,7 @@ pub fn NewPlaylistModal(
 
     let modal_store: RwSignal<ModalStore> = expect_context();
     let close_modal = move || modal_store.update(|m| m.clear_active_modal());
-    let songs = create_rw_signal(songs);
+    let songs = RwSignal::new(songs);
 
     let create_new_playlist = move |_| {
         let playlist = playlist.get();

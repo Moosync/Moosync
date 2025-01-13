@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::components::cardview::{CardView, SimplifiedCardItem};
@@ -24,7 +23,7 @@ use crate::utils::db_utils::{get_albums_by_option, get_songs_by_option};
 #[component()]
 pub fn SingleAlbum() -> impl IntoView {
     let params = use_query_map();
-    let album = create_memo(move |_| {
+    let album = Memo::new(move |_| {
         params.with(|params| {
             let entity = params.get("entity");
             if let Some(entity) = entity {
@@ -38,15 +37,15 @@ pub fn SingleAlbum() -> impl IntoView {
     });
     if album.get().is_none() {
         tracing::error!("Failed to parse album");
-        return view! {}.into_any();
+        return ().into_any();
     }
 
-    let songs = create_rw_signal(vec![]);
-    let selected_songs = create_rw_signal(vec![]);
+    let songs = RwSignal::new(vec![]);
+    let selected_songs = RwSignal::new(vec![]);
 
-    let default_details = create_rw_signal(DefaultDetails::default());
+    let default_details = RwSignal::new(DefaultDetails::default());
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let album = album.get();
         if let Some(album) = album {
             default_details.update(|d| {
@@ -74,7 +73,7 @@ pub fn SingleAlbum() -> impl IntoView {
 
     let add_to_queue_setter = create_write_slice(player_store, |p, songs| p.add_to_queue(songs));
 
-    let selected_providers = create_rw_signal::<Vec<String>>(vec![]);
+    let selected_providers = RwSignal::<Vec<String>>::new(vec![]);
 
     let (_, filtered_songs, fetch_selected_providers) =
         dyn_provider_songs!(selected_providers, album, songs, get_album_content);
@@ -103,7 +102,7 @@ pub fn SingleAlbum() -> impl IntoView {
         play_songs_setter.set(random_song.clone());
     };
 
-    let icons = create_rw_signal(SongDetailIcons {
+    let icons = RwSignal::new(SongDetailIcons {
         play: Some(Arc::new(Box::new(play_songs))),
         add_to_queue: Some(Arc::new(Box::new(add_to_queue))),
         random: Some(Arc::new(Box::new(random))),
@@ -138,7 +137,7 @@ pub fn SingleAlbum() -> impl IntoView {
 #[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn AllAlbums() -> impl IntoView {
-    let albums = create_rw_signal(vec![]);
+    let albums = RwSignal::new(vec![]);
     get_albums_by_option(QueryableAlbum::default(), albums.write_only());
 
     view! {

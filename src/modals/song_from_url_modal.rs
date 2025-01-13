@@ -1,4 +1,3 @@
-use std::rc::Rc;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -19,10 +18,10 @@ pub fn SongFromUrlModal() -> impl IntoView {
     let provider_store: Arc<ProviderStore> = expect_context();
     let close_modal = move || modal_store.update(|m| m.clear_active_modal());
 
-    let imported_song = create_rw_signal(None::<Song>);
-    let song_url = create_rw_signal("".to_string());
+    let imported_song = RwSignal::new(None::<Song>);
+    let song_url = RwSignal::new("".to_string());
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let song_url = song_url.get();
         if song_url.is_empty() {
             imported_song.set(None);

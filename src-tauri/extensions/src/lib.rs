@@ -1,21 +1,16 @@
 use std::{
     collections::HashMap,
-    env,
     fs::{self, File},
     io::Write,
     path::PathBuf,
-    process::Command,
     str::FromStr,
     sync::Arc,
     thread,
 };
 
-use ext_runner::{
-    ExtCommandReceiver, ExtCommandSender, ExtensionHandlerInner, MainCommandReceiver,
-    MainCommandReplyReceiver, MainCommandReplySender, MainCommandSender,
-};
+use ext_runner::{ExtCommandReceiver, ExtensionHandlerInner};
 use fs_extra::dir::CopyOptions;
-use futures::{executor::block_on, future::join_all, StreamExt};
+use futures::{executor::block_on, StreamExt};
 use futures::{lock::Mutex, SinkExt};
 use serde_json::Value;
 use tokio::{
@@ -38,19 +33,11 @@ use zip_extensions::zip_extract;
 
 mod ext_runner;
 
-type ReplyMapExtReplySender =
-    UnboundedSender<GenericExtensionHostRequest<HashMap<String, ExtensionCommandResponse>>>;
-
 type UiRequestSender = UnboundedSender<GenericExtensionHostRequest<MainCommand>>;
 type UiRequestReceiver = UnboundedReceiver<GenericExtensionHostRequest<MainCommand>>;
 
 type UiReplySender = UnboundedSender<GenericExtensionHostRequest<MainCommandResponse>>;
 type UiReplyReceiver = UnboundedReceiver<GenericExtensionHostRequest<MainCommandResponse>>;
-
-enum ExtensionCommandResponseExtended {
-    Resp(ExtensionCommandResponse),
-    None,
-}
 
 pub struct ExtensionHandler {
     pub extensions_dir: PathBuf,

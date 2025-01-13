@@ -4,7 +4,7 @@ use futures::SinkExt;
 use google_youtube3::api::{Channel, ChannelSnippet, Playlist, PlaylistSnippet, Video};
 use google_youtube3::hyper_rustls::HttpsConnector;
 use google_youtube3::hyper_util::client::legacy::connect::HttpConnector;
-use google_youtube3::{hyper, hyper_rustls, hyper_util, YouTube};
+use google_youtube3::{hyper_rustls, hyper_util, YouTube};
 use oauth2::basic::BasicClient;
 use oauth2::{AuthUrl, ClientId, ClientSecret, CsrfToken, PkceCodeVerifier, RedirectUrl, TokenUrl};
 use preferences::preferences::PreferenceConfig;

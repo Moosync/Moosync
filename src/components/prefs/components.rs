@@ -1,7 +1,6 @@
-use std::{collections::HashMap, rc::Rc, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use leptos::{component, prelude::*, view, IntoView};
-use leptos_context_menu::ContextMenu;
 use leptos_i18n::t;
 use leptos_use::use_debounce_fn_with_arg;
 use types::{
@@ -10,7 +9,6 @@ use types::{
     ui::{extensions::ExtensionDetail, themes::ThemeModalState},
     window::DialogFilter,
 };
-use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
@@ -24,7 +22,6 @@ use crate::{
         ui_store::UiStore,
     },
     utils::{
-        common::invoke,
         context_menu::{create_context_menu, ThemesContextMenu},
         invoke::{get_installed_extensions, load_all_themes, remove_extension},
         prefs::{
@@ -51,14 +48,14 @@ where
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
     if is_mobile && !mobile {
-        return view! {}.into_any();
+        return ().into_any();
     }
 
-    let should_write = create_rw_signal(false);
-    let paths: RwSignal<Vec<String>> = create_rw_signal(vec![]);
+    let should_write = RwSignal::new(false);
+    let paths: RwSignal<Vec<String>> = RwSignal::new(vec![]);
     load_selective(key.clone(), paths.write_only());
-    let selected_paths = create_rw_signal(vec![]);
-    create_effect(move |_| {
+    let selected_paths = RwSignal::new(vec![]);
+    Effect::new(move || {
         let new_paths = selected_paths.get();
         tracing::debug!("Got new paths: {:?}", new_paths);
         if !new_paths.is_empty() {
@@ -73,7 +70,7 @@ where
     };
 
     let key_clone = key.clone();
-    create_effect(move |_| {
+    Effect::new(move || {
         let value = paths.get();
         tracing::debug!("Should write {}, {:?}", should_write.get(), value);
         if !should_write.get() {
@@ -155,17 +152,17 @@ where
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
     if is_mobile && !mobile {
-        return view! {}.into_any();
+        return ().into_any();
     }
 
-    let should_write = create_rw_signal(false);
-    let pref_value = create_rw_signal(Default::default());
+    let should_write = RwSignal::new(false);
+    let pref_value = RwSignal::new(Default::default());
     let pref_key = key.clone();
 
     if inp_type == "number" {
-        let num_pref = create_rw_signal(f64::default());
+        let num_pref = RwSignal::new(f64::default());
         load_selective(pref_key.clone(), num_pref.write_only());
-        create_effect(move |_| {
+        Effect::new(move || {
             let num_pref = num_pref.get();
             pref_value.set(format!("{}", num_pref));
         });
@@ -173,7 +170,7 @@ where
         load_selective(pref_key.clone(), pref_value.write_only());
     }
     let inp_type_clone = inp_type.clone();
-    create_effect(move |_| {
+    Effect::new(move || {
         let value = pref_value.get();
         if !should_write.get() {
             should_write.set(true);
@@ -223,7 +220,7 @@ where
                     }
                         .into_any()
                 } else {
-                    view! {}.into_any()
+                    ().into_any()
                 }}
                 <div class="col-auto ml-3 mr-3 h-100 align-self-center flex-grow-1 d-flex">
                     {if show_input {
@@ -271,16 +268,16 @@ where
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
     if is_mobile && !mobile {
-        return view! {}.into_any();
+        return ().into_any();
     }
 
-    let should_write = create_rw_signal(false);
-    let pref_value = create_rw_signal::<Vec<CheckboxPreference>>(Default::default());
+    let should_write = RwSignal::new(false);
+    let pref_value = RwSignal::<Vec<CheckboxPreference>>::new(Default::default());
     let pref_key = key;
     let pref_key_clone = pref_key.clone();
     load_selective(pref_key.clone(), pref_value.write_only());
-    let last_enabled = create_rw_signal(String::new());
-    create_effect(move |_| {
+    let last_enabled = RwSignal::new(String::new());
+    Effect::new(move || {
         let value = pref_value.get();
         if !should_write.get() {
             should_write.update_untracked(|v| {
@@ -395,7 +392,7 @@ where
     K1: Fn() -> H1 + Send + Sync + 'static,
     H1: IntoView + Copy + 'static,
 {
-    let all_themes: RwSignal<HashMap<String, ThemeDetails>> = create_rw_signal(Default::default());
+    let all_themes: RwSignal<HashMap<String, ThemeDetails>> = RwSignal::new(Default::default());
     let load_themes = move || {
         spawn_local(async move {
             let themes = load_all_themes().await.unwrap();
@@ -403,8 +400,8 @@ where
         })
     };
     load_themes();
-    let active_themes = create_rw_signal(vec![]);
-    let active_theme_id = create_rw_signal(String::new());
+    let active_themes = RwSignal::new(vec![]);
+    let active_theme_id = RwSignal::new(String::new());
     load_selective(key, active_theme_id);
 
     let context_menu = create_context_menu(ThemesContextMenu {
@@ -417,7 +414,7 @@ where
         let mut views = vec![];
         let active_theme_id = active_theme_id.get();
         for (key, theme) in all_themes.get() {
-            let signal = create_rw_signal(key == active_theme_id);
+            let signal = RwSignal::new(key == active_theme_id);
             active_themes.update(|at| at.push(signal));
             let context_menu = context_menu.clone();
             let key_clone = key.clone();
@@ -503,7 +500,7 @@ where
     K1: Fn() -> H1 + Send + Sync + 'static,
     H1: IntoView + Copy + 'static,
 {
-    let extensions = create_rw_signal::<Vec<ExtensionDetail>>(Default::default());
+    let extensions = RwSignal::<Vec<ExtensionDetail>>::new(Default::default());
     let fetch_extensions = move || {
         spawn_local(async move {
             let res = get_installed_extensions().await;
@@ -521,7 +518,7 @@ where
 
     let i18n = use_i18n();
 
-    let extension_path = create_rw_signal(String::new());
+    let extension_path = RwSignal::new(String::new());
     let install_extension = move |_| {
         open_file_browser_single(
             false,
@@ -533,7 +530,7 @@ where
         );
     };
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let extension_path = extension_path.get();
         if extension_path.is_empty() {
             return;
@@ -628,8 +625,6 @@ where
                                 each=move || extension.preferences.clone()
                                 key=|p| p.key.clone()
                                 children=move |preference| {
-                                    let title = preference.title.clone();
-                                    let tooltip = preference.description.clone();
                                     match preference._type {
                                         types::preferences::PreferenceTypes::DirectoryGroup => {
                                             view! {
@@ -699,13 +694,13 @@ where
                                         }
                                         types::preferences::PreferenceTypes::ThemeSelector
                                         | types::preferences::PreferenceTypes::Extensions => {
-                                            view! {}.into_any()
+                                            ().into_any()
                                         }
                                         types::preferences::PreferenceTypes::ButtonGroup
                                         | types::preferences::PreferenceTypes::ProgressBar
                                         | types::preferences::PreferenceTypes::TextField
                                         | types::preferences::PreferenceTypes::InfoField => {
-                                            view! {}.into_any()
+                                            ().into_any()
                                         }
                                     }
                                 }
@@ -736,16 +731,15 @@ where
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
     if is_mobile && !mobile {
-        return view! {}.into_any();
+        return ().into_any();
     }
 
-    let should_write = create_rw_signal(false);
-    let pref_value = create_rw_signal::<Vec<CheckboxPreference>>(Default::default());
+    let should_write = RwSignal::new(false);
+    let pref_value = RwSignal::<Vec<CheckboxPreference>>::new(Default::default());
     let pref_key = key;
-    let pref_key_clone = pref_key.clone();
     load_selective(pref_key.clone(), pref_value.write_only());
-    let last_enabled = create_rw_signal(String::new());
-    create_effect(move |_| {
+
+    Effect::new(move || {
         let value = pref_value.get();
         if !should_write.get() {
             should_write.set(true);

@@ -53,9 +53,9 @@ impl YoutubePlayer {
     pub fn new() -> Self {
         Self {
             player: Rc::new(YTPlayer::new("yt-player")),
-            force_play: create_rw_signal(false),
-            reload_audio: create_rw_signal(false),
-            last_src: create_rw_signal(None),
+            force_play: RwSignal::new(false),
+            reload_audio: RwSignal::new(false),
+            last_src: RwSignal::new(None),
         }
     }
 }
@@ -71,7 +71,7 @@ impl GenericPlayer for YoutubePlayer {
     #[tracing::instrument(level = "trace", skip(self, player_container))]
     fn initialize(&self, player_container: NodeRef<Div>) {
         player_container.on_load(move |elem| {
-            let node_ref = create_node_ref();
+            let node_ref = NodeRef::new();
             let container_div = div().node_ref(node_ref).id("yt-player");
             let build = container_div.build();
             let el: &HtmlDivElement = build.deref().unchecked_ref();
@@ -81,7 +81,7 @@ impl GenericPlayer for YoutubePlayer {
 
         let force_play_sig = self.force_play;
         let player = self.player.clone();
-        create_effect(move |_| {
+        Effect::new(move || {
             let force_play = force_play_sig.get();
             if force_play {
                 force_play_sig.set(false);
@@ -92,7 +92,7 @@ impl GenericPlayer for YoutubePlayer {
         let reload_audio_sig = self.reload_audio;
         let last_src = self.last_src;
         let player = self.player.clone();
-        create_effect(move |_| {
+        Effect::new(move || {
             let reload_audio = reload_audio_sig.get();
             let last_src = last_src.get();
             if let Some(last_src) = last_src {

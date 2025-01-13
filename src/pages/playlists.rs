@@ -13,11 +13,9 @@ use crate::utils::db_utils::get_songs_by_option;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::task::spawn_local;
 use leptos::{component, prelude::*, view, IntoView};
-use leptos_context_menu::{ContextMenu, Menu};
 use leptos_router::hooks::use_query_map;
 use rand::seq::SliceRandom;
 use std::collections::HashMap;
-use std::rc::Rc;
 use std::sync::Arc;
 use types::entities::QueryablePlaylist;
 use types::songs::{GetSongOptions, Song};
@@ -30,7 +28,7 @@ use crate::{icons::plus_button::PlusIcon, utils::db_utils::get_playlists_by_opti
 #[component()]
 pub fn SinglePlaylist() -> impl IntoView {
     let params = use_query_map();
-    let playlist = create_memo(move |_| {
+    let playlist = Memo::new(move |_| {
         params.with(|params| {
             let entity = params.get("entity");
             if let Some(entity) = entity {
@@ -43,17 +41,17 @@ pub fn SinglePlaylist() -> impl IntoView {
         })
     });
 
-    let songs = create_rw_signal(vec![]);
-    let selected_songs = create_rw_signal(vec![]);
+    let songs = RwSignal::new(vec![]);
+    let selected_songs = RwSignal::new(vec![]);
 
     let provider_store = use_context::<Arc<ProviderStore>>().unwrap();
     let provider_store_clone = provider_store.clone();
-    let selected_providers = create_rw_signal::<Vec<String>>(vec![]);
+    let selected_providers = RwSignal::<Vec<String>>::new(vec![]);
 
     let (_, filtered_songs, fetch_selected_providers) =
         dyn_provider_songs!(selected_providers, playlist, songs, fetch_playlist_content);
 
-    let default_details = create_rw_signal(DefaultDetails::default());
+    let default_details = RwSignal::new(DefaultDetails::default());
 
     let refresh_songs = move || {
         tracing::debug!("Refreshing song list");
@@ -72,7 +70,7 @@ pub fn SinglePlaylist() -> impl IntoView {
         }
     };
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let playlist = playlist.get();
         if let Some(playlist) = playlist {
             default_details.update(|d| {
@@ -128,7 +126,7 @@ pub fn SinglePlaylist() -> impl IntoView {
         play_songs_setter.set(random_song.clone());
     };
 
-    let icons = create_rw_signal(SongDetailIcons {
+    let icons = RwSignal::new(SongDetailIcons {
         play: Some(Arc::new(Box::new(play_songs))),
         add_to_queue: Some(Arc::new(Box::new(add_to_queue))),
         random: Some(Arc::new(Box::new(random))),
@@ -158,7 +156,7 @@ pub fn SinglePlaylist() -> impl IntoView {
 #[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn AllPlaylists() -> impl IntoView {
-    let playlists = create_rw_signal(vec![]);
+    let playlists = RwSignal::new(vec![]);
 
     let owner = Owner::new();
     let refresh_playlist_items: Arc<Box<dyn Fn() + Send + Sync>> = Arc::new(Box::new(move || {
@@ -189,7 +187,7 @@ pub fn AllPlaylists() -> impl IntoView {
 
     let playlist_sort = create_read_slice(ui_store, |u| u.get_playlist_sort_by());
 
-    let sorted_playlists = create_memo(move |_| {
+    let sorted_playlists = Memo::new(move |_| {
         let mut playlists = playlists.get();
         let sort = playlist_sort.get();
         match sort.sort_by {

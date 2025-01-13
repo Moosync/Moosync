@@ -125,7 +125,7 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
             ];
             view! {
                 <div>
-                    <Sidebar tabs=tabs show_back=true />
+                    <Sidebar tabs=tabs />
                         <div class="main-container" class:main-container-mobile=is_mobile>
                         <Outlet />
                     </div>

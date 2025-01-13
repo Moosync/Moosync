@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 
 use types::{songs::Song, ui::themes::ThemeModalState};
 

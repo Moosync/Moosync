@@ -315,7 +315,15 @@
                 padding: 0 !important;
                 margin: 0 0 0 10px !important;
                 transform: rotate(90deg);
+                position: absolute;
+                right: 0;
             }
+
+            > .button-icon {
+                position: absolute;
+                right: 30px;
+            }
+
             > .timestamp {
                 display: none;
             }

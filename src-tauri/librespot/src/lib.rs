@@ -76,9 +76,11 @@ pub struct LibrespotHolder {
 impl LibrespotHolder {
     #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> Self {
-        let env = Env::default().filter_or("MOOSYNC_LOG", "error");
         #[cfg(desktop)]
-        env_logger::init_from_env(env);
+        {
+            let env = Env::default().filter_or("MOOSYNC_LOG", "error");
+            env_logger::init_from_env(env);
+        }
         Self {
             ..Default::default()
         }

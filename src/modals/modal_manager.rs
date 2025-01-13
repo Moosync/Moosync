@@ -20,7 +20,7 @@ pub fn ModalManager() -> impl IntoView {
                 let active_modal = modal_store.get().active_modal;
                 tracing::debug!("Got active modal {:?}", active_modal);
                 if active_modal.is_none() {
-                    return view! {}.into_any();
+                    return ().into_any();
                 }
                 match active_modal.unwrap() {
                     Modals::LoginModal(key, name, account_id) => {

@@ -5,7 +5,7 @@ use leptos::{component, prelude::*, view, IntoView};
 #[tracing::instrument(level = "trace", skip(children))]
 #[component]
 pub fn Tooltip(children: ChildrenFn) -> impl IntoView {
-    let show_tooltip = create_rw_signal(false);
+    let show_tooltip = RwSignal::new(false);
     view! {
         <div>
             <svg

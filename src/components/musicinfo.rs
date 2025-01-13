@@ -18,7 +18,7 @@ use crate::utils::common::{format_duration, get_high_img};
 use crate::utils::entities::get_artist_string;
 use crate::{
     components::{low_img::LowImg, provider_icon::ProviderIcon, songdetails::SongDetails},
-    icons::{cross_icon::CrossIcon, trash_icon::TrashIcon},
+    icons::{add_to_queue_icon::AddToQueueIcon, cross_icon::CrossIcon, trash_icon::TrashIcon},
     store::player_store::PlayerStore,
     utils::common::get_low_img,
 };
@@ -67,7 +67,7 @@ where
                             if let Some(extension) = extension {
                                 view! { <ProviderIcon extension=extension /> }.into_any()
                             } else {
-                                view! {}.into_any()
+                                ().into_any()
                             }
                         }}
                     </div>
@@ -94,26 +94,26 @@ pub fn MusicInfoMobile(
 ) -> impl IntoView {
     let player_store = expect_context::<RwSignal<PlayerStore>>();
     let current_song = create_read_slice(player_store, move |p| p.get_current_song());
-    let cover_img = create_memo(move |_| {
+    let cover_img = Memo::new(move |_| {
         if let Some(current_song) = current_song.get() {
             return Some(get_high_img(&current_song));
         }
         None
     });
-    let show_default_cover_img = create_rw_signal(cover_img.get_untracked().is_none());
+    let show_default_cover_img = RwSignal::new(cover_img.get_untracked().is_none());
 
-    create_effect(move |_| {
+    Effect::new(move || {
         show_default_cover_img.set(cover_img.get().is_none());
     });
 
-    let song_title = create_memo(move |_| {
+    let song_title = Memo::new(move |_| {
         if let Some(current_song) = current_song.get() {
             return current_song.song.title;
         }
         None
     });
 
-    let song_subtitle = create_memo(move |_| {
+    let song_subtitle = Memo::new(move |_| {
         if let Some(current_song) = current_song.get() {
             return Some(get_artist_string(current_song.artists));
         }
@@ -121,7 +121,7 @@ pub fn MusicInfoMobile(
     });
 
     let current_time = create_read_slice(player_store, |p| format_duration(p.get_current_time()));
-    let total_time = create_memo(move |_| {
+    let total_time = Memo::new(move |_| {
         if let Some(current_song) = current_song.get() {
             if let Some(duration) = current_song.song.duration {
                 return format_duration(duration);
@@ -130,8 +130,8 @@ pub fn MusicInfoMobile(
         "00:00".to_string()
     });
 
-    let canvaz_sig = create_rw_signal(None);
-    create_effect(move |_| {
+    let canvaz_sig = RwSignal::new(None);
+    Effect::new(move || {
         let current_song = current_song.get();
         canvaz_sig.set(None);
         if let Some(current_song) = current_song {
@@ -166,7 +166,7 @@ pub fn MusicInfoMobile(
                 {move || {
                     let current_song = current_song.get();
                     if current_song.is_none() {
-                        return view! {}.into_any();
+                        return ().into_any();
                     }
                     let canvas_url = canvaz_sig.get();
                     let high_img = current_song.map(|current_song| get_high_img(&current_song));
@@ -177,7 +177,7 @@ pub fn MusicInfoMobile(
                         }
                             .into_any()
                     } else {
-                        view! {}.into_any()
+                        ().into_any()
                     }
                 }} <div class="row no-gutters">
                     <div class="col col-auto">
@@ -221,6 +221,10 @@ pub fn MusicInfoMobile(
                     <div class="col">
                         <Controls show_time=false show_fav=false />
                     </div>
+                </div> <div class="row no-gutters mobile-musicinfo-buttons">
+                    <div class="col">
+                        <AddToQueueIcon title="show queue".into() />
+                    </div>
                 </div>
             </div>
         </div>
@@ -241,7 +245,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
     let remove_from_queue = create_write_slice(player_store, |p, val| p.remove_from_queue(val));
 
     let clear_queue = create_write_slice(player_store, |p, _| p.clear_queue_except_current());
-    let canvaz_sig = create_rw_signal(None);
+    let canvaz_sig = RwSignal::new(None);
 
     let get_queue = create_read_slice(player_store, |p| {
         p.get_queue()
@@ -253,7 +257,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
 
     let ui_store = expect_context::<RwSignal<UiStore>>();
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let current_song = current_song.get();
         if let Some(current_song) = current_song {
             if current_song.song.type_ == SongType::SPOTIFY
@@ -274,8 +278,8 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
         }
     });
 
-    let scroller_ref: NodeRef<Div> = create_node_ref();
-    create_effect(move |_| {
+    let scroller_ref: NodeRef<Div> = NodeRef::new();
+    Effect::new(move || {
         let current_song_index = current_song_index.get();
         if let Some(el) = scroller_ref.get_untracked() {
             let el_top = 95usize * current_song_index;
@@ -300,7 +304,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
                 {move || {
                     let current_song = current_song.get();
                     if current_song.is_none() {
-                        return view! {}.into_any();
+                        return ().into_any();
                     }
                     let canvas_url = canvaz_sig.get();
                     let high_img = current_song.map(|current_song| get_high_img(&current_song));
@@ -333,7 +337,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
                                 </div>
                             </div>
                             <SongDetails
-                                icons=create_rw_signal(SongDetailIcons::default())
+                                icons=RwSignal::new(SongDetailIcons::default())
                                 selected_song=current_song
                                 show_lyrics=true
                             />

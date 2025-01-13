@@ -209,7 +209,7 @@ macro_rules! fetch_infinite {
                 let res = crate::utils::invoke::$fetch_content($provider.clone(), $($arg,)* pagination.clone()).await;
                 if res.is_err() {
                     tracing::error!("Error fetching content {:?}", res);
-                    break 'fetch Err(res.unwrap());
+                    break 'fetch Err(res.unwrap_err());
                 }
 
                 if let Ok(res) = res {
@@ -278,7 +278,7 @@ where
     let closure = Closure::wrap(Box::new(move |data: JsValue| {
         cb(data);
     }) as Box<dyn Fn(JsValue)>);
-    let res = addPluginListener(plugin, event.clone(), closure.into_js_value());
+    let res = addPluginListener(plugin, event, closure.into_js_value());
 
     let event = event.to_string();
     let data = Box::new(move || {

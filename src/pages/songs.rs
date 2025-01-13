@@ -1,6 +1,5 @@
 use leptos::{component, prelude::*, view, IntoView};
 use rand::seq::SliceRandom;
-use std::rc::Rc;
 use std::sync::Arc;
 use types::songs::GetSongOptions;
 use types::ui::song_details::SongDetailIcons;
@@ -14,8 +13,8 @@ use crate::utils::songs::get_songs_from_indices;
 #[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn AllSongs() -> impl IntoView {
-    let songs = create_rw_signal(vec![]);
-    let selected_songs = create_rw_signal(vec![]);
+    let songs = RwSignal::new(vec![]);
+    let selected_songs = RwSignal::new(vec![]);
     let refresh_songs = move || {
         tracing::debug!("Calling refresh cb");
         get_songs_by_option(
@@ -58,7 +57,7 @@ pub fn AllSongs() -> impl IntoView {
         play_songs_setter.set(random_song.clone());
     };
 
-    let icons = create_rw_signal(SongDetailIcons {
+    let icons = RwSignal::new(SongDetailIcons {
         play: Some(Arc::new(Box::new(play_songs))),
         add_to_queue: Some(Arc::new(Box::new(add_to_queue))),
         random: Some(Arc::new(Box::new(random))),

@@ -26,9 +26,9 @@ use crate::modals::common::GenericModal;
 #[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView {
-    let state = create_rw_signal(initial_state);
-    let theme_path = create_rw_signal(String::new());
-    create_effect(move |_| {
+    let state = RwSignal::new(initial_state);
+    let theme_path = RwSignal::new(String::new());
+    Effect::new(move || {
         let state = state.get();
 
         if let ThemeModalState::ImportTheme = state {
@@ -48,7 +48,7 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
         modal_store.update(|s| s.clear_active_modal());
     };
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let theme_path = theme_path.get();
         if theme_path.is_empty() {
             return;
@@ -126,14 +126,14 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                         .into_any()
                 }
                 ThemeModalState::NewTheme(theme) => {
-                    let new_theme = create_rw_signal(theme);
-                    let active = create_rw_signal(false);
-                    let show_color_picker = create_rw_signal((false, 0));
+                    let new_theme = RwSignal::new(theme);
+                    let active = RwSignal::new(false);
+                    let show_color_picker = RwSignal::new((false, 0));
                     let colors = create_read_slice(new_theme, move |t| t.theme.clone());
-                    let hex_code = create_rw_signal(String::new());
-                    let color_picker_coords_x = create_rw_signal("0px".to_string());
-                    let color_picker_coords_y = create_rw_signal("0px".to_string());
-                    let color_picker_ref = create_node_ref();
+                    let hex_code = RwSignal::new(String::new());
+                    let color_picker_coords_x = RwSignal::new("0px".to_string());
+                    let color_picker_coords_y = RwSignal::new("0px".to_string());
+                    let color_picker_ref = NodeRef::new();
                     let _ = on_click_outside(
                         color_picker_ref,
                         move |_| {
@@ -153,7 +153,7 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                         }
                     };
                     let save_theme = move || { save_theme(new_theme.get_untracked(), close_modal) };
-                    create_effect(move |_| {
+                    Effect::new(move || {
                         let (show, index) = show_color_picker.get();
                         if !show {
                             return;
@@ -194,7 +194,7 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                                     }
                                         .into_any()
                                 } else {
-                                    view! {}.into_any()
+                                    ().into_any()
                                 }
                             }} <div class="row no-gutters">
                                 <div class="col h-100">
@@ -389,10 +389,10 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                     }
                         .into_any()
                 }
-                ThemeModalState::ImportTheme => view! {}.into_any(),
+                ThemeModalState::ImportTheme => ().into_any(),
                 ThemeModalState::DiscoverTheme => {
-                    let themes = create_rw_signal(HashMap::new());
-                    let (active, _) = create_signal(false);
+                    let themes = RwSignal::new(HashMap::new());
+                    let (active, _) = signal(false);
                     spawn_local(async move {
                         if let Ok(manifest) = get_themes_manifest().await {
                             tracing::debug!("Got themes manifest {:?}", manifest);

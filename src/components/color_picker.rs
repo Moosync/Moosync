@@ -538,25 +538,24 @@ pub fn ColorPicker(
 ) -> impl IntoView {
     const DECIMAL_PRECISION: usize = 2;
 
-    let node_ref = node_ref.unwrap_or(create_node_ref());
+    let node_ref = node_ref.unwrap_or_default();
 
-    let normalised_inputs = create_rw_signal(false);
+    let normalised_inputs = RwSignal::new(false);
 
     let forced_color = Rgb::from_hex_code(force_color.as_str())
         .unwrap()
         .as_floats();
 
-    let (color, set_color) = create_signal(DynamicColor::from_floats(
+    let (color, set_color) = signal(DynamicColor::from_floats(
         (forced_color.0, forced_color.1, forced_color.2),
         ColorSpace::Rgb,
     ));
 
-    let (color_hsv, set_color_hsv) = create_signal(color.get_untracked().to_color::<Hsv>());
+    let (color_hsv, set_color_hsv) = signal(color.get_untracked().to_color::<Hsv>());
 
-    let (hex_code, set_hex_code) =
-        create_signal(color.get_untracked().to_color::<Rgb>().as_hex_code());
+    let (hex_code, set_hex_code) = signal(color.get_untracked().to_color::<Rgb>().as_hex_code());
 
-    create_effect(move |_| {
+    Effect::new(move || {
         hex_code_setter.set(format!("#{}", hex_code.get()));
     });
 
@@ -616,7 +615,7 @@ where
     S: Fn(f32) + Copy + 'static,
     V: Fn(f32) + Copy + 'static,
 {
-    let (dragging, set_dragging) = create_signal(false);
+    let (dragging, set_dragging) = signal(false);
 
     let custom_properties = move || {
         format!(
@@ -627,7 +626,7 @@ where
         )
     };
 
-    let surface_ref = create_node_ref::<Div>();
+    let surface_ref = NodeRef::<Div>::new();
 
     let on_pointer_move_color = move |ev: &PointerEvent| {
         let Some(surface_element) = surface_ref.get_untracked() else {
@@ -683,11 +682,11 @@ pub fn HueSlider<F>(#[prop(into)] hue: Signal<f32>, set_hue: F) -> impl IntoView
 where
     F: Fn(f32) + Copy + 'static,
 {
-    let (dragging, set_dragging) = create_signal(false);
+    let (dragging, set_dragging) = signal(false);
 
     let custom_properties = move || format!("--hue: {}", hue.get());
 
-    let surface_ref = create_node_ref::<Div>();
+    let surface_ref = NodeRef::<Div>::new();
 
     let on_pointer_move = move |ev: PointerEvent| {
         if !dragging.get_untracked() {

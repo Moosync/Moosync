@@ -6,7 +6,6 @@ use crate::utils::db_utils::get_songs_by_option;
 use leptos::{component, prelude::*, view, IntoView};
 use leptos_router::hooks::use_query_map;
 use rand::seq::SliceRandom;
-use std::rc::Rc;
 use std::sync::Arc;
 use types::entities::QueryableGenre;
 use types::songs::{GetSongOptions, Song};
@@ -18,8 +17,8 @@ pub fn SingleGenre() -> impl IntoView {
     let params = use_query_map();
     let genre_id = params.with(|params| params.get("id")).unwrap();
 
-    let songs = create_rw_signal(vec![]);
-    let selected_songs = create_rw_signal(vec![]);
+    let songs = RwSignal::new(vec![]);
+    let selected_songs = RwSignal::new(vec![]);
 
     get_songs_by_option(
         GetSongOptions {
@@ -82,7 +81,7 @@ pub fn SingleGenre() -> impl IntoView {
         play_songs_setter.set(random_song.clone());
     };
 
-    let icons = create_rw_signal(SongDetailIcons {
+    let icons = RwSignal::new(SongDetailIcons {
         play: Some(Arc::new(Box::new(play_songs))),
         add_to_queue: Some(Arc::new(Box::new(add_to_queue))),
         random: Some(Arc::new(Box::new(random))),
@@ -106,7 +105,7 @@ pub fn SingleGenre() -> impl IntoView {
 #[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn AllGenres() -> impl IntoView {
-    let genres = create_rw_signal(vec![]);
+    let genres = RwSignal::new(vec![]);
     get_genres_by_option(QueryableGenre::default(), genres.write_only());
 
     view! {

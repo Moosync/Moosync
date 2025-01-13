@@ -1,9 +1,6 @@
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 
-use leptos::{
-    ev::{click, mousedown, mousemove, mouseup},
-    prelude::*,
-};
+use leptos::prelude::*;
 use leptos_context_menu::{
     BottomSheet, ContextMenu, ContextMenuData, ContextMenuItemInner, ContextMenuItems, Menu,
 };
@@ -11,14 +8,11 @@ use leptos_router::{
     hooks::{use_navigate, use_query_map},
     NavigateOptions,
 };
-use leptos_use::use_event_listener;
 use types::{
     entities::{QueryableArtist, QueryablePlaylist},
     songs::Song,
 };
-use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::spawn_local;
-use web_sys::HtmlElement;
 
 use crate::{
     modals::new_playlist_modal::PlaylistModalState,
@@ -146,7 +140,7 @@ where
 
     pub fn remove_from_playlist(&self) {
         let params = use_query_map();
-        let playlist = create_memo(move |_| {
+        let playlist = Memo::new(move |_| {
             params.with(|params| {
                 let entity = params.get("entity");
                 if let Some(entity) = entity {

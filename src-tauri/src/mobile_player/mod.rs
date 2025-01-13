@@ -1,6 +1,6 @@
+#![allow(unused_variables)]
 use macros::generate_command;
 use tauri::{AppHandle, State};
-use tauri_plugin_audioplayer::AudioplayerExt;
 use types::errors::Result;
 
 pub struct MobilePlayer {}

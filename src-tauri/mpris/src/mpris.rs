@@ -1,4 +1,4 @@
-pub use souvlaki::{MediaControlEvent, SeekDirection};
+pub use souvlaki::MediaControlEvent;
 use std::{
     sync::{
         mpsc::{self, Receiver},

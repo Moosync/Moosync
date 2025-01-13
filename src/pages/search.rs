@@ -1,4 +1,4 @@
-use std::{collections::HashMap, rc::Rc, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use crate::{
     components::cardview::{CardView, SimplifiedCardItem},
@@ -30,16 +30,16 @@ pub fn TabCarousel(
     #[prop()] single_select: bool,
     #[prop(optional, default = true)] align_left: bool,
 ) -> impl IntoView {
-    let provider_container = create_node_ref::<Div>();
+    let provider_container = NodeRef::<Div>::new();
 
-    let container_size = create_rw_signal(0f64);
+    let container_size = RwSignal::new(0f64);
 
-    let show_next_icon = create_rw_signal(false);
-    let show_prev_icon = create_rw_signal(false);
+    let show_next_icon = RwSignal::new(false);
+    let show_prev_icon = RwSignal::new(false);
 
-    let gradient_style = create_rw_signal("".to_string());
+    let gradient_style = RwSignal::new("".to_string());
 
-    let scroll_left = create_rw_signal(0);
+    let scroll_left = RwSignal::new(0);
 
     use_resize_observer(provider_container, move |entries, _| {
         request_animation_frame(move || {
@@ -66,7 +66,7 @@ pub fn TabCarousel(
         scroll_left.set(provider_container.scroll_left());
     });
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let provider_container = provider_container.get();
         if let Some(provider_container) = provider_container {
             let scroll_width = provider_container.scroll_width();
@@ -219,14 +219,14 @@ pub fn Search() -> impl IntoView {
         })
     };
 
-    let search_results = create_rw_signal(HashMap::new());
+    let search_results = RwSignal::new(HashMap::new());
 
     let provider_store = expect_context::<Arc<ProviderStore>>();
     let mut keys = provider_store.get_provider_keys();
     keys.insert(0, "Local".into());
 
-    let selected_provider = create_rw_signal(vec![]);
-    let selected_category = create_rw_signal(vec![]);
+    let selected_provider = RwSignal::new(vec![]);
+    let selected_category = RwSignal::new(vec![]);
 
     let category_keys = vec![
         "Songs".to_string(),
@@ -241,7 +241,7 @@ pub fn Search() -> impl IntoView {
     selected_category.set(vec![category_keys.first().unwrap().clone()]);
 
     let keys_clone = keys.clone();
-    create_effect(move |_| {
+    Effect::new(move || {
         let search_term = term();
         if let Some(search_term) = search_term {
             if search_term.is_empty() {
@@ -298,14 +298,14 @@ pub fn Search() -> impl IntoView {
                             let binding = selected_provider.get();
                             let active_provider = binding.first();
                             if active_provider.is_none() {
-                                return view! {}.into_any();
+                                return ().into_any();
                             }
                             let active_provider = active_provider.unwrap();
                             if let Some(res) = search_results.get(active_provider) {
                                 let binding = selected_category.get();
                                 let active_category = binding.first();
                                 if active_category.is_none() {
-                                    return view! {}.into_any();
+                                    return ().into_any();
                                 }
                                 let active_category = active_category.unwrap();
                                 return match active_category.as_str() {
@@ -314,12 +314,12 @@ pub fn Search() -> impl IntoView {
                                             <div class="col h-100 song-list-compact">
                                                 <SongList
                                                     hide_search_bar=true
-                                                    song_list=create_rw_signal(res.songs.clone()).read_only()
-                                                    selected_songs_sig=create_rw_signal(vec![])
-                                                    filtered_selected=create_rw_signal(vec![])
+                                                    song_list=RwSignal::new(res.songs.clone()).read_only()
+                                                    selected_songs_sig=RwSignal::new(vec![])
+                                                    filtered_selected=RwSignal::new(vec![])
                                                     refresh_cb=refresh_songs
                                                     fetch_next_page=fetch_next_page
-                                                    header=Some(view! {})
+                                                    header=()
                                                 />
                                             </div>
                                         }
@@ -328,7 +328,7 @@ pub fn Search() -> impl IntoView {
                                     "Albums" => {
                                         view! {
                                             <CardView
-                                                items=create_rw_signal(res.albums.clone())
+                                                items=RwSignal::new(res.albums.clone())
                                                 key=|a| a.album_id.clone()
                                                 redirect_root="/main/albums"
                                                 card_item=move |(_, item)| {
@@ -347,7 +347,7 @@ pub fn Search() -> impl IntoView {
                                     "Artists" => {
                                         view! {
                                             <CardView
-                                                items=create_rw_signal(res.artists.clone())
+                                                items=RwSignal::new(res.artists.clone())
                                                 key=|a| a.artist_id.clone()
                                                 redirect_root="/main/artists"
                                                 card_item=move |(_, item)| {
@@ -366,7 +366,7 @@ pub fn Search() -> impl IntoView {
                                     "Playlists" => {
                                         view! {
                                             <CardView
-                                                items=create_rw_signal(res.playlists.clone())
+                                                items=RwSignal::new(res.playlists.clone())
                                                 key=|a| a.playlist_id.clone()
                                                 redirect_root="/main/playlists/"
                                                 card_item=move |(_, item)| {
@@ -382,10 +382,10 @@ pub fn Search() -> impl IntoView {
                                         }
                                             .into_any()
                                     }
-                                    _ => view! {}.into_any(),
+                                    _ => ().into_any(),
                                 };
                             }
-                            view! {}.into_any()
+                            ().into_any()
                         }}
                     </div>
                 </div>

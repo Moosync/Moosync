@@ -1,8 +1,8 @@
-use ev::{mousedown, mousemove, mouseup, touchend, touchmove, touchstart, transitionend};
+use ev::{mousedown, mousemove, mouseup, touchend, touchmove, touchstart};
 use html::Div;
 use leptos::*;
 use leptos::{component, prelude::*, view, IntoView};
-use leptos_use::{use_event_listener, use_event_listener_with_options, UseEventListenerOptions};
+use leptos_use::use_event_listener;
 use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
 
@@ -63,10 +63,10 @@ fn transition_opened(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
 }
 
 fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
-    let is_dragging = create_rw_signal(false);
-    let start_offset = create_rw_signal(0);
-    let page_height = create_rw_signal(0);
-    let has_moved = create_rw_signal(false);
+    let is_dragging = RwSignal::new(false);
+    let start_offset = RwSignal::new(0);
+    let page_height = RwSignal::new(0);
+    let has_moved = RwSignal::new(false);
 
     let listener = move |client_y: i32| {
         tracing::info!("dragging musicinfo");
@@ -173,10 +173,10 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
 }
 
 fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
-    let is_dragging = create_rw_signal(false);
-    let start_offset = create_rw_signal(0);
-    let page_height = create_rw_signal(0);
-    let has_moved = create_rw_signal(false);
+    let is_dragging = RwSignal::new(false);
+    let start_offset = RwSignal::new(0);
+    let page_height = RwSignal::new(0);
+    let has_moved = RwSignal::new(false);
 
     let listener = move |client_y: i32| {
         tracing::info!("dragging");
@@ -290,8 +290,8 @@ pub fn MusicBar() -> impl IntoView {
 
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
 
-    let musicinfo_ref = create_node_ref();
-    let musicbar_ref = create_node_ref();
+    let musicinfo_ref = NodeRef::new();
+    let musicbar_ref = NodeRef::new();
 
     if is_mobile {
         musicbar_drag(musicbar_ref, musicinfo_ref);

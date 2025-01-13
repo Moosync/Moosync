@@ -1,4 +1,4 @@
-use std::{fmt::Debug, hash};
+use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value;
@@ -12,7 +12,6 @@ use crate::{
         GetEntityOptions, QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist,
     },
     errors::{MoosyncError, Result as MoosyncResult},
-    preferences::PreferenceUIData,
     songs::{GetSongOptions, Song},
     ui::{
         extensions::{

@@ -1,9 +1,5 @@
-use std::collections::HashMap;
-
 use database::cache::CacheHolder;
 use extensions::ExtensionHandler;
-use futures::SinkExt;
-use futures::StreamExt;
 use macros::generate_command_async;
 use macros::generate_command_async_cached;
 use request_handler::ReplyHandler;

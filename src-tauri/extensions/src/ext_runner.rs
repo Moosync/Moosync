@@ -23,7 +23,6 @@ use tokio::sync::{
     Mutex,
 };
 use tracing::{debug, error, info};
-use types::ui::extensions::ExtensionUIRequest;
 use types::{errors::Result as MoosyncResult, extensions::ExtensionExtraEventResponse};
 use types::{
     extensions::{
@@ -35,21 +34,11 @@ use types::{
 };
 
 // Ext handler inner
-pub type MainCommandReceiver = UnboundedReceiver<GenericExtensionHostRequest<ExtensionCommand>>;
 pub type MainCommandReplySender = UnboundedSender<ExtensionCommandResponse>;
 pub type ExtCommandSender = UnboundedSender<GenericExtensionHostRequest<MainCommand>>;
-pub type ExtCommandReplyReceiver =
-    UnboundedReceiver<GenericExtensionHostRequest<MainCommandResponse>>;
 pub type ExtCommandReplySender = UnboundedSender<GenericExtensionHostRequest<MainCommandResponse>>;
 
-// inner use only
-pub type ExtReplyReceiverInner = UnboundedReceiver<(String, String, ExtensionCommandResponse)>;
-pub type ExtReplySenderInner = UnboundedSender<(String, String, ExtensionCommandResponse)>;
-
 // Outer handler
-pub type MainCommandSender = UnboundedSender<GenericExtensionHostRequest<ExtensionCommand>>;
-
-pub type MainCommandReplyReceiver = UnboundedReceiver<ExtensionCommandResponse>;
 
 pub type ExtCommandReceiver = UnboundedReceiver<GenericExtensionHostRequest<MainCommand>>;
 
@@ -367,7 +356,7 @@ impl ExtensionHandlerInner {
             allowed_paths: plugin_manifest.allowed_paths.clone(),
         });
 
-        let mut plugin_builder = PluginBuilder::new(plugin_manifest)
+        let plugin_builder = PluginBuilder::new(plugin_manifest)
             .with_wasi(true)
             .with_function(
                 "send_main_command",

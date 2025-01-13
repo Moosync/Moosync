@@ -1,17 +1,15 @@
 use bitcode::{Decode, Encode};
-use futures::lock::Mutex;
-use indexed_db_futures::{database::Database, future::OpenDbRequest, prelude::*};
+use indexed_db_futures::{database::Database, prelude::*};
 use leptos::prelude::*;
 use rand::seq::SliceRandom;
 use serde::Serialize;
-use std::{cmp::min, collections::HashMap, rc::Rc, sync::Arc};
+use std::{cmp::min, collections::HashMap};
 use types::{
     preferences::CheckboxPreference,
     songs::Song,
     ui::extensions::ExtensionExtraEvent,
     ui::player_details::{PlayerState, RepeatModes, VolumeMode},
 };
-use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
@@ -19,7 +17,7 @@ use crate::{
     utils::{
         db_utils::{read_from_indexed_db, write_to_indexed_db},
         extensions::send_extension_event,
-        mpris::{set_metadata, set_playback_state, set_position},
+        mpris::{set_playback_state, set_position},
     },
 };
 
@@ -78,9 +76,9 @@ impl PlayerStore {
         };
 
         tracing::debug!("Created player store {:?}", player_store);
-        let signal = create_rw_signal(player_store);
+        let signal = RwSignal::new(player_store);
 
-        // Self::load_state_from_idb(db_rc_clone, signal);
+        Self::load_state_from_idb(signal);
 
         signal
     }
@@ -514,10 +512,7 @@ impl PlayerStore {
         self.data.player_blacklist.clear();
     }
 
-    pub fn load_state_from_idb(
-        db_rc_clone: Rc<Mutex<Option<Arc<Database>>>>,
-        signal: RwSignal<PlayerStore>,
-    ) {
+    pub fn load_state_from_idb(signal: RwSignal<PlayerStore>) {
         spawn_local(async move {
             match Database::open("moosync")
                 .with_on_upgrade_needed(move |evt, db| {
@@ -532,9 +527,9 @@ impl PlayerStore {
                     tracing::error!("Failed to create object store: {:?}", e);
                 }
                 Ok(db) => {
-                    let data_signal = create_rw_signal(None);
+                    let data_signal = RwSignal::new(None);
                     Self::restore_store(data_signal, db);
-                    create_effect(move |_| {
+                    Effect::new(move || {
                         let data = data_signal.get();
                         signal.update(|s| {
                             if let Some(data) = data {

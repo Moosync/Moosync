@@ -26,7 +26,7 @@ impl ProviderStore {
     #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> Self {
         tracing::debug!("Creating provider store");
-        let mut store = Self::default();
+        let store = Self::default();
         store.is_initialized.set(false);
 
         let fetch_provider_keys = move || {

@@ -1,20 +1,16 @@
-use std::{
-    rc::Rc,
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc,
-    },
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
 };
 
 use itertools::Itertools;
 use leptos::{
     component,
     ev::{keydown, keyup, scroll},
-    html::{Div, Input},
+    html::Div,
     prelude::*,
     view, IntoView,
 };
-use leptos_context_menu::ContextMenu;
 use leptos_use::use_event_listener;
 use leptos_virtual_scroller::VirtualScroller;
 use types::songs::Song;
@@ -82,7 +78,7 @@ pub fn SongListItem(
                                 if let Some(extension) = extension {
                                     view! { <ProviderIcon extension=extension /> }.into_any()
                                 } else {
-                                    view! {}.into_any()
+                                    ().into_any()
                                 }
                             }}
                         </div>
@@ -157,26 +153,26 @@ pub fn SongList<I>(
     #[prop(optional)] root_ref: Option<NodeRef<Div>>,
     #[prop(optional)] scroller_ref: Option<NodeRef<Div>>,
     #[prop(optional)] header_height: usize,
-    #[prop(optional)] header: Option<I>,
+    #[prop()] header: I,
 ) -> impl IntoView
 where
     I: IntoView,
 {
-    let is_ctrl_pressed = create_rw_signal(false);
-    let is_shift_pressed = create_rw_signal(false);
-    let select_all = create_rw_signal(false);
+    let is_ctrl_pressed = RwSignal::new(false);
+    let is_shift_pressed = RwSignal::new(false);
+    let select_all = RwSignal::new(false);
 
-    let show_searchbar = create_rw_signal(false);
-    let searchbar_ref = create_node_ref();
+    let show_searchbar = RwSignal::new(false);
+    let searchbar_ref = NodeRef::new();
 
     let provider_store = expect_context::<Arc<ProviderStore>>();
 
     let ui_store: RwSignal<UiStore> = expect_context();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
 
-    let filter = create_rw_signal(None::<String>);
+    let filter = RwSignal::new(None::<String>);
 
-    let playlists = create_rw_signal(vec![]);
+    let playlists = RwSignal::new(vec![]);
     get_playlists_local(playlists);
 
     let songs_sort = create_read_slice(ui_store, |u| u.get_song_sort_by());
@@ -185,7 +181,7 @@ where
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
     let play_now = create_write_slice(player_store, |store, value| store.play_now(value));
 
-    let sorted_songs = create_memo(move |_| {
+    let sorted_songs = Memo::new(move |_| {
         let sort = songs_sort.get();
         let mut songs = song_list.get();
         match sort.sort_by {
@@ -208,7 +204,7 @@ where
         songs
     });
 
-    let filtered_songs = create_memo(move |_| {
+    let filtered_songs = Memo::new(move |_| {
         let filter = filter.get();
         if filter.is_none() {
             return sorted_songs.get();
@@ -230,13 +226,13 @@ where
             .collect()
     });
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let _ = filtered_songs.get();
         filtered_selected.update(|s| s.clear());
         selected_songs_sig.update(|s| s.clear());
     });
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let show_searchbar = show_searchbar.get();
         if show_searchbar {
             if let Some(searchbar) = searchbar_ref.get() {
@@ -342,7 +338,7 @@ where
         filtered_selected.set(vec![index]);
     };
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let select_all_val = select_all.get();
         if select_all_val {
             select_all.set(false);
@@ -371,13 +367,13 @@ where
     };
 
     let root_ref = if root_ref.is_none() {
-        create_node_ref()
+        NodeRef::new()
     } else {
         root_ref.unwrap()
     };
 
     let scroller_ref = if scroller_ref.is_none() {
-        create_node_ref()
+        NodeRef::new()
     } else {
         scroller_ref.unwrap()
     };
@@ -422,7 +418,7 @@ where
                                                 }
                                                     .into_any()
                                             } else {
-                                                view! {}.into_any()
+                                                ().into_any()
                                             }}
                                             <div class="col-auto d-flex">
 
@@ -449,7 +445,7 @@ where
                                                         }
                                                             .into_any()
                                                     } else {
-                                                        view! {}.into_any()
+                                                        ().into_any()
                                                     }
                                                 }}
                                                 <div

@@ -1,7 +1,5 @@
 use std::thread;
 
-use database::database::Database;
-use file_scanner::ScannerHolder;
 use macros::generate_command;
 use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
@@ -25,16 +23,6 @@ const UI_KEYS: &[&str] = &[
     "prefs.themes.active_theme",
     "prefs.i18n_language",
 ];
-
-macro_rules! generate_states {
-    ($app:expr, $( $state_type:ty ),*) => {
-        {
-            // Create a tuple to hold the state variables
-            let tuple = ( $( $app.state::<$state_type>().clone() ),* );
-            tuple
-        }
-    };
-}
 
 #[tracing::instrument(level = "trace", skip(app))]
 pub fn handle_pref_changes(app: AppHandle) {

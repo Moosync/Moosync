@@ -259,6 +259,7 @@ impl PlayerHolder {
         player.load(src.unwrap(), autoplay, resolver_tx);
 
         resolver_rx.await.expect("Load failed to resolve");
+        tracing::debug!("Setting volume {}", current_volume);
         player.set_volume(current_volume).unwrap();
 
         // if autoplay {
@@ -276,7 +277,7 @@ impl PlayerHolder {
         let player_state_getter = create_read_slice(player_store, move |p| p.get_player_state());
         let players = self.players.clone();
         let active_player = self.active_player.clone();
-        create_effect(move |_| {
+        Effect::new(move || {
             let player_state = player_state_getter.get();
 
             let active_player_pos = active_player.load(Ordering::Relaxed);
@@ -315,7 +316,7 @@ impl PlayerHolder {
         );
         let players = self.players.clone();
         let active_player = self.active_player.clone();
-        create_effect(move |_| {
+        Effect::new(move || {
             let force_seek = force_seek.get();
             tracing::debug!("Got force seek {}", force_seek);
             if force_seek < 0f64 {
@@ -432,7 +433,7 @@ pub fn AudioStream() -> impl IntoView {
     let provider_store = use_context::<Arc<ProviderStore>>().unwrap();
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
 
-    let player_container_ref = create_node_ref::<Div>();
+    let player_container_ref = NodeRef::<Div>::new();
 
     let players = PlayerHolder::new(player_container_ref, provider_store.clone());
     let players = Rc::new(Mutex::new(players));
@@ -450,7 +451,7 @@ pub fn AudioStream() -> impl IntoView {
     let current_volume = create_read_slice(player_store, |player_store| player_store.get_volume());
 
     let players_clone = players.clone();
-    create_effect(move |_| {
+    Effect::new(move || {
         let current_volume = current_volume.get();
         let players = players.clone();
         spawn_local(async move {
@@ -462,7 +463,7 @@ pub fn AudioStream() -> impl IntoView {
         });
     });
 
-    create_effect(move |_| {
+    Effect::new(move || {
         let is_providers_initialized = provider_store.is_initialized.get();
         tracing::info!("providers initialized {}", is_providers_initialized);
         if !is_providers_initialized {

@@ -4,10 +4,10 @@ macro_rules! dyn_provider_songs {
         use leptos::prelude::Get;
         use std::sync::Arc;
         let provider_songs: RwSignal<HashMap<String, RwSignal<Vec<Song>>>> =
-            create_rw_signal(HashMap::new());
+            RwSignal::new(HashMap::new());
         let next_page_tokens: RwSignal<
             HashMap<String, Arc<futures::lock::Mutex<types::providers::generic::Pagination>>>,
-        > = create_rw_signal(HashMap::new());
+        > = RwSignal::new(HashMap::new());
 
         let fetch_selected_providers = Arc::new(Box::new(move || {
             let selected_providers = $selected_providers.get();
@@ -32,7 +32,7 @@ macro_rules! dyn_provider_songs {
                     if !provider_songs_inner.contains_key(&provider.clone()) {
                         let key = provider.clone();
                         provider_songs.update(|p| {
-                            p.insert(key, create_rw_signal(vec![]));
+                            p.insert(key, RwSignal::new(vec![]));
                         });
                     }
 
@@ -56,11 +56,11 @@ macro_rules! dyn_provider_songs {
         }));
 
         let fetch = fetch_selected_providers.clone();
-        create_effect(move |_| {
+        Effect::new(move || {
             fetch.as_ref()();
         });
 
-        let get_collective_songs = create_memo(move |_| {
+        let get_collective_songs = Memo::new(move |_| {
             let mut ret = vec![];
             ret.extend($songs.get());
 

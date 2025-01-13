@@ -1,7 +1,7 @@
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
 use leptos::{
-    html::{audio, Div},
+    html::Div,
     prelude::*,
     task::spawn_local,
 };
@@ -12,7 +12,7 @@ use types::{errors::Result, songs::SongType, ui::player_details::PlayerEvents};
 use wasm_bindgen::JsValue;
 
 use crate::utils::{
-    common::{addPluginListener, listen_plugin_event},
+    common::listen_plugin_event,
     invoke::{mobile_load, mobile_pause, mobile_play, mobile_seek, mobile_stop},
 };
 

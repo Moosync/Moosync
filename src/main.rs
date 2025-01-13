@@ -9,13 +9,9 @@ mod store;
 mod utils;
 
 use app::*;
-use leptos::{ev::keydown, leptos_dom::logging::console_log, prelude::*, task::spawn_local};
-use leptos_use::use_event_listener;
+use leptos::prelude::*;
 use tracing_subscriber::{fmt, layer::SubscriberExt};
-use utils::{
-    invoke::{save_selective, toggle_dev_tools},
-    tracing_writer::MakeConsoleWriter,
-};
+use utils::tracing_writer::MakeConsoleWriter;
 
 leptos_i18n::load_locales!();
 

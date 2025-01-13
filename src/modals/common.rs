@@ -9,7 +9,7 @@ pub fn GenericModal<T>(#[prop()] size: T, children: Children) -> impl IntoView
 where
     T: Fn() -> String + 'static + Send + Sync,
 {
-    let target = create_node_ref::<Div>();
+    let target = NodeRef::<Div>::new();
     let modal_store = expect_context::<RwSignal<modal_store::ModalStore>>();
 
     let _ = on_click_outside(target, move |_| {

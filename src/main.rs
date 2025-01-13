@@ -1,5 +1,6 @@
 mod app;
 mod components;
+// mod expand;
 mod icons;
 mod modals;
 mod pages;
@@ -8,9 +9,7 @@ mod store;
 mod utils;
 
 use app::*;
-use ev::keydown;
-use i18n::use_i18n;
-use leptos::*;
+use leptos::{ev::keydown, leptos_dom::logging::console_log, prelude::*, task::spawn_local};
 use leptos_use::use_event_listener;
 use tracing_subscriber::{fmt, layer::SubscriberExt};
 use utils::{
@@ -51,14 +50,6 @@ fn main() {
         .with(log_layer)
         .with(filter);
     tracing::subscriber::set_global_default(subscriber).unwrap();
-
-    let _ = use_event_listener(document().body(), keydown, |ev| {
-        if ev.shift_key() && ev.ctrl_key() && ev.key_code() == 75 {
-            spawn_local(async move {
-                let _ = toggle_dev_tools().await;
-            });
-        }
-    });
 
     mount_to_body(|| {
         view! { <App /> }

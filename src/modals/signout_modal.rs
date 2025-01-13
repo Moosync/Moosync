@@ -1,10 +1,7 @@
-
-use leptos::{component, expect_context, spawn_local, view, IntoView, RwSignal, SignalUpdate};
+use leptos::{component, prelude::*, task::spawn_local, view, IntoView};
 
 use crate::{
-    modals::common::GenericModal,
-    store::modal_store::ModalStore,
-    utils::invoke::provider_signout,
+    modals::common::GenericModal, store::modal_store::ModalStore, utils::invoke::provider_signout,
 };
 
 #[tracing::instrument(level = "trace", skip(key, account_id, name))]
@@ -25,16 +22,16 @@ pub fn SignoutModal(#[prop()] key: String, account_id: String, name: String) -> 
     view! {
         <GenericModal size=move || "modal-lg".into()>
             <div class="container-fluid p-0 mt-4">
-                <div class="row no-gutters d-flex" no-gutters="">
+                <div class="row no-gutters d-flex">
                     <div class="col">
                         <h4>
                             Are you sure you want to <span class="keyword">log out from</span>
-                            <span class="logout-item">{name}</span>?
+                            <span class="logout-item">{name.clone()}</span>?
                         </h4>
                         <h6 class="mt-3">Press Confirm if you are sure</h6>
                     </div>
                 </div>
-                <div class="row row-cols-auto mt-3 mr-4" cols="auto">
+                <div class="row row-cols-auto mt-3 mr-4">
                     <button
                         on:click=close_modal
                         class="btn btn-secondary cancel-button ml-auto"

@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use leptos::{expect_context, RwSignal, SignalUpdate};
+use leptos::prelude::*;
 use leptos_context_menu::ContextMenuItemInner;
 use types::entities::QueryableArtist;
 
@@ -28,7 +28,10 @@ fn sort_by_provider() {
 }
 
 #[tracing::instrument(level = "trace", skip())]
-pub fn get_playlist_sort_cx_items<T>() -> Vec<ContextMenuItemInner<T>> {
+pub fn get_playlist_sort_cx_items<T>() -> Vec<ContextMenuItemInner<T>>
+where
+    T: Send + Sync,
+{
     vec![
         ContextMenuItemInner::new_with_handler("Title".into(), |_, _| sort_by_name(), None),
         ContextMenuItemInner::new_with_handler("Provider".into(), |_, _| sort_by_provider(), None),

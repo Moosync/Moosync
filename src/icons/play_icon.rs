@@ -1,10 +1,10 @@
-use leptos::{component, view, IntoView, SignalGet};
+use leptos::{component, prelude::*, view, IntoView};
 
 #[tracing::instrument(level = "trace", skip(play))]
 #[component]
 pub fn PlayIcon<T>(#[prop()] play: T) -> impl IntoView
 where
-    T: SignalGet<Value = bool> + 'static,
+    T: Get<Value = bool> + 'static + Send,
 {
     view! {
         <svg class="button-grow" viewBox="0 0 41 42" fill="none" xmlns="http://www.w3.org/2000/svg">

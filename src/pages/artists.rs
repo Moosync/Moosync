@@ -1,17 +1,16 @@
 use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songlist::ShowProvidersArgs;
 use crate::dyn_provider_songs;
 use crate::store::player_store::PlayerStore;
+use crate::store::ui_store::UiStore;
 use crate::utils::common::{convert_file_src, fetch_infinite};
 use crate::utils::db_utils::get_artists_by_option;
 use crate::utils::songs::get_songs_from_indices;
-use leptos::{
-    component, create_effect, create_memo, create_rw_signal, create_write_slice, expect_context,
-    view, IntoView, RwSignal, SignalGet, SignalUpdate, SignalWith,
-};
-use leptos_router::use_query_map;
+use leptos::{component, prelude::*, view, IntoView};
+use leptos_router::hooks::use_query_map;
 use std::collections::HashMap;
 use types::entities::QueryableArtist;
 use types::songs::{GetSongOptions, Song};
@@ -31,7 +30,7 @@ pub fn SingleArtist() -> impl IntoView {
             let entity = params.get("entity");
             tracing::info!("Got entity {:?}", entity);
             if let Some(entity) = entity {
-                let album = serde_json::from_str::<QueryableArtist>(entity);
+                let album = serde_json::from_str::<QueryableArtist>(&entity);
                 match album {
                     Ok(album) => return Some(album),
                     Err(e) => tracing::error!("Failed to parse artist: {:?}", e),
@@ -42,7 +41,7 @@ pub fn SingleArtist() -> impl IntoView {
     });
     if artist.get().is_none() {
         tracing::error!("Failed to parse artist");
-        return view! {}.into_view();
+        return view! {}.into_any();
     }
 
     tracing::debug!("Parsed artist {:?}", artist.get());
@@ -110,9 +109,9 @@ pub fn SingleArtist() -> impl IntoView {
     };
 
     let icons = create_rw_signal(SongDetailIcons {
-        play: Some(Rc::new(Box::new(play_songs))),
-        add_to_queue: Some(Rc::new(Box::new(add_to_queue))),
-        random: Some(Rc::new(Box::new(random))),
+        play: Some(Arc::new(Box::new(play_songs))),
+        add_to_queue: Some(Arc::new(Box::new(add_to_queue))),
+        random: Some(Arc::new(Box::new(random))),
         ..Default::default()
     });
 
@@ -120,6 +119,9 @@ pub fn SingleArtist() -> impl IntoView {
     let fetch_next_page = move || {
         fetch_selected_providers.as_ref()();
     };
+
+    let is_mobile =
+        create_read_slice(expect_context::<RwSignal<UiStore>>(), |u| u.get_is_mobile()).get();
 
     view! {
         <SongView
@@ -133,8 +135,10 @@ pub fn SingleArtist() -> impl IntoView {
             }
             refresh_cb=refresh_songs
             fetch_next_page=fetch_next_page
+            show_mobile_default_details=is_mobile
         />
     }
+    .into_any()
 }
 
 #[tracing::instrument(level = "trace", skip())]
@@ -158,6 +162,7 @@ pub fn AllArtists() -> impl IntoView {
                 >
                     <CardView
                         items=artists
+                        key=|a| a.artist_id.clone()
                         redirect_root="/main/artists"
                         card_item=move |(_, item)| {
                             let artist_name = item.artist_name.clone().unwrap_or_default();

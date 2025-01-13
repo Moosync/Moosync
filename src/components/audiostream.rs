@@ -21,11 +21,7 @@ use types::{
     },
 };
 
-use leptos::{
-    component, create_effect, create_node_ref, create_read_slice, create_slice, create_write_slice,
-    expect_context, html::Div, spawn_local, use_context, view, IntoView, NodeRef, RwSignal,
-    SignalGet, SignalGetUntracked, SignalUpdate,
-};
+use leptos::{component, html::Div, prelude::*, task::spawn_local, view, IntoView};
 
 use crate::{
     players::{
@@ -41,7 +37,7 @@ use crate::{
 };
 
 pub struct PlayerHolder {
-    providers: Rc<ProviderStore>,
+    providers: Arc<ProviderStore>,
     players: Rc<Mutex<Vec<Box<dyn GenericPlayer>>>>,
     active_player: Arc<AtomicUsize>,
     state_setter: Rc<Box<dyn Fn(PlayerEvents)>>,
@@ -52,7 +48,7 @@ pub struct PlayerHolder {
 
 impl PlayerHolder {
     #[tracing::instrument(level = "trace", skip(player_container, providers))]
-    pub fn new(player_container: NodeRef<Div>, providers: Rc<ProviderStore>) -> PlayerHolder {
+    pub fn new(player_container: NodeRef<Div>, providers: Arc<ProviderStore>) -> PlayerHolder {
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
 
         let (player_blacklist_sender, player_blacklist_receiver) = unbounded();
@@ -433,7 +429,7 @@ impl PlayerHolder {
 #[tracing::instrument(level = "trace", skip())]
 #[component()]
 pub fn AudioStream() -> impl IntoView {
-    let provider_store = use_context::<Rc<ProviderStore>>().unwrap();
+    let provider_store = use_context::<Arc<ProviderStore>>().unwrap();
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
 
     let player_container_ref = create_node_ref::<Div>();
@@ -509,5 +505,5 @@ pub fn AudioStream() -> impl IntoView {
         }
     });
 
-    view! { <div id="player_container" class="player-container" _ref=player_container_ref></div> }
+    view! { <div id="player_container" class="player-container" node_ref=player_container_ref></div> }
 }

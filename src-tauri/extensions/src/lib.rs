@@ -184,6 +184,10 @@ impl ExtensionHandler {
             tmp_dir.clone(),
             parent_dir
         );
+        if !parent_dir.exists() {
+            tracing::debug!("Creating dir {:?}", parent_dir);
+            fs::create_dir_all(parent_dir)?;
+        }
         fs_extra::move_items(&[tmp_dir.clone()], parent_dir, &options)?;
 
         tracing::debug!(
@@ -224,7 +228,7 @@ impl ExtensionHandler {
             uuid::Uuid::new_v4()
         ));
 
-        tracing::info!("parsed url {}", parsed_url);
+        tracing::info!("parsed url {}. Saving at {:?}", parsed_url, file_path);
 
         let mut stream = reqwest::get(parsed_url).await?.bytes_stream();
         let mut file = File::create(file_path.clone())?;

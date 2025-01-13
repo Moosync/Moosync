@@ -1,9 +1,12 @@
 use std::rc::Rc;
+use std::sync::Arc;
 
 use futures::lock::Mutex;
-use indexed_db_futures::IdbDatabase;
-use indexed_db_futures::IdbQuerySource;
-use leptos::{spawn_local, SignalSet, SignalUpdate};
+use indexed_db_futures::database::Database;
+use indexed_db_futures::prelude::*;
+use leptos::prelude::*;
+use leptos::task::spawn_local;
+use serde::de::DeserializeOwned;
 use serde_wasm_bindgen::from_value;
 use types::entities::QueryableAlbum;
 use types::entities::QueryableArtist;
@@ -18,10 +21,7 @@ use web_sys::IdbTransactionMode;
 
 #[tracing::instrument(level = "trace", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
-pub fn get_songs_by_option(
-    options: GetSongOptions,
-    setter: impl SignalSet<Value = Vec<Song>> + 'static,
-) {
+pub fn get_songs_by_option(options: GetSongOptions, setter: impl Set<Value = Vec<Song>> + 'static) {
     spawn_local(async move {
         let songs = super::invoke::get_songs_by_options(options).await.unwrap();
         setter.set(songs);
@@ -30,10 +30,7 @@ pub fn get_songs_by_option(
 
 #[tracing::instrument(level = "trace", skip(options, setter))]
 #[cfg(feature = "mock")]
-pub fn get_songs_by_option(
-    options: GetSongOptions,
-    setter: impl SignalSet<Value = Vec<Song>> + 'static,
-) {
+pub fn get_songs_by_option(options: GetSongOptions, setter: impl Set<Value = Vec<Song>> + 'static) {
     use types::{entities::QueryableArtist, songs::SongType};
 
     let mut songs = vec![];
@@ -61,7 +58,7 @@ pub fn get_songs_by_option(
 #[cfg(feature = "mock")]
 pub fn get_playlists_by_option(
     options: QueryablePlaylist,
-    setter: impl SignalSet<Value = Vec<QueryablePlaylist>> + 'static,
+    setter: impl Set<Value = Vec<QueryablePlaylist>> + 'static,
 ) {
     let mut songs = vec![];
     for i in 0..1000 {
@@ -79,7 +76,7 @@ pub fn get_playlists_by_option(
 #[cfg(feature = "mock")]
 pub fn get_artists_by_option(
     options: QueryableArtist,
-    setter: impl SignalSet<Value = Vec<QueryableArtist>> + 'static,
+    setter: impl Set<Value = Vec<QueryableArtist>> + 'static,
 ) {
     let mut songs = vec![];
     for i in 0..1000 {
@@ -97,7 +94,7 @@ pub fn get_artists_by_option(
 #[cfg(feature = "mock")]
 pub fn get_albums_by_option(
     options: QueryableAlbum,
-    setter: impl SignalSet<Value = Vec<QueryableAlbum>> + 'static,
+    setter: impl Set<Value = Vec<QueryableAlbum>> + 'static,
 ) {
     let mut songs = vec![];
     for i in 0..1000 {
@@ -115,7 +112,7 @@ pub fn get_albums_by_option(
 #[cfg(feature = "mock")]
 pub fn get_genres_by_option(
     options: QueryableGenre,
-    setter: impl SignalSet<Value = Vec<QueryableGenre>> + 'static,
+    setter: impl Set<Value = Vec<QueryableGenre>> + 'static,
 ) {
     let mut songs = vec![];
     for i in 0..1000 {
@@ -132,9 +129,7 @@ pub fn get_genres_by_option(
 #[cfg(not(feature = "mock"))]
 pub fn get_playlists_local<T>(setter: T)
 where
-    T: SignalSet<Value = Vec<QueryablePlaylist>>
-        + SignalUpdate<Value = Vec<QueryablePlaylist>>
-        + 'static,
+    T: Set<Value = Vec<QueryablePlaylist>> + Update<Value = Vec<QueryablePlaylist>> + 'static,
 {
     spawn_local(async move {
         let songs = serde_wasm_bindgen::from_value(
@@ -154,20 +149,20 @@ where
 #[cfg(not(feature = "mock"))]
 pub fn get_playlists_by_option<T>(options: QueryablePlaylist, setter: T)
 where
-    T: SignalSet<Value = Vec<QueryablePlaylist>>
-        + SignalUpdate<Value = Vec<QueryablePlaylist>>
+    T: Set<Value = Vec<QueryablePlaylist>>
+        + Update<Value = Vec<QueryablePlaylist>>
         + Copy
         + 'static,
 {
-    use std::{collections::HashMap, rc::Rc};
+    use std::{collections::HashMap, rc::Rc, sync::Arc};
 
-    use leptos::{create_rw_signal, expect_context, RwSignal};
+    use leptos::{prelude::*, task::spawn_local};
 
     use crate::{store::provider_store::ProviderStore, utils::common::fetch_infinite};
 
-    let provider_store = expect_context::<Rc<ProviderStore>>();
+    let provider_store = expect_context::<Arc<ProviderStore>>();
     let next_page_tokens: RwSignal<
-        HashMap<String, Rc<Mutex<types::providers::generic::Pagination>>>,
+        HashMap<String, Arc<Mutex<types::providers::generic::Pagination>>>,
     > = create_rw_signal(HashMap::new());
 
     spawn_local(async move {
@@ -213,8 +208,10 @@ where
 #[cfg(not(feature = "mock"))]
 pub fn get_artists_by_option(
     options: QueryableArtist,
-    setter: impl SignalSet<Value = Vec<QueryableArtist>> + 'static,
+    setter: impl Set<Value = Vec<QueryableArtist>> + 'static,
 ) {
+    use leptos::task::spawn_local;
+
     spawn_local(async move {
         let res = super::invoke::get_entity_by_options(GetEntityOptions {
             artist: Some(options),
@@ -234,8 +231,10 @@ pub fn get_artists_by_option(
 #[cfg(not(feature = "mock"))]
 pub fn get_albums_by_option(
     options: QueryableAlbum,
-    setter: impl SignalSet<Value = Vec<QueryableAlbum>> + 'static,
+    setter: impl Set<Value = Vec<QueryableAlbum>> + 'static,
 ) {
+    use leptos::task::spawn_local;
+
     spawn_local(async move {
         let res = super::invoke::get_entity_by_options(GetEntityOptions {
             album: Some(options),
@@ -255,8 +254,10 @@ pub fn get_albums_by_option(
 #[cfg(not(feature = "mock"))]
 pub fn get_genres_by_option(
     options: QueryableGenre,
-    setter: impl SignalSet<Value = Vec<QueryableGenre>> + 'static,
+    setter: impl Set<Value = Vec<QueryableGenre>> + 'static,
 ) {
+    use leptos::task::spawn_local;
+
     spawn_local(async move {
         let res = super::invoke::get_entity_by_options(GetEntityOptions {
             genre: Some(options),
@@ -273,7 +274,7 @@ pub fn get_genres_by_option(
 }
 
 #[tracing::instrument(level = "trace", skip(songs, refresh_cb))]
-pub fn add_songs_to_library(songs: Vec<Song>, refresh_cb: Rc<Box<dyn Fn()>>) {
+pub fn add_songs_to_library(songs: Vec<Song>, refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>) {
     spawn_local(async move {
         let res = super::invoke::insert_songs(songs).await;
         if res.is_err() {
@@ -285,7 +286,7 @@ pub fn add_songs_to_library(songs: Vec<Song>, refresh_cb: Rc<Box<dyn Fn()>>) {
 }
 
 #[tracing::instrument(level = "trace", skip(songs, refresh_cb))]
-pub fn remove_songs_from_library(songs: Vec<Song>, refresh_cb: Rc<Box<dyn Fn()>>) {
+pub fn remove_songs_from_library(songs: Vec<Song>, refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>) {
     spawn_local(async move {
         let res = super::invoke::remove_songs(
             songs
@@ -333,7 +334,7 @@ pub fn create_playlist(playlist: QueryablePlaylist, songs: Option<Vec<Song>>) {
 }
 
 #[tracing::instrument(level = "trace", skip(playlist, refresh_cb))]
-pub fn remove_playlist(playlist: QueryablePlaylist, refresh_cb: Rc<Box<dyn Fn()>>) {
+pub fn remove_playlist(playlist: QueryablePlaylist, refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>) {
     if playlist.playlist_id.is_none() {
         return;
     }
@@ -359,33 +360,32 @@ pub fn export_playlist(playlist: QueryablePlaylist) {
 
 #[tracing::instrument(level = "trace", skip(db, store, key, value))]
 pub async fn write_to_indexed_db(
-    db: Rc<Mutex<Option<Rc<IdbDatabase>>>>,
+    db: Database,
     store: &str,
     key: &str,
     value: &JsValue,
 ) -> Result<(), DomException> {
-    let db = db.lock().await.clone();
-    if let Some(db) = db {
-        let tx = db.transaction_on_one_with_mode(store, IdbTransactionMode::Readwrite)?;
-        let store = tx.object_store(store)?;
-        store.put_key_val_owned(key, value)?.await?;
-        tracing::debug!("Wrote to indexed db");
-    }
+    let tx = db
+        .transaction(store)
+        .with_mode(IdbTransactionMode::Readwrite)
+        .build()
+        .unwrap();
+    let store = tx.object_store(store).unwrap();
+    store.put(value).with_key(key).await.unwrap();
+    tracing::debug!("Wrote to indexed db");
+
     Ok(())
 }
 
 #[tracing::instrument(level = "trace", skip(db, store, key))]
 pub async fn read_from_indexed_db(
-    db: Rc<Mutex<Option<Rc<IdbDatabase>>>>,
+    db: Database,
     store: &str,
     key: &str,
 ) -> Result<Option<JsValue>, DomException> {
-    let db = db.lock().await.clone();
-    if let Some(db) = db {
-        let tx = db.transaction_on_one(store)?;
-        let store = tx.object_store(store)?;
-        let res = store.get_owned(key)?.await?;
-        return Ok(res);
-    }
-    Ok(None)
+    use indexed_db_futures::prelude::*;
+    let tx = db.transaction(store).build().unwrap();
+    let store = tx.object_store(store).unwrap();
+    let res = store.get(key).build().unwrap().await.unwrap();
+    Ok(res)
 }

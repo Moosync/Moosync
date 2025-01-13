@@ -1,14 +1,11 @@
-use leptos::{
-    component, create_effect, create_node_ref, create_rw_signal, document, html::Div, view,
-    AnimatedShow, CollectView, IntoView, NodeRef, RwSignal, SignalGet, SignalGetUntracked,
-    SignalSet,
-};
+use leptos::{component, html::Div, prelude::*, view, IntoView};
 use leptos_use::use_resize_observer;
 use types::{
     songs::Song,
     ui::song_details::{DefaultDetails, SongDetailIcons},
 };
 use wasm_bindgen_futures::spawn_local;
+use web_sys::HtmlElement;
 
 use crate::{
     icons::{
@@ -25,7 +22,14 @@ use std::time::Duration;
 
 #[tracing::instrument(
     level = "trace",
-    skip(selected_song, icons, show_lyrics, default_details, buttons_ref)
+    skip(
+        selected_song,
+        icons,
+        show_lyrics,
+        default_details,
+        buttons_ref,
+        root_ref
+    )
 )]
 #[component()]
 pub fn SongDetails<T>(
@@ -34,9 +38,10 @@ pub fn SongDetails<T>(
     #[prop(optional, default = false)] show_lyrics: bool,
     #[prop(optional)] default_details: RwSignal<DefaultDetails>,
     #[prop(optional)] buttons_ref: Option<NodeRef<Div>>,
+    #[prop(optional)] root_ref: Option<NodeRef<Div>>,
 ) -> impl IntoView
 where
-    T: SignalGet<Value = Option<Song>> + Copy + 'static,
+    T: Get<Value = Option<Song>> + Copy + 'static,
 {
     let selected_title = create_rw_signal(default_details.get().title);
     let selected_artists = create_rw_signal(default_details.get().subtitle);
@@ -56,8 +61,14 @@ where
         create_node_ref()
     };
 
+    let root_ref = if root_ref.is_some() {
+        root_ref.unwrap()
+    } else {
+        create_node_ref()
+    };
+
     if show_lyrics {
-        use_resize_observer(document().body(), move |entries, _| {
+        use_resize_observer(document().body().unwrap(), move |entries, _| {
             if let Some(entry) = entries.first() {
                 let rect = entry.content_rect();
 
@@ -131,7 +142,11 @@ where
     });
 
     view! {
-        <div class="container-fluid scrollable song-details" style="max-height: 100%;">
+        <div
+            class="container-fluid scrollable song-details"
+            style="max-height: 100%;"
+            node_ref=root_ref
+        >
             <div class="row no-gutters">
                 <div class="col position-relative">
 
@@ -158,7 +173,7 @@ where
                                         tracing::debug!("Got cover path {:?}", cover_path);
                                         if let Some(cover) = cover_path.clone() {
                                             if cover == "favorites" {
-                                                return view! { <FavPlaylistIcon class="" /> }.into_view();
+                                                return view! { <FavPlaylistIcon class="" /> }.into_any();
                                             }
                                         }
                                         view! {
@@ -167,9 +182,9 @@ where
                                                 on:error=move |_| { show_default_cover_img.set(true) }
                                             />
                                         }
-                                            .into_view()
+                                            .into_any()
                                     } else {
-                                        view! { <SongDefaultIcon /> }.into_view()
+                                        view! { <SongDefaultIcon /> }.into_any()
                                     }
                                 }}
                                 <AnimatedShow
@@ -237,7 +252,8 @@ where
                                                 title=title.clone().unwrap_or_default()
                                                 on:click=move |_| play_cb()
                                             />
-                                        },
+                                        }
+                                            .into_any(),
                                     );
                             }
                             if let Some(add_to_queue_cb) = icons.add_to_queue {
@@ -248,7 +264,8 @@ where
                                                 title=title.clone().unwrap_or_default()
                                                 on:click=move |_| add_to_queue_cb()
                                             />
-                                        },
+                                        }
+                                            .into_any(),
                                     );
                             }
                             if let Some(add_to_library_cb) = icons.add_to_library {
@@ -259,12 +276,16 @@ where
                                                 title=title.unwrap_or_default()
                                                 on:click=move |_| add_to_library_cb()
                                             />
-                                        },
+                                        }
+                                            .into_any(),
                                     );
                             }
                             if let Some(random_cb) = icons.random {
                                 icons_ret
-                                    .push(view! { <RandomIcon on:click=move |_| random_cb() /> });
+                                    .push(
+                                        view! { <RandomIcon on:click=move |_| random_cb() /> }
+                                            .into_any(),
+                                    );
                             }
                             icons_ret.collect_view()
                         }}

@@ -59,7 +59,7 @@ class NotificationHandler (
             .getActivity(
                 mContext,
                 0,
-                Intent(mContext, AudioPlayerPlugin::class.java),
+                Intent("app.moosync.moosync.MainActivity"),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 

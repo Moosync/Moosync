@@ -1,13 +1,16 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use leptos::{
-    component, create_effect, create_node_ref, create_rw_signal, event_target, expect_context,
-    html::Div, view, HtmlElement, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
+    component,
+    ev::{scroll, touchmove, touchstart, wheel},
+    html::{Div, HtmlElement},
+    prelude::*,
+    view,
 };
 use leptos_context_menu::{ContextMenu, ContextMenuData, ContextMenuItemInner, Menu};
-use leptos_use::on_click_outside;
+use leptos_use::{on_click_outside, use_event_listener, use_event_source};
 use types::{songs::Song, ui::song_details::DefaultDetails, ui::song_details::SongDetailIcons};
-use web_sys::{Event, Node};
+use web_sys::{Event, Node, ScrollToOptions, WheelEvent};
 
 use crate::{
     components::{
@@ -19,14 +22,14 @@ use crate::{
 };
 
 struct SongsContextMenu {
-    song_update_request: Option<Rc<Box<dyn Fn()>>>,
+    song_update_request: Option<Arc<Box<dyn Fn() + Send + Sync>>>,
 }
 
 impl SongsContextMenu {
     #[tracing::instrument(level = "trace", skip(song_update_request))]
-    pub fn new(song_update_request: Option<Box<dyn Fn()>>) -> Self {
+    pub fn new(song_update_request: Option<Box<dyn Fn() + Send + Sync>>) -> Self {
         Self {
-            song_update_request: song_update_request.map(Rc::new),
+            song_update_request: song_update_request.map(Arc::new),
         }
     }
 
@@ -74,14 +77,15 @@ impl ContextMenuData<Self> for SongsContextMenu {
 )]
 #[component()]
 pub fn SongView(
-    #[prop()] songs: impl SignalGet<Value = Vec<Song>> + Copy + 'static,
+    #[prop()] songs: impl Get<Value = Vec<Song>> + Copy + 'static + Send + Sync,
     #[prop()] icons: RwSignal<SongDetailIcons>,
     #[prop()] selected_songs: RwSignal<Vec<usize>>,
-    #[prop()] refresh_cb: impl Fn() + 'static,
-    #[prop()] fetch_next_page: impl Fn() + 'static,
-    #[prop(optional)] song_update_request: Option<Box<dyn Fn()>>,
+    #[prop()] refresh_cb: impl Fn() + 'static + Send + Sync,
+    #[prop()] fetch_next_page: impl Fn() + 'static + Send + Sync,
+    #[prop(optional)] song_update_request: Option<Box<dyn Fn() + Send + Sync>>,
     #[prop(optional)] default_details: RwSignal<DefaultDetails>,
     #[prop(optional, default=ShowProvidersArgs::default())] providers: ShowProvidersArgs,
+    #[prop(optional, default = false)] show_mobile_default_details: bool,
 ) -> impl IntoView {
     let last_selected_song = create_rw_signal(None::<Song>);
 
@@ -98,8 +102,8 @@ pub fn SongView(
         }
     });
 
-    let song_details_container = create_node_ref();
-    let song_list_container = create_node_ref();
+    let song_details_container = create_node_ref::<Div>();
+    let song_list_container = create_node_ref::<Div>();
 
     let ignore__class_list = &[
         "context-menu-root",
@@ -132,7 +136,7 @@ pub fn SongView(
         }
 
         let target = event_target::<Node>(&e);
-        let song_details_elem: HtmlElement<Div> = song_list_container.get_untracked().unwrap();
+        let song_details_elem = song_list_container.get_untracked().unwrap();
 
         if !song_details_elem.contains(Some(&target)) {
             selected_songs.update(|s| s.clear());
@@ -146,7 +150,7 @@ pub fn SongView(
         }
 
         let target = event_target::<Node>(&e);
-        let song_details_elem: HtmlElement<Div> = song_details_container.get_untracked().unwrap();
+        let song_details_elem = song_details_container.get_untracked().unwrap();
 
         if !song_details_elem.contains(Some(&target)) {
             selected_songs.update(|s| s.clear());
@@ -155,6 +159,51 @@ pub fn SongView(
     });
 
     let song_context_menu = create_context_menu(SongsContextMenu::new(song_update_request));
+
+    // let song_list_ref = create_node_ref();
+    // let song_details_ref = create_node_ref::<Div>();
+    // let container_ref = create_node_ref::<Div>();
+
+    // let scroll_position = create_rw_signal(0);
+    // use_event_listener(container_ref, scroll, move |_| {
+    //     let scroll_top = container_ref.get_untracked().unwrap().scroll_top();
+    //     tracing::info!("scrolling {}", scroll_top);
+    //     scroll_position.set_untracked(scroll_top);
+    // });
+
+    // let listeners = move |delta_y: f64| {
+    //     let song_details_ref = song_details_ref.get_untracked().unwrap();
+    //     if (scroll_position.get_untracked() as i32) < song_details_ref.offset_height() {
+    //         let container = container_ref.get_untracked().unwrap();
+    //         let options = ScrollToOptions::default();
+    //         options.set_behavior(web_sys::ScrollBehavior::Smooth);
+    //         options.set_top((scroll_position.get_untracked() as f64) + delta_y);
+    //         container.scroll_by_with_scroll_to_options(&options);
+    //         return false;
+    //     }
+    //     true
+    // };
+
+    // use_event_listener(song_list_ref, wheel, move |ev: WheelEvent| {
+    //     if !listeners(ev.delta_y()) {
+    //         ev.prevent_default();
+    //     }
+    // });
+
+    // let touch_start = create_rw_signal(0);
+    // use_event_listener(song_list_ref, touchstart, move |ev| {
+    //     let touch = ev.touches().get(0).unwrap();
+    //     touch_start.set_untracked(touch.client_y());
+    // });
+
+    // use_event_listener(song_list_ref, touchmove, move |ev| {
+    //     let touch = ev.touches().get(0).unwrap();
+    //     let client_y = touch.client_y();
+    //     let delta_y = touch_start.get_untracked() - client_y;
+    //     if !listeners(delta_y as f64) {
+    //         ev.prevent_default();
+    //     }
+    // });
 
     view! {
         <div
@@ -169,6 +218,7 @@ pub fn SongView(
                     <div
                         style="max-height: 100%; height: fit-content;"
                         class="song-details-container col-xl-3 col-4"
+                        class:song-details-mobile=show_mobile_default_details
                     >
                         <SongDetails
                             buttons_ref=song_details_container
@@ -176,6 +226,7 @@ pub fn SongView(
                             selected_song=last_selected_song.read_only()
                             icons=icons
                         />
+
                     </div>
                     <div
                         node_ref=song_list_container
@@ -188,6 +239,7 @@ pub fn SongView(
                             providers=providers
                             refresh_cb=refresh_cb
                             fetch_next_page=fetch_next_page
+                            header=Some(())
                         />
                     </div>
                 </div>

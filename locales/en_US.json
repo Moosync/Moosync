@@ -72,7 +72,7 @@
       "playCount": "Play count"
     },
     "playlist": {
-      "new": "New Playlist",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Import from URL",
       "remove": "Remove playlist",
       "export": "Export playlist",

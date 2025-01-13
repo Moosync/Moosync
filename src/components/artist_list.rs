@@ -1,7 +1,5 @@
-use leptos::{
-    component, create_read_slice, expect_context, view, CollectView, IntoView, RwSignal, SignalGet,
-};
-use leptos_router::{use_navigate, NavigateOptions};
+use leptos::{component, prelude::*, view, IntoView};
+use leptos_router::{hooks::use_navigate, NavigateOptions};
 use types::entities::QueryableArtist;
 
 use crate::store::ui_store::UiStore;
@@ -10,7 +8,7 @@ use crate::store::ui_store::UiStore;
 #[component]
 pub fn ArtistList(#[prop()] artists: Option<Vec<QueryableArtist>>) -> impl IntoView {
     let ui_store = expect_context::<RwSignal<UiStore>>();
-    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get_untracked();
 
     let artists_list = artists.unwrap_or_default();
     artists_list
@@ -38,7 +36,7 @@ pub fn ArtistList(#[prop()] artists: Option<Vec<QueryableArtist>>) -> impl IntoV
                     }
                 >
                     <div class="text song-subtitle text-truncate" title=artist_name.clone()>
-                        {artist_name}
+                        {artist_name.clone()}
                         {if pos == artists_list.len() - 1 { "" } else { "," }}
                     </div>
                 </div>

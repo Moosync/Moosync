@@ -1,18 +1,17 @@
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songlist::ShowProvidersArgs;
 use crate::components::songview::SongView;
 use crate::dyn_provider_songs;
 use crate::store::player_store::PlayerStore;
+use crate::store::ui_store::UiStore;
 use crate::utils::common::{convert_file_src, fetch_infinite};
 use crate::utils::songs::get_songs_from_indices;
-use leptos::{
-    component, create_effect, create_memo, create_rw_signal, create_write_slice, expect_context,
-    view, IntoView, RwSignal, SignalGet, SignalUpdate, SignalWith,
-};
-use leptos_router::use_query_map;
+use leptos::{component, prelude::*, view, IntoView};
+use leptos_router::hooks::use_query_map;
 use rand::seq::SliceRandom;
 use types::entities::QueryableAlbum;
 use types::songs::{GetSongOptions, Song};
@@ -29,7 +28,7 @@ pub fn SingleAlbum() -> impl IntoView {
         params.with(|params| {
             let entity = params.get("entity");
             if let Some(entity) = entity {
-                let album = serde_json::from_str::<QueryableAlbum>(entity);
+                let album = serde_json::from_str::<QueryableAlbum>(&entity);
                 if let Ok(album) = album {
                     return Some(album);
                 }
@@ -39,7 +38,7 @@ pub fn SingleAlbum() -> impl IntoView {
     });
     if album.get().is_none() {
         tracing::error!("Failed to parse album");
-        return view! {}.into_view();
+        return view! {}.into_any();
     }
 
     let songs = create_rw_signal(vec![]);
@@ -105,9 +104,9 @@ pub fn SingleAlbum() -> impl IntoView {
     };
 
     let icons = create_rw_signal(SongDetailIcons {
-        play: Some(Rc::new(Box::new(play_songs))),
-        add_to_queue: Some(Rc::new(Box::new(add_to_queue))),
-        random: Some(Rc::new(Box::new(random))),
+        play: Some(Arc::new(Box::new(play_songs))),
+        add_to_queue: Some(Arc::new(Box::new(add_to_queue))),
+        random: Some(Arc::new(Box::new(random))),
         ..Default::default()
     });
 
@@ -116,6 +115,8 @@ pub fn SingleAlbum() -> impl IntoView {
         fetch_selected_providers.as_ref()();
     };
 
+    let is_mobile =
+        create_read_slice(expect_context::<RwSignal<UiStore>>(), |u| u.get_is_mobile()).get();
     view! {
         <SongView
             default_details=default_details
@@ -128,8 +129,10 @@ pub fn SingleAlbum() -> impl IntoView {
             }
             refresh_cb=refresh_songs
             fetch_next_page=fetch_next_page
+            show_mobile_default_details=is_mobile
         />
     }
+    .into_any()
 }
 
 #[tracing::instrument(level = "trace", skip())]
@@ -154,6 +157,7 @@ pub fn AllAlbums() -> impl IntoView {
 
                     <CardView
                         items=albums
+                        key=|a| a.album_id.clone()
                         redirect_root="/main/albums"
                         card_item=move |(_, item)| {
                             let album_name = item.album_name.clone().unwrap_or_default();

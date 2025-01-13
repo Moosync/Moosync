@@ -1,7 +1,9 @@
-use types::{mpris::MprisPlayerDetails, songs::Song, ui::player_details::PlayerState};
-use wasm_bindgen_futures::spawn_local;
+use std::sync::Mutex;
 
-use crate::utils::entities::get_artist_string;
+use crate::{store::player_store::PlayerStore, utils::entities::get_artist_string};
+use lazy_static::lazy_static;
+use leptos::{prelude::*, task::spawn_local};
+use types::{mpris::MprisPlayerDetails, songs::Song, ui::player_details::PlayerState};
 
 #[tracing::instrument(level = "trace", skip(song))]
 pub fn set_metadata(song: &Song) {
@@ -33,12 +35,27 @@ pub fn set_playback_state(state: PlayerState) {
     })
 }
 
+lazy_static! {
+    static ref last_time_update: Mutex<wasm_timer::Instant> =
+        Mutex::new(wasm_timer::Instant::now());
+}
 #[tracing::instrument(level = "trace", skip(duration))]
 pub fn set_position(duration: f64) {
-    spawn_local(async move {
-        let res = crate::utils::invoke::set_position(duration).await;
-        if let Err(err) = res {
-            tracing::error!("Failed to set mpris position {:?}", err);
+    let should_update = {
+        let mut last_time_update_lock = last_time_update.lock().unwrap();
+        if last_time_update_lock.elapsed().as_secs() > 10 {
+            *last_time_update_lock = wasm_timer::Instant::now();
+            true
+        } else {
+            false
         }
-    })
+    };
+    if should_update {
+        spawn_local(async move {
+            let res = crate::utils::invoke::set_position(duration).await;
+            if let Err(err) = res {
+                tracing::error!("Failed to set mpris position {:?}", err);
+            }
+        });
+    }
 }

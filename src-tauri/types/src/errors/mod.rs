@@ -154,14 +154,13 @@ impl From<serde_wasm_bindgen::Error> for MoosyncError {
 }
 
 #[cfg(all(not(feature = "extensions"), feature = "core"))]
-impl<'a> From<Box<dyn Iterator<Item = ValidationError<'a>> + Sync + Send + 'a>> for MoosyncError {
+impl<'a> From<ValidationError<'a>> for MoosyncError {
     #[tracing::instrument(level = "trace", skip(value))]
-    fn from(value: Box<dyn Iterator<Item = ValidationError<'a>> + Sync + Send + 'a>) -> Self {
+    fn from(value: ValidationError<'a>) -> Self {
         let mut res = String::new();
-        for error in value {
-            res.push_str(error.to_string().as_str());
-            res.push('\n');
-        }
+        res.push_str(value.to_string().as_str());
+        res.push('\n');
+
         Self::JSONValidationError(res)
     }
 }

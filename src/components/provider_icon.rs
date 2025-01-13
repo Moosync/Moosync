@@ -1,4 +1,4 @@
-use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
+use leptos::{component, prelude::*, view, IntoView};
 use types::ui::extensions::PackageNameArgs;
 use wasm_bindgen_futures::spawn_local;
 
@@ -34,9 +34,9 @@ pub fn ProviderIcon(#[prop()] extension: String) -> impl IntoView {
             {move || {
                 let extension = extension.as_str();
                 if extension == "youtube" {
-                    view! { <YoutubeIcon /> }
+                    view! { <YoutubeIcon /> }.into_any()
                 } else if extension == "spotify" {
-                    view! { <SpotifyIcon /> }
+                    view! { <SpotifyIcon /> }.into_any()
                 } else {
                     view! {
                         <img
@@ -45,11 +45,11 @@ pub fn ProviderIcon(#[prop()] extension: String) -> impl IntoView {
                             } else {
                                 "block"
                             }
-                            referrerPolicy="no-referrer"
+                            referrerpolicy="no-referrer"
                             src=move || provider_icon.get()
                         />
                     }
-                        .into_view()
+                        .into_any()
                 }
             }}
         </div>

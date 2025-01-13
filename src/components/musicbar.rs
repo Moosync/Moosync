@@ -1,7 +1,7 @@
 use ev::{mousedown, mousemove, mouseup, touchend, touchmove, touchstart, transitionend};
 use html::Div;
 use leptos::*;
-use leptos::{component, view, IntoView, RwSignal, SignalGet, SignalSet};
+use leptos::{component, prelude::*, view, IntoView};
 use leptos_use::{use_event_listener, use_event_listener_with_options, UseEventListenerOptions};
 use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
@@ -13,25 +13,24 @@ use crate::store::ui_store::UiStore;
 const MUSICBAR_HEIGHT: i32 = 50 + 16;
 const SIDEBAR_HEIGHT: i32 = 80;
 
-fn transition_closed(
-    musicbar: NodeRef<Div>,
-    musicinfo: NodeRef<Div>,
-    sidebar: RwSignal<Option<HtmlElement>>,
-) {
+fn transition_closed(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     if let Some(musicbar) = musicbar.get_untracked() {
-        let _ = musicbar
-            .style("transition", "all 0.2s")
-            .style("transform", "translateY(0px)");
+        let _ = musicbar.style(("transition", "all 0.2s"));
+        let _ = musicbar.style(("transform", "translateY(0px)"));
     }
 
     if let Some(musicinfo) = musicinfo.get_untracked() {
-        let _ = musicinfo.style("transition", "all 0.2s").style(
+        let _ = musicinfo.style(("transition", "all 0.2s"));
+        let _ = musicinfo.style((
             "transform",
             format!("translateY(calc(100vh - {}px))", MUSICBAR_HEIGHT),
-        );
+        ));
     }
 
-    if let Some(sidebar) = sidebar.get_untracked() {
+    let sidebar = document()
+        .get_element_by_id("sidebar")
+        .map(|e| e.dyn_into::<HtmlElement>().unwrap());
+    if let Some(sidebar) = sidebar {
         let style = sidebar.style();
         style.set_property("visibility", "visible").unwrap();
         style.set_property("transition", "all 0.2s").unwrap();
@@ -39,25 +38,23 @@ fn transition_closed(
     }
 }
 
-fn transition_opened(
-    musicbar: NodeRef<Div>,
-    musicinfo: NodeRef<Div>,
-    sidebar: RwSignal<Option<HtmlElement>>,
-) {
+fn transition_opened(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     if let Some(musicbar) = musicbar.get() {
-        let _ = musicbar.style("transition", "all 0.2s").style(
+        let _ = musicbar.style(("transition", "all 0.2s"));
+        let _ = musicbar.style((
             "transform",
             format!("translateY(calc(-100vh + {}px))", MUSICBAR_HEIGHT),
-        );
+        ));
     }
 
     if let Some(musicinfo) = musicinfo.get() {
-        let _ = musicinfo
-            .style("transition", "all 0.2s")
-            .style("transform", "translateY(0px)");
+        let _ = musicinfo.style(("transition", "all 0.2s"));
+        let _ = musicinfo.style(("transform", "translateY(0px)"));
     }
-
-    if let Some(sidebar) = sidebar.get_untracked() {
+    let sidebar = document()
+        .get_element_by_id("sidebar")
+        .map(|e| e.dyn_into::<HtmlElement>().unwrap());
+    if let Some(sidebar) = sidebar {
         let style = sidebar.style();
         style.set_property("transition", "all 0.2s").unwrap();
         style.set_property("opacity", "0").unwrap();
@@ -69,32 +66,30 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     let is_dragging = create_rw_signal(false);
     let start_offset = create_rw_signal(0);
     let page_height = create_rw_signal(0);
-    let sidebar = create_rw_signal(None);
     let has_moved = create_rw_signal(false);
 
     let listener = move |client_y: i32| {
         tracing::info!("dragging musicinfo");
-        start_offset.set_untracked(client_y);
-        page_height.set_untracked(document().body().unwrap().client_height() - SIDEBAR_HEIGHT);
-        is_dragging.set_untracked(true);
-        has_moved.set_untracked(false);
+        start_offset.set(client_y);
+        page_height.set(document().body().unwrap().client_height() - SIDEBAR_HEIGHT);
+        is_dragging.set(true);
+        has_moved.set(false);
 
-        let sidebar_elem = document()
+        let sidebar = document()
             .get_element_by_id("sidebar")
             .map(|e| e.dyn_into::<HtmlElement>().unwrap());
-        if let Some(sidebar_elem) = sidebar_elem {
+        if let Some(sidebar_elem) = sidebar {
             let style = sidebar_elem.style();
             style.set_property("transition", "all 0s").unwrap();
             style.set_property("display", "flex").unwrap();
-            sidebar.set_untracked(Some(sidebar_elem));
         }
 
         if let Some(musicbar) = musicbar.get() {
-            let _ = musicbar.style("transition", "all 0s");
+            let _ = musicbar.style(("transition", "all 0s"));
         }
 
         if let Some(musicinfo) = musicinfo.get() {
-            let _ = musicinfo.style("transition", "all 0s");
+            let _ = musicinfo.style(("transition", "all 0s"));
         }
     };
     let _ = use_event_listener(musicinfo, mousedown, move |ev| {
@@ -113,12 +108,12 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     let listener = move || {
         if is_dragging.get_untracked() {
             tracing::info!("dragging musicinfo stop");
-            is_dragging.set_untracked(false);
+            is_dragging.set(false);
 
             if has_moved.get_untracked() {
-                transition_closed(musicbar, musicinfo, sidebar);
+                transition_closed(musicbar, musicinfo);
             } else {
-                transition_opened(musicbar, musicinfo, sidebar);
+                transition_opened(musicbar, musicinfo);
             }
         }
     };
@@ -142,10 +137,14 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
                     let musicbar_pos = client_y_diff - page_height;
 
                     let _ =
-                        musicinfo.style("transform", format!("translateY({}px)", client_y_diff));
-                    let _ = musicbar.style("transform", format!("translateY({}px)", musicbar_pos));
+                        musicinfo.style(("transform", format!("translateY({}px)", client_y_diff)));
+                    let _ =
+                        musicbar.style(("transform", format!("translateY({}px)", musicbar_pos)));
 
-                    if let Some(sidebar) = sidebar.get_untracked() {
+                    let sidebar = document()
+                        .get_element_by_id("sidebar")
+                        .map(|e| e.dyn_into::<HtmlElement>().unwrap());
+                    if let Some(sidebar) = sidebar {
                         let style = sidebar.style();
                         let opacity = client_y_diff as f64 / start_offset as f64;
                         style
@@ -154,7 +153,7 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
                     }
 
                     if client_y_diff.abs() > (0.2 * page_height as f64) as i32 {
-                        has_moved.set_untracked(true);
+                        has_moved.set(true);
                     }
                 }
             }
@@ -177,15 +176,14 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     let is_dragging = create_rw_signal(false);
     let start_offset = create_rw_signal(0);
     let page_height = create_rw_signal(0);
-    let sidebar = create_rw_signal(None);
     let has_moved = create_rw_signal(false);
 
     let listener = move |client_y: i32| {
         tracing::info!("dragging");
-        start_offset.set_untracked(client_y);
-        page_height.set_untracked(document().body().unwrap().client_height() - SIDEBAR_HEIGHT);
-        is_dragging.set_untracked(true);
-        has_moved.set_untracked(false);
+        start_offset.set(client_y);
+        page_height.set(document().body().unwrap().client_height() - SIDEBAR_HEIGHT);
+        is_dragging.set(true);
+        has_moved.set(false);
 
         let sidebar_elem = document()
             .get_element_by_id("sidebar")
@@ -193,15 +191,14 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
         if let Some(sidebar_elem) = sidebar_elem {
             let style = sidebar_elem.style();
             style.set_property("transition", "all 0s").unwrap();
-            sidebar.set_untracked(Some(sidebar_elem));
         }
 
         if let Some(musicbar) = musicbar.get_untracked() {
-            let _ = musicbar.style("transition", "all 0s");
+            let _ = musicbar.style(("transition", "all 0s"));
         }
 
         if let Some(musicinfo) = musicinfo.get_untracked() {
-            let _ = musicinfo.style("transition", "all 0s");
+            let _ = musicinfo.style(("transition", "all 0s"));
         }
     };
     let _ = use_event_listener(musicbar, mousedown, move |ev| {
@@ -220,12 +217,12 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     let listener = move || {
         if is_dragging.get_untracked() {
             tracing::info!("dragging stop");
-            is_dragging.set_untracked(false);
+            is_dragging.set(false);
 
             if has_moved.get_untracked() {
-                transition_opened(musicbar, musicinfo, sidebar);
+                transition_opened(musicbar, musicinfo);
             } else {
-                transition_closed(musicbar, musicinfo, sidebar);
+                transition_closed(musicbar, musicinfo);
             }
         }
     };
@@ -249,10 +246,14 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
                     let musicinfo_pos = page_height + client_y_diff;
 
                     let _ =
-                        musicinfo.style("transform", format!("translateY({}px)", musicinfo_pos));
-                    let _ = musicbar.style("transform", format!("translateY({}px)", client_y_diff));
+                        musicinfo.style(("transform", format!("translateY({}px)", musicinfo_pos)));
+                    let _ =
+                        musicbar.style(("transform", format!("translateY({}px)", client_y_diff)));
 
-                    if let Some(sidebar) = sidebar.get_untracked() {
+                    let sidebar = document()
+                        .get_element_by_id("sidebar")
+                        .map(|e| e.dyn_into::<HtmlElement>().unwrap());
+                    if let Some(sidebar) = sidebar {
                         let style = sidebar.style();
                         let opacity = client_y as f64 / start_offset as f64;
                         style
@@ -261,7 +262,7 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
                     }
 
                     if client_y_diff.abs() > (0.2 * page_height as f64) as i32 {
-                        has_moved.set_untracked(true);
+                        has_moved.set(true);
                     }
                 }
             }
@@ -302,8 +303,9 @@ pub fn MusicBar() -> impl IntoView {
             {move || {
                 if is_mobile {
                     view! { <MusicInfoMobile show=show_musicinfo node_ref=musicinfo_ref /> }
+                        .into_any()
                 } else {
-                    view! { <MusicInfo show=show_musicinfo node_ref=musicinfo_ref /> }
+                    view! { <MusicInfo show=show_musicinfo node_ref=musicinfo_ref /> }.into_any()
                 }
             }}
             <div

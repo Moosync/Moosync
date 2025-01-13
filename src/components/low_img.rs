@@ -1,4 +1,4 @@
-use leptos::{component, create_rw_signal, view, IntoView, SignalGet, SignalSet};
+use leptos::{component, prelude::*, view, IntoView};
 
 use crate::{
     icons::{
@@ -21,9 +21,9 @@ pub fn LowImg<T, D, E>(
     #[prop()] play_now: T,
 ) -> impl IntoView
 where
-    T: Fn() + 'static,
-    D: (Fn() -> bool) + 'static,
-    E: (Fn() -> bool) + 'static,
+    T: Fn() + 'static + Send + Sync,
+    D: (Fn() -> bool) + 'static + Send + Sync,
+    E: (Fn() -> bool) + 'static + Send + Sync,
 {
     let show_default_cover_img = create_rw_signal(cover_img.is_empty());
     view! {
@@ -38,14 +38,18 @@ where
                                 on:error=move |_| { show_default_cover_img.set(true) }
                             />
                         }
-                            .into_view()
+                            .into_any()
                     } else {
                         view! {
                             // class="fade-in-image"
                             // class="fade-in-image"
+                            // class="fade-in-image"
+                            // class="fade-in-image"
+                            // class="fade-in-image"
+                            // class="fade-in-image"
                             <SongDefaultIcon />
                         }
-                            .into_view()
+                            .into_any()
                     }
                 }}
                 {if show_play_button {
@@ -57,9 +61,9 @@ where
                             <PlayHoverIcon />
                         </div>
                     }
-                        .into_view()
+                        .into_any()
                 } else {
-                    view! {}.into_view()
+                    view! {}.into_any()
                 }}
                 {move || {
                     if show_eq() {
@@ -68,9 +72,9 @@ where
                                 <AnimatedEqualizerIcon playing=eq_playing() />
                             </div>
                         }
-                            .into_view()
+                            .into_any()
                     } else {
-                        view! {}.into_view()
+                        view! {}.into_any()
                     }
                 }}
 

@@ -1,11 +1,11 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 #[derive(Default, Clone)]
 pub struct SongDetailIcons {
-    pub play: Option<Rc<Box<dyn Fn()>>>,
-    pub add_to_queue: Option<Rc<Box<dyn Fn()>>>,
-    pub random: Option<Rc<Box<dyn Fn()>>>,
-    pub add_to_library: Option<Rc<Box<dyn Fn()>>>,
+    pub play: Option<Arc<Box<dyn Fn() + Send + Sync>>>,
+    pub add_to_queue: Option<Arc<Box<dyn Fn() + Send + Sync>>>,
+    pub random: Option<Arc<Box<dyn Fn() + Send + Sync>>>,
+    pub add_to_library: Option<Arc<Box<dyn Fn() + Send + Sync>>>,
 }
 
 #[derive(Default, Clone)]

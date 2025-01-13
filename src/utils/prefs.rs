@@ -1,6 +1,7 @@
 use std::rc::Rc;
 
-use leptos::{spawn_local, SignalSet};
+use leptos::prelude::Owner;
+use leptos::{prelude::Set, task::spawn_local};
 use serde::{de::DeserializeOwned, Serialize};
 use types::themes::ThemeDetails;
 use types::window::DialogFilter;
@@ -9,7 +10,7 @@ use wasm_bindgen::JsValue;
 use crate::utils::common::listen_event;
 
 #[tracing::instrument(level = "trace", skip(key, setter))]
-pub fn load_selective<T>(key: String, setter: impl SignalSet<Value = T> + 'static)
+pub fn load_selective<T>(key: String, setter: impl Set<Value = T> + 'static)
 where
     T: DeserializeOwned,
 {
@@ -59,7 +60,7 @@ pub fn open_file_browser(
     directory: bool,
     multiple: bool,
     filters: Vec<DialogFilter>,
-    setter: impl SignalSet<Value = Vec<String>> + 'static,
+    setter: impl Set<Value = Vec<String>> + 'static,
 ) {
     spawn_local(async move {
         let res = super::invoke::open_file_browser(directory, multiple, filters).await;
@@ -76,7 +77,7 @@ pub fn open_file_browser(
 pub fn open_file_browser_single(
     directory: bool,
     filters: Vec<DialogFilter>,
-    setter: impl SignalSet<Value = String> + 'static,
+    setter: impl Set<Value = String> + 'static,
 ) {
     spawn_local(async move {
         let file_resp = super::invoke::open_file_browser(directory, false, filters).await;
@@ -90,6 +91,7 @@ pub fn open_file_browser_single(
 
 #[tracing::instrument(level = "trace", skip(cb))]
 pub fn watch_preferences(cb: fn((String, JsValue))) -> js_sys::Function {
+    let owner = Owner::new();
     listen_event("preference-changed", move |data: JsValue| {
         let res = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
         if res.is_array() {
@@ -98,7 +100,9 @@ pub fn watch_preferences(cb: fn((String, JsValue))) -> js_sys::Function {
                 .as_string()
                 .unwrap();
             let value = js_sys::Reflect::get(&res, &JsValue::from_f64(1f64)).unwrap();
-            cb((key, value));
+            owner.with(|| {
+                cb((key, value));
+            });
             return;
         }
         tracing::error!("Received invalid preference change: {:?}", data);

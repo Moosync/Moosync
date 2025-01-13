@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use dyn_clone::DynClone;
-use leptos::{html::Div, NodeRef};
+use leptos::{html::Div, prelude::NodeRef};
 use tokio::sync::oneshot::Sender as OneShotSender;
 use types::{
     errors::Result,

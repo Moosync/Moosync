@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use types::{songs::Song, ui::themes::ThemeModalState};
 
@@ -17,7 +17,7 @@ pub enum Modals {
 #[derive(Clone, Default)]
 pub struct ModalStore {
     pub active_modal: Option<Modals>,
-    pub on_modal_close: Option<Rc<Box<dyn Fn()>>>,
+    pub on_modal_close: Option<Arc<Box<dyn Fn() + Send + Sync>>>,
 }
 
 impl ModalStore {
@@ -43,8 +43,8 @@ impl ModalStore {
     #[tracing::instrument(level = "trace", skip(self, cb))]
     pub fn on_modal_close<T>(&mut self, cb: T)
     where
-        T: Fn() + 'static,
+        T: Fn() + 'static + Send + Sync,
     {
-        self.on_modal_close = Some(Rc::new(Box::new(cb)));
+        self.on_modal_close = Some(Arc::new(Box::new(cb)));
     }
 }

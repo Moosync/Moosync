@@ -1,4 +1,4 @@
-use leptos::{component, view, IntoView};
+use leptos::{component, prelude::*, view, IntoView};
 
 #[tracing::instrument(level = "trace", skip(accent))]
 #[component]

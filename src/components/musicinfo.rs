@@ -1,9 +1,6 @@
 use leptos::html::Div;
-use leptos::{
-    component, create_effect, create_memo, create_node_ref, create_read_slice, create_rw_signal,
-    create_write_slice, expect_context, spawn_local, view, IntoView, NodeRef, RwSignal, Signal,
-    SignalGet, SignalGetUntracked, SignalSet, SignalUpdate,
-};
+use leptos::task::spawn_local;
+use leptos::{component, prelude::*, view, IntoView};
 use leptos_virtual_scroller::VirtualScroller;
 use types::songs::{Song, SongType};
 use types::ui::player_details::PlayerState;
@@ -47,9 +44,9 @@ pub fn QueueItem<T, D, P>(
     remove_from_queue: P,
 ) -> impl IntoView
 where
-    T: SignalGet<Value = usize> + Copy + 'static,
-    D: SignalGet<Value = bool> + 'static,
-    P: SignalSet<Value = usize> + 'static,
+    T: Get<Value = usize> + Copy + 'static + Send + Sync,
+    D: Get<Value = bool> + 'static + Send + Sync,
+    P: Set<Value = usize> + 'static + Send + Sync,
 {
     view! {
         <div class="container-fluid item-container">
@@ -68,9 +65,9 @@ where
                         {move || {
                             let extension = song.song.provider_extension.clone();
                             if let Some(extension) = extension {
-                                view! { <ProviderIcon extension=extension /> }.into_view()
+                                view! { <ProviderIcon extension=extension /> }.into_any()
                             } else {
-                                view! {}.into_view()
+                                view! {}.into_any()
                             }
                         }}
                     </div>
@@ -136,6 +133,7 @@ pub fn MusicInfoMobile(
     let canvaz_sig = create_rw_signal(None);
     create_effect(move |_| {
         let current_song = current_song.get();
+        canvaz_sig.set(None);
         if let Some(current_song) = current_song {
             if current_song.song.type_ == SongType::SPOTIFY
                 && current_song.song.playback_url.is_some()
@@ -148,7 +146,7 @@ pub fn MusicInfoMobile(
                     if let Ok(res) = res {
                         canvaz_sig.set(res.canvases.first().map(|c| c.url.clone()));
                     } else {
-                        tracing::error!("Failed to get canvaz {:?}", res)
+                        tracing::error!("Failed to get canvaz {:?}", res);
                     }
                 });
             }
@@ -168,7 +166,7 @@ pub fn MusicInfoMobile(
                 {move || {
                     let current_song = current_song.get();
                     if current_song.is_none() {
-                        return view! {}.into_view();
+                        return view! {}.into_any();
                     }
                     let canvas_url = canvaz_sig.get();
                     let high_img = current_song.map(|current_song| get_high_img(&current_song));
@@ -177,9 +175,9 @@ pub fn MusicInfoMobile(
                             <div class="dark-overlay" style="top: 0px;"></div>
                             <video class="canvaz-vid" src=canvas_url autoplay loop muted />
                         }
-                            .into_view()
+                            .into_any()
                     } else {
-                        view! {}.into_view()
+                        view! {}.into_any()
                     }
                 }} <div class="row no-gutters">
                     <div class="col col-auto">
@@ -199,9 +197,9 @@ pub fn MusicInfoMobile(
                                                         on:error=move |_| { show_default_cover_img.set(true) }
                                                     />
                                                 }
-                                                    .into_view()
+                                                    .into_any()
                                             } else {
-                                                view! { <SongDefaultIcon /> }.into_view()
+                                                view! { <SongDefaultIcon /> }.into_any()
                                             }
                                         }}
                                     </div>
@@ -302,15 +300,15 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
                 {move || {
                     let current_song = current_song.get();
                     if current_song.is_none() {
-                        return view! {}.into_view();
+                        return view! {}.into_any();
                     }
                     let canvas_url = canvaz_sig.get();
                     let high_img = current_song.map(|current_song| get_high_img(&current_song));
                     if let Some(canvas_url) = canvas_url {
                         view! { <video class="canvaz-vid" src=canvas_url autoplay loop muted /> }
-                            .into_view()
+                            .into_any()
                     } else {
-                        view! { <img class="bg-img" src=high_img /> }.into_view()
+                        view! { <img class="bg-img" src=high_img /> }.into_any()
                     }
                 }}
 
@@ -376,6 +374,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
 
                                             <VirtualScroller
                                                 each=queue_songs
+                                                key=|s| s.song._id.clone()
                                                 item_height=95usize
                                                 inner_el_style="width: calc(100% - 15px);"
                                                 node_ref=scroller_ref
@@ -391,6 +390,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
                                                         />
                                                     }
                                                 }
+                                                header=Some(())
                                             />
 
                                         </div>

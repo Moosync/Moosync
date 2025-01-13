@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use leptos::{component, create_rw_signal, view, AnimatedShow, ChildrenFn, IntoView, SignalSet};
+use leptos::{component, prelude::*, view, IntoView};
 
 #[tracing::instrument(level = "trace", skip(children))]
 #[component]
@@ -37,7 +37,7 @@ pub fn Tooltip(children: ChildrenFn) -> impl IntoView {
                     style="position: absolute; top: 6px; left: 25px; will-change: transform; width: max-content;"
                 >
                     <div class="arrow"></div>
-                    <div class="tooltip-inner">{children.clone()}</div>
+                    <div class="tooltip-inner">{children()}</div>
                 </div>
             </AnimatedShow>
         </div>

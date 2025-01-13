@@ -1,23 +1,24 @@
 use std::{
     rc::Rc,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 
 use itertools::Itertools;
 use leptos::{
-    component, create_effect, create_memo, create_node_ref, create_read_slice, create_rw_signal,
-    create_write_slice,
+    component,
     ev::{keydown, keyup, scroll},
-    event_target, event_target_value, expect_context,
-    html::Input,
-    use_context, view, window_event_listener, HtmlElement, IntoView, RwSignal, Show, SignalGet,
-    SignalGetUntracked, SignalSet, SignalSetUntracked, SignalUpdate,
+    html::{Div, Input},
+    prelude::*,
+    view, IntoView,
 };
 use leptos_context_menu::ContextMenu;
 use leptos_use::use_event_listener;
 use leptos_virtual_scroller::VirtualScroller;
 use types::songs::Song;
-use web_sys::{HtmlDivElement, MouseEvent};
+use web_sys::{HtmlDivElement, HtmlInputElement, MouseEvent};
 
 use crate::{
     components::{artist_list::ArtistList, low_img::LowImg, provider_icon::ProviderIcon},
@@ -42,9 +43,9 @@ use crate::{
 #[component()]
 pub fn SongListItem(
     #[prop()] song: Song,
-    #[prop()] is_selected: Box<dyn Fn() -> bool>,
-    #[prop()] on_context_menu: impl Fn((MouseEvent, bool)) + 'static,
-    #[prop()] on_click: impl Fn(MouseEvent) + 'static,
+    #[prop()] is_selected: Box<dyn Fn() -> bool + Send + Sync>,
+    #[prop()] on_context_menu: impl Fn((MouseEvent, bool)) + 'static + Send + Sync,
+    #[prop()] on_click: impl Fn(MouseEvent) + 'static + Send + Sync,
 ) -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
     let play_now = create_write_slice(player_store, |store, value| store.play_now(value));
@@ -53,7 +54,7 @@ pub fn SongListItem(
     let song_cloned = song.clone();
     let song_cloned1 = song.clone();
 
-    let on_context_menu = Rc::new(Box::new(on_context_menu));
+    let on_context_menu = Arc::new(Box::new(on_context_menu));
     let on_context_menu_cl = on_context_menu.clone();
     view! {
         <div
@@ -79,9 +80,9 @@ pub fn SongListItem(
                             {move || {
                                 let extension = song.song.provider_extension.clone();
                                 if let Some(extension) = extension {
-                                    view! { <ProviderIcon extension=extension /> }
+                                    view! { <ProviderIcon extension=extension /> }.into_any()
                                 } else {
-                                    view! {}.into_view()
+                                    view! {}.into_any()
                                 }
                             }}
                         </div>
@@ -136,21 +137,31 @@ pub struct ShowProvidersArgs {
         filtered_selected,
         hide_search_bar,
         refresh_cb,
-        fetch_next_page
+        fetch_next_page,
+        root_ref,
+        scroller_ref,
+        header
     )
 )]
 #[component()]
 /// filtered_selected is the list of song indices from the **filtered song list** after they have been filtered (search / sort)
 /// selected_songs_sig is the list of song indices from the **original song list**
-pub fn SongList(
-    #[prop()] song_list: impl SignalGet<Value = Vec<Song>> + Copy + 'static,
+pub fn SongList<I>(
+    #[prop()] song_list: impl Get<Value = Vec<Song>> + Copy + 'static + Send + Sync,
     #[prop()] selected_songs_sig: RwSignal<Vec<usize>>,
     #[prop()] filtered_selected: RwSignal<Vec<usize>>,
-    #[prop()] refresh_cb: impl Fn() + 'static,
+    #[prop()] refresh_cb: impl Fn() + 'static + Send + Sync,
     #[prop()] fetch_next_page: impl Fn() + 'static,
     #[prop(default = false)] hide_search_bar: bool,
     #[prop(optional, default = ShowProvidersArgs::default())] providers: ShowProvidersArgs,
-) -> impl IntoView {
+    #[prop(optional)] root_ref: Option<NodeRef<Div>>,
+    #[prop(optional)] scroller_ref: Option<NodeRef<Div>>,
+    #[prop(optional)] header_height: usize,
+    #[prop(optional)] header: Option<I>,
+) -> impl IntoView
+where
+    I: IntoView,
+{
     let is_ctrl_pressed = create_rw_signal(false);
     let is_shift_pressed = create_rw_signal(false);
     let select_all = create_rw_signal(false);
@@ -158,7 +169,7 @@ pub fn SongList(
     let show_searchbar = create_rw_signal(false);
     let searchbar_ref = create_node_ref();
 
-    let provider_store = expect_context::<Rc<ProviderStore>>();
+    let provider_store = expect_context::<Arc<ProviderStore>>();
 
     let ui_store: RwSignal<UiStore> = expect_context();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
@@ -229,7 +240,7 @@ pub fn SongList(
         let show_searchbar = show_searchbar.get();
         if show_searchbar {
             if let Some(searchbar) = searchbar_ref.get() {
-                (searchbar as HtmlElement<Input>)
+                (searchbar as HtmlInputElement)
                     .focus()
                     .expect("Could not focus on searchbar");
             }
@@ -334,7 +345,7 @@ pub fn SongList(
     create_effect(move |_| {
         let select_all_val = select_all.get();
         if select_all_val {
-            select_all.set_untracked(false);
+            select_all.set(false);
 
             let song_space = (0..song_list.get().len()).collect_vec();
 
@@ -348,7 +359,7 @@ pub fn SongList(
         song_list,
         selected_songs: selected_songs_sig,
         playlists,
-        refresh_cb: Rc::new(Box::new(refresh_cb)),
+        refresh_cb: Arc::new(Box::new(refresh_cb)),
     };
     let song_context_menu = create_context_menu(context_menu_data);
 
@@ -359,7 +370,17 @@ pub fn SongList(
         selected.len() < 2 || !selected.contains(&index)
     };
 
-    let scroller_ref = create_node_ref();
+    let root_ref = if root_ref.is_none() {
+        create_node_ref()
+    } else {
+        root_ref.unwrap()
+    };
+
+    let scroller_ref = if scroller_ref.is_none() {
+        create_node_ref()
+    } else {
+        scroller_ref.unwrap()
+    };
 
     let _ = use_event_listener(scroller_ref, scroll, move |ev| {
         let target = event_target::<HtmlDivElement>(&ev);
@@ -371,7 +392,7 @@ pub fn SongList(
     });
 
     view! {
-        <div class="d-flex h-100 w-100">
+        <div class="d-flex h-100 w-100" node_ref=root_ref>
             <div class="container-fluid">
 
                 <Show
@@ -399,9 +420,9 @@ pub fn SongList(
                                                         />
                                                     </div>
                                                 }
-                                                    .into_view()
+                                                    .into_any()
                                             } else {
-                                                view! {}.into_view()
+                                                view! {}.into_any()
                                             }}
                                             <div class="col-auto d-flex">
 
@@ -410,7 +431,7 @@ pub fn SongList(
                                                         view! {
                                                             <div class="songlist-searchbar-container mr-3">
                                                                 <input
-                                                                    ref=searchbar_ref
+                                                                    node_ref=searchbar_ref
                                                                     on:input=move |ev| {
                                                                         let text = event_target_value(&ev);
                                                                         if text.is_empty() {
@@ -426,9 +447,9 @@ pub fn SongList(
                                                                 />
                                                             </div>
                                                         }
-                                                            .into_view()
+                                                            .into_any()
                                                     } else {
-                                                        view! {}.into_view()
+                                                        view! {}.into_any()
                                                     }
                                                 }}
                                                 <div
@@ -469,8 +490,11 @@ pub fn SongList(
                         <VirtualScroller
                             node_ref=scroller_ref
                             each=filtered_songs
+                            key=|s| s.song._id.clone()
                             item_height=95usize
                             inner_el_style="width: calc(100% - 15px);"
+                            header=header
+                            header_height=header_height
                             children=move |(index, song)| {
                                 let song_cl = song.clone();
                                 let song_cl1 = song.clone();

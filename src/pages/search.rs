@@ -1,16 +1,12 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{collections::HashMap, rc::Rc, sync::Arc};
 
 use crate::{
     components::cardview::{CardView, SimplifiedCardItem},
     utils::invoke::{provider_search, search_all},
 };
 use colors_transform::{Color, Rgb};
-use leptos::{
-    component, create_effect, create_node_ref, create_rw_signal, ev::wheel, expect_context,
-    html::Div, view, For, IntoView, Params, RwSignal, Show, SignalGet, SignalSet, SignalUpdate,
-    SignalWith,
-};
-use leptos_router::{use_query, Params};
+use leptos::{component, ev::wheel, html::Div, prelude::*, view, IntoView, Params};
+use leptos_router::{hooks::use_query, params::Params};
 use leptos_use::{use_event_listener, use_resize_observer};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::window;
@@ -46,7 +42,7 @@ pub fn TabCarousel(
     let scroll_left = create_rw_signal(0);
 
     use_resize_observer(provider_container, move |entries, _| {
-        leptos::request_animation_frame(move || {
+        request_animation_frame(move || {
             let rect = entries[0].content_rect();
             container_size.set(rect.width());
         });
@@ -114,7 +110,7 @@ pub fn TabCarousel(
         }
     });
 
-    let provider_store = expect_context::<Rc<ProviderStore>>();
+    let provider_store = expect_context::<Arc<ProviderStore>>();
 
     view! {
         <div class="container-fluid">
@@ -225,7 +221,7 @@ pub fn Search() -> impl IntoView {
 
     let search_results = create_rw_signal(HashMap::new());
 
-    let provider_store = expect_context::<Rc<ProviderStore>>();
+    let provider_store = expect_context::<Arc<ProviderStore>>();
     let mut keys = provider_store.get_provider_keys();
     keys.insert(0, "Local".into());
 
@@ -302,14 +298,14 @@ pub fn Search() -> impl IntoView {
                             let binding = selected_provider.get();
                             let active_provider = binding.first();
                             if active_provider.is_none() {
-                                return view! {}.into_view();
+                                return view! {}.into_any();
                             }
                             let active_provider = active_provider.unwrap();
                             if let Some(res) = search_results.get(active_provider) {
                                 let binding = selected_category.get();
                                 let active_category = binding.first();
                                 if active_category.is_none() {
-                                    return view! {}.into_view();
+                                    return view! {}.into_any();
                                 }
                                 let active_category = active_category.unwrap();
                                 return match active_category.as_str() {
@@ -323,15 +319,17 @@ pub fn Search() -> impl IntoView {
                                                     filtered_selected=create_rw_signal(vec![])
                                                     refresh_cb=refresh_songs
                                                     fetch_next_page=fetch_next_page
+                                                    header=Some(view! {})
                                                 />
                                             </div>
                                         }
-                                            .into_view()
+                                            .into_any()
                                     }
                                     "Albums" => {
                                         view! {
                                             <CardView
                                                 items=create_rw_signal(res.albums.clone())
+                                                key=|a| a.album_id.clone()
                                                 redirect_root="/main/albums"
                                                 card_item=move |(_, item)| {
                                                     SimplifiedCardItem {
@@ -344,12 +342,13 @@ pub fn Search() -> impl IntoView {
                                                 }
                                             />
                                         }
-                                            .into_view()
+                                            .into_any()
                                     }
                                     "Artists" => {
                                         view! {
                                             <CardView
                                                 items=create_rw_signal(res.artists.clone())
+                                                key=|a| a.artist_id.clone()
                                                 redirect_root="/main/artists"
                                                 card_item=move |(_, item)| {
                                                     SimplifiedCardItem {
@@ -362,12 +361,13 @@ pub fn Search() -> impl IntoView {
                                                 }
                                             />
                                         }
-                                            .into_view()
+                                            .into_any()
                                     }
                                     "Playlists" => {
                                         view! {
                                             <CardView
                                                 items=create_rw_signal(res.playlists.clone())
+                                                key=|a| a.playlist_id.clone()
                                                 redirect_root="/main/playlists/"
                                                 card_item=move |(_, item)| {
                                                     SimplifiedCardItem {
@@ -380,12 +380,12 @@ pub fn Search() -> impl IntoView {
                                                 }
                                             />
                                         }
-                                            .into_view()
+                                            .into_any()
                                     }
-                                    _ => view! {}.into_view(),
+                                    _ => view! {}.into_any(),
                                 };
                             }
-                            view! {}.into_view()
+                            view! {}.into_any()
                         }}
                     </div>
                 </div>

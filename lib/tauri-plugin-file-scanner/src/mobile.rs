@@ -59,7 +59,8 @@ impl<R: Runtime> FileScanner<R> {
                             let songs: Value = serde_json::from_str(&payload).unwrap();
                             let songs = songs.get("songs");
                             if let Some(songs) = songs {
-                                let songs: Vec<Song> = serde_json::from_value(songs.clone())?;
+                                let songs: Vec<Song> =
+                                    serde_json::from_str(songs.as_str().unwrap())?;
                                 tx.send(songs).unwrap();
                             }
                             Ok(())

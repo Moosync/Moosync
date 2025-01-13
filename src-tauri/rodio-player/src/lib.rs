@@ -48,20 +48,25 @@ impl RodioPlayer {
     async fn set_src(cache_dir: PathBuf, src: String, sink: &Arc<Sink>) -> Result<()> {
         if src.starts_with("http") {
             trace!("Creating stream");
-            let reader = StreamDownload::new_http(
+            match StreamDownload::new_http(
                 src.parse().unwrap(),
                 TempStorageProvider::new_in(cache_dir),
                 Settings::default(),
             )
-            .await?;
-            trace!("stream created");
+            .await
+            {
+                Ok(reader) => {
+                    trace!("stream created");
 
-            let decoder = rodio::Decoder::new(reader)?;
-            trace!("decoder created");
-            sink.append(decoder);
-            trace!("decoder appended");
+                    let decoder = rodio::Decoder::new(reader)?;
+                    trace!("decoder created");
+                    sink.append(decoder);
+                    trace!("decoder appended");
 
-            Ok(())
+                    Ok(())
+                }
+                Err(e) => Err(e.to_string().into()),
+            }
         } else {
             let path = PathBuf::from_str(src.as_str()).unwrap();
             if path.exists() {

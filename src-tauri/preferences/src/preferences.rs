@@ -15,7 +15,7 @@ use chacha20poly1305::{
     AeadCore, ChaCha20Poly1305, Key, KeyInit, KeySizeUser,
 };
 use json_dotpath::DotPaths;
-use jsonschema::JSONSchema;
+use jsonschema::Validator;
 use keyring::Entry;
 
 use serde::{de::DeserializeOwned, Serialize};
@@ -29,7 +29,7 @@ pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,
     pub secret: Mutex<Key>,
     pub memcache: Mutex<Value>,
-    schema: JSONSchema,
+    schema: Validator,
     sender: Sender<(String, Value)>,
     receiver: Receiver<(String, Value)>,
 }
@@ -38,7 +38,7 @@ impl PreferenceConfig {
     #[tracing::instrument(level = "trace", skip(data_dir))]
     pub fn new(data_dir: PathBuf) -> Result<Self> {
         let schema = serde_json::from_str(include_str!("./schema.json")).unwrap();
-        let schema = match JSONSchema::options().compile(&schema) {
+        let schema = match jsonschema::validator_for(&schema) {
             Ok(s) => s,
             Err(e) => panic!("{}: {}", e, e.instance_path),
         };

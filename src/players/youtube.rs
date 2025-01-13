@@ -1,16 +1,16 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, ops::Deref, rc::Rc};
 
 use leptos::{
-    create_effect, create_rw_signal,
     html::{div, Div},
-    NodeRef, RwSignal, SignalGet, SignalSet, SignalSetUntracked,
+    prelude::*,
 };
 use regex::bytes::Regex;
 use tokio::sync::oneshot::Sender as OneShotSender;
 use types::errors::Result;
 use types::{errors::MoosyncError, songs::SongType, ui::player_details::PlayerEvents};
-use wasm_bindgen::{closure::Closure, JsValue};
+use wasm_bindgen::{closure::Closure, JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
+use web_sys::HtmlDivElement;
 
 use crate::utils::yt_player::YTPlayer;
 
@@ -71,9 +71,11 @@ impl GenericPlayer for YoutubePlayer {
     #[tracing::instrument(level = "trace", skip(self, player_container))]
     fn initialize(&self, player_container: NodeRef<Div>) {
         player_container.on_load(move |elem| {
-            let container_div = div();
-            container_div.set_id("yt-player");
-            elem.append_child(&container_div).unwrap();
+            let node_ref = create_node_ref();
+            let container_div = div().node_ref(node_ref).id("yt-player");
+            let build = container_div.build();
+            let el: &HtmlDivElement = build.deref().unchecked_ref();
+            elem.append_child(el).unwrap();
         });
         tracing::debug!("Returning from YoutubePlayer initialize");
 
@@ -82,7 +84,7 @@ impl GenericPlayer for YoutubePlayer {
         create_effect(move |_| {
             let force_play = force_play_sig.get();
             if force_play {
-                force_play_sig.set_untracked(false);
+                force_play_sig.set(false);
                 player.play();
             }
         });
@@ -95,7 +97,7 @@ impl GenericPlayer for YoutubePlayer {
             let last_src = last_src.get();
             if let Some(last_src) = last_src {
                 if reload_audio {
-                    reload_audio_sig.set_untracked(false);
+                    reload_audio_sig.set(false);
                     player.load(last_src.as_str(), true);
                 }
             }
@@ -110,7 +112,7 @@ impl GenericPlayer for YoutubePlayer {
     #[tracing::instrument(level = "trace", skip(self, src, resolver))]
     fn load(&self, src: String, autoplay: bool, resolver: OneShotSender<()>) {
         self.player.load(src.as_str(), false);
-        self.last_src.set_untracked(Some(src.clone()));
+        self.last_src.set(Some(src.clone()));
         tracing::debug!("Loaded youtube embed {}, {}", src, autoplay);
         if autoplay {
             self.play().unwrap();
@@ -207,7 +209,7 @@ impl GenericPlayer for YoutubePlayer {
         self.pause()?;
         self.player.stop();
         self.player.removeAllListeners();
-        self.last_src.set_untracked(None);
+        self.last_src.set(None);
         Ok(())
     }
 }

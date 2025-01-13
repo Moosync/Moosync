@@ -1,7 +1,4 @@
-use leptos::{
-    component, create_rw_signal, create_write_slice, expect_context, spawn_local, view, For,
-    IntoView, RwSignal, SignalGet, SignalSet,
-};
+use leptos::{component, prelude::*, task::spawn_local, view, IntoView};
 use types::ui::extensions::FetchedExtensionManifest;
 
 use crate::{
@@ -19,6 +16,8 @@ pub fn DiscoverExtensionsModal() -> impl IntoView {
         extensions.set(res);
     });
 
+    let modal_store: RwSignal<ModalStore> = expect_context();
+
     view! {
         <GenericModal size=move || "modal-xl".into()>
             <div class="w-100 h-100">
@@ -31,7 +30,7 @@ pub fn DiscoverExtensionsModal() -> impl IntoView {
                         <For
                             each=move || extensions.get()
                             key=|e| e.package_name.clone()
-                            children=|extension| {
+                            children=move |extension| {
                                 let extension_clone = extension.clone();
                                 view! {
                                     <div class="row no-gutters align-items-center d-flex mt-4">
@@ -63,14 +62,13 @@ pub fn DiscoverExtensionsModal() -> impl IntoView {
                                         </div>
                                         <div
                                             class="col-2 ml-3 text-center download-button"
-                                            cols="2"
+                                            // let owner = owner.clone();
                                             on:click=move |_| {
                                                 let extension = extension_clone.clone();
                                                 spawn_local(async move {
                                                     crate::utils::invoke::download_extension(extension)
                                                         .await
                                                         .unwrap();
-                                                    let modal_store: RwSignal<ModalStore> = expect_context();
                                                     let close_modal = create_write_slice(
                                                         modal_store,
                                                         |m, _: ()| m.clear_active_modal(),

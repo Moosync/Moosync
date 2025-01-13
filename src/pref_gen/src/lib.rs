@@ -64,11 +64,11 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
         let page_full_path = format!("/prefs/{}", page_path);
 
         tabs.push(quote! {
-            Tab::new(i18n.get_keys().#page_title, #page_icon, #page_full_path),
+            Tab::new(&t!(i18n, #page_title)().to_html(), #page_icon, #page_full_path),
         });
 
         routes.push(quote! {
-           <Route path=#page_path view=#name  />
+           <Route path=path!(#page_path) view=#name  />
         });
 
         let children = generate_children(&page.data);
@@ -101,10 +101,13 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
             prefs::components::{CheckboxPref, ExtensionPref, InputPref, PathsPref, ThemesPref, DropdownPref},
             sidebar::{Sidebar, Tab},
         };
-        use crate::i18n::use_i18n;
-        use leptos::{component, view, IntoView, RwSignal, create_read_slice, expect_context, SignalGet};
+        use crate::i18n::*;
+        use leptos::prelude::*;
         use leptos_i18n::t;
-        use leptos_router::{Outlet, Redirect, Route};
+        use leptos_router::{
+            components::{Outlet, ParentRoute, Redirect, Route, RouteChildren, Routes},
+            path, MatchNestedRoutes,
+        };
         use types::preferences::CheckboxItems;
         use crate::store::ui_store::UiStore;
 
@@ -136,13 +139,13 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
         }
 
         #[component(transparent)]
-        pub fn SettingRoutes() -> impl IntoView {
+        pub fn SettingRoutes() -> impl MatchNestedRoutes + Clone {
             view! {
-                <Route path="/prefs" view=PrefApp >
+                <ParentRoute path=path!("/prefs") view=PrefApp >
                     #(#routes)*
-                    <Route path="" view=RedirectPrefs />
-                </Route>
-            }
+                    <Route path=path!("") view=RedirectPrefs />
+                </ParentRoute>
+            }.into_inner()
         }
     }
 }
@@ -196,7 +199,7 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
 
         let stream = quote! {
             CheckboxItems {
-                title: t!(i18n, #item_name)().to_string(),
+                title: t!(i18n, #item_name)().to_html(),
                 key: #item_key.to_string(),
             },
         };
@@ -212,16 +215,15 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
                 #(#checkboxes)*
             ];
 
-            let title = i18n.get_keys().#name;
-            let tooltip = i18n.get_keys().#tooltip;
+
 
             view! {
 
                 <CheckboxPref
                     mobile=#mobile
                     key=#key.to_string()
-                    title=title.to_string()
-                    tooltip=tooltip.to_string()
+                    title=t!(i18n, #name)
+                    tooltip=t!(i18n, #tooltip)
                     items=checkbox_items
                     single=#single
                 />
@@ -261,10 +263,9 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
         #[component()]
         pub fn #fn_name() -> impl IntoView {
             let i18n = use_i18n();
-            let title = i18n.get_keys().#name;
-            let tooltip = i18n.get_keys().#tooltip;
+
             view! {
-                <InputPref key=#key.to_string() title=title.to_string() tooltip=tooltip.to_string() show_input=#show_input inp_type=#inp_type.to_string() mobile=#mobile />
+                <InputPref key=#key.to_string() title=t!(i18n, #name) tooltip=t!(i18n, #tooltip) show_input=#show_input inp_type=#inp_type.to_string() mobile=#mobile />
             }
         }
     };
@@ -289,10 +290,9 @@ fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
         #[component()]
         pub fn #fn_name() -> impl IntoView {
             let i18n = use_i18n();
-            let title = i18n.get_keys().#name;
-            let tooltip = i18n.get_keys().#tooltip;
+
             view! {
-                <PathsPref key=#key.to_string() title=title.to_string() tooltip=tooltip.to_string() mobile=#mobile />
+                <PathsPref key=#key.to_string() title=t!(i18n, #name) tooltip=t!(i18n, #tooltip) mobile=#mobile />
             }
         }
     };
@@ -317,10 +317,9 @@ fn generate_themes(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenSt
         #[component]
         pub fn #fn_name() -> impl IntoView {
             let i18n = use_i18n();
-            let title = i18n.get_keys().#name;
-            let tooltip = i18n.get_keys().#tooltip;
+
             view! {
-                <ThemesPref key=#key.to_string() title=title.to_string() tooltip=tooltip.to_string() />
+                <ThemesPref key=#key.to_string() title=t!(i18n, #name) tooltip=t!(i18n, #tooltip) />
             }
         }
     };
@@ -345,10 +344,9 @@ fn generate_extensions(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Tok
         #[component]
         pub fn #fn_name() -> impl IntoView {
             let i18n = use_i18n();
-            let title = i18n.get_keys().#name;
-            let tooltip = i18n.get_keys().#tooltip;
+
             view !{
-                <ExtensionPref title=title.to_string() tooltip=tooltip.to_string() />
+                <ExtensionPref title=t!(i18n, #name) tooltip=t!(i18n, #tooltip) />
             }
         }
     };
@@ -375,11 +373,10 @@ fn generate_dropdowns(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Toke
         #[component]
         pub fn #fn_name() -> impl IntoView {
             let i18n = use_i18n();
-            let title = i18n.get_keys().#name;
-            let tooltip = i18n.get_keys().#tooltip;
+
 
             view !{
-                <DropdownPref title=title.to_string() tooltip=tooltip.to_string() key=#key.to_string() mobile=#mobile />
+                <DropdownPref title=t!(i18n, #name) tooltip=t!(i18n, #tooltip) key=#key.to_string() mobile=#mobile />
             }
         }
     };

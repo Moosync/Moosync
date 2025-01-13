@@ -186,16 +186,17 @@ macro_rules! fetch_infinite {
     ($provider:expr, $fetch_content:ident, $update_signal:expr, $next_page_signal:ident, $($arg:expr),*) => {
             'fetch: {
                 use types::providers::generic::Pagination;
-                use leptos::SignalGetUntracked;
+                use leptos::prelude::*;
+                use std::sync::Arc;
 
                 let next_page_map = $next_page_signal.get_untracked();
                 let mut pagination_lock = next_page_map.get(&$provider).cloned();
 
                 if pagination_lock.is_none() {
-                    let new_page = Rc::new(futures::lock::Mutex::new(Pagination::new_limit(50, 0)));
+                    let new_page = Arc::new(futures::lock::Mutex::new(Pagination::new_limit(50, 0)));
                     let new_page_clone = new_page.clone();
                     let provider = $provider.clone();
-                    $next_page_signal.update(move |signal| {
+                    $next_page_signal.update_untracked(move |signal| {
                         signal.insert(provider, new_page_clone);
 
                     });

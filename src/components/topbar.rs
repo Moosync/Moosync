@@ -1,15 +1,13 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use crate::{
     icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon},
     store::ui_store::UiStore,
 };
 use leptos::{
-    component, create_effect, create_node_ref, create_read_slice, create_rw_signal,
-    create_write_slice, ev::Event, event_target_value, expect_context, view, window, CollectView,
-    IntoView, RwSignal, SignalGet, SignalGetUntracked, SignalSet, SignalSetter, SignalUpdate,
+    component, ev::Event, prelude::*, reactive::wrappers::write::SignalSetter, view, IntoView,
 };
-use leptos_router::{use_navigate, NavigateOptions};
+use leptos_router::{hooks::use_navigate, NavigateOptions};
 use leptos_use::on_click_outside;
 use leptos_virtual_scroller::VirtualScroller;
 use types::{
@@ -42,11 +40,12 @@ enum InputFocus {
 
 #[derive(Clone)]
 pub struct SearchResultItemData {
+    pub key: Option<String>,
     pub cover: Option<String>,
     pub title: String,
     pub subtitle: String,
-    pub on_click: Rc<Box<dyn Fn()>>,
-    pub on_icon_click: Rc<Box<dyn Fn()>>,
+    pub on_click: Arc<Box<dyn Fn() + Send + Sync>>,
+    pub on_icon_click: Arc<Box<dyn Fn() + Send + Sync>>,
 }
 
 #[tracing::instrument(level = "trace", skip(item))]
@@ -96,7 +95,7 @@ pub fn Settings(#[prop(optional)] class: &'static str) -> impl IntoView {
 #[component]
 pub fn Accounts() -> impl IntoView {
     let show_accounts_popover = create_rw_signal(false);
-    let provider_store = expect_context::<Rc<ProviderStore>>();
+    let provider_store = expect_context::<Arc<ProviderStore>>();
 
     let statuses = provider_store.get_all_statuses();
 
@@ -163,11 +162,11 @@ pub fn Accounts() -> impl IntoView {
                                                     >
                                                         <div class="icon-wrapper d-flex my-auto">
                                                             {if status.key == "spotify" {
-                                                                view! { <SpotifyIcon fill="#07C330".into() /> }
+                                                                view! { <SpotifyIcon fill="#07C330".into() /> }.into_any()
                                                             } else if status.key == "youtube" {
-                                                                view! { <YoutubeIcon fill="#E62017".into() /> }
+                                                                view! { <YoutubeIcon fill="#E62017".into() /> }.into_any()
                                                             } else {
-                                                                view! {}.into_view()
+                                                                view! {}.into_any()
                                                             }}
                                                         </div>
 
@@ -183,9 +182,9 @@ pub fn Accounts() -> impl IntoView {
                             </div>
                         </div>
                     }
-                        .into_view()
+                        .into_any()
                 } else {
-                    view! {}.into_view()
+                    view! {}.into_any()
                 }
             }}
 
@@ -213,10 +212,11 @@ async fn get_search_res(
             Ok(res
                 .into_iter()
                 .map(|a| SearchResultItemData {
+                    key: a.artist_id.clone(),
                     cover: a.artist_coverpath.clone(),
                     title: a.artist_name.clone().unwrap_or_default(),
                     subtitle: String::default(),
-                    on_click: Rc::new(Box::new(move || {
+                    on_click: Arc::new(Box::new(move || {
                         use_navigate()(
                             format!(
                                 "/main/artists/single?entity={}",
@@ -226,7 +226,7 @@ async fn get_search_res(
                             NavigateOptions::default(),
                         );
                     })),
-                    on_icon_click: Rc::new(Box::new(move || {})),
+                    on_icon_click: Arc::new(Box::new(move || {})),
                 })
                 .collect())
         }
@@ -244,10 +244,11 @@ async fn get_search_res(
             Ok(res
                 .into_iter()
                 .map(|a| SearchResultItemData {
+                    key: a.album_id.clone(),
                     cover: a.album_coverpath_low.clone(),
                     title: a.album_name.clone().unwrap_or_default(),
                     subtitle: String::default(),
-                    on_click: Rc::new(Box::new(move || {
+                    on_click: Arc::new(Box::new(move || {
                         use_navigate()(
                             format!(
                                 "/main/albums/single?entity={}",
@@ -257,7 +258,7 @@ async fn get_search_res(
                             NavigateOptions::default(),
                         );
                     })),
-                    on_icon_click: Rc::new(Box::new(move || {})),
+                    on_icon_click: Arc::new(Box::new(move || {})),
                 })
                 .collect())
         }
@@ -275,10 +276,11 @@ async fn get_search_res(
             Ok(res
                 .into_iter()
                 .map(|a| SearchResultItemData {
+                    key: a.genre_id.clone(),
                     cover: None,
                     title: a.genre_name.clone().unwrap_or_default(),
                     subtitle: String::default(),
-                    on_click: Rc::new(Box::new(move || {
+                    on_click: Arc::new(Box::new(move || {
                         use_navigate()(
                             format!(
                                 "/main/genres/single?entity={}",
@@ -288,7 +290,7 @@ async fn get_search_res(
                             NavigateOptions::default(),
                         );
                     })),
-                    on_icon_click: Rc::new(Box::new(move || {})),
+                    on_icon_click: Arc::new(Box::new(move || {})),
                 })
                 .collect())
         }
@@ -308,10 +310,11 @@ async fn get_search_res(
             Ok(res
                 .into_iter()
                 .map(|a| SearchResultItemData {
+                    key: a.playlist_id.clone(),
                     cover: a.playlist_coverpath.clone(),
                     title: a.playlist_name.clone(),
                     subtitle: String::default(),
-                    on_click: Rc::new(Box::new(move || {
+                    on_click: Arc::new(Box::new(move || {
                         use_navigate()(
                             format!(
                                 "/main/playlists/single?entity={}",
@@ -321,7 +324,7 @@ async fn get_search_res(
                             NavigateOptions::default(),
                         );
                     })),
-                    on_icon_click: Rc::new(Box::new(move || {})),
+                    on_icon_click: Arc::new(Box::new(move || {})),
                 })
                 .collect())
         }
@@ -354,6 +357,7 @@ async fn get_search_res(
             Ok(res
                 .into_iter()
                 .map(|s| SearchResultItemData {
+                    key: s.song._id.clone(),
                     cover: s.album.as_ref().and_then(|a| a.album_coverpath_low.clone()),
                     title: s.song.title.clone().unwrap_or_default(),
                     subtitle: s
@@ -366,8 +370,8 @@ async fn get_search_res(
                                 .join(",")
                         })
                         .unwrap_or_default(),
-                    on_click: Rc::new(Box::new(move || {})),
-                    on_icon_click: Rc::new(Box::new(move || {
+                    on_click: Arc::new(Box::new(move || {})),
+                    on_icon_click: Arc::new(Box::new(move || {
                         play_now.set(s.clone());
                     })),
                 })
@@ -399,7 +403,7 @@ pub fn TopBar() -> impl IntoView {
     let handle_page_change = move |ev: SubmitEvent| {
         ev.prevent_default();
         let text = input_value.get();
-        let navigate = leptos_router::use_navigate();
+        let navigate = leptos_router::hooks::use_navigate();
         navigate(
             format!("/main/search?q={}", text).as_str(),
             Default::default(),
@@ -487,10 +491,12 @@ pub fn TopBar() -> impl IntoView {
                             >
                                 <VirtualScroller
                                     each=results
+                                    key=|r| r.key.clone()
                                     item_height=95usize
                                     children=move |(_, item)| {
                                         view! { <SearchResultItem item=item.clone() /> }
                                     }
+                                    header=Some(())
                                 />
                                 <div class="w-100"></div>
                             </div>

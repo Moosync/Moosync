@@ -3,13 +3,11 @@ use crate::components::songview::SongView;
 use crate::store::player_store::PlayerStore;
 use crate::utils::db_utils::get_genres_by_option;
 use crate::utils::db_utils::get_songs_by_option;
-use leptos::{
-    component, create_rw_signal, create_write_slice, expect_context, view, IntoView, RwSignal,
-    SignalGet, SignalWith,
-};
-use leptos_router::use_query_map;
+use leptos::{component, prelude::*, view, IntoView};
+use leptos_router::hooks::use_query_map;
 use rand::seq::SliceRandom;
 use std::rc::Rc;
+use std::sync::Arc;
 use types::entities::QueryableGenre;
 use types::songs::{GetSongOptions, Song};
 use types::ui::song_details::SongDetailIcons;
@@ -18,7 +16,7 @@ use types::ui::song_details::SongDetailIcons;
 #[component()]
 pub fn SingleGenre() -> impl IntoView {
     let params = use_query_map();
-    let genre_id = params.with(|params| params.get("id").cloned()).unwrap();
+    let genre_id = params.with(|params| params.get("id")).unwrap();
 
     let songs = create_rw_signal(vec![]);
     let selected_songs = create_rw_signal(vec![]);
@@ -85,9 +83,9 @@ pub fn SingleGenre() -> impl IntoView {
     };
 
     let icons = create_rw_signal(SongDetailIcons {
-        play: Some(Rc::new(Box::new(play_songs))),
-        add_to_queue: Some(Rc::new(Box::new(add_to_queue))),
-        random: Some(Rc::new(Box::new(random))),
+        play: Some(Arc::new(Box::new(play_songs))),
+        add_to_queue: Some(Arc::new(Box::new(add_to_queue))),
+        random: Some(Arc::new(Box::new(random))),
         ..Default::default()
     });
 
@@ -126,6 +124,7 @@ pub fn AllGenres() -> impl IntoView {
                 >
                     <CardView
                         items=genres
+                        key=|a| a.genre_id.clone()
                         redirect_root="/main/genre"
                         card_item=move |(_, item)| {
                             let genre_name = item.genre_name.clone().unwrap_or_default();

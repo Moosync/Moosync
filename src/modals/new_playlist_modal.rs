@@ -1,9 +1,8 @@
 use std::rc::Rc;
+use std::sync::Arc;
 
-use leptos::{
-    component, create_effect, create_rw_signal, event_target_value, expect_context, spawn_local,
-    view, IntoView, RwSignal, SignalGet, SignalGetUntracked, SignalSet, SignalUpdate,
-};
+use leptos::task::spawn_local;
+use leptos::{component, prelude::*, view, IntoView};
 use types::entities::QueryablePlaylist;
 use types::songs::Song;
 
@@ -33,7 +32,7 @@ pub fn NewPlaylistModal(
 
     let playlist = create_rw_signal(None::<QueryablePlaylist>);
     let import_url = create_rw_signal(String::new());
-    let provider_store: Rc<ProviderStore> = expect_context();
+    let provider_store: Arc<ProviderStore> = expect_context();
     create_effect(move |_| {
         let import_url = import_url.get().clone();
         if import_url.is_empty() {
@@ -98,10 +97,7 @@ pub fn NewPlaylistModal(
                                     on:click=move |_| state.set(PlaylistModalState::NewPlaylist)
                                 >
                                     <div class="row item-box align-self-center">
-                                        <div
-                                            class="col-auto d-flex playlist-modal-item-container w-100"
-                                            cols="auto"
-                                        >
+                                        <div class="col-auto d-flex playlist-modal-item-container w-100">
                                             <div class="row w-100">
                                                 <div class="col d-flex justify-content-center w-100">
                                                     <div class="item-icon">
@@ -122,10 +118,7 @@ pub fn NewPlaylistModal(
                                     on:click=move |_| state.set(PlaylistModalState::ImportPlaylist)
                                 >
                                     <div class="row item-box align-self-center">
-                                        <div
-                                            class="col-auto d-flex playlist-modal-item-container w-100"
-                                            cols="auto"
-                                        >
+                                        <div class="col-auto d-flex playlist-modal-item-container w-100">
                                             <div class="row w-100">
                                                 <div class="col d-flex justify-content-center w-100">
                                                     <div class="item-icon">
@@ -144,7 +137,7 @@ pub fn NewPlaylistModal(
                             </div>
                         </div>
                     }
-                        .into_view()
+                        .into_any()
                 }
                 PlaylistModalState::NewPlaylist => {
                     view! {
@@ -184,7 +177,6 @@ pub fn NewPlaylistModal(
                                 </div>
                                 <div class="row no-gutters" no-gutters="">
                                     <textarea
-                                        data-v-b8988dcc=""
                                         class="form-control playlist-desc"
                                         id="playlist-desc"
                                         placeholder="Description..."
@@ -227,7 +219,7 @@ pub fn NewPlaylistModal(
                             </button>
                         </div>
                     }
-                        .into_view()
+                        .into_any()
                 }
                 PlaylistModalState::ImportPlaylist => {
                     view! {
@@ -236,24 +228,24 @@ pub fn NewPlaylistModal(
                         // *p = Some(playlist);
                         <div class="modal-content-container">
                             <div class="container-fluid p-0">
-                                <div class="row no-gutters d-flex" no-gutters="">
-                                    <div class="col-auto playlist-url-cover" cols="auto">
+                                <div class="row no-gutters d-flex">
+                                    <div class="col-auto playlist-url-cover">
                                         {move || {
                                             if let Some(playlist) = playlist.get() {
                                                 if let Some(cover) = playlist.playlist_coverpath {
                                                     return view! { <img class="h-100 w-100" src=cover /> }
-                                                        .into_view();
+                                                        .into_any();
                                                 }
                                             }
-                                            view! { <SongDefaultIcon /> }.into_view()
+                                            view! { <SongDefaultIcon /> }.into_any()
                                         }}
                                     </div>
-                                    <div class="col-9" cols="9">
+                                    <div class="col-9">
                                         <div
                                             class="row no-gutters playlist-url-details"
                                             no-gutters=""
                                         >
-                                            <div class="col-12 w-100" cols="12">
+                                            <div class="col-12 w-100">
                                                 <div class="row w-100">
                                                     <div class="playlist-title text-truncate deactivated">
                                                         {move || {
@@ -272,7 +264,7 @@ pub fn NewPlaylistModal(
                                             </div>
                                         </div>
                                         <div class="row no-gutters" no-gutters="">
-                                            <div class="col-12" cols="12">
+                                            <div class="col-12">
                                                 <div class="container-fluid path-container w-100 input-group">
                                                     <div
                                                         class="row no-gutters import-playlist-background w-100 mt-2 d-flex"
@@ -308,7 +300,6 @@ pub fn NewPlaylistModal(
                                                         </div>
                                                         <div
                                                             class="col-auto align-self-center flex-grow-1 justify-content-start"
-                                                            cols="auto"
                                                             align-self="center"
                                                         >
                                                             <input
@@ -345,7 +336,7 @@ pub fn NewPlaylistModal(
                             </button>
                         </div>
                     }
-                        .into_view()
+                        .into_any()
                 }
             }}
         </GenericModal>

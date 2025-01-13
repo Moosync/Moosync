@@ -1,8 +1,4 @@
-use leptos::{
-    component, create_effect, create_read_slice, create_rw_signal, create_signal, create_slice,
-    expect_context, view, CollectView, IntoView, ReadSignal, RwSignal, Show, SignalGet,
-    SignalGetUntracked, SignalSet, SignalUpdate, View, WriteSignal,
-};
+use leptos::{component, prelude::*, view, IntoView};
 
 use crate::{
     icons::{
@@ -27,7 +23,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct Tab {
     pub title: String,
-    pub icon: fn(signal: ReadSignal<bool>) -> View,
+    pub icon: fn(signal: ReadSignal<bool>) -> AnyView,
     pub url: String,
 }
 
@@ -35,18 +31,18 @@ impl Tab {
     #[tracing::instrument(level = "trace", skip(title, icon, url))]
     pub fn new(title: &str, icon: &str, url: &str) -> Self {
         let icon = match icon {
-            "Queue" => |active| QueueIcon(QueueIconProps { active }).into_view(),
-            "Songs" | "Home" => |active| AllSongsIcon(AllSongsIconProps { active }).into_view(),
-            "Playlists" => |active| PlaylistsIcon(PlaylistsIconProps { active }).into_view(),
-            "Artists" => |active| ArtistsIcon(ArtistsIconProps { active }).into_view(),
-            "Albums" => |active| AlbumsIcon(AlbumsIconProps { active }).into_view(),
-            "Genres" => |active| GenresIcon(GenresIconProps { active }).into_view(),
-            "Explore" => |active| ExploreIcon(ExploreIconProps { active }).into_view(),
-            "Paths" => |active| PathsIcon(PathsIconProps { active }).into_view(),
-            "System" => |active| SystemIcon(SystemIconProps { active }).into_view(),
-            "Logs" => |active| LogsIcon(LogsIconProps { active }).into_view(),
-            "Extensions" => |active| ExtensionsIcon(ExtensionsIconProps { active }).into_view(),
-            "Themes" => |active| ThemesIcon(ThemesIconProps { active }).into_view(),
+            "Queue" => |active| QueueIcon(QueueIconProps { active }).into_any(),
+            "Songs" | "Home" => |active| AllSongsIcon(AllSongsIconProps { active }).into_any(),
+            "Playlists" => |active| PlaylistsIcon(PlaylistsIconProps { active }).into_any(),
+            "Artists" => |active| ArtistsIcon(ArtistsIconProps { active }).into_any(),
+            "Albums" => |active| AlbumsIcon(AlbumsIconProps { active }).into_any(),
+            "Genres" => |active| GenresIcon(GenresIconProps { active }).into_any(),
+            "Explore" => |active| ExploreIcon(ExploreIconProps { active }).into_any(),
+            "Paths" => |active| PathsIcon(PathsIconProps { active }).into_any(),
+            "System" => |active| SystemIcon(SystemIconProps { active }).into_any(),
+            "Logs" => |active| LogsIcon(LogsIconProps { active }).into_any(),
+            "Extensions" => |active| ExtensionsIcon(ExtensionsIconProps { active }).into_any(),
+            "Themes" => |active| ThemesIcon(ThemesIconProps { active }).into_any(),
             _ => panic!("Icon not found: {}", icon),
         };
         Tab {
@@ -92,7 +88,7 @@ fn TabItem(
                     }
                 >
 
-                    {tab.title}
+                    {tab.title.clone()}
                 </div>
             </div>
         </div>
@@ -118,7 +114,7 @@ pub fn Sidebar(
 
     let tab_urls: Vec<String> = tabs.iter().map(|v| v.url.clone()).collect();
 
-    let navigate = leptos_router::use_navigate();
+    let navigate = leptos_router::hooks::use_navigate();
 
     let ui_store = expect_context::<RwSignal<UiStore>>();
 
@@ -154,8 +150,6 @@ pub fn Sidebar(
                     tabindex="-1"
                     role="dialog"
                     aria-modal="false"
-                    enterclass=""
-                    leaveclass="show"
                     style:width=move || if sidebar_open.get() { "261px" } else { "70px" }
                 >
                     <header class="b-sidebar-header">

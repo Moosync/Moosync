@@ -3,9 +3,10 @@ use std::time::Duration;
 use ev::{mousedown, mousemove, mouseup};
 use html::Div;
 use leptos::*;
-use leptos::{component, view, IntoView, RwSignal, SignalGet, SignalSet};
+use leptos::{component, prelude::*, view, IntoView};
 use leptos_dom::helpers::TimeoutHandle;
 use leptos_use::{use_document, use_event_listener};
+use task::spawn_local;
 use types::entities::{QueryableArtist, QueryablePlaylist};
 use types::ui::player_details::PlayerState;
 
@@ -244,9 +245,9 @@ pub fn Controls(
                             <FavIcon filled=is_fav.read_only() />
                         </div>
                     }
-                        .into_view()
+                        .into_any()
                 } else {
-                    view! {}.into_view()
+                    view! {}.into_any()
                 }
             }}
 
@@ -264,9 +265,9 @@ pub fn Controls(
                             </div>
                         </div>
                     }
-                        .into_view()
+                        .into_any()
                 } else {
-                    view! {}.into_view()
+                    view! {}.into_any()
                 }
             }}
 
@@ -437,7 +438,7 @@ pub fn Slider() -> impl IntoView {
             <div class="time-slider time-slider-ltr timeline">
                 <div
                     class="time-slider-rail"
-                    ref=slider_process
+                    node_ref=slider_process
                     on:click=move |ev| {
                         tracing::debug!("offset {}", ev.offset_x());
                         set_current_time.set(ev.offset_x() as f64);

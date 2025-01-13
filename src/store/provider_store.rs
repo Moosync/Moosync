@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-use leptos::{
-    create_read_slice, expect_context, spawn_local, RwSignal, SignalGet, SignalSet, SignalUpdate,
-};
+use leptos::prelude::*;
+use leptos::task::spawn_local;
 use types::errors::Result;
 use types::providers::generic::ProviderStatus;
 use wasm_bindgen::JsValue;
@@ -19,7 +18,7 @@ use crate::utils::invoke::{
 pub struct ProviderStore {
     keys: RwSignal<Vec<String>>,
     statuses: RwSignal<Vec<ProviderStatus>>,
-    unlisten_provider_key: Option<js_sys::Function>,
+    // unlisten_provider_key: Option<js_sys::Function>,
     pub is_initialized: RwSignal<bool>,
 }
 
@@ -42,12 +41,13 @@ impl ProviderStore {
             });
         };
 
-        store.unlisten_provider_key = Some(listen_event("providers-updated", move |_| {
+        listen_event("providers-updated", move |_| {
             fetch_provider_keys();
-        }));
+        });
 
         fetch_provider_keys();
 
+        let modal_store: RwSignal<ModalStore> = expect_context();
         listen_event("provider-status-update", move |data: JsValue| {
             let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
             let provider_status: HashMap<String, ProviderStatus> =
@@ -57,7 +57,6 @@ impl ProviderStore {
                 .statuses
                 .set(provider_status.values().cloned().collect());
 
-            let modal_store: RwSignal<ModalStore> = expect_context();
             let get_active_modal = create_read_slice(modal_store, |m| m.get_active_modal());
             if let Some(Modals::LoginModal(_, _, _)) = get_active_modal.get() {
                 modal_store.update(|m| m.clear_active_modal());
@@ -102,10 +101,14 @@ impl ProviderStore {
 
     #[tracing::instrument(level = "trace", skip(self))]
     pub fn get_provider_keys(&self) -> Vec<String> {
-        self.keys.get()
+        self.keys.get_untracked()
     }
 
     pub fn get_provider_name_by_key(&self, key: String) -> Option<ProviderStatus> {
-        self.statuses.get().iter().find(|s| s.key == key).cloned()
+        self.statuses
+            .get_untracked()
+            .iter()
+            .find(|s| s.key == key)
+            .cloned()
     }
 }

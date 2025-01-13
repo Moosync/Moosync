@@ -1,13 +1,15 @@
 #[macro_export]
 macro_rules! dyn_provider_songs {
     ($selected_providers:ident, $entity:ident, $songs:ident, $fetch_fn: ident) => {{
+        use leptos::prelude::Get;
+        use std::sync::Arc;
         let provider_songs: RwSignal<HashMap<String, RwSignal<Vec<Song>>>> =
             create_rw_signal(HashMap::new());
         let next_page_tokens: RwSignal<
-            HashMap<String, Rc<futures::lock::Mutex<types::providers::generic::Pagination>>>,
+            HashMap<String, Arc<futures::lock::Mutex<types::providers::generic::Pagination>>>,
         > = create_rw_signal(HashMap::new());
 
-        let fetch_selected_providers = Rc::new(Box::new(move || {
+        let fetch_selected_providers = Arc::new(Box::new(move || {
             let selected_providers = $selected_providers.get();
 
             let entity = $entity.get();
@@ -25,7 +27,7 @@ macro_rules! dyn_provider_songs {
                 let entity = entity.clone();
 
                 spawn_local(async move {
-                    let provider_songs_inner = provider_songs.get();
+                    let provider_songs_inner = provider_songs.get_untracked();
 
                     if !provider_songs_inner.contains_key(&provider.clone()) {
                         let key = provider.clone();
@@ -34,7 +36,7 @@ macro_rules! dyn_provider_songs {
                         });
                     }
 
-                    let binding = provider_songs.get();
+                    let binding = provider_songs.get_untracked();
                     let binding = binding.get(&provider.clone());
 
                     tracing::debug!("fetching infinite");

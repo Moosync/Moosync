@@ -1,15 +1,16 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use leptos::{
-    create_memo, create_node_ref, create_read_slice, create_rw_signal, document,
     ev::{click, mousedown, mousemove, mouseup},
-    expect_context, use_context, window, RwSignal, SignalGet, SignalGetUntracked,
-    SignalSetUntracked, SignalUpdate, SignalWith,
+    prelude::*,
 };
 use leptos_context_menu::{
     BottomSheet, ContextMenu, ContextMenuData, ContextMenuItemInner, ContextMenuItems, Menu,
 };
-use leptos_router::{use_navigate, use_query_map, NavigateOptions};
+use leptos_router::{
+    hooks::{use_navigate, use_query_map},
+    NavigateOptions,
+};
 use leptos_use::use_event_listener;
 use types::{
     entities::{QueryableArtist, QueryablePlaylist},
@@ -41,18 +42,18 @@ use super::{
 #[derive(Clone)]
 pub struct SongItemContextMenu<T>
 where
-    T: SignalGet<Value = Vec<Song>>,
+    T: Get<Value = Vec<Song>> + Send + Sync,
 {
     pub current_song: Option<Song>,
     pub song_list: T,
     pub selected_songs: RwSignal<Vec<usize>>,
     pub playlists: RwSignal<Vec<QueryablePlaylist>>,
-    pub refresh_cb: Rc<Box<dyn Fn()>>,
+    pub refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>,
 }
 
 impl<T> SongItemContextMenu<T>
 where
-    T: SignalGet<Value = Vec<Song>>,
+    T: Get<Value = Vec<Song>> + Send + Sync,
 {
     #[tracing::instrument(level = "trace", skip(self))]
     fn current_or_list(&self) -> Vec<Song> {
@@ -149,7 +150,7 @@ where
             params.with(|params| {
                 let entity = params.get("entity");
                 if let Some(entity) = entity {
-                    let playlist = serde_json::from_str::<QueryablePlaylist>(entity);
+                    let playlist = serde_json::from_str::<QueryablePlaylist>(&entity);
                     if let Ok(playlist) = playlist {
                         return Some(playlist);
                     }
@@ -181,7 +182,7 @@ where
 
 impl<T> ContextMenuData<Self> for SongItemContextMenu<T>
 where
-    T: SignalGet<Value = Vec<Song>>,
+    T: Get<Value = Vec<Song>> + Send + Sync,
 {
     #[tracing::instrument(level = "trace", skip(self))]
     fn get_menu_items(&self) -> ContextMenuItems<Self> {
@@ -283,7 +284,7 @@ impl ContextMenuData<Self> for SortContextMenu {
 
 pub struct ThemesContextMenu {
     pub id: Option<String>,
-    pub refresh_cb: Rc<Box<dyn Fn()>>,
+    pub refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>,
 }
 
 impl ThemesContextMenu {
@@ -358,7 +359,7 @@ impl ContextMenuData<Self> for ThemesContextMenu {
 }
 
 pub struct PlaylistContextMenu {
-    pub refresh_cb: Rc<Box<dyn Fn()>>,
+    pub refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>,
 }
 
 impl PlaylistContextMenu {
@@ -391,7 +392,7 @@ impl ContextMenuData<Self> for PlaylistContextMenu {
 
 pub struct PlaylistItemContextMenu {
     pub playlist: Option<QueryablePlaylist>,
-    pub refresh_cb: Rc<Box<dyn Fn()>>,
+    pub refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>,
 }
 
 impl PlaylistItemContextMenu {
@@ -449,15 +450,15 @@ impl ContextMenuData<Self> for PlaylistItemContextMenu {
     }
 }
 
-pub fn create_context_menu<T>(data: T) -> Rc<Box<dyn Menu<T>>>
+pub fn create_context_menu<T>(data: T) -> Arc<Box<dyn Menu<T> + Send + Sync>>
 where
-    T: ContextMenuData<T> + 'static,
+    T: ContextMenuData<T> + 'static + Send + Sync,
 {
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
     if is_mobile {
-        Rc::new(Box::new(BottomSheet::new(data)))
+        Arc::new(Box::new(BottomSheet::new(data)))
     } else {
-        Rc::new(Box::new(ContextMenu::new(data)))
+        Arc::new(Box::new(ContextMenu::new(data)))
     }
 }

@@ -1,4 +1,4 @@
-use leptos::{component, expect_context, view, IntoView, RwSignal, SignalGet};
+use leptos::{component, prelude::*, view, IntoView};
 
 use crate::{
     modals::{
@@ -20,29 +20,26 @@ pub fn ModalManager() -> impl IntoView {
                 let active_modal = modal_store.get().active_modal;
                 tracing::debug!("Got active modal {:?}", active_modal);
                 if active_modal.is_none() {
-                    return view! {}.into_view();
+                    return view! {}.into_any();
                 }
                 match active_modal.unwrap() {
                     Modals::LoginModal(key, name, account_id) => {
-                        view! { <LoginModal key=key name=name account_id=account_id /> }
+                        view! { <LoginModal key=key name=name account_id=account_id /> }.into_any()
                     }
-                    Modals::DiscoverExtensions => {
-                        view! { <DiscoverExtensionsModal /> }
-                    }
+                    Modals::DiscoverExtensions => view! { <DiscoverExtensionsModal /> }.into_any(),
                     Modals::NewPlaylistModal(initial_state, songs) => {
                         view! { <NewPlaylistModal initial_state=initial_state songs=songs /> }
+                            .into_any()
                     }
-                    Modals::SongFromUrlModal => {
-                        view! { <SongFromUrlModal /> }
-                    }
+                    Modals::SongFromUrlModal => view! { <SongFromUrlModal /> }.into_any(),
                     Modals::SignoutModal(key, name, account_id) => {
                         view! { <SignoutModal key=key name=name account_id=account_id /> }
+                            .into_any()
                     }
                     Modals::ThemeModal(initial_state) => {
-                        view! { <NewThemeModal initial_state=initial_state /> }
+                        view! { <NewThemeModal initial_state=initial_state /> }.into_any()
                     }
                 }
-                    .into_view()
             }}
 
         </div>

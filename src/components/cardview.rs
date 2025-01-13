@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{hash::Hash, rc::Rc, sync::Arc};
 
 use crate::{
     components::provider_icon::ProviderIcon,
@@ -9,21 +9,18 @@ use crate::{
     store::ui_store::UiStore,
     utils::common::convert_file_src,
 };
-use leptos::{
-    component, create_read_slice, create_rw_signal, document, expect_context, view, IntoView,
-    RwSignal, SignalGet, SignalSet,
-};
-use leptos_router::{use_navigate, NavigateOptions};
+use leptos::{component, prelude::*, view, IntoView};
+use leptos_router::{hooks::use_navigate, NavigateOptions};
 use leptos_virtual_scroller::VirtualGridScroller;
 use serde::Serialize;
 use types::errors::MoosyncError;
 
-type CardContextMenu<T> = Option<Rc<Box<dyn Fn(leptos::ev::MouseEvent, T)>>>;
+type CardContextMenu<T> = Option<Arc<Box<dyn Fn(leptos::ev::MouseEvent, T)>>>;
 
 #[derive(Clone)]
 pub struct SimplifiedCardItem<T>
 where
-    T: Serialize,
+    T: Serialize + Send + Sync,
 {
     pub title: String,
     pub cover: Option<String>,
@@ -37,11 +34,11 @@ where
 pub fn CardItem<T>(
     #[prop()] item: SimplifiedCardItem<T>,
     #[prop(optional, default = false)] songs_view: bool,
-    #[prop(optional)] on_click: Option<Rc<Box<dyn Fn()>>>,
+    #[prop(optional)] on_click: Option<Arc<Box<dyn Fn() + Send + Sync>>>,
     #[prop(optional)] is_mobile: bool,
 ) -> impl IntoView
 where
-    T: Serialize,
+    T: Serialize + Send + Sync,
 {
     let show_default_icon = create_rw_signal(item.cover.is_none());
 
@@ -83,18 +80,18 @@ where
                                             <PlayHoverIcon />
                                         </div>
                                     }
-                                        .into_view()
+                                        .into_any()
                                 } else {
-                                    view! {}.into_view()
+                                    view! {}.into_any()
                                 }
                             }}
                         </div>
 
                         <div class="provider-icon-overlay me-auto justify-content-center d-flex align-items-center">
                             {if let Some(icon) = item.icon.clone() {
-                                view! { <ProviderIcon extension=icon /> }
+                                view! { <ProviderIcon extension=icon /> }.into_any()
                             } else {
-                                view! {}.into_view()
+                                view! {}.into_any()
                             }}
                         </div>
                         {move || {
@@ -103,14 +100,14 @@ where
                                     <SongDefaultIcon class="rounded-corners img-fluid w-100 h-100"
                                         .into() />
                                 }
-                                    .into_view()
+                                    .into_any()
                             } else {
                                 if let Some(cover) = item.cover.clone() {
                                     if cover == "favorites" {
                                         return view! {
                                             <FavPlaylistIcon class="rounded-corners img-fluid w-100 h-100" />
                                         }
-                                            .into_view();
+                                            .into_any();
                                     }
                                 }
                                 view! {
@@ -125,7 +122,7 @@ where
                                         }
                                     />
                                 }
-                                    .into_view()
+                                    .into_any()
                             }
                         }}
 
@@ -139,21 +136,24 @@ where
     }
 }
 
-#[tracing::instrument(level = "trace", skip(items, card_item, songs_view, on_click))]
+#[tracing::instrument(level = "trace", skip(items, card_item, songs_view, on_click, key))]
 #[component()]
-pub fn CardView<T, S, C>(
+pub fn CardView<T, S, C, K, KN>(
     #[prop()] items: S,
+    #[prop()] key: KN,
     #[prop()] card_item: C,
     #[prop(optional, default = false)] songs_view: bool,
-    #[prop(optional)] on_click: Option<Box<dyn Fn(T)>>,
+    #[prop(optional)] on_click: Option<Box<dyn Fn(T) + Send + Sync>>,
     #[prop(optional, default = "")] redirect_root: &'static str,
 ) -> impl IntoView
 where
-    T: 'static + Clone + Serialize,
-    C: Fn((usize, &T)) -> SimplifiedCardItem<T> + 'static,
-    S: SignalGet<Value = Vec<T>> + Copy + 'static,
+    T: 'static + Clone + Serialize + Send + Sync,
+    C: Fn((usize, &T)) -> SimplifiedCardItem<T> + 'static + Send + Sync + Clone,
+    KN: (Fn(&T) -> K) + 'static + Send + Sync + Clone,
+    K: Eq + Hash + 'static,
+    S: With<Value = Vec<T>> + Copy + 'static + Send + Sync,
 {
-    let on_click = on_click.map(Rc::new);
+    let on_click = on_click.map(Arc::new);
 
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
@@ -172,6 +172,7 @@ where
     view! {
         <VirtualGridScroller
             each=items
+            key=key
             item_width=item_width
             item_height=item_height
             children=move |data| {
@@ -192,7 +193,7 @@ where
                             item=card_item_data
                             songs_view=songs_view
                             is_mobile=is_mobile
-                            on_click=Rc::new(
+                            on_click=Arc::new(
                                 Box::new(move || {
                                     if let Some(cb) = on_click.clone() {
                                         cb(data2.clone());
@@ -201,7 +202,7 @@ where
                             )
                         />
                     }
-                        .into_view()
+                        .into_any()
                 } else {
                     let id = card_item_data.id.clone();
                     view! {
@@ -231,7 +232,7 @@ where
                             />
                         </div>
                     }
-                        .into_view()
+                        .into_any()
                 }
             }
         />

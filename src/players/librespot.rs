@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration};
 
-use leptos::{leptos_dom::helpers::IntervalHandle, set_interval_with_handle};
+use leptos::{leptos_dom::helpers::IntervalHandle, prelude::*};
 use types::{preferences::CheckboxPreference, ui::player_details::PlayerEvents};
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
@@ -166,7 +166,7 @@ impl LibrespotPlayer {
 
 impl GenericPlayer for LibrespotPlayer {
     #[tracing::instrument(level = "trace", skip(self))]
-    fn initialize(&self, _: leptos::NodeRef<leptos::html::Div>) {
+    fn initialize(&self, _: NodeRef<leptos::html::Div>) {
         spawn_local(async move {
             let data = load_selective("spotify.enable".into()).await;
 

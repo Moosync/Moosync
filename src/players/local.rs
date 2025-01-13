@@ -1,17 +1,18 @@
-use std::rc::Rc;
+use std::{ops::Deref, rc::Rc};
 
 use leptos::{
-    create_node_ref,
     ev::{ended, error, loadeddata, loadstart, pause, play, timeupdate},
-    event_target,
-    html::{audio, Audio, Div},
-    spawn_local, HtmlElement, NodeRef,
+    html::{audio, Audio, Div, HtmlElement},
+    prelude::*,
+    task::spawn_local,
 };
 
-use leptos_use::use_event_listener;
+use leptos_use::{core::IntoElementMaybeSignalType, use_event_listener};
 use tokio::sync::oneshot::Sender as OneShotSender;
 use types::{errors::Result, songs::SongType, ui::player_details::PlayerEvents};
+use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
+use web_sys::HtmlAudioElement;
 
 use crate::utils::common::{convert_file_src, get_blob_url};
 
@@ -45,7 +46,7 @@ macro_rules! generate_event_listeners {
 
 #[derive(Clone)]
 pub struct LocalPlayer {
-    pub audio_element: HtmlElement<Audio>,
+    pub audio_element: HtmlAudioElement,
     node_ref: NodeRef<Audio>,
     listeners: Vec<Rc<Box<dyn Fn()>>>,
     event_tx: Option<Rc<Box<dyn Fn(PlayerEvents)>>>,
@@ -63,13 +64,13 @@ impl std::fmt::Debug for LocalPlayer {
 impl LocalPlayer {
     #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> Self {
-        let mut audio_element = audio();
         let node_ref = create_node_ref();
 
-        audio_element = audio_element.node_ref(node_ref);
-
+        let audio_element = audio().node_ref(node_ref);
+        let build = audio_element.build();
+        let audio_element: &HtmlAudioElement = build.deref().unchecked_ref();
         LocalPlayer {
-            audio_element,
+            audio_element: audio_element.clone(),
             node_ref,
             listeners: vec![],
             event_tx: None,

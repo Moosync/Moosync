@@ -1,6 +1,5 @@
 pub mod artist_list;
 pub mod audiostream;
-pub mod better_animated_outlet;
 pub mod cardview;
 pub mod color_picker;
 pub mod low_img;

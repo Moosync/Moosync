@@ -1,11 +1,11 @@
-use leptos::{component, view, IntoView, SignalGet};
+use leptos::{component, prelude::*, view, IntoView};
 use types::ui::player_details::RepeatModes;
 
 #[tracing::instrument(level = "trace", skip(mode))]
 #[component]
 pub fn RepeatIcon<T>(#[prop()] mode: T) -> impl IntoView
 where
-    T: SignalGet<Value = RepeatModes> + 'static + Copy,
+    T: Get<Value = RepeatModes> + 'static + Copy + Send,
 {
     view! {
         <div>
@@ -35,6 +35,7 @@ where
                                 />
                             </svg>
                         }
+                            .into_any()
                     }
                     RepeatModes::None | RepeatModes::Loop => {
                         view! {
@@ -59,6 +60,7 @@ where
                                 ></path>
                             </svg>
                         }
+                            .into_any()
                     }
                 }
             }}

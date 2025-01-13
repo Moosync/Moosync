@@ -1,4 +1,4 @@
-use leptos::{expect_context, RwSignal, SignalGet, SignalUpdate};
+use leptos::prelude::*;
 use leptos_context_menu::ContextMenuItemInner;
 use types::songs::Song;
 
@@ -7,8 +7,8 @@ use crate::store::ui_store::{SongSortBy, SongSortByColumns, UiStore};
 #[tracing::instrument(level = "trace", skip(song_list, song_indices))]
 pub fn get_songs_from_indices<T, Y>(song_list: &T, song_indices: Y) -> Vec<Song>
 where
-    T: SignalGet<Value = Vec<Song>>,
-    Y: SignalGet<Value = Vec<usize>>,
+    T: Get<Value = Vec<Song>>,
+    Y: Get<Value = Vec<usize>>,
 {
     let song_list = song_list.get();
     let song_indices = song_indices.get();
@@ -80,7 +80,10 @@ pub fn sort_by_title() {
 }
 
 #[tracing::instrument(level = "trace", skip())]
-pub fn get_sort_cx_items<T>() -> Vec<ContextMenuItemInner<T>> {
+pub fn get_sort_cx_items<T>() -> Vec<ContextMenuItemInner<T>>
+where
+    T: Send + Sync,
+{
     vec![
         ContextMenuItemInner::new_with_handler(
             "Album (Track No.)".into(),

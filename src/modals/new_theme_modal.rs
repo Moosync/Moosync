@@ -13,11 +13,7 @@ use crate::{
         prefs::{import_theme, open_file_browser_single, save_theme},
     },
 };
-use leptos::{
-    component, create_effect, create_node_ref, create_read_slice, create_rw_signal, create_signal,
-    event_target_value, expect_context, spawn_local, view, CollectView, For, IntoView, RwSignal,
-    SignalGet, SignalGetUntracked, SignalSet, SignalUpdate,
-};
+use leptos::{component, prelude::*, task::spawn_local, view, IntoView};
 use leptos_use::on_click_outside;
 use types::{
     themes::{ThemeDetails, ThemeItem},
@@ -127,7 +123,7 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                             </div>
                         </div>
                     }
-                        .into_view()
+                        .into_any()
                 }
                 ThemeModalState::NewTheme(theme) => {
                     let new_theme = create_rw_signal(theme);
@@ -196,13 +192,13 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                                             />
                                         </div>
                                     }
-                                        .into_view()
+                                        .into_any()
                                 } else {
-                                    view! {}.into_view()
+                                    view! {}.into_any()
                                 }
-                            }} <div class="row no-gutters" no-gutters="">
+                            }} <div class="row no-gutters">
                                 <div class="col h-100">
-                                    <div class="row no-gutters metadata mb-3" no-gutters="">
+                                    <div class="row no-gutters metadata mb-3">
                                         <input
                                             class="form-control theme-title"
                                             type="text"
@@ -235,7 +231,7 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                                         />
                                     </div>
                                     <div class="row no-gutters" no-gutters="">
-                                        <div class="col-6 preview-col" cols="6">
+                                        <div class="col-6 preview-col">
                                             <div
                                                 class="row no-gutters preview mb-5 w-100 h-100"
                                                 no-gutters=""
@@ -270,7 +266,7 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                                                         let (color_name, color) = get_color_name(i, &color);
                                                         ret.push(
                                                             view! {
-                                                                <tr height="60">
+                                                                <tr>
                                                                     <td class="color-title pr-5" title=color_name>
                                                                         {color_name}
                                                                     </td>
@@ -391,9 +387,9 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                             </div>
                         </div>
                     }
-                        .into_view()
+                        .into_any()
                 }
-                ThemeModalState::ImportTheme => view! {}.into_view(),
+                ThemeModalState::ImportTheme => view! {}.into_any(),
                 ThemeModalState::DiscoverTheme => {
                     let themes = create_rw_signal(HashMap::new());
                     let (active, _) = create_signal(false);
@@ -453,7 +449,7 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                             </div>
                         </div>
                     }
-                        .into_view()
+                        .into_any()
                 }
             }}
         </GenericModal>

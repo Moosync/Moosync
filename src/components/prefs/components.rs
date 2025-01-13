@@ -1,10 +1,6 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{collections::HashMap, rc::Rc, sync::Arc};
 
-use leptos::{
-    component, create_effect, create_read_slice, create_rw_signal, event_target_checked,
-    event_target_value, expect_context, view, CollectView, For, IntoView, RwSignal, SignalGet,
-    SignalSet, SignalSetUntracked, SignalUpdate, SignalUpdateUntracked,
-};
+use leptos::{component, prelude::*, view, IntoView};
 use leptos_context_menu::ContextMenu;
 use leptos_i18n::t;
 use leptos_use::use_debounce_fn_with_arg;
@@ -40,16 +36,22 @@ use crate::{
 
 #[tracing::instrument(level = "trace", skip(key, title, tooltip))]
 #[component]
-pub fn PathsPref(
+pub fn PathsPref<K, H, K1, H1>(
     #[prop()] key: String,
-    #[prop()] title: String,
-    #[prop()] tooltip: String,
+    #[prop()] title: K,
+    #[prop()] tooltip: K1,
     #[prop()] mobile: bool,
-) -> impl IntoView {
+) -> impl IntoView
+where
+    K: Fn() -> H + Send + Sync + 'static,
+    H: IntoView + Copy + 'static,
+    K1: Fn() -> H1 + Send + Sync + 'static,
+    H1: IntoView + Copy + 'static,
+{
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
     if is_mobile && !mobile {
-        return view! {}.into_view();
+        return view! {}.into_any();
     }
 
     let should_write = create_rw_signal(false);
@@ -87,10 +89,10 @@ pub fn PathsPref(
             <div class="row no-gutters align-items-center">
                 <div class="row no-gutters">
                     <div class="col-auto align-self-center title d-flex preference-title">
-                        {title}
+                        {title()}
                     </div>
                     <div class="col-auto ml-2">
-                        <Tooltip>{tooltip.clone()}</Tooltip>
+                        <Tooltip>{tooltip()}</Tooltip>
                     </div>
                 </div>
                 <div class="col-auto new-directories ml-auto justify-content-center">
@@ -131,23 +133,29 @@ pub fn PathsPref(
                 />
             </div>
         </div>
-    }.into_view()
+    }.into_any()
 }
 
 #[tracing::instrument(level = "trace", skip(key, title, tooltip, show_input, inp_type))]
 #[component()]
-pub fn InputPref(
+pub fn InputPref<K, H, K1, H1>(
     #[prop()] key: String,
-    #[prop()] title: String,
-    #[prop()] tooltip: String,
+    #[prop()] title: K,
+    #[prop()] tooltip: K1,
     #[prop()] show_input: bool,
     #[prop()] inp_type: String,
     #[prop()] mobile: bool,
-) -> impl IntoView {
+) -> impl IntoView
+where
+    K: Fn() -> H + Send + Sync + 'static,
+    H: IntoView + Copy + 'static,
+    K1: Fn() -> H1 + Send + Sync + 'static,
+    H1: IntoView + Copy + 'static,
+{
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
     if is_mobile && !mobile {
-        return view! {}.into_view();
+        return view! {}.into_any();
     }
 
     let should_write = create_rw_signal(false);
@@ -195,9 +203,11 @@ pub fn InputPref(
     view! {
         <div class="container-fluid  mt-4">
             <div class="row no-gutters">
-                <div class="col-auto align-self-center title d-flex preference-title">{title}</div>
+                <div class="col-auto align-self-center title d-flex preference-title">
+                    {title()}
+                </div>
                 <div class="col-auto ml-2">
-                    <Tooltip>{tooltip.clone()}</Tooltip>
+                    <Tooltip>{tooltip()}</Tooltip>
                 </div>
             </div>
             <div class="row no-gutters input-prefs-background w-100 mt-2 d-flex align-content-center">
@@ -211,9 +221,9 @@ pub fn InputPref(
                             ) />
                         </div>
                     }
-                        .into_view()
+                        .into_any()
                 } else {
-                    view! {}.into_view()
+                    view! {}.into_any()
                 }}
                 <div class="col-auto ml-3 mr-3 h-100 align-self-center flex-grow-1 d-flex">
                     {if show_input {
@@ -227,35 +237,41 @@ pub fn InputPref(
                                 }
                             />
                         }
-                            .into_view()
+                            .into_any()
                     } else {
                         view! {
                             <div class="item-text text-truncate file-picker-text align-self-center">
                                 {move || pref_value.get()}
                             </div>
                         }
-                            .into_view()
+                            .into_any()
                     }}
                 </div>
             </div>
         </div>
-    }.into_view()
+    }.into_any()
 }
 
 #[tracing::instrument(level = "trace", skip(key, title, tooltip, items, single))]
 #[component()]
-pub fn CheckboxPref(
+pub fn CheckboxPref<K, H, K1, H1>(
     #[prop()] key: String,
-    #[prop()] title: String,
-    #[prop()] tooltip: String,
+    #[prop()] title: K,
+    #[prop()] tooltip: K1,
     #[prop()] items: Vec<CheckboxItems>,
     #[prop()] single: bool,
     #[prop()] mobile: bool,
-) -> impl IntoView {
+) -> impl IntoView
+where
+    K: Fn() -> H + Send + Sync + 'static,
+    H: IntoView + Copy + 'static,
+    K1: Fn() -> H1 + Send + Sync + 'static,
+    H1: IntoView + Copy + 'static,
+{
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
     if is_mobile && !mobile {
-        return view! {}.into_view();
+        return view! {}.into_any();
     }
 
     let should_write = create_rw_signal(false);
@@ -267,7 +283,9 @@ pub fn CheckboxPref(
     create_effect(move |_| {
         let value = pref_value.get();
         if !should_write.get() {
-            should_write.set_untracked(true);
+            should_write.update_untracked(|v| {
+                *v = true;
+            });
             return;
         }
 
@@ -276,9 +294,11 @@ pub fn CheckboxPref(
     view! {
         <div class="container-fluid mt-4">
             <div class="row no-gutters">
-                <div class="col-auto align-self-center title d-flex preference-title">{title}</div>
+                <div class="col-auto align-self-center title d-flex preference-title">
+                    {title()}
+                </div>
                 <div class="col-auto ml-2">
-                    <Tooltip>{tooltip.clone()}</Tooltip>
+                    <Tooltip>{tooltip()}</Tooltip>
                 </div>
             </div>
 
@@ -359,16 +379,22 @@ pub fn CheckboxPref(
                 }
             />
         </div>
-    }.into_view()
+    }.into_any()
 }
 
 #[tracing::instrument(level = "trace", skip(key, title, tooltip))]
 #[component]
-pub fn ThemesPref(
+pub fn ThemesPref<K, H, K1, H1>(
     #[prop()] key: String,
-    #[prop()] title: String,
-    #[prop()] tooltip: String,
-) -> impl IntoView {
+    #[prop()] title: K,
+    #[prop()] tooltip: K1,
+) -> impl IntoView
+where
+    K: Fn() -> H + Send + Sync + 'static,
+    H: IntoView + Copy + 'static,
+    K1: Fn() -> H1 + Send + Sync + 'static,
+    H1: IntoView + Copy + 'static,
+{
     let all_themes: RwSignal<HashMap<String, ThemeDetails>> = create_rw_signal(Default::default());
     let load_themes = move || {
         spawn_local(async move {
@@ -383,7 +409,7 @@ pub fn ThemesPref(
 
     let context_menu = create_context_menu(ThemesContextMenu {
         id: None,
-        refresh_cb: Rc::new(Box::new(load_themes)),
+        refresh_cb: Arc::new(Box::new(load_themes)),
     });
 
     let modal_store: RwSignal<ModalStore> = expect_context();
@@ -395,64 +421,72 @@ pub fn ThemesPref(
             active_themes.update(|at| at.push(signal));
             let context_menu = context_menu.clone();
             let key_clone = key.clone();
-            views.push(view! {
-                <div class="col-xl-3 col-5 p-2">
-                    <div
-                        class="theme-component-container"
-                        on:contextmenu=move |ev| {
-                            ev.prevent_default();
-                            let context_menu = context_menu.clone();
-                            let mut data = context_menu.get_data();
-                            data.id = Some(key_clone.clone());
-                            drop(data);
-                            context_menu.show(ev);
-                        }
-                        on:click=move |_| {
-                            active_themes
-                                .update(|at| {
-                                    for s in at.iter() {
-                                        s.set(false);
-                                    }
-                                    signal.set(true);
-                                });
-                            let theme_id = key.clone();
-                            tracing::debug!("Setting active theme: {}", theme_id);
-                            save_selective("themes.active_theme".into(), theme_id);
-                        }
-                    >
-                        <ThemeViewIcon active=signal.read_only() theme=theme.clone() />
-                        <div class="theme-title-text">{theme.name}</div>
-                        <div class="theme-author">{theme.author}</div>
+            views.push(
+                view! {
+                    <div class="col-xl-3 col-5 p-2">
+                        <div
+                            class="theme-component-container"
+                            on:contextmenu=move |ev| {
+                                ev.prevent_default();
+                                let context_menu = context_menu.clone();
+                                let mut data = context_menu.get_data();
+                                data.id = Some(key_clone.clone());
+                                drop(data);
+                                context_menu.show(ev);
+                            }
+                            on:click=move |_| {
+                                active_themes
+                                    .update(|at| {
+                                        for s in at.iter() {
+                                            s.set(false);
+                                        }
+                                        signal.set(true);
+                                    });
+                                let theme_id = key.clone();
+                                tracing::debug!("Setting active theme: {}", theme_id);
+                                save_selective("themes.active_theme".into(), theme_id);
+                            }
+                        >
+                            <ThemeViewIcon active=signal.read_only() theme=theme.clone() />
+                            <div class="theme-title-text">{theme.name}</div>
+                            <div class="theme-author">{theme.author}</div>
+                        </div>
                     </div>
-                </div>
-            });
+                }
+                .into_any(),
+            );
         }
 
-        views.push(view! {
-            <div
-                class="col-xl-3 col-5 p-2"
-                on:click=move |_| {
-                    modal_store
-                        .update(|m| {
-                            m.set_active_modal(Modals::ThemeModal(ThemeModalState::None));
-                            m.on_modal_close(load_themes);
-                        })
-                }
-            >
-                <div class="theme-component-container">
-                    <NewThemeIcon />
-                    <div class="theme-title-text">{"Discover themes"}</div>
+        views.push(
+            view! {
+                <div
+                    class="col-xl-3 col-5 p-2"
+                    on:click=move |_| {
+                        modal_store
+                            .update(|m| {
+                                m.set_active_modal(Modals::ThemeModal(ThemeModalState::None));
+                                m.on_modal_close(load_themes);
+                            })
+                    }
+                >
+                    <div class="theme-component-container">
+                        <NewThemeIcon />
+                        <div class="theme-title-text">{"Discover themes"}</div>
+                    </div>
                 </div>
-            </div>
-        });
+            }
+            .into_any(),
+        );
         views.collect_view()
     };
     view! {
         <div class="container-fluid">
             <div class="row no-gutters">
-                <div class="col-auto align-self-center title d-flex preference-title">{title}</div>
+                <div class="col-auto align-self-center title d-flex preference-title">
+                    {title()}
+                </div>
                 <div class="col-auto ml-2">
-                    <Tooltip>{tooltip.clone()}</Tooltip>
+                    <Tooltip>{tooltip()}</Tooltip>
                 </div>
             </div>
             <div class="row no-gutters w-100">{render_themes}</div>
@@ -462,7 +496,13 @@ pub fn ThemesPref(
 
 #[tracing::instrument(level = "trace", skip(title, tooltip))]
 #[component]
-pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl IntoView {
+pub fn ExtensionPref<K, H, K1, H1>(#[prop()] title: K, #[prop()] tooltip: K1) -> impl IntoView
+where
+    K: Fn() -> H + Send + Sync + 'static,
+    H: IntoView + Copy + 'static,
+    K1: Fn() -> H1 + Send + Sync + 'static,
+    H1: IntoView + Copy + 'static,
+{
     let extensions = create_rw_signal::<Vec<ExtensionDetail>>(Default::default());
     let fetch_extensions = move || {
         spawn_local(async move {
@@ -514,10 +554,10 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
             <div class="row no-gutters align-items-center">
                 <div class="row no-gutters">
                     <div class="col-auto align-self-center title d-flex preference-title">
-                        {title}
+                        {title()}
                     </div>
                     <div class="col-auto ml-2">
-                        <Tooltip>{tooltip.clone()}</Tooltip>
+                        <Tooltip>{tooltip()}</Tooltip>
                     </div>
                 </div>
                 <div class="col-auto new-directories ml-auto justify-content-center">
@@ -588,23 +628,26 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
                                 each=move || extension.preferences.clone()
                                 key=|p| p.key.clone()
                                 children=move |preference| {
+                                    let title = preference.title.clone();
+                                    let tooltip = preference.description.clone();
                                     match preference._type {
                                         types::preferences::PreferenceTypes::DirectoryGroup => {
                                             view! {
                                                 <PathsPref
                                                     key=preference.key
-                                                    title=preference.title
-                                                    tooltip=preference.description
+                                                    title=|| view! { title }
+                                                    tooltip=|| view! { tooltip }
                                                     mobile=true
                                                 />
                                             }
+                                                .into_any()
                                         }
                                         types::preferences::PreferenceTypes::EditText => {
                                             view! {
                                                 <InputPref
                                                     key=preference.key
-                                                    title=preference.title
-                                                    tooltip=preference.description
+                                                    title=|| view! { title }
+                                                    tooltip=|| view! { tooltip }
                                                     show_input=true
                                                     inp_type=serde_wasm_bindgen::to_value(
                                                             &preference.input_type,
@@ -615,50 +658,54 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
                                                     mobile=true
                                                 />
                                             }
+                                                .into_any()
                                         }
                                         types::preferences::PreferenceTypes::FilePicker => {
                                             view! {
                                                 <InputPref
                                                     key=preference.key
-                                                    title=preference.title
-                                                    tooltip=preference.description
+                                                    title=|| view! { title }
+                                                    tooltip=|| view! { tooltip }
                                                     show_input=false
                                                     inp_type="".to_string()
                                                     mobile=true
                                                 />
                                             }
+                                                .into_any()
                                         }
                                         types::preferences::PreferenceTypes::CheckboxGroup => {
                                             view! {
                                                 <CheckboxPref
                                                     key=preference.key
-                                                    title=preference.title
-                                                    tooltip=preference.description
+                                                    title=|| view! { title }
+                                                    tooltip=|| view! { tooltip }
                                                     items=preference.items.unwrap_or_default()
                                                     single=preference.single.unwrap_or_default()
                                                     mobile=true
                                                 />
                                             }
+                                                .into_any()
                                         }
                                         types::preferences::PreferenceTypes::Dropdown => {
                                             view! {
                                                 <DropdownPref
                                                     key=preference.key
-                                                    title=preference.title
-                                                    tooltip=preference.description
+                                                    title=|| view! { title }
+                                                    tooltip=|| view! { tooltip }
                                                     mobile=true
                                                 />
                                             }
+                                                .into_any()
                                         }
                                         types::preferences::PreferenceTypes::ThemeSelector
                                         | types::preferences::PreferenceTypes::Extensions => {
-                                            view! {}.into_view()
+                                            view! {}.into_any()
                                         }
                                         types::preferences::PreferenceTypes::ButtonGroup
                                         | types::preferences::PreferenceTypes::ProgressBar
                                         | types::preferences::PreferenceTypes::TextField
                                         | types::preferences::PreferenceTypes::InfoField => {
-                                            view! {}.into_view()
+                                            view! {}.into_any()
                                         }
                                     }
                                 }
@@ -672,18 +719,24 @@ pub fn ExtensionPref(#[prop()] title: String, #[prop()] tooltip: String) -> impl
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "trace", skip(key, title, tooltip, mobile))]
 #[component]
-pub fn DropdownPref(
+pub fn DropdownPref<K, H, K1, H1>(
     #[prop()] key: String,
-    #[prop()] title: String,
-    #[prop()] tooltip: String,
+    #[prop()] title: K,
+    #[prop()] tooltip: K1,
     #[prop()] mobile: bool,
-) -> impl IntoView {
+) -> impl IntoView
+where
+    K: Fn() -> H + Send + Sync + 'static,
+    H: IntoView + Copy + 'static,
+    K1: Fn() -> H1 + Send + Sync + 'static,
+    H1: IntoView + Copy + 'static,
+{
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
     if is_mobile && !mobile {
-        return view! {}.into_view();
+        return view! {}.into_any();
     }
 
     let should_write = create_rw_signal(false);
@@ -695,7 +748,7 @@ pub fn DropdownPref(
     create_effect(move |_| {
         let value = pref_value.get();
         if !should_write.get() {
-            should_write.set_untracked(true);
+            should_write.set(true);
             return;
         }
 
@@ -709,9 +762,11 @@ pub fn DropdownPref(
     view! {
         <div class="container-fluid mt-4">
             <div class="row no-gutters">
-                <div class="col-auto align-self-center title d-flex preference-title">{title}</div>
+                <div class="col-auto align-self-center title d-flex preference-title">
+                    {title()}
+                </div>
                 <div class="col-auto ml-2">
-                    <Tooltip>{tooltip.clone()}</Tooltip>
+                    <Tooltip>{tooltip()}</Tooltip>
                 </div>
             </div>
 
@@ -757,5 +812,5 @@ pub fn DropdownPref(
 
         </div>
     }
-    .into_view()
+    .into_any()
 }

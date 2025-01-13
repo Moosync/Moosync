@@ -1,9 +1,9 @@
 use std::{collections::HashMap, rc::Rc};
 
 use leptos::{
-    create_node_ref,
     html::{audio, Div},
-    spawn_local, NodeRef,
+    prelude::*,
+    task::spawn_local,
 };
 
 use serde::Deserialize;
@@ -76,11 +76,6 @@ impl std::fmt::Debug for MobilePlayer {
 impl MobilePlayer {
     #[tracing::instrument(level = "trace", skip())]
     pub fn new(key: String) -> Self {
-        let mut audio_element = audio();
-        let node_ref = create_node_ref();
-
-        audio_element = audio_element.node_ref(node_ref);
-
         MobilePlayer {
             key,
             listeners: vec![],

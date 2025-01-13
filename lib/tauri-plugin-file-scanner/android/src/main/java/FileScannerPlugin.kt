@@ -39,7 +39,7 @@ class FileScannerPlugin(private val activity: Activity): Plugin(activity) {
             val ret = Gson().toJson(songs)
             val obj = JSObject()
             obj.put("songs", ret);
-            Log.d("file-scanner", "android_scan_music: resolving $ret")
+            Log.d("file-scanner", "android_scan_music: resolving $obj")
             args.channel.send(obj)
         }
 

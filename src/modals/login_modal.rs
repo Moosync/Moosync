@@ -1,8 +1,4 @@
-
-use leptos::{
-    component, create_action, create_rw_signal, event_target_value, spawn_local,
-    view, IntoView, SignalGet, SignalGetUntracked, SignalSet,
-};
+use leptos::{component, prelude::*, task::spawn_local, view, IntoView};
 use serde::Serialize;
 
 use crate::{
@@ -23,7 +19,7 @@ pub fn LoginModal(
 
     let key_cloned = key.clone();
 
-    let authorize = create_action(move |code: &String| {
+    let authorize = Action::new_local(move |code: &String| {
         let code = code.clone();
         let key = key.clone();
 
@@ -91,7 +87,7 @@ pub fn LoginModal(
                                     </div>
                                 </div>
                             }
-                                .into_view()
+                                .into_any()
                         } else {
                             view! {
                                 <div>
@@ -127,7 +123,9 @@ pub fn LoginModal(
                                         <div class="col d-flex justify-content-center">
                                             <div
                                                 class="start-button button-grow mt-4 d-flex justify-content-center align-items-center"
-                                                on:click=move |_| authorize.dispatch(code.get_untracked())
+                                                on:click=move |_| {
+                                                    authorize.dispatch_local(code.get_untracked());
+                                                }
                                             >
                                                 Submit
                                             </div>
@@ -135,7 +133,7 @@ pub fn LoginModal(
                                     </div>
                                 </div>
                             }
-                                .into_view()
+                                .into_any()
                         }
                     }}
 

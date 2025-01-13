@@ -1,10 +1,10 @@
-use leptos::{component, view, IntoView, SignalGet};
+use leptos::{component, prelude::*, view, IntoView};
 
 #[tracing::instrument(level = "trace", skip(filled))]
 #[component]
 pub fn FavIcon<T>(#[prop()] filled: T) -> impl IntoView
 where
-    T: SignalGet<Value = bool> + 'static,
+    T: Get<Value = bool> + 'static + Send,
 {
     view! {
         <svg

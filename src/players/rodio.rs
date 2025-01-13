@@ -1,6 +1,10 @@
 use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration};
 
-use leptos::{leptos_dom::helpers::IntervalHandle, set_interval_with_handle, spawn_local};
+use leptos::{
+    leptos_dom::helpers::IntervalHandle,
+    prelude::{set_interval_with_handle, NodeRef},
+    task::spawn_local,
+};
 use types::{songs::SongType, ui::player_details::PlayerEvents};
 use wasm_bindgen::JsValue;
 
@@ -31,7 +35,7 @@ impl RodioPlayer {
 
 impl GenericPlayer for RodioPlayer {
     #[tracing::instrument(level = "trace", skip(self))]
-    fn initialize(&self, _: leptos::NodeRef<leptos::html::Div>) {}
+    fn initialize(&self, _: NodeRef<leptos::html::Div>) {}
 
     #[tracing::instrument(level = "trace", skip(self))]
     fn key(&self) -> String {

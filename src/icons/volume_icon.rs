@@ -1,8 +1,8 @@
-use leptos::{component, view, IntoView, SignalGet};
+use leptos::{component, prelude::*, view, IntoView};
 
 #[tracing::instrument(level = "trace", skip(cut))]
 #[component]
-pub fn VolumeIcon(#[prop()] cut: impl SignalGet<Value = bool> + 'static) -> impl IntoView {
+pub fn VolumeIcon(#[prop()] cut: impl Get<Value = bool> + 'static + Send + Sync) -> impl IntoView {
     view! {
         <svg
             class="vol-icon button-grow volume-icon align-self-center"
@@ -35,9 +35,9 @@ pub fn VolumeIcon(#[prop()] cut: impl SignalGet<Value = bool> + 'static) -> impl
                             fill="var(--accent)"
                         ></rect>
                     }
-                        .into_view()
+                        .into_any()
                 } else {
-                    view! {}.into_view()
+                    view! {}.into_any()
                 }
             }}
 

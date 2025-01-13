@@ -2,9 +2,9 @@ use async_trait::async_trait;
 use futures::channel::mpsc::UnboundedSender;
 use futures::SinkExt;
 use google_youtube3::api::{Channel, ChannelSnippet, Playlist, PlaylistSnippet, Video};
-use google_youtube3::hyper::client::HttpConnector;
 use google_youtube3::hyper_rustls::HttpsConnector;
-use google_youtube3::{hyper, hyper_rustls, YouTube};
+use google_youtube3::hyper_util::client::legacy::connect::HttpConnector;
+use google_youtube3::{hyper, hyper_rustls, hyper_util, YouTube};
 use oauth2::basic::BasicClient;
 use oauth2::{AuthUrl, ClientId, ClientSecret, CsrfToken, PkceCodeVerifier, RedirectUrl, TokenUrl};
 use preferences::preferences::PreferenceConfig;
@@ -110,14 +110,16 @@ impl YoutubeProvider {
     #[tracing::instrument(level = "trace", skip(self))]
     async fn create_api_client(&mut self) {
         if let Some(token) = &self.config.tokens {
-            let client = hyper::Client::builder().build(
-                hyper_rustls::HttpsConnectorBuilder::new()
-                    .with_native_roots()
-                    .unwrap()
-                    .https_or_http()
-                    .enable_http1()
-                    .build(),
-            );
+            let client =
+                hyper_util::client::legacy::Client::builder(hyper_util::rt::TokioExecutor::new())
+                    .build(
+                        hyper_rustls::HttpsConnectorBuilder::new()
+                            .with_native_roots()
+                            .unwrap()
+                            .https_or_http()
+                            .enable_http1()
+                            .build(),
+                    );
 
             self.api_client = Some(google_youtube3::YouTube::new(
                 client,

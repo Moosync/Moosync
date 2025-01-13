@@ -1,9 +1,7 @@
-use leptos::{
-    component, create_rw_signal, create_write_slice, expect_context, view, IntoView, RwSignal,
-    SignalGet,
-};
+use leptos::{component, prelude::*, view, IntoView};
 use rand::seq::SliceRandom;
 use std::rc::Rc;
+use std::sync::Arc;
 use types::songs::GetSongOptions;
 use types::ui::song_details::SongDetailIcons;
 
@@ -61,9 +59,9 @@ pub fn AllSongs() -> impl IntoView {
     };
 
     let icons = create_rw_signal(SongDetailIcons {
-        play: Some(Rc::new(Box::new(play_songs))),
-        add_to_queue: Some(Rc::new(Box::new(add_to_queue))),
-        random: Some(Rc::new(Box::new(random))),
+        play: Some(Arc::new(Box::new(play_songs))),
+        add_to_queue: Some(Arc::new(Box::new(add_to_queue))),
+        random: Some(Arc::new(Box::new(random))),
         ..Default::default()
     });
 

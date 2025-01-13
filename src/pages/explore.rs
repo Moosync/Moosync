@@ -1,9 +1,6 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
-use leptos::{
-    component, create_rw_signal, create_write_slice, expect_context, view, IntoView, RwSignal,
-    SignalUpdate,
-};
+use leptos::{component, prelude::*, view, IntoView};
 use leptos_context_menu::ContextMenu;
 use wasm_bindgen_futures::spawn_local;
 
@@ -21,7 +18,7 @@ use crate::{
 #[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn Explore() -> impl IntoView {
-    let provider_store: Rc<ProviderStore> = expect_context();
+    let provider_store: Arc<ProviderStore> = expect_context();
     let provider_keys = provider_store.get_provider_keys();
     let suggestion_items = create_rw_signal(vec![]);
     spawn_local(async move {
@@ -46,7 +43,7 @@ pub fn Explore() -> impl IntoView {
         song_list: suggestion_items.read_only(),
         selected_songs: create_rw_signal(vec![]),
         playlists,
-        refresh_cb: Rc::new(Box::new(refresh_songs)),
+        refresh_cb: Arc::new(Box::new(refresh_songs)),
     };
     let song_context_menu = create_context_menu(context_menu_data);
 
@@ -67,6 +64,7 @@ pub fn Explore() -> impl IntoView {
 
                     <CardView
                         items=suggestion_items
+                        key=|a| a.song._id.clone()
                         songs_view=true
                         on_click=Box::new(move |item| { play_now.set(item) })
                         card_item=move |(_, item)| {
@@ -77,7 +75,7 @@ pub fn Explore() -> impl IntoView {
                                 id: item.clone(),
                                 icon: item.song.provider_extension.clone(),
                                 context_menu: Some(
-                                    Rc::new(
+                                    Arc::new(
                                         Box::new(move |ev, song| {
                                             ev.stop_propagation();
                                             let mut data = song_context_menu.get_data();

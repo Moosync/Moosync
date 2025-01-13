@@ -1,29 +1,40 @@
-use std::rc::Rc;
+use std::{
+    rc::Rc,
+    str::{from_utf8, FromStr},
+    sync::Arc,
+};
 
 use crate::{
-    components::{
-        better_animated_outlet::AnimatedOutletSimultaneous, prefs::static_components::SettingRoutes,
-    },
-    i18n::{use_i18n, Locale},
+    components::prefs::static_components::SettingRoutes,
+    i18n::{self, use_i18n, Locale},
     pages::explore::Explore,
     players::librespot::LibrespotPlayer,
     store::ui_store::UiStore,
     utils::{
         common::{emit, listen_event},
-        invoke::{get_css, load_selective, load_theme},
+        invoke::{get_css, load_selective, load_theme, toggle_dev_tools},
         prefs::watch_preferences,
     },
 };
 use leptos::{
-    component, create_effect, create_read_slice, create_rw_signal, document, ev::contextmenu,
-    expect_context, provide_context, view, window, IntoView, RwSignal, SignalGet,
-    SignalGetUntracked, SignalUpdate,
+    component,
+    ev::{contextmenu, keydown},
+    prelude::*,
+    view, IntoView,
 };
 use leptos_context_menu::provide_context_menu_state;
-use leptos_i18n::provide_i18n_context;
-use leptos_router::{Outlet, Redirect, Route, Router, Routes};
+use leptos_i18n::{
+    provide_i18n_context,
+    reexports::icu::locid::{langid, LanguageIdentifier},
+    t,
+};
+use leptos_router::{
+    components::{Outlet, ParentRoute, Redirect, Route, RouteChildren, Router, Routes},
+    path,
+};
 use leptos_use::use_event_listener;
 use serde::Serialize;
+use serde_json::from_str;
 use types::{
     preferences::CheckboxPreference, ui::extensions::ExtensionUIRequest,
     ui::player_details::PlayerState,
@@ -120,7 +131,9 @@ pub fn MainApp() -> impl IntoView {
         <div>
             <TopBar />
             <Sidebar tabs=tabs />
-            <AnimatedOutletSimultaneous class=class outro="route-out" intro="route-in" />
+            <div class=class>
+                <Outlet />
+            </div>
         </div>
     }
 }
@@ -199,12 +212,17 @@ fn handle_theme(id: String) {
 #[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn App() -> impl IntoView {
-    // window_event_listener(leptos::ev::contextmenu, move |ev| {
-    //     ev.prevent_default();
-    // });
+    let _ = use_event_listener(document().body(), keydown, |ev| {
+        if ev.shift_key() && ev.ctrl_key() && ev.key_code() == 75 {
+            spawn_local(async move {
+                let _ = toggle_dev_tools().await;
+            });
+        }
+    });
 
     provide_context_menu_state();
     provide_context(create_rw_signal(UiStore::new()));
+    provide_context(create_rw_signal(ModalStore::default()));
 
     {
         let ui_store = expect_context::<RwSignal<UiStore>>();
@@ -226,8 +244,7 @@ pub fn App() -> impl IntoView {
     }
 
     provide_context(PlayerStore::new());
-    provide_context(Rc::new(ProviderStore::new()));
-    provide_context(create_rw_signal(ModalStore::default()));
+    provide_context(Arc::new(ProviderStore::new()));
 
     provide_i18n_context::<Locale>();
 
@@ -315,13 +332,15 @@ pub fn App() -> impl IntoView {
             let i18n = use_i18n();
             let value = serde_wasm_bindgen::from_value::<Vec<CheckboxPreference>>(value).unwrap();
             if let Some(enabled) = value.into_iter().find(|v| v.enabled) {
-                tracing::debug!("Setting locale to {:?}", enabled.key);
-                i18n.set_locale(
-                    <Locale as leptos_i18n::Locale>::from_str(&enabled.key).unwrap_or_else(|| {
-                        tracing::error!("Failed to parse locale {}", enabled.key);
-                        crate::i18n::Locale::en_US
-                    }),
-                );
+                // tracing::debug!("Setting locale to {:?}", enabled.key);
+                // i18n.set_locale(leptos_i18n::Locale::from_matchs(
+                //     LanguageIdentifier::try_from_bytes(enabled.key.as_bytes()).unwrap_or_else(
+                //         |_| {
+                //             tracing::error!("Failed to parse locale {}", enabled.key);
+                //             langid!("en-US")
+                //         },
+                //     ),
+                // ));
             }
         }
     });
@@ -365,24 +384,24 @@ pub fn App() -> impl IntoView {
         <Router>
             <main id="app">
                 <div class="appContainer">
-                    <Routes>
-                        <Route path="/" view=CommonApp>
-                            <Route path="main" view=MainApp>
-                                <Route path="allsongs" view=AllSongs />
-                                <Route path="playlists" view=AllPlaylists />
-                                <Route path="playlists/single" view=SinglePlaylist />
-                                <Route path="artists" view=AllArtists />
-                                <Route path="artists/single" view=SingleArtist />
-                                <Route path="albums" view=AllAlbums />
-                                <Route path="albums/single" view=SingleAlbum />
-                                <Route path="genres" view=AllGenres />
-                                <Route path="genres/single" view=SingleGenre />
-                                <Route path="search" view=Search />
-                                <Route path="explore" view=Explore />
-                            </Route>
+                    <Routes transition=true fallback=|| "Not found.">
+                        <ParentRoute path=path!("/") view=CommonApp>
+                            <ParentRoute path=path!("main") view=MainApp>
+                                <Route path=path!("allsongs") view=AllSongs />
+                                <Route path=path!("playlists") view=AllPlaylists />
+                                <Route path=path!("playlists/single") view=SinglePlaylist />
+                                <Route path=path!("artists") view=AllArtists />
+                                <Route path=path!("artists/single") view=SingleArtist />
+                                <Route path=path!("albums") view=AllAlbums />
+                                <Route path=path!("albums/single") view=SingleAlbum />
+                                <Route path=path!("genres") view=AllGenres />
+                                <Route path=path!("genres/single") view=SingleGenre />
+                                <Route path=path!("search") view=Search />
+                                <Route path=path!("explore") view=Explore />
+                            </ParentRoute>
                             <SettingRoutes />
-                        </Route>
-                        <Route path="*" view=RedirectAll />
+                        </ParentRoute>
+                        <Route path=path!("*") view=RedirectAll />
                     </Routes>
                 </div>
             </main>

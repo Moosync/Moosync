@@ -1,16 +1,10 @@
 use bitcode::{Decode, Encode};
 use futures::lock::Mutex;
-use indexed_db_futures::{
-    request::{IdbOpenDbRequestLike, OpenDbRequest},
-    IdbDatabase, IdbVersionChangeEvent,
-};
-use leptos::{
-    create_effect, create_read_slice, create_rw_signal, expect_context, RwSignal, SignalGet,
-    SignalSet, SignalUpdate,
-};
+use indexed_db_futures::{database::Database, future::OpenDbRequest, prelude::*};
+use leptos::prelude::*;
 use rand::seq::SliceRandom;
 use serde::Serialize;
-use std::{cmp::min, collections::HashMap, rc::Rc};
+use std::{cmp::min, collections::HashMap, rc::Rc, sync::Arc};
 use types::{
     preferences::CheckboxPreference,
     songs::Song,
@@ -62,7 +56,6 @@ pub struct PlayerStoreData {
 #[derive(Debug)]
 pub struct PlayerStore {
     pub data: PlayerStoreData,
-    db: Rc<Mutex<Option<Rc<IdbDatabase>>>>,
     scrobble_time: f64,
     scrobbled: bool,
     is_mobile: bool,
@@ -71,15 +64,14 @@ pub struct PlayerStore {
 impl PlayerStore {
     #[tracing::instrument(level = "trace", skip())]
     pub fn new() -> RwSignal<Self> {
-        let db_rc = Rc::new(Mutex::new(None));
-        let db_rc_clone = db_rc.clone();
+        // let db_rc = Arc::new(Mutex::new(None));
+        // let db_rc_clone = db_rc.clone();
 
         let ui_store = expect_context::<RwSignal<UiStore>>();
         let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile_player()).get();
 
         let player_store = Self {
             data: PlayerStoreData::default(),
-            db: db_rc,
             scrobble_time: 0f64,
             scrobbled: false,
             is_mobile,
@@ -88,7 +80,7 @@ impl PlayerStore {
         tracing::debug!("Created player store {:?}", player_store);
         let signal = create_rw_signal(player_store);
 
-        Self::load_state_from_idb(db_rc_clone, signal);
+        // Self::load_state_from_idb(db_rc_clone, signal);
 
         signal
     }
@@ -523,71 +515,59 @@ impl PlayerStore {
     }
 
     pub fn load_state_from_idb(
-        db_rc_clone: Rc<Mutex<Option<Rc<IdbDatabase>>>>,
+        db_rc_clone: Rc<Mutex<Option<Arc<Database>>>>,
         signal: RwSignal<PlayerStore>,
     ) {
         spawn_local(async move {
-            let mut db_req: OpenDbRequest = if let Ok(db_req) = IdbDatabase::open_u32("moosync", 1)
-            {
-                db_req
-            } else {
-                tracing::error!("Failed to get indexed db req");
-                return;
-            };
-            db_req.set_on_upgrade_needed(Some(
-                |evt: &IdbVersionChangeEvent| -> Result<(), JsValue> {
-                    // Check if the object store exists; create it if it doesn't
-                    if !evt.db().object_store_names().any(|n| n == "player_store") {
-                        evt.db().create_object_store("player_store")?;
+            match Database::open("moosync")
+                .with_on_upgrade_needed(move |evt, db| {
+                    if db.object_store_names().any(|n| n == "player_store") {
+                        db.create_object_store("player_store").build()?;
                     }
                     Ok(())
-                },
-            ));
-
-            let db: Option<Rc<IdbDatabase>> = if let Ok(db) = db_req.await {
-                Some(Rc::new(db))
-            } else {
-                tracing::error!("Failed to open indexed db");
-                None
-            };
-
-            let mut db_rc = db_rc_clone.lock().await;
-            *db_rc = db;
-            drop(db_rc);
-
-            let data_signal = create_rw_signal(None);
-            Self::restore_store(db_rc_clone, data_signal);
-            create_effect(move |_| {
-                let data = data_signal.get();
-                signal.update(|s| {
-                    if let Some(data) = data {
-                        tracing::debug!("Restored player store data {:?}", data);
-                        s.data = data;
-                        s.data.player_details.current_time = 0f64;
-                    }
-                });
-            });
+                })
+                .await
+            {
+                Err(e) => {
+                    tracing::error!("Failed to create object store: {:?}", e);
+                }
+                Ok(db) => {
+                    let data_signal = create_rw_signal(None);
+                    Self::restore_store(data_signal, db);
+                    create_effect(move |_| {
+                        let data = data_signal.get();
+                        signal.update(|s| {
+                            if let Some(data) = data {
+                                tracing::debug!("Restored player store data {:?}", data);
+                                s.data = data;
+                                s.data.player_details.current_time = 0f64;
+                            }
+                        });
+                    });
+                }
+            }
         });
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
     fn dump_store(&self) {
         let serialized = bitcode::encode(&self.data);
-        let db = self.db.clone();
-        spawn_local(async move {
-            if let Err(e) =
-                write_to_indexed_db(db, "player_store", "dump", &serialized.into()).await
-            {
-                tracing::error!("Failed to dump store: {:?}", e);
-            }
-        });
+        let db = Database::open("moosync").build();
+        if let Ok(db) = db {
+            spawn_local(async move {
+                if let Ok(db) = db.await {
+                    if let Err(e) =
+                        write_to_indexed_db(db, "player_store", "dump", &serialized.into()).await
+                    {
+                        tracing::error!("Failed to dump store: {:?}", e);
+                    }
+                }
+            });
+        }
     }
 
     #[tracing::instrument(level = "trace", skip(db, signal))]
-    fn restore_store(
-        db: Rc<Mutex<Option<Rc<IdbDatabase>>>>,
-        signal: RwSignal<Option<PlayerStoreData>>,
-    ) {
+    fn restore_store(signal: RwSignal<Option<PlayerStoreData>>, db: Database) {
         spawn_local(async move {
             let bytes = read_from_indexed_db(db, "player_store", "dump").await;
             if let Ok(Some(bytes)) = bytes {

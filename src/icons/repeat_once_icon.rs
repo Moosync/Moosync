@@ -1,4 +1,4 @@
-use leptos::{component, view, IntoView, ReadSignal, SignalGet};
+use leptos::{component, prelude::*, view, IntoView};
 
 #[tracing::instrument(level = "trace", skip(filled))]
 #[component]

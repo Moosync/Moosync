@@ -1,6 +1,6 @@
 // Adapted from https://github.com/laxsjo/lax-utils/
 
-use leptos::{ev::*, html::*, logging::log, *};
+use leptos::{ev::*, html::*, logging::log, prelude::*};
 use std::{fmt::Display, str::FromStr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -532,7 +532,7 @@ impl Color for Hsv {
 #[tracing::instrument(level = "trace", skip(hex_code_setter, force_color, node_ref))]
 #[component]
 pub fn ColorPicker(
-    #[prop()] hex_code_setter: impl SignalSet<Value = String> + 'static,
+    #[prop()] hex_code_setter: impl Set<Value = String> + 'static,
     #[prop(default="#ffffff".into())] force_color: String,
     #[prop(optional)] node_ref: Option<NodeRef<Div>>,
 ) -> impl IntoView {
@@ -670,7 +670,7 @@ where
             on:pointerdown=on_pointer_down
             on:pointermove=on_pointer_move
             on:pointerup=move |_| set_dragging.set(false)
-            _ref=surface_ref
+            node_ref=surface_ref
         >
             <div class="sat-value-surface__cursor" />
         </div>
@@ -724,7 +724,7 @@ where
             on:pointerdown=on_pointer_down
             on:pointermove=on_pointer_move
             on:pointerup=on_pointer_up
-            _ref=surface_ref
+            node_ref=surface_ref
             style=custom_properties
         >
             <div class="hue-slider__cursor" />

@@ -1,4 +1,5 @@
 use std::rc::Rc;
+use std::sync::Arc;
 use std::time::Duration;
 
 use crate::modals::common::GenericModal;
@@ -7,18 +8,15 @@ use crate::utils::common::get_high_img;
 use crate::utils::db_utils::add_songs_to_library;
 use crate::utils::invoke::{match_url, song_from_url};
 use crate::{icons::song_default_icon::SongDefaultIcon, store::modal_store::ModalStore};
-use leptos::{
-    component, create_effect, create_rw_signal, event_target_value, expect_context, set_timeout,
-    view, IntoView, RwSignal, SignalGet, SignalSet, SignalUpdate,
-};
+use leptos::task::spawn_local;
+use leptos::{component, prelude::*, view, IntoView};
 use types::songs::Song;
-use wasm_bindgen_futures::spawn_local;
 
 #[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn SongFromUrlModal() -> impl IntoView {
     let modal_store: RwSignal<ModalStore> = expect_context();
-    let provider_store: Rc<ProviderStore> = expect_context();
+    let provider_store: Arc<ProviderStore> = expect_context();
     let close_modal = move || modal_store.update(|m| m.clear_active_modal());
 
     let imported_song = create_rw_signal(None::<Song>);
@@ -57,7 +55,7 @@ pub fn SongFromUrlModal() -> impl IntoView {
 
         // TODO: Update all songs after importing song
         let refresh_songs = move || {};
-        add_songs_to_library(vec![song.unwrap()], Rc::new(Box::new(refresh_songs)));
+        add_songs_to_library(vec![song.unwrap()], Arc::new(Box::new(refresh_songs)));
         set_timeout(
             move || {
                 modal_store.update(|m| m.clear_active_modal());
@@ -70,22 +68,22 @@ pub fn SongFromUrlModal() -> impl IntoView {
         <GenericModal size=move || "modal-lg".into()>
             <div class="modal-content-container">
                 <div class="container-fluid p-0">
-                    <div class="row no-gutters d-flex" no-gutters="">
-                        <div class="col-auto playlist-url-cover" cols="auto">
+                    <div class="row no-gutters d-flex">
+                        <div class="col-auto playlist-url-cover">
                             {move || {
                                 if let Some(song) = imported_song.get() {
                                     if song.song.song_cover_path_high.is_some() {
                                         return view! {
                                             <img class="h-100 w-100" src=get_high_img(&song) />
                                         }
-                                            .into_view();
+                                            .into_any();
                                     }
                                 }
-                                view! { <SongDefaultIcon /> }.into_view()
+                                view! { <SongDefaultIcon /> }.into_any()
                             }}
                         </div>
-                        <div class="col-9" cols="9">
-                            <div class="row no-gutters playlist-url-details" no-gutters="">
+                        <div class="col-9">
+                            <div class="row no-gutters playlist-url-details">
                                 <div class="col w-100">
                                     <div class="row w-100">
                                         <input
@@ -118,19 +116,10 @@ pub fn SongFromUrlModal() -> impl IntoView {
                                 </div>
                             </div>
                             <div class="row no-gutters" no-gutters="">
-                                <div class="col-12" cols="12">
+                                <div class="col-12">
                                     <div class="container-fluid path-container w-100 input-group">
-                                        <div
-
-                                            class="row no-gutters import-playlist-background w-100 mt-2 d-flex"
-                                            no-gutters=""
-                                        >
-                                            <div
-
-                                                class="col-auto align-self-center h-100 ml-3 mr-3"
-                                                cols="auto"
-                                                align-self="center"
-                                            >
+                                        <div class="row no-gutters import-playlist-background w-100 mt-2 d-flex">
+                                            <div class="col-auto align-self-center h-100 ml-3 mr-3">
                                                 <svg
 
                                                     width="16"
@@ -155,12 +144,7 @@ pub fn SongFromUrlModal() -> impl IntoView {
                                                     ></path>
                                                 </svg>
                                             </div>
-                                            <div
-
-                                                class="col-auto align-self-center flex-grow-1 justify-content-start"
-                                                cols="auto"
-                                                align-self="center"
-                                            >
+                                            <div class="col-auto align-self-center flex-grow-1 justify-content-start">
                                                 <input
 
                                                     class="form-control ext-input"

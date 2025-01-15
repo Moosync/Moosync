@@ -66,7 +66,7 @@ impl PlayerStore {
         // let db_rc_clone = db_rc.clone();
 
         let ui_store = expect_context::<RwSignal<UiStore>>();
-        let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile_player()).get();
+        let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
 
         let player_store = Self {
             data: PlayerStoreData::default(),
@@ -547,18 +547,18 @@ impl PlayerStore {
     #[tracing::instrument(level = "trace", skip(self))]
     fn dump_store(&self) {
         let serialized = bitcode::encode(&self.data);
-        let db = Database::open("moosync").build();
-        if let Ok(db) = db {
-            spawn_local(async move {
+        spawn_local(async move {
+            let db = Database::open("moosync").build();
+            if let Ok(db) = db {
                 if let Ok(db) = db.await {
                     if let Err(e) =
-                        write_to_indexed_db(db, "player_store", "dump", &serialized.into()).await
+                        write_to_indexed_db(db, "player_store", "dump", serialized).await
                     {
                         tracing::error!("Failed to dump store: {:?}", e);
                     }
                 }
-            });
-        }
+            }
+        });
     }
 
     #[tracing::instrument(level = "trace", skip(db, signal))]

@@ -212,7 +212,6 @@ pub fn SongView(
                     <div
                         style="max-height: 100%; height: fit-content;"
                         class="song-details-container col-xl-3 col-4"
-                        class:song-details-mobile=show_mobile_default_details
                     >
                         <SongDetails
                             buttons_ref=song_details_container
@@ -233,7 +232,22 @@ pub fn SongView(
                             providers=providers
                             refresh_cb=refresh_cb
                             fetch_next_page=fetch_next_page
-                            header=()
+                            header_height=if show_mobile_default_details { 300 } else { 0 }
+                            header=if show_mobile_default_details {
+                                Some(
+                                    view! {
+                                        <SongDetails
+                                            buttons_ref=song_details_container
+                                            default_details=default_details
+                                            selected_song=last_selected_song.read_only()
+                                            icons=icons
+                                        />
+                                    }
+                                        .into_any(),
+                                )
+                            } else {
+                                None
+                            }
                         />
                     </div>
                 </div>

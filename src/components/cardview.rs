@@ -164,11 +164,16 @@ where
         220
     } as usize;
     let item_height = if is_mobile {
+        tracing::debug!(
+            "got height {}",
+            (document().body().unwrap().client_width() / 2) + 55
+        );
         (document().body().unwrap().client_width() / 2) + 55
     } else {
         275
     } as usize;
 
+    let owner = Owner::new();
     view! {
         <VirtualGridScroller
             each=items
@@ -181,13 +186,16 @@ where
                 let card_item_data = card_item(data);
                 let card_item_data1 = card_item_data.clone();
                 let on_click = on_click.clone();
+                let owner = owner.clone();
                 if songs_view {
+                    let owner = owner.clone();
+                    let owner_cl = owner.clone();
                     view! {
                         <CardItem
                             on:contextmenu=move |ev| {
                                 ev.prevent_default();
                                 if let Some(cb) = &card_item_data1.context_menu {
-                                    cb(ev, data1.clone());
+                                    owner.with(|| cb(ev, data1.clone()));
                                 }
                             }
                             item=card_item_data
@@ -196,7 +204,7 @@ where
                             on_click=Arc::new(
                                 Box::new(move || {
                                     if let Some(cb) = on_click.clone() {
-                                        cb(data2.clone());
+                                        owner_cl.with(|| cb(data2.clone()));
                                     }
                                 }),
                             )
@@ -205,25 +213,30 @@ where
                         .into_any()
                 } else {
                     let id = card_item_data.id.clone();
+                    let owner = owner.clone();
+                    let owner_cl = owner.clone();
                     view! {
                         <div on:click=move |_| {
-                            use_navigate()(
-                                format!(
-                                    "{}/single?entity={}",
-                                    redirect_root,
-                                    url_escape::encode_component(
-                                        &serde_json::to_string(&id).unwrap(),
-                                    ),
-                                )
-                                    .as_str(),
-                                NavigateOptions::default(),
-                            );
+                            owner
+                                .with(|| {
+                                    use_navigate()(
+                                        format!(
+                                            "{}/single?entity={}",
+                                            redirect_root,
+                                            url_escape::encode_component(
+                                                &serde_json::to_string(&id).unwrap(),
+                                            ),
+                                        )
+                                            .as_str(),
+                                        NavigateOptions::default(),
+                                    );
+                                });
                         }>
                             <CardItem
                                 on:contextmenu=move |ev| {
                                     ev.prevent_default();
                                     if let Some(cb) = &card_item_data1.context_menu {
-                                        cb(ev, data1.clone());
+                                        owner_cl.with(|| cb(ev, data1.clone()));
                                     }
                                 }
                                 item=card_item_data

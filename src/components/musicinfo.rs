@@ -16,9 +16,12 @@ use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::ui_store::UiStore;
 use crate::utils::common::{format_duration, get_high_img};
 use crate::utils::entities::get_artist_string;
+use crate::utils::songs::fetch_lyrics;
 use crate::{
     components::{low_img::LowImg, provider_icon::ProviderIcon, songdetails::SongDetails},
-    icons::{add_to_queue_icon::AddToQueueIcon, cross_icon::CrossIcon, trash_icon::TrashIcon},
+    icons::{
+        cross_icon::CrossIcon, prev_icon::PrevIcon, queue_icon::QueueIcon, trash_icon::TrashIcon,
+    },
     store::player_store::PlayerStore,
     utils::common::get_low_img,
 };
@@ -86,6 +89,13 @@ where
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+enum MusicInfoState {
+    MusicInfo,
+    Queue,
+    Lyrics,
+}
+
 #[tracing::instrument(level = "trace", skip(show, node_ref))]
 #[component]
 pub fn MusicInfoMobile(
@@ -94,6 +104,16 @@ pub fn MusicInfoMobile(
 ) -> impl IntoView {
     let player_store = expect_context::<RwSignal<PlayerStore>>();
     let current_song = create_read_slice(player_store, move |p| p.get_current_song());
+    let current_song_index = create_read_slice(player_store, |p| p.get_queue_index());
+
+    let queue_songs = create_read_slice(player_store, move |p| p.get_queue_songs());
+    let is_playing = create_read_slice(player_store, |p| {
+        p.get_player_state() == PlayerState::Playing
+    });
+
+    let play_now = create_write_slice(player_store, |p, val| p.change_index(val, true));
+    let remove_from_queue = create_write_slice(player_store, |p, val| p.remove_from_queue(val));
+
     let cover_img = Memo::new(move |_| {
         if let Some(current_song) = current_song.get() {
             return Some(get_high_img(&current_song));
@@ -153,6 +173,30 @@ pub fn MusicInfoMobile(
         }
     });
 
+    let scroller_ref: NodeRef<Div> = NodeRef::new();
+    Effect::new(move || {
+        let current_song_index = current_song_index.get();
+        if let Some(el) = scroller_ref.get_untracked() {
+            let el_top = 95usize * current_song_index;
+            let options = ScrollToOptions::new();
+            options.set_behavior(ScrollBehavior::Smooth);
+            options.set_top(el_top as f64);
+            el.scroll_with_scroll_to_options(&options);
+        }
+    });
+
+    let selected_lyrics = RwSignal::new(None::<String>);
+    Effect::new(move || {
+        let song = current_song.get();
+        spawn_local(async move {
+            tracing::debug!("fetching lyrics");
+            let lyrics = fetch_lyrics(song).await;
+            selected_lyrics.set(lyrics);
+        });
+    });
+
+    let show_queue = RwSignal::new(MusicInfoState::MusicInfo);
+
     view! {
         <div
             class="slider"
@@ -179,52 +223,149 @@ pub fn MusicInfoMobile(
                     } else {
                         ().into_any()
                     }
-                }} <div class="row no-gutters">
+                }} <div class="musicinfo-mobile-view-container">
                     <div class="col col-auto">
                         <AudioStream />
                     </div>
-                    <div class="col d-flex musicinfo-mobile-cover-container">
-                        <div class="musicinfo-mobile-cover">
-                            <div class="image-container w-100">
-                                <div class="embed-responsive embed-responsive-1by1">
-                                    <div class="embed-responsive-item albumart">
-                                        {move || {
-                                            let cover_img = cover_img.get();
-                                            if !show_default_cover_img.get() {
-                                                view! {
-                                                    <img
-                                                        src=cover_img
-                                                        on:error=move |_| { show_default_cover_img.set(true) }
-                                                    />
-                                                }
-                                                    .into_any()
-                                            } else {
-                                                view! { <SongDefaultIcon /> }.into_any()
-                                            }
-                                        }}
+
+                    {move || {
+                        match show_queue.get() {
+                            MusicInfoState::MusicInfo => {
+                                view! {
+                                    <div class="row no-gutters">
+                                        <div class="col d-flex musicinfo-mobile-cover-container">
+                                            <div class="musicinfo-mobile-cover">
+                                                <div class="image-container w-100">
+                                                    <div class="embed-responsive embed-responsive-1by1">
+                                                        <div class="embed-responsive-item albumart">
+                                                            {move || {
+                                                                let cover_img = cover_img.get();
+                                                                if !show_default_cover_img.get() {
+                                                                    view! {
+                                                                        <img
+                                                                            src=cover_img
+                                                                            on:error=move |_| { show_default_cover_img.set(true) }
+                                                                        />
+                                                                    }
+                                                                        .into_any()
+                                                                } else {
+                                                                    view! { <SongDefaultIcon /> }.into_any()
+                                                                }
+                                                            }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div> <div class="row no-gutters song-info-container">
-                    <div class="col song-title-details text-truncate">{song_title}</div>
-                </div> <div class="row no-gutters song-info-container">
-                    <div class="col song-subtitle-details text-truncate">{song_subtitle}</div>
-                </div> <div class="row no-gutters time-container">
-                    <div class="col col-auto current-time-container">{current_time}</div>
-                    <div class="col slider-container">
-                        <Slider />
-                    </div>
-                    <div class="col col-auto total-time-container">{total_time}</div>
-                </div> <div class="row no-gutters controls-container">
-                    <div class="col">
-                        <Controls show_time=false show_fav=false />
-                    </div>
-                </div> <div class="row no-gutters mobile-musicinfo-buttons">
-                    <div class="col">
-                        <AddToQueueIcon title="show queue".into() />
-                    </div>
+                                    <div class="row no-gutters song-info-container">
+                                        <div class="col song-title-details text-truncate">
+                                            {song_title}
+                                        </div>
+                                    </div>
+                                    <div class="row no-gutters song-info-container">
+                                        <div class="col song-subtitle-details text-truncate">
+                                            {song_subtitle}
+                                        </div>
+                                    </div>
+                                    <div class="row no-gutters time-container">
+                                        <div class="col col-auto current-time-container">
+                                            {current_time}
+                                        </div>
+                                        <div class="col slider-container">
+                                            <Slider />
+                                        </div>
+                                        <div class="col col-auto total-time-container">
+                                            {total_time}
+                                        </div>
+                                    </div>
+                                    <div class="row no-gutters controls-container">
+                                        <div class="col">
+                                            <Controls show_time=false show_fav=false />
+                                        </div>
+                                    </div>
+                                    <div class="row no-gutters mobile-musicinfo-buttons">
+                                        <div class="col">
+                                            <QueueIcon
+                                                on:click=move |_| { show_queue.set(MusicInfoState::Queue) }
+                                                active=RwSignal::new(false).read_only()
+                                            />
+                                        </div>
+                                        <div class="col">
+                                            <QueueIcon
+                                                on:click=move |_| { show_queue.set(MusicInfoState::Lyrics) }
+                                                active=RwSignal::new(false).read_only()
+                                            />
+                                        </div>
+                                    </div>
+                                }
+                                    .into_any()
+                            }
+                            MusicInfoState::Queue => {
+                                view! {
+                                    <div class="row no-gutters">
+                                        <div class="col-auto prev-button">
+                                            <PrevIcon on:click=move |_| {
+                                                show_queue.set(MusicInfoState::MusicInfo);
+                                            } />
+                                        </div>
+                                    </div>
+                                    <div class="row queue-container-outer">
+                                        <div class="col w-100 h-100 mr-4 queue-container">
+
+                                            <div class="w-100 h-100">
+
+                                                <VirtualScroller
+                                                    each=queue_songs
+                                                    key=|s| s.song._id.clone()
+                                                    item_height=95usize
+                                                    inner_el_style="width: calc(100% - 15px);"
+                                                    node_ref=scroller_ref
+                                                    children=move |(index, song)| {
+                                                        view! {
+                                                            <QueueItem
+                                                                current_song_index=current_song_index
+                                                                eq_playing=is_playing
+                                                                song=song.clone()
+                                                                index=index
+                                                                play_now=play_now
+                                                                remove_from_queue=remove_from_queue
+                                                            />
+                                                        }
+                                                    }
+                                                    header=Some(())
+                                                />
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                    .into_any()
+                            }
+                            MusicInfoState::Lyrics => {
+                                view! {
+                                    <div class="row no-gutters">
+                                        <div class="col-auto prev-button">
+                                            <PrevIcon on:click=move |_| {
+                                                show_queue.set(MusicInfoState::MusicInfo);
+                                            } />
+                                        </div>
+                                    </div>
+                                    <div class="row no-gutters h-100">
+                                        <div class="col">
+                                            <div class="lyrics-container">
+                                                <div class="lyrics-side-decoration"></div>
+                                                <div class="lyrics-background"></div>
+                                                <pre>{move || selected_lyrics.get()}</pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                    .into_any()
+                            }
+                        }
+                    }}
+
                 </div>
             </div>
         </div>

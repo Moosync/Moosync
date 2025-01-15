@@ -15,6 +15,7 @@ use crate::{
     utils::{
         common::{format_duration, get_high_img},
         invoke::get_lyrics,
+        songs::fetch_lyrics,
     },
 };
 use std::time::Duration;
@@ -83,34 +84,11 @@ where
         });
 
         Effect::new(move || {
-            tracing::debug!("Fetching lyrics");
             let song = selected_song.get();
-            if let Some(song) = song {
-                let lyrics = song.song.lyrics.clone();
-                if lyrics.is_none() {
-                    spawn_local(async move {
-                        let res = get_lyrics(
-                            song.song._id.clone().unwrap_or_default(),
-                            song.song.playback_url.clone().unwrap_or_default(),
-                            song.artists
-                                .clone()
-                                .unwrap_or_default()
-                                .iter()
-                                .map(|a| a.artist_name.clone().unwrap_or_default())
-                                .collect::<Vec<String>>(),
-                            song.song.title.clone().unwrap_or_default(),
-                        )
-                        .await;
-                        if let Ok(lyrics) = res {
-                            selected_lyrics.set(Some(lyrics));
-                        } else {
-                            tracing::error!("Failed to fetch lyrics: {:?}", res.unwrap_err());
-                        }
-                    });
-                    return;
-                }
+            spawn_local(async move {
+                let lyrics = fetch_lyrics(song).await;
                 selected_lyrics.set(lyrics);
-            }
+            });
         });
     }
 

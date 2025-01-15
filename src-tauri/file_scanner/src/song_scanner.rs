@@ -58,6 +58,7 @@ impl<'a> SongScanner<'a> {
 
     #[tracing::instrument(level = "trace", skip(self, tx_song))]
     pub fn start(&self, tx_song: Sender<(Option<String>, Result<Song>)>) -> Result<usize> {
+        tracing::debug!("Satrting scan");
         self.check_dirs()?;
 
         let file_list = get_files_recursively(self.dir.clone())?;

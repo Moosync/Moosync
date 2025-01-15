@@ -195,8 +195,6 @@ where
                         Ok(should_fetch_inner) => should_fetch = should_fetch_inner,
                     }
                 }
-
-                setter.update(|p| p.dedup_by(|a, b| a == b));
             });
         }
     });
@@ -361,7 +359,7 @@ pub async fn write_to_indexed_db(
     db: Database,
     store: &str,
     key: &str,
-    value: &JsValue,
+    value: Vec<u8>,
 ) -> Result<(), DomException> {
     let tx = db
         .transaction(store)
@@ -370,6 +368,7 @@ pub async fn write_to_indexed_db(
         .unwrap();
     let store = tx.object_store(store).unwrap();
     store.put(value).with_key(key).await.unwrap();
+    tx.commit().await.unwrap();
     tracing::debug!("Wrote to indexed db");
 
     Ok(())

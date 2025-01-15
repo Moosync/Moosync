@@ -132,9 +132,9 @@ pub fn initial(app: &mut App) {
 
     // Spawn scan task
     let scan_task: State<ScanTask> = app.state();
-    let scan_duration = pref_config.load_selective("scan_interval".into());
+    let scan_duration = pref_config.load_selective::<u64>("scan_interval".into());
     if let Ok(scan_duration) = scan_duration {
-        scan_task.spawn_scan_task(app.handle().clone(), scan_duration);
+        scan_task.spawn_scan_task(app.handle().clone(), scan_duration.max(30));
     } else {
         tracing::warn!("Could not spawn scan task, no / invalid duration found");
     }

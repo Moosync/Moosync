@@ -186,6 +186,7 @@ macro_rules! fetch_infinite {
     ($provider:expr, $fetch_content:ident, $update_signal:expr, $next_page_signal:ident, $($arg:expr),*) => {
             'fetch: {
                 use types::providers::generic::Pagination;
+                use types::common::Unique;
                 use leptos::prelude::*;
                 use std::sync::Arc;
 
@@ -231,6 +232,8 @@ macro_rules! fetch_infinite {
 
                     $update_signal.update(|signal| {
                         signal.append(&mut res);
+                        signal.unique();
+                        tracing::debug!("new playlists {:?}", signal);
                     });
 
                     break 'fetch Ok(true);

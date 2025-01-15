@@ -8,7 +8,7 @@
       "artists": "Kunstnere",
       "genre": "Genres",
       "explore": "Udforsk",
-      "paths": "My Music",
+      "paths": "Paths",
       "themes": "Themes",
       "extensions": "Extensions",
       "system": "System",
@@ -72,7 +72,7 @@
       "playCount": "Antal spil"
     },
     "playlist": {
-      "new": "Ny Spilleliste",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importer fra URL",
       "remove": "Fjern afspilningsliste",
       "export": "Eksporter afspilningsliste",
@@ -97,8 +97,8 @@
       "showHidden": "Vis skjulte sange",
       "hideHidden": "Skjul skjulte sange",
       "openInBrowser": "Open in browser",
-      "gotoAlbum": "Go to album ({title})",
-      "gotoArtists": "Go to artists"
+      "gotoAlbum": "Goto album ({title})",
+      "gotoArtists": "Goto artists"
     },
     "artist": {
       "remove": "Remove artist"
@@ -127,10 +127,10 @@
   },
   "settings": {
     "paths": {
-      "songDirectories": "Song Folders",
+      "songDirectories": "Sang Mapper",
       "songDirectories_tooltip": "Mapper hvor al din lokale musik er gemt",
-      "songDirectories_exclude": "Excluded Songs",
-      "songDirectories_exclude_tooltip": "Songs in these folders will not be included in the library",
+      "songDirectories_exclude": "Sortlistede Mapper",
+      "songDirectories_exclude_tooltip": "Sange i disse mapper ville ikke blive scannet",
       "addFolder": "Tilføj Mappe...",
       "remove": "Fjern",
       "artworkPath": "Downloadet Artwork Sti",

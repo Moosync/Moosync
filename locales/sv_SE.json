@@ -8,7 +8,7 @@
       "artists": "Artister",
       "genre": "Genrer",
       "explore": "Utforska",
-      "paths": "My Music",
+      "paths": "Paths",
       "themes": "Teman",
       "extensions": "Extensions",
       "system": "System",
@@ -72,7 +72,7 @@
       "playCount": "Antal spel"
     },
     "playlist": {
-      "new": "Ny spellista",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importera från URL",
       "remove": "Ta bort spellista",
       "export": "Exportera spellista",
@@ -97,8 +97,8 @@
       "showHidden": "Visa dolda låtar",
       "hideHidden": "Dölj dolda låtar",
       "openInBrowser": "Open in browser",
-      "gotoAlbum": "Go to album ({title})",
-      "gotoArtists": "Go to artists"
+      "gotoAlbum": "Goto album ({title})",
+      "gotoArtists": "Goto artists"
     },
     "artist": {
       "remove": "Remove artist"
@@ -127,10 +127,10 @@
   },
   "settings": {
     "paths": {
-      "songDirectories": "Song Folders",
+      "songDirectories": "Låtsökväg",
       "songDirectories_tooltip": "Sökväg där all din lokala musik lagras",
-      "songDirectories_exclude": "Excluded Songs",
-      "songDirectories_exclude_tooltip": "Songs in these folders will not be included in the library",
+      "songDirectories_exclude": "Svartlistade kataloger",
+      "songDirectories_exclude_tooltip": "Låtar i dessa kataloger skulle inte skannas",
       "addFolder": "Lägg till mapp...",
       "remove": "Radera",
       "artworkPath": "Nedladdad sökväg för tryckfil",

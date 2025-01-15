@@ -8,7 +8,7 @@
       "artists": "कलाकार",
       "genre": "शैलियाँ",
       "explore": "एक्सप्लोर करें",
-      "paths": "My Music",
+      "paths": "पथ",
       "themes": "विषय",
       "extensions": "विस्तार",
       "system": "प्रणाली",
@@ -72,7 +72,7 @@
       "playCount": "Play count"
     },
     "playlist": {
-      "new": "New Playlist",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Import from URL",
       "remove": "प्‍लेलिस्‍ट से हटाएं",
       "export": "प्लेलिस्ट निर्यात करें",
@@ -97,8 +97,8 @@
       "showHidden": "Show hidden songs",
       "hideHidden": "Hide hidden songs",
       "openInBrowser": "Open in browser",
-      "gotoAlbum": "Go to album ({title})",
-      "gotoArtists": "Go to artists"
+      "gotoAlbum": "Goto album ({title})",
+      "gotoArtists": "Goto artists"
     },
     "artist": {
       "remove": "Remove artist"
@@ -127,10 +127,10 @@
   },
   "settings": {
     "paths": {
-      "songDirectories": "Song Folders",
+      "songDirectories": "Song Directories",
       "songDirectories_tooltip": "Directories where all your local music is stored",
-      "songDirectories_exclude": "Excluded Songs",
-      "songDirectories_exclude_tooltip": "Songs in these folders will not be included in the library",
+      "songDirectories_exclude": "Blacklisted Directories",
+      "songDirectories_exclude_tooltip": "Songs in these directories would not be scanned",
       "addFolder": "Add Folder...",
       "remove": "Remove",
       "artworkPath": "Downloaded Artwork Path",

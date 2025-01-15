@@ -8,7 +8,7 @@
       "artists": "Sanatçılar",
       "genre": "Türler",
       "explore": "Keşfet",
-      "paths": "My Music",
+      "paths": "Dosya Dizini",
       "themes": "Temalar",
       "extensions": "Eklentiler",
       "system": "Sistem Ayarları",
@@ -72,7 +72,7 @@
       "playCount": "Çalma Sayısı"
     },
     "playlist": {
-      "new": "Yeni Oynatma Listesi",
+      "newPlaylist": "New Playlist",
       "addFromURL": "URL'den ekle",
       "remove": "Çalma listesini sil",
       "export": "Çalma listesini dışa aktar",
@@ -97,8 +97,8 @@
       "showHidden": "Gizlenmiş şarkıları göster",
       "hideHidden": "Gizlenmiş şarkıları gizle",
       "openInBrowser": "Tarayıcıda aç",
-      "gotoAlbum": "Go to album ({title})",
-      "gotoArtists": "Go to artists"
+      "gotoAlbum": "Albüme git ({title})",
+      "gotoArtists": "Sanatçıya git"
     },
     "artist": {
       "remove": "Sanatçıyı kaldır"
@@ -127,10 +127,10 @@
   },
   "settings": {
     "paths": {
-      "songDirectories": "Song Folders",
+      "songDirectories": "Şarkı Dizinleri",
       "songDirectories_tooltip": "Tüm yerel müziğinizin depolandığı dizinler",
-      "songDirectories_exclude": "Excluded Songs",
-      "songDirectories_exclude_tooltip": "Songs in these folders will not be included in the library",
+      "songDirectories_exclude": "Kara Listeye Alınmış Dizinler",
+      "songDirectories_exclude_tooltip": "Bu dizinlerdeki şarkılar taranmayacaktır",
       "addFolder": "Klasör Ekle...",
       "remove": "Kaldır",
       "artworkPath": "İndirilen Çizim Konumu",

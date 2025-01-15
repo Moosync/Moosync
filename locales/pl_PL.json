@@ -8,7 +8,7 @@
       "artists": "Artyści",
       "genre": "Genres",
       "explore": "Przeglądaj",
-      "paths": "My Music",
+      "paths": "Paths",
       "themes": "Themes",
       "extensions": "Extensions",
       "system": "System",
@@ -72,7 +72,7 @@
       "playCount": "Liczba odtworzeń"
     },
     "playlist": {
-      "new": "Nowa playlista",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importuj z URL",
       "remove": "Usuń listę odtwarzania",
       "export": "Eksportuj playlistę",
@@ -97,8 +97,8 @@
       "showHidden": "Pokaż ukryte utwory",
       "hideHidden": "Ukryj ukryte utwory",
       "openInBrowser": "Open in browser",
-      "gotoAlbum": "Go to album ({title})",
-      "gotoArtists": "Go to artists"
+      "gotoAlbum": "Goto album ({title})",
+      "gotoArtists": "Goto artists"
     },
     "artist": {
       "remove": "Remove artist"
@@ -127,10 +127,10 @@
   },
   "settings": {
     "paths": {
-      "songDirectories": "Song Folders",
+      "songDirectories": "Katalogi utworów",
       "songDirectories_tooltip": "Katalogi, w których przechowywana jest cała twoja lokalna muzyka",
-      "songDirectories_exclude": "Excluded Songs",
-      "songDirectories_exclude_tooltip": "Songs in these folders will not be included in the library",
+      "songDirectories_exclude": "Katalogi na czarnej liście",
+      "songDirectories_exclude_tooltip": "Utwory w tych katalogach nie będą skanowane",
       "addFolder": "Dodaj folder...",
       "remove": "Usuń",
       "artworkPath": "Ścieżka do pobranych prac",

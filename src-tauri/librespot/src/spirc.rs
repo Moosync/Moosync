@@ -103,7 +103,7 @@ impl SpircWrapper {
             let device_id_mutex = binding.clone();
             runtime.block_on(async move {
                 let mut device_id_mutex = device_id_mutex.lock().await;
-                let session = create_session(cache_config).clone();
+                let session = create_session(cache_config);
 
                 let device_id = session.device_id().to_string();
 
@@ -127,12 +127,8 @@ impl SpircWrapper {
                         tracing::info!("Spirc created");
 
                         spirc.activate().unwrap();
-                        let commands_thread = SpircWrapper::listen_commands(
-                            rx,
-                            channel_close_tx,
-                            spirc,
-                            session.clone(),
-                        );
+                        let commands_thread =
+                            SpircWrapper::listen_commands(rx, channel_close_tx, spirc, session);
                         let events_thread =
                             SpircWrapper::listen_events(player_events_tx, events_channel);
 
@@ -311,8 +307,8 @@ impl SpircWrapper {
                     return;
                 }
 
-                Self::handle_command(message.clone(), tx, &mut spirc, &mut session);
-                tracing::info!("Finished handling: {:?}", message);
+                tracing::info!("handling: {:?}", message);
+                Self::handle_command(message, tx, &mut spirc, &mut session);
             } else {
                 channel_close_tx.send(()).unwrap();
                 return;

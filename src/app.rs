@@ -1,8 +1,8 @@
-use std::{str::FromStr, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
     components::prefs::static_components::SettingRoutes,
-    i18n::{use_i18n, Locale},
+    i18n::Locale,
     pages::explore::Explore,
     players::librespot::LibrespotPlayer,
     store::ui_store::UiStore,

@@ -42,16 +42,10 @@ impl LyricsFetcher {
     }
 
     #[tracing::instrument(level = "trace", skip(self, base, artists, title, append_lyrics))]
-    fn get_url(
-        &self,
-        base: &str,
-        artists: Vec<String>,
-        title: String,
-        append_lyrics: bool,
-    ) -> String {
-        let mut parsed_title = self.sanitize_title(title.clone().as_str());
+    fn get_url(&self, base: &str, artists: &[String], title: &str, append_lyrics: bool) -> String {
+        let mut parsed_title = self.sanitize_title(title);
 
-        for a in &artists {
+        for a in artists {
             parsed_title = parsed_title.replace(a.as_str(), "");
         }
 
@@ -63,7 +57,7 @@ impl LyricsFetcher {
     }
 
     #[tracing::instrument(level = "trace", skip(self, artists, title))]
-    async fn get_genius_lyrics(&self, artists: Vec<String>, title: String) -> Result<String> {
+    async fn get_genius_lyrics(&self, artists: &[String], title: &str) -> Result<String> {
         let url = self.get_url(
             "https://genius.com/api/search/song?q=",
             artists,
@@ -133,7 +127,7 @@ impl LyricsFetcher {
     }
 
     #[tracing::instrument(level = "trace", skip(self, artists, title))]
-    async fn get_az_lyrics(&self, artists: Vec<String>, title: String) -> Result<String> {
+    async fn get_az_lyrics(&self, artists: &[String], title: &str) -> Result<String> {
         let url = self.get_url(
             "https://search.azlyrics.com/suggest.php?q=",
             artists,
@@ -259,12 +253,12 @@ impl LyricsFetcher {
             }
         }
 
-        let res = self.get_az_lyrics(artists.clone(), title.clone()).await;
+        let res = self.get_az_lyrics(&artists, &title).await;
         if res.is_ok() {
             return res;
         }
 
-        self.get_genius_lyrics(artists, title).await
+        self.get_genius_lyrics(&artists, &title).await
     }
 }
 

@@ -95,7 +95,6 @@ pub async fn start_discovery(client_id: String) -> Credentials {
 
 #[tracing::instrument(level = "trace", skip(track_uri, session))]
 pub fn get_lyrics(track_uri: String, session: Session) -> Result<String> {
-    let session_clone = session.clone();
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_io()
         .enable_time()
@@ -105,7 +104,7 @@ pub fn get_lyrics(track_uri: String, session: Session) -> Result<String> {
     runtime.block_on(async {
         let track_id_res = SpotifyId::from_uri(track_uri.as_str())?;
 
-        let resp = session_clone.spclient().get_lyrics(&track_id_res).await?;
+        let resp = session.spclient().get_lyrics(&track_id_res).await?;
 
         let str = String::from_utf8(resp.to_vec())?;
         Ok(str)
@@ -203,7 +202,6 @@ pub fn get_canvas(track_uri: String, session: Session) -> Result<CanvazResponse>
 
     let uri = uri.unwrap();
 
-    let session_clone = session.clone();
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_io()
         .enable_time()
@@ -211,7 +209,7 @@ pub fn get_canvas(track_uri: String, session: Session) -> Result<CanvazResponse>
         .unwrap();
 
     runtime.block_on(async {
-        let spclient = session_clone.spclient();
+        let spclient = session.spclient();
 
         let mut req = EntityCanvazRequest::new();
         let mut entity = Entity::new();

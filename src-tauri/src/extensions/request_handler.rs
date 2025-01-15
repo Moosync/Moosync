@@ -174,8 +174,7 @@ impl ReplyHandler {
                 let _ = tx.send(payload);
             });
         tracing::debug!("Sending ui request {:?}", request);
-        self.app_handle.emit("ui-requests", request.clone())?;
-        tracing::debug!("sent ui request {:?}", request);
+        self.app_handle.emit("ui-requests", request)?;
 
         let res = rx.await;
 

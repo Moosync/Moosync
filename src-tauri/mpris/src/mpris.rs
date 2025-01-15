@@ -127,8 +127,8 @@ impl MprisHolder {
         drop(last_duration);
 
         #[allow(clippy::clone_on_copy)]
-        let last_state = self.last_state.lock().unwrap().clone();
-        self.set_playback_state(last_state)?;
+        let last_state = self.last_state.lock().unwrap();
+        self.set_playback_state(*last_state)?;
         Ok(())
     }
 }

@@ -136,15 +136,17 @@ impl PreferenceConfig {
             let old_value: Option<Value> = prefs.dot_get(key.as_str()).unwrap();
 
             if let Some(old_value) = old_value {
-                if old_value == serde_json::to_value(value.clone()).unwrap() {
+                if old_value == serde_json::to_value(&value).unwrap() {
                     return Ok(());
                 }
             }
 
-            let mut prefs_clone = prefs.clone();
-            prefs_clone.dot_set(key.as_str(), value.clone()).unwrap();
-            self.schema.validate(&prefs_clone)?;
-            prefs.dot_set(key.as_str(), value.clone()).unwrap();
+            {
+                let mut prefs_clone = prefs.clone();
+                prefs_clone.dot_set(key.as_str(), &value).unwrap();
+                self.schema.validate(&prefs_clone)?;
+            }
+            prefs.dot_set(key.as_str(), &value).unwrap();
         }
 
         let writable = prefs.clone();
@@ -174,12 +176,12 @@ impl PreferenceConfig {
         let child = split.pop().unwrap();
         let parent = split.join(".");
 
-        let preference: Value = self.load_selective(parent.to_string())?;
+        let mut preference: Value = self.load_selective(parent.to_string())?;
         if preference.is_array() {
-            for item in preference.as_array().unwrap() {
+            for item in preference.as_array_mut().unwrap() {
                 if let Some(key) = item.get("key") {
                     if key == child {
-                        return Ok(serde_json::from_value(item.clone().take())?);
+                        return Ok(serde_json::from_value((*item).take())?);
                     }
                 }
             }

@@ -71,10 +71,10 @@ impl CacheHolder {
             expires: new_expires.as_secs() as i64,
         };
         insert_into(cache)
-            .values(cache_model.clone())
+            .values(&cache_model)
             .on_conflict(cache_schema::cache::url)
             .do_update()
-            .set(cache_model)
+            .set(&cache_model)
             .execute(&mut conn)?;
         Ok(())
     }

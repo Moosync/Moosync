@@ -72,7 +72,7 @@
       "playCount": "Aantal Afspelen"
     },
     "playlist": {
-      "new": "Nieuwe afspeellijst",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importeer van URL",
       "remove": "Afspeellijst verwijderen",
       "export": "Afspeellijst exporteren",

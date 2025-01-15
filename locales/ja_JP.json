@@ -72,7 +72,7 @@
       "playCount": "再生回数"
     },
     "playlist": {
-      "new": "新しい再生リスト",
+      "newPlaylist": "New Playlist",
       "addFromURL": "URLからインポート",
       "remove": "再生リストを削除",
       "export": "再生リストをエクスポート",

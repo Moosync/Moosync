@@ -72,7 +72,7 @@
       "playCount": "عدد اللعب"
     },
     "playlist": {
-      "new": "قائمة تشغيل جديدة",
+      "newPlaylist": "New Playlist",
       "addFromURL": "استيراد من عنوان URL",
       "remove": "إزالة قائمة التشغيل",
       "export": "تصدير قائمة التشغيل",

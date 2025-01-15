@@ -72,7 +72,7 @@
       "playCount": "Contagem de reprodução"
     },
     "playlist": {
-      "new": "Nova playlist",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importar a partir da URL",
       "remove": "Remover playlist",
       "export": "Exportar playlist",

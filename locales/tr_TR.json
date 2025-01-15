@@ -72,7 +72,7 @@
       "playCount": "Çalma Sayısı"
     },
     "playlist": {
-      "new": "Yeni Oynatma Listesi",
+      "newPlaylist": "New Playlist",
       "addFromURL": "URL'den ekle",
       "remove": "Çalma listesini sil",
       "export": "Çalma listesini dışa aktar",

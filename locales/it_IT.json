@@ -72,7 +72,7 @@
       "playCount": "Numero di riproduzioni"
     },
     "playlist": {
-      "new": "Nuova Scaletta",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importa da URL",
       "remove": "Elimina playlist",
       "export": "Esporta playlist",

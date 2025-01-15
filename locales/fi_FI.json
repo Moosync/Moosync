@@ -72,7 +72,7 @@
       "playCount": "Toiston määrä"
     },
     "playlist": {
-      "new": "Uusi Soittolista",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Tuo URL:sta",
       "remove": "Poista soittolista",
       "export": "Vie soittolista",

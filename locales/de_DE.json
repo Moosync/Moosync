@@ -72,7 +72,7 @@
       "playCount": "Wiedergabezähler"
     },
     "playlist": {
-      "new": "Neue Playlist",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Von URL importieren",
       "remove": "Playlist entfernen",
       "export": "Playlist exportieren",

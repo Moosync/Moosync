@@ -72,7 +72,7 @@
       "playCount": "Nombre de lectures"
     },
     "playlist": {
-      "new": "Nouvelles liste de lecture",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importer depuis un URL",
       "remove": "Supprimer la playlist",
       "export": "Exporter la liste de lecture",

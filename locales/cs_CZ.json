@@ -8,7 +8,7 @@
       "artists": "Umělci",
       "genre": "Žánry",
       "explore": "Prozkoumat",
-      "paths": "My Music",
+      "paths": "Cesty",
       "themes": "Motivy",
       "extensions": "Rozšíření",
       "system": "Systém",
@@ -72,7 +72,7 @@
       "playCount": "Počet přehrání"
     },
     "playlist": {
-      "new": "Nový playlist",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importovat z URL",
       "remove": "Odstranit seznam skladeb",
       "export": "Exportovat seznam skladeb",
@@ -97,8 +97,8 @@
       "showHidden": "Zobrazit skryté skladby",
       "hideHidden": "Skrýt skryté skladby",
       "openInBrowser": "Otevřít v prohlížeči",
-      "gotoAlbum": "Go to album ({title})",
-      "gotoArtists": "Go to artists"
+      "gotoAlbum": "Goto album ({title})",
+      "gotoArtists": "Goto artists"
     },
     "artist": {
       "remove": "Remove artist"
@@ -127,10 +127,10 @@
   },
   "settings": {
     "paths": {
-      "songDirectories": "Song Folders",
+      "songDirectories": "Adresáře skladeb",
       "songDirectories_tooltip": "Adresáře, kde jsou uloženy všechny místní skladby",
-      "songDirectories_exclude": "Excluded Songs",
-      "songDirectories_exclude_tooltip": "Songs in these folders will not be included in the library",
+      "songDirectories_exclude": "Černá listina adresářů",
+      "songDirectories_exclude_tooltip": "Skladby v těchto adresářích nebyly naskenovány",
       "addFolder": "Přidat složku...",
       "remove": "Odebrat",
       "artworkPath": "Cesta k obrázku alba",

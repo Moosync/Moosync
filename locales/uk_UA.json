@@ -8,7 +8,7 @@
       "artists": "Виконавці",
       "genre": "Genres",
       "explore": "Досліджуйте",
-      "paths": "My Music",
+      "paths": "Paths",
       "themes": "Themes",
       "extensions": "Extensions",
       "system": "System",
@@ -72,7 +72,7 @@
       "playCount": "Кількість відтворень"
     },
     "playlist": {
-      "new": "Новий список відтворення",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Імпорт з URL",
       "remove": "Видалити список відтворення",
       "export": "Експортувати список відтворення",
@@ -97,8 +97,8 @@
       "showHidden": "Показувати приховані пісні",
       "hideHidden": "Сховати приховані пісні",
       "openInBrowser": "Open in browser",
-      "gotoAlbum": "Go to album ({title})",
-      "gotoArtists": "Go to artists"
+      "gotoAlbum": "Goto album ({title})",
+      "gotoArtists": "Goto artists"
     },
     "artist": {
       "remove": "Remove artist"
@@ -127,10 +127,10 @@
   },
   "settings": {
     "paths": {
-      "songDirectories": "Song Folders",
+      "songDirectories": "Пісні каталоги",
       "songDirectories_tooltip": "Каталоги, де зберігається вся ваша локальна музика",
-      "songDirectories_exclude": "Excluded Songs",
-      "songDirectories_exclude_tooltip": "Songs in these folders will not be included in the library",
+      "songDirectories_exclude": "Заблоковані каталоги",
+      "songDirectories_exclude_tooltip": "Пісні у цих каталогах не будуть скановані",
       "addFolder": "Додати теку...",
       "remove": "Видалити",
       "artworkPath": "Завантажений шлях до артилерії",

@@ -72,7 +72,7 @@
       "playCount": "Spill teller"
     },
     "playlist": {
-      "new": "Ny spilleliste",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importer fra URL",
       "remove": "Fjern spilleliste",
       "export": "Eksporter spilleliste",

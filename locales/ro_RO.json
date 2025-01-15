@@ -72,7 +72,7 @@
       "playCount": "Număr de redări"
     },
     "playlist": {
-      "new": "Playlist nou",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importă din URL",
       "remove": "Elimină playlist",
       "export": "Exportă playlist",

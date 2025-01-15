@@ -72,7 +72,7 @@
       "playCount": "Número de juegos"
     },
     "playlist": {
-      "new": "Nueva lista",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importar desde URL",
       "remove": "Eliminar lista de reproducción",
       "export": "Exportar lista de reproducción",

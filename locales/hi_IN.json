@@ -72,7 +72,7 @@
       "playCount": "Play count"
     },
     "playlist": {
-      "new": "New Playlist",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Import from URL",
       "remove": "प्‍लेलिस्‍ट से हटाएं",
       "export": "प्लेलिस्ट निर्यात करें",

@@ -72,7 +72,7 @@
       "playCount": "Liczba odtworzeń"
     },
     "playlist": {
-      "new": "Nowa playlista",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importuj z URL",
       "remove": "Usuń listę odtwarzania",
       "export": "Eksportuj playlistę",

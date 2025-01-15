@@ -72,7 +72,7 @@
       "playCount": "Antal spil"
     },
     "playlist": {
-      "new": "Ny Spilleliste",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importer fra URL",
       "remove": "Fjern afspilningsliste",
       "export": "Eksporter afspilningsliste",

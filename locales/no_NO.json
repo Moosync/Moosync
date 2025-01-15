@@ -8,7 +8,7 @@
       "artists": "Artister",
       "genre": "Genres",
       "explore": "Utforsk",
-      "paths": "My Music",
+      "paths": "Paths",
       "themes": "Tema",
       "extensions": "Utvidelser",
       "system": "System",
@@ -72,7 +72,7 @@
       "playCount": "Spill teller"
     },
     "playlist": {
-      "new": "Ny spilleliste",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importer fra URL",
       "remove": "Fjern spilleliste",
       "export": "Eksporter spilleliste",
@@ -97,8 +97,8 @@
       "showHidden": "Vis skjulte sanger",
       "hideHidden": "Skjul skjulte sanger",
       "openInBrowser": "Åpne i nettleser",
-      "gotoAlbum": "Go to album ({title})",
-      "gotoArtists": "Go to artists"
+      "gotoAlbum": "Goto album ({title})",
+      "gotoArtists": "Goto artists"
     },
     "artist": {
       "remove": "Remove artist"
@@ -127,10 +127,10 @@
   },
   "settings": {
     "paths": {
-      "songDirectories": "Song Folders",
+      "songDirectories": "Sang Mapper",
       "songDirectories_tooltip": "Mapper hvor all lokal musikk blir lagret",
-      "songDirectories_exclude": "Excluded Songs",
-      "songDirectories_exclude_tooltip": "Songs in these folders will not be included in the library",
+      "songDirectories_exclude": "Svartelistede mapper",
+      "songDirectories_exclude_tooltip": "Sanger i katalogene ville ikke bli skannet",
       "addFolder": "Legg til mappe...",
       "remove": "Fjern",
       "artworkPath": "Nedlastet Artwork Path",

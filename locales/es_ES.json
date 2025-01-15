@@ -8,7 +8,7 @@
       "artists": "Artistas",
       "genre": "Géneros",
       "explore": "Explorar",
-      "paths": "My Music",
+      "paths": "Rutas",
       "themes": "Temas",
       "extensions": "Extensiones",
       "system": "Sistema",
@@ -72,7 +72,7 @@
       "playCount": "Número de juegos"
     },
     "playlist": {
-      "new": "Nueva lista",
+      "newPlaylist": "New Playlist",
       "addFromURL": "Importar desde URL",
       "remove": "Eliminar lista de reproducción",
       "export": "Exportar lista de reproducción",
@@ -97,8 +97,8 @@
       "showHidden": "Mostrar canciones ocultas",
       "hideHidden": "Ocultar canciones ocultas",
       "openInBrowser": "Abrir en el navegador",
-      "gotoAlbum": "Go to album ({title})",
-      "gotoArtists": "Go to artists"
+      "gotoAlbum": "Ir al álbum ({title})",
+      "gotoArtists": "Ir a artistas"
     },
     "artist": {
       "remove": "Eliminar artista"
@@ -127,10 +127,10 @@
   },
   "settings": {
     "paths": {
-      "songDirectories": "Song Folders",
+      "songDirectories": "Directorios de canciones",
       "songDirectories_tooltip": "Directorios donde se almacena toda la música local",
-      "songDirectories_exclude": "Excluded Songs",
-      "songDirectories_exclude_tooltip": "Songs in these folders will not be included in the library",
+      "songDirectories_exclude": "Directorios en lista negra",
+      "songDirectories_exclude_tooltip": "No se escanearían los esferos en estos directorios",
       "addFolder": "Añadir carpeta...",
       "remove": "Eliminar",
       "artworkPath": "Ruta de Artwork Descargada",

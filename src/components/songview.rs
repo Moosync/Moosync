@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use leptos::{component, html::Div, prelude::*, view};
-use leptos_context_menu::{ContextMenuData, ContextMenuItemInner, Menu};
+use leptos_context_menu::{ContextMenuData, ContextMenuItemInner};
 use leptos_use::on_click_outside;
 use types::{songs::Song, ui::song_details::DefaultDetails, ui::song_details::SongDetailIcons};
 use web_sys::{Event, Node};

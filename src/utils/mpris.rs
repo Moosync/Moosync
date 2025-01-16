@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use crate::utils::entities::get_artist_string;
 use lazy_static::lazy_static;
-use leptos::{prelude::*, task::spawn_local};
+use leptos::task::spawn_local;
 use types::{mpris::MprisPlayerDetails, songs::Song, ui::player_details::PlayerState};
 
 #[tracing::instrument(level = "trace", skip(song))]

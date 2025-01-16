@@ -41,6 +41,7 @@ pub fn get_extension_state(app: AppHandle) -> Result<ExtensionHandler> {
         let app_handle = app.clone();
         let reply_handler = ReplyHandler::new(app_handle);
         loop {
+            tracing::trace!("Waiting for extension UI requests");
             if let Some(resp) = ui_request_rx.recv().await {
                 if let Some(data) = resp.data {
                     tracing::debug!("Got main command {:?}", data);

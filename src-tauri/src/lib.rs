@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use std::fs;
 
+use clap::Parser;
 use db::is_song_in_playlist;
 use extensions::get_extension_state;
 use librespot::{
@@ -85,6 +86,14 @@ mod themes;
 mod window;
 mod youtube;
 
+#[cfg(desktop)]
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(short, long)]
+    mobile: bool,
+}
+
 #[tracing::instrument(level = "trace", skip())]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -97,6 +106,9 @@ pub fn run() {
     } else {
         EnvFilter::from_env("MOOSYNC_LOG")
     };
+
+    #[cfg(desktop)]
+    let args = Args::parse();
 
     let mut builder = tauri::Builder::default();
 
@@ -140,11 +152,15 @@ pub fn run() {
         window.is_mobile = true;
         window.is_mobile_player = true;
         "#
+        .to_string()
     } else {
-        r#"
-        window.is_mobile = true;
+        format!(
+            r#"
+        window.is_mobile = {};
         window.is_mobile_player = false;
-        "#
+        "#,
+            args.mobile
+        )
     };
 
     builder = builder

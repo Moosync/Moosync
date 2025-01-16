@@ -14,7 +14,6 @@ use crate::{
     },
     utils::{
         common::{format_duration, get_high_img},
-        invoke::get_lyrics,
         songs::fetch_lyrics,
     },
 };

@@ -17,6 +17,7 @@ pub fn get_mpris_state(app: AppHandle) -> Result<MprisHolder> {
     thread::spawn(move || {
         let receiver = receiver.lock().unwrap();
         loop {
+            tracing::trace!("Waiting for mpris events");
             let event = receiver.recv().unwrap();
             let data = match event {
                 mpris::MediaControlEvent::Play => (0, Value::Null),

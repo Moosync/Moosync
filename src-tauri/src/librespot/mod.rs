@@ -54,6 +54,7 @@ pub fn initialize_librespot(app: AppHandle, access_token: String) -> Result<()> 
     tauri::async_runtime::spawn(async move {
         let events_channel = events_channel.lock().unwrap();
         loop {
+            tracing::trace!("Waiting for librespot player events");
             let event = events_channel.recv();
             match event {
                 Ok(event) => {

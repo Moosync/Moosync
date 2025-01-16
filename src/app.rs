@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use crate::{
     components::prefs::static_components::SettingRoutes,
-    i18n::Locale,
+    i18n::{use_i18n, Locale},
     pages::explore::Explore,
     players::librespot::LibrespotPlayer,
     store::ui_store::UiStore,
     utils::{
-        common::{emit, listen_event},
+        common::{emit, get_locale, listen_event},
         invoke::{get_css, load_selective, load_theme, toggle_dev_tools},
         prefs::watch_preferences,
     },
@@ -320,18 +320,11 @@ pub fn App() -> impl IntoView {
             let value = value.as_string().unwrap();
             handle_theme(value);
         } else if key == "prefs.i18n_language" {
-            // let i18n = use_i18n();
+            let i18n = use_i18n();
             let value = serde_wasm_bindgen::from_value::<Vec<CheckboxPreference>>(value).unwrap();
             if let Some(enabled) = value.into_iter().find(|v| v.enabled) {
-                // tracing::debug!("Setting locale to {:?}", enabled.key);
-                // i18n.set_locale(leptos_i18n::Locale::from_matchs(
-                //     LanguageIdentifier::try_from_bytes(enabled.key.as_bytes()).unwrap_or_else(
-                //         |_| {
-                //             tracing::error!("Failed to parse locale {}", enabled.key);
-                //             langid!("en-US")
-                //         },
-                //     ),
-                // ));
+                tracing::debug!("Setting locale to {:?}", enabled.key);
+                i18n.set_locale(get_locale(&enabled.key))
             }
         }
     });

@@ -157,7 +157,7 @@ pub fn Sidebar(#[prop()] tabs: Vec<Tab>) -> impl IntoView {
                                 class="d-flex mr-4 mb-3 sidebar-header"
                                 style="justify-content: space-between;"
                             >
-                                <div class="sidebar-toggle-icon d-flex justify-content-end align-self-center mt-2">
+                                <div class="sidebar-toggle-icon d-flex justify-content-end align-self-center mt-2 w-100">
                                     <SidebarToggleIcon on:click=move |_| {
                                         set_sidebar_open.set(!sidebar_open.get_untracked());
                                     } />

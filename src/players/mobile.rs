@@ -1,10 +1,6 @@
 use std::rc::Rc;
 
-use leptos::{
-    html::Div,
-    prelude::*,
-    task::spawn_local,
-};
+use leptos::{html::Div, prelude::*, task::spawn_local};
 
 use serde::Deserialize;
 use tokio::sync::oneshot::Sender as OneShotSender;
@@ -217,7 +213,7 @@ impl GenericPlayer for MobilePlayer {
         });
 
         for listener in self.listeners.iter() {
-            listener.call0(&JsValue::NULL);
+            let _ = listener.call0(&JsValue::NULL);
         }
         self.listeners.clear();
         self.event_tx = None;

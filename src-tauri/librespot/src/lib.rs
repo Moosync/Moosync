@@ -6,7 +6,6 @@ pub mod utils;
 use std::fmt::Debug;
 use std::sync::{mpsc, Arc, Mutex};
 
-use env_logger::Env;
 use futures::executor::block_on;
 pub use librespot::connect::state::ConnectStateConfig;
 pub use librespot::core::authentication::Credentials;
@@ -78,6 +77,8 @@ impl LibrespotHolder {
     pub fn new() -> Self {
         #[cfg(desktop)]
         {
+            use env_logger::Env;
+
             let env = Env::default().filter_or("MOOSYNC_LOG", "error");
             env_logger::init_from_env(env);
         }

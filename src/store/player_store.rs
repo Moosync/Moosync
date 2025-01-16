@@ -292,13 +292,13 @@ impl PlayerStore {
 
         tracing::debug!("Got seek {}", new_time);
         self.data.player_details.force_seek = new_time;
-        send_extension_event(ExtensionExtraEvent::Seeked([new_time]))
+        // send_extension_event(ExtensionExtraEvent::Seeked([new_time]))
     }
 
     #[tracing::instrument(level = "trace", skip(self, new_time))]
     pub fn force_seek(&mut self, new_time: f64) {
         self.data.player_details.force_seek = new_time;
-        send_extension_event(ExtensionExtraEvent::Seeked([new_time]))
+        // send_extension_event(ExtensionExtraEvent::Seeked([new_time]))
     }
 
     #[tracing::instrument(level = "trace", skip(self, state))]
@@ -515,7 +515,7 @@ impl PlayerStore {
     pub fn load_state_from_idb(signal: RwSignal<PlayerStore>) {
         spawn_local(async move {
             match Database::open("moosync")
-                .with_on_upgrade_needed(move |evt, db| {
+                .with_on_upgrade_needed(move |_, db| {
                     if db.object_store_names().any(|n| n == "player_store") {
                         db.create_object_store("player_store").build()?;
                     }

@@ -57,6 +57,7 @@ tauri-invoke-proc = { path = "./tauri-invoke-proc" }
 openssl-sys = { version = "*", features = ["vendored"] }
 libsqlite3-sys = { version = "0.30.1", features = ["bundled"] }
 uuid = "1.11.1"
+clap = { version = "4.5.26", features = ["derive"] }
 
 [build-dependencies.tauri-build]
 version = "2.0.5"

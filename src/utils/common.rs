@@ -305,5 +305,43 @@ where
     js_sys::Function::from(unlisten.into_js_value())
 }
 
+pub fn get_locale(key: &str) -> Locale {
+    match key {
+        "af_ZA" => Locale::af_ZA,
+        "ar_SA" => Locale::ar_SA,
+        "ca_ES" => Locale::ca_ES,
+        "cs_CZ" => Locale::cs_CZ,
+        "da_DK" => Locale::da_DK,
+        "de_DE" => Locale::de_DE,
+        "el_GR" => Locale::el_GR,
+        "es_ES" => Locale::es_ES,
+        "fi_FI" => Locale::fi_FI,
+        "fr_FR" => Locale::fr_FR,
+        "he_IL" => Locale::he_IL,
+        "hi_IN" => Locale::hi_IN,
+        "hu_HU" => Locale::hu_HU,
+        "it_IT" => Locale::it_IT,
+        "ja_JP" => Locale::ja_JP,
+        "ko_KR" => Locale::ko_KR,
+        "nl_NL" => Locale::nl_NL,
+        "no_NO" => Locale::no_NO,
+        "pl_PL" => Locale::pl_PL,
+        "pt_BR" => Locale::pt_BR,
+        "pt_PT" => Locale::pt_PT,
+        "ro_RO" => Locale::ro_RO,
+        "ru_RU" => Locale::ru_RU,
+        "sr_SP" => Locale::sr_SP,
+        "sv_SE" => Locale::sv_SE,
+        "tr_TR" => Locale::tr_TR,
+        "uk_UA" => Locale::uk_UA,
+        "vi_VN" => Locale::vi_VN,
+        "zh_CN" => Locale::zh_CN,
+        "zh_TW" => Locale::zh_TW,
+        "en_US" | _ => Locale::en_US,
+    }
+}
+
 pub(crate) use fetch_infinite;
 use wasm_bindgen_futures::spawn_local;
+
+use crate::i18n::Locale;

@@ -116,7 +116,7 @@ locales = [
 strip = "symbols"
 
 [profile.release]
-strip = "symbols"
+strip = true
 debug = 0
 opt-level = 3
 lto = true

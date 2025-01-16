@@ -81,7 +81,7 @@ impl ExtensionHandler {
         thread::spawn(move || {
             block_on(async move {
                 loop {
-                    tracing::info!("handling ext commands");
+                    tracing::trace!("handling ext commands");
                     select! {
                         resp = ext_command_rx.recv() => {
                             if let Some(resp) = resp {
@@ -419,19 +419,4 @@ impl ExtensionHandler {
 
         Ok(ret)
     }
-
-    // create_extension_function!(
-    //     (find_new_extensions, "findNewExtensions", Option<()>),
-    //     (get_provider_scopes, "getExtensionProviderScopes", Vec<ExtensionProviderScope>, PackageNameArgs),
-    //     (get_extension_icon, "getExtensionIcon", String, PackageNameArgs),
-    //     (toggle_extension, "toggleExtensionStatus", Option<()>, ToggleExtArgs),
-    //     (send_remove_extension, "removeExtension", Option<()>, PackageNameArgs),
-    //     (stop_process, "stopProcess", Option<()>),
-    //     (get_context_menu, "getExtensionContextMenu", Vec<ExtensionContextMenuItem>, PackageNameArgs),
-    //     (fire_context_menu_action, "onClickedContextMenu", Option<()>, ContextMenuActionArgs),
-    //     (get_accounts, "getAccounts", Vec<ExtensionAccountDetail>, PackageNameArgs),
-    //     (account_login, "performAccountLogin", Option<()>, AccountLoginArgs),
-    //     (get_display_name, "getDisplayName", String, PackageNameArgs),
-    //     (send_extra_event, "extraExtensionEvents", Value, ExtensionExtraEventArgs),
-    // );
 }

@@ -179,6 +179,7 @@ impl SpircWrapper {
         mut events_channel: PlayerEventChannel,
     ) -> JoinHandle<()> {
         thread::spawn(move || loop {
+            tracing::trace!("Listening for librespot events");
             let message = events_channel.blocking_recv();
             if let Some(m) = message {
                 tx.send(m.clone()).unwrap();
@@ -298,6 +299,7 @@ impl SpircWrapper {
         mut session: Session,
     ) -> JoinHandle<()> {
         thread::spawn(move || loop {
+            tracing::trace!("Receiving librespot commands");
             if let Ok((message, tx)) = rx.recv() {
                 if message == Message::Close {
                     spirc.shutdown().unwrap();

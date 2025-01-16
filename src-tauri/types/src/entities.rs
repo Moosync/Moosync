@@ -11,7 +11,6 @@ use diesel::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::common::Unique;
 #[cfg(feature = "core")]
 use crate::schema::{
     album_bridge, albums, analytics, artist_bridge, artists, genre_bridge, genres, playlist_bridge,

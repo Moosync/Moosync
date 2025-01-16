@@ -213,7 +213,6 @@ pub fn MusicInfoMobile(
                         return ().into_any();
                     }
                     let canvas_url = canvaz_sig.get();
-                    let high_img = current_song.map(|current_song| get_high_img(&current_song));
                     if let Some(canvas_url) = canvas_url {
                         view! {
                             <div class="dark-overlay" style="top: 0px;"></div>

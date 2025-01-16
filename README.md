@@ -32,7 +32,7 @@
 
 ## Releases
 
-You may download the latest release from [Official website](https://moosync.app) or from [GitHub Releases](https://github.com/Moosync/Moosync/releases)
+You may download the latest release from [Official website](https://moosync.app) or from [GitHub Releases](https://github.com/Moosync/moosync-tauri/releases)
 
 ### Package managers
 

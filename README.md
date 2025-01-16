@@ -2,7 +2,7 @@
 
 # Moosync
 
-[![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg?style=flat-square)](#contributors-) ![Release](https://github.com/Moosync/Moosync/actions/workflows/build.yml/badge.svg) [![Discord](https://img.shields.io/badge/Moosync-%237289DA.svg?style=fsocial&logo=discord&logoColor=white)](https://discord.gg/HsbqbRune3) [![Crowdin](https://badges.crowdin.net/moosync/localized.svg)](https://crowdin.com/project/moosync)
+[![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg?style=flat-square)](#contributors-) ![Release](https://github.com/Moosync/moosync-tauri/actions/workflows/build.yaml/badge.svg) [![Discord](https://img.shields.io/badge/Moosync-%237289DA.svg?style=fsocial&logo=discord&logoColor=white)](https://discord.gg/HsbqbRune3) [![Crowdin](https://badges.crowdin.net/moosync/localized.svg)](https://crowdin.com/project/moosync)
 
 <p align="center"><b>Help up translate the project at <a href="https://crwd.in/moosync">Crowdin</a></b></p>
 

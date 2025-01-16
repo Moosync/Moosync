@@ -1,0 +1,8 @@
+src-tauri/gen
+public/
+.github/
+.vscode/
+.zed/
+.cargo/
+locales/
+styles/

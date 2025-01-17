@@ -14,22 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// Moosync
-// Copyright (C) 2025 Moosync
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 use std::{
     collections::{BTreeMap, HashMap},
     env, fs,
@@ -388,7 +372,7 @@ impl ExtensionHandlerInner {
             allowed_paths: plugin_manifest.allowed_paths.clone(),
         });
 
-        let plugin_builder = PluginBuilder::new(plugin_manifest)
+        let mut plugin_builder = PluginBuilder::new(plugin_manifest)
             .with_wasi(true)
             .with_function(
                 "send_main_command",

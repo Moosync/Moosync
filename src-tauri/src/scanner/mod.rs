@@ -14,22 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// Moosync
-// Copyright (C) 2025 Moosync
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 use std::{
     sync::{atomic::AtomicBool, mpsc::channel, Arc, Mutex},
     thread::{self},
@@ -108,6 +92,7 @@ pub fn start_scan_inner(app: AppHandle, mut paths: Option<Vec<String>>) -> Resul
     }
 
     let thumbnail_dir: String = preferences.load_selective("thumbnail_path".to_string())?;
+    tracing::debug!("Got thumbnail dir {:?}", thumbnail_dir);
 
     let artist_split: String = preferences
         .load_selective("artist_splitter".to_string())

@@ -14,22 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// Moosync
-// Copyright (C) 2025 Moosync
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use std::fs;
@@ -81,6 +65,9 @@ use tracing_subscriber::{
     layer::SubscriberExt,
 };
 use window::handler::{build_tray_menu, handle_window_close};
+
+#[cfg(mobile)]
+use tauri_plugin_audioplayer::AudioplayerExt;
 
 use {
     db::{
@@ -146,6 +133,11 @@ pub fn run() {
 
     #[cfg(desktop)]
     {
+        #[cfg(debug_assertions)]
+        {
+            builder = tauri::Builder::default().plugin(tauri_plugin_devtools::init());
+        }
+
         builder = builder
             .plugin(tauri_plugin_updater::Builder::new().build())
             .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
@@ -179,21 +171,21 @@ pub fn run() {
             .plugin(tauri_plugin_audioplayer::init());
     }
 
-    let is_mobile_init_script = if cfg!(mobile) {
+    #[cfg(desktop)]
+    let is_mobile_init_script = format!(
         r#"
-        window.is_mobile = true;
-        window.is_mobile_player = true;
-        "#
-        .to_string()
-    } else {
-        format!(
-            r#"
-        window.is_mobile = {};
-        window.is_mobile_player = false;
-        "#,
-            args.mobile
-        )
-    };
+    window.is_mobile = {};
+    window.is_mobile_player = false;
+    "#,
+        args.mobile
+    );
+
+    #[cfg(mobile)]
+    let is_mobile_init_script = r#"
+    window.is_mobile = true;
+    window.is_mobile_player = true;
+    "#
+    .to_string();
 
     builder = builder
         .plugin(tauri_plugin_deep_link::init())
@@ -340,7 +332,7 @@ pub fn run() {
                 .with(log_layer)
                 .with(filter);
 
-            tracing::subscriber::set_global_default(subscriber).unwrap();
+            // tracing::subscriber::set_global_default(subscriber).unwrap();
 
             let db = get_db_state(app);
             app.manage(db);
@@ -392,6 +384,7 @@ pub fn run() {
 
             #[cfg(mobile)]
             {
+                use tauri::plugin::PermissionState;
                 let audioplayer = app.audioplayer();
                 if let Ok(permissions) = audioplayer.check_permissions() {
                     if permissions.read_media != PermissionState::Granted {

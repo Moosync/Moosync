@@ -14,22 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// Moosync
-// Copyright (C) 2025 Moosync
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 use std::{collections::HashMap, sync::Arc};
 
 use leptos::{component, prelude::*, view, IntoView};
@@ -104,9 +88,8 @@ where
     let key_clone = key.clone();
     Effect::new(move || {
         let value = paths.get();
-        tracing::debug!("Should write {}, {:?}", should_write.get(), value);
-        if !should_write.get() {
-            should_write.set(true);
+        tracing::debug!("Should write {}, {:?}", should_write.get_untracked(), value);
+        if !should_write.get_untracked() {
             return;
         }
         tracing::debug!("Saving paths: {:?}", value);
@@ -204,8 +187,8 @@ where
     let inp_type_clone = inp_type.clone();
     Effect::new(move || {
         let value = pref_value.get();
-        if !should_write.get() {
-            should_write.set(true);
+        if !should_write.get_untracked() {
+            untrack(|| should_write.set(true));
             return;
         }
 
@@ -311,7 +294,7 @@ where
     let last_enabled = RwSignal::new(String::new());
     Effect::new(move || {
         let value = pref_value.get();
-        if !should_write.get() {
+        if !should_write.get_untracked() {
             should_write.update_untracked(|v| {
                 *v = true;
             });
@@ -773,8 +756,8 @@ where
 
     Effect::new(move || {
         let value = pref_value.get();
-        if !should_write.get() {
-            should_write.set(true);
+        if !should_write.get_untracked() {
+            untrack(|| should_write.set(true));
             return;
         }
 

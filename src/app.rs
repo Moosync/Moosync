@@ -14,24 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// Moosync
-// Copyright (C) 2025 Moosync
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 use std::sync::Arc;
 
+use crate::i18n::t;
 use crate::{
     components::prefs::static_components::SettingRoutes,
     i18n::{use_i18n, Locale},
@@ -106,14 +91,43 @@ fn CommonApp() -> impl IntoView {
 #[tracing::instrument(level = "trace", skip())]
 #[component]
 pub fn MainApp() -> impl IntoView {
+    let i18n = use_i18n();
     let tabs = vec![
-        Tab::new("Queue", "Queue", "queue"),
-        Tab::new("Songs", "Songs", "/main/allsongs"),
-        Tab::new("Playlists", "Playlists", "/main/playlists"),
-        Tab::new("Artists", "Artists", "/main/artists"),
-        Tab::new("Albums", "Albums", "/main/albums"),
-        Tab::new("Genres", "Genres", "/main/genres"),
-        Tab::new("Explore", "Explore", "/main/explore"),
+        Tab::new(
+            i18n.get_keys().sidebar().tabs().queue().build_string(),
+            "Queue",
+            "queue",
+        ),
+        Tab::new(
+            i18n.get_keys().sidebar().tabs().allSongs().build_string(),
+            "Songs",
+            "/main/allsongs",
+        ),
+        Tab::new(
+            i18n.get_keys().sidebar().tabs().playlists().build_string(),
+            "Playlists",
+            "/main/playlists",
+        ),
+        Tab::new(
+            i18n.get_keys().sidebar().tabs().artists().build_string(),
+            "Artists",
+            "/main/artists",
+        ),
+        Tab::new(
+            i18n.get_keys().sidebar().tabs().albums().build_string(),
+            "Albums",
+            "/main/albums",
+        ),
+        Tab::new(
+            i18n.get_keys().sidebar().tabs().genre().build_string(),
+            "Genres",
+            "/main/genres",
+        ),
+        Tab::new(
+            i18n.get_keys().sidebar().tabs().explore().build_string(),
+            "Explore",
+            "/main/explore",
+        ),
     ];
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();

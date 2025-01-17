@@ -89,8 +89,6 @@ This project follows the [all-contributors](https://github.com/all-contributors/
 ## TODO
 - Preferences
   - Clear queue before adding playlist
-- i18n
-- Sanitize extension response
 - System theme fetch
 - Optimize cloning in leptos
 - Optimize DB queries

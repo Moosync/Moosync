@@ -14,24 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// Moosync
-// Copyright (C) 2025 Moosync
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 use std::sync::Arc;
 
+use crate::i18n::{t, use_i18n};
 use crate::{
     icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon},
     store::ui_store::UiStore,
@@ -432,10 +417,10 @@ pub fn TopBar() -> impl IntoView {
         }
     });
 
+    let navigate = leptos_router::hooks::use_navigate();
     let handle_page_change = move |ev: SubmitEvent| {
         ev.prevent_default();
         let text = input_value.get();
-        let navigate = leptos_router::hooks::use_navigate();
         navigate(
             format!("/main/search?q={}", text).as_str(),
             Default::default(),
@@ -471,6 +456,7 @@ pub fn TopBar() -> impl IntoView {
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
 
+    let i18n = use_i18n();
     view! {
         <div
             class="topbar-container align-items-center topbar is-open"
@@ -507,7 +493,9 @@ pub fn TopBar() -> impl IntoView {
                                 <form on:submit=handle_page_change>
                                     <input
                                         class="form-control searchbar"
-                                        placeholder="Search..."
+                                        placeholder=move || {
+                                            i18n.get_keys().topbar().searchPlaceholder().build_string()
+                                        }
 
                                         on:blur=move |_| handle_input_focus(InputFocus::Blur)
                                         on:focus=move |_| handle_input_focus(InputFocus::Focus)

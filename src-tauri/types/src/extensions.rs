@@ -497,6 +497,7 @@ pub enum MainCommand {
 
 #[derive(Debug, Deserialize, Serialize, ToBytes, FromBytes, Clone)]
 #[encoding(Json)]
+#[serde(untagged)]
 pub enum MainCommandResponse {
     GetSong(Vec<Song>),
     GetEntity(Value),

@@ -280,58 +280,63 @@ pub fn App() -> impl IntoView {
         ev.prevent_default();
     });
 
+    let owner = Owner::new();
     let ui_requests_unlisten = listen_event("ui-requests", move |data| {
-        let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
-        let payload: ExtensionUIRequest = serde_wasm_bindgen::from_value(payload).unwrap();
+        owner.with(|| {
+            let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
+            let payload: ExtensionUIRequest = serde_wasm_bindgen::from_value(payload).unwrap();
 
-        #[tracing::instrument(level = "trace", skip(payload, data))]
-        fn send_reply<T>(payload: ExtensionUIRequest, data: T)
-        where
-            T: Serialize + Clone,
-        {
-            let value = serde_wasm_bindgen::to_value(&data).unwrap();
-            spawn_local(async move {
-                let res = emit(format!("ui-reply-{}", payload.channel).as_str(), value);
-                wasm_bindgen_futures::JsFuture::from(res).await.unwrap();
-            });
-        }
+            #[tracing::instrument(level = "trace", skip(payload, data))]
+            fn send_reply<T>(payload: ExtensionUIRequest, data: T)
+            where
+                T: Serialize + Clone,
+            {
+                let value = serde_wasm_bindgen::to_value(&data).unwrap();
+                spawn_local(async move {
+                    let res = emit(format!("ui-reply-{}", payload.channel).as_str(), value);
+                    wasm_bindgen_futures::JsFuture::from(res).await.unwrap();
+                });
+            }
 
-        match payload.type_.as_str() {
-            "getCurrentSong" => {
-                let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
-                    p.get_current_song()
-                })
-                .get_untracked();
-                send_reply(payload, data);
-            }
-            "getVolume" => {
-                let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
-                    p.get_volume()
-                })
-                .get_untracked();
-                send_reply(payload, data);
-            }
-            "getTime" => {
-                let data =
-                    create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| p.get_time())
-                        .get_untracked();
-                send_reply(payload, data);
-            }
-            "getQueue" => {
-                let data =
-                    create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| p.get_queue())
-                        .get_untracked();
-                send_reply(payload, data);
-            }
-            "getPlayerState" => {
-                let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
-                    p.get_player_state()
-                })
-                .get_untracked();
-                send_reply(payload, data);
-            }
-            _ => {}
-        };
+            match payload.type_.as_str() {
+                "getCurrentSong" => {
+                    let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
+                        p.get_current_song()
+                    })
+                    .get_untracked();
+                    send_reply(payload, data);
+                }
+                "getVolume" => {
+                    let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
+                        p.get_volume()
+                    })
+                    .get_untracked();
+                    send_reply(payload, data);
+                }
+                "getTime" => {
+                    let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
+                        p.get_time()
+                    })
+                    .get_untracked();
+                    send_reply(payload, data);
+                }
+                "getQueue" => {
+                    let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
+                        p.get_queue()
+                    })
+                    .get_untracked();
+                    send_reply(payload, data);
+                }
+                "getPlayerState" => {
+                    let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
+                        p.get_player_state()
+                    })
+                    .get_untracked();
+                    send_reply(payload, data);
+                }
+                _ => {}
+            };
+        });
     });
 
     let watch_prefs_unlisten = watch_preferences(|(key, value)| {

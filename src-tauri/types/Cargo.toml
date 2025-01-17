@@ -42,7 +42,7 @@ uuid = { version = "1.11.1", default-features = false, optional = true, features
 wasm-bindgen = { version = "0.2", optional = true, default-features = false }
 zip = { version = "2.2.2", optional = true, default-features = false }
 bitcode = { version = "0.6.3" }
-rodio = "0.20.1"
+rodio = { version = "0.20.1", optional = true }
 extism-convert = { version = "1.9.1", optional = true }
 
 
@@ -81,6 +81,7 @@ core = [
     "dep:libsqlite3-sys",
     "dep:extism-convert",
     "dep:uuid",
+    "dep:rodio",
 ]
 default = ["core"]
 librespot = ["dep:librespot", "dep:reqwest", "dep:protobuf"]

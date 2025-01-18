@@ -90,18 +90,6 @@ page:
             key: persist_clamp
 
       - type: EditText
-        title: settings.system.spotify.client_id
-        inputType: text
-        description: settings.system.spotify.client_id_tooltip
-        key: spotify.client_id
-
-      - type: EditText
-        title: settings.system.spotify.client_secret
-        inputType: text
-        description: settings.system.spotify.client_secret_tooltip
-        key: spotify.client_secret
-
-      - type: EditText
         title: settings.system.youtube.client_id
         inputType: text
         description: settings.system.youtube.client_id_tooltip

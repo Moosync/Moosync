@@ -40,12 +40,13 @@ use whoami;
 
 use types::errors::{MoosyncError, Result};
 
+const SCHEMA: &str = include_str!("./schema.json");
+
 #[derive(Debug)]
 pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,
     pub secret: Mutex<Key>,
     pub memcache: Mutex<Value>,
-    schema: Validator,
     sender: Sender<(String, Value)>,
     receiver: Receiver<(String, Value)>,
 }
@@ -53,12 +54,6 @@ pub struct PreferenceConfig {
 impl PreferenceConfig {
     #[tracing::instrument(level = "trace", skip(data_dir))]
     pub fn new(data_dir: PathBuf) -> Result<Self> {
-        let schema = serde_json::from_str(include_str!("./schema.json")).unwrap();
-        let schema = match jsonschema::validator_for(&schema) {
-            Ok(s) => s,
-            Err(e) => panic!("{}: {}", e, e.instance_path),
-        };
-
         let config_file_path = data_dir.join("config.json");
 
         if !data_dir.exists() {
@@ -103,7 +98,12 @@ impl PreferenceConfig {
 
         let prefs = serde_json::from_str(&prefs).unwrap_or_default();
 
-        schema.validate(&prefs)?;
+        // let schema = serde_json::from_str(SCHEMA).unwrap();
+        // let schema = match jsonschema::validator_for(&schema) {
+        //     Ok(s) => s,
+        //     Err(e) => panic!("{}: {}", e, e.instance_path),
+        // };
+        // schema.validate(&prefs)?;
 
         let (sender, receiver) = bounded(1);
 
@@ -113,7 +113,6 @@ impl PreferenceConfig {
             memcache: Mutex::new(prefs),
             sender,
             receiver,
-            schema,
         })
     }
 
@@ -160,7 +159,12 @@ impl PreferenceConfig {
             {
                 let mut prefs_clone = prefs.clone();
                 prefs_clone.dot_set(key.as_str(), &value).unwrap();
-                self.schema.validate(&prefs_clone)?;
+                // let schema = serde_json::from_str(SCHEMA).unwrap();
+                // let schema = match jsonschema::validator_for(&schema) {
+                //     Ok(s) => s,
+                //     Err(e) => panic!("{}: {}", e, e.instance_path),
+                // };
+                // schema.validate(&prefs_clone)?;
             }
             prefs.dot_set(key.as_str(), &value).unwrap();
         }

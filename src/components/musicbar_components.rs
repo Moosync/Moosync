@@ -16,7 +16,7 @@
 
 use std::time::Duration;
 
-use ev::mouseup;
+use ev::{mousemove, mouseup};
 use leptos::*;
 use leptos::{component, prelude::*, view, IntoView};
 use leptos_dom::helpers::TimeoutHandle;
@@ -430,11 +430,42 @@ pub fn Slider() -> impl IntoView {
 
     let is_dragging = RwSignal::new(false);
 
+    let display_time = RwSignal::new(0f64);
+    Effect::new(move || {
+        if !is_dragging.get() {
+            let current_time = current_time.get();
+            display_time.set(current_time);
+        }
+    });
+
     let _ = use_event_listener(use_document(), mouseup, move |evt| {
         if is_dragging.get_untracked() {
             tracing::debug!("dragging stop {}", evt.client_x());
             set_current_time.set(evt.client_x() as f64);
             is_dragging.set(false);
+        }
+    });
+
+    let _ = use_event_listener(use_document(), mouseup, move |evt| {
+        if is_dragging.get_untracked() {
+            tracing::debug!("dragging stop {}", evt.client_x());
+            set_current_time.set(evt.client_x() as f64);
+            is_dragging.set(false);
+        }
+    });
+
+    let _ = use_event_listener(use_document(), mousemove, move |evt| {
+        if is_dragging.get() {
+            tracing::info!(
+                "client x: {}, process width: {}",
+                evt.offset_x(),
+                slider_process.get_untracked().unwrap().offset_width(),
+            );
+            display_time.set(
+                (evt.offset_x() as f64
+                    / slider_process.get_untracked().unwrap().offset_width() as f64)
+                    * total_time.get(),
+            );
         }
     });
 
@@ -457,6 +488,10 @@ pub fn Slider() -> impl IntoView {
                         tracing::debug!("offset {}", ev.offset_x());
                         set_current_time.set(ev.offset_x() as f64);
                     }
+                    on:mousedown=move |_| {
+                        tracing::debug!("dragging start");
+                        is_dragging.set(true);
+                    }
                 >
 
                     <div class="time-slider-bg">
@@ -465,7 +500,7 @@ pub fn Slider() -> impl IntoView {
                             style=move || {
                                 format!(
                                     "height: 100%; top: 0px; left: 0%; width: {}%; transition-property: width, left; transition-duration: 0.1s;",
-                                    (current_time.get() / total_time.get()) * 100f64,
+                                    (display_time.get() / total_time.get()) * 100f64,
                                 )
                             }
                         ></div>
@@ -476,12 +511,8 @@ pub fn Slider() -> impl IntoView {
                             style=move || {
                                 format!(
                                     "width: 10px; height: 10px; transform: translate(-50%, -50%); top: 50%; left: {}%; transition: left 0.1s ease 0s;",
-                                    (current_time.get() / total_time.get()) * 100f64,
+                                    (display_time.get() / total_time.get()) * 100f64,
                                 )
-                            }
-                            on:mousedown=move |_| {
-                                tracing::debug!("dragging start");
-                                is_dragging.set(true);
                             }
                         >
 

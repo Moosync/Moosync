@@ -133,10 +133,10 @@ pub fn run() {
 
     #[cfg(desktop)]
     {
-        #[cfg(debug_assertions)]
-        {
-            builder = tauri::Builder::default().plugin(tauri_plugin_devtools::init());
-        }
+        // #[cfg(debug_assertions)]
+        // {
+        //     builder = tauri::Builder::default().plugin(tauri_plugin_devtools::init());
+        // }
 
         builder = builder
             .plugin(tauri_plugin_updater::Builder::new().build())

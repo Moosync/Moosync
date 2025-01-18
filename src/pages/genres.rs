@@ -16,10 +16,12 @@
 
 use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songview::SongView;
+use crate::i18n::use_i18n;
 use crate::store::player_store::PlayerStore;
 use crate::utils::db_utils::get_genres_by_option;
 use crate::utils::db_utils::get_songs_by_option;
 use leptos::{component, prelude::*, view, IntoView};
+use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
 use rand::seq::SliceRandom;
 use std::sync::Arc;
@@ -124,12 +126,13 @@ pub fn AllGenres() -> impl IntoView {
     let genres = RwSignal::new(vec![]);
     get_genres_by_option(QueryableGenre::default(), genres.write_only());
 
+    let i18n = use_i18n();
     view! {
         <div class="w-100 h-100">
             <div class="container-fluid song-container h-100 d-flex flex-column">
                 <div class="row page-title no-gutters">
 
-                    <div class="col-auto">Albums</div>
+                    <div class="col-auto">{t!(i18n, pages.genres)}</div>
                     <div class="col align-self-center"></div>
                 </div>
 

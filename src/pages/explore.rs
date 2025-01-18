@@ -17,10 +17,12 @@
 use std::sync::Arc;
 
 use leptos::{component, prelude::*, view, IntoView};
+use leptos_i18n::t;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
     components::cardview::{CardView, SimplifiedCardItem},
+    i18n::use_i18n,
     store::{player_store::PlayerStore, provider_store::ProviderStore},
     utils::{
         common::get_high_img,
@@ -62,13 +64,14 @@ pub fn Explore() -> impl IntoView {
     };
     let song_context_menu = create_context_menu(context_menu_data);
 
+    let i18n = use_i18n();
     view! {
         <div class="w-100 h-100">
             <div class="container-fluid song-container h-100 d-flex flex-column">
 
                 <div class="row page-title no-gutters">
 
-                    <div class="col-auto">Suggestions</div>
+                    <div class="col-auto">{t!(i18n, pages.explore)}</div>
                     <div class="col align-self-center"></div>
                 </div>
 

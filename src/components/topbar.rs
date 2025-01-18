@@ -132,6 +132,7 @@ pub fn Accounts() -> impl IntoView {
         }
     });
 
+    let i18n = use_i18n();
     view! {
         <div node_ref=target>
             <PersonIcon on:click=move |_| show_accounts_popover.set(!show_accounts_popover.get()) />
@@ -150,10 +151,13 @@ pub fn Accounts() -> impl IntoView {
                                             let (title_out, title_in) = if status.logged_in {
                                                 (
                                                     status.user_name.clone().unwrap_or_default(),
-                                                    "Sign out".into(),
+                                                    i18n.get_keys().accounts().sign_out().build_string().into(),
                                                 )
                                             } else {
-                                                ("Connect".into(), status.name.clone())
+                                                (
+                                                    i18n.get_keys().accounts().connect().build_string().into(),
+                                                    status.name.clone(),
+                                                )
                                             };
                                             let title = RwSignal::new(title_out.clone());
                                             view! {

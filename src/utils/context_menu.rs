@@ -31,6 +31,7 @@ use types::{
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
+    i18n::use_i18n,
     modals::new_playlist_modal::PlaylistModalState,
     store::{
         modal_store::{ModalStore, Modals},
@@ -196,6 +197,8 @@ where
 {
     #[tracing::instrument(level = "trace", skip(self))]
     fn get_menu_items(&self) -> ContextMenuItems<Self> {
+        let i18n = use_i18n();
+
         let mut artist_items = vec![];
         if let Some(song) = &self.current_song {
             if let Some(artists) = &song.artists {
@@ -228,13 +231,23 @@ where
             .unwrap_or_default()
         {
             ContextMenuItemInner::<Self>::new_with_handler(
-                "Remove from library".into(),
+                i18n.get_keys()
+                    .contextMenu()
+                    .song()
+                    .remove()
+                    .build_string()
+                    .into(),
                 |_, cx| cx.remove_from_library(),
                 None,
             )
         } else {
             ContextMenuItemInner::<Self>::new_with_handler(
-                "Add to library".into(),
+                i18n.get_keys()
+                    .contextMenu()
+                    .song()
+                    .add()
+                    .build_string()
+                    .into(),
                 |_, cx| cx.add_to_library(),
                 None,
             )
@@ -243,28 +256,64 @@ where
         let mut ret: ContextMenuItems<Self> = vec![
             ContextMenuItemInner::new_with_handler("Play now".into(), |_, cx| cx.play_now(), None),
             ContextMenuItemInner::new_with_handler(
-                "Play next".into(),
+                i18n.get_keys()
+                    .contextMenu()
+                    .song()
+                    .playNext()
+                    .build_string()
+                    .into(),
                 |_, cx| cx.play_next(),
                 None,
             ),
             ContextMenuItemInner::new_with_handler(
-                "Clear queue and play".into(),
+                i18n.get_keys()
+                    .contextMenu()
+                    .song()
+                    .clearAndPlay()
+                    .build_string()
+                    .into(),
                 |_, cx| cx.clear_queue_and_play(),
                 None,
             ),
             ContextMenuItemInner::new_with_handler(
-                "Add to queue".into(),
+                i18n.get_keys()
+                    .contextMenu()
+                    .song()
+                    .addToQueue()
+                    .build_string()
+                    .into(),
                 |_, cx| cx.add_to_queue(),
                 None,
             ),
-            ContextMenuItemInner::new("Add to playlist".into(), Some(playlist_items)),
+            ContextMenuItemInner::new(
+                i18n.get_keys()
+                    .contextMenu()
+                    .playlist()
+                    .add()
+                    .build_string()
+                    .into(),
+                Some(playlist_items),
+            ),
             library_menu_item,
             ContextMenuItemInner::new_with_handler(
-                "Goto album".into(),
+                i18n.get_keys()
+                    .contextMenu()
+                    .song()
+                    .gotoAlbum()
+                    .build_string()
+                    .into(),
                 |_, cx| cx.goto_album(),
                 None,
             ),
-            ContextMenuItemInner::new("Goto artists".into(), Some(artist_items)),
+            ContextMenuItemInner::new(
+                i18n.get_keys()
+                    .contextMenu()
+                    .song()
+                    .gotoArtists()
+                    .build_string()
+                    .into(),
+                Some(artist_items),
+            ),
         ];
 
         let location = window().location().pathname().unwrap();
@@ -272,7 +321,12 @@ where
             ret.insert(
                 5,
                 ContextMenuItemInner::new_with_handler(
-                    "Remove from playlist".into(),
+                    i18n.get_keys()
+                        .contextMenu()
+                        .song()
+                        .removeFromPlaylist()
+                        .build_string()
+                        .into(),
                     |_, cx| cx.remove_from_playlist(),
                     None,
                 ),
@@ -389,13 +443,26 @@ impl PlaylistContextMenu {
 impl ContextMenuData<Self> for PlaylistContextMenu {
     #[tracing::instrument(level = "trace", skip(self))]
     fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
+        let i18n = use_i18n();
         vec![
             ContextMenuItemInner::new_with_handler(
-                "Import from Url".into(),
+                i18n.get_keys()
+                    .contextMenu()
+                    .playlist()
+                    .addFromURL()
+                    .build_string()
+                    .into(),
                 |_, cx| cx.open_import_from_url_modal(),
                 None,
             ),
-            ContextMenuItemInner::new("Sort by".into(), Some(get_playlist_sort_cx_items())),
+            ContextMenuItemInner::new(
+                i18n.get_keys()
+                    .contextMenu()
+                    .sort_by()
+                    .build_string()
+                    .into(),
+                Some(get_playlist_sort_cx_items()),
+            ),
         ]
     }
 }
@@ -432,17 +499,28 @@ impl PlaylistItemContextMenu {
 impl ContextMenuData<Self> for PlaylistItemContextMenu {
     #[tracing::instrument(level = "trace", skip(self))]
     fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
+        let i18n = use_i18n();
         if let Some(playlist) = &self.playlist {
             if let Some(library_item) = playlist.library_item {
                 if library_item {
                     return vec![
                         ContextMenuItemInner::new_with_handler(
-                            "Remove from library".into(),
+                            i18n.get_keys()
+                                .contextMenu()
+                                .playlist()
+                                .addFromURL()
+                                .build_string()
+                                .into(),
                             |_, cx| cx.remove_from_library(),
                             None,
                         ),
                         ContextMenuItemInner::new_with_handler(
-                            "Export playlist".into(),
+                            i18n.get_keys()
+                                .contextMenu()
+                                .playlist()
+                                .export()
+                                .build_string()
+                                .into(),
                             |_, cx| cx.export_playlist(),
                             None,
                         ),
@@ -451,7 +529,12 @@ impl ContextMenuData<Self> for PlaylistItemContextMenu {
             }
 
             return vec![ContextMenuItemInner::new_with_handler(
-                "Add to library".into(),
+                i18n.get_keys()
+                    .contextMenu()
+                    .playlist()
+                    .save()
+                    .build_string()
+                    .into(),
                 |_, cx| cx.add_to_library(),
                 None,
             )];

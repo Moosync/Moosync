@@ -17,6 +17,7 @@
 use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songview::SongView;
 use crate::dyn_provider_songs;
+use crate::i18n::use_i18n;
 use crate::modals::new_playlist_modal::PlaylistModalState;
 use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::player_store::PlayerStore;
@@ -29,6 +30,7 @@ use crate::utils::db_utils::get_songs_by_option;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::task::spawn_local;
 use leptos::{component, prelude::*, view, IntoView};
+use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
 use rand::seq::SliceRandom;
 use std::collections::HashMap;
@@ -222,6 +224,7 @@ pub fn AllPlaylists() -> impl IntoView {
         refresh_cb: refresh_playlist_items,
     });
 
+    let i18n = use_i18n();
     view! {
         <div class="w-100 h-100">
             <div
@@ -233,7 +236,7 @@ pub fn AllPlaylists() -> impl IntoView {
             >
                 <div class="row page-title no-gutters">
 
-                    <div class="col-auto">Playlists</div>
+                    <div class="col-auto">{t!(i18n, pages.playlists)}</div>
                     <div
                         class="col-auto button-grow playlists-plus-icon"
                         on:click=open_new_playlist_modal

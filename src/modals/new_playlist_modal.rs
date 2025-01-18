@@ -18,9 +18,11 @@ use std::sync::Arc;
 
 use leptos::task::spawn_local;
 use leptos::{component, prelude::*, view, IntoView};
+use leptos_i18n::t;
 use types::entities::QueryablePlaylist;
 use types::songs::Song;
 
+use crate::i18n::use_i18n;
 use crate::icons::{
     import_playlist_icon::ImportPlaylistIcon, new_playlist_icon::NewPlaylistIcon,
     song_default_icon::SongDefaultIcon,
@@ -91,6 +93,8 @@ pub fn NewPlaylistModal(
         close_modal();
     };
 
+    let i18n = use_i18n();
+
     view! {
         <GenericModal size=move || {
             {
@@ -122,7 +126,7 @@ pub fn NewPlaylistModal(
                                             </div>
                                             <div class="row">
                                                 <div class="col d-flex justify-content-center item-title">
-                                                    New Playlist
+                                                    {t!(i18n, contextMenu.playlist.newPlaylist)}
                                                 </div>
                                             </div>
                                         </div>
@@ -143,7 +147,7 @@ pub fn NewPlaylistModal(
                                             </div>
                                             <div class="row">
                                                 <div class="col d-flex justify-content-center item-title">
-                                                    Import from URL
+                                                    {t!(i18n, contextMenu.playlist.addFromURL)}
                                                 </div>
                                             </div>
                                         </div>
@@ -230,7 +234,7 @@ pub fn NewPlaylistModal(
                                     playlist.is_none() || playlist.unwrap().playlist_name.is_empty()
                                 }
                             >
-                                Create
+                                {t!(i18n, playlists.new_playlist.create)}
                             </button>
                         </div>
                     }
@@ -266,9 +270,9 @@ pub fn NewPlaylistModal(
                                                         {move || {
                                                             let playlist = playlist.get();
                                                             if let Some(playlist) = playlist {
-                                                                playlist.playlist_name
+                                                                playlist.playlist_name.into_any()
                                                             } else {
-                                                                "New Playlist".into()
+                                                                t!(i18n, contextMenu.playlist.newPlaylist).into_any()
                                                             }
                                                         }}
                                                     </div>
@@ -323,7 +327,13 @@ pub fn NewPlaylistModal(
                                                                 type="text"
                                                                 prop:value=import_url
                                                                 on:input=move |e| import_url.set(event_target_value(&e))
-                                                                placeholder="Enter URL Here.. (Youtube or Spotify)"
+                                                                placeholder=move || {
+                                                                    i18n.get_keys()
+                                                                        .playlists()
+                                                                        .url()
+                                                                        .input_hint()
+                                                                        .build_string()
+                                                                }
                                                             />
                                                         </div>
                                                     </div>
@@ -347,7 +357,7 @@ pub fn NewPlaylistModal(
                                 on:click=create_new_playlist
                                 class="btn btn-secondary create-button ml-3"
                             >
-                                Add
+                                {t!(i18n, playlists.new_playlist.create)}
                             </button>
                         </div>
                     }

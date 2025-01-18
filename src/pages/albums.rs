@@ -21,11 +21,13 @@ use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songlist::ShowProvidersArgs;
 use crate::components::songview::SongView;
 use crate::dyn_provider_songs;
+use crate::i18n::use_i18n;
 use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::UiStore;
 use crate::utils::common::{convert_file_src, fetch_infinite};
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{component, prelude::*, view, IntoView};
+use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
 use rand::seq::SliceRandom;
 use types::entities::QueryableAlbum;
@@ -156,12 +158,13 @@ pub fn AllAlbums() -> impl IntoView {
     let albums = RwSignal::new(vec![]);
     get_albums_by_option(QueryableAlbum::default(), albums.write_only());
 
+    let i18n = use_i18n();
     view! {
         <div class="w-100 h-100">
             <div class="container-fluid song-container h-100 d-flex flex-column">
                 <div class="row page-title no-gutters">
 
-                    <div class="col-auto">Albums</div>
+                    <div class="col-auto">{t!(i18n, pages.albums)}</div>
                     <div class="col align-self-center"></div>
                 </div>
 

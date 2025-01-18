@@ -19,12 +19,14 @@ use std::sync::Arc;
 use crate::components::cardview::{CardView, SimplifiedCardItem};
 use crate::components::songlist::ShowProvidersArgs;
 use crate::dyn_provider_songs;
+use crate::i18n::use_i18n;
 use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::UiStore;
 use crate::utils::common::{convert_file_src, fetch_infinite};
 use crate::utils::db_utils::get_artists_by_option;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::{component, prelude::*, view, IntoView};
+use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
 use std::collections::HashMap;
 use types::entities::QueryableArtist;
@@ -162,12 +164,13 @@ pub fn AllArtists() -> impl IntoView {
     let artists = RwSignal::new(vec![]);
     get_artists_by_option(QueryableArtist::default(), artists.write_only());
 
+    let i18n = use_i18n();
     view! {
         <div class="w-100 h-100">
             <div class="container-fluid song-container h-100 d-flex flex-column">
                 <div class="row page-title no-gutters">
 
-                    <div class="col-auto">Artists</div>
+                    <div class="col-auto">{t!(i18n, pages.artists)}</div>
                     <div class="col align-self-center"></div>
                 </div>
 

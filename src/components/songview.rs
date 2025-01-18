@@ -170,51 +170,6 @@ pub fn SongView(
 
     let song_context_menu = create_context_menu(SongsContextMenu::new(song_update_request));
 
-    // let song_list_ref = NodeRef::new();
-    // let song_details_ref = NodeRef::new::<Div>();
-    // let container_ref = NodeRef::new::<Div>();
-
-    // let scroll_position = RwSignal::new(0);
-    // use_event_listener(container_ref, scroll, move |_| {
-    //     let scroll_top = container_ref.get_untracked().unwrap().scroll_top();
-    //     tracing::info!("scrolling {}", scroll_top);
-    //     scroll_position.set_untracked(scroll_top);
-    // });
-
-    // let listeners = move |delta_y: f64| {
-    //     let song_details_ref = song_details_ref.get_untracked().unwrap();
-    //     if (scroll_position.get_untracked() as i32) < song_details_ref.offset_height() {
-    //         let container = container_ref.get_untracked().unwrap();
-    //         let options = ScrollToOptions::default();
-    //         options.set_behavior(web_sys::ScrollBehavior::Smooth);
-    //         options.set_top((scroll_position.get_untracked() as f64) + delta_y);
-    //         container.scroll_by_with_scroll_to_options(&options);
-    //         return false;
-    //     }
-    //     true
-    // };
-
-    // use_event_listener(song_list_ref, wheel, move |ev: WheelEvent| {
-    //     if !listeners(ev.delta_y()) {
-    //         ev.prevent_default();
-    //     }
-    // });
-
-    // let touch_start = RwSignal::new(0);
-    // use_event_listener(song_list_ref, touchstart, move |ev| {
-    //     let touch = ev.touches().get(0).unwrap();
-    //     touch_start.set_untracked(touch.client_y());
-    // });
-
-    // use_event_listener(song_list_ref, touchmove, move |ev| {
-    //     let touch = ev.touches().get(0).unwrap();
-    //     let client_y = touch.client_y();
-    //     let delta_y = touch_start.get_untracked() - client_y;
-    //     if !listeners(delta_y as f64) {
-    //         ev.prevent_default();
-    //     }
-    // });
-
     view! {
         <div
             class="w-100 h-100"
@@ -225,10 +180,7 @@ pub fn SongView(
         >
             <div class="container-fluid song-container h-100">
                 <div class="row no-gutters h-100 compact-container">
-                    <div
-                        style="max-height: 100%; height: fit-content;"
-                        class="song-details-container col-xl-3 col-4"
-                    >
+                    <div style="max-height: 100%;" class="song-details-container col-xl-3 col-4">
                         <SongDetails
                             buttons_ref=song_details_container
                             default_details=default_details

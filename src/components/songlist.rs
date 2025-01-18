@@ -169,6 +169,7 @@ pub fn SongList<I>(
     #[prop(optional)] root_ref: Option<NodeRef<Div>>,
     #[prop(optional)] scroller_ref: Option<NodeRef<Div>>,
     #[prop(optional)] header_height: usize,
+    #[prop(optional, default = true)] enable_sort: bool,
     #[prop()] header: I,
 ) -> impl IntoView
 where
@@ -198,23 +199,25 @@ where
     let play_now = create_write_slice(player_store, |store, value| store.play_now(value));
 
     let sorted_songs = Memo::new(move |_| {
-        let sort = songs_sort.get();
         let mut songs = song_list.get();
-        match sort.sort_by {
-            SongSortByColumns::Album => songs.sort_by(|a, b| a.album.cmp(&b.album)),
-            SongSortByColumns::Artist => songs.sort_by(|a, b| a.artists.cmp(&b.artists)),
-            SongSortByColumns::Date => songs.sort_by(|a, b| a.song.date.cmp(&b.song.date)),
-            SongSortByColumns::Genre => songs.sort_by(|a, b| a.genre.cmp(&b.genre)),
-            SongSortByColumns::PlayCount => {}
-            SongSortByColumns::Title => songs.sort_by(|a, b| {
-                let title_a = a.song.title.as_ref().map(|t| t.to_lowercase());
-                let title_b = b.song.title.as_ref().map(|t| t.to_lowercase());
-                title_a.cmp(&title_b)
-            }),
-        }
+        if enable_sort {
+            let sort = songs_sort.get();
+            match sort.sort_by {
+                SongSortByColumns::Album => songs.sort_by(|a, b| a.album.cmp(&b.album)),
+                SongSortByColumns::Artist => songs.sort_by(|a, b| a.artists.cmp(&b.artists)),
+                SongSortByColumns::Date => songs.sort_by(|a, b| a.song.date.cmp(&b.song.date)),
+                SongSortByColumns::Genre => songs.sort_by(|a, b| a.genre.cmp(&b.genre)),
+                SongSortByColumns::PlayCount => {}
+                SongSortByColumns::Title => songs.sort_by(|a, b| {
+                    let title_a = a.song.title.as_ref().map(|t| t.to_lowercase());
+                    let title_b = b.song.title.as_ref().map(|t| t.to_lowercase());
+                    title_a.cmp(&title_b)
+                }),
+            }
 
-        if !sort.asc {
-            songs.reverse();
+            if !sort.asc {
+                songs.reverse();
+            }
         }
 
         songs

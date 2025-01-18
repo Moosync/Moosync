@@ -336,6 +336,7 @@ pub fn Search() -> impl IntoView {
                                                     refresh_cb=refresh_songs
                                                     fetch_next_page=fetch_next_page
                                                     header=()
+                                                    enable_sort=false
                                                 />
                                             </div>
                                         }

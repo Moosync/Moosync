@@ -660,6 +660,7 @@ impl GenericProvider for YoutubeProvider {
 
     #[tracing::instrument(level = "trace", skip(self, song, player))]
     async fn get_playback_url(&self, song: Song, player: String) -> Result<String> {
+        tracing::info!("Fetching song for {} player", player);
         if song.song.provider_extension.unwrap_or_default() != self.key()
             && player.to_lowercase() == "youtube"
         {
@@ -681,7 +682,6 @@ impl GenericProvider for YoutubeProvider {
             }
         }
 
-        tracing::info!("Fetching song for {} player", player);
         if player == "local" || player == "rodio" {
             let youtube_scraper: State<YoutubeScraper> = self.app.state();
             return youtube_scraper

@@ -85,14 +85,6 @@ jobs:
           cache-all-crates: true
           workspaces: |
             . -> target
-            lib/extensions-wasm -> target
-
-      - name: install extensions host wasm
-        run: |
-          mkdir -p target
-          chmod +x ./buildext.sh
-          ./buildext.sh
-        shell: bash
 
       - name: Current PWD
         run: pwd

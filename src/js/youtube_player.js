@@ -142,6 +142,7 @@ class YTPlayer {
     }
   }
 
+  stateChangeTimeout = null;
   play(retry = 0) {
     this.run("playVideo");
 
@@ -150,7 +151,11 @@ class YTPlayer {
       stateChanged = true;
     });
 
-    setTimeout(() => {
+    if (this.stateChangeTimeout != null) {
+      clearTimeout(this.stateChangeTimeout);
+    }
+    this.stateChangeTimeout = setTimeout(() => {
+      this.stateChangeTimeout = null;
       if (!stateChanged && retry < 1) {
         console.warn("state didn't change, trying to replay");
         this.play(retry + 1);
@@ -159,6 +164,10 @@ class YTPlayer {
   }
 
   pause() {
+    if (this.stateChangeTimeout != null) {
+      clearTimeout(this.stateChangeTimeout);
+      this.stateChangeTimeout = null;
+    }
     this.run("pauseVideo");
   }
 

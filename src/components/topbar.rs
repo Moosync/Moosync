@@ -16,7 +16,7 @@
 
 use std::sync::Arc;
 
-use crate::i18n::{t, use_i18n};
+use crate::i18n::use_i18n;
 use crate::{
     icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon},
     store::ui_store::UiStore,

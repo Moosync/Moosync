@@ -66,7 +66,7 @@ pub fn SinglePlaylist() -> impl IntoView {
     let provider_store_clone = provider_store.clone();
     let selected_providers = RwSignal::<Vec<String>>::new(vec![]);
 
-    let (_, filtered_songs, fetch_selected_providers) =
+    let (_, filtered_songs, fetch_selected_providers, is_loading) =
         dyn_provider_songs!(selected_providers, playlist, songs, fetch_playlist_content);
 
     let default_details = RwSignal::new(DefaultDetails::default());
@@ -167,6 +167,7 @@ pub fn SinglePlaylist() -> impl IntoView {
             refresh_cb=refresh_songs
             fetch_next_page=fetch_next_page
             show_mobile_default_details=is_mobile
+            is_loading=is_loading
         />
     }
 }

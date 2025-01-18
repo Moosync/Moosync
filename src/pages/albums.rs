@@ -93,7 +93,7 @@ pub fn SingleAlbum() -> impl IntoView {
 
     let selected_providers = RwSignal::<Vec<String>>::new(vec![]);
 
-    let (_, filtered_songs, fetch_selected_providers) =
+    let (_, filtered_songs, fetch_selected_providers, is_loading) =
         dyn_provider_songs!(selected_providers, album, songs, get_album_content);
 
     let play_songs = move || {
@@ -147,6 +147,7 @@ pub fn SingleAlbum() -> impl IntoView {
             refresh_cb=refresh_songs
             fetch_next_page=fetch_next_page
             show_mobile_default_details=is_mobile
+            is_loading=is_loading
         />
     }
     .into_any()

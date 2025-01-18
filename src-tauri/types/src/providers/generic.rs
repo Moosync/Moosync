@@ -28,6 +28,7 @@ pub struct Pagination {
     pub offset: u32,
     pub token: Option<String>,
     pub is_first: bool,
+    pub is_valid: bool,
 }
 
 impl Pagination {
@@ -37,6 +38,7 @@ impl Pagination {
             limit,
             offset,
             is_first: true,
+            is_valid: true,
             ..Default::default()
         }
     }
@@ -46,6 +48,7 @@ impl Pagination {
         Pagination {
             token,
             is_first: true,
+            is_valid: true,
             ..Default::default()
         }
     }
@@ -57,6 +60,7 @@ impl Pagination {
             offset: self.offset + self.limit.max(1),
             token: self.token.clone(),
             is_first: false,
+            is_valid: true,
         }
     }
 
@@ -67,7 +71,12 @@ impl Pagination {
             offset: self.offset + self.limit,
             token,
             is_first: false,
+            is_valid: true,
         }
+    }
+
+    pub fn invalidate(&mut self) {
+        self.is_valid = false;
     }
 }
 

@@ -25,6 +25,8 @@ macro_rules! dyn_provider_songs {
             HashMap<String, Arc<futures::lock::Mutex<types::providers::generic::Pagination>>>,
         > = RwSignal::new(HashMap::new());
 
+        let is_loading = RwSignal::new(HashMap::new());
+
         let fetch_selected_providers = Arc::new(Box::new(move || {
             let selected_providers = $selected_providers.get();
 
@@ -61,6 +63,7 @@ macro_rules! dyn_provider_songs {
                         $fetch_fn,
                         *binding.unwrap(),
                         next_page_tokens,
+                        is_loading,
                         entity.clone()
                     );
 
@@ -96,6 +99,7 @@ macro_rules! dyn_provider_songs {
             provider_songs,
             get_collective_songs,
             fetch_selected_providers,
+            is_loading,
         )
     }};
 }

@@ -319,13 +319,14 @@ pub fn ExtraControls() -> impl IntoView {
                 class="col-auto volume-slider-container d-flex"
                 class:volume-slider-show=move || show_popup_volume.get()
                 on:mouseover=move |_| {
-                    interval
-                        .update(|i| {
-                            if let Some(i) = i.take() {
-                                i.clear();
-                            }
-                        });
-                    show_popup_volume.set(true);
+                    if show_popup_volume.get_untracked() {
+                        interval
+                            .update(|i| {
+                                if let Some(i) = i.take() {
+                                    i.clear();
+                                }
+                            });
+                    }
                 }
                 on:mouseout=move |_| {
                     interval

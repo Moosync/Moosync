@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use leptos::{component, html::Div, prelude::*, view};
 use leptos_context_menu::{ContextMenuData, ContextMenuItemInner};
@@ -92,6 +92,7 @@ pub fn SongView(
     #[prop()] selected_songs: RwSignal<Vec<usize>>,
     #[prop()] refresh_cb: impl Fn() + 'static + Send + Sync,
     #[prop()] fetch_next_page: impl Fn() + 'static + Send + Sync,
+    #[prop(optional)] is_loading: RwSignal<HashMap<String, bool>>,
     #[prop(optional)] song_update_request: Option<Box<dyn Fn() + Send + Sync>>,
     #[prop(optional)] default_details: RwSignal<DefaultDetails>,
     #[prop(optional, default=ShowProvidersArgs::default())] providers: ShowProvidersArgs,
@@ -200,6 +201,7 @@ pub fn SongView(
                             providers=providers
                             refresh_cb=refresh_cb
                             fetch_next_page=fetch_next_page
+                            is_loading=is_loading
                             header_height=if show_mobile_default_details { 300 } else { 0 }
                             header=if show_mobile_default_details {
                                 Some(

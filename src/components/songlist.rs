@@ -14,9 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
+use std::{
+    collections::HashMap,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 
 use itertools::Itertools;
@@ -170,6 +173,7 @@ pub fn SongList<I>(
     #[prop(optional)] scroller_ref: Option<NodeRef<Div>>,
     #[prop(optional)] header_height: usize,
     #[prop(optional, default = true)] enable_sort: bool,
+    #[prop(optional)] is_loading: RwSignal<HashMap<String, bool>>,
     #[prop()] header: I,
 ) -> impl IntoView
 where
@@ -409,7 +413,6 @@ where
     view! {
         <div class="d-flex h-100 w-100" node_ref=root_ref>
             <div class="container-fluid">
-
                 <Show
                     when=move || hide_search_bar
                     fallback=move || {
@@ -501,6 +504,17 @@ where
                             }
                         }
                     >
+
+                        <Show
+                            when=move || {
+                                is_loading.with(|is_loading| is_loading.values().any(|v| *v))
+                            }
+                            fallback=move || ()
+                        >
+                            <div class="spinner-container">
+                                <div class="spinner-border overlay-spinner"></div>
+                            </div>
+                        </Show>
 
                         <VirtualScroller
                             node_ref=scroller_ref

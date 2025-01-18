@@ -257,6 +257,7 @@ pub fn Search() -> impl IntoView {
     selected_category.set(vec![category_keys.first().unwrap().clone()]);
 
     let keys_clone = keys.clone();
+    let is_loading = RwSignal::new(HashMap::new());
     Effect::new(move || {
         let search_term = term();
         if let Some(search_term) = search_term {
@@ -268,6 +269,10 @@ pub fn Search() -> impl IntoView {
             let keys = keys_clone.clone();
             spawn_local(async move {
                 for key in keys {
+                    let key_cl = key.clone();
+                    is_loading.update(move |map| {
+                        map.insert(key_cl, true);
+                    });
                     let res = if key == "Local" {
                         search_all(search_term.clone()).await
                     } else {
@@ -288,6 +293,9 @@ pub fn Search() -> impl IntoView {
                             );
                         }
                     }
+                    is_loading.update(move |map| {
+                        map.remove(&key);
+                    });
                 }
             });
         }
@@ -308,101 +316,125 @@ pub fn Search() -> impl IntoView {
                 />
 
                 <div class="container-fluid mt-3 search-song-list-container">
-                    <div class="row no-gutters h-100">
+                    <div class="row no-gutters h-100" style="position: relative;">
                         {move || {
-                            let search_results = search_results.get();
-                            let binding = selected_provider.get();
-                            let active_provider = binding.first();
-                            if active_provider.is_none() {
-                                return ().into_any();
+                            view! {
+                                <Show
+                                    when=move || {
+                                        is_loading
+                                            .with(move |map| {
+                                                let binding = selected_provider.get();
+                                                let active_provider = binding.first();
+                                                if let Some(active_provider) = active_provider {
+                                                    *map.get(active_provider).unwrap_or(&false)
+                                                } else {
+                                                    false
+                                                }
+                                            })
+                                    }
+                                    fallback=move || ()
+                                >
+                                    <div class="spinner-container">
+                                        <div class="spinner-border overlay-spinner"></div>
+                                    </div>
+                                </Show>
+                                {move || {
+                                    let search_results = search_results.get();
+                                    let binding = selected_provider.get();
+                                    let active_provider = binding.first();
+                                    if active_provider.is_none() {
+                                        return ().into_any();
+                                    }
+                                    let active_provider = active_provider.unwrap();
+                                    if let Some(res) = search_results.get(active_provider) {
+                                        let binding = selected_category.get();
+                                        let active_category = binding.first();
+                                        if active_category.is_none() {
+                                            return ().into_any();
+                                        }
+                                        let active_category = active_category.unwrap();
+                                        return match active_category.as_str() {
+                                            "Songs" => {
+                                                view! {
+                                                    <div class="col h-100 song-list-compact">
+                                                        <SongList
+                                                            hide_search_bar=true
+                                                            song_list=RwSignal::new(res.songs.clone()).read_only()
+                                                            selected_songs_sig=RwSignal::new(vec![])
+                                                            filtered_selected=RwSignal::new(vec![])
+                                                            refresh_cb=refresh_songs
+                                                            fetch_next_page=fetch_next_page
+                                                            header=()
+                                                            enable_sort=false
+                                                        />
+                                                    </div>
+                                                }
+                                                    .into_any()
+                                            }
+                                            "Albums" => {
+                                                view! {
+                                                    <CardView
+                                                        items=RwSignal::new(res.albums.clone())
+                                                        key=|a| a.album_id.clone()
+                                                        redirect_root="/main/albums"
+                                                        card_item=move |(_, item)| {
+                                                            SimplifiedCardItem {
+                                                                title: item.album_name.clone().unwrap_or_default(),
+                                                                cover: item.album_coverpath_high.clone(),
+                                                                id: item.clone(),
+                                                                icon: None,
+                                                                context_menu: None,
+                                                            }
+                                                        }
+                                                    />
+                                                }
+                                                    .into_any()
+                                            }
+                                            "Artists" => {
+                                                view! {
+                                                    <CardView
+                                                        items=RwSignal::new(res.artists.clone())
+                                                        key=|a| a.artist_id.clone()
+                                                        redirect_root="/main/artists"
+                                                        card_item=move |(_, item)| {
+                                                            SimplifiedCardItem {
+                                                                title: item.artist_name.clone().unwrap_or_default(),
+                                                                cover: item.artist_coverpath.clone(),
+                                                                id: item.clone(),
+                                                                icon: None,
+                                                                context_menu: None,
+                                                            }
+                                                        }
+                                                    />
+                                                }
+                                                    .into_any()
+                                            }
+                                            "Playlists" => {
+                                                view! {
+                                                    <CardView
+                                                        items=RwSignal::new(res.playlists.clone())
+                                                        key=|a| a.playlist_id.clone()
+                                                        redirect_root="/main/playlists/"
+                                                        card_item=move |(_, item)| {
+                                                            SimplifiedCardItem {
+                                                                title: item.playlist_name.clone(),
+                                                                cover: item.playlist_coverpath.clone(),
+                                                                id: item.clone(),
+                                                                icon: None,
+                                                                context_menu: None,
+                                                            }
+                                                        }
+                                                    />
+                                                }
+                                                    .into_any()
+                                            }
+                                            _ => ().into_any(),
+                                        };
+                                    }
+                                    ().into_any()
+                                }}
                             }
-                            let active_provider = active_provider.unwrap();
-                            if let Some(res) = search_results.get(active_provider) {
-                                let binding = selected_category.get();
-                                let active_category = binding.first();
-                                if active_category.is_none() {
-                                    return ().into_any();
-                                }
-                                let active_category = active_category.unwrap();
-                                return match active_category.as_str() {
-                                    "Songs" => {
-                                        view! {
-                                            <div class="col h-100 song-list-compact">
-                                                <SongList
-                                                    hide_search_bar=true
-                                                    song_list=RwSignal::new(res.songs.clone()).read_only()
-                                                    selected_songs_sig=RwSignal::new(vec![])
-                                                    filtered_selected=RwSignal::new(vec![])
-                                                    refresh_cb=refresh_songs
-                                                    fetch_next_page=fetch_next_page
-                                                    header=()
-                                                    enable_sort=false
-                                                />
-                                            </div>
-                                        }
-                                            .into_any()
-                                    }
-                                    "Albums" => {
-                                        view! {
-                                            <CardView
-                                                items=RwSignal::new(res.albums.clone())
-                                                key=|a| a.album_id.clone()
-                                                redirect_root="/main/albums"
-                                                card_item=move |(_, item)| {
-                                                    SimplifiedCardItem {
-                                                        title: item.album_name.clone().unwrap_or_default(),
-                                                        cover: item.album_coverpath_high.clone(),
-                                                        id: item.clone(),
-                                                        icon: None,
-                                                        context_menu: None,
-                                                    }
-                                                }
-                                            />
-                                        }
-                                            .into_any()
-                                    }
-                                    "Artists" => {
-                                        view! {
-                                            <CardView
-                                                items=RwSignal::new(res.artists.clone())
-                                                key=|a| a.artist_id.clone()
-                                                redirect_root="/main/artists"
-                                                card_item=move |(_, item)| {
-                                                    SimplifiedCardItem {
-                                                        title: item.artist_name.clone().unwrap_or_default(),
-                                                        cover: item.artist_coverpath.clone(),
-                                                        id: item.clone(),
-                                                        icon: None,
-                                                        context_menu: None,
-                                                    }
-                                                }
-                                            />
-                                        }
-                                            .into_any()
-                                    }
-                                    "Playlists" => {
-                                        view! {
-                                            <CardView
-                                                items=RwSignal::new(res.playlists.clone())
-                                                key=|a| a.playlist_id.clone()
-                                                redirect_root="/main/playlists/"
-                                                card_item=move |(_, item)| {
-                                                    SimplifiedCardItem {
-                                                        title: item.playlist_name.clone(),
-                                                        cover: item.playlist_coverpath.clone(),
-                                                        id: item.clone(),
-                                                        icon: None,
-                                                        context_menu: None,
-                                                    }
-                                                }
-                                            />
-                                        }
-                                            .into_any()
-                                    }
-                                    _ => ().into_any(),
-                                };
-                            }
-                            ().into_any()
+                                .into_any()
                         }}
                     </div>
                 </div>

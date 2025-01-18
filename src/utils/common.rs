@@ -199,7 +199,7 @@ pub fn get_high_img(song: &Song) -> String {
 }
 
 macro_rules! fetch_infinite {
-    ($provider:expr, $fetch_content:ident, $update_signal:expr, $next_page_signal:ident, $($arg:expr),*) => {
+    ($provider:expr, $fetch_content:ident, $update_signal:expr, $next_page_signal:ident, $is_loading:ident, $($arg:expr),*) => {
             'fetch: {
                 use types::providers::generic::Pagination;
                 use types::common::Unique;
@@ -222,6 +222,14 @@ macro_rules! fetch_infinite {
 
                 let pagination_lock = pagination_lock.unwrap();
                 let mut pagination = pagination_lock.lock().await;
+                if !pagination.is_valid {
+                    break 'fetch Ok(true);
+                }
+
+                let key = $provider.clone();
+                $is_loading.update(move |map| {
+                    map.insert(key, true);
+                });
 
                 let res = crate::utils::invoke::$fetch_content($provider.clone(), $($arg,)* pagination.clone()).await;
                 if res.is_err() {
@@ -235,6 +243,11 @@ macro_rules! fetch_infinite {
 
                     if len == 0 {
                         tracing::debug!("got 0 len content");
+                        pagination.invalidate();
+                        let key = $provider.clone();
+                        $is_loading.update(move |map| {
+                            map.remove(&key);
+                        });
                         break 'fetch Ok(false);
                     }
 
@@ -252,8 +265,18 @@ macro_rules! fetch_infinite {
                         tracing::debug!("new playlists {:?}", signal);
                     });
 
+                    let key = $provider.clone();
+                    $is_loading.update(move |map| {
+                        map.remove(&key);
+                    });
+
                     break 'fetch Ok(true);
                 }
+
+                let key = $provider.clone();
+                $is_loading.update(move |map| {
+                    map.remove(&key);
+                });
                 Ok(false)
             }
     };

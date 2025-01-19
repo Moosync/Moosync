@@ -9,7 +9,7 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// GNU Goueneral Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
@@ -59,14 +59,14 @@ impl MprisHolder {
         };
 
         let mut controls =
-            MediaControls::new(config).map_err(|e| MoosyncError::String(e.to_string()))?;
+            MediaControls::new(config).map_err(|e| MoosyncError::String(format!("{:?}", e)))?;
 
         let (event_tx, event_rx) = mpsc::channel();
         controls
             .attach(move |event| {
                 event_tx.send(event).unwrap();
             })
-            .map_err(|e| MoosyncError::String(e.to_string()))?;
+            .map_err(|e| MoosyncError::String(format!("{:?}", e)))?;
 
         #[cfg(target_os = "windows")]
         std::thread::spawn(move || {

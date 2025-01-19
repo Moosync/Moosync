@@ -53,6 +53,8 @@ wasm-timer = "0.2.5"
 [workspace]
 resolver = "2"
 exclude = [
+    "lib/extensions-wasm/wasm-extension-py/python-pdk/lib",
+    "lib/extensions-wasm/wasm-extension-py/python-pdk/bin",
     "lib/extensions-wasm/wasm-extension-rs",
     "lib/tauri-plugin-audioplayer/android/librespot-jni",
 ]

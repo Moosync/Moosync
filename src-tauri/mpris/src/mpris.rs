@@ -102,7 +102,7 @@ impl MprisHolder {
                 cover_url: metadata.thumbnail.as_deref(),
                 duration: duration.map(Duration::from_millis),
             })
-            .map_err(|e| MoosyncError::String(e.to_string()))?;
+            .map_err(|e| MoosyncError::String(format!("{:?}", e)))?;
 
         Ok(())
     }
@@ -128,7 +128,7 @@ impl MprisHolder {
         let mut controls = self.controls.lock().unwrap();
         controls
             .set_playback(parsed)
-            .map_err(|e| MoosyncError::String(e.to_string()))?;
+            .map_err(|e| MoosyncError::String(format!("{:?}", e)))?;
         drop(controls);
 
         let mut last_state = self.last_state.lock().unwrap();

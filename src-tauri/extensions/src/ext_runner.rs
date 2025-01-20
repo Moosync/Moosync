@@ -255,7 +255,7 @@ pub(crate) struct ExtensionHandlerInner {
     extensions_path: String,
     cache_path: String,
     ext_command_tx: ExtCommandSender,
-    extensions_map: HashMap<String, Extension>,
+    extensions_map: Arc<Mutex<HashMap<String, Extension>>>,
     reply_map: Arc<std::sync::Mutex<HashMap<String, ExtCommandReplySender>>>,
 }
 
@@ -270,7 +270,7 @@ impl ExtensionHandlerInner {
             extensions_path: extensions_path.to_string_lossy().to_string(),
             ext_command_tx,
             cache_path: cache_path.to_string_lossy().to_string(),
-            extensions_map: HashMap::new(),
+            extensions_map: Default::default(),
             reply_map: Arc::new(std::sync::Mutex::new(HashMap::new())),
         };
         ret.spawn_extensions();
@@ -305,9 +305,11 @@ impl ExtensionHandlerInner {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    fn find_extensions(&self) -> Vec<ExtensionManifest> {
+    async fn find_extensions(&self) -> Vec<ExtensionManifest> {
         let manifests = self.find_extension_manifests();
         let mut parsed_manifests = vec![];
+
+        let extensions_map = self.extensions_map.lock().await;
         for manifest_path in manifests {
             if let Ok(contents) = fs::read(manifest_path.clone()) {
                 match serde_json::from_slice::<ExtensionManifest>(&contents) {
@@ -316,7 +318,7 @@ impl ExtensionHandlerInner {
                             .parent()
                             .unwrap()
                             .join(manifest.extension_entry);
-                        if !self.extensions_map.contains_key(&manifest.name)
+                        if !extensions_map.contains_key(&manifest.name)
                             && manifest.extension_entry.extension().unwrap() == "wasm"
                             && manifest.extension_entry.exists()
                         {
@@ -331,8 +333,12 @@ impl ExtensionHandlerInner {
         parsed_manifests
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
-    fn spawn_extension(&self, manifest: ExtensionManifest) -> Extension {
+    #[tracing::instrument(level = "trace", skip())]
+    fn spawn_extension(
+        manifest: ExtensionManifest,
+        reply_map: Arc<std::sync::Mutex<HashMap<String, ExtCommandReplySender>>>,
+        ext_command_tx: ExtCommandSender,
+    ) -> Extension {
         let url = Wasm::file(manifest.extension_entry.clone());
         let mut plugin_manifest = Manifest::new([url]);
         if let Some(permissions) = manifest.permissions {
@@ -362,8 +368,8 @@ impl ExtensionHandlerInner {
         }
 
         let user_data = UserData::new(MainCommandUserData {
-            reply_map: self.reply_map.clone(),
-            ext_command_tx: self.ext_command_tx.clone(),
+            reply_map,
+            ext_command_tx,
             extension_name: manifest.name.clone(),
         });
 
@@ -438,18 +444,23 @@ impl ExtensionHandlerInner {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    fn spawn_extensions(&mut self) {
-        let manifests = self.find_extensions();
+    async fn spawn_extensions(&mut self) {
+        let manifests = self.find_extensions().await;
         for manifest in manifests {
             let package_name = manifest.name.clone();
-            let extension = self.spawn_extension(manifest);
-            let plugin = extension.plugin.clone();
+            let extension_map = self.extensions_map.clone();
+            let reply_map = self.reply_map.clone();
+            let ext_command_tx = self.ext_command_tx.clone();
             thread::spawn(move || {
+                let extension = Self::spawn_extension(manifest, reply_map, ext_command_tx);
+                let plugin = extension.plugin.clone();
                 let mut plugin = block_on(plugin.lock());
                 tracing::trace!("Callign entry");
                 plugin.call::<(), ()>("entry", ()).unwrap();
+
+                let mut extensions_map = block_on(extension_map.lock());
+                extensions_map.insert(package_name, extension);
             });
-            self.extensions_map.insert(package_name, extension);
         }
 
         if let Err(e) = self
@@ -461,12 +472,13 @@ impl ExtensionHandlerInner {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    fn get_extensions(&self, package_name: String) -> Vec<&Extension> {
+    async fn get_extensions(&self, package_name: String) -> Vec<Extension> {
         let mut plugins = vec![];
+        let extensions_map = self.extensions_map.lock().await;
         if package_name.is_empty() {
-            plugins.extend(self.extensions_map.values());
+            plugins.extend(extensions_map.values().cloned());
         } else {
-            let plugin = self.extensions_map.get(&package_name);
+            let plugin = extensions_map.get(&package_name).cloned();
             if let Some(plugin) = plugin {
                 plugins.push(plugin);
             }
@@ -594,7 +606,7 @@ impl ExtensionHandlerInner {
         tx: MainCommandReplySender,
     ) -> MoosyncResult<()> {
         let (package_name, fn_name, args) = command.to_plugin_call();
-        let plugins = self.get_extensions(package_name.clone());
+        let plugins = self.get_extensions(package_name.clone()).await;
 
         let plugins_len = plugins.len();
 
@@ -647,8 +659,9 @@ impl ExtensionHandlerInner {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    fn remove_extension(&mut self, package_name: &String) {
-        self.extensions_map.remove(package_name);
+    async fn remove_extension(&mut self, package_name: &String) {
+        let mut extensions_map = self.extensions_map.lock().await;
+        extensions_map.remove(package_name);
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -669,8 +682,8 @@ impl ExtensionHandlerInner {
         tracing::info!("Got runner command {:?}", command);
         let ret = match command {
             RunnerCommand::GetInstalledExtensions => {
-                let extensions = self
-                    .extensions_map
+                let extensions_map = self.extensions_map.lock().await;
+                let extensions = extensions_map
                     .values()
                     .map(|e| e.into())
                     .collect::<Vec<ExtensionDetail>>();
@@ -683,6 +696,7 @@ impl ExtensionHandlerInner {
             }
             RunnerCommand::GetExtensionIcon(p) => RunnerCommandResp::ExtensionIcon(
                 self.get_extensions(p.package_name)
+                    .await
                     .first()
                     .map(|e| e.icon.clone()),
             ),
@@ -696,6 +710,7 @@ impl ExtensionHandlerInner {
             }
             RunnerCommand::GetDisplayName(p) => RunnerCommandResp::ExtensionIcon(
                 self.get_extensions(p.package_name)
+                    .await
                     .first()
                     .map(|e| e.name.clone()),
             ),

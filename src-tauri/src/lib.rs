@@ -332,7 +332,7 @@ pub fn run() {
                 .with(log_layer)
                 .with(filter);
 
-            // tracing::subscriber::set_global_default(subscriber).unwrap();
+            tracing::subscriber::set_global_default(subscriber).unwrap();
 
             let db = get_db_state(app);
             app.manage(db);

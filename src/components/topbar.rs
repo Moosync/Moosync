@@ -27,6 +27,7 @@ use leptos::{
 use leptos_router::{hooks::use_navigate, NavigateOptions};
 use leptos_use::on_click_outside;
 use leptos_virtual_scroller::VirtualScroller;
+use types::ui::extensions::ExtensionProviderScope;
 use types::{
     entities::{
         GetEntityOptions, QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist,
@@ -143,9 +144,13 @@ pub fn Accounts() -> impl IntoView {
                         <div class="accounts-popover custom-popover">
                             <div class="buttons">
                                 {move || {
-                                    let binding = statuses.get();
-                                    binding
+                                    let binding = statuses
+                                        .get()
                                         .into_iter()
+                                        .filter(|s| {
+                                            s.scopes.contains(&ExtensionProviderScope::Accounts)
+                                        });
+                                    binding
                                         .map(|status| {
                                             let key = status.key.clone();
                                             let (title_out, title_in) = if status.logged_in {

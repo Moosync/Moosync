@@ -16,7 +16,7 @@
 
 use std::sync::Arc;
 
-use leptos::prelude::*;
+use leptos::{prelude::*, task::spawn_local};
 use leptos_context_menu::{
     BottomSheet, ContextMenu, ContextMenuData, ContextMenuItemInner, ContextMenuItems, Menu,
 };
@@ -27,8 +27,8 @@ use leptos_router::{
 use types::{
     entities::{QueryableArtist, QueryablePlaylist},
     songs::Song,
+    ui::extensions::ExtensionProviderScope,
 };
-use wasm_bindgen_futures::spawn_local;
 
 use crate::{
     i18n::use_i18n,
@@ -36,6 +36,7 @@ use crate::{
     store::{
         modal_store::{ModalStore, Modals},
         player_store::PlayerStore,
+        provider_store::ProviderStore,
         ui_store::UiStore,
     },
     utils::{entities::get_playlist_sort_cx_items, songs::get_songs_from_indices},
@@ -46,14 +47,16 @@ use super::{
         add_songs_to_library, add_to_playlist, create_playlist, export_playlist, remove_playlist,
         remove_songs_from_library,
     },
-    invoke::load_theme,
+    invoke::{
+        get_playlist_context_menu, get_song_context_menu, load_theme, trigger_context_menu_action,
+    },
     songs::get_sort_cx_items,
 };
 
 #[derive(Clone)]
 pub struct SongItemContextMenu<T>
 where
-    T: Get<Value = Vec<Song>> + Send + Sync,
+    T: Get<Value = Vec<Song>> + Send + Sync + 'static,
 {
     pub current_song: Option<Song>,
     pub song_list: T,
@@ -64,7 +67,7 @@ where
 
 impl<T> SongItemContextMenu<T>
 where
-    T: Get<Value = Vec<Song>> + Send + Sync,
+    T: Get<Value = Vec<Song>> + Send + Sync + 'static,
 {
     #[tracing::instrument(level = "trace", skip(self))]
     fn current_or_list(&self) -> Vec<Song> {
@@ -193,10 +196,10 @@ where
 
 impl<T> ContextMenuData<Self> for SongItemContextMenu<T>
 where
-    T: Get<Value = Vec<Song>> + Send + Sync,
+    T: Get<Value = Vec<Song>> + Send + Sync + 'static,
 {
     #[tracing::instrument(level = "trace", skip(self))]
-    fn get_menu_items(&self) -> ContextMenuItems<Self> {
+    fn get_menu_items(&self) -> ReadSignal<ContextMenuItems<Self>> {
         let i18n = use_i18n();
 
         let mut artist_items = vec![];
@@ -253,7 +256,7 @@ where
             )
         };
 
-        let mut ret: ContextMenuItems<Self> = vec![
+        let mut ret: RwSignal<ContextMenuItems<Self>> = RwSignal::new(vec![
             ContextMenuItemInner::new_with_handler("Play now".into(), |_, cx| cx.play_now(), None),
             ContextMenuItemInner::new_with_handler(
                 i18n.get_keys()
@@ -314,26 +317,61 @@ where
                     .into(),
                 Some(artist_items),
             ),
-        ];
+        ]);
 
         let location = window().location().pathname().unwrap();
         if location.contains("playlists/single") {
-            ret.insert(
-                5,
-                ContextMenuItemInner::new_with_handler(
-                    i18n.get_keys()
-                        .contextMenu()
-                        .song()
-                        .removeFromPlaylist()
-                        .build_string()
-                        .into(),
-                    |_, cx| cx.remove_from_playlist(),
-                    None,
-                ),
-            );
+            ret.update(|ret| {
+                ret.insert(
+                    5,
+                    ContextMenuItemInner::new_with_handler(
+                        i18n.get_keys()
+                            .contextMenu()
+                            .song()
+                            .removeFromPlaylist()
+                            .build_string()
+                            .into(),
+                        |_, cx| cx.remove_from_playlist(),
+                        None,
+                    ),
+                );
+            });
         }
 
-        ret
+        let provider_store = expect_context::<Arc<ProviderStore>>();
+        let song_list = self.song_list.get();
+        spawn_local(async move {
+            let valid_providers =
+                provider_store.get_provider_keys(ExtensionProviderScope::SongContextMenu);
+            for key in valid_providers {
+                let song_list = song_list.clone();
+                let ctx_menu = get_song_context_menu(key.clone(), song_list).await;
+                match ctx_menu {
+                    Ok(ctx_menu) => {
+                        let key = key.clone();
+                        ret.update(move |menu| {
+                            menu.extend(ctx_menu.into_iter().map(move |v| {
+                                let key = key.clone();
+                                ContextMenuItemInner::new_with_handler(
+                                    v.name,
+                                    move |_, _| {
+                                        let key = key.clone();
+                                        let action = v.action_id.clone();
+                                        spawn_local(async move {
+                                            trigger_context_menu_action(key, action).await.unwrap()
+                                        });
+                                    },
+                                    None,
+                                )
+                            }));
+                        });
+                    }
+                    Err(e) => tracing::error!("Failed to get context menu from {}: {:?}", key, e),
+                }
+            }
+        });
+
+        ret.read_only()
     }
 }
 
@@ -341,8 +379,8 @@ pub struct SortContextMenu {}
 
 impl ContextMenuData<Self> for SortContextMenu {
     #[tracing::instrument(level = "trace", skip(self))]
-    fn get_menu_items(&self) -> ContextMenuItems<Self> {
-        get_sort_cx_items()
+    fn get_menu_items(&self) -> ReadSignal<ContextMenuItems<Self>> {
+        RwSignal::new(get_sort_cx_items()).read_only()
     }
 }
 
@@ -401,9 +439,9 @@ impl ThemesContextMenu {
 
 impl ContextMenuData<Self> for ThemesContextMenu {
     #[tracing::instrument(level = "trace", skip(self))]
-    fn get_menu_items(&self) -> ContextMenuItems<Self> {
-        vec![
-            ContextMenuItemInner::new_with_handler(
+    fn get_menu_items(&self) -> ReadSignal<ContextMenuItems<Self>> {
+        RwSignal::new(vec![
+            ContextMenuItemInner::<Self>::new_with_handler(
                 "Edit theme".into(),
                 |_, cx| cx.edit_theme(),
                 None,
@@ -418,7 +456,8 @@ impl ContextMenuData<Self> for ThemesContextMenu {
                 |_, cx| cx.remove_theme(),
                 None,
             ),
-        ]
+        ])
+        .read_only()
     }
 }
 
@@ -442,10 +481,10 @@ impl PlaylistContextMenu {
 
 impl ContextMenuData<Self> for PlaylistContextMenu {
     #[tracing::instrument(level = "trace", skip(self))]
-    fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
+    fn get_menu_items(&self) -> ReadSignal<ContextMenuItems<Self>> {
         let i18n = use_i18n();
-        vec![
-            ContextMenuItemInner::new_with_handler(
+        RwSignal::new(vec![
+            ContextMenuItemInner::<Self>::new_with_handler(
                 i18n.get_keys()
                     .contextMenu()
                     .playlist()
@@ -463,7 +502,8 @@ impl ContextMenuData<Self> for PlaylistContextMenu {
                     .into(),
                 Some(get_playlist_sort_cx_items()),
             ),
-        ]
+        ])
+        .read_only()
     }
 }
 
@@ -498,13 +538,14 @@ impl PlaylistItemContextMenu {
 
 impl ContextMenuData<Self> for PlaylistItemContextMenu {
     #[tracing::instrument(level = "trace", skip(self))]
-    fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
+    fn get_menu_items(&self) -> ReadSignal<ContextMenuItems<Self>> {
         let i18n = use_i18n();
+        let mut ret = RwSignal::new(vec![]);
         if let Some(playlist) = &self.playlist {
             if let Some(library_item) = playlist.library_item {
                 if library_item {
-                    return vec![
-                        ContextMenuItemInner::new_with_handler(
+                    ret = RwSignal::new(vec![
+                        ContextMenuItemInner::<Self>::new_with_handler(
                             i18n.get_keys()
                                 .contextMenu()
                                 .playlist()
@@ -524,22 +565,104 @@ impl ContextMenuData<Self> for PlaylistItemContextMenu {
                             |_, cx| cx.export_playlist(),
                             None,
                         ),
-                    ];
+                    ]);
                 }
+            } else {
+                ret = RwSignal::new(vec![ContextMenuItemInner::<Self>::new_with_handler(
+                    i18n.get_keys()
+                        .contextMenu()
+                        .playlist()
+                        .save()
+                        .build_string()
+                        .into(),
+                    |_, cx| cx.add_to_library(),
+                    None,
+                )]);
             }
 
-            return vec![ContextMenuItemInner::new_with_handler(
-                i18n.get_keys()
-                    .contextMenu()
-                    .playlist()
-                    .save()
-                    .build_string()
-                    .into(),
-                |_, cx| cx.add_to_library(),
-                None,
-            )];
+            let provider_store = expect_context::<Arc<ProviderStore>>();
+            let playlist = playlist.clone();
+            spawn_local(async move {
+                let vaild_providers =
+                    provider_store.get_provider_keys(ExtensionProviderScope::PlaylistContextMenu);
+                for key in vaild_providers {
+                    let playlist = playlist.clone();
+                    let ctx_menu = get_playlist_context_menu(key.clone(), playlist).await;
+                    match ctx_menu {
+                        Ok(ctx_menu) => {
+                            let key = key.clone();
+                            ret.update(move |menu| {
+                                menu.extend(ctx_menu.into_iter().map(move |v| {
+                                    let key = key.clone();
+                                    ContextMenuItemInner::new_with_handler(
+                                        v.name,
+                                        move |_, _| {
+                                            let key = key.clone();
+                                            let action = v.action_id.clone();
+                                            spawn_local(async move {
+                                                trigger_context_menu_action(key, action)
+                                                    .await
+                                                    .unwrap()
+                                            });
+                                        },
+                                        None,
+                                    )
+                                }));
+                            });
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to get context menu from {}: {:?}", key, e)
+                        }
+                    }
+                }
+            });
+
+            return ret.read_only();
         }
-        vec![]
+        RwSignal::new(vec![]).read_only()
+    }
+}
+
+pub struct SongsContextMenu {
+    song_update_request: Option<Arc<Box<dyn Fn() + Send + Sync>>>,
+}
+
+impl SongsContextMenu {
+    #[tracing::instrument(level = "trace", skip(song_update_request))]
+    pub fn new(song_update_request: Option<Box<dyn Fn() + Send + Sync>>) -> Self {
+        Self {
+            song_update_request: song_update_request.map(Arc::new),
+        }
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    pub fn add_song_from_url(&self) {
+        let modal_store: RwSignal<ModalStore> = expect_context();
+        modal_store.update(|modal_store| {
+            modal_store.set_active_modal(Modals::SongFromUrlModal);
+            let cb = self.song_update_request.clone();
+            modal_store.on_modal_close(move || {
+                if cb.is_some() {
+                    let cb = cb.clone().unwrap();
+                    cb();
+                }
+            });
+        });
+    }
+}
+
+impl ContextMenuData<Self> for SongsContextMenu {
+    #[tracing::instrument(level = "trace", skip(self))]
+    fn get_menu_items(&self) -> ReadSignal<ContextMenuItems<Self>> {
+        RwSignal::new(vec![
+            ContextMenuItemInner::new("Sort by".into(), Some(get_sort_cx_items())),
+            ContextMenuItemInner::<Self>::new_with_handler(
+                "Add from Url".into(),
+                |_, cx| cx.add_song_from_url(),
+                None,
+            ),
+        ])
+        .read_only()
     }
 }
 

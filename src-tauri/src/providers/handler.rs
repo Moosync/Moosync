@@ -34,6 +34,7 @@ use types::{
     errors::{MoosyncError, Result},
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
+    ui::extensions::ContextMenuReturnType,
 };
 
 use crate::{extensions::get_extension_handler, providers::extension::ExtensionProvider};
@@ -187,10 +188,6 @@ impl ProviderHandler {
                 provides
             );
             if let Ok(provides) = provides {
-                if provides.is_empty() {
-                    continue;
-                }
-
                 tracing::info!(
                     "Inserting extension provider {:?} {:?}",
                     extension,
@@ -377,6 +374,34 @@ impl ProviderHandler {
             result_type: (Vec<Song>, Pagination),
             method_name: get_artist_content,
         },
+        get_provider_lyrics  {
+            args: {
+                song: Song,
+            },
+            result_type: String,
+            method_name: get_lyrics,
+        },
+        get_song_context_menu  {
+            args: {
+                songs: Vec<Song>,
+            },
+            result_type: Vec<ContextMenuReturnType>,
+            method_name: get_song_context_menu,
+        },
+        get_playlist_context_menu  {
+            args: {
+                playlist: QueryablePlaylist,
+            },
+            result_type: Vec<ContextMenuReturnType>,
+            method_name: get_playlist_context_menu,
+        },
+        trigger_context_menu_action {
+            args: {
+                action: String,
+            },
+            result_type: (),
+            method_name: trigger_context_menu_action,
+        }
     );
 }
 
@@ -402,3 +427,7 @@ generate_command_async_cached!(match_url, ProviderHandler, bool, key: String, ur
 generate_command_async_cached!(get_suggestions, ProviderHandler, Vec<Song>, key: String);
 generate_command_async_cached!(get_artist_content, ProviderHandler, (Vec<Song>, Pagination), key: String, artist: QueryableArtist, pagination: Pagination);
 generate_command_async_cached!(get_album_content, ProviderHandler, (Vec<Song>, Pagination), key: String, album: QueryableAlbum, pagination: Pagination);
+generate_command_async_cached!(get_provider_lyrics, ProviderHandler, String, key: String, song: Song);
+generate_command_async!(get_song_context_menu, ProviderHandler, Vec<ContextMenuReturnType>, key: String, songs: Vec<Song>);
+generate_command_async!(get_playlist_context_menu, ProviderHandler, Vec<ContextMenuReturnType>, key: String, playlist: QueryablePlaylist);
+generate_command_async!(trigger_context_menu_action, ProviderHandler, (), key: String, action: String);

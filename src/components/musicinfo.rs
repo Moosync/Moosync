@@ -18,7 +18,9 @@ use leptos::html::Div;
 use leptos::task::spawn_local;
 use leptos::{component, prelude::*, view, IntoView};
 use leptos_virtual_scroller::VirtualScroller;
+use std::sync::Arc;
 use types::songs::{Song, SongType};
+use types::ui::extensions::ExtensionProviderScope;
 use types::ui::player_details::PlayerState;
 use types::ui::song_details::SongDetailIcons;
 use web_sys::{ScrollBehavior, ScrollToOptions};
@@ -29,9 +31,11 @@ use crate::components::musicbar_components::{Controls, Slider};
 use crate::icons::song_default_icon::SongDefaultIcon;
 use crate::modals::new_playlist_modal::PlaylistModalState;
 use crate::store::modal_store::{ModalStore, Modals};
+use crate::store::provider_store::ProviderStore;
 use crate::store::ui_store::UiStore;
 use crate::utils::common::{format_duration, get_high_img};
 use crate::utils::entities::get_artist_string;
+use crate::utils::invoke::get_provider_lyrics;
 use crate::utils::songs::fetch_lyrics;
 use crate::{
     components::{low_img::LowImg, provider_icon::ProviderIcon, songdetails::SongDetails},
@@ -202,11 +206,26 @@ pub fn MusicInfoMobile(
     });
 
     let selected_lyrics = RwSignal::new(None::<String>);
+    let provider_store = expect_context::<Arc<ProviderStore>>();
     Effect::new(move || {
         let song = current_song.get();
+        let provider_store = provider_store.clone();
         spawn_local(async move {
-            tracing::debug!("fetching lyrics");
-            let lyrics = fetch_lyrics(song).await;
+            let lyrics = fetch_lyrics(&song).await;
+            if lyrics.is_none() {
+                if let Some(song) = song {
+                    let valid_providers =
+                        provider_store.get_provider_keys(ExtensionProviderScope::Lyrics);
+                    for provider in valid_providers {
+                        let song = song.clone();
+                        let res = get_provider_lyrics(provider, song).await;
+                        if let Ok(res) = res {
+                            selected_lyrics.set(Some(res));
+                            return;
+                        }
+                    }
+                }
+            }
             selected_lyrics.set(lyrics);
         });
     });

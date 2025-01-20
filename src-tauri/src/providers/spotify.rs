@@ -46,6 +46,7 @@ use types::{
     oauth::OAuth2Client,
     providers::generic::{Pagination, ProviderStatus},
     songs::{QueryableSong, Song, SongType},
+    ui::extensions::{ContextMenuReturnType, ExtensionProviderScope},
 };
 use types::{errors::MoosyncError, providers::generic::GenericProvider};
 use url::Url;
@@ -110,6 +111,18 @@ impl SpotifyProvider {
 }
 
 impl SpotifyProvider {
+    async fn get_provider_status(&self, user_name: Option<String>) -> ProviderStatus {
+        ProviderStatus {
+            key: self.key(),
+            name: "Spotify".into(),
+            user_name: user_name.clone(),
+            logged_in: user_name.is_some(),
+            bg_color: "#07C330".into(),
+            account_id: "spotify".into(),
+            scopes: self.get_provider_scopes().await.unwrap(),
+        }
+    }
+
     #[tracing::instrument(level = "trace", skip(self))]
     fn get_oauth_client(&self) -> OAuth2Client {
         get_oauth_client(OAuthClientArgs {
@@ -141,14 +154,7 @@ impl SpotifyProvider {
             } else {
                 let _ = self
                     .status_tx
-                    .send(ProviderStatus {
-                        key: self.key(),
-                        name: "Spotify".into(),
-                        user_name: None,
-                        logged_in: true,
-                        bg_color: "#07C330".into(),
-                        account_id: "spotify".into(),
-                    })
+                    .send(self.get_provider_status(Some("".into())).await)
                     .await;
             }
 
@@ -270,14 +276,7 @@ impl SpotifyProvider {
                 }
             }
             return Ok((
-                ProviderStatus {
-                    key: self.key(),
-                    name: "Spotify".into(),
-                    user_name: user.display_name,
-                    logged_in: true,
-                    bg_color: "#07C330".into(),
-                    account_id: "spotify".into(),
-                },
+                self.get_provider_status(user.display_name).await,
                 is_premium,
             ));
         }
@@ -333,14 +332,7 @@ impl GenericProvider for SpotifyProvider {
     async fn initialize(&mut self) -> Result<()> {
         let _ = self
             .status_tx
-            .send(ProviderStatus {
-                key: self.key(),
-                name: "Spotify".into(),
-                user_name: None,
-                logged_in: false,
-                bg_color: "#07C330".into(),
-                account_id: "spotify".into(),
-            })
+            .send(self.get_provider_status(None).await)
             .await;
 
         let preferences: State<PreferenceConfig> = self.app.state();
@@ -384,6 +376,24 @@ impl GenericProvider for SpotifyProvider {
         }
 
         Ok(())
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn get_provider_scopes(&self) -> Result<Vec<ExtensionProviderScope>> {
+        Ok(vec![
+            ExtensionProviderScope::Search,
+            ExtensionProviderScope::Playlists,
+            ExtensionProviderScope::PlaylistSongs,
+            ExtensionProviderScope::PlaybackDetails,
+            ExtensionProviderScope::PlaylistFromUrl,
+            ExtensionProviderScope::SearchAlbum,
+            ExtensionProviderScope::SearchArtist,
+            ExtensionProviderScope::Recommendations,
+            ExtensionProviderScope::Accounts,
+            ExtensionProviderScope::ArtistSongs,
+            ExtensionProviderScope::AlbumSongs,
+            ExtensionProviderScope::PlaylistSongs,
+        ])
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -469,14 +479,7 @@ impl GenericProvider for SpotifyProvider {
 
         let _ = self
             .status_tx
-            .send(ProviderStatus {
-                key: self.key(),
-                name: "Spotify".into(),
-                user_name: None,
-                logged_in: false,
-                bg_color: "#07C330".into(),
-                account_id: "spotify".into(),
-            })
+            .send(self.get_provider_status(None).await)
             .await;
         Ok(())
     }
@@ -878,5 +881,24 @@ impl GenericProvider for SpotifyProvider {
             }
         }
         Err("API Client not initialized".into())
+    }
+
+    async fn get_lyrics(&self, _: Song) -> Result<String> {
+        return Err("Not implemented".into());
+    }
+
+    async fn get_song_context_menu(&self, _: Vec<Song>) -> Result<Vec<ContextMenuReturnType>> {
+        return Err("Not implemented".into());
+    }
+
+    async fn get_playlist_context_menu(
+        &self,
+        _: QueryablePlaylist,
+    ) -> Result<Vec<ContextMenuReturnType>> {
+        return Err("Not implemented".into());
+    }
+
+    async fn trigger_context_menu_action(&self, _: String) -> Result<()> {
+        return Err("Not implemented".into());
     }
 }

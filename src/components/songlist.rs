@@ -32,7 +32,7 @@ use leptos::{
 };
 use leptos_use::use_event_listener;
 use leptos_virtual_scroller::VirtualScroller;
-use types::songs::Song;
+use types::{songs::Song, ui::extensions::ExtensionProviderScope};
 use web_sys::{HtmlDivElement, HtmlInputElement, MouseEvent};
 
 use crate::{
@@ -142,6 +142,7 @@ pub fn SongListItem(
 pub struct ShowProvidersArgs {
     pub show_providers: bool,
     pub selected_providers: RwSignal<Vec<String>>,
+    pub scope: Option<ExtensionProviderScope>,
 }
 
 #[tracing::instrument(
@@ -431,7 +432,8 @@ where
                                                 view! {
                                                     <div class="col-auto d-flex">
                                                         <TabCarousel
-                                                            keys=provider_store.get_provider_keys()
+                                                            keys=provider_store
+                                                                .get_provider_keys(providers.scope.unwrap())
                                                             selected=providers.selected_providers
                                                             single_select=false
                                                             align_left=false

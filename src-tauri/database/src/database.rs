@@ -668,94 +668,114 @@ impl Database {
         let inclusive = options.inclusive.unwrap_or_default();
 
         self.pool.get().unwrap().transaction(|conn| {
-            let mut fetched_songs: Vec<QueryableSong> = vec![];
+            conn.transaction(|conn| {
+                let mut fetched_songs: Vec<QueryableSong> = vec![];
 
-            if let Some(song) = options.song {
-                let mut predicate = schema::allsongs::table.into_boxed();
-                predicate = filter_field!(predicate, &song._id, schema::allsongs::_id, inclusive);
-                predicate =
-                    filter_field_like!(predicate, &song.path, schema::allsongs::path, inclusive);
-                predicate =
-                    filter_field_like!(predicate, &song.title, schema::allsongs::title, inclusive);
-                predicate = filter_field!(
-                    predicate,
-                    &song.sample_rate,
-                    schema::allsongs::samplerate,
-                    inclusive
-                );
-                predicate = filter_field!(predicate, &song.hash, schema::allsongs::hash, inclusive);
-                predicate =
-                    filter_field!(predicate, &song.type_, schema::allsongs::type_, inclusive);
-                predicate =
-                    filter_field_like!(predicate, &song.url, schema::allsongs::url, inclusive);
-                predicate = filter_field_like!(
-                    predicate,
-                    &song.playback_url,
-                    schema::allsongs::playbackurl,
-                    inclusive
-                );
-                predicate = filter_field!(
-                    predicate,
-                    &song.provider_extension,
-                    schema::allsongs::provider_extension,
-                    inclusive
-                );
-                predicate = filter_field!(
-                    predicate,
-                    &song.show_in_library,
-                    schema::allsongs::show_in_library,
-                    inclusive
-                );
+                if let Some(song) = options.song {
+                    let mut predicate = schema::allsongs::table.into_boxed();
+                    predicate =
+                        filter_field!(predicate, &song._id, schema::allsongs::_id, inclusive);
+                    predicate = filter_field_like!(
+                        predicate,
+                        &song.path,
+                        schema::allsongs::path,
+                        inclusive
+                    );
+                    predicate = filter_field_like!(
+                        predicate,
+                        &song.title,
+                        schema::allsongs::title,
+                        inclusive
+                    );
+                    predicate = filter_field!(
+                        predicate,
+                        &song.sample_rate,
+                        schema::allsongs::samplerate,
+                        inclusive
+                    );
+                    predicate =
+                        filter_field!(predicate, &song.hash, schema::allsongs::hash, inclusive);
+                    predicate =
+                        filter_field!(predicate, &song.type_, schema::allsongs::type_, inclusive);
+                    predicate =
+                        filter_field_like!(predicate, &song.url, schema::allsongs::url, inclusive);
+                    predicate = filter_field_like!(
+                        predicate,
+                        &song.playback_url,
+                        schema::allsongs::playbackurl,
+                        inclusive
+                    );
+                    predicate = filter_field!(
+                        predicate,
+                        &song.provider_extension,
+                        schema::allsongs::provider_extension,
+                        inclusive
+                    );
+                    predicate = filter_field!(
+                        predicate,
+                        &song.show_in_library,
+                        schema::allsongs::show_in_library,
+                        inclusive
+                    );
 
-                fetched_songs = predicate.load(conn)?;
-            } else if let Some(album) = options.album {
-                fetched_songs = self.get_album_songs(album, inclusive, conn)?;
-            } else if let Some(artist) = options.artist {
-                fetched_songs = self.get_artist_songs(artist, inclusive, conn)?;
-            } else if let Some(genre) = options.genre {
-                fetched_songs = self.get_genre_songs(genre, inclusive, conn)?;
-            } else if let Some(playlist) = options.playlist {
-                fetched_songs = self.get_playlist_songs(playlist, inclusive, conn)?;
-            }
-
-            for s in fetched_songs {
-                let mut album: Option<QueryableAlbum> = None;
-                let mut artist: Vec<QueryableArtist> = vec![];
-                let mut genre: Vec<QueryableGenre> = vec![];
-
-                let album_data =
-                    QueryDsl::filter(album_bridge, schema::album_bridge::song.eq(s._id.clone()))
-                        .first::<AlbumBridge>(conn);
-
-                if let Ok(album_data) = album_data {
-                    album =
-                        Some(QueryDsl::filter(albums, album_id.eq(album_data.album)).first(conn)?);
+                    fetched_songs = predicate.load(conn)?;
+                } else if let Some(album) = options.album {
+                    fetched_songs = self.get_album_songs(album, inclusive, conn)?;
+                } else if let Some(artist) = options.artist {
+                    fetched_songs = self.get_artist_songs(artist, inclusive, conn)?;
+                } else if let Some(genre) = options.genre {
+                    fetched_songs = self.get_genre_songs(genre, inclusive, conn)?;
+                } else if let Some(playlist) = options.playlist {
+                    fetched_songs = self.get_playlist_songs(playlist, inclusive, conn)?;
                 }
 
-                let artist_data =
-                    QueryDsl::filter(artist_bridge, schema::artist_bridge::song.eq(s._id.clone()))
-                        .first::<ArtistBridge>(conn);
+                for s in fetched_songs {
+                    let mut album: Option<QueryableAlbum> = None;
+                    let mut artist: Vec<QueryableArtist> = vec![];
+                    let mut genre: Vec<QueryableGenre> = vec![];
 
-                if let Ok(artist_data) = artist_data {
-                    artist =
-                        QueryDsl::filter(artists, artist_id.eq(artist_data.artist)).load(conn)?;
+                    let album_data = QueryDsl::filter(
+                        album_bridge,
+                        schema::album_bridge::song.eq(s._id.clone()),
+                    )
+                    .first::<AlbumBridge>(conn);
+
+                    if let Ok(album_data) = album_data {
+                        album = Some(
+                            QueryDsl::filter(albums, album_id.eq(album_data.album)).first(conn)?,
+                        );
+                    }
+
+                    let artist_data = QueryDsl::filter(
+                        artist_bridge,
+                        schema::artist_bridge::song.eq(s._id.clone()),
+                    )
+                    .first::<ArtistBridge>(conn);
+
+                    if let Ok(artist_data) = artist_data {
+                        artist = QueryDsl::filter(artists, artist_id.eq(artist_data.artist))
+                            .load(conn)?;
+                    }
+
+                    let genre_data = QueryDsl::filter(
+                        genre_bridge,
+                        schema::genre_bridge::song.eq(s._id.clone()),
+                    )
+                    .first::<GenreBridge>(conn);
+
+                    if let Ok(genre_data) = genre_data {
+                        genre =
+                            QueryDsl::filter(genres, genre_id.eq(genre_data.genre)).load(conn)?;
+                    }
+                    ret.push(Song {
+                        song: s,
+                        album,
+                        artists: Some(artist),
+                        genre: Some(genre),
+                    });
                 }
-
-                let genre_data =
-                    QueryDsl::filter(genre_bridge, schema::genre_bridge::song.eq(s._id.clone()))
-                        .first::<GenreBridge>(conn);
-
-                if let Ok(genre_data) = genre_data {
-                    genre = QueryDsl::filter(genres, genre_id.eq(genre_data.genre)).load(conn)?;
-                }
-                ret.push(Song {
-                    song: s,
-                    album,
-                    artists: Some(artist),
-                    genre: Some(genre),
-                });
-            }
-            Ok(ret)
+                Ok(ret)
+            })
         })
     }
 

@@ -31,11 +31,11 @@ use crate::{
     songs::{GetSongOptions, Song},
     ui::{
         extensions::{
-            AccountLoginArgs, AddToPlaylistRequest, CustomRequestReturnType,
-            ExtensionAccountDetail, ExtensionContextMenuItem, ExtensionDetail, ExtensionExtraEvent,
-            ExtensionExtraEventArgs, ExtensionUIRequest, PackageNameArgs,
-            PlaybackDetailsReturnType, PlaylistAndSongsReturnType, PlaylistReturnType,
-            PreferenceData, RecommendationsReturnType, SearchReturnType, SongReturnType,
+            AccountLoginArgs, AddToPlaylistRequest, ContextMenuReturnType, CustomRequestReturnType,
+            ExtensionAccountDetail, ExtensionDetail, ExtensionExtraEvent, ExtensionExtraEventArgs,
+            ExtensionProviderScope, ExtensionUIRequest, PackageNameArgs, PlaybackDetailsReturnType,
+            PlaylistAndSongsReturnType, PlaylistReturnType, PreferenceData,
+            RecommendationsReturnType, SearchReturnType, SongReturnType,
             SongsWithPageTokenReturnType,
         },
         player_details::PlayerState,
@@ -46,23 +46,6 @@ use crate::{
 pub struct GenericExtensionHostRequest<T: Clone + Debug> {
     pub channel: String,
     pub data: Option<T>,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum ExtensionProviderScope {
-    Search,
-    Playlists,
-    PlaylistSongs,
-    ArtistSongs,
-    AlbumSongs,
-    Recommendations,
-    Scrobbles,
-    PlaylistFromUrl,
-    SongFromUrl,
-    SearchAlbum,
-    SearchArtist,
-    PlaybackDetails,
 }
 
 #[derive(Serialize, Deserialize, Copy, Clone)]
@@ -105,6 +88,9 @@ pub enum ExtensionExtraEventResponse {
     RequestedSongFromId(SongReturnType),
     GetRemoteURL(String),
     Scrobble,
+    RequestedSongContextMenu(Vec<ContextMenuReturnType>),
+    RequestedPlaylistContextMenu(Vec<ContextMenuReturnType>),
+    ContextMenuAction,
 }
 
 #[tracing::instrument(level = "trace", skip(field))]
@@ -120,7 +106,6 @@ where
 #[encoding(Json)]
 pub enum ExtensionCommandResponse {
     GetProviderScopes(Vec<ExtensionProviderScope>),
-    GetExtensionContextMenu(Vec<ExtensionContextMenuItem>),
     GetAccounts(Vec<ExtensionAccountDetail>),
     PerformAccountLogin,
     ExtraExtensionEvent(Box<ExtensionExtraEventResponse>),
@@ -132,7 +117,6 @@ pub enum ExtensionCommandResponse {
 #[derive(Debug, Clone)]
 pub enum ExtensionCommand {
     GetProviderScopes(PackageNameArgs),
-    GetExtensionContextMenu(PackageNameArgs),
     GetAccounts(PackageNameArgs),
     PerformAccountLogin(AccountLoginArgs),
     ExtraExtensionEvent(ExtensionExtraEventArgs),
@@ -153,12 +137,6 @@ impl TryFrom<(&str, &Value)> for ExtensionCommand {
                 let res = serde_json::from_value(data.clone());
                 if let Ok(res) = res {
                     return Ok(ExtensionCommand::GetProviderScopes(res));
-                }
-            }
-            "getExtensionContextMenu" => {
-                let res = serde_json::from_value(data.clone());
-                if let Ok(res) = res {
-                    return Ok(ExtensionCommand::GetExtensionContextMenu(res));
                 }
             }
             "getAccounts" => {
@@ -188,17 +166,14 @@ impl ExtensionCommand {
                 "get_provider_scopes_wrapper",
                 vec![],
             ),
-            Self::GetExtensionContextMenu(args) => (
-                args.package_name.clone(),
-                "get_context_menu_wrapper",
-                vec![],
-            ),
             Self::GetAccounts(args) => (args.package_name.clone(), "get_accounts_wrapper", vec![]),
             Self::PerformAccountLogin(args) => (
                 args.package_name.clone(),
                 "perform_account_login_wrapper",
                 Json(args).to_bytes().unwrap(),
             ),
+
+            // TODO: Why the fuck did I decide to split some events as "extra"
             Self::ExtraExtensionEvent(args) => {
                 let package_name = args.package_name.clone();
                 let res = match &args.data {
@@ -249,7 +224,9 @@ impl ExtensionCommand {
                     ExtensionExtraEvent::RequestedRecommendations => {
                         ("get_recommendations_wrapper", vec![])
                     }
-                    ExtensionExtraEvent::RequestedLyrics(_) => todo!(),
+                    ExtensionExtraEvent::RequestedLyrics(song) => {
+                        ("get_lyrics_wrapper", Json(song.clone()).to_bytes().unwrap())
+                    }
                     ExtensionExtraEvent::RequestedArtistSongs(artist, token) => (
                         "get_artist_songs_wrapper",
                         Json((artist.clone(), token)).to_bytes().unwrap(),
@@ -283,6 +260,18 @@ impl ExtensionCommand {
                         "scrobble_wrapper",
                         Json(song[0].clone()).to_bytes().unwrap(),
                     ),
+                    ExtensionExtraEvent::RequestedSongContextMenu(song) => (
+                        "get_song_context_menu",
+                        Json(song[0].clone()).to_bytes().unwrap(),
+                    ),
+                    ExtensionExtraEvent::RequestedPlaylistContextMenu(playlist) => (
+                        "get_playlist_context_menu",
+                        Json(playlist[0].clone()).to_bytes().unwrap(),
+                    ),
+                    ExtensionExtraEvent::ContextMenuAction(action_id) => (
+                        "on_context_menu_action",
+                        Json(action_id[0].clone()).to_bytes().unwrap(),
+                    ),
                 };
                 (package_name, res.0, res.1)
             }
@@ -295,9 +284,6 @@ impl ExtensionCommand {
             Self::GetProviderScopes(_) => {
                 ExtensionCommandResponse::GetProviderScopes(serde_json::from_value(value)?)
             }
-            Self::GetExtensionContextMenu(_) => ExtensionCommandResponse::GetExtensionContextMenu(
-                serde_json::from_value(value).unwrap(),
-            ),
             Self::GetAccounts(_) => {
                 ExtensionCommandResponse::GetAccounts(serde_json::from_value(value)?)
             }
@@ -389,6 +375,19 @@ impl ExtensionCommand {
                         ExtensionExtraEventResponse::GetRemoteURL(serde_json::from_value(value)?)
                     }
                     ExtensionExtraEvent::Scrobble(_) => ExtensionExtraEventResponse::Scrobble,
+                    ExtensionExtraEvent::RequestedSongContextMenu(_) => {
+                        ExtensionExtraEventResponse::RequestedSongContextMenu(
+                            serde_json::from_value(value)?,
+                        )
+                    }
+                    ExtensionExtraEvent::RequestedPlaylistContextMenu(_) => {
+                        ExtensionExtraEventResponse::RequestedPlaylistContextMenu(
+                            serde_json::from_value(value)?,
+                        )
+                    }
+                    ExtensionExtraEvent::ContextMenuAction(_) => {
+                        ExtensionExtraEventResponse::ContextMenuAction
+                    }
                 };
                 ExtensionCommandResponse::ExtraExtensionEvent(Box::new(res))
             }

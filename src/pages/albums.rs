@@ -32,6 +32,7 @@ use leptos_router::hooks::use_query_map;
 use rand::seq::SliceRandom;
 use types::entities::QueryableAlbum;
 use types::songs::{GetSongOptions, Song};
+use types::ui::extensions::ExtensionProviderScope;
 use types::ui::song_details::{DefaultDetails, SongDetailIcons};
 use wasm_bindgen_futures::spawn_local;
 
@@ -143,6 +144,7 @@ pub fn SingleAlbum() -> impl IntoView {
             providers=ShowProvidersArgs {
                 show_providers: true,
                 selected_providers,
+                scope: Some(ExtensionProviderScope::AlbumSongs),
             }
             refresh_cb=refresh_songs
             fetch_next_page=fetch_next_page

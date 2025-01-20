@@ -18,6 +18,7 @@ use std::sync::Arc;
 
 use leptos::{component, prelude::*, view, IntoView};
 use leptos_i18n::t;
+use types::ui::extensions::ExtensionProviderScope;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
@@ -36,7 +37,7 @@ use crate::{
 #[component]
 pub fn Explore() -> impl IntoView {
     let provider_store: Arc<ProviderStore> = expect_context();
-    let provider_keys = provider_store.get_provider_keys();
+    let provider_keys = provider_store.get_provider_keys(ExtensionProviderScope::Recommendations);
     let suggestion_items = RwSignal::new(vec![]);
     spawn_local(async move {
         for key in provider_keys {

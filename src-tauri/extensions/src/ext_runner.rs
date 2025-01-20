@@ -487,7 +487,6 @@ impl ExtensionHandlerInner {
     fn sanitize_response(response: &mut ExtensionCommandResponse, package_name: String) {
         match response {
             ExtensionCommandResponse::GetProviderScopes(_) => {}
-            ExtensionCommandResponse::GetExtensionContextMenu(_) => {}
             ExtensionCommandResponse::GetAccounts(accounts) => {
                 for account in accounts {
                     account.package_name = package_name.clone();
@@ -563,7 +562,7 @@ impl ExtensionHandlerInner {
                             .iter_mut()
                             .for_each(|s| sanitize_song(&prefix, s));
                     }
-                    ExtensionExtraEventResponse::RequestedLyrics(_) => todo!(),
+                    ExtensionExtraEventResponse::RequestedLyrics(_) => {}
                     ExtensionExtraEventResponse::RequestedArtistSongs(
                         songs_with_page_token_return_type,
                     ) => {
@@ -591,6 +590,13 @@ impl ExtensionHandlerInner {
                     }
                     ExtensionExtraEventResponse::GetRemoteURL(_) => {}
                     ExtensionExtraEventResponse::Scrobble => {}
+                    ExtensionExtraEventResponse::RequestedSongContextMenu(
+                        context_menu_return_type,
+                    ) => {}
+                    ExtensionExtraEventResponse::RequestedPlaylistContextMenu(
+                        context_menu_return_type,
+                    ) => {}
+                    ExtensionExtraEventResponse::ContextMenuAction => {}
                 }
             }
             ExtensionCommandResponse::Empty => {}

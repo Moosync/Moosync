@@ -121,7 +121,7 @@ where
     ]
 }
 
-pub async fn fetch_lyrics(song: Option<Song>) -> Option<String> {
+pub async fn fetch_lyrics(song: &Option<Song>) -> Option<String> {
     tracing::debug!("Fetching lyrics");
     if let Some(song) = song {
         let lyrics = song.song.lyrics.clone();

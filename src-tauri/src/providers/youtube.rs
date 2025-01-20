@@ -35,6 +35,7 @@ use types::entities::{
 use types::errors::{MoosyncError, Result};
 use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::{QueryableSong, Song, SongType};
+use types::ui::extensions::{ContextMenuReturnType, ExtensionProviderScope};
 use types::{oauth::OAuth2Client, providers::generic::GenericProvider};
 use url::Url;
 use youtube::youtube::YoutubeScraper;
@@ -106,6 +107,18 @@ impl YoutubeProvider {
         }
     }
 
+    async fn get_provider_status(&self, user_name: Option<String>) -> ProviderStatus {
+        ProviderStatus {
+            key: self.key(),
+            name: "Youtube".into(),
+            user_name: user_name.clone(),
+            logged_in: user_name.is_some(),
+            bg_color: "#E62017".into(),
+            account_id: "youtube".into(),
+            scopes: self.get_provider_scopes().await.unwrap(),
+        }
+    }
+
     #[tracing::instrument(level = "trace", skip(self))]
     fn get_oauth_client(&self) -> Option<OAuth2Client> {
         if self.config.client_id.is_some() && self.config.client_secret.is_some() {
@@ -148,14 +161,7 @@ impl YoutubeProvider {
             } else {
                 let _ = self
                     .status_tx
-                    .send(ProviderStatus {
-                        key: self.key(),
-                        name: "Youtube".into(),
-                        user_name: None,
-                        logged_in: true,
-                        bg_color: "#E62017".into(),
-                        account_id: "youtube".into(),
-                    })
+                    .send(self.get_provider_status(Some("".into())).await)
                     .await;
             }
         }
@@ -312,14 +318,7 @@ impl YoutubeProvider {
                     username = snippet.title.clone();
                 }
             }
-            return Ok(ProviderStatus {
-                key: self.key(),
-                name: "Youtube".into(),
-                user_name: username,
-                logged_in: true,
-                bg_color: "#E62017".into(),
-                account_id: "youtube".into(),
-            });
+            return Ok(self.get_provider_status(username).await);
         }
 
         Err("API client not initialized".into())
@@ -433,14 +432,7 @@ impl GenericProvider for YoutubeProvider {
     async fn initialize(&mut self) -> Result<()> {
         let _ = self
             .status_tx
-            .send(ProviderStatus {
-                key: self.key(),
-                name: "Youtube".into(),
-                user_name: None,
-                logged_in: false,
-                bg_color: "#E62017".into(),
-                account_id: "youtube".into(),
-            })
+            .send(self.get_provider_status(None).await)
             .await;
 
         let preferences: State<PreferenceConfig> = self.app.state();
@@ -464,6 +456,24 @@ impl GenericProvider for YoutubeProvider {
         }
 
         Ok(())
+    }
+
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn get_provider_scopes(&self) -> Result<Vec<ExtensionProviderScope>> {
+        Ok(vec![
+            ExtensionProviderScope::Search,
+            ExtensionProviderScope::Playlists,
+            ExtensionProviderScope::PlaylistSongs,
+            ExtensionProviderScope::PlaybackDetails,
+            ExtensionProviderScope::PlaylistFromUrl,
+            ExtensionProviderScope::SearchAlbum,
+            ExtensionProviderScope::SearchArtist,
+            ExtensionProviderScope::Recommendations,
+            ExtensionProviderScope::Accounts,
+            ExtensionProviderScope::ArtistSongs,
+            ExtensionProviderScope::AlbumSongs,
+            ExtensionProviderScope::PlaylistSongs,
+        ])
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -524,14 +534,7 @@ impl GenericProvider for YoutubeProvider {
 
         let _ = self
             .status_tx
-            .send(ProviderStatus {
-                key: self.key(),
-                name: "Youtube".into(),
-                user_name: None,
-                logged_in: false,
-                bg_color: "#E62017".into(),
-                account_id: "youtube".into(),
-            })
+            .send(self.get_provider_status(None).await)
             .await;
 
         Ok(())
@@ -890,5 +893,24 @@ impl GenericProvider for YoutubeProvider {
         } else {
             return Err("No artist found".into());
         }
+    }
+
+    async fn get_lyrics(&self, _: Song) -> Result<String> {
+        return Err("Not implemented".into());
+    }
+
+    async fn get_song_context_menu(&self, _: Vec<Song>) -> Result<Vec<ContextMenuReturnType>> {
+        return Err("Not implemented".into());
+    }
+
+    async fn get_playlist_context_menu(
+        &self,
+        _: QueryablePlaylist,
+    ) -> Result<Vec<ContextMenuReturnType>> {
+        return Err("Not implemented".into());
+    }
+
+    async fn trigger_context_menu_action(&self, _: String) -> Result<()> {
+        return Err("Not implemented".into());
     }
 }

@@ -18,7 +18,10 @@ use leptos::{component, html::Div, prelude::*, view, IntoView};
 use leptos_use::use_resize_observer;
 use types::{
     songs::Song,
-    ui::song_details::{DefaultDetails, SongDetailIcons},
+    ui::{
+        extensions::ExtensionProviderScope,
+        song_details::{DefaultDetails, SongDetailIcons},
+    },
 };
 use wasm_bindgen_futures::spawn_local;
 
@@ -28,12 +31,14 @@ use crate::{
         fav_playlist_icon::FavPlaylistIcon, pin_icon::PinIcon, plain_play_icon::PlainPlayIcon,
         random_icon::RandomIcon, song_default_icon::SongDefaultIcon,
     },
+    store::provider_store::ProviderStore,
     utils::{
         common::{format_duration, get_high_img},
+        invoke::get_provider_lyrics,
         songs::fetch_lyrics,
     },
 };
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 #[tracing::instrument(
     level = "trace",
@@ -98,10 +103,26 @@ where
             }
         });
 
+        let provider_store = expect_context::<Arc<ProviderStore>>();
         Effect::new(move || {
             let song = selected_song.get();
+            let provider_store = provider_store.clone();
             spawn_local(async move {
-                let lyrics = fetch_lyrics(song).await;
+                let lyrics = fetch_lyrics(&song).await;
+                if lyrics.is_none() {
+                    if let Some(song) = song {
+                        let valid_providers =
+                            provider_store.get_provider_keys(ExtensionProviderScope::Lyrics);
+                        for provider in valid_providers {
+                            let song = song.clone();
+                            let res = get_provider_lyrics(provider, song).await;
+                            if let Ok(res) = res {
+                                selected_lyrics.set(Some(res));
+                                return;
+                            }
+                        }
+                    }
+                }
                 selected_lyrics.set(lyrics);
             });
         });

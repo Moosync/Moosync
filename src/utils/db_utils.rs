@@ -171,6 +171,7 @@ where
     use std::{collections::HashMap, sync::Arc};
 
     use leptos::{prelude::*, task::spawn_local};
+    use types::ui::extensions::ExtensionProviderScope;
 
     use crate::{store::provider_store::ProviderStore, utils::common::fetch_infinite};
 
@@ -192,8 +193,11 @@ where
         let songs: Vec<QueryablePlaylist> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
 
-        tracing::debug!("provider keys {:?}", provider_store.get_provider_keys());
-        for key in provider_store.get_provider_keys() {
+        tracing::debug!(
+            "provider keys {:?}",
+            provider_store.get_provider_keys(ExtensionProviderScope::Playlists)
+        );
+        for key in provider_store.get_provider_keys(ExtensionProviderScope::Playlists) {
             tracing::debug!("Fetching playlists from {}", key);
             spawn_local(async move {
                 let mut should_fetch = true;

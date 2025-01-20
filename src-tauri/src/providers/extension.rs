@@ -23,14 +23,13 @@ use tauri::AppHandle;
 use types::{
     entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
     errors::Result,
-    extensions::ExtensionProviderScope,
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
     ui::extensions::{
-        AccountLoginArgs, CustomRequestReturnType, ExtensionDetail, ExtensionExtraEvent,
-        ExtensionExtraEventArgs, PackageNameArgs, PlaybackDetailsReturnType,
-        PlaylistAndSongsReturnType, PlaylistReturnType, RecommendationsReturnType,
-        SearchReturnType, SongReturnType, SongsWithPageTokenReturnType,
+        AccountLoginArgs, ContextMenuReturnType, CustomRequestReturnType, ExtensionDetail,
+        ExtensionExtraEvent, ExtensionExtraEventArgs, ExtensionProviderScope, PackageNameArgs,
+        PlaybackDetailsReturnType, PlaylistAndSongsReturnType, PlaylistReturnType,
+        RecommendationsReturnType, SearchReturnType, SongReturnType, SongsWithPageTokenReturnType,
     },
 };
 
@@ -94,6 +93,7 @@ impl ExtensionProvider {
                     logged_in: account.logged_in,
                     bg_color: account.bg_color,
                     account_id: account.id,
+                    scopes: self.get_provider_scopes().await.unwrap(),
                 })
                 .await;
         }
@@ -116,7 +116,23 @@ impl Debug for ExtensionProvider {
 impl GenericProvider for ExtensionProvider {
     #[tracing::instrument(level = "trace", skip(self))]
     async fn initialize(&mut self) -> Result<()> {
-        self.get_accounts().await
+        if self.provides.contains(&ExtensionProviderScope::Accounts) {
+            self.get_accounts().await
+        } else {
+            let _ = self
+                .status_tx
+                .send(ProviderStatus {
+                    key: self.key(),
+                    scopes: self.get_provider_scopes().await.unwrap(),
+                    ..Default::default()
+                })
+                .await;
+            Ok(())
+        }
+    }
+
+    async fn get_provider_scopes(&self) -> Result<Vec<ExtensionProviderScope>> {
+        Ok(self.provides.clone())
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -386,5 +402,68 @@ impl GenericProvider for ExtensionProvider {
                 .map(|t| serde_json::to_string(&t).unwrap_or_default()),
         );
         Ok((res.songs, pagination))
+    }
+
+    async fn get_lyrics(&self, song: Song) -> Result<String> {
+        if !self.provides.contains(&ExtensionProviderScope::Lyrics) {
+            return Err("Extension does not have this capability".into());
+        }
+        let res = send_extension_event!(self, ExtensionExtraEvent::RequestedLyrics([song]), String);
+
+        Ok(res)
+    }
+
+    async fn get_song_context_menu(&self, song: Vec<Song>) -> Result<Vec<ContextMenuReturnType>> {
+        if !self
+            .provides
+            .contains(&ExtensionProviderScope::SongContextMenu)
+        {
+            return Err("Extension does not have this capability".into());
+        }
+        let res = send_extension_event!(
+            self,
+            ExtensionExtraEvent::RequestedSongContextMenu([song]),
+            Vec<ContextMenuReturnType>
+        );
+
+        Ok(res)
+    }
+
+    async fn get_playlist_context_menu(
+        &self,
+        playlist: QueryablePlaylist,
+    ) -> Result<Vec<ContextMenuReturnType>> {
+        if !self
+            .provides
+            .contains(&ExtensionProviderScope::PlaylistContextMenu)
+        {
+            return Err("Extension does not have this capability".into());
+        }
+        let res = send_extension_event!(
+            self,
+            ExtensionExtraEvent::RequestedPlaylistContextMenu([playlist]),
+            Vec<ContextMenuReturnType>
+        );
+
+        Ok(res)
+    }
+
+    async fn trigger_context_menu_action(&self, action_id: String) -> Result<()> {
+        if !self
+            .provides
+            .contains(&ExtensionProviderScope::PlaylistContextMenu)
+            && !self
+                .provides
+                .contains(&ExtensionProviderScope::SongContextMenu)
+        {
+            return Err("Extension does not have this capability".into());
+        }
+        let res = send_extension_event!(
+            self,
+            ExtensionExtraEvent::ContextMenuAction([action_id]),
+            ()
+        );
+
+        Ok(res)
     }
 }

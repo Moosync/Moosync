@@ -21,6 +21,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 use types::errors::Result;
 use types::providers::generic::ProviderStatus;
+use types::ui::extensions::ExtensionProviderScope;
 use wasm_bindgen::JsValue;
 
 use crate::players::librespot::LibrespotPlayer;
@@ -116,8 +117,17 @@ impl ProviderStore {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    pub fn get_provider_keys(&self) -> Vec<String> {
-        self.keys.get_untracked()
+    pub fn get_provider_keys(&self, scope: ExtensionProviderScope) -> Vec<String> {
+        self.statuses
+            .get_untracked()
+            .into_iter()
+            .filter_map(|status| {
+                if status.scopes.contains(&scope) {
+                    return Some(status.key.clone());
+                }
+                return None;
+            })
+            .collect()
     }
 
     pub fn get_provider_name_by_key(&self, key: String) -> Option<ProviderStatus> {

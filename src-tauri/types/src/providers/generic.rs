@@ -18,6 +18,7 @@ use crate::{
     entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
     errors::Result,
     songs::Song,
+    ui::extensions::{ContextMenuReturnType, ExtensionProviderScope},
 };
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -88,11 +89,13 @@ pub struct ProviderStatus {
     pub logged_in: bool,
     pub bg_color: String,
     pub account_id: String,
+    pub scopes: Vec<ExtensionProviderScope>,
 }
 
 #[async_trait]
 pub trait GenericProvider: std::fmt::Debug + Send {
     async fn initialize(&mut self) -> Result<()>;
+    async fn get_provider_scopes(&self) -> Result<Vec<ExtensionProviderScope>>;
     fn key(&self) -> String;
     fn match_id(&self, id: String) -> bool;
 
@@ -130,4 +133,12 @@ pub trait GenericProvider: std::fmt::Debug + Send {
         artist: QueryableArtist,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)>;
+
+    async fn get_lyrics(&self, song: Song) -> Result<String>;
+    async fn get_song_context_menu(&self, songs: Vec<Song>) -> Result<Vec<ContextMenuReturnType>>;
+    async fn get_playlist_context_menu(
+        &self,
+        playlist: QueryablePlaylist,
+    ) -> Result<Vec<ContextMenuReturnType>>;
+    async fn trigger_context_menu_action(&self, action_id: String) -> Result<()>;
 }

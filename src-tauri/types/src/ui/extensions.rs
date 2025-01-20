@@ -86,17 +86,6 @@ impl PartialEq for ExtensionDetail {
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct ExtensionContextMenuItem {
-    #[serde(rename = "type")]
-    pub type_: String,
-    pub label: String,
-    pub disabled: bool,
-    pub children: Vec<ExtensionContextMenuItem>,
-    pub handler: String,
-}
-
-#[derive(Deserialize, Serialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
 pub struct ExtensionAccountDetail {
     pub id: String,
     pub package_name: String,
@@ -141,6 +130,9 @@ pub enum ExtensionExtraEvent {
     RequestedSongFromId([String; 1]),
     GetRemoteURL([Song; 1]),
     Scrobble([Song; 1]),
+    RequestedSongContextMenu([Vec<Song>; 1]),
+    RequestedPlaylistContextMenu([QueryablePlaylist; 1]),
+    ContextMenuAction([String; 1]),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -245,16 +237,36 @@ impl From<String> for PackageNameArgs {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-
 pub struct ToggleExtArgs {
     pub package_name: String,
     pub toggle: bool,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct ContextMenuActionArgs {
-    pub package_name: String,
-    pub id: String,
-    pub arg: Value,
+pub struct ContextMenuReturnType {
+    pub name: String,
+    pub icon: String,
+    pub action_id: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ExtensionProviderScope {
+    Search,
+    Playlists,
+    PlaylistSongs,
+    ArtistSongs,
+    AlbumSongs,
+    Recommendations,
+    Scrobbles,
+    PlaylistFromUrl,
+    SongFromUrl,
+    SearchAlbum,
+    SearchArtist,
+    PlaybackDetails,
+    Lyrics,
+    SongContextMenu,
+    PlaylistContextMenu,
+    Accounts,
 }

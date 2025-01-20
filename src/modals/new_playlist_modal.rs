@@ -21,6 +21,7 @@ use leptos::{component, prelude::*, view, IntoView};
 use leptos_i18n::t;
 use types::entities::QueryablePlaylist;
 use types::songs::Song;
+use types::ui::extensions::ExtensionProviderScope;
 
 use crate::i18n::use_i18n;
 use crate::icons::{
@@ -59,7 +60,7 @@ pub fn NewPlaylistModal(
         let provider_store = provider_store.clone();
         spawn_local(async move {
             let import_url = import_url.clone();
-            for key in provider_store.get_provider_keys() {
+            for key in provider_store.get_provider_keys(ExtensionProviderScope::PlaylistFromUrl) {
                 if let Ok(matched) = match_url(key.clone(), import_url.clone()).await {
                     if matched {
                         let imported = playlist_from_url(key.clone(), import_url.clone()).await;

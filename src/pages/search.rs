@@ -24,6 +24,7 @@ use colors_transform::{Color, Rgb};
 use leptos::{component, ev::wheel, html::Div, prelude::*, view, IntoView, Params};
 use leptos_router::{hooks::use_query, params::Params};
 use leptos_use::{use_event_listener, use_resize_observer};
+use types::ui::extensions::ExtensionProviderScope;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::window;
 
@@ -238,7 +239,7 @@ pub fn Search() -> impl IntoView {
     let search_results = RwSignal::new(HashMap::new());
 
     let provider_store = expect_context::<Arc<ProviderStore>>();
-    let mut keys = provider_store.get_provider_keys();
+    let mut keys = provider_store.get_provider_keys(ExtensionProviderScope::Search);
     keys.insert(0, "Local".into());
 
     let selected_provider = RwSignal::new(vec![]);

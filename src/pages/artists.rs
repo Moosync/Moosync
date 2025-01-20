@@ -31,6 +31,7 @@ use leptos_router::hooks::use_query_map;
 use std::collections::HashMap;
 use types::entities::QueryableArtist;
 use types::songs::{GetSongOptions, Song};
+use types::ui::extensions::ExtensionProviderScope;
 use types::ui::song_details::{DefaultDetails, SongDetailIcons};
 use wasm_bindgen_futures::spawn_local;
 
@@ -149,6 +150,7 @@ pub fn SingleArtist() -> impl IntoView {
             providers=ShowProvidersArgs {
                 show_providers: true,
                 selected_providers,
+                scope: Some(ExtensionProviderScope::ArtistSongs),
             }
             refresh_cb=refresh_songs
             fetch_next_page=fetch_next_page

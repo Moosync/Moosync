@@ -36,13 +36,12 @@ use tokio::{
 use types::{
     errors::{MoosyncError, Result},
     extensions::{
-        ExtensionCommand, ExtensionCommandResponse, ExtensionManifest, ExtensionProviderScope,
-        GenericExtensionHostRequest, MainCommand, MainCommandResponse, RunnerCommand,
-        RunnerCommandResp,
+        ExtensionCommand, ExtensionCommandResponse, ExtensionManifest, GenericExtensionHostRequest,
+        MainCommand, MainCommandResponse, RunnerCommand, RunnerCommandResp,
     },
     ui::extensions::{
         AccountLoginArgs, ExtensionAccountDetail, ExtensionDetail, ExtensionExtraEventArgs,
-        FetchedExtensionManifest, PackageNameArgs,
+        ExtensionProviderScope, FetchedExtensionManifest, PackageNameArgs,
     },
 };
 use zip_extensions::zip_extract;

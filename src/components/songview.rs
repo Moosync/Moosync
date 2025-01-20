@@ -17,7 +17,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use leptos::{component, html::Div, prelude::*, view};
-use leptos_context_menu::{ContextMenuData, ContextMenuItemInner};
+use leptos_context_menu::{ContextMenuData, ContextMenuItemInner, ContextMenuItems};
 use leptos_use::on_click_outside;
 use types::{songs::Song, ui::song_details::DefaultDetails, ui::song_details::SongDetailIcons};
 use web_sys::{Event, Node};
@@ -28,50 +28,8 @@ use crate::{
         songlist::{ShowProvidersArgs, SongList},
     },
     store::modal_store::{ModalStore, Modals},
-    utils::{context_menu::create_context_menu, songs::get_sort_cx_items},
+    utils::context_menu::{create_context_menu, SongsContextMenu},
 };
-
-struct SongsContextMenu {
-    song_update_request: Option<Arc<Box<dyn Fn() + Send + Sync>>>,
-}
-
-impl SongsContextMenu {
-    #[tracing::instrument(level = "trace", skip(song_update_request))]
-    pub fn new(song_update_request: Option<Box<dyn Fn() + Send + Sync>>) -> Self {
-        Self {
-            song_update_request: song_update_request.map(Arc::new),
-        }
-    }
-
-    #[tracing::instrument(level = "trace", skip(self))]
-    pub fn add_song_from_url(&self) {
-        let modal_store: RwSignal<ModalStore> = expect_context();
-        modal_store.update(|modal_store| {
-            modal_store.set_active_modal(Modals::SongFromUrlModal);
-            let cb = self.song_update_request.clone();
-            modal_store.on_modal_close(move || {
-                if cb.is_some() {
-                    let cb = cb.clone().unwrap();
-                    cb();
-                }
-            });
-        });
-    }
-}
-
-impl ContextMenuData<Self> for SongsContextMenu {
-    #[tracing::instrument(level = "trace", skip(self))]
-    fn get_menu_items(&self) -> leptos_context_menu::ContextMenuItems<Self> {
-        vec![
-            ContextMenuItemInner::new("Sort by".into(), Some(get_sort_cx_items())),
-            ContextMenuItemInner::new_with_handler(
-                "Add from Url".into(),
-                |_, cx| cx.add_song_from_url(),
-                None,
-            ),
-        ]
-    }
-}
 
 #[tracing::instrument(
     level = "trace",

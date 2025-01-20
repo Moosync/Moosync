@@ -26,6 +26,7 @@ use crate::{icons::song_default_icon::SongDefaultIcon, store::modal_store::Modal
 use leptos::task::spawn_local;
 use leptos::{component, prelude::*, view, IntoView};
 use types::songs::Song;
+use types::ui::extensions::ExtensionProviderScope;
 
 #[tracing::instrument(level = "trace", skip())]
 #[component]
@@ -45,7 +46,7 @@ pub fn SongFromUrlModal() -> impl IntoView {
         }
 
         let provider_store = provider_store.clone();
-        let provider_keys = provider_store.get_provider_keys();
+        let provider_keys = provider_store.get_provider_keys(ExtensionProviderScope::SongFromUrl);
         spawn_local(async move {
             for key in provider_keys {
                 let matched = match_url(key.clone(), song_url.clone()).await;

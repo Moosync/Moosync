@@ -266,15 +266,13 @@ impl ExtensionHandlerInner {
         cache_path: &PathBuf,
         ext_command_tx: ExtCommandSender,
     ) -> Self {
-        let mut ret = Self {
+        Self {
             extensions_path: extensions_path.to_string_lossy().to_string(),
             ext_command_tx,
             cache_path: cache_path.to_string_lossy().to_string(),
             extensions_map: Default::default(),
             reply_map: Arc::new(std::sync::Mutex::new(HashMap::new())),
-        };
-        ret.spawn_extensions();
-        ret
+        }
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -691,7 +689,7 @@ impl ExtensionHandlerInner {
                 RunnerCommandResp::ExtensionList(extensions)
             }
             RunnerCommand::FindNewExtensions => {
-                self.spawn_extensions();
+                self.spawn_extensions().await;
                 RunnerCommandResp::Empty()
             }
             RunnerCommand::GetExtensionIcon(p) => RunnerCommandResp::ExtensionIcon(

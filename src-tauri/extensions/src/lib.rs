@@ -257,7 +257,7 @@ impl ExtensionHandler {
         Ok(())
     }
 
-    async fn find_new_extensions(&self) -> Result<()> {
+    pub async fn find_new_extensions(&self) -> Result<()> {
         let mut inner = self.inner.lock().await;
         inner
             .handle_runner_command(RunnerCommand::FindNewExtensions)

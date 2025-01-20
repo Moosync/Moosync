@@ -16,6 +16,7 @@
 
 use std::thread;
 
+use extensions::ExtensionHandler;
 use macros::generate_command;
 use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
@@ -154,6 +155,14 @@ pub fn initial(app: &mut App) {
     } else {
         tracing::warn!("Could not spawn scan task, no / invalid duration found");
     }
+
+    let handle = app.handle().clone();
+    tauri::async_runtime::spawn(async move {
+        let extension_handler = handle.state::<ExtensionHandler>();
+        if let Err(e) = extension_handler.find_new_extensions().await {
+            tracing::error!("Failed to find extensions: {:?}", e);
+        }
+    });
 
     let handle = app.handle().clone();
     tauri::async_runtime::spawn_blocking(move || {

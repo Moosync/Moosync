@@ -17,6 +17,7 @@
 use std::sync::Arc;
 
 use crate::i18n::t;
+use crate::utils::window::check_for_updates;
 use crate::{
     components::prefs::static_components::SettingRoutes,
     i18n::{use_i18n, Locale},
@@ -414,6 +415,8 @@ pub fn App() -> impl IntoView {
     if let Err(e) = window.add_event_listener_with_callback("beforeunload", &unlisten_mpris) {
         tracing::error!("Failed to set unmount hook: {:?}", e);
     }
+
+    check_for_updates();
 
     view! {
         <Router>

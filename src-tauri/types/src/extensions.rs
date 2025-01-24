@@ -261,15 +261,15 @@ impl ExtensionCommand {
                         Json(song[0].clone()).to_bytes().unwrap(),
                     ),
                     ExtensionExtraEvent::RequestedSongContextMenu(song) => (
-                        "get_song_context_menu",
+                        "get_song_context_menu_wrapper",
                         Json(song[0].clone()).to_bytes().unwrap(),
                     ),
                     ExtensionExtraEvent::RequestedPlaylistContextMenu(playlist) => (
-                        "get_playlist_context_menu",
+                        "get_playlist_context_menu_wrapper",
                         Json(playlist[0].clone()).to_bytes().unwrap(),
                     ),
                     ExtensionExtraEvent::ContextMenuAction(action_id) => (
-                        "on_context_menu_action",
+                        "on_context_menu_action_wrapper",
                         Json(action_id[0].clone()).to_bytes().unwrap(),
                     ),
                 };

@@ -14,12 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pub mod common;
-pub mod discover_extensions;
-pub mod login_modal;
-pub mod modal_manager;
-pub mod new_playlist_modal;
-pub mod new_theme_modal;
-pub mod signout_modal;
-pub mod song_from_url_modal;
-pub mod update_modal;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(tag = "event", content = "data")]
+pub enum DownloadEvent {
+    #[serde(rename_all = "camelCase")]
+    Started {
+        content_length: Option<u64>,
+    },
+    #[serde(rename_all = "camelCase")]
+    Progress {
+        chunk_length: usize,
+    },
+    Finished,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateMetadata {
+    pub version: String,
+    pub current_version: String,
+}

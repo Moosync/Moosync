@@ -37,7 +37,6 @@ tauri = { version = "2.2.1", features = [
     "wry",
     "protocol-asset",
     "tray-icon",
-    "devtools",
 ], default-features = false }
 tauri-plugin-deep-link = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-dialog = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }

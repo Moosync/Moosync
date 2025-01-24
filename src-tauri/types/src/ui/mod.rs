@@ -20,3 +20,6 @@ pub mod song_details;
 
 #[cfg(not(feature = "extensions"))]
 pub mod themes;
+
+#[cfg(not(feature = "extensions"))]
+pub mod updater;

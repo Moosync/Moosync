@@ -65,6 +65,7 @@ use tracing_subscriber::{
     fmt::{self},
     layer::SubscriberExt,
 };
+use updater::{fetch_update, get_updater_state, install_update};
 use window::handler::{build_tray_menu, handle_window_close};
 
 #[cfg(mobile)]
@@ -103,6 +104,8 @@ mod providers;
 mod rodio;
 mod scanner;
 mod themes;
+#[cfg(desktop)]
+mod updater;
 mod window;
 mod youtube;
 
@@ -315,7 +318,10 @@ pub fn run() {
             mobile_play,
             mobile_pause,
             mobile_stop,
-            mobile_seek
+            mobile_seek,
+            // Updater
+            fetch_update,
+            install_update
         ])
         .setup(|app| {
             let layer = fmt::layer()
@@ -386,6 +392,9 @@ pub fn run() {
 
             let mobile_player = MobilePlayer::new();
             app.manage(mobile_player);
+
+            let updater_state = get_updater_state();
+            app.manage(updater_state);
 
             #[cfg(mobile)]
             {

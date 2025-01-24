@@ -16,7 +16,10 @@
 
 use std::sync::Arc;
 
-use types::{songs::Song, ui::themes::ThemeModalState};
+use types::{
+    songs::Song,
+    ui::{themes::ThemeModalState, updater::UpdateMetadata},
+};
 
 use crate::modals::new_playlist_modal::PlaylistModalState;
 
@@ -28,6 +31,7 @@ pub enum Modals {
     NewPlaylistModal(PlaylistModalState, Option<Vec<Song>>),
     SongFromUrlModal,
     ThemeModal(ThemeModalState),
+    UpdateModal(UpdateMetadata),
 }
 
 #[derive(Clone, Default)]

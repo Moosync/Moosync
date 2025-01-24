@@ -116,6 +116,10 @@ impl Debug for ExtensionProvider {
 impl GenericProvider for ExtensionProvider {
     #[tracing::instrument(level = "trace", skip(self))]
     async fn initialize(&mut self) -> Result<()> {
+        tracing::debug!(
+            "Got extension provider scopes: {:?}",
+            self.get_provider_scopes().await.unwrap()
+        );
         if self.provides.contains(&ExtensionProviderScope::Accounts) {
             self.get_accounts().await
         } else {

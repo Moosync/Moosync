@@ -339,7 +339,7 @@ where
         }
 
         let provider_store = expect_context::<Arc<ProviderStore>>();
-        let song_list = self.song_list.get();
+        let song_list = self.current_or_list();
         spawn_local(async move {
             let valid_providers =
                 provider_store.get_provider_keys(ExtensionProviderScope::SongContextMenu);
@@ -549,7 +549,7 @@ impl ContextMenuData<Self> for PlaylistItemContextMenu {
                             i18n.get_keys()
                                 .contextMenu()
                                 .playlist()
-                                .addFromURL()
+                                .remove()
                                 .build_string()
                                 .into(),
                             |_, cx| cx.remove_from_library(),

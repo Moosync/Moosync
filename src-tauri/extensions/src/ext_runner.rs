@@ -353,6 +353,7 @@ impl ExtensionHandlerInner {
 
                 let Ok(parsed_path) = PathBuf::from_str(parsed.as_str());
                 if !parsed_path.exists() {
+                    tracing::warn!("Path {:?} does not exist", parsed_path);
                     continue;
                 }
                 allowed_paths.insert(parsed, value);
@@ -450,7 +451,7 @@ impl ExtensionHandlerInner {
             let reply_map = self.reply_map.clone();
             let ext_command_tx = self.ext_command_tx.clone();
             thread::spawn(move || {
-                let extension = Self::spawn_extension(manifest, reply_map, ext_command_tx);
+                let extension = Self::spawn_extension(manifest, reply_map, ext_command_tx.clone());
                 let plugin = extension.plugin.clone();
                 let mut plugin = block_on(plugin.lock());
                 tracing::trace!("Callign entry");
@@ -458,6 +459,10 @@ impl ExtensionHandlerInner {
 
                 let mut extensions_map = block_on(extension_map.lock());
                 extensions_map.insert(package_name, extension);
+
+                ext_command_tx
+                    .send(MainCommand::ExtensionsUpdated().to_request().unwrap())
+                    .unwrap();
             });
         }
 
@@ -706,7 +711,7 @@ impl ExtensionHandlerInner {
             ),
             RunnerCommand::ToggleExtensionStatus(_) => todo!(),
             RunnerCommand::RemoveExtension(p) => {
-                self.remove_extension(&p.package_name);
+                self.remove_extension(&p.package_name).await;
                 RunnerCommandResp::Empty()
             }
             RunnerCommand::StopProcess => {

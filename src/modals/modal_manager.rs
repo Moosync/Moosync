@@ -21,6 +21,7 @@ use crate::{
         discover_extensions::DiscoverExtensionsModal, login_modal::LoginModal,
         new_playlist_modal::NewPlaylistModal, new_theme_modal::NewThemeModal,
         signout_modal::SignoutModal, song_from_url_modal::SongFromUrlModal,
+        update_modal::UpdateModal,
     },
     store::modal_store::{ModalStore, Modals},
 };
@@ -54,6 +55,9 @@ pub fn ModalManager() -> impl IntoView {
                     }
                     Modals::ThemeModal(initial_state) => {
                         view! { <NewThemeModal initial_state=initial_state /> }.into_any()
+                    }
+                    Modals::UpdateModal(metadata) => {
+                        view! { <UpdateModal metadata=metadata /> }.into_any()
                     }
                 }
             }}

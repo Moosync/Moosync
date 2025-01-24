@@ -14,4 +14,28 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use leptos::{
+    prelude::{expect_context, RwSignal, Update},
+    task::spawn_local,
+};
 
+use crate::store::modal_store::{ModalStore, Modals};
+
+use super::invoke::fetch_update;
+
+pub fn check_for_updates() {
+    tracing::info!("Checking for updates...");
+    let modal_store = expect_context::<RwSignal<ModalStore>>();
+    spawn_local(async move {
+        let update = fetch_update().await;
+        match update {
+            Ok(Some(update)) => {
+                modal_store.update(|m| m.set_active_modal(Modals::UpdateModal(update)));
+            }
+            Err(e) => tracing::error!("Failed to fetch update: {:?}", e),
+            _ => {
+                tracing::info!("No update found")
+            }
+        }
+    });
+}

@@ -672,24 +672,48 @@ impl GenericProvider for YoutubeProvider {
                 .search_yt(format!(
                     "{} - {}",
                     song.artists
+                        .clone()
                         .unwrap_or_default()
                         .iter()
                         .filter_map(|a| a.artist_name.clone())
                         .collect::<Vec<String>>()
                         .join(", "),
-                    song.song.title.unwrap_or_default()
+                    song.song.title.clone().unwrap_or_default()
                 ))
                 .await?;
-            if let Some(first) = res.songs.first() {
-                return Ok(first.song.url.clone().unwrap());
+            if let Some(first) = res.songs.into_iter().next() {
+                return Ok(first.song.url.unwrap());
             }
         }
 
         if player == "local" || player == "rodio" {
             let youtube_scraper: State<YoutubeScraper> = self.app.state();
-            return youtube_scraper
-                .get_video_url(song.song.url.clone().unwrap())
-                .await;
+            let url = if song.song.type_ == SongType::YOUTUBE {
+                song.song.url
+            } else {
+                let res = youtube_scraper
+                    .search_yt(format!(
+                        "{} - {}",
+                        song.artists
+                            .unwrap_or_default()
+                            .iter()
+                            .filter_map(|a| a.artist_name.clone())
+                            .collect::<Vec<String>>()
+                            .join(", "),
+                        song.song.title.unwrap_or_default()
+                    ))
+                    .await?;
+                res.songs
+                    .into_iter()
+                    .next()
+                    .map(|first| first.song.url.unwrap())
+            };
+
+            if let Some(url) = url {
+                youtube_scraper.get_video_url(url).await
+            } else {
+                Err("Failed to find video on youtube".into())
+            }
         } else {
             return Ok(song.song.url.clone().unwrap());
         }

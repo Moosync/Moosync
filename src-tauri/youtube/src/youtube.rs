@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::{f32::consts::PI, str::FromStr};
+
 use rusty_ytdl::{
+    reqwest::Url,
     search::{Channel, Playlist, SearchOptions, SearchType, YouTube},
     VideoFormat,
 };
@@ -195,7 +198,14 @@ impl YoutubeScraper {
     }
 
     #[tracing::instrument(level = "trace", skip(self, id))]
-    pub async fn get_video_url(&self, id: String) -> Result<String> {
+    pub async fn get_video_url(&self, mut id: String) -> Result<String> {
+        if id.starts_with("http") {
+            let url = Url::from_str(&id).unwrap();
+            let query = url.query_pairs().find(|(k, v)| return k == "v");
+            if let Some((_, v)) = query {
+                id = v.to_string();
+            }
+        }
         let video = rusty_ytdl::Video::new(id)?;
         let info = video.get_info().await?;
 

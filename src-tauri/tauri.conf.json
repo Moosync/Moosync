@@ -3,6 +3,7 @@
     "macOSPrivateApi": false,
     "windows": [
       {
+        "label": "main",
         "url": "/main/allsongs",
         "height": 800,
         "width": 1024,
@@ -80,5 +81,5 @@
     }
   },
   "productName": "Moosync",
-  "version": "0.0.5"
+  "version": "0.0.6"
 }

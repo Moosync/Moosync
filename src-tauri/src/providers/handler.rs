@@ -17,7 +17,6 @@
 use futures::{
     channel::mpsc::{unbounded, UnboundedReceiver, UnboundedSender},
     future::join_all,
-    lock::Mutex,
     StreamExt,
 };
 use serde_json::Value;
@@ -26,9 +25,10 @@ use std::{collections::HashMap, sync::Arc};
 use database::cache::CacheHolder;
 use macros::{generate_command_async, generate_command_async_cached};
 use tauri::{
-    async_runtime::{self, block_on},
+    async_runtime::{self},
     AppHandle, Emitter, State,
 };
+use tokio::sync::{Mutex, RwLock};
 use types::{
     entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
     errors::{MoosyncError, Result},
@@ -51,11 +51,10 @@ macro_rules! generate_wrapper {
             #[tracing::instrument(level = "trace", skip(self))]
             pub async fn $func_name(&self, key: String, $($param_name: $param_type),*) -> Result<$result_type> {
                 let mut provider_key = key;
-                let provider_store = self.provider_store.lock().await;
+                let provider_store = self.provider_store.read().await;
                 loop {
                     let provider = provider_store.get(&provider_key);
                     if let Some(provider) = provider {
-                        let provider = provider.lock().await;
                         tracing::debug!("calling provider {} - {}", provider_key, stringify!($method_name));
                         let res = provider.$method_name($($param_name.clone()),*).await;
                         match res {
@@ -82,11 +81,10 @@ macro_rules! generate_wrapper_mut {
             #[tracing::instrument(level = "trace", skip(self))]
             pub async fn $func_name(&self, key: String, $($param_name: $param_type),*) -> Result<$result_type> {
                 let mut provider_key = key;
-                let provider_store = self.provider_store.lock().await;
+                let provider_store = self.provider_store.read().await;
                 loop {
                     let provider = provider_store.get(&provider_key);
                     if let Some(provider) = provider {
-                        let mut provider = provider.lock().await;
                         let res = provider.$method_name($($param_name.clone()),*).await;
                         match res {
                             Ok(result) => return Ok(result),
@@ -104,7 +102,7 @@ macro_rules! generate_wrapper_mut {
 
 #[derive(Debug)]
 pub struct ProviderHandler {
-    provider_store: Mutex<HashMap<String, Arc<Mutex<dyn GenericProvider>>>>,
+    provider_store: Arc<RwLock<HashMap<String, Box<dyn GenericProvider>>>>,
     app_handle: AppHandle,
     status_tx: UnboundedSender<ProviderStatus>,
     provider_status: Arc<Mutex<HashMap<String, ProviderStatus>>>,
@@ -122,28 +120,21 @@ impl ProviderHandler {
         };
         store.listen_status_changes(status_rx);
 
-        let mut provider_store = block_on(store.provider_store.lock());
+        let mut provider_store = store.provider_store.blocking_write();
 
-        let spotify_provider = SpotifyProvider::new(app.clone(), store.status_tx.clone());
-        provider_store.insert(
-            spotify_provider.key(),
-            Arc::new(Mutex::new(spotify_provider)),
-        );
+        let spotify_provider = Box::new(SpotifyProvider::new(app.clone(), store.status_tx.clone()));
+        provider_store.insert(spotify_provider.key(), spotify_provider);
 
-        let youtube_provider: YoutubeProvider = YoutubeProvider::new(app, store.status_tx.clone());
-        provider_store.insert(
-            youtube_provider.key(),
-            Arc::new(Mutex::new(youtube_provider)),
-        );
+        let youtube_provider = Box::new(YoutubeProvider::new(app, store.status_tx.clone()));
+        provider_store.insert(youtube_provider.key(), youtube_provider);
         drop(provider_store);
 
         store
     }
 
     pub async fn request_account_status(&self, key: String) -> Result<()> {
-        let provider_store = self.provider_store.lock().await;
+        let provider_store = self.provider_store.read().await;
         if let Some(provider) = provider_store.get(&key) {
-            let mut provider = provider.lock().await;
             provider.requested_account_status().await?;
         }
 
@@ -189,29 +180,38 @@ impl ProviderHandler {
             );
             if let Ok(provides) = provides {
                 tracing::info!(
-                    "Inserting extension provider {:?} {:?}",
+                    "Inserting extension provider {:?} {:?} {:?}",
                     extension,
-                    provides
+                    provides,
+                    self.provider_store
                 );
 
-                let mut provider = ExtensionProvider::new(
+                let provider = Box::new(ExtensionProvider::new(
                     extension.clone(),
                     provides,
                     self.app_handle.clone(),
                     self.status_tx.clone(),
-                );
-                let mut provider_store = self.provider_store.lock().await;
-                provider_store.insert(provider.key(), Arc::new(Mutex::new(provider.clone())));
+                ));
+                let key = {
+                    let mut provider_store = self.provider_store.write().await;
+                    let key = provider.key();
+                    provider_store.insert(key.clone(), provider);
+                    tracing::info!("provider_store: {:?}", provider_store);
+                    key
+                };
 
-                tracing::info!("provider_store: {:?}", provider_store);
+                let provider_store = self.provider_store.clone();
                 async_runtime::spawn(async move {
-                    let res = provider.initialize().await;
-                    if let Err(err) = res {
-                        tracing::error!(
-                            "Error initializing extension provider {}: {:?}",
-                            provider.key(),
-                            err
-                        );
+                    let provider_store = provider_store.read().await;
+                    if let Some(provider) = provider_store.get(&key) {
+                        let res = provider.initialize().await;
+                        if let Err(err) = res {
+                            tracing::error!(
+                                "Error initializing extension provider {}: {:?}",
+                                key,
+                                err
+                            );
+                        }
                     }
                 });
             }
@@ -223,10 +223,9 @@ impl ProviderHandler {
 
     #[tracing::instrument(level = "trace", skip(self, key))]
     pub async fn initialize_provider(&self, key: String) {
-        let provider_store = self.provider_store.lock().await;
+        let provider_store = self.provider_store.read().await;
         let provider = provider_store.get(&key);
         if let Some(provider) = provider {
-            let mut provider = provider.lock().await;
             if let Err(e) = provider.initialize().await {
                 tracing::error!("Error initializing provider {}: {:?}", provider.key(), e);
             }
@@ -235,13 +234,12 @@ impl ProviderHandler {
 
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn initialize_all_providers(&self) -> Result<()> {
+        let provider_store = self.provider_store.read().await;
         let mut fut = vec![];
-        let provider_store = self.provider_store.lock().await;
         for (_, provider) in provider_store.iter() {
-            let provider = provider.clone();
+            let key = provider.key();
             fut.push(Box::pin(async move {
-                let mut provider = provider.lock().await;
-                tracing::info!("Initializing {}", provider.key());
+                tracing::info!("Initializing {}", key);
                 let err = provider.initialize().await;
                 if let Err(err) = err {
                     tracing::error!("Error initializing {}: {:?}", provider.key(), err);
@@ -256,9 +254,8 @@ impl ProviderHandler {
 
     #[tracing::instrument(level = "trace", skip(self, id))]
     pub async fn get_provider_key_by_id(&self, id: String) -> Result<String> {
-        let provider_store = self.provider_store.lock().await;
+        let provider_store = self.provider_store.read().await;
         for (key, provider) in provider_store.iter() {
-            let provider = provider.lock().await;
             if provider.match_id(id.clone()) {
                 return Ok(key.clone());
             }
@@ -268,7 +265,7 @@ impl ProviderHandler {
 
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn get_provider_keys(&self) -> Result<Vec<String>> {
-        let provider_store = self.provider_store.lock().await;
+        let provider_store = self.provider_store.read().await;
         Ok(provider_store.keys().cloned().collect())
     }
 

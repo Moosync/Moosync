@@ -33,3 +33,11 @@ async fn test_youtube_playlist_content() {
     tracing::info!("res: {:?}", res);
     assert!(!res.songs.is_empty());
 }
+
+#[tokio::test]
+async fn test_youtube_suggestions() {
+    let scraper = YoutubeScraper::default();
+    let res = scraper.get_suggestions().await.unwrap();
+
+    println!("res: {:?}", res);
+}

@@ -177,7 +177,7 @@ pub fn login(
 pub async fn authorize(
     key: &str,
     code: String,
-    verifier: &mut OAuth2Verifier,
+    verifier: OAuth2Verifier,
     app: &AppHandle,
 ) -> Result<TokenHolder> {
     if verifier.is_none() {
@@ -196,7 +196,7 @@ pub async fn authorize(
         .1
         .to_string();
 
-    let (client, verifier, _csrf) = verifier.take().unwrap();
+    let (client, verifier, _csrf) = verifier.unwrap();
 
     let res = client
         .exchange_code(AuthorizationCode::new(code))

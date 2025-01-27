@@ -19,6 +19,7 @@ use std::{
     io::{BufRead, BufReader},
     net::TcpListener,
     thread,
+    time::{Duration, Instant},
 };
 
 use async_trait::async_trait;
@@ -40,6 +41,7 @@ use rspotify::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
+use tokio::sync::{Mutex, RwLock, RwLockReadGuard};
 use types::{
     entities::{EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
     errors::Result,
@@ -75,16 +77,22 @@ struct SpotifyConfig {
     client_id: Option<String>,
     redirect_uri: &'static str,
     scopes: Vec<&'static str>,
-    tokens: Option<TokenHolder>,
+}
+
+#[derive(Debug)]
+struct ApiClient {
+    api_client: AuthCodePkceSpotify,
+    token_expiry: Instant,
 }
 
 #[derive(Debug)]
 pub struct SpotifyProvider {
     app: AppHandle,
-    config: SpotifyConfig,
-    verifier: Option<(OAuth2Client, PkceCodeVerifier, CsrfToken)>,
-    api_client: Option<AuthCodePkceSpotify>,
-    status_tx: UnboundedSender<ProviderStatus>,
+    config: Mutex<SpotifyConfig>,
+    verifier: Mutex<Option<(OAuth2Client, PkceCodeVerifier, CsrfToken)>>,
+    status_tx: Mutex<UnboundedSender<ProviderStatus>>,
+    api_client: RwLock<Option<ApiClient>>,
+    tokens: Mutex<Option<TokenHolder>>,
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -102,10 +110,11 @@ impl SpotifyProvider {
     pub fn new(app: AppHandle, status_tx: UnboundedSender<ProviderStatus>) -> Self {
         Self {
             app,
-            config: SpotifyConfig::default(),
-            verifier: None,
-            api_client: None,
-            status_tx,
+            config: Mutex::new(SpotifyConfig::default()),
+            verifier: Mutex::new(None),
+            api_client: RwLock::new(None),
+            status_tx: Mutex::new(status_tx),
+            tokens: Mutex::new(None),
         }
     }
 }
@@ -124,36 +133,49 @@ impl SpotifyProvider {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    fn get_oauth_client(&self) -> OAuth2Client {
+    async fn get_oauth_client(&self) -> OAuth2Client {
+        let config = self.config.lock().await;
         get_oauth_client(OAuthClientArgs {
             auth_url: "https://accounts.spotify.com/authorize".to_string(),
             token_url: "https://accounts.spotify.com/api/token".to_string(),
-            redirect_url: self.config.redirect_uri.to_string(),
-            client_id: self.config.client_id.clone().unwrap(),
-            client_secret: self.config.client_secret.clone().unwrap_or_default(),
+            redirect_url: config.redirect_uri.to_string(),
+            client_id: config.client_id.clone().unwrap(),
+            client_secret: config.client_secret.clone().unwrap_or_default(),
         })
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn create_api_client(&mut self) {
+    async fn create_api_client(&self) {
         tracing::debug!("Creating spotify api client");
-        if let Some(token) = &self.config.tokens {
-            self.api_client = Some(AuthCodePkceSpotify::from_token(Token {
-                access_token: token.access_token.clone(),
-                expires_in: TimeDelta::seconds(token.expires_in.try_into().unwrap()),
-                expires_at: Some(DateTime::from_timestamp_millis(token.expires_at).unwrap()),
-                refresh_token: Some(token.refresh_token.clone()),
-                scopes: HashSet::from_iter(self.config.scopes.iter().map(|v| v.to_string())),
-            }));
+        if let Some(token) = self.tokens.lock().await.as_ref() {
+            *self.api_client.write().await = Some(ApiClient {
+                api_client: AuthCodePkceSpotify::from_token(Token {
+                    access_token: token.access_token.clone(),
+                    expires_in: TimeDelta::seconds(token.expires_in.try_into().unwrap()),
+                    expires_at: Some(DateTime::from_timestamp_millis(token.expires_at).unwrap()),
+                    refresh_token: Some(token.refresh_token.clone()),
+                    scopes: HashSet::from_iter(
+                        self.config
+                            .lock()
+                            .await
+                            .scopes
+                            .iter()
+                            .map(|v| v.to_string()),
+                    ),
+                }),
+                token_expiry: Instant::now() + Duration::from_secs(token.expires_in),
+            });
 
             let res = self.fetch_user_details().await;
             let mut is_spotify_premium = false;
             if let Ok((res, is_premium)) = res {
-                let _ = self.status_tx.send(res).await;
+                let _ = self.status_tx.lock().await.send(res).await;
                 is_spotify_premium = is_premium;
             } else {
                 let _ = self
                     .status_tx
+                    .lock()
+                    .await
                     .send(self.get_provider_status(Some("".into())).await)
                     .await;
             }
@@ -168,13 +190,27 @@ impl SpotifyProvider {
         }
     }
 
+    async fn get_api_client(&self) -> RwLockReadGuard<'_, Option<ApiClient>> {
+        if let Some(_) = self
+            .api_client
+            .read()
+            .await
+            .as_ref()
+            .map(|api_client| api_client.token_expiry <= Instant::now())
+        {
+            let _ = self.refresh_login().await;
+        }
+
+        self.api_client.read().await
+    }
+
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn refresh_login(&mut self) -> Result<()> {
+    async fn refresh_login(&self) -> Result<()> {
         tracing::debug!("Refreshing spotify login");
-        self.config.tokens = Some(
+        *self.tokens.lock().await = Some(
             refresh_login(
                 "MoosyncSpotifyRefreshToken",
-                self.get_oauth_client(),
+                self.get_oauth_client().await,
                 &self.app,
             )
             .await?,
@@ -196,12 +232,8 @@ impl SpotifyProvider {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, artist))]
-    fn parse_artists(
-        &self,
-        artist: SimplifiedArtist,
-        images: Option<Vec<Image>>,
-    ) -> QueryableArtist {
+    #[tracing::instrument(level = "trace", skip(artist))]
+    fn parse_artists(artist: SimplifiedArtist, images: Option<Vec<Image>>) -> QueryableArtist {
         QueryableArtist {
             artist_id: Some(format!("spotify-artist:{}", artist.id.clone().unwrap())),
             artist_name: Some(artist.name),
@@ -218,8 +250,8 @@ impl SpotifyProvider {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, album))]
-    fn parse_album(&self, album: SimplifiedAlbum) -> QueryableAlbum {
+    #[tracing::instrument(level = "trace", skip(album))]
+    fn parse_album(album: SimplifiedAlbum) -> QueryableAlbum {
         QueryableAlbum {
             album_id: Some(format!("spotify-album:{}", album.id.clone().unwrap())),
             album_name: Some(album.name),
@@ -247,14 +279,14 @@ impl SpotifyProvider {
                 ..Default::default()
             },
             album: if item.album.id.is_some() {
-                Some(self.parse_album(item.album))
+                Some(Self::parse_album(item.album))
             } else {
                 None
             },
             artists: Some(
                 item.artists
                     .into_iter()
-                    .map(|a| self.parse_artists(a, None))
+                    .map(|a| Self::parse_artists(a, None))
                     .collect(),
             ),
             ..Default::default()
@@ -264,11 +296,8 @@ impl SpotifyProvider {
     #[tracing::instrument(level = "trace", skip(self))]
     async fn fetch_user_details(&self) -> Result<(ProviderStatus, bool)> {
         tracing::info!("Fetching user details for spotify");
-        if let Some(api_client) = &self.api_client {
-            let token = api_client.token.lock().await.unwrap();
-            drop(token);
-
-            let user = api_client.current_user().await?;
+        if let Some(api_client) = self.api_client.read().await.as_ref() {
+            let user = api_client.api_client.current_user().await?;
             let mut is_premium = false;
             if let Some(subscription) = user.product {
                 if subscription == SubscriptionLevel::Premium {
@@ -329,9 +358,11 @@ impl SpotifyProvider {
 #[async_trait]
 impl GenericProvider for SpotifyProvider {
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn initialize(&mut self) -> Result<()> {
+    async fn initialize(&self) -> Result<()> {
         let _ = self
             .status_tx
+            .lock()
+            .await
             .send(self.get_provider_status(None).await)
             .await;
 
@@ -342,33 +373,34 @@ impl GenericProvider for SpotifyProvider {
         let client_id = spotify_config.get("client_id");
         let client_secret = spotify_config.get("client_secret");
 
-        self.config.client_id = client_id.map(|v| v.as_str().unwrap().to_string());
-        self.config.client_secret = client_secret.map(|v| v.as_str().unwrap().to_string());
-
-        if self
-            .config
-            .client_id
-            .as_ref()
-            .map_or(true, |id| id.is_empty())
-            || self
-                .config
-                .client_secret
-                .as_ref()
-                .map_or(true, |secret| secret.is_empty())
         {
-            self.config.redirect_uri = "http://127.0.0.1:8898/login";
-            self.config.client_id = Some("65b708073fc0480ea92a077233ca87bd".into())
-        } else {
-            self.config.redirect_uri = "https://moosync.app/spotify";
+            let mut config = self.config.lock().await;
+            *config = SpotifyConfig {
+                client_id: client_id.map(|v| v.as_str().unwrap().to_string()),
+                client_secret: client_secret.map(|v| v.as_str().unwrap().to_string()),
+                ..Default::default()
+            };
+
+            if config.client_id.as_ref().map_or(true, |id| id.is_empty())
+                || config
+                    .client_secret
+                    .as_ref()
+                    .map_or(true, |secret| secret.is_empty())
+            {
+                config.redirect_uri = "http://127.0.0.1:8898/login";
+                config.client_id = Some("65b708073fc0480ea92a077233ca87bd".into())
+            } else {
+                config.redirect_uri = "https://moosync.app/spotify";
+            }
+            config.scopes = vec![
+                "playlist-read-private",
+                "user-top-read",
+                "user-library-read",
+                "user-read-private",
+                "streaming",
+                "app-remote-control",
+            ];
         }
-        self.config.scopes = vec![
-            "playlist-read-private",
-            "user-top-read",
-            "user-library-read",
-            "user-read-private",
-            "streaming",
-            "app-remote-control",
-        ];
 
         let res = self.refresh_login().await;
         if let Err(err) = res {
@@ -409,26 +441,27 @@ impl GenericProvider for SpotifyProvider {
             || id.starts_with("spotify:")
     }
 
-    async fn requested_account_status(&mut self) -> Result<()> {
+    async fn requested_account_status(&self) -> Result<()> {
         // TODO: Get account status from spotify
         Ok(())
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn login(&mut self, _: String) -> Result<String> {
+    async fn login(&self, _: String) -> Result<String> {
+        let config = self.config.lock().await;
         let (url, verifier) = login(
             LoginArgs {
-                client_id: self.config.client_id.clone(),
-                client_secret: self.config.client_secret.clone(),
-                scopes: self.config.scopes.clone(),
+                client_id: config.client_id.clone(),
+                client_secret: config.client_secret.clone(),
+                scopes: config.scopes.clone(),
                 extra_params: None,
             },
-            self.get_oauth_client(),
+            self.get_oauth_client().await,
             &self.app,
         )?;
-        self.verifier = verifier;
+        *self.verifier.lock().await = verifier;
 
-        let redirect_uri = self.config.redirect_uri;
+        let redirect_uri = config.redirect_uri;
         if redirect_uri.starts_with("http://127.0.0.1:8898") {
             let app_handle = self.app.clone();
             thread::spawn(move || {
@@ -469,29 +502,31 @@ impl GenericProvider for SpotifyProvider {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn signout(&mut self, _: String) -> Result<()> {
-        self.config.tokens = None;
-        self.api_client = None;
-        self.verifier = None;
+    async fn signout(&self, _: String) -> Result<()> {
+        *self.tokens.lock().await = None;
+        *self.api_client.write().await = None;
+        *self.verifier.lock().await = None;
 
         let preferences: State<PreferenceConfig> = self.app.state();
         preferences.set_secure("MoosyncSpotifyRefreshToken".into(), None::<String>)?;
 
         let _ = self
             .status_tx
+            .lock()
+            .await
             .send(self.get_provider_status(None).await)
             .await;
         Ok(())
     }
 
     #[tracing::instrument(level = "trace", skip(self, code))]
-    async fn authorize(&mut self, code: String) -> Result<()> {
+    async fn authorize(&self, code: String) -> Result<()> {
         tracing::info!("Authorizing with code {}", code);
-        self.config.tokens = Some(
+        *self.tokens.lock().await = Some(
             authorize(
                 "MoosyncSpotifyRefreshToken",
                 code,
-                &mut self.verifier,
+                self.verifier.lock().await.take(),
                 &self.app,
             )
             .await?,
@@ -507,9 +542,9 @@ impl GenericProvider for SpotifyProvider {
         pagination: Pagination,
     ) -> Result<(Vec<QueryablePlaylist>, Pagination)> {
         let mut ret = vec![];
-        tracing::info!("Fetching spotify playlists {:?}", self.api_client);
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             let playlists = api_client
+                .api_client
                 .current_user_playlists_manual(Some(pagination.limit), Some(pagination.offset))
                 .await;
             if let Ok(playlists) = playlists {
@@ -535,11 +570,12 @@ impl GenericProvider for SpotifyProvider {
             return Err("Playlist ID cannot be none".into());
         }
         let playlist_id = playlist.playlist_id.unwrap();
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             let playlist_id = playlist_id
                 .strip_prefix("spotify-playlist:")
                 .unwrap_or(&playlist_id);
             let items = api_client
+                .api_client
                 .playlist_items_manual(
                     PlaylistId::from_id_or_uri(playlist_id).unwrap(),
                     None,
@@ -548,6 +584,7 @@ impl GenericProvider for SpotifyProvider {
                     Some(pagination.offset),
                 )
                 .await;
+
             if let Ok(items) = items {
                 for i in items.items {
                     if i.is_local {
@@ -584,9 +621,9 @@ impl GenericProvider for SpotifyProvider {
             ..Default::default()
         };
 
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             search_and_parse_all!(
-                api_client,
+                api_client.api_client,
                 &term,
                 [
                     (
@@ -606,7 +643,7 @@ impl GenericProvider for SpotifyProvider {
                         SearchType::Artist,
                         rspotify::model::SearchResult::Artists,
                         |item: FullArtist, vec: &mut Vec<QueryableArtist>| vec.push(
-                            self.parse_artists(
+                            Self::parse_artists(
                                 SimplifiedArtist {
                                     external_urls: item.external_urls,
                                     href: Some(item.href),
@@ -621,7 +658,7 @@ impl GenericProvider for SpotifyProvider {
                     (
                         SearchType::Album,
                         rspotify::model::SearchResult::Albums,
-                        |item, vec: &mut Vec<QueryableAlbum>| vec.push(self.parse_album(item)),
+                        |item, vec: &mut Vec<QueryableAlbum>| vec.push(Self::parse_album(item)),
                         ret.albums
                     )
                 ]
@@ -660,8 +697,9 @@ impl GenericProvider for SpotifyProvider {
             url
         };
 
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             let playlists = api_client
+                .api_client
                 .playlist(
                     PlaylistId::from_id_or_uri(playlist_id.as_str())
                         .map_err(|_| MoosyncError::String("Invalid playlist url".into()))?,
@@ -698,8 +736,9 @@ impl GenericProvider for SpotifyProvider {
             url
         };
 
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             let res = api_client
+                .api_client
                 .track(TrackId::from_id_or_uri(track_id.as_str())?, None)
                 .await?;
 
@@ -711,11 +750,15 @@ impl GenericProvider for SpotifyProvider {
 
     #[tracing::instrument(level = "trace", skip(self))]
     async fn get_suggestions(&self) -> Result<Vec<Song>> {
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             let mut i = 0;
             let mut ret = vec![];
             while i < 5 {
-                let user_top_tracks = api_client.current_user_top_tracks(None).next().await;
+                let user_top_tracks = api_client
+                    .api_client
+                    .current_user_top_tracks(None)
+                    .next()
+                    .await;
                 if let Some(track) = user_top_tracks {
                     let track = track?;
                     if let Some(track_id) = track.id {
@@ -727,6 +770,7 @@ impl GenericProvider for SpotifyProvider {
                 }
             }
             let recom = api_client
+                .api_client
                 .recommendations(
                     vec![],
                     Some(vec![]),
@@ -771,7 +815,7 @@ impl GenericProvider for SpotifyProvider {
         album: QueryableAlbum,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             let mut raw_id = album.album_id;
             if let Some(id) = &raw_id {
                 if !self.match_id(id.clone()) {
@@ -792,8 +836,9 @@ impl GenericProvider for SpotifyProvider {
                 tracing::debug!("Got album id: {}", id);
                 let id = id.replace("spotify-album:", "");
                 let id = AlbumId::from_id_or_uri(id.as_str())?;
-                let album = api_client.album(id.clone(), None).await?;
+                let album = api_client.api_client.album(id.clone(), None).await?;
                 let album_tracks = api_client
+                    .api_client
                     .album_track_manual(id, None, Some(pagination.limit), Some(pagination.offset))
                     .await?;
                 let mut items = album_tracks.items.clone();
@@ -816,7 +861,7 @@ impl GenericProvider for SpotifyProvider {
         artist: QueryableArtist,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             if let Some(next_page_token) = &pagination.token {
                 // TODO: Fetch next pages
                 let _tokens = next_page_token.split(";").collect::<Vec<_>>();
@@ -844,8 +889,11 @@ impl GenericProvider for SpotifyProvider {
                 let mut songs = vec![];
                 let mut next_page_tokens = vec![];
                 let id = id.replace("spotify-artist:", "");
-                let albums =
-                    api_client.artist_albums(ArtistId::from_id_or_uri(id.as_str())?, [], None);
+                let albums = api_client.api_client.artist_albums(
+                    ArtistId::from_id_or_uri(id.as_str())?,
+                    [],
+                    None,
+                );
 
                 let album_ids = albums.filter_map(|a| async {
                     if let Ok(a) = a {
@@ -859,7 +907,7 @@ impl GenericProvider for SpotifyProvider {
                 let album_ids = album_ids.collect::<Vec<_>>().await;
 
                 for chunk in album_ids.chunks(20) {
-                    let albums = api_client.albums(chunk.to_vec(), None).await?;
+                    let albums = api_client.api_client.albums(chunk.to_vec(), None).await?;
                     tracing::debug!("Got albums {:?}", albums);
                     for a in albums {
                         let mut tracks = a.tracks.items.clone();

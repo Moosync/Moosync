@@ -6,9 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rusty_ytdl = { default-features = false, version = "0.7.4", features = [
-    "search",
-] }
+rusty_ytdl = { version = "0.7.4" }
 types = { path = "../types" }
 serde_json = { default-features = false, version = "1.0.135" }
 tokio = "1.43.0"

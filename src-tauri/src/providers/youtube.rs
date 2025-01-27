@@ -28,7 +28,10 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use tauri::{AppHandle, Manager, State};
+use std::time::{Duration, Instant};
+use tauri::async_runtime::Mutex;
+use tauri::{async_runtime::RwLock, AppHandle, Manager, State};
+use tokio::sync::RwLockReadGuard;
 use types::entities::{
     EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult,
 };
@@ -77,21 +80,26 @@ struct YoutubeConfig {
     client_id: Option<String>,
     redirect_uri: &'static str,
     scopes: Vec<&'static str>,
-    tokens: Option<TokenHolder>,
+}
+
+struct ApiClient {
+    api_client: YouTube<HttpsConnector<HttpConnector>>,
+    token_expiry: Instant,
 }
 
 pub struct YoutubeProvider {
     app: AppHandle,
-    config: YoutubeConfig,
-    verifier: Option<(OAuth2Client, PkceCodeVerifier, CsrfToken)>,
-    api_client: Option<YouTube<HttpsConnector<HttpConnector>>>,
-    status_tx: UnboundedSender<ProviderStatus>,
+    config: Mutex<YoutubeConfig>,
+    verifier: Mutex<Option<(OAuth2Client, PkceCodeVerifier, CsrfToken)>>,
+    api_client: RwLock<Option<ApiClient>>,
+    tokens: Mutex<Option<TokenHolder>>,
+    status_tx: Mutex<UnboundedSender<ProviderStatus>>,
 }
 
 impl std::fmt::Debug for YoutubeProvider {
     #[tracing::instrument(level = "trace", skip(self, f))]
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        <YoutubeConfig as std::fmt::Debug>::fmt(&self.config, f)
+        Ok(())
     }
 }
 
@@ -100,10 +108,11 @@ impl YoutubeProvider {
     pub fn new(app: AppHandle, status_tx: UnboundedSender<ProviderStatus>) -> Self {
         Self {
             app,
-            config: YoutubeConfig::default(),
-            verifier: None,
-            api_client: None,
-            status_tx,
+            config: Mutex::new(YoutubeConfig::default()),
+            verifier: Mutex::new(None),
+            api_client: RwLock::new(None),
+            status_tx: Mutex::new(status_tx),
+            tokens: Mutex::new(None),
         }
     }
 
@@ -120,25 +129,25 @@ impl YoutubeProvider {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    fn get_oauth_client(&self) -> Option<OAuth2Client> {
-        if self.config.client_id.is_some() && self.config.client_secret.is_some() {
+    async fn get_oauth_client(&self) -> Option<OAuth2Client> {
+        let config = self.config.lock().await;
+        if config.client_id.is_some() && config.client_secret.is_some() {
             let client = BasicClient::new(
-                ClientId::new(self.config.client_id.clone().unwrap()),
-                Some(ClientSecret::new(
-                    self.config.client_secret.clone().unwrap(),
-                )),
+                ClientId::new(config.client_id.clone().unwrap()),
+                Some(ClientSecret::new(config.client_secret.clone().unwrap())),
                 AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string()).unwrap(),
                 Some(TokenUrl::new("https://oauth2.googleapis.com/token".to_string()).unwrap()),
             )
-            .set_redirect_uri(RedirectUrl::new(self.config.redirect_uri.to_string()).unwrap());
+            .set_redirect_uri(RedirectUrl::new(config.redirect_uri.to_string()).unwrap());
             return Some(client);
         }
         None
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn create_api_client(&mut self) {
-        if let Some(token) = &self.config.tokens {
+    async fn create_api_client(&self) {
+        if let Some(token) = self.tokens.lock().await.as_ref() {
+            tracing::debug!("Creating youtube api client");
             let client =
                 hyper_util::client::legacy::Client::builder(hyper_util::rt::TokioExecutor::new())
                     .build(
@@ -150,29 +159,46 @@ impl YoutubeProvider {
                             .build(),
                     );
 
-            self.api_client = Some(google_youtube3::YouTube::new(
-                client,
-                token.access_token.clone(),
-            ));
+            *self.api_client.write().await = Some(ApiClient {
+                api_client: google_youtube3::YouTube::new(client, token.access_token.clone()),
+                token_expiry: Instant::now() + Duration::from_secs(token.expires_in),
+            });
 
             let res = self.fetch_user_details().await;
+            let mut status_tx = self.status_tx.lock().await;
             if let Ok(res) = res {
-                let _ = self.status_tx.send(res).await;
+                let _ = status_tx.send(res).await;
             } else {
-                let _ = self
-                    .status_tx
+                let _ = status_tx
                     .send(self.get_provider_status(Some("".into())).await)
                     .await;
             }
         }
     }
 
+    async fn get_api_client(&self) -> RwLockReadGuard<'_, Option<ApiClient>> {
+        if let Some(_) = self
+            .api_client
+            .read()
+            .await
+            .as_ref()
+            .map(|api_client| api_client.token_expiry <= Instant::now())
+        {
+            let _ = self.refresh_login().await;
+        }
+
+        self.api_client.read().await
+    }
+
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn refresh_login(&mut self) -> Result<()> {
-        let client = self.get_oauth_client();
+    async fn refresh_login(&self) -> Result<()> {
+        let client = self.get_oauth_client().await;
         if let Some(client) = client {
-            self.config.tokens =
-                Some(refresh_login("MoosyncYoutubeRefreshToken", client, &self.app).await?);
+            {
+                let mut tokens = self.tokens.lock().await;
+                *tokens =
+                    Some(refresh_login("MoosyncYoutubeRefreshToken", client, &self.app).await?);
+            }
             self.create_api_client().await;
         }
 
@@ -203,7 +229,7 @@ impl YoutubeProvider {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, resp))]
+    #[tracing::instrument(level = "trace", skip(resp))]
     fn parse_channel(&self, resp: Channel) -> QueryableArtist {
         let snippet = resp.snippet.as_ref().unwrap();
         QueryableArtist {
@@ -231,11 +257,13 @@ impl YoutubeProvider {
     #[tracing::instrument(level = "trace", skip(self, ids))]
     async fn fetch_song_details(&self, ids: Vec<String>) -> Result<Vec<Song>> {
         tracing::info!("Fetching song details for {:?}", ids);
-        if let Some(api_client) = &self.api_client {
+
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             let mut ret = vec![];
 
             for id_chunk in ids.chunks(50) {
                 let mut builder = api_client
+                    .api_client
                     .videos()
                     .list(&vec!["contentDetails".into(), "snippet".into()]);
                 for i in id_chunk {
@@ -302,8 +330,9 @@ impl YoutubeProvider {
 
     #[tracing::instrument(level = "trace", skip(self))]
     async fn fetch_user_details(&self) -> Result<ProviderStatus> {
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.api_client.read().await.as_ref() {
             let (_, user_info) = api_client
+                .api_client
                 .channels()
                 .list(&vec!["snippet".into()])
                 .mine(true)
@@ -325,25 +354,30 @@ impl YoutubeProvider {
     }
 
     async fn search_playlists(&self, term: &str) -> Result<Vec<QueryablePlaylist>> {
-        if let Some(api_client) = &self.api_client {
-            return Ok(search_and_parse!(api_client, term, "playlist", |item| {
-                item.id.as_ref().and_then(|id| {
-                    id.playlist_id.as_ref().map(|playlist_id| {
-                        let snippet = item.snippet.as_ref().unwrap();
-                        let playlist = Playlist {
-                            id: Some(playlist_id.clone()),
-                            snippet: Some(PlaylistSnippet {
-                                description: snippet.description.clone(),
-                                thumbnails: snippet.thumbnails.clone(),
-                                title: snippet.title.clone(),
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
+            return Ok(search_and_parse!(
+                api_client.api_client,
+                term,
+                "playlist",
+                |item| {
+                    item.id.as_ref().and_then(|id| {
+                        id.playlist_id.as_ref().map(|playlist_id| {
+                            let snippet = item.snippet.as_ref().unwrap();
+                            let playlist = Playlist {
+                                id: Some(playlist_id.clone()),
+                                snippet: Some(PlaylistSnippet {
+                                    description: snippet.description.clone(),
+                                    thumbnails: snippet.thumbnails.clone(),
+                                    title: snippet.title.clone(),
+                                    ..Default::default()
+                                }),
                                 ..Default::default()
-                            }),
-                            ..Default::default()
-                        };
-                        self.parse_playlist(playlist)
+                            };
+                            self.parse_playlist(playlist)
+                        })
                     })
-                })
-            }));
+                }
+            ));
         }
 
         let youtube_scraper: State<YoutubeScraper> = self.app.state();
@@ -353,25 +387,30 @@ impl YoutubeProvider {
     }
 
     async fn search_artists(&self, term: &str) -> Result<Vec<QueryableArtist>> {
-        if let Some(api_client) = &self.api_client {
-            return Ok(search_and_parse!(api_client, &term, "channel", |item| {
-                item.id.as_ref().and_then(|id| {
-                    id.channel_id.as_ref().map(|channel_id| {
-                        let snippet = item.snippet.as_ref().unwrap();
-                        let channel = Channel {
-                            id: Some(channel_id.clone()),
-                            snippet: Some(ChannelSnippet {
-                                description: snippet.description.clone(),
-                                thumbnails: snippet.thumbnails.clone(),
-                                title: snippet.title.clone(),
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
+            return Ok(search_and_parse!(
+                api_client.api_client,
+                &term,
+                "channel",
+                |item| {
+                    item.id.as_ref().and_then(|id| {
+                        id.channel_id.as_ref().map(|channel_id| {
+                            let snippet = item.snippet.as_ref().unwrap();
+                            let channel = Channel {
+                                id: Some(channel_id.clone()),
+                                snippet: Some(ChannelSnippet {
+                                    description: snippet.description.clone(),
+                                    thumbnails: snippet.thumbnails.clone(),
+                                    title: snippet.title.clone(),
+                                    ..Default::default()
+                                }),
                                 ..Default::default()
-                            }),
-                            ..Default::default()
-                        };
-                        self.parse_channel(channel)
+                            };
+                            self.parse_channel(channel)
+                        })
                     })
-                })
-            }));
+                }
+            ));
         }
 
         let youtube_scraper: State<YoutubeScraper> = self.app.state();
@@ -386,8 +425,9 @@ impl YoutubeProvider {
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
         let artist_id = artist_id.replace("youtube-artist:", "");
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             let mut builder = api_client
+                .api_client
                 .channels()
                 .list(&vec!["contentDetails".into()])
                 .max_results(50)
@@ -429,9 +469,11 @@ impl YoutubeProvider {
 #[async_trait]
 impl GenericProvider for YoutubeProvider {
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn initialize(&mut self) -> Result<()> {
+    async fn initialize(&self) -> Result<()> {
         let _ = self
             .status_tx
+            .lock()
+            .await
             .send(self.get_provider_status(None).await)
             .await;
 
@@ -445,10 +487,12 @@ impl GenericProvider for YoutubeProvider {
         let client_id = youtube_config.get("client_id");
         let client_secret = youtube_config.get("client_secret");
 
-        self.config.client_id = client_id.map(|v| v.as_str().unwrap().to_string());
-        self.config.client_secret = client_secret.map(|v| v.as_str().unwrap().to_string());
-        self.config.redirect_uri = "https://moosync.app/youtube";
-        self.config.scopes = vec!["https://www.googleapis.com/auth/youtube.readonly"];
+        *self.config.lock().await = YoutubeConfig {
+            client_id: client_id.map(|v| v.as_str().unwrap().to_string()),
+            client_secret: client_secret.map(|v| v.as_str().unwrap().to_string()),
+            redirect_uri: "https://moosync.app/youtube",
+            scopes: vec!["https://www.googleapis.com/auth/youtube.readonly"],
+        };
 
         let res = self.refresh_login().await;
         if let Err(err) = res {
@@ -489,20 +533,21 @@ impl GenericProvider for YoutubeProvider {
             || id.starts_with("youtube:")
     }
 
-    async fn requested_account_status(&mut self) -> Result<()> {
+    async fn requested_account_status(&self) -> Result<()> {
         // TODO: Get account status from youtube
         Ok(())
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn login(&mut self, _: String) -> Result<String> {
-        let client = self.get_oauth_client();
+    async fn login(&self, _: String) -> Result<String> {
+        let client = self.get_oauth_client().await;
         if let Some(client) = client {
+            let config = self.config.lock().await;
             let (url, verifier) = login(
                 LoginArgs {
-                    client_id: self.config.client_id.clone(),
-                    client_secret: self.config.client_secret.clone(),
-                    scopes: self.config.scopes.clone(),
+                    client_id: config.client_id.clone(),
+                    client_secret: config.client_secret.clone(),
+                    scopes: config.scopes.clone(),
                     extra_params: Some(HashMap::from([
                         ("prompt", "consent"),
                         ("access_type", "offline"),
@@ -512,7 +557,7 @@ impl GenericProvider for YoutubeProvider {
                 &self.app,
             )?;
 
-            self.verifier = verifier;
+            *self.verifier.lock().await = verifier;
 
             let oauth_handler: State<OAuthHandler> = self.app.state();
             oauth_handler.register_oauth_path("youtubeoauthcallback".into(), self.key());
@@ -524,16 +569,20 @@ impl GenericProvider for YoutubeProvider {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn signout(&mut self, _: String) -> Result<()> {
-        self.api_client = None;
-        self.verifier = None;
-        self.config.tokens = None;
+    async fn signout(&self, _: String) -> Result<()> {
+        *self.api_client.write().await = None;
+
+        *self.verifier.lock().await = None;
+
+        *self.tokens.lock().await = None;
 
         let preferences: State<PreferenceConfig> = self.app.state();
         preferences.set_secure("MoosyncYoutubeRefreshToken".into(), None::<String>)?;
 
         let _ = self
             .status_tx
+            .lock()
+            .await
             .send(self.get_provider_status(None).await)
             .await;
 
@@ -541,12 +590,13 @@ impl GenericProvider for YoutubeProvider {
     }
 
     #[tracing::instrument(level = "trace", skip(self, code))]
-    async fn authorize(&mut self, code: String) -> Result<()> {
-        self.config.tokens = Some(
+    async fn authorize(&self, code: String) -> Result<()> {
+        let mut tokens = self.tokens.lock().await;
+        *tokens = Some(
             authorize(
                 "MoosyncYoutubeRefreshToken",
                 code,
-                &mut self.verifier,
+                self.verifier.lock().await.take(),
                 &self.app,
             )
             .await?,
@@ -564,12 +614,13 @@ impl GenericProvider for YoutubeProvider {
         &self,
         pagination: Pagination,
     ) -> Result<(Vec<QueryablePlaylist>, Pagination)> {
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             if !pagination.is_first && pagination.token.is_none() {
                 return Ok((vec![], pagination));
             }
 
             let mut builder = api_client
+                .api_client
                 .playlists()
                 .list(&vec![
                     "id".into(),
@@ -610,12 +661,13 @@ impl GenericProvider for YoutubeProvider {
         let playlist_id = playlist_id
             .strip_prefix("youtube-playlist:")
             .unwrap_or(&playlist_id);
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             if !pagination.is_first && pagination.token.is_none() {
                 return Ok((vec![], pagination));
             }
 
             let mut builder = api_client
+                .api_client
                 .playlist_items()
                 .list(&vec!["id".into(), "snippet".into()])
                 .playlist_id(playlist_id)
@@ -721,10 +773,10 @@ impl GenericProvider for YoutubeProvider {
 
     #[tracing::instrument(level = "trace", skip(self, term))]
     async fn search(&self, term: String) -> Result<SearchResult> {
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             let mut songs = vec![];
 
-            let song_details = search_and_parse!(api_client, &term, "video", |item| {
+            let song_details = search_and_parse!(api_client.api_client, &term, "video", |item| {
                 item.id.as_ref().and_then(|id| id.video_id.clone())
             });
 
@@ -768,8 +820,9 @@ impl GenericProvider for YoutubeProvider {
 
         let playlist_id = playlist_id.unwrap().1.to_string();
 
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             let (_, playlists) = api_client
+                .api_client
                 .playlists()
                 .list(&vec![
                     "id".into(),
@@ -823,8 +876,9 @@ impl GenericProvider for YoutubeProvider {
 
     #[tracing::instrument(level = "trace", skip(self))]
     async fn get_suggestions(&self) -> Result<Vec<Song>> {
-        if let Some(api_client) = &self.api_client {
+        if let Some(api_client) = self.get_api_client().await.as_ref() {
             let (_, resp) = api_client
+                .api_client
                 .search()
                 .list(&vec!["snippet".into()])
                 .video_category_id("10")
@@ -844,7 +898,9 @@ impl GenericProvider for YoutubeProvider {
             }
         }
 
-        Err("Api Client not initialized".into())
+        let youtube_scraper: State<YoutubeScraper> = self.app.state();
+        let res = youtube_scraper.get_suggestions().await?;
+        Ok(res)
     }
 
     async fn get_album_content(

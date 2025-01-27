@@ -93,17 +93,17 @@ pub struct ProviderStatus {
 }
 
 #[async_trait]
-pub trait GenericProvider: std::fmt::Debug + Send {
-    async fn initialize(&mut self) -> Result<()>;
+pub trait GenericProvider: std::fmt::Debug + Send + Sync {
+    async fn initialize(&self) -> Result<()>;
     async fn get_provider_scopes(&self) -> Result<Vec<ExtensionProviderScope>>;
     fn key(&self) -> String;
     fn match_id(&self, id: String) -> bool;
 
-    async fn login(&mut self, account_id: String) -> Result<String>;
-    async fn signout(&mut self, account_id: String) -> Result<()>;
-    async fn requested_account_status(&mut self) -> Result<()>;
+    async fn login(&self, account_id: String) -> Result<String>;
+    async fn signout(&self, account_id: String) -> Result<()>;
+    async fn requested_account_status(&self) -> Result<()>;
 
-    async fn authorize(&mut self, code: String) -> Result<()>;
+    async fn authorize(&self, code: String) -> Result<()>;
 
     async fn fetch_user_playlists(
         &self,

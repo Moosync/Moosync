@@ -179,13 +179,13 @@ impl YoutubeScraper {
         let mut songs: Vec<Song> = vec![];
         let mut playlists: Vec<QueryablePlaylist> = vec![];
         let mut artists: Vec<QueryableArtist> = vec![];
-        for item in res.iter() {
+        for item in res {
             match item {
-                rusty_ytdl::search::SearchResult::Video(v) => songs.push(self.parse_song(v)),
+                rusty_ytdl::search::SearchResult::Video(v) => songs.push(self.parse_song(&v)),
                 rusty_ytdl::search::SearchResult::Playlist(p) => {
-                    playlists.push(self.parse_playlist(p))
+                    playlists.push(self.parse_playlist(&p))
                 }
-                rusty_ytdl::search::SearchResult::Channel(a) => artists.push(self.parse_artist(a)),
+                rusty_ytdl::search::SearchResult::Channel(a) => artists.push(self.parse_artist(&a)),
             }
         }
         Ok(SearchResult {
@@ -201,7 +201,7 @@ impl YoutubeScraper {
     pub async fn get_video_url(&self, mut id: String) -> Result<String> {
         if id.starts_with("http") {
             let url = Url::from_str(&id).unwrap();
-            let query = url.query_pairs().find(|(k, v)| return k == "v");
+            let query = url.query_pairs().find(|(k, v)| k == "v");
             if let Some((_, v)) = query {
                 id = v.to_string();
             }
@@ -228,5 +228,30 @@ impl YoutubeScraper {
             Some(f) => Ok(f.url.clone()),
             None => Err(MoosyncError::String("Unable to find URL".into())),
         }
+    }
+
+    pub async fn get_suggestions(&self) -> Result<Vec<Song>> {
+        let songs = self
+            .youtube
+            .search(
+                "music video",
+                Some(&SearchOptions {
+                    limit: 100,
+                    search_type: SearchType::Video,
+                    safe_search: false,
+                }),
+            )
+            .await?;
+
+        Ok(songs
+            .into_iter()
+            .filter_map(|s| {
+                if let rusty_ytdl::search::SearchResult::Video(v) = s {
+                    Some(self.parse_song(&v))
+                } else {
+                    None
+                }
+            })
+            .collect())
     }
 }

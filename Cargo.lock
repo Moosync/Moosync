@@ -6422,6 +6422,7 @@ dependencies = [
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
  "themes",
+ "tokio",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",

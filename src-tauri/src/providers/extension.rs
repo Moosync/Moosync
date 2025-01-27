@@ -20,6 +20,7 @@ use async_trait::async_trait;
 use futures::{channel::mpsc::UnboundedSender, SinkExt};
 use serde_json::Value;
 use tauri::AppHandle;
+use tokio::sync::Mutex;
 use types::{
     entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
     errors::Result,
@@ -51,12 +52,11 @@ macro_rules! send_extension_event {
     }};
 }
 
-#[derive(Clone)]
 pub struct ExtensionProvider {
     extension: ExtensionDetail,
     provides: Vec<ExtensionProviderScope>,
     app_handle: AppHandle,
-    status_tx: UnboundedSender<ProviderStatus>,
+    status_tx: Mutex<UnboundedSender<ProviderStatus>>,
 }
 
 impl ExtensionProvider {
@@ -71,11 +71,11 @@ impl ExtensionProvider {
             extension,
             provides,
             app_handle,
-            status_tx,
+            status_tx: Mutex::new(status_tx),
         }
     }
 
-    async fn get_accounts(&mut self) -> Result<()> {
+    async fn get_accounts(&self) -> Result<()> {
         let extension_handler = get_extension_handler(&self.app_handle);
         let accounts = extension_handler
             .get_accounts(PackageNameArgs {
@@ -86,6 +86,8 @@ impl ExtensionProvider {
         for account in accounts {
             let _ = self
                 .status_tx
+                .lock()
+                .await
                 .send(ProviderStatus {
                     key: self.key(),
                     name: account.name,
@@ -115,7 +117,7 @@ impl Debug for ExtensionProvider {
 #[async_trait]
 impl GenericProvider for ExtensionProvider {
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn initialize(&mut self) -> Result<()> {
+    async fn initialize(&self) -> Result<()> {
         tracing::debug!(
             "Got extension provider scopes: {:?}",
             self.get_provider_scopes().await.unwrap()
@@ -125,6 +127,8 @@ impl GenericProvider for ExtensionProvider {
         } else {
             let _ = self
                 .status_tx
+                .lock()
+                .await
                 .send(ProviderStatus {
                     key: self.key(),
                     scopes: self.get_provider_scopes().await.unwrap(),
@@ -149,12 +153,12 @@ impl GenericProvider for ExtensionProvider {
         id.starts_with(&format!("{}:", self.extension.package_name))
     }
 
-    async fn requested_account_status(&mut self) -> Result<()> {
+    async fn requested_account_status(&self) -> Result<()> {
         self.get_accounts().await
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn login(&mut self, account_id: String) -> Result<String> {
+    async fn login(&self, account_id: String) -> Result<String> {
         let extension_handler = get_extension_handler(&self.app_handle);
         extension_handler
             .account_login(AccountLoginArgs {
@@ -168,7 +172,7 @@ impl GenericProvider for ExtensionProvider {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn signout(&mut self, account_id: String) -> Result<()> {
+    async fn signout(&self, account_id: String) -> Result<()> {
         let extension_handler = get_extension_handler(&self.app_handle);
         extension_handler
             .account_login(AccountLoginArgs {
@@ -181,7 +185,7 @@ impl GenericProvider for ExtensionProvider {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    async fn authorize(&mut self, code: String) -> Result<()> {
+    async fn authorize(&self, code: String) -> Result<()> {
         let _ = send_extension_event!(self, ExtensionExtraEvent::OauthCallback([code]), Value);
         Ok(())
     }

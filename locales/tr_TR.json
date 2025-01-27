@@ -72,7 +72,7 @@
       "playCount": "Çalma Sayısı"
     },
     "playlist": {
-      "newPlaylist": "New Playlist",
+      "newPlaylist": "Yeni Oynatma Listesi",
       "addFromURL": "URL'den ekle",
       "remove": "Çalma listesini sil",
       "export": "Çalma listesini dışa aktar",
@@ -90,7 +90,7 @@
       "moveManually": "El ile taşı",
       "manualIndex": "Şarkı dizinini ayarla",
       "remove": "Kütüphaneden kaldır",
-      "add": "Kütüphaneye şarkı ekle",
+      "add": "Müziği Kütüphaneye Ekle",
       "removeFromPlaylist": "Oynatma listesinden kaldır",
       "hideFromLibrary": "Çalma listesinde gizle",
       "showInLibrary": "Çalma listesinde göster",

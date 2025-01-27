@@ -72,7 +72,7 @@
       "playCount": "再生回数"
     },
     "playlist": {
-      "newPlaylist": "New Playlist",
+      "newPlaylist": "新規再生リスト",
       "addFromURL": "URLからインポート",
       "remove": "再生リストを削除",
       "export": "再生リストをエクスポート",
@@ -90,7 +90,7 @@
       "moveManually": "指定し移動",
       "manualIndex": "曲の順番を設定",
       "remove": "ライブラリから削除",
-      "add": "ライブラリに曲を追加 | ライブラリに曲を追加",
+      "add": "曲をライブラリに追加",
       "removeFromPlaylist": "再生リストから削除",
       "hideFromLibrary": "ライブラリから隠す",
       "showInLibrary": "ライブラリに表示",

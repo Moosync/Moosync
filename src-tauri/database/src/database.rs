@@ -31,7 +31,7 @@ use diesel::{BoolExpressionMethods, Insertable, JoinOnDsl, TextExpressionMethods
 use diesel_logger::LoggingConnection;
 use macros::{filter_field, filter_field_like};
 use serde_json::Value;
-use tracing::{debug, info, trace};
+use tracing::{debug, info, trace, warn};
 use uuid::Uuid;
 
 use types::common::{BridgeUtils, SearchByTerm};
@@ -931,12 +931,15 @@ impl Database {
             .unwrap()
             .transaction::<(), MoosyncError, _>(|conn| {
                 for s in songs {
-                    insert_into(playlist_bridge)
+                    if let Err(e) = insert_into(playlist_bridge)
                         .values((
                             schema::playlist_bridge::playlist.eq(id.clone()),
                             schema::playlist_bridge::song.eq(s.song._id.clone()),
                         ))
-                        .execute(conn)?;
+                        .execute(conn)
+                    {
+                        warn!("Failed to add {:?} to playlist: {:?}", s, e);
+                    }
                 }
                 Ok(())
             })?;

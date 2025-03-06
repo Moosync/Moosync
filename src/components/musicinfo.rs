@@ -433,6 +433,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
     });
 
     let ui_store = expect_context::<RwSignal<UiStore>>();
+    let modal_store = expect_context::<RwSignal<ModalStore>>();
 
     Effect::new(move || {
         let current_song = current_song.get();
@@ -526,7 +527,6 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
                                         <div
                                             class="rounded-btn"
                                             on:click=move |_| {
-                                                let modal_store = expect_context::<RwSignal<ModalStore>>();
                                                 modal_store
                                                     .update(|store| {
                                                         store

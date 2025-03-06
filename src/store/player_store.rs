@@ -47,6 +47,8 @@ pub struct Queue {
 #[derive(Debug, Default, Clone, Encode, Decode)]
 pub struct PlayerDetails {
     pub current_time: f64,
+    pub last_song: Option<String>,
+    pub last_song_played_duration: f64,
     pub force_seek: f64,
     pub state: PlayerState,
     pub has_repeated: bool,
@@ -161,6 +163,10 @@ impl PlayerStore {
 
     #[tracing::instrument(level = "trace", skip(self))]
     pub fn update_current_song(&mut self, force: bool) {
+        self.data.player_details.last_song_played_duration = self.data.player_details.current_time;
+        self.data.player_details.last_song =
+            self.get_current_song().map(|s| s.song._id.unwrap().clone());
+
         if self.data.queue.current_index >= self.data.queue.song_queue.len() {
             self.data.queue.current_index = 0;
         }

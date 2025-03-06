@@ -14,10 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use leptos::{component, html::Div, prelude::*, view};
-use leptos_context_menu::{ContextMenuData, ContextMenuItemInner, ContextMenuItems};
 use leptos_use::on_click_outside;
 use types::{songs::Song, ui::song_details::DefaultDetails, ui::song_details::SongDetailIcons};
 use web_sys::{Event, Node};
@@ -27,7 +26,6 @@ use crate::{
         songdetails::SongDetails,
         songlist::{ShowProvidersArgs, SongList},
     },
-    store::modal_store::{ModalStore, Modals},
     utils::context_menu::{create_context_menu, SongsContextMenu},
 };
 

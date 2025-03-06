@@ -672,4 +672,70 @@ img {
 .rotated {
     transform: scaleY(-1);
 }
+
+big-song {
+    min-width: 200px;
+    max-width: 400px;
+    margin-right: 25px;
+}
+.played-for {
+    font-size: 30px;
+    margin-bottom: 15px;
+    font-weight: 700;
+}
+.single-song-item {
+    margin-bottom: 30px;
+}
+.playtime,
+.total-listen-time-item {
+    color: var(--accent);
+    font-weight: 700;
+    margin-right: 3px;
+}
+.playtime-suffix {
+    font-weight: 700;
+}
+.big-playtime {
+    font-size: 30px;
+}
+.small-song-first {
+    margin-right: 50px;
+    margin-left: 50px;
+    display: block;
+}
+.small-song-second {
+    margin-right: 50px;
+    display: block;
+}
+.analytics {
+    margin-bottom: 30px;
+}
+.total-listen-time {
+    font-size: 28px;
+    margin-bottom: 50px;
+    margin-left: 15px;
+}
+
+.explore-container {
+    padding-top: 10px;
+    overflow-y: scroll;
+}
+
+@media only screen and (max-width: 1557px) {
+    .small-song-second {
+        display: none;
+    }
+    .small-song-first {
+        margin-left: 30px;
+        flex: 0 0 40%;
+        max-width: 40%;
+    }
+}
+
+@media only screen and (max-width: 1188px) {
+    .small-song-first {
+        display: none;
+    }
+}
+
 @import "./mobile.scss";

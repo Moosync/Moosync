@@ -264,3 +264,9 @@ impl std::hash::Hash for Song {
         self.song._id.hash(state);
     }
 }
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+pub struct AllAnalytics {
+    pub total_listen_time: f64,
+    pub songs: Vec<(String, f64)>,
+}

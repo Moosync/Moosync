@@ -36,6 +36,7 @@ use types::{
         player_details::{PlayerEvents, PlayerState},
     },
 };
+use wasm_timer::Instant;
 
 use leptos::{component, html::Div, prelude::*, task::spawn_local, view, IntoView};
 
@@ -47,7 +48,7 @@ use crate::{
     store::{player_store::PlayerStore, provider_store::ProviderStore, ui_store::UiStore},
     utils::{
         extensions::send_extension_event,
-        invoke::{fetch_playback_url, update_song},
+        invoke::{fetch_playback_url, increment_play_count, increment_play_time, update_song},
         mpris::set_metadata,
     },
 };
@@ -462,6 +463,10 @@ pub fn AudioStream() -> impl IntoView {
     let current_song_sig =
         create_read_slice(player_store, |player_store| player_store.get_current_song());
 
+    let last_song_sig = create_read_slice(player_store, |player_store| {
+        player_store.data.player_details.last_song.clone()
+    });
+
     let force_load_sig =
         create_read_slice(player_store, |player_store| player_store.get_force_load());
     let current_volume = create_read_slice(player_store, |player_store| player_store.get_volume());
@@ -479,6 +484,7 @@ pub fn AudioStream() -> impl IntoView {
         });
     });
 
+    let last_song_time = RwSignal::new(Instant::now());
     Effect::new(move || {
         let is_providers_initialized = provider_store.is_initialized.get();
         tracing::info!("providers initialized {}", is_providers_initialized);
@@ -494,6 +500,7 @@ pub fn AudioStream() -> impl IntoView {
             tracing::info!("Loading song {:?}", current_song.song.title);
             set_metadata(&current_song);
 
+            let last_song_sig = last_song_sig.get_untracked();
             let players = players_clone.clone();
             spawn_local(async move {
                 let mut players = players.lock().await;
@@ -510,6 +517,13 @@ pub fn AudioStream() -> impl IntoView {
                     }
                 } else {
                     tracing::error!("Failed to load Song {:?}", updated_song);
+                }
+
+                if let Some(id) = last_song_sig {
+                    let time_diff = Instant::now() - last_song_time.get_untracked();
+                    last_song_time.set(Instant::now());
+                    let _ = increment_play_time(id.clone(), time_diff.as_secs_f64()).await;
+                    let _ = increment_play_count(id).await;
                 }
             });
         } else {

@@ -148,6 +148,7 @@ impl SpotifyProvider {
     async fn create_api_client(&self) {
         tracing::debug!("Creating spotify api client");
         if let Some(token) = self.tokens.lock().await.as_ref() {
+            tracing::debug!("Got tokens lock");
             *self.api_client.write().await = Some(ApiClient {
                 api_client: AuthCodePkceSpotify::from_token(Token {
                     access_token: token.access_token.clone(),
@@ -191,14 +192,25 @@ impl SpotifyProvider {
     }
 
     async fn get_api_client(&self) -> RwLockReadGuard<'_, Option<ApiClient>> {
-        if let Some(_) = self
+        if let Some(expired) = self
             .api_client
             .read()
             .await
             .as_ref()
             .map(|api_client| api_client.token_expiry <= Instant::now())
         {
-            let _ = self.refresh_login().await;
+            if expired {
+                tracing::info!(
+                    "spotify token expired. refreshing {:?}",
+                    self.api_client
+                        .read()
+                        .await
+                        .as_ref()
+                        .map(|api_client| api_client.token_expiry)
+                );
+
+                let _ = self.refresh_login().await;
+            }
         }
 
         self.api_client.read().await
@@ -731,12 +743,18 @@ impl GenericProvider for SpotifyProvider {
     async fn song_from_url(&self, url: String) -> Result<Song> {
         let track_id = Url::parse(url.as_str());
         let track_id = if let Ok(track_id) = track_id {
-            track_id.path().to_string()
+            let track = track_id.path().to_string();
+            if track.starts_with("track:") {
+                url
+            } else {
+                track
+            }
         } else {
             url
         };
 
         if let Some(api_client) = self.get_api_client().await.as_ref() {
+            tracing::debug!("Parsing id {}", track_id);
             let res = api_client
                 .api_client
                 .track(TrackId::from_id_or_uri(track_id.as_str())?, None)
@@ -948,5 +966,11 @@ impl GenericProvider for SpotifyProvider {
 
     async fn trigger_context_menu_action(&self, _: String) -> Result<()> {
         return Err("Not implemented".into());
+    }
+
+    async fn song_from_id(&self, id: String) -> Result<Song> {
+        let stripped_id = id.replacen("spotify:", "", 1);
+        tracing::debug!("Got stripped id {}", stripped_id);
+        self.song_from_url(stripped_id.trim().to_string()).await
     }
 }

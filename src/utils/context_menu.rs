@@ -256,7 +256,7 @@ where
             )
         };
 
-        let mut ret: RwSignal<ContextMenuItems<Self>> = RwSignal::new(vec![
+        let ret: RwSignal<ContextMenuItems<Self>> = RwSignal::new(vec![
             ContextMenuItemInner::new_with_handler("Play now".into(), |_, cx| cx.play_now(), None),
             ContextMenuItemInner::new_with_handler(
                 i18n.get_keys()

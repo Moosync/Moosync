@@ -142,6 +142,7 @@ where
             }));
             selected_duration.set(Some(format_duration(
                 selected_song.song.duration.unwrap_or(-1f64),
+                false,
             )));
             selected_cover_path.set(Some(get_high_img(&selected_song)));
             show_default_cover_img.set(false);

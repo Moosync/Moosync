@@ -177,14 +177,25 @@ impl YoutubeProvider {
     }
 
     async fn get_api_client(&self) -> RwLockReadGuard<'_, Option<ApiClient>> {
-        if let Some(_) = self
+        if let Some(expired) = self
             .api_client
             .read()
             .await
             .as_ref()
             .map(|api_client| api_client.token_expiry <= Instant::now())
         {
-            let _ = self.refresh_login().await;
+            if expired {
+                tracing::info!(
+                    "youtube token expired. refreshing {:?}",
+                    self.api_client
+                        .read()
+                        .await
+                        .as_ref()
+                        .map(|api_client| api_client.token_expiry)
+                );
+
+                let _ = self.refresh_login().await;
+            }
         }
 
         self.api_client.read().await
@@ -853,14 +864,15 @@ impl GenericProvider for YoutubeProvider {
 
     #[tracing::instrument(level = "trace", skip(self, url))]
     async fn song_from_url(&self, url: String) -> Result<Song> {
-        let parsed_url = Url::parse(url.as_str())
-            .map_err(|_| MoosyncError::String(format!("Failed to parse URL {}", url)))?;
-        let video_id = parsed_url.query_pairs().find(|(k, _)| k == "v");
-        if video_id.is_none() {
-            return Err("Invalid URL".into());
-        }
-
-        let video_id = video_id.unwrap().1.to_string();
+        let video_id = if let Ok(parsed_url) = Url::parse(url.as_str()) {
+            if let Some(parsed_url) = parsed_url.query_pairs().find(|(k, _)| k == "v") {
+                Ok(parsed_url.1.to_string())
+            } else {
+                Err(MoosyncError::String("Invalid URL".into()))
+            }
+        } else {
+            Ok(url)
+        }?;
 
         let res = self.fetch_song_details(vec![video_id.clone()]).await;
         if let Ok(songs) = res {
@@ -992,5 +1004,10 @@ impl GenericProvider for YoutubeProvider {
 
     async fn trigger_context_menu_action(&self, _: String) -> Result<()> {
         return Err("Not implemented".into());
+    }
+
+    async fn song_from_id(&self, id: String) -> Result<Song> {
+        let stripped_id = id.replacen("youtube:", "", 1);
+        self.song_from_url(stripped_id).await
     }
 }

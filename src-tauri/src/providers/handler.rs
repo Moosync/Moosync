@@ -398,6 +398,13 @@ impl ProviderHandler {
             },
             result_type: (),
             method_name: trigger_context_menu_action,
+        },
+        get_song_from_id {
+            args: {
+                id: String,
+            },
+            result_type: Song,
+            method_name: song_from_id,
         }
     );
 }
@@ -420,6 +427,7 @@ generate_command_async_cached!(provider_search, ProviderHandler, SearchResult, k
 generate_command_async!(get_all_status, ProviderHandler, HashMap<String, ProviderStatus>, );
 generate_command_async_cached!(playlist_from_url, ProviderHandler, QueryablePlaylist, key: String, url: String);
 generate_command_async_cached!(song_from_url, ProviderHandler, Song, key: String, url: String);
+generate_command_async_cached!(get_song_from_id, ProviderHandler, Song, key: String, id: String);
 generate_command_async_cached!(match_url, ProviderHandler, bool, key: String, url: String);
 generate_command_async_cached!(get_suggestions, ProviderHandler, Vec<Song>, key: String);
 generate_command_async_cached!(get_artist_content, ProviderHandler, (Vec<Song>, Pagination), key: String, artist: QueryableArtist, pagination: Pagination);

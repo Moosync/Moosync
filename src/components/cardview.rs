@@ -33,7 +33,7 @@ use types::errors::MoosyncError;
 
 type CardContextMenu<T> = Option<Arc<Box<dyn Fn(leptos::ev::MouseEvent, T)>>>;
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct SimplifiedCardItem<T>
 where
     T: Serialize + Send + Sync,

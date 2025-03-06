@@ -61,6 +61,8 @@ pub fn SongListItem(
     #[prop()] is_selected: Box<dyn Fn() -> bool + Send + Sync>,
     #[prop()] on_context_menu: impl Fn((MouseEvent, bool)) + 'static + Send + Sync,
     #[prop()] on_click: impl Fn(MouseEvent) + 'static + Send + Sync,
+    #[prop(optional, default = true)] show_background: bool,
+    #[prop(optional)] custom_duration: Option<String>,
 ) -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
     let play_now = create_write_slice(player_store, |store, value| store.play_now(value));
@@ -73,7 +75,8 @@ pub fn SongListItem(
     let on_context_menu_cl = on_context_menu.clone();
     view! {
         <div
-            class="container-fluid wrapper w-100 mb-3"
+            class="container-fluid w-100 mb-3"
+            class:wrapper=show_background
             class:selectedItem=is_selected
             on:click=on_click
             on:contextmenu=move |ev| on_context_menu.as_ref()((ev, false))
@@ -110,16 +113,31 @@ pub fn SongListItem(
                 </div>
 
                 <div class="col-auto offset-1 align-self-center ml-auto timestamp">
-                    {format_duration(song.song.duration.unwrap_or(-1f64))}
+                    {if let Some(custom_duration) = custom_duration {
+                        custom_duration
+                    } else {
+                        format_duration(song.song.duration.unwrap_or(-1f64), false)
+                    }}
                 </div>
 
                 <div class="col-auto align-self-center button-icon ml-5">
-                    <AddToQueueIcon
-                        title="Add to queue".into()
-                        on:click=move |_| {
-                            add_to_queue.set(song_cloned1.clone());
+                    {move || {
+                        let song_cloned1 = song_cloned1.clone();
+                        if show_background {
+                            view! {
+                                <AddToQueueIcon
+                                    title="Add to queue".into()
+                                    on:click=move |_d| {
+                                        add_to_queue.set(song_cloned1.clone());
+                                    }
+                                />
+                            }
+                                .into_any()
+                        } else {
+                            ().into_any()
                         }
-                    />
+                    }}
+
                 </div>
 
                 <div
@@ -131,7 +149,14 @@ pub fn SongListItem(
                         on_context_menu_cl.as_ref()((ev, true))
                     }
                 >
-                    <EllipsisIcon />
+                    {move || {
+                        if show_background {
+                            view! { <EllipsisIcon /> }.into_any()
+                        } else {
+                            view! {}.into_any()
+                        }
+                    }}
+
                 </div>
             </div>
         </div>

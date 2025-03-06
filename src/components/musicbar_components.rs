@@ -128,11 +128,12 @@ pub fn Controls(
     let shuffle_queue = create_write_slice(player_store, |p, _| p.shuffle_queue());
 
     let (current_time_sig, total_duration_sig) = if show_time {
-        let current_time_sig =
-            create_read_slice(player_store, |p| format_duration(p.get_current_time()));
+        let current_time_sig = create_read_slice(player_store, |p| {
+            format_duration(p.get_current_time(), false)
+        });
         let total_duration_sig = create_read_slice(player_store, |p| {
             if let Some(current_song) = p.get_current_song() {
-                format_duration(current_song.song.duration.unwrap_or(-1f64))
+                format_duration(current_song.song.duration.unwrap_or(-1f64), false)
             } else {
                 "00:00".to_string()
             }

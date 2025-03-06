@@ -20,13 +20,14 @@ use std::fmt::Write;
 use std::str::FromStr;
 use std::{path::PathBuf, vec};
 
+use diesel::query_builder::SelectStatement;
 use diesel::{
     connection::SimpleConnection,
     delete, insert_into,
     r2d2::{self, ConnectionManager, Pool, PooledConnection},
     update, Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SqliteConnection,
 };
-use diesel::{BoolExpressionMethods, Insertable, TextExpressionMethods};
+use diesel::{BoolExpressionMethods, Insertable, JoinOnDsl, TextExpressionMethods};
 use diesel_logger::LoggingConnection;
 use macros::{filter_field, filter_field_like};
 use serde_json::Value;
@@ -38,7 +39,7 @@ use types::entities::{Analytics, EntityInfo, PlaylistBridge, SearchResult};
 use types::errors::{MoosyncError, Result};
 use types::schema::analytics::dsl::analytics;
 use types::schema::playlists::dsl::playlists;
-use types::songs::SearchableSong;
+use types::songs::{AllAnalytics, SearchableSong};
 use types::{
     schema::{
         self,
@@ -661,6 +662,47 @@ impl Database {
         Ok(songs)
     }
 
+    fn get_song_from_queryable(
+        &self,
+        conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
+        s: QueryableSong,
+    ) -> Result<Song> {
+        let mut album: Option<QueryableAlbum> = None;
+        let mut artist: Vec<QueryableArtist> = vec![];
+        let mut genre: Vec<QueryableGenre> = vec![];
+
+        let album_data =
+            QueryDsl::filter(album_bridge, schema::album_bridge::song.eq(s._id.clone()))
+                .first::<AlbumBridge>(conn);
+
+        if let Ok(album_data) = album_data {
+            album = Some(QueryDsl::filter(albums, album_id.eq(album_data.album)).first(conn)?);
+        }
+
+        let artist_data =
+            QueryDsl::filter(artist_bridge, schema::artist_bridge::song.eq(s._id.clone()))
+                .first::<ArtistBridge>(conn);
+
+        if let Ok(artist_data) = artist_data {
+            artist = QueryDsl::filter(artists, artist_id.eq(artist_data.artist)).load(conn)?;
+        }
+
+        let genre_data =
+            QueryDsl::filter(genre_bridge, schema::genre_bridge::song.eq(s._id.clone()))
+                .first::<GenreBridge>(conn);
+
+        if let Ok(genre_data) = genre_data {
+            genre = QueryDsl::filter(genres, genre_id.eq(genre_data.genre)).load(conn)?;
+        }
+
+        Ok(Song {
+            song: s,
+            album,
+            artists: Some(artist),
+            genre: Some(genre),
+        })
+    }
+
     #[tracing::instrument(level = "trace", skip(self))]
     pub fn get_songs_by_options(&self, options: GetSongOptions) -> Result<Vec<Song>> {
         let mut ret = vec![];
@@ -730,49 +772,7 @@ impl Database {
                 }
 
                 for s in fetched_songs {
-                    let mut album: Option<QueryableAlbum> = None;
-                    let mut artist: Vec<QueryableArtist> = vec![];
-                    let mut genre: Vec<QueryableGenre> = vec![];
-
-                    let album_data = QueryDsl::filter(
-                        album_bridge,
-                        schema::album_bridge::song.eq(s._id.clone()),
-                    )
-                    .first::<AlbumBridge>(conn);
-
-                    if let Ok(album_data) = album_data {
-                        album = Some(
-                            QueryDsl::filter(albums, album_id.eq(album_data.album)).first(conn)?,
-                        );
-                    }
-
-                    let artist_data = QueryDsl::filter(
-                        artist_bridge,
-                        schema::artist_bridge::song.eq(s._id.clone()),
-                    )
-                    .first::<ArtistBridge>(conn);
-
-                    if let Ok(artist_data) = artist_data {
-                        artist = QueryDsl::filter(artists, artist_id.eq(artist_data.artist))
-                            .load(conn)?;
-                    }
-
-                    let genre_data = QueryDsl::filter(
-                        genre_bridge,
-                        schema::genre_bridge::song.eq(s._id.clone()),
-                    )
-                    .first::<GenreBridge>(conn);
-
-                    if let Ok(genre_data) = genre_data {
-                        genre =
-                            QueryDsl::filter(genres, genre_id.eq(genre_data.genre)).load(conn)?;
-                    }
-                    ret.push(Song {
-                        song: s,
-                        album,
-                        artists: Some(artist),
-                        genre: Some(genre),
-                    });
+                    ret.push(self.get_song_from_queryable(conn, s)?);
                 }
                 Ok(ret)
             })
@@ -1112,11 +1112,11 @@ impl Database {
     pub fn increment_play_count(&self, id: String) -> Result<()> {
         trace!("Incrementing play count");
         let mut conn = self.pool.get().unwrap();
-        let play_count: Option<i32> = QueryDsl::select(analytics, schema::analytics::play_count)
+        let play_count = QueryDsl::select(analytics, schema::analytics::play_count)
             .filter(schema::analytics::song_id.eq(id.clone()))
-            .first(&mut conn)?;
+            .first::<Option<i32>>(&mut conn);
 
-        if play_count.is_none() {
+        if play_count.is_err() {
             insert_into(analytics)
                 .values(Analytics {
                     id: Some(Uuid::new_v4().to_string()),
@@ -1141,11 +1141,11 @@ impl Database {
     pub fn increment_play_time(&self, id: String, duration: f64) -> Result<()> {
         trace!("Incrementing play time");
         let mut conn = self.pool.get().unwrap();
-        let play_time: Option<f64> = QueryDsl::select(analytics, schema::analytics::play_time)
+        let play_time = QueryDsl::select(analytics, schema::analytics::play_time)
             .filter(schema::analytics::song_id.eq(id.clone()))
-            .first(&mut conn)?;
+            .first::<Option<f64>>(&mut conn);
 
-        if play_time.is_none() {
+        if play_time.is_err() {
             insert_into(analytics)
                 .values(Analytics {
                     id: Some(Uuid::new_v4().to_string()),
@@ -1166,6 +1166,26 @@ impl Database {
         info!("Incremented playtime");
 
         Ok(())
+    }
+
+    pub fn get_top_listened_songs(&self) -> Result<AllAnalytics> {
+        let songs = analytics
+            .select((schema::analytics::song_id, schema::analytics::play_time))
+            .order(schema::analytics::play_time.desc())
+            .limit(10);
+
+        let mut conn = self.pool.get().unwrap();
+        let songs: Vec<(Option<String>, Option<f64>)> = songs.load(&mut conn)?;
+        let total_listen_time: Option<f64> = analytics
+            .select(diesel::dsl::sum(schema::analytics::play_time))
+            .first(&mut conn)?;
+        Ok(AllAnalytics {
+            total_listen_time: total_listen_time.unwrap_or_default(),
+            songs: songs
+                .into_iter()
+                .filter_map(|(s, time)| s.map(|s| (s, time.unwrap_or_default())))
+                .collect(),
+        })
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

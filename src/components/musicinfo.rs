@@ -160,11 +160,13 @@ pub fn MusicInfoMobile(
         None
     });
 
-    let current_time = create_read_slice(player_store, |p| format_duration(p.get_current_time()));
+    let current_time = create_read_slice(player_store, |p| {
+        format_duration(p.get_current_time(), false)
+    });
     let total_time = Memo::new(move |_| {
         if let Some(current_song) = current_song.get() {
             if let Some(duration) = current_song.song.duration {
-                return format_duration(duration);
+                return format_duration(duration, false);
             }
         }
         "00:00".to_string()

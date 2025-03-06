@@ -1,5 +1,5 @@
 // Moosync
-// Copyright (C) 2024, 2025  Moosync <support@moosync.app>
+// Copyright (C) 2024, 2025 Moosync <support@moosync.app>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -8,30 +8,50 @@
 //
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 use std::sync::Arc;
 
 use leptos::{component, prelude::*, view, IntoView};
 use leptos_i18n::t;
-use types::ui::extensions::ExtensionProviderScope;
+use types::{
+    songs::{GetSongOptions, SearchableSong, Song},
+    ui::{
+        extensions::ExtensionProviderScope,
+        song_details::{DefaultDetails, SongDetailIcons},
+    },
+};
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
-    components::cardview::{CardView, SimplifiedCardItem},
+    components::{
+        artist_list::ArtistList,
+        cardview::{CardItem, CardView, SimplifiedCardItem},
+        low_img::LowImg,
+        songdetails::SongDetails,
+        songlist::SongListItem,
+    },
     i18n::use_i18n,
     store::{player_store::PlayerStore, provider_store::ProviderStore},
     utils::{
-        common::get_high_img,
+        common::{format_duration, get_high_img, get_low_img},
         context_menu::{create_context_menu, SongItemContextMenu},
         db_utils::get_playlists_local,
-        invoke::get_suggestions,
+        invoke::{
+            get_provider_key_by_id, get_song_from_id, get_songs_by_options, get_suggestions,
+            get_top_listened_songs,
+        },
     },
 };
+
+struct AllAnalyticsParsed {
+    total_listen_time: f64,
+    songs: Vec<(Song, f64)>,
+}
 
 #[tracing::instrument(level = "trace", skip())]
 #[component]
@@ -39,6 +59,51 @@ pub fn Explore() -> impl IntoView {
     let provider_store: Arc<ProviderStore> = expect_context();
     let provider_keys = provider_store.get_provider_keys(ExtensionProviderScope::Recommendations);
     let suggestion_items = RwSignal::new(vec![]);
+    let analytics = RwSignal::<Option<AllAnalyticsParsed>>::new(None);
+    spawn_local(async move {
+        if let Ok(a) = get_top_listened_songs().await {
+            tracing::debug!("Got analytics {:?}", a);
+            analytics.set(Some(AllAnalyticsParsed {
+                total_listen_time: a.total_listen_time,
+                songs: vec![],
+            }));
+            for (song_id, time) in a.songs {
+                let provider = get_provider_key_by_id(song_id.clone()).await;
+                if let Ok(provider) = provider {
+                    let song = get_song_from_id(provider.clone(), song_id).await;
+                    match song {
+                        Ok(song) => {
+                            analytics.update(|a| {
+                                if let Some(a) = a.as_mut() {
+                                    a.songs.push((song, time))
+                                }
+                            });
+                        }
+                        Err(e) => tracing::error!("Failed to fetch song from {} {:?}", provider, e),
+                    }
+                } else {
+                    let song = get_songs_by_options(GetSongOptions {
+                        song: Some(SearchableSong {
+                            _id: Some(song_id),
+                            ..Default::default()
+                        }),
+                        ..Default::default()
+                    })
+                    .await;
+                    if let Ok(song) = song {
+                        if let Some(song) = song.first() {
+                            analytics.update(|a| {
+                                if let Some(a) = a.as_mut() {
+                                    a.songs.push((song.clone(), time))
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    });
+
     spawn_local(async move {
         for key in provider_keys {
             let suggestions = get_suggestions(key).await;
@@ -46,6 +111,24 @@ pub fn Explore() -> impl IntoView {
                 suggestion_items.update(|s| s.extend(suggestions));
             }
         }
+    });
+    let total_time = create_read_slice(analytics, |a| a.as_ref().map(|a| a.total_listen_time));
+    let first_song = create_read_slice(analytics, |a| {
+        a.as_ref().and_then(|a| a.songs.first().cloned())
+    });
+    let first_four_songs = create_read_slice(analytics, |a| {
+        a.as_ref().and_then(|a| {
+            a.songs
+                .get(1.min(a.songs.len())..5.min(a.songs.len()).max(1.min(a.songs.len())))
+                .map(|s| s.to_vec())
+        })
+    });
+    let second_four_songs = create_read_slice(analytics, |a| {
+        a.as_ref().and_then(|a| {
+            a.songs
+                .get(5.min(a.songs.len())..9.min(a.songs.len()).max(5.min(a.songs.len())))
+                .map(|s| s.to_vec())
+        })
     });
 
     let player_store: RwSignal<PlayerStore> = expect_context();
@@ -68,7 +151,7 @@ pub fn Explore() -> impl IntoView {
     let i18n = use_i18n();
     view! {
         <div class="w-100 h-100">
-            <div class="container-fluid song-container h-100 d-flex flex-column">
+            <div class="container-fluid explore-container h-100 d-flex flex-column">
 
                 <div class="row page-title no-gutters">
 
@@ -76,9 +159,89 @@ pub fn Explore() -> impl IntoView {
                     <div class="col align-self-center"></div>
                 </div>
 
+                <div class="row no-gutters">
+                    <div class="col d-flex total-listen-time">
+                        {"You listened to"}
+                        <div class="ml-2 mr-2 total-listen-time-item">
+                            {move || {
+                                format_duration(total_time.get().unwrap_or_default(), true)
+                            }}
+                        </div> {"of music"}
+                    </div>
+                </div>
+
+                <div class="row no-gutters analytics">
+                    <div class="col">
+                        <div class="row no-gutters">
+
+                            {move || {
+                                if let Some((first_song, time)) = first_song.get() {
+                                    view! {
+                                        <div class="col big-song">
+                                            <SongDetails
+                                                selected_song=RwSignal::new(Some(first_song))
+                                                icons=RwSignal::new(SongDetailIcons::default())
+                                            />
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="played-for">"Played for"</div>
+                                            <div class="d-flex">
+                                                <span class="playtime big-playtime">
+                                                    {format_duration(time, true)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    }
+                                        .into_any()
+                                } else {
+                                    ().into_any()
+                                }
+                            }}
+
+                        </div>
+                    </div>
+                    <div class="col-3 small-song-first">
+                        <For
+                            each=move || first_four_songs.get().unwrap_or_default()
+                            key=move |(s, _)| s.song._id.clone()
+                            children=move |(s, time)| {
+                                view! {
+                                    <SongListItem
+                                        song=s
+                                        is_selected=Box::new(move || false)
+                                        on_context_menu=move |_| {}
+                                        on_click=move |_| {}
+                                        show_background=false
+                                        custom_duration=format_duration(time, true)
+                                    />
+                                }
+                            }
+                        />
+
+                    </div>
+                    <div class="col-3 small-song-second">
+                        <For
+                            each=move || second_four_songs.get().unwrap_or_default()
+                            key=move |(s, _)| s.song._id.clone()
+                            children=move |(s, time)| {
+                                view! {
+                                    <SongListItem
+                                        song=s
+                                        is_selected=Box::new(move || false)
+                                        on_context_menu=move |_| {}
+                                        on_click=move |_| {}
+                                        show_background=false
+                                        custom_duration=format_duration(time, true)
+                                    />
+                                }
+                            }
+                        />
+                    </div>
+                </div>
+
                 <div
                     class="row no-gutters w-100 flex-grow-1"
-                    style="align-items: flex-start; height: 70%"
+                    style="align-items: flex-start; height: 100%"
                 >
 
                     <CardView

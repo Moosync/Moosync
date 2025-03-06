@@ -24,6 +24,7 @@ mod players;
 mod store;
 mod utils;
 
+use crate::i18n::I18nContextProvider;
 use app::*;
 use leptos::prelude::*;
 use tracing_subscriber::{fmt, layer::SubscriberExt};
@@ -64,6 +65,10 @@ fn main() {
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
     mount_to_body(|| {
-        view! { <App /> }
+        view! {
+            <I18nContextProvider>
+                <App />
+            </I18nContextProvider>
+        }
     })
 }

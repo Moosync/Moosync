@@ -106,17 +106,24 @@ macro_rules! console_trace {
 }
 
 #[tracing::instrument(level = "trace", skip(secs))]
-pub fn format_duration(secs: f64) -> String {
+pub fn format_duration(secs: f64, with_suffix: bool) -> String {
     if secs < 0.0 {
         return "Live".into();
     }
 
     let duration = Duration::seconds(secs as i64);
     let formatted_time = NaiveTime::from_hms_opt(0, 0, 0).unwrap() + duration;
-    if formatted_time.hour() == 0 {
-        formatted_time.format("%M:%S").to_string()
+
+    let (time, suffix) = if formatted_time.hour() == 0 {
+        (formatted_time.format("%M:%S").to_string(), "Mins")
     } else {
-        formatted_time.format("%H:%M:%S").to_string()
+        (formatted_time.format("%H:%M:%S").to_string(), "Hours")
+    };
+
+    if with_suffix {
+        format!("{} {}", time, suffix)
+    } else {
+        time
     }
 }
 

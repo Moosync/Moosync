@@ -21,6 +21,7 @@ use std::fs;
 use tauri::{App, AppHandle, Manager, State};
 use tracing::{info, trace};
 use types::errors::Result;
+use types::songs::AllAnalytics;
 use types::{
     entities::{
         GetEntityOptions, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult,
@@ -64,6 +65,7 @@ generate_command!(update_songs, Database, (), songs: Vec<Song>);
 generate_command!(update_lyrics, Database, (), id: String, lyrics: String);
 generate_command!(increment_play_count, Database, (), id: String);
 generate_command!(increment_play_time, Database, (), id: String, duration: f64);
+generate_command!(get_top_listened_songs, Database, AllAnalytics,);
 
 #[tracing::instrument(level = "trace", skip(app))]
 pub fn get_cache_state(app: &mut App) -> CacheHolder {

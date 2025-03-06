@@ -53,9 +53,9 @@ use extensions::{
 use providers::handler::{
     fetch_playback_url, fetch_playlist_content, fetch_user_playlists, get_album_content,
     get_all_status, get_artist_content, get_playlist_context_menu, get_provider_key_by_id,
-    get_provider_keys, get_provider_lyrics, get_song_context_menu, get_suggestions,
-    initialize_all_providers, match_url, playlist_from_url, provider_authorize, provider_login,
-    provider_search, provider_signout, song_from_url, trigger_context_menu_action,
+    get_provider_keys, get_provider_lyrics, get_song_context_menu, get_song_from_id,
+    get_suggestions, initialize_all_providers, match_url, playlist_from_url, provider_authorize,
+    provider_login, provider_search, provider_signout, song_from_url, trigger_context_menu_action,
 };
 use scanner::{get_scanner_state, start_scan, ScanTask};
 use tauri::{Listener, Manager, State};
@@ -76,9 +76,10 @@ use {
         get_cache_state,
         {
             add_to_playlist, create_playlist, export_playlist, get_db_state, get_entity_by_options,
-            get_songs_by_options, increment_play_count, increment_play_time, insert_songs,
-            remove_from_playlist, remove_playlist, remove_songs, search_all, update_album,
-            update_artist, update_lyrics, update_playlist, update_song, update_songs,
+            get_songs_by_options, get_top_listened_songs, increment_play_count,
+            increment_play_time, insert_songs, remove_from_playlist, remove_playlist, remove_songs,
+            search_all, update_album, update_artist, update_lyrics, update_playlist, update_song,
+            update_songs,
         },
     },
     oauth::handler::{get_oauth_state, OAuthHandler},
@@ -228,6 +229,7 @@ pub fn run() {
             increment_play_count,
             increment_play_time,
             export_playlist,
+            get_top_listened_songs,
             // Window
             is_maximized,
             has_frame,
@@ -296,6 +298,7 @@ pub fn run() {
             match_url,
             playlist_from_url,
             song_from_url,
+            get_song_from_id,
             get_suggestions,
             get_album_content,
             get_artist_content,

@@ -16,7 +16,6 @@
 
 use std::sync::Arc;
 
-use crate::i18n::t;
 use crate::utils::window::check_for_updates;
 use crate::{
     components::prefs::static_components::SettingRoutes,
@@ -37,7 +36,6 @@ use leptos::{
     view, IntoView,
 };
 use leptos_context_menu::provide_context_menu_state;
-use leptos_i18n::provide_i18n_context;
 use leptos_router::{
     components::{Outlet, ParentRoute, Redirect, Route, Router, Routes},
     path,
@@ -283,8 +281,6 @@ pub fn App() -> impl IntoView {
 
     provide_context(PlayerStore::new());
     provide_context(Arc::new(ProviderStore::new()));
-
-    provide_i18n_context::<Locale>();
 
     spawn_local(async move {
         let id = load_selective("themes.active_theme".into()).await.unwrap();

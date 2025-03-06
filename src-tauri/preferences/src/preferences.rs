@@ -31,7 +31,7 @@ use chacha20poly1305::{
     AeadCore, ChaCha20Poly1305, Key, KeyInit, KeySizeUser,
 };
 use json_dotpath::DotPaths;
-use jsonschema::Validator;
+// use jsonschema::Validator;
 use keyring::Entry;
 
 use serde::{de::DeserializeOwned, Serialize};
@@ -40,7 +40,7 @@ use whoami;
 
 use types::errors::{MoosyncError, Result};
 
-const SCHEMA: &str = include_str!("./schema.json");
+// const SCHEMA: &str = include_str!("./schema.json");
 
 #[derive(Debug)]
 pub struct PreferenceConfig {

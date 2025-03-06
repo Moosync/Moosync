@@ -474,4 +474,10 @@ impl GenericProvider for ExtensionProvider {
 
         Ok(res)
     }
+
+    async fn song_from_id(&self, id: String) -> Result<Song> {
+        let res = send_extension_event!(self, ExtensionExtraEvent::RequestedSongFromId([id]), Song);
+
+        Ok(res)
+    }
 }

@@ -383,7 +383,7 @@ pub fn export_playlist(playlist: QueryablePlaylist) {
 
 #[tracing::instrument(level = "trace", skip(db, store, key, value))]
 pub async fn write_to_indexed_db(
-    db: Database,
+    db: &Database,
     store: &str,
     key: &str,
     value: Vec<u8>,

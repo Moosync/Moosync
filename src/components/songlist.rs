@@ -331,6 +331,8 @@ where
         let is_ctrl_pressed_val = is_ctrl_pressed.get();
         let is_shift_pressed = is_shift_pressed.get();
 
+        tracing::debug!("Ctrl pressed {}", is_ctrl_pressed_val);
+
         if is_shift_pressed {
             let selected_songs = filtered_selected.get();
             let first_selected = selected_songs.first();
@@ -558,10 +560,14 @@ where
                                 view! {
                                     <SongListItem
                                         on_click=move |_| {
-                                            if is_mobile && !is_ctrl_pressed.get_untracked() {
-                                                play_now.set(song_cl1.clone());
+                                            if is_mobile {
+                                                if !is_ctrl_pressed.get_untracked() {
+                                                    play_now.set(song_cl1.clone());
+                                                } else {
+                                                    is_ctrl_pressed.set(true);
+                                                    add_to_selected(index);
+                                                }
                                             } else {
-                                                is_ctrl_pressed.set(true);
                                                 add_to_selected(index);
                                             }
                                         }

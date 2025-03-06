@@ -16,6 +16,7 @@
 
 use bitcode::{Decode, Encode};
 use indexed_db_futures::{database::Database, prelude::*};
+use itertools::Itertools;
 use leptos::prelude::*;
 use rand::seq::SliceRandom;
 use serde::Serialize;
@@ -75,6 +76,14 @@ pub struct PlayerStore {
     scrobble_time: f64,
     scrobbled: bool,
     is_mobile: bool,
+}
+
+#[derive(Debug)]
+enum DumpType {
+    PlayerState,
+    SongQueue,
+    CurrentIndex,
+    QueueData,
 }
 
 impl PlayerStore {
@@ -199,7 +208,7 @@ impl PlayerStore {
         self.scrobble_time = 0f64;
         self.scrobbled = false;
 
-        self.dump_store();
+        self.dump_store(&[DumpType::CurrentIndex, DumpType::PlayerState]);
     }
 
     #[tracing::instrument(level = "trace", skip(self, songs))]
@@ -212,31 +221,36 @@ impl PlayerStore {
     fn add_to_queue_at_index(&mut self, songs: Vec<Song>, index: usize) {
         let mut index = index;
         for song in songs {
-            self.insert_song_at_index(song, index);
+            self.insert_song_at_index(song, index, false);
             index += 1;
         }
+
+        self.dump_store(&[DumpType::QueueData, DumpType::SongQueue]);
     }
 
     #[tracing::instrument(level = "trace", skip(self, index))]
     pub fn remove_from_queue(&mut self, index: usize) {
         self.data.queue.song_queue.remove(index);
-        self.dump_store();
+
+        self.dump_store(&[DumpType::SongQueue, DumpType::QueueData]);
     }
 
     #[tracing::instrument(level = "trace", skip(self, song, index))]
-    fn insert_song_at_index(&mut self, song: Song, index: usize) {
+    fn insert_song_at_index(&mut self, song: Song, index: usize, dump: bool) {
         let song_id = song.song._id.clone().unwrap();
         self.data.queue.data.insert(song_id.clone(), song);
         let insertion_index = min(self.data.queue.song_queue.len(), index);
         self.data.queue.song_queue.insert(insertion_index, song_id);
 
-        self.dump_store();
+        if dump {
+            self.dump_store(&[DumpType::QueueData, DumpType::SongQueue]);
+        }
     }
 
     #[tracing::instrument(level = "trace", skip(self, song))]
     pub fn play_now(&mut self, song: Song) {
         self.set_state(PlayerState::Playing);
-        self.insert_song_at_index(song, self.data.queue.current_index + 1);
+        self.insert_song_at_index(song, self.data.queue.current_index + 1, true);
         self.data.queue.current_index += 1;
         self.update_current_song(true);
     }
@@ -259,7 +273,7 @@ impl PlayerStore {
 
     #[tracing::instrument(level = "trace", skip(self, song))]
     pub fn play_next(&mut self, song: Song) {
-        self.insert_song_at_index(song, self.data.queue.current_index + 1);
+        self.insert_song_at_index(song, self.data.queue.current_index + 1, true);
     }
 
     #[tracing::instrument(level = "trace", skip(self, songs))]
@@ -327,7 +341,7 @@ impl PlayerStore {
     pub fn set_state(&mut self, state: PlayerState) {
         tracing::debug!("Setting player state {:?}", state);
         self.data.player_details.state = state;
-        self.dump_store();
+        self.dump_store(&[DumpType::PlayerState]);
 
         set_playback_state(state);
         send_extension_event(ExtensionExtraEvent::PlayerStateChanged([state]))
@@ -356,7 +370,7 @@ impl PlayerStore {
         }
         self.data.player_details.volume = volume;
 
-        self.dump_store();
+        self.dump_store(&[DumpType::PlayerState]);
         send_extension_event(ExtensionExtraEvent::VolumeChanged([volume]))
     }
 
@@ -446,7 +460,7 @@ impl PlayerStore {
         }
 
         self.data.player_details.volume_mode = VolumeMode::Normal;
-        self.dump_store();
+        self.dump_store(&[DumpType::PlayerState]);
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -477,7 +491,7 @@ impl PlayerStore {
         };
 
         self.data.player_details.repeat = new_mode;
-        self.dump_store();
+        self.dump_store(&[DumpType::PlayerState]);
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -494,7 +508,8 @@ impl PlayerStore {
             .position(|v| v == current_song)
             .unwrap();
         self.data.queue.current_index = new_index;
-        self.dump_store();
+
+        self.dump_store(&[DumpType::CurrentIndex, DumpType::SongQueue]);
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
@@ -517,7 +532,9 @@ impl PlayerStore {
                 self.add_to_queue(vec![current_song]);
             }
         }
+
         self.update_current_song(false);
+        self.dump_store(&[DumpType::QueueData, DumpType::SongQueue]);
     }
 
     #[tracing::instrument(level = "trace", skip(self, key))]
@@ -567,39 +584,96 @@ impl PlayerStore {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
-    fn dump_store(&self) {
-        let serialized = bitcode::encode(&self.data);
-        spawn_local(async move {
-            let db = Database::open("moosync").build();
-            if let Ok(db) = db {
+    fn dump_store(&self, dump_types: &[DumpType]) {
+        let db = Database::open("moosync").build();
+
+        let data = dump_types
+            .iter()
+            .map(|d| match d {
+                DumpType::PlayerState => (
+                    "dump_player_state",
+                    bitcode::encode(&self.data.player_details),
+                ),
+                DumpType::SongQueue => (
+                    "dump_song_queue",
+                    bitcode::encode(&self.data.queue.song_queue),
+                ),
+                DumpType::CurrentIndex => (
+                    "dump_current_index",
+                    bitcode::encode(&self.data.queue.current_index),
+                ),
+                DumpType::QueueData => ("dump_queue_data", bitcode::encode(&self.data.queue.data)),
+            })
+            .collect_vec();
+
+        if let Ok(db) = db {
+            spawn_local(async move {
                 if let Ok(db) = db.await {
-                    if let Err(e) =
-                        write_to_indexed_db(db, "player_store", "dump", serialized).await
-                    {
-                        tracing::error!("Failed to dump store: {:?}", e);
+                    for dump_type in data {
+                        if let Err(e) =
+                            write_to_indexed_db(&db, "player_store", dump_type.0, dump_type.1).await
+                        {
+                            tracing::error!("Failed to dump store: {:?}", e);
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     }
 
     #[tracing::instrument(level = "trace", skip(db, signal))]
     fn restore_store(signal: RwSignal<Option<PlayerStoreData>>, db: Database) {
         spawn_local(async move {
-            let bytes = read_from_indexed_db(db, "player_store", "dump").await;
-            if let Ok(Some(bytes)) = bytes {
+            let mut restored_data = PlayerStoreData::default();
+
+            if let Ok(Some(bytes)) =
+                read_from_indexed_db(db.clone(), "player_store", "dump_player_state").await
+            {
                 let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
-                let deserialized = bitcode::decode::<'_, PlayerStoreData>(&bytes);
-                if let Ok(deserialized) = deserialized {
-                    signal.set(Some(PlayerStoreData {
-                        player_blacklist: vec![],
-                        force_load_song: false,
-                        ..deserialized
-                    }));
+                if let Ok(data) = bitcode::decode::<PlayerDetails>(&bytes) {
+                    restored_data.player_details = data;
                 }
-            } else {
-                tracing::error!("Error reading from indexed db {:?}", bytes);
             }
+            if let Ok(Some(bytes)) =
+                read_from_indexed_db(db.clone(), "player_store", "dump_song_queue").await
+            {
+                let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
+                if let Ok(data) = bitcode::decode::<Vec<String>>(&bytes) {
+                    restored_data.queue.song_queue = data;
+                }
+            }
+            if let Ok(Some(bytes)) =
+                read_from_indexed_db(db.clone(), "player_store", "dump_current_index").await
+            {
+                let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
+                if let Ok(data) = bitcode::decode::<usize>(&bytes) {
+                    restored_data.queue.current_index = data;
+                }
+            }
+            if let Ok(Some(bytes)) =
+                read_from_indexed_db(db.clone(), "player_store", "dump_queue_data").await
+            {
+                let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
+                if let Ok(data) = bitcode::decode::<HashMap<String, Song>>(&bytes) {
+                    restored_data.queue.data = data;
+                }
+            }
+
+            tracing::debug!("Restored {:?}", restored_data);
+
+            if let Some(song_id) = restored_data
+                .queue
+                .song_queue
+                .get(restored_data.queue.current_index)
+            {
+                restored_data.current_song = restored_data.queue.data.get(song_id).cloned();
+            }
+
+            signal.set(Some(PlayerStoreData {
+                player_blacklist: vec![],
+                force_load_song: false,
+                ..restored_data
+            }));
         });
     }
 }

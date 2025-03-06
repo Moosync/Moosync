@@ -246,7 +246,7 @@ pub struct GetSongOptions {
     pub inclusive: Option<bool>,
 }
 
-#[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq, Encode, Decode)]
+#[derive(Default, Deserialize, Serialize, Clone, PartialEq, Eq, Encode, Decode)]
 pub struct Song {
     #[serde(flatten)]
     pub song: QueryableSong,
@@ -256,6 +256,27 @@ pub struct Song {
     pub artists: Option<Vec<QueryableArtist>>,
     #[serde(default, deserialize_with = "deserialize_default")]
     pub genre: Option<Vec<QueryableGenre>>,
+}
+
+impl std::fmt::Debug for Song {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let artist_names = self
+            .artists
+            .as_ref()
+            .map(|artists| {
+                artists
+                    .iter()
+                    .map(|a| a.artist_name.clone().unwrap_or_default())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            })
+            .unwrap_or_else(|| "No Artist".to_string());
+
+        let title = self.song.title.as_deref().unwrap_or("No Title");
+        let song_id = self.song._id.as_deref().unwrap_or("No ID");
+
+        write!(f, "{} - {} ({})", artist_names, title, song_id)
+    }
 }
 
 impl std::hash::Hash for Song {

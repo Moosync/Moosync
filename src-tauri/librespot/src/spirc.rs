@@ -25,10 +25,7 @@ use std::{
 
 use futures::executor::block_on;
 use librespot::{
-    connect::{
-        spirc::{PlayingTrack, Spirc, SpircLoadCommand},
-        state::ConnectStateConfig,
-    },
+    connect::{ConnectConfig, LoadRequest, LoadRequestOptions, PlayingTrack, Spirc},
     core::{cache::Cache, token::Token, Session, SpotifyId},
     discovery::Credentials,
     playback::{
@@ -97,7 +94,7 @@ impl SpircWrapper {
     pub fn new(
         credentials: Credentials,
         player_config: PlayerConfig,
-        connect_config: ConnectStateConfig,
+        connect_config: ConnectConfig,
         cache_config: Cache,
         backend: String,
         volume_ctrl: String,
@@ -267,15 +264,15 @@ impl SpircWrapper {
                     }
                     Ok(_track_id) => {
                         // track_ref.set_gid(Vec::from(track_id.to_raw()));
-                        let command = SpircLoadCommand {
-                            context_uri: uri,
-                            start_playing: autoplay,
-                            shuffle: false,
-                            repeat_track: false,
-                            repeat: false,
-                            playing_track: PlayingTrack::Index(0),
-                            seek_to: 0,
-                        };
+                        let command = LoadRequest::from_context_uri(
+                            uri,
+                            LoadRequestOptions {
+                                start_playing: autoplay,
+                                seek_to: 0,
+                                context_options: None,
+                                playing_track: None,
+                            },
+                        );
 
                         let res = spirc
                             .load(command)

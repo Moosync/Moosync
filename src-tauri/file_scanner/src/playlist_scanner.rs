@@ -137,7 +137,7 @@ impl<'a> PlaylistScanner<'a> {
                     continue;
                 }
 
-                let mut song = QueryableSong::empty();
+                let mut song = QueryableSong::default();
 
                 let s_type = song_type.clone();
 

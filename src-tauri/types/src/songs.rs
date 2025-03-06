@@ -30,9 +30,6 @@ use diesel::{
 };
 use serde::{Deserialize, Serialize};
 
-#[cfg(any(feature = "core", feature = "ui"))]
-use uuid::Uuid;
-
 #[cfg(feature = "core")]
 use crate::schema::allsongs;
 
@@ -198,21 +195,10 @@ impl PartialEq for QueryableSong {
 impl Eq for QueryableSong {}
 
 #[cfg(any(feature = "core", feature = "ui"))]
-impl QueryableSong {
-    #[tracing::instrument(level = "trace", skip())]
-    pub fn empty() -> Self {
-        Self {
-            _id: Some(Uuid::new_v4().to_string()),
-            ..Default::default()
-        }
-    }
-}
-
-#[cfg(any(feature = "core", feature = "ui"))]
 impl SearchByTerm for QueryableSong {
     #[tracing::instrument(level = "trace", skip(term))]
     fn search_by_term(term: Option<String>) -> Self {
-        let mut data = Self::empty();
+        let mut data = Self::default();
         data.title.clone_from(&term);
         data.path = term;
 

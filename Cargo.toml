@@ -10,7 +10,7 @@ mock = []
 [dependencies]
 console_error_panic_hook = "0.1.7"
 
-leptos = { version = "0.7.3", features = ["csr"] }
+leptos = { version = "0.7.7", features = ["csr"] }
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
@@ -19,15 +19,15 @@ serde-wasm-bindgen = "0.6"
 types = { path = "src-tauri/types", default-features = false, features = [
     "ui",
 ] }
-chrono = "0.4.39"
-leptos-use = "0.15.3"
+chrono = "0.4.40"
+leptos-use = "0.15.6"
 tokio = { version = "1.43.0", features = ["rt", "sync"] }
-serde_json = "1.0.135"
-leptos_router = { version = "0.7.3" }
+serde_json = "1.0.140"
+leptos_router = { version = "0.7.7" }
 leptos_virtual_scroller = { git = "https://github.com/Ovenoboyo/leptos_virtual_scroller" }
 leptos_context_menu = { git = "https://github.com/Ovenoboyo/leptos_context_menu" }
 futures = "0.3.31"
-web-sys = { version = "0.3.76", features = [
+web-sys = { version = "0.3.77", features = [
     "Window",
     "Document",
     "HtmlElement",
@@ -36,12 +36,12 @@ web-sys = { version = "0.3.76", features = [
 ] }
 regex = "1.11.1"
 colors-transform = "0.2.11"
-leptos_i18n = { version = "0.5.5", features = ["csr"] }
+leptos_i18n = { version = "0.5.9", features = ["csr"] }
 pref_gen = { path = "src/pref_gen" }
-rand = "0.8.5"
-dyn-clone = "1.0.17"
+rand = "0.9.0"
+dyn-clone = "1.0.19"
 itertools = "0.14.0"
-bitcode = { version = "0.6.3" }
+bitcode = { version = "0.6.5" }
 indexed_db_futures = { version = "0.6.0", features = ["serde"] }
 lazy_static = "1.5.0"
 tracing = "0.1.41"

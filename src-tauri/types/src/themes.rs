@@ -47,7 +47,6 @@ impl ThemeDetails {
     pub fn new() -> Self {
         Self {
             name: "New theme".into(),
-            id: uuid::Uuid::new_v4().to_string(),
             ..Default::default()
         }
     }

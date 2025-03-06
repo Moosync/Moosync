@@ -19,5 +19,5 @@ hex = { default-features = false, version = "0.4.3" }
 chacha20poly1305 = "0.10.1"
 json_dotpath = "1.1.0"
 crossbeam-channel = { default-features = false, version = "0.5.14" }
-jsonschema = { version = "0.28.1", default-features = false }
+jsonschema = { version = "0.29.0", default-features = false }
 tracing = { version = "0.1.41", default-features = false }

@@ -31,6 +31,7 @@ use types::{
     errors::{MoosyncError, Result},
     themes::ThemeDetails,
 };
+use uuid::Uuid;
 
 pub struct ThemeHolder {
     pub theme_dir: PathBuf,
@@ -97,7 +98,11 @@ impl ThemeHolder {
     }
 
     #[tracing::instrument(level = "trace", skip(self, theme))]
-    pub fn save_theme(&self, theme: ThemeDetails) -> Result<()> {
+    pub fn save_theme(&self, mut theme: ThemeDetails) -> Result<()> {
+        if theme.id.is_empty() {
+            theme.id = Uuid::new_v4().to_string();
+        }
+
         let theme_path = self.theme_dir.join(theme.id.clone());
 
         if !theme_path.exists() {

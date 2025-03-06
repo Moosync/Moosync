@@ -16,7 +16,7 @@
 
 use database::cache::CacheHolder;
 use librespot::{
-    spirc::ParsedToken, utils::event_to_map, Cache, ConnectStateConfig, Credentials, DeviceType,
+    spirc::ParsedToken, utils::event_to_map, Cache, ConnectConfig, Credentials, DeviceType,
     LibrespotHolder, PlayerConfig, PlayerEvent, REGISTERED_EVENTS,
 };
 use macros::{generate_command, generate_command_cached};
@@ -38,7 +38,7 @@ pub fn initialize_librespot(app: AppHandle, access_token: String) -> Result<()> 
 
     let player_config = PlayerConfig::default();
 
-    let connect_config = ConnectStateConfig {
+    let connect_config = ConnectConfig {
         name: "Moosync".into(),
         device_type: DeviceType::Computer,
         initial_volume: 0,

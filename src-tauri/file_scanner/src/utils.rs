@@ -208,7 +208,7 @@ pub fn scan_file(
     artist_split: &str,
 ) -> Result<Song> {
     let mut song: Song = Song {
-        song: QueryableSong::empty(),
+        song: QueryableSong::default(),
         album: None,
         artists: Some(vec![]),
         genre: Some(vec![]),

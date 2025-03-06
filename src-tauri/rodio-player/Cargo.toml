@@ -8,7 +8,7 @@ rodio = { version = "0.20.1", default-features = false, features = [
     "symphonia-all",
 ] }
 types = { path = "../types", default-features = false }
-stream-download = "0.14.0"
+stream-download = "0.15.1"
 tracing = { version = "0.1.41", default-features = false }
 futures = "0.3.31"
 tokio = "1.43.0"

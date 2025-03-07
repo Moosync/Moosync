@@ -180,10 +180,9 @@ impl ProviderHandler {
             );
             if let Ok(provides) = provides {
                 tracing::info!(
-                    "Inserting extension provider {:?} {:?} {:?}",
+                    "Inserting extension provider {:?} {:?}",
                     extension,
                     provides,
-                    self.provider_store
                 );
 
                 let provider = Box::new(ExtensionProvider::new(
@@ -196,7 +195,7 @@ impl ProviderHandler {
                     let mut provider_store = self.provider_store.write().await;
                     let key = provider.key();
                     provider_store.insert(key.clone(), provider);
-                    tracing::info!("provider_store: {:?}", provider_store);
+                    tracing::info!("provider_store: {:?}", provider_store.keys());
                     key
                 };
 

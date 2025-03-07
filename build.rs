@@ -49,4 +49,5 @@ fn main() {
     } else {
         println!("cargo:warning=Could not find function_details.json");
     }
+    println!("cargo:rustc-cfg=getrandom_backend=\"wasm_js\"");
 }

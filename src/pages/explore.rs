@@ -29,16 +29,14 @@ use wasm_bindgen_futures::spawn_local;
 
 use crate::{
     components::{
-        artist_list::ArtistList,
-        cardview::{CardItem, CardView, SimplifiedCardItem},
-        low_img::LowImg,
+        cardview::{CardView, SimplifiedCardItem},
         songdetails::SongDetails,
         songlist::SongListItem,
     },
     i18n::use_i18n,
     store::{player_store::PlayerStore, provider_store::ProviderStore},
     utils::{
-        common::{format_duration, get_high_img, get_low_img},
+        common::{format_duration, get_high_img},
         context_menu::{create_context_menu, SongItemContextMenu},
         db_utils::get_playlists_local,
         invoke::{

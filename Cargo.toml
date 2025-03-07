@@ -8,6 +8,7 @@ mock = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
+getrandom = "=0.2.10"
 console_error_panic_hook = "0.1.7"
 
 leptos = { version = "0.7.7", features = ["csr"] }
@@ -38,7 +39,7 @@ regex = "1.11.1"
 colors-transform = "0.2.11"
 leptos_i18n = { version = "0.5.9", features = ["csr"] }
 pref_gen = { path = "src/pref_gen" }
-rand = "0.9.0"
+rand = "0.8.5"
 dyn-clone = "1.0.19"
 itertools = "0.14.0"
 bitcode = { version = "0.6.5" }
@@ -49,6 +50,7 @@ tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 tauri-invoke-proc = { path = "src-tauri/tauri-invoke-proc" }
 url-escape = "0.1.1"
 wasm-timer = "0.2.5"
+uuid = "=1.11.1"
 
 [workspace]
 resolver = "2"

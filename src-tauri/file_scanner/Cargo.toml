@@ -16,6 +16,6 @@ lofty = { default-features = false, version = "0.22.2" }
 regex = { default-features = false, version = "1.11.1" }
 threadpool = "1.8.1"
 num_cpus = "1.16.0"
-uuid = { version = "1.15.1", default-features = false }
+uuid = { version = "1.11.1", default-features = false }
 dunce = "1.0.5"
 tracing = { version = "0.1.41", default-features = false }

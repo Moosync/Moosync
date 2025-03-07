@@ -10,7 +10,7 @@ fs_extra = "1.3.0"
 regex = { default-features = false, version = "1.11.1" }
 serde_json = { default-features = false, version = "1.0" }
 types = { path = "../types", default-features = false, features = ["core"] }
-uuid = { default-features = false, version = "1.15.1" }
+uuid = { default-features = false, version = "1.11.1" }
 zip = { version = "2.2.3", default-features = false, features = ["deflate"] }
 zip-extensions = { default-features = false, version = "0.8.1" }
 tracing = { version = "0.1.41", default-features = false }

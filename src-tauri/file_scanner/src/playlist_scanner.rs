@@ -133,6 +133,11 @@ impl<'a> PlaylistScanner<'a> {
             if !line.starts_with('#') {
                 if line.starts_with("file://") {
                     line = line[8..].to_string();
+                } else if line.starts_with("http") {
+                    line = line.replace("http://", "").replace("https://", "");
+                    song_type = Some("URL".to_string());
+                } else if !line.is_empty() {
+                    // pass
                 } else {
                     continue;
                 }
@@ -146,7 +151,7 @@ impl<'a> PlaylistScanner<'a> {
 
                 if song.type_ == SongType::LOCAL {
                     let song_path = PathBuf::from_str(line.as_str());
-                    let mut path_parsed = song_path.unwrap();
+                    let Ok(mut path_parsed) = song_path;
                     if path_parsed.is_relative() {
                         path_parsed = path.parent().unwrap().join(path_parsed).canonicalize()?;
                     }

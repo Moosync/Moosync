@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 substring = "1.4.5"
-types = { path = "../types", default-features = false }
+types = { path = "../types", default-features = false, features = ["core"] }
 blake3 = { version = "1.6.1", default-features = false }
 fast_image_resize = "5.1.2"
 image = { version = "0.25.5" }
@@ -16,6 +16,6 @@ lofty = { default-features = false, version = "0.22.2" }
 regex = { default-features = false, version = "1.11.1" }
 threadpool = "1.8.1"
 num_cpus = "1.16.0"
-uuid = { version = "1.11.1", default-features = false }
+uuid = { version = "1.11.1", default-features = false, features = ["v4"] }
 dunce = "1.0.5"
 tracing = { version = "0.1.41", default-features = false }

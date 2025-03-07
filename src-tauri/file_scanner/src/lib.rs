@@ -25,6 +25,9 @@ mod song_scanner;
 mod types;
 mod utils;
 
+#[cfg(test)]
+mod tests;
+
 #[cfg(target_os = "android")]
 mod scanner_android;
 #[cfg(target_os = "android")]

@@ -15,6 +15,6 @@ zip = { version = "2.2.3", default-features = false, features = ["deflate"] }
 zip-extensions = { default-features = false, version = "0.8.1" }
 tracing = { version = "0.1.41", default-features = false }
 notify = "8.0.0"
-reqwest = "0.12.12"
+reqwest = { version = "0.12.12", features = ["stream"] }
 serde = "1.0.218"
 futures = { default-features = false, version = "0.3.31" }

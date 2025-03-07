@@ -6600,6 +6600,7 @@ dependencies = [
  "tracing",
  "types",
  "windows 0.44.0",
+ "zbus 3.15.2",
 ]
 
 [[package]]
@@ -8029,6 +8030,7 @@ dependencies = [
  "serde_json",
  "tracing",
  "types",
+ "uuid",
  "whoami",
 ]
 
@@ -14180,6 +14182,7 @@ dependencies = [
  "serde_repr",
  "sha1",
  "static_assertions",
+ "tokio",
  "tracing",
  "uds_windows",
  "winapi",

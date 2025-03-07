@@ -20,6 +20,9 @@ use regex::Regex;
 use serde_json::Value;
 use types::errors::Result;
 
+#[cfg(test)]
+mod test;
+
 #[derive(Debug)]
 pub struct LyricsFetcher {}
 

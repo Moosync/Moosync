@@ -301,7 +301,14 @@ impl Database {
             .unwrap()
             .transaction::<(), MoosyncError, _>(|conn| {
                 for id in ids {
-                    delete(QueryDsl::filter(allsongs, _id.eq(id.clone()))).execute(conn)?;
+                    // First delete analytics data to avoid foreign key constraint violations
+                    delete(QueryDsl::filter(
+                        analytics,
+                        schema::analytics::song_id.eq(id.clone()),
+                    ))
+                    .execute(conn)?;
+
+                    // Then delete bridge references
                     delete(QueryDsl::filter(
                         album_bridge,
                         schema::album_bridge::song.eq(id.clone()),
@@ -322,6 +329,9 @@ impl Database {
                         schema::playlist_bridge::song.eq(id.clone()),
                     ))
                     .execute(conn)?;
+
+                    // Finally delete the song itself
+                    delete(QueryDsl::filter(allsongs, _id.eq(id.clone()))).execute(conn)?;
                 }
                 Ok(())
             })?;

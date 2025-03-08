@@ -104,7 +104,10 @@ class YTPlayer {
   }
 
   on(event, callback) {
-    if (!this.listeners[event]) {
+    if (
+      typeof this.listeners[event] == "undefined" ||
+      this.listeners[event] == null
+    ) {
       this.listeners[event] = [];
     }
 
@@ -112,11 +115,19 @@ class YTPlayer {
   }
 
   off(event, callback) {
-    if (!this.listeners[event]) {
+    if (
+      typeof this.listeners[event] == "undefined" ||
+      this.listeners[event] == null
+    ) {
       return;
     }
 
-    this.listeners[event].splice(callback, 1);
+    const callbackIndex = this.listeners[event].findIndex(
+      (val) => val == callback,
+    );
+    if (callbackIndex !== -1) {
+      this.listeners[event].splice(callbackIndex, 1);
+    }
   }
 
   removeAllListeners() {

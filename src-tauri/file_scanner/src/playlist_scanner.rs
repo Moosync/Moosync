@@ -174,7 +174,6 @@ impl<'a> PlaylistScanner<'a> {
 
                     song.playback_url = None;
                 } else {
-                    song._id = Some(format!("{}:{}", song.type_, line));
                     song.playback_url = Some(line);
                 }
 

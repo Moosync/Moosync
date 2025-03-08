@@ -34,6 +34,7 @@ use crate::{
         songlist::SongListItem,
     },
     i18n::use_i18n,
+    icons::play_hover_icon::PlayHoverIcon,
     store::{player_store::PlayerStore, provider_store::ProviderStore},
     utils::{
         common::{format_duration, get_high_img},
@@ -60,7 +61,7 @@ pub fn Explore() -> impl IntoView {
     let analytics = RwSignal::<Option<AllAnalyticsParsed>>::new(None);
     spawn_local(async move {
         if let Ok(a) = get_top_listened_songs().await {
-            tracing::debug!("Got analytics {:?}", a);
+            tracing::debug!("Got analytics {:?}, {:?}", a, a.songs.len());
             analytics.set(Some(AllAnalyticsParsed {
                 total_listen_time: a.total_listen_time,
                 songs: vec![],
@@ -177,9 +178,15 @@ pub fn Explore() -> impl IntoView {
                                     view! {
                                         <div class="col big-song">
                                             <SongDetails
-                                                selected_song=RwSignal::new(Some(first_song))
+                                                selected_song=RwSignal::new(Some(first_song.clone()))
                                                 icons=RwSignal::new(SongDetailIcons::default())
                                             />
+                                            <div
+                                                class="play-button-song-list card-overlay-background d-flex justify-content-center explore-big-song-play"
+                                                on:click=move |_| { play_now.set(first_song.clone()) }
+                                            >
+                                                <PlayHoverIcon />
+                                            </div>
                                         </div>
                                         <div class="col-auto">
                                             <div class="played-for">"Played for"</div>

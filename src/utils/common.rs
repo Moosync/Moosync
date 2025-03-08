@@ -241,6 +241,10 @@ macro_rules! fetch_infinite {
                 let res = crate::utils::invoke::$fetch_content($provider.clone(), $($arg,)* pagination.clone()).await;
                 if res.is_err() {
                     tracing::error!("Error fetching content {:?}", res);
+                    let key = $provider.clone();
+                    $is_loading.update(move |map| {
+                        map.remove(&key);
+                    });
                     break 'fetch Err(res.unwrap_err());
                 }
 

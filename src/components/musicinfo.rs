@@ -353,7 +353,7 @@ pub fn MusicInfoMobile(
 
                                                 <VirtualScroller
                                                     each=queue_songs
-                                                    key=|s| s.song._id.clone()
+                                                    key=|(i, s)| s.song._id.clone()
                                                     item_height=95usize
                                                     inner_el_style="width: calc(100% - 15px);"
                                                     node_ref=scroller_ref
@@ -555,7 +555,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
 
                                             <VirtualScroller
                                                 each=queue_songs
-                                                key=|s| s.song._id.clone()
+                                                key=|(i, s)| format!("{:?}-{}", s.song._id, i)
                                                 item_height=95usize
                                                 inner_el_style="width: calc(100% - 15px);"
                                                 node_ref=scroller_ref

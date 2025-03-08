@@ -520,7 +520,7 @@ pub fn TopBar() -> impl IntoView {
                             >
                                 <VirtualScroller
                                     each=results
-                                    key=|r| r.key.clone()
+                                    key=|(i, r)| r.key.clone()
                                     item_height=95usize
                                     children=move |(_, item)| {
                                         view! { <SearchResultItem item=item.clone() /> }

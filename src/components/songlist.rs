@@ -548,7 +548,7 @@ where
                         <VirtualScroller
                             node_ref=scroller_ref
                             each=filtered_songs
-                            key=|s| s.song._id.clone()
+                            key=|(i, s)| s.song._id.clone()
                             item_height=95usize
                             inner_el_style="width: calc(100% - 15px);"
                             header=header

@@ -33,6 +33,7 @@ use types::entities::QueryableArtist;
 use types::songs::{GetSongOptions, Song};
 use types::ui::extensions::ExtensionProviderScope;
 use types::ui::song_details::{DefaultDetails, SongDetailIcons};
+use uuid::Uuid;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::components::songview::SongView;
@@ -183,7 +184,7 @@ pub fn AllArtists() -> impl IntoView {
                 >
                     <CardView
                         items=artists
-                        key=|a| a.artist_id.clone()
+                        key=|a| a.artist_id.clone().unwrap_or(Uuid::new_v4().to_string())
                         redirect_root="/main/artists"
                         card_item=move |(_, item)| {
                             let artist_name = item.artist_name.clone().unwrap_or_default();

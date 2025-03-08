@@ -381,7 +381,7 @@ pub fn export_playlist(playlist: QueryablePlaylist) {
     });
 }
 
-#[tracing::instrument(level = "trace", skip(db, store, key, value))]
+#[tracing::instrument(level = "trace", skip(db, store, value))]
 pub async fn write_to_indexed_db(
     db: &Database,
     store: &str,

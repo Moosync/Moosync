@@ -180,10 +180,6 @@ where
         220
     } as usize;
     let item_height = if is_mobile {
-        tracing::debug!(
-            "got height {}",
-            (document().body().unwrap().client_width() / 2) + 55
-        );
         (document().body().unwrap().client_width() / 2) + 55
     } else {
         275
@@ -193,7 +189,7 @@ where
     view! {
         <VirtualGridScroller
             each=items
-            key=key
+            key=move |(_, item)| key(item)
             item_width=item_width
             item_height=item_height
             children=move |data| {

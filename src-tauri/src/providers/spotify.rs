@@ -460,20 +460,22 @@ impl GenericProvider for SpotifyProvider {
 
     #[tracing::instrument(level = "trace", skip(self))]
     async fn login(&self, _: String) -> Result<String> {
-        let config = self.config.lock().await;
-        let (url, verifier) = login(
-            LoginArgs {
-                client_id: config.client_id.clone(),
-                client_secret: config.client_secret.clone(),
-                scopes: config.scopes.clone(),
-                extra_params: None,
-            },
-            self.get_oauth_client().await,
-            &self.app,
-        )?;
+        let (login_args, redirect_uri) = {
+            let config = self.config.lock().await;
+            (
+                LoginArgs {
+                    client_id: config.client_id.clone(),
+                    client_secret: config.client_secret.clone(),
+                    scopes: config.scopes.clone(),
+                    extra_params: None,
+                },
+                config.redirect_uri,
+            )
+        };
+
+        let (url, verifier) = login(login_args, self.get_oauth_client().await, &self.app)?;
         *self.verifier.lock().await = verifier;
 
-        let redirect_uri = config.redirect_uri;
         if redirect_uri.starts_with("http://127.0.0.1:8898") {
             let app_handle = self.app.clone();
             thread::spawn(move || {

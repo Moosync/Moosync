@@ -39,7 +39,7 @@ pub struct YoutubeScraper {
 }
 
 impl Default for YoutubeScraper {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn default() -> YoutubeScraper {
         YoutubeScraper {
             youtube: YouTube::new().unwrap(),
@@ -48,7 +48,7 @@ impl Default for YoutubeScraper {
 }
 
 impl YoutubeScraper {
-    #[tracing::instrument(level = "trace", skip(self, v))]
+    #[tracing::instrument(level = "debug", skip(self, v))]
     fn parse_song(&self, v: &rusty_ytdl::search::Video) -> Song {
         Song {
             song: QueryableSong {
@@ -77,7 +77,7 @@ impl YoutubeScraper {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, v))]
+    #[tracing::instrument(level = "debug", skip(self, v))]
     fn parse_video_info(&self, v: &rusty_ytdl::VideoInfo) -> Song {
         let details = &v.video_details;
         Song {
@@ -107,7 +107,7 @@ impl YoutubeScraper {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, playlist))]
+    #[tracing::instrument(level = "debug", skip(self, playlist))]
     fn parse_playlist(&self, playlist: &Playlist) -> QueryablePlaylist {
         QueryablePlaylist {
             playlist_id: Some(format!("youtube-playlist:{}", playlist.id)),
@@ -119,7 +119,7 @@ impl YoutubeScraper {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, artist))]
+    #[tracing::instrument(level = "debug", skip(self, artist))]
     fn parse_artist(&self, artist: &Channel) -> QueryableArtist {
         QueryableArtist {
             artist_id: Some(format!("youtube-artist:{}", artist.id)),
@@ -137,7 +137,7 @@ impl YoutubeScraper {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, id))]
+    #[tracing::instrument(level = "debug", skip(self, id))]
     pub async fn get_playlist_content(
         &self,
         id: String,
@@ -155,14 +155,14 @@ impl YoutubeScraper {
         // Err(MoosyncError::String("No data found".to_string()))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, id))]
+    #[tracing::instrument(level = "debug", skip(self, id))]
     pub async fn get_video_by_id(&self, id: String) -> Result<Song> {
         let video = rusty_ytdl::Video::new(id)?;
         let info = video.get_basic_info().await?;
         Ok(self.parse_video_info(&info))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, query))]
+    #[tracing::instrument(level = "debug", skip(self, query))]
     pub async fn search_yt(&self, query: impl Into<String>) -> Result<SearchResult> {
         let res = self
             .youtube
@@ -197,7 +197,7 @@ impl YoutubeScraper {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self, id))]
+    #[tracing::instrument(level = "debug", skip(self, id))]
     pub async fn get_video_url(&self, mut id: String) -> Result<String> {
         if id.starts_with("http") {
             let url = Url::from_str(&id).unwrap();

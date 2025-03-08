@@ -64,7 +64,7 @@ pub struct PlayerHolder {
 }
 
 impl PlayerHolder {
-    #[tracing::instrument(level = "trace", skip(player_container, providers))]
+    #[tracing::instrument(level = "debug", skip(player_container, providers))]
     pub fn new(player_container: NodeRef<Div>, providers: Arc<ProviderStore>) -> PlayerHolder {
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
 
@@ -124,7 +124,7 @@ impl PlayerHolder {
         holder
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn initialize_players(&self) {
         let players = self.players.lock().await;
         for player in players.iter() {
@@ -133,7 +133,7 @@ impl PlayerHolder {
         tracing::debug!("Initialized players")
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn stop_playback(&self) -> Result<()> {
         let active_player = self.active_player.load(Ordering::Relaxed);
         let mut players = self.players.lock().await;
@@ -145,7 +145,7 @@ impl PlayerHolder {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, player_store, song))]
+    #[tracing::instrument(level = "debug", skip(self, player_store, song))]
     pub async fn get_player(
         &self,
         player_store: RwSignal<PlayerStore>,
@@ -201,7 +201,7 @@ impl PlayerHolder {
         Err(MoosyncError::String("Player not found".into()))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, volume))]
+    #[tracing::instrument(level = "debug", skip(self, volume))]
     pub async fn set_volume(&self, volume: f64) -> Result<()> {
         let players = self.players.lock().await;
         let active_player_pos = self.active_player.load(Ordering::Relaxed);
@@ -215,7 +215,7 @@ impl PlayerHolder {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, song, player))]
+    #[tracing::instrument(level = "debug", skip(self, song, player))]
     pub async fn get_playback_url(&self, song: &Song, player: String) -> Result<String> {
         let id = song.song._id.clone().unwrap();
         let provider = self.providers.get_provider_key_by_id(id.clone()).await?;
@@ -230,7 +230,7 @@ impl PlayerHolder {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, song, current_volume, player_store))]
+    #[tracing::instrument(level = "debug", skip(self, song, current_volume, player_store))]
     pub async fn load_audio(
         &mut self,
         song: &Song,
@@ -289,7 +289,7 @@ impl PlayerHolder {
         Ok(ret)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, player_store))]
+    #[tracing::instrument(level = "debug", skip(self, player_store))]
     fn listen_player_state(&self, player_store: RwSignal<PlayerStore>) {
         let player_state_getter = create_read_slice(player_store, move |p| p.get_player_state());
         let players = self.players.clone();
@@ -324,7 +324,7 @@ impl PlayerHolder {
         });
     }
 
-    #[tracing::instrument(level = "trace", skip(self, player_store))]
+    #[tracing::instrument(level = "debug", skip(self, player_store))]
     fn listen_force_seek(&self, player_store: RwSignal<PlayerStore>) {
         let (force_seek, reset_force_seek) = create_slice(
             player_store,
@@ -359,13 +359,13 @@ impl PlayerHolder {
         });
     }
 
-    #[tracing::instrument(level = "trace", skip(self, player_store))]
+    #[tracing::instrument(level = "debug", skip(self, player_store))]
     fn register_external_state_listeners(&self, player_store: RwSignal<PlayerStore>) {
         self.listen_player_state(player_store);
         self.listen_force_seek(player_store);
     }
 
-    #[tracing::instrument(level = "trace", skip(player_store, player_blacklist_sender))]
+    #[tracing::instrument(level = "debug", skip(player_store, player_blacklist_sender))]
     fn register_internal_state_listeners(
         player_store: RwSignal<PlayerStore>,
         player_blacklist_sender: UnboundedSender<()>,
@@ -422,7 +422,7 @@ impl PlayerHolder {
         Box::new(setter)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, player_store))]
+    #[tracing::instrument(level = "debug", skip(self, player_store))]
     fn listen_player_blacklist(&self, player_store: RwSignal<PlayerStore>) {
         let player_blacklist_receiver = self.player_blacklist_receiver.clone();
         let active_player = self.active_player.clone();
@@ -444,7 +444,7 @@ impl PlayerHolder {
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component()]
 pub fn AudioStream() -> impl IntoView {
     let provider_store = use_context::<Arc<ProviderStore>>().unwrap();

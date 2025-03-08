@@ -22,7 +22,7 @@ use crate::{
     utils::invoke::get_extension_manifest,
 };
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn DiscoverExtensionsModal() -> impl IntoView {
     let extensions = RwSignal::<Vec<FetchedExtensionManifest>>::new(vec![]);

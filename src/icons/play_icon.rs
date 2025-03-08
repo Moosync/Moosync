@@ -16,7 +16,7 @@
 
 use leptos::{component, prelude::*, view, IntoView};
 
-#[tracing::instrument(level = "trace", skip(play))]
+#[tracing::instrument(level = "debug", skip(play))]
 #[component]
 pub fn PlayIcon<T>(#[prop()] play: T) -> impl IntoView
 where

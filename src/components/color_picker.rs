@@ -37,7 +37,7 @@ pub enum ColorSpace {
 }
 
 impl ColorSpace {
-    #[tracing::instrument(level = "trace", skip(self, components))]
+    #[tracing::instrument(level = "debug", skip(self, components))]
     pub fn clamp_color_components(&self, components: (f32, f32, f32)) -> (f32, f32, f32) {
         let clamp = match self {
             ColorSpace::Rgb => Rgb::clamp_components,
@@ -48,7 +48,7 @@ impl ColorSpace {
         clamp(components)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, floats))]
+    #[tracing::instrument(level = "debug", skip(self, floats))]
     fn floats_to_components(&self, floats: (f32, f32, f32)) -> (f32, f32, f32) {
         let convert = match self {
             ColorSpace::Rgb => Rgb::floats_to_components,
@@ -59,7 +59,7 @@ impl ColorSpace {
         convert(floats)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, rgb))]
+    #[tracing::instrument(level = "debug", skip(self, rgb))]
     fn color_components_from_rgb(&self, rgb: Rgb) -> (f32, f32, f32) {
         match self {
             ColorSpace::Rgb => Rgb::from_rgb(rgb).as_components(),
@@ -67,7 +67,7 @@ impl ColorSpace {
             ColorSpace::Hsv => Hsv::from_rgb(rgb).as_components(),
         }
     }
-    #[tracing::instrument(level = "trace", skip(self, components))]
+    #[tracing::instrument(level = "debug", skip(self, components))]
     fn rgb_from_color_components(&self, components: (f32, f32, f32)) -> Rgb {
         match self {
             ColorSpace::Rgb => Rgb::from_components(components).as_rgb(),
@@ -78,7 +78,7 @@ impl ColorSpace {
 }
 
 impl Display for ColorSpace {
-    #[tracing::instrument(level = "trace", skip(self, f))]
+    #[tracing::instrument(level = "debug", skip(self, f))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(match self {
             ColorSpace::Rgb => "Rgb",
@@ -90,7 +90,7 @@ impl Display for ColorSpace {
 
 impl FromStr for ColorSpace {
     type Err = ();
-    #[tracing::instrument(level = "trace", skip(s))]
+    #[tracing::instrument(level = "debug", skip(s))]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "Rgb" => Ok(ColorSpace::Rgb),
@@ -108,7 +108,7 @@ pub struct DynamicColor {
 }
 
 impl DynamicColor {
-    #[tracing::instrument(level = "trace", skip(components, color_space))]
+    #[tracing::instrument(level = "debug", skip(components, color_space))]
     pub fn new(components: (f32, f32, f32), color_space: ColorSpace) -> Self {
         Self {
             components: color_space.clamp_color_components(components),
@@ -116,7 +116,7 @@ impl DynamicColor {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(floats, color_space))]
+    #[tracing::instrument(level = "debug", skip(floats, color_space))]
     pub fn from_floats(floats: (f32, f32, f32), color_space: ColorSpace) -> Self {
         Self {
             components: color_space.floats_to_components(floats),
@@ -124,22 +124,22 @@ impl DynamicColor {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(color))]
+    #[tracing::instrument(level = "debug", skip(color))]
     pub fn from_color<C: Color>(color: C) -> Self {
         Self::new(color.as_components(), C::COLOR_SPACE)
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn to_color<C: Color>(self) -> C {
         C::from_components(self.set_color_space(C::COLOR_SPACE).components)
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn color_space(&self) -> ColorSpace {
         self.color_space
     }
 
-    #[tracing::instrument(level = "trace", skip(self, color_space))]
+    #[tracing::instrument(level = "debug", skip(self, color_space))]
     pub fn set_color_space(mut self, color_space: ColorSpace) -> Self {
         let rgb = self.color_space.rgb_from_color_components(self.components);
 
@@ -217,7 +217,7 @@ pub struct Rgb {
 }
 
 impl Rgb {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     /// Format rgb color as an hex code.
     ///
     /// The three hexadecimal components are returned without the usual hashtag
@@ -240,7 +240,7 @@ impl Rgb {
         format!("{:02x}{:02x}{:02x}", r, g, b)
     }
 
-    #[tracing::instrument(level = "trace", skip(code))]
+    #[tracing::instrument(level = "debug", skip(code))]
     /// Create a rgb color from a hex code.
     ///
     /// The code may begin with a hashtag.
@@ -285,11 +285,11 @@ impl Color for Rgb {
     const COMPONENT_MAXES: (f32, f32, f32) = (255., 255., 255.);
     const COLOR_SPACE: ColorSpace = ColorSpace::Rgb;
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn as_components(&self) -> (f32, f32, f32) {
         (self.r, self.g, self.b)
     }
-    #[tracing::instrument(level = "trace", skip(components))]
+    #[tracing::instrument(level = "debug", skip(components))]
     fn from_components(components: (f32, f32, f32)) -> Self {
         let components = ColorSpace::Rgb.clamp_color_components(components);
 
@@ -300,11 +300,11 @@ impl Color for Rgb {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn as_floats(&self) -> (f32, f32, f32) {
         (self.r / 255., self.g / 255., self.b / 255.)
     }
-    #[tracing::instrument(level = "trace", skip(floats))]
+    #[tracing::instrument(level = "debug", skip(floats))]
     fn from_floats(floats: (f32, f32, f32)) -> Self {
         Self {
             r: floats.0.clamp(0., 1.) * 255.,
@@ -313,11 +313,11 @@ impl Color for Rgb {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn as_rgb(&self) -> Rgb {
         *self
     }
-    #[tracing::instrument(level = "trace", skip(rgb))]
+    #[tracing::instrument(level = "debug", skip(rgb))]
     fn from_rgb(rgb: Rgb) -> Self {
         rgb
     }
@@ -334,11 +334,11 @@ impl Color for Hsl {
     const COMPONENT_MAXES: (f32, f32, f32) = (360., 100., 100.);
     const COLOR_SPACE: ColorSpace = ColorSpace::Hsl;
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn as_components(&self) -> (f32, f32, f32) {
         (self.h, self.s, self.l)
     }
-    #[tracing::instrument(level = "trace", skip(components))]
+    #[tracing::instrument(level = "debug", skip(components))]
     fn from_components(components: (f32, f32, f32)) -> Self {
         Self {
             h: components.0.clamp(0., 360.),
@@ -347,11 +347,11 @@ impl Color for Hsl {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn as_floats(&self) -> (f32, f32, f32) {
         (self.h / 360., self.s / 100., self.l / 100.)
     }
-    #[tracing::instrument(level = "trace", skip(floats))]
+    #[tracing::instrument(level = "debug", skip(floats))]
     fn from_floats(floats: (f32, f32, f32)) -> Self {
         Self {
             h: floats.0.clamp(0., 1.) * 360.,
@@ -360,7 +360,7 @@ impl Color for Hsl {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     /// Source: https://stackoverflow.com/a/9493060/15507414
     fn as_rgb(&self) -> Rgb {
         const ONE_THIRD: f32 = 1. / 3.;
@@ -372,7 +372,7 @@ impl Color for Hsl {
             return Rgb::from_components((value, value, value));
         }
 
-        #[tracing::instrument(level = "trace", skip(p, q, t))]
+        #[tracing::instrument(level = "debug", skip(p, q, t))]
         /// What are `p`, `q`, and `t`? I have no idea :D
         fn hue_to_rgb(p: f32, q: f32, mut t: f32) -> f32 {
             const ONE_SIXTH: f32 = 1. / 6.;
@@ -404,7 +404,7 @@ impl Color for Hsl {
         Rgb::from_floats((r, g, b))
     }
 
-    #[tracing::instrument(level = "trace", skip(rgb))]
+    #[tracing::instrument(level = "debug", skip(rgb))]
     /// Source: https://stackoverflow.com/a/9493060/15507414
     fn from_rgb(rgb: Rgb) -> Self {
         let (r, g, b) = rgb.as_floats();
@@ -452,11 +452,11 @@ impl Color for Hsv {
     const COMPONENT_MAXES: (f32, f32, f32) = (360., 100., 100.);
     const COLOR_SPACE: ColorSpace = ColorSpace::Hsv;
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn as_components(&self) -> (f32, f32, f32) {
         (self.h, self.s, self.v)
     }
-    #[tracing::instrument(level = "trace", skip(components))]
+    #[tracing::instrument(level = "debug", skip(components))]
     fn from_components(components: (f32, f32, f32)) -> Self {
         let components = Self::clamp_components(components);
 
@@ -467,18 +467,18 @@ impl Color for Hsv {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn as_floats(&self) -> (f32, f32, f32) {
         Self::components_to_floats(self.as_components())
     }
-    #[tracing::instrument(level = "trace", skip(floats))]
+    #[tracing::instrument(level = "debug", skip(floats))]
     fn from_floats(floats: (f32, f32, f32)) -> Self {
         let components = Self::floats_to_components(floats);
 
         Self::from_components(components)
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     /// Source: https://www.codespeedy.com/hsv-to-rgb-in-cpp/
     fn as_rgb(&self) -> Rgb {
         let (h, s, v) = self.as_components();
@@ -509,7 +509,7 @@ impl Color for Hsv {
         Rgb::from_floats((r + m, g + m, b + m))
     }
 
-    #[tracing::instrument(level = "trace", skip(rgb))]
+    #[tracing::instrument(level = "debug", skip(rgb))]
     /// Source: https://www.rapidtables.com/convert/color/rgb-to-hsv.html
     /// Fixes from: https://mattlockyer.github.io/iat455/documents/rgb-hsv.pdf
     fn from_rgb(rgb: Rgb) -> Self
@@ -545,7 +545,7 @@ impl Color for Hsv {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(hex_code_setter, force_color, node_ref))]
+#[tracing::instrument(level = "debug", skip(hex_code_setter, force_color, node_ref))]
 #[component]
 pub fn ColorPicker(
     #[prop()] hex_code_setter: impl Set<Value = String> + 'static,
@@ -618,7 +618,7 @@ pub fn ColorPicker(
     }
 }
 
-#[tracing::instrument(level = "trace", skip(sat, set_sat, value, set_value, hue))]
+#[tracing::instrument(level = "debug", skip(sat, set_sat, value, set_value, hue))]
 #[component]
 pub fn SatValueSurface<S, V>(
     #[prop(into)] sat: Signal<f32>,
@@ -692,7 +692,7 @@ where
     }
 }
 
-#[tracing::instrument(level = "trace", skip(hue, set_hue))]
+#[tracing::instrument(level = "debug", skip(hue, set_hue))]
 #[component]
 pub fn HueSlider<F>(#[prop(into)] hue: Signal<f32>, set_hue: F) -> impl IntoView
 where

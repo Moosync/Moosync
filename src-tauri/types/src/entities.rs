@@ -49,7 +49,7 @@ where
     DB: Backend,
     String: FromSql<Text, DB>,
 {
-    #[tracing::instrument(level = "trace", skip(bytes))]
+    #[tracing::instrument(level = "debug", skip(bytes))]
     fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
         let t = <String as FromSql<Text, DB>>::from_sql(bytes)?;
         Ok(Self(serde_json::from_str(&t)?))
@@ -61,7 +61,7 @@ impl ToSql<Text, Sqlite> for EntityInfo
 where
     String: ToSql<Text, Sqlite>,
 {
-    #[tracing::instrument(level = "trace", skip(self, out))]
+    #[tracing::instrument(level = "debug", skip(self, out))]
     fn to_sql<'b>(
         &'b self,
         out: &mut diesel::serialize::Output<'b, '_, Sqlite>,
@@ -95,14 +95,14 @@ pub struct QueryableAlbum {
 }
 
 impl std::hash::Hash for QueryableAlbum {
-    #[tracing::instrument(level = "trace", skip(self, state))]
+    #[tracing::instrument(level = "debug", skip(self, state))]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.album_id.hash(state);
     }
 }
 
 impl PartialEq for QueryableAlbum {
-    #[tracing::instrument(level = "trace", skip(self, other))]
+    #[tracing::instrument(level = "debug", skip(self, other))]
     fn eq(&self, other: &Self) -> bool {
         self.album_id == other.album_id
     }
@@ -111,7 +111,7 @@ impl PartialEq for QueryableAlbum {
 impl Eq for QueryableAlbum {}
 
 impl Ord for QueryableAlbum {
-    #[tracing::instrument(level = "trace", skip(self, other))]
+    #[tracing::instrument(level = "debug", skip(self, other))]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         let album_name = self
             .album_name
@@ -134,7 +134,7 @@ impl PartialOrd for QueryableAlbum {
 }
 
 impl SearchByTerm for QueryableAlbum {
-    #[tracing::instrument(level = "trace", skip(term))]
+    #[tracing::instrument(level = "debug", skip(term))]
     fn search_by_term(term: Option<String>) -> Self {
         Self {
             album_name: term,
@@ -157,7 +157,7 @@ pub struct AlbumBridge {
 }
 
 impl BridgeUtils for AlbumBridge {
-    #[tracing::instrument(level = "trace", skip(entity, song))]
+    #[tracing::instrument(level = "debug", skip(entity, song))]
     fn insert_value(entity: String, song: String) -> Self {
         Self {
             album: Some(entity),
@@ -187,14 +187,14 @@ pub struct QueryableArtist {
 }
 
 impl std::hash::Hash for QueryableArtist {
-    #[tracing::instrument(level = "trace", skip(self, state))]
+    #[tracing::instrument(level = "debug", skip(self, state))]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.artist_id.hash(state);
     }
 }
 
 impl PartialEq for QueryableArtist {
-    #[tracing::instrument(level = "trace", skip(self, other))]
+    #[tracing::instrument(level = "debug", skip(self, other))]
     fn eq(&self, other: &Self) -> bool {
         self.artist_id == other.artist_id
     }
@@ -209,7 +209,7 @@ impl PartialOrd for QueryableArtist {
 }
 
 impl Ord for QueryableArtist {
-    #[tracing::instrument(level = "trace", skip(self, other))]
+    #[tracing::instrument(level = "debug", skip(self, other))]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         let artist_name = self
             .artist_name
@@ -226,7 +226,7 @@ impl Ord for QueryableArtist {
 }
 
 impl SearchByTerm for QueryableArtist {
-    #[tracing::instrument(level = "trace", skip(term))]
+    #[tracing::instrument(level = "debug", skip(term))]
     fn search_by_term(term: Option<String>) -> Self {
         Self {
             artist_name: term,
@@ -249,7 +249,7 @@ pub struct ArtistBridge {
 }
 
 impl BridgeUtils for ArtistBridge {
-    #[tracing::instrument(level = "trace", skip(entity, song))]
+    #[tracing::instrument(level = "debug", skip(entity, song))]
     fn insert_value(entity: String, song: String) -> Self {
         Self {
             artist: Some(entity),
@@ -274,14 +274,14 @@ pub struct QueryableGenre {
 }
 
 impl std::hash::Hash for QueryableGenre {
-    #[tracing::instrument(level = "trace", skip(self, state))]
+    #[tracing::instrument(level = "debug", skip(self, state))]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.genre_id.hash(state);
     }
 }
 
 impl PartialEq for QueryableGenre {
-    #[tracing::instrument(level = "trace", skip(self, other))]
+    #[tracing::instrument(level = "debug", skip(self, other))]
     fn eq(&self, other: &Self) -> bool {
         self.genre_id == other.genre_id
     }
@@ -296,7 +296,7 @@ impl PartialOrd for QueryableGenre {
 }
 
 impl Ord for QueryableGenre {
-    #[tracing::instrument(level = "trace", skip(self, other))]
+    #[tracing::instrument(level = "debug", skip(self, other))]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         let genre_name = self
             .genre_name
@@ -313,7 +313,7 @@ impl Ord for QueryableGenre {
 }
 
 impl SearchByTerm for QueryableGenre {
-    #[tracing::instrument(level = "trace", skip(term))]
+    #[tracing::instrument(level = "debug", skip(term))]
     fn search_by_term(term: Option<String>) -> Self {
         Self {
             genre_name: term,
@@ -336,7 +336,7 @@ pub struct GenreBridge {
 }
 
 impl BridgeUtils for GenreBridge {
-    #[tracing::instrument(level = "trace", skip(entity, song))]
+    #[tracing::instrument(level = "debug", skip(entity, song))]
     fn insert_value(entity: String, song: String) -> Self {
         Self {
             genre: Some(entity),
@@ -369,7 +369,7 @@ pub struct PlaylistBridge {
 }
 
 impl BridgeUtils for PlaylistBridge {
-    #[tracing::instrument(level = "trace", skip(entity, song))]
+    #[tracing::instrument(level = "debug", skip(entity, song))]
     fn insert_value(entity: String, song: String) -> Self {
         Self {
             playlist: Some(entity),
@@ -403,14 +403,14 @@ pub struct QueryablePlaylist {
 }
 
 impl std::hash::Hash for QueryablePlaylist {
-    #[tracing::instrument(level = "trace", skip(self, state))]
+    #[tracing::instrument(level = "debug", skip(self, state))]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.playlist_id.hash(state);
     }
 }
 
 impl PartialEq for QueryablePlaylist {
-    #[tracing::instrument(level = "trace", skip(self, other))]
+    #[tracing::instrument(level = "debug", skip(self, other))]
     fn eq(&self, other: &Self) -> bool {
         self.playlist_id == other.playlist_id
     }
@@ -425,7 +425,7 @@ impl PartialOrd for QueryablePlaylist {
 }
 
 impl Ord for QueryablePlaylist {
-    #[tracing::instrument(level = "trace", skip(self, other))]
+    #[tracing::instrument(level = "debug", skip(self, other))]
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.playlist_name
             .to_lowercase()
@@ -434,7 +434,7 @@ impl Ord for QueryablePlaylist {
 }
 
 impl SearchByTerm for QueryablePlaylist {
-    #[tracing::instrument(level = "trace", skip(term))]
+    #[tracing::instrument(level = "debug", skip(term))]
     fn search_by_term(term: Option<String>) -> Self {
         Self {
             playlist_name: term.unwrap_or_default(),

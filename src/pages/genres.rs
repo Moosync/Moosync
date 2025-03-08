@@ -29,7 +29,7 @@ use types::entities::QueryableGenre;
 use types::songs::{GetSongOptions, Song};
 use types::ui::song_details::SongDetailIcons;
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component()]
 pub fn SingleGenre() -> impl IntoView {
     let params = use_query_map();
@@ -120,7 +120,7 @@ pub fn SingleGenre() -> impl IntoView {
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component()]
 pub fn AllGenres() -> impl IntoView {
     let genres = RwSignal::new(vec![]);

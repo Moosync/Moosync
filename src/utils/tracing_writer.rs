@@ -39,7 +39,7 @@ impl MakeConsoleWriter {
 impl<'a> MakeWriter<'a> for MakeConsoleWriter {
     type Writer = ConsoleWriter;
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn make_writer(&'a self) -> Self::Writer {
         ConsoleWriter {
             level: tracing::Level::DEBUG,
@@ -48,7 +48,7 @@ impl<'a> MakeWriter<'a> for MakeConsoleWriter {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, meta))]
+    #[tracing::instrument(level = "debug", skip(self, meta))]
     fn make_writer_for(&'a self, meta: &tracing::Metadata<'_>) -> Self::Writer {
         ConsoleWriter {
             level: *meta.level(),
@@ -70,12 +70,12 @@ pub struct ConsoleWriter {
 }
 
 impl Write for ConsoleWriter {
-    #[tracing::instrument(level = "trace", skip(self, buf))]
+    #[tracing::instrument(level = "debug", skip(self, buf))]
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
         self.data.write(buf)
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn flush(&mut self) -> io::Result<()> {
         if !self.log_file {
             let parsed = str::from_utf8(&self.data)
@@ -116,7 +116,7 @@ impl Write for ConsoleWriter {
 }
 
 impl Drop for ConsoleWriter {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn drop(&mut self) {
         let _ = self.flush();
     }

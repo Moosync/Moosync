@@ -40,7 +40,7 @@ pub struct MprisHolder {
 }
 
 impl MprisHolder {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Result<MprisHolder> {
         #[cfg(not(target_os = "windows"))]
         let hwnd = None;
@@ -90,7 +90,7 @@ impl MprisHolder {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self, metadata))]
+    #[tracing::instrument(level = "debug", skip(self, metadata))]
     pub fn set_metadata(&self, metadata: MprisPlayerDetails) -> Result<()> {
         let mut controls = self.controls.lock().unwrap();
         let duration = metadata.duration.map(|d| (d * 1000.0) as u64);
@@ -107,7 +107,7 @@ impl MprisHolder {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, state))]
+    #[tracing::instrument(level = "debug", skip(self, state))]
     pub fn set_playback_state(&self, state: PlayerState) -> Result<()> {
         let last_duration = self.last_duration.lock().unwrap();
         let parsed = match state {
@@ -136,7 +136,7 @@ impl MprisHolder {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, duration))]
+    #[tracing::instrument(level = "debug", skip(self, duration))]
     pub fn set_position(&self, duration: f64) -> Result<()> {
         let mut last_duration = self.last_duration.lock().unwrap();
         *last_duration = (duration * 1000.0) as u64;
@@ -169,7 +169,7 @@ mod windows {
     }
 
     impl DummyWindow {
-        #[tracing::instrument(level = "trace", skip())]
+        #[tracing::instrument(level = "debug", skip())]
         pub fn new() -> Result<DummyWindow, String> {
             let class_name = w!("SimpleTray");
 
@@ -219,7 +219,7 @@ mod windows {
 
             handle_result.map(|handle| DummyWindow { handle })
         }
-        #[tracing::instrument(level = "trace", skip(hwnd, msg, wparam, lparam))]
+        #[tracing::instrument(level = "debug", skip(hwnd, msg, wparam, lparam))]
         extern "system" fn wnd_proc(
             hwnd: HWND,
             msg: u32,
@@ -231,7 +231,7 @@ mod windows {
     }
 
     impl Drop for DummyWindow {
-        #[tracing::instrument(level = "trace", skip(self))]
+        #[tracing::instrument(level = "debug", skip(self))]
         fn drop(&mut self) {
             unsafe {
                 DestroyWindow(self.handle);
@@ -239,7 +239,7 @@ mod windows {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn pump_event_queue() -> bool {
         unsafe {
             let mut msg: MSG = std::mem::zeroed();

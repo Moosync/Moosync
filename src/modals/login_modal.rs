@@ -22,7 +22,7 @@ use crate::{
     utils::invoke::{provider_authorize, provider_login},
 };
 
-#[tracing::instrument(level = "trace", skip(key, name, account_id))]
+#[tracing::instrument(level = "debug", skip(key, name, account_id))]
 #[component]
 pub fn LoginModal(
     #[prop()] key: String,
@@ -44,6 +44,7 @@ pub fn LoginModal(
 
     spawn_local(async move {
         let ret = provider_login(key_cloned, account_id).await.unwrap();
+        tracing::debug!("Got login url {}", ret);
         url.set(ret);
     });
 

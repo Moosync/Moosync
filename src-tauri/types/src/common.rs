@@ -40,7 +40,7 @@ where
     }
 }
 
-#[tracing::instrument(level = "trace", skip(deserializer))]
+#[tracing::instrument(level = "debug", skip(deserializer))]
 pub fn deserialize_default<'de, D, T>(deserializer: D) -> Result<T, D::Error>
 where
     D: Deserializer<'de>,

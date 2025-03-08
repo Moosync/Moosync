@@ -38,7 +38,7 @@ use fast_image_resize::{self as fr, ResizeOptions};
 
 use crate::types::FileList;
 
-#[tracing::instrument(level = "trace", skip(dir))]
+#[tracing::instrument(level = "debug", skip(dir))]
 pub fn check_directory(dir: PathBuf) -> Result<()> {
     if !dir.is_dir() {
         fs::create_dir_all(dir)?
@@ -47,7 +47,7 @@ pub fn check_directory(dir: PathBuf) -> Result<()> {
     Ok(())
 }
 
-#[tracing::instrument(level = "trace", skip(dir))]
+#[tracing::instrument(level = "debug", skip(dir))]
 pub fn get_files_recursively(dir: PathBuf) -> Result<FileList> {
     let mut file_list: Vec<(PathBuf, f64)> = vec![];
     let mut playlist_list: Vec<PathBuf> = vec![];
@@ -104,7 +104,7 @@ pub fn get_files_recursively(dir: PathBuf) -> Result<FileList> {
     })
 }
 
-#[tracing::instrument(level = "trace", skip(data, path, dimensions))]
+#[tracing::instrument(level = "debug", skip(data, path, dimensions))]
 fn generate_image(data: &[u8], path: PathBuf, dimensions: u32) -> Result<()> {
     let img = image::load_from_memory(data)?;
 
@@ -148,7 +148,7 @@ fn generate_image(data: &[u8], path: PathBuf, dimensions: u32) -> Result<()> {
     Ok(())
 }
 
-#[tracing::instrument(level = "trace", skip(thumbnail_dir, picture))]
+#[tracing::instrument(level = "debug", skip(thumbnail_dir, picture))]
 fn store_picture(thumbnail_dir: &Path, picture: &Picture) -> Result<(PathBuf, PathBuf)> {
     let data = picture.data();
     let hash = blake3::hash(data).to_hex();
@@ -171,7 +171,7 @@ fn store_picture(thumbnail_dir: &Path, picture: &Picture) -> Result<(PathBuf, Pa
     ))
 }
 
-#[tracing::instrument(level = "trace", skip(path))]
+#[tracing::instrument(level = "debug", skip(path))]
 fn scan_lrc(mut path: PathBuf) -> Option<String> {
     path.set_extension("lrc");
     if path.exists() {
@@ -199,7 +199,7 @@ fn scan_lrc(mut path: PathBuf) -> Option<String> {
     None
 }
 
-#[tracing::instrument(level = "trace", skip(path, thumbnail_dir, size, guess, artist_split))]
+#[tracing::instrument(level = "debug", skip(path, thumbnail_dir, size, guess, artist_split))]
 pub fn scan_file(
     path: &PathBuf,
     thumbnail_dir: &Path,

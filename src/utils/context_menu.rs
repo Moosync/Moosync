@@ -69,7 +69,7 @@ impl<T> SongItemContextMenu<T>
 where
     T: Get<Value = Vec<Song>> + Send + Sync + 'static,
 {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn current_or_list(&self) -> Vec<Song> {
         let selected_songs = self.selected_songs.get();
         let ret = if selected_songs.is_empty() {
@@ -86,25 +86,25 @@ where
         ret
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn play_now(&self) {
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
         player_store.update(|store| store.play_now_multiple(self.current_or_list()));
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn add_to_queue(&self) {
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
         player_store.update(|store| store.add_to_queue(self.current_or_list()));
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn play_next(&self) {
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
         player_store.update(|store| store.play_next_multiple(self.current_or_list()));
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn clear_queue_and_play(&self) {
         let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
         player_store.update(|store| {
@@ -113,22 +113,22 @@ where
         });
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn add_to_library(&self) {
         add_songs_to_library(self.current_or_list(), self.refresh_cb.clone());
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn remove_from_library(&self) {
         remove_songs_from_library(self.current_or_list(), self.refresh_cb.clone());
     }
 
-    #[tracing::instrument(level = "trace", skip(self, id))]
+    #[tracing::instrument(level = "debug", skip(self, id))]
     pub fn add_to_playlist(&self, id: String) {
         add_to_playlist(id, self.current_or_list());
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn goto_album(&self) {
         let navigate = use_navigate();
         if let Some(song) = &self.current_song {
@@ -145,7 +145,7 @@ where
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, artist))]
+    #[tracing::instrument(level = "debug", skip(self, artist))]
     pub fn goto_artist(&self, artist: QueryableArtist) {
         let navigate = use_navigate();
         navigate(
@@ -198,7 +198,7 @@ impl<T> ContextMenuData<Self> for SongItemContextMenu<T>
 where
     T: Get<Value = Vec<Song>> + Send + Sync + 'static,
 {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn get_menu_items(&self) -> ReadSignal<ContextMenuItems<Self>> {
         let i18n = use_i18n();
 
@@ -378,7 +378,7 @@ where
 pub struct SortContextMenu {}
 
 impl ContextMenuData<Self> for SortContextMenu {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn get_menu_items(&self) -> ReadSignal<ContextMenuItems<Self>> {
         RwSignal::new(get_sort_cx_items()).read_only()
     }
@@ -390,7 +390,7 @@ pub struct ThemesContextMenu {
 }
 
 impl ThemesContextMenu {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn export_theme(&self) {
         let id = self.id.clone();
         if let Some(id) = id {
@@ -438,7 +438,7 @@ impl ThemesContextMenu {
 }
 
 impl ContextMenuData<Self> for ThemesContextMenu {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn get_menu_items(&self) -> ReadSignal<ContextMenuItems<Self>> {
         RwSignal::new(vec![
             ContextMenuItemInner::<Self>::new_with_handler(
@@ -466,7 +466,7 @@ pub struct PlaylistContextMenu {
 }
 
 impl PlaylistContextMenu {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn open_import_from_url_modal(&self) {
         let modal_store: RwSignal<ModalStore> = expect_context();
         modal_store.update(|modal_store| {
@@ -480,7 +480,7 @@ impl PlaylistContextMenu {
 }
 
 impl ContextMenuData<Self> for PlaylistContextMenu {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn get_menu_items(&self) -> ReadSignal<ContextMenuItems<Self>> {
         let i18n = use_i18n();
         RwSignal::new(vec![
@@ -513,7 +513,7 @@ pub struct PlaylistItemContextMenu {
 }
 
 impl PlaylistItemContextMenu {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn add_to_library(&self) {
         if let Some(playlist) = &self.playlist {
             create_playlist(playlist.clone(), None);
@@ -521,14 +521,14 @@ impl PlaylistItemContextMenu {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn remove_from_library(&self) {
         if let Some(playlist) = &self.playlist {
             remove_playlist(playlist.clone(), self.refresh_cb.clone());
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn export_playlist(&self) {
         if let Some(playlist) = &self.playlist {
             export_playlist(playlist.clone());
@@ -537,7 +537,7 @@ impl PlaylistItemContextMenu {
 }
 
 impl ContextMenuData<Self> for PlaylistItemContextMenu {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn get_menu_items(&self) -> ReadSignal<ContextMenuItems<Self>> {
         let i18n = use_i18n();
         let mut ret = RwSignal::new(vec![]);
@@ -628,14 +628,14 @@ pub struct SongsContextMenu {
 }
 
 impl SongsContextMenu {
-    #[tracing::instrument(level = "trace", skip(song_update_request))]
+    #[tracing::instrument(level = "debug", skip(song_update_request))]
     pub fn new(song_update_request: Option<Box<dyn Fn() + Send + Sync>>) -> Self {
         Self {
             song_update_request: song_update_request.map(Arc::new),
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn add_song_from_url(&self) {
         let modal_store: RwSignal<ModalStore> = expect_context();
         modal_store.update(|modal_store| {
@@ -652,7 +652,7 @@ impl SongsContextMenu {
 }
 
 impl ContextMenuData<Self> for SongsContextMenu {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn get_menu_items(&self) -> ReadSignal<ContextMenuItems<Self>> {
         RwSignal::new(vec![
             ContextMenuItemInner::new("Sort by".into(), Some(get_sort_cx_items())),

@@ -33,7 +33,7 @@ use wasm_bindgen::JsValue;
 use web_sys::DomException;
 use web_sys::IdbTransactionMode;
 
-#[tracing::instrument(level = "trace", skip(options, setter))]
+#[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
 pub fn get_songs_by_option(options: GetSongOptions, setter: impl Set<Value = Vec<Song>> + 'static) {
     spawn_local(async move {
@@ -42,7 +42,7 @@ pub fn get_songs_by_option(options: GetSongOptions, setter: impl Set<Value = Vec
     });
 }
 
-#[tracing::instrument(level = "trace", skip(options, setter))]
+#[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(feature = "mock")]
 pub fn get_songs_by_option(options: GetSongOptions, setter: impl Set<Value = Vec<Song>> + 'static) {
     use types::{entities::QueryableArtist, songs::SongType};
@@ -68,7 +68,7 @@ pub fn get_songs_by_option(options: GetSongOptions, setter: impl Set<Value = Vec
     setter.set(songs);
 }
 
-#[tracing::instrument(level = "trace", skip(options, setter))]
+#[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(feature = "mock")]
 pub fn get_playlists_by_option(
     options: QueryablePlaylist,
@@ -86,7 +86,7 @@ pub fn get_playlists_by_option(
     setter.set(songs);
 }
 
-#[tracing::instrument(level = "trace", skip(options, setter))]
+#[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(feature = "mock")]
 pub fn get_artists_by_option(
     options: QueryableArtist,
@@ -104,7 +104,7 @@ pub fn get_artists_by_option(
     setter.set(songs);
 }
 
-#[tracing::instrument(level = "trace", skip(options, setter))]
+#[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(feature = "mock")]
 pub fn get_albums_by_option(
     options: QueryableAlbum,
@@ -122,7 +122,7 @@ pub fn get_albums_by_option(
     setter.set(songs);
 }
 
-#[tracing::instrument(level = "trace", skip(options, setter))]
+#[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(feature = "mock")]
 pub fn get_genres_by_option(
     options: QueryableGenre,
@@ -139,7 +139,7 @@ pub fn get_genres_by_option(
     setter.set(songs);
 }
 
-#[tracing::instrument(level = "trace", skip(setter))]
+#[tracing::instrument(level = "debug", skip(setter))]
 #[cfg(not(feature = "mock"))]
 pub fn get_playlists_local<T>(setter: T)
 where
@@ -159,7 +159,7 @@ where
     });
 }
 
-#[tracing::instrument(level = "trace", skip(options, setter))]
+#[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
 pub fn get_playlists_by_option<T>(options: QueryablePlaylist, setter: T)
 where
@@ -227,7 +227,7 @@ where
     });
 }
 
-#[tracing::instrument(level = "trace", skip(options, setter))]
+#[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
 pub fn get_artists_by_option(
     options: QueryableArtist,
@@ -250,7 +250,7 @@ pub fn get_artists_by_option(
     });
 }
 
-#[tracing::instrument(level = "trace", skip(options, setter))]
+#[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
 pub fn get_albums_by_option(
     options: QueryableAlbum,
@@ -273,7 +273,7 @@ pub fn get_albums_by_option(
     });
 }
 
-#[tracing::instrument(level = "trace", skip(options, setter))]
+#[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
 pub fn get_genres_by_option(
     options: QueryableGenre,
@@ -296,7 +296,7 @@ pub fn get_genres_by_option(
     });
 }
 
-#[tracing::instrument(level = "trace", skip(songs, refresh_cb))]
+#[tracing::instrument(level = "debug", skip(songs, refresh_cb))]
 pub fn add_songs_to_library(songs: Vec<Song>, refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>) {
     spawn_local(async move {
         let res = super::invoke::insert_songs(songs).await;
@@ -308,7 +308,7 @@ pub fn add_songs_to_library(songs: Vec<Song>, refresh_cb: Arc<Box<dyn Fn() + Sen
     });
 }
 
-#[tracing::instrument(level = "trace", skip(songs, refresh_cb))]
+#[tracing::instrument(level = "debug", skip(songs, refresh_cb))]
 pub fn remove_songs_from_library(songs: Vec<Song>, refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>) {
     spawn_local(async move {
         let res = super::invoke::remove_songs(
@@ -326,7 +326,7 @@ pub fn remove_songs_from_library(songs: Vec<Song>, refresh_cb: Arc<Box<dyn Fn() 
     });
 }
 
-#[tracing::instrument(level = "trace", skip(id, songs))]
+#[tracing::instrument(level = "debug", skip(id, songs))]
 pub fn add_to_playlist(id: String, songs: Vec<Song>) {
     spawn_local(async move {
         let res = super::invoke::add_to_playlist(id, songs).await;
@@ -336,7 +336,7 @@ pub fn add_to_playlist(id: String, songs: Vec<Song>) {
     });
 }
 
-#[tracing::instrument(level = "trace", skip(playlist))]
+#[tracing::instrument(level = "debug", skip(playlist))]
 pub fn create_playlist(playlist: QueryablePlaylist, songs: Option<Vec<Song>>) {
     spawn_local(async move {
         let res = super::invoke::create_playlist(playlist).await;
@@ -356,7 +356,7 @@ pub fn create_playlist(playlist: QueryablePlaylist, songs: Option<Vec<Song>>) {
     });
 }
 
-#[tracing::instrument(level = "trace", skip(playlist, refresh_cb))]
+#[tracing::instrument(level = "debug", skip(playlist, refresh_cb))]
 pub fn remove_playlist(playlist: QueryablePlaylist, refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>) {
     if playlist.playlist_id.is_none() {
         return;
@@ -371,7 +371,7 @@ pub fn remove_playlist(playlist: QueryablePlaylist, refresh_cb: Arc<Box<dyn Fn()
     });
 }
 
-#[tracing::instrument(level = "trace", skip(playlist))]
+#[tracing::instrument(level = "debug", skip(playlist))]
 pub fn export_playlist(playlist: QueryablePlaylist) {
     spawn_local(async move {
         let res = super::invoke::export_playlist(playlist.playlist_id.unwrap()).await;
@@ -381,7 +381,7 @@ pub fn export_playlist(playlist: QueryablePlaylist) {
     });
 }
 
-#[tracing::instrument(level = "trace", skip(db, store, value))]
+#[tracing::instrument(level = "debug", skip(db, store, value))]
 pub async fn write_to_indexed_db(
     db: &Database,
     store: &str,
@@ -401,7 +401,7 @@ pub async fn write_to_indexed_db(
     Ok(())
 }
 
-#[tracing::instrument(level = "trace", skip(db, store, key))]
+#[tracing::instrument(level = "debug", skip(db, store, key))]
 pub async fn read_from_indexed_db(
     db: Database,
     store: &str,

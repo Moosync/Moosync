@@ -66,7 +66,7 @@ pub struct SearchResultItemData {
     pub on_icon_click: Arc<Box<dyn Fn() + Send + Sync>>,
 }
 
-#[tracing::instrument(level = "trace", skip(item))]
+#[tracing::instrument(level = "debug", skip(item))]
 #[component]
 pub fn SearchResultItem(item: SearchResultItemData) -> impl IntoView {
     view! {
@@ -95,7 +95,7 @@ pub fn SearchResultItem(item: SearchResultItemData) -> impl IntoView {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(class))]
+#[tracing::instrument(level = "debug", skip(class))]
 #[component]
 pub fn Settings(#[prop(optional)] class: &'static str) -> impl IntoView {
     let navigate = use_navigate();
@@ -109,7 +109,7 @@ pub fn Settings(#[prop(optional)] class: &'static str) -> impl IntoView {
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn Accounts() -> impl IntoView {
     let show_accounts_popover = RwSignal::new(false);
@@ -406,7 +406,7 @@ async fn get_search_res(
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn TopBar() -> impl IntoView {
     let show_searchbar = RwSignal::new(false);

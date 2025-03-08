@@ -39,7 +39,7 @@ use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::UiStore;
 use crate::utils::common::{format_duration, get_low_img};
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn Details() -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
@@ -106,7 +106,7 @@ pub fn Details() -> impl IntoView {
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn Controls(
     #[prop(optional, default = true)] show_time: bool,
@@ -290,7 +290,7 @@ pub fn Controls(
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn ExtraControls() -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();
@@ -407,7 +407,7 @@ pub fn ExtraControls() -> impl IntoView {
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn Slider() -> impl IntoView {
     let player_store = use_context::<RwSignal<PlayerStore>>().unwrap();

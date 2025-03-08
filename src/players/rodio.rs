@@ -39,7 +39,7 @@ pub struct RodioPlayer {
 }
 
 impl RodioPlayer {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
         Self {
             unlisten: None,
@@ -50,15 +50,15 @@ impl RodioPlayer {
 }
 
 impl GenericPlayer for RodioPlayer {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn initialize(&self, _: NodeRef<leptos::html::Div>) {}
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn key(&self) -> String {
         "rodio".into()
     }
 
-    #[tracing::instrument(level = "trace", skip(self, src, resolver))]
+    #[tracing::instrument(level = "debug", skip(self, src, resolver))]
     fn load(&self, src: String, autoplay: bool, resolver: tokio::sync::oneshot::Sender<()>) {
         spawn_local(async move {
             let res = rodio_load(src).await;
@@ -72,7 +72,7 @@ impl GenericPlayer for RodioPlayer {
         });
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn stop(&mut self) -> types::errors::Result<()> {
         let unlisten = self.unlisten.take();
         if let Some(unlisten) = &unlisten {
@@ -101,7 +101,7 @@ impl GenericPlayer for RodioPlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn play(&self) -> types::errors::Result<()> {
         spawn_local(async move {
             let res = rodio_play().await;
@@ -113,7 +113,7 @@ impl GenericPlayer for RodioPlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn pause(&self) -> types::errors::Result<()> {
         spawn_local(async move {
             let res = rodio_pause().await;
@@ -125,7 +125,7 @@ impl GenericPlayer for RodioPlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, pos))]
+    #[tracing::instrument(level = "debug", skip(self, pos))]
     fn seek(&self, pos: f64) -> types::errors::Result<()> {
         spawn_local(async move {
             let res = rodio_seek(pos).await;
@@ -136,7 +136,7 @@ impl GenericPlayer for RodioPlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn provides(&self) -> &[types::songs::SongType] {
         &[
             SongType::LOCAL,
@@ -146,7 +146,7 @@ impl GenericPlayer for RodioPlayer {
         ]
     }
 
-    #[tracing::instrument(level = "trace", skip(self, song))]
+    #[tracing::instrument(level = "debug", skip(self, song))]
     fn can_play(&self, song: &types::songs::Song) -> bool {
         let playback_url = song
             .song
@@ -163,7 +163,7 @@ impl GenericPlayer for RodioPlayer {
         false
     }
 
-    #[tracing::instrument(level = "trace", skip(self, volume))]
+    #[tracing::instrument(level = "debug", skip(self, volume))]
     fn set_volume(&self, volume: f64) -> types::errors::Result<()> {
         let parsed_volume = volume / 100f64;
         tracing::debug!("Setting volume {}", parsed_volume);
@@ -177,12 +177,12 @@ impl GenericPlayer for RodioPlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn get_volume(&self) -> types::errors::Result<f64> {
         Ok(0f64)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, state_setter))]
+    #[tracing::instrument(level = "debug", skip(self, state_setter))]
     fn add_listeners(
         &mut self,
         state_setter: std::rc::Rc<Box<dyn Fn(types::ui::player_details::PlayerEvents)>>,

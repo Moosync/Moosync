@@ -35,12 +35,12 @@ pub struct ReplyHandler {
 }
 
 impl ReplyHandler {
-    #[tracing::instrument(level = "trace", skip(app_handle))]
+    #[tracing::instrument(level = "debug", skip(app_handle))]
     pub fn new(app_handle: AppHandle) -> Self {
         ReplyHandler { app_handle }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, data))]
+    #[tracing::instrument(level = "debug", skip(self, data))]
     pub fn get_songs(&self, mut data: GetSongOptions) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
         if data.album.is_none()
@@ -55,35 +55,35 @@ impl ReplyHandler {
         Ok(MainCommandResponse::GetSong(ret))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, data))]
+    #[tracing::instrument(level = "debug", skip(self, data))]
     pub fn get_entity(&self, data: GetEntityOptions) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
         let ret = database.get_entity_by_options(data)?;
         Ok(MainCommandResponse::GetEntity(ret))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, data))]
+    #[tracing::instrument(level = "debug", skip(self, data))]
     pub fn add_songs(&self, data: Vec<Song>) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
         let ret = database.insert_songs(data)?;
         Ok(MainCommandResponse::AddSongs(ret))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, data))]
+    #[tracing::instrument(level = "debug", skip(self, data))]
     pub fn update_song(&self, data: Song) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
         database.update_songs(vec![data.clone()])?;
         Ok(MainCommandResponse::UpdateSong(data))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, data))]
+    #[tracing::instrument(level = "debug", skip(self, data))]
     pub fn add_playlist(&self, data: QueryablePlaylist) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
         let ret = database.create_playlist(data)?;
         Ok(MainCommandResponse::AddPlaylist(ret))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, data))]
+    #[tracing::instrument(level = "debug", skip(self, data))]
     pub fn add_to_playlist(
         &self,
         playlist_id: String,
@@ -98,7 +98,7 @@ impl ReplyHandler {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, data))]
+    #[tracing::instrument(level = "debug", skip(self, data))]
     pub fn remove_song(&self, data: Song) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
         if let Some(song_id) = data.song._id {
@@ -107,7 +107,7 @@ impl ReplyHandler {
         Ok(MainCommandResponse::RemoveSong(true))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, data))]
+    #[tracing::instrument(level = "debug", skip(self, data))]
     pub fn get_preferences(&self, data: PreferenceData) -> Result<MainCommandResponse> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let ret: Result<Value> = preferences.load_selective(data.key.clone());
@@ -125,14 +125,14 @@ impl ReplyHandler {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self, data))]
+    #[tracing::instrument(level = "debug", skip(self, data))]
     pub fn set_preferences(&self, data: PreferenceData) -> Result<MainCommandResponse> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         preferences.save_selective(data.key, data.value)?;
         Ok(MainCommandResponse::SetPreference(true))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, data))]
+    #[tracing::instrument(level = "debug", skip(self, data))]
     pub fn get_secure(&self, data: PreferenceData) -> Result<MainCommandResponse> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let val = preferences.get_secure(data.key.clone())?;
@@ -143,7 +143,7 @@ impl ReplyHandler {
         }))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, data))]
+    #[tracing::instrument(level = "debug", skip(self, data))]
     pub fn set_secure(&self, data: PreferenceData) -> Result<MainCommandResponse> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         preferences.set_secure(data.key, data.value)?;
@@ -151,13 +151,13 @@ impl ReplyHandler {
         Ok(MainCommandResponse::SetSecure(true))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, _data))]
+    #[tracing::instrument(level = "debug", skip(self, _data))]
     pub fn register_oauth(&self, _data: String) -> Result<MainCommandResponse> {
         // TODO: Implement oauth registration
         Ok(MainCommandResponse::RegisterOAuth(false))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, data))]
+    #[tracing::instrument(level = "debug", skip(self, data))]
     pub fn open_external(&self, data: String) -> Result<MainCommandResponse> {
         let window_handler: State<WindowHandler> = self.app_handle.state();
         window_handler.open_external(self.app_handle.clone(), data)?;
@@ -176,7 +176,7 @@ impl ReplyHandler {
         Ok(MainCommandResponse::UpdateAccounts(true))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, command))]
+    #[tracing::instrument(level = "debug", skip(self, command))]
     async fn send_ui_request(&self, mut command: MainCommand) -> Result<MainCommandResponse> {
         if self.app_handle.webview_windows().is_empty() {
             return Err("No webview spawned yet".into());
@@ -217,7 +217,7 @@ impl ReplyHandler {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn extension_updated(&self) -> Result<MainCommandResponse> {
         tracing::debug!("Got extension updated");
         let provider_handle: State<ProviderHandler> = self.app_handle.state();
@@ -226,7 +226,7 @@ impl ReplyHandler {
         Ok(MainCommandResponse::ExtensionsUpdated(true))
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn handle_request(&self, command: MainCommand) -> Result<MainCommandResponse> {
         tracing::debug!("Got request from extension {:?}", command);
 

@@ -54,7 +54,7 @@ use crate::{
     },
 };
 
-#[tracing::instrument(level = "trace", skip(song, is_selected, on_context_menu, on_click))]
+#[tracing::instrument(level = "debug", skip(song, is_selected, on_context_menu, on_click))]
 #[component()]
 pub fn SongListItem(
     #[prop()] song: Song,

@@ -93,7 +93,7 @@ pub enum ExtensionExtraEventResponse {
     ContextMenuAction,
 }
 
-#[tracing::instrument(level = "trace", skip(field))]
+#[tracing::instrument(level = "debug", skip(field))]
 fn serialize_null<S>(field: S) -> std::result::Result<S::Ok, S::Error>
 where
     S: Serializer,
@@ -124,7 +124,7 @@ pub enum ExtensionCommand {
 
 impl TryFrom<(&str, &Value)> for ExtensionCommand {
     type Error = MoosyncError;
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn try_from((r#type, data): (&str, &Value)) -> std::result::Result<Self, Self::Error> {
         match r#type {
             "extraExtensionEvents" => {
@@ -158,7 +158,7 @@ impl TryFrom<(&str, &Value)> for ExtensionCommand {
 }
 
 impl ExtensionCommand {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn to_plugin_call(&self) -> (String, &'static str, Vec<u8>) {
         match self {
             Self::GetProviderScopes(args) => (
@@ -278,7 +278,7 @@ impl ExtensionCommand {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, value))]
+    #[tracing::instrument(level = "debug", skip(self, value))]
     pub fn parse_response(&self, value: Value) -> MoosyncResult<ExtensionCommandResponse> {
         let ret = match self {
             Self::GetProviderScopes(_) => {
@@ -410,7 +410,7 @@ pub enum RunnerCommand {
 impl TryFrom<(&str, &Value)> for RunnerCommand {
     type Error = MoosyncError;
 
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn try_from((r#type, data): (&str, &Value)) -> std::result::Result<Self, Self::Error> {
         match r#type {
             "findNewExtensions" => Ok(Self::FindNewExtensions),
@@ -506,7 +506,7 @@ pub enum MainCommandResponse {
 
 impl MainCommand {
     #[cfg(not(feature = "extensions"))]
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn to_request(&self) -> MoosyncResult<GenericExtensionHostRequest<MainCommand>> {
         Ok(GenericExtensionHostRequest {
             channel: uuid::Uuid::new_v4().to_string(),

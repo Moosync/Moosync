@@ -16,7 +16,7 @@
 
 use leptos::{component, prelude::*, view, IntoView};
 
-#[tracing::instrument(level = "trace", skip(playing))]
+#[tracing::instrument(level = "debug", skip(playing))]
 #[component]
 pub fn AnimatedEqualizerIcon(#[prop()] playing: bool) -> impl IntoView {
     view! {

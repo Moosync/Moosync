@@ -77,7 +77,7 @@ pub fn new_player(
 
 pub(crate) const KEYMASTER_CLIENT_ID: &str = "65b708073fc0480ea92a077233ca87bd";
 
-#[tracing::instrument(level = "trace", skip(cache_config))]
+#[tracing::instrument(level = "debug", skip(cache_config))]
 pub fn create_session(cache_config: Cache) -> Session {
     let device_id = uuid::Uuid::new_v4().as_hyphenated().to_string();
     let client_id = KEYMASTER_CLIENT_ID.to_owned();
@@ -93,7 +93,7 @@ pub fn create_session(cache_config: Cache) -> Session {
     Session::new(session_config, Some(cache_config))
 }
 
-#[tracing::instrument(level = "trace", skip(client_id))]
+#[tracing::instrument(level = "debug", skip(client_id))]
 #[allow(dead_code)]
 #[tokio::main]
 pub async fn start_discovery(client_id: String) -> Credentials {
@@ -109,7 +109,7 @@ pub async fn start_discovery(client_id: String) -> Credentials {
     discovery.next().await.unwrap()
 }
 
-#[tracing::instrument(level = "trace", skip(track_uri, session))]
+#[tracing::instrument(level = "debug", skip(track_uri, session))]
 pub fn get_lyrics(track_uri: String, session: Session) -> Result<String> {
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_io()
@@ -127,7 +127,7 @@ pub fn get_lyrics(track_uri: String, session: Session) -> Result<String> {
     })
 }
 
-#[tracing::instrument(level = "trace", skip(canvaz))]
+#[tracing::instrument(level = "debug", skip(canvaz))]
 fn parse_canvaz(canvaz: EntityCanvazResponse) -> Result<CanvazResponse> {
     Ok(CanvazResponse {
         canvases: canvaz
@@ -165,7 +165,7 @@ fn parse_canvaz(canvaz: EntityCanvazResponse) -> Result<CanvazResponse> {
     })
 }
 
-#[tracing::instrument(level = "trace", skip(val))]
+#[tracing::instrument(level = "debug", skip(val))]
 fn validate_uri(val: &str) -> (Option<String>, Option<String>) {
     let track_regex = Regex::new(
             r"^(?P<urlType>(?:spotify:|(?:https?:\/\/(?:open|play)\.spotify\.com\/)))(?:embed)?\/?(?P<type>album|track|playlist|artist)(?::|\/)((?:[0-9a-zA-Z]){22})"
@@ -195,7 +195,7 @@ fn validate_uri(val: &str) -> (Option<String>, Option<String>) {
     (None, None)
 }
 
-#[tracing::instrument(level = "trace", skip(track_uri, session))]
+#[tracing::instrument(level = "debug", skip(track_uri, session))]
 pub fn get_canvas(track_uri: String, session: Session) -> Result<CanvazResponse> {
     let (uri, type_) = validate_uri(&track_uri);
     if let Some(type_) = type_ {

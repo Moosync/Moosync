@@ -31,48 +31,48 @@ use types::window::{DialogFilter, FileResponse};
 pub struct WindowHandler {}
 
 impl WindowHandler {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> WindowHandler {
         WindowHandler {}
     }
 
-    #[tracing::instrument(level = "trace", skip(self, window))]
+    #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn is_maximized(&self, window: Window) -> Result<bool> {
         Ok(window.is_maximized()?)
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn has_frame(&self) -> Result<bool> {
         Ok(cfg!(unix) || cfg!(target_os = "macos"))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, window))]
+    #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn close_window(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         window.close()?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_platform(&self) -> Result<String> {
         Ok(env::consts::OS.to_string())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, window))]
+    #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn maximize_window(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         window.maximize()?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, window))]
+    #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn minimize_window(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         window.minimize()?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, app, preference))]
+    #[tracing::instrument(level = "debug", skip(self, app, preference))]
     pub fn update_zoom(&self, app: AppHandle, preference: State<PreferenceConfig>) -> Result<()> {
         let scale_factor: f64 = preference.load_selective("zoomFactor".into())?;
         let windows = app.webview_windows();
@@ -103,7 +103,7 @@ impl WindowHandler {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, url))]
+    #[tracing::instrument(level = "debug", skip(self, url))]
     pub fn open_external(&self, app: AppHandle, url: String) -> Result<()> {
         app.opener()
             .open_url(url, None::<&str>)
@@ -111,7 +111,7 @@ impl WindowHandler {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, app, is_main_window))]
+    #[tracing::instrument(level = "debug", skip(self, app, is_main_window))]
     pub fn open_window(&self, app: AppHandle, is_main_window: bool) -> Result<()> {
         if !is_main_window {
             WebviewWindowBuilder::new(
@@ -125,21 +125,21 @@ impl WindowHandler {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, window))]
+    #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn enable_fullscreen(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         window.set_fullscreen(true)?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, window))]
+    #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn disable_fullscreen(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         window.set_fullscreen(false)?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, window))]
+    #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn toggle_fullscreen(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         {
@@ -149,7 +149,7 @@ impl WindowHandler {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, window))]
+    #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn toggle_dev_tools(&self, window: WebviewWindow) -> Result<()> {
         let is_devtools_open = window.is_devtools_open();
         if !is_devtools_open {
@@ -161,12 +161,12 @@ impl WindowHandler {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, app))]
+    #[tracing::instrument(level = "debug", skip(self, app))]
     pub fn restart_app(&self, app: AppHandle) -> Result<()> {
         app.restart();
     }
 
-    #[tracing::instrument(level = "trace", skip(self, app, directory, multiple, filters))]
+    #[tracing::instrument(level = "debug", skip(self, app, directory, multiple, filters))]
     pub async fn open_file_browser(
         &self,
         app: AppHandle,
@@ -251,7 +251,7 @@ impl WindowHandler {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn open_save_file(&self, app: AppHandle) -> Result<PathBuf> {
         #[cfg(any(target_os = "android", target_os = "ios"))]
         {
@@ -264,12 +264,12 @@ impl WindowHandler {
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 pub fn get_window_state() -> WindowHandler {
     WindowHandler::new()
 }
 
-#[tracing::instrument(level = "trace", skip(app))]
+#[tracing::instrument(level = "debug", skip(app))]
 pub fn handle_window_close(app: &AppHandle) -> Result<bool> {
     let preferences: State<PreferenceConfig> = app.state();
     let preferences: CheckboxPreference =
@@ -281,7 +281,7 @@ pub fn handle_window_close(app: &AppHandle) -> Result<bool> {
     Ok(true)
 }
 
-#[tracing::instrument(level = "trace", skip(app))]
+#[tracing::instrument(level = "debug", skip(app))]
 pub fn build_tray_menu(app: &App) -> Result<()> {
     #[cfg(not(any(target_os = "android", target_os = "ios")))]
     {

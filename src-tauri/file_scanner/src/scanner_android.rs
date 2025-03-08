@@ -30,19 +30,19 @@ pub enum ScanState {
 pub struct ScannerHolder {}
 
 impl Default for ScannerHolder {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn default() -> Self {
         Self::new()
     }
 }
 
 impl ScannerHolder {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
         Self {}
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_progress(&self) -> u8 {
         0
     }

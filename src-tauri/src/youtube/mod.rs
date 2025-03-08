@@ -16,7 +16,7 @@
 
 use youtube::youtube::YoutubeScraper;
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 pub fn get_youtube_scraper_state() -> YoutubeScraper {
     YoutubeScraper::default()
 }

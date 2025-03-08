@@ -38,7 +38,7 @@ use wasm_bindgen_futures::spawn_local;
 
 use crate::utils::db_utils::{get_albums_by_option, get_songs_by_option};
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component()]
 pub fn SingleAlbum() -> impl IntoView {
     let params = use_query_map();
@@ -155,7 +155,7 @@ pub fn SingleAlbum() -> impl IntoView {
     .into_any()
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component()]
 pub fn AllAlbums() -> impl IntoView {
     let albums = RwSignal::new(vec![]);

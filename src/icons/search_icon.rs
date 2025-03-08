@@ -16,7 +16,7 @@
 
 use leptos::{component, prelude::*, view, IntoView};
 
-#[tracing::instrument(level = "trace", skip(accent))]
+#[tracing::instrument(level = "debug", skip(accent))]
 #[component]
 pub fn SearchIcon(#[prop()] accent: bool) -> impl IntoView {
     view! {

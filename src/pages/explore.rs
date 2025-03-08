@@ -52,7 +52,7 @@ struct AllAnalyticsParsed {
     songs: Vec<(Song, f64)>,
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn Explore() -> impl IntoView {
     let provider_store: Arc<ProviderStore> = expect_context();

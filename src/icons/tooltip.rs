@@ -18,7 +18,7 @@ use std::time::Duration;
 
 use leptos::{component, prelude::*, view, IntoView};
 
-#[tracing::instrument(level = "trace", skip(children))]
+#[tracing::instrument(level = "debug", skip(children))]
 #[component]
 pub fn Tooltip(children: ChildrenFn) -> impl IntoView {
     let show_tooltip = RwSignal::new(false);

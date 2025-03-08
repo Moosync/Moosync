@@ -31,7 +31,7 @@ use types::{
 
 use crate::window::handler::WindowHandler;
 
-#[tracing::instrument(level = "trace", skip(app, db, window_handler))]
+#[tracing::instrument(level = "debug", skip(app, db, window_handler))]
 #[tauri_invoke_proc::parse_tauri_command]
 #[tauri::command(async)]
 pub fn export_playlist(
@@ -67,7 +67,7 @@ generate_command!(increment_play_count, Database, (), id: String);
 generate_command!(increment_play_time, Database, (), id: String, duration: f64);
 generate_command!(get_top_listened_songs, Database, AllAnalytics,);
 
-#[tracing::instrument(level = "trace", skip(app))]
+#[tracing::instrument(level = "debug", skip(app))]
 pub fn get_cache_state(app: &mut App) -> CacheHolder {
     let path = app.path().app_cache_dir().unwrap().join("http_cache.db");
     if let Some(parent) = path.parent() {
@@ -79,7 +79,7 @@ pub fn get_cache_state(app: &mut App) -> CacheHolder {
     CacheHolder::new(path)
 }
 
-#[tracing::instrument(level = "trace", skip(app))]
+#[tracing::instrument(level = "debug", skip(app))]
 pub fn get_db_state(app: &mut App) -> Database {
     let path = app.path().app_data_dir().unwrap().join("songs.db");
     if let Some(parent) = path.parent() {

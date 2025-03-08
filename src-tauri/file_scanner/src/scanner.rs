@@ -43,7 +43,7 @@ pub struct ScannerHolder {
 }
 
 impl ScannerHolder {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
         Self {
             state: Mutex::new(ScanState::UNDEFINED),
@@ -51,7 +51,7 @@ impl ScannerHolder {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_progress(&self) -> u8 {
         *self.progress.lock().unwrap()
     }

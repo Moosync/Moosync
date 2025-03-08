@@ -25,7 +25,7 @@ use wasm_bindgen::JsValue;
 
 use crate::utils::common::listen_event;
 
-#[tracing::instrument(level = "trace", skip(key, setter))]
+#[tracing::instrument(level = "debug", skip(key, setter))]
 pub fn load_selective<T>(key: String, setter: impl Set<Value = T> + 'static)
 where
     T: DeserializeOwned,
@@ -40,14 +40,14 @@ where
     });
 }
 
-#[tracing::instrument(level = "trace", skip(key, value))]
+#[tracing::instrument(level = "debug", skip(key, value))]
 pub fn save_selective_number(key: String, value: String) {
     let val = value.parse::<f64>().unwrap();
     tracing::debug!("Parsed {} as f64", value);
     save_selective(key, val)
 }
 
-#[tracing::instrument(level = "trace", skip(key, value))]
+#[tracing::instrument(level = "debug", skip(key, value))]
 pub fn save_selective<T>(key: String, value: T)
 where
     T: Serialize + 'static,
@@ -60,7 +60,7 @@ where
     });
 }
 
-#[tracing::instrument(level = "trace", skip(key))]
+#[tracing::instrument(level = "debug", skip(key))]
 #[cfg(feature = "mock")]
 pub fn load_selective_mock(key: &'static str) -> Result<Value> {
     let ret = match key {
@@ -71,7 +71,7 @@ pub fn load_selective_mock(key: &'static str) -> Result<Value> {
     Ok(ret)
 }
 
-#[tracing::instrument(level = "trace", skip(directory, multiple, filters, setter))]
+#[tracing::instrument(level = "debug", skip(directory, multiple, filters, setter))]
 pub fn open_file_browser(
     directory: bool,
     multiple: bool,
@@ -89,7 +89,7 @@ pub fn open_file_browser(
     })
 }
 
-#[tracing::instrument(level = "trace", skip(directory, filters, setter))]
+#[tracing::instrument(level = "debug", skip(directory, filters, setter))]
 pub fn open_file_browser_single(
     directory: bool,
     filters: Vec<DialogFilter>,
@@ -105,7 +105,7 @@ pub fn open_file_browser_single(
     })
 }
 
-#[tracing::instrument(level = "trace", skip(cb))]
+#[tracing::instrument(level = "debug", skip(cb))]
 pub fn watch_preferences(cb: fn((String, JsValue))) -> js_sys::Function {
     let owner = Owner::new();
     listen_event("preference-changed", move |data: JsValue| {
@@ -125,7 +125,7 @@ pub fn watch_preferences(cb: fn((String, JsValue))) -> js_sys::Function {
     })
 }
 
-#[tracing::instrument(level = "trace", skip(path, cb))]
+#[tracing::instrument(level = "debug", skip(path, cb))]
 pub fn import_theme<T>(path: String, cb: T)
 where
     T: Fn() + 'static,
@@ -142,7 +142,7 @@ where
     })
 }
 
-#[tracing::instrument(level = "trace", skip(theme, cb))]
+#[tracing::instrument(level = "debug", skip(theme, cb))]
 pub fn save_theme<T>(theme: ThemeDetails, cb: T)
 where
     T: Fn() + 'static,

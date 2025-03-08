@@ -45,7 +45,7 @@ pub struct OAuthClientArgs {
     pub client_secret: String,
 }
 
-#[tracing::instrument(level = "trace", skip(config))]
+#[tracing::instrument(level = "debug", skip(config))]
 pub fn get_oauth_client(config: OAuthClientArgs) -> OAuth2Client {
     let client_secret = if config.client_secret.is_empty() {
         None
@@ -62,7 +62,7 @@ pub fn get_oauth_client(config: OAuthClientArgs) -> OAuth2Client {
     .set_redirect_uri(RedirectUrl::new(config.redirect_url).unwrap())
 }
 
-#[tracing::instrument(level = "trace", skip(key, app, res, default_refresh))]
+#[tracing::instrument(level = "debug", skip(key, app, res, default_refresh))]
 pub fn set_tokens(
     key: &str,
     app: &AppHandle,
@@ -88,7 +88,7 @@ pub fn set_tokens(
     Ok(token_holder)
 }
 
-#[tracing::instrument(level = "trace", skip(key, client, app))]
+#[tracing::instrument(level = "debug", skip(key, client, app))]
 pub async fn refresh_login(
     key: &str,
     client: OAuth2Client,
@@ -135,7 +135,7 @@ pub struct LoginArgs {
     pub extra_params: Option<HashMap<&'static str, &'static str>>,
 }
 
-#[tracing::instrument(level = "trace", skip(config, client, app))]
+#[tracing::instrument(level = "debug", skip(config, client, app))]
 pub fn login(
     config: LoginArgs,
     client: OAuth2Client,
@@ -173,7 +173,7 @@ pub fn login(
     Ok((auth_url.to_string(), verifier))
 }
 
-#[tracing::instrument(level = "trace", skip(key, code, verifier, app))]
+#[tracing::instrument(level = "debug", skip(key, code, verifier, app))]
 pub async fn authorize(
     key: &str,
     code: String,

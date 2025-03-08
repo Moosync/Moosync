@@ -16,7 +16,7 @@
 
 use leptos::{component, prelude::*, view, IntoView};
 
-#[tracing::instrument(level = "trace", skip(cut))]
+#[tracing::instrument(level = "debug", skip(cut))]
 #[component]
 pub fn VolumeIcon(#[prop()] cut: impl Get<Value = bool> + 'static + Send + Sync) -> impl IntoView {
     view! {

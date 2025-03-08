@@ -106,7 +106,7 @@ pub struct SpotifyExtraInfo {
 }
 
 impl SpotifyProvider {
-    #[tracing::instrument(level = "trace", skip(app, status_tx))]
+    #[tracing::instrument(level = "debug", skip(app, status_tx))]
     pub fn new(app: AppHandle, status_tx: UnboundedSender<ProviderStatus>) -> Self {
         Self {
             app,
@@ -132,7 +132,7 @@ impl SpotifyProvider {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn get_oauth_client(&self) -> OAuth2Client {
         let config = self.config.lock().await;
         get_oauth_client(OAuthClientArgs {
@@ -144,7 +144,7 @@ impl SpotifyProvider {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn create_api_client(&self) {
         tracing::debug!("Creating spotify api client");
         if let Some(token) = self.tokens.lock().await.as_ref() {
@@ -216,7 +216,7 @@ impl SpotifyProvider {
         self.api_client.read().await
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn refresh_login(&self) -> Result<()> {
         tracing::debug!("Refreshing spotify login");
         *self.tokens.lock().await = Some(
@@ -232,7 +232,7 @@ impl SpotifyProvider {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, playlist))]
+    #[tracing::instrument(level = "debug", skip(self, playlist))]
     fn parse_playlist(&self, playlist: SimplifiedPlaylist) -> QueryablePlaylist {
         QueryablePlaylist {
             playlist_id: Some(format!("spotify-playlist:{}", playlist.id.id())),
@@ -244,7 +244,7 @@ impl SpotifyProvider {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(artist))]
+    #[tracing::instrument(level = "debug", skip(artist))]
     fn parse_artists(artist: SimplifiedArtist, images: Option<Vec<Image>>) -> QueryableArtist {
         QueryableArtist {
             artist_id: Some(format!("spotify-artist:{}", artist.id.clone().unwrap())),
@@ -262,7 +262,7 @@ impl SpotifyProvider {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(album))]
+    #[tracing::instrument(level = "debug", skip(album))]
     fn parse_album(album: SimplifiedAlbum) -> QueryableAlbum {
         QueryableAlbum {
             album_id: Some(format!("spotify-album:{}", album.id.clone().unwrap())),
@@ -274,7 +274,7 @@ impl SpotifyProvider {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, item))]
+    #[tracing::instrument(level = "debug", skip(self, item))]
     fn parse_playlist_item(&self, item: FullTrack) -> Song {
         let id = item.id.unwrap().to_string();
         Song {
@@ -305,7 +305,7 @@ impl SpotifyProvider {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn fetch_user_details(&self) -> Result<(ProviderStatus, bool)> {
         tracing::info!("Fetching user details for spotify");
         if let Some(api_client) = self.api_client.read().await.as_ref() {
@@ -369,7 +369,7 @@ impl SpotifyProvider {
 
 #[async_trait]
 impl GenericProvider for SpotifyProvider {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn initialize(&self) -> Result<()> {
         let _ = self
             .status_tx
@@ -422,7 +422,7 @@ impl GenericProvider for SpotifyProvider {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn get_provider_scopes(&self) -> Result<Vec<ExtensionProviderScope>> {
         Ok(vec![
             ExtensionProviderScope::Search,
@@ -440,12 +440,12 @@ impl GenericProvider for SpotifyProvider {
         ])
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn key(&self) -> String {
         "spotify".into()
     }
 
-    #[tracing::instrument(level = "trace", skip(self, id))]
+    #[tracing::instrument(level = "debug", skip(self, id))]
     fn match_id(&self, id: String) -> bool {
         id.starts_with("spotify-playlist:")
             || id.starts_with("spotify-artist:")
@@ -458,7 +458,7 @@ impl GenericProvider for SpotifyProvider {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn login(&self, _: String) -> Result<String> {
         let (login_args, redirect_uri) = {
             let config = self.config.lock().await;
@@ -515,7 +515,7 @@ impl GenericProvider for SpotifyProvider {
         Ok(url)
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn signout(&self, _: String) -> Result<()> {
         *self.tokens.lock().await = None;
         *self.api_client.write().await = None;
@@ -533,7 +533,7 @@ impl GenericProvider for SpotifyProvider {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, code))]
+    #[tracing::instrument(level = "debug", skip(self, code))]
     async fn authorize(&self, code: String) -> Result<()> {
         tracing::info!("Authorizing with code {}", code);
         *self.tokens.lock().await = Some(
@@ -550,7 +550,7 @@ impl GenericProvider for SpotifyProvider {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, pagination))]
+    #[tracing::instrument(level = "debug", skip(self, pagination))]
     async fn fetch_user_playlists(
         &self,
         pagination: Pagination,
@@ -573,7 +573,7 @@ impl GenericProvider for SpotifyProvider {
         Err("API client not initialized".into())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, playlist, pagination))]
+    #[tracing::instrument(level = "debug", skip(self, playlist, pagination))]
     async fn get_playlist_content(
         &self,
         playlist: QueryablePlaylist,
@@ -620,12 +620,12 @@ impl GenericProvider for SpotifyProvider {
         Err("API client not initialized".into())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn get_playback_url(&self, _: Song, _: String) -> Result<String> {
         Err(MoosyncError::SwitchProviders("youtube".into()))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, term))]
+    #[tracing::instrument(level = "debug", skip(self, term))]
     async fn search(&self, term: String) -> Result<SearchResult> {
         let mut ret = SearchResult {
             songs: vec![],
@@ -682,7 +682,7 @@ impl GenericProvider for SpotifyProvider {
         Err("API client not initialized".into())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, url))]
+    #[tracing::instrument(level = "debug", skip(self, url))]
     async fn match_url(&self, url: String) -> Result<bool> {
         let re = Regex::new(
             r"^(https:\/\/open.spotify.com\/(track|embed)\/|spotify:track:)([a-zA-Z0-9]+)(.*)$",
@@ -702,7 +702,7 @@ impl GenericProvider for SpotifyProvider {
         Ok(false)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, url))]
+    #[tracing::instrument(level = "debug", skip(self, url))]
     async fn playlist_from_url(&self, url: String) -> Result<QueryablePlaylist> {
         let playlist_id = Url::parse(url.as_str());
         let playlist_id = if let Ok(playlist_id) = playlist_id {
@@ -741,7 +741,7 @@ impl GenericProvider for SpotifyProvider {
         Err("API Client not initialized".into())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, url))]
+    #[tracing::instrument(level = "debug", skip(self, url))]
     async fn song_from_url(&self, url: String) -> Result<Song> {
         let track_id = Url::parse(url.as_str());
         let track_id = if let Ok(track_id) = track_id {
@@ -768,7 +768,7 @@ impl GenericProvider for SpotifyProvider {
         Err("API Client not initialized".into())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn get_suggestions(&self) -> Result<Vec<Song>> {
         if let Some(api_client) = self.get_api_client().await.as_ref() {
             let mut i = 0;

@@ -68,14 +68,14 @@ use crate::{
     store::{modal_store::ModalStore, player_store::PlayerStore, provider_store::ProviderStore},
 };
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn RedirectAll() -> impl IntoView {
     tracing::info!("Current location {:?}", window().location().href());
     view! { <Redirect path="/main/allsongs" /> }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 fn CommonApp() -> impl IntoView {
     view! {
@@ -87,7 +87,7 @@ fn CommonApp() -> impl IntoView {
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn MainApp() -> impl IntoView {
     let i18n = use_i18n();
@@ -174,7 +174,7 @@ pub fn MainApp() -> impl IntoView {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(id))]
+#[tracing::instrument(level = "debug", skip(id))]
 fn handle_theme(id: String) {
     let update_css = move |custom_css: String| {
         let mut custom_style_sheet = document().get_element_by_id("custom-css");
@@ -245,7 +245,7 @@ fn handle_theme(id: String) {
     });
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn App() -> impl IntoView {
     let _ = use_event_listener(document().body(), keydown, |ev| {
@@ -297,7 +297,7 @@ pub fn App() -> impl IntoView {
             let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
             let payload: ExtensionUIRequest = serde_wasm_bindgen::from_value(payload).unwrap();
 
-            #[tracing::instrument(level = "trace", skip(payload, data))]
+            #[tracing::instrument(level = "debug", skip(payload, data))]
             fn send_reply<T>(payload: ExtensionUIRequest, data: T)
             where
                 T: Serialize + Clone,

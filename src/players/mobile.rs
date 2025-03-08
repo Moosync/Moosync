@@ -79,14 +79,14 @@ macro_rules! generate_event_listeners {
 }
 
 impl std::fmt::Debug for MobilePlayer {
-    #[tracing::instrument(level = "trace", skip(self, f))]
+    #[tracing::instrument(level = "debug", skip(self, f))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LocalPlayer").finish()
     }
 }
 
 impl MobilePlayer {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new(key: String) -> Self {
         MobilePlayer {
             key,
@@ -106,17 +106,17 @@ impl MobilePlayer {
 }
 
 impl GenericPlayer for MobilePlayer {
-    #[tracing::instrument(level = "trace", skip(self, _player_container))]
+    #[tracing::instrument(level = "debug", skip(self, _player_container))]
     fn initialize(&self, _player_container: NodeRef<Div>) {
         tracing::debug!("Returning from mobile player initialize")
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn key(&self) -> String {
         self.key.clone()
     }
 
-    #[tracing::instrument(level = "trace", skip(self, src, resolver))]
+    #[tracing::instrument(level = "debug", skip(self, src, resolver))]
     fn load(&self, src: String, autoplay: bool, resolver: OneShotSender<()>) {
         tracing::debug!("Loading audio {}", src);
 
@@ -130,7 +130,7 @@ impl GenericPlayer for MobilePlayer {
         });
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn play(&self) -> Result<()> {
         let key = self.key.clone();
         spawn_local(async move {
@@ -142,7 +142,7 @@ impl GenericPlayer for MobilePlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn pause(&self) -> Result<()> {
         let key = self.key.clone();
         spawn_local(async move {
@@ -154,7 +154,7 @@ impl GenericPlayer for MobilePlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn provides(&self) -> &[SongType] {
         &[
             SongType::LOCAL,
@@ -164,17 +164,17 @@ impl GenericPlayer for MobilePlayer {
         ]
     }
 
-    #[tracing::instrument(level = "trace", skip(self, _volume))]
+    #[tracing::instrument(level = "debug", skip(self, _volume))]
     fn set_volume(&self, _volume: f64) -> Result<()> {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn get_volume(&self) -> Result<f64> {
         Ok(100f64)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, tx))]
+    #[tracing::instrument(level = "debug", skip(self, tx))]
     fn add_listeners(&mut self, tx: Rc<Box<dyn Fn(PlayerEvents)>>) {
         self.listen_onplay(tx.clone());
         self.listen_onpause(tx.clone());
@@ -183,7 +183,7 @@ impl GenericPlayer for MobilePlayer {
         self.event_tx = Some(tx);
     }
 
-    #[tracing::instrument(level = "trace", skip(self, pos))]
+    #[tracing::instrument(level = "debug", skip(self, pos))]
     fn seek(&self, pos: f64) -> Result<()> {
         let key = self.key.clone();
         spawn_local(async move {
@@ -195,7 +195,7 @@ impl GenericPlayer for MobilePlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, song))]
+    #[tracing::instrument(level = "debug", skip(self, song))]
     fn can_play(&self, song: &types::songs::Song) -> bool {
         let playback_url = song.song.path.clone().or(song.song.playback_url.clone());
         tracing::debug!("Checking playback url {:?}", playback_url);
@@ -218,7 +218,7 @@ impl GenericPlayer for MobilePlayer {
         false
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn stop(&mut self) -> Result<()> {
         let key = self.key.clone();
         spawn_local(async move {

@@ -16,7 +16,7 @@
 
 use leptos::{component, prelude::*, view, IntoView};
 
-#[tracing::instrument(level = "trace", skip(filled))]
+#[tracing::instrument(level = "debug", skip(filled))]
 #[component]
 pub fn PinIcon<T>(#[prop()] filled: T) -> impl IntoView
 where

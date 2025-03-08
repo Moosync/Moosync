@@ -19,7 +19,7 @@ use types::ui::extensions::{ExtensionExtraEvent, ExtensionExtraEventArgs};
 
 use crate::utils::invoke::send_extra_event;
 
-#[tracing::instrument(level = "trace", skip(args))]
+#[tracing::instrument(level = "debug", skip(args))]
 pub fn send_extension_event(args: ExtensionExtraEvent) {
     spawn_local(async move {
         let res = send_extra_event(ExtensionExtraEventArgs {

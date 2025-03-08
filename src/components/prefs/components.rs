@@ -47,7 +47,7 @@ use crate::{
     },
 };
 
-#[tracing::instrument(level = "trace", skip(key, title, tooltip))]
+#[tracing::instrument(level = "debug", skip(key, title, tooltip))]
 #[component]
 pub fn PathsPref<K, H, K1, H1>(
     #[prop()] key: String,
@@ -148,7 +148,7 @@ where
     }.into_any()
 }
 
-#[tracing::instrument(level = "trace", skip(key, title, tooltip, show_input, inp_type))]
+#[tracing::instrument(level = "debug", skip(key, title, tooltip, show_input, inp_type))]
 #[component()]
 pub fn InputPref<K, H, K1, H1>(
     #[prop()] key: String,
@@ -264,7 +264,7 @@ where
     }.into_any()
 }
 
-#[tracing::instrument(level = "trace", skip(key, title, tooltip, items, single))]
+#[tracing::instrument(level = "debug", skip(key, title, tooltip, items, single))]
 #[component()]
 pub fn CheckboxPref<K, H, K1, H1>(
     #[prop()] key: String,
@@ -394,7 +394,7 @@ where
     }.into_any()
 }
 
-#[tracing::instrument(level = "trace", skip(key, title, tooltip))]
+#[tracing::instrument(level = "debug", skip(key, title, tooltip))]
 #[component]
 pub fn ThemesPref<K, H, K1, H1>(
     #[prop()] key: String,
@@ -506,7 +506,7 @@ where
     }
 }
 
-#[tracing::instrument(level = "trace", skip(title, tooltip))]
+#[tracing::instrument(level = "debug", skip(title, tooltip))]
 #[component]
 pub fn ExtensionPref<K, H, K1, H1>(#[prop()] title: K, #[prop()] tooltip: K1) -> impl IntoView
 where
@@ -729,7 +729,7 @@ where
     }
 }
 
-#[tracing::instrument(level = "trace", skip(key, title, tooltip, mobile))]
+#[tracing::instrument(level = "debug", skip(key, title, tooltip, mobile))]
 #[component]
 pub fn DropdownPref<K, H, K1, H1>(
     #[prop()] key: String,

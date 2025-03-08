@@ -26,7 +26,7 @@ use crate::utils::db_utils::get_songs_by_option;
 use crate::components::songview::SongView;
 use crate::utils::songs::get_songs_from_indices;
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component()]
 pub fn AllSongs() -> impl IntoView {
     let songs = RwSignal::new(vec![]);

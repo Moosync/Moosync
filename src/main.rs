@@ -32,7 +32,7 @@ use utils::tracing_writer::MakeConsoleWriter;
 
 leptos_i18n::load_locales!();
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 fn main() {
     console_error_panic_hook::set_once();
 

@@ -52,7 +52,7 @@ pub struct PreferenceConfig {
 }
 
 impl PreferenceConfig {
-    #[tracing::instrument(level = "trace", skip(data_dir))]
+    #[tracing::instrument(level = "debug", skip(data_dir))]
     pub fn new(data_dir: PathBuf) -> Result<Self> {
         let config_file_path = data_dir.join("config.json");
 
@@ -116,7 +116,7 @@ impl PreferenceConfig {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self, key))]
+    #[tracing::instrument(level = "debug", skip(self, key))]
     pub fn load_selective<T>(&self, key: String) -> Result<T>
     where
         T: DeserializeOwned,
@@ -135,7 +135,7 @@ impl PreferenceConfig {
         Ok(val.unwrap())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, key, value))]
+    #[tracing::instrument(level = "debug", skip(self, key, value))]
     pub fn save_selective<T>(&self, key: String, value: Option<T>) -> Result<()>
     where
         T: Serialize + Clone + Debug,
@@ -186,7 +186,7 @@ impl PreferenceConfig {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, key))]
+    #[tracing::instrument(level = "debug", skip(self, key))]
     pub fn load_selective_array<T>(&self, key: String) -> Result<T>
     where
         T: DeserializeOwned,
@@ -210,7 +210,7 @@ impl PreferenceConfig {
         Err(MoosyncError::String("Value is not an array".into()))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, key))]
+    #[tracing::instrument(level = "debug", skip(self, key))]
     pub fn get_secure<T>(&self, key: String) -> Result<T>
     where
         T: DeserializeOwned,
@@ -240,7 +240,7 @@ impl PreferenceConfig {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, key, value))]
+    #[tracing::instrument(level = "debug", skip(self, key, value))]
     pub fn set_secure<T>(&self, key: String, value: Option<T>) -> Result<()>
     where
         T: Serialize + Clone + Debug,
@@ -274,12 +274,12 @@ impl PreferenceConfig {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_receiver(&self) -> Receiver<(String, Value)> {
         self.receiver.clone()
     }
 
-    #[tracing::instrument(level = "trace", skip(self, key))]
+    #[tracing::instrument(level = "debug", skip(self, key))]
     pub fn has_key(&self, key: &str) -> bool {
         let prefs = self.memcache.lock().unwrap();
         let val: Option<Value> = prefs.dot_get(format!("prefs.{}", key).as_str()).unwrap();

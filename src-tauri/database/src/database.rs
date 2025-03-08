@@ -69,7 +69,7 @@ pub struct Database {
 }
 
 impl Database {
-    #[tracing::instrument(level = "trace", skip(path))]
+    #[tracing::instrument(level = "debug", skip(path))]
     pub fn new(path: PathBuf) -> Self {
         let db = Self {
             pool: Self::connect(path),
@@ -88,7 +88,7 @@ impl Database {
         db
     }
 
-    #[tracing::instrument(level = "trace", skip(path))]
+    #[tracing::instrument(level = "debug", skip(path))]
     fn connect(path: PathBuf) -> Pool<ConnectionManager<LoggingConnection<SqliteConnection>>> {
         let manager =
             ConnectionManager::<LoggingConnection<SqliteConnection>>::new(path.to_str().unwrap());
@@ -98,7 +98,7 @@ impl Database {
             .expect("Failed to create pool.")
     }
 
-    #[tracing::instrument(level = "trace", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip(self, conn))]
     fn insert_album(
         &self,
         conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
@@ -114,7 +114,7 @@ impl Database {
         Ok(_album.album_id.as_ref().unwrap().clone())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip(self, conn))]
     fn insert_artist(
         &self,
         conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
@@ -129,7 +129,7 @@ impl Database {
         Ok(_artist.artist_id.as_ref().unwrap().clone())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip(self, conn))]
     fn insert_genre(
         &self,
         conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
@@ -144,7 +144,7 @@ impl Database {
         Ok(_genre.genre_id.as_ref().unwrap().clone())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip(self, conn))]
     fn insert_playlist(
         &self,
         conn: &mut PooledConnection<ConnectionManager<LoggingConnection<SqliteConnection>>>,
@@ -156,7 +156,7 @@ impl Database {
         Ok(_playlist.playlist_id.as_ref().unwrap().clone())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn create_playlist(&self, mut playlist: QueryablePlaylist) -> Result<String> {
         let mut conn = self.pool.get().unwrap();
 
@@ -187,7 +187,7 @@ impl Database {
         self.insert_playlist(&mut conn, &playlist)
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn add_to_playlist_bridge(&self, playlist_id: String, song_id: String) -> Result<()> {
         let mut conn = self.pool.get().unwrap();
         trace!("Inserting song in playlist bridge");
@@ -200,7 +200,7 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn insert_songs(&self, mut songs: Vec<Song>) -> Result<Vec<Song>> {
         self.insert_songs_by_ref(songs.as_mut_slice())?;
         Ok(songs)
@@ -293,7 +293,7 @@ impl Database {
     }
 
     // TODO: Remove album
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn remove_songs(&self, ids: Vec<String>) -> Result<()> {
         trace!("Removing song");
         self.pool
@@ -341,7 +341,7 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, song))]
+    #[tracing::instrument(level = "debug", skip(self, song))]
     pub fn update_song(&self, song: QueryableSong) -> Result<()> {
         trace!("Updating song");
         if let Some(id) = song._id.as_ref() {
@@ -355,7 +355,7 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip(self, conn))]
     fn get_albums(
         &self,
         options: QueryableAlbum,
@@ -384,7 +384,7 @@ impl Database {
         Ok(fetched)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip(self, conn))]
     fn get_artists(
         &self,
         options: QueryableArtist,
@@ -420,7 +420,7 @@ impl Database {
         Ok(fetched)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip(self, conn))]
     fn get_genres(
         &self,
         options: QueryableGenre,
@@ -449,7 +449,7 @@ impl Database {
         Ok(fetched)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip(self, conn))]
     fn get_playlists(
         &self,
         options: QueryablePlaylist,
@@ -504,7 +504,7 @@ impl Database {
         Ok(false)
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_entity_by_options(&self, options: GetEntityOptions) -> Result<Value> {
         let mut conn = self.pool.get().unwrap();
         let inclusive = options.inclusive.unwrap_or_default();
@@ -550,7 +550,7 @@ impl Database {
         Ok(Value::Null)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip(self, conn))]
     pub fn get_album_songs(
         &self,
         options: QueryableAlbum,
@@ -581,7 +581,7 @@ impl Database {
         Ok(songs)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip(self, conn))]
     pub fn get_artist_songs(
         &self,
         options: QueryableArtist,
@@ -612,7 +612,7 @@ impl Database {
         Ok(songs)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip(self, conn))]
     pub fn get_genre_songs(
         &self,
         options: QueryableGenre,
@@ -641,7 +641,7 @@ impl Database {
         Ok(songs)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip(self, conn))]
     pub fn get_playlist_songs(
         &self,
         options: QueryablePlaylist,
@@ -713,7 +713,7 @@ impl Database {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_songs_by_options(&self, options: GetSongOptions) -> Result<Vec<Song>> {
         let mut ret = vec![];
         trace!("Getting songs by options");
@@ -789,7 +789,7 @@ impl Database {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn search_all(&self, term: String) -> Result<SearchResult> {
         trace!("Searching all by term");
 
@@ -881,7 +881,7 @@ impl Database {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn files_not_in_db(
         &self,
         mut file_list: Vec<(PathBuf, f64)>,
@@ -921,7 +921,7 @@ impl Database {
         Ok(ret)
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn add_to_playlist(&self, id: String, mut songs: Vec<Song>) -> Result<()> {
         trace!("Adding to playlist");
         songs.iter_mut().for_each(|v| {
@@ -957,7 +957,7 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn remove_from_playlist(&self, id: String, songs: Vec<String>) -> Result<()> {
         trace!("Removing from playlist");
         self.pool
@@ -976,7 +976,7 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn remove_playlist(&self, id: String) -> Result<()> {
         trace!("Removing playlist");
         let mut conn = self.pool.get().unwrap();
@@ -991,7 +991,7 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, old_info, new_info))]
+    #[tracing::instrument(level = "debug", skip(self, old_info, new_info))]
     fn merge_extra_info(
         &self,
         old_info: Option<EntityInfo>,
@@ -1017,7 +1017,7 @@ impl Database {
         Some(res)
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn update_album(&self, mut album: QueryableAlbum) -> Result<()> {
         trace!("Updating album");
         let mut conn = self.pool.get().unwrap();
@@ -1045,7 +1045,7 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn update_artist(&self, mut artist: QueryableArtist) -> Result<()> {
         trace!("Updating artist");
         let mut conn = self.pool.get().unwrap();
@@ -1073,7 +1073,7 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn update_playlist(&self, playlist: QueryablePlaylist) -> Result<()> {
         trace!("Updating playlist");
         let mut conn = self.pool.get().unwrap();
@@ -1085,7 +1085,7 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn update_songs(&self, songs: Vec<Song>) -> Result<()> {
         trace!("Updating songs");
         let mut conn = self.pool.get().unwrap();
@@ -1109,7 +1109,7 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn update_lyrics(&self, id: String, lyrics: String) -> Result<()> {
         trace!("Updating lyrics");
         let mut conn = self.pool.get().unwrap();
@@ -1121,7 +1121,7 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn increment_play_count(&self, id: String) -> Result<()> {
         trace!("Incrementing play count");
         let mut conn = self.pool.get().unwrap();
@@ -1150,7 +1150,7 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn increment_play_time(&self, id: String, duration: f64) -> Result<()> {
         trace!("Incrementing play time");
         let mut conn = self.pool.get().unwrap();
@@ -1201,7 +1201,7 @@ impl Database {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn export_playlist(&self, playlist_id: String) -> Result<String> {
         let mut conn = self.pool.get().unwrap();
 
@@ -1306,7 +1306,7 @@ impl Database {
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 fn merge(a: &mut Value, b: Value) {
     if let Value::Object(a) = a {
         if let Value::Object(b) = b {

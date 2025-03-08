@@ -23,7 +23,7 @@ use crate::{
     utils::invoke::get_extension_icon,
 };
 
-#[tracing::instrument(level = "trace", skip(extension))]
+#[tracing::instrument(level = "debug", skip(extension))]
 #[component]
 pub fn ProviderIcon(#[prop()] extension: String) -> impl IntoView {
     let provider_icon = RwSignal::new(String::new());

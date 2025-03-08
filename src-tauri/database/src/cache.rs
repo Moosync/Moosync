@@ -44,7 +44,7 @@ pub struct CacheHolder {
 }
 
 impl CacheHolder {
-    #[tracing::instrument(level = "trace", skip(path))]
+    #[tracing::instrument(level = "debug", skip(path))]
     pub fn new(path: PathBuf) -> Self {
         let db = Self {
             pool: Self::connect(path),
@@ -61,7 +61,7 @@ impl CacheHolder {
         db
     }
 
-    #[tracing::instrument(level = "trace", skip(path))]
+    #[tracing::instrument(level = "debug", skip(path))]
     fn connect(path: PathBuf) -> Pool<ConnectionManager<SqliteConnection>> {
         let manager = ConnectionManager::<SqliteConnection>::new(path.to_str().unwrap());
 
@@ -70,7 +70,7 @@ impl CacheHolder {
             .expect("Failed to create pool.")
     }
 
-    #[tracing::instrument(level = "trace", skip(self, _url, blob, expires))]
+    #[tracing::instrument(level = "debug", skip(self, _url, blob, expires))]
     pub fn set<T>(&self, _url: &str, blob: &T, expires: i32) -> Result<()>
     where
         T: Serialize,
@@ -95,7 +95,7 @@ impl CacheHolder {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, _url))]
+    #[tracing::instrument(level = "debug", skip(self, _url))]
     pub fn get<T>(&self, _url: &str) -> Result<T>
     where
         T: for<'a> Deserialize<'a>,

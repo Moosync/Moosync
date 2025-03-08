@@ -20,7 +20,7 @@ use lyrics::LyricsFetcher;
 use tauri::State;
 use types::errors::Result;
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 pub fn get_lyrics_state() -> LyricsFetcher {
     LyricsFetcher::new()
 }

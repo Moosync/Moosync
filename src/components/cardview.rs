@@ -45,7 +45,7 @@ where
     pub context_menu: CardContextMenu<T>,
 }
 
-#[tracing::instrument(level = "trace", skip(item, songs_view, on_click))]
+#[tracing::instrument(level = "debug", skip(item, songs_view, on_click))]
 #[component()]
 pub fn CardItem<T>(
     #[prop()] item: SimplifiedCardItem<T>,
@@ -152,7 +152,7 @@ where
     }
 }
 
-#[tracing::instrument(level = "trace", skip(items, card_item, songs_view, on_click, key))]
+#[tracing::instrument(level = "debug", skip(items, card_item, songs_view, on_click, key))]
 #[component()]
 pub fn CardView<T, S, C, K, KN>(
     #[prop()] items: S,

@@ -186,7 +186,7 @@ impl SpircWrapper {
         });
     }
 
-    #[tracing::instrument(level = "trace", skip(tx, events_channel))]
+    #[tracing::instrument(level = "debug", skip(tx, events_channel))]
     fn listen_events(
         tx: Sender<PlayerEvent>,
         mut events_channel: PlayerEventChannel,
@@ -210,7 +210,7 @@ impl SpircWrapper {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(message, tx, spirc, session))]
+    #[tracing::instrument(level = "debug", skip(message, tx, spirc, session))]
     fn handle_command(
         message: Message,
         tx: Sender<Result<MessageReply>>,
@@ -304,7 +304,7 @@ impl SpircWrapper {
         };
     }
 
-    #[tracing::instrument(level = "trace", skip(rx, spirc, session))]
+    #[tracing::instrument(level = "debug", skip(rx, spirc, session))]
     pub fn listen_commands(
         rx: Receiver<(Message, Sender<Result<MessageReply>>)>,
         channel_close_tx: Sender<()>,
@@ -331,7 +331,7 @@ impl SpircWrapper {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self, command))]
+    #[tracing::instrument(level = "debug", skip(self, command))]
     pub fn send(&self, command: Message) -> Result<MessageReply> {
         let (tx, rx) = mpsc::channel::<Result<MessageReply>>();
         self.tx
@@ -341,43 +341,43 @@ impl SpircWrapper {
         rx.recv().unwrap()
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn librespot_close(&self) -> Result<()> {
         self.send(Message::Close)?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn librespot_play(&self) -> Result<()> {
         self.send(Message::Play)?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn librespot_pause(&self) -> Result<()> {
         self.send(Message::Pause)?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, pos))]
+    #[tracing::instrument(level = "debug", skip(self, pos))]
     pub fn librespot_seek(&self, pos: u32) -> Result<()> {
         self.send(Message::Seek(pos))?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, volume))]
+    #[tracing::instrument(level = "debug", skip(self, volume))]
     pub fn librespot_volume(&self, volume: u16) -> Result<()> {
         self.send(Message::Volume(volume))?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, uri, autoplay))]
+    #[tracing::instrument(level = "debug", skip(self, uri, autoplay))]
     pub fn librespot_load(&self, uri: String, autoplay: bool) -> Result<()> {
         self.send(Message::Load(uri, autoplay))?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, scopes))]
+    #[tracing::instrument(level = "debug", skip(self, scopes))]
     pub fn librespot_get_token(&self, scopes: String) -> Result<ParsedToken> {
         let res = self.send(Message::GetToken(scopes))?;
         match res {
@@ -394,7 +394,7 @@ impl SpircWrapper {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, uri))]
+    #[tracing::instrument(level = "debug", skip(self, uri))]
     pub fn get_lyrics(&self, uri: String) -> Result<String> {
         let res = self.send(Message::GetLyrics(uri))?;
         match res {
@@ -403,7 +403,7 @@ impl SpircWrapper {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, uri))]
+    #[tracing::instrument(level = "debug", skip(self, uri))]
     pub fn get_canvaz(&self, uri: String) -> Result<CanvazResponse> {
         let res = self.send(Message::GetCanvaz(uri))?;
         match res {
@@ -412,7 +412,7 @@ impl SpircWrapper {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_device_id(&self) -> Arc<AsyncMutex<Option<String>>> {
         self.device_id.clone()
     }

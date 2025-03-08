@@ -16,7 +16,7 @@
 
 use leptos::{component, prelude::*, view, IntoView};
 
-#[tracing::instrument(level = "trace", skip(title))]
+#[tracing::instrument(level = "debug", skip(title))]
 #[component]
 pub fn PlainPlayIcon(#[prop()] title: String) -> impl IntoView {
     view! {

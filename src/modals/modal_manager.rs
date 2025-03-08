@@ -26,7 +26,7 @@ use crate::{
     store::modal_store::{ModalStore, Modals},
 };
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn ModalManager() -> impl IntoView {
     let modal_store = expect_context::<RwSignal<ModalStore>>();

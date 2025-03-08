@@ -47,7 +47,7 @@ enum RodioCommand {
 }
 
 impl RodioPlayer {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new(cache_dir: PathBuf) -> Self {
         let (events_tx, events_rx) = channel::<PlayerEvents>();
         let cache_dir = cache_dir.join("rodio");
@@ -217,32 +217,32 @@ impl RodioPlayer {
         ret
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn rodio_load(&self, src: String) -> Result<()> {
         info!("Loading src={}", src);
         self.tx.send(RodioCommand::SetSrc(src.clone())).unwrap();
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn rodio_play(&self) -> Result<()> {
         self.tx.send(RodioCommand::Play).unwrap();
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn rodio_pause(&self) -> Result<()> {
         self.tx.send(RodioCommand::Pause).unwrap();
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn rodio_stop(&self) -> Result<()> {
         self.tx.send(RodioCommand::Stop).unwrap();
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn rodio_seek(&self, pos: f64) -> Result<()> {
         self.tx
             .send(RodioCommand::Seek(pos.abs().round() as u64))
@@ -250,13 +250,13 @@ impl RodioPlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn rodio_set_volume(&self, volume: f32) -> Result<()> {
         self.tx.send(RodioCommand::SetVolume(volume)).unwrap();
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn rodio_get_volume(&self) -> Result<f32> {
         Ok(0f32)
     }

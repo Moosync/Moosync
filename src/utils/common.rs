@@ -105,7 +105,7 @@ macro_rules! console_trace {
     ($($t:tt)*) => ($crate::utils::common::trace(&format_args!($($t)*).to_string()))
 }
 
-#[tracing::instrument(level = "trace", skip(secs))]
+#[tracing::instrument(level = "debug", skip(secs))]
 pub fn format_duration(secs: f64, with_suffix: bool) -> String {
     if secs < 0.0 {
         return "Live".into();
@@ -127,7 +127,7 @@ pub fn format_duration(secs: f64, with_suffix: bool) -> String {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(path))]
+#[tracing::instrument(level = "debug", skip(path))]
 pub fn convert_file_src(path: String) -> String {
     if path.is_empty() || path.starts_with("asset:") || path == "favorites" {
         return path;
@@ -140,14 +140,14 @@ pub fn convert_file_src(path: String) -> String {
     path
 }
 
-#[tracing::instrument(level = "trace", skip(src))]
+#[tracing::instrument(level = "debug", skip(src))]
 pub async fn get_blob_url(src: String) -> String {
     let res = getBlobUrl(src.as_str()).await;
     tracing::debug!("Got blob url {}", res.as_string().unwrap());
     res.as_string().unwrap()
 }
 
-#[tracing::instrument(level = "trace", skip(song))]
+#[tracing::instrument(level = "debug", skip(song))]
 pub fn get_low_img(song: &Song) -> String {
     if let Some(cover) = &song.song.song_cover_path_low {
         return convert_file_src(cover.to_string());
@@ -176,7 +176,7 @@ pub fn get_low_img(song: &Song) -> String {
     String::new()
 }
 
-#[tracing::instrument(level = "trace", skip(song))]
+#[tracing::instrument(level = "debug", skip(song))]
 pub fn get_high_img(song: &Song) -> String {
     if let Some(cover) = &song.song.song_cover_path_high {
         return convert_file_src(cover.to_string());
@@ -293,7 +293,7 @@ macro_rules! fetch_infinite {
     };
 }
 
-#[tracing::instrument(level = "trace", skip(event, cb))]
+#[tracing::instrument(level = "debug", skip(event, cb))]
 pub fn listen_event<F>(event: &str, cb: F) -> js_sys::Function
 where
     F: Fn(JsValue) + 'static,
@@ -323,7 +323,7 @@ where
     js_sys::Function::from(unlisten.into_js_value())
 }
 
-#[tracing::instrument(level = "trace", skip(event, cb))]
+#[tracing::instrument(level = "debug", skip(event, cb))]
 pub fn listen_plugin_event<F>(plugin: &str, event: &str, cb: F) -> js_sys::Function
 where
     F: Fn(JsValue) + 'static,

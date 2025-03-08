@@ -298,7 +298,7 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     });
 }
 
-#[tracing::instrument(level = "trace")]
+#[tracing::instrument(level = "debug")]
 #[component]
 pub fn MusicBar() -> impl IntoView {
     let ui_store = expect_context::<RwSignal<UiStore>>();

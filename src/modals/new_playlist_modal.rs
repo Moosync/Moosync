@@ -40,7 +40,7 @@ pub enum PlaylistModalState {
     ImportPlaylist,
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn NewPlaylistModal(
     #[prop()] initial_state: PlaylistModalState,

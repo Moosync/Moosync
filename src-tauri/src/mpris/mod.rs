@@ -22,7 +22,7 @@ use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter, State};
 use types::{errors::Result, mpris::MprisPlayerDetails, ui::player_details::PlayerState};
 
-#[tracing::instrument(level = "trace", skip(app))]
+#[tracing::instrument(level = "debug", skip(app))]
 pub fn get_mpris_state(app: AppHandle) -> Result<MprisHolder> {
     let mpris_holder = MprisHolder::new()?;
 

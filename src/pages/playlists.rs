@@ -42,7 +42,7 @@ use types::ui::song_details::{DefaultDetails, SongDetailIcons};
 use crate::store::provider_store::ProviderStore;
 use crate::{icons::plus_button::PlusIcon, utils::db_utils::get_playlists_by_option};
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component()]
 pub fn SinglePlaylist() -> impl IntoView {
     let params = use_query_map();
@@ -172,7 +172,7 @@ pub fn SinglePlaylist() -> impl IntoView {
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component()]
 pub fn AllPlaylists() -> impl IntoView {
     let playlists = RwSignal::new(vec![]);

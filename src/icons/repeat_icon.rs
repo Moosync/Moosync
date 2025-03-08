@@ -17,7 +17,7 @@
 use leptos::{component, prelude::*, view, IntoView};
 use types::ui::player_details::RepeatModes;
 
-#[tracing::instrument(level = "trace", skip(mode))]
+#[tracing::instrument(level = "debug", skip(mode))]
 #[component]
 pub fn RepeatIcon<T>(#[prop()] mode: T) -> impl IntoView
 where

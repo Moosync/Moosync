@@ -20,7 +20,7 @@ use types::entities::QueryableArtist;
 
 use crate::store::ui_store::UiStore;
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn ArtistList(#[prop()] artists: Option<Vec<QueryableArtist>>) -> impl IntoView {
     let ui_store = expect_context::<RwSignal<UiStore>>();

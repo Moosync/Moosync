@@ -65,7 +65,7 @@ pub struct YoutubePlayer {
 }
 
 impl YoutubePlayer {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
         Self {
             player: Rc::new(YTPlayer::new("yt-player")),
@@ -77,14 +77,14 @@ impl YoutubePlayer {
 }
 
 impl std::fmt::Debug for YoutubePlayer {
-    #[tracing::instrument(level = "trace", skip(self, f))]
+    #[tracing::instrument(level = "debug", skip(self, f))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("YoutubePlayer").finish()
     }
 }
 
 impl GenericPlayer for YoutubePlayer {
-    #[tracing::instrument(level = "trace", skip(self, player_container))]
+    #[tracing::instrument(level = "debug", skip(self, player_container))]
     fn initialize(&self, player_container: NodeRef<Div>) {
         player_container.on_load(move |elem| {
             let node_ref = NodeRef::new();
@@ -120,12 +120,12 @@ impl GenericPlayer for YoutubePlayer {
         });
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn key(&self) -> String {
         "youtube".into()
     }
 
-    #[tracing::instrument(level = "trace", skip(self, src, resolver))]
+    #[tracing::instrument(level = "debug", skip(self, src, resolver))]
     fn load(&self, src: String, autoplay: bool, resolver: OneShotSender<()>) {
         self.player.load(src.as_str(), false);
         self.last_src.set(Some(src.clone()));
@@ -142,49 +142,49 @@ impl GenericPlayer for YoutubePlayer {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn play(&self) -> types::errors::Result<()> {
         tracing::debug!("Youtube player playing");
         self.player.play();
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn pause(&self) -> types::errors::Result<()> {
         self.player.pause();
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, pos))]
+    #[tracing::instrument(level = "debug", skip(self, pos))]
     fn seek(&self, pos: f64) -> types::errors::Result<()> {
         self.player.seek(pos);
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn provides(&self) -> &[types::songs::SongType] {
         &[SongType::YOUTUBE, SongType::SPOTIFY]
     }
 
-    #[tracing::instrument(level = "trace", skip(self, song))]
+    #[tracing::instrument(level = "debug", skip(self, song))]
     fn can_play(&self, song: &types::songs::Song) -> bool {
         let re = Regex::new(r"^[0-9A-Za-z_-]{10}[048AEIMQUYcgkosw]$").unwrap();
         re.is_match(song.song.playback_url.clone().unwrap().as_bytes())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, volume))]
+    #[tracing::instrument(level = "debug", skip(self, volume))]
     fn set_volume(&self, volume: f64) -> types::errors::Result<()> {
         tracing::debug!("Setting youtube volume {}", volume);
         self.player.setVolume(volume);
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn get_volume(&self) -> types::errors::Result<f64> {
         Ok(self.player.getVolume())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, tx))]
+    #[tracing::instrument(level = "debug", skip(self, tx))]
     fn add_listeners(&mut self, tx: Rc<Box<dyn Fn(PlayerEvents)>>) {
         let force_play = self.force_play;
         listen_event!(self, tx.clone(), "stateChange", f64, |state| {
@@ -220,7 +220,7 @@ impl GenericPlayer for YoutubePlayer {
         })
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn stop(&mut self) -> Result<()> {
         self.pause()?;
         self.player.stop();

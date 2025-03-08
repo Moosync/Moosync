@@ -28,7 +28,7 @@ use leptos::{component, prelude::*, view, IntoView};
 use types::songs::Song;
 use types::ui::extensions::ExtensionProviderScope;
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn SongFromUrlModal() -> impl IntoView {
     let modal_store: RwSignal<ModalStore> = expect_context();

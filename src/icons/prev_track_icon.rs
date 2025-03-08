@@ -16,7 +16,7 @@
 
 use leptos::{component, prelude::*, view, IntoView};
 
-#[tracing::instrument(level = "trace", skip(disabled))]
+#[tracing::instrument(level = "debug", skip(disabled))]
 #[component]
 pub fn PrevTrackIcon<T>(#[prop()] disabled: T) -> impl IntoView
 where

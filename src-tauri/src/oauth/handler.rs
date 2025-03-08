@@ -28,26 +28,26 @@ pub struct OAuthHandler {
 }
 
 impl OAuthHandler {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> OAuthHandler {
         OAuthHandler {
             oauth_map: Mutex::new(HashMap::new()),
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, path, key))]
+    #[tracing::instrument(level = "debug", skip(self, path, key))]
     pub fn register_oauth_path(&self, path: String, key: String) {
         let mut oauth_map = self.oauth_map.lock().unwrap();
         oauth_map.insert(path, key.clone());
     }
 
-    #[tracing::instrument(level = "trace", skip(self, path))]
+    #[tracing::instrument(level = "debug", skip(self, path))]
     pub fn unregister_oauth_path(&self, path: String) {
         let mut oauth_map = self.oauth_map.lock().unwrap();
         oauth_map.remove(&path);
     }
 
-    #[tracing::instrument(level = "trace", skip(self, app, url))]
+    #[tracing::instrument(level = "debug", skip(self, app, url))]
     pub fn handle_oauth(&self, app: AppHandle, url: String) -> Result<()> {
         let oauth_map = self.oauth_map.lock().unwrap();
         let url_parsed = Url::parse(url.as_str()).unwrap();
@@ -69,7 +69,7 @@ impl OAuthHandler {
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 pub fn get_oauth_state() -> Result<OAuthHandler> {
     Ok(OAuthHandler::new())
 }

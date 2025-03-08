@@ -21,7 +21,7 @@ use lazy_static::lazy_static;
 use leptos::task::spawn_local;
 use types::{mpris::MprisPlayerDetails, songs::Song, ui::player_details::PlayerState};
 
-#[tracing::instrument(level = "trace", skip(song))]
+#[tracing::instrument(level = "debug", skip(song))]
 pub fn set_metadata(song: &Song) {
     let metadata = MprisPlayerDetails {
         title: song.song.title.clone(),
@@ -41,7 +41,7 @@ pub fn set_metadata(song: &Song) {
     })
 }
 
-#[tracing::instrument(level = "trace", skip(state))]
+#[tracing::instrument(level = "debug", skip(state))]
 pub fn set_playback_state(state: PlayerState) {
     spawn_local(async move {
         let res = crate::utils::invoke::set_playback_state(state).await;
@@ -55,7 +55,7 @@ lazy_static! {
     static ref last_time_update: Mutex<wasm_timer::Instant> =
         Mutex::new(wasm_timer::Instant::now());
 }
-#[tracing::instrument(level = "trace", skip(duration))]
+#[tracing::instrument(level = "debug", skip(duration))]
 pub fn set_position(duration: f64) {
     let should_update = {
         let mut last_time_update_lock = last_time_update.lock().unwrap();

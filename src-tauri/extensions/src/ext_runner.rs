@@ -233,7 +233,7 @@ struct Extension {
 }
 
 impl From<&Extension> for ExtensionDetail {
-    #[tracing::instrument(level = "trace", skip(val))]
+    #[tracing::instrument(level = "debug", skip(val))]
     fn from(val: &Extension) -> Self {
         ExtensionDetail {
             name: val.name.clone(),
@@ -260,7 +260,7 @@ pub(crate) struct ExtensionHandlerInner {
 }
 
 impl ExtensionHandlerInner {
-    #[tracing::instrument(level = "trace", skip(ext_command_tx))]
+    #[tracing::instrument(level = "debug", skip(ext_command_tx))]
     pub fn new(
         extensions_path: &PathBuf,
         cache_path: &PathBuf,
@@ -275,7 +275,7 @@ impl ExtensionHandlerInner {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn find_extension_manifests(&self) -> Vec<PathBuf> {
         let mut package_json_paths = Vec::new();
 
@@ -302,7 +302,7 @@ impl ExtensionHandlerInner {
         package_json_paths
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn find_extensions(&self) -> Vec<ExtensionManifest> {
         let manifests = self.find_extension_manifests();
         let mut parsed_manifests = vec![];
@@ -331,7 +331,7 @@ impl ExtensionHandlerInner {
         parsed_manifests
     }
 
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn spawn_extension(
         manifest: ExtensionManifest,
         reply_map: Arc<std::sync::Mutex<HashMap<String, ExtCommandReplySender>>>,
@@ -442,7 +442,7 @@ impl ExtensionHandlerInner {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn spawn_extensions(&mut self) {
         let manifests = self.find_extensions().await;
         for manifest in manifests {
@@ -474,7 +474,7 @@ impl ExtensionHandlerInner {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn get_extensions(&self, package_name: String) -> Vec<Extension> {
         let mut plugins = vec![];
         let extensions_map = self.extensions_map.lock().await;
@@ -608,7 +608,7 @@ impl ExtensionHandlerInner {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn execute_command(
         &mut self,
         command: &ExtensionCommand,
@@ -667,13 +667,13 @@ impl ExtensionHandlerInner {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn remove_extension(&mut self, package_name: &String) {
         let mut extensions_map = self.extensions_map.lock().await;
         extensions_map.remove(package_name);
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn handle_extension_command(
         &mut self,
         command: &ExtensionCommand,
@@ -683,7 +683,7 @@ impl ExtensionHandlerInner {
         return self.execute_command(command, tx).await;
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn handle_runner_command(
         &mut self,
         command: RunnerCommand,
@@ -729,7 +729,7 @@ impl ExtensionHandlerInner {
         Ok(ret)
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub(crate) fn handle_main_command_reply(
         &self,
         resp: &GenericExtensionHostRequest<MainCommandResponse>,
@@ -746,7 +746,7 @@ impl ExtensionHandlerInner {
         Ok(())
     }
 
-    // #[tracing::instrument(level = "trace", skip(self))]
+    // #[tracing::instrument(level = "debug", skip(self))]
     // pub async fn listen_command_once(&mut self) {
     //     if let Some(resp) = &self.main_command_rx.recv().await {
     //         tracing::debug!("Got command {:?}", resp);

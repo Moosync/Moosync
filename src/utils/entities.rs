@@ -21,7 +21,7 @@ use types::entities::QueryableArtist;
 
 use crate::store::ui_store::{PlaylistSortBy, PlaylistSortByColumns, UiStore};
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 fn sort_by_name() {
     let ui_store: RwSignal<UiStore> = expect_context();
     ui_store.update(|ui_store| {
@@ -32,7 +32,7 @@ fn sort_by_name() {
     });
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 fn sort_by_provider() {
     let ui_store: RwSignal<UiStore> = expect_context();
     ui_store.update(|ui_store| {
@@ -43,7 +43,7 @@ fn sort_by_provider() {
     });
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 pub fn get_playlist_sort_cx_items<T>() -> Vec<ContextMenuItemInner<T>>
 where
     T: Send + Sync,
@@ -54,7 +54,7 @@ where
     ]
 }
 
-#[tracing::instrument(level = "trace", skip(artists))]
+#[tracing::instrument(level = "debug", skip(artists))]
 pub fn get_artist_string(artists: Option<Vec<QueryableArtist>>) -> String {
     artists
         .map(|a| a.iter().filter_map(|a| a.artist_name.clone()).join(", "))

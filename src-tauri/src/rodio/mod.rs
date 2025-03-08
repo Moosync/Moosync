@@ -22,7 +22,7 @@ use rodio_player::RodioPlayer;
 use tauri::{AppHandle, Emitter, Manager, State};
 use types::errors::Result;
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 pub fn get_rodio_state(app: AppHandle) -> RodioPlayer {
     let cache_dir = app.path().app_cache_dir().unwrap();
     let rodio_player = RodioPlayer::new(cache_dir);
@@ -42,7 +42,7 @@ pub fn get_rodio_state(app: AppHandle) -> RodioPlayer {
     rodio_player
 }
 
-#[tracing::instrument(level = "trace", skip(app, src))]
+#[tracing::instrument(level = "debug", skip(app, src))]
 #[tauri::command(async)]
 #[tauri_invoke_proc::parse_tauri_command]
 pub fn rodio_load(app: AppHandle, src: String) -> Result<()> {

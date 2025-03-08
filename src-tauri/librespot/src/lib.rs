@@ -49,7 +49,7 @@ pub struct ConfigHolder {
 }
 
 impl Debug for ConfigHolder {
-    #[tracing::instrument(level = "trace", skip(self, f))]
+    #[tracing::instrument(level = "debug", skip(self, f))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ConfigHolder")
             .field("credentials", &self.credentials)
@@ -65,7 +65,7 @@ macro_rules! generate_methods {
     ($struct_name:ident, $($method_name:ident($($arg:ident: $arg_type:ty),*) -> $return_type:ty),*) => {
         impl $struct_name {
             $(
-                #[tracing::instrument(level = "trace", skip(self))]
+                #[tracing::instrument(level = "debug", skip(self))]
                 pub fn $method_name(&self, $($arg : $arg_type),*) -> Result<$return_type> {
                     self.check_initialized()?;
                     let mut instance = self.instance.lock().unwrap();
@@ -89,7 +89,7 @@ pub struct LibrespotHolder {
 }
 
 impl LibrespotHolder {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
         #[cfg(desktop)]
         {
@@ -158,7 +158,7 @@ impl LibrespotHolder {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn check_initialized(&self) -> Result<()> {
         if let Some(instance) = &mut *self.instance.lock().unwrap() {
             let device_id = instance.get_device_id();
@@ -171,7 +171,7 @@ impl LibrespotHolder {
         Err("Librespot not initialized".into())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_events_channel(&self) -> Result<Arc<Mutex<mpsc::Receiver<PlayerEvent>>>> {
         let instance_lock = self.instance.lock().unwrap();
 
@@ -183,7 +183,7 @@ impl LibrespotHolder {
         Err(MoosyncError::String("Not initialized".to_string()))
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn register_event(&self, event_name: String) -> Result<()> {
         let mut events = REGISTERED_EVENTS.lock().unwrap();
         events.push(event_name.clone());

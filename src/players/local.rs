@@ -69,7 +69,7 @@ pub struct LocalPlayer {
 }
 
 impl std::fmt::Debug for LocalPlayer {
-    #[tracing::instrument(level = "trace", skip(self, f))]
+    #[tracing::instrument(level = "debug", skip(self, f))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("LocalPlayer")
             .field("audio_element", &self.audio_element.tag_name())
@@ -78,7 +78,7 @@ impl std::fmt::Debug for LocalPlayer {
 }
 
 impl LocalPlayer {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
         let node_ref = NodeRef::new();
 
@@ -109,7 +109,7 @@ impl LocalPlayer {
 }
 
 impl GenericPlayer for LocalPlayer {
-    #[tracing::instrument(level = "trace", skip(self, player_container))]
+    #[tracing::instrument(level = "debug", skip(self, player_container))]
     fn initialize(&self, player_container: NodeRef<Div>) {
         let node_ref = self.node_ref;
         player_container.on_load(move |elem| {
@@ -121,12 +121,12 @@ impl GenericPlayer for LocalPlayer {
         tracing::debug!("Returning from local player initialize")
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn key(&self) -> String {
         "local".into()
     }
 
-    #[tracing::instrument(level = "trace", skip(self, src, resolver))]
+    #[tracing::instrument(level = "debug", skip(self, src, resolver))]
     fn load(&self, src: String, autoplay: bool, resolver: OneShotSender<()>) {
         let mut src = convert_file_src(src);
         tracing::debug!("Loading audio {}", src);
@@ -148,7 +148,7 @@ impl GenericPlayer for LocalPlayer {
         });
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn play(&self) -> Result<()> {
         let promise = self.audio_element.play()?;
         let event_tx = self.event_tx.clone();
@@ -165,13 +165,13 @@ impl GenericPlayer for LocalPlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn pause(&self) -> Result<()> {
         self.audio_element.pause()?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn provides(&self) -> &[SongType] {
         &[
             SongType::LOCAL,
@@ -181,18 +181,18 @@ impl GenericPlayer for LocalPlayer {
         ]
     }
 
-    #[tracing::instrument(level = "trace", skip(self, volume))]
+    #[tracing::instrument(level = "debug", skip(self, volume))]
     fn set_volume(&self, volume: f64) -> Result<()> {
         self.audio_element.set_volume(volume / 100f64);
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn get_volume(&self) -> Result<f64> {
         Ok(self.audio_element.volume())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, tx))]
+    #[tracing::instrument(level = "debug", skip(self, tx))]
     fn add_listeners(&mut self, tx: Rc<Box<dyn Fn(PlayerEvents)>>) {
         self.listen_onplay(tx.clone());
         self.listen_onpause(tx.clone());
@@ -204,12 +204,12 @@ impl GenericPlayer for LocalPlayer {
         self.event_tx = Some(tx)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, pos))]
+    #[tracing::instrument(level = "debug", skip(self, pos))]
     fn seek(&self, pos: f64) -> Result<()> {
         Ok(self.audio_element.fast_seek(pos)?)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, song))]
+    #[tracing::instrument(level = "debug", skip(self, song))]
     fn can_play(&self, song: &types::songs::Song) -> bool {
         let playback_url = song
             .song
@@ -227,7 +227,7 @@ impl GenericPlayer for LocalPlayer {
         false
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn stop(&mut self) -> Result<()> {
         self.pause()?;
         self.audio_element.set_src_object(None);

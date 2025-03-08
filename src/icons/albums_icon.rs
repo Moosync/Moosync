@@ -16,7 +16,7 @@
 
 use leptos::{component, prelude::*, view, IntoView};
 
-#[tracing::instrument(level = "trace", skip(active))]
+#[tracing::instrument(level = "debug", skip(active))]
 #[component]
 pub fn AlbumsIcon(#[prop()] active: ReadSignal<bool>) -> impl IntoView {
     view! {

@@ -39,7 +39,7 @@ struct SearchQuery {
     q: Option<String>,
 }
 
-#[tracing::instrument(level = "trace", skip(keys, selected, single_select))]
+#[tracing::instrument(level = "debug", skip(keys, selected, single_select))]
 #[component()]
 pub fn TabCarousel(
     #[prop()] keys: Vec<String>,
@@ -223,7 +223,7 @@ pub fn TabCarousel(
     }
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component()]
 pub fn Search() -> impl IntoView {
     let query = use_query::<SearchQuery>();

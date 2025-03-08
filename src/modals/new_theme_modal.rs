@@ -39,7 +39,7 @@ use types::{
 
 use crate::modals::common::GenericModal;
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView {
     let state = RwSignal::new(initial_state);

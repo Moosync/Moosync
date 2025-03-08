@@ -43,7 +43,7 @@ pub struct Tab {
 }
 
 impl Tab {
-    #[tracing::instrument(level = "trace", skip(title, icon, url))]
+    #[tracing::instrument(level = "debug", skip(title, icon, url))]
     pub fn new(title: &str, icon: &str, url: &str) -> Self {
         let icon = match icon {
             "Queue" => |active| QueueIcon(QueueIconProps { active }).into_any(),
@@ -110,7 +110,7 @@ fn TabItem(
     }
 }
 
-#[tracing::instrument(level = "trace", skip(tabs))]
+#[tracing::instrument(level = "debug", skip(tabs))]
 #[component]
 pub fn Sidebar(#[prop()] tabs: Vec<Tab>) -> impl IntoView {
     let mut active_write_signals = vec![];

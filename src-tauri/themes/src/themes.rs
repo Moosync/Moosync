@@ -41,7 +41,7 @@ pub struct ThemeHolder {
 }
 
 impl ThemeHolder {
-    #[tracing::instrument(level = "trace", skip(theme_dir, tmp_dir))]
+    #[tracing::instrument(level = "debug", skip(theme_dir, tmp_dir))]
     pub fn new(theme_dir: PathBuf, tmp_dir: PathBuf, change_tx: Sender<String>) -> Self {
         Self {
             theme_dir,
@@ -97,7 +97,7 @@ impl ThemeHolder {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, theme))]
+    #[tracing::instrument(level = "debug", skip(self, theme))]
     pub fn save_theme(&self, mut theme: ThemeDetails) -> Result<()> {
         if theme.id.is_empty() {
             theme.id = Uuid::new_v4().to_string();
@@ -114,7 +114,7 @@ impl ThemeHolder {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, id))]
+    #[tracing::instrument(level = "debug", skip(self, id))]
     pub fn remove_theme(&self, id: String) -> Result<()> {
         let theme_path = self.theme_dir.join(id.clone());
         if theme_path.exists() {
@@ -137,7 +137,7 @@ impl ThemeHolder {
         Ok(String::new())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, id))]
+    #[tracing::instrument(level = "debug", skip(self, id))]
     pub fn load_theme(&self, id: String) -> Result<ThemeDetails> {
         {
             let mut watchers = self.watchers.lock().unwrap();
@@ -156,7 +156,7 @@ impl ThemeHolder {
         Err(MoosyncError::String("Theme not found".to_string()))
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn load_all_themes(&self) -> Result<HashMap<String, ThemeDetails>> {
         let theme_dir = self.theme_dir.clone();
         let entries = fs::read_dir(theme_dir)?;
@@ -177,7 +177,7 @@ impl ThemeHolder {
         Ok(ret)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, theme_path))]
+    #[tracing::instrument(level = "debug", skip(self, theme_path))]
     pub fn import_theme(&self, theme_path: String) -> Result<()> {
         let extract_dir = self
             .tmp_dir
@@ -211,7 +211,7 @@ impl ThemeHolder {
         Err(MoosyncError::String("Failed to parse theme".to_string()))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, id, export_path))]
+    #[tracing::instrument(level = "debug", skip(self, id, export_path))]
     pub fn export_theme(&self, id: String, export_path: PathBuf) -> Result<()> {
         let mut export_path = export_path.clone();
         export_path.set_extension("mstx");

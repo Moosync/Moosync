@@ -20,7 +20,7 @@ use crate::{
     modals::common::GenericModal, store::modal_store::ModalStore, utils::invoke::provider_signout,
 };
 
-#[tracing::instrument(level = "trace", skip(key, account_id, name))]
+#[tracing::instrument(level = "debug", skip(key, account_id, name))]
 #[component]
 pub fn SignoutModal(#[prop()] key: String, account_id: String, name: String) -> impl IntoView {
     let modal_store: RwSignal<ModalStore> = expect_context();

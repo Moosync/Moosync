@@ -32,7 +32,7 @@ pub struct Client {
     pub utc_offset_minutes: i32,
 }
 
-#[tracing::instrument(level = "trace", skip(body))]
+#[tracing::instrument(level = "debug", skip(body))]
 pub fn parse_body(body: &str) -> (Option<Root>, Option<String>, Context) {
     let json = json_after(body, "window[\"ytInitialData\"] = ")
         .or(json_after(body, "var ytInitialData = "));
@@ -74,7 +74,7 @@ pub fn parse_body(body: &str) -> (Option<Root>, Option<String>, Context) {
     )
 }
 
-#[tracing::instrument(level = "trace", skip(haystack, left))]
+#[tracing::instrument(level = "debug", skip(haystack, left))]
 fn json_after(haystack: &str, left: &str) -> Option<String> {
     if let Some(pos) = haystack.find(left) {
         let haystack = &haystack[pos + left.len()..];
@@ -84,7 +84,7 @@ fn json_after(haystack: &str, left: &str) -> Option<String> {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(haystack))]
+#[tracing::instrument(level = "debug", skip(haystack))]
 fn cut_after_json(haystack: &str) -> Option<String> {
     let mut brace_count = 0;
     let mut end_index = 0;
@@ -110,7 +110,7 @@ fn cut_after_json(haystack: &str) -> Option<String> {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(haystack, left, right))]
+#[tracing::instrument(level = "debug", skip(haystack, left, right))]
 fn between(haystack: &str, left: &str, right: &str) -> Option<String> {
     if let Some(pos_left) = haystack.find(left) {
         let haystack = &haystack[pos_left + left.len()..];

@@ -42,7 +42,7 @@ pub struct ThemeDetails {
 }
 
 impl ThemeDetails {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     #[cfg(any(feature = "core", feature = "ui"))]
     pub fn new() -> Self {
         Self {
@@ -53,7 +53,7 @@ impl ThemeDetails {
 }
 
 impl Default for ThemeDetails {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn default() -> Self {
         Self {
             id: "default".into(),

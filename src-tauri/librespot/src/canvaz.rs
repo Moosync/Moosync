@@ -56,19 +56,19 @@ pub struct Artist {
 }
 
 impl<'a> ::std::default::Default for &'a Artist {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn default() -> &'a Artist {
         <Artist as ::protobuf::Message>::default_instance()
     }
 }
 
 impl Artist {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Artist {
         ::std::default::Default::default()
     }
 
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
         let mut fields = ::std::vec::Vec::with_capacity(3);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
@@ -98,12 +98,12 @@ impl Artist {
 impl ::protobuf::Message for Artist {
     const NAME: &'static str = "Artist";
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn is_initialized(&self) -> bool {
         true
     }
 
-    #[tracing::instrument(level = "trace", skip(self, is))]
+    #[tracing::instrument(level = "debug", skip(self, is))]
     fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
         while let Some(tag) = is.read_raw_tag_or_eof()? {
             match tag {
@@ -125,7 +125,7 @@ impl ::protobuf::Message for Artist {
     }
 
     // Compute sizes of nested messages
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     #[allow(unused_variables)]
     fn compute_size(&self) -> u64 {
         let mut my_size = 0;
@@ -143,7 +143,7 @@ impl ::protobuf::Message for Artist {
         my_size
     }
 
-    #[tracing::instrument(level = "trace", skip(self, os))]
+    #[tracing::instrument(level = "debug", skip(self, os))]
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
         if !self.uri.is_empty() {
             os.write_string(1, &self.uri)?;
@@ -158,22 +158,22 @@ impl ::protobuf::Message for Artist {
         ::std::result::Result::Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn special_fields(&self) -> &::protobuf::SpecialFields {
         &self.special_fields
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
         &mut self.special_fields
     }
 
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn new() -> Artist {
         Artist::new()
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn clear(&mut self) {
         self.uri.clear();
         self.name.clear();
@@ -181,7 +181,7 @@ impl ::protobuf::Message for Artist {
         self.special_fields.clear();
     }
 
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn default_instance() -> &'static Artist {
         static instance: Artist = Artist {
             uri: ::std::string::String::new(),
@@ -194,7 +194,7 @@ impl ::protobuf::Message for Artist {
 }
 
 impl ::protobuf::MessageFull for Artist {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
         static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
         descriptor.get(|| file_descriptor().message_by_package_relative_name("Artist").unwrap()).clone()
@@ -202,7 +202,7 @@ impl ::protobuf::MessageFull for Artist {
 }
 
 impl ::std::fmt::Display for Artist {
-    #[tracing::instrument(level = "trace", skip(self, f))]
+    #[tracing::instrument(level = "debug", skip(self, f))]
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
         ::protobuf::text_format::fmt(self, f)
     }
@@ -226,19 +226,19 @@ pub struct EntityCanvazResponse {
 }
 
 impl<'a> ::std::default::Default for &'a EntityCanvazResponse {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn default() -> &'a EntityCanvazResponse {
         <EntityCanvazResponse as ::protobuf::Message>::default_instance()
     }
 }
 
 impl EntityCanvazResponse {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> EntityCanvazResponse {
         ::std::default::Default::default()
     }
 
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
         let mut fields = ::std::vec::Vec::with_capacity(2);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
@@ -263,12 +263,12 @@ impl EntityCanvazResponse {
 impl ::protobuf::Message for EntityCanvazResponse {
     const NAME: &'static str = "EntityCanvazResponse";
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn is_initialized(&self) -> bool {
         true
     }
 
-    #[tracing::instrument(level = "trace", skip(self, is))]
+    #[tracing::instrument(level = "debug", skip(self, is))]
     fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
         while let Some(tag) = is.read_raw_tag_or_eof()? {
             match tag {
@@ -287,7 +287,7 @@ impl ::protobuf::Message for EntityCanvazResponse {
     }
 
     // Compute sizes of nested messages
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     #[allow(unused_variables)]
     fn compute_size(&self) -> u64 {
         let mut my_size = 0;
@@ -303,7 +303,7 @@ impl ::protobuf::Message for EntityCanvazResponse {
         my_size
     }
 
-    #[tracing::instrument(level = "trace", skip(self, os))]
+    #[tracing::instrument(level = "debug", skip(self, os))]
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
         for v in &self.canvases {
             ::protobuf::rt::write_message_field_with_cached_size(1, v, os)?;
@@ -315,29 +315,29 @@ impl ::protobuf::Message for EntityCanvazResponse {
         ::std::result::Result::Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn special_fields(&self) -> &::protobuf::SpecialFields {
         &self.special_fields
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
         &mut self.special_fields
     }
 
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn new() -> EntityCanvazResponse {
         EntityCanvazResponse::new()
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn clear(&mut self) {
         self.canvases.clear();
         self.ttl_in_seconds = 0;
         self.special_fields.clear();
     }
 
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn default_instance() -> &'static EntityCanvazResponse {
         static instance: EntityCanvazResponse = EntityCanvazResponse {
             canvases: ::std::vec::Vec::new(),
@@ -349,7 +349,7 @@ impl ::protobuf::Message for EntityCanvazResponse {
 }
 
 impl ::protobuf::MessageFull for EntityCanvazResponse {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
         static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
         descriptor.get(|| file_descriptor().message_by_package_relative_name("EntityCanvazResponse").unwrap()).clone()
@@ -357,7 +357,7 @@ impl ::protobuf::MessageFull for EntityCanvazResponse {
 }
 
 impl ::std::fmt::Display for EntityCanvazResponse {
-    #[tracing::instrument(level = "trace", skip(self, f))]
+    #[tracing::instrument(level = "debug", skip(self, f))]
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
         ::protobuf::text_format::fmt(self, f)
     }
@@ -401,19 +401,19 @@ pub mod entity_canvaz_response {
     }
 
     impl<'a> ::std::default::Default for &'a Canvaz {
-        #[tracing::instrument(level = "trace", skip())]
+        #[tracing::instrument(level = "debug", skip())]
         fn default() -> &'a Canvaz {
             <Canvaz as ::protobuf::Message>::default_instance()
         }
     }
 
     impl Canvaz {
-        #[tracing::instrument(level = "trace", skip())]
+        #[tracing::instrument(level = "debug", skip())]
         pub fn new() -> Canvaz {
             ::std::default::Default::default()
         }
 
-        #[tracing::instrument(level = "trace", skip())]
+        #[tracing::instrument(level = "debug", skip())]
         pub(in super) fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
             let mut fields = ::std::vec::Vec::with_capacity(11);
             let mut oneofs = ::std::vec::Vec::with_capacity(0);
@@ -483,12 +483,12 @@ pub mod entity_canvaz_response {
     impl ::protobuf::Message for Canvaz {
         const NAME: &'static str = "Canvaz";
 
-        #[tracing::instrument(level = "trace", skip(self))]
+        #[tracing::instrument(level = "debug", skip(self))]
         fn is_initialized(&self) -> bool {
             true
         }
 
-        #[tracing::instrument(level = "trace", skip(self, is))]
+        #[tracing::instrument(level = "debug", skip(self, is))]
         fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
             while let Some(tag) = is.read_raw_tag_or_eof()? {
                 match tag {
@@ -534,7 +534,7 @@ pub mod entity_canvaz_response {
         }
 
         // Compute sizes of nested messages
-        #[tracing::instrument(level = "trace", skip(self))]
+        #[tracing::instrument(level = "debug", skip(self))]
         #[allow(unused_variables)]
         fn compute_size(&self) -> u64 {
             let mut my_size = 0;
@@ -577,7 +577,7 @@ pub mod entity_canvaz_response {
             my_size
         }
 
-        #[tracing::instrument(level = "trace", skip(self, os))]
+        #[tracing::instrument(level = "debug", skip(self, os))]
         fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
             if !self.id.is_empty() {
                 os.write_string(1, &self.id)?;
@@ -616,22 +616,22 @@ pub mod entity_canvaz_response {
             ::std::result::Result::Ok(())
         }
 
-        #[tracing::instrument(level = "trace", skip(self))]
+        #[tracing::instrument(level = "debug", skip(self))]
         fn special_fields(&self) -> &::protobuf::SpecialFields {
             &self.special_fields
         }
 
-        #[tracing::instrument(level = "trace", skip(self))]
+        #[tracing::instrument(level = "debug", skip(self))]
         fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
             &mut self.special_fields
         }
 
-        #[tracing::instrument(level = "trace", skip())]
+        #[tracing::instrument(level = "debug", skip())]
         fn new() -> Canvaz {
             Canvaz::new()
         }
 
-        #[tracing::instrument(level = "trace", skip(self))]
+        #[tracing::instrument(level = "debug", skip(self))]
         fn clear(&mut self) {
             self.id.clear();
             self.url.clear();
@@ -647,7 +647,7 @@ pub mod entity_canvaz_response {
             self.special_fields.clear();
         }
 
-        #[tracing::instrument(level = "trace", skip())]
+        #[tracing::instrument(level = "debug", skip())]
         fn default_instance() -> &'static Canvaz {
             static instance: Canvaz = Canvaz {
                 id: ::std::string::String::new(),
@@ -668,7 +668,7 @@ pub mod entity_canvaz_response {
     }
 
     impl ::protobuf::MessageFull for Canvaz {
-        #[tracing::instrument(level = "trace", skip())]
+        #[tracing::instrument(level = "debug", skip())]
         fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
             static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
             descriptor.get(|| super::file_descriptor().message_by_package_relative_name("EntityCanvazResponse.Canvaz").unwrap()).clone()
@@ -676,7 +676,7 @@ pub mod entity_canvaz_response {
     }
 
     impl ::std::fmt::Display for Canvaz {
-        #[tracing::instrument(level = "trace", skip(self, f))]
+        #[tracing::instrument(level = "debug", skip(self, f))]
         fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
             ::protobuf::text_format::fmt(self, f)
         }
@@ -699,19 +699,19 @@ pub struct EntityCanvazRequest {
 }
 
 impl<'a> ::std::default::Default for &'a EntityCanvazRequest {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn default() -> &'a EntityCanvazRequest {
         <EntityCanvazRequest as ::protobuf::Message>::default_instance()
     }
 }
 
 impl EntityCanvazRequest {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> EntityCanvazRequest {
         ::std::default::Default::default()
     }
 
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
         let mut fields = ::std::vec::Vec::with_capacity(1);
         let mut oneofs = ::std::vec::Vec::with_capacity(0);
@@ -731,12 +731,12 @@ impl EntityCanvazRequest {
 impl ::protobuf::Message for EntityCanvazRequest {
     const NAME: &'static str = "EntityCanvazRequest";
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn is_initialized(&self) -> bool {
         true
     }
 
-    #[tracing::instrument(level = "trace", skip(self, is))]
+    #[tracing::instrument(level = "debug", skip(self, is))]
     fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
         while let Some(tag) = is.read_raw_tag_or_eof()? {
             match tag {
@@ -752,7 +752,7 @@ impl ::protobuf::Message for EntityCanvazRequest {
     }
 
     // Compute sizes of nested messages
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     #[allow(unused_variables)]
     fn compute_size(&self) -> u64 {
         let mut my_size = 0;
@@ -765,7 +765,7 @@ impl ::protobuf::Message for EntityCanvazRequest {
         my_size
     }
 
-    #[tracing::instrument(level = "trace", skip(self, os))]
+    #[tracing::instrument(level = "debug", skip(self, os))]
     fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
         for v in &self.entities {
             ::protobuf::rt::write_message_field_with_cached_size(1, v, os)?;
@@ -774,28 +774,28 @@ impl ::protobuf::Message for EntityCanvazRequest {
         ::std::result::Result::Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn special_fields(&self) -> &::protobuf::SpecialFields {
         &self.special_fields
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
         &mut self.special_fields
     }
 
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn new() -> EntityCanvazRequest {
         EntityCanvazRequest::new()
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn clear(&mut self) {
         self.entities.clear();
         self.special_fields.clear();
     }
 
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn default_instance() -> &'static EntityCanvazRequest {
         static instance: EntityCanvazRequest = EntityCanvazRequest {
             entities: ::std::vec::Vec::new(),
@@ -806,7 +806,7 @@ impl ::protobuf::Message for EntityCanvazRequest {
 }
 
 impl ::protobuf::MessageFull for EntityCanvazRequest {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
         static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
         descriptor.get(|| file_descriptor().message_by_package_relative_name("EntityCanvazRequest").unwrap()).clone()
@@ -814,7 +814,7 @@ impl ::protobuf::MessageFull for EntityCanvazRequest {
 }
 
 impl ::std::fmt::Display for EntityCanvazRequest {
-    #[tracing::instrument(level = "trace", skip(self, f))]
+    #[tracing::instrument(level = "debug", skip(self, f))]
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
         ::protobuf::text_format::fmt(self, f)
     }
@@ -840,19 +840,19 @@ pub mod entity_canvaz_request {
     }
 
     impl<'a> ::std::default::Default for &'a Entity {
-        #[tracing::instrument(level = "trace", skip())]
+        #[tracing::instrument(level = "debug", skip())]
         fn default() -> &'a Entity {
             <Entity as ::protobuf::Message>::default_instance()
         }
     }
 
     impl Entity {
-        #[tracing::instrument(level = "trace", skip())]
+        #[tracing::instrument(level = "debug", skip())]
         pub fn new() -> Entity {
             ::std::default::Default::default()
         }
 
-        #[tracing::instrument(level = "trace", skip())]
+        #[tracing::instrument(level = "debug", skip())]
         pub(in super) fn generated_message_descriptor_data() -> ::protobuf::reflect::GeneratedMessageDescriptorData {
             let mut fields = ::std::vec::Vec::with_capacity(2);
             let mut oneofs = ::std::vec::Vec::with_capacity(0);
@@ -877,12 +877,12 @@ pub mod entity_canvaz_request {
     impl ::protobuf::Message for Entity {
         const NAME: &'static str = "Entity";
 
-        #[tracing::instrument(level = "trace", skip(self))]
+        #[tracing::instrument(level = "debug", skip(self))]
         fn is_initialized(&self) -> bool {
             true
         }
 
-        #[tracing::instrument(level = "trace", skip(self, is))]
+        #[tracing::instrument(level = "debug", skip(self, is))]
         fn merge_from(&mut self, is: &mut ::protobuf::CodedInputStream<'_>) -> ::protobuf::Result<()> {
             while let Some(tag) = is.read_raw_tag_or_eof()? {
                 match tag {
@@ -901,7 +901,7 @@ pub mod entity_canvaz_request {
         }
 
         // Compute sizes of nested messages
-        #[tracing::instrument(level = "trace", skip(self))]
+        #[tracing::instrument(level = "debug", skip(self))]
         #[allow(unused_variables)]
         fn compute_size(&self) -> u64 {
             let mut my_size = 0;
@@ -916,7 +916,7 @@ pub mod entity_canvaz_request {
             my_size
         }
 
-        #[tracing::instrument(level = "trace", skip(self, os))]
+        #[tracing::instrument(level = "debug", skip(self, os))]
         fn write_to_with_cached_sizes(&self, os: &mut ::protobuf::CodedOutputStream<'_>) -> ::protobuf::Result<()> {
             if !self.entity_uri.is_empty() {
                 os.write_string(1, &self.entity_uri)?;
@@ -928,29 +928,29 @@ pub mod entity_canvaz_request {
             ::std::result::Result::Ok(())
         }
 
-        #[tracing::instrument(level = "trace", skip(self))]
+        #[tracing::instrument(level = "debug", skip(self))]
         fn special_fields(&self) -> &::protobuf::SpecialFields {
             &self.special_fields
         }
 
-        #[tracing::instrument(level = "trace", skip(self))]
+        #[tracing::instrument(level = "debug", skip(self))]
         fn mut_special_fields(&mut self) -> &mut ::protobuf::SpecialFields {
             &mut self.special_fields
         }
 
-        #[tracing::instrument(level = "trace", skip())]
+        #[tracing::instrument(level = "debug", skip())]
         fn new() -> Entity {
             Entity::new()
         }
 
-        #[tracing::instrument(level = "trace", skip(self))]
+        #[tracing::instrument(level = "debug", skip(self))]
         fn clear(&mut self) {
             self.entity_uri.clear();
             self.etag.clear();
             self.special_fields.clear();
         }
 
-        #[tracing::instrument(level = "trace", skip())]
+        #[tracing::instrument(level = "debug", skip())]
         fn default_instance() -> &'static Entity {
             static instance: Entity = Entity {
                 entity_uri: ::std::string::String::new(),
@@ -962,7 +962,7 @@ pub mod entity_canvaz_request {
     }
 
     impl ::protobuf::MessageFull for Entity {
-        #[tracing::instrument(level = "trace", skip())]
+        #[tracing::instrument(level = "debug", skip())]
         fn descriptor() -> ::protobuf::reflect::MessageDescriptor {
             static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::MessageDescriptor> = ::protobuf::rt::Lazy::new();
             descriptor.get(|| super::file_descriptor().message_by_package_relative_name("EntityCanvazRequest.Entity").unwrap()).clone()
@@ -970,7 +970,7 @@ pub mod entity_canvaz_request {
     }
 
     impl ::std::fmt::Display for Entity {
-        #[tracing::instrument(level = "trace", skip(self, f))]
+        #[tracing::instrument(level = "debug", skip(self, f))]
         fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
             ::protobuf::text_format::fmt(self, f)
         }
@@ -999,12 +999,12 @@ pub enum Type {
 impl ::protobuf::Enum for Type {
     const NAME: &'static str = "Type";
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn value(&self) -> i32 {
         *self as i32
     }
 
-    #[tracing::instrument(level = "trace", skip(value))]
+    #[tracing::instrument(level = "debug", skip(value))]
     fn from_i32(value: i32) -> ::std::option::Option<Type> {
         match value {
             0 => ::std::option::Option::Some(Type::IMAGE),
@@ -1024,20 +1024,20 @@ impl ::protobuf::Enum for Type {
         Type::GIF,
     ];
 
-    #[tracing::instrument(level = "trace", skip(_s))]
+    #[tracing::instrument(level = "debug", skip(_s))]
     fn from_str(_s: &str) -> Option<Self> {
         Some(Self::VIDEO)
     }
 }
 
 impl ::protobuf::EnumFull for Type {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn enum_descriptor() -> ::protobuf::reflect::EnumDescriptor {
         static descriptor: ::protobuf::rt::Lazy<::protobuf::reflect::EnumDescriptor> = ::protobuf::rt::Lazy::new();
         descriptor.get(|| file_descriptor().enum_by_package_relative_name("Type").unwrap()).clone()
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn descriptor(&self) -> ::protobuf::reflect::EnumValueDescriptor {
         let index = *self as usize;
         Self::enum_descriptor().value_by_index(index)
@@ -1045,14 +1045,14 @@ impl ::protobuf::EnumFull for Type {
 }
 
 impl ::std::default::Default for Type {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn default() -> Self {
         Type::IMAGE
     }
 }
 
 impl Type {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     fn generated_enum_descriptor_data() -> ::protobuf::reflect::GeneratedEnumDescriptorData {
         ::protobuf::reflect::GeneratedEnumDescriptorData::new::<Type>("Type")
     }
@@ -1162,7 +1162,7 @@ static file_descriptor_proto_data: &'static [u8] = b"\
     \x13b\x06proto3\
 ";
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 /// `FileDescriptorProto` object which was a source for this generated file
 fn file_descriptor_proto() -> &'static ::protobuf::descriptor::FileDescriptorProto {
     static file_descriptor_proto_lazy: ::protobuf::rt::Lazy<::protobuf::descriptor::FileDescriptorProto> = ::protobuf::rt::Lazy::new();
@@ -1171,7 +1171,7 @@ fn file_descriptor_proto() -> &'static ::protobuf::descriptor::FileDescriptorPro
     })
 }
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 /// `FileDescriptor` object which allows dynamic access to files
 pub fn file_descriptor() -> &'static ::protobuf::reflect::FileDescriptor {
     static generated_file_descriptor_lazy: ::protobuf::rt::Lazy<::protobuf::reflect::GeneratedFileDescriptor> = ::protobuf::rt::Lazy::new();

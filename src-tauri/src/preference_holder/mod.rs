@@ -41,7 +41,7 @@ const UI_KEYS: &[&str] = &[
     "prefs.i18n_language",
 ];
 
-#[tracing::instrument(level = "trace", skip(app))]
+#[tracing::instrument(level = "debug", skip(app))]
 pub fn handle_pref_changes(app: AppHandle) {
     async_runtime::spawn(async move {
         let pref_config: State<PreferenceConfig> = app.state::<PreferenceConfig>();
@@ -108,13 +108,13 @@ pub fn handle_pref_changes(app: AppHandle) {
     });
 }
 
-#[tracing::instrument(level = "trace", skip(app))]
+#[tracing::instrument(level = "debug", skip(app))]
 pub fn get_preference_state(app: &mut App) -> Result<PreferenceConfig> {
     let data_dir = app.path().app_config_dir()?;
     PreferenceConfig::new(data_dir)
 }
 
-#[tracing::instrument(level = "trace", skip(app))]
+#[tracing::instrument(level = "debug", skip(app))]
 pub fn initial(app: &mut App) {
     let pref_config: State<PreferenceConfig> = app.state();
     if !pref_config.has_key("thumbnail_path") {

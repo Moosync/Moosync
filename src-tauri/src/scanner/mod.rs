@@ -26,12 +26,12 @@ use preferences::preferences::PreferenceConfig;
 use tauri::{AppHandle, Manager, State};
 use types::{errors::Result, songs::Song};
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 pub fn get_scanner_state() -> ScannerHolder {
     ScannerHolder::new()
 }
 
-#[tracing::instrument(level = "trace", skip(preferences))]
+#[tracing::instrument(level = "debug", skip(preferences))]
 fn get_scan_paths(preferences: &State<PreferenceConfig>) -> Result<Vec<String>> {
     let tmp: Vec<String> = preferences.load_selective("music_paths".to_string())?;
 
@@ -77,7 +77,7 @@ impl ScanTask {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(app, paths))]
+#[tracing::instrument(level = "debug", skip(app, paths))]
 #[tauri_invoke_proc::parse_tauri_command]
 #[tauri::command(async)]
 pub fn start_scan(app: AppHandle, paths: Option<Vec<String>>) -> Result<()> {

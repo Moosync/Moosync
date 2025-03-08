@@ -16,7 +16,7 @@
 
 use leptos::{component, prelude::*, view, IntoView};
 
-#[tracing::instrument(level = "trace", skip(class))]
+#[tracing::instrument(level = "debug", skip(class))]
 #[component]
 pub fn FavPlaylistIcon(#[prop()] class: impl Into<String>) -> impl IntoView {
     view! {

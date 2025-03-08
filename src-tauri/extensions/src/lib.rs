@@ -61,7 +61,7 @@ pub struct ExtensionHandler {
 }
 
 impl ExtensionHandler {
-    #[tracing::instrument(level = "trace", skip(extensions_dir, tmp_dir))]
+    #[tracing::instrument(level = "debug", skip(extensions_dir, tmp_dir))]
     pub fn new(
         extensions_dir: PathBuf,
         tmp_dir: PathBuf,
@@ -117,7 +117,7 @@ impl ExtensionHandler {
         });
     }
 
-    #[tracing::instrument(level = "trace", skip(self, ext_path))]
+    #[tracing::instrument(level = "debug", skip(self, ext_path))]
     fn get_extension_version(&self, ext_path: PathBuf) -> Result<String> {
         let manifest_path = ext_path.join("package.json");
         if manifest_path.exists() {
@@ -130,14 +130,14 @@ impl ExtensionHandler {
         Err(MoosyncError::String("No extension found".into()))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, version))]
+    #[tracing::instrument(level = "debug", skip(self, version))]
     fn get_ext_version(&self, version: String) -> Result<u64> {
         Ok(u64::from_str(
             &version.split('.').collect::<Vec<&str>>().join(""),
         )?)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, ext_path))]
+    #[tracing::instrument(level = "debug", skip(self, ext_path))]
     pub async fn install_extension(&self, ext_path: String) -> Result<()> {
         tracing::debug!("ext path {}", ext_path);
         let ext_path =
@@ -207,7 +207,7 @@ impl ExtensionHandler {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, package_name))]
+    #[tracing::instrument(level = "debug", skip(self, package_name))]
     pub async fn remove_extension(&self, package_name: String) -> Result<()> {
         let ext_path = self.extensions_dir.join(package_name.clone());
         if ext_path.exists() {
@@ -221,7 +221,7 @@ impl ExtensionHandler {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, fetched_ext))]
+    #[tracing::instrument(level = "debug", skip(self, fetched_ext))]
     pub async fn download_extension(&self, fetched_ext: FetchedExtensionManifest) -> Result<()> {
         let parsed_url = fetched_ext.url;
         let file_path = self.tmp_dir.join(format!(
@@ -264,7 +264,7 @@ impl ExtensionHandler {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn get_installed_extensions(&self) -> Result<Vec<ExtensionDetail>> {
         let mut inner = self.inner.lock().await;
         let ret = inner
@@ -369,7 +369,7 @@ impl ExtensionHandler {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn get_extension_manifest(&self) -> Result<Vec<FetchedExtensionManifest>> {
         #[derive(serde::Deserialize, Debug, Clone)]
         struct GithubReleaseAsset {

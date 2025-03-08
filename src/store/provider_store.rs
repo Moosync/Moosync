@@ -40,7 +40,7 @@ pub struct ProviderStore {
 }
 
 impl ProviderStore {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
         tracing::debug!("Creating provider store");
         let store = Self::default();
@@ -106,17 +106,17 @@ impl ProviderStore {
         store
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_all_statuses(&self) -> RwSignal<Vec<ProviderStatus>> {
         self.statuses
     }
 
-    #[tracing::instrument(level = "trace", skip(self, id))]
+    #[tracing::instrument(level = "debug", skip(self, id))]
     pub async fn get_provider_key_by_id(&self, id: String) -> Result<String> {
         get_provider_key_by_id(id).await
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_provider_keys(&self, scope: ExtensionProviderScope) -> Vec<String> {
         self.statuses
             .get_untracked()

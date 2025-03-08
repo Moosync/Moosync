@@ -37,7 +37,7 @@ pub struct MprisHolder {
 }
 
 impl MprisHolder {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Result<MprisHolder> {
         let (event_tx, event_rx) = mpsc::channel();
         Ok(MprisHolder {
@@ -80,7 +80,7 @@ impl MprisHolder {
         *app_handle = Some(app)
     }
 
-    #[tracing::instrument(level = "trace", skip(self, metadata))]
+    #[tracing::instrument(level = "debug", skip(self, metadata))]
     pub fn set_metadata(&self, mut metadata: MprisPlayerDetails) -> Result<()> {
         let app = self.app_handle.lock().unwrap();
         if let Some(app) = app.as_ref() {
@@ -92,7 +92,7 @@ impl MprisHolder {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, state))]
+    #[tracing::instrument(level = "debug", skip(self, state))]
     pub fn set_playback_state(&self, state: PlayerState) -> Result<()> {
         let app = self.app_handle.lock().unwrap();
         if let Some(app) = app.as_ref() {
@@ -107,7 +107,7 @@ impl MprisHolder {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, duration))]
+    #[tracing::instrument(level = "debug", skip(self, duration))]
     pub fn set_position(&self, duration: f64) -> Result<()> {
         let app = self.app_handle.lock().unwrap();
         if let Some(app) = app.as_ref() {

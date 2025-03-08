@@ -21,7 +21,7 @@ use quote::quote;
 use syn::{parse_macro_input, LitStr};
 use types::preferences::{InputType, PreferenceTypes, PreferenceUIData, PreferenceUIFile};
 
-#[tracing::instrument(level = "trace", skip(path_lit))]
+#[tracing::instrument(level = "debug", skip(path_lit))]
 fn get_path(path_lit: String) -> proc_macro2::TokenStream {
     let path_parts: Vec<syn::Ident> = path_lit
         .split('.')
@@ -40,7 +40,7 @@ fn get_path(path_lit: String) -> proc_macro2::TokenStream {
     access
 }
 
-#[tracing::instrument(level = "trace", skip(input))]
+#[tracing::instrument(level = "debug", skip(input))]
 #[proc_macro]
 pub fn generate_components(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as LitStr);
@@ -59,7 +59,7 @@ pub fn generate_components(input: TokenStream) -> TokenStream {
     TokenStream::from(components)
 }
 
-#[tracing::instrument(level = "trace", skip(config))]
+#[tracing::instrument(level = "debug", skip(config))]
 fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
     let mut ret = vec![];
     let mut tabs = vec![];
@@ -166,7 +166,7 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
     }
 }
 
-#[tracing::instrument(level = "trace", skip(data))]
+#[tracing::instrument(level = "debug", skip(data))]
 fn generate_children(data: &[PreferenceUIData]) -> Vec<(syn::Ident, proc_macro2::TokenStream)> {
     let mut ret = vec![];
 
@@ -190,7 +190,7 @@ fn generate_children(data: &[PreferenceUIData]) -> Vec<(syn::Ident, proc_macro2:
     ret
 }
 
-#[tracing::instrument(level = "trace", skip(data))]
+#[tracing::instrument(level = "debug", skip(data))]
 fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
     let mobile = data.mobile.unwrap_or(true);
@@ -251,7 +251,7 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
     (fn_name, stream)
 }
 
-#[tracing::instrument(level = "trace", skip(data))]
+#[tracing::instrument(level = "debug", skip(data))]
 fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
     let mobile = data.mobile.unwrap_or(true);
@@ -289,7 +289,7 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
     (fn_name, stream)
 }
 
-#[tracing::instrument(level = "trace", skip(data))]
+#[tracing::instrument(level = "debug", skip(data))]
 fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
     let mobile = data.mobile.unwrap_or(true);
@@ -316,7 +316,7 @@ fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
     (fn_name, stream)
 }
 
-#[tracing::instrument(level = "trace", skip(data))]
+#[tracing::instrument(level = "debug", skip(data))]
 fn generate_themes(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
 
@@ -343,7 +343,7 @@ fn generate_themes(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenSt
     (fn_name, stream)
 }
 
-#[tracing::instrument(level = "trace", skip(data))]
+#[tracing::instrument(level = "debug", skip(data))]
 fn generate_extensions(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
     let name = get_path(data.title.clone());
 
@@ -370,7 +370,7 @@ fn generate_extensions(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Tok
     (fn_name, stream)
 }
 
-#[tracing::instrument(level = "trace", skip(data))]
+#[tracing::instrument(level = "debug", skip(data))]
 fn generate_dropdowns(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
     let name = get_path(data.title.clone());
     let key = data.key.clone();

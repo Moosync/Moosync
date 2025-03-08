@@ -24,12 +24,12 @@ use macros::{generate_command, generate_command_cached};
 use tauri::{AppHandle, Emitter, Manager, State};
 use types::{canvaz::CanvazResponse, errors::Result};
 
-#[tracing::instrument(level = "trace", skip())]
+#[tracing::instrument(level = "debug", skip())]
 pub fn get_librespot_state() -> LibrespotHolder {
     LibrespotHolder::new()
 }
 
-#[tracing::instrument(level = "trace", skip(app))]
+#[tracing::instrument(level = "debug", skip(app))]
 #[tauri::command()]
 // #[cfg(desktop)]
 pub fn initialize_librespot(app: AppHandle, access_token: String) -> Result<()> {

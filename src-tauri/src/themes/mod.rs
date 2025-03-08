@@ -23,7 +23,7 @@ use types::{errors::Result, themes::ThemeDetails};
 
 use crate::window::handler::WindowHandler;
 
-#[tracing::instrument(level = "trace", skip(app))]
+#[tracing::instrument(level = "debug", skip(app))]
 pub fn get_theme_handler_state(app: &mut App) -> ThemeHolder {
     let path = app.path().app_local_data_dir().unwrap().join("themes");
     if !path.exists() {
@@ -46,7 +46,7 @@ pub fn get_theme_handler_state(app: &mut App) -> ThemeHolder {
     ThemeHolder::new(path, tmp_dir, tx)
 }
 
-#[tracing::instrument(level = "trace", skip(app, theme_handler, window_handler))]
+#[tracing::instrument(level = "debug", skip(app, theme_handler, window_handler))]
 #[tauri::command(async)]
 #[tauri_invoke_proc::parse_tauri_command]
 pub fn export_theme(

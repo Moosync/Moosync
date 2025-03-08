@@ -87,7 +87,7 @@ enum DumpType {
 }
 
 impl PlayerStore {
-    #[tracing::instrument(level = "trace", skip())]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> RwSignal<Self> {
         // let db_rc = Arc::new(Mutex::new(None));
         // let db_rc_clone = db_rc.clone();
@@ -110,67 +110,67 @@ impl PlayerStore {
         signal
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_current_song(&self) -> Option<Song> {
         self.data.current_song.clone()
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_queue(&self) -> Queue {
         self.data.queue.clone()
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_player_state(&self) -> PlayerState {
         self.data.player_details.state
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_queue_len(&self) -> usize {
         self.data.queue.song_queue.len()
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_queue_index(&self) -> usize {
         self.data.queue.current_index
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_force_load(&self) -> bool {
         self.data.force_load_song
     }
 
-    #[tracing::instrument(level = "trace", skip(self, has_repeated))]
+    #[tracing::instrument(level = "debug", skip(self, has_repeated))]
     pub fn set_has_repeated(&mut self, has_repeated: bool) {
         self.data.player_details.has_repeated = has_repeated;
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_has_repeated(&self) -> bool {
         self.data.player_details.has_repeated
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_repeat(&self) -> RepeatModes {
         self.data.player_details.repeat
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_force_seek(&self) -> f64 {
         self.data.player_details.force_seek
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_current_time(&self) -> f64 {
         self.data.player_details.current_time
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_player_blacklist(&self) -> Vec<String> {
         self.data.player_blacklist.clone()
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn update_current_song(&mut self, force: bool) {
         self.data.player_details.last_song_played_duration = self.data.player_details.current_time;
         self.data.player_details.last_song =
@@ -211,13 +211,13 @@ impl PlayerStore {
         self.dump_store(&[DumpType::CurrentIndex, DumpType::PlayerState]);
     }
 
-    #[tracing::instrument(level = "trace", skip(self, songs))]
+    #[tracing::instrument(level = "debug", skip(self, songs))]
     pub fn add_to_queue(&mut self, songs: Vec<Song>) {
         self.add_to_queue_at_index(songs, self.data.queue.song_queue.len());
         self.update_current_song(false);
     }
 
-    #[tracing::instrument(level = "trace", skip(self, songs, index))]
+    #[tracing::instrument(level = "debug", skip(self, songs, index))]
     fn add_to_queue_at_index(&mut self, songs: Vec<Song>, index: usize) {
         let mut index = index;
         for song in songs {
@@ -228,14 +228,14 @@ impl PlayerStore {
         self.dump_store(&[DumpType::QueueData, DumpType::SongQueue]);
     }
 
-    #[tracing::instrument(level = "trace", skip(self, index))]
+    #[tracing::instrument(level = "debug", skip(self, index))]
     pub fn remove_from_queue(&mut self, index: usize) {
         self.data.queue.song_queue.remove(index);
 
         self.dump_store(&[DumpType::SongQueue, DumpType::QueueData]);
     }
 
-    #[tracing::instrument(level = "trace", skip(self, song, index))]
+    #[tracing::instrument(level = "debug", skip(self, song, index))]
     fn insert_song_at_index(&mut self, song: Song, index: usize, dump: bool) {
         let song_id = song.song._id.clone().unwrap();
         self.data.queue.data.insert(song_id.clone(), song);
@@ -247,7 +247,7 @@ impl PlayerStore {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, song))]
+    #[tracing::instrument(level = "debug", skip(self, song))]
     pub fn play_now(&mut self, song: Song) {
         self.set_state(PlayerState::Playing);
         self.insert_song_at_index(song, self.data.queue.current_index + 1, true);
@@ -255,7 +255,7 @@ impl PlayerStore {
         self.update_current_song(true);
     }
 
-    #[tracing::instrument(level = "trace", skip(self, songs))]
+    #[tracing::instrument(level = "debug", skip(self, songs))]
     pub fn play_now_multiple(&mut self, songs: Vec<Song>) {
         if songs.is_empty() {
             return;
@@ -271,12 +271,12 @@ impl PlayerStore {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, song))]
+    #[tracing::instrument(level = "debug", skip(self, song))]
     pub fn play_next(&mut self, song: Song) {
         self.insert_song_at_index(song, self.data.queue.current_index + 1, true);
     }
 
-    #[tracing::instrument(level = "trace", skip(self, songs))]
+    #[tracing::instrument(level = "debug", skip(self, songs))]
     pub fn play_next_multiple(&mut self, songs: Vec<Song>) {
         if songs.is_empty() {
             return;
@@ -292,13 +292,13 @@ impl PlayerStore {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self, new_index))]
+    #[tracing::instrument(level = "debug", skip(self, new_index))]
     pub fn change_index(&mut self, new_index: usize, force: bool) {
         self.data.queue.current_index = new_index;
         self.update_current_song(force);
     }
 
-    #[tracing::instrument(level = "trace", skip(self, new_time))]
+    #[tracing::instrument(level = "debug", skip(self, new_time))]
     pub fn update_time(&mut self, new_time: f64) {
         self.scrobble_time += 0f64.max(new_time - self.data.player_details.current_time);
         self.data.player_details.current_time = new_time;
@@ -313,12 +313,12 @@ impl PlayerStore {
         set_position(new_time);
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_time(&self) -> f64 {
         self.data.player_details.current_time
     }
 
-    #[tracing::instrument(level = "trace", skip(self, new_time))]
+    #[tracing::instrument(level = "debug", skip(self, new_time))]
     pub fn force_seek_percent(&mut self, new_time: f64) {
         let new_time = if let Some(current_song) = &self.data.current_song {
             current_song.song.duration.unwrap_or_default() * new_time
@@ -331,13 +331,13 @@ impl PlayerStore {
         // send_extension_event(ExtensionExtraEvent::Seeked([new_time]))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, new_time))]
+    #[tracing::instrument(level = "debug", skip(self, new_time))]
     pub fn force_seek(&mut self, new_time: f64) {
         self.data.player_details.force_seek = new_time;
         // send_extension_event(ExtensionExtraEvent::Seeked([new_time]))
     }
 
-    #[tracing::instrument(level = "trace", skip(self, state))]
+    #[tracing::instrument(level = "debug", skip(self, state))]
     pub fn set_state(&mut self, state: PlayerState) {
         tracing::debug!("Setting player state {:?}", state);
         self.data.player_details.state = state;
@@ -347,7 +347,7 @@ impl PlayerStore {
         send_extension_event(ExtensionExtraEvent::PlayerStateChanged([state]))
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn get_song_key(&self) -> String {
         if let Some(current_song) = &self.data.current_song {
             return current_song
@@ -359,7 +359,7 @@ impl PlayerStore {
         "".to_string()
     }
 
-    #[tracing::instrument(level = "trace", skip(self, volume))]
+    #[tracing::instrument(level = "debug", skip(self, volume))]
     pub fn set_volume(&mut self, volume: f64) {
         if let VolumeMode::PersistSeparate = self.data.player_details.volume_mode {
             let song_key = self.get_song_key();
@@ -385,7 +385,7 @@ impl PlayerStore {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_volume(&self) -> f64 {
         if self.is_mobile {
             return 100f64;
@@ -416,7 +416,7 @@ impl PlayerStore {
         volume
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_raw_volume(&self) -> f64 {
         if let VolumeMode::PersistSeparate = self.data.player_details.volume_mode {
             let song_key = self.get_song_key();
@@ -429,7 +429,7 @@ impl PlayerStore {
         self.data.player_details.volume
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_queue_songs(&self) -> Vec<Song> {
         self.data
             .queue
@@ -446,7 +446,7 @@ impl PlayerStore {
             .collect()
     }
 
-    #[tracing::instrument(level = "trace", skip(self, mode))]
+    #[tracing::instrument(level = "debug", skip(self, mode))]
     pub fn update_volume_mode(&mut self, mode: Vec<CheckboxPreference>) {
         for m in mode {
             if m.enabled {
@@ -463,7 +463,7 @@ impl PlayerStore {
         self.dump_store(&[DumpType::PlayerState]);
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn next_song(&mut self) {
         self.data.queue.current_index += 1;
         if self.data.queue.current_index >= self.data.queue.song_queue.len() {
@@ -472,7 +472,7 @@ impl PlayerStore {
         self.update_current_song(true);
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn prev_song(&mut self) {
         if self.data.queue.current_index == 0 {
             self.data.queue.current_index = self.data.queue.song_queue.len() - 1;
@@ -482,7 +482,7 @@ impl PlayerStore {
         self.update_current_song(false);
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn toggle_repeat(&mut self) {
         let new_mode = match self.data.player_details.repeat {
             RepeatModes::None => RepeatModes::Once,
@@ -494,7 +494,7 @@ impl PlayerStore {
         self.dump_store(&[DumpType::PlayerState]);
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn shuffle_queue(&mut self) {
         let binding = self.data.queue.song_queue.clone();
         let current_song = binding.get(self.data.queue.current_index).unwrap();
@@ -512,14 +512,14 @@ impl PlayerStore {
         self.dump_store(&[DumpType::CurrentIndex, DumpType::SongQueue]);
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn clear_queue(&mut self) {
         self.data.queue.song_queue.clear();
         self.data.queue.current_index = 0;
         self.update_current_song(false);
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn clear_queue_except_current(&mut self) {
         let current_song = self.get_current_song();
 
@@ -537,7 +537,7 @@ impl PlayerStore {
         self.dump_store(&[DumpType::QueueData, DumpType::SongQueue]);
     }
 
-    #[tracing::instrument(level = "trace", skip(self, key))]
+    #[tracing::instrument(level = "debug", skip(self, key))]
     pub fn blacklist_player(&mut self, key: String) {
         if self.data.player_blacklist.contains(&key) {
             return;
@@ -546,7 +546,7 @@ impl PlayerStore {
         self.data.force_load_song = !self.data.force_load_song
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn clear_blacklist(&mut self) {
         self.data.player_blacklist.clear();
     }
@@ -583,7 +583,7 @@ impl PlayerStore {
         });
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     fn dump_store(&self, dump_types: &[DumpType]) {
         let db = Database::open("moosync").build();
 
@@ -621,7 +621,7 @@ impl PlayerStore {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(db, signal))]
+    #[tracing::instrument(level = "debug", skip(db, signal))]
     fn restore_store(signal: RwSignal<Option<PlayerStoreData>>, db: Database) {
         spawn_local(async move {
             let mut restored_data = PlayerStoreData::default();

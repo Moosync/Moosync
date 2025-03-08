@@ -116,7 +116,7 @@ enum MusicInfoState {
     Lyrics,
 }
 
-#[tracing::instrument(level = "trace", skip(show, node_ref))]
+#[tracing::instrument(level = "debug", skip(show, node_ref))]
 #[component]
 pub fn MusicInfoMobile(
     #[prop()] show: Signal<bool>,
@@ -408,7 +408,7 @@ pub fn MusicInfoMobile(
     }
 }
 
-#[tracing::instrument(level = "trace", skip(show, node_ref))]
+#[tracing::instrument(level = "debug", skip(show, node_ref))]
 #[component]
 pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>) -> impl IntoView {
     let player_store = expect_context::<RwSignal<PlayerStore>>();

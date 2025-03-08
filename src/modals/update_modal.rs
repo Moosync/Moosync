@@ -21,7 +21,7 @@ use crate::{
     modals::common::GenericModal, store::modal_store::ModalStore, utils::invoke::install_update,
 };
 
-#[tracing::instrument(level = "trace", skip(metadata))]
+#[tracing::instrument(level = "debug", skip(metadata))]
 #[component]
 pub fn UpdateModal(#[prop()] metadata: UpdateMetadata) -> impl IntoView {
     let modal_store: RwSignal<ModalStore> = expect_context();

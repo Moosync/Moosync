@@ -16,7 +16,7 @@
 
 use leptos::{component, prelude::*, view, IntoView};
 
-#[tracing::instrument(level = "trace", skip(fill))]
+#[tracing::instrument(level = "debug", skip(fill))]
 #[component]
 pub fn SpotifyIcon(#[prop(optional)] fill: String) -> impl IntoView {
     view! {

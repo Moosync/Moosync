@@ -163,7 +163,7 @@ pub enum MoosyncError {
 
 #[cfg(all(not(feature = "extensions"), feature = "ui"))]
 impl From<serde_wasm_bindgen::Error> for MoosyncError {
-    #[tracing::instrument(level = "trace", skip(value))]
+    #[tracing::instrument(level = "debug", skip(value))]
     fn from(value: serde_wasm_bindgen::Error) -> Self {
         Self::String(value.to_string())
     }
@@ -171,7 +171,7 @@ impl From<serde_wasm_bindgen::Error> for MoosyncError {
 
 #[cfg(all(not(feature = "extensions"), feature = "core"))]
 impl<'a> From<ValidationError<'a>> for MoosyncError {
-    #[tracing::instrument(level = "trace", skip(value))]
+    #[tracing::instrument(level = "debug", skip(value))]
     fn from(value: ValidationError<'a>) -> Self {
         let mut res = String::new();
         res.push_str(value.to_string().as_str());
@@ -183,7 +183,7 @@ impl<'a> From<ValidationError<'a>> for MoosyncError {
 
 #[cfg(all(not(feature = "extensions"), feature = "ui"))]
 impl From<JsValue> for MoosyncError {
-    #[tracing::instrument(level = "trace", skip(value))]
+    #[tracing::instrument(level = "debug", skip(value))]
     fn from(value: JsValue) -> Self {
         let parsed: Value = serde_wasm_bindgen::from_value(value).unwrap();
         Self::String(format!("{}", parsed))
@@ -191,21 +191,21 @@ impl From<JsValue> for MoosyncError {
 }
 
 impl From<&'static str> for MoosyncError {
-    #[tracing::instrument(level = "trace", skip(value))]
+    #[tracing::instrument(level = "debug", skip(value))]
     fn from(value: &'static str) -> Self {
         Self::String(value.to_string())
     }
 }
 
 impl From<String> for MoosyncError {
-    #[tracing::instrument(level = "trace", skip(value))]
+    #[tracing::instrument(level = "debug", skip(value))]
     fn from(value: String) -> Self {
         Self::String(value)
     }
 }
 
 impl serde::Serialize for MoosyncError {
-    #[tracing::instrument(level = "trace", skip(self, serializer))]
+    #[tracing::instrument(level = "debug", skip(self, serializer))]
     fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
     where
         S: serde::ser::Serializer,

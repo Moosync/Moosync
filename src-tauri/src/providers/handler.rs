@@ -48,7 +48,7 @@ macro_rules! generate_wrapper {
         method_name: $method_name:ident,
     }),* $(,)?) => {
         $(
-            #[tracing::instrument(level = "trace", skip(self))]
+            #[tracing::instrument(level = "debug", skip(self))]
             pub async fn $func_name(&self, key: String, $($param_name: $param_type),*) -> Result<$result_type> {
                 let mut provider_key = key;
                 let provider_store = self.provider_store.read().await;
@@ -78,7 +78,7 @@ macro_rules! generate_wrapper_mut {
         method_name: $method_name:ident,
     }),* $(,)?) => {
         $(
-            #[tracing::instrument(level = "trace", skip(self))]
+            #[tracing::instrument(level = "debug", skip(self))]
             pub async fn $func_name(&self, key: String, $($param_name: $param_type),*) -> Result<$result_type> {
                 let mut provider_key = key;
                 let provider_store = self.provider_store.read().await;
@@ -109,7 +109,7 @@ pub struct ProviderHandler {
 }
 
 impl ProviderHandler {
-    #[tracing::instrument(level = "trace", skip(app))]
+    #[tracing::instrument(level = "debug", skip(app))]
     pub fn new(app: AppHandle) -> Self {
         let (status_tx, status_rx) = unbounded();
         let store = Self {
@@ -141,7 +141,7 @@ impl ProviderHandler {
         Err("Provider not found".into())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, status_rx))]
+    #[tracing::instrument(level = "debug", skip(self, status_rx))]
     pub fn listen_status_changes(&self, status_rx: UnboundedReceiver<ProviderStatus>) {
         let status_rx = Arc::new(Mutex::new(status_rx));
         let provider_status = self.provider_status.clone();
@@ -165,7 +165,7 @@ impl ProviderHandler {
         });
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn discover_provider_extensions(&self) -> Result<()> {
         let ext_handler = get_extension_handler(&self.app_handle);
         let extensions_res = ext_handler.get_installed_extensions().await?;
@@ -220,7 +220,7 @@ impl ProviderHandler {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, key))]
+    #[tracing::instrument(level = "debug", skip(self, key))]
     pub async fn initialize_provider(&self, key: String) {
         let provider_store = self.provider_store.read().await;
         let provider = provider_store.get(&key);
@@ -231,7 +231,7 @@ impl ProviderHandler {
         }
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn initialize_all_providers(&self) -> Result<()> {
         let provider_store = self.provider_store.read().await;
         let mut fut = vec![];
@@ -251,7 +251,7 @@ impl ProviderHandler {
         Ok(())
     }
 
-    #[tracing::instrument(level = "trace", skip(self, id))]
+    #[tracing::instrument(level = "debug", skip(self, id))]
     pub async fn get_provider_key_by_id(&self, id: String) -> Result<String> {
         let provider_store = self.provider_store.read().await;
         for (key, provider) in provider_store.iter() {
@@ -262,13 +262,13 @@ impl ProviderHandler {
         Err(format!("Provider for id {} not found", id).into())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn get_provider_keys(&self) -> Result<Vec<String>> {
         let provider_store = self.provider_store.read().await;
         Ok(provider_store.keys().cloned().collect())
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn get_all_status(&self) -> Result<HashMap<String, ProviderStatus>> {
         Ok(self.provider_status.lock().await.clone())
     }
@@ -408,7 +408,7 @@ impl ProviderHandler {
     );
 }
 
-#[tracing::instrument(level = "trace", skip(app))]
+#[tracing::instrument(level = "debug", skip(app))]
 pub fn get_provider_handler_state(app: AppHandle) -> ProviderHandler {
     ProviderHandler::new(app)
 }

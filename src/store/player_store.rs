@@ -469,7 +469,7 @@ impl PlayerStore {
         if self.data.queue.current_index >= self.data.queue.song_queue.len() {
             self.data.queue.current_index = 0;
         }
-        self.update_current_song(false);
+        self.update_current_song(true);
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

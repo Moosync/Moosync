@@ -55,7 +55,8 @@
     ],
     "linux": {
       "deb": {
-        "desktopTemplate": "./moosync.desktop"
+        "desktopTemplate": "./moosync.desktop",
+        "depends": []
       },
       "appimage": {
         "bundleMediaFramework": true
@@ -82,5 +83,5 @@
     }
   },
   "productName": "Moosync",
-  "version": "0.0.8"
+  "version": "0.0.9"
 }

@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use bitcode::{Decode, Encode};
-use indexed_db_futures::{database::Database, prelude::*};
+use indexed_db_futures::{database::Database, factory::DBVersion, prelude::*};
 use itertools::Itertools;
 use leptos::prelude::*;
 use rand::seq::SliceRandom;
@@ -554,8 +554,9 @@ impl PlayerStore {
     pub fn load_state_from_idb(signal: RwSignal<PlayerStore>) {
         spawn_local(async move {
             match Database::open("moosync")
+                .with_version(2u32)
                 .with_on_upgrade_needed(move |_, db| {
-                    if db.object_store_names().any(|n| n == "player_store") {
+                    if !db.object_store_names().any(|n| n == "player_store") {
                         db.create_object_store("player_store").build()?;
                     }
                     Ok(())

@@ -615,8 +615,8 @@ impl GenericProvider for YoutubeProvider {
 
         self.create_api_client().await;
 
-        // Remove
-        self.fetch_user_details().await.unwrap();
+        let status = self.fetch_user_details().await.unwrap();
+        let _ = self.status_tx.lock().await.send(status).await;
         Ok(())
     }
 

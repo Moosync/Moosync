@@ -6,7 +6,7 @@
       "request": "launch",
       "name": "Tauri Development Debug",
       "env": {
-        "MOOSYNC_LOG": "trace"
+        // "MOOSYNC_LOG": "trace"
       },
       "cargo": {
         "args": [
@@ -20,7 +20,11 @@
       "request": "launch",
       "name": "Tauri Production Debug",
       "cargo": {
-        "args": ["tauri", "build", "--manifest-path=./src-tauri/Cargo.toml"]
+        "args": [
+          "tauri",
+          "build",
+          "--manifest-path=./src-tauri/Cargo.toml"
+        ]
       }
     }
   ]

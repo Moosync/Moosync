@@ -37,14 +37,15 @@
     "withGlobalTauri": true
   },
   "build": {
-    "beforeDevCommand": "trunk serve",
-    "beforeBuildCommand": "pwd && trunk build --release",
+    "beforeDevCommand": "RUSTFLAGS=\"-C debuginfo=0\" trunk serve",
+    "beforeBuildCommand": "trunk build --release",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
+    "shortDescription": "Moosync",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -81,5 +82,5 @@
     }
   },
   "productName": "Moosync",
-  "version": "0.0.7"
+  "version": "0.0.8"
 }

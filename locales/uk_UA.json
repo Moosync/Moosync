@@ -11,14 +11,11 @@
       "paths": "Paths",
       "themes": "Themes",
       "extensions": "Extensions",
-      "system": "System",
-      "logs": "Logs",
-      "keybinds": "Keybinds"
+      "system": "System"
     }
   },
   "topbar": {
-    "searchPlaceholder": "Пошук...",
-    "noResultsFound": "Нічого не знайдено"
+    "searchPlaceholder": "Пошук..."
   },
   "pages": {
     "playlists": "Плейлісти",
@@ -47,17 +44,6 @@
       }
     }
   },
-  "buttons": {
-    "playSingle": "Грати в {title}",
-    "addToQueue": "Додати {title} до черги",
-    "addToLibrary": "Додати {title} до бібліотеки",
-    "playRandom": "Грати 100 випадкових пісень",
-    "fetchAll": "Fetch all songs",
-    "close": "Close",
-    "add": "Add",
-    "save": "Save",
-    "cancel": "Cancel"
-  },
   "loading": "Завантажується...",
   "now_playing": "Now playing",
   "contextMenu": {
@@ -80,24 +66,13 @@
       "save": "Додати до бібліотеки"
     },
     "song": {
-      "addFromURL": "Додати з URL-адреси",
-      "playNow": "Грати зараз",
       "playNext": "Відтворити далі",
       "clearAndPlay": "Очистити чергу і відграти",
       "addToQueue": "Додати до черги",
-      "moveToTop": "Посунути догори",
-      "moveToBottom": "Посунути до низу",
-      "moveManually": "Перемістити вручну",
-      "manualIndex": "Встановити індекс пісні",
       "remove": "Видалити з бібліотеки",
       "add": "Add Song to Library",
       "removeFromPlaylist": "Видалити зі списку відтворення",
-      "hideFromLibrary": "Приховати з бібліотеки",
-      "showInLibrary": "Показувати в бібліотеці",
-      "showHidden": "Показувати приховані пісні",
-      "hideHidden": "Сховати приховані пісні",
-      "openInBrowser": "Open in browser",
-      "gotoAlbum": "Goto album ({title})",
+      "gotoAlbum": "Go to album ({{ title }})",
       "gotoArtists": "Goto artists"
     },
     "artist": {
@@ -145,32 +120,8 @@
       "scan_threads_tooltip": "Number of threads to use when scanning for local music"
     },
     "themes": {
-      "songView": "Перегляд пісень",
-      "songView_tooltip": "Налаштувати вигляд списку пісень",
-      "songView_classic": "Класичний",
-      "songView_compact": "Компактний",
       "themes": "Теми оформлення",
-      "themes_tooltip": "Налаштування кольорів",
-      "themes_default": "Типово",
-      "createTheme": "Нова тема",
-      "importTheme": "Імпорт теми",
-      "newTheme": {
-        "name": "Назва теми",
-        "author": "Автор",
-        "colors": "Кольори",
-        "colors_tooltip": "Зміна кольору інтерфейсу користувача",
-        "css": "Custom CSS",
-        "watch_css": "Watch CSS for file changes"
-      },
-      "primary": "Первинний",
-      "secondary": "Вторинна",
-      "tertiary": "Третинний період",
-      "textPrimary": "Основний текст",
-      "textSecondary": "Вторинний текст",
-      "textInverse": "Інвертувати текст",
-      "accent": "Акцент",
-      "divider": "Роздільник",
-      "import_button": "Імпорт"
+      "themes_tooltip": "Налаштування кольорів"
     },
     "extensions": {
       "extensions": "Розширення",
@@ -184,48 +135,20 @@
         "title": "Налаштування системи",
         "systemStartup": "Запускати додаток при запуску системи",
         "minimizeTray": "Згортати в трей при закритті",
-        "hardwareAcceleration": "Використовувати апаратне прискорення ГП",
-        "watchFileChanges": "Дивитися музичні каталоги для змін",
-        "enableJukeboxMode": "Увімкнути перемикач для режиму музичних автоматів",
-        "lastLoadedPlaybackState": "Load last playback state on startup"
+        "enableJukeboxMode": "Увімкнути перемикач для режиму музичних автоматів"
       },
       "systemSettings_tooltip": "Параметри, які пов'язані з вашою системою",
-      "audioSettings": {
-        "title": "Налаштування звуку",
-        "gaplessPlayback": "Використовувати безрозривне відтворення для всіх",
-        "sponsorBlock": "Використовуйте SponsorBlock для автоматичного переходу до виділеної частини Youtube пісні"
+      "queueSettings": {
+        "title": "Налаштування черги",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
       },
-      "audioSettings_tooltip": "Налаштування, пов'язані відтворення звуку",
-      "gapless_skip": "Skip song before end (seconds)",
-      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
-      "invidiousUrlUnsupported": "Ця URL-адреса не підтримує Invidious API",
-      "invidious_tooltip": "Дурний екземпляр для використання замість youtube",
-      "restartApp": "Перезапустити Moosync",
-      "zoom": "Zoom Factor (бета-версія)",
-      "zoom_tooltip": "Масштабування вікон у відсотках. Може зламати інтерфейс.",
-      "spotify": {
-        "client_id": "Ідентифікатор клієнту Spotify",
-        "client_id_tooltip": "Для входу в Spotify ID Spotify ID необхідний для входу в Spotify. Натисніть, щоб дізнатися більше",
-        "client_secret": "Spotify Клієнт секрет",
-        "client_secret_tooltip": "Для входу в Spotify необхідний клієнт Spotify Secret",
-        "autoFetchButton": "Автоматично отримувати подробиці Spotify",
-        "autoFetchPreTitle": "Отримати",
-        "autoFetchTitle": "ID клієнта і секрет",
-        "autoFetchDisclaimer": "Вікно тепер відкриється, де ви будете запропоновані увійти в свій обліковий запис Spotify. Після входу на сайт не клікніть будь-де в автоматичному режимі",
-        "openWindow": "Відкрити вікно",
-        "title": "Налаштування Spotify",
-        "tooltip": "Параметри для зміни поведінки спотворення місця відтворення",
-        "librespotEnable": "Використовувати librespot (потрібно Spotify Premium)",
-        "username": "Ім'я користувача Spotify",
-        "username_tooltip": "Ваше ім'я користувача спорожните. Як правило, ваша електронна пошта",
-        "password": "Пароль Spotify",
-        "password_tooltip": "Ваш пароль потрібно встановити його в налаштуваннях Spotify",
-        "librespot": {
-          "title": "Опції Librespot",
-          "tooltip": "Параметри для зміни поведінки librespot",
-          "useSpotifyCanvas": "Показувати полотно на тлі",
-          "useLibrespotPlayback": "Використовувати librespot для відтворення пісні"
-        }
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
       },
       "youtube": {
         "client_id": "Ідентифікатор клієнта Youtube",
@@ -233,78 +156,8 @@
         "client_id_tooltip": "Для входу на Youtube ID клієнта необхідно увійти в Youtube. Натисніть, щоб дізнатися більше",
         "client_secret_tooltip": "Секретний ключ Youtube клієнт необхідний для входу в Youtube. Натисніть, щоб дізнатися більше"
       },
-      "lastfm": {
-        "client_id": "LastFM Api Key",
-        "client_secret": "LastFM Client Secret"
-      },
-      "youtubeAlternative": {
-        "title": "Альтернативні послуги Youtube",
-        "tooltip": "Отримати дані з Youtube через стороннього постачальника",
-        "useYoutube": "Використовувати сервіси Youtube за замовчуванням",
-        "useInvidious": "Використовувати Invidious послуги",
-        "usePiped": "Використовувати оплачені послуги",
-        "piped": {
-          "url": "Недохідний екземпляр",
-          "url_tooltip": "URL адреса конвеєра для використання",
-          "username": "Ім'я користувача",
-          "username_tooltip": "Ваше ім'я користувача в обраному екземплярі",
-          "password": "Пароль",
-          "password_tooltip": "Ваш вірний пароль за обраним екземпляром"
-        },
-        "invidious": {
-          "url": "Страховий екземпляр",
-          "url_tooltip": "URL-адреса Invidious екземпляра для використання",
-          "options": "Розширені типові параметри",
-          "options_tooltip": "Параметри для тонкого керування Invidious відтворення",
-          "always_proxy": "Завжди відтворювати аудіо з Invidious проксі замість Google відео"
-        },
-        "youtube": {
-          "options": "Розширені параметри Youtube",
-          "options_tooltip": "Параметри для тонкого керування Youtube відтворення",
-          "useEmbeds": "Використовувати вбудовані Youtube для відтворення звуку з Youtube"
-        }
-      },
       "language": "Мова:",
-      "language_tooltip": "Змінити мову інтерфейсу",
-      "clearPreferences": "Відновити типові",
-      "clear_preferences_title": "Скинути до стандартних?",
-      "clear_preferences": "Ви дійсно бажаєте скинути всі значення за замовчуванням? Програма буде перезавантажена після скидання.",
-      "clear_preferences_button": "Підтвердити",
-      "jukebox": {
-        "pin": "Звук при роботі з музикою",
-        "pin_tooltip": "Tis pin буде необхідний для виходу з режиму Jukebox. Має бути числовим.",
-        "optionalFields": "Button visibility",
-        "optionalFields_tooltip": "Toggle optional buttons to show in Jukebox mode",
-        "optional_skip": "Track Skip buttons",
-        "optional_shuffle": "Shuffle button",
-        "optional_repeat": "Repeat button"
-      },
-      "lyrics": {
-        "title": "Постачальники текстів",
-        "tooltip": "Виберіть, які тексти пісень використовують для пошуку текстів пісень",
-        "az_lyrics": "Використовувати AZLyrics",
-        "google_lyrics": "Використовувати пошукові тексти в Google",
-        "spotify_lyrics": "Use Spotify for lyrics (Requires librespot)",
-        "genius_lyrics": "Use Genius"
-      },
-      "queueSettings": {
-        "title": "Налаштування черги",
-        "tooltip": "Параметри для налаштування черги пісень",
-        "clearQueue": "Очистити чергу перед додаванням списку відтворення"
-      },
-      "scrobble": {
-        "provider_toggle": {
-          "title": "Білий список Scrobble",
-          "tooltip": "Увімкнути провайдерів, чиї пісні ви хочете бути скроблеєні"
-        }
-      },
-      "volumePersistMode": {
-        "title": "Volume behavior",
-        "tooltip": "Change the way volume slider behaves",
-        "noPersist": "Normal behavior",
-        "persistSeparateVolumes": "Remember separate volume for each provider",
-        "persistClampVolume": "Manually adjust volume range for each provider"
-      }
+      "language_tooltip": "Change application language"
     },
     "logs": {
       "logSettings": "Налаштування журналу",

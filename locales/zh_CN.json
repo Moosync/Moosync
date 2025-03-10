@@ -11,14 +11,11 @@
       "paths": "路径",
       "themes": "主题",
       "extensions": "扩展程序",
-      "system": "系统",
-      "logs": "日志",
-      "keybinds": "热键绑定"
+      "system": "系统"
     }
   },
   "topbar": {
-    "searchPlaceholder": "搜索中...",
-    "noResultsFound": "什么都没有找到"
+    "searchPlaceholder": "搜索中..."
   },
   "pages": {
     "playlists": "播放列表",
@@ -47,17 +44,6 @@
       }
     }
   },
-  "buttons": {
-    "playSingle": "播放 {title}",
-    "addToQueue": "将 {title} 添加到队列",
-    "addToLibrary": "添加 {title} 到库",
-    "playRandom": "随机播放100首歌曲",
-    "fetchAll": "获取所有歌曲",
-    "close": "关闭",
-    "add": "添加",
-    "save": "保存",
-    "cancel": "取消"
-  },
   "loading": "加载中...",
   "now_playing": "正在播放",
   "contextMenu": {
@@ -80,24 +66,13 @@
       "save": "添加到库"
     },
     "song": {
-      "addFromURL": "从 URL 添加",
-      "playNow": "立即播放",
       "playNext": "下一首",
       "clearAndPlay": "清除队列并播放",
       "addToQueue": "添加到队列",
-      "moveToTop": "移动到顶部",
-      "moveToBottom": "移动到底部",
-      "moveManually": "手动移动",
-      "manualIndex": "设置歌曲索引",
       "remove": "从媒体库中移除",
       "add": "Add Song to Library",
       "removeFromPlaylist": "从播放列表中移除",
-      "hideFromLibrary": "从库中隐藏",
-      "showInLibrary": "显示媒体库",
-      "showHidden": "显示隐藏歌曲",
-      "hideHidden": "不显示隐藏的歌曲",
-      "openInBrowser": "在浏览器中打开",
-      "gotoAlbum": "转到专辑({title})",
+      "gotoAlbum": "Go to album ({{ title }})",
       "gotoArtists": "转到艺人"
     },
     "artist": {
@@ -145,32 +120,8 @@
       "scan_threads_tooltip": "扫描本地音乐时要使用的线程数"
     },
     "themes": {
-      "songView": "歌曲视图",
-      "songView_tooltip": "自定义歌曲列表外观",
-      "songView_classic": "经典",
-      "songView_compact": "简洁",
       "themes": "主题",
-      "themes_tooltip": "自定义颜色",
-      "themes_default": "默认",
-      "createTheme": "新主题",
-      "importTheme": "导入主题",
-      "newTheme": {
-        "name": "主题名称",
-        "author": "作者",
-        "colors": "颜色",
-        "colors_tooltip": "更改颜色以自定义界面",
-        "css": "自定义 CSS",
-        "watch_css": "Watch CSS for file changes"
-      },
-      "primary": "主要",
-      "secondary": "背景色",
-      "tertiary": "第三方功能",
-      "textPrimary": "主标题",
-      "textSecondary": "次标题",
-      "textInverse": "文本反转",
-      "accent": "强调色",
-      "divider": "分隔符",
-      "import_button": "导入"
+      "themes_tooltip": "自定义颜色"
     },
     "extensions": {
       "extensions": "扩展程序",
@@ -184,48 +135,20 @@
         "title": "系统设置",
         "systemStartup": "系统启动时启动应用",
         "minimizeTray": "关闭时最小化到托盘",
-        "hardwareAcceleration": "使用 GPU 硬件加速",
-        "watchFileChanges": "监视音乐目录的更改",
-        "enableJukeboxMode": "启用唱片机模式开关",
-        "lastLoadedPlaybackState": "启动时加载上次播放状态"
+        "enableJukeboxMode": "启用唱片机模式开关"
       },
       "systemSettings_tooltip": "与您的系统相关的设置",
-      "audioSettings": {
-        "title": "音频设置",
-        "gaplessPlayback": "在可能的情况下尽可能使用无缝播放",
-        "sponsorBlock": "使用 SpongorBlock 自动跳过高亮显示YouTube 歌曲的部分"
+      "queueSettings": {
+        "title": "队列设置",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
       },
-      "audioSettings_tooltip": "相关的音频回放设置",
-      "gapless_skip": "在结束前跳过歌曲 (秒)",
-      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
-      "invidiousUrlUnsupported": "此URL不支持邀请API。",
-      "invidious_tooltip": "提示：要使用 Invidious 的服务而不是 YouTube",
-      "restartApp": "重启Moosync",
-      "zoom": "缩放倍数(测试版)",
-      "zoom_tooltip": "窗口缩放百分比。这可能会破坏UI界面。",
-      "spotify": {
-        "client_id": "Spotify 客户端 ID",
-        "client_id_tooltip": "Spotify 客户端需要ID登录Spotify。点击了解更多",
-        "client_secret": "Spotify 客户端密钥",
-        "client_secret_tooltip": "登录Spotify 客户端密码。点击了解更多",
-        "autoFetchButton": "自动获取 Spotify 详细信息",
-        "autoFetchPreTitle": "获取",
-        "autoFetchTitle": "客户端ID和密钥",
-        "autoFetchDisclaimer": "现在一个窗口将打开，您将被要求登录您的 Spotify 帐户。 登录后请不要单击任何地方，因为整个过程将被自动化",
-        "openWindow": "打开窗口",
-        "title": "Spotify 设置",
-        "tooltip": "改变spotify播放行为的选项",
-        "librespotEnable": "使用 librespot (需要 Spotify 高级版)",
-        "username": "Spotify用户",
-        "username_tooltip": "您的spotify用户名。通常是您的电子邮件",
-        "password": "Spotify密码",
-        "password_tooltip": "您的spotify密码。您可能需要在 Spotify 上设置一个",
-        "librespot": {
-          "title": "Librespot 选项",
-          "tooltip": "更改 librespot 行为的选项",
-          "useSpotifyCanvas": "在背景中显示损坏画布视频",
-          "useLibrespotPlayback": "使用 librespot 播放歌曲"
-        }
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
       },
       "youtube": {
         "client_id": "Youtube 客户端 ID",
@@ -233,78 +156,8 @@
         "client_id_tooltip": "Youtube 客户端 需要ID登录到 Youtube。点击了解更多",
         "client_secret_tooltip": "登录YouTube 客户端密码。点击了解更多"
       },
-      "lastfm": {
-        "client_id": "LastFM Api Key",
-        "client_secret": "LastFM 客户端 密钥"
-      },
-      "youtubeAlternative": {
-        "title": "Youtube 替代服务",
-        "tooltip": "通过第三方提供商从 Youtube 获取数据",
-        "useYoutube": "使用默认的 Youtube 服务",
-        "useInvidious": "使用邀请服务",
-        "usePiped": "使用管道服务",
-        "piped": {
-          "url": "Piped 服务",
-          "url_tooltip": "提示：要使用 Piped 服务的 URL",
-          "username": "用户",
-          "username_tooltip": "您所选实例的管道用户名",
-          "password": "密码",
-          "password_tooltip": "您在所选实例中的管道密码"
-        },
-        "invidious": {
-          "url": "Invidious 服务",
-          "url_tooltip": "提示：要使用Invidious 服务的 URL",
-          "options": "高级Invidious选项",
-          "options_tooltip": "优化邀请控制播放的选项",
-          "always_proxy": "总是从Invidious的代理而不是谷歌视频播放音频"
-        },
-        "youtube": {
-          "options": "高级Youtube选项",
-          "options_tooltip": "优化控制 Youtube 回放的选项",
-          "useEmbeds": "使用 Youtube 嵌入方式播放来自 Youtube 的音频"
-        }
-      },
       "language": "语言",
-      "language_tooltip": "设置用户界面的语言。",
-      "clearPreferences": "恢复默认设置",
-      "clear_preferences_title": "恢复默认设置?",
-      "clear_preferences": "您确定要重置所有设置为默认设置吗？重置后将重启应用程序。",
-      "clear_preferences_button": "确认",
-      "jukebox": {
-        "pin": "唱片机模式 Pin",
-        "pin_tooltip": "提示：退出光盘机模式需要使用 PIN。应为数字。",
-        "optionalFields": "按钮可见性",
-        "optionalFields_tooltip": "切换可选按钮在唱片机模式中显示",
-        "optional_skip": "曲目跳过按钮",
-        "optional_shuffle": "随机播放按钮",
-        "optional_repeat": "重复按钮"
-      },
-      "lyrics": {
-        "title": "歌词提供商",
-        "tooltip": "选择用于搜索歌词的歌词提供商",
-        "az_lyrics": "使用 AZLyrics",
-        "google_lyrics": "使用谷歌搜索歌词",
-        "spotify_lyrics": "使用 Spotify 显示歌词 (需要 librespot)",
-        "genius_lyrics": "Use Genius"
-      },
-      "queueSettings": {
-        "title": "队列设置",
-        "tooltip": "调整歌曲队列行为的选项",
-        "clearQueue": "添加播放列表前清除队列"
-      },
-      "scrobble": {
-        "provider_toggle": {
-          "title": "滚动白名单",
-          "tooltip": "启用您想要抓取的歌曲的提供商"
-        }
-      },
-      "volumePersistMode": {
-        "title": "音量",
-        "tooltip": "更改音量滑块的行为",
-        "noPersist": "正常行为",
-        "persistSeparateVolumes": "记住每个提供商的单独音量",
-        "persistClampVolume": "手动调整每个提供商的音量范围"
-      }
+      "language_tooltip": "Change application language"
     },
     "logs": {
       "logSettings": "日志设置",

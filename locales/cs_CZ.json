@@ -11,14 +11,11 @@
       "paths": "Cesty",
       "themes": "Motivy",
       "extensions": "Rozšíření",
-      "system": "Systém",
-      "logs": "Logs",
-      "keybinds": "Klávesové zkratky"
+      "system": "Systém"
     }
   },
   "topbar": {
-    "searchPlaceholder": "Hledat...",
-    "noResultsFound": "Nebyly nalezeny žádné výsledky"
+    "searchPlaceholder": "Hledat..."
   },
   "pages": {
     "playlists": "Seznamy stop",
@@ -47,17 +44,6 @@
       }
     }
   },
-  "buttons": {
-    "playSingle": "Přehrát {title}",
-    "addToQueue": "Přidat {title} do fronty",
-    "addToLibrary": "Přidat {title} do knihovny",
-    "playRandom": "Přehrát skladby náhodně",
-    "fetchAll": "Načíst všechny skladby",
-    "close": "Close",
-    "add": "Add",
-    "save": "Save",
-    "cancel": "Cancel"
-  },
   "loading": "Načítám...",
   "now_playing": "Now playing",
   "contextMenu": {
@@ -80,24 +66,13 @@
       "save": "Přidat do knihovny"
     },
     "song": {
-      "addFromURL": "Přidat z URL",
-      "playNow": "Přehrát nyní",
       "playNext": "Přehrát jako další",
       "clearAndPlay": "Vymazat frontu a hrát",
       "addToQueue": "Přidat do fronty",
-      "moveToTop": "Přesunout nahoru",
-      "moveToBottom": "Přesunout dolů",
-      "moveManually": "Přesunout ručně",
-      "manualIndex": "Nastavit index skladby",
       "remove": "Odstranit z knihovny",
       "add": "Add Song to Library",
       "removeFromPlaylist": "Odstranit se seznamu",
-      "hideFromLibrary": "Skrýt z knihovny",
-      "showInLibrary": "Zobrazit v knihovně",
-      "showHidden": "Zobrazit skryté skladby",
-      "hideHidden": "Skrýt skryté skladby",
-      "openInBrowser": "Otevřít v prohlížeči",
-      "gotoAlbum": "Goto album ({title})",
+      "gotoAlbum": "Go to album ({{ title }})",
       "gotoArtists": "Goto artists"
     },
     "artist": {
@@ -145,32 +120,8 @@
       "scan_threads_tooltip": "Počet vláken, které by měly být použity při skenování lokální hudby"
     },
     "themes": {
-      "songView": "Zobrazení skladeb",
-      "songView_tooltip": "Přizpůsobit vzhled seznamu skladeb",
-      "songView_classic": "Klasický",
-      "songView_compact": "Kompaktní",
       "themes": "Motivy",
-      "themes_tooltip": "Přizpůsobit barvy",
-      "themes_default": "Výchozí",
-      "createTheme": "Nový motiv",
-      "importTheme": "Importovat motiv",
-      "newTheme": {
-        "name": "Název šablony",
-        "author": "Autor",
-        "colors": "Barvy",
-        "colors_tooltip": "Změnit barvy pro přizpůsobení uživatelského rozhraní",
-        "css": "Custom CSS",
-        "watch_css": "Watch CSS for file changes"
-      },
-      "primary": "Primární",
-      "secondary": "Sekundární",
-      "tertiary": "Terciární",
-      "textPrimary": "Primární text",
-      "textSecondary": "Sekundární text",
-      "textInverse": "Inverzní text",
-      "accent": "Barva detailů",
-      "divider": "Oddělovač",
-      "import_button": "Importovat"
+      "themes_tooltip": "Přizpůsobit barvy"
     },
     "extensions": {
       "extensions": "Rozšíření",
@@ -184,48 +135,20 @@
         "title": "Systémová nastavení",
         "systemStartup": "Spustit aplikaci při spuštění systému",
         "minimizeTray": "Minimalizovat do lišty při zavření",
-        "hardwareAcceleration": "Použít hardwarovou akceleraci GPU",
-        "watchFileChanges": "Sledujte hudební adresáře pro změny",
-        "enableJukeboxMode": "Zobrazit tlačítko pro Jukebox mód",
-        "lastLoadedPlaybackState": "Načíst poslední stav přehrávání při spuštění"
+        "enableJukeboxMode": "Zobrazit tlačítko pro Jukebox mód"
       },
       "systemSettings_tooltip": "Nastavení vztahující se k vašemu systému",
-      "audioSettings": {
-        "title": "Nastavení zvuku",
-        "gaplessPlayback": "Použít přehrávání bez mezer všude, kde je to možné",
-        "sponsorBlock": "Použít SponsorBlock k automatickému přeskočení zvýrazněné části Youtube písně"
+      "queueSettings": {
+        "title": "Nastavení fronty",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
       },
-      "audioSettings_tooltip": "Nastavení související přehrávání zvuku",
-      "gapless_skip": "Skip song before end (seconds)",
-      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
-      "invidiousUrlUnsupported": "Tato url nepodporuje Invidious API",
-      "invidious_tooltip": "Invidious instance k použití místo youtube",
-      "restartApp": "Restartovat Moosync",
-      "zoom": "Faktor přiblížení (Beta)",
-      "zoom_tooltip": "Přiblížení oken v procentech. Toto nastavení může rozbít UI.",
-      "spotify": {
-        "client_id": "Spotify ID klienta",
-        "client_id_tooltip": "Pro přihlášení do Spotify je vyžadováno ID klienta. Klikněte pro více informací",
-        "client_secret": "Tajný klíč klienta Spotify",
-        "client_secret_tooltip": "Spotify klient Secret je vyžadován pro přihlášení do Spotify. Klikněte pro více informací",
-        "autoFetchButton": "Automaticky získat Spotify podrobnosti",
-        "autoFetchPreTitle": "Získat",
-        "autoFetchTitle": "ID klienta a tajný klíč",
-        "autoFetchDisclaimer": "Okno se nyní otevře, kde budete požádáni o přihlášení ke svému účtu Spotify. Po přihlášení prosím neklikejte nikde a celý proces bude automatizován",
-        "openWindow": "Otevřít okno",
-        "title": "Spotify nastavení",
-        "tooltip": "Možnosti změny chování přehrávání spotify",
-        "librespotEnable": "Použít librespot (vyžaduje Spotify Premium)",
-        "username": "Uživatelské jméno Spotify",
-        "username_tooltip": "Vaše uživatelské jméno pro spoting. Obvykle váš e-mail",
-        "password": "Spotify heslo",
-        "password_tooltip": "Vaše spotify heslo. Možná budete muset nastavit heslo v nastavení na Spotify",
-        "librespot": {
-          "title": "Možnosti Librespot",
-          "tooltip": "Možnosti změny chování librespotu",
-          "useSpotifyCanvas": "Zobrazit video spotify na pozadí",
-          "useLibrespotPlayback": "Použít librespot pro přehrávání skladeb"
-        }
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
       },
       "youtube": {
         "client_id": "ID klienta YouTube",
@@ -233,78 +156,8 @@
         "client_id_tooltip": "Klientské ID YouTUbe které je vyžadováno pro přihlášení do služby YouTube. Klikněte pro více informací.",
         "client_secret_tooltip": "tajný klíč YouTube vyžadován pro přihlášení do služby YouTube. Klikněte pro více informací."
       },
-      "lastfm": {
-        "client_id": "LastFM API Klíč",
-        "client_secret": "LastFM Tajný klíč"
-      },
-      "youtubeAlternative": {
-        "title": "Alternativy ke službě YouTube",
-        "tooltip": "Přehrávajte hudbu z YouTube pomocí alternatívních služeb",
-        "useYoutube": "Použít YouTube",
-        "useInvidious": "Použít Invidious",
-        "usePiped": "Použít Piped",
-        "piped": {
-          "url": "Instance Piped",
-          "url_tooltip": "URL adresa Piped instance",
-          "username": "Uživatelské jméno",
-          "username_tooltip": "Vaše uživatelské jméno na vybrané instanci",
-          "password": "Heslo",
-          "password_tooltip": "Vaše heslo v vybrané instanci"
-        },
-        "invidious": {
-          "url": "Invidní instance",
-          "url_tooltip": "URL adresa Invidious instance",
-          "options": "Pokročilé nastavení Invidious",
-          "options_tooltip": "Pokročilé ovládání přehrávaní pomocí Invidious",
-          "always_proxy": "Vždy přehrávat audio z Invidious proxy místo Google videa"
-        },
-        "youtube": {
-          "options": "Pokročilé nastavení YouTube",
-          "options_tooltip": "Pokročilé ovládání přehrávání pomocí YouTube",
-          "useEmbeds": "Použít YouTube embedded pro přehrávání z YouTube"
-        }
-      },
       "language": "Jazyk",
-      "language_tooltip": "Změnit jazyk rozhraní",
-      "clearPreferences": "Obnovit výchozí nastavení",
-      "clear_preferences_title": "Obnovit výchozí nastavení?",
-      "clear_preferences": "Opravdu chcete obnovit výchozí nastavení? Aplikace se po změně jazyka restartuje. ",
-      "clear_preferences_button": "Potvrdit",
-      "jukebox": {
-        "pin": "PIN kód pro Jukebox mód",
-        "pin_tooltip": "This pin will be required to exit Jukebox Mode. Should be numeric.",
-        "optionalFields": "Viditelnost tlačítka",
-        "optionalFields_tooltip": "Toggle optional buttons to show in Jukebox mode",
-        "optional_skip": "Tlačítka přeskočení skladeb",
-        "optional_shuffle": "Tlačítko zamíchání",
-        "optional_repeat": "Tlačítko opakování"
-      },
-      "lyrics": {
-        "title": "Poskytovatel textů písní",
-        "tooltip": "Vyberte, kteří poskytovatelé textů písní budou aktivní",
-        "az_lyrics": "Použít AZLyrics",
-        "google_lyrics": "Použít texty z vyhledávače Google",
-        "spotify_lyrics": "Použít Spotify pro texty (vyžaduje librespot)",
-        "genius_lyrics": "Použít Genius"
-      },
-      "queueSettings": {
-        "title": "Nastavení fronty",
-        "tooltip": "Možnosti pro vyladění chování fronty skladeb",
-        "clearQueue": "Vymazat frontu před přidáním přehrávání seznamu skladeb"
-      },
-      "scrobble": {
-        "provider_toggle": {
-          "title": "Seznam povolených hráčů Scrobbling",
-          "tooltip": "Povolit poskytovatelům, jejichž skladby chcete být scrobble'd"
-        }
-      },
-      "volumePersistMode": {
-        "title": "Chování hlasitosti",
-        "tooltip": "Změnění způsobu chování posuvníku hlasitosti",
-        "noPersist": "Normální chování",
-        "persistSeparateVolumes": "Zapamatovat si oddělenou hlasitost pro každého poskytovatele",
-        "persistClampVolume": "Ručně nastavit rozsah hlasitosti pro každého poskytovatele"
-      }
+      "language_tooltip": "Change application language"
     },
     "logs": {
       "logSettings": "Nastavení protokolu",

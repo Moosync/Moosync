@@ -11,14 +11,11 @@
       "paths": "Paths",
       "themes": "Thèmes",
       "extensions": "Extensions",
-      "system": "System",
-      "logs": "Logs",
-      "keybinds": "Keybinds"
+      "system": "System"
     }
   },
   "topbar": {
-    "searchPlaceholder": "Recherche...",
-    "noResultsFound": "Aucun résultat trouvé"
+    "searchPlaceholder": "Recherche..."
   },
   "pages": {
     "playlists": "Listes de lecture",
@@ -47,17 +44,6 @@
       }
     }
   },
-  "buttons": {
-    "playSingle": "Jouer {title}",
-    "addToQueue": "Ajouter {title} à la file d'attente",
-    "addToLibrary": "Ajouter {title} à la bibliothèque",
-    "playRandom": "Jouer 100 chansons aléatoirement",
-    "fetchAll": "Fetch all songs",
-    "close": "Close",
-    "add": "Add",
-    "save": "Save",
-    "cancel": "Cancel"
-  },
   "loading": "Chargement en cours...",
   "now_playing": "Now playing",
   "contextMenu": {
@@ -80,24 +66,13 @@
       "save": "Ajouter à la bibliothèque"
     },
     "song": {
-      "addFromURL": "Ajouter depuis l'URL",
-      "playNow": "Jouer maintenant",
       "playNext": "Jouer après",
       "clearAndPlay": "Vider la file d'attente et jouer",
       "addToQueue": "Ajouter à la file d'attente",
-      "moveToTop": "Déplacer vers le haut",
-      "moveToBottom": "Déplacer vers le bas",
-      "moveManually": "Déplacer manuellement",
-      "manualIndex": "Définir l'index de la chanson",
       "remove": "Retirer de la bibliothèque",
       "add": "Add Song to Library",
       "removeFromPlaylist": "Supprimer de la liste de lecture",
-      "hideFromLibrary": "Masquer de la bibliothèque",
-      "showInLibrary": "Afficher dans la bibliothèque",
-      "showHidden": "Afficher les chansons masquées",
-      "hideHidden": "Masquer les chansons masquées",
-      "openInBrowser": "Open in browser",
-      "gotoAlbum": "Goto album ({title})",
+      "gotoAlbum": "Go to album ({{ title }})",
       "gotoArtists": "Goto artists"
     },
     "artist": {
@@ -145,32 +120,8 @@
       "scan_threads_tooltip": "Number of threads to use when scanning for local music"
     },
     "themes": {
-      "songView": "Vue des chansons",
-      "songView_tooltip": "Personnaliser l'apparence de la liste des chansons",
-      "songView_classic": "Classique",
-      "songView_compact": "Compact",
       "themes": "Thèmes",
-      "themes_tooltip": "Personnaliser les couleurs",
-      "themes_default": "Par défaut",
-      "createTheme": "Ajouter un thème",
-      "importTheme": "Importer un thème",
-      "newTheme": {
-        "name": "Nom du thème",
-        "author": "Auteur",
-        "colors": "Couleurs",
-        "colors_tooltip": "Changer les couleurs pour personnaliser l'interface utilisateur",
-        "css": "Custom CSS",
-        "watch_css": "Watch CSS for file changes"
-      },
-      "primary": "Primaire",
-      "secondary": "Secondaire",
-      "tertiary": "Tertiaire",
-      "textPrimary": "Texte primaire",
-      "textSecondary": "Texte secondaire",
-      "textInverse": "Inverser le texte",
-      "accent": "Accentuation",
-      "divider": "Diviseur",
-      "import_button": "Importer"
+      "themes_tooltip": "Personnaliser les couleurs"
     },
     "extensions": {
       "extensions": "Extensions",
@@ -184,48 +135,20 @@
         "title": "Paramètres du système",
         "systemStartup": "Démarrer l'application au démarrage du système",
         "minimizeTray": "Réduire dans la barre d'état à la fermeture",
-        "hardwareAcceleration": "Utiliser l'accélération matérielle GPU",
-        "watchFileChanges": "Regarder les répertoires musicaux pour les modifications",
-        "enableJukeboxMode": "Activer le bouton basculant en mode Jukebox",
-        "lastLoadedPlaybackState": "Load last playback state on startup"
+        "enableJukeboxMode": "Activer le bouton basculant en mode Jukebox"
       },
       "systemSettings_tooltip": "Paramètres liés à votre système",
-      "audioSettings": {
-        "title": "Paramètres audio",
-        "gaplessPlayback": "Utiliser la lecture sans fil pour autant que possible",
-        "sponsorBlock": "Utiliser SponsorBlock pour passer automatiquement à une partie en surbrillance de la chanson Youtube"
+      "queueSettings": {
+        "title": "Paramètre de la file d'attente",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
       },
-      "audioSettings_tooltip": "Paramètres qui sont liés à la lecture audio",
-      "gapless_skip": "Skip song before end (seconds)",
-      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
-      "invidiousUrlUnsupported": "Cette url ne supporte pas l'API Invidious",
-      "invidious_tooltip": "Instance insensée à utiliser à la place de youtube",
-      "restartApp": "Redémarrer Moosync",
-      "zoom": "Facteur de zoom (Beta)",
-      "zoom_tooltip": "Zoom des fenêtres en pourcentage. Cela peut casser l'interface utilisateur.",
-      "spotify": {
-        "client_id": "ID client Spotify",
-        "client_id_tooltip": "Identifiant client Spotify requis pour se connecter à Spotify. Cliquez pour en savoir plus",
-        "client_secret": "Secret client Spotify",
-        "client_secret_tooltip": "Spotify client Secret requis pour se connecter à Spotify. Cliquez pour en savoir plus",
-        "autoFetchButton": "Obtenir automatiquement les détails de Spotify",
-        "autoFetchPreTitle": "Obtenir",
-        "autoFetchTitle": "ID client et secret",
-        "autoFetchDisclaimer": "Une fenêtre s'ouvre maintenant où on vous demandera de vous connecter à votre compte Spotify. Après vous être connecté, ne cliquez nulle part car l'ensemble du processus sera automatisé",
-        "openWindow": "Ouvrir la fenêtre",
-        "title": "Paramètres Spotify",
-        "tooltip": "Paramètre pour changer le comportement de la lecture Spotify",
-        "librespotEnable": "Utiliser librespot (Spotify Premium requis)",
-        "username": "Nom d'utilisateur Spotify",
-        "username_tooltip": "Votre nom d'utilisateur Spotify. Habituellement votre adresse courriel",
-        "password": "Mot de passe Spotify",
-        "password_tooltip": "Votre mot de passe Spotify. Vous aurez peut-être besoin de le définir dans les paramètres Spotify",
-        "librespot": {
-          "title": "Paramètre Librespot",
-          "tooltip": "Paramètre pour changer le comportement de librespot",
-          "useSpotifyCanvas": "Afficher la vidéo de toile en arrière-plan",
-          "useLibrespotPlayback": "Utiliser librespot pour la lecture d'une chanson"
-        }
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
       },
       "youtube": {
         "client_id": "ID client Youtube",
@@ -233,78 +156,8 @@
         "client_id_tooltip": "L'identifiant YouTube est requis pour pouvoir se connecter à YouTube. Cliquer pour en savoir plus",
         "client_secret_tooltip": "Le Secret YouTube est requis pour pouvoir se connecter à YouTube. Cliquer pour en savoir plus"
       },
-      "lastfm": {
-        "client_id": "Clé d'Api LastFM",
-        "client_secret": "Secret client LastFM"
-      },
-      "youtubeAlternative": {
-        "title": "Services Alternatifs Youtube",
-        "tooltip": "Obtenir des données depuis YouTube via un fournisseur tiers",
-        "useYoutube": "Utiliser les services YouTube par défaut",
-        "useInvidious": "Utiliser les services Invidious",
-        "usePiped": "Utiliser les services canalisés",
-        "piped": {
-          "url": "Instance canalisée",
-          "url_tooltip": "URL de l'instance Piped à utiliser",
-          "username": "Nom d'utilisateur",
-          "username_tooltip": "Votre nom d'utilisateur pour l'instance canalisée sélectionnée",
-          "password": "Mot de passe",
-          "password_tooltip": "Votre mot de passe piped à l'instance sélectionnée"
-        },
-        "invidious": {
-          "url": "Instance Invidious",
-          "url_tooltip": "URL de l'instance Invidious à utiliser",
-          "options": "Options Invidious avancées",
-          "options_tooltip": "Options pour contrôler la lecture instinctive",
-          "always_proxy": "Toujours lire l'audio à partir du proxy Invidious au lieu de la vidéo Google"
-        },
-        "youtube": {
-          "options": "Paramètre avancé YouTube",
-          "options_tooltip": "Paramètre pour contrôler la lecture de YouTube",
-          "useEmbeds": "Utiliser YouTube intégrer pour jouer l'audio depuis YouTube"
-        }
-      },
       "language": "Langage",
-      "language_tooltip": "Définir la langue de l'interface",
-      "clearPreferences": "Remettre aux paramètres par défaut",
-      "clear_preferences_title": "Remettre aux paramètres par défaut?",
-      "clear_preferences": "Êtes-vous sûr de vouloir tout réinitialiser par défaut ? L'application redémarrera après la réinitialisation.",
-      "clear_preferences_button": "Valider",
-      "jukebox": {
-        "pin": "Pin en mode Jukebox",
-        "pin_tooltip": "Le code pin sera nécessaire pour quitter le mode Jukebox. Doit être numérique.",
-        "optionalFields": "Visibilité des boutons",
-        "optionalFields_tooltip": "Pour choisir les boutons de contrôle visibles en mode Jukebox",
-        "optional_skip": "Boutons de changement de chanson",
-        "optional_shuffle": "Bouton mélanger",
-        "optional_repeat": "Bouton répeter"
-      },
-      "lyrics": {
-        "title": "Fournisseurs de paroles",
-        "tooltip": "Sélectionnez les fournisseurs de paroles à utiliser pour rechercher des paroles",
-        "az_lyrics": "Utiliser AZLyrics",
-        "google_lyrics": "Utiliser une recherche Google pour les paroles",
-        "spotify_lyrics": "Utliser Spotify pour les paroles (Necessite librespot)",
-        "genius_lyrics": "Utiliser Genius"
-      },
-      "queueSettings": {
-        "title": "Paramètre de la file d'attente",
-        "tooltip": "Paramètre pour modifier le comportement de la file d'attente",
-        "clearQueue": "Vider la file d'attente avant d'ajouter une liste de lecture"
-      },
-      "scrobble": {
-        "provider_toggle": {
-          "title": "Liste blanche Scrobble",
-          "tooltip": "Activer les fournisseurs pour les chansons que vous voulez être scrobbler"
-        }
-      },
-      "volumePersistMode": {
-        "title": "Comportement du Volume",
-        "tooltip": "Configurer le comportement du bouton de volume",
-        "noPersist": "Comportement Normal",
-        "persistSeparateVolumes": "Mémorise séparement le volume de chaque fournisseur de chansons",
-        "persistClampVolume": "Ajuste manuellement le volume de chaque fournisseur de chansons"
-      }
+      "language_tooltip": "Change application language"
     },
     "logs": {
       "logSettings": "Paramètres du journal",

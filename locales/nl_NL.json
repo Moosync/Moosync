@@ -11,14 +11,11 @@
       "paths": "Paths",
       "themes": "Themes",
       "extensions": "Extensions",
-      "system": "System",
-      "logs": "Logs",
-      "keybinds": "Keybinds"
+      "system": "System"
     }
   },
   "topbar": {
-    "searchPlaceholder": "Zoeken...",
-    "noResultsFound": "Geen resultaten gevonden"
+    "searchPlaceholder": "Zoeken..."
   },
   "pages": {
     "playlists": "Afspeellijsten",
@@ -47,17 +44,6 @@
       }
     }
   },
-  "buttons": {
-    "playSingle": "Speel {title}",
-    "addToQueue": "Voeg {title} toe aan wachtrij",
-    "addToLibrary": "{title} toevoegen aan bibliotheek",
-    "playRandom": "Speel 100 willekeurige nummers af",
-    "fetchAll": "Fetch all songs",
-    "close": "Close",
-    "add": "Add",
-    "save": "Save",
-    "cancel": "Cancel"
-  },
   "loading": "Laden...",
   "now_playing": "Now playing",
   "contextMenu": {
@@ -80,24 +66,13 @@
       "save": "Toevoegen aan Bibliotheek"
     },
     "song": {
-      "addFromURL": "Toevoegen van URL",
-      "playNow": "Speel nu",
       "playNext": "Volgende afspelen",
       "clearAndPlay": "Wachtrij wissen en afspelen",
       "addToQueue": "Toevoegen aan wachtrij",
-      "moveToTop": "Verplaats naar boven",
-      "moveToBottom": "Verplaats naar onderen",
-      "moveManually": "Handmatig verplaatsen",
-      "manualIndex": "Index van nummer instellen",
       "remove": "Verwijderen uit bibliotheek",
       "add": "Add Song to Library",
       "removeFromPlaylist": "Verwijderen uit afspeellijst",
-      "hideFromLibrary": "Verbergen in bibliotheek",
-      "showInLibrary": "In bibliotheek weergeven",
-      "showHidden": "Verborgen nummers weergeven",
-      "hideHidden": "Verborgen nummers verbergen",
-      "openInBrowser": "Open in browser",
-      "gotoAlbum": "Goto album ({title})",
+      "gotoAlbum": "Go to album ({{ title }})",
       "gotoArtists": "Goto artists"
     },
     "artist": {
@@ -145,32 +120,8 @@
       "scan_threads_tooltip": "Number of threads to use when scanning for local music"
     },
     "themes": {
-      "songView": "Nummers weergave",
-      "songView_tooltip": "Uiterlijk van de songlijst aanpassen",
-      "songView_classic": "Klassiek",
-      "songView_compact": "Compacte",
       "themes": "Thema’s",
-      "themes_tooltip": "Kleuren aanpassen",
-      "themes_default": "Standaard",
-      "createTheme": "Nieuw thema",
-      "importTheme": "Themaontwerp importeren",
-      "newTheme": {
-        "name": "Thema naam",
-        "author": "Auteur",
-        "colors": "Kleuren",
-        "colors_tooltip": "Verander de kleuren om de UI aan te passen",
-        "css": "Custom CSS",
-        "watch_css": "Watch CSS for file changes"
-      },
-      "primary": "Primair",
-      "secondary": "Secundaire",
-      "tertiary": "Tertiair",
-      "textPrimary": "Tekst primaire",
-      "textSecondary": "Tekst secundair",
-      "textInverse": "Tekst inverse",
-      "accent": "Accent",
-      "divider": "Scheidingslijn",
-      "import_button": "Importeren"
+      "themes_tooltip": "Kleuren aanpassen"
     },
     "extensions": {
       "extensions": "Extensies",
@@ -184,48 +135,20 @@
         "title": "Systeem Instellingen",
         "systemStartup": "Start app bij opstarten van het systeem",
         "minimizeTray": "Minimaliseer naar systeemvak bij sluiten",
-        "hardwareAcceleration": "Gebruik GPU hardwareversnelling",
-        "watchFileChanges": "Muziekmappen bekijken voor wijzigingen",
-        "enableJukeboxMode": "Schakelaar voor Jukebox-modus inschakelen",
-        "lastLoadedPlaybackState": "Load last playback state on startup"
+        "enableJukeboxMode": "Schakelaar voor Jukebox-modus inschakelen"
       },
       "systemSettings_tooltip": "Instellingen die gerelateerd zijn aan uw systeem",
-      "audioSettings": {
-        "title": "Audio instellingen",
-        "gaplessPlayback": "Gebruik gapless play waar mogelijk",
-        "sponsorBlock": "SponsorBlock gebruiken om automatisch over te slaan naar gemarkeerd deel van het Youtube nummer"
+      "queueSettings": {
+        "title": "Wachtrij instellingen",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
       },
-      "audioSettings_tooltip": "Instellingen voor verwante audio afspelen",
-      "gapless_skip": "Skip song before end (seconds)",
-      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
-      "invidiousUrlUnsupported": "Deze url biedt geen ondersteuning voor Invidious API",
-      "invidious_tooltip": "Onbenauwde instantie om te gebruiken in plaats van youtube",
-      "restartApp": "Herstart Moosync",
-      "zoom": "Zoom factor (Beta)",
-      "zoom_tooltip": "Inzoomen van ramen in percentage. Dit kan de UI breken.",
-      "spotify": {
-        "client_id": "Spotify Client ID",
-        "client_id_tooltip": "Spotify client ID vereist om in te loggen op Spotify. Klik om meer te weten te komen",
-        "client_secret": "Spotify Clientgeheim",
-        "client_secret_tooltip": "Spotify geheim client welke nodig is om in te loggen op Spotify. Klik voor meer informatie",
-        "autoFetchButton": "Spotify-gegevens automatisch krijgen",
-        "autoFetchPreTitle": "Verkrijg",
-        "autoFetchTitle": "ClientID en geheim",
-        "autoFetchDisclaimer": "Er wordt nu een venster geopend waar je gevraagd wordt in te loggen op je Spotify-account. Na het inloggen klikt u nergens op, omdat het hele proces zal worden geautomatiseerd",
-        "openWindow": "Open venster",
-        "title": "Spotify Instellingen",
-        "tooltip": "Opties om het gedrag van spotify afspelen te wijzigen",
-        "librespotEnable": "Gebruik librespot (Spotify Premium vereist)",
-        "username": "Spotify gebruikersnaam",
-        "username_tooltip": "Je spotify gebruikersnaam. Meestal je e-mailadres",
-        "password": "Spotify wachtwoord",
-        "password_tooltip": "Je wachtwoord om te spotify te gebruiken. Je moet er misschien een instellen bij instellingen op Spotify",
-        "librespot": {
-          "title": "Librespot opties",
-          "tooltip": "Opties om het gedrag van librespot te veranderen",
-          "useSpotifyCanvas": "Toon spotify canvas video op de achtergrond",
-          "useLibrespotPlayback": "Gebruik librespot voor het afspelen van nummer"
-        }
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
       },
       "youtube": {
         "client_id": "Youtube Client ID",
@@ -233,78 +156,8 @@
         "client_id_tooltip": "Youtube client ID is vereist om in te loggen op Youtube. Klik om meer te weten",
         "client_secret_tooltip": "Youtube client secret vereist om in te loggen op Youtube. Klik om meer te weten"
       },
-      "lastfm": {
-        "client_id": "LastFM Api Key",
-        "client_secret": "LastFM Client Secret"
-      },
-      "youtubeAlternative": {
-        "title": "Youtube Alternatieve diensten",
-        "tooltip": "Haal gegevens van Youtube op via een externe aanbieder",
-        "useYoutube": "Standaard Youtube-services gebruiken",
-        "useInvidious": "Gebruik vervelende diensten",
-        "usePiped": "Gebruik Piped services",
-        "piped": {
-          "url": "Invoer Instantie",
-          "url_tooltip": "URL van Piped instantie om te gebruiken",
-          "username": "Gebruikersnaam",
-          "username_tooltip": "Je pip-gebruikersnaam op de geselecteerde instantie",
-          "password": "Wachtwoord",
-          "password_tooltip": "Uw pipwachtwoord op de geselecteerde instantie"
-        },
-        "invidious": {
-          "url": "Onbenauwde instantie",
-          "url_tooltip": "Gebruikte URL van een Invidious exemplaar",
-          "options": "Geavanceerde ongemakkelijke opties",
-          "options_tooltip": "Opties voor fijn regelende ongecontroleerde weergave",
-          "always_proxy": "Altijd audio afspelen van Invidious proxy in plaats van Google video"
-        },
-        "youtube": {
-          "options": "Geavanceerde Youtube opties",
-          "options_tooltip": "Opties voor fijn bediening Youtube afspelen",
-          "useEmbeds": "Gebruik Youtube embeds voor het afspelen van audio van Youtube"
-        }
-      },
       "language": "Taal",
-      "language_tooltip": "Wijzig de taal van de interface",
-      "clearPreferences": "Standaardinstellingen herstellen",
-      "clear_preferences_title": "Standaardinstellingen herstellen?",
-      "clear_preferences": "Weet u zeker dat u alles wilt terugzetten naar standaard? De app wordt opnieuw opgestart nadat u opnieuw bent ingesteld.",
-      "clear_preferences_button": "Bevestigen",
-      "jukebox": {
-        "pin": "Jukebox-modus pin",
-        "pin_tooltip": "De tis-pin zal vereist zijn om Jukebox modus af te sluiten. Moet numeriek zijn.",
-        "optionalFields": "Button visibility",
-        "optionalFields_tooltip": "Toggle optional buttons to show in Jukebox mode",
-        "optional_skip": "Track Skip buttons",
-        "optional_shuffle": "Shuffle button",
-        "optional_repeat": "Repeat button"
-      },
-      "lyrics": {
-        "title": "Songtekst leveranciers",
-        "tooltip": "Selecteer welke songtekst providers ze moeten gebruiken om te zoeken naar songteksten",
-        "az_lyrics": "Gebruik AZLyrics",
-        "google_lyrics": "Gebruik Google zoek songteksten",
-        "spotify_lyrics": "Use Spotify for lyrics (Requires librespot)",
-        "genius_lyrics": "Use Genius"
-      },
-      "queueSettings": {
-        "title": "Wachtrij instellingen",
-        "tooltip": "Opties om het gedrag van de nummerwachtrij aan te passen",
-        "clearQueue": "Wachtrij wissen voordat u een afspeellijst toevoegt"
-      },
-      "scrobble": {
-        "provider_toggle": {
-          "title": "Scrobble whitelist",
-          "tooltip": "Aanbieders waarvan je wilt dat je scrobble inschakelt"
-        }
-      },
-      "volumePersistMode": {
-        "title": "Volume behavior",
-        "tooltip": "Change the way volume slider behaves",
-        "noPersist": "Normal behavior",
-        "persistSeparateVolumes": "Remember separate volume for each provider",
-        "persistClampVolume": "Manually adjust volume range for each provider"
-      }
+      "language_tooltip": "Change application language"
     },
     "logs": {
       "logSettings": "Log Instellingen",

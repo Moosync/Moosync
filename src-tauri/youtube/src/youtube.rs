@@ -209,11 +209,14 @@ impl YoutubeScraper {
         let info = video.get_info().await?;
 
         tracing::debug!("Got formats {:?}", info.formats);
+
         let best_format = info
             .formats
             .into_iter()
             .filter(|format| format.has_audio && !format.has_video)
-            .max_by(|a, b| a.audio_bitrate.cmp(&b.audio_bitrate));
+            .max_by(|a, b| a.bitrate.cmp(&b.bitrate));
+
+        tracing::debug!("chose formats {:?}", best_format);
 
         match best_format {
             Some(f) => Ok(f.url.clone()),

@@ -45,7 +45,7 @@ class YTPlayer {
             enablejsapi: 1,
             fs: 1,
             modestbranding: 1,
-            origin: window.location.origin,
+            origin: "https://youtube.com",
             playsinline: 1,
             rel: 0,
             wmode: "opaque",

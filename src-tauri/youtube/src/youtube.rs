@@ -209,20 +209,12 @@ impl YoutubeScraper {
         let video = rusty_ytdl::Video::new(id)?;
         let info = video.get_info().await?;
 
-        let mut best_format: Option<VideoFormat> = None;
-        for format in info.formats {
-            if let Some(best) = best_format.clone() {
-                if format.has_audio
-                    && !format.is_dash_mpd
-                    && format.is_hls
-                    && format.audio_bitrate > best.audio_bitrate
-                {
-                    best_format = Some(format);
-                }
-            } else {
-                best_format = Some(format);
-            }
-        }
+        tracing::debug!("Got formats {:?}", info.formats);
+        let best_format = info
+            .formats
+            .into_iter()
+            .filter(|format| format.has_audio && !format.has_video)
+            .max_by(|a, b| a.audio_bitrate.cmp(&b.audio_bitrate));
 
         match best_format {
             Some(f) => Ok(f.url.clone()),

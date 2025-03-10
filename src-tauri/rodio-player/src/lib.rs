@@ -27,7 +27,7 @@ use std::{
     time::Duration,
 };
 
-use rodio::{Decoder, OutputStream, Sink};
+use rodio::{decoder::Mp4Type, Decoder, OutputStream, Sink};
 use stream_download::{storage::temp::TempStorageProvider, Settings, StreamDownload};
 use tracing::{debug, error, info, trace};
 use types::{errors::Result, ui::player_details::PlayerEvents};
@@ -67,7 +67,11 @@ impl RodioPlayer {
             match StreamDownload::new_http(
                 src.parse().unwrap(),
                 TempStorageProvider::new_in(cache_dir),
-                Settings::default(),
+                Settings::default()
+                    .on_progress(move |_cl, state, _c| {
+                        tracing::debug!("Progress: {}", state.current_position)
+                    })
+                    .prefetch_bytes(512),
             )
             .await
             {

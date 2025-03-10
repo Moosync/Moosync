@@ -11,14 +11,11 @@
       "paths": "Διαδρομές",
       "themes": "Θέματα",
       "extensions": "Επεκτάσεις",
-      "system": "Σύστημα",
-      "logs": "Αρχεία Καταγραφής",
-      "keybinds": "Συντομεύσεις"
+      "system": "Σύστημα"
     }
   },
   "topbar": {
-    "searchPlaceholder": "Αναζήτηση...",
-    "noResultsFound": "Δεν βρέθηκαν αποτελέσματα"
+    "searchPlaceholder": "Αναζήτηση..."
   },
   "pages": {
     "playlists": "Λίστες",
@@ -47,17 +44,6 @@
       }
     }
   },
-  "buttons": {
-    "playSingle": "Παίξε {title}",
-    "addToQueue": "Προσθήκη {title} στην ουρά",
-    "addToLibrary": "Προσθήκη {title} στη βιβλιοθήκη",
-    "playRandom": "Αναπαραγωγή 100 τυχαίων τραγουδιών",
-    "fetchAll": "Fetch all songs",
-    "close": "Close",
-    "add": "Add",
-    "save": "Save",
-    "cancel": "Cancel"
-  },
   "loading": "Φόρτωση...",
   "now_playing": "Now playing",
   "contextMenu": {
@@ -80,24 +66,13 @@
       "save": "Προσθήκη στη Βιβλιοθήκη"
     },
     "song": {
-      "addFromURL": "Προσθήκη από URL",
-      "playNow": "Αναπαραγωγή Τώρα",
       "playNext": "Αναπαραγωγή Επόμενου",
       "clearAndPlay": "Καθαρισμός ουράς και αναπαραγωγής",
       "addToQueue": "Προσθήκη Στην Ουρά",
-      "moveToTop": "Μετακίνηση στην κορυφή",
-      "moveToBottom": "Μετακίνηση στο κάτω μέρος",
-      "moveManually": "Χειροκίνητη κίνηση",
-      "manualIndex": "Ορισμός ευρετηρίου τραγουδιού",
       "remove": "Αφαίρεση από τη βιβλιοθήκη",
       "add": "Add Song to Library",
       "removeFromPlaylist": "Αφαίρεση από τη λίστα αναπαραγωγής",
-      "hideFromLibrary": "Απόκρυψη από τη βιβλιοθήκη",
-      "showInLibrary": "Εμφάνιση στη βιβλιοθήκη",
-      "showHidden": "Εμφάνιση κρυφών τραγουδιών",
-      "hideHidden": "Απόκρυψη κρυφών τραγουδιών",
-      "openInBrowser": "Άνοιγμα σε πρόγραμμα περιήγησης",
-      "gotoAlbum": "Goto album ({title})",
+      "gotoAlbum": "Go to album ({{ title }})",
       "gotoArtists": "Goto artists"
     },
     "artist": {
@@ -145,32 +120,8 @@
       "scan_threads_tooltip": "Number of threads to use when scanning for local music"
     },
     "themes": {
-      "songView": "Προβολή Τραγουδιών",
-      "songView_tooltip": "Προσαρμογή εμφάνισης λίστας τραγουδιών",
-      "songView_classic": "Κλασικό",
-      "songView_compact": "Συμπαγής",
       "themes": "Θέματα",
-      "themes_tooltip": "Προσαρμογή χρωμάτων",
-      "themes_default": "Προεπιλογή",
-      "createTheme": "Νέο θέμα",
-      "importTheme": "Εισαγωγή θέματος",
-      "newTheme": {
-        "name": "Όνομα Θέματος",
-        "author": "Συγγραφέας",
-        "colors": "Χρώματα",
-        "colors_tooltip": "Αλλάξτε τα χρώματα για να προσαρμόσετε το UI",
-        "css": "Custom CSS",
-        "watch_css": "Watch CSS for file changes"
-      },
-      "primary": "Κύριο",
-      "secondary": "Δευτερεύον",
-      "tertiary": "Τριτοβάθμιο",
-      "textPrimary": "Κύριο Κείμενο",
-      "textSecondary": "Δευτερεύον Κείμενο",
-      "textInverse": "Αντίστροφο Κείμενο",
-      "accent": "Απόχρωση",
-      "divider": "Διαχωριστικό",
-      "import_button": "Εισαγωγή"
+      "themes_tooltip": "Προσαρμογή χρωμάτων"
     },
     "extensions": {
       "extensions": "Επεκτάσεις",
@@ -184,48 +135,20 @@
         "title": "Ρυθμίσεις Συστήματος",
         "systemStartup": "Έναρξη εφαρμογής κατά την εκκίνηση του συστήματος",
         "minimizeTray": "Ελαχιστοποίηση στο δίσκο κατά το κλείσιμο",
-        "hardwareAcceleration": "Χρήση επιτάχυνσης υλικού GPU",
-        "watchFileChanges": "Παρακολουθήστε τους καταλόγους μουσικής για αλλαγές",
-        "enableJukeboxMode": "Ενεργοποίηση εναλλαγής για τη λειτουργία Jukebox",
-        "lastLoadedPlaybackState": "Load last playback state on startup"
+        "enableJukeboxMode": "Ενεργοποίηση εναλλαγής για τη λειτουργία Jukebox"
       },
       "systemSettings_tooltip": "Ρυθμίσεις που σχετίζονται με το σύστημά σας",
-      "audioSettings": {
-        "title": "Ρυθμίσεις Ήχου",
-        "gaplessPlayback": "Χρήση gapless playback για όπου είναι δυνατό",
-        "sponsorBlock": "Χρησιμοποιήστε το SponsorBlock για αυτόματη μετάβαση στο επισημασμένο τμήμα του τραγουδιού του Youtube"
+      "queueSettings": {
+        "title": "Ρυθμίσεις Ουράς",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
       },
-      "audioSettings_tooltip": "Ρυθμίσεις που σχετίζονται με αναπαραγωγή ήχου",
-      "gapless_skip": "Skip song before end (seconds)",
-      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
-      "invidiousUrlUnsupported": "Αυτή η διεύθυνση URL δεν υποστηρίζει Invidious API",
-      "invidious_tooltip": "Invidious instance για χρήση αντί για youtube",
-      "restartApp": "Επανεκκίνηση Moosync",
-      "zoom": "Συντελεστής Μεγέθυνσης (Beta)",
-      "zoom_tooltip": "Μεγέθυνση παραθύρων σε ποσοστό. Αυτό μπορεί να σπάσει το UI.",
-      "spotify": {
-        "client_id": "Αναγνωριστικό Πελάτη Spotify",
-        "client_id_tooltip": "Το Spotify ID πελάτη απαιτείται για να συνδεθείτε στο Spotify. Κάντε κλικ για να μάθετε περισσότερα",
-        "client_secret": "Μυστικό Πελάτη Spotify",
-        "client_secret_tooltip": "Το μυστικό πελάτη Spotify απαιτείται για να συνδεθείτε στο Spotify. Κάντε κλικ για να μάθετε περισσότερα",
-        "autoFetchButton": "Αυτόματη λήψη λεπτομερειών Spotify",
-        "autoFetchPreTitle": "Λήψη",
-        "autoFetchTitle": "ClientID και Μυστικό",
-        "autoFetchDisclaimer": "Ένα παράθυρο θα ανοίξει τώρα όπου θα σας ζητηθεί να συνδεθείτε στο λογαριασμό σας στο Spotify. Αφού συνδεθείτε παρακαλώ μην κάνετε κλικ πουθενά, καθώς η όλη διαδικασία θα αυτοματοποιηθεί",
-        "openWindow": "Άνοιγμα Παραθύρου",
-        "title": "Ρυθμίσεις Spotify",
-        "tooltip": "Επιλογές για να αλλάξετε τη συμπεριφορά της αναπαραγωγής του spotify",
-        "librespotEnable": "Χρησιμοποιήστε το librespot (απαιτείται Spotify Premium)",
-        "username": "Όνομα χρήστη Spotify",
-        "username_tooltip": "Το όνομα χρήστη σας στο spotify. Συνήθως το email σας",
-        "password": "Κωδικός πρόσβασης Spotify",
-        "password_tooltip": "Ο κωδικός πρόσβασής σας στο spotify. Ίσως χρειαστεί να ορίσετε ένα στις ρυθμίσεις στο Spotify",
-        "librespot": {
-          "title": "Επιλογές Librespot",
-          "tooltip": "Επιλογές για να αλλάξετε τη συμπεριφορά του librespot",
-          "useSpotifyCanvas": "Εμφάνιση βίντεο καμβά spotify στο παρασκήνιο",
-          "useLibrespotPlayback": "Χρήση librespot για αναπαραγωγή τραγουδιών"
-        }
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
       },
       "youtube": {
         "client_id": "Youtube Client ID",
@@ -233,78 +156,8 @@
         "client_id_tooltip": "Youtube client ID απαιτείται για να συνδεθείτε στο Youtube. Κάντε κλικ για να μάθετε περισσότερα",
         "client_secret_tooltip": "Youtube client Secret απαιτείται να συνδεθείτε στο Youtube. Κάντε κλικ για να μάθετε περισσότερα"
       },
-      "lastfm": {
-        "client_id": "LastFM Api Key",
-        "client_secret": "LastFM Client Secret"
-      },
-      "youtubeAlternative": {
-        "title": "Εναλλακτικές υπηρεσίες Youtube",
-        "tooltip": "Λήψη δεδομένων από το Youtube μέσω τρίτου παρόχου",
-        "useYoutube": "Χρήση προεπιλεγμένων υπηρεσιών Youtube",
-        "useInvidious": "Χρήση Invidious υπηρεσιών",
-        "usePiped": "Χρήση Piped υπηρεσιών",
-        "piped": {
-          "url": "Piped Instance",
-          "url_tooltip": "Διεύθυνση URL της διεργασίας Piped για χρήση",
-          "username": "Όνομα Χρήστη",
-          "username_tooltip": "Το όνομα χρήστη piped που έχετε εισαγάγει στην επιλεγμένη παρουσία",
-          "password": "Κωδικός πρόσβασης",
-          "password_tooltip": "Ο κωδικός πρόσβασης σας piped στην επιλεγμένη παρουσία"
-        },
-        "invidious": {
-          "url": "Invidious Instance",
-          "url_tooltip": "URL του Invidious instance για χρήση",
-          "options": "Προηγμένες επιλογές Invidious",
-          "options_tooltip": "Επιλογές για τον ακριβή έλεγχο αναπαραγωγής Invidious",
-          "always_proxy": "Πάντα αναπαραγωγή ήχου από Invidious proxy αντί για βίντεο Google"
-        },
-        "youtube": {
-          "options": "Προηγμένες επιλογές Youtube",
-          "options_tooltip": "Επιλογές για τον ακριβή έλεγχο της αναπαραγωγής στο YouTube",
-          "useEmbeds": "Χρήση ενσωμάτωσης Youtube για αναπαραγωγή ήχου από το Youtube"
-        }
-      },
       "language": "Γλώσσα",
-      "language_tooltip": "Αλλάξτε τη γλώσσα της διεπαφής",
-      "clearPreferences": "Επαναφορά προεπιλογών",
-      "clear_preferences_title": "Επαναφορά στις προεπιλογές;",
-      "clear_preferences": "Είστε βέβαιοι ότι θέλετε να επαναφέρετε τα πάντα στις προεπιλογές; Η εφαρμογή θα επανεκκινήσει μετά την επαναφορά.",
-      "clear_preferences_button": "Επιβεβαίωση",
-      "jukebox": {
-        "pin": "Pin λειτουργίας Jukebox",
-        "pin_tooltip": "This pin will be required to exit Jukebox Mode. Should be numeric.",
-        "optionalFields": "Ορατότητα κουμπιού",
-        "optionalFields_tooltip": "Εναλλαγή προαιρετικών κουμπιών για εμφάνιση στη λειτουργία Jukebox",
-        "optional_skip": "Track Skip buttons",
-        "optional_shuffle": "Shuffle button",
-        "optional_repeat": "Repeat button"
-      },
-      "lyrics": {
-        "title": "Πάροχοι στίχων",
-        "tooltip": "Επιλέξτε ποιους παρόχους στίχων θα χρησιμοποιήσετε για την αναζήτηση στίχων",
-        "az_lyrics": "Χρησιμοποιήστε το AZLyrics",
-        "google_lyrics": "Χρησιμοποιήστε στίχους αναζήτησης Google",
-        "spotify_lyrics": "Use Spotify for lyrics (Requires librespot)",
-        "genius_lyrics": "Use Genius"
-      },
-      "queueSettings": {
-        "title": "Ρυθμίσεις Ουράς",
-        "tooltip": "Επιλογές για τη ρύθμιση της συμπεριφοράς της ουράς τραγουδιών",
-        "clearQueue": "Εκκαθάριση ουράς πριν από την προσθήκη λίστας αναπαραγωγής"
-      },
-      "scrobble": {
-        "provider_toggle": {
-          "title": "Λίστα επιτρεπόμενων Scrobble",
-          "tooltip": "Ενεργοποίηση παρόχων των οποίων τα τραγούδια θέλετε να είναι scrobble'd"
-        }
-      },
-      "volumePersistMode": {
-        "title": "Volume behavior",
-        "tooltip": "Change the way volume slider behaves",
-        "noPersist": "Normal behavior",
-        "persistSeparateVolumes": "Remember separate volume for each provider",
-        "persistClampVolume": "Manually adjust volume range for each provider"
-      }
+      "language_tooltip": "Change application language"
     },
     "logs": {
       "logSettings": "Ρυθμίσεις Καταγραφής",

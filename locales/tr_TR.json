@@ -11,14 +11,11 @@
       "paths": "Dosya Dizini",
       "themes": "Temalar",
       "extensions": "Eklentiler",
-      "system": "Sistem Ayarları",
-      "logs": "Hata Kaydı",
-      "keybinds": "Kısayol Tuşları"
+      "system": "Sistem Ayarları"
     }
   },
   "topbar": {
-    "searchPlaceholder": "Ara...",
-    "noResultsFound": "Sonuç bulunamadı"
+    "searchPlaceholder": "Ara..."
   },
   "pages": {
     "playlists": "Çalma listeleri",
@@ -47,17 +44,6 @@
       }
     }
   },
-  "buttons": {
-    "playSingle": "Çal {title}",
-    "addToQueue": "Sıraya {title} ekle",
-    "addToLibrary": "Kütüphaneye {title} ekle",
-    "playRandom": "100 adet rastgele şarkı çal 🎲",
-    "fetchAll": "Tüm şarkıları çek",
-    "close": "Kapat",
-    "add": "Ekle",
-    "save": "Kaydet",
-    "cancel": "İptal et"
-  },
   "loading": "Yükleniyor...",
   "now_playing": "Şuan çalıyor",
   "contextMenu": {
@@ -80,24 +66,13 @@
       "save": "Kütüphaneye Ekle"
     },
     "song": {
-      "addFromURL": "URL'den ekle",
-      "playNow": "Şimdi çal",
       "playNext": "Bundan sonra oynat",
       "clearAndPlay": "Çalınacakları temizle ve bunu oynat",
       "addToQueue": "Sıraya ekle",
-      "moveToTop": "En üste taşı",
-      "moveToBottom": "En alta taşı",
-      "moveManually": "El ile taşı",
-      "manualIndex": "Şarkı dizinini ayarla",
       "remove": "Kütüphaneden kaldır",
       "add": "Müziği Kütüphaneye Ekle",
       "removeFromPlaylist": "Oynatma listesinden kaldır",
-      "hideFromLibrary": "Çalma listesinde gizle",
-      "showInLibrary": "Çalma listesinde göster",
-      "showHidden": "Gizlenmiş şarkıları göster",
-      "hideHidden": "Gizlenmiş şarkıları gizle",
-      "openInBrowser": "Tarayıcıda aç",
-      "gotoAlbum": "Albüme git ({title})",
+      "gotoAlbum": "Go to album ({{ title }})",
       "gotoArtists": "Sanatçıya git"
     },
     "artist": {
@@ -145,32 +120,8 @@
       "scan_threads_tooltip": "Yerel müzik taraması yaparken kullanılacak iş parçacığı sayısı"
     },
     "themes": {
-      "songView": "Şarkıların Görünümü",
-      "songView_tooltip": "Şarkı listesi görünümünü özelleştirin",
-      "songView_classic": "Klasik",
-      "songView_compact": "Sıkışık",
       "themes": "Temalar",
-      "themes_tooltip": "Renkleri özelleştir",
-      "themes_default": "Varsayılan",
-      "createTheme": "Yeni tema",
-      "importTheme": "Tema içe aktar",
-      "newTheme": {
-        "name": "Tema Adı",
-        "author": "Yaratıcı",
-        "colors": "Renkler",
-        "colors_tooltip": "Kullanıcı arayüzünü özelleştirmek için renkleri değiştirin",
-        "css": "Özel CSS",
-        "watch_css": "Dosya değişiklikleri için CSS'yi izleyin"
-      },
-      "primary": "Birincil",
-      "secondary": "İkincil",
-      "tertiary": "Üçüncül",
-      "textPrimary": "Birincil Metin",
-      "textSecondary": "İkincil Metin",
-      "textInverse": "Ters Metin",
-      "accent": "Vurgu",
-      "divider": "Ayırıcı",
-      "import_button": "İçe aktar"
+      "themes_tooltip": "Renkleri özelleştir"
     },
     "extensions": {
       "extensions": "Uzantılar",
@@ -184,48 +135,20 @@
         "title": "Sistem Ayarları",
         "systemStartup": "Uygulamayı sistem başlangıcında başlat",
         "minimizeTray": "Kapatıldığında sistem tepsisine küçült",
-        "hardwareAcceleration": "GPU donanım hızlandırması kullan",
-        "watchFileChanges": "Değişiklikler için müzik dizinlerini takip et",
-        "enableJukeboxMode": "Jukebox modu için geçişi etkinleştir",
-        "lastLoadedPlaybackState": "Uygulama başlangıcında son oynatılanı başlat"
+        "enableJukeboxMode": "Jukebox modu için geçişi etkinleştir"
       },
       "systemSettings_tooltip": "Sisteminizle ilgili ayarlar",
-      "audioSettings": {
-        "title": "Ses Ayarları",
-        "gaplessPlayback": "Mümkün olan her yerde boşluksuz oynatma kullan",
-        "sponsorBlock": "YouTube şarkısının vurgulanan bölümüne otomatik olarak atlamak için SponsorBlock kullan"
+      "queueSettings": {
+        "title": "Oynatma sırası ayarları",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
       },
-      "audioSettings_tooltip": "Ses çalma ile ilgili ayarlar",
-      "gapless_skip": "Şarkıyı bitmeden önce atla (saniye)",
-      "gapless_skip_tooltip": "Geçerli şarkı bitmeden önce bir sonraki şarkıya (saniye) zorla geçer",
-      "invidiousUrlUnsupported": "Bu URL Invidious API'yi desteklemiyor",
-      "invidious_tooltip": "YouTube kullanmak yerine kullanılacak Invidious oluşumu",
-      "restartApp": "Moosync'i yeniden başlat",
-      "zoom": "Yakınlaştırma Faktörü (Beta)",
-      "zoom_tooltip": "Pencerelerin yüzde olarak yakınlaştırılması. Bu özellik kullanıcı arayüzünü bozabilir.",
-      "spotify": {
-        "client_id": "Spotify İstemci Kimliği",
-        "client_id_tooltip": "Spotify'a giriş yapmak için Spotify istemci kimliği gereklidir. Daha fazla bilgi için tıklayın",
-        "client_secret": "Spotify İstemci Kimliği",
-        "client_secret_tooltip": "Spotify istemcisi, Spotify'a giriş yapmak için Secret gereklidir. Daha fazla bilgi için tıklayın",
-        "autoFetchButton": "Spotify ayrıntılarını otomatik olarak al",
-        "autoFetchPreTitle": "Al",
-        "autoFetchTitle": "ClientID ve Secret",
-        "autoFetchDisclaimer": "Şimdi Spotify hesabınıza giriş yapmanızın isteneceği bir pencere açılacaktır. Giriş yaptıktan sonra lütfen hiçbir yere tıklamayın çünkü tüm süreç otomatik olacaktır",
-        "openWindow": "Pencere Aç",
-        "title": "Spotify ayarları",
-        "tooltip": "Spotify oynatma davranışını değiştirme seçenekleri",
-        "librespotEnable": "Librespot kullan (Spotify Premium gerektirir)",
-        "username": "Spotify kullanıcı adı",
-        "username_tooltip": "Spotify kullanıcı adın. Genelde e-posta adresindir.",
-        "password": "Spotify şifren",
-        "password_tooltip": "Spotify şifren. Spotify ayarlarından ayarlaman gerekebilir.",
-        "librespot": {
-          "title": "Librespot ayarları",
-          "tooltip": "Librespot davranışlarını değiştirme ayarları",
-          "useSpotifyCanvas": "Spotify canvas videosunu arka planda göster",
-          "useLibrespotPlayback": "Şarkı çalmak için librespot kullan"
-        }
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
       },
       "youtube": {
         "client_id": "Youtube İstemci Kimliği",
@@ -233,78 +156,8 @@
         "client_id_tooltip": "Youtube'a giriş yapmak için Youtube müşteri kimliği gereklidir. Daha fazla bilgi için tıklayın",
         "client_secret_tooltip": "Youtube istemcisi Youtube'a giriş yapmak için gizli bilgi gereklidir. Daha fazla bilgi için tıklayın"
       },
-      "lastfm": {
-        "client_id": "LastFM Api Anahtarı",
-        "client_secret": "LastFM İstemci Kimliği"
-      },
-      "youtubeAlternative": {
-        "title": "Youtube Alternatif hizmetleri",
-        "tooltip": "Üçüncü taraf bir sağlayıcı aracılığıyla Youtube'dan veri alın",
-        "useYoutube": "Varsayılan Youtube hizmetlerini kullan",
-        "useInvidious": "Indivious servislerini kullan (Alternatif Youtube)",
-        "usePiped": "Piped servislerini kullan",
-        "piped": {
-          "url": "Piped Örneği",
-          "url_tooltip": "Kullanılacak Piped örneğinin URL'si",
-          "username": "Kullanıcı adın",
-          "username_tooltip": "Seçilen örnekteki piped kullanıcı adınız",
-          "password": "Şifre",
-          "password_tooltip": "Seçilen örnekteki piped parolanız"
-        },
-        "invidious": {
-          "url": "Invidious Örneği",
-          "url_tooltip": "Kullanılacak Invidious örneğinin URL'si",
-          "options": "Gelişmiş Invidious seçenekleri",
-          "options_tooltip": "İnce kontrol seçenekleri Invidious oynatma",
-          "always_proxy": "Google video yerine her zaman Invidious proxy'den ses oynatın"
-        },
-        "youtube": {
-          "options": "Gelişmiş Youtube seçenekleri",
-          "options_tooltip": "Youtube oynatımını hassas şekilde kontrol etme seçenekleri",
-          "useEmbeds": "Youtube'dan ses çalmak için Youtube yerleştirmelerini kullanın"
-        }
-      },
       "language": "Dil",
-      "language_tooltip": "Arayüz dilini değiştirin",
-      "clearPreferences": "Varsayılana sıfırla",
-      "clear_preferences_title": "Varsayılana geri yüklemek ister misin?",
-      "clear_preferences": "Her şey varsayılan ayarlara sıfırlanacak bunu yapmak istediğine emin misin? Uygulama yeniden başlayacak.",
-      "clear_preferences_button": "Onayla",
-      "jukebox": {
-        "pin": "Jukebox modu pini",
-        "pin_tooltip": "Bu pin Jukebox Modundan çıkmak için gerekli olacaktır. Sayısal olmalıdır.",
-        "optionalFields": "Düğme görünürlüğü",
-        "optionalFields_tooltip": "Müzik Kutusu modunda göstermek için isteğe bağlı düğmeleri aç/kapat",
-        "optional_skip": "Parça Atlama düğmeleri",
-        "optional_shuffle": "Karıştırma butonu",
-        "optional_repeat": "Tekrarlama butonu"
-      },
-      "lyrics": {
-        "title": "Şarkı sözü kaynakları",
-        "tooltip": "Şarkı sözleri(Lyrics) için hangi kaynakları kullanacağını seç",
-        "az_lyrics": "AZLyrics kullan",
-        "google_lyrics": "Google Lyrics kullan",
-        "spotify_lyrics": "Lyricler için Spotify kullan (Librespot gerektirir)",
-        "genius_lyrics": "Lyrics için Genius kullan"
-      },
-      "queueSettings": {
-        "title": "Oynatma sırası ayarları",
-        "tooltip": "Şarkı kuyruğunun davranışını değiştirmek için seçenekler",
-        "clearQueue": "Oynatma listesi eklemeden önce kuyruğu temizleyin"
-      },
-      "scrobble": {
-        "provider_toggle": {
-          "title": "Scrobble beyaz listesi",
-          "tooltip": "Şarkılarının scrobble'lanmasını istediğiniz sağlayıcıları etkinleştirin"
-        }
-      },
-      "volumePersistMode": {
-        "title": "Ses davranışları",
-        "tooltip": "Ses seviye çubuğunun davranış şeklini değiştir",
-        "noPersist": "Normal davranış",
-        "persistSeparateVolumes": "Her bir sağlayıcı için ses seviyesini hatırla",
-        "persistClampVolume": "Her bir sağlayıcı için ses seviyesini manuel olarak ayarla"
-      }
+      "language_tooltip": "Change application language"
     },
     "logs": {
       "logSettings": "Günlük Ayarları",

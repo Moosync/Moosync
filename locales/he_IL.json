@@ -11,14 +11,11 @@
       "paths": "Paths",
       "themes": "Themes",
       "extensions": "Extensions",
-      "system": "System",
-      "logs": "Logs",
-      "keybinds": "Keybinds"
+      "system": "System"
     }
   },
   "topbar": {
-    "searchPlaceholder": "Search...",
-    "noResultsFound": "No results found"
+    "searchPlaceholder": "Search..."
   },
   "pages": {
     "playlists": "Playlists",
@@ -47,17 +44,6 @@
       }
     }
   },
-  "buttons": {
-    "playSingle": "Play {title}",
-    "addToQueue": "Add {title} to queue",
-    "addToLibrary": "Add {title} to library",
-    "playRandom": "Play 100 random songs",
-    "fetchAll": "Fetch all songs",
-    "close": "Close",
-    "add": "Add",
-    "save": "Save",
-    "cancel": "Cancel"
-  },
   "loading": "Loading...",
   "now_playing": "Now playing",
   "contextMenu": {
@@ -80,24 +66,13 @@
       "save": "Add To Library"
     },
     "song": {
-      "addFromURL": "Add from URL",
-      "playNow": "Play Now",
       "playNext": "Play Next",
       "clearAndPlay": "Clear queue and play",
       "addToQueue": "Add To Queue",
-      "moveToTop": "Move to top",
-      "moveToBottom": "Move to bottom",
-      "moveManually": "Move manually",
-      "manualIndex": "Set index of song",
       "remove": "Remove from Library",
       "add": "Add Song to Library",
       "removeFromPlaylist": "Remove from playlist",
-      "hideFromLibrary": "Hide from library",
-      "showInLibrary": "Show in library",
-      "showHidden": "Show hidden songs",
-      "hideHidden": "Hide hidden songs",
-      "openInBrowser": "Open in browser",
-      "gotoAlbum": "Goto album ({title})",
+      "gotoAlbum": "Go to album ({{ title }})",
       "gotoArtists": "Goto artists"
     },
     "artist": {
@@ -145,32 +120,8 @@
       "scan_threads_tooltip": "Number of threads to use when scanning for local music"
     },
     "themes": {
-      "songView": "Songs View",
-      "songView_tooltip": "Customize song list appearance",
-      "songView_classic": "Classic",
-      "songView_compact": "Compact",
       "themes": "Themes",
-      "themes_tooltip": "Customize colors",
-      "themes_default": "Default",
-      "createTheme": "New theme",
-      "importTheme": "Import theme",
-      "newTheme": {
-        "name": "Theme Name",
-        "author": "Author",
-        "colors": "Colors",
-        "colors_tooltip": "Change the colors to customise UI",
-        "css": "Custom CSS",
-        "watch_css": "Watch CSS for file changes"
-      },
-      "primary": "Primary",
-      "secondary": "Secondary",
-      "tertiary": "Tertiary",
-      "textPrimary": "Text Primary",
-      "textSecondary": "Text Secondary",
-      "textInverse": "Text Inverse",
-      "accent": "Accent",
-      "divider": "Divider",
-      "import_button": "Import"
+      "themes_tooltip": "Customize colors"
     },
     "extensions": {
       "extensions": "Extensions",
@@ -184,48 +135,20 @@
         "title": "System Settings",
         "systemStartup": "Start app on system startup",
         "minimizeTray": "Minimize to tray on close",
-        "hardwareAcceleration": "Use GPU hardware acceleration",
-        "watchFileChanges": "Watch music directories for changes",
-        "enableJukeboxMode": "Enable toggle for Jukebox mode",
-        "lastLoadedPlaybackState": "Load last playback state on startup"
+        "enableJukeboxMode": "Enable toggle for Jukebox mode"
       },
       "systemSettings_tooltip": "Settings which are related to your system",
-      "audioSettings": {
-        "title": "Audio Settings",
-        "gaplessPlayback": "Use gapless playback for wherever possible",
-        "sponsorBlock": "Use SponsorBlock to automatically skip to highlighted part of Youtube song"
+      "queueSettings": {
+        "title": "Queue Settings",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
       },
-      "audioSettings_tooltip": "Settings which are related audio playback",
-      "gapless_skip": "Skip song before end (seconds)",
-      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
-      "invidiousUrlUnsupported": "This url does not support Invidious API",
-      "invidious_tooltip": "Invidious instance to use instead of youtube",
-      "restartApp": "Restart Moosync",
-      "zoom": "Zoom Factor (Beta)",
-      "zoom_tooltip": "Zoom of windows in percentage. This may break the UI.",
-      "spotify": {
-        "client_id": "Spotify Client ID",
-        "client_id_tooltip": "Spotify client ID required to login to Spotify. Click to know more",
-        "client_secret": "Spotify Client Secret",
-        "client_secret_tooltip": "Spotify client Secret required to login to Spotify. Click to know more",
-        "autoFetchButton": "Get Spotify details automatically",
-        "autoFetchPreTitle": "Get",
-        "autoFetchTitle": "ClientID and Secret",
-        "autoFetchDisclaimer": "A window will now open where you will be asked to login to your Spotify account. After logging in please do not click anywhere as the whole process will be automated",
-        "openWindow": "Open Window",
-        "title": "Spotify Settings",
-        "tooltip": "Options to change the behavior of spotify playback",
-        "librespotEnable": "Use librespot (Spotify Premium required)",
-        "username": "Spotify username",
-        "username_tooltip": "Your spotify username. Usually your email",
-        "password": "Spotify password",
-        "password_tooltip": "Your spotify password. You may need to set one in settings on Spotify",
-        "librespot": {
-          "title": "Librespot options",
-          "tooltip": "Options to change the behavior of librespot",
-          "useSpotifyCanvas": "Show spotify canvas video in background",
-          "useLibrespotPlayback": "Use librespot for song playback"
-        }
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
       },
       "youtube": {
         "client_id": "Youtube Client ID",
@@ -233,78 +156,8 @@
         "client_id_tooltip": "Youtube client ID required to login to Youtube. Click to know more",
         "client_secret_tooltip": "Youtube client Secret required to login to Youtube. Click to know more"
       },
-      "lastfm": {
-        "client_id": "LastFM Api Key",
-        "client_secret": "LastFM Client Secret"
-      },
-      "youtubeAlternative": {
-        "title": "Youtube Alternative services",
-        "tooltip": "Get data from Youtube through a 3rd party provider",
-        "useYoutube": "Use default Youtube services",
-        "useInvidious": "Use Invidious services",
-        "usePiped": "Use Piped services",
-        "piped": {
-          "url": "Piped Instance",
-          "url_tooltip": "URL of Piped instance to use",
-          "username": "Username",
-          "username_tooltip": "Your piped username at the selected instance",
-          "password": "Password",
-          "password_tooltip": "Your piped password at the selected instance"
-        },
-        "invidious": {
-          "url": "Invidious Instance",
-          "url_tooltip": "URL of Invidious instance to use",
-          "options": "Advanced Invidious options",
-          "options_tooltip": "Options to fine control Invidious playback",
-          "always_proxy": "Always play audio from Invidious proxy instead of Google video"
-        },
-        "youtube": {
-          "options": "Advanced Youtube options",
-          "options_tooltip": "Options to fine control Youtube playback",
-          "useEmbeds": "Use Youtube embeds for playing audio from Youtube"
-        }
-      },
       "language": "Language",
-      "language_tooltip": "Change the language of the interface",
-      "clearPreferences": "Reset to default",
-      "clear_preferences_title": "Reset to default?",
-      "clear_preferences": "Are you sure you want to reset everything to default? The app will restart after you reset.",
-      "clear_preferences_button": "Confirm",
-      "jukebox": {
-        "pin": "Jukebox mode pin",
-        "pin_tooltip": "This pin will be required to exit Jukebox Mode. Should be numeric.",
-        "optionalFields": "Button visibility",
-        "optionalFields_tooltip": "Toggle optional buttons to show in Jukebox mode",
-        "optional_skip": "Track Skip buttons",
-        "optional_shuffle": "Shuffle button",
-        "optional_repeat": "Repeat button"
-      },
-      "lyrics": {
-        "title": "Lyrics providers",
-        "tooltip": "Select which lyrics providers to use to search for lyrics",
-        "az_lyrics": "Use AZLyrics",
-        "google_lyrics": "Use Google search lyrics",
-        "spotify_lyrics": "Use Spotify for lyrics (Requires librespot)",
-        "genius_lyrics": "Use Genius"
-      },
-      "queueSettings": {
-        "title": "Queue Settings",
-        "tooltip": "Options to tweak the behavior of song queue",
-        "clearQueue": "Clear queue before adding playing a playlist"
-      },
-      "scrobble": {
-        "provider_toggle": {
-          "title": "Scrobble whitelist",
-          "tooltip": "Enable providers whose songs you want to be scrobble'd"
-        }
-      },
-      "volumePersistMode": {
-        "title": "Volume behavior",
-        "tooltip": "Change the way volume slider behaves",
-        "noPersist": "Normal behavior",
-        "persistSeparateVolumes": "Remember separate volume for each provider",
-        "persistClampVolume": "Manually adjust volume range for each provider"
-      }
+      "language_tooltip": "Change application language"
     },
     "logs": {
       "logSettings": "Log Settings",

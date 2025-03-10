@@ -11,14 +11,11 @@
       "paths": "Paths",
       "themes": "Themes",
       "extensions": "Extensions",
-      "system": "System",
-      "logs": "Logs",
-      "keybinds": "Keybinds"
+      "system": "System"
     }
   },
   "topbar": {
-    "searchPlaceholder": "Søg...",
-    "noResultsFound": "Ingen resultater fundet"
+    "searchPlaceholder": "Søg..."
   },
   "pages": {
     "playlists": "Afspilningslister",
@@ -47,17 +44,6 @@
       }
     }
   },
-  "buttons": {
-    "playSingle": "Spil {title}",
-    "addToQueue": "Tilføj {title} til kø",
-    "addToLibrary": "Tilføj {title} til bibliotek",
-    "playRandom": "Afspil 100 tilfældige sange",
-    "fetchAll": "Fetch all songs",
-    "close": "Close",
-    "add": "Add",
-    "save": "Save",
-    "cancel": "Cancel"
-  },
   "loading": "Indlæser...",
   "now_playing": "Now playing",
   "contextMenu": {
@@ -80,24 +66,13 @@
       "save": "Føj Til Bibliotek"
     },
     "song": {
-      "addFromURL": "Tilføj fra URL",
-      "playNow": "Spil Nu",
       "playNext": "Afspil Næste",
       "clearAndPlay": "Ryd kø og afspil",
       "addToQueue": "Føj Til Kø",
-      "moveToTop": "Flyt til toppen",
-      "moveToBottom": "Flyt til bunden",
-      "moveManually": "Flyt manuelt",
-      "manualIndex": "Sæt indeks for sang",
       "remove": "Fjern fra bibliotek",
       "add": "Add Song to Library",
       "removeFromPlaylist": "Fjern fra afspilningsliste",
-      "hideFromLibrary": "Skjul fra bibliotek",
-      "showInLibrary": "Vis i bibliotek",
-      "showHidden": "Vis skjulte sange",
-      "hideHidden": "Skjul skjulte sange",
-      "openInBrowser": "Open in browser",
-      "gotoAlbum": "Goto album ({title})",
+      "gotoAlbum": "Go to album ({{ title }})",
       "gotoArtists": "Goto artists"
     },
     "artist": {
@@ -145,32 +120,8 @@
       "scan_threads_tooltip": "Number of threads to use when scanning for local music"
     },
     "themes": {
-      "songView": "Sange Visning",
-      "songView_tooltip": "Tilpas sang liste udseende",
-      "songView_classic": "Klassisk",
-      "songView_compact": "Kompakt",
       "themes": "Temaer",
-      "themes_tooltip": "Tilpas farver",
-      "themes_default": "Standard",
-      "createTheme": "Nyt tema",
-      "importTheme": "Importér tema",
-      "newTheme": {
-        "name": "Tema Navn",
-        "author": "Forfatter",
-        "colors": "Farver",
-        "colors_tooltip": "Skift farverne for at tilpasse brugergrænsefladen",
-        "css": "Custom CSS",
-        "watch_css": "Watch CSS for file changes"
-      },
-      "primary": "Primær",
-      "secondary": "Sekundær",
-      "tertiary": "Tertiær",
-      "textPrimary": "Tekst Primær",
-      "textSecondary": "Sekundær Tekst",
-      "textInverse": "Tekst Omvendt",
-      "accent": "Accent",
-      "divider": "Opdeler",
-      "import_button": "Importér"
+      "themes_tooltip": "Tilpas farver"
     },
     "extensions": {
       "extensions": "Udvidelser",
@@ -184,48 +135,20 @@
         "title": "Systemindstillinger",
         "systemStartup": "Start app ved systemopstart",
         "minimizeTray": "Minimér til bakke ved lukning",
-        "hardwareAcceleration": "Brug GPU hardware acceleration",
-        "watchFileChanges": "Se musikmapper for ændringer",
-        "enableJukeboxMode": "Aktivér skift for Jukebox-tilstand",
-        "lastLoadedPlaybackState": "Load last playback state on startup"
+        "enableJukeboxMode": "Aktivér skift for Jukebox-tilstand"
       },
       "systemSettings_tooltip": "Indstillinger, der er relateret til dit system",
-      "audioSettings": {
-        "title": "Indstillinger For Lyd",
-        "gaplessPlayback": "Brug gapless afspilning for hvor det er muligt",
-        "sponsorBlock": "Brug SponsorBlock til automatisk at springe over til den markerede del af YouTube-sang"
+      "queueSettings": {
+        "title": "Kø Indstillinger",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
       },
-      "audioSettings_tooltip": "Indstillinger som er relateret til lydafspilning",
-      "gapless_skip": "Skip song before end (seconds)",
-      "gapless_skip_tooltip": "Forcefully switches to next song (seconds) before the current song ends",
-      "invidiousUrlUnsupported": "Denne url understøtter ikke Invidious API",
-      "invidious_tooltip": "Invidious eksempel til at bruge i stedet for youtube",
-      "restartApp": "Genstart Moosync",
-      "zoom": "Zoomfaktor (Beta)",
-      "zoom_tooltip": "Zoom af vinduer i procent. Dette kan ødelægge brugergrænsefladen.",
-      "spotify": {
-        "client_id": "Spotify Klient ID",
-        "client_id_tooltip": "Spotify klient ID kræves for at logge ind på Spotify. Klik for at vide mere",
-        "client_secret": "Spotify Klient Hemmelighed",
-        "client_secret_tooltip": "Spotify klient Hemmelighed kræves for at logge ind på Spotify. Klik for at vide mere",
-        "autoFetchButton": "Få Spotify detaljer automatisk",
-        "autoFetchPreTitle": "Hent",
-        "autoFetchTitle": "KlientID og hemmelighed",
-        "autoFetchDisclaimer": "Et vindue åbnes nu, hvor du vil blive bedt om at logge ind på din Spotify-konto. Når du er logget ind, skal du ikke klikke hvor som helst da hele processen vil blive automatiseret",
-        "openWindow": "Åbn Vindue",
-        "title": "Spotify Indstillinger",
-        "tooltip": "Indstillinger for at ændre spotifis opførsel",
-        "librespotEnable": "Brug librespot (Spotify Premium påkrævet)",
-        "username": "Spotify brugernavn",
-        "username_tooltip": "Dit spotify brugernavn. Normalt din e-mail",
-        "password": "Spotify adgangskode",
-        "password_tooltip": "Din spotify adgangskode. Du skal muligvis angive en i indstillingerne på Spotify",
-        "librespot": {
-          "title": "Librespot indstillinger",
-          "tooltip": "Indstillinger for at ændre librespots opførsel",
-          "useSpotifyCanvas": "Vis spotify lærred video i baggrunden",
-          "useLibrespotPlayback": "Brug librespot til sangafspilning"
-        }
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
       },
       "youtube": {
         "client_id": "Youtube Klient ID",
@@ -233,78 +156,8 @@
         "client_id_tooltip": "Youtube klient ID kræves for at logge ind på Youtube. Klik for at vide mere",
         "client_secret_tooltip": "Youtube klient Hemmelighed kræves for at logge ind på Youtube. Klik for at vide mere"
       },
-      "lastfm": {
-        "client_id": "LastFM Api Key",
-        "client_secret": "LastFM Client Secret"
-      },
-      "youtubeAlternative": {
-        "title": "Youtube Alternative tjenester",
-        "tooltip": "Få data fra Youtube via en tredjeparts udbyder",
-        "useYoutube": "Brug standard Youtube-tjenester",
-        "useInvidious": "Brug Invidious tjenester",
-        "usePiped": "Brug rørte tjenester",
-        "piped": {
-          "url": "Rødt Instans",
-          "url_tooltip": "URL for Piped instans der skal bruges",
-          "username": "Brugernavn",
-          "username_tooltip": "Dit piped brugernavn på den valgte instans",
-          "password": "Adgangskode",
-          "password_tooltip": "Din piped adgangskode på den valgte instans"
-        },
-        "invidious": {
-          "url": "Invidious Instance",
-          "url_tooltip": "URL på Invidious instans til at bruge",
-          "options": "Avancerede Invidious muligheder",
-          "options_tooltip": "Muligheder for finstyring Invidiøs afspilning",
-          "always_proxy": "Afspil altid lyd fra Invidious proxy i stedet for Google-video"
-        },
-        "youtube": {
-          "options": "Avancerede Youtube-indstillinger",
-          "options_tooltip": "Indstillinger for finstyring Youtube-afspilning",
-          "useEmbeds": "Brug Youtube embeds til afspilning af lyd fra Youtube"
-        }
-      },
       "language": "Sprog",
-      "language_tooltip": "Ændr sproget på grænsefladen",
-      "clearPreferences": "Nulstil til standard",
-      "clear_preferences_title": "Nulstil til standard?",
-      "clear_preferences": "Er du sikker på, at du vil nulstille alt til standard? Appen genstarter, når du nulstiller.",
-      "clear_preferences_button": "Bekræft",
-      "jukebox": {
-        "pin": "Jukebox mode pin",
-        "pin_tooltip": "Tis pin vil være påkrævet for at afslutte Jukebox Tilstand. Bør være numerisk.",
-        "optionalFields": "Button visibility",
-        "optionalFields_tooltip": "Toggle optional buttons to show in Jukebox mode",
-        "optional_skip": "Track Skip buttons",
-        "optional_shuffle": "Shuffle button",
-        "optional_repeat": "Repeat button"
-      },
-      "lyrics": {
-        "title": "Sangtekst udbydere",
-        "tooltip": "Vælg hvilke sangtekstudbydere, der skal bruges til at søge efter sangtekster",
-        "az_lyrics": "Brug AZLyrics",
-        "google_lyrics": "Benyt Google søge sangtekster",
-        "spotify_lyrics": "Use Spotify for lyrics (Requires librespot)",
-        "genius_lyrics": "Use Genius"
-      },
-      "queueSettings": {
-        "title": "Kø Indstillinger",
-        "tooltip": "Indstillinger for at justere opførsel af sang kø",
-        "clearQueue": "Ryd kø før du tilføjer afspilning af en spilleliste"
-      },
-      "scrobble": {
-        "provider_toggle": {
-          "title": "Scrobble hvidliste",
-          "tooltip": "Aktiver udbydere, hvis sange du vil være scrobble'd"
-        }
-      },
-      "volumePersistMode": {
-        "title": "Volume behavior",
-        "tooltip": "Change the way volume slider behaves",
-        "noPersist": "Normal behavior",
-        "persistSeparateVolumes": "Remember separate volume for each provider",
-        "persistClampVolume": "Manually adjust volume range for each provider"
-      }
+      "language_tooltip": "Change application language"
     },
     "logs": {
       "logSettings": "Log Indstillinger",

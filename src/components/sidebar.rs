@@ -37,14 +37,14 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct Tab {
-    pub title: String,
+    pub title: fn() -> &'static str,
     pub icon: fn(signal: ReadSignal<bool>) -> AnyView,
     pub url: String,
 }
 
 impl Tab {
     #[tracing::instrument(level = "debug", skip(title, icon, url))]
-    pub fn new(title: &str, icon: &str, url: &str) -> Self {
+    pub fn new(title: fn() -> &'static str, icon: &str, url: &str) -> Self {
         let icon = match icon {
             "Queue" => |active| QueueIcon(QueueIconProps { active }).into_any(),
             "Songs" | "Home" => |active| AllSongsIcon(AllSongsIconProps { active }).into_any(),
@@ -61,7 +61,7 @@ impl Tab {
             _ => panic!("Icon not found: {}", icon),
         };
         Tab {
-            title: title.to_string(),
+            title,
             icon,
             url: url.to_string(),
         }
@@ -83,7 +83,7 @@ fn TabItem(
     view! {
         <div
             class="d-flex button-bar"
-            id=tab.title.clone()
+            id=tab.title
             class:button-active=move || active_tab.get() == index
             on:click=move |_| set_active_tab.set(index)
         >
@@ -103,7 +103,7 @@ fn TabItem(
                     }
                 >
 
-                    {tab.title.clone()}
+                    {tab.title}
                 </div>
             </div>
         </div>

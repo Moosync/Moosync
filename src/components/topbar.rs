@@ -24,6 +24,7 @@ use crate::{
 use leptos::{
     component, ev::Event, prelude::*, reactive::wrappers::write::SignalSetter, view, IntoView,
 };
+use leptos_i18n::t_string;
 use leptos_router::{hooks::use_navigate, NavigateOptions};
 use leptos_use::on_click_outside;
 use leptos_virtual_scroller::VirtualScroller;
@@ -156,11 +157,11 @@ pub fn Accounts() -> impl IntoView {
                                             let (title_out, title_in) = if status.logged_in {
                                                 (
                                                     status.user_name.clone().unwrap_or_default(),
-                                                    i18n.get_keys().accounts().sign_out().build_string().into(),
+                                                    t_string!(i18n, accounts.sign_out).into(),
                                                 )
                                             } else {
                                                 (
-                                                    i18n.get_keys().accounts().connect().build_string().into(),
+                                                    t_string!(i18n, accounts.connect).into(),
                                                     status.name.clone(),
                                                 )
                                             };
@@ -503,7 +504,7 @@ pub fn TopBar() -> impl IntoView {
                                     <input
                                         class="form-control searchbar"
                                         placeholder=move || {
-                                            i18n.get_keys().topbar().searchPlaceholder().build_string()
+                                            t_string!(i18n, topbar.searchPlaceholder)
                                         }
 
                                         on:blur=move |_| handle_input_focus(InputFocus::Blur)

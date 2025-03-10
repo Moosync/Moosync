@@ -20,6 +20,7 @@ use leptos::{prelude::*, task::spawn_local};
 use leptos_context_menu::{
     BottomSheet, ContextMenu, ContextMenuData, ContextMenuItemInner, ContextMenuItems, Menu,
 };
+use leptos_i18n::{t, t_display, t_string};
 use leptos_router::{
     hooks::{use_navigate, use_query_map},
     NavigateOptions,
@@ -227,30 +228,27 @@ where
             ))
         }
 
+        let album_title = self
+            .current_song
+            .as_ref()
+            .map(|s| s.album.as_ref().map(|a| a.album_name.clone()))
+            .flatten()
+            .flatten();
+
         let library_menu_item = if self
             .current_song
-            .clone()
-            .map(|s| s.song.library_item.unwrap_or_default())
+            .as_ref()
+            .map(|s| s.song.library_item.clone().unwrap_or_default())
             .unwrap_or_default()
         {
             ContextMenuItemInner::<Self>::new_with_handler(
-                i18n.get_keys()
-                    .contextMenu()
-                    .song()
-                    .remove()
-                    .build_string()
-                    .into(),
+                t_string!(i18n, contextMenu.song.remove).to_string(),
                 |_, cx| cx.remove_from_library(),
                 None,
             )
         } else {
             ContextMenuItemInner::<Self>::new_with_handler(
-                i18n.get_keys()
-                    .contextMenu()
-                    .song()
-                    .add()
-                    .build_string()
-                    .into(),
+                t_string!(i18n, contextMenu.song.add).to_string(),
                 |_, cx| cx.add_to_library(),
                 None,
             )
@@ -259,62 +257,36 @@ where
         let ret: RwSignal<ContextMenuItems<Self>> = RwSignal::new(vec![
             ContextMenuItemInner::new_with_handler("Play now".into(), |_, cx| cx.play_now(), None),
             ContextMenuItemInner::new_with_handler(
-                i18n.get_keys()
-                    .contextMenu()
-                    .song()
-                    .playNext()
-                    .build_string()
-                    .into(),
+                t_string!(i18n, contextMenu.song.playNext).to_string(),
                 |_, cx| cx.play_next(),
                 None,
             ),
             ContextMenuItemInner::new_with_handler(
-                i18n.get_keys()
-                    .contextMenu()
-                    .song()
-                    .clearAndPlay()
-                    .build_string()
-                    .into(),
+                t_string!(i18n, contextMenu.song.clearAndPlay).to_string(),
                 |_, cx| cx.clear_queue_and_play(),
                 None,
             ),
             ContextMenuItemInner::new_with_handler(
-                i18n.get_keys()
-                    .contextMenu()
-                    .song()
-                    .addToQueue()
-                    .build_string()
-                    .into(),
+                t_string!(i18n, contextMenu.song.addToQueue).to_string(),
                 |_, cx| cx.add_to_queue(),
                 None,
             ),
             ContextMenuItemInner::new(
-                i18n.get_keys()
-                    .contextMenu()
-                    .playlist()
-                    .add()
-                    .build_string()
-                    .into(),
+                t_string!(i18n, contextMenu.playlist.add).to_string(),
                 Some(playlist_items),
             ),
             library_menu_item,
             ContextMenuItemInner::new_with_handler(
-                i18n.get_keys()
-                    .contextMenu()
-                    .song()
-                    .gotoAlbum()
-                    .build_string()
-                    .into(),
+                t_string!(
+                    i18n,
+                    contextMenu.song.gotoAlbum,
+                    title = album_title.unwrap_or_default()
+                ),
                 |_, cx| cx.goto_album(),
                 None,
             ),
             ContextMenuItemInner::new(
-                i18n.get_keys()
-                    .contextMenu()
-                    .song()
-                    .gotoArtists()
-                    .build_string()
-                    .into(),
+                t_string!(i18n, contextMenu.song.gotoArtists).to_string(),
                 Some(artist_items),
             ),
         ]);
@@ -325,12 +297,7 @@ where
                 ret.insert(
                     5,
                     ContextMenuItemInner::new_with_handler(
-                        i18n.get_keys()
-                            .contextMenu()
-                            .song()
-                            .removeFromPlaylist()
-                            .build_string()
-                            .into(),
+                        t_string!(i18n, contextMenu.song.removeFromPlaylist).to_string(),
                         |_, cx| cx.remove_from_playlist(),
                         None,
                     ),
@@ -485,21 +452,12 @@ impl ContextMenuData<Self> for PlaylistContextMenu {
         let i18n = use_i18n();
         RwSignal::new(vec![
             ContextMenuItemInner::<Self>::new_with_handler(
-                i18n.get_keys()
-                    .contextMenu()
-                    .playlist()
-                    .addFromURL()
-                    .build_string()
-                    .into(),
+                t_string!(i18n, contextMenu.playlist.addFromURL).into(),
                 |_, cx| cx.open_import_from_url_modal(),
                 None,
             ),
             ContextMenuItemInner::new(
-                i18n.get_keys()
-                    .contextMenu()
-                    .sort_by()
-                    .build_string()
-                    .into(),
+                t_string!(i18n, contextMenu.sort_by).into(),
                 Some(get_playlist_sort_cx_items()),
             ),
         ])
@@ -546,22 +504,12 @@ impl ContextMenuData<Self> for PlaylistItemContextMenu {
                 if library_item {
                     ret = RwSignal::new(vec![
                         ContextMenuItemInner::<Self>::new_with_handler(
-                            i18n.get_keys()
-                                .contextMenu()
-                                .playlist()
-                                .remove()
-                                .build_string()
-                                .into(),
+                            t_string!(i18n, contextMenu.playlist.remove).into(),
                             |_, cx| cx.remove_from_library(),
                             None,
                         ),
                         ContextMenuItemInner::new_with_handler(
-                            i18n.get_keys()
-                                .contextMenu()
-                                .playlist()
-                                .export()
-                                .build_string()
-                                .into(),
+                            t_string!(i18n, contextMenu.playlist.export).into(),
                             |_, cx| cx.export_playlist(),
                             None,
                         ),
@@ -569,12 +517,7 @@ impl ContextMenuData<Self> for PlaylistItemContextMenu {
                 }
             } else {
                 ret = RwSignal::new(vec![ContextMenuItemInner::<Self>::new_with_handler(
-                    i18n.get_keys()
-                        .contextMenu()
-                        .playlist()
-                        .save()
-                        .build_string()
-                        .into(),
+                    t_string!(i18n, contextMenu.playlist.save).into(),
                     |_, cx| cx.add_to_library(),
                     None,
                 )]);

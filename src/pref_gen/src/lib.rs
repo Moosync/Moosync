@@ -66,7 +66,7 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
     let mut routes = vec![];
 
     tabs.push(quote! {
-        Tab::new("Home", "Home", "/main/allsongs"),
+        Tab::new(move || "Home", "Home", "/main/allsongs"),
     });
     for page in &config.page {
         let name = syn::Ident::new(
@@ -80,7 +80,7 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
         let page_full_path = format!("/prefs/{}", page_path);
 
         tabs.push(quote! {
-            Tab::new(&t!(i18n, #page_title)().to_html(), #page_icon, #page_full_path),
+            Tab::new(move || t_string!(use_i18n(), #page_title), #page_icon, #page_full_path),
         });
 
         routes.push(quote! {
@@ -119,7 +119,7 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
         };
         use crate::i18n::*;
         use leptos::prelude::*;
-        use leptos_i18n::t;
+        use leptos_i18n::t_string;
         use leptos_router::{
             components::{Outlet, ParentRoute, Redirect, Route, RouteChildren, Routes},
             path, MatchNestedRoutes,

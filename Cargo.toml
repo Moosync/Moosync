@@ -37,7 +37,7 @@ web-sys = { version = "0.3.77", features = [
 ] }
 regex = "1.11.1"
 colors-transform = "0.2.11"
-leptos_i18n = { version = "0.5.9", features = ["csr"] }
+leptos_i18n = { git = "https://github.com/Ovenoboyo/leptos_i18n", features = ["csr", "interpolate_display", "json_files"], default_features = false }
 pref_gen = { path = "src/pref_gen" }
 rand = "0.8.5"
 dyn-clone = "1.0.19"

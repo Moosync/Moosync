@@ -36,6 +36,7 @@ use leptos::{
     view, IntoView,
 };
 use leptos_context_menu::provide_context_menu_state;
+use leptos_i18n::t_string;
 use leptos_router::{
     components::{Outlet, ParentRoute, Redirect, Route, Router, Routes},
     path,
@@ -91,43 +92,55 @@ fn CommonApp() -> impl IntoView {
 #[component]
 pub fn MainApp() -> impl IntoView {
     let i18n = use_i18n();
+
+    spawn_local(async move {
+        if let Ok(lang) = load_selective("i18n_language".into()).await {
+            let lang: Vec<CheckboxPreference> = serde_wasm_bindgen::from_value(lang).unwrap();
+            if let Some(enabled) = lang.into_iter().find(|v| v.enabled) {
+                tracing::debug!("Setting locale to {:?}", enabled.key);
+                i18n.set_locale(get_locale(&enabled.key))
+            }
+        }
+    });
+
     let tabs = vec![
         Tab::new(
-            i18n.get_keys().sidebar().tabs().queue().build_string(),
+            move || t_string!(use_i18n(), sidebar.tabs.queue),
             "Queue",
             "queue",
         ),
         Tab::new(
-            i18n.get_keys().sidebar().tabs().allSongs().build_string(),
+            move || t_string!(use_i18n(), sidebar.tabs.allSongs),
             "Songs",
             "/main/allsongs",
         ),
         Tab::new(
-            i18n.get_keys().sidebar().tabs().playlists().build_string(),
+            move || t_string!(use_i18n(), sidebar.tabs.playlists),
             "Playlists",
             "/main/playlists",
         ),
         Tab::new(
-            i18n.get_keys().sidebar().tabs().artists().build_string(),
+            move || t_string!(use_i18n(), sidebar.tabs.artists),
             "Artists",
             "/main/artists",
         ),
         Tab::new(
-            i18n.get_keys().sidebar().tabs().albums().build_string(),
+            move || t_string!(use_i18n(), sidebar.tabs.albums),
             "Albums",
             "/main/albums",
         ),
         Tab::new(
-            i18n.get_keys().sidebar().tabs().genre().build_string(),
+            move || t_string!(use_i18n(), sidebar.tabs.genre),
             "Genres",
             "/main/genres",
         ),
         Tab::new(
-            i18n.get_keys().sidebar().tabs().explore().build_string(),
+            move || t_string!(use_i18n(), sidebar.tabs.explore),
             "Explore",
             "/main/explore",
         ),
     ];
+
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
     let sidebar_open = create_read_slice(ui_store, |u| u.get_sidebar_open());

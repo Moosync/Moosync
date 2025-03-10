@@ -19,7 +19,6 @@ use std::str::FromStr;
 use rusty_ytdl::{
     reqwest::Url,
     search::{Channel, Playlist, SearchOptions, SearchType, YouTube},
-    VideoFormat,
 };
 
 use types::{

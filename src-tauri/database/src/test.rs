@@ -14,17 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{env::temp_dir, fs, path::PathBuf, str::FromStr};
+use std::{env::temp_dir, fs, path::PathBuf};
 
 use crate::database::Database;
-use serde_json::Value;
 use types::{
-    common::SearchByTerm,
     entities::{
-        EntityInfo, GetEntityOptions, PlaylistBridge, QueryableAlbum, QueryableArtist,
-        QueryableGenre, QueryablePlaylist, SearchResult,
+        GetEntityOptions, QueryableAlbum, QueryableArtist,
+        QueryableGenre, QueryablePlaylist,
     },
-    errors::Result,
     songs::{GetSongOptions, QueryableSong, SearchableSong, Song, SongType},
 };
 use uuid::Uuid;

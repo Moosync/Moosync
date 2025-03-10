@@ -147,5 +147,5 @@ pub async fn fetch_lyrics(song: &Option<Song>) -> Option<String> {
         return lyrics;
     }
 
-    return None;
+    None
 }

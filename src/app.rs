@@ -19,7 +19,7 @@ use std::sync::Arc;
 use crate::utils::window::check_for_updates;
 use crate::{
     components::prefs::static_components::SettingRoutes,
-    i18n::{use_i18n, Locale},
+    i18n::use_i18n,
     pages::explore::Explore,
     players::librespot::LibrespotPlayer,
     store::ui_store::UiStore,

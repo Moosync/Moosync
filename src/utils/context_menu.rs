@@ -20,7 +20,7 @@ use leptos::{prelude::*, task::spawn_local};
 use leptos_context_menu::{
     BottomSheet, ContextMenu, ContextMenuData, ContextMenuItemInner, ContextMenuItems, Menu,
 };
-use leptos_i18n::{t, t_display, t_string};
+use leptos_i18n::t_string;
 use leptos_router::{
     hooks::{use_navigate, use_query_map},
     NavigateOptions,
@@ -231,14 +231,13 @@ where
         let album_title = self
             .current_song
             .as_ref()
-            .map(|s| s.album.as_ref().map(|a| a.album_name.clone()))
-            .flatten()
+            .and_then(|s| s.album.as_ref().map(|a| a.album_name.clone()))
             .flatten();
 
         let library_menu_item = if self
             .current_song
             .as_ref()
-            .map(|s| s.song.library_item.clone().unwrap_or_default())
+            .map(|s| s.song.library_item.unwrap_or_default())
             .unwrap_or_default()
         {
             ContextMenuItemInner::<Self>::new_with_handler(

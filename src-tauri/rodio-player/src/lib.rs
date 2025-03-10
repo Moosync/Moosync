@@ -27,7 +27,7 @@ use std::{
     time::Duration,
 };
 
-use rodio::{decoder::Mp4Type, Decoder, OutputStream, Sink};
+use rodio::{Decoder, OutputStream, Sink};
 use stream_download::{storage::temp::TempStorageProvider, Settings, StreamDownload};
 use tracing::{debug, error, info, trace};
 use types::{errors::Result, ui::player_details::PlayerEvents};

@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use bitcode::{Decode, Encode};
-use indexed_db_futures::{database::Database, factory::DBVersion, prelude::*};
+use indexed_db_futures::{database::Database, prelude::*};
 use itertools::Itertools;
 use leptos::prelude::*;
 use rand::seq::SliceRandom;

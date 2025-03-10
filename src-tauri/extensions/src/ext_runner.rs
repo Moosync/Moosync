@@ -377,7 +377,7 @@ impl ExtensionHandlerInner {
             allowed_paths: plugin_manifest.allowed_paths.clone(),
         });
 
-        let mut plugin_builder = PluginBuilder::new(plugin_manifest)
+        let plugin_builder = PluginBuilder::new(plugin_manifest)
             .with_wasi(true)
             .with_function(
                 "send_main_command",

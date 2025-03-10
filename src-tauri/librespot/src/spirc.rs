@@ -25,7 +25,7 @@ use std::{
 
 use futures::executor::block_on;
 use librespot::{
-    connect::{ConnectConfig, LoadRequest, LoadRequestOptions, PlayingTrack, Spirc},
+    connect::{ConnectConfig, LoadRequest, LoadRequestOptions, Spirc},
     core::{cache::Cache, token::Token, Session, SpotifyId},
     discovery::Credentials,
     playback::{

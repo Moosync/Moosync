@@ -43,7 +43,7 @@ use leptos::{component, html::Div, prelude::*, task::spawn_local, view, IntoView
 use crate::{
     players::{
         generic::GenericPlayer, librespot::LibrespotPlayer, local::LocalPlayer,
-        mobile::MobilePlayer, rodio::RodioPlayer, youtube::YoutubePlayer,
+        mobile::MobilePlayer, rodio::RodioPlayer,
     },
     store::{player_store::PlayerStore, provider_store::ProviderStore, ui_store::UiStore},
     utils::{

@@ -125,7 +125,7 @@ impl ProviderStore {
                 if status.scopes.contains(&scope) {
                     return Some(status.key.clone());
                 }
-                return None;
+                None
             })
             .collect()
     }

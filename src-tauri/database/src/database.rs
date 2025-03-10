@@ -20,14 +20,13 @@ use std::fmt::Write;
 use std::str::FromStr;
 use std::{path::PathBuf, vec};
 
-use diesel::query_builder::SelectStatement;
 use diesel::{
     connection::SimpleConnection,
     delete, insert_into,
     r2d2::{self, ConnectionManager, Pool, PooledConnection},
     update, Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SqliteConnection,
 };
-use diesel::{BoolExpressionMethods, Insertable, JoinOnDsl, TextExpressionMethods};
+use diesel::{BoolExpressionMethods, Insertable, TextExpressionMethods};
 use diesel_logger::LoggingConnection;
 use macros::{filter_field, filter_field_like};
 use serde_json::Value;

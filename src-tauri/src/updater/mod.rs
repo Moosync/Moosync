@@ -1,6 +1,5 @@
-use serde::Serialize;
 use std::sync::Mutex;
-use tauri::{ipc::Channel, AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, State};
 use tauri_plugin_updater::{Update, UpdaterExt};
 use types::{
     errors::{MoosyncError, Result},

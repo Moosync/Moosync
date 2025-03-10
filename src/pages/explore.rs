@@ -22,7 +22,7 @@ use types::{
     songs::{GetSongOptions, SearchableSong, Song},
     ui::{
         extensions::ExtensionProviderScope,
-        song_details::{DefaultDetails, SongDetailIcons},
+        song_details::SongDetailIcons,
     },
 };
 use wasm_bindgen_futures::spawn_local;

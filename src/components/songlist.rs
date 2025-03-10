@@ -153,7 +153,8 @@ pub fn SongListItem(
                         if show_background {
                             view! { <EllipsisIcon /> }.into_any()
                         } else {
-                            view! {}.into_any()
+                            view! {};
+                            ().into_any()
                         }
                     }}
 

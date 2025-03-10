@@ -231,6 +231,13 @@ impl PlayerStore {
     #[tracing::instrument(level = "debug", skip(self, index))]
     pub fn remove_from_queue(&mut self, index: usize) {
         self.data.queue.song_queue.remove(index);
+        if self.data.queue.current_index > index {
+            self.data.queue.current_index -= 1;
+        }
+
+        if self.data.queue.current_index == index {
+            self.update_current_song(false);
+        }
 
         self.dump_store(&[DumpType::SongQueue, DumpType::QueueData]);
     }

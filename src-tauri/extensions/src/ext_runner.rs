@@ -26,6 +26,11 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use crypto::sha1::Sha1;
+use crypto::{
+    digest::Digest,
+    sha2::{Sha256, Sha512},
+};
 use extism::{host_fn, Error, Manifest, Plugin, PluginBuilder, UserData, ValType::I64, Wasm, PTR};
 use futures::executor::block_on;
 use interprocess::local_socket::{
@@ -221,6 +226,26 @@ host_fn!(read_sock(user_data: SocketUserData; sock_id: i64, read_len: u64) -> Ve
     return Ok(vec![]);
 });
 
+host_fn!(hash(hash_type: String, data: Vec<u8>) -> Vec<u8> {
+    info!("Calling hash function {} type {:?}", hash_type, data);
+    let mut hasher: Box<dyn Digest> = match hash_type.as_str() {
+        "SHA256" => {
+            Box::new(Sha256::new())
+        },
+        "SHA512" => {
+            Box::new(Sha512::new())
+        },
+        _ => {
+            Box::new(Sha1::new())
+        },
+    };
+
+    hasher.input(&data);
+    let mut buf = vec![0u8; hasher.output_bytes()];
+    hasher.result(&mut buf);
+    return Ok(buf);
+});
+
 #[derive(Debug, Clone)]
 struct Extension {
     plugin: Arc<Mutex<Plugin>>,
@@ -401,7 +426,8 @@ impl ExtensionHandlerInner {
                 sock_data.clone(),
                 write_sock,
             )
-            .with_function("read_sock", [I64, I64], [PTR], sock_data, read_sock);
+            .with_function("read_sock", [I64, I64], [PTR], sock_data, read_sock)
+            .with_function("hash", [PTR, PTR], [PTR], UserData::default(), hash);
 
         #[cfg(any(target_os = "android", target_os = "ios"))]
         {

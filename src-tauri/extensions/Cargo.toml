@@ -19,6 +19,7 @@ serde_json = "1.0.140"
 regex = "1.11.1"
 wasmtime = "*"
 interprocess = { version = "2.2.2", features = ["tokio"] }
+rust-crypto = "0.2.36"
 
 [dependencies.reqwest]
 version = "0.12.12"

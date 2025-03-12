@@ -1,6 +1,6 @@
 [Desktop Entry]
 Categories=
-Comment=A Tauri App
+Comment=A Music player
 Exec=moosync %U
 Icon=moosync
 Name=Moosync

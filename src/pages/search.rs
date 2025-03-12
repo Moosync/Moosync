@@ -415,7 +415,7 @@ pub fn Search() -> impl IntoView {
                                                     <CardView
                                                         items=RwSignal::new(res.playlists.clone())
                                                         key=|a| a.playlist_id.clone()
-                                                        redirect_root="/main/playlists/"
+                                                        redirect_root="/main/playlists"
                                                         card_item=move |(_, item)| {
                                                             SimplifiedCardItem {
                                                                 title: item.playlist_name.clone(),

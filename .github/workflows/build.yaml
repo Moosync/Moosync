@@ -2,6 +2,19 @@ name: "build"
 
 on:
   workflow_dispatch:
+    inputs:
+      os:
+        description: Select OS
+        type: choice
+        options:
+        - '["ubuntu-22.04"]'
+        - '["ubuntu-22.04-arm"]'
+        - '["windows-latest"]'
+        - '["macos-latest"]'
+        - '["macos-13"]'
+        - '["ubuntu-latest", "ubuntu-22.04-arm", "macos-latest", "macos-13", "windows-latest"]'
+        default: '["ubuntu-latest", "ubuntu-22.04-arm", "macos-latest", "macos-13", "windows-latest"]'
+        required: true
   push:
     branches:
       - release
@@ -13,6 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        platform: ${{ fromJson(inputs.os || '["ubuntu-latest", "ubuntu-22.04-arm", "macos-latest", "macos-13", "windows-latest"]') }}
         include:
           - platform: "macos-latest"
             args: "--target aarch64-apple-darwin"
@@ -40,7 +54,7 @@ jobs:
       - name: install gtk3 (ubuntu-arm only)
         if: matrix.platform == 'ubuntu-22.04-arm'
         run: |
-          sudo apt-get install libgtk-3-dev gir1.2-javascriptcoregtk-4.1
+          sudo apt-get install libgtk-3-dev gir1.2-javascriptcoregtk-4.1 xdg-utils
 
       - name: install dependencies (macos only)
         if: matrix.platform == 'macos-latest'

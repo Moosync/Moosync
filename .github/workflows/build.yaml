@@ -38,6 +38,7 @@ jobs:
 
       # Package not cached properly above
       - name: install gtk3 (ubuntu-arm only)
+        if: matrix.platform == 'ubuntu-22.04-arm'
         run: |
           sudo apt-get install libgtk-3-dev
 

@@ -36,7 +36,7 @@ fn test_transformcss() -> Result<()> {
     )?;
     fs::write(subroot_theme.clone(), "hello1")?;
 
-    let (res, imports) = transform_css(root_theme.to_string_lossy().to_string(), Some(temp_dir))?;
+    let (res, _) = transform_css(root_theme.to_string_lossy().to_string(), Some(temp_dir))?;
 
     fs::remove_file(root_theme)?;
     fs::remove_file(subroot_theme)?;

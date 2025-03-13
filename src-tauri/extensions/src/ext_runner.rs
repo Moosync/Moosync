@@ -66,7 +66,6 @@ pub type ExtCommandReceiver = UnboundedReceiver<GenericExtensionHostRequest<Main
 struct MainCommandUserData {
     reply_map: Arc<std::sync::Mutex<HashMap<String, ExtCommandReplySender>>>,
     ext_command_tx: ExtCommandSender,
-    extension_name: String,
 }
 
 host_fn!(send_main_command(user_data: MainCommandUserData; command: MainCommand) -> Option<Value> {
@@ -278,7 +277,6 @@ impl From<&Extension> for ExtensionDetail {
 #[derive(Debug)]
 pub(crate) struct ExtensionHandlerInner {
     extensions_path: String,
-    cache_path: String,
     ext_command_tx: ExtCommandSender,
     extensions_map: Arc<Mutex<HashMap<String, Extension>>>,
     reply_map: Arc<std::sync::Mutex<HashMap<String, ExtCommandReplySender>>>,
@@ -294,7 +292,6 @@ impl ExtensionHandlerInner {
         Self {
             extensions_path: extensions_path.to_string_lossy().to_string(),
             ext_command_tx,
-            cache_path: cache_path.to_string_lossy().to_string(),
             extensions_map: Default::default(),
             reply_map: Arc::new(std::sync::Mutex::new(HashMap::new())),
         }
@@ -394,7 +391,6 @@ impl ExtensionHandlerInner {
         let user_data = UserData::new(MainCommandUserData {
             reply_map,
             ext_command_tx,
-            extension_name: manifest.name.clone(),
         });
 
         let sock_data = UserData::new(SocketUserData {
@@ -622,10 +618,10 @@ impl ExtensionHandlerInner {
                     ExtensionExtraEventResponse::GetRemoteURL(_) => {}
                     ExtensionExtraEventResponse::Scrobble => {}
                     ExtensionExtraEventResponse::RequestedSongContextMenu(
-                        context_menu_return_type,
+                        _context_menu_return_type,
                     ) => {}
                     ExtensionExtraEventResponse::RequestedPlaylistContextMenu(
-                        context_menu_return_type,
+                        _context_menu_return_type,
                     ) => {}
                     ExtensionExtraEventResponse::ContextMenuAction => {}
                 }

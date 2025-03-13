@@ -41,13 +41,13 @@ use crate::modals::common::GenericModal;
 
 #[tracing::instrument(level = "debug", skip())]
 #[component]
-pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView {
+pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl IntoView {
     let state = RwSignal::new(initial_state);
     let theme_path = RwSignal::new(String::new());
     Effect::new(move || {
         let state = state.get();
 
-        if let ThemeModalState::ImportTheme = state {
+        if let ThemeModalState::ImportTheme = *state {
             open_file_browser_single(
                 false,
                 vec![DialogFilter {
@@ -76,7 +76,7 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
     view! {
         <GenericModal size=move || {
             {
-                match state.get() {
+                match *state.get() {
                     ThemeModalState::None => "modal-md",
                     ThemeModalState::NewTheme(_) => "modal-xl",
                     ThemeModalState::ImportTheme => "modal-lg",
@@ -86,7 +86,7 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                 .into()
         }>
 
-            {move || match state.get() {
+            {move || match *state.get() {
                 ThemeModalState::None => {
                     view! {
                         <div class="container">
@@ -94,7 +94,12 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                                 <div
                                     class="col d-flex"
                                     on:click=move |_| {
-                                        state.set(ThemeModalState::NewTheme(ThemeDetails::new()))
+                                        state
+                                            .set(
+                                                Box::new(
+                                                    ThemeModalState::NewTheme(Box::new(ThemeDetails::new())),
+                                                ),
+                                            )
                                     }
                                 >
                                     <div class="row item-box align-self-center">
@@ -116,7 +121,9 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                                 </div>
                                 <div
                                     class="col d-flex"
-                                    on:click=move |_| state.set(ThemeModalState::DiscoverTheme)
+                                    on:click=move |_| {
+                                        state.set(Box::new(ThemeModalState::DiscoverTheme))
+                                    }
                                 >
                                     <div class="row item-box align-self-center">
                                         <div class="col-auto d-flex playlist-modal-item-container w-100">
@@ -442,7 +449,10 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                                                     >
                                                         <ImportThemeIcon />
                                                     </div>
-                                                    <ThemeViewIcon active=active theme=theme.clone() />
+                                                    <ThemeViewIcon
+                                                        active=active
+                                                        theme=Box::new(theme.clone())
+                                                    />
                                                     <div class="theme-title-text">{theme.name}</div>
                                                     <div class="theme-author">{theme.author}</div>
                                                 </div>
@@ -456,7 +466,7 @@ pub fn NewThemeModal(#[prop()] initial_state: ThemeModalState) -> impl IntoView 
                                     <button
                                         class="btn btn-secondary create-button ml-3"
                                         on:click=move |_| {
-                                            state.set(ThemeModalState::ImportTheme);
+                                            state.set(Box::new(ThemeModalState::ImportTheme));
                                         }
                                     >
                                         Install from file

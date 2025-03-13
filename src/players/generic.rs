@@ -25,6 +25,8 @@ use types::{
     ui::player_details::PlayerEvents,
 };
 
+pub type PlayerEventsSender = Rc<Box<dyn Fn(PlayerEvents)>>;
+
 pub trait GenericPlayer: std::fmt::Debug + DynClone {
     fn initialize(&self, element: NodeRef<Div>);
     fn key(&self) -> String;
@@ -37,7 +39,7 @@ pub trait GenericPlayer: std::fmt::Debug + DynClone {
     fn can_play(&self, song: &Song) -> bool;
     fn set_volume(&self, volume: f64) -> Result<()>;
     fn get_volume(&self) -> Result<f64>;
-    fn add_listeners(&mut self, state_setter: Rc<Box<dyn Fn(PlayerEvents)>>);
+    fn add_listeners(&mut self, state_setter: PlayerEventsSender);
 }
 
 dyn_clone::clone_trait_object!(GenericPlayer);

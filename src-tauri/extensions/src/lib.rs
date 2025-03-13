@@ -26,8 +26,8 @@ use std::{
 
 use ext_runner::{ExtCommandReceiver, ExtensionHandlerInner};
 use fs_extra::dir::CopyOptions;
+use futures::lock::Mutex;
 use futures::{executor::block_on, StreamExt};
-use futures::{lock::Mutex, SinkExt};
 use serde_json::Value;
 use tokio::{
     select,
@@ -388,7 +388,7 @@ impl ExtensionHandler {
             display_name: String,
             version: String,
             icon: Option<String>,
-            permissions: HashMap<String, Value>,
+            _permissions: HashMap<String, Value>,
         }
 
         tracing::info!("Getting extension manifest");

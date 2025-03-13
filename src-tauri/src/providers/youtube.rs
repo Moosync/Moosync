@@ -97,8 +97,8 @@ pub struct YoutubeProvider {
 }
 
 impl std::fmt::Debug for YoutubeProvider {
-    #[tracing::instrument(level = "debug", skip(self, f))]
-    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+    #[tracing::instrument(level = "debug", skip(self))]
+    fn fmt(&self, _: &mut core::fmt::Formatter) -> core::fmt::Result {
         Ok(())
     }
 }

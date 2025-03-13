@@ -32,7 +32,7 @@ use web_sys::HtmlAudioElement;
 
 use crate::utils::common::{convert_file_src, get_blob_url};
 
-use super::generic::GenericPlayer;
+use super::generic::{GenericPlayer, PlayerEventsSender};
 
 macro_rules! listen_event {
     ($self:expr, $tx:expr, $event:ident, $handler:expr) => {{
@@ -65,7 +65,7 @@ pub struct LocalPlayer {
     pub audio_element: HtmlAudioElement,
     node_ref: NodeRef<Audio>,
     listeners: Vec<Rc<Box<dyn Fn()>>>,
-    event_tx: Option<Rc<Box<dyn Fn(PlayerEvents)>>>,
+    event_tx: Option<PlayerEventsSender>,
 }
 
 impl std::fmt::Debug for LocalPlayer {
@@ -193,7 +193,7 @@ impl GenericPlayer for LocalPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip(self, tx))]
-    fn add_listeners(&mut self, tx: Rc<Box<dyn Fn(PlayerEvents)>>) {
+    fn add_listeners(&mut self, tx: PlayerEventsSender) {
         self.listen_onplay(tx.clone());
         self.listen_onpause(tx.clone());
         self.listen_onended(tx.clone());

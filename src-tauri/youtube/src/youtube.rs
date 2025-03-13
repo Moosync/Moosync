@@ -200,7 +200,7 @@ impl YoutubeScraper {
     pub async fn get_video_url(&self, mut id: String) -> Result<String> {
         if id.starts_with("http") {
             let url = Url::from_str(&id).unwrap();
-            let query = url.query_pairs().find(|(k, v)| k == "v");
+            let query = url.query_pairs().find(|(k, _)| k == "v");
             if let Some((_, v)) = query {
                 id = v.to_string();
             }

@@ -153,7 +153,6 @@ pub fn SongListItem(
                         if show_background {
                             view! { <EllipsisIcon /> }.into_any()
                         } else {
-                            view! {};
                             ().into_any()
                         }
                     }}
@@ -549,7 +548,7 @@ where
                         <VirtualScroller
                             node_ref=scroller_ref
                             each=filtered_songs
-                            key=|(i, s)| s.song._id.clone()
+                            key=|(_, s)| s.song._id.clone()
                             item_height=95usize
                             inner_el_style="width: calc(100% - 15px);"
                             header=header

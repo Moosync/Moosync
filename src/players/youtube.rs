@@ -30,7 +30,7 @@ use web_sys::HtmlDivElement;
 
 use crate::utils::yt_player::YTPlayer;
 
-use super::generic::GenericPlayer;
+use super::generic::{GenericPlayer, PlayerEventsSender};
 
 macro_rules! listen_event {
     ($self:expr, $tx:expr, $event:tt, $data: ident, $handler:expr) => {{
@@ -185,7 +185,7 @@ impl GenericPlayer for YoutubePlayer {
     }
 
     #[tracing::instrument(level = "debug", skip(self, tx))]
-    fn add_listeners(&mut self, tx: Rc<Box<dyn Fn(PlayerEvents)>>) {
+    fn add_listeners(&mut self, tx: PlayerEventsSender) {
         let force_play = self.force_play;
         listen_event!(self, tx.clone(), "stateChange", f64, |state| {
             tracing::debug!("Youtube player Emitting {}", state);

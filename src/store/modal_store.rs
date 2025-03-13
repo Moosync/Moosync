@@ -30,7 +30,7 @@ pub enum Modals {
     DiscoverExtensions,
     NewPlaylistModal(PlaylistModalState, Option<Vec<Song>>),
     SongFromUrlModal,
-    ThemeModal(ThemeModalState),
+    ThemeModal(Box<ThemeModalState>),
     UpdateModal(UpdateMetadata),
 }
 

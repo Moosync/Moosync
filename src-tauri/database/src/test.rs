@@ -19,8 +19,7 @@ use std::{env::temp_dir, fs, path::PathBuf};
 use crate::database::Database;
 use types::{
     entities::{
-        GetEntityOptions, QueryableAlbum, QueryableArtist,
-        QueryableGenre, QueryablePlaylist,
+        GetEntityOptions, QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist,
     },
     songs::{GetSongOptions, QueryableSong, SearchableSong, Song, SongType},
 };
@@ -354,15 +353,6 @@ fn test_playlist_operations() {
     db.remove_from_playlist(playlist_id.clone(), vec![song_id_to_remove])
         .unwrap();
 
-    // Verify only one song remains
-    let result = db
-        .get_entity_by_options(GetEntityOptions {
-            playlist: Some(playlist_options),
-            inclusive: Some(false),
-            ..Default::default()
-        })
-        .unwrap();
-
     // Delete the playlist
     db.remove_playlist(playlist_id).unwrap();
 
@@ -498,7 +488,7 @@ fn test_artist_operations() {
 
     // The result is returned as an array of artists
     let artists = result.as_array().unwrap();
-    assert!(artists.len() > 0, "Should return at least one artist");
+    assert!(!artists.is_empty(), "Should return at least one artist");
     let artist = &artists[0];
 
     // Verify we can access the artist's properties
@@ -525,7 +515,10 @@ fn test_artist_operations() {
 
     // Debug check for array content
     let artists_array = artists.as_array().unwrap();
-    assert!(artists_array.len() > 0, "Artists array should not be empty");
+    assert!(
+        !artists_array.is_empty(),
+        "Artists array should not be empty"
+    );
 
     // Safely access the artist_id
     let artist_obj = &artists_array[0];
@@ -556,7 +549,7 @@ fn test_artist_operations() {
 
     let artists_array = updated_artist.as_array().unwrap();
     assert!(
-        artists_array.len() > 0,
+        !artists_array.is_empty(),
         "Updated artists array should not be empty"
     );
 
@@ -604,8 +597,8 @@ fn test_search() {
     // Search for "Search"
     let search_results = db.search_all("Search".to_string()).unwrap();
 
-    assert!(search_results.songs.len() >= 1);
-    assert!(search_results.playlists.len() >= 1);
+    assert!(!search_results.songs.is_empty());
+    assert!(!search_results.playlists.is_empty());
 
     assert!(search_results.songs.iter().any(|s| s
         .song

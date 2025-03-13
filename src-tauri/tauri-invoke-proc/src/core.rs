@@ -193,6 +193,7 @@ fn process_use_statement(statement: &str, use_map: &mut HashMap<String, HashSet<
 }
 
 /// Extracts the raw type as a string from a `syn::Type`
+#[allow(clippy::borrowed_box)]
 fn resolve_type_path(ty: &Box<Type>) -> String {
     match &**ty {
         // Handle simple type paths (e.g., `A`, `Vec<A>`)

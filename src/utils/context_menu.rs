@@ -392,9 +392,9 @@ impl ThemesContextMenu {
                 let theme = load_theme(id).await;
                 if let Ok(theme) = theme {
                     modal_store.update(|m| {
-                        m.set_active_modal(Modals::ThemeModal(
-                            types::ui::themes::ThemeModalState::NewTheme(theme),
-                        ));
+                        m.set_active_modal(Modals::ThemeModal(Box::new(
+                            types::ui::themes::ThemeModalState::NewTheme(Box::new(theme)),
+                        )));
                         m.on_modal_close(move || refresh_cb.as_ref()());
                     });
                 }

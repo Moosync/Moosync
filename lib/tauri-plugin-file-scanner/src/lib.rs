@@ -45,7 +45,7 @@ impl<R: Runtime, T: Manager<R>> crate::FileScannerExt<R> for T {
 /// Initializes the plugin.
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("file-scanner")
-        .setup(|app, api| {
+        .setup(|_app, _api| {
             #[cfg(mobile)]
             {
                 let file_scanner = mobile::init(app, api)?;

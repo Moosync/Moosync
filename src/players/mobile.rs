@@ -28,7 +28,7 @@ use crate::utils::{
     invoke::{mobile_load, mobile_pause, mobile_play, mobile_seek, mobile_stop},
 };
 
-use super::generic::GenericPlayer;
+use super::generic::{GenericPlayer, PlayerEventsSender};
 
 #[derive(Deserialize)]
 struct TimeChangeEvent {
@@ -45,7 +45,7 @@ struct KeyEvent {
 pub struct MobilePlayer {
     key: String,
     listeners: Vec<js_sys::Function>,
-    event_tx: Option<Rc<Box<dyn Fn(PlayerEvents)>>>,
+    event_tx: Option<PlayerEventsSender>,
 }
 
 macro_rules! listen_event {
@@ -175,7 +175,7 @@ impl GenericPlayer for MobilePlayer {
     }
 
     #[tracing::instrument(level = "debug", skip(self, tx))]
-    fn add_listeners(&mut self, tx: Rc<Box<dyn Fn(PlayerEvents)>>) {
+    fn add_listeners(&mut self, tx: PlayerEventsSender) {
         self.listen_onplay(tx.clone());
         self.listen_onpause(tx.clone());
         self.listen_onended(tx.clone());

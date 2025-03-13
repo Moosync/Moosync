@@ -29,7 +29,7 @@ use crate::utils::{
     invoke::{rodio_load, rodio_pause, rodio_play, rodio_seek, rodio_set_volume, rodio_stop},
 };
 
-use super::generic::GenericPlayer;
+use super::generic::{GenericPlayer, PlayerEventsSender};
 
 #[derive(Debug, Clone)]
 pub struct RodioPlayer {
@@ -183,10 +183,7 @@ impl GenericPlayer for RodioPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip(self, state_setter))]
-    fn add_listeners(
-        &mut self,
-        state_setter: std::rc::Rc<Box<dyn Fn(types::ui::player_details::PlayerEvents)>>,
-    ) {
+    fn add_listeners(&mut self, state_setter: PlayerEventsSender) {
         if let Some(unlisten) = self.unlisten.take() {
             unlisten.call0(&JsValue::NULL).unwrap();
         }
@@ -213,7 +210,7 @@ impl GenericPlayer for RodioPlayer {
                 *timer = Some(res);
             };
 
-        type Callback = RefCell<Rc<Box<dyn Fn(PlayerEvents)>>>;
+        type Callback = RefCell<PlayerEventsSender>;
 
         let stop_timer = |timer: Rc<Mutex<Option<IntervalHandle>>>, _, _| {
             tracing::debug!("pausing timer");

@@ -91,7 +91,7 @@ pub struct LibrespotHolder {
 impl LibrespotHolder {
     #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
-        #[cfg(desktop)]
+        #[cfg(not(any(target_os = "android", target_os = "ios")))]
         {
             use env_logger::Env;
 

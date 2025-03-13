@@ -29,7 +29,7 @@ use crate::utils::{
     },
 };
 
-use super::generic::GenericPlayer;
+use super::generic::{GenericPlayer, PlayerEventsSender};
 
 macro_rules! listen_events {
     ($self:expr, $tx:expr, $(($event_name:expr, $player_event:expr $(, $modify_self:expr)?)),* $(,)?) => {{
@@ -71,14 +71,12 @@ macro_rules! register_events {
     };
 }
 
-type PlayerStateSender = Option<Rc<Box<dyn Fn(PlayerEvents)>>>;
-
 #[derive(Clone)]
 pub struct LibrespotPlayer {
     listeners: Vec<js_sys::Function>,
     timer: Rc<Mutex<Option<IntervalHandle>>>,
     time: Rc<Mutex<f64>>,
-    player_state_tx: PlayerStateSender,
+    player_state_tx: Option<PlayerEventsSender>,
 }
 
 static ENABLED: Mutex<bool> = Mutex::new(false);
@@ -297,10 +295,7 @@ impl GenericPlayer for LibrespotPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip(self, tx))]
-    fn add_listeners(
-        &mut self,
-        tx: std::rc::Rc<Box<dyn Fn(types::ui::player_details::PlayerEvents)>>,
-    ) {
+    fn add_listeners(&mut self, tx: PlayerEventsSender) {
         self.player_state_tx = Some(tx.clone());
         register_events!(
             "librespot_event_Playing",

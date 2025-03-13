@@ -459,7 +459,10 @@ where
                                 save_selective("themes.active_theme".into(), theme_id);
                             }
                         >
-                            <ThemeViewIcon active=signal.read_only() theme=theme.clone() />
+                            <ThemeViewIcon
+                                active=signal.read_only()
+                                theme=Box::new(theme.clone())
+                            />
                             <div class="theme-title-text">{theme.name}</div>
                             <div class="theme-author">{theme.author}</div>
                         </div>
@@ -476,7 +479,9 @@ where
                     on:click=move |_| {
                         modal_store
                             .update(|m| {
-                                m.set_active_modal(Modals::ThemeModal(ThemeModalState::None));
+                                m.set_active_modal(
+                                    Modals::ThemeModal(Box::new(ThemeModalState::None)),
+                                );
                                 m.on_modal_close(load_themes);
                             })
                     }

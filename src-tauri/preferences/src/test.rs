@@ -245,10 +245,7 @@ fn test_update_preferences() -> Result<()> {
         loaded_data.number_value, 200,
         "Number value should be updated"
     );
-    assert_eq!(
-        loaded_data.boolean_value, true,
-        "Boolean value should be updated"
-    );
+    assert!(loaded_data.boolean_value, "Boolean value should be updated");
 
     cleanup_test_dir(test_dir);
     Ok(())

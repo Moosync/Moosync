@@ -353,7 +353,7 @@ pub fn MusicInfoMobile(
 
                                                 <VirtualScroller
                                                     each=queue_songs
-                                                    key=|(i, s)| s.song._id.clone()
+                                                    key=|(_, s)| s.song._id.clone()
                                                     item_height=95usize
                                                     inner_el_style="width: calc(100% - 15px);"
                                                     node_ref=scroller_ref

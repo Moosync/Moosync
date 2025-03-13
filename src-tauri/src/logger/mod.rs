@@ -22,18 +22,12 @@ use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use types::errors::Result;
 
 use regex::Regex;
-use std::sync::Once;
+use std::sync::OnceLock;
 
-static mut REGEX: Option<Regex> = None;
-static INIT: Once = Once::new();
+static REGEX: OnceLock<Regex> = OnceLock::new();
 
 fn get_regex() -> &'static Regex {
-    unsafe {
-        INIT.call_once(|| {
-            REGEX = Some(Regex::new(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]").unwrap());
-        });
-        REGEX.as_ref().unwrap()
-    }
+    REGEX.get_or_init(|| Regex::new(r"(?:\x1B[@-_]|[\x80-\x9F])[0-?]*[ -/]*[@-~]").unwrap())
 }
 
 pub struct Logger {

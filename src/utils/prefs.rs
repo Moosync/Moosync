@@ -143,13 +143,13 @@ where
 }
 
 #[tracing::instrument(level = "debug", skip(theme, cb))]
-pub fn save_theme<T>(theme: ThemeDetails, cb: T)
+pub fn save_theme<T>(theme: Box<ThemeDetails>, cb: T)
 where
     T: Fn() + 'static,
 {
     let cb = Rc::new(Box::new(cb));
     spawn_local(async move {
-        let res = super::invoke::save_theme(theme).await;
+        let res = super::invoke::save_theme((*theme).clone()).await;
         if res.is_err() {
             tracing::error!("Failed to save theme");
         }

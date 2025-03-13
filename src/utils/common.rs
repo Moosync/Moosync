@@ -387,7 +387,7 @@ pub fn get_locale(key: &str) -> Locale {
         "vi_VN" => Locale::vi_VN,
         "zh_CN" => Locale::zh_CN,
         "zh_TW" => Locale::zh_TW,
-        "en_US" | _ => Locale::en_US,
+        _ => Locale::en_US,
     }
 }
 

@@ -14,3 +14,6 @@
 [submodule "package/deb/ppa"]
 	path = package/deb/ppa
 	url = git@github.com:Moosync/ppa.git
+[submodule "package/fedora/dnf"]
+	path = package/fedora/dnf
+	url = git@github.com:Moosync/dnf.git

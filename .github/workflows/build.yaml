@@ -26,7 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ github.event_name == 'workflow_dispatch' && fromJson(inputs.os) || fromJson('[{"platform": "ubuntu-22.04", "args": ""}, {"platform": "ubuntu-22.04-arm", "args": ""}, {"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}, {"platform": "macos-13", "args": "--target x86_64-apple-darwin"}, {"platform": "windows-latest", "args": ""}]') }}
+        include: ${{ fromJson(inputs.os) }}
 
     runs-on: ${{ matrix.platform }}
     steps:

@@ -18,17 +18,20 @@
 
 <!doctype html>
 <html>
-
-<head>
-  <meta charset="utf-8" content="0" http-equiv="expires" />
-  <title>Tauri + Leptos App</title>
-  <script src="https://www.youtube.com/iframe_api" async></script>
-  <script data-trunk src="src/js/local_audio_workaround.js"></script>
-  <script data-trunk src="src/js/youtube_player.js"></script>
-  <link data-trunk rel="scss" href="styles/global.scss" />
-  <link data-trunk rel="copy-dir" href="public" />
-  <link data-trunk rel="rust" data-wasm-opt="z" />
-  <!-- <script data-trunk src="styles/bootstrap/bootstrap.min.js"></script> -->
-</head>
-
+    <head>
+        <meta charset="utf-8" content="0" http-equiv="expires" />
+        <title>Tauri + Leptos App</title>
+        <script src="https://www.youtube.com/iframe_api" async></script>
+        <script data-trunk src="src/js/local_audio_workaround.js"></script>
+        <script data-trunk src="src/js/youtube_player.js"></script>
+        <link data-trunk rel="scss" href="styles/global.scss" />
+        <link data-trunk rel="copy-dir" href="public" />
+        <link
+            data-trunk
+            rel="rust"
+            data-wasm-opt="z"
+            data-wasm-opt-params="--enable-bulk-memory"
+        />
+        <!-- <script data-trunk src="styles/bootstrap/bootstrap.min.js"></script> -->
+    </head>
 </html>

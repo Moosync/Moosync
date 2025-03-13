@@ -7,13 +7,13 @@ on:
         description: Select OS
         type: choice
         options:
-        - '["ubuntu-22.04"]'
-        - '["ubuntu-22.04-arm"]'
-        - '["windows-latest"]'
-        - '["macos-latest"]'
-        - '["macos-13"]'
-        - '["ubuntu-latest", "ubuntu-22.04-arm", "macos-latest", "macos-13", "windows-latest"]'
-        default: '["ubuntu-latest", "ubuntu-22.04-arm", "macos-latest", "macos-13", "windows-latest"]'
+        - '[{"platform": "ubuntu-22.04", "args": ""}]'
+        - '[{"platform": "ubuntu-22.04-arm", "args": ""}]'
+        - '[{"platform": "windows-latest", "args": ""}]'
+        - '[{"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}]'
+        - '[{"platform": "macos-13", "args": "--target x86_64-apple-darwin"}]'
+        - '[{"platform": "ubuntu-22.04", "args": ""}, {"platform": "ubuntu-22.04-arm", "args": ""}, {"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}, {"platform": "macos-13", "args": "--target x86_64-apple-darwin"}, {"platform": "windows-latest", "args": ""}]'
+        default: '[{"platform": "ubuntu-22.04", "args": ""}, {"platform": "ubuntu-22.04-arm", "args": ""}, {"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}, {"platform": "macos-13", "args": "--target x86_64-apple-darwin"}, {"platform": "windows-latest", "args": ""}]'
         required: true
   push:
     branches:
@@ -26,18 +26,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: ${{ fromJson(inputs.os || '["ubuntu-latest", "ubuntu-22.04-arm", "macos-latest", "macos-13", "windows-latest"]') }}
-        include:
-          - platform: "macos-latest"
-            args: "--target aarch64-apple-darwin"
-          - platform: "macos-13"
-            args: "--target x86_64-apple-darwin"
-          - platform: "ubuntu-22.04"
-            args: ""
-          - platform: "ubuntu-22.04-arm"
-            args: ""
-          - platform: "windows-latest"
-            args: ""
+        include: ${{ github.event_name == 'workflow_dispatch' && fromJson(inputs.os) || fromJson('[{"platform": "ubuntu-22.04", "args": ""}, {"platform": "ubuntu-22.04-arm", "args": ""}, {"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}, {"platform": "macos-13", "args": "--target x86_64-apple-darwin"}, {"platform": "windows-latest", "args": ""}]') }}
 
     runs-on: ${{ matrix.platform }}
     steps:

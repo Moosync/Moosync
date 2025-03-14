@@ -364,7 +364,7 @@ impl ExtensionHandler {
 
     pub async fn account_login(&self, args: AccountLoginArgs) -> Result<String> {
         if let ExtensionCommandResponse::PerformAccountLogin(url) = self
-            .send_extension_command(ExtensionCommand::PerformAccountLogin(args), false)
+            .send_extension_command(ExtensionCommand::PerformAccountLogin(args), true)
             .await?
         {
             return Ok(url);

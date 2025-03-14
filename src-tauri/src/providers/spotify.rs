@@ -393,11 +393,11 @@ impl GenericProvider for SpotifyProvider {
                 ..Default::default()
             };
 
-            if config.client_id.as_ref().map_or(true, |id| id.is_empty())
+            if config.client_id.as_ref().is_none_or(|id| id.is_empty())
                 || config
                     .client_secret
                     .as_ref()
-                    .map_or(true, |secret| secret.is_empty())
+                    .is_none_or(|secret| secret.is_empty())
             {
                 config.redirect_uri = "http://127.0.0.1:8898/login";
                 config.client_id = Some("65b708073fc0480ea92a077233ca87bd".into())

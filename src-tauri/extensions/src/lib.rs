@@ -362,11 +362,15 @@ impl ExtensionHandler {
         Ok(vec![])
     }
 
-    pub async fn account_login(&self, args: AccountLoginArgs) -> Result<()> {
-        self.send_extension_command(ExtensionCommand::PerformAccountLogin(args), false)
-            .await?;
+    pub async fn account_login(&self, args: AccountLoginArgs) -> Result<String> {
+        if let ExtensionCommandResponse::PerformAccountLogin(url) = self
+            .send_extension_command(ExtensionCommand::PerformAccountLogin(args), false)
+            .await?
+        {
+            return Ok(url);
+        }
 
-        Ok(())
+        Ok(String::new())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]

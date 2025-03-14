@@ -519,7 +519,7 @@ impl ExtensionHandlerInner {
                     account.package_name = package_name.clone();
                 }
             }
-            ExtensionCommandResponse::PerformAccountLogin => {}
+            ExtensionCommandResponse::PerformAccountLogin(_) => {}
             ExtensionCommandResponse::ExtraExtensionEvent(resp) => {
                 let prefix = format!("{}:", package_name);
                 let resp = resp.as_mut();

@@ -166,9 +166,7 @@ impl GenericProvider for ExtensionProvider {
                 account_id,
                 login_status: true,
             })
-            .await?;
-
-        Ok(String::new())
+            .await
     }
 
     #[tracing::instrument(level = "debug", skip(self))]

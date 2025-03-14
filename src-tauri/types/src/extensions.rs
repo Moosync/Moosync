@@ -107,7 +107,7 @@ where
 pub enum ExtensionCommandResponse {
     GetProviderScopes(Vec<ExtensionProviderScope>),
     GetAccounts(Vec<ExtensionAccountDetail>),
-    PerformAccountLogin,
+    PerformAccountLogin(String),
     ExtraExtensionEvent(Box<ExtensionExtraEventResponse>),
 
     #[serde(serialize_with = "serialize_null")]
@@ -287,7 +287,9 @@ impl ExtensionCommand {
             Self::GetAccounts(_) => {
                 ExtensionCommandResponse::GetAccounts(serde_json::from_value(value)?)
             }
-            Self::PerformAccountLogin(_) => ExtensionCommandResponse::PerformAccountLogin,
+            Self::PerformAccountLogin(_) => {
+                ExtensionCommandResponse::PerformAccountLogin(serde_json::from_value(value)?)
+            }
             Self::ExtraExtensionEvent(args) => {
                 let res = match &args.data {
                     ExtensionExtraEvent::RequestedPlaylists(_) => {

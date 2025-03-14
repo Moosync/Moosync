@@ -1,19 +1,25 @@
 [submodule "src-extensions-wasm"]
 	path = lib/extensions-wasm
 	url = https://github.com/Moosync/wasm-extension-runner
+	update = none
 	branch = main
 [submodule "package/aur/moosync"]
 	path = package/aur/moosync
 	url = https://aur.archlinux.org/moosync.git
+	update = none
 [submodule "package/aur/moosync-git"]
 	path = package/aur/moosync-git
 	url = https://aur.archlinux.org/moosync-git.git
+	update = none
 [submodule "package/flatpak/app.moosync.moosync"]
 	path = package/flatpak/app.moosync.moosync
-	url = git@github.com:flathub/app.moosync.moosync.git
+	url = https://aur.archlinux.org/app.moosync.moosync.git
+	update = none
 [submodule "package/deb/ppa"]
 	path = package/deb/ppa
 	url = git@github.com:Moosync/ppa.git
+	update = none
 [submodule "package/fedora/dnf"]
 	path = package/fedora/dnf
 	url = git@github.com:Moosync/dnf.git
+	update = none

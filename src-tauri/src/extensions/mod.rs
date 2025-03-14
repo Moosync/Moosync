@@ -71,7 +71,13 @@ pub fn get_extension_state(app: AppHandle) -> Result<ExtensionHandler> {
                                 .unwrap();
                         }
                         Err(e) => {
-                            tracing::error!("Failed to handle extension command {:?}", e)
+                            tracing::error!("Failed to handle extension command {:?}", e);
+                            ui_reply_tx
+                                .send(GenericExtensionHostRequest {
+                                    channel: resp.channel,
+                                    data: None,
+                                })
+                                .unwrap();
                         }
                     }
                 }

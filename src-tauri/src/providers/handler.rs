@@ -132,9 +132,10 @@ impl ProviderHandler {
         store
     }
 
-    pub async fn request_account_status(&self, key: String) -> Result<()> {
+    pub async fn request_account_status(&self, key: &str) -> Result<()> {
         let provider_store = self.provider_store.read().await;
-        if let Some(provider) = provider_store.get(&key) {
+        if let Some(provider) = provider_store.get(key) {
+            tracing::debug!("Requesting account status from {}", key);
             provider.requested_account_status().await?;
         }
 

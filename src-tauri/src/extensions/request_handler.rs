@@ -170,7 +170,12 @@ impl ReplyHandler {
         if let Some(key) = key {
             tauri::async_runtime::spawn(async move {
                 let provider_handler: State<ProviderHandler> = app_handle.state();
-                let _ = provider_handler.request_account_status(key).await;
+                if let Err(e) = provider_handler
+                    .request_account_status(format!("extension:{}", &key).as_str())
+                    .await
+                {
+                    tracing::error!("Failed to get account status from {}: {:?}", key, e);
+                }
             });
         }
         Ok(MainCommandResponse::UpdateAccounts(true))

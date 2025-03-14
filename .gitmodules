@@ -4,10 +4,10 @@
 	branch = main
 [submodule "package/aur/moosync"]
 	path = package/aur/moosync
-	url = ssh://aur@aur.archlinux.org/moosync.git
+	url = https://aur.archlinux.org/moosync.git
 [submodule "package/aur/moosync-git"]
 	path = package/aur/moosync-git
-	url = ssh://aur@aur.archlinux.org/moosync-git.git
+	url = https://aur.archlinux.org/moosync-git.git
 [submodule "package/flatpak/app.moosync.moosync"]
 	path = package/flatpak/app.moosync.moosync
 	url = git@github.com:flathub/app.moosync.moosync.git

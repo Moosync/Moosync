@@ -90,6 +90,7 @@ where
         let value = paths.get();
         tracing::debug!("Should write {}, {:?}", should_write.get_untracked(), value);
         if !should_write.get_untracked() {
+            untrack(|| should_write.set(true));
             return;
         }
         tracing::debug!("Saving paths: {:?}", value);

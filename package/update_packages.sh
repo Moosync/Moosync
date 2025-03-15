@@ -203,7 +203,7 @@ publish_changes() {
         else
             git add PKGBUILD .SRCINFO
             git commit -m "Update to version $VERSION"
-            git push origin master
+            git push upstream master
         fi
         cd ../..
         echo "✓ AUR changes checked"

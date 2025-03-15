@@ -160,13 +160,15 @@ impl GenericProvider for ExtensionProvider {
     #[tracing::instrument(level = "debug", skip(self))]
     async fn login(&self, account_id: String) -> Result<String> {
         let extension_handler = get_extension_handler(&self.app_handle);
-        extension_handler
+        let ret = extension_handler
             .account_login(AccountLoginArgs {
                 package_name: self.extension.package_name.clone(),
                 account_id,
                 login_status: true,
             })
-            .await
+            .await;
+        tracing::debug!("Got extension login response {:?}", ret);
+        ret
     }
 
     #[tracing::instrument(level = "debug", skip(self))]

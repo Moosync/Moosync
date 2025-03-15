@@ -48,11 +48,11 @@ use zip_extensions::zip_extract;
 
 mod ext_runner;
 
-type UiRequestSender = UnboundedSender<GenericExtensionHostRequest<MainCommand>>;
-type UiRequestReceiver = UnboundedReceiver<GenericExtensionHostRequest<MainCommand>>;
+pub type UiRequestSender = UnboundedSender<GenericExtensionHostRequest<MainCommand>>;
+pub type UiRequestReceiver = UnboundedReceiver<GenericExtensionHostRequest<MainCommand>>;
 
-type UiReplySender = UnboundedSender<GenericExtensionHostRequest<MainCommandResponse>>;
-type UiReplyReceiver = UnboundedReceiver<GenericExtensionHostRequest<MainCommandResponse>>;
+pub type UiReplySender = UnboundedSender<GenericExtensionHostRequest<MainCommandResponse>>;
+pub type UiReplyReceiver = UnboundedReceiver<GenericExtensionHostRequest<MainCommandResponse>>;
 
 pub struct ExtensionHandler {
     pub extensions_dir: PathBuf,
@@ -287,7 +287,7 @@ impl ExtensionHandler {
         Err("Could not find extension icon".into())
     }
 
-    async fn send_extension_command(
+    pub async fn send_extension_command(
         &self,
         command: ExtensionCommand,
         wait: bool,

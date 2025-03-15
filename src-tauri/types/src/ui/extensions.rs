@@ -84,7 +84,7 @@ impl PartialEq for ExtensionDetail {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionAccountDetail {
     pub id: String,
@@ -143,7 +143,7 @@ pub struct ExtensionExtraEventArgs {
     pub package_name: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistReturnType {
     pub playlists: Vec<QueryablePlaylist>,
@@ -155,14 +155,14 @@ pub struct SongsReturnType {
     pub songs: Vec<Song>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SongsWithPageTokenReturnType {
     pub songs: Vec<Song>,
     pub next_page_token: Option<serde_json::Value>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchReturnType {
     pub songs: Vec<Song>,
@@ -171,14 +171,14 @@ pub struct SearchReturnType {
     pub albums: Vec<QueryableAlbum>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaybackDetailsReturnType {
     pub duration: u32,
     pub url: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomRequestReturnType {
     pub mime_type: Option<String>,
@@ -186,20 +186,20 @@ pub struct CustomRequestReturnType {
     pub redirect_url: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SongReturnType {
     pub song: Option<Song>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistAndSongsReturnType {
     pub playlist: Option<QueryablePlaylist>,
     pub songs: Option<Vec<Song>>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct RecommendationsReturnType {
     pub songs: Vec<Song>,
@@ -212,7 +212,7 @@ pub struct AddToPlaylistRequest {
     pub songs: Vec<Song>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct PreferenceData {
     pub key: String,
     pub value: Option<Value>,
@@ -242,7 +242,7 @@ pub struct ToggleExtArgs {
     pub toggle: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ContextMenuReturnType {
     pub name: String,

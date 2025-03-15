@@ -13,7 +13,7 @@
 	update = none
 [submodule "package/flatpak/app.moosync.moosync"]
 	path = package/flatpak/app.moosync.moosync
-	url = https://aur.archlinux.org/app.moosync.moosync.git
+	url = git@github.com:flathub/app.moosync.moosync.git
 	update = none
 [submodule "package/deb/ppa"]
 	path = package/deb/ppa

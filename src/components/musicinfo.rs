@@ -437,6 +437,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
 
     Effect::new(move || {
         let current_song = current_song.get();
+        canvaz_sig.set(None);
         if let Some(current_song) = current_song {
             if current_song.song.type_ == SongType::SPOTIFY
                 && current_song.song.playback_url.is_some()

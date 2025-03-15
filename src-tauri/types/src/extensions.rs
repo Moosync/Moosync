@@ -59,7 +59,7 @@ pub struct ExtensionDetailsWrapper(pub ExtensionDetail);
 #[encoding(Json)]
 pub struct JsonWrapper<T>(pub T);
 
-#[derive(Debug, Deserialize, Serialize, FromBytes, ToBytes, Clone)]
+#[derive(Debug, Deserialize, Serialize, FromBytes, ToBytes, Clone, PartialEq, Eq)]
 #[encoding(Json)]
 #[serde(untagged)]
 pub enum ExtensionExtraEventResponse {
@@ -101,7 +101,7 @@ where
     field.serialize_none()
 }
 
-#[derive(Debug, Deserialize, Serialize, FromBytes, ToBytes, Clone)]
+#[derive(Debug, Deserialize, Serialize, FromBytes, ToBytes, Clone, PartialEq, Eq)]
 #[serde(untagged)]
 #[encoding(Json)]
 pub enum ExtensionCommandResponse {
@@ -114,6 +114,11 @@ pub enum ExtensionCommandResponse {
     Empty,
 }
 
+#[cfg_attr(feature = "extensions-core", derive(Deserialize))]
+#[cfg_attr(
+    feature = "extensions-core",
+    serde(rename_all = "camelCase", tag = "type", content = "data")
+)]
 #[derive(Debug, Clone)]
 pub enum ExtensionCommand {
     GetProviderScopes(PackageNameArgs),
@@ -507,7 +512,7 @@ pub enum MainCommandResponse {
 }
 
 impl MainCommand {
-    #[cfg(not(feature = "extensions"))]
+    #[cfg(any(not(feature = "extensions"), feature = "extensions-core"))]
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn to_request(&self) -> MoosyncResult<GenericExtensionHostRequest<MainCommand>> {
         Ok(GenericExtensionHostRequest {
@@ -516,7 +521,7 @@ impl MainCommand {
         })
     }
 
-    #[cfg(not(feature = "extensions"))]
+    #[cfg(any(not(feature = "extensions"), feature = "extensions-core"))]
     pub fn to_ui_request(&mut self) -> MoosyncResult<ExtensionUIRequest> {
         let (r#type, data) = match self {
             MainCommand::GetSong(options) => ("getSongs", serde_json::to_value(options)?),

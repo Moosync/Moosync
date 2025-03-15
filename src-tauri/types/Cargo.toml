@@ -58,6 +58,7 @@ souvlaki = { version = "0.8.1", features = [
 [features]
 ui = ["dep:wasm-bindgen", "dep:serde-wasm-bindgen"]
 extensions = ["dep:extism-convert"]
+extensions-core = ["dep:extism-convert","dep:zip", "dep:fs_extra", "dep:reqwest", "dep:uuid"]
 core = [
     "dep:rusty_ytdl",
     "dep:tauri",

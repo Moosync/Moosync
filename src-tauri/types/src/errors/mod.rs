@@ -21,7 +21,10 @@ use std::{
     string::FromUtf8Error,
 };
 
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
+#[cfg(all(
+    not(feature = "extensions"),
+    any(feature = "core", feature = "extensions-core")
+))]
 use std::io;
 #[cfg(all(not(feature = "extensions"), feature = "core"))]
 use std::time::SystemTimeError;
@@ -72,8 +75,8 @@ pub enum MoosyncError {
     #[cfg_attr(feature = "core", error(transparent))]
     #[cfg(feature = "core")]
     Diesel(#[from] diesel::result::Error),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
+    #[cfg_attr(any(feature = "core", feature = "extensions-core"), error(transparent))]
+    #[cfg(any(feature = "core", feature = "extensions-core"))]
     IO(#[from] io::Error),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
@@ -108,19 +111,22 @@ pub enum MoosyncError {
     Librespot(#[from] LibrespotError),
     #[error(transparent)]
     UTF8(#[from] FromUtf8Error),
-    #[cfg_attr(any(feature = "core", feature = "librespot"), error(transparent))]
-    #[cfg(any(feature = "core", feature = "librespot"))]
+    #[cfg_attr(
+        any(feature = "core", feature = "librespot", feature = "extensions-core"),
+        error(transparent)
+    )]
+    #[cfg(any(feature = "core", feature = "librespot", feature = "extensions-core"))]
     Reqwest(#[from] reqwest::Error),
     #[cfg_attr(any(feature = "core", feature = "librespot"), error(transparent))]
     #[cfg(any(feature = "core", feature = "librespot"))]
     ProtoBuf(#[from] protobuf::Error),
     #[error("{0}")]
     String(String),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
+    #[cfg_attr(any(feature = "core", feature = "extensions-core"), error(transparent))]
+    #[cfg(any(feature = "core", feature = "extensions-core"))]
     ZipError(#[from] zip::result::ZipError),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
+    #[cfg_attr(any(feature = "core", feature = "extensions-core"), error(transparent))]
+    #[cfg(any(feature = "core", feature = "extensions-core"))]
     FSExtraError(#[from] fs_extra::error::Error),
     #[error(transparent)]
     ParseIntError(#[from] ParseIntError),

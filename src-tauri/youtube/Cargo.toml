@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 rusty_ytdl = { git = "https://github.com/Mithronn/rusty_ytdl" }
-types = { path = "../types" }
+types = { path = "../types", features = ["core"] }
 serde_json = { default-features = false, version = "1.0.140" }
 tokio = "1.43.0"
 serde = { default-features = false, version = "1.0.218" }

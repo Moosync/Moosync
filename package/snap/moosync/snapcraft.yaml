@@ -1,6 +1,6 @@
 name: moosync
 base: core22
-version: '11.0.1'
+version: '11.0.2'
 summary: Customizable music player
 description: |
   Moosync is a simple music player with a primary goal to provide a clean and easy interface.

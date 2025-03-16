@@ -76,26 +76,40 @@ impl ExtensionProvider {
     }
 
     async fn get_accounts(&self) -> Result<()> {
-        let extension_handler = get_extension_handler(&self.app_handle);
-        let accounts = extension_handler
-            .get_accounts(PackageNameArgs {
-                package_name: self.extension.package_name.clone(),
-            })
-            .await?;
+        if self.provides.contains(&ExtensionProviderScope::Accounts) {
+            let extension_handler = get_extension_handler(&self.app_handle);
+            let accounts = extension_handler
+                .get_accounts(PackageNameArgs {
+                    package_name: self.extension.package_name.clone(),
+                })
+                .await?;
 
-        for account in accounts {
+            for account in accounts {
+                let _ = self
+                    .status_tx
+                    .lock()
+                    .await
+                    .send(ProviderStatus {
+                        key: self.key(),
+                        name: account.name,
+                        user_name: account.username,
+                        logged_in: account.logged_in,
+                        bg_color: account.bg_color,
+                        account_id: account.id,
+                        scopes: self.get_provider_scopes().await.unwrap(),
+                    })
+                    .await;
+            }
+        } else {
             let _ = self
                 .status_tx
                 .lock()
                 .await
                 .send(ProviderStatus {
                     key: self.key(),
-                    name: account.name,
-                    user_name: account.username,
-                    logged_in: account.logged_in,
-                    bg_color: account.bg_color,
-                    account_id: account.id,
                     scopes: self.get_provider_scopes().await.unwrap(),
+                    name: self.extension.name.clone(),
+                    ..Default::default()
                 })
                 .await;
         }
@@ -122,21 +136,7 @@ impl GenericProvider for ExtensionProvider {
             "Got extension provider scopes: {:?}",
             self.get_provider_scopes().await.unwrap()
         );
-        if self.provides.contains(&ExtensionProviderScope::Accounts) {
-            self.get_accounts().await
-        } else {
-            let _ = self
-                .status_tx
-                .lock()
-                .await
-                .send(ProviderStatus {
-                    key: self.key(),
-                    scopes: self.get_provider_scopes().await.unwrap(),
-                    ..Default::default()
-                })
-                .await;
-            Ok(())
-        }
+        self.get_accounts().await
     }
 
     async fn get_provider_scopes(&self) -> Result<Vec<ExtensionProviderScope>> {

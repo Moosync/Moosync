@@ -430,8 +430,6 @@ impl GenericProvider for SpotifyProvider {
             ExtensionProviderScope::PlaylistSongs,
             ExtensionProviderScope::PlaybackDetails,
             ExtensionProviderScope::PlaylistFromUrl,
-            ExtensionProviderScope::SearchAlbum,
-            ExtensionProviderScope::SearchArtist,
             ExtensionProviderScope::Recommendations,
             ExtensionProviderScope::Accounts,
             ExtensionProviderScope::ArtistSongs,

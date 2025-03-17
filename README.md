@@ -110,3 +110,4 @@ This project follows the [all-contributors](https://github.com/all-contributors/
 - change sort icon (filter icon)
 - add ascending/descending under filter
 - show lyrics button
+- Rename handleCustomRequest to handleStreamRequest or something sensible

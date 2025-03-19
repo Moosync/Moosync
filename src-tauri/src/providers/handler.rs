@@ -171,6 +171,9 @@ impl ProviderHandler {
         let ext_handler = get_extension_handler(&self.app_handle);
         let extensions_res = ext_handler.get_installed_extensions().await?;
         for extension in extensions_res {
+            if !extension.active {
+                continue;
+            }
             let provides = ext_handler
                 .get_provider_scopes(extension.package_name.clone().into())
                 .await;

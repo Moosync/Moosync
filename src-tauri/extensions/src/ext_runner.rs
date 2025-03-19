@@ -23,7 +23,7 @@ use std::{
     str::FromStr,
     sync::Arc,
     thread,
-    time::{SystemTime, UNIX_EPOCH},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 use crypto::sha1::Sha1;
@@ -247,13 +247,14 @@ host_fn!(hash(hash_type: String, data: Vec<u8>) -> Vec<u8> {
 
 #[derive(Debug, Clone)]
 struct Extension {
-    plugin: Arc<Mutex<Plugin>>,
+    plugin: Option<Arc<Mutex<Plugin>>>,
     package_name: String,
     name: String,
     icon: String,
     author: Option<String>,
     version: String,
     path: PathBuf,
+    active: bool,
 }
 
 impl From<&Extension> for ExtensionDetail {
@@ -270,6 +271,7 @@ impl From<&Extension> for ExtensionDetail {
             preferences: vec![],
             extension_path: val.path.clone().to_str().unwrap().to_string(),
             extension_icon: Some(val.icon.clone()),
+            active: val.active,
         }
     }
 }
@@ -353,12 +355,25 @@ impl ExtensionHandlerInner {
         parsed_manifests
     }
 
+    fn get_empty_extension(manifest: ExtensionManifest) -> Extension {
+        Extension {
+            plugin: None,
+            name: manifest.display_name,
+            package_name: manifest.name,
+            icon: manifest.icon,
+            author: manifest.author,
+            version: manifest.version,
+            path: manifest.extension_entry.clone(),
+            active: false,
+        }
+    }
+
     #[tracing::instrument(level = "debug", skip())]
     fn spawn_extension(
         manifest: ExtensionManifest,
         reply_map: Arc<std::sync::Mutex<HashMap<String, ExtCommandReplySender>>>,
         ext_command_tx: ExtCommandSender,
-    ) -> Extension {
+    ) -> Arc<Mutex<Plugin>> {
         let url = Wasm::file(manifest.extension_entry.clone());
         let mut plugin_manifest = Manifest::new([url]);
         if let Some(permissions) = manifest.permissions {
@@ -453,15 +468,7 @@ impl ExtensionHandlerInner {
 
         let plugin = plugin_builder.build().unwrap();
 
-        Extension {
-            plugin: Arc::new(Mutex::new(plugin)),
-            name: manifest.display_name,
-            package_name: manifest.name,
-            icon: manifest.icon,
-            author: manifest.author,
-            version: manifest.version,
-            path: manifest.extension_entry.clone(),
-        }
+        Arc::new(Mutex::new(plugin))
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -472,15 +479,36 @@ impl ExtensionHandlerInner {
             let extension_map = self.extensions_map.clone();
             let reply_map = self.reply_map.clone();
             let ext_command_tx = self.ext_command_tx.clone();
-            thread::spawn(move || {
-                let extension = Self::spawn_extension(manifest, reply_map, ext_command_tx.clone());
-                let plugin = extension.plugin.clone();
-                let mut plugin = block_on(plugin.lock());
-                tracing::trace!("Callign entry");
-                plugin.call::<(), ()>("entry", ()).unwrap();
 
-                let mut extensions_map = block_on(extension_map.lock());
-                extensions_map.insert(package_name, extension);
+            {
+                let mut extensions_map = extension_map.lock().await;
+                extensions_map.insert(
+                    package_name.clone(),
+                    Self::get_empty_extension(manifest.clone()),
+                );
+                ext_command_tx
+                    .send(MainCommand::ExtensionsUpdated().to_request().unwrap())
+                    .unwrap();
+            }
+
+            thread::spawn(move || {
+                let plugin_mutex =
+                    Self::spawn_extension(manifest, reply_map, ext_command_tx.clone());
+                {
+                    let mut plugin = block_on(plugin_mutex.lock());
+
+                    tracing::trace!("Callign entry");
+                    plugin.call::<(), ()>("entry", ()).unwrap();
+                }
+                {
+                    let mut extensions_map = block_on(extension_map.lock());
+                    if let Some(ext) = extensions_map.get_mut(&package_name) {
+                        ext.plugin = Some(plugin_mutex);
+                        ext.active = true;
+                    } else {
+                        panic!("Where the fuck did the extension disappear");
+                    }
+                }
 
                 ext_command_tx
                     .send(MainCommand::ExtensionsUpdated().to_request().unwrap())
@@ -648,35 +676,42 @@ impl ExtensionHandlerInner {
             let package_name = package_name.clone();
             let tx = tx.clone();
             thread::spawn(move || {
-                let mut plugin = block_on(extension.plugin.lock());
-                let res = plugin.call::<_, Value>(fn_name, args.clone());
-                match res {
-                    Ok(res) => match command.parse_response(res) {
-                        Ok(mut parsed_response) => {
-                            Self::sanitize_response(&mut parsed_response, package_name.clone());
-                            if plugins_len == 1 {
-                                let _ = tx.send(parsed_response);
+                if !extension.active {
+                    return;
+                }
+
+                if let Some(plugin) = &extension.plugin {
+                    let mut plugin = block_on(plugin.lock());
+                    let res = plugin.call::<_, Value>(fn_name, args.clone());
+                    match res {
+                        Ok(res) => match command.parse_response(res.clone()) {
+                            Ok(mut parsed_response) => {
+                                Self::sanitize_response(&mut parsed_response, package_name.clone());
+                                if plugins_len == 1 {
+                                    let _ = tx.send(parsed_response);
+                                }
                             }
-                        }
+                            Err(e) => {
+                                if plugins_len == 1 {
+                                    let _ = tx.send(ExtensionCommandResponse::Empty);
+                                    tracing::error!(
+                                        "Failed to parse response from extension {} {:?}: {:?}",
+                                        package_name,
+                                        e,
+                                        res
+                                    );
+                                }
+                            }
+                        },
                         Err(e) => {
                             if plugins_len == 1 {
                                 let _ = tx.send(ExtensionCommandResponse::Empty);
                                 tracing::error!(
-                                    "Failed to parse response from extension {} {:?}",
-                                    package_name,
+                                    "Extension {} responsed with error: {:?}",
+                                    extension.package_name,
                                     e
                                 );
                             }
-                        }
-                    },
-                    Err(e) => {
-                        if plugins_len == 1 {
-                            let _ = tx.send(ExtensionCommandResponse::Empty);
-                            tracing::error!(
-                                "Extension {} responsed with error: {:?}",
-                                extension.package_name,
-                                e
-                            );
                         }
                     }
                 }
@@ -718,7 +753,7 @@ impl ExtensionHandlerInner {
                     .values()
                     .map(|e| e.into())
                     .collect::<Vec<ExtensionDetail>>();
-                tracing::debug!("Extension map: {:?}, {:?}", self.extensions_map, extensions);
+                tracing::debug!("Extension map: {:?}", extensions);
                 RunnerCommandResp::ExtensionList(extensions)
             }
             RunnerCommand::FindNewExtensions => {

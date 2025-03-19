@@ -60,6 +60,7 @@ pub struct ExtensionDetail {
     pub preferences: Vec<PreferenceUIData>,
     pub extension_path: String,
     pub extension_icon: Option<String>,
+    pub active: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -259,6 +260,7 @@ pub enum ExtensionProviderScope {
     ArtistSongs,
     AlbumSongs,
     Recommendations,
+    #[serde(alias = "scrobbles", alias = "scrobble")]
     Scrobble,
     PlaylistFromUrl,
     SongFromUrl,

@@ -440,14 +440,14 @@ impl TryFrom<(&str, &Value)> for RunnerCommand {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ManifestPermissions {
     pub hosts: Vec<String>,
     pub paths: HashMap<String, PathBuf>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionManifest {
     pub moosync_extension: bool,

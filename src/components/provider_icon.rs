@@ -33,9 +33,12 @@ pub fn ProviderIcon(#[prop()] extension: String) -> impl IntoView {
             && extension_clone != "youtube"
             && extension_clone != "spotify"
         {
-            let res = get_extension_icon(PackageNameArgs {
-                package_name: extension_clone,
-            })
+            let res = get_extension_icon(
+                PackageNameArgs {
+                    package_name: extension_clone,
+                },
+                false,
+            )
             .await;
 
             if let Ok(res) = res {

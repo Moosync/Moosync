@@ -98,7 +98,7 @@ pub fn get_extension_handler(app: &AppHandle) -> State<'_, ExtensionHandler> {
 generate_command_async_cached!(
     get_extension_manifest,
     ExtensionHandler,
-    Vec<FetchedExtensionManifest>,
+    Vec<FetchedExtensionManifest>
 );
 generate_command_async!(install_extension, ExtensionHandler, (), ext_path: String);
 generate_command_async!(remove_extension, ExtensionHandler, (), ext_path: String);

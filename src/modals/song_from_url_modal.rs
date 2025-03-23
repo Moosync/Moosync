@@ -49,10 +49,10 @@ pub fn SongFromUrlModal() -> impl IntoView {
         let provider_keys = provider_store.get_provider_keys(ExtensionProviderScope::SongFromUrl);
         spawn_local(async move {
             for key in provider_keys {
-                let matched = match_url(key.clone(), song_url.clone()).await;
+                let matched = match_url(key.clone(), song_url.clone(), false).await;
                 if let Ok(matched) = matched {
                     if matched {
-                        let imported = song_from_url(key, song_url).await;
+                        let imported = song_from_url(key, song_url, false).await;
                         if let Ok(song) = imported {
                             imported_song.set(Some(song));
                         }

@@ -20,10 +20,7 @@ use leptos::{component, prelude::*, view, IntoView};
 use leptos_i18n::t;
 use types::{
     songs::{GetSongOptions, SearchableSong, Song},
-    ui::{
-        extensions::ExtensionProviderScope,
-        song_details::SongDetailIcons,
-    },
+    ui::{extensions::ExtensionProviderScope, song_details::SongDetailIcons},
 };
 use wasm_bindgen_futures::spawn_local;
 
@@ -69,7 +66,7 @@ pub fn Explore() -> impl IntoView {
             for (song_id, time) in a.songs {
                 let provider = get_provider_key_by_id(song_id.clone()).await;
                 if let Ok(provider) = provider {
-                    let song = get_song_from_id(provider.clone(), song_id).await;
+                    let song = get_song_from_id(provider.clone(), song_id, false).await;
                     match song {
                         Ok(song) => {
                             analytics.update(|a| {
@@ -105,7 +102,7 @@ pub fn Explore() -> impl IntoView {
 
     spawn_local(async move {
         for key in provider_keys {
-            let suggestions = get_suggestions(key).await;
+            let suggestions = get_suggestions(key, false).await;
             if let Ok(suggestions) = suggestions {
                 suggestion_items.update(|s| s.extend(suggestions));
             }

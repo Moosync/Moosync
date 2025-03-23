@@ -35,12 +35,12 @@ macro_rules! generate_command {
 
 #[macro_export]
 macro_rules! generate_command_cached {
-    ($method_name:ident, $state:ident, $ret:ty, $($v:ident: $t:ty),*) => {
+    ($method_name:ident, $state:ident, $ret:ty $(, $v:ident: $t:ty)*) => {
         // #[flame]
         #[tracing::instrument(level = "debug", skip(db, cache))]
         #[tauri_invoke_proc::parse_tauri_command]
         #[tauri::command(async)]
-        pub async fn $method_name(db: State<'_, $state>, cache: State<'_, CacheHolder>, $($v: $t),*) -> types::errors::Result<$ret> {
+        pub async fn $method_name(db: State<'_, $state>, cache: State<'_, CacheHolder>, $($v: $t,)* invalidate_cache: bool) -> types::errors::Result<$ret> {
             let mut cache_string = String::new();
             cache_string.push_str(stringify!($method_name));
             $(
@@ -97,12 +97,12 @@ macro_rules! generate_command_async {
 
 #[macro_export]
 macro_rules! generate_command_async_cached {
-    ($method_name:ident, $state:ident, $ret:ty, $($v:ident: $t:ty),*) => {
+    ($method_name:ident, $state:ident, $ret:ty $(, $v:ident: $t:ty)*) => {
         // #[flame]
         #[tracing::instrument(level = "debug", skip(db, cache))]
         #[tauri_invoke_proc::parse_tauri_command]
         #[tauri::command(async)]
-        pub async fn $method_name(db: State<'_, $state>, cache: State<'_, CacheHolder>, $($v: $t),*) -> types::errors::Result<$ret> {
+        pub async fn $method_name(db: State<'_, $state>, cache: State<'_, CacheHolder>, $($v: $t,)* invalidate_cache: bool) -> types::errors::Result<$ret> {
             let mut cache_string = String::new();
             cache_string.push_str(stringify!($method_name));
             $(

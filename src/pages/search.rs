@@ -277,7 +277,7 @@ pub fn Search() -> impl IntoView {
                     let res = if key == "Local" {
                         search_all(search_term.clone()).await
                     } else {
-                        provider_search(key.clone(), search_term.clone()).await
+                        provider_search(key.clone(), search_term.clone(), false).await
                     };
                     match res {
                         Ok(res) => {

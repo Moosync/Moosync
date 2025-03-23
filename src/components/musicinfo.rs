@@ -183,6 +183,7 @@ pub fn MusicInfoMobile(
                 spawn_local(async move {
                     let res = crate::utils::invoke::get_canvaz(
                         current_song.song.playback_url.unwrap().clone(),
+                        false,
                     )
                     .await;
                     if let Ok(res) = res {
@@ -220,7 +221,7 @@ pub fn MusicInfoMobile(
                         provider_store.get_provider_keys(ExtensionProviderScope::Lyrics);
                     for provider in valid_providers {
                         let song = song.clone();
-                        let res = get_provider_lyrics(provider, song).await;
+                        let res = get_provider_lyrics(provider, song, false).await;
                         if let Ok(res) = res {
                             selected_lyrics.set(Some(res));
                             return;
@@ -445,6 +446,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
                 spawn_local(async move {
                     let res = crate::utils::invoke::get_canvaz(
                         current_song.song.playback_url.unwrap().clone(),
+                        false,
                     )
                     .await;
                     if let Ok(res) = res {

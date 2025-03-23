@@ -48,7 +48,7 @@ use crate::{
     store::{player_store::PlayerStore, provider_store::ProviderStore, ui_store::UiStore},
     utils::{
         extensions::send_extension_event,
-        invoke::{fetch_playback_url, increment_play_count, increment_play_time, update_song},
+        invoke::{fetch_playback_url, increment_play_count, increment_play_time},
         mpris::set_metadata,
     },
 };
@@ -238,7 +238,12 @@ impl PlayerHolder {
         let id = song.song._id.clone().unwrap();
         let provider = self.providers.get_provider_key_by_id(id.clone()).await?;
 
-        fetch_playback_url(provider, song.clone(), player).await
+        let invalidate_cache = song
+            .song
+            .playback_url
+            .as_ref()
+            .is_some_and(|u| u.starts_with("extension://"));
+        fetch_playback_url(provider, song.clone(), player, invalidate_cache).await
     }
 
     fn set_player_listeners(&self, player: &mut Box<dyn GenericPlayer>) {

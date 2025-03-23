@@ -238,7 +238,7 @@ macro_rules! fetch_infinite {
                     map.insert(key, true);
                 });
 
-                let res = crate::utils::invoke::$fetch_content($provider.clone(), $($arg,)* pagination.clone()).await;
+                let res = crate::utils::invoke::$fetch_content($provider.clone(), $($arg,)* pagination.clone(), false).await;
                 if res.is_err() {
                     tracing::error!("Error fetching content {:?}", res);
                     let key = $provider.clone();

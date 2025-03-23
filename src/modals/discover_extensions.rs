@@ -27,7 +27,7 @@ use crate::{
 pub fn DiscoverExtensionsModal() -> impl IntoView {
     let extensions = RwSignal::<Vec<FetchedExtensionManifest>>::new(vec![]);
     spawn_local(async move {
-        let res = get_extension_manifest().await.unwrap();
+        let res = get_extension_manifest(false).await.unwrap();
 
         extensions.set(res);
     });

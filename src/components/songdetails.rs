@@ -115,7 +115,7 @@ where
                             provider_store.get_provider_keys(ExtensionProviderScope::Lyrics);
                         for provider in valid_providers {
                             let song = song.clone();
-                            let res = get_provider_lyrics(provider, song).await;
+                            let res = get_provider_lyrics(provider, song, false).await;
                             if let Ok(res) = res {
                                 selected_lyrics.set(Some(res));
                                 return;

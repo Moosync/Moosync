@@ -141,6 +141,7 @@ impl GenericPlayer for RodioPlayer {
         &[
             SongType::LOCAL,
             SongType::URL,
+            SongType::HLS,
             SongType::YOUTUBE,
             SongType::SPOTIFY,
         ]

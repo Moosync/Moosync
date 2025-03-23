@@ -157,7 +157,12 @@ impl PlayerHolder {
             player_store.get_player_blacklist()
         });
         let player = players.iter().position(|p| {
-            tracing::debug!("Checking player capabilities {}", p.key());
+            tracing::debug!(
+                "Checking player capabilities {}, type: {}, url: {:?}",
+                p.key(),
+                song.song.type_,
+                song.song.playback_url
+            );
             let res = !player_blacklist.get_untracked().contains(&p.key())
                 && p.provides().contains(&song.song.type_)
                 && p.can_play(song);

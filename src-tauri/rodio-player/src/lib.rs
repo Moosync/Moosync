@@ -27,10 +27,17 @@ use std::{
     time::Duration,
 };
 
+use futures::TryStreamExt;
+use hls_m3u8::tags::VariantStream;
 use rodio::{Decoder, OutputStream, Sink};
-use stream_download::{storage::temp::TempStorageProvider, Settings, StreamDownload};
+use stream_download::{
+    http::reqwest, storage::temp::TempStorageProvider, Settings, StreamDownload,
+};
 use tracing::{debug, error, info, trace};
-use types::{errors::Result, ui::player_details::PlayerEvents};
+use types::{
+    errors::{MoosyncError, Result},
+    ui::player_details::PlayerEvents,
+};
 
 pub struct RodioPlayer {
     tx: Sender<RodioCommand>,
@@ -61,44 +68,163 @@ impl RodioPlayer {
         }
     }
 
-    async fn set_src(cache_dir: PathBuf, src: String, sink: &Arc<Sink>) -> Result<()> {
-        if src.starts_with("http") {
-            trace!("Creating stream");
-            match StreamDownload::new_http(
-                src.parse().unwrap(),
-                TempStorageProvider::new_in(cache_dir),
-                Settings::default()
-                    .on_progress(move |_cl, state, _c| {
-                        tracing::debug!("Progress: {}", state.current_position)
-                    })
-                    .prefetch_bytes(512),
-            )
-            .await
-            {
-                Ok(reader) => {
-                    trace!("stream created");
+    async fn set_src(cache_dir: PathBuf, mut src: String, sink: &Arc<Sink>) -> Result<()> {
+        loop {
+            if src.ends_with(".m3u8") || src.contains(".m3u8") {
+                trace!("Creating HLS stream");
 
-                    let decoder = rodio::Decoder::new(reader)?;
-                    trace!("decoder created");
-                    sink.append(decoder);
-                    trace!("decoder appended");
+                let initial_playlist = reqwest::get(&src)
+                    .await
+                    .map_err(|e| e.to_string())?
+                    .text()
+                    .await
+                    .map_err(|e| e.to_string())?;
 
-                    Ok(())
+                if let Some(new_src) = Self::handle_master_playlist(&initial_playlist, &src).await?
+                {
+                    // Switch to media playlist if master playlist is processed
+                    src = new_src;
+                    continue;
                 }
-                Err(e) => Err(e.to_string().into()),
-            }
-        } else {
-            let path = PathBuf::from_str(src.as_str()).unwrap();
-            if path.exists() {
-                let file = fs::File::open(path)?;
-                let reader = BufReader::new(file);
-                let decoder = Decoder::new(reader)?;
-                sink.append(decoder);
-                return Ok(());
-            }
 
-            Err("Failed to read src".into())
+                Self::handle_media_playlist(&initial_playlist, &src, cache_dir.clone(), sink)
+                    .await?;
+                break;
+            } else if src.starts_with("http") {
+                Self::handle_http_stream(cache_dir.clone(), &src, sink).await?;
+                break;
+            } else {
+                Self::handle_local_file(&src, sink).await?;
+                break;
+            }
         }
+
+        Ok(())
+    }
+
+    async fn handle_master_playlist(playlist: &str, src: &str) -> Result<Option<String>> {
+        if let Ok(master_playlist) = hls_m3u8::MasterPlaylist::try_from(playlist) {
+            info!("Master playlist detected");
+
+            if let Some(variant) = master_playlist.variant_streams.first() {
+                let uri = match variant {
+                    VariantStream::ExtXStreamInf { uri, .. } => uri,
+                    VariantStream::ExtXIFrame { uri, .. } => uri,
+                };
+
+                let stream_url = if uri.starts_with("http") {
+                    uri.to_string()
+                } else {
+                    // Resolve relative path
+                    let base_url = src.trim_end_matches(".m3u8");
+                    format!("{}/{}", base_url, uri)
+                };
+
+                info!("Switching to media playlist: {}", stream_url);
+                return Ok(Some(stream_url));
+            } else {
+                return Err("No available streams in master playlist".into());
+            }
+        }
+
+        Ok(None)
+    }
+
+    async fn handle_media_playlist(
+        playlist: &str,
+        src: &str,
+        cache_dir: PathBuf,
+        sink: &Arc<Sink>,
+    ) -> Result<()> {
+        let playlist = hls_m3u8::MediaPlaylist::try_from(playlist)
+            .map_err(|e| format!("Failed to parse HLS playlist: {:?}", e))?;
+
+        info!("Media playlist detected");
+
+        for (_, segment) in playlist.segments.iter() {
+            let segment_url = if segment.uri().starts_with("http") {
+                segment.uri().to_string()
+            } else {
+                // Resolve relative path
+                let base_url = src.trim_end_matches(".m3u8");
+                format!("{}/{}", base_url, segment.uri())
+            };
+
+            info!("Loading segment: {}", segment_url);
+
+            // Stream segment using StreamDownload
+            let stream = StreamDownload::new_http(
+                segment_url.parse().unwrap(),
+                TempStorageProvider::new_in(cache_dir.clone()),
+                Settings::default().on_progress(move |_cl, state, _c| {
+                    tracing::debug!("Progress: {}", state.current_position)
+                }),
+            )
+            .await;
+
+            match stream {
+                Ok(reader) => {
+                    let decoder = rodio::Decoder::builder()
+                        .with_gapless(true)
+                        .with_seekable(true)
+                        .with_data(reader)
+                        .build()?;
+                    sink.append(decoder);
+                    trace!("Segment {} appended", segment.uri());
+                }
+                Err(e) => {
+                    error!("Failed to load segment: {:?}", e);
+                    return Err(e.to_string().into());
+                }
+            }
+        }
+
+        info!("All segments loaded and appended to sink");
+
+        Ok(())
+    }
+
+    async fn handle_http_stream(cache_dir: PathBuf, src: &str, sink: &Arc<Sink>) -> Result<()> {
+        trace!("Creating HTTP stream");
+
+        match StreamDownload::new_http(
+            src.parse().unwrap(),
+            TempStorageProvider::new_in(cache_dir.clone()),
+            Settings::default()
+                .on_progress(move |_cl, state, _c| {
+                    tracing::debug!("Progress: {}", state.current_position)
+                })
+                .prefetch_bytes(512),
+        )
+        .await
+        {
+            Ok(reader) => {
+                trace!("Stream created");
+
+                let decoder = rodio::Decoder::new(reader)?;
+                trace!("Decoder created");
+                sink.append(decoder);
+                trace!("Decoder appended");
+
+                Ok(())
+            }
+            Err(e) => Err(e.to_string().into()),
+        }
+    }
+
+    async fn handle_local_file(src: &str, sink: &Arc<Sink>) -> Result<()> {
+        let path = PathBuf::from_str(src).unwrap();
+        if path.exists() {
+            let file = fs::File::open(path)?;
+            let decoder = rodio::Decoder::try_from(file)?;
+            sink.append(decoder);
+
+            trace!("Local file {} appended", src);
+
+            return Ok(());
+        }
+
+        Err("Failed to read local file".into())
     }
 
     pub fn get_events_rx(&self) -> Arc<Mutex<Receiver<PlayerEvents>>> {
@@ -114,8 +240,8 @@ impl RodioPlayer {
         let ret = tx.clone();
 
         thread::spawn(move || {
-            let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-            let sink = Arc::new(rodio::Sink::try_new(&stream_handle).unwrap());
+            let stream_handle = rodio::OutputStreamBuilder::open_default_stream().unwrap();
+            let sink = Arc::new(rodio::Sink::connect_new(&stream_handle.mixer()));
 
             let runtime = tokio::runtime::Builder::new_multi_thread()
                 .enable_all()

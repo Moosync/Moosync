@@ -149,8 +149,22 @@ impl PlayerHolder {
     pub async fn get_player(
         &self,
         player_store: RwSignal<PlayerStore>,
-        song: &Song,
-    ) -> Result<(usize, Option<Song>)> {
+        song: &mut Song,
+    ) -> Result<usize> {
+        // Try to get playback URL from extension if dummy url is provided
+        let mut already_fetched = false;
+        if song.song.path.is_none()
+            && song
+                .song
+                .playback_url
+                .as_ref()
+                .is_some_and(|u| u.starts_with("extension://"))
+        {
+            let playback_url = self.get_playback_url(song, "".to_string()).await?;
+            song.song.playback_url = Some(playback_url);
+            already_fetched = true;
+        }
+
         tracing::debug!("Getting players for song {:?}", song);
         let players = self.players.lock().await;
         let player_blacklist = create_read_slice(player_store, |player_store| {
@@ -173,12 +187,11 @@ impl PlayerHolder {
 
         if let Some(player) = player {
             tracing::info!("Found player {}", player);
-            return Ok((player, None));
+            return Ok(player);
         }
 
-        if player.is_none() {
+        if player.is_none() && !already_fetched {
             tracing::warn!("Found no players, trying to refetch playback url");
-            let mut song_tmp = song.clone();
             for (i, player) in players.iter().enumerate() {
                 if player_blacklist.get_untracked().contains(&player.key()) {
                     tracing::debug!("Player {} is blacklisted. Not trying", player.key());
@@ -188,10 +201,10 @@ impl PlayerHolder {
                 let playback_url = self.get_playback_url(song, player.key()).await;
                 if let Ok(playback_url) = playback_url {
                     tracing::info!("Got new playback url {}", playback_url);
-                    song_tmp.song.playback_url = Some(playback_url);
-                    if player.can_play(&song_tmp) {
+                    song.song.playback_url = Some(playback_url);
+                    if player.can_play(&song) {
                         tracing::info!("Using player {}", player.key());
-                        return Ok((i, Some(song_tmp)));
+                        return Ok(i);
                     }
                 } else {
                     tracing::error!(
@@ -238,10 +251,10 @@ impl PlayerHolder {
     #[tracing::instrument(level = "debug", skip(self, song, current_volume, player_store))]
     pub async fn load_audio(
         &mut self,
-        song: &Song,
+        song: &mut Song,
         current_volume: f64,
         player_store: RwSignal<PlayerStore>,
-    ) -> Result<Option<Song>> {
+    ) -> Result<()> {
         let autoplay = create_read_slice(player_store, |p| {
             let state = p.get_player_state();
             state == PlayerState::Playing || state == PlayerState::Loading
@@ -251,7 +264,7 @@ impl PlayerHolder {
         let player_state = create_read_slice(player_store, |p| p.get_player_state());
         tracing::debug!("Autoplay {} {:?}", autoplay, player_state.get());
 
-        let (pos, new_song) = self.get_player(player_store, song).await?;
+        let pos = self.get_player(player_store, song).await?;
 
         // Stop current player only if we need to switch;
         let old_pos = self.active_player.load(Ordering::Relaxed);
@@ -259,16 +272,7 @@ impl PlayerHolder {
             self.stop_playback().await?;
         }
 
-        let ret = new_song.clone();
-        let src = if let Some(new_song) = new_song {
-            new_song
-                .song
-                .playback_url
-                .clone()
-                .or(new_song.song.path.clone())
-        } else {
-            song.song.playback_url.clone().or(song.song.path.clone())
-        };
+        let src = song.song.playback_url.clone().or(song.song.path.clone());
 
         let mut players = self.players.lock().await;
         let player = players.get_mut(pos).unwrap();
@@ -291,7 +295,7 @@ impl PlayerHolder {
         //     player.pause()?;
         // }
 
-        Ok(ret)
+        Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self, player_store))]
@@ -501,7 +505,7 @@ pub fn AudioStream() -> impl IntoView {
         let _ = force_load_sig.get();
 
         send_extension_event(ExtensionExtraEvent::SongChanged([current_song.clone()]));
-        if let Some(current_song) = current_song {
+        if let Some(mut current_song) = current_song {
             tracing::info!("Loading song {:?}", current_song.song.title);
             set_metadata(&current_song);
 
@@ -509,20 +513,26 @@ pub fn AudioStream() -> impl IntoView {
             let players = players_clone.clone();
             spawn_local(async move {
                 let mut players = players.lock().await;
-                let updated_song = players
-                    .load_audio(&current_song, current_volume.get_untracked(), player_store)
+                let res = players
+                    .load_audio(
+                        &mut current_song,
+                        current_volume.get_untracked(),
+                        player_store,
+                    )
                     .await;
 
-                if let Ok(updated_song) = updated_song {
-                    if let Some(updated_song) = updated_song {
-                        let res = update_song(updated_song.song).await;
-                        if let Err(err) = res {
-                            tracing::error!("Failed to update song {:?}", err);
-                        }
-                    }
-                } else {
-                    tracing::error!("Failed to load Song {:?}", updated_song);
+                // if let Ok(updated_song) = updated_song {
+                // if let Some(updated_song) = updated_song {
+                //     let res = update_song(updated_song.song).await;
+                //     if let Err(err) = res {
+                //         tracing::error!("Failed to update song {:?}", err);
+                //     }
+                // }
+                // } else {
+                if let Err(e) = res {
+                    tracing::error!("Failed to load Song {:?}", e);
                 }
+                // }
 
                 if let Some(id) = last_song_sig {
                     let time_diff = Instant::now() - last_song_time.get_untracked();

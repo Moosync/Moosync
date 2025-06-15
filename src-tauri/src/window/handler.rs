@@ -305,6 +305,7 @@ pub fn build_tray_menu(app: &App) -> Result<()> {
             .build()?;
 
         tauri::tray::TrayIconBuilder::new()
+            .icon(app.default_window_icon().unwrap().clone())
             .menu(&menu)
             .on_menu_event(move |app, event| match event.id().as_ref() {
                 "show" => {

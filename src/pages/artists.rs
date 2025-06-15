@@ -38,7 +38,7 @@ use wasm_bindgen_futures::spawn_local;
 
 use crate::components::songview::SongView;
 use crate::utils::db_utils::get_songs_by_option;
-use rand::seq::SliceRandom;
+use rand::seq::{IndexedRandom, SliceRandom};
 
 #[tracing::instrument(level = "debug", skip())]
 #[component()]
@@ -123,7 +123,7 @@ pub fn SingleArtist() -> impl IntoView {
 
     let random = move || {
         let songs = filtered_songs.get();
-        let random_song = songs.choose(&mut rand::thread_rng()).unwrap();
+        let random_song = songs.choose(&mut rand::rng()).unwrap();
         play_songs_setter.set(random_song.clone());
     };
 

@@ -29,7 +29,7 @@ use crate::utils::songs::get_songs_from_indices;
 use leptos::{component, prelude::*, view, IntoView};
 use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
-use rand::seq::SliceRandom;
+use rand::seq::{IndexedRandom, SliceRandom};
 use types::entities::QueryableAlbum;
 use types::songs::{GetSongOptions, Song};
 use types::ui::extensions::ExtensionProviderScope;
@@ -117,7 +117,7 @@ pub fn SingleAlbum() -> impl IntoView {
 
     let random = move || {
         let songs = filtered_songs.get();
-        let random_song = songs.choose(&mut rand::thread_rng()).unwrap();
+        let random_song = songs.choose(&mut rand::rng()).unwrap();
         play_songs_setter.set(random_song.clone());
     };
 

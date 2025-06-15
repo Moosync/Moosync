@@ -8,8 +8,8 @@ rodio = { git = "https://github.com/RustAudio/rodio", default-features = false, 
     "symphonia-all",
 ] }
 types = { path = "../types", default-features = false, features = ["core"] }
-stream-download = "0.16.1"
+stream-download = "0.21.1"
 tracing = { version = "0.1.41", default-features = false }
 futures = "0.3.31"
-tokio = {version = "1.43.0", features = ["rt-multi-thread"]}
-hls_client = { path = "/home/ovenoboyo/projects/moosync/tauri/stream-download-rs", features = ["stream_download", "reqwest-native-tls", "tracing"] }
+tokio = {version = "1.45.1", features = ["rt-multi-thread"]}
+hls_client = { version = "1.1.0", default-features = false, features = ["stream_download", "reqwest-native-tls", "tracing"] }

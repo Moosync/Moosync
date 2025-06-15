@@ -6,11 +6,11 @@ authors = ["you"]
 description = "A Tauri App"
 
 [dependencies]
-uuid = {version = "1.11.1", features = ["v4", "js"] }
-async-trait = "0.1.87"
-chrono = { default-features = false, version = "0.4.40" }
+uuid = {version = "1.17.0", features = ["v4", "js"] }
+async-trait = "0.1.88"
+chrono = { default-features = false, version = "=0.4.40" }
 futures = { default-features = false, version = "0.3.31" }
-iso8601 = { default-features = false, version = "0.6.2" }
+iso8601 = { default-features = false, version = "0.6.3" }
 open = "5.3.2"
 rspotify = { version = "0.14.0" }
 serde_json = { default-features = false, version = "1.0" }
@@ -29,11 +29,11 @@ types = { path = "./types" }
 youtube = { path = "./youtube" }
 rodio-player = { path = "./rodio-player" }
 google-youtube3 = "6.0.0"
-oauth2 = { default-features = false, version = "4.4", features = ["reqwest"] }
+oauth2 = { default-features = false, version = "5.0", features = ["reqwest"] }
 regex = { default-features = false, version = "1.11.1" }
-reqwest = { default-features = false, version = "0.12.12" }
+reqwest = { default-features = false, version = "0.12.20" }
 serde = { default-features = false, version = "1.0" }
-tauri = { version = "2.3.1", features = [
+tauri = { version = "2.5.1", features = [
     "common-controls-v6",
     "wry",
     "protocol-asset",
@@ -53,19 +53,19 @@ tracing-subscriber = { features = [
     "ansi",
     "env-filter",
 ], default-features = false, version = "0.3.19" }
-rustls = { version = "0.23.23", features = ["ring"] }
+rustls = { version = "0.23.27", features = ["ring"] }
 tauri-invoke-proc = { path = "./tauri-invoke-proc" }
 openssl-sys = { version = "*", features = ["vendored"] }
-libsqlite3-sys = { version = "0.31.0", features = ["bundled"] }
-clap = { version = "4.5.31", features = ["derive"] }
-tokio = { version = "1.43.0", features = ["sync"] }
+libsqlite3-sys = { version = "0.33.0", features = ["bundled"] }
+clap = { version = "4.5.40", features = ["derive"] }
+tokio = { version = "1.45.1", features = ["sync"] }
 
 [build-dependencies.tauri-build]
-version = "2.0.6"
+version = "2.2.0"
 features = []
 
 [target."cfg(not(any(target_os = \"android\", target_os = \"ios\")))".dependencies]
-tauri-plugin-updater = "2.5.1"
+tauri-plugin-updater = "2.7.1"
 
 [target."cfg(target_os = \"linux\")".dependencies]
 webkit2gtk = "2.0.1"

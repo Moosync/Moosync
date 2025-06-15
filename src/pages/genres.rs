@@ -23,7 +23,7 @@ use crate::utils::db_utils::get_songs_by_option;
 use leptos::{component, prelude::*, view, IntoView};
 use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
-use rand::seq::SliceRandom;
+use rand::seq::{IndexedRandom, SliceRandom};
 use std::sync::Arc;
 use types::entities::QueryableGenre;
 use types::songs::{GetSongOptions, Song};
@@ -95,7 +95,7 @@ pub fn SingleGenre() -> impl IntoView {
 
     let random = move || {
         let songs = songs.get();
-        let random_song = songs.choose(&mut rand::thread_rng()).unwrap();
+        let random_song = songs.choose(&mut rand::rng()).unwrap();
         play_songs_setter.set(random_song.clone());
     };
 

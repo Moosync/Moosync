@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 regex = { default-features = false, version = "1.11.1" }
-reqwest = { default-features = false, version = "0.12.12" }
+reqwest = { default-features = false, version = "0.12.20" }
 serde_json = { default-features = false, version = "1.0.140" }
 types = { path = "../types" , default-features = false }
 librespot = { path = "../librespot" , default-features = false }

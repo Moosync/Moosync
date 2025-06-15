@@ -203,37 +203,6 @@ impl LyricsFetcher {
         Ok(String::new())
     }
 
-    #[tracing::instrument(level = "debug", skip(self, _artists, _title))]
-    async fn get_google_lyrics(&self, _artists: Vec<String>, _title: String) -> Result<String> {
-        // let url = self.get_url("https://www.google.com/search?q=", artists, title, true);
-
-        // let client = reqwest::Client::builder()
-        //     .user_agent("Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11")
-        //     .build()?;
-
-        // let request = client.get(url).send().await?;
-        // let body = request.text().await?;
-        // tracing::info!("{}", body);
-
-        // let scraped = scraper::html::Html::parse_document(body.as_str());
-        // let selector = &Selector::parse("div.BNeawe.s3v9rd.AP7Wnd").unwrap();
-        // let lyrics_box = scraped.select(selector);
-
-        // let mut res = String::new();
-        // for i in lyrics_box {
-        //     let lyrics = i.text().collect::<Vec<_>>();
-        //     if let Some(lyrics) = lyrics.first() {
-        //         let re = Regex::new(r"<(.*?)>").unwrap();
-        //         let final_result = re.replace_all(lyrics, "");
-        //         res.push_str(&final_result);
-        //         res.push_str("\n")
-        //     }
-        // }
-        // return Ok(res);
-
-        Ok(String::new())
-    }
-
     #[tracing::instrument(level = "debug", skip(self, librespot, uri))]
     fn get_spotify_lyrics(&self, librespot: &LibrespotHolder, uri: String) -> Result<String> {
         let res = librespot.get_lyrics(format!("spotify:track:{}", uri))?;

@@ -175,6 +175,16 @@ pub fn event_to_map(event: PlayerEvent) -> HashMap<String, String> {
             );
             map.insert("event".to_string(), "SessionClientChanged".to_string());
         }
+        PlayerEvent::PositionChanged {
+            play_request_id,
+            track_id,
+            position_ms,
+        } => {
+            map.insert("play_request_id".to_string(), play_request_id.to_string());
+            map.insert("track_id".to_string(), track_id.to_string());
+            map.insert("position_ms".to_string(), position_ms.to_string());
+            map.insert("event".to_string(), "PositionChanged".to_string());
+        }
     }
 
     map

@@ -42,12 +42,6 @@ impl OAuthHandler {
         oauth_map.insert(path, key.clone());
     }
 
-    #[tracing::instrument(level = "debug", skip(self, path))]
-    pub fn unregister_oauth_path(&self, path: String) {
-        let mut oauth_map = self.oauth_map.lock().unwrap();
-        oauth_map.remove(&path);
-    }
-
     #[tracing::instrument(level = "debug", skip(self, app, url))]
     pub fn handle_oauth(&self, app: AppHandle, url: String) -> Result<()> {
         tracing::debug!("Parsing external callback {}", url);

@@ -8,10 +8,10 @@ mock = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-getrandom = "=0.2.10"
+getrandom = {version = "0.3.3", features = ["wasm_js"]}
 console_error_panic_hook = "0.1.7"
 
-leptos = { version = "0.7.7", features = ["csr"] }
+leptos = { version = "0.7.8", features = ["csr"] }
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
@@ -20,11 +20,11 @@ serde-wasm-bindgen = "0.6"
 types = { path = "src-tauri/types", default-features = false, features = [
     "ui",
 ] }
-chrono = "0.4.40"
-leptos-use = "0.15.6"
-tokio = { version = "1.43.0", features = ["rt", "sync"] }
+chrono = "=0.4.40"
+leptos-use = "0.15.8"
+tokio = { version = "1.45.1", features = ["rt", "sync"] }
 serde_json = "1.0.140"
-leptos_router = { version = "0.7.7" }
+leptos_router = { version = "0.7.8" }
 leptos_virtual_scroller = { git = "https://github.com/Ovenoboyo/leptos_virtual_scroller" }
 leptos_context_menu = { git = "https://github.com/Ovenoboyo/leptos_context_menu" }
 futures = "0.3.31"
@@ -37,20 +37,20 @@ web-sys = { version = "0.3.77", features = [
 ] }
 regex = "1.11.1"
 colors-transform = "0.2.11"
-leptos_i18n = { git = "https://github.com/Ovenoboyo/leptos_i18n", features = ["csr", "interpolate_display", "json_files"], default_features = false }
+leptos_i18n = { version = "0.5", features = ["csr", "interpolate_display", "json_files"], default-features = false }
 pref_gen = { path = "src/pref_gen" }
-rand = "0.8.5"
+rand = "0.9.1"
 dyn-clone = "1.0.19"
 itertools = "0.14.0"
-bitcode = { version = "0.6.5" }
-indexed_db_futures = { version = "0.6.0", features = ["serde"] }
+bitcode = { version = "0.6.6" }
+indexed_db_futures = { version = "0.6.4", features = ["serde"] }
 lazy_static = "1.5.0"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 tauri-invoke-proc = { path = "src-tauri/tauri-invoke-proc" }
 url-escape = "0.1.1"
 wasm-timer = "0.2.5"
-uuid = "=1.11.1"
+uuid = {version = "1.17.0", features = ["js"]}
 
 [workspace]
 resolver = "2"

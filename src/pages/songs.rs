@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use leptos::{component, prelude::*, view, IntoView};
-use rand::seq::SliceRandom;
+use rand::seq::{IndexedRandom, SliceRandom};
 use std::sync::Arc;
 use types::songs::GetSongOptions;
 use types::ui::song_details::SongDetailIcons;
@@ -69,7 +69,7 @@ pub fn AllSongs() -> impl IntoView {
 
     let random = move || {
         let songs = songs.get();
-        let random_song = songs.choose(&mut rand::thread_rng()).unwrap();
+        let random_song = songs.choose(&mut rand::rng()).unwrap();
         play_songs_setter.set(random_song.clone());
     };
 

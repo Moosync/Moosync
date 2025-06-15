@@ -17,7 +17,6 @@
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use oauth2::reqwest::async_http_client;
 use oauth2::{basic::BasicClient, AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
 use oauth2::{AuthorizationCode, CsrfToken, PkceCodeChallenge, RefreshToken, Scope, TokenResponse};
 use preferences::preferences::PreferenceConfig;
@@ -47,19 +46,16 @@ pub struct OAuthClientArgs {
 
 #[tracing::instrument(level = "debug", skip(config))]
 pub fn get_oauth_client(config: OAuthClientArgs) -> OAuth2Client {
-    let client_secret = if config.client_secret.is_empty() {
-        None
-    } else {
-        Some(ClientSecret::new(config.client_secret))
+    let mut client = BasicClient::new(ClientId::new(config.client_id.clone()))
+        .set_auth_uri(AuthUrl::new(config.auth_url.clone()).unwrap())
+        .set_token_uri(TokenUrl::new(config.token_url.clone()).unwrap())
+        .set_redirect_uri(RedirectUrl::new(config.redirect_url.clone()).unwrap());
+
+    if !config.client_secret.is_empty() {
+        client = client.set_client_secret(ClientSecret::new(config.client_secret));
     };
 
-    BasicClient::new(
-        ClientId::new(config.client_id),
-        client_secret,
-        AuthUrl::new(config.auth_url).unwrap(),
-        Some(TokenUrl::new(config.token_url).unwrap()),
-    )
-    .set_redirect_uri(RedirectUrl::new(config.redirect_url).unwrap())
+    client
 }
 
 #[tracing::instrument(level = "debug", skip(key, app, res, default_refresh))]
@@ -110,9 +106,14 @@ pub async fn refresh_login(
 
     let refresh_token = refresh_token.unwrap();
     if !refresh_token.is_empty() {
+        let http_client = reqwest::ClientBuilder::new()
+            .redirect(reqwest::redirect::Policy::none())
+            .build()
+            .expect("Client should build");
+
         let res = client
             .exchange_refresh_token(&RefreshToken::new(refresh_token.to_string()))
-            .request_async(async_http_client)
+            .request_async(&http_client)
             .await
             .map_err(|err| match err {
                 oauth2::RequestTokenError::ServerResponse(e) => MoosyncError::String(e.to_string()),
@@ -198,10 +199,14 @@ pub async fn authorize(
 
     let (client, verifier, _csrf) = verifier.unwrap();
 
+    let http_client = reqwest::ClientBuilder::new()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .expect("Client should build");
     let res = client
         .exchange_code(AuthorizationCode::new(code))
         .set_pkce_verifier(verifier)
-        .request_async(async_http_client)
+        .request_async(&http_client)
         .await
         .map_err(|err| match err {
             oauth2::RequestTokenError::ServerResponse(e) => MoosyncError::String(format!(

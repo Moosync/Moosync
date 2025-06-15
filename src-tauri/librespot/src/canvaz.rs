@@ -38,7 +38,7 @@
 
 /// Generated files are compatible only with the same version
 /// of protobuf runtime.
-const _PROTOBUF_VERSION_CHECK: () = ::protobuf::VERSION_3_7_1;
+const _PROTOBUF_VERSION_CHECK: () = ::protobuf::VERSION_3_7_2;
 
 #[derive(PartialEq,Clone,Default,Debug)]
 // @@protoc_insertion_point(message:spotify.canvaz.cache.Artist)

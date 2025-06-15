@@ -16,7 +16,7 @@
 
 use std::{
     collections::{HashMap, HashSet},
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, BufWriter, Write},
     net::TcpListener,
     thread,
     time::{Duration, Instant},
@@ -489,6 +489,7 @@ impl GenericProvider for SpotifyProvider {
                 let listener = TcpListener::bind(socket_addr).unwrap();
                 let stream = listener.incoming().flatten().next().unwrap();
                 let mut reader = BufReader::new(&stream);
+                let mut writer = BufWriter::new(&stream);
                 let mut request_line = String::new();
                 reader.read_line(&mut request_line).unwrap();
 
@@ -503,6 +504,12 @@ impl GenericProvider for SpotifyProvider {
                             format!("moosync://spotifyoauthcallback{}", parsed_code),
                         )
                         .unwrap();
+                    let _ = write!(&mut writer, "Logged in! You may return back to the app.");
+                } else {
+                    let _ = write!(
+                        &mut writer,
+                        "Could not log in. Failed to extract spotify token from URL"
+                    );
                 }
             });
         }

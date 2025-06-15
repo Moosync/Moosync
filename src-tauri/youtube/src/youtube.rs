@@ -31,8 +31,6 @@ use types::{
     songs::{QueryableSong, Song, SongType},
 };
 
-use crate::types::PlaylistResponse;
-
 pub struct YoutubeScraper {
     youtube: YouTube,
 }
@@ -137,21 +135,12 @@ impl YoutubeScraper {
     }
 
     #[tracing::instrument(level = "debug", skip(self, id))]
-    pub async fn get_playlist_content(
-        &self,
-        id: String,
-        _: Pagination,
-    ) -> Result<PlaylistResponse> {
+    pub async fn get_playlist_content(&self, id: String, _: Pagination) -> Result<Vec<Song>> {
         let mut playlist = rusty_ytdl::search::Playlist::get(id, None).await?;
         playlist.fetch(None).await;
         let res = playlist.videos.iter().map(|v| self.parse_song(v)).collect();
 
-        Ok(PlaylistResponse {
-            songs: res,
-            next_page_token: None,
-        })
-
-        // Err(MoosyncError::String("No data found".to_string()))
+        Ok(res)
     }
 
     #[tracing::instrument(level = "debug", skip(self, id))]

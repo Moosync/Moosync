@@ -132,13 +132,16 @@ impl YoutubeProvider {
     async fn get_oauth_client(&self) -> Option<OAuth2Client> {
         let config = self.config.lock().await;
         if config.client_id.is_some() && config.client_secret.is_some() {
-            let client = BasicClient::new(
-                ClientId::new(config.client_id.clone().unwrap()),
-                Some(ClientSecret::new(config.client_secret.clone().unwrap())),
-                AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string()).unwrap(),
-                Some(TokenUrl::new("https://oauth2.googleapis.com/token".to_string()).unwrap()),
-            )
-            .set_redirect_uri(RedirectUrl::new(config.redirect_uri.to_string()).unwrap());
+            let client = BasicClient::new(ClientId::new(config.client_id.clone().unwrap()))
+                .set_client_secret(ClientSecret::new(config.client_secret.clone().unwrap()))
+                .set_auth_uri(
+                    AuthUrl::new("https://accounts.google.com/o/oauth2/v2/auth".to_string())
+                        .unwrap(),
+                )
+                .set_token_uri(
+                    TokenUrl::new("https://oauth2.googleapis.com/token".to_string()).unwrap(),
+                )
+                .set_redirect_uri(RedirectUrl::new(config.redirect_uri.to_string()).unwrap());
             return Some(client);
         }
         None
@@ -719,7 +722,7 @@ impl GenericProvider for YoutubeProvider {
             .get_playlist_content(playlist_id.to_string(), pagination.clone())
             .await?;
 
-        return Ok((res.songs, pagination.next_page()));
+        return Ok((res, pagination.next_page()));
     }
 
     #[tracing::instrument(level = "debug", skip(self, song, player))]

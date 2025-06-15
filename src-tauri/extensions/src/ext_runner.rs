@@ -23,7 +23,7 @@ use std::{
     str::FromStr,
     sync::Arc,
     thread,
-    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use crypto::sha1::Sha1;

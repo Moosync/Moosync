@@ -111,3 +111,8 @@ This project follows the [all-contributors](https://github.com/all-contributors/
 - add ascending/descending under filter
 - show lyrics button
 - Rename handleCustomRequest to handleStreamRequest or something sensible
+
+- Disable support for user installed extensions
+- Titles to releases / more details
+- Plugin repos for extensions
+- Support headers in custom requests

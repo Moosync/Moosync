@@ -165,6 +165,13 @@ pub enum MoosyncError {
     #[cfg(feature = "core")]
     #[error(transparent)]
     UTF8Error(#[from] str::Utf8Error),
+
+    #[cfg(feature = "core")]
+    #[error(transparent)]
+    HLSError(#[from] hls_client::errors::HLSDecoderError),
+
+    #[error("Invalidated cache")]
+    InvalidatedCache,
 }
 
 #[cfg(all(not(feature = "extensions"), feature = "ui"))]

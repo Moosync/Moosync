@@ -327,14 +327,19 @@ impl PlayerStore {
 
     #[tracing::instrument(level = "debug", skip(self, new_time))]
     pub fn force_seek_percent(&mut self, new_time: f64) {
-        let new_time = if let Some(current_song) = &self.data.current_song {
+        let new_time_c = if let Some(current_song) = &self.data.current_song {
             current_song.song.duration.unwrap_or_default() * new_time
         } else {
             0f64
         };
 
-        tracing::debug!("Got seek {}", new_time);
-        self.data.player_details.force_seek = new_time;
+        tracing::debug!(
+            "Got seek {}, {:?}, {}",
+            new_time,
+            self.data.current_song.clone().map(|c| c.song.duration),
+            new_time_c
+        );
+        self.data.player_details.force_seek = new_time_c;
         // send_extension_event(ExtensionExtraEvent::Seeked([new_time]))
     }
 

@@ -44,6 +44,8 @@ zip = { version = "2.2.3", optional = true, default-features = false }
 bitcode = { version = "0.6.5" }
 rodio = { git = "https://github.com/RustAudio/rodio", optional = true }
 extism-convert = { version = "1.10.0", optional = true }
+hls_client = { path = "/home/ovenoboyo/projects/moosync/tauri/stream-download-rs", optional = true }
+
 
 
 [target.'cfg(windows)'.dependencies]
@@ -83,6 +85,7 @@ core = [
     "dep:extism-convert",
     "dep:uuid",
     "dep:rodio",
+    "dep:hls_client"
 ]
 default = ["core"]
 librespot = ["dep:librespot", "dep:reqwest", "dep:protobuf"]

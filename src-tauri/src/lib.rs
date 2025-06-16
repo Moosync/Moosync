@@ -105,7 +105,6 @@ mod providers;
 mod rodio;
 mod scanner;
 mod themes;
-#[cfg(desktop)]
 mod updater;
 mod window;
 mod youtube;

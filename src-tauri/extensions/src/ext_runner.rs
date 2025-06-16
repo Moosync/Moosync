@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#[cfg(any(target_os = "android", target_os = "ios"))]
+use std::path::Path;
 use std::{
     collections::{BTreeMap, HashMap},
     env, fs,
@@ -282,6 +284,8 @@ pub(crate) struct ExtensionHandlerInner {
     ext_command_tx: ExtCommandSender,
     extensions_map: Arc<Mutex<HashMap<String, Extension>>>,
     reply_map: Arc<std::sync::Mutex<HashMap<String, ExtCommandReplySender>>>,
+    // #[cfg(any(target_os = "android", target_os = "ios"))]
+    cache_path: PathBuf,
 }
 
 impl ExtensionHandlerInner {
@@ -296,6 +300,8 @@ impl ExtensionHandlerInner {
             ext_command_tx,
             extensions_map: Default::default(),
             reply_map: Arc::new(std::sync::Mutex::new(HashMap::new())),
+            // #[cfg(any(target_os = "android", target_os = "ios"))]
+            cache_path: cache_path.clone(),
         }
     }
 
@@ -373,6 +379,7 @@ impl ExtensionHandlerInner {
         manifest: ExtensionManifest,
         reply_map: Arc<std::sync::Mutex<HashMap<String, ExtCommandReplySender>>>,
         ext_command_tx: ExtCommandSender,
+        cache_path: PathBuf,
     ) -> Arc<Mutex<Plugin>> {
         let url = Wasm::file(manifest.extension_entry.clone());
         let mut plugin_manifest = Manifest::new([url]);
@@ -413,7 +420,8 @@ impl ExtensionHandlerInner {
             allowed_paths: plugin_manifest.allowed_paths.clone(),
         });
 
-        let plugin_builder = PluginBuilder::new(plugin_manifest)
+        #[allow(unused_mut)]
+        let mut plugin_builder = PluginBuilder::new(plugin_manifest)
             .with_wasi(true)
             .with_function(
                 "send_main_command",
@@ -442,9 +450,7 @@ impl ExtensionHandlerInner {
 
         #[cfg(any(target_os = "android", target_os = "ios"))]
         {
-            let cache_path = PathBuf::from(self.cache_path.clone())
-                .join("wasmtime")
-                .join("config.toml");
+            let cache_path = cache_path.join("wasmtime").join("config.toml");
             if !cache_path.exists() {
                 fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
             }
@@ -475,6 +481,7 @@ impl ExtensionHandlerInner {
     async fn spawn_extensions(&mut self) {
         let manifests = self.find_extensions().await;
         for manifest in manifests {
+            let cache_path = self.cache_path.clone();
             let package_name = manifest.name.clone();
             let extension_map = self.extensions_map.clone();
             let reply_map = self.reply_map.clone();
@@ -492,8 +499,12 @@ impl ExtensionHandlerInner {
             }
 
             thread::spawn(move || {
-                let plugin_mutex =
-                    Self::spawn_extension(manifest, reply_map, ext_command_tx.clone());
+                let plugin_mutex = Self::spawn_extension(
+                    manifest,
+                    reply_map,
+                    ext_command_tx.clone(),
+                    cache_path.clone(),
+                );
                 {
                     let mut plugin = block_on(plugin_mutex.lock());
 

@@ -38,7 +38,7 @@ use wasm_bindgen_futures::spawn_local;
 
 use crate::components::songview::SongView;
 use crate::utils::db_utils::get_songs_by_option;
-use rand::seq::{IndexedRandom, SliceRandom};
+use rand::seq::IndexedRandom;
 
 #[tracing::instrument(level = "debug", skip())]
 #[component()]

@@ -20,10 +20,10 @@
         <option name="gradleJvm" value="#GRADLE_LOCAL_JAVA_HOME" />
         <option name="modules">
           <set>
-            <option value="$USER_HOME$/.cargo/git/checkouts/plugins-workspace-fd0259fcb18f51ad/b219159/plugins/deep-link/android" />
-            <option value="$USER_HOME$/.cargo/git/checkouts/plugins-workspace-fd0259fcb18f51ad/b219159/plugins/dialog/android" />
-            <option value="$USER_HOME$/.cargo/git/checkouts/plugins-workspace-fd0259fcb18f51ad/b219159/plugins/opener/android" />
-            <option value="$USER_HOME$/.cargo/registry/src/index.crates.io-6f17d22bba15001f/tauri-2.1.1/mobile/android" />
+            <option value="$USER_HOME$/.cargo/git/checkouts/plugins-workspace-bac95421cc662c04/ce9888a/plugins/deep-link/android" />
+            <option value="$USER_HOME$/.cargo/git/checkouts/plugins-workspace-bac95421cc662c04/ce9888a/plugins/dialog/android" />
+            <option value="$USER_HOME$/.cargo/git/checkouts/plugins-workspace-bac95421cc662c04/ce9888a/plugins/opener/android" />
+            <option value="$USER_HOME$/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-2.5.1/mobile/android" />
             <option value="$PROJECT_DIR$/../../../lib/tauri-plugin-audioplayer/android" />
             <option value="$PROJECT_DIR$/../../../lib/tauri-plugin-file-scanner/android" />
             <option value="$PROJECT_DIR$" />
@@ -31,7 +31,6 @@
             <option value="$PROJECT_DIR$/buildSrc" />
           </set>
         </option>
-        <option name="resolveExternalAnnotations" value="false" />
       </GradleProjectSettings>
     </option>
   </component>

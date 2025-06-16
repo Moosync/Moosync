@@ -29,7 +29,7 @@ use crate::utils::songs::get_songs_from_indices;
 use leptos::{component, prelude::*, view, IntoView};
 use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
-use rand::seq::{IndexedRandom, SliceRandom};
+use rand::seq::IndexedRandom;
 use types::entities::QueryableAlbum;
 use types::songs::{GetSongOptions, Song};
 use types::ui::extensions::ExtensionProviderScope;

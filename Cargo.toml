@@ -59,7 +59,6 @@ exclude = [
     "lib/extensions-wasm/wasm-extension-py/python-pdk/bin",
     "lib/extensions-wasm/wasm-extension-rs",
     "lib/extensions-wasm/test-cli",
-    "lib/tauri-plugin-audioplayer/android/librespot-jni",
 ]
 members = [
     "src-tauri",

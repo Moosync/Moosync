@@ -510,7 +510,7 @@ impl PlayerStore {
     pub fn shuffle_queue(&mut self) {
         let binding = self.data.queue.song_queue.clone();
         let current_song = binding.get(self.data.queue.current_index).unwrap();
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
         self.data.queue.song_queue.shuffle(&mut rng);
         let new_index = self
             .data

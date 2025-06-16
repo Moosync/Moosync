@@ -37,11 +37,14 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="http" />
                 <data android:scheme="https" />
+                <data android:scheme="http" />
                 <data android:host="moosync.app" />
+                
+                
                 <data android:pathPrefix="/youtube" />
                 <data android:pathPrefix="/spotify" />
+                
             </intent-filter>
             <!-- DEEP LINK PLUGIN. AUTO-GENERATED. DO NOT REMOVE. -->
         </activity>

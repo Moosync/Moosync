@@ -48,8 +48,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         .setup(|_app, _api| {
             #[cfg(mobile)]
             {
-                let file_scanner = mobile::init(app, api)?;
-                app.manage(file_scanner);
+                let file_scanner = mobile::init(_app, _api)?;
+                _app.manage(file_scanner);
             }
             Ok(())
         })

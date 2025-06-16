@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use leptos::{component, prelude::*, view, IntoView};
-use rand::seq::{IndexedRandom, SliceRandom};
+use rand::seq::IndexedRandom;
 use std::sync::Arc;
 use types::songs::GetSongOptions;
 use types::ui::song_details::SongDetailIcons;

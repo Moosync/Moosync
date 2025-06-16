@@ -23,7 +23,7 @@ use crate::utils::db_utils::get_songs_by_option;
 use leptos::{component, prelude::*, view, IntoView};
 use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
-use rand::seq::{IndexedRandom, SliceRandom};
+use rand::seq::IndexedRandom;
 use std::sync::Arc;
 use types::entities::QueryableGenre;
 use types::songs::{GetSongOptions, Song};

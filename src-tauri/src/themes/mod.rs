@@ -68,3 +68,4 @@ generate_command!(import_theme, ThemeHolder, (), path: String);
 generate_command!(get_css, ThemeHolder, String, id: String);
 generate_command_async!(get_themes_manifest, ThemeHolder, HashMap<String, ThemeDetails>,);
 generate_command_async!(download_theme, ThemeHolder, (), url: String);
+generate_command!(get_system_theme_preference, ThemeHolder, String,);

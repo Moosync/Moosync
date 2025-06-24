@@ -178,7 +178,8 @@ impl ExtensionCommand {
                 Json(args).to_bytes().unwrap(),
             ),
 
-            // TODO: Why the fuck did I decide to split some events as "extra"
+            // Handle extension extra events - these are specialized events that require
+            // different parameter handling and callback mechanisms compared to standard commands
             Self::ExtraExtensionEvent(args) => {
                 let package_name = args.package_name.clone();
                 let res = match &args.data {
@@ -213,7 +214,7 @@ impl ExtensionCommand {
                         Json(songs[0].clone()).to_bytes().unwrap(),
                     ),
                     ExtensionExtraEvent::CustomRequest(url) => (
-                        "handle_custom_request_wrapper",
+                        "handle_stream_request_wrapper",
                         Json(url[0].clone()).to_bytes().unwrap(),
                     ),
                     ExtensionExtraEvent::RequestedSongFromURL(url, _) => {

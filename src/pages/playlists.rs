@@ -28,6 +28,7 @@ use crate::utils::context_menu::{
 };
 use crate::utils::db_utils::get_songs_by_option;
 use crate::utils::songs::get_songs_from_indices;
+use wasm_bindgen_futures::spawn_local;
 use leptos::task::spawn_local;
 use leptos::{component, prelude::*, view, IntoView};
 use leptos_i18n::t;
@@ -119,6 +120,24 @@ pub fn SinglePlaylist() -> impl IntoView {
     let play_songs_multiple_setter =
         create_write_slice(player_store, |p, songs| p.play_now_multiple(songs));
     let add_to_queue_setter = create_write_slice(player_store, |p, songs| p.add_to_queue(songs));
+    let add_playlist_to_queue_setter = create_write_slice(player_store, |p, (songs, should_clear)| {
+        p.add_playlist_to_queue(songs, should_clear)
+    });
+
+    // Load queue clearing preference
+    let clear_queue_pref = RwSignal::new(false);
+    spawn_local({
+        let clear_queue_pref = clear_queue_pref;
+        async move {
+            if let Ok(prefs) = crate::utils::invoke::load_selective("queue_settings".to_string()).await {
+                if let Ok(checkbox_prefs) = serde_wasm_bindgen::from_value::<Vec<types::preferences::CheckboxPreference>>(prefs) {
+                    let should_clear = checkbox_prefs.iter()
+                        .any(|p| p.key == "clear_queue_before_playlist" && p.enabled);
+                    clear_queue_pref.set(should_clear);
+                }
+            }
+        }
+    });
 
     let play_songs = move || {
         let selected_songs = if selected_songs.get().is_empty() {
@@ -131,11 +150,14 @@ pub fn SinglePlaylist() -> impl IntoView {
     };
 
     let add_to_queue = move || {
-        if selected_songs.get().is_empty() {
-            add_to_queue_setter.set(filtered_songs.get());
+        let songs = if selected_songs.get().is_empty() {
+            filtered_songs.get()
         } else {
-            add_to_queue_setter.set(get_songs_from_indices(&filtered_songs, selected_songs));
-        }
+            get_songs_from_indices(&filtered_songs, selected_songs)
+        };
+        
+        // Use playlist-specific handler that respects the clear queue preference
+        add_playlist_to_queue_setter.set((songs, clear_queue_pref.get()));
     };
 
     let random = move || {

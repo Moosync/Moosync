@@ -117,9 +117,18 @@ pub async fn refresh_login(
             .await
             .map_err(|err| match err {
                 oauth2::RequestTokenError::ServerResponse(e) => MoosyncError::String(e.to_string()),
-                oauth2::RequestTokenError::Request(_) => todo!(),
-                oauth2::RequestTokenError::Parse(_, _) => todo!(),
-                oauth2::RequestTokenError::Other(_) => todo!(),
+                oauth2::RequestTokenError::Request(e) => {
+                    tracing::error!("OAuth request error: {:?}", e);
+                    MoosyncError::String(format!("OAuth request failed: {}", e))
+                },
+                oauth2::RequestTokenError::Parse(e, body) => {
+                    tracing::error!("OAuth parse error: {:?}, body: {:?}", e, body);
+                    MoosyncError::String(format!("Failed to parse OAuth response: {}", e))
+                },
+                oauth2::RequestTokenError::Other(e) => {
+                    tracing::error!("Other OAuth error: {}", e);
+                    MoosyncError::String(format!("OAuth error: {}", e))
+                },
             })?;
 
         return set_tokens(key, app, res, Some(refresh_token.to_string()));
@@ -215,9 +224,18 @@ pub async fn authorize(
                 e.error_description(),
                 serde_json::to_string(&e)
             )),
-            oauth2::RequestTokenError::Request(_) => todo!(),
-            oauth2::RequestTokenError::Parse(_, _) => todo!(),
-            oauth2::RequestTokenError::Other(_) => todo!(),
+            oauth2::RequestTokenError::Request(e) => {
+                tracing::error!("OAuth code exchange request error: {:?}", e);
+                MoosyncError::String(format!("OAuth request failed: {}", e))
+            },
+            oauth2::RequestTokenError::Parse(e, body) => {
+                tracing::error!("OAuth code exchange parse error: {:?}, body: {:?}", e, body);
+                MoosyncError::String(format!("Failed to parse OAuth response: {}", e))
+            },
+            oauth2::RequestTokenError::Other(e) => {
+                tracing::error!("Other OAuth code exchange error: {}", e);
+                MoosyncError::String(format!("OAuth error: {}", e))
+            },
         })?;
 
     set_tokens(key, app, res, None)

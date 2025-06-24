@@ -244,8 +244,31 @@ impl ThemeHolder {
         Ok(())
     }
 
-    // TODO: Validate URL somehow
     pub async fn download_theme(&self, url: String) -> Result<()> {
+        // Validate URL format and security
+        let parsed_url = url::Url::parse(&url)
+            .map_err(|_| MoosyncError::String("Invalid URL format".to_string()))?;
+        
+        // Security checks
+        match parsed_url.scheme() {
+            "http" | "https" => {},
+            _ => return Err(MoosyncError::String("Only HTTP and HTTPS URLs are allowed".to_string())),
+        }
+        
+        // Check for suspicious domains or patterns
+        let host = parsed_url.host_str()
+            .ok_or_else(|| MoosyncError::String("URL must have a valid host".to_string()))?;
+        
+        if host == "localhost" || host.starts_with("127.") || host.starts_with("192.168.") || host.starts_with("10.") {
+            return Err(MoosyncError::String("Local network URLs are not allowed for security".to_string()));
+        }
+        
+        // Validate file extension in URL (should end with .mstx)
+        if !url.ends_with(".mstx") {
+            return Err(MoosyncError::String("URL must point to a .mstx theme file".to_string()));
+        }
+        
+        tracing::info!("Downloading theme from validated URL: {}", url);
         let file_path = self.tmp_dir.join(format!("{}.mstx", uuid::Uuid::new_v4()));
 
         let mut stream = reqwest::get(url).await?.bytes_stream();
@@ -313,6 +336,117 @@ impl ThemeHolder {
 
         Ok(ret)
     }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub fn get_system_theme_preference(&self) -> Result<String> {
+        // Detect system theme preference based on the operating system
+        #[cfg(target_os = "windows")]
+        {
+            self.get_windows_theme_preference()
+        }
+        #[cfg(target_os = "macos")]
+        {
+            self.get_macos_theme_preference()
+        }
+        #[cfg(target_os = "linux")]
+        {
+            self.get_linux_theme_preference()
+        }
+        #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+        {
+            Ok("dark".to_string()) // Default fallback
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    fn get_windows_theme_preference(&self) -> Result<String> {
+        use std::process::Command;
+        
+        // Query Windows registry for theme preference
+        let output = Command::new("reg")
+            .args(&[
+                "query",
+                "HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                "/v",
+                "AppsUseLightTheme"
+            ])
+            .output();
+
+        match output {
+            Ok(result) => {
+                let output_str = String::from_utf8_lossy(&result.stdout);
+                if output_str.contains("0x0") {
+                    Ok("dark".to_string())
+                } else {
+                    Ok("light".to_string())
+                }
+            }
+            Err(_) => Ok("dark".to_string()), // Default to dark if query fails
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    fn get_macos_theme_preference(&self) -> Result<String> {
+        use std::process::Command;
+        
+        // Query macOS system defaults for dark mode
+        let output = Command::new("defaults")
+            .args(&["read", "-g", "AppleInterfaceStyle"])
+            .output();
+
+        match output {
+            Ok(result) => {
+                let output_str = String::from_utf8_lossy(&result.stdout);
+                if output_str.trim().to_lowercase().contains("dark") {
+                    Ok("dark".to_string())
+                } else {
+                    Ok("light".to_string())
+                }
+            }
+            Err(_) => Ok("light".to_string()), // Default to light if query fails
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    fn get_linux_theme_preference(&self) -> Result<String> {
+        use std::process::Command;
+        
+        // Try to detect theme from various Linux desktop environments
+        
+        // Try GNOME/GTK first
+        if let Ok(output) = Command::new("gsettings")
+            .args(&["get", "org.gnome.desktop.interface", "gtk-theme"])
+            .output() 
+        {
+            let theme_name = String::from_utf8_lossy(&output.stdout).to_lowercase();
+            if theme_name.contains("dark") {
+                return Ok("dark".to_string());
+            }
+        }
+
+        // Try KDE/Plasma
+        if let Ok(output) = Command::new("kreadconfig5")
+            .args(&["--file", "kdeglobals", "--group", "Colors", "--key", "ColorScheme"])
+            .output()
+        {
+            let theme_name = String::from_utf8_lossy(&output.stdout).to_lowercase();
+            if theme_name.contains("dark") || theme_name.contains("breeze dark") {
+                return Ok("dark".to_string());
+            }
+        }
+
+        // Try environment variables as fallback
+        if let Ok(theme) = std::env::var("GTK_THEME") {
+            if theme.to_lowercase().contains("dark") {
+                return Ok("dark".to_string());
+            }
+        }
+
+        // Default to dark for Linux
+        Ok("dark".to_string())
+    }
+
+    // ...existing code...
 }
 
 pub fn transform_css(css_path: String, root: Option<PathBuf>) -> Result<(String, Vec<PathBuf>)> {

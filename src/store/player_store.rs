@@ -527,8 +527,9 @@ impl PlayerStore {
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn clear_queue(&mut self) {
         self.data.queue.song_queue.clear();
+        self.data.queue.data.clear();
         self.data.queue.current_index = 0;
-        self.update_current_song(false);
+        self.dump_store(&[DumpType::QueueData, DumpType::SongQueue, DumpType::CurrentIndex]);
     }
 
     #[tracing::instrument(level = "debug", skip(self))]

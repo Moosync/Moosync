@@ -33,10 +33,34 @@ pub fn get_scanner_state() -> ScannerHolder {
 
 #[tracing::instrument(level = "debug", skip(preferences))]
 fn get_scan_paths(preferences: &State<PreferenceConfig>) -> Result<Vec<String>> {
-    let tmp: Vec<String> = preferences.load_selective("music_paths".to_string())?;
+    let include_paths: Vec<String> = preferences.load_selective("music_paths".to_string())?;
+    let exclude_paths: Vec<String> = preferences.load_selective("exclude_paths".to_string())
+        .unwrap_or_else(|_| vec![]);
 
-    // TODO: Filter using exclude paths
-    Ok(tmp)
+    // Filter include paths by removing any that match exclude patterns
+    let filtered_paths = include_paths
+        .into_iter()
+        .filter(|path| {
+            // Check if this path should be excluded
+            !exclude_paths.iter().any(|exclude_pattern| {
+                // Support both exact path matches and glob patterns
+                if exclude_pattern.contains('*') || exclude_pattern.contains('?') {
+                    // Use glob matching for patterns
+                    if let Ok(pattern) = glob::Pattern::new(exclude_pattern) {
+                        pattern.matches(path)
+                    } else {
+                        false
+                    }
+                } else {
+                    // Exact path matching or prefix matching
+                    path == exclude_pattern || path.starts_with(&format!("{}/", exclude_pattern))
+                }
+            })
+        })
+        .collect();
+
+    tracing::debug!("Filtered scan paths: {:?} (excluded: {:?})", filtered_paths, exclude_paths);
+    Ok(filtered_paths)
 }
 
 #[derive(Default)]

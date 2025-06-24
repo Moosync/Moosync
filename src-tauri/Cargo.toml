@@ -59,6 +59,7 @@ openssl-sys = { version = "*", features = ["vendored"] }
 libsqlite3-sys = { version = "0.33.0", features = ["bundled"] }
 clap = { version = "4.5.40", features = ["derive"] }
 tokio = { version = "1.45.1", features = ["sync"] }
+glob = "0.3.1"
 
 [build-dependencies.tauri-build]
 version = "2.2.0"

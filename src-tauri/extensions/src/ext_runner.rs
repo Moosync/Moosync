@@ -742,6 +742,35 @@ impl ExtensionHandlerInner {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
+    async fn toggle_extension_status(&mut self, package_name: &String) {
+        let mut extensions_map = self.extensions_map.lock().await;
+        if let Some(extension) = extensions_map.get_mut(package_name) {
+            extension.active = !extension.active;
+            
+            if extension.active {
+                // Start the extension
+                if let Some(plugin) = &mut extension.plugin {
+                    if let Err(e) = plugin.call::<(), ()>("on_started", ()) {
+                        tracing::error!("Failed to start extension {}: {}", package_name, e);
+                        extension.active = false;
+                    } else {
+                        tracing::info!("Extension {} started successfully", package_name);
+                    }
+                }
+            } else {
+                // Stop the extension
+                if let Some(plugin) = &mut extension.plugin {
+                    if let Err(e) = plugin.call::<(), ()>("on_stopped", ()) {
+                        tracing::error!("Failed to stop extension {}: {}", package_name, e);
+                    } else {
+                        tracing::info!("Extension {} stopped successfully", package_name);
+                    }
+                }
+            }
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
     pub async fn handle_extension_command(
         &mut self,
         command: &ExtensionCommand,
@@ -777,13 +806,24 @@ impl ExtensionHandlerInner {
                     .first()
                     .map(|e| e.icon.clone()),
             ),
-            RunnerCommand::ToggleExtensionStatus(_) => todo!(),
+            RunnerCommand::ToggleExtensionStatus(p) => {
+                self.toggle_extension_status(&p.package_name).await;
+                RunnerCommandResp::Empty()
+            }
             RunnerCommand::RemoveExtension(p) => {
                 self.remove_extension(&p.package_name).await;
                 RunnerCommandResp::Empty()
             }
             RunnerCommand::StopProcess => {
-                todo!()
+                for (_, extension) in &mut self.extensions {
+                    if let Some(plugin) = &mut extension.plugin {
+                        if let Err(e) = plugin.call::<(), ()>("on_stopped", ()) {
+                            tracing::error!("Failed to call on_stopped for extension: {}", e);
+                        }
+                    }
+                }
+                self.extensions.clear();
+                RunnerCommandResp::Empty()
             }
             RunnerCommand::GetDisplayName(p) => RunnerCommandResp::ExtensionIcon(
                 self.get_extensions(p.package_name)

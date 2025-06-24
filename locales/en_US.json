@@ -141,7 +141,8 @@
       "queueSettings": {
         "title": "Queue Settings",
         "tooltip": "Settings which are related to queue",
-        "clearQueue": "Clear queue"
+        "clearQueue": "Clear queue",
+        "clearQueueBeforePlaylist": "Clear queue before adding playlist"
       },
       "volumePersistMode": {
         "title": "Volume Persist Mode",

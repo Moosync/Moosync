@@ -151,10 +151,52 @@ impl ReplyHandler {
         Ok(MainCommandResponse::SetSecure(true))
     }
 
-    #[tracing::instrument(level = "debug", skip(self, _data))]
-    pub fn register_oauth(&self, _data: String) -> Result<MainCommandResponse> {
-        // TODO: Implement oauth registration
-        Ok(MainCommandResponse::RegisterOAuth(false))
+    #[tracing::instrument(level = "debug", skip(self, data))]
+    pub fn register_oauth(&self, data: String) -> Result<MainCommandResponse> {
+        // Parse the OAuth provider data
+        let oauth_config: Result<serde_json::Value, _> = serde_json::from_str(&data);
+        
+        match oauth_config {
+            Ok(config) => {
+                // Extract provider information
+                let provider_name = config["provider"].as_str().unwrap_or("unknown");
+                let client_id = config["client_id"].as_str();
+                let redirect_uri = config["redirect_uri"].as_str();
+                
+                if let (Some(client_id), Some(redirect_uri)) = (client_id, redirect_uri) {
+                    tracing::info!("Registering OAuth for provider: {}", provider_name);
+                    
+                    // Store OAuth configuration for the extension
+                    let oauth_key = format!("oauth_config_{}", provider_name);
+                    let preferences: State<PreferenceHandler> = self.app_handle.state();
+                    
+                    let oauth_data = serde_json::json!({
+                        "client_id": client_id,
+                        "redirect_uri": redirect_uri,
+                        "provider": provider_name,
+                        "registered_by_extension": true
+                    });
+                    
+                    match preferences.set_secure(oauth_key, oauth_data.to_string()) {
+                        Ok(_) => {
+                            tracing::info!("OAuth configuration stored for {}", provider_name);
+                            Ok(MainCommandResponse::RegisterOAuth(true))
+                        },
+                        Err(e) => {
+                            tracing::error!("Failed to store OAuth config: {}", e);
+                            Ok(MainCommandResponse::RegisterOAuth(false))
+                        }
+                    }
+                } else {
+                    tracing::error!("Missing required OAuth parameters: client_id or redirect_uri");
+                    Ok(MainCommandResponse::RegisterOAuth(false))
+                }
+            },
+            Err(e) => {
+                tracing::error!("Failed to parse OAuth registration data: {}", e);
+                Ok(MainCommandResponse::RegisterOAuth(false))
+            }
+        }
     }
 
     #[tracing::instrument(level = "debug", skip(self, data))]

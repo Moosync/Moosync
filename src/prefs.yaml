@@ -74,6 +74,8 @@ page:
         items:
           - title: settings.system.queueSettings.clearQueue
             key: clear_queue
+          - title: settings.system.queueSettings.clearQueueBeforePlaylist
+            key: clear_queue_before_playlist
 
       - type: CheckboxGroup
         title: settings.system.volumePersistMode.title

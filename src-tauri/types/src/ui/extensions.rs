@@ -185,6 +185,8 @@ pub struct CustomRequestReturnType {
     pub mime_type: Option<String>,
     pub data: Option<Vec<u8>>, // Buffer is typically represented as Vec<u8> in Rust
     pub redirect_url: Option<String>,
+    pub headers: Option<std::collections::HashMap<String, String>>, // Added headers support
+    pub status_code: Option<u16>, // Added status code support
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]

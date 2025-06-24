@@ -291,7 +291,92 @@ impl Database {
         Ok(())
     }
 
-    // TODO: Remove album
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub fn remove_album(&self, album_id: String) -> Result<()> {
+        trace!("Removing album: {}", album_id);
+        self.pool
+            .get()
+            .unwrap()
+            .transaction::<(), MoosyncError, _>(|conn| {
+                // First, get all songs associated with this album
+                let song_ids: Vec<String> = album_bridge
+                    .filter(schema::album_bridge::album.eq(album_id.clone()))
+                    .select(schema::album_bridge::song)
+                    .load::<String>(conn)?;
+
+                // Remove album-song bridge references
+                delete(QueryDsl::filter(
+                    album_bridge,
+                    schema::album_bridge::album.eq(album_id.clone()),
+                ))
+                .execute(conn)?;
+
+                // Check if any songs are now orphaned (not associated with any albums)
+                for song_id in song_ids {
+                    let remaining_album_refs = album_bridge
+                        .filter(schema::album_bridge::song.eq(song_id.clone()))
+                        .count()
+                        .get_result::<i64>(conn)?;
+
+                    // If song has no album references and it's a local file, remove it
+                    if remaining_album_refs == 0 {
+                        let song: Option<QueryableSong> = allsongs
+                            .filter(schema::allsongs::_id.eq(song_id.clone()))
+                            .first(conn)
+                            .optional()?;
+                        
+                        if let Some(song) = song {
+                            // Only auto-remove local files, not streaming songs
+                            if song.song.path.is_some() {
+                                // Remove all references and the song itself
+                                delete(QueryDsl::filter(
+                                    analytics,
+                                    schema::analytics::song_id.eq(song_id.clone()),
+                                ))
+                                .execute(conn)?;
+
+                                delete(QueryDsl::filter(
+                                    artist_bridge,
+                                    schema::artist_bridge::song.eq(song_id.clone()),
+                                ))
+                                .execute(conn)?;
+
+                                delete(QueryDsl::filter(
+                                    genre_bridge,
+                                    schema::genre_bridge::song.eq(song_id.clone()),
+                                ))
+                                .execute(conn)?;
+
+                                delete(QueryDsl::filter(
+                                    playlist_bridge,
+                                    schema::playlist_bridge::song.eq(song_id.clone()),
+                                ))
+                                .execute(conn)?;
+
+                                delete(QueryDsl::filter(
+                                    allsongs,
+                                    schema::allsongs::_id.eq(song_id.clone())
+                                ))
+                                .execute(conn)?;
+                            }
+                        }
+                    }
+                }
+
+                // Finally, remove the album itself
+                delete(QueryDsl::filter(
+                    albums,
+                    schema::albums::_id.eq(album_id.clone())
+                ))
+                .execute(conn)?;
+
+                Ok(())
+            })?;
+
+        info!("Removed album: {}", album_id);
+        Ok(())
+    }
+
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn remove_songs(&self, ids: Vec<String>) -> Result<()> {
         trace!("Removing song");

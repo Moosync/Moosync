@@ -158,7 +158,7 @@ pub fn SongView(
                             refresh_cb=refresh_cb
                             fetch_next_page=fetch_next_page
                             is_loading=is_loading
-                            header_height=if show_mobile_default_details { 300 } else { 0 }
+                            header_height=if show_mobile_default_details { 375 } else { 0 }
                             header=if show_mobile_default_details {
                                 Some(
                                     view! {

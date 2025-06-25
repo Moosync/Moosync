@@ -31,7 +31,7 @@ use crate::{
         fav_playlist_icon::FavPlaylistIcon, pin_icon::PinIcon, plain_play_icon::PlainPlayIcon,
         random_icon::RandomIcon, song_default_icon::SongDefaultIcon,
     },
-    store::provider_store::ProviderStore,
+    store::{provider_store::ProviderStore, ui_store::UiStore},
     utils::{
         common::{format_duration, get_high_img},
         invoke::get_provider_lyrics,
@@ -155,9 +155,13 @@ where
         }
     });
 
+    let ui_store: RwSignal<UiStore> = expect_context();
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+
     view! {
         <div
             class="container-fluid scrollable song-details"
+            class:song-details-mobile=is_mobile
             style="max-height: 100%;"
             node_ref=root_ref
         >

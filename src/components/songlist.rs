@@ -438,90 +438,94 @@ where
         }
     });
 
-    view! {
-        <div class="d-flex h-100 w-100" node_ref=root_ref>
-            <div class="container-fluid">
-                <Show
-                    when=move || hide_search_bar
-                    fallback=move || {
-                        let sort_context_menu = sort_context_menu.clone();
-                        view! {
-                            <div
-                                class="container-fluid tab-carousel"
-                                class:tab-carousel-show-mobile=is_mobile && providers.show_providers
-                            >
-                                <div class="row no-gutters">
-                                    <div class="col song-header-options w-100">
+    let header = header.into_view();
+    let new_header = view! {
+        {header}
+        <Show
+            when=move || hide_search_bar
+            fallback=move || {
+                let sort_context_menu = sort_context_menu.clone();
+                view! {
+                    <div
+                        class="container-fluid tab-carousel"
+                        class:tab-carousel-show-mobile=is_mobile && providers.show_providers
+                    >
+                        <div class="row no-gutters">
+                            <div class="col song-header-options w-100">
 
-                                        <div class="row no-gutters align-items-center h-100 d-flex justify-content-end">
-                                            // Sort icons here
-                                            {if providers.show_providers {
+                                <div class="row no-gutters align-items-center h-100 d-flex justify-content-end">
+                                    // Sort icons here
+                                    {if providers.show_providers {
+                                        view! {
+                                            <div class="col-auto d-flex">
+                                                <TabCarousel
+                                                    keys=provider_store
+                                                        .get_provider_keys(providers.scope.unwrap())
+                                                    selected=providers.selected_providers
+                                                    single_select=false
+                                                    align_left=false
+                                                />
+                                            </div>
+                                        }
+                                            .into_any()
+                                    } else {
+                                        ().into_any()
+                                    }}
+                                    <div class="col-auto d-flex">
+
+                                        {move || {
+                                            if show_searchbar.get() {
                                                 view! {
-                                                    <div class="col-auto d-flex">
-                                                        <TabCarousel
-                                                            keys=provider_store
-                                                                .get_provider_keys(providers.scope.unwrap())
-                                                            selected=providers.selected_providers
-                                                            single_select=false
-                                                            align_left=false
+                                                    <div class="songlist-searchbar-container mr-3">
+                                                        <input
+                                                            node_ref=searchbar_ref
+                                                            on:input=move |ev| {
+                                                                let text = event_target_value(&ev);
+                                                                if text.is_empty() {
+                                                                    filter.set(None);
+                                                                } else {
+                                                                    filter.set(Some(text));
+                                                                }
+                                                            }
+
+                                                            type="text"
+                                                            class="songlist-searchbar"
+                                                            placeholder="search"
                                                         />
                                                     </div>
                                                 }
                                                     .into_any()
                                             } else {
                                                 ().into_any()
-                                            }}
-                                            <div class="col-auto d-flex">
-
-                                                {move || {
-                                                    if show_searchbar.get() {
-                                                        view! {
-                                                            <div class="songlist-searchbar-container mr-3">
-                                                                <input
-                                                                    node_ref=searchbar_ref
-                                                                    on:input=move |ev| {
-                                                                        let text = event_target_value(&ev);
-                                                                        if text.is_empty() {
-                                                                            filter.set(None);
-                                                                        } else {
-                                                                            filter.set(Some(text));
-                                                                        }
-                                                                    }
-
-                                                                    type="text"
-                                                                    class="songlist-searchbar"
-                                                                    placeholder="search"
-                                                                />
-                                                            </div>
-                                                        }
-                                                            .into_any()
-                                                    } else {
-                                                        ().into_any()
-                                                    }
-                                                }}
-                                                <div
-                                                    class="mr-3 align-self-center"
-                                                    on:click=move |_| show_searchbar.set(!show_searchbar.get())
-                                                >
-                                                    <SearchIcon accent=false />
-                                                </div>
-                                                <div
-                                                    class="align-self-center"
-                                                    on:click=move |e| { sort_context_menu.show(e) }
-                                                >
-                                                    <SortIcon rotate=sort_icon_rotated />
-                                                </div>
-                                            </div>
+                                            }
+                                        }}
+                                        <div
+                                            class="mr-3 align-self-center"
+                                            on:click=move |_| show_searchbar.set(!show_searchbar.get())
+                                        >
+                                            <SearchIcon accent=false />
+                                        </div>
+                                        <div
+                                            class="align-self-center"
+                                            on:click=move |e| { sort_context_menu.show(e) }
+                                        >
+                                            <SortIcon rotate=sort_icon_rotated />
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        }
-                    }
-                >
-                    <div></div>
-                </Show>
+                        </div>
+                    </div>
+                }
+            }
+        >
+            <div></div>
+        </Show>
+    };
 
+    view! {
+        <div class="d-flex h-100 w-100" node_ref=root_ref>
+            <div class="container-fluid">
                 <div class="row no-gutters h-100">
                     <div
                         class="scroller w-100 full-height"
@@ -551,8 +555,8 @@ where
                             key=|(_, s)| s.song._id.clone()
                             item_height=95usize
                             inner_el_style="width: calc(100% - 15px);"
-                            header=header
-                            header_height=header_height
+                            header_height=header_height + 45usize
+                            header=new_header
                             children=move |(index, song)| {
                                 let song_cl = song.clone();
                                 let song_cl1 = song.clone();

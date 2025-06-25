@@ -2,6 +2,10 @@
     z-index: 1001;
 }
 
+.main-container-mobile:has(> .prefs-container) {
+    padding-top: 15px;
+}
+
 .sidebar-mobile > .b-sidebar-outer > #sidebar.b-sidebar {
     bottom: 0;
     top: unset !important;
@@ -263,9 +267,9 @@
         padding-right: 0;
         padding-left: 0;
 
-        > div.container-fluid.tab-carousel {
+        /* > div.container-fluid.tab-carousel {
             display: none !important;
-        }
+        } */
 
         > div.row.no-gutters > .scroller {
             padding-right: 0px;
@@ -412,9 +416,17 @@
 
                 #scroller > .song-details {
                     display: flex;
+                    flex-direction: column;
+                    align-items: center;
 
                     > .row.no-gutters.flex-fill.mt-2 {
                         margin-left: 30px;
+                    }
+
+                    > .row.no-gutters > .col.position-relative {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
                     }
 
                     .image-container {
@@ -425,6 +437,20 @@
                         svg {
                             display: block;
                         }
+                    }
+
+                    .button-group {
+                        margin-top: 15px;
+                        margin-bottom: 15px;
+                    }
+
+                    .song-info-container {
+                        text-align: center;
+                        position: relative;
+                    }
+
+                    .song-timestamp-details {
+                        display: none;
                     }
                 }
             }
@@ -503,10 +529,6 @@
 
     .queue-container .provider-icon {
         margin-left: 15px;
-    }
-
-    .prev-button {
-        margin-left: 20px;
     }
 
     *::-webkit-scrollbar,

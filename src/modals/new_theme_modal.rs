@@ -59,8 +59,8 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
         }
     });
 
+    let modal_store: RwSignal<ModalStore> = expect_context();
     let close_modal = move || {
-        let modal_store: RwSignal<ModalStore> = expect_context();
         modal_store.update(|s| s.clear_active_modal());
     };
 
@@ -427,7 +427,7 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                             if let Err(e) = download_theme(url).await {
                                 tracing::error!("Failed to download theme: {:?}", e);
                             } else {
-                                close_modal()
+                                close_modal();
                             }
                         });
                     };

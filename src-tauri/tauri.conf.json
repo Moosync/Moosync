@@ -3,6 +3,7 @@
     "macOSPrivateApi": false,
     "windows": [
       {
+        "title": "Moosync",
         "label": "main",
         "url": "/main/allsongs",
         "height": 800,

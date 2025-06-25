@@ -67,6 +67,8 @@ impl MprisHolder {
                         Duration::from_millis(millis),
                     )))
                 }
+                "onSkipToNext" => Some(MediaControlEvent::Next),
+                "onSkipToPrevious" => Some(MediaControlEvent::Previous),
                 _ => None,
             };
 

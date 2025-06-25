@@ -31,6 +31,4 @@ interface MediaControls {
 
     fun updateMetadata(metadata: MetadataArgs?)
     fun updatePlayerState(isPlaying: Boolean, pos: Int)
-
-    fun initializeLibrespot(token: String)
 }

@@ -422,9 +422,7 @@ pub fn TopBar() -> impl IntoView {
 
     Effect::new(move || {
         let results = results.get();
-        if !results.is_empty() {
-            show_searchbar.set(true);
-        }
+        show_searchbar.set(!results.is_empty());
     });
 
     let navigate = leptos_router::hooks::use_navigate();
@@ -444,6 +442,7 @@ pub fn TopBar() -> impl IntoView {
         let text = event_target_value(&ev);
         input_value.set(text.clone());
         if text.is_empty() {
+            results.update(|r| r.clear());
             return;
         }
         let value = format!("%{}%", text);
@@ -459,8 +458,6 @@ pub fn TopBar() -> impl IntoView {
                 Err(e) => tracing::error!("Failed to search {}: {:?}", value, e),
             }
         });
-
-        //
     };
 
     let ui_store = expect_context::<RwSignal<UiStore>>();
@@ -528,13 +525,16 @@ pub fn TopBar() -> impl IntoView {
                                     }
                                     header=Some(())
                                 />
-                                <div class="w-100"></div>
+                            // <div class="w-100"></div>
                             </div>
                         </div>
                     </div>
 
                     // Extra buttons
-                    <div class="col-auto pr-5 ml-auto my-auto icons-bar d-flex">
+                    <div
+                        class="col-auto pr-5 ml-auto my-auto icons-bar d-flex"
+                        class:icons-invisible=move || is_mobile && show_searchbar.get()
+                    >
                         <div class="row flex-grow-1">
                             <div class="col-auto d-flex">
                                 <Accounts />

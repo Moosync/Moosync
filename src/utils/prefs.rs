@@ -131,6 +131,7 @@ where
     T: Fn() + 'static,
 {
     let cb = Rc::new(Box::new(cb));
+    let owner = Owner::new();
     spawn_local(async move {
         let res = super::invoke::import_theme(path).await;
         if res.is_err() {
@@ -138,7 +139,9 @@ where
         }
 
         let cb = cb.clone();
-        cb();
+        owner.with(|| {
+            cb();
+        });
     })
 }
 
@@ -148,6 +151,7 @@ where
     T: Fn() + 'static,
 {
     let cb = Rc::new(Box::new(cb));
+    let owner = Owner::new();
     spawn_local(async move {
         let res = super::invoke::save_theme((*theme).clone()).await;
         if res.is_err() {
@@ -155,6 +159,8 @@ where
         }
 
         let cb = cb.clone();
-        cb();
+        owner.with(|| {
+            cb();
+        });
     });
 }

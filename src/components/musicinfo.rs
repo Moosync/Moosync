@@ -14,9 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use leptos::ev::{mousedown, touchstart};
 use leptos::html::Div;
 use leptos::task::spawn_local;
 use leptos::{component, prelude::*, view, IntoView};
+use leptos_use::use_event_listener;
 use leptos_virtual_scroller::VirtualScroller;
 use std::sync::Arc;
 use types::songs::{Song, SongType};
@@ -65,6 +67,7 @@ pub fn QueueItem<T, D, P>(
     eq_playing: D,
     play_now: P,
     remove_from_queue: P,
+    is_mobile: bool,
 ) -> impl IntoView
 where
     T: Get<Value = usize> + Copy + 'static + Send + Sync,
@@ -72,15 +75,15 @@ where
     P: Set<Value = usize> + 'static + Send + Sync,
 {
     view! {
-        <div class="container-fluid item-container">
-            <div class="row item-row">
+        <div class="container-fluid item-container" class:pl-2=is_mobile class:pr-0=is_mobile>
+            <div class="row item-row no-gutters">
                 <LowImg
                     cover_img=get_low_img(&song)
                     play_now=move || play_now.set(index)
                     show_eq=move || index == current_song_index.get()
                     eq_playing=move || eq_playing.get()
                 />
-                <div class="col-lg-7 col-xl-8 col-5">
+                <div class="col-lg-7 col-xl-8" class:col-5=!is_mobile class:col-7=is_mobile>
                     <div class="d-flex">
                         <div class="text-left song-title text-truncate">
                             {song.song.title.clone()}
@@ -235,6 +238,13 @@ pub fn MusicInfoMobile(
 
     let show_queue = RwSignal::new(MusicInfoState::MusicInfo);
 
+    let _ = use_event_listener(scroller_ref, touchstart, |ev| {
+        ev.stop_propagation();
+    });
+    let _ = use_event_listener(scroller_ref, mousedown, |ev| {
+        ev.stop_propagation();
+    });
+
     view! {
         <div
             class="slider"
@@ -244,7 +254,7 @@ pub fn MusicInfoMobile(
             node_ref=node_ref
         >
 
-            <div class="container-fluid w-100 h-100 music-info-container">
+            <div class="container-fluid pl-0 pr-0 w-100 h-100 music-info-container">
                 {move || {
                     let current_song = current_song.get();
                     if current_song.is_none() {
@@ -260,7 +270,7 @@ pub fn MusicInfoMobile(
                     } else {
                         ().into_any()
                     }
-                }} <div class="musicinfo-mobile-view-container">
+                }} <div class="container-fluid pl-0 pr-0 musicinfo-mobile-view-container">
                     <div class="col col-auto">
                         <AudioStream />
                     </div>
@@ -269,70 +279,72 @@ pub fn MusicInfoMobile(
                         match show_queue.get() {
                             MusicInfoState::MusicInfo => {
                                 view! {
-                                    <div class="row no-gutters">
-                                        <div class="col d-flex musicinfo-mobile-cover-container">
-                                            <div class="musicinfo-mobile-cover">
-                                                <div class="image-container w-100">
-                                                    <div class="embed-responsive embed-responsive-1by1">
-                                                        <div class="embed-responsive-item albumart">
-                                                            {move || {
-                                                                let cover_img = cover_img.get();
-                                                                if !show_default_cover_img.get() {
-                                                                    view! {
-                                                                        <img
-                                                                            src=cover_img
-                                                                            on:error=move |_| { show_default_cover_img.set(true) }
-                                                                        />
+                                    <div class="container-fluid">
+                                        <div class="row no-gutters">
+                                            <div class="col d-flex musicinfo-mobile-cover-container">
+                                                <div class="musicinfo-mobile-cover">
+                                                    <div class="image-container w-100">
+                                                        <div class="embed-responsive embed-responsive-1by1">
+                                                            <div class="embed-responsive-item albumart">
+                                                                {move || {
+                                                                    let cover_img = cover_img.get();
+                                                                    if !show_default_cover_img.get() {
+                                                                        view! {
+                                                                            <img
+                                                                                src=cover_img
+                                                                                on:error=move |_| { show_default_cover_img.set(true) }
+                                                                            />
+                                                                        }
+                                                                            .into_any()
+                                                                    } else {
+                                                                        view! { <SongDefaultIcon /> }.into_any()
                                                                     }
-                                                                        .into_any()
-                                                                } else {
-                                                                    view! { <SongDefaultIcon /> }.into_any()
-                                                                }
-                                                            }}
+                                                                }}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="row no-gutters song-info-container">
-                                        <div class="col song-title-details text-truncate">
-                                            {song_title}
+                                        <div class="row no-gutters song-info-container">
+                                            <div class="col song-title-details text-truncate">
+                                                {song_title}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row no-gutters song-info-container">
-                                        <div class="col song-subtitle-details text-truncate">
-                                            {song_subtitle}
+                                        <div class="row no-gutters song-info-container">
+                                            <div class="col song-subtitle-details text-truncate">
+                                                {song_subtitle}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row no-gutters time-container">
-                                        <div class="col col-auto current-time-container">
-                                            {current_time}
+                                        <div class="row no-gutters time-container">
+                                            <div class="col col-auto current-time-container">
+                                                {current_time}
+                                            </div>
+                                            <div class="col slider-container">
+                                                <Slider />
+                                            </div>
+                                            <div class="col col-auto total-time-container">
+                                                {total_time}
+                                            </div>
                                         </div>
-                                        <div class="col slider-container">
-                                            <Slider />
+                                        <div class="row no-gutters controls-container">
+                                            <div class="col">
+                                                <Controls show_time=false show_fav=false />
+                                            </div>
                                         </div>
-                                        <div class="col col-auto total-time-container">
-                                            {total_time}
-                                        </div>
-                                    </div>
-                                    <div class="row no-gutters controls-container">
-                                        <div class="col">
-                                            <Controls show_time=false show_fav=false />
-                                        </div>
-                                    </div>
-                                    <div class="row no-gutters mobile-musicinfo-buttons">
-                                        <div class="col">
-                                            <QueueIcon
-                                                on:click=move |_| { show_queue.set(MusicInfoState::Queue) }
-                                                active=RwSignal::new(false).read_only()
-                                            />
-                                        </div>
-                                        <div class="col">
-                                            <QueueIcon
-                                                on:click=move |_| { show_queue.set(MusicInfoState::Lyrics) }
-                                                active=RwSignal::new(false).read_only()
-                                            />
+                                        <div class="row no-gutters mobile-musicinfo-buttons">
+                                            <div class="col">
+                                                <QueueIcon
+                                                    on:click=move |_| { show_queue.set(MusicInfoState::Queue) }
+                                                    active=RwSignal::new(false).read_only()
+                                                />
+                                            </div>
+                                            <div class="col">
+                                                <QueueIcon
+                                                    on:click=move |_| { show_queue.set(MusicInfoState::Lyrics) }
+                                                    active=RwSignal::new(false).read_only()
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 }
@@ -348,7 +360,7 @@ pub fn MusicInfoMobile(
                                         </div>
                                     </div>
                                     <div class="row queue-container-outer">
-                                        <div class="col w-100 h-100 mr-4 queue-container">
+                                        <div class="col w-100 h-100 pl-0 pr-0 queue-container">
 
                                             <div class="w-100 h-100">
 
@@ -367,6 +379,7 @@ pub fn MusicInfoMobile(
                                                                 index=index
                                                                 play_now=play_now
                                                                 remove_from_queue=remove_from_queue
+                                                                is_mobile=true
                                                             />
                                                         }
                                                     }
@@ -388,7 +401,16 @@ pub fn MusicInfoMobile(
                                             } />
                                         </div>
                                     </div>
-                                    <div class="row no-gutters h-100">
+                                    <div
+                                        class="row no-gutters h-100"
+                                        // Stop propagating touchstart and mousedown so we don't trigger the musicbar drag
+                                        on:touchstart=|ev| {
+                                            ev.stop_propagation();
+                                        }
+                                        on:mousedown=|ev| {
+                                            ev.stop_propagation();
+                                        }
+                                    >
                                         <div class="col">
                                             <div class="lyrics-container">
                                                 <div class="lyrics-side-decoration"></div>
@@ -571,6 +593,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
                                                             index=index
                                                             play_now=play_now
                                                             remove_from_queue=remove_from_queue
+                                                            is_mobile=false
                                                         />
                                                     }
                                                 }

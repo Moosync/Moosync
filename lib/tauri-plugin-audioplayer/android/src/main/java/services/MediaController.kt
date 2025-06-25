@@ -17,6 +17,9 @@
 package app.moosync.audioplayer.services
 
 import android.content.Context
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
+import android.media.AudioManager
 import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
 import app.moosync.audioplayer.R
@@ -35,7 +38,7 @@ class MediaController(private val mContext: Context) {
     val sessionToken: MediaSessionCompat.Token
         get() = mediaSessionHandler.sessionToken
 
-    val notificationManager = NotificationHandler(mContext, sessionToken, R.drawable.ic_android_black_24dp)
+    val notificationManager = NotificationHandler(mContext, sessionToken, R.drawable.ic_launcher)
 
     // Exposed controller abstraction for app to control media playback
     val controls: MediaControls
@@ -51,11 +54,6 @@ class MediaController(private val mContext: Context) {
 
     private fun handleSongEnded(key: String) {
         emitInAllCallbacks {it.onSongEnded(key)}
-    }
-
-    private fun seekToPos(key: String, pos: Int) {
-        playbackManager.seek(key, pos)
-        mediaSessionHandler.updatePlayerState(true, pos)
     }
 
     fun addPlayerCallbacks(callbacks: MediaPlayerCallbacks) {
@@ -79,6 +77,16 @@ class MediaController(private val mContext: Context) {
     }
 
     init {
+        val audioManager = mContext.applicationContext.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .build()
+        ).build()
+
+        val result = audioManager.requestAudioFocus(audioFocusRequest)
+
         mediaSessionHandler.setCommunicatorCallback(object : MediaSessionCompat.Callback() {
             override fun onPlay() {
                 Log.d("TAG", "onPlay: media session play")
@@ -98,6 +106,16 @@ class MediaController(private val mContext: Context) {
             override fun onSeekTo(pos: Long) {
                 Log.d("TAG", "onStop: media session seek")
                 emitInAllMediaSessionCallbacks { it.onSeekTo(pos) }
+            }
+
+            override fun onSkipToNext() {
+                Log.d("TAG", "onStop: media session onSkipToNext")
+                emitInAllMediaSessionCallbacks { it.onSkipToNext() }
+            }
+
+            override fun onSkipToPrevious() {
+                Log.d("TAG", "onStop: media session onSkipToPrevious")
+                emitInAllMediaSessionCallbacks { it.onSkipToPrevious() }
             }
         })
 
@@ -147,10 +165,6 @@ class MediaController(private val mContext: Context) {
             override fun updatePlayerState(isPlaying: Boolean, pos: Int) {
                 mediaSessionHandler.updatePlayerState(isPlaying, pos)
                 notificationManager.updateMetadata()
-            }
-
-            override fun initializeLibrespot(token: String) {
-                playbackManager.initializeLibrespot(token)
             }
         }
     }

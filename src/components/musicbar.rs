@@ -18,7 +18,7 @@ use ev::{mousedown, mousemove, mouseup, touchend, touchmove, touchstart};
 use html::Div;
 use leptos::*;
 use leptos::{component, prelude::*, view, IntoView};
-use leptos_use::use_event_listener;
+use leptos_use::{use_event_listener, use_event_listener_with_options, UseEventListenerOptions};
 use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
 
@@ -85,7 +85,6 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     let has_moved = RwSignal::new(false);
 
     let listener = move |client_y: i32| {
-        tracing::info!("dragging musicinfo");
         start_offset.set(client_y);
         page_height.set(document().body().unwrap().client_height() - SIDEBAR_HEIGHT);
         is_dragging.set(true);
@@ -123,7 +122,6 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
 
     let listener = move || {
         if is_dragging.get_untracked() {
-            tracing::info!("dragging musicinfo stop");
             is_dragging.set(false);
 
             if has_moved.get_untracked() {
@@ -148,10 +146,8 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
                 if let Some(musicbar) = musicbar.get_untracked() {
                     let start_offset = start_offset.get_untracked();
                     let page_height = page_height.get_untracked();
-                    let client_y_diff =
-                        (client_y - start_offset).clamp(-MUSICBAR_HEIGHT, page_height);
+                    let client_y_diff = (client_y - start_offset).clamp(0, page_height);
                     let musicbar_pos = client_y_diff - page_height;
-
                     let _ =
                         musicinfo.style(("transform", format!("translateY({}px)", client_y_diff)));
                     let _ =
@@ -175,17 +171,28 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
             }
         }
     };
-    let _ = use_event_listener(document().body(), mousemove, move |ev| {
-        ev.stop_propagation();
-        listener(ev.client_y())
-    });
-    let _ = use_event_listener(document().body(), touchmove, move |ev| {
-        ev.stop_propagation();
-        let touch = ev.touches().item(0);
-        if let Some(touch) = touch {
-            listener(touch.client_y())
-        }
-    });
+    let options = UseEventListenerOptions::default().passive::<bool>(Some(true));
+    let _ = use_event_listener_with_options(
+        document().body(),
+        mousemove,
+        move |ev| {
+            ev.stop_propagation();
+            listener(ev.client_y())
+        },
+        options,
+    );
+    let _ = use_event_listener_with_options(
+        document().body(),
+        touchmove,
+        move |ev| {
+            ev.stop_propagation();
+            let touch = ev.touches().item(0);
+            if let Some(touch) = touch {
+                listener(touch.client_y())
+            }
+        },
+        options,
+    );
 }
 
 fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
@@ -195,7 +202,6 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     let has_moved = RwSignal::new(false);
 
     let listener = move |client_y: i32| {
-        tracing::info!("dragging");
         start_offset.set(client_y);
         page_height.set(document().body().unwrap().client_height() - SIDEBAR_HEIGHT);
         is_dragging.set(true);
@@ -232,7 +238,6 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
 
     let listener = move || {
         if is_dragging.get_untracked() {
-            tracing::info!("dragging stop");
             is_dragging.set(false);
 
             if has_moved.get_untracked() {

@@ -273,7 +273,9 @@ impl GenericPlayer for LibrespotPlayer {
     #[tracing::instrument(level = "debug", skip(self, song))]
     fn can_play(&self, song: &types::songs::Song) -> bool {
         Self::initialize_librespot();
-        *INITIALIZED.lock().unwrap() && song.song.type_ == types::songs::SongType::SPOTIFY
+        let initialized = *INITIALIZED.lock().unwrap();
+        tracing::debug!("Librespot initialized: {}", initialized);
+        initialized && song.song.type_ == types::songs::SongType::SPOTIFY
     }
 
     #[tracing::instrument(level = "debug", skip(self, volume))]

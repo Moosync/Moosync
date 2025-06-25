@@ -7,3 +7,4 @@ src-extensions/*.blob
 src-extensions/server
 perf.data*
 keystore.properties
+src-tauri/gen/android/app/

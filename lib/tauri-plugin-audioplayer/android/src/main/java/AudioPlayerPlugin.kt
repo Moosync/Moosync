@@ -151,6 +151,18 @@ class AudioPlayerPlugin(private val activity: Activity): Plugin(activity) {
                 ret.put("event", "onStop")
                 this@AudioPlayerPlugin.channel?.send(ret)
             }
+
+            override fun onSkipToNext() {
+                val ret = JSObject()
+                ret.put("event", "onSkipToNext")
+                this@AudioPlayerPlugin.channel?.send(ret)
+            }
+
+            override fun onSkipToPrevious() {
+                val ret = JSObject()
+                ret.put("event", "onSkipToPrevious")
+                this@AudioPlayerPlugin.channel?.send(ret)
+            }
         })
     }
 
@@ -222,13 +234,6 @@ class AudioPlayerPlugin(private val activity: Activity): Plugin(activity) {
     fun setEventHandler(invoke: Invoke) {
         val args = invoke.parseArgs(SetEventHandlerArgs::class.java)
         this.channel = args.handler
-        invoke.resolve()
-    }
-
-    @Command
-    fun initializeLibrespot(invoke: Invoke) {
-        val args = invoke.parseArgs(TokenArgs::class.java)
-        implementation.controls?.initializeLibrespot(args.token)
         invoke.resolve()
     }
 }

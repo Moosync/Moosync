@@ -20,7 +20,6 @@ import android.content.Context
 import android.util.Log
 import app.moosync.audioplayer.models.Song
 import app.moosync.audioplayer.services.players.GenericPlayer
-import app.moosync.audioplayer.services.players.LibrespotPlayer
 import app.moosync.audioplayer.services.players.LocalPlayer
 import app.moosync.audioplayer.services.players.PlayerListeners
 import app.moosync.audioplayer.services.players.YoutubePlayer
@@ -62,12 +61,5 @@ class PlaybackManager(mContext: Context, private val playerListeners: PlayerList
 
     fun load(key: String, context: Context, src: String, autoPlay: Boolean) {
         players[key]?.load(context, src, autoPlay)
-    }
-
-    fun initializeLibrespot(token: String) {
-        val librespot = players["LIBRESPOT"]
-        if (librespot is LibrespotPlayer) {
-            librespot.initialize(token)
-        }
     }
 }

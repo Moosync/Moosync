@@ -168,6 +168,26 @@ impl LibrespotHolder {
             }
         }
 
+        let config = self.config.lock().unwrap().clone();
+        if let Some(config) = config {
+            self.initialize(
+                config.credentials,
+                config._player_config,
+                config.connect_config,
+                config._cache_config,
+                config.backend,
+                config.volume_ctrl,
+            )?;
+        }
+
+        if let Some(instance) = &mut *self.instance.lock().unwrap() {
+            let device_id = instance.get_device_id();
+            let device_id = block_on(device_id.lock());
+            if device_id.is_some() {
+                return Ok(());
+            }
+        }
+
         Err("Librespot not initialized".into())
     }
 

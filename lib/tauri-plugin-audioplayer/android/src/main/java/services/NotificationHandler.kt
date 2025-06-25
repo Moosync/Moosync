@@ -37,7 +37,7 @@ class NotificationHandler (
     private val launcherIcon: Int,
 ) {
     private val notificationManager: NotificationManager =
-        mContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        mContext.applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     private var notificationBuilder: NotificationCompat.Builder =
         NotificationCompat.Builder(mContext, NOTIFICATION_CHANNEL_ID)
@@ -75,7 +75,7 @@ class NotificationHandler (
             .getActivity(
                 mContext,
                 0,
-                Intent("app.moosync.moosync.MainActivity"),
+                Intent("app.moosync.moosync.MainActivity").setPackage(mContext.packageName),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 

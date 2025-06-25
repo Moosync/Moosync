@@ -102,6 +102,9 @@ impl PlayerHolder {
             let mobile_player_youtube = MobilePlayer::new("YOUTUBE".into());
             players.push(Box::new(mobile_player_youtube));
 
+            let local_player = LocalPlayer::new();
+            players.push(Box::new(local_player));
+
             let librespot_player = LibrespotPlayer::new();
             players.push(Box::new(librespot_player));
 

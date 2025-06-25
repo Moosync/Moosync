@@ -209,10 +209,4 @@ impl<R: Runtime> Audioplayer<R> {
             .run_mobile_plugin::<PermissionResponse>("checkPermissions", ())
             .map_err(|e| MoosyncError::String(e.to_string()))
     }
-
-    pub fn initialize_librespot(&self, token: String) -> Result<()> {
-        self.0
-            .run_mobile_plugin("initializeLibrespot", TokenArgs { token })
-            .map_err(|e| MoosyncError::String(e.to_string()))
-    }
 }

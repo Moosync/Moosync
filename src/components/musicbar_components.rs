@@ -458,11 +458,6 @@ pub fn Slider() -> impl IntoView {
 
     let _ = use_event_listener(use_document(), mousemove, move |evt| {
         if is_dragging.get() {
-            tracing::info!(
-                "client x: {}, process width: {}",
-                evt.offset_x(),
-                slider_process.get_untracked().unwrap().offset_width(),
-            );
             display_time.set(
                 (evt.offset_x() as f64
                     / slider_process.get_untracked().unwrap().offset_width() as f64)

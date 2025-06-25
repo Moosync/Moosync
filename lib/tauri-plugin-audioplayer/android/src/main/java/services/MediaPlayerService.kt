@@ -49,9 +49,6 @@ class MediaPlayerService : MediaBrowserServiceCompat() {
     private val binder: IBinder = MediaPlayerBinder()
 
     private var isMainActivityRunning = false
-    private var wl: WifiLock? = null
-
-
 
     override fun onCreate() {
         super.onCreate()

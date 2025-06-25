@@ -120,9 +120,7 @@ struct Args {
 #[tracing::instrument(level = "debug", skip())]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    rustls::crypto::ring::default_provider()
-        .install_default()
-        .expect("Failed to install rustls crypto provider");
+    let _ = rustls::crypto::ring::default_provider().install_default();
 
     let filter = if cfg!(mobile) {
         EnvFilter::try_new("debug").unwrap()
@@ -181,7 +179,7 @@ pub fn run() {
     window.is_mobile = {};
     window.is_mobile_player = false;
     "#,
-        args.mobile
+        true
     );
 
     #[cfg(mobile)]

@@ -273,17 +273,17 @@ pub fn App() -> impl IntoView {
     provide_context(RwSignal::new(UiStore::new()));
     provide_context(RwSignal::new(ModalStore::default()));
 
+    let is_mobile_player = window()
+        .get("is_mobile_player")
+        .and_then(|v| v.as_bool())
+        .unwrap_or_default();
+    let is_mobile = window()
+        .get("is_mobile")
+        .and_then(|v| v.as_bool())
+        .unwrap_or_default();
     {
         let ui_store = expect_context::<RwSignal<UiStore>>();
-        let is_mobile = window()
-            .get("is_mobile")
-            .and_then(|v| v.as_bool())
-            .unwrap_or_default();
         ui_store.update(|u| u.set_is_mobile(is_mobile));
-        let is_mobile_player = window()
-            .get("is_mobile_player")
-            .and_then(|v| v.as_bool())
-            .unwrap_or_default();
         ui_store.update(|u| u.set_is_mobile_player(is_mobile_player));
 
         if is_mobile {
@@ -300,8 +300,10 @@ pub fn App() -> impl IntoView {
         handle_theme(serde_wasm_bindgen::from_value(id).unwrap());
     });
 
-    let _ = use_event_listener(document().body(), contextmenu, |ev| {
-        ev.prevent_default();
+    let _ = use_event_listener(document().body(), contextmenu, move |ev| {
+        if !is_mobile {
+            ev.prevent_default();
+        }
     });
 
     let owner = Owner::new();
@@ -390,26 +392,30 @@ pub fn App() -> impl IntoView {
         }
     });
 
+    let owner = Owner::new();
     let unlisten_mpris = listen_event("media_button_press", move |data: JsValue| {
         let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
         let (key, value): (i32, Option<f64>) = serde_wasm_bindgen::from_value(payload).unwrap();
-        let player_store: RwSignal<PlayerStore> = expect_context();
 
-        match key {
-            0 => player_store.update(|p| p.set_state(PlayerState::Playing)),
-            1 => player_store.update(|p| p.set_state(PlayerState::Paused)),
-            2 => player_store.update(|p| p.set_state(PlayerState::Stopped)),
-            6 => player_store.update(|p| p.next_song()),
-            7 => player_store.update(|p| p.prev_song()),
-            12 => player_store.update(|p| p.force_seek(value.unwrap_or_default())),
-            13 => player_store.update(|p| match p.get_player_state() {
-                PlayerState::Playing => p.set_state(PlayerState::Paused),
-                _ => p.set_state(PlayerState::Playing),
-            }),
-            15 => player_store.update(|p| p.set_volume(value.unwrap_or_default())),
+        owner.with(|| {
+            let player_store: RwSignal<PlayerStore> = expect_context();
 
-            _ => {}
-        }
+            match key {
+                0 => player_store.update(|p| p.set_state(PlayerState::Playing)),
+                1 => player_store.update(|p| p.set_state(PlayerState::Paused)),
+                2 => player_store.update(|p| p.set_state(PlayerState::Stopped)),
+                6 => player_store.update(|p| p.next_song()),
+                7 => player_store.update(|p| p.prev_song()),
+                12 => player_store.update(|p| p.force_seek(value.unwrap_or_default())),
+                13 => player_store.update(|p| match p.get_player_state() {
+                    PlayerState::Playing => p.set_state(PlayerState::Paused),
+                    _ => p.set_state(PlayerState::Playing),
+                }),
+                15 => player_store.update(|p| p.set_volume(value.unwrap_or_default())),
+
+                _ => {}
+            }
+        });
     });
 
     let window = window();

@@ -352,7 +352,7 @@ pub fn MusicInfoMobile(
                             }
                             MusicInfoState::Queue => {
                                 view! {
-                                    <div class="row no-gutters">
+                                    <div class="row no-gutters pl-3">
                                         <div class="col-auto prev-button">
                                             <PrevIcon on:click=move |_| {
                                                 show_queue.set(MusicInfoState::MusicInfo);
@@ -394,7 +394,7 @@ pub fn MusicInfoMobile(
                             }
                             MusicInfoState::Lyrics => {
                                 view! {
-                                    <div class="row no-gutters">
+                                    <div class="row no-gutters pl-3">
                                         <div class="col-auto prev-button">
                                             <PrevIcon on:click=move |_| {
                                                 show_queue.set(MusicInfoState::MusicInfo);

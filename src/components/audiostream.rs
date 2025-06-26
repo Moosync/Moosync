@@ -42,8 +42,11 @@ use leptos::{component, html::Div, prelude::*, task::spawn_local, view, IntoView
 
 use crate::{
     players::{
-        generic::GenericPlayer, librespot::LibrespotPlayer, local::LocalPlayer,
-        mobile::MobilePlayer, rodio::RodioPlayer,
+        generic::{GenericPlayer, PlayerEventsSender},
+        librespot::LibrespotPlayer,
+        local::LocalPlayer,
+        mobile::MobilePlayer,
+        rodio::RodioPlayer,
     },
     store::{player_store::PlayerStore, provider_store::ProviderStore, ui_store::UiStore},
     utils::{
@@ -57,7 +60,7 @@ pub struct PlayerHolder {
     providers: Arc<ProviderStore>,
     players: Rc<Mutex<Vec<Box<dyn GenericPlayer>>>>,
     active_player: Arc<AtomicUsize>,
-    state_setter: Rc<Box<dyn Fn(PlayerEvents)>>,
+    state_setter: PlayerEventsSender,
     player_container: NodeRef<Div>,
     player_blacklist_receiver: Rc<Mutex<UnboundedReceiver<()>>>,
     listeners_active: Arc<AtomicBool>,
@@ -386,7 +389,7 @@ impl PlayerHolder {
     fn register_internal_state_listeners(
         player_store: RwSignal<PlayerStore>,
         player_blacklist_sender: UnboundedSender<()>,
-    ) -> Box<dyn Fn(PlayerEvents)> {
+    ) -> Box<dyn Fn(String, PlayerEvents)> {
         let player_state_setter = create_write_slice(player_store, move |store, state| {
             store.set_state(state);
         });
@@ -417,22 +420,25 @@ impl PlayerHolder {
             store.update_time(time);
         });
 
-        let setter = move |ev: PlayerEvents| match ev {
-            PlayerEvents::Play => player_state_setter.set(PlayerState::Playing),
-            PlayerEvents::Pause => player_state_setter.set(PlayerState::Paused),
-            PlayerEvents::Loading => player_state_setter.set(PlayerState::Loading),
-            PlayerEvents::Ended => {
-                tracing::debug!("Got ended");
-                next_song_setter.set(());
-            }
-            PlayerEvents::TimeUpdate(t) => player_time_setter.set(t),
-            PlayerEvents::Error(err) => {
-                tracing::error!("Error playing song: {:?}", err);
-                let mut player_blacklist_sender = player_blacklist_sender.clone();
-                spawn_local(async move {
-                    player_blacklist_sender.send(()).await.unwrap();
-                });
-                // player_state_setter.set(PlayerState::Stopped);
+        let setter = move |player: String, ev: PlayerEvents| {
+            match ev {
+                PlayerEvents::Play => player_state_setter.set(PlayerState::Playing),
+                PlayerEvents::Pause => player_state_setter.set(PlayerState::Paused),
+                PlayerEvents::Loading => player_state_setter.set(PlayerState::Loading),
+                PlayerEvents::Ended => {
+                    tracing::debug!("Got ended");
+                    tracing::debug!("Player {} sent event: {:?}", player, ev);
+                    next_song_setter.set(());
+                }
+                PlayerEvents::TimeUpdate(t) => player_time_setter.set(t),
+                PlayerEvents::Error(err) => {
+                    tracing::error!("Error playing song: {:?}", err);
+                    let mut player_blacklist_sender = player_blacklist_sender.clone();
+                    spawn_local(async move {
+                        player_blacklist_sender.send(()).await.unwrap();
+                    });
+                    // player_state_setter.set(PlayerState::Stopped);
+                }
             }
         };
 

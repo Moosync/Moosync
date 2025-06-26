@@ -25,7 +25,7 @@ use types::{
     ui::player_details::PlayerEvents,
 };
 
-pub type PlayerEventsSender = Rc<Box<dyn Fn(PlayerEvents)>>;
+pub type PlayerEventsSender = Rc<Box<dyn Fn(String, PlayerEvents)>>;
 
 pub trait GenericPlayer: std::fmt::Debug + DynClone {
     fn initialize(&self, element: NodeRef<Div>);

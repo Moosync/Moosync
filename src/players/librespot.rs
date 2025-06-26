@@ -49,7 +49,7 @@ macro_rules! listen_events {
                         $modify_self(timer, time, tx);
                     )?
                     let tx = tx_clone.borrow_mut();
-                    tx($player_event);
+                    tx("librespot".into(), $player_event);
 
                 }
             });
@@ -89,7 +89,7 @@ impl std::fmt::Debug for LibrespotPlayer {
     }
 }
 
-type Callback = RefCell<Rc<Box<dyn Fn(PlayerEvents)>>>;
+type Callback = RefCell<PlayerEventsSender>;
 
 impl LibrespotPlayer {
     #[tracing::instrument(level = "debug", skip())]
@@ -141,7 +141,7 @@ impl LibrespotPlayer {
                 let mut time = time.lock().unwrap();
                 *time += 1f64;
                 let tx = tx.borrow_mut();
-                tx(PlayerEvents::TimeUpdate(*time));
+                tx("librespot".into(), PlayerEvents::TimeUpdate(*time));
             },
             Duration::from_secs(1),
         )
@@ -174,7 +174,7 @@ impl LibrespotPlayer {
 
         *time.lock().unwrap() = 0f64;
         let tx = tx.borrow_mut();
-        tx(PlayerEvents::TimeUpdate(0f64));
+        tx("librespot".into(), PlayerEvents::TimeUpdate(0f64));
     }
 }
 
@@ -215,7 +215,10 @@ impl GenericPlayer for LibrespotPlayer {
             let res = librespot_load(src.clone(), false).await;
             if let Err(err) = res {
                 if let Some(player_state_tx) = player_state_tx {
-                    player_state_tx(PlayerEvents::Error(format!("{:?}", err).into()));
+                    player_state_tx(
+                        "librespot".into(),
+                        PlayerEvents::Error(format!("{:?}", err).into()),
+                    );
                 }
             } else if autoplay {
                 let _ = librespot_play().await;

@@ -53,11 +53,12 @@ macro_rules! listen_event {
         let key = $self.key.clone();
         let unlisten = listen_plugin_event("audioplayer", $event, move |evt| {
             let tx = $tx.clone();
+            let key = key.clone();
             let data = serde_wasm_bindgen::from_value::<$typ>(evt).unwrap();
             if data.key == key {
                 spawn_local(async move {
                     let val = $handler(data);
-                    let _ = tx(val);
+                    let _ = tx(key, val);
                     // if let Err(res) = res {
                     //     console_log!("Error sending event: {:?}", res);
                     // }
@@ -71,7 +72,7 @@ macro_rules! listen_event {
 macro_rules! generate_event_listeners {
     ($($method:tt => ($event:expr, $typ:ident) => $handler:expr),*) => {
         $(
-            fn $method(&mut self, tx: Rc<Box<dyn Fn(PlayerEvents)>>) {
+            fn $method(&mut self, tx: PlayerEventsSender) {
                 listen_event!(self, tx, $event, $typ, $handler);
             }
         )*

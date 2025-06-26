@@ -40,7 +40,7 @@ macro_rules! listen_event {
             let tx = $tx.clone();
             spawn_local(async move {
                 let val = $handler(evt);
-                let _ = tx(val);
+                let _ = tx("local".into(), val);
                 // if let Err(res) = res {
                 //     console_log!("Error sending event: {:?}", res);
                 // }
@@ -53,7 +53,7 @@ macro_rules! listen_event {
 macro_rules! generate_event_listeners {
     ($($method:tt => $event:ident => $handler:expr),*) => {
         $(
-            fn $method(&mut self, tx: Rc<Box<dyn Fn(PlayerEvents)>>) {
+            fn $method(&mut self, tx: PlayerEventsSender) {
                 listen_event!(self, tx, $event, $handler);
             }
         )*
@@ -156,9 +156,10 @@ impl GenericPlayer for LocalPlayer {
             if let Err(e) = JsFuture::from(promise).await {
                 tracing::error!("Error playing audio: {:?}", e);
                 if let Some(tx) = event_tx {
-                    tx(PlayerEvents::Error(
-                        format!("Error playing audio: {:?}", e).into(),
-                    ));
+                    tx(
+                        "local".into(),
+                        PlayerEvents::Error(format!("Error playing audio: {:?}", e).into()),
+                    );
                 }
             }
         });

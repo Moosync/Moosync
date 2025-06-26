@@ -203,7 +203,7 @@ impl GenericPlayer for RodioPlayer {
                         let mut time = time.lock().unwrap();
                         *time += 1f64;
                         let tx = tx.borrow_mut();
-                        tx(PlayerEvents::TimeUpdate(*time));
+                        tx("rodio".into(), PlayerEvents::TimeUpdate(*time));
                     },
                     Duration::from_secs(1),
                 )
@@ -235,7 +235,7 @@ impl GenericPlayer for RodioPlayer {
 
                 *time.lock().unwrap() = 0f64;
                 let tx = tx.borrow_mut();
-                tx(PlayerEvents::TimeUpdate(0f64));
+                tx("rodio".into(), PlayerEvents::TimeUpdate(0f64));
             };
 
         let tx = RefCell::new(state_setter);
@@ -259,13 +259,13 @@ impl GenericPlayer for RodioPlayer {
                     *time.lock().unwrap() = pos;
 
                     let tx = tx.borrow_mut();
-                    tx(PlayerEvents::TimeUpdate(pos));
+                    tx("rodio".into(), PlayerEvents::TimeUpdate(pos));
                 }
                 PlayerEvents::Error(_) => stop_timer(timer.clone(), time.clone(), tx.clone()),
             }
 
             let tx = tx.borrow_mut();
-            tx(event);
+            tx("rodio".into(), event);
         });
         self.unlisten = Some(unlisten);
     }

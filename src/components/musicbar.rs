@@ -132,11 +132,9 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
         }
     };
     let _ = use_event_listener(document().body(), mouseup, move |ev| {
-        ev.stop_propagation();
         listener();
     });
     let _ = use_event_listener(document().body(), touchend, move |ev| {
-        ev.stop_propagation();
         listener();
     });
 
@@ -175,17 +173,13 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     let _ = use_event_listener_with_options(
         document().body(),
         mousemove,
-        move |ev| {
-            ev.stop_propagation();
-            listener(ev.client_y())
-        },
+        move |ev| listener(ev.client_y()),
         options,
     );
     let _ = use_event_listener_with_options(
         document().body(),
         touchmove,
         move |ev| {
-            ev.stop_propagation();
             let touch = ev.touches().item(0);
             if let Some(touch) = touch {
                 listener(touch.client_y())
@@ -248,11 +242,9 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
         }
     };
     let _ = use_event_listener(document().body(), mouseup, move |ev| {
-        ev.stop_propagation();
         listener();
     });
     let _ = use_event_listener(document().body(), touchend, move |ev| {
-        ev.stop_propagation();
         listener();
     });
 
@@ -291,11 +283,9 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     };
 
     let _ = use_event_listener(document().body(), mousemove, move |ev| {
-        ev.stop_propagation();
         listener(ev.client_y())
     });
     let _ = use_event_listener(document().body(), touchmove, move |ev| {
-        ev.stop_propagation();
         let touch = ev.touches().item(0);
         if let Some(touch) = touch {
             listener(touch.client_y())

@@ -448,14 +448,6 @@ pub fn Slider() -> impl IntoView {
         }
     });
 
-    let _ = use_event_listener(use_document(), mouseup, move |evt| {
-        if is_dragging.get_untracked() {
-            tracing::debug!("dragging stop {}", evt.client_x());
-            set_current_time.set(evt.client_x() as f64);
-            is_dragging.set(false);
-        }
-    });
-
     let _ = use_event_listener(use_document(), mousemove, move |evt| {
         if is_dragging.get() {
             display_time.set(
@@ -485,9 +477,10 @@ pub fn Slider() -> impl IntoView {
                         tracing::debug!("offset {}", ev.offset_x());
                         set_current_time.set(ev.offset_x() as f64);
                     }
-                    on:mousedown=move |_| {
-                        tracing::debug!("dragging start");
+                    on:mousedown=move |ev| {
+                        ev.stop_propagation();
                         is_dragging.set(true);
+                        tracing::debug!("dragging start");
                     }
                 >
 

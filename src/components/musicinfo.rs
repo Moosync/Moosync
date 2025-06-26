@@ -202,7 +202,7 @@ pub fn MusicInfoMobile(
     let scroller_ref: NodeRef<Div> = NodeRef::new();
     Effect::new(move || {
         let current_song_index = current_song_index.get();
-        if let Some(el) = scroller_ref.get_untracked() {
+        if let Some(el) = scroller_ref.get() {
             let el_top = 95usize * current_song_index;
             let options = ScrollToOptions::new();
             options.set_behavior(ScrollBehavior::Smooth);

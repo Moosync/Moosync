@@ -176,6 +176,9 @@ impl PlayerStore {
         self.data.player_details.last_song =
             self.get_current_song().map(|s| s.song._id.unwrap().clone());
 
+        self.data.player_details.current_time = 0f64;
+        set_position(self.data.player_details.current_time);
+
         if self.data.queue.current_index >= self.data.queue.song_queue.len() {
             self.data.queue.current_index = 0;
         }

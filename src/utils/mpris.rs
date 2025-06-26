@@ -58,12 +58,16 @@ lazy_static! {
 #[tracing::instrument(level = "debug", skip(duration))]
 pub fn set_position(duration: f64) {
     let should_update = {
-        let mut last_time_update_lock = last_time_update.lock().unwrap();
-        if last_time_update_lock.elapsed().as_secs() > 10 {
-            *last_time_update_lock = wasm_timer::Instant::now();
+        if duration == 0f64 {
             true
         } else {
-            false
+            let mut last_time_update_lock = last_time_update.lock().unwrap();
+            if last_time_update_lock.elapsed().as_secs() > 10 {
+                *last_time_update_lock = wasm_timer::Instant::now();
+                true
+            } else {
+                false
+            }
         }
     };
     if should_update {

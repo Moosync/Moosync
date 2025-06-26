@@ -33,6 +33,7 @@ page:
         title: settings.paths.scan_interval
         inputType: number
         key: scan_interval
+        mobile: false
 
       - type: FilePicker
         description: settings.paths.thumbnailPath_tooltip
@@ -54,18 +55,16 @@ page:
         title: settings.system.systemSettings.title
         description: settings.system.systemSettings_tooltip
         key: system_settings
+        mobile: false
         items:
           - title: settings.system.systemSettings.systemStartup
             key: auto_startup
-            mobile: false
 
           - title: settings.system.systemSettings.minimizeTray
             key: minimize_to_tray
-            mobile: false
 
           - title: settings.system.systemSettings.enableJukeboxMode
             key: jukebox_mode
-            mobile: false
 
       - type: CheckboxGroup
         title: settings.system.queueSettings.title

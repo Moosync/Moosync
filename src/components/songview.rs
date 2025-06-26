@@ -60,6 +60,10 @@ pub fn SongView(
 
     Effect::new(move || {
         let selected_song = selected_songs.get().last().cloned();
+        if show_mobile_default_details {
+            return;
+        }
+
         if let Some(selected_song) = selected_song {
             let all_songs = songs.get();
             tracing::debug!("selected {:?}", all_songs.get(selected_song).unwrap());

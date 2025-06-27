@@ -23,7 +23,7 @@ use crate::{
         new_theme_button_icon::NewThemeButtonIcon, theme_view_icon::ThemeViewIcon,
         tooltip::Tooltip,
     },
-    store::modal_store::ModalStore,
+    store::{modal_store::ModalStore, ui_store::UiStore},
     utils::{
         invoke::{download_theme, get_themes_manifest},
         prefs::{import_theme, open_file_browser_single, save_theme},
@@ -90,56 +90,47 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                 ThemeModalState::None => {
                     view! {
                         <div class="container">
-                            <div class="row h-100">
-                                <div
-                                    class="col d-flex"
-                                    on:click=move |_| {
-                                        state
-                                            .set(
-                                                Box::new(
-                                                    ThemeModalState::NewTheme(Box::new(ThemeDetails::new())),
-                                                ),
-                                            )
-                                    }
-                                >
-                                    <div class="row item-box align-self-center">
-                                        <div class="col-auto d-flex playlist-modal-item-container w-100">
-                                            <div class="row w-100">
-                                                <div class="col d-flex justify-content-center w-100">
-                                                    <div class="item-icon">
-                                                        <NewThemeButtonIcon />
-                                                    </div>
-                                                </div>
+                            <div class="row no-gutters">
+                                <div class="col-6 pr-2" style="padding-right: 7.5px;">
+                                    <div
+                                        class="embed-responsive embed-responsive-1by1"
+                                        style="border-radius: 20px;"
+                                    >
+                                        <div
+                                            class="embed-responsive-item d-flex flex-column justify-content-center align-items-center"
+                                            style="background-color: var(--secondary);"
+                                            on:click=move |_| {
+                                                state
+                                                    .set(
+                                                        Box::new(
+                                                            ThemeModalState::NewTheme(Box::new(ThemeDetails::new())),
+                                                        ),
+                                                    )
+                                            }
+                                        >
+                                            <div class="item-icon mb-2">
+                                                <NewThemeButtonIcon />
                                             </div>
-                                            <div class="row">
-                                                <div class="col d-flex justify-content-center item-title">
-                                                    New theme
-                                                </div>
-                                            </div>
+                                            <div class="item-title text-center">New theme</div>
                                         </div>
                                     </div>
                                 </div>
-                                <div
-                                    class="col d-flex"
-                                    on:click=move |_| {
-                                        state.set(Box::new(ThemeModalState::DiscoverTheme))
-                                    }
-                                >
-                                    <div class="row item-box align-self-center">
-                                        <div class="col-auto d-flex playlist-modal-item-container w-100">
-
-                                            <div class="row w-100">
-                                                <div class="col d-flex justify-content-center w-100">
-                                                    <div class="item-icon">
-                                                        <ImportThemeIcon />
-                                                    </div>
-                                                </div>
+                                <div class="col-6 pl-2" style="padding-left: 7.5px;">
+                                    <div
+                                        class="embed-responsive embed-responsive-1by1"
+                                        style="border-radius: 20px;"
+                                    >
+                                        <div
+                                            class="embed-responsive-item d-flex flex-column justify-content-center align-items-center"
+                                            style="background-color: var(--secondary);"
+                                            on:click=move |_| {
+                                                state.set(Box::new(ThemeModalState::DiscoverTheme))
+                                            }
+                                        >
+                                            <div class="item-icon mb-2">
+                                                <ImportThemeIcon />
                                             </div>
-                                            <div class="row">
-                                                <div class="col d-flex justify-content-center item-title">
-                                                    Discover themes
-                                                </div>
-                                            </div>
+                                            <div class="item-title text-center">Discover themes</div>
                                         </div>
                                     </div>
                                 </div>
@@ -414,66 +405,111 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                 }
                 ThemeModalState::ImportTheme => ().into_any(),
                 ThemeModalState::DiscoverTheme => {
-                    let themes = RwSignal::new(HashMap::new());
-                    let (active, _) = signal(false);
-                    spawn_local(async move {
-                        if let Ok(manifest) = get_themes_manifest().await {
-                            tracing::debug!("Got themes manifest {:?}", manifest);
-                            themes.set(manifest);
-                        }
-                    });
-                    let install_theme = move |url: String| {
+                    {
+                        let themes = RwSignal::new(HashMap::new());
+                        let ui_store = expect_context::<RwSignal<UiStore>>();
+                        let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+                        let (active, _) = signal(false);
                         spawn_local(async move {
-                            if let Err(e) = download_theme(url).await {
-                                tracing::error!("Failed to download theme: {:?}", e);
-                            } else {
-                                close_modal();
+                            if let Ok(manifest) = get_themes_manifest().await {
+                                tracing::debug!("Got themes manifest {:?}", manifest);
+                                themes.set(manifest);
                             }
                         });
-                    };
-                    view! {
-                        <div class="container-fluid h-100 w-100">
-                            <div class="row no-gutters">
-                                <For
-                                    each=move || themes.get()
-                                    key=|(key, _)| key.clone()
-                                    children=move |(key, theme)| {
-                                        view! {
-                                            <div class="col-xl-3 col-5 p-2">
-                                                <div class="theme-component-container">
+                        let install_theme = move |url: String| {
+                            spawn_local(async move {
+                                if let Err(e) = download_theme(url).await {
+                                    tracing::error!("Failed to download theme: {:?}", e);
+                                } else {
+                                    close_modal();
+                                }
+                            });
+                        };
+                        if !is_mobile {
+                            view! {
+                                <div class="container-fluid h-100 w-100">
+                                    <div class="row no-gutters">
+                                        <For
+                                            each=move || themes.get()
+                                            key=|(key, _)| key.clone()
+                                            children=move |(key, theme)| {
+                                                view! {
+                                                    <div class="col-xl-3 col-5 p-2">
+                                                        <div class="theme-component-container">
+                                                            <div
+                                                                class="theme-download-wrapper"
+                                                                on:click=move |_| {
+                                                                    install_theme(key.clone());
+                                                                }
+                                                            >
+                                                                <ImportThemeIcon />
+                                                            </div>
+                                                            <ThemeViewIcon
+                                                                active=active
+                                                                theme=Box::new(theme.clone())
+                                                            />
+                                                            <div class="theme-title-text">{theme.name}</div>
+                                                            <div class="theme-author">{theme.author}</div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            }
+                                        />
+                                    </div>
+                                    <div class="row no-gutters d-flex justify-contents-end">
+                                        <div class="col col-auto">
+                                            <button
+                                                class="btn btn-secondary create-button ml-3"
+                                                on:click=move |_| {
+                                                    state.set(Box::new(ThemeModalState::ImportTheme));
+                                                }
+                                            >
+                                                Install from file
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                                .into_any()
+                        } else {
+                            view! {
+                                <div class="container-fluid">
+                                    <div class="d-flex flex-column">
+                                        <For
+                                            each=move || themes.get()
+                                            key=|(key, _)| key.clone()
+                                            children=move |(key, theme)| {
+                                                view! {
                                                     <div
-                                                        class="theme-download-wrapper"
+                                                        class="d-flex align-items-center p-3 mb-2"
+                                                        style="cursor: pointer; background-color: transparent; border: none;"
                                                         on:click=move |_| {
                                                             install_theme(key.clone());
                                                         }
                                                     >
-                                                        <ImportThemeIcon />
+                                                        <div class="mr-3" style="min-width: 200px;">
+                                                            <ThemeViewIcon
+                                                                active=active
+                                                                theme=Box::new(theme.clone())
+                                                            />
+                                                        </div>
+                                                        <div class="d-flex flex-column">
+                                                            <div class="theme-title-text font-weight-bold text-left">
+                                                                {theme.name}
+                                                            </div>
+                                                            <div class="theme-author text-muted text-left">
+                                                                {theme.author}
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <ThemeViewIcon
-                                                        active=active
-                                                        theme=Box::new(theme.clone())
-                                                    />
-                                                    <div class="theme-title-text">{theme.name}</div>
-                                                    <div class="theme-author">{theme.author}</div>
-                                                </div>
-                                            </div>
-                                        }
-                                    }
-                                />
-                            </div>
-                            <div class="row no-gutters d-flex justify-contents-end">
-                                <div class="col col-auto">
-                                    <button
-                                        class="btn btn-secondary create-button ml-3"
-                                        on:click=move |_| {
-                                            state.set(Box::new(ThemeModalState::ImportTheme));
-                                        }
-                                    >
-                                        Install from file
-                                    </button>
+                                                }
+                                            }
+                                        />
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
+                            }
+                                .into_any()
+                        }
                     }
                         .into_any()
                 }

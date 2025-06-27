@@ -17,7 +17,7 @@
 use leptos::{component, html::Div, prelude::*, view, IntoView};
 use leptos_use::on_click_outside;
 
-use crate::store::modal_store;
+use crate::{icons::cross_icon::CrossIcon, store::modal_store};
 
 #[tracing::instrument(level = "debug", skip(size, children))]
 #[component]
@@ -40,6 +40,14 @@ where
                     class=move || format!("modal-dialog {} modal-dialog-centered", size())
                 >
                     <div class="modal-content">
+                        <div
+                            class="modal-cross-icon"
+                            on:click=move |_| {
+                                modal_store.update(|s| s.clear_active_modal());
+                            }
+                        >
+                            <CrossIcon />
+                        </div>
                         <div class="modal-body">
 
                             {children()}

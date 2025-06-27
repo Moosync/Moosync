@@ -17,6 +17,7 @@
 use std::time::Duration;
 
 use ev::{mousemove, mouseup};
+use leptos::ev::{pointermove, touchend, touchmove};
 use leptos::*;
 use leptos::{component, prelude::*, view, IntoView};
 use leptos_dom::helpers::TimeoutHandle;
@@ -440,22 +441,33 @@ pub fn Slider() -> impl IntoView {
         }
     });
 
-    let _ = use_event_listener(use_document(), mouseup, move |evt| {
+    let listener = move |client_x| {
         if is_dragging.get_untracked() {
-            tracing::debug!("dragging stop {}", evt.client_x());
-            set_current_time.set(evt.client_x() as f64);
+            tracing::debug!("dragging stop {}", client_x);
+            set_current_time.set(client_x as f64);
             is_dragging.set(false);
         }
+    };
+
+    let _ = use_event_listener(use_document(), mouseup, move |evt| {
+        listener(evt.client_x());
+    });
+    let _ = use_event_listener(use_document(), touchend, move |evt| {
+        let client_x = evt.changed_touches().item(0).unwrap().client_x();
+        listener(client_x);
     });
 
-    let _ = use_event_listener(use_document(), mousemove, move |evt| {
+    let listener = move |offset_x| {
         if is_dragging.get() {
             display_time.set(
-                (evt.offset_x() as f64
-                    / slider_process.get_untracked().unwrap().offset_width() as f64)
+                (offset_x as f64 / slider_process.get_untracked().unwrap().offset_width() as f64)
                     * total_time.get(),
             );
         }
+    };
+
+    let _ = use_event_listener(use_document(), pointermove, move |evt| {
+        listener(evt.offset_x());
     });
 
     Effect::new(move || {
@@ -478,6 +490,12 @@ pub fn Slider() -> impl IntoView {
                         set_current_time.set(ev.offset_x() as f64);
                     }
                     on:mousedown=move |ev| {
+                        ev.stop_propagation();
+                        is_dragging.set(true);
+                        tracing::debug!("dragging start");
+                    }
+
+                    on:touchstart=move |ev| {
                         ev.stop_propagation();
                         is_dragging.set(true);
                         tracing::debug!("dragging start");

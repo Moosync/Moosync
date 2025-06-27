@@ -41,6 +41,7 @@ use rodio::{
     get_rodio_state, rodio_get_volume, rodio_load, rodio_pause, rodio_play, rodio_seek,
     rodio_set_volume, rodio_stop,
 };
+use tauri_plugin_deep_link::DeepLinkExt;
 use themes::{
     download_theme, export_theme, get_css, get_theme_handler_state, get_themes_manifest,
     import_theme, load_all_themes, load_theme, remove_theme, save_theme,
@@ -415,8 +416,14 @@ pub fn run() {
             initial(app);
             handle_pref_changes(app.handle().clone());
 
-            app.listen("deep-link://new-url", |url| {
-                tracing::info!("got url {:?}", url);
+            let app_cl = app.handle().clone();
+            app.deep_link().on_open_url(move |ev| {
+                if let Some(url) = ev.urls().first() {
+                    let url = url.as_str().to_string();
+                    tracing::info!("Got url {}", url);
+                    let state: State<OAuthHandler> = app_cl.state();
+                    state.handle_oauth(app_cl.clone(), url.to_string()).unwrap();
+                }
             });
 
             build_tray_menu(app)?;

@@ -73,6 +73,9 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
         import_theme(theme_path, close_modal);
     });
 
+    let ui_store = expect_context::<RwSignal<UiStore>>();
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
+
     view! {
         <GenericModal size=move || {
             {
@@ -287,7 +290,11 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                                                                     <td
                                                                         class="pr-4"
                                                                         on:click=move |ev| {
-                                                                            color_picker_coords_x.set(format!("{}px", ev.page_x()));
+                                                                            if !is_mobile {
+                                                                                color_picker_coords_x.set(format!("{}px", ev.page_x()));
+                                                                            } else {
+                                                                                color_picker_coords_x.set("0px".into());
+                                                                            }
                                                                             color_picker_coords_y.set(format!("{}px", ev.page_y()));
                                                                             show_color_picker.set((true, i));
                                                                         }
@@ -407,8 +414,6 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                 ThemeModalState::DiscoverTheme => {
                     {
                         let themes = RwSignal::new(HashMap::new());
-                        let ui_store = expect_context::<RwSignal<UiStore>>();
-                        let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
                         let (active, _) = signal(false);
                         spawn_local(async move {
                             if let Ok(manifest) = get_themes_manifest().await {

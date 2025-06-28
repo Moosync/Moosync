@@ -27,7 +27,10 @@ use types::{
     ui::extensions::PreferenceData,
 };
 
-use crate::{providers::handler::ProviderHandler, window::handler::WindowHandler};
+use crate::{
+    oauth::handler::OAuthHandler, providers::handler::ProviderHandler,
+    window::handler::WindowHandler,
+};
 
 #[derive(Clone)]
 pub struct ReplyHandler {
@@ -151,9 +154,11 @@ impl ReplyHandler {
         Ok(MainCommandResponse::SetSecure(true))
     }
 
-    #[tracing::instrument(level = "debug", skip(self, _data))]
-    pub fn register_oauth(&self, _data: String) -> Result<MainCommandResponse> {
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub fn register_oauth(&self, data: String, ext: String) -> Result<MainCommandResponse> {
         // TODO: Implement oauth registration
+        let oauth: State<'_, OAuthHandler> = self.app_handle.state();
+        oauth.register_oauth_path(data, format!("extension:{}", ext));
         Ok(MainCommandResponse::RegisterOAuth(false))
     }
 
@@ -232,7 +237,11 @@ impl ReplyHandler {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn handle_request(&self, command: MainCommand) -> Result<MainCommandResponse> {
+    pub async fn handle_request(
+        &self,
+        ext: String,
+        command: MainCommand,
+    ) -> Result<MainCommandResponse> {
         tracing::debug!("Got request from extension {:?}", command);
 
         Ok(match command {
@@ -257,7 +266,7 @@ impl ReplyHandler {
                 add_to_playlist_request.playlist_id,
                 add_to_playlist_request.songs,
             )?,
-            MainCommand::RegisterOAuth(url) => self.register_oauth(url)?,
+            MainCommand::RegisterOAuth(url) => self.register_oauth(url, ext)?,
             MainCommand::OpenExternalUrl(url) => self.open_external(url)?,
             MainCommand::UpdateAccounts(key) => self.update_accounts(key)?,
             MainCommand::ExtensionsUpdated() => self.extension_updated().await?,

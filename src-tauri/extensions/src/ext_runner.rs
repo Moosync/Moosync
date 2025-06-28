@@ -68,13 +68,14 @@ pub type ExtCommandReceiver = UnboundedReceiver<GenericExtensionHostRequest<Main
 struct MainCommandUserData {
     reply_map: Arc<std::sync::Mutex<HashMap<String, ExtCommandReplySender>>>,
     ext_command_tx: ExtCommandSender,
+    package_name: String,
 }
 
 host_fn!(send_main_command(user_data: MainCommandUserData; command: MainCommand) -> Option<Value> {
     let user_data = user_data.get()?;
     let user_data = user_data.lock().unwrap();
     tracing::debug!("Got extension command {:?}", command);
-    match command.to_request() {
+    match command.to_request(user_data.package_name.clone()) {
         Ok(request) => {
             let reply_map = user_data.reply_map.clone();
             let (tx, mut rx) = unbounded_channel();
@@ -413,6 +414,7 @@ impl ExtensionHandlerInner {
         let user_data = UserData::new(MainCommandUserData {
             reply_map,
             ext_command_tx,
+            package_name: manifest.name,
         });
 
         let sock_data = UserData::new(SocketUserData {
@@ -494,7 +496,11 @@ impl ExtensionHandlerInner {
                     Self::get_empty_extension(manifest.clone()),
                 );
                 ext_command_tx
-                    .send(MainCommand::ExtensionsUpdated().to_request().unwrap())
+                    .send(
+                        MainCommand::ExtensionsUpdated()
+                            .to_request("".into())
+                            .unwrap(),
+                    )
                     .unwrap();
             }
 
@@ -522,15 +528,20 @@ impl ExtensionHandlerInner {
                 }
 
                 ext_command_tx
-                    .send(MainCommand::ExtensionsUpdated().to_request().unwrap())
+                    .send(
+                        MainCommand::ExtensionsUpdated()
+                            .to_request("".into())
+                            .unwrap(),
+                    )
                     .unwrap();
             });
         }
 
-        if let Err(e) = self
-            .ext_command_tx
-            .send(MainCommand::ExtensionsUpdated().to_request().unwrap())
-        {
+        if let Err(e) = self.ext_command_tx.send(
+            MainCommand::ExtensionsUpdated()
+                .to_request("".into())
+                .unwrap(),
+        ) {
             tracing::error!("Failed to send extension update command: {:?}", e);
         }
     }

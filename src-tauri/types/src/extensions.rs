@@ -44,6 +44,7 @@ use crate::{
 
 #[derive(Debug, Clone)]
 pub struct GenericExtensionHostRequest<T: Clone + Debug> {
+    pub package_name: String,
     pub channel: String,
     pub data: Option<T>,
 }
@@ -514,9 +515,13 @@ pub enum MainCommandResponse {
 impl MainCommand {
     #[cfg(any(not(feature = "extensions"), feature = "extensions-core"))]
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn to_request(&self) -> MoosyncResult<GenericExtensionHostRequest<MainCommand>> {
+    pub fn to_request(
+        &self,
+        package_name: String,
+    ) -> MoosyncResult<GenericExtensionHostRequest<MainCommand>> {
         Ok(GenericExtensionHostRequest {
             channel: uuid::Uuid::new_v4().to_string(),
+            package_name: package_name,
             data: Some(self.clone()),
         })
     }

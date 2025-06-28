@@ -44,11 +44,22 @@ impl OAuthHandler {
 
     #[tracing::instrument(level = "debug", skip(self, app, url))]
     pub fn handle_oauth(&self, app: AppHandle, url: String) -> Result<()> {
-        tracing::debug!("Parsing external callback {}", url);
         let oauth_map = self.oauth_map.lock().unwrap();
-        let url_parsed = Url::parse(url.as_str()).unwrap();
-        let path = url_parsed.host_str().unwrap();
-        if let Some(key) = oauth_map.get(path) {
+        let mut url_parsed = Url::parse(url.as_str()).unwrap();
+        if url.starts_with("https://moosync.app") {
+            let new_path = url_parsed.path().trim_start_matches('/');
+            let query = url_parsed.query().unwrap_or("");
+            let converted_url = format!("moosync://{}?{}", new_path, query);
+            url_parsed = Url::parse(converted_url.as_str()).unwrap();
+        }
+        let path = url_parsed.host_str().unwrap().to_string();
+        tracing::debug!(
+            "Parsing external callback {}, path: {}, {:?}",
+            url,
+            path,
+            *oauth_map
+        );
+        if let Some(key) = oauth_map.get(path.as_str()) {
             let app = app.clone();
             let key = key.clone();
             tauri::async_runtime::spawn(async move {

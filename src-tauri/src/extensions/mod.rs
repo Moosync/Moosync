@@ -61,11 +61,15 @@ pub fn get_extension_state(app: AppHandle) -> Result<ExtensionHandler> {
             if let Some(resp) = ui_request_rx.recv().await {
                 if let Some(data) = resp.data {
                     tracing::debug!("Got main command {:?}", data);
-                    match reply_handler.handle_request(data).await {
+                    match reply_handler
+                        .handle_request(resp.package_name.clone(), data)
+                        .await
+                    {
                         Ok(reply) => {
                             ui_reply_tx
                                 .send(GenericExtensionHostRequest {
                                     channel: resp.channel,
+                                    package_name: resp.package_name,
                                     data: Some(reply),
                                 })
                                 .unwrap();
@@ -75,6 +79,7 @@ pub fn get_extension_state(app: AppHandle) -> Result<ExtensionHandler> {
                             ui_reply_tx
                                 .send(GenericExtensionHostRequest {
                                     channel: resp.channel,
+                                    package_name: resp.package_name,
                                     data: None,
                                 })
                                 .unwrap();

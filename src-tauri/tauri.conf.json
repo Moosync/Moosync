@@ -70,9 +70,7 @@
   "identifier": "app.moosync.moosync",
   "plugins": {
     "deep-link": {
-      "mobile": [
-        { "host": "moosync.app", "pathPrefix": ["/youtube", "/spotify"] }
-      ],
+      "mobile": [{ "host": "moosync.app", "pathPattern": [".*"] }],
       "desktop": {
         "schemes": ["moosync"]
       }

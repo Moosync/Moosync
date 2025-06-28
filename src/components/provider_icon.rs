@@ -20,12 +20,15 @@ use wasm_bindgen_futures::spawn_local;
 
 use crate::{
     icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon},
-    utils::invoke::get_extension_icon,
+    utils::{common::convert_file_src, invoke::get_extension_icon},
 };
 
 #[tracing::instrument(level = "debug", skip(extension))]
 #[component]
-pub fn ProviderIcon(#[prop()] extension: String) -> impl IntoView {
+pub fn ProviderIcon(
+    #[prop()] extension: String,
+    #[prop(default = false)] accounts: bool,
+) -> impl IntoView {
     let provider_icon = RwSignal::new(String::new());
     let extension_clone = extension.clone();
     spawn_local(async move {
@@ -33,16 +36,17 @@ pub fn ProviderIcon(#[prop()] extension: String) -> impl IntoView {
             && extension_clone != "youtube"
             && extension_clone != "spotify"
         {
+            let extension_clone = extension_clone.replace("extension:", "");
             let res = get_extension_icon(
                 PackageNameArgs {
                     package_name: extension_clone,
                 },
-                false,
+                true,
             )
             .await;
 
             if let Ok(res) = res {
-                provider_icon.set(res);
+                provider_icon.set(convert_file_src(res));
             } else {
                 tracing::error!("Failed to get provider icon {:?}", res);
             }
@@ -53,9 +57,23 @@ pub fn ProviderIcon(#[prop()] extension: String) -> impl IntoView {
             {move || {
                 let extension = extension.as_str();
                 if extension == "youtube" {
-                    view! { <YoutubeIcon /> }.into_any()
+                    view! {
+                        <YoutubeIcon fill=if accounts {
+                            "#E62017".into()
+                        } else {
+                            Default::default()
+                        } />
+                    }
+                        .into_any()
                 } else if extension == "spotify" {
-                    view! { <SpotifyIcon /> }.into_any()
+                    view! {
+                        <SpotifyIcon fill=if accounts {
+                            "#07C330".into()
+                        } else {
+                            Default::default()
+                        } />
+                    }
+                        .into_any()
                 } else {
                     view! {
                         <img

@@ -351,6 +351,12 @@ impl ExtensionHandlerInner {
                             && manifest.extension_entry.extension().unwrap() == "wasm"
                             && manifest.extension_entry.exists()
                         {
+                            manifest.icon = manifest_path
+                                .parent()
+                                .unwrap()
+                                .join(manifest.icon)
+                                .to_string_lossy()
+                                .to_string();
                             parsed_manifests.push(manifest);
                         }
                     }

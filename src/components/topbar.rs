@@ -16,11 +16,14 @@
 
 use std::sync::Arc;
 
+use crate::components::provider_icon::ProviderIcon;
 use crate::i18n::use_i18n;
+use crate::utils::invoke::get_extension_icon;
 use crate::{
     icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon},
     store::ui_store::UiStore,
 };
+use leptos::task::spawn_local;
 use leptos::{
     component, ev::Event, prelude::*, reactive::wrappers::write::SignalSetter, view, IntoView,
 };
@@ -28,7 +31,7 @@ use leptos_i18n::t_string;
 use leptos_router::{hooks::use_navigate, NavigateOptions};
 use leptos_use::on_click_outside;
 use leptos_virtual_scroller::VirtualScroller;
-use types::ui::extensions::ExtensionProviderScope;
+use types::ui::extensions::{ExtensionProviderScope, PackageNameArgs};
 use types::{
     entities::{
         GetEntityOptions, QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist,
@@ -36,7 +39,6 @@ use types::{
     errors::Result,
     songs::{GetSongOptions, SearchableSong, Song},
 };
-use wasm_bindgen_futures::spawn_local;
 use web_sys::SubmitEvent;
 
 use crate::{
@@ -188,13 +190,7 @@ pub fn Accounts() -> impl IntoView {
                                                         style=("background-color", status.bg_color.clone())
                                                     >
                                                         <div class="icon-wrapper d-flex my-auto">
-                                                            {if status.key == "spotify" {
-                                                                view! { <SpotifyIcon fill="#07C330".into() /> }.into_any()
-                                                            } else if status.key == "youtube" {
-                                                                view! { <YoutubeIcon fill="#E62017".into() /> }.into_any()
-                                                            } else {
-                                                                ().into_any()
-                                                            }}
+                                                            <ProviderIcon extension=key.clone() accounts=true />
                                                         </div>
 
                                                         <div class="title-wrapper flex-grow-1 my-auto text-truncate">

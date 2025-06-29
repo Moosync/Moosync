@@ -33,6 +33,7 @@ pub mod genres_icon;
 pub mod import_playlist_icon;
 pub mod import_theme_icon;
 pub mod logs_icon;
+pub mod lyrics_icon;
 pub mod new_playlist_icon;
 pub mod new_theme_button_icon;
 pub mod new_theme_icon;

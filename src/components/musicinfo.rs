@@ -30,6 +30,7 @@ use web_sys::{ScrollBehavior, ScrollToOptions};
 use crate::components::artist_list::ArtistList;
 use crate::components::audiostream::AudioStream;
 use crate::components::musicbar_components::{Controls, Slider};
+use crate::icons::lyrics_icon::LyricsIcon;
 use crate::icons::song_default_icon::SongDefaultIcon;
 use crate::modals::new_playlist_modal::PlaylistModalState;
 use crate::store::modal_store::{ModalStore, Modals};
@@ -340,10 +341,9 @@ pub fn MusicInfoMobile(
                                                 />
                                             </div>
                                             <div class="col">
-                                                <QueueIcon
-                                                    on:click=move |_| { show_queue.set(MusicInfoState::Lyrics) }
-                                                    active=RwSignal::new(false).read_only()
-                                                />
+                                                <LyricsIcon on:click=move |_| {
+                                                    show_queue.set(MusicInfoState::Lyrics)
+                                                } />
                                             </div>
                                         </div>
                                     </div>

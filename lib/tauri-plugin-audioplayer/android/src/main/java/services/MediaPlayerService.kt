@@ -76,6 +76,14 @@ class MediaPlayerService : MediaBrowserServiceCompat() {
         return START_NOT_STICKY
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        Log.d("TAG", "App removed from recents, stopping")
+        stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
+        quit()
+        super.onTaskRemoved(rootIntent)
+    }
+
     private fun quit() {
         mediaController.release()
         stopSelf()

@@ -32,7 +32,7 @@ use crate::{
     },
     i18n::use_i18n,
     icons::play_hover_icon::PlayHoverIcon,
-    store::{player_store::PlayerStore, provider_store::ProviderStore},
+    store::{player_store::PlayerStore, provider_store::ProviderStore, ui_store::UiStore},
     utils::{
         common::{format_duration, get_high_img},
         context_menu::{create_context_menu, SongItemContextMenu},
@@ -145,9 +145,12 @@ pub fn Explore() -> impl IntoView {
     let song_context_menu = create_context_menu(context_menu_data);
 
     let i18n = use_i18n();
+
+    let is_mobile =
+        create_read_slice(expect_context::<RwSignal<UiStore>>(), |u| u.get_is_mobile()).get();
     view! {
         <div class="w-100 h-100">
-            <div class="container-fluid explore-container h-100 d-flex flex-column">
+            <div class="container-fluid song-container h-100 d-flex flex-column">
 
                 <div class="row page-title no-gutters">
 
@@ -156,90 +159,102 @@ pub fn Explore() -> impl IntoView {
                 </div>
 
                 <div class="row no-gutters">
-                    <div class="col d-flex total-listen-time">
-                        {"You listened to"}
-                        <div class="ml-2 mr-2 total-listen-time-item">
-                            {move || {
-                                format_duration(total_time.get().unwrap_or_default(), true)
-                            }}
-                        </div> {"of music"}
+                    <div class="col total-listen-time">
+                        <span class="d-inline">
+                            {"You listened to "}
+                            <span class="total-listen-time-item">
+                                {move || format_duration(
+                                    total_time.get().unwrap_or_default(),
+                                    true,
+                                )}
+                            </span> {" Hours of music"}
+                        </span>
                     </div>
                 </div>
 
-                <div class="row no-gutters analytics">
-                    <div class="col">
-                        <div class="row no-gutters">
+                {move || {
+                    if !is_mobile {
+                        view! {
+                            <div class="row no-gutters analytics">
+                                <div class="col">
+                                    <div class="row no-gutters">
 
-                            {move || {
-                                if let Some((first_song, time)) = first_song.get() {
-                                    view! {
-                                        <div class="col big-song">
-                                            <SongDetails
-                                                selected_song=RwSignal::new(Some(first_song.clone()))
-                                                icons=RwSignal::new(SongDetailIcons::default())
-                                            />
-                                            <div
-                                                class="play-button-song-list card-overlay-background d-flex justify-content-center explore-big-song-play"
-                                                on:click=move |_| { play_now.set(first_song.clone()) }
-                                            >
-                                                <PlayHoverIcon />
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <div class="played-for">"Played for"</div>
-                                            <div class="d-flex">
-                                                <span class="playtime big-playtime">
-                                                    {format_duration(time, true)}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    }
-                                        .into_any()
-                                } else {
-                                    ().into_any()
-                                }
-                            }}
+                                        {move || {
+                                            if let Some((first_song, time)) = first_song.get() {
+                                                view! {
+                                                    <div class="col big-song">
+                                                        <SongDetails
+                                                            selected_song=RwSignal::new(Some(first_song.clone()))
+                                                            icons=RwSignal::new(SongDetailIcons::default())
+                                                        />
+                                                        <div
+                                                            class="play-button-song-list card-overlay-background d-flex justify-content-center explore-big-song-play"
+                                                            on:click=move |_| { play_now.set(first_song.clone()) }
+                                                        >
+                                                            <PlayHoverIcon />
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-auto">
+                                                        <div class="played-for">"Played for"</div>
+                                                        <div class="d-flex">
+                                                            <span class="playtime big-playtime">
+                                                                {format_duration(time, true)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                }
+                                                    .into_any()
+                                            } else {
+                                                ().into_any()
+                                            }
+                                        }}
 
-                        </div>
-                    </div>
-                    <div class="col-3 small-song-first">
-                        <For
-                            each=move || first_four_songs.get().unwrap_or_default()
-                            key=move |(s, _)| s.song._id.clone()
-                            children=move |(s, time)| {
-                                view! {
-                                    <SongListItem
-                                        song=s
-                                        is_selected=Box::new(move || false)
-                                        on_context_menu=move |_| {}
-                                        on_click=move |_| {}
-                                        show_background=false
-                                        custom_duration=format_duration(time, true)
+                                    </div>
+                                </div>
+                                <div class="col-3 small-song-first">
+                                    <For
+                                        each=move || first_four_songs.get().unwrap_or_default()
+                                        key=move |(s, _)| s.song._id.clone()
+                                        children=move |(s, time)| {
+                                            view! {
+                                                <SongListItem
+                                                    song=s
+                                                    is_selected=Box::new(move || false)
+                                                    on_context_menu=move |_| {}
+                                                    on_click=move |_| {}
+                                                    show_background=false
+                                                    custom_duration=format_duration(time, true)
+                                                />
+                                            }
+                                        }
                                     />
-                                }
-                            }
-                        />
 
-                    </div>
-                    <div class="col-3 small-song-second">
-                        <For
-                            each=move || second_four_songs.get().unwrap_or_default()
-                            key=move |(s, _)| s.song._id.clone()
-                            children=move |(s, time)| {
-                                view! {
-                                    <SongListItem
-                                        song=s
-                                        is_selected=Box::new(move || false)
-                                        on_context_menu=move |_| {}
-                                        on_click=move |_| {}
-                                        show_background=false
-                                        custom_duration=format_duration(time, true)
+                                </div>
+                                <div class="col-3 small-song-second">
+                                    <For
+                                        each=move || second_four_songs.get().unwrap_or_default()
+                                        key=move |(s, _)| s.song._id.clone()
+                                        children=move |(s, time)| {
+                                            view! {
+                                                <SongListItem
+                                                    song=s
+                                                    is_selected=Box::new(move || false)
+                                                    on_context_menu=move |_| {}
+                                                    on_click=move |_| {}
+                                                    show_background=false
+                                                    custom_duration=format_duration(time, true)
+                                                />
+                                            }
+                                        }
                                     />
-                                }
-                            }
-                        />
-                    </div>
-                </div>
+                                </div>
+                            </div>
+                        }
+                            .into_any()
+                    } else {
+                        view! {}.into_any()
+                    }
+                }}
 
                 <div
                     class="row no-gutters w-100 flex-grow-1"

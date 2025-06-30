@@ -1,0 +1,131 @@
+name: "publish android"
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - release
+
+env:
+  APP_NAME: "android-app"
+  GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+
+jobs:
+  publish-android:
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        args: [""]
+      fail-fast: true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Cache NDK
+        id: cache-ndk
+        uses: actions/cache@v4
+        with:
+          # Path where NDK version 27.0.11902837 is expected to be installed by setup-android
+          path: /usr/local/lib/android/sdk/ndk/27.0.11902837
+          key: ndk-${{ runner.os }}-27.0.11902837
+
+      - name: Setup Android SDK and NDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: 12266719 # v16
+
+      - name: Install NDK
+        run: sdkmanager "ndk;27.0.11902837"
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android, armv7-linux-androideabi, i686-linux-android, x86_64-linux-android
+
+      - name: Install trunk
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: trunk
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-all-crates: true
+          workspaces: |
+            . -> target
+
+      - name: Install tauri CLI
+        run: npm install -g @tauri-apps/cli@latest
+
+      - name: Run cargo check
+        run: |
+          cd src-tauri
+          cargo build --release ${{ matrix.args }}
+          ls ../target/
+
+      - name: setup Android signing
+        run: |
+          cd src-tauri/gen/android
+          echo "keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}" > keystore.properties
+          echo "password=${{ secrets.ANDROID_KEY_PASSWORD }}" >> keystore.properties
+          base64 -d <<< "${{ secrets.ANDROID_KEY_BASE64 }}" > $RUNNER_TEMP/keystore.jks
+          echo "storeFile=$RUNNER_TEMP/keystore.jks" >> keystore.properties
+          echo "Keystore properties created."
+          cd ../../.. # Go back to root
+
+      - name: Build android bundle
+        run: npm run tauri android build -v
+
+      - name: Get Tauri App Version
+        id: app-version
+        run: |
+          CARGO_TOML_PATH="src-tauri/Cargo.toml"
+          echo "Attempting to read version from $CARGO_TOML_PATH"
+
+          if [ ! -f "$CARGO_TOML_PATH" ]; then
+            echo "Error: $CARGO_TOML_PATH not found."
+            exit 1
+          fi
+
+          echo "--- Relevant content from $CARGO_TOML_PATH (looking for 'version = \"...' line) ---"
+          grep '^version = "' "$CARGO_TOML_PATH" || echo "No line starting with 'version = \"' found in $CARGO_TOML_PATH."
+          echo "--- End of relevant content ---"
+
+          # Extract version string from Cargo.toml.
+          # This looks for a line like 'version = "x.y.z"' in the [package] section.
+          VERSION_STRING=$(grep '^version = "' "$CARGO_TOML_PATH" | head -n 1 | sed -e 's/version = "//' -e 's/"//')
+
+          echo "Extracted version_string: '$VERSION_STRING'" # Debug output
+
+          if [ -z "$VERSION_STRING" ] || [ "$VERSION_STRING" = "null" ]; then # Check for empty or literal "null"
+            echo "Error: Version not found or is invalid in $CARGO_TOML_PATH."
+            echo "Please ensure $CARGO_TOML_PATH contains a line like 'version = \"x.y.z\"' (typically under the [package] section)."
+            exit 1
+          fi
+
+          echo "Successfully extracted version: $VERSION_STRING"
+          echo "version_string=$VERSION_STRING" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Rename APK file
+        run: |
+          mv ./src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk ./src-tauri/gen/android/app/build/outputs/apk/universal/release/${{env.APP_NAME}}-${{ steps.app-version.outputs.version_string }}.apk
+
+      - name: Publish
+        uses: softprops/action-gh-release@v1
+        with:
+          name: App v${{ steps.app-version.outputs.version_string }}
+          tag_name: app-v${{ steps.app-version.outputs.version_string }}
+          body: "See the assets to download this version and install."
+          draft: false
+          prerelease: false
+          files: |
+            ./src-tauri/gen/android/app/build/outputs/apk/universal/release/${{env.APP_NAME}}-${{ steps.app-version.outputs.version_string }}.apk

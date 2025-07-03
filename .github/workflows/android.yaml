@@ -68,8 +68,11 @@ jobs:
           workspaces: |
             . -> target
 
-      - name: Install tauri CLI
-        run: npm install -g @tauri-apps/cli@latest
+      - name: Install tauri-cli
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: tauri-cli
+          version: "^2.0.0"
 
       - name: Run cargo check
         run: |
@@ -88,7 +91,10 @@ jobs:
           cd ../../.. # Go back to root
 
       - name: Build android bundle
-        run: npm run tauri android build -v
+        run: cargo tauri android build
+        env:
+          NDK_HOME: /usr/local/lib/android/sdk/ndk/27.0.11902837
+          ANDROID_HOME: /usr/local/lib/android/sdk
 
       - name: Get Tauri App Version
         id: app-version

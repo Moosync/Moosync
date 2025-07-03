@@ -38,9 +38,9 @@ jobs:
         id: cache-ndk
         uses: actions/cache@v4
         with:
-          # Path where NDK version 27.0.11902837 is expected to be installed by setup-android
-          path: /usr/local/lib/android/sdk/ndk/27.0.11902837
-          key: ndk-${{ runner.os }}-27.0.11902837
+          # Path where NDK version 29.0.13599879 is expected to be installed by setup-android
+          path: /usr/local/lib/android/sdk/ndk/29.0.13599879
+          key: ndk-${{ runner.os }}-29.0.13599879
 
       - name: Setup Android SDK and NDK
         uses: android-actions/setup-android@v3
@@ -48,7 +48,7 @@ jobs:
           cmdline-tools-version: 12266719 # v16
 
       - name: Install NDK
-        run: sdkmanager "ndk;27.0.11902837"
+        run: sdkmanager "ndk;29.0.13599879"
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -93,8 +93,10 @@ jobs:
       - name: Build android bundle
         run: cargo tauri android build
         env:
-          NDK_HOME: /usr/local/lib/android/sdk/ndk/27.0.11902837
+          NDK_HOME: /usr/local/lib/android/sdk/ndk/29.0.13599879
           ANDROID_HOME: /usr/local/lib/android/sdk
+          CMAKE_ANDROID_NDK: /usr/local/lib/android/sdk/ndk/29.0.13599879
+          ANDROID_NDK: /usr/local/lib/android/sdk/ndk/29.0.13599879
 
       - name: Get Tauri App Version
         id: app-version

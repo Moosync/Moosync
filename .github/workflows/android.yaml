@@ -103,6 +103,7 @@ jobs:
           CMAKE_ANDROID_NDK: /usr/local/lib/android/sdk/ndk/29.0.13599879
           ANDROID_NDK: /usr/local/lib/android/sdk/ndk/29.0.13599879
           RANLIB: /usr/local/lib/android/sdk/ndk/29.0.13599879/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
+          BINDGEN_EXTRA_CLANG_ARGS_armv7_linux_androideabi: "--sysroot=$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot -I$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include -I$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/arm-linux-androideabi"
 
       - name: Get Tauri App Version
         id: app-version

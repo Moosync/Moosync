@@ -101,12 +101,6 @@ jobs:
       - name: Install tauri CLI
         run: npm install -g @tauri-apps/cli@latest
 
-      - name: Run cargo check
-        run: |
-          cd src-tauri
-          cargo build --release ${{ matrix.args }}
-          ls ../target/
-
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

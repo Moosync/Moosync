@@ -280,12 +280,9 @@ fn write_function_details_to_file() {
         return;
     }
 
-    // Path to the output JSON file
-    let out_dir = env::var("OUT_DIR").expect("OUT_DIR is not set");
-
-    // Construct the file path under `target`
-    let file_path = Path::new(&out_dir)
-        .join("../../")
+    // Path to the output JSON file in the source directory
+    let crate_path = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR is not set");
+    let file_path = Path::new(&crate_path)
         .join("function_details.json");
 
     // Read existing JSON file content, if any

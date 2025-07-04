@@ -7,18 +7,17 @@ on:
       - release
 
 env:
-  APP_NAME: "android-app"
-  GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+  APP_NAME: "Moosync"
 
 jobs:
-  publish-android:
-    permissions:
-      contents: write
+  build-android:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        args: [""]
-      fail-fast: true
-    runs-on: ubuntu-latest
+        target:
+          - aarch64
+          - armv7
+          - x86_64
     steps:
       - uses: actions/checkout@v4
 
@@ -53,7 +52,7 @@ jobs:
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android, armv7-linux-androideabi, i686-linux-android, x86_64-linux-android, wasm32-unknown-unknown
+          targets: ${{ matrix.target }}-linux-android wasm32-unknown-unknown
 
       - name: Install trunk
         uses: baptiste0928/cargo-install@v3
@@ -79,12 +78,6 @@ jobs:
         with:
           crate: bindgen-cli
 
-      - name: Run cargo check
-        run: |
-          cd src-tauri
-          cargo build --release ${{ matrix.args }}
-          ls ../target/
-
       - name: setup Android signing
         run: |
           cd src-tauri/gen/android
@@ -96,7 +89,7 @@ jobs:
           cd ../../.. # Go back to root
 
       - name: Build android bundle
-        run: cargo tauri android build --target aarch64 --target armv7 --target x86_64
+        run: cargo tauri android build --target ${{ matrix.target }}
         env:
           NDK_HOME: /usr/local/lib/android/sdk/ndk/29.0.13599879
           ANDROID_HOME: /usr/local/lib/android/sdk
@@ -140,7 +133,7 @@ jobs:
 
       - name: Rename APK file
         run: |
-          mv ./src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk ./src-tauri/gen/android/app/build/outputs/apk/universal/release/${{env.APP_NAME}}-${{ steps.app-version.outputs.version_string }}.apk
+          mv ./src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk ./src-tauri/gen/android/app/build/outputs/apk/universal/release/${{env.APP_NAME}}-${{ matrix.target }}-${{ steps.app-version.outputs.version_string }}.apk
 
       - name: Publish
         uses: softprops/action-gh-release@v2
@@ -151,4 +144,4 @@ jobs:
           draft: true
           prerelease: true
           files: |
-            ./src-tauri/gen/android/app/build/outputs/apk/universal/release/${{env.APP_NAME}}-${{ steps.app-version.outputs.version_string }}.apk
+            ./src-tauri/gen/android/app/build/outputs/apk/universal/release/${{env.APP_NAME}}-${{ matrix.target }}-${{ steps.app-version.outputs.version_string }}.apk

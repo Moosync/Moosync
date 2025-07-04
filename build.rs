@@ -41,7 +41,7 @@ fn main() {
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR is not set");
     let manifest_dir = Path::new(&manifest_dir);
 
-    if let Some(file_path) = find_function_details_json(manifest_dir.join("target").as_path()) {
+    if let Some(file_path) = find_function_details_json(manifest_dir.join("src-tauri").as_path()) {
         println!(
             "cargo:rustc-env=TAURI_INVOKE_PROC_DIR={}",
             file_path.to_string_lossy()

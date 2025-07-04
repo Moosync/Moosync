@@ -14,10 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target:
-          - aarch64
-          - armv7
-          - x86_64
+        include:
+          - target: aarch64
+            rust_triple: aarch64-linux-android
+          - target: armv7
+            rust_triple: armv7-linux-androideabi
+          - target: x86_64
+            rust_triple: x86_64-linux-android
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +55,7 @@ jobs:
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}-linux-android wasm32-unknown-unknown
+          targets: ${{ matrix.rust_triple }} wasm32-unknown-unknown
 
       - name: Install trunk
         uses: baptiste0928/cargo-install@v3

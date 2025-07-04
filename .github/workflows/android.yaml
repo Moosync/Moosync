@@ -96,7 +96,7 @@ jobs:
           cd ../../.. # Go back to root
 
       - name: Build android bundle
-        run: cargo tauri android build
+        run: cargo tauri android build --target i686
         env:
           NDK_HOME: /usr/local/lib/android/sdk/ndk/29.0.13599879
           ANDROID_HOME: /usr/local/lib/android/sdk

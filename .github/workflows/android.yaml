@@ -205,6 +205,9 @@ jobs:
           echo "latest-android.json generated:"
           cat latest-android.json
 
+          # Set version_string output for later steps
+          echo "version_string=${VERSION}" >> $GITHUB_OUTPUT
+
       - name: Upload latest-android.json artifact
         uses: actions/upload-artifact@v4
         with:

@@ -105,6 +105,7 @@ jobs:
           RANLIB: /usr/local/lib/android/sdk/ndk/29.0.13599879/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ranlib
           BINDGEN_EXTRA_CLANG_ARGS_armv7_linux_androideabi: "--sysroot=/usr/local/lib/android/sdk/ndk/29.0.13599879/toolchains/llvm/prebuilt/linux-x86_64/sysroot -I/usr/local/lib/android/sdk/ndk/29.0.13599879/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include -I/usr/local/lib/android/sdk/ndk/29.0.13599879/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/arm-linux-androideabi"
           BINDGEN_EXTRA_CLANG_ARGS_i686_linux_android: "--sysroot=/usr/local/lib/android/sdk/ndk/29.0.13599879/toolchains/llvm/prebuilt/linux-x86_64/sysroot -I/usr/local/lib/android/sdk/ndk/29.0.13599879/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include -I/usr/local/lib/android/sdk/ndk/29.0.13599879/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/i686-linux-android"
+          # BINDGEN_EXTRA_CLANG_ARGS_x86_64_linux_android: "--sysroot=/usr/local/lib/android/sdk/ndk/29.0.13599879/toolchains/llvm/prebuilt/linux-x86_64/sysroot -I/usr/local/lib/android/sdk/ndk/29.0.13599879/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include -I/usr/local/lib/android/sdk/ndk/29.0.13599879/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/include/x86_64-linux-android/"
 
       - name: Get Tauri App Version
         id: app-version
@@ -142,12 +143,12 @@ jobs:
           mv ./src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk ./src-tauri/gen/android/app/build/outputs/apk/universal/release/${{env.APP_NAME}}-${{ steps.app-version.outputs.version_string }}.apk
 
       - name: Publish
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          name: App v${{ steps.app-version.outputs.version_string }}
-          tag_name: app-v${{ steps.app-version.outputs.version_string }}
+          name: Moosync v${{ steps.app-version.outputs.version_string }}
+          tag_name: Moosync-v${{ steps.app-version.outputs.version_string }}
           body: "See the assets to download this version and install."
-          draft: false
-          prerelease: false
+          draft: true
+          prerelease: true
           files: |
             ./src-tauri/gen/android/app/build/outputs/apk/universal/release/${{env.APP_NAME}}-${{ steps.app-version.outputs.version_string }}.apk

@@ -69,6 +69,7 @@ jobs:
           cache-all-crates: true
           workspaces: |
             . -> target
+          key: rust-${{ matrix.rust_triple }}
 
       - name: Install tauri-cli
         uses: baptiste0928/cargo-install@v3
@@ -106,27 +107,21 @@ jobs:
       - name: Get Tauri App Version
         id: app-version
         run: |
-          CARGO_TOML_PATH="src-tauri/Cargo.toml"
-          echo "Attempting to read version from $CARGO_TOML_PATH"
+          TAURI_CONF_PATH="src-tauri/tauri.conf.json"
+          echo "Attempting to read version from $TAURI_CONF_PATH"
 
-          if [ ! -f "$CARGO_TOML_PATH" ]; then
-            echo "Error: $CARGO_TOML_PATH not found."
+          if [ ! -f "$TAURI_CONF_PATH" ]; then
+            echo "Error: $TAURI_CONF_PATH not found."
             exit 1
           fi
 
-          echo "--- Relevant content from $CARGO_TOML_PATH (looking for 'version = \"...' line) ---"
-          grep '^version = "' "$CARGO_TOML_PATH" || echo "No line starting with 'version = \"' found in $CARGO_TOML_PATH."
-          echo "--- End of relevant content ---"
-
-          # Extract version string from Cargo.toml.
-          # This looks for a line like 'version = "x.y.z"' in the [package] section.
-          VERSION_STRING=$(grep '^version = "' "$CARGO_TOML_PATH" | head -n 1 | sed -e 's/version = "//' -e 's/"//')
+          VERSION_STRING=$(jq -r '.version' "$TAURI_CONF_PATH")
 
           echo "Extracted version_string: '$VERSION_STRING'" # Debug output
 
-          if [ -z "$VERSION_STRING" ] || [ "$VERSION_STRING" = "null" ]; then # Check for empty or literal "null"
-            echo "Error: Version not found or is invalid in $CARGO_TOML_PATH."
-            echo "Please ensure $CARGO_TOML_PATH contains a line like 'version = \"x.y.z\"' (typically under the [package] section)."
+          if [ -z "$VERSION_STRING" ] || [ "$VERSION_STRING" = "null" ]; then
+            echo "Error: Version not found or is invalid in $TAURI_CONF_PATH."
+            echo "Please ensure $TAURI_CONF_PATH contains a valid 'version' field."
             exit 1
           fi
 
@@ -138,13 +133,93 @@ jobs:
         run: |
           mv ./src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release.apk ./src-tauri/gen/android/app/build/outputs/apk/universal/release/${{env.APP_NAME}}-${{ matrix.target }}-${{ steps.app-version.outputs.version_string }}.apk
 
-      - name: Publish
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk-${{ matrix.target }}
+          path: ./src-tauri/gen/android/app/build/outputs/apk/universal/release/${{env.APP_NAME}}-${{ matrix.target }}-${{ steps.app-version.outputs.version_string }}.apk
+
+  generate-latest-android-json:
+    needs: build-android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download APK artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: apk-*
+          merge-multiple: true
+          path: ./apks
+
+      - name: Ensure jq is installed
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Generate signatures and latest-android.json
+        id: generate-json
+        run: |
+          set -e
+          VERSION=$(jq -r '.version' src-tauri/tauri.conf.json)
+          NOTES="See the assets to download this version and install."
+          PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
+
+          # Map targets to platform keys
+          declare -A PLATFORM_KEYS
+          PLATFORM_KEYS[aarch64]="android-aarch64"
+          PLATFORM_KEYS[armv7]="android-armv7"
+          PLATFORM_KEYS[x86_64]="android-x86_64"
+
+          # Prepare platforms JSON
+          PLATFORMS_JSON="{"
+          SEP=""
+
+          for apk in ./apks/*.apk; do
+            filename=$(basename "$apk")
+            # Extract target from filename: Moosync-aarch64-11.0.2.apk
+            target=$(echo "$filename" | sed -E 's/^.*-([a-z0-9_]+)-[0-9]+\.[0-9]+\.[0-9]+\.apk$/\1/')
+            platform_key="${PLATFORM_KEYS[$target]}"
+            # Fallback if not mapped
+            if [ -z "$platform_key" ]; then
+              platform_key="$target"
+            fi
+            # Calculate signature (sha256)
+            signature=$(sha256sum "$apk" | awk '{print $1}')
+            # Construct download URL (update this if your release URL changes)
+            url="https://github.com/Moosync/Moosync/releases/download/Moosync-v${VERSION}/${filename}"
+            # Append to JSON
+            PLATFORMS_JSON="${PLATFORMS_JSON}${SEP}\"${platform_key}\": {\"signature\": \"${signature}\", \"url\": \"${url}\"}"
+            SEP=","
+          done
+
+          PLATFORMS_JSON="${PLATFORMS_JSON}}"
+
+          cat > latest-android.json <<EOF
+          {
+            "version": "${VERSION}",
+            "notes": "${NOTES}",
+            "pub_date": "${PUB_DATE}",
+            "platforms": ${PLATFORMS_JSON}
+          }
+          EOF
+
+          echo "latest-android.json generated:"
+          cat latest-android.json
+
+      - name: Upload latest-android.json artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: latest-android-json
+          path: latest-android.json
+
+      - name: Publish APKs and latest-android.json
         uses: softprops/action-gh-release@v2
         with:
-          name: Moosync v${{ steps.app-version.outputs.version_string }}
-          tag_name: Moosync-v${{ steps.app-version.outputs.version_string }}
+          name: Moosync v${{ steps.generate-json.outputs.version_string }}
+          tag_name: Moosync-v${{ steps.generate-json.outputs.version_string }}
           body: "See the assets to download this version and install."
           draft: true
           prerelease: true
           files: |
-            ./src-tauri/gen/android/app/build/outputs/apk/universal/release/${{env.APP_NAME}}-${{ matrix.target }}-${{ steps.app-version.outputs.version_string }}.apk
+            ./apks/*.apk
+            latest-android.json
+

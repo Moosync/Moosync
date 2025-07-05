@@ -121,7 +121,7 @@ pub fn format_duration(secs: f64, with_suffix: bool) -> String {
     };
 
     if with_suffix {
-        format!("{} {}", time, suffix)
+        format!("{time} {suffix}")
     } else {
         time
     }

@@ -71,7 +71,7 @@ where
                 if !is_mobile {
                     "width: 200px;".to_string()
                 } else {
-                    format!("width: {}px;", item_width)
+                    format!("width: {item_width}px;")
                 }
             }
         >

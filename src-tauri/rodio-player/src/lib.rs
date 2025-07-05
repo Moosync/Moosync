@@ -31,7 +31,7 @@ use rodio::Sink;
 use stream_download::{storage::temp::TempStorageProvider, Settings, StreamDownload};
 use tracing::{debug, error, info, trace};
 use types::{
-    errors::{MoosyncError, Result},
+    errors::Result,
     ui::player_details::PlayerEvents,
 };
 use types::errors::error_helpers;

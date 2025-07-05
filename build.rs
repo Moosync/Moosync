@@ -20,7 +20,6 @@ use std::{
 };
 
 fn find_function_details_json(target_dir: &Path) -> Option<PathBuf> {
-    println!("Looking in {:?}", target_dir);
     for entry in fs::read_dir(target_dir).ok()? {
         let entry = entry.ok()?;
         let path = entry.path();

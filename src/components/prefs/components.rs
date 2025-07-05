@@ -180,7 +180,7 @@ where
         load_selective(pref_key.clone(), num_pref.write_only());
         Effect::new(move || {
             let num_pref = num_pref.get();
-            pref_value.set(format!("{}", num_pref));
+            pref_value.set(format!("{num_pref}"));
         });
     } else {
         load_selective(pref_key.clone(), pref_value.write_only());

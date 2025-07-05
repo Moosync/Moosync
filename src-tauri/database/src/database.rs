@@ -35,7 +35,7 @@ use uuid::Uuid;
 
 use types::common::{BridgeUtils, SearchByTerm};
 use types::entities::{Analytics, EntityInfo, PlaylistBridge, SearchResult};
-use types::errors::{MoosyncError, Result, error_helpers};
+use types::errors::{Result, error_helpers};
 use types::schema::analytics::dsl::analytics;
 use types::schema::playlists::dsl::playlists;
 use types::songs::{AllAnalytics, SearchableSong};

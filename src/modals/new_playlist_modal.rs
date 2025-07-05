@@ -168,7 +168,8 @@ pub fn NewPlaylistModal(
                                 <div class="row no-gutters d-flex" no-gutters="">
                                     {move || {
                                         if is_mobile {
-                                            view! {}.into_any()
+                                            view! {};
+                                            ().into_any()
                                         } else {
                                             view! {
                                                 <div class="playlist-cover">
@@ -237,7 +238,8 @@ pub fn NewPlaylistModal(
                                 <div class="row no-gutters d-flex">
                                     {move || {
                                         if is_mobile {
-                                            view! {}.into_any()
+                                            view! {};
+                                            ().into_any()
                                         } else {
                                             view! {
                                                 <div class="col-auto playlist-url-cover">

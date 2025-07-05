@@ -58,7 +58,7 @@ impl Tab {
             "Logs" => |active| LogsIcon(LogsIconProps { active }).into_any(),
             "Extensions" => |active| ExtensionsIcon(ExtensionsIconProps { active }).into_any(),
             "Themes" => |active| ThemesIcon(ThemesIconProps { active }).into_any(),
-            _ => panic!("Icon not found: {}", icon),
+            _ => panic!("Icon not found: {icon}"),
         };
         Tab {
             title,

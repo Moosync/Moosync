@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use rusty_ytdl::search::SearchType;
 use types::providers::generic::Pagination;
 
 use crate::youtube::YoutubeScraper;

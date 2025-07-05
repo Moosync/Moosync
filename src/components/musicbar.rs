@@ -39,7 +39,7 @@ fn transition_closed(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
         let _ = musicinfo.style(("transition", "all 0.2s"));
         let _ = musicinfo.style((
             "transform",
-            format!("translateY(calc(100vh - {}px))", MUSICBAR_HEIGHT),
+            format!("translateY(calc(100vh - {MUSICBAR_HEIGHT}px))"),
         ));
     }
 
@@ -59,7 +59,7 @@ fn transition_opened(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
         let _ = musicbar.style(("transition", "all 0.2s"));
         let _ = musicbar.style((
             "transform",
-            format!("translateY(calc(-100vh + {}px))", MUSICBAR_HEIGHT),
+            format!("translateY(calc(-100vh + {MUSICBAR_HEIGHT}px))"),
         ));
     }
 
@@ -131,10 +131,10 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
             }
         }
     };
-    let _ = use_event_listener(document().body(), mouseup, move |ev| {
+    let _ = use_event_listener(document().body(), mouseup, move |_| {
         listener();
     });
-    let _ = use_event_listener(document().body(), touchend, move |ev| {
+    let _ = use_event_listener(document().body(), touchend, move |_| {
         listener();
     });
 
@@ -147,9 +147,8 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
                     let client_y_diff = (client_y - start_offset).clamp(0, page_height);
                     let musicbar_pos = client_y_diff - page_height;
                     let _ =
-                        musicinfo.style(("transform", format!("translateY({}px)", client_y_diff)));
-                    let _ =
-                        musicbar.style(("transform", format!("translateY({}px)", musicbar_pos)));
+                        musicinfo.style(("transform", format!("translateY({client_y_diff}px)")));
+                    let _ = musicbar.style(("transform", format!("translateY({musicbar_pos}px)")));
 
                     let sidebar = document()
                         .get_element_by_id("sidebar")
@@ -241,10 +240,10 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
             }
         }
     };
-    let _ = use_event_listener(document().body(), mouseup, move |ev| {
+    let _ = use_event_listener(document().body(), mouseup, move |_| {
         listener();
     });
-    let _ = use_event_listener(document().body(), touchend, move |ev| {
+    let _ = use_event_listener(document().body(), touchend, move |_| {
         listener();
     });
 
@@ -259,9 +258,8 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
                     let musicinfo_pos = page_height + client_y_diff;
 
                     let _ =
-                        musicinfo.style(("transform", format!("translateY({}px)", musicinfo_pos)));
-                    let _ =
-                        musicbar.style(("transform", format!("translateY({}px)", client_y_diff)));
+                        musicinfo.style(("transform", format!("translateY({musicinfo_pos}px)")));
+                    let _ = musicbar.style(("transform", format!("translateY({client_y_diff}px)")));
 
                     let sidebar = document()
                         .get_element_by_id("sidebar")
@@ -270,7 +268,7 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
                         let style = sidebar.style();
                         let opacity = client_y as f64 / start_offset as f64;
                         style
-                            .set_property("opacity", &format!("{}", opacity))
+                            .set_property("opacity", &format!("{opacity}"))
                             .unwrap();
                     }
 

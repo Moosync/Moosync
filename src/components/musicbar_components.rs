@@ -16,8 +16,8 @@
 
 use std::time::Duration;
 
-use ev::{mousemove, mouseup};
-use leptos::ev::{pointermove, touchend, touchmove};
+use ev::mouseup;
+use leptos::ev::{pointermove, touchend};
 use leptos::*;
 use leptos::{component, prelude::*, view, IntoView};
 use leptos_dom::helpers::TimeoutHandle;

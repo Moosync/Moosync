@@ -99,7 +99,7 @@ impl LocalPlayer {
         listen_onended => ended => |_| PlayerEvents::Ended,
         listen_onloadstart => loadstart => |_| PlayerEvents::Loading,
         listen_onloadend => loadeddata => |_| PlayerEvents::Play,
-        listen_onerror => error => |err| PlayerEvents::Error(format!("{:?}", err).into()),
+        listen_onerror => error => |err| PlayerEvents::Error(format!("{err:?}").into()),
         listen_ontimeupdate => timeupdate => |evt|{
             let target = event_target::<leptos::web_sys::HtmlAudioElement>(&evt);
             let time = target.current_time();
@@ -158,7 +158,7 @@ impl GenericPlayer for LocalPlayer {
                 if let Some(tx) = event_tx {
                     tx(
                         "local".into(),
-                        PlayerEvents::Error(format!("Error playing audio: {:?}", e).into()),
+                        PlayerEvents::Error(format!("Error playing audio: {e:?}").into()),
                     );
                 }
             }

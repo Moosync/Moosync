@@ -25,7 +25,7 @@ use std::{
 
 use souvlaki::{MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 use types::{
-    errors::{MoosyncError, Result, error_helpers},
+    errors::{MoosyncError, Result},
     mpris::MprisPlayerDetails,
     ui::player_details::PlayerState,
 };

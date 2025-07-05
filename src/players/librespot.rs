@@ -217,7 +217,7 @@ impl GenericPlayer for LibrespotPlayer {
                 if let Some(player_state_tx) = player_state_tx {
                     player_state_tx(
                         "librespot".into(),
-                        PlayerEvents::Error(format!("{:?}", err).into()),
+                        PlayerEvents::Error(format!("{err:?}").into()),
                     );
                 }
             } else if autoplay {

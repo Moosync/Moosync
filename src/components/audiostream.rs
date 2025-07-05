@@ -208,7 +208,7 @@ impl PlayerHolder {
                 if let Ok(playback_url) = playback_url {
                     tracing::info!("Got new playback url {}", playback_url);
                     song.song.playback_url = Some(playback_url);
-                    if player.can_play(&song) {
+                    if player.can_play(song) {
                         tracing::info!("Using player {}", player.key());
                         return Ok(i);
                     }

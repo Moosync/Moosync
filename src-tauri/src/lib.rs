@@ -59,7 +59,7 @@ use providers::handler::{
     provider_login, provider_search, provider_signout, song_from_url, trigger_context_menu_action,
 };
 use scanner::{get_scanner_state, start_scan, ScanTask};
-use tauri::{Listener, Manager, State};
+use tauri::{Manager, State};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{
     filter::EnvFilter,

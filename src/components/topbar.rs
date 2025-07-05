@@ -18,11 +18,7 @@ use std::sync::Arc;
 
 use crate::components::provider_icon::ProviderIcon;
 use crate::i18n::use_i18n;
-use crate::utils::invoke::get_extension_icon;
-use crate::{
-    icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon},
-    store::ui_store::UiStore,
-};
+use crate::store::ui_store::UiStore;
 use leptos::task::spawn_local;
 use leptos::{
     component, ev::Event, prelude::*, reactive::wrappers::write::SignalSetter, view, IntoView,
@@ -31,7 +27,7 @@ use leptos_i18n::t_string;
 use leptos_router::{hooks::use_navigate, NavigateOptions};
 use leptos_use::on_click_outside;
 use leptos_virtual_scroller::VirtualScroller;
-use types::ui::extensions::{ExtensionProviderScope, PackageNameArgs};
+use types::ui::extensions::ExtensionProviderScope;
 use types::{
     entities::{
         GetEntityOptions, QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist,
@@ -426,7 +422,7 @@ pub fn TopBar() -> impl IntoView {
         ev.prevent_default();
         let text = input_value.get();
         navigate(
-            format!("/main/search?q={}", text).as_str(),
+            format!("/main/search?q={text}").as_str(),
             Default::default(),
         );
     };
@@ -441,7 +437,7 @@ pub fn TopBar() -> impl IntoView {
             results.update(|r| r.clear());
             return;
         }
-        let value = format!("%{}%", text);
+        let value = format!("%{text}%");
         let current_page = window().location().pathname().unwrap();
         tracing::debug!("current page {}", current_page);
 

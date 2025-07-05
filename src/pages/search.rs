@@ -120,8 +120,7 @@ pub fn TabCarousel(
                 );
 
                 gradient_style.set(format!(
-                    "background: linear-gradient(90deg, var(--primary) 0% , {} {}%, {} {}%, var(--primary) 100%);", rgba_string,
-                    gradient_left, rgba_string, gradient_right
+                    "background: linear-gradient(90deg, var(--primary) 0% , {rgba_string} {gradient_left}%, {rgba_string} {gradient_right}%, var(--primary) 100%);"
                 ));
             }
         }

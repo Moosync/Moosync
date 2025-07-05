@@ -35,7 +35,7 @@ use uuid::Uuid;
 
 use types::common::{BridgeUtils, SearchByTerm};
 use types::entities::{Analytics, EntityInfo, PlaylistBridge, SearchResult};
-use types::errors::{MoosyncError, Result};
+use types::errors::{MoosyncError, Result, error_helpers};
 use types::schema::analytics::dsl::analytics;
 use types::schema::playlists::dsl::playlists;
 use types::songs::{AllAnalytics, SearchableSong};
@@ -108,7 +108,7 @@ impl Database {
         trace!("Inserting album");
         insert_into(albums)
             .values(_album as &QueryableAlbum)
-            .execute(conn)?;
+            .execute(conn).map_err(error_helpers::to_database_error)?;
         info!("Inserted album");
         Ok(_album.album_id.as_ref().unwrap().clone())
     }
@@ -123,7 +123,7 @@ impl Database {
         trace!("Inserting artist");
         insert_into(artists)
             .values(_artist as &QueryableArtist)
-            .execute(conn)?;
+            .execute(conn).map_err(error_helpers::to_database_error)?;
         info!("Inserted artist");
         Ok(_artist.artist_id.as_ref().unwrap().clone())
     }
@@ -138,7 +138,7 @@ impl Database {
         trace!("Inserting genre");
         insert_into(genres)
             .values(_genre as &QueryableGenre)
-            .execute(conn)?;
+            .execute(conn).map_err(error_helpers::to_database_error)?;
         info!("Inserted genre");
         Ok(_genre.genre_id.as_ref().unwrap().clone())
     }
@@ -150,7 +150,7 @@ impl Database {
         _playlist: &QueryablePlaylist,
     ) -> Result<String> {
         trace!("Inserting playlist");
-        insert_into(playlists).values(_playlist).execute(conn)?;
+        insert_into(playlists).values(_playlist).execute(conn).map_err(error_helpers::to_database_error)?;
         info!("Inserted playlist");
         Ok(_playlist.playlist_id.as_ref().unwrap().clone())
     }
@@ -192,7 +192,7 @@ impl Database {
         trace!("Inserting song in playlist bridge");
         insert_into(playlist_bridge)
             .values(PlaylistBridge::insert_value(playlist_id, song_id))
-            .execute(&mut conn)?;
+            .execute(&mut conn).map_err(error_helpers::to_database_error)?;
 
         trace!("Inserted song in playlist bridge");
 
@@ -218,7 +218,7 @@ impl Database {
                 .on_conflict(song_path)
                 .do_update()
                 .set(&song.song)
-                .execute(&mut conn)?;
+                .execute(&mut conn).map_err(error_helpers::to_database_error)?;
 
             if changed == 0 {
                 continue;
@@ -238,7 +238,7 @@ impl Database {
                 AlbumBridge::insert_value(album_id_.clone(), song.song._id.clone().unwrap())
                     .insert_into(album_bridge)
                     .on_conflict_do_nothing()
-                    .execute(&mut conn)?;
+                    .execute(&mut conn).map_err(error_helpers::to_database_error)?;
 
                 _album.album_id = Some(album_id_);
             }
@@ -258,7 +258,7 @@ impl Database {
                     ArtistBridge::insert_value(artist_id_.clone(), song.song._id.clone().unwrap())
                         .insert_into(artist_bridge)
                         .on_conflict_do_nothing()
-                        .execute(&mut conn)?;
+                        .execute(&mut conn).map_err(error_helpers::to_database_error)?;
 
                     _artist.artist_id = Some(artist_id_);
                 }
@@ -279,7 +279,7 @@ impl Database {
                     GenreBridge::insert_value(genre_id_.clone(), song.song._id.clone().unwrap())
                         .insert_into(genre_bridge)
                         .on_conflict_do_nothing()
-                        .execute(&mut conn)?;
+                        .execute(&mut conn).map_err(error_helpers::to_database_error)?;
 
                     _genre.genre_id = Some(genre_id_);
                 }
@@ -298,7 +298,7 @@ impl Database {
         self.pool
             .get()
             .unwrap()
-            .transaction::<(), MoosyncError, _>(|conn| {
+            .transaction::<(), diesel::result::Error, _>(|conn| {
                 for id in ids {
                     // First delete analytics data to avoid foreign key constraint violations
                     delete(QueryDsl::filter(
@@ -333,7 +333,7 @@ impl Database {
                     delete(QueryDsl::filter(allsongs, _id.eq(id.clone()))).execute(conn)?;
                 }
                 Ok(())
-            })?;
+            }).map_err(error_helpers::to_database_error)?;
 
         info!("Removed song");
 
@@ -346,7 +346,7 @@ impl Database {
         if let Some(id) = song._id.as_ref() {
             update(allsongs.filter(schema::allsongs::_id.eq(id.clone())))
                 .set(&song)
-                .execute(&mut self.pool.get().unwrap())?;
+                .execute(&mut self.pool.get().unwrap()).map_err(error_helpers::to_database_error)?;
             debug!("Updated song");
         } else {
             debug!("Song does not have an ID");
@@ -378,7 +378,7 @@ impl Database {
             inclusive
         );
 
-        let fetched: Vec<QueryableAlbum> = predicate.load(conn)?;
+        let fetched: Vec<QueryableAlbum> = predicate.load(conn).map_err(error_helpers::to_database_error)?;
         info!("Fetched albums");
         Ok(fetched)
     }
@@ -414,7 +414,7 @@ impl Database {
             inclusive
         );
 
-        let fetched: Vec<QueryableArtist> = predicate.load(conn)?;
+        let fetched: Vec<QueryableArtist> = predicate.load(conn).map_err(error_helpers::to_database_error)?;
         info!("Fetched artists");
         Ok(fetched)
     }
@@ -443,7 +443,7 @@ impl Database {
             inclusive
         );
 
-        let fetched: Vec<QueryableGenre> = predicate.load(conn)?;
+        let fetched: Vec<QueryableGenre> = predicate.load(conn).map_err(error_helpers::to_database_error)?;
         info!("Fetched genres");
         Ok(fetched)
     }
@@ -483,7 +483,7 @@ impl Database {
             inclusive
         );
 
-        let fetched: Vec<QueryablePlaylist> = predicate.load(conn)?;
+        let fetched: Vec<QueryablePlaylist> = predicate.load(conn).map_err(error_helpers::to_database_error)?;
         Ok(fetched)
     }
 
@@ -496,7 +496,7 @@ impl Database {
                     .and(schema::playlist_bridge::song.eq(song_id)),
             )
             .count()
-            .load(&mut conn)?;
+            .load(&mut conn).map_err(error_helpers::to_database_error)?;
         if let Some(res) = res.first() {
             return Ok(*res > 0);
         }
@@ -568,13 +568,13 @@ impl Database {
             album_bridge,
             schema::album_bridge::album.eq(album.album_id.clone()),
         )
-        .load(conn)?;
+        .load(conn).map_err(error_helpers::to_database_error)?;
 
         let songs: Vec<QueryableSong> = QueryDsl::filter(
             allsongs,
             _id.eq_any(album_data.iter().map(|v| v.song.clone())),
         )
-        .load(conn)?;
+        .load(conn).map_err(error_helpers::to_database_error)?;
 
         info!("Fetched album songs");
         Ok(songs)
@@ -599,13 +599,13 @@ impl Database {
             artist_bridge,
             schema::artist_bridge::artist.eq(artist.artist_id.clone()),
         )
-        .load(conn)?;
+        .load(conn).map_err(error_helpers::to_database_error)?;
 
         let songs: Vec<QueryableSong> = QueryDsl::filter(
             allsongs,
             _id.eq_any(artist_data.into_iter().map(|v| v.song)),
         )
-        .load(conn)?;
+        .load(conn).map_err(error_helpers::to_database_error)?;
         info!("Fetched artist songs");
 
         Ok(songs)
@@ -630,11 +630,11 @@ impl Database {
             genre_bridge,
             schema::genre_bridge::genre.eq(genre.genre_id.clone()),
         )
-        .load(conn)?;
+        .load(conn).map_err(error_helpers::to_database_error)?;
 
         let songs: Vec<QueryableSong> =
             QueryDsl::filter(allsongs, _id.eq_any(genre_data.into_iter().map(|v| v.song)))
-                .load(conn)?;
+                .load(conn).map_err(error_helpers::to_database_error)?;
 
         info!("Fetched genre songs");
         Ok(songs)
@@ -659,13 +659,13 @@ impl Database {
             playlist_bridge,
             schema::playlist_bridge::playlist.eq(playlist.playlist_id.clone()),
         )
-        .load(conn)?;
+        .load(conn).map_err(error_helpers::to_database_error)?;
 
         let songs: Vec<QueryableSong> = QueryDsl::filter(
             allsongs,
             _id.eq_any(playlist_data.into_iter().map(|v| v.song)),
         )
-        .load(conn)?;
+        .load(conn).map_err(error_helpers::to_database_error)?;
         info!("Fetched playlist songs");
 
         Ok(songs)
@@ -685,7 +685,7 @@ impl Database {
                 .first::<AlbumBridge>(conn);
 
         if let Ok(album_data) = album_data {
-            album = Some(QueryDsl::filter(albums, album_id.eq(album_data.album)).first(conn)?);
+            album = Some(QueryDsl::filter(albums, album_id.eq(album_data.album)).first(conn).map_err(error_helpers::to_database_error)?);
         }
 
         let artist_data =
@@ -693,7 +693,7 @@ impl Database {
                 .first::<ArtistBridge>(conn);
 
         if let Ok(artist_data) = artist_data {
-            artist = QueryDsl::filter(artists, artist_id.eq(artist_data.artist)).load(conn)?;
+            artist = QueryDsl::filter(artists, artist_id.eq(artist_data.artist)).load(conn).map_err(error_helpers::to_database_error)?;
         }
 
         let genre_data =
@@ -701,7 +701,7 @@ impl Database {
                 .first::<GenreBridge>(conn);
 
         if let Ok(genre_data) = genre_data {
-            genre = QueryDsl::filter(genres, genre_id.eq(genre_data.genre)).load(conn)?;
+            genre = QueryDsl::filter(genres, genre_id.eq(genre_data.genre)).load(conn).map_err(error_helpers::to_database_error)?;
         }
 
         Ok(Song {
@@ -718,74 +718,71 @@ impl Database {
         trace!("Getting songs by options");
         let inclusive = options.inclusive.unwrap_or_default();
 
-        self.pool.get().unwrap().transaction(|conn| {
-            conn.transaction(|conn| {
-                let mut fetched_songs: Vec<QueryableSong> = vec![];
+        let mut conn = self.pool.get().unwrap();
+        let mut fetched_songs: Vec<QueryableSong> = vec![];
 
-                if let Some(song) = options.song {
-                    let mut predicate = schema::allsongs::table.into_boxed();
-                    predicate =
-                        filter_field!(predicate, &song._id, schema::allsongs::_id, inclusive);
-                    predicate = filter_field_like!(
-                        predicate,
-                        &song.path,
-                        schema::allsongs::path,
-                        inclusive
-                    );
-                    predicate = filter_field_like!(
-                        predicate,
-                        &song.title,
-                        schema::allsongs::title,
-                        inclusive
-                    );
-                    predicate = filter_field!(
-                        predicate,
-                        &song.sample_rate,
-                        schema::allsongs::samplerate,
-                        inclusive
-                    );
-                    predicate =
-                        filter_field!(predicate, &song.hash, schema::allsongs::hash, inclusive);
-                    predicate =
-                        filter_field!(predicate, &song.type_, schema::allsongs::type_, inclusive);
-                    predicate =
-                        filter_field_like!(predicate, &song.url, schema::allsongs::url, inclusive);
-                    predicate = filter_field_like!(
-                        predicate,
-                        &song.playback_url,
-                        schema::allsongs::playbackurl,
-                        inclusive
-                    );
-                    predicate = filter_field!(
-                        predicate,
-                        &song.provider_extension,
-                        schema::allsongs::provider_extension,
-                        inclusive
-                    );
-                    predicate = filter_field!(
-                        predicate,
-                        &song.show_in_library,
-                        schema::allsongs::show_in_library,
-                        inclusive
-                    );
+        if let Some(song) = options.song {
+            let mut predicate = schema::allsongs::table.into_boxed();
+            predicate =
+                filter_field!(predicate, &song._id, schema::allsongs::_id, inclusive);
+            predicate = filter_field_like!(
+                predicate,
+                &song.path,
+                schema::allsongs::path,
+                inclusive
+            );
+            predicate = filter_field_like!(
+                predicate,
+                &song.title,
+                schema::allsongs::title,
+                inclusive
+            );
+            predicate = filter_field!(
+                predicate,
+                &song.sample_rate,
+                schema::allsongs::samplerate,
+                inclusive
+            );
+            predicate =
+                filter_field!(predicate, &song.hash, schema::allsongs::hash, inclusive);
+            predicate =
+                filter_field!(predicate, &song.type_, schema::allsongs::type_, inclusive);
+            predicate =
+                filter_field_like!(predicate, &song.url, schema::allsongs::url, inclusive);
+            predicate = filter_field_like!(
+                predicate,
+                &song.playback_url,
+                schema::allsongs::playbackurl,
+                inclusive
+            );
+            predicate = filter_field!(
+                predicate,
+                &song.provider_extension,
+                schema::allsongs::provider_extension,
+                inclusive
+            );
+            predicate = filter_field!(
+                predicate,
+                &song.show_in_library,
+                schema::allsongs::show_in_library,
+                inclusive
+            );
 
-                    fetched_songs = predicate.load(conn)?;
-                } else if let Some(album) = options.album {
-                    fetched_songs = self.get_album_songs(album, inclusive, conn)?;
-                } else if let Some(artist) = options.artist {
-                    fetched_songs = self.get_artist_songs(artist, inclusive, conn)?;
-                } else if let Some(genre) = options.genre {
-                    fetched_songs = self.get_genre_songs(genre, inclusive, conn)?;
-                } else if let Some(playlist) = options.playlist {
-                    fetched_songs = self.get_playlist_songs(playlist, inclusive, conn)?;
-                }
+            fetched_songs = predicate.load(&mut conn).map_err(error_helpers::to_database_error)?;
+        } else if let Some(album) = options.album {
+            fetched_songs = self.get_album_songs(album, inclusive, &mut conn)?;
+        } else if let Some(artist) = options.artist {
+            fetched_songs = self.get_artist_songs(artist, inclusive, &mut conn)?;
+        } else if let Some(genre) = options.genre {
+            fetched_songs = self.get_genre_songs(genre, inclusive, &mut conn)?;
+        } else if let Some(playlist) = options.playlist {
+            fetched_songs = self.get_playlist_songs(playlist, inclusive, &mut conn)?;
+        }
 
-                for s in fetched_songs {
-                    ret.push(self.get_song_from_queryable(conn, s)?);
-                }
-                Ok(ret)
-            })
-        })
+        for s in fetched_songs {
+            ret.push(self.get_song_from_queryable(&mut conn, s)?);
+        }
+        Ok(ret)
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -906,7 +903,7 @@ impl Database {
             }
 
             let mut res = query
-                .load::<(Option<String>, Option<f64>)>(&mut conn)?
+                .load::<(Option<String>, Option<f64>)>(&mut conn).map_err(error_helpers::to_database_error)?
                 .iter()
                 .map(|v| {
                     (
@@ -935,23 +932,18 @@ impl Database {
             );
         }
 
-        self.pool
-            .get()
-            .unwrap()
-            .transaction::<(), MoosyncError, _>(|conn| {
-                for s in songs {
-                    if let Err(e) = insert_into(playlist_bridge)
-                        .values((
-                            schema::playlist_bridge::playlist.eq(id.clone()),
-                            schema::playlist_bridge::song.eq(s.song._id.clone()),
-                        ))
-                        .execute(conn)
-                    {
-                        warn!("Failed to add {:?} to playlist: {:?}", s, e);
-                    }
-                }
-                Ok(())
-            })?;
+        let mut conn = self.pool.get().unwrap();
+        for s in songs {
+            if let Err(e) = insert_into(playlist_bridge)
+                .values((
+                    schema::playlist_bridge::playlist.eq(id.clone()),
+                    schema::playlist_bridge::song.eq(s.song._id.clone()),
+                ))
+                .execute(&mut conn)
+            {
+                warn!("Failed to add {:?} to playlist: {:?}", s, e);
+            }
+        }
         info!("Added to playlist");
         Ok(())
     }
@@ -959,18 +951,13 @@ impl Database {
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn remove_from_playlist(&self, id: String, songs: Vec<String>) -> Result<()> {
         trace!("Removing from playlist");
-        self.pool
-            .get()
-            .unwrap()
-            .transaction::<(), MoosyncError, _>(|conn| {
-                for s in songs {
-                    delete(playlist_bridge)
-                        .filter(schema::playlist_bridge::playlist.eq(id.clone()))
-                        .filter(schema::playlist_bridge::song.eq(s.clone()))
-                        .execute(conn)?;
-                }
-                Ok(())
-            })?;
+        let mut conn = self.pool.get().unwrap();
+        for s in songs {
+            delete(playlist_bridge)
+                .filter(schema::playlist_bridge::playlist.eq(id.clone()))
+                .filter(schema::playlist_bridge::song.eq(s.clone()))
+                .execute(&mut conn).map_err(error_helpers::to_database_error)?;
+        }
         info!("Removed from playlist");
         Ok(())
     }
@@ -981,10 +968,10 @@ impl Database {
         let mut conn = self.pool.get().unwrap();
         delete(playlist_bridge)
             .filter(schema::playlist_bridge::playlist.eq(id.clone()))
-            .execute(&mut conn)?;
+            .execute(&mut conn).map_err(error_helpers::to_database_error)?;
         delete(playlists)
             .filter(schema::playlists::playlist_id.eq(id.clone()))
-            .execute(&mut conn)?;
+            .execute(&mut conn).map_err(error_helpers::to_database_error)?;
 
         info!("Removed playlist");
         Ok(())
@@ -1038,7 +1025,7 @@ impl Database {
         update(albums)
             .filter(schema::albums::album_id.eq(album.album_id.clone()))
             .set(album)
-            .execute(&mut conn)?;
+            .execute(&mut conn).map_err(error_helpers::to_database_error)?;
 
         info!("Updated album");
         Ok(())
@@ -1067,7 +1054,7 @@ impl Database {
         update(artists)
             .filter(schema::artists::artist_id.eq(artist.artist_id.clone()))
             .set(artist)
-            .execute(&mut conn)?;
+            .execute(&mut conn).map_err(error_helpers::to_database_error)?;
         info!("Updated artist");
         Ok(())
     }
@@ -1079,7 +1066,7 @@ impl Database {
         update(playlists)
             .filter(schema::playlists::playlist_id.eq(playlist.playlist_id.clone()))
             .set(playlist)
-            .execute(&mut conn)?;
+            .execute(&mut conn).map_err(error_helpers::to_database_error)?;
         info!("Updated playlist");
         Ok(())
     }
@@ -1102,7 +1089,7 @@ impl Database {
             update(allsongs)
                 .filter(schema::allsongs::_id.eq(song.song._id.clone()))
                 .set(song.song)
-                .execute(&mut conn)?;
+                .execute(&mut conn).map_err(error_helpers::to_database_error)?;
         }
         info!("Updated songs");
         Ok(())
@@ -1115,7 +1102,7 @@ impl Database {
         update(allsongs)
             .filter(schema::allsongs::_id.eq(id))
             .set(schema::allsongs::lyrics.eq(lyrics))
-            .execute(&mut conn)?;
+            .execute(&mut conn).map_err(error_helpers::to_database_error)?;
         info!("Updated lyrics");
         Ok(())
     }
@@ -1136,14 +1123,14 @@ impl Database {
                     play_count: Some(1),
                     play_time: Some(0f64),
                 })
-                .execute(&mut conn)?;
+                .execute(&mut conn).map_err(error_helpers::to_database_error)?;
             return Ok(());
         }
 
         update(analytics)
             .filter(schema::analytics::song_id.eq(id))
             .set(schema::analytics::play_count.eq(schema::analytics::play_count + 1))
-            .execute(&mut conn)?;
+            .execute(&mut conn).map_err(error_helpers::to_database_error)?;
 
         info!("Incremented play count");
         Ok(())
@@ -1165,7 +1152,7 @@ impl Database {
                     play_count: Some(0),
                     play_time: Some(duration),
                 })
-                .execute(&mut conn)?;
+                .execute(&mut conn).map_err(error_helpers::to_database_error)?;
             info!("Added new play time");
             return Ok(());
         }
@@ -1173,7 +1160,7 @@ impl Database {
         update(analytics)
             .filter(schema::analytics::song_id.eq(id))
             .set(schema::analytics::play_time.eq(schema::analytics::play_time + duration))
-            .execute(&mut conn)?;
+            .execute(&mut conn).map_err(error_helpers::to_database_error)?;
 
         info!("Incremented playtime");
 
@@ -1187,10 +1174,10 @@ impl Database {
             .limit(10);
 
         let mut conn = self.pool.get().unwrap();
-        let songs: Vec<(Option<String>, Option<f64>)> = songs.load(&mut conn)?;
+        let songs: Vec<(Option<String>, Option<f64>)> = songs.load(&mut conn).map_err(error_helpers::to_database_error)?;
         let total_listen_time: Option<f64> = analytics
             .select(diesel::dsl::sum(schema::analytics::play_time))
-            .first(&mut conn)?;
+            .first(&mut conn).map_err(error_helpers::to_database_error)?;
         Ok(AllAnalytics {
             total_listen_time: total_listen_time.unwrap_or_default(),
             songs: songs
@@ -1323,3 +1310,5 @@ fn merge(a: &mut Value, b: Value) {
 
     *a = b;
 }
+
+

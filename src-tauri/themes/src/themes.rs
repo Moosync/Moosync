@@ -32,6 +32,7 @@ use types::{
     themes::ThemeDetails,
 };
 use uuid::Uuid;
+use types::errors::error_helpers;
 
 pub struct ThemeHolder {
     pub theme_dir: PathBuf,
@@ -184,7 +185,8 @@ impl ThemeHolder {
             .join(format!("moosync_theme_{}", uuid::Uuid::new_v4()));
 
         let theme_path = PathBuf::from_str(&theme_path).unwrap();
-        zip_extensions::zip_extract(&theme_path, &extract_dir.clone())?;
+        zip_extensions::zip_extract(&theme_path, &extract_dir.clone())
+            .map_err(error_helpers::to_file_system_error)?;
 
         for item in extract_dir.read_dir()? {
             if item.is_ok() {
@@ -202,7 +204,8 @@ impl ThemeHolder {
                         item_list.push(items.unwrap().path());
                     }
                     tracing::info!("Moving from {:?} to {:?}", item_list, final_theme_path);
-                    fs_extra::move_items(item_list.as_slice(), final_theme_path, &options)?;
+                    fs_extra::move_items(item_list.as_slice(), final_theme_path, &options)
+                        .map_err(error_helpers::to_file_system_error)?;
 
                     return Ok(());
                 }
@@ -233,7 +236,8 @@ impl ThemeHolder {
 
         fs::write(config_path.clone(), serde_json::to_string_pretty(&theme)?)?;
 
-        zip_extensions::zip_create_from_directory(&export_path, &theme_dir)?;
+        zip_extensions::zip_create_from_directory(&export_path, &theme_dir)
+            .map_err(error_helpers::to_file_system_error)?;
 
         if let Some(custom_css_path) = theme.theme.custom_css {
             fs::remove_file(custom_css_path)?;
@@ -248,11 +252,12 @@ impl ThemeHolder {
     pub async fn download_theme(&self, url: String) -> Result<()> {
         let file_path = self.tmp_dir.join(format!("{}.mstx", uuid::Uuid::new_v4()));
 
-        let mut stream = reqwest::get(url).await?.bytes_stream();
+        let mut stream = reqwest::get(url).await
+            .map_err(error_helpers::to_network_error)?.bytes_stream();
         let mut file = File::create(file_path.clone())?;
 
         while let Some(chunk_result) = stream.next().await {
-            let chunk = chunk_result?;
+            let chunk = chunk_result.map_err(error_helpers::to_network_error)?;
             file.write_all(&chunk)?;
         }
 
@@ -286,18 +291,20 @@ impl ThemeHolder {
         )        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
         .header("Accept", "application/json")
         .send()
-        .await?;
+        .await
+        .map_err(error_helpers::to_network_error)?;
 
-        let releases_resp = res.json::<GithubReleasesResp>().await?;
+        let releases_resp = res.json::<GithubReleasesResp>().await.map_err(error_helpers::to_network_error)?;
 
         let mut ret = HashMap::new();
         for item in releases_resp.assets.clone() {
             if item.name == "manifest.json" {
                 let res = client.get(&item.browser_download_url).header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
                         .header("Accept", "application/json")
-                        .send().await?;
+                        .send().await
+                        .map_err(error_helpers::to_network_error)?;
 
-                let bytes = res.bytes().await?;
+                let bytes = res.bytes().await.map_err(error_helpers::to_network_error)?;
                 let manifests: HashMap<String, ThemeItem> = serde_json::from_slice(&bytes)?;
                 for (theme_id, manifest) in manifests {
                     let asset = releases_resp.assets.iter().find(|asset| {
@@ -356,3 +363,5 @@ pub fn transform_css(css_path: String, root: Option<PathBuf>) -> Result<(String,
 
     Ok((css, imports))
 }
+
+

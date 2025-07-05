@@ -38,9 +38,11 @@ use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use whoami;
 
-use types::errors::{MoosyncError, Result};
+use types::errors::{MoosyncError, Result, error_helpers};
 
 // const SCHEMA: &str = include_str!("./schema.json");
+
+
 
 #[derive(Debug)]
 pub struct PreferenceConfig {
@@ -65,7 +67,8 @@ impl PreferenceConfig {
             file.write_all(b"{\"prefs\": {}}")?;
         }
 
-        let entry = Entry::new("moosync", whoami::username().as_str())?;
+        let entry = Entry::new("moosync", whoami::username().as_str())
+            .map_err(error_helpers::to_config_error)?;
 
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         let secret = match entry.get_secret() {
@@ -78,9 +81,10 @@ impl PreferenceConfig {
             Err(e) => {
                 tracing::warn!("Error getting keystore password: {:?} (May happen if the app is run for the first time)", e);
                 let key = ChaCha20Poly1305::generate_key(&mut OsRng);
-                entry.set_secret(key.as_slice())?;
+                entry.set_secret(key.as_slice()).map_err(error_helpers::to_config_error)?;
 
-                let entry = Entry::new("moosync", whoami::username().as_str())?;
+                let entry = Entry::new("moosync", whoami::username().as_str())
+                    .map_err(error_helpers::to_config_error)?;
                 match entry.get_secret() {
                     Ok(_) => {}
                     Err(_) => panic!("Failed to set secret key"),
@@ -126,7 +130,7 @@ impl PreferenceConfig {
         let key = format!("prefs.{}", key);
         tracing::debug!("Loading selective {}", key);
 
-        let val: Option<T> = prefs.dot_get(key.as_str())?;
+        let val: Option<T> = prefs.dot_get(key.as_str()).map_err(error_helpers::to_parse_error)?;
         drop(prefs);
         if val.is_none() {
             return Err(format!("No value found for {}", key).into());

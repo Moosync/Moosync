@@ -25,10 +25,12 @@ use std::{
 
 use souvlaki::{MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 use types::{
-    errors::{MoosyncError, Result},
+    errors::{MoosyncError, Result, error_helpers},
     mpris::MprisPlayerDetails,
     ui::player_details::PlayerState,
 };
+
+
 
 pub struct MprisHolder {
     controls: Mutex<MediaControls>,
@@ -102,7 +104,7 @@ impl MprisHolder {
                 cover_url: metadata.thumbnail.as_deref(),
                 duration: duration.map(Duration::from_millis),
             })
-            .map_err(|e| MoosyncError::String(format!("{:?}", e)))?;
+            .map_err(|e| MoosyncError::MprisError(Box::new(e)))?;
 
         Ok(())
     }
@@ -128,7 +130,7 @@ impl MprisHolder {
         let mut controls = self.controls.lock().unwrap();
         controls
             .set_playback(parsed)
-            .map_err(|e| MoosyncError::String(format!("{:?}", e)))?;
+            .map_err(|e| MoosyncError::MprisError(Box::new(e)))?;
         drop(controls);
 
         let mut last_state = self.last_state.lock().unwrap();

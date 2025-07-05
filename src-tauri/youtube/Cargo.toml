@@ -9,6 +9,6 @@ edition = "2021"
 rusty_ytdl = { git = "https://github.com/Mithronn/rusty_ytdl" }
 types = { path = "../types", features = ["core"] }
 serde_json = { default-features = false, version = "1.0.140" }
-tokio = "1.45.1"
+tokio = {version = "1.45.1", features = ["macros"] }
 serde = { default-features = false, version = "1.0.219" }
 tracing = { version = "0.1.41", default-features = false }

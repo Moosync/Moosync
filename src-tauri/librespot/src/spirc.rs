@@ -41,6 +41,7 @@ use types::{
     canvaz::CanvazResponse,
     errors::{MoosyncError, Result},
 };
+use types::errors::error_helpers;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ParsedToken {
@@ -222,7 +223,7 @@ impl SpircWrapper {
                 let res = (spirc)
                     .play()
                     .map(|_| MessageReply::None)
-                    .map_err(MoosyncError::Librespot);
+                    .map_err(error_helpers::to_media_error);
 
                 tx.send(res).unwrap();
             }
@@ -231,7 +232,7 @@ impl SpircWrapper {
                 let res = (spirc)
                     .pause()
                     .map(|_| MessageReply::None)
-                    .map_err(MoosyncError::Librespot);
+                    .map_err(error_helpers::to_media_error);
 
                 tx.send(res).unwrap();
             }
@@ -244,7 +245,7 @@ impl SpircWrapper {
                         .get_token(scopes.as_str())
                         .await
                         .map(MessageReply::GetToken)
-                        .map_err(MoosyncError::Librespot)
+                        .map_err(error_helpers::to_media_error)
                 });
 
                 tx.send(data).unwrap();
@@ -253,11 +254,11 @@ impl SpircWrapper {
                 let res = spirc
                     .set_position_ms(pos)
                     .map(|_| MessageReply::None)
-                    .map_err(MoosyncError::Librespot);
+                    .map_err(error_helpers::to_media_error);
                 tx.send(res).unwrap();
             }
             Message::Load(uri, autoplay) => {
-                let track_id = SpotifyId::from_uri(uri.as_str()).map_err(MoosyncError::Librespot);
+                let track_id = SpotifyId::from_uri(uri.as_str()).map_err(error_helpers::to_media_error);
                 match track_id {
                     Err(e) => {
                         tx.send(Err(e)).unwrap();
@@ -277,7 +278,7 @@ impl SpircWrapper {
                         let res = spirc
                             .load(command)
                             .map(|_| MessageReply::None)
-                            .map_err(MoosyncError::Librespot);
+                            .map_err(error_helpers::to_media_error);
 
                         tx.send(res).unwrap();
                     }
@@ -287,7 +288,7 @@ impl SpircWrapper {
                 let res = spirc
                     .set_volume(vol)
                     .map(|_| MessageReply::None)
-                    .map_err(MoosyncError::Librespot);
+                    .map_err(error_helpers::to_media_error);
                 tx.send(res).unwrap();
             }
             Message::Close => {

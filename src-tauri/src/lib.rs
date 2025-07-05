@@ -180,7 +180,7 @@ pub fn run() {
     window.is_mobile = {};
     window.is_mobile_player = false;
     "#,
-        args.mobile
+        true
     );
 
     #[cfg(mobile)]

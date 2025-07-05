@@ -33,6 +33,13 @@ use types::{
 #[cfg(target_os = "ios")]
 tauri::ios_plugin_binding!(init_plugin_audioplayer);
 
+// Add From implementations for third-party errors
+impl From<tauri::Error> for MoosyncError {
+    fn from(err: tauri::Error) -> Self {
+        MoosyncError::PluginError(Box::new(err))
+    }
+}
+
 // initializes the Kotlin or Swift plugin classes
 pub fn init<R: Runtime, C: DeserializeOwned>(
     app: &AppHandle<R>,
@@ -41,11 +48,11 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
     #[cfg(target_os = "android")]
     let handle = api
         .register_android_plugin("app.moosync.audioplayer", "AudioPlayerPlugin")
-        .map_err(|e| MoosyncError::String(e.to_string()))?;
+        .map_err(|e| MoosyncError::PluginError(Box::new(e)))?;
     #[cfg(target_os = "ios")]
     let handle = api
         .register_ios_plugin(init_plugin_audioplayer)
-        .map_err(|e| MoosyncError::String(e.to_string()))?;
+        .map_err(|e| MoosyncError::PluginError(Box::new(e)))?;
 
     let ret = Audioplayer(handle);
     ret.register_media_callback(app.clone());
@@ -119,7 +126,7 @@ impl<R: Runtime> Audioplayer<R> {
         let res: serde_json::Value = self
             .0
             .run_mobile_plugin("load", LoadArgs { src, autoplay, key })
-            .map_err(|e| MoosyncError::String(e.to_string()))?;
+            .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
@@ -127,7 +134,7 @@ impl<R: Runtime> Audioplayer<R> {
         let res: serde_json::Value = self
             .0
             .run_mobile_plugin("play", KeyArgs { key })
-            .map_err(|e| MoosyncError::String(e.to_string()))?;
+            .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
@@ -135,7 +142,7 @@ impl<R: Runtime> Audioplayer<R> {
         let res: serde_json::Value = self
             .0
             .run_mobile_plugin("pause", KeyArgs { key })
-            .map_err(|e| MoosyncError::String(e.to_string()))?;
+            .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
@@ -143,7 +150,7 @@ impl<R: Runtime> Audioplayer<R> {
         let res: serde_json::Value = self
             .0
             .run_mobile_plugin("stop", KeyArgs { key })
-            .map_err(|e| MoosyncError::String(e.to_string()))?;
+            .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
@@ -151,7 +158,7 @@ impl<R: Runtime> Audioplayer<R> {
         let res: serde_json::Value = self
             .0
             .run_mobile_plugin("seek", SeekArgs { key, seek })
-            .map_err(|e| MoosyncError::String(e.to_string()))?;
+            .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
@@ -159,7 +166,7 @@ impl<R: Runtime> Audioplayer<R> {
         let res: serde_json::Value = self
             .0
             .run_mobile_plugin("updateNotification", UpdateNotificationArgs { metadata })
-            .map_err(|e| MoosyncError::String(e.to_string()))?;
+            .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
@@ -170,7 +177,7 @@ impl<R: Runtime> Audioplayer<R> {
                 "updateNotificationState",
                 UpdateNotificationStateArgs { playing, pos },
             )
-            .map_err(|e| MoosyncError::String(e.to_string()))?;
+            .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
@@ -201,12 +208,12 @@ impl<R: Runtime> Audioplayer<R> {
                 RequestPermission { read_media: true },
             )
             .map(|r| r.read_media)
-            .map_err(|e| MoosyncError::String(e.to_string()))
+            .map_err(|e| MoosyncError::PluginError(Box::new(e)))
     }
 
     pub fn check_permissions(&self) -> Result<PermissionResponse> {
         self.0
             .run_mobile_plugin::<PermissionResponse>("checkPermissions", ())
-            .map_err(|e| MoosyncError::String(e.to_string()))
+            .map_err(|e| MoosyncError::PluginError(Box::new(e)))
     }
 }

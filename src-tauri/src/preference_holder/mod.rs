@@ -22,6 +22,7 @@ use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
 use tauri::{async_runtime, App, AppHandle, Emitter, Manager, State};
 use types::{errors::Result, preferences::CheckboxPreference};
+use types::errors::error_helpers;
 
 use crate::{
     providers::handler::ProviderHandler,
@@ -110,7 +111,8 @@ pub fn handle_pref_changes(app: AppHandle) {
 
 #[tracing::instrument(level = "debug", skip(app))]
 pub fn get_preference_state(app: &mut App) -> Result<PreferenceConfig> {
-    let data_dir = app.path().app_config_dir()?;
+    let data_dir = app.path().app_config_dir()
+        .map_err(error_helpers::to_plugin_error)?;
     PreferenceConfig::new(data_dir)
 }
 

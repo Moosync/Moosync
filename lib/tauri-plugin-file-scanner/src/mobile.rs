@@ -30,6 +30,13 @@ use types::{
     songs::Song,
 };
 
+// Add From implementations for third-party errors
+impl From<tauri::Error> for MoosyncError {
+    fn from(err: tauri::Error) -> Self {
+        MoosyncError::PluginError(Box::new(err))
+    }
+}
+
 #[cfg(target_os = "ios")]
 tauri::ios_plugin_binding!(init_plugin_file_scanner);
 
@@ -85,7 +92,7 @@ impl<R: Runtime> FileScanner<R> {
                     }),
                 },
             )
-            .map_err(|e| MoosyncError::String(e.to_string()))?;
+            .map_err(error_helpers::to_plugin_error)?;
 
         let resp = rx.recv().unwrap();
         Ok(resp)

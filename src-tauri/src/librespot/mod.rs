@@ -22,7 +22,7 @@ use librespot::{
 use macros::{generate_command, generate_command_cached};
 
 use tauri::{AppHandle, Emitter, Manager, State};
-use types::{canvaz::CanvazResponse, errors::Result};
+use types::{canvaz::CanvazResponse, errors::Result, errors::error_helpers};
 
 #[tracing::instrument(level = "debug", skip())]
 pub fn get_librespot_state() -> LibrespotHolder {
@@ -46,14 +46,17 @@ pub fn initialize_librespot(app: AppHandle, access_token: String) -> Result<()> 
         ..Default::default()
     };
 
-    let credentials_path = app.path().app_config_dir()?;
-    let audio_path = app.path().app_cache_dir()?;
+    let credentials_path = app.path().app_config_dir()
+        .map_err(error_helpers::to_plugin_error)?;
+    let audio_path = app.path().app_cache_dir()
+        .map_err(error_helpers::to_plugin_error)?;
     let cache_config = Cache::new(
         Some(credentials_path.clone()),
         Some(credentials_path),
         Some(audio_path),
         None,
-    )?;
+    )
+    .map_err(error_helpers::to_media_error)?;
 
     let librespot: State<LibrespotHolder> = app.state();
     librespot.initialize(

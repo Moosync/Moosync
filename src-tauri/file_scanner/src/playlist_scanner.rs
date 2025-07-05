@@ -37,6 +37,8 @@ use crate::{
     utils::{check_directory, get_files_recursively},
 };
 
+use types::errors::error_helpers;
+
 pub struct PlaylistScanner<'a> {
     dir: PathBuf,
     song_scanner: SongScanner<'a>,
@@ -93,7 +95,8 @@ impl<'a> PlaylistScanner<'a> {
                 let metadata = line.substring(8, line.len());
                 let split_index = metadata.find(',').unwrap_or_default();
 
-                duration = Some(metadata.substring(0, split_index).parse::<f64>()?);
+                duration = Some(metadata.substring(0, split_index).parse::<f64>()
+                    .map_err(error_helpers::to_parse_error)?);
 
                 let non_duration = metadata.substring(split_index + 1, metadata.len());
 

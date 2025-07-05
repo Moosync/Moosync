@@ -25,6 +25,7 @@ use types::{
     extensions::{MainCommand, MainCommandResponse},
     songs::{GetSongOptions, SearchableSong, Song},
     ui::extensions::PreferenceData,
+    errors::error_helpers,
 };
 
 use crate::{
@@ -200,7 +201,8 @@ impl ReplyHandler {
                 let _ = tx.send(payload);
             });
         tracing::debug!("Sending ui request {:?}", request);
-        self.app_handle.emit("ui-requests", request)?;
+        self.app_handle.emit("ui-requests", request)
+            .map_err(error_helpers::to_extension_error)?;
 
         let res = rx.await;
 

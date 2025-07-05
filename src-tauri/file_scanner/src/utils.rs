@@ -38,6 +38,8 @@ use fast_image_resize::{self as fr, ResizeOptions};
 
 use crate::types::FileList;
 
+use types::errors::error_helpers;
+
 #[tracing::instrument(level = "debug", skip(dir))]
 pub fn check_directory(dir: PathBuf) -> Result<()> {
     if !dir.is_dir() {
@@ -106,7 +108,8 @@ pub fn get_files_recursively(dir: PathBuf) -> Result<FileList> {
 
 #[tracing::instrument(level = "debug", skip(data, path, dimensions))]
 fn generate_image(data: &[u8], path: PathBuf, dimensions: u32) -> Result<()> {
-    let img = image::load_from_memory(data)?;
+    let img = image::load_from_memory(data)
+        .map_err(error_helpers::to_media_error)?;
 
     let width = NonZeroU32::new(img.width()).unwrap();
     let height = NonZeroU32::new(img.height()).unwrap();
@@ -115,7 +118,7 @@ fn generate_image(data: &[u8], path: PathBuf, dimensions: u32) -> Result<()> {
         height.into(),
         img.to_rgba8().into_vec(),
         fr::PixelType::U8x4,
-    )?;
+    ).map_err(error_helpers::to_media_error)?;
 
     // Create container for data of destination image
     let dst_width = NonZeroU32::new(dimensions).unwrap();
@@ -135,7 +138,7 @@ fn generate_image(data: &[u8], path: PathBuf, dimensions: u32) -> Result<()> {
             algorithm: fast_image_resize::ResizeAlg::Nearest,
             ..Default::default()
         }),
-    )?;
+    ).map_err(error_helpers::to_media_error)?;
 
     image::save_buffer(
         path,
@@ -143,7 +146,7 @@ fn generate_image(data: &[u8], path: PathBuf, dimensions: u32) -> Result<()> {
         dst_width.get(),
         dst_height.get(),
         ColorType::Rgba8,
-    )?;
+    ).map_err(error_helpers::to_media_error)?;
 
     Ok(())
 }
@@ -221,9 +224,14 @@ pub fn scan_file(
     song.song.type_ = SongType::LOCAL;
 
     let file = if guess {
-        read_from_path(path.clone())?
+        read_from_path(path.clone())
+            .map_err(error_helpers::to_media_error)?
     } else {
-        let file_res = Probe::open(path.clone())?.guess_file_type()?.read();
+        let file_res = Probe::open(path.clone())
+            .map_err(error_helpers::to_media_error)?
+            .guess_file_type()
+            .map_err(error_helpers::to_media_error)?
+            .read();
         if file_res.is_err() {
             tracing::info!("Error reading file without guess {:?}", file_res.err());
             return Ok(song);

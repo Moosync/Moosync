@@ -35,6 +35,7 @@ use types::{
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
     ui::extensions::ContextMenuReturnType,
+    errors::error_helpers,
 };
 
 use crate::{extensions::get_extension_handler, providers::extension::ExtensionProvider};
@@ -219,7 +220,8 @@ impl ProviderHandler {
                 });
             }
 
-            self.app_handle.emit("providers-updated", Value::Null)?;
+            self.app_handle.emit("providers-updated", Value::Null)
+                .map_err(error_helpers::to_extension_error)?;
         }
         Ok(())
     }

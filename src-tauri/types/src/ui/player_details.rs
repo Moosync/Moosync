@@ -69,7 +69,7 @@ where
     D: Deserializer<'de>,
 {
     let error_str: String = Deserialize::deserialize(deserializer)?;
-    Ok(MoosyncError::from(error_str))
+    Ok(MoosyncError::String(error_str))
 }
 
 #[derive(Debug, Default, Copy, Clone, Encode, Decode)]

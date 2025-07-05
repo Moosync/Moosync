@@ -38,6 +38,8 @@ use spirc::{ParsedToken, SpircWrapper};
 use types::canvaz::CanvazResponse;
 use types::errors::{MoosyncError, Result};
 
+
+
 #[derive(Clone)]
 pub struct ConfigHolder {
     credentials: Credentials,

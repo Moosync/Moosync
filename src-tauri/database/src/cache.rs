@@ -30,7 +30,7 @@ use diesel::{
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use types::cache::CacheModel;
-use types::errors::Result;
+use types::errors::{Result, error_helpers};
 
 use super::migrations::run_migration_cache;
 use types::cache_schema::{
@@ -91,7 +91,7 @@ impl CacheHolder {
             .on_conflict(cache_schema::cache::url)
             .do_update()
             .set(&cache_model)
-            .execute(&mut conn)?;
+            .execute(&mut conn).map_err(error_helpers::to_database_error)?;
         Ok(())
     }
 
@@ -102,7 +102,7 @@ impl CacheHolder {
     {
         let mut conn = self.pool.get().unwrap();
 
-        let data: CacheModel = cache.filter(url.eq(_url)).first::<CacheModel>(&mut conn)?;
+        let data: CacheModel = cache.filter(url.eq(_url)).first::<CacheModel>(&mut conn).map_err(error_helpers::to_database_error)?;
         let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
 
         let expires = Duration::from_secs(data.expires as u64);

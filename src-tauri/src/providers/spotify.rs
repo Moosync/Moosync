@@ -44,13 +44,12 @@ use tauri::{AppHandle, Manager, State};
 use tokio::sync::{Mutex, RwLock, RwLockReadGuard};
 use types::{
     entities::{EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
-    errors::Result,
+    errors::{MoosyncError, Result, error_helpers},
     oauth::OAuth2Client,
-    providers::generic::{Pagination, ProviderStatus},
+    providers::generic::{Pagination, ProviderStatus, GenericProvider},
     songs::{QueryableSong, Song, SongType},
     ui::extensions::{ContextMenuReturnType, ExtensionProviderScope},
 };
-use types::{errors::MoosyncError, providers::generic::GenericProvider};
 use url::Url;
 
 use crate::{librespot::initialize_librespot, oauth::handler::OAuthHandler};
@@ -309,7 +308,8 @@ impl SpotifyProvider {
     async fn fetch_user_details(&self) -> Result<(ProviderStatus, bool)> {
         tracing::info!("Fetching user details for spotify");
         if let Some(api_client) = self.api_client.read().await.as_ref() {
-            let user = api_client.api_client.current_user().await?;
+            let user = api_client.api_client.current_user().await
+                .map_err(error_helpers::to_provider_error)?;
             let mut is_premium = false;
             if let Some(subscription) = user.product {
                 if subscription == SubscriptionLevel::Premium {
@@ -721,11 +721,12 @@ impl GenericProvider for SpotifyProvider {
                 .api_client
                 .playlist(
                     PlaylistId::from_id_or_uri(playlist_id.as_str())
-                        .map_err(|_| MoosyncError::String("Invalid playlist url".into()))?,
+                        .map_err(error_helpers::to_provider_error)?,
                     None,
                     None,
                 )
-                .await?;
+                .await
+                .map_err(error_helpers::to_provider_error)?;
 
             let res = self.parse_playlist(SimplifiedPlaylist {
                 collaborative: playlists.collaborative,
@@ -764,8 +765,10 @@ impl GenericProvider for SpotifyProvider {
             tracing::debug!("Parsing id {}", track_id);
             let res = api_client
                 .api_client
-                .track(TrackId::from_id_or_uri(track_id.as_str())?, None)
-                .await?;
+                .track(TrackId::from_id_or_uri(track_id.as_str())
+                    .map_err(error_helpers::to_provider_error)?, None)
+                .await
+                .map_err(error_helpers::to_provider_error)?;
 
             return Ok(self.parse_playlist_item(res));
         }
@@ -785,7 +788,7 @@ impl GenericProvider for SpotifyProvider {
                     .next()
                     .await;
                 if let Some(track) = user_top_tracks {
-                    let track = track?;
+                    let track = track.map_err(error_helpers::to_provider_error)?;
                     if let Some(track_id) = track.id {
                         ret.push(track_id);
                         i += 1;
@@ -804,7 +807,8 @@ impl GenericProvider for SpotifyProvider {
                     None,
                     Some(100),
                 )
-                .await?;
+                .await
+                .map_err(error_helpers::to_provider_error)?;
             return Ok(recom
                 .tracks
                 .iter()
@@ -860,12 +864,15 @@ impl GenericProvider for SpotifyProvider {
             if let Some(id) = &raw_id {
                 tracing::debug!("Got album id: {}", id);
                 let id = id.replace("spotify-album:", "");
-                let id = AlbumId::from_id_or_uri(id.as_str())?;
-                let album = api_client.api_client.album(id.clone(), None).await?;
+                let id = AlbumId::from_id_or_uri(id.as_str())
+                    .map_err(error_helpers::to_provider_error)?;
+                let album = api_client.api_client.album(id.clone(), None).await
+                    .map_err(error_helpers::to_provider_error)?;
                 let album_tracks = api_client
                     .api_client
                     .album_track_manual(id, None, Some(pagination.limit), Some(pagination.offset))
-                    .await?;
+                    .await
+                    .map_err(error_helpers::to_provider_error)?;
                 let mut items = album_tracks.items.clone();
                 let songs = items
                     .iter_mut()
@@ -915,7 +922,8 @@ impl GenericProvider for SpotifyProvider {
                 let mut next_page_tokens = vec![];
                 let id = id.replace("spotify-artist:", "");
                 let albums = api_client.api_client.artist_albums(
-                    ArtistId::from_id_or_uri(id.as_str())?,
+                    ArtistId::from_id_or_uri(id.as_str())
+                        .map_err(error_helpers::to_provider_error)?,
                     [],
                     None,
                 );
@@ -932,7 +940,8 @@ impl GenericProvider for SpotifyProvider {
                 let album_ids = album_ids.collect::<Vec<_>>().await;
 
                 for chunk in album_ids.chunks(20) {
-                    let albums = api_client.api_client.albums(chunk.to_vec(), None).await?;
+                    let albums = api_client.api_client.albums(chunk.to_vec(), None).await
+                        .map_err(error_helpers::to_provider_error)?;
                     tracing::debug!("Got albums {:?}", albums);
                     for a in albums {
                         let mut tracks = a.tracks.items.clone();

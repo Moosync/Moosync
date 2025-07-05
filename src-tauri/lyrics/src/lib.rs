@@ -18,7 +18,7 @@ use librespot::LibrespotHolder;
 use regex::Regex;
 
 use serde_json::Value;
-use types::errors::Result;
+use types::errors::{Result, error_helpers};
 
 #[cfg(test)]
 mod test;
@@ -86,10 +86,10 @@ impl LyricsFetcher {
 
         let client = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11")
-            .build()?;
+            .build().map_err(error_helpers::to_network_error)?;
 
-        let resp = client.get(url).send().await?.text().await?;
-        let json: Value = serde_json::from_str(resp.as_str())?;
+        let resp = client.get(url).send().await.map_err(error_helpers::to_network_error)?.text().await.map_err(error_helpers::to_network_error)?;
+        let json: Value = serde_json::from_str(resp.as_str()).map_err(error_helpers::to_parse_error)?;
 
         // tracing::info!("{}", resp);
 
@@ -101,7 +101,7 @@ impl LyricsFetcher {
                             if let Some(result) = result.get("result") {
                                 if let Some(result) = result.get("url") {
                                     let url = result.as_str().unwrap();
-                                    let lyrics_resp = client.get(url).send().await?.text().await?;
+                                    let lyrics_resp = client.get(url).send().await.map_err(error_helpers::to_network_error)?.text().await.map_err(error_helpers::to_network_error)?;
 
                                     let split =
                                         lyrics_resp.split("window.__PRELOADED_STATE__ = ").nth(1);
@@ -156,12 +156,12 @@ impl LyricsFetcher {
 
         let client = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11")
-            .build()?;
+            .build().map_err(error_helpers::to_network_error)?;
 
-        let request = client.get(url).send().await?;
-        let lyrics_resp = request.text().await?;
+        let request = client.get(url).send().await.map_err(error_helpers::to_network_error)?;
+        let lyrics_resp = request.text().await.map_err(error_helpers::to_network_error)?;
 
-        let suggestions: Value = serde_json::from_str(&lyrics_resp)?;
+        let suggestions: Value = serde_json::from_str(&lyrics_resp).map_err(error_helpers::to_parse_error)?;
         if let Some(suggestions) = suggestions.get("songs") {
             if let Some(suggestion) = suggestions.as_array() {
                 if let Some(suggestion) = suggestion.first() {
@@ -170,9 +170,9 @@ impl LyricsFetcher {
                             let lyrics_resp = client
                                 .get(suggestion.as_str().unwrap())
                                 .send()
-                                .await?
+                                .await.map_err(error_helpers::to_network_error)?
                                 .text()
-                                .await?;
+                                .await.map_err(error_helpers::to_network_error)?;
 
                             let lyrics = lyrics_resp
                                 .split("<div class=\"ringtone\">")
@@ -206,7 +206,7 @@ impl LyricsFetcher {
     #[tracing::instrument(level = "debug", skip(self, librespot, uri))]
     fn get_spotify_lyrics(&self, librespot: &LibrespotHolder, uri: String) -> Result<String> {
         let res = librespot.get_lyrics(format!("spotify:track:{}", uri))?;
-        let parsed: Value = serde_json::from_str(&res)?;
+        let parsed: Value = serde_json::from_str(&res).map_err(error_helpers::to_parse_error)?;
         if let Some(lyrics_obj) = parsed.get("lyrics") {
             if let Some(lines) = lyrics_obj.get("lines") {
                 if let Some(lines_arr) = lines.as_array() {

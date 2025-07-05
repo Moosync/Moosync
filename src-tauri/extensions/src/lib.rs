@@ -34,7 +34,7 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
 };
 use types::{
-    errors::{MoosyncError, Result},
+    errors::{MoosyncError, Result, error_helpers},
     extensions::{
         ExtensionCommand, ExtensionCommandResponse, ExtensionManifest, GenericExtensionHostRequest,
         MainCommand, MainCommandResponse, RunnerCommand, RunnerCommandResp,
@@ -43,6 +43,7 @@ use types::{
         AccountLoginArgs, ExtensionAccountDetail, ExtensionDetail, ExtensionExtraEventArgs,
         ExtensionProviderScope, FetchedExtensionManifest, PackageNameArgs,
     },
+    moosync_err,
 };
 use zip_extensions::zip_extract;
 
@@ -147,7 +148,7 @@ impl ExtensionHandler {
             .tmp_dir
             .join(format!("moosync_ext_{}", uuid::Uuid::new_v4()));
 
-        zip_extract(&ext_path, &tmp_dir)?;
+        zip_extract(&ext_path, &tmp_dir).map_err(error_helpers::to_file_system_error)?;
 
         let package_manifest: ExtensionManifest =
             serde_json::from_slice(&fs::read(tmp_dir.join("package.json"))?)?;
@@ -190,7 +191,7 @@ impl ExtensionHandler {
             tracing::debug!("Creating dir {:?}", parent_dir);
             fs::create_dir_all(parent_dir)?;
         }
-        fs_extra::move_items(&[tmp_dir.clone()], parent_dir, &options)?;
+        fs_extra::move_items(&[tmp_dir.clone()], parent_dir, &options).map_err(error_helpers::to_file_system_error)?;
 
         tracing::debug!(
             "Renaming {:?} to {:?}",
@@ -232,11 +233,11 @@ impl ExtensionHandler {
 
         tracing::info!("parsed url {}. Saving at {:?}", parsed_url, file_path);
 
-        let mut stream = reqwest::get(parsed_url).await?.bytes_stream();
+        let mut stream = reqwest::get(parsed_url).await.map_err(error_helpers::to_network_error)?.bytes_stream();
         let mut file = File::create(file_path.clone())?;
 
         while let Some(chunk_result) = stream.next().await {
-            let chunk = chunk_result?;
+            let chunk = chunk_result.map_err(error_helpers::to_network_error)?;
             file.write_all(&chunk)?;
         }
 
@@ -299,7 +300,7 @@ impl ExtensionHandler {
             let mut inner = self.inner.lock().await;
             if let Err(e) = inner.handle_extension_command(&command, tx).await {
                 tracing::error!("Failed to execute command {:?}: {:?}", command, e);
-                return Err(e);
+                return moosync_err!(ExtensionError, e);
             }
         }
 
@@ -327,7 +328,7 @@ impl ExtensionHandler {
                 return Ok(serde_json::to_value(resp).unwrap());
             }
 
-            Err("Extension sent invalid reply".into())
+            Err(MoosyncError::String("Extension sent invalid reply".into()))
         } else {
             Ok(Value::Null)
         }
@@ -403,17 +404,17 @@ impl ExtensionHandler {
         .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
         .header("Accept", "application/json")
         .send()
-        .await?;
-        let releases_resp = res.json::<GithubReleasesResp>().await?;
+        .await.map_err(error_helpers::to_network_error)?;
+        let releases_resp = res.json::<GithubReleasesResp>().await.map_err(error_helpers::to_network_error)?;
 
         let mut ret = vec![];
         for item in releases_resp.assets.clone() {
             if item.name == "manifest.json" {
                 let res = client.get(&item.browser_download_url).header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
                         .header("Accept", "application/json")
-                        .send().await?;
+                        .send().await.map_err(error_helpers::to_network_error)?;
 
-                let bytes = res.bytes().await?;
+                let bytes = res.bytes().await.map_err(error_helpers::to_network_error)?;
                 let manifests: HashMap<String, ExtensionManifestItem> =
                     serde_json::from_slice(&bytes)?;
                 for (package_name, manifest) in manifests {
@@ -439,3 +440,5 @@ impl ExtensionHandler {
         Ok(ret)
     }
 }
+
+

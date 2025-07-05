@@ -35,7 +35,7 @@ use tokio::sync::RwLockReadGuard;
 use types::entities::{
     EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult,
 };
-use types::errors::{MoosyncError, Result};
+use types::errors::{MoosyncError, Result, error_helpers};
 use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::{QueryableSong, Song, SongType};
 use types::ui::extensions::{ContextMenuReturnType, ExtensionProviderScope};
@@ -49,20 +49,23 @@ use crate::oauth::handler::OAuthHandler;
 use super::common::{authorize, login, refresh_login, LoginArgs, TokenHolder};
 
 macro_rules! search_and_parse {
-    ($client:expr, $term:expr, $type:expr, $process_fn:expr) => {{
-        let (_, search_results) = $client
-            .search()
-            .list(&vec!["snippet".into()])
-            .add_type($type)
-            .q($term)
-            .max_results(50)
-            .doit()
-            .await?;
+    ($client:expr, $term:expr, $type:expr, $id_extractor:expr) => {
+        {
+            let (_, search_results) = $client
+                .search()
+                .list(&vec!["snippet".into()])
+                .add_type($type)
+                .q($term)
+                .max_results(50)
+                .doit()
+                .await
+                .map_err(error_helpers::to_provider_error)?;
 
-        search_results.items.map_or(vec![], |items| {
-            items.into_iter().filter_map($process_fn).collect()
-        })
-    }};
+            search_results.items.map_or(vec![], |items| {
+                items.into_iter().filter_map($id_extractor).collect()
+            })
+        }
+    };
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -285,7 +288,8 @@ impl YoutubeProvider {
                     builder = builder.add_id(i);
                 }
 
-                let (_, resp) = builder.doit().await?;
+                let (_, resp) = builder.doit().await
+                    .map_err(error_helpers::to_provider_error)?;
                 tracing::info!("Got song response {:?}", resp);
                 if let Some(videos) = resp.items {
                     for v in videos {
@@ -353,7 +357,8 @@ impl YoutubeProvider {
                 .mine(true)
                 .max_results(1)
                 .doit()
-                .await?;
+                .await
+                .map_err(error_helpers::to_provider_error)?;
 
             let mut username = Some("".to_string());
             if let Some(items) = user_info.items {
@@ -454,7 +459,8 @@ impl YoutubeProvider {
                 builder = builder.page_token(next_page.as_str());
             }
 
-            let (_, resp) = builder.doit().await?;
+            let (_, resp) = builder.doit().await
+                .map_err(error_helpers::to_provider_error)?;
             if let Some(items) = resp.items {
                 if let Some(items) = items.first() {
                     if let Some(content_details) = &items.content_details {
@@ -616,8 +622,7 @@ impl GenericProvider for YoutubeProvider {
                 self.verifier.lock().await.take(),
                 &self.app,
             )
-            .await?,
-        );
+            .await?);
 
         self.create_api_client().await;
 
@@ -651,7 +656,8 @@ impl GenericProvider for YoutubeProvider {
                 builder = builder.page_token(next_page.as_str());
             }
 
-            let (_, resp) = builder.doit().await?;
+            let (_, resp) = builder.doit().await
+                .map_err(error_helpers::to_provider_error)?;
             let ret = if let Some(items) = resp.items {
                 items.into_iter().map(|p| self.parse_playlist(p)).collect()
             } else {
@@ -694,7 +700,8 @@ impl GenericProvider for YoutubeProvider {
                 builder = builder.page_token(next_page.as_str());
             }
 
-            let (_, resp) = builder.doit().await?;
+            let (_, resp) = builder.doit().await
+                .map_err(error_helpers::to_provider_error)?;
             let ret = if let Some(items) = resp.items {
                 self.fetch_song_details(
                     items
@@ -855,7 +862,8 @@ impl GenericProvider for YoutubeProvider {
                 .add_id(playlist_id.as_str())
                 .max_results(1)
                 .doit()
-                .await?;
+                .await
+                .map_err(error_helpers::to_provider_error)?;
 
             if let Some(items) = playlists.items {
                 if let Some(first) = items.first() {
@@ -911,7 +919,8 @@ impl GenericProvider for YoutubeProvider {
                 .max_results(50)
                 .add_type("video")
                 .doit()
-                .await?;
+                .await
+                .map_err(error_helpers::to_provider_error)?;
 
             if let Some(items) = resp.items {
                 let ids: Vec<String> = items

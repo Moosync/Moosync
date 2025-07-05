@@ -18,12 +18,12 @@ use std::str::FromStr;
 
 use rusty_ytdl::{
     reqwest::Url,
-    search::{Channel, Playlist, SearchOptions, SearchType, YouTube},
+    search::{Channel, Playlist, PlaylistSearchOptions, SearchOptions, SearchType, YouTube},
 };
 
 use types::{
     entities::{EntityInfo, QueryablePlaylist},
-    errors::{MoosyncError, Result},
+    errors::{error_helpers, MoosyncError, Result},
     providers::generic::Pagination,
 };
 use types::{
@@ -136,7 +136,9 @@ impl YoutubeScraper {
 
     #[tracing::instrument(level = "debug", skip(self, id))]
     pub async fn get_playlist_content(&self, id: String, _: Pagination) -> Result<Vec<Song>> {
-        let mut playlist = rusty_ytdl::search::Playlist::get(id, None).await?;
+        let mut playlist = rusty_ytdl::search::Playlist::get(id, None)
+            .await
+            .map_err(error_helpers::to_network_error)?;
         playlist.fetch(None).await;
         let res = playlist.videos.iter().map(|v| self.parse_song(v)).collect();
 
@@ -145,8 +147,11 @@ impl YoutubeScraper {
 
     #[tracing::instrument(level = "debug", skip(self, id))]
     pub async fn get_video_by_id(&self, id: String) -> Result<Song> {
-        let video = rusty_ytdl::Video::new(id)?;
-        let info = video.get_basic_info().await?;
+        let video = rusty_ytdl::Video::new(id).map_err(error_helpers::to_network_error)?;
+        let info = video
+            .get_basic_info()
+            .await
+            .map_err(error_helpers::to_network_error)?;
         Ok(self.parse_video_info(&info))
     }
 
@@ -166,7 +171,8 @@ impl YoutubeScraper {
                     safe_search: false,
                 }),
             )
-            .await?;
+            .await
+            .map_err(error_helpers::to_network_error)?;
 
         let mut songs: Vec<Song> = vec![];
         let mut playlists: Vec<QueryablePlaylist> = vec![];
@@ -198,8 +204,11 @@ impl YoutubeScraper {
                 id = v.to_string();
             }
         }
-        let video = rusty_ytdl::Video::new(id)?;
-        let info = video.get_info().await?;
+        let video = rusty_ytdl::Video::new(id).map_err(error_helpers::to_network_error)?;
+        let info = video
+            .get_info()
+            .await
+            .map_err(error_helpers::to_network_error)?;
 
         tracing::debug!("Got formats {:?}", info.formats);
 
@@ -228,7 +237,8 @@ impl YoutubeScraper {
                     safe_search: false,
                 }),
             )
-            .await?;
+            .await
+            .map_err(error_helpers::to_network_error)?;
 
         Ok(songs
             .into_iter()

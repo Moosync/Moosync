@@ -19,6 +19,7 @@ use std::{
     fmt::Error as FmtError,
     num::{ParseFloatError, ParseIntError},
     string::FromUtf8Error,
+    time::SystemTimeError,
 };
 
 #[cfg(all(
@@ -26,19 +27,6 @@ use std::{
     any(feature = "core", feature = "extensions-core")
 ))]
 use std::io;
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
-use std::time::SystemTimeError;
-
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
-use fast_image_resize::ResizeError;
-
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
-use google_youtube3::Error as YoutubeError;
-
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
-use jsonschema::ValidationError;
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
-use rspotify::{model::IdError, ClientError};
 
 #[cfg(all(not(feature = "extensions"), feature = "ui"))]
 use serde_json::Value;
@@ -48,128 +36,52 @@ use wasm_bindgen::JsValue;
 
 #[cfg(all(not(feature = "extensions"), feature = "core"))]
 use core::str;
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
-use fast_image_resize::ImageBufferError;
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
-use hex::FromHexError;
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
-use image::ImageError;
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
-use keyring::Error as KeyringError;
-#[cfg(all(
-    not(feature = "extensions"),
-    any(feature = "core", feature = "librespot")
-))]
-use librespot::core::Error as LibrespotError;
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
-use lofty::error::LoftyError;
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
-use rusty_ytdl::VideoError;
+
 
 #[cfg(not(feature = "extensions"))]
 #[derive(Debug, thiserror::Error)]
 pub enum MoosyncError {
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    Tauri(#[from] tauri::Error),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    Diesel(#[from] diesel::result::Error),
     #[cfg_attr(any(feature = "core", feature = "extensions-core"), error(transparent))]
     #[cfg(any(feature = "core", feature = "extensions-core"))]
     IO(#[from] io::Error),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    Youtube(#[from] VideoError),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    DotPaths(#[from] json_dotpath::Error),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    SystemTimeError(#[from] SystemTimeError),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    ImageBufferError(#[from] ImageBufferError),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    ImageError(#[from] ImageError),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    DifferentTypesOfPixelsError(#[from] ResizeError),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    LoftyError(#[from] LoftyError),
-    #[error(transparent)]
-    ParseFloatError(#[from] ParseFloatError),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    JWalkError(#[from] jwalk::Error),
-    #[cfg_attr(any(feature = "core", feature = "librespot"), error(transparent))]
-    #[cfg(any(feature = "core", feature = "librespot"))]
-    Librespot(#[from] LibrespotError),
-    #[error(transparent)]
-    UTF8(#[from] FromUtf8Error),
-    #[cfg_attr(
-        any(feature = "core", feature = "librespot", feature = "extensions-core"),
-        error(transparent)
-    )]
-    #[cfg(any(feature = "core", feature = "librespot", feature = "extensions-core"))]
-    Reqwest(#[from] reqwest::Error),
-    #[cfg_attr(any(feature = "core", feature = "librespot"), error(transparent))]
-    #[cfg(any(feature = "core", feature = "librespot"))]
-    ProtoBuf(#[from] protobuf::Error),
+
+    #[error("Playback error: {0}")]
+    PlaybackError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("Database error: {0}")]
+    DatabaseError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("Network error: {0}")]
+    NetworkError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("Authentication error: {0}")]
+    AuthError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("File system error: {0}")]
+    FileSystemError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("Media error: {0}")]
+    MediaError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("Configuration error: {0}")]
+    ConfigError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("Parse error: {0}")]
+    ParseError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("Validation error: {0}")]
+    ValidationError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("Provider error: {0}")]
+    ProviderError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("Extension error: {0}")]
+    ExtensionError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("Cache error: {0}")]
+    CacheError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("Webview error: {0}")]
+    WebviewError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("Plugin error: {0}")]
+    PluginError(Box<dyn std::error::Error + Send + Sync>),
+    #[error("MPRIS error: {0}")]
+    MprisError(Box<dyn std::error::Error + Send + Sync>),
     #[error("{0}")]
     String(String),
-    #[cfg_attr(any(feature = "core", feature = "extensions-core"), error(transparent))]
-    #[cfg(any(feature = "core", feature = "extensions-core"))]
-    ZipError(#[from] zip::result::ZipError),
-    #[cfg_attr(any(feature = "core", feature = "extensions-core"), error(transparent))]
-    #[cfg(any(feature = "core", feature = "extensions-core"))]
-    FSExtraError(#[from] fs_extra::error::Error),
-    #[error(transparent)]
-    ParseIntError(#[from] ParseIntError),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    SpotifyError(#[from] ClientError),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    SpotifyIdError(#[from] IdError),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    YoutubeError(#[from] YoutubeError),
     #[cfg(feature = "core")]
     #[error("Transfer control to provider: {0}")]
     SwitchProviders(String),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    HexError(#[from] FromHexError),
-    #[cfg_attr(feature = "core", error(transparent))]
-    #[cfg(feature = "core")]
-    KeyringError(#[from] KeyringError),
-    #[cfg(feature = "core")]
-    #[cfg_attr(feature = "core", error("JSON validation failed: {0}"))]
-    JSONValidationError(String),
-    #[error(transparent)]
-    FmtError(#[from] FmtError),
-    #[cfg(feature = "core")]
-    #[error(transparent)]
-    RodioError(#[from] rodio::StreamError),
-    #[cfg(feature = "core")]
-    #[error(transparent)]
-    RodioDecoderError(#[from] rodio::decoder::DecoderError),
-    #[cfg(feature = "core")]
-    #[error(transparent)]
-    RodioSeekError(#[from] rodio::source::SeekError),
-    #[cfg(feature = "core")]
-    #[error(transparent)]
-    UTF8Error(#[from] str::Utf8Error),
-
-    #[cfg(feature = "core")]
-    #[error(transparent)]
-    HLSError(#[from] hls_client::errors::HLSDecoderError),
-
     #[error("Invalidated cache")]
     InvalidatedCache,
 }
@@ -179,18 +91,6 @@ impl From<serde_wasm_bindgen::Error> for MoosyncError {
     #[tracing::instrument(level = "debug", skip(value))]
     fn from(value: serde_wasm_bindgen::Error) -> Self {
         Self::String(value.to_string())
-    }
-}
-
-#[cfg(all(not(feature = "extensions"), feature = "core"))]
-impl<'a> From<ValidationError<'a>> for MoosyncError {
-    #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: ValidationError<'a>) -> Self {
-        let mut res = String::new();
-        res.push_str(value.to_string().as_str());
-        res.push('\n');
-
-        Self::JSONValidationError(res)
     }
 }
 
@@ -217,6 +117,46 @@ impl From<String> for MoosyncError {
     }
 }
 
+#[cfg(not(feature = "extensions"))]
+impl From<FmtError> for MoosyncError {
+    #[tracing::instrument(level = "debug", skip(value))]
+    fn from(value: FmtError) -> Self {
+        Self::String(value.to_string())
+    }
+}
+
+#[cfg(not(feature = "extensions"))]
+impl From<ParseFloatError> for MoosyncError {
+    #[tracing::instrument(level = "debug", skip(value))]
+    fn from(value: ParseFloatError) -> Self {
+        Self::ParseError(Box::new(value))
+    }
+}
+
+#[cfg(not(feature = "extensions"))]
+impl From<ParseIntError> for MoosyncError {
+    #[tracing::instrument(level = "debug", skip(value))]
+    fn from(value: ParseIntError) -> Self {
+        Self::ParseError(Box::new(value))
+    }
+}
+
+#[cfg(not(feature = "extensions"))]
+impl From<FromUtf8Error> for MoosyncError {
+    #[tracing::instrument(level = "debug", skip(value))]
+    fn from(value: FromUtf8Error) -> Self {
+        Self::ParseError(Box::new(value))
+    }
+}
+
+#[cfg(not(feature = "extensions"))]
+impl From<SystemTimeError> for MoosyncError {
+    #[tracing::instrument(level = "debug", skip(value))]
+    fn from(value: SystemTimeError) -> Self {
+        Self::FileSystemError(Box::new(value))
+    }
+}
+
 impl serde::Serialize for MoosyncError {
     #[tracing::instrument(level = "debug", skip(self, serializer))]
     fn serialize<S>(&self, serializer: S) -> core::result::Result<S::Ok, S::Error>
@@ -237,3 +177,76 @@ pub enum MoosyncError {
 }
 
 pub type Result<T> = std::result::Result<T, MoosyncError>;
+
+/// Helper functions for converting errors to MoosyncError variants
+/// These can be used with .map_err() directly
+pub mod error_helpers {
+    use super::MoosyncError;
+
+    pub fn to_playback_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::PlaybackError(Box::new(e))
+    }
+
+    pub fn to_database_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::DatabaseError(Box::new(e))
+    }
+
+    pub fn to_network_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::NetworkError(Box::new(e))
+    }
+
+    pub fn to_auth_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::AuthError(Box::new(e))
+    }
+
+    pub fn to_file_system_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::FileSystemError(Box::new(e))
+    }
+
+    pub fn to_media_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::MediaError(Box::new(e))
+    }
+
+    pub fn to_config_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::ConfigError(Box::new(e))
+    }
+
+    pub fn to_parse_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::ParseError(Box::new(e))
+    }
+
+    pub fn to_validation_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::ValidationError(Box::new(e))
+    }
+
+    pub fn to_provider_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::ProviderError(Box::new(e))
+    }
+
+    pub fn to_extension_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::ExtensionError(Box::new(e))
+    }
+
+    pub fn to_cache_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::CacheError(Box::new(e))
+    }
+
+    pub fn to_webview_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::WebviewError(Box::new(e))
+    }
+
+    pub fn to_plugin_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::PluginError(Box::new(e))
+    }
+
+    pub fn to_mpris_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+        MoosyncError::MprisError(Box::new(e))
+    }
+}
+
+#[macro_export]
+macro_rules! moosync_err {
+    ($variant:ident, $err:expr) => {
+        Err($crate::errors::MoosyncError::$variant(Box::new($err)))
+    };
+}

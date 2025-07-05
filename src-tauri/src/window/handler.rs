@@ -26,6 +26,7 @@ use tauri_plugin_opener::OpenerExt;
 use types::errors::{MoosyncError, Result};
 use types::preferences::CheckboxPreference;
 use types::window::{DialogFilter, FileResponse};
+use types::errors::error_helpers;
 
 #[derive(Debug)]
 pub struct WindowHandler {}
@@ -38,7 +39,8 @@ impl WindowHandler {
 
     #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn is_maximized(&self, window: Window) -> Result<bool> {
-        Ok(window.is_maximized()?)
+        Ok(window.is_maximized()
+            .map_err(error_helpers::to_plugin_error)?)
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -49,7 +51,8 @@ impl WindowHandler {
     #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn close_window(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        window.close()?;
+        window.close()
+            .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
@@ -61,14 +64,16 @@ impl WindowHandler {
     #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn maximize_window(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        window.maximize()?;
+        window.maximize()
+            .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn minimize_window(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        window.minimize()?;
+        window.minimize()
+            .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
@@ -97,7 +102,8 @@ impl WindowHandler {
                 //     use objc::{sel, sel_impl};
                 //     let () = objc::msg_send![webview.inner(), setPageZoom: scale_factor];
                 // }
-            })?;
+            })
+            .map_err(error_helpers::to_plugin_error)?;
         }
 
         Ok(())
@@ -119,7 +125,8 @@ impl WindowHandler {
                 "settings",
                 tauri::WebviewUrl::App("/preferenceWindow".into()),
             )
-            .build()?;
+            .build()
+            .map_err(error_helpers::to_plugin_error)?;
         }
 
         Ok(())
@@ -128,14 +135,16 @@ impl WindowHandler {
     #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn enable_fullscreen(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        window.set_fullscreen(true)?;
+        window.set_fullscreen(true)
+            .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn disable_fullscreen(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        window.set_fullscreen(false)?;
+        window.set_fullscreen(false)
+            .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
@@ -143,8 +152,10 @@ impl WindowHandler {
     pub fn toggle_fullscreen(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         {
-            let is_fullscreen = window.is_fullscreen()?;
-            window.set_fullscreen(!is_fullscreen)?;
+            let is_fullscreen = window.is_fullscreen()
+                .map_err(error_helpers::to_plugin_error)?;
+            window.set_fullscreen(!is_fullscreen)
+                .map_err(error_helpers::to_plugin_error)?;
         }
         Ok(())
     }
@@ -302,7 +313,8 @@ pub fn build_tray_menu(app: &App) -> Result<()> {
             .icon("next", "Next", app.default_window_icon().cloned().unwrap())
             .icon("prev", "Prev", app.default_window_icon().cloned().unwrap())
             .icon("quit", "Quit", app.default_window_icon().cloned().unwrap())
-            .build()?;
+            .build()
+            .map_err(error_helpers::to_plugin_error)?;
 
         tauri::tray::TrayIconBuilder::new()
             .icon(app.default_window_icon().unwrap().clone())
@@ -342,7 +354,8 @@ pub fn build_tray_menu(app: &App) -> Result<()> {
                     }
                 }
             })
-            .build(app)?;
+            .build(app)
+            .map_err(error_helpers::to_plugin_error)?;
     }
     Ok(())
 }

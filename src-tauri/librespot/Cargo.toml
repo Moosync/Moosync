@@ -16,7 +16,7 @@ reqwest = { version = "0.12.20", default-features = false }
 serde = { version = "1.0", default-features = false }
 tokio = { version = "1.45.1", default-features = false }
 types = { path = "../types", features = [
-    "librespot",
+    "core",
 ], default-features = false }
 futures = "0.3.31"
 env_logger = "0.11.8"

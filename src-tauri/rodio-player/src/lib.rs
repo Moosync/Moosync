@@ -34,6 +34,9 @@ use types::{
     errors::{MoosyncError, Result},
     ui::player_details::PlayerEvents,
 };
+use types::errors::error_helpers;
+
+
 
 pub struct RodioPlayer {
     tx: Sender<RodioCommand>,
@@ -78,17 +81,17 @@ impl RodioPlayer {
 
     async fn handle_hls_stream(cache_dir: PathBuf, src: &str, sink: &Arc<Sink>) -> Result<()> {
         let reader = StreamDownload::new::<HLSStream>(
-            ConfigBuilder::new().url(src)?.build()?,
+            ConfigBuilder::new().url(src).map_err(error_helpers::to_playback_error)?.build().map_err(error_helpers::to_playback_error)?,
             TempStorageProvider::new_in(cache_dir.clone()),
             Settings::default(),
         )
         .await
-        .map_err(|e| MoosyncError::String(e.to_string()))?;
+        .map_err(error_helpers::to_playback_error)?;
 
         info!("HLS Stream content length {:?}", reader.content_length());
         trace!("Stream created");
 
-        let decoder = rodio::Decoder::new(reader)?;
+        let decoder = rodio::Decoder::new(reader).map_err(error_helpers::to_playback_error)?;
         trace!("Decoder created");
         sink.append(decoder);
         trace!("Decoder appended");
@@ -113,7 +116,7 @@ impl RodioPlayer {
             Ok(reader) => {
                 trace!("Stream created");
 
-                let decoder = rodio::Decoder::new(reader)?;
+                let decoder = rodio::Decoder::new(reader).map_err(error_helpers::to_playback_error)?;
                 trace!("Decoder created");
                 sink.append(decoder);
                 trace!("Decoder appended");
@@ -128,7 +131,7 @@ impl RodioPlayer {
         let path = PathBuf::from_str(src).unwrap();
         if path.exists() {
             let file = fs::File::open(path)?;
-            let decoder = rodio::Decoder::try_from(file)?;
+            let decoder = rodio::Decoder::try_from(file).map_err(error_helpers::to_playback_error)?;
             sink.append(decoder);
 
             trace!("Local file {} appended", src);

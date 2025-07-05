@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 rodio = { git = "https://github.com/RustAudio/rodio", default-features = false, features = [
     "symphonia-all",
+    "playback",
 ] }
 types = { path = "../types", default-features = false, features = ["core"] }
 stream-download = "0.21.1"

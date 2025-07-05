@@ -25,6 +25,7 @@ use tauri::{AppHandle, Manager, State};
 use types::errors::{MoosyncError, Result};
 use types::oauth::{OAuth2Client, OAuth2Verifier, OAuthTokenResponse};
 use url::Url;
+use types::errors::error_helpers;
 
 use crate::window::handler::WindowHandler;
 
@@ -116,10 +117,15 @@ pub async fn refresh_login(
             .request_async(&http_client)
             .await
             .map_err(|err| match err {
-                oauth2::RequestTokenError::ServerResponse(e) => MoosyncError::String(e.to_string()),
-                oauth2::RequestTokenError::Request(_) => todo!(),
-                oauth2::RequestTokenError::Parse(_, _) => todo!(),
-                oauth2::RequestTokenError::Other(_) => todo!(),
+                oauth2::RequestTokenError::ServerResponse(e) => MoosyncError::String(format!(
+                    "{:?}: {:?} {:?}",
+                    e.error(),
+                    e.error_description(),
+                    serde_json::to_string(&e)
+                )),
+                oauth2::RequestTokenError::Request(e) => error_helpers::to_network_error(e),
+                oauth2::RequestTokenError::Parse(e, _) => MoosyncError::String(format!("Parse error: {}", e)),
+                oauth2::RequestTokenError::Other(e) => MoosyncError::String(e.to_string()),
             })?;
 
         return set_tokens(key, app, res, Some(refresh_token.to_string()));
@@ -215,9 +221,9 @@ pub async fn authorize(
                 e.error_description(),
                 serde_json::to_string(&e)
             )),
-            oauth2::RequestTokenError::Request(_) => todo!(),
-            oauth2::RequestTokenError::Parse(_, _) => todo!(),
-            oauth2::RequestTokenError::Other(_) => todo!(),
+            oauth2::RequestTokenError::Request(e) => error_helpers::to_network_error(e),
+            oauth2::RequestTokenError::Parse(e, _) => MoosyncError::String(format!("Parse error: {}", e)),
+            oauth2::RequestTokenError::Other(e) => MoosyncError::String(e.to_string()),
         })?;
 
     set_tokens(key, app, res, None)

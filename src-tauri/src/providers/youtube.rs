@@ -35,7 +35,7 @@ use tokio::sync::RwLockReadGuard;
 use types::entities::{
     EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult,
 };
-use types::errors::{MoosyncError, Result, error_helpers};
+use types::errors::{error_helpers, MoosyncError, Result};
 use types::providers::generic::{Pagination, ProviderStatus};
 use types::songs::{QueryableSong, Song, SongType};
 use types::ui::extensions::{ContextMenuReturnType, ExtensionProviderScope};
@@ -49,23 +49,21 @@ use crate::oauth::handler::OAuthHandler;
 use super::common::{authorize, login, refresh_login, LoginArgs, TokenHolder};
 
 macro_rules! search_and_parse {
-    ($client:expr, $term:expr, $type:expr, $id_extractor:expr) => {
-        {
-            let (_, search_results) = $client
-                .search()
-                .list(&vec!["snippet".into()])
-                .add_type($type)
-                .q($term)
-                .max_results(50)
-                .doit()
-                .await
-                .map_err(error_helpers::to_provider_error)?;
+    ($client:expr, $term:expr, $type:expr, $id_extractor:expr) => {{
+        let (_, search_results) = $client
+            .search()
+            .list(&vec!["snippet".into()])
+            .add_type($type)
+            .q($term)
+            .max_results(50)
+            .doit()
+            .await
+            .map_err(error_helpers::to_provider_error)?;
 
-            search_results.items.map_or(vec![], |items| {
-                items.into_iter().filter_map($id_extractor).collect()
-            })
-        }
-    };
+        search_results.items.map_or(vec![], |items| {
+            items.into_iter().filter_map($id_extractor).collect()
+        })
+    }};
 }
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -288,7 +286,9 @@ impl YoutubeProvider {
                     builder = builder.add_id(i);
                 }
 
-                let (_, resp) = builder.doit().await
+                let (_, resp) = builder
+                    .doit()
+                    .await
                     .map_err(error_helpers::to_provider_error)?;
                 tracing::info!("Got song response {:?}", resp);
                 if let Some(videos) = resp.items {
@@ -459,7 +459,9 @@ impl YoutubeProvider {
                 builder = builder.page_token(next_page.as_str());
             }
 
-            let (_, resp) = builder.doit().await
+            let (_, resp) = builder
+                .doit()
+                .await
                 .map_err(error_helpers::to_provider_error)?;
             if let Some(items) = resp.items {
                 if let Some(items) = items.first() {
@@ -622,7 +624,8 @@ impl GenericProvider for YoutubeProvider {
                 self.verifier.lock().await.take(),
                 &self.app,
             )
-            .await?);
+            .await?,
+        );
 
         self.create_api_client().await;
 
@@ -656,7 +659,9 @@ impl GenericProvider for YoutubeProvider {
                 builder = builder.page_token(next_page.as_str());
             }
 
-            let (_, resp) = builder.doit().await
+            let (_, resp) = builder
+                .doit()
+                .await
                 .map_err(error_helpers::to_provider_error)?;
             let ret = if let Some(items) = resp.items {
                 items.into_iter().map(|p| self.parse_playlist(p)).collect()
@@ -700,7 +705,9 @@ impl GenericProvider for YoutubeProvider {
                 builder = builder.page_token(next_page.as_str());
             }
 
-            let (_, resp) = builder.doit().await
+            let (_, resp) = builder
+                .doit()
+                .await
                 .map_err(error_helpers::to_provider_error)?;
             let ret = if let Some(items) = resp.items {
                 self.fetch_song_details(
@@ -840,17 +847,16 @@ impl GenericProvider for YoutubeProvider {
 
     #[tracing::instrument(level = "debug", skip(self, url))]
     async fn playlist_from_url(&self, url: String) -> Result<QueryablePlaylist> {
-        let playlist_id = Url::parse(url.as_str())
-            .map_err(|_| MoosyncError::String(format!("Failed to parse URL {}", url)))?;
-        let playlist_id = playlist_id.query_pairs().find(|(k, _)| k == "list");
-
-        if playlist_id.is_none() {
-            return Err("Invalid URL".into());
-        }
-
-        let playlist_id = playlist_id.unwrap().1.to_string();
-
         if let Some(api_client) = self.get_api_client().await.as_ref() {
+            let playlist_id = Url::parse(url.as_str())
+                .map_err(|_| MoosyncError::String(format!("Failed to parse URL {}", url)))?;
+            let playlist_id = playlist_id.query_pairs().find(|(k, _)| k == "list");
+
+            if playlist_id.is_none() {
+                return Err("Invalid URL".into());
+            }
+
+            let playlist_id = playlist_id.unwrap().1.to_string();
             let (_, playlists) = api_client
                 .api_client
                 .playlists()
@@ -874,14 +880,9 @@ impl GenericProvider for YoutubeProvider {
         }
 
         let youtube_scraper: State<YoutubeScraper> = self.app.state();
-        let res = youtube_scraper
-            .search_yt(playlist_id, SearchType::Playlist)
-            .await?;
-        if let Some(first) = res.playlists.first() {
-            return Ok(first.clone());
-        }
+        let res = youtube_scraper.get_playlist_from_url(url).await?;
 
-        Err("Playlist not found".into())
+        return Ok(res);
     }
 
     #[tracing::instrument(level = "debug", skip(self, url))]

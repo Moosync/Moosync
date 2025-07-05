@@ -155,6 +155,20 @@ impl YoutubeScraper {
         Ok(self.parse_video_info(&info))
     }
 
+    pub async fn get_playlist_from_url(&self, url: String) -> Result<QueryablePlaylist> {
+        let res = Playlist::get(
+            url,
+            Some(&PlaylistSearchOptions {
+                limit: 1,
+                ..Default::default()
+            }),
+        )
+        .await
+        .map_err(error_helpers::to_network_error)?;
+
+        return Ok(self.parse_playlist(&res));
+    }
+
     #[tracing::instrument(level = "debug", skip(self, query))]
     pub async fn search_yt(
         &self,

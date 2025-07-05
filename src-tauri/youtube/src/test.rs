@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use rusty_ytdl::search::SearchType;
 use types::providers::generic::Pagination;
 
 use crate::youtube::YoutubeScraper;
@@ -38,6 +39,17 @@ async fn test_youtube_playlist_content() {
 async fn test_youtube_suggestions() {
     let scraper = YoutubeScraper::default();
     let res = scraper.get_suggestions().await.unwrap();
+
+    println!("res: {:?}", res);
+}
+
+#[tokio::test]
+async fn test_playlist_from_url() {
+    let scraper = YoutubeScraper::default();
+    let res = scraper
+        .get_playlist_from_url("https://www.youtube.com/watch?v=GEyBFg3E_dI&list=PLO0BbVUKhzndkgijKVT8QivNgcUTtAjqg&pp=gAQB".into())
+        .await
+        .unwrap();
 
     println!("res: {:?}", res);
 }

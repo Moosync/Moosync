@@ -336,8 +336,12 @@ pub fn add_to_playlist(id: String, songs: Vec<Song>) {
     });
 }
 
-#[tracing::instrument(level = "debug", skip(playlist))]
-pub fn create_playlist(playlist: QueryablePlaylist, songs: Option<Vec<Song>>) {
+#[tracing::instrument(level = "debug", skip(cb))]
+pub fn create_playlist_and(
+    playlist: QueryablePlaylist,
+    songs: Option<Vec<Song>>,
+    cb: Arc<Box<dyn Fn() + Send + Sync>>,
+) {
     spawn_local(async move {
         let res = super::invoke::create_playlist(playlist).await;
         match res {
@@ -353,6 +357,8 @@ pub fn create_playlist(playlist: QueryablePlaylist, songs: Option<Vec<Song>>) {
                 }
             }
         }
+
+        cb.as_ref()();
     });
 }
 

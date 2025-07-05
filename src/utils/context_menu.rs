@@ -45,8 +45,8 @@ use crate::{
 
 use super::{
     db_utils::{
-        add_songs_to_library, add_to_playlist, create_playlist, export_playlist, remove_playlist,
-        remove_songs_from_library,
+        add_songs_to_library, add_to_playlist, create_playlist_and, export_playlist,
+        remove_playlist, remove_songs_from_library,
     },
     invoke::{
         get_playlist_context_menu, get_song_context_menu, load_theme, trigger_context_menu_action,
@@ -473,8 +473,8 @@ impl PlaylistItemContextMenu {
     #[tracing::instrument(level = "debug", skip(self))]
     fn add_to_library(&self) {
         if let Some(playlist) = &self.playlist {
-            create_playlist(playlist.clone(), None);
-            self.refresh_cb.as_ref()();
+            let refresh_cb = self.refresh_cb.clone();
+            create_playlist_and(playlist.clone(), None, refresh_cb);
         }
     }
 

@@ -29,7 +29,8 @@ use crate::icons::{
     song_default_icon::SongDefaultIcon,
 };
 use crate::store::modal_store::ModalStore;
-use crate::utils::db_utils::create_playlist;
+use crate::store::ui_store::UiStore;
+use crate::utils::db_utils::create_playlist_and;
 use crate::utils::invoke::{match_url, playlist_from_url};
 use crate::{modals::common::GenericModal, store::provider_store::ProviderStore};
 
@@ -91,11 +92,13 @@ pub fn NewPlaylistModal(
             return;
         }
 
-        create_playlist(playlist, songs);
-        close_modal();
+        create_playlist_and(playlist, songs, Arc::new(Box::new(close_modal)));
     };
 
     let i18n = use_i18n();
+
+    let ui_store = expect_context::<RwSignal<UiStore>>();
+    let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
 
     view! {
         <GenericModal size=move || {
@@ -112,45 +115,43 @@ pub fn NewPlaylistModal(
                 PlaylistModalState::None => {
                     view! {
                         <div class="container">
-                            <div class="row h-100">
-                                <div
-                                    class="col d-flex"
-                                    on:click=move |_| state.set(PlaylistModalState::NewPlaylist)
-                                >
-                                    <div class="row item-box align-self-center">
-                                        <div class="col-auto d-flex playlist-modal-item-container w-100">
-                                            <div class="row w-100">
-                                                <div class="col d-flex justify-content-center w-100">
-                                                    <div class="item-icon">
-                                                        <NewPlaylistIcon />
-                                                    </div>
-                                                </div>
+                            <div class="row no-gutters">
+                                <div class="col-6 pr-2" style="padding-right: 7.5px;">
+                                    <div
+                                        class="embed-responsive embed-responsive-1by1"
+                                        style="border-radius: 20px;"
+                                    >
+                                        <div
+                                            class="embed-responsive-item d-flex flex-column justify-content-center align-items-center"
+                                            style="background-color: var(--secondary);"
+                                            on:click=move |_| state.set(PlaylistModalState::NewPlaylist)
+                                        >
+                                            <div class="item-icon mb-2">
+                                                <NewPlaylistIcon />
                                             </div>
-                                            <div class="row">
-                                                <div class="col d-flex justify-content-center item-title">
-                                                    {t!(i18n, contextMenu.playlist.newPlaylist)}
-                                                </div>
+                                            <div class="item-title text-center">
+                                                {t!(i18n, contextMenu.playlist.newPlaylist)}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div
-                                    class="col d-flex"
-                                    on:click=move |_| state.set(PlaylistModalState::ImportPlaylist)
-                                >
-                                    <div class="row item-box align-self-center">
-                                        <div class="col-auto d-flex playlist-modal-item-container w-100">
-                                            <div class="row w-100">
-                                                <div class="col d-flex justify-content-center w-100">
-                                                    <div class="item-icon">
-                                                        <ImportPlaylistIcon />
-                                                    </div>
-                                                </div>
+                                <div class="col-6 pl-2" style="padding-left: 7.5px;">
+                                    <div
+                                        class="embed-responsive embed-responsive-1by1"
+                                        style="border-radius: 20px;"
+                                    >
+                                        <div
+                                            class="embed-responsive-item d-flex flex-column justify-content-center align-items-center"
+                                            style="background-color: var(--secondary);"
+                                            on:click=move |_| {
+                                                state.set(PlaylistModalState::ImportPlaylist)
+                                            }
+                                        >
+                                            <div class="item-icon mb-2">
+                                                <ImportPlaylistIcon />
                                             </div>
-                                            <div class="row">
-                                                <div class="col d-flex justify-content-center item-title">
-                                                    {t!(i18n, contextMenu.playlist.addFromURL)}
-                                                </div>
+                                            <div class="item-title text-center">
+                                                {t!(i18n, contextMenu.playlist.addFromURL)}
                                             </div>
                                         </div>
                                     </div>
@@ -165,10 +166,19 @@ pub fn NewPlaylistModal(
                         <div class="modal-content-container">
                             <div class="container-fluid p-0">
                                 <div class="row no-gutters d-flex" no-gutters="">
-                                    <div class="playlist-cover">
-                                        <SongDefaultIcon />
-                                    </div>
-                                    <div class="col playlist-details">
+                                    {move || {
+                                        if is_mobile {
+                                            view! {}.into_any()
+                                        } else {
+                                            view! {
+                                                <div class="playlist-cover">
+                                                    <SongDefaultIcon />
+                                                </div>
+                                            }
+                                                .into_any()
+                                        }
+                                    }}
+                                    <div class="col" class:playlist-details=!is_mobile>
                                         <div class="d-flex">
                                             <input
                                                 class="form-control playlist-title"
@@ -195,31 +205,6 @@ pub fn NewPlaylistModal(
                                         </div>
                                         <p class="songs-count">0 Songs</p>
                                     </div>
-                                </div>
-                                <div class="row no-gutters" no-gutters="">
-                                    <textarea
-                                        class="form-control playlist-desc"
-                                        id="playlist-desc"
-                                        placeholder="Description..."
-                                        wrap="soft"
-                                        style="resize: none; overflow-y: scroll; height: 72px;"
-                                        prop:value=move || {
-                                            playlist.get().unwrap_or_default().playlist_desc
-                                        }
-                                        on:input=move |e| {
-                                            playlist
-                                                .update(|p| {
-                                                    if let Some(p) = p {
-                                                        p.playlist_name = event_target_value(&e)
-                                                    } else {
-                                                        *p = Some(QueryablePlaylist {
-                                                            playlist_name: event_target_value(&e),
-                                                            ..Default::default()
-                                                        })
-                                                    }
-                                                })
-                                        }
-                                    ></textarea>
                                 </div>
                             </div>
                             <button
@@ -250,18 +235,26 @@ pub fn NewPlaylistModal(
                         <div class="modal-content-container">
                             <div class="container-fluid p-0">
                                 <div class="row no-gutters d-flex">
-                                    <div class="col-auto playlist-url-cover">
-                                        {move || {
-                                            if let Some(playlist) = playlist.get() {
-                                                if let Some(cover) = playlist.playlist_coverpath {
-                                                    return view! { <img class="h-100 w-100" src=cover /> }
-                                                        .into_any();
-                                                }
+                                    {move || {
+                                        if is_mobile {
+                                            view! {}.into_any()
+                                        } else {
+                                            view! {
+                                                <div class="col-auto playlist-url-cover">
+                                                    {move || {
+                                                        if let Some(playlist) = playlist.get() {
+                                                            if let Some(cover) = playlist.playlist_coverpath {
+                                                                return view! { <img class="h-100 w-100" src=cover /> }
+                                                                    .into_any();
+                                                            }
+                                                        }
+                                                        view! { <SongDefaultIcon /> }.into_any()
+                                                    }}
+                                                </div>
                                             }
-                                            view! { <SongDefaultIcon /> }.into_any()
-                                        }}
-                                    </div>
-                                    <div class="col-9">
+                                                .into_any()
+                                        }
+                                    }} <div class:col-9=!is_mobile class:col=is_mobile>
                                         <div
                                             class="row no-gutters playlist-url-details"
                                             no-gutters=""

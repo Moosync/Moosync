@@ -42,6 +42,7 @@ use types::ui::extensions::{ContextMenuReturnType, ExtensionProviderScope};
 use types::{oauth::OAuth2Client, providers::generic::GenericProvider};
 use url::Url;
 use youtube::youtube::YoutubeScraper;
+use youtube::SearchType;
 
 use crate::oauth::handler::OAuthHandler;
 
@@ -395,7 +396,9 @@ impl YoutubeProvider {
         }
 
         let youtube_scraper: State<YoutubeScraper> = self.app.state();
-        let search_res = youtube_scraper.search_yt(term).await?;
+        let search_res = youtube_scraper
+            .search_yt(term, SearchType::Playlist)
+            .await?;
 
         Ok(search_res.playlists)
     }
@@ -428,7 +431,7 @@ impl YoutubeProvider {
         }
 
         let youtube_scraper: State<YoutubeScraper> = self.app.state();
-        let search_res = youtube_scraper.search_yt(term).await?;
+        let search_res = youtube_scraper.search_yt(term, SearchType::Channel).await?;
 
         Ok(search_res.artists)
     }
@@ -474,7 +477,9 @@ impl YoutubeProvider {
         }
 
         let youtube_scraper: State<YoutubeScraper> = self.app.state();
-        let search_res = youtube_scraper.search_yt(artist_id).await?;
+        let search_res = youtube_scraper
+            .search_yt(artist_id, SearchType::Channel)
+            .await?;
 
         Ok((search_res.songs, pagination.next_page()))
     }
@@ -733,17 +738,20 @@ impl GenericProvider for YoutubeProvider {
         {
             let youtube_scraper: State<YoutubeScraper> = self.app.state();
             let res = youtube_scraper
-                .search_yt(format!(
-                    "{} - {}",
-                    song.artists
-                        .clone()
-                        .unwrap_or_default()
-                        .iter()
-                        .filter_map(|a| a.artist_name.clone())
-                        .collect::<Vec<String>>()
-                        .join(", "),
-                    song.song.title.clone().unwrap_or_default()
-                ))
+                .search_yt(
+                    format!(
+                        "{} - {}",
+                        song.artists
+                            .clone()
+                            .unwrap_or_default()
+                            .iter()
+                            .filter_map(|a| a.artist_name.clone())
+                            .collect::<Vec<String>>()
+                            .join(", "),
+                        song.song.title.clone().unwrap_or_default()
+                    ),
+                    SearchType::Video,
+                )
                 .await?;
             if let Some(first) = res.songs.into_iter().next() {
                 return Ok(first.song.url.unwrap());
@@ -756,16 +764,19 @@ impl GenericProvider for YoutubeProvider {
                 song.song.url
             } else {
                 let res = youtube_scraper
-                    .search_yt(format!(
-                        "{} - {}",
-                        song.artists
-                            .unwrap_or_default()
-                            .iter()
-                            .filter_map(|a| a.artist_name.clone())
-                            .collect::<Vec<String>>()
-                            .join(", "),
-                        song.song.title.unwrap_or_default()
-                    ))
+                    .search_yt(
+                        format!(
+                            "{} - {}",
+                            song.artists
+                                .unwrap_or_default()
+                                .iter()
+                                .filter_map(|a| a.artist_name.clone())
+                                .collect::<Vec<String>>()
+                                .join(", "),
+                            song.song.title.unwrap_or_default()
+                        ),
+                        SearchType::Video,
+                    )
                     .await?;
                 res.songs
                     .into_iter()
@@ -808,7 +819,7 @@ impl GenericProvider for YoutubeProvider {
         }
 
         let youtube_scraper: State<YoutubeScraper> = self.app.state();
-        youtube_scraper.search_yt(term).await
+        youtube_scraper.search_yt(term, SearchType::All).await
     }
 
     #[tracing::instrument(level = "debug", skip(self, url))]
@@ -855,7 +866,9 @@ impl GenericProvider for YoutubeProvider {
         }
 
         let youtube_scraper: State<YoutubeScraper> = self.app.state();
-        let res = youtube_scraper.search_yt(playlist_id).await?;
+        let res = youtube_scraper
+            .search_yt(playlist_id, SearchType::Playlist)
+            .await?;
         if let Some(first) = res.playlists.first() {
             return Ok(first.clone());
         }

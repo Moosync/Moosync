@@ -171,7 +171,8 @@ pub fn run() {
     {
         builder = builder
             .plugin(tauri_plugin_file_scanner::init())
-            .plugin(tauri_plugin_audioplayer::init());
+            .plugin(tauri_plugin_audioplayer::init())
+            .plugin(tauri_plugin_self_update::init());
     }
 
     #[cfg(desktop)]

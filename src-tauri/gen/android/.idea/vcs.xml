@@ -2,5 +2,12 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$/../../.." vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../lib/extensions-wasm" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../package/aur/moosync" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../package/aur/moosync-git" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../package/deb/ppa" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../package/fedora/dnf" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../package/flatpak/app.moosync.moosync" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../../../package/flatpak/app.moosync.moosync/shared-modules" vcs="Git" />
   </component>
 </project>

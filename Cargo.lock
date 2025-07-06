@@ -6313,6 +6313,7 @@ dependencies = [
  "rodio-player",
  "rspotify",
  "rustls 0.23.27",
+ "semver",
  "serde",
  "serde_json",
  "tauri",
@@ -6324,6 +6325,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-file-scanner",
  "tauri-plugin-opener",
+ "tauri-plugin-self-update",
  "tauri-plugin-single-instance",
  "tauri-plugin-updater",
  "themes",
@@ -10758,6 +10760,17 @@ dependencies = [
  "url",
  "windows 0.61.3",
  "zbus",
+]
+
+[[package]]
+name = "tauri-plugin-self-update"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tauri",
+ "tauri-plugin",
+ "thiserror 2.0.12",
+ "types",
 ]
 
 [[package]]

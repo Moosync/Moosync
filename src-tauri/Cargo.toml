@@ -39,6 +39,7 @@ tauri = { version = "2.5.1", features = [
     "protocol-asset",
     "tray-icon",
     "devtools",
+    "test"
 ], default-features = false }
 tauri-plugin-deep-link = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-dialog = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
@@ -47,6 +48,7 @@ tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspac
 tauri-plugin-opener = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v2" }
 tauri-plugin-file-scanner = { path = "../lib/tauri-plugin-file-scanner" }
 tauri-plugin-audioplayer = { path = "../lib/tauri-plugin-audioplayer" }
+tauri-plugin-self-update = { path = "../lib/tauri-plugin-self-update" }
 
 tracing = { default-features = false, version = "0.1.41" }
 tracing-subscriber = { features = [
@@ -59,6 +61,7 @@ openssl-sys = { version = "*", features = ["vendored"] }
 libsqlite3-sys = { version = "0.33.0", features = ["bundled"] }
 clap = { version = "4.5.40", features = ["derive"] }
 tokio = { version = "1.45.1", features = ["sync"] }
+semver = "1.0.26"
 
 [build-dependencies.tauri-build]
 version = "2.2.0"

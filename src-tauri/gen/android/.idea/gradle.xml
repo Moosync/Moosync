@@ -26,6 +26,7 @@
             <option value="$USER_HOME$/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tauri-2.5.1/mobile/android" />
             <option value="$PROJECT_DIR$/../../../lib/tauri-plugin-audioplayer/android" />
             <option value="$PROJECT_DIR$/../../../lib/tauri-plugin-file-scanner/android" />
+            <option value="$PROJECT_DIR$/../../../lib/tauri-plugin-self-update/android" />
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/buildSrc" />

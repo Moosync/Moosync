@@ -29,16 +29,11 @@ use types::{
     mpris::MprisPlayerDetails,
     songs::Song,
 };
+use types::errors::error_helpers;
+
 
 #[cfg(target_os = "ios")]
 tauri::ios_plugin_binding!(init_plugin_audioplayer);
-
-// Add From implementations for third-party errors
-impl From<tauri::Error> for MoosyncError {
-    fn from(err: tauri::Error) -> Self {
-        MoosyncError::PluginError(Box::new(err))
-    }
-}
 
 // initializes the Kotlin or Swift plugin classes
 pub fn init<R: Runtime, C: DeserializeOwned>(

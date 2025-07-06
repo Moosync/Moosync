@@ -29,13 +29,7 @@ use types::{
     errors::{MoosyncError, Result},
     songs::Song,
 };
-
-// Add From implementations for third-party errors
-impl From<tauri::Error> for MoosyncError {
-    fn from(err: tauri::Error) -> Self {
-        MoosyncError::PluginError(Box::new(err))
-    }
-}
+use types::errors::error_helpers;
 
 #[cfg(target_os = "ios")]
 tauri::ios_plugin_binding!(init_plugin_file_scanner);

@@ -21,6 +21,10 @@ description: |
 grade: stable
 confinement: strict
 
+architectures:
+  - amd64
+  - arm64
+
 layout:
   /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.1:
     bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.1
@@ -45,29 +49,26 @@ package-repositories:
     url: http://ppa.launchpad.net/snappy-dev/snapcraft-daily/ubuntu
 
 parts:
-  build-app:
+  moosync-amd64:
     plugin: dump
-    build-snaps:
-      - rustup/latest/stable
-    build-packages:
-      - libwebkit2gtk-4.1-dev
-      - build-essential
-      - curl
-      - wget
-      - file
-      - libxdo-dev
-      - libssl-dev
-      - libayatana-appindicator3-dev
-      - librsvg2-dev
-      - dpkg
+    source: https://github.com/Moosync/Moosync/releases/download/v11.0.2/moosync_11.0.2_amd64.deb
+    source-type: deb
     stage-packages:
       - libwebkit2gtk-4.1-0
       - libayatana-appindicator3-1
-    source: .
-    override-build: |
-      set -eu
-      cargo install tauri-cli --version "^2.0.0-rc"
-      cargo install --locked trunk
-      cargo tauri build --bundles deb
-      dpkg -x src-tauri/target/release/bundle/deb/*.deb $SNAPCRAFT_PART_INSTALL/
-      sed -i -e "s|Icon=moosync|Icon=/usr/share/icons/hicolor/32x32/apps/moosync.png|g" $SNAPCRAFT_PART_INSTALL/usr/share/applications/moosync.desktop
+    override-pull: |
+      snapcraftctl pull
+      sed -i -e "s|Icon=moosync|Icon=/usr/share/icons/hicolor/32x32/apps/moosync.png|g" usr/share/applications/moosync.desktop
+    architectures: [amd64]
+
+  moosync-arm64:
+    plugin: dump
+    source: https://github.com/Moosync/Moosync/releases/download/v11.0.2/moosync_11.0.2_arm64.deb
+    source-type: deb
+    stage-packages:
+      - libwebkit2gtk-4.1-0
+      - libayatana-appindicator3-1
+    override-pull: |
+      snapcraftctl pull
+      sed -i -e "s|Icon=moosync|Icon=/usr/share/icons/hicolor/32x32/apps/moosync.png|g" usr/share/applications/moosync.desktop
+    architectures: [arm64]

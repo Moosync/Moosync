@@ -1,1 +1,73 @@
-package/snap/moosync/snapcraft.yaml
+name: moosync
+base: core22
+version: "11.0.2"
+summary: Customizable music player
+description: |
+  Moosync is a simple music player with a primary goal to provide a clean and easy interface.
+  Through Moosync you can easily listen songs from your desktop or through Youtube and Spotify.
+  Some of its features include:
+    - Play audio files on your desktop.
+    - Seamlessly integrate your Spotify and Youtube playlists.
+    - Add Spotify and Youtube tracks and playlists by URLs.
+    - Play songs directly from youtube using youtube embed.
+    - Scrobble your tracks on LastFM.
+    - Get music recommendations directly from Spotify, Youtube and LastFM
+    - Mix and match songs from different providers in a single playlist
+    - Easy to use interface
+    - Customizable theme engine
+    - Develop own apps on top of Moosync Extension API
+    - Available on Windows and Linux and MacOS
+
+grade: stable
+confinement: strict
+
+layout:
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.1:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.1
+
+apps:
+  moosync:
+    command: usr/bin/moosync
+    desktop: usr/share/applications/moosync.desktop
+    extensions: [gnome]
+    plugs:
+      - network
+      - audio-playback
+      - dbus
+      - mpris
+      - home
+
+package-repositories:
+  - type: apt
+    components: [main]
+    suites: [noble]
+    key-id: 78E1918602959B9C59103100F1831DDAFC42E99D
+    url: http://ppa.launchpad.net/snappy-dev/snapcraft-daily/ubuntu
+
+parts:
+  build-app:
+    plugin: dump
+    build-snaps:
+      - rustup/latest/stable
+    build-packages:
+      - libwebkit2gtk-4.1-dev
+      - build-essential
+      - curl
+      - wget
+      - file
+      - libxdo-dev
+      - libssl-dev
+      - libayatana-appindicator3-dev
+      - librsvg2-dev
+      - dpkg
+    stage-packages:
+      - libwebkit2gtk-4.1-0
+      - libayatana-appindicator3-1
+    source: .
+    override-build: |
+      set -eu
+      cargo install tauri-cli --version "^2.0.0-rc"
+      cargo install --locked trunk
+      cargo tauri build --bundles deb
+      dpkg -x src-tauri/target/release/bundle/deb/*.deb $SNAPCRAFT_PART_INSTALL/
+      sed -i -e "s|Icon=moosync|Icon=/usr/share/icons/hicolor/32x32/apps/moosync.png|g" $SNAPCRAFT_PART_INSTALL/usr/share/applications/moosync.desktop

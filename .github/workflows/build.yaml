@@ -15,6 +15,11 @@ on:
           - '[{"platform": "ubuntu-22.04", "args": ""}, {"platform": "ubuntu-22.04-arm", "args": ""}, {"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}, {"platform": "macos-13", "args": "--target x86_64-apple-darwin"}, {"platform": "windows-latest", "args": ""}]'
         default: '[{"platform": "ubuntu-22.04", "args": ""}, {"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}, {"platform": "macos-13", "args": "--target x86_64-apple-darwin"}, {"platform": "windows-latest", "args": ""}]'
         required: true
+      publish:
+        description: Publish release?
+        type: boolean
+        default: false
+        required: true
   push:
     branches:
       - release
@@ -101,13 +106,23 @@ jobs:
       - name: Install tauri CLI
         run: npm install -g @tauri-apps/cli@latest
 
-      - uses: tauri-apps/tauri-action@v0
+      - name: Build Tauri app (no publish)
+        if: ${{ !inputs.publish }}
+        uses: tauri-apps/tauri-action@v0
+        with:
+          args: ${{ matrix.args }}
+          tauriScript: tauri
+          projectPath: "."
+
+      - name: Publish Tauri release
+        if: ${{ inputs.publish }}
+        uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
         with:
-          tagName: Moosync-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
+          tagName: Moosync-v__VERSION__ # the action automatically replaces __VERSION__ with the app version.
           releaseName: "Moosync v__VERSION__"
           releaseBody: "See the assets to download this version and install."
           releaseDraft: true
@@ -115,3 +130,21 @@ jobs:
           args: ${{ matrix.args }}
           tauriScript: tauri
           projectPath: "."
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: moosync-build-${{ matrix.platform }}
+          path: |
+            target/**/latest.json
+            target/**/*.rpm
+            target/**/*.AppImage
+            target/**/*.AppImage.sig
+            target/**/*.dmg
+            target/**/*.deb
+            target/**/*-setup.exe
+            target/**/*-setup.exe.sig
+            target/**/*_en-US.msi
+            target/**/*_en-US.msi.sig
+            target/**/*.app.tar.gz
+            target/**/*.app.tar.gz.sig

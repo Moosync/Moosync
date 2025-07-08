@@ -71,7 +71,7 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Install OpenSSL (Windows only)
-        run: vcpkg install openssl:x64-windows-static-md --binarysource=nuget
+        run: vcpkg install openssl:x64-windows-static-md
         if: matrix.platform == 'windows-latest'
         env:
           VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"

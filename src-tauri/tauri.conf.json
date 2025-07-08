@@ -38,8 +38,8 @@
     "withGlobalTauri": true
   },
   "build": {
-    "beforeDevCommand": "RUSTFLAGS='--cfg getrandom_backend=\"wasm_js\" --cfg erase_components -C debuginfo=0' trunk serve",
-    "beforeBuildCommand": "RUSTFLAGS='--cfg getrandom_backend=\"wasm_js\"' trunk build --release",
+    "beforeDevCommand": "trunk serve",
+    "beforeBuildCommand": "trunk build --release",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },

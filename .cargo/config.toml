@@ -7,3 +7,6 @@
 
 [target.i686-linux-android]
 rustflags = ["-C", "relocation-model=pic"]
+
+[target.wasm32-unknown-unknown]
+rustflags = ['--cfg', 'getrandom_backend="wasm_js"']

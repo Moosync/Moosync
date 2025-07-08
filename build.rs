@@ -48,5 +48,7 @@ fn main() {
     } else {
         println!("cargo:warning=Could not find function_details.json");
     }
-    println!("cargo:rustc-cfg=getrandom_backend=\"wasm_js\"");
+    if cfg!(debug_assertions) {
+        println!("cargo:rustc-cfg=erase_components");
+    }
 }

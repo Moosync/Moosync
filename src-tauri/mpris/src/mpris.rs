@@ -30,8 +30,6 @@ use types::{
     ui::player_details::PlayerState,
 };
 
-
-
 pub struct MprisHolder {
     controls: Mutex<MediaControls>,
     pub event_rx: Arc<Mutex<Receiver<MediaControlEvent>>>,
@@ -104,7 +102,16 @@ impl MprisHolder {
                 cover_url: metadata.thumbnail.as_deref(),
                 duration: duration.map(Duration::from_millis),
             })
-            .map_err(|e| MoosyncError::MprisError(Box::new(e)))?;
+            .map_err(|e| {
+                #[cfg(target_os = "macos")]
+                {
+                    MoosyncError::String("Failed to set metadata".into())
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    MoosyncError::MprisError(Box::new(e))
+                }
+            })?;
 
         Ok(())
     }
@@ -128,9 +135,16 @@ impl MprisHolder {
         drop(last_duration);
 
         let mut controls = self.controls.lock().unwrap();
-        controls
-            .set_playback(parsed)
-            .map_err(|e| MoosyncError::MprisError(Box::new(e)))?;
+        controls.set_playback(parsed).map_err(|e| {
+            #[cfg(target_os = "macos")]
+            {
+                MoosyncError::String("Failed to set playback state".into())
+            }
+            #[cfg(not(target_os = "macos"))]
+            {
+                MoosyncError::MprisError(Box::new(e))
+            }
+        })?;
         drop(controls);
 
         let mut last_state = self.last_state.lock().unwrap();

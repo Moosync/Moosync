@@ -2,6 +2,7 @@ package app.moosync.moosync
 
 import android.os.Bundle
 import android.content.Intent
+import android.webkit.WebView
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 

@@ -24,8 +24,10 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.support.v4.media.session.MediaSessionCompat
+import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.media.session.MediaButtonReceiver
 import app.moosync.audioplayer.AudioPlayerPlugin
 import app.moosync.audioplayer.R
 import app.moosync.audioplayer.services.Constants.NOTIFICATION_CHANNEL_ID
@@ -83,8 +85,26 @@ class NotificationHandler (
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
+        val prevIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(
+            mContext,
+            PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS
+        )
+
+        val pauseIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(
+            mContext,
+            PlaybackStateCompat.ACTION_PAUSE
+        )
+
+        val nextIntent = MediaButtonReceiver.buildMediaButtonPendingIntent(
+            mContext,
+            PlaybackStateCompat.ACTION_SKIP_TO_NEXT
+        )
+
         notificationBuilder
             .setStyle(mediaStyle)
+            .addAction(android.R.drawable.ic_media_previous, "Previous", prevIntent)
+            .addAction(android.R.drawable.ic_media_pause, "Pause", pauseIntent)
+            .addAction(android.R.drawable.ic_media_next, "Next", nextIntent)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setSmallIcon(launcherIcon)
             .setContentIntent(clickIntent)

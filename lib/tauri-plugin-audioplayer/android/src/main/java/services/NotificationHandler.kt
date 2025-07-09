@@ -71,11 +71,15 @@ class NotificationHandler (
         val mediaStyle = androidx.media.app.NotificationCompat.MediaStyle()
             .setMediaSession(token).setShowActionsInCompactView(0, 1, 2)
 
+        val launchIntent = mContext.packageManager.getLaunchIntentForPackage(mContext.packageName)?.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
+        }
+
         val clickIntent = PendingIntent
             .getActivity(
                 mContext,
                 0,
-                Intent("app.moosync.moosync.MainActivity").setPackage(mContext.packageName),
+                launchIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 

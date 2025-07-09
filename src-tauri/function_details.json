@@ -1517,7 +1517,7 @@
     {
       "args": [
         {
-          "arg_type": "tauri::AppHandle<R>",
+          "arg_type": "tauri::AppHandle",
           "name": "app"
         },
         {
@@ -1531,7 +1531,7 @@
     {
       "args": [
         {
-          "arg_type": "tauri::AppHandle<R>",
+          "arg_type": "tauri::AppHandle",
           "name": "app"
         },
         {

@@ -103,11 +103,11 @@ impl MprisHolder {
                 duration: duration.map(Duration::from_millis),
             })
             .map_err(|e| {
-                #[cfg(target_os = "macos")]
+                #[cfg(any(target_os = "macos", target_os = "windows"))]
                 {
                     MoosyncError::String("Failed to set metadata".into())
                 }
-                #[cfg(not(target_os = "macos"))]
+                #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
                 {
                     MoosyncError::MprisError(Box::new(e))
                 }
@@ -136,11 +136,11 @@ impl MprisHolder {
 
         let mut controls = self.controls.lock().unwrap();
         controls.set_playback(parsed).map_err(|e| {
-            #[cfg(target_os = "macos")]
+            #[cfg(any(target_os = "macos", target_os = "windows"))]
             {
                 MoosyncError::String("Failed to set playback state".into())
             }
-            #[cfg(not(target_os = "macos"))]
+            #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
             {
                 MoosyncError::MprisError(Box::new(e))
             }

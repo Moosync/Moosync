@@ -21,6 +21,7 @@ import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.Looper
 import android.provider.MediaStore
 import android.util.Log
@@ -106,11 +107,11 @@ class LocalPlayer : GenericPlayer() {
         playerInstance.prepareAsync()
     }
 
-    private var progressTimer: Timer? = null
+    private var progressTimer: Handler? = null
 
     private fun cancelProgressTimer() {
-        progressTimer?.cancel()
-        progressTimer?.purge()
+        progressTimer?.removeCallbacksAndMessages(null)
+        progressTimer?.looper?.quit()
         progressTimer = null
     }
 
@@ -122,14 +123,16 @@ class LocalPlayer : GenericPlayer() {
             }
         }
 
-        val handler = Handler(Looper.getMainLooper())
+        val handlerThread = HandlerThread("BackgroundHandlerThread")
+        handlerThread.start()
+        progressTimer = Handler(handlerThread.looper)
         val runnable = object: Runnable {
             override fun run() {
                 if (isPlaying) {
                     Log.d("TAG", "run: sending time change event")
                     playerListeners.onTimeChange(key, progress)
                 }
-                handler.postDelayed(this, 1000)
+                progressTimer?.postDelayed(this, 1000)
             }
         }
 
@@ -163,5 +166,6 @@ class LocalPlayer : GenericPlayer() {
 
     override fun release() {
         playerInstance.release()
+        removePlayerListeners()
     }
 }

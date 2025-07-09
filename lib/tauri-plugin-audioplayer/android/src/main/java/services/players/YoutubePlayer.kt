@@ -187,6 +187,7 @@ class YoutubePlayer(mContext: Context) : GenericPlayer() {
     override fun release() {
         Log.d("TAG", "release: releasing view")
         _playerView.release()
+        removePlayerListeners()
     }
 
     private var youtubePlayerListener: MutableList<PlayerListeners> = mutableListOf()

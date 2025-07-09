@@ -2,6 +2,12 @@ name: "publish android"
 
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish release?
+        type: boolean
+        default: false
+        required: true
   push:
     branches:
       - release
@@ -215,6 +221,7 @@ jobs:
           path: latest-android.json
 
       - name: Publish APKs and latest-android.json
+        if: ${{ inputs.publish }}
         uses: softprops/action-gh-release@v2
         with:
           name: Moosync v${{ steps.generate-json.outputs.version_string }}
@@ -225,4 +232,3 @@ jobs:
           files: |
             ./apks/*.apk
             latest-android.json
-

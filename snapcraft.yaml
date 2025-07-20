@@ -1,5 +1,5 @@
 name: moosync
-base: core22
+base: core24
 version: "11.0.2"
 summary: Customizable music player
 description: |
@@ -83,7 +83,7 @@ parts:
       - xdg-utils
       - libsecret-1-dev
       - libatk-bridge2.0-dev
-      - libpangoft2.0-dev
+      - libpango1.0-dev
     stage-packages:
       - libwebkit2gtk-4.1-0
       - libayatana-appindicator3-1

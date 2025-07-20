@@ -81,6 +81,9 @@ parts:
       - file
       - libfuse2
       - xdg-utils
+      - libsecret-1-dev
+      - libatk-bridge2.0-dev
+      - libpangoft2.0-dev
     stage-packages:
       - libwebkit2gtk-4.1-0
       - libayatana-appindicator3-1
@@ -108,6 +111,9 @@ parts:
       - libappindicator3-1
       - libfuse2
       - xdg-utils
+      - libsecret-1-0
+      - libatk-bridge2.0-0
+      - libpangoft2.0-0
     override-build: |
       set -eux
       rustup target add wasm32-unknown-unknown

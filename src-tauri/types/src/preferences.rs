@@ -31,10 +31,11 @@ pub struct PathsValue {
     pub path: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
 #[serde(rename_all = "PascalCase")]
 pub enum PreferenceTypes {
     DirectoryGroup,
+    #[default]
     EditText,
     FilePicker,
     CheckboxGroup,
@@ -60,16 +61,17 @@ pub struct Page {
     pub icon: String,
 }
 
-#[derive(Debug, Serialize, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Clone, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum InputType {
+    #[default]
     Text,
     Number,
     #[serde(rename = "password")]
     SecureText,
 }
 
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct PreferenceUIData {
     #[serde(rename = "type")]

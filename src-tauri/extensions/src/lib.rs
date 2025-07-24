@@ -34,16 +34,17 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
 };
 use types::{
-    errors::{MoosyncError, Result, error_helpers},
+    errors::{error_helpers, MoosyncError, Result},
     extensions::{
         ExtensionCommand, ExtensionCommandResponse, ExtensionManifest, GenericExtensionHostRequest,
         MainCommand, MainCommandResponse, RunnerCommand, RunnerCommandResp,
     },
+    moosync_err,
+    preferences::PreferenceUIData,
     ui::extensions::{
         AccountLoginArgs, ExtensionAccountDetail, ExtensionDetail, ExtensionExtraEventArgs,
         ExtensionProviderScope, FetchedExtensionManifest, PackageNameArgs,
     },
-    moosync_err,
 };
 use zip_extensions::zip_extract;
 
@@ -191,7 +192,8 @@ impl ExtensionHandler {
             tracing::debug!("Creating dir {:?}", parent_dir);
             fs::create_dir_all(parent_dir)?;
         }
-        fs_extra::move_items(&[tmp_dir.clone()], parent_dir, &options).map_err(error_helpers::to_file_system_error)?;
+        fs_extra::move_items(&[tmp_dir.clone()], parent_dir, &options)
+            .map_err(error_helpers::to_file_system_error)?;
 
         tracing::debug!(
             "Renaming {:?} to {:?}",
@@ -233,7 +235,10 @@ impl ExtensionHandler {
 
         tracing::info!("parsed url {}. Saving at {:?}", parsed_url, file_path);
 
-        let mut stream = reqwest::get(parsed_url).await.map_err(error_helpers::to_network_error)?.bytes_stream();
+        let mut stream = reqwest::get(parsed_url)
+            .await
+            .map_err(error_helpers::to_network_error)?
+            .bytes_stream();
         let mut file = File::create(file_path.clone())?;
 
         while let Some(chunk_result) = stream.next().await {
@@ -286,6 +291,26 @@ impl ExtensionHandler {
             return Ok(icon);
         }
         Err("Could not find extension icon".into())
+    }
+
+    pub async fn register_ui_preferences(
+        &self,
+        package_name: String,
+        prefs: Vec<PreferenceUIData>,
+    ) -> Result<()> {
+        let inner = self.inner.lock().await;
+        inner.register_ui_preferences(package_name, prefs).await
+    }
+
+    pub async fn unregister_ui_preferences(
+        &self,
+        package_name: String,
+        pref_keys: Vec<String>,
+    ) -> Result<()> {
+        let inner = self.inner.lock().await;
+        inner
+            .unregister_ui_preferences(package_name, pref_keys)
+            .await
     }
 
     pub async fn send_extension_command(
@@ -405,7 +430,10 @@ impl ExtensionHandler {
         .header("Accept", "application/json")
         .send()
         .await.map_err(error_helpers::to_network_error)?;
-        let releases_resp = res.json::<GithubReleasesResp>().await.map_err(error_helpers::to_network_error)?;
+        let releases_resp = res
+            .json::<GithubReleasesResp>()
+            .await
+            .map_err(error_helpers::to_network_error)?;
 
         let mut ret = vec![];
         for item in releases_resp.assets.clone() {
@@ -440,5 +468,3 @@ impl ExtensionHandler {
         Ok(ret)
     }
 }
-
-

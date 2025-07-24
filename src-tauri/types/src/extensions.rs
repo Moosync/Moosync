@@ -28,6 +28,7 @@ use crate::{
         GetEntityOptions, QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist,
     },
     errors::{MoosyncError, Result as MoosyncResult},
+    preferences::PreferenceUIData,
     songs::{GetSongOptions, Song},
     ui::{
         extensions::{
@@ -483,6 +484,8 @@ pub enum MainCommand {
     RegisterOAuth(String),
     OpenExternalUrl(String),
     UpdateAccounts(Option<String>),
+    RegisterUserPreference(Vec<PreferenceUIData>),
+    UnregisterUserPreference(Vec<String>),
     ExtensionsUpdated(),
 }
 
@@ -509,6 +512,8 @@ pub enum MainCommandResponse {
     RegisterOAuth(bool),
     OpenExternalUrl(bool),
     UpdateAccounts(bool),
+    RegisterUserPreference(bool),
+    UnregisterUserPreference(bool),
     ExtensionsUpdated(bool),
 }
 
@@ -529,40 +534,12 @@ impl MainCommand {
     #[cfg(any(not(feature = "extensions"), feature = "extensions-core"))]
     pub fn to_ui_request(&mut self) -> MoosyncResult<ExtensionUIRequest> {
         let (r#type, data) = match self {
-            MainCommand::GetSong(options) => ("getSongs", serde_json::to_value(options)?),
-            MainCommand::GetEntity(options) => ("getEntity", serde_json::to_value(options)?),
             MainCommand::GetCurrentSong() => ("getCurrentSong", Value::Null),
             MainCommand::GetPlayerState() => ("getPlayerState", Value::Null),
             MainCommand::GetVolume() => ("getVolume", Value::Null),
             MainCommand::GetTime() => ("getTime", Value::Null),
             MainCommand::GetQueue() => ("getQueue", Value::Null),
-            MainCommand::GetPreference(options) => (
-                "getPreferences",
-                serde_json::to_value(sanitize_prefs(options))?,
-            ),
-            MainCommand::SetPreference(options) => (
-                "setPreferences",
-                serde_json::to_value(sanitize_prefs(options))?,
-            ),
-            MainCommand::GetSecure(options) => (
-                "getSecurePreferences",
-                serde_json::to_value(sanitize_prefs(options))?,
-            ),
-            MainCommand::SetSecure(options) => (
-                "setSecurePreferences",
-                serde_json::to_value(sanitize_prefs(options))?,
-            ),
-            MainCommand::AddSongs(songs) => ("addSong", serde_json::to_value(songs)?),
-            MainCommand::RemoveSong(song) => ("removeSong", serde_json::to_value(song)?),
-            MainCommand::UpdateSong(song) => ("updateSong", serde_json::to_value(song)?),
-            MainCommand::AddPlaylist(playlist) => ("addPlaylist", serde_json::to_value(playlist)?),
-            MainCommand::AddToPlaylist(options) => {
-                ("addToPlaylist", serde_json::to_value(options)?)
-            }
-            MainCommand::RegisterOAuth(url) => ("registerOauth", Value::String(url.clone())),
-            MainCommand::OpenExternalUrl(url) => ("openExternal", Value::String(url.clone())),
-            MainCommand::UpdateAccounts(key) => ("updateAccounts", serde_json::to_value(key)?),
-            MainCommand::ExtensionsUpdated() => ("extensionsUpdated", Value::Null),
+            _ => unreachable!("Any other request should not have been sent as UI request"),
         };
 
         Ok(ExtensionUIRequest {

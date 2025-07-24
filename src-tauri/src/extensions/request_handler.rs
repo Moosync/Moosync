@@ -15,17 +15,18 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use database::database::Database;
+use extensions::ExtensionHandler;
 use futures::channel::oneshot;
 use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use types::{
     entities::{GetEntityOptions, QueryablePlaylist},
-    errors::Result,
+    errors::{error_helpers, MoosyncError, Result},
     extensions::{MainCommand, MainCommandResponse},
+    preferences::PreferenceUIData,
     songs::{GetSongOptions, SearchableSong, Song},
     ui::extensions::PreferenceData,
-    errors::error_helpers,
 };
 
 use crate::{
@@ -171,20 +172,43 @@ impl ReplyHandler {
         Ok(MainCommandResponse::OpenExternalUrl(true))
     }
 
-    fn update_accounts(&self, key: Option<String>) -> Result<MainCommandResponse> {
+    async fn update_accounts(&self, key: Option<String>) -> Result<MainCommandResponse> {
         let app_handle = self.app_handle.clone();
         if let Some(key) = key {
-            tauri::async_runtime::spawn(async move {
-                let provider_handler: State<ProviderHandler> = app_handle.state();
-                if let Err(e) = provider_handler
-                    .request_account_status(format!("extension:{}", &key).as_str())
-                    .await
-                {
-                    tracing::error!("Failed to get account status from {}: {:?}", key, e);
-                }
-            });
+            let provider_handler: State<ProviderHandler> = app_handle.state();
+            if let Err(e) = provider_handler
+                .request_account_status(format!("extension:{}", &key).as_str())
+                .await
+            {
+                tracing::error!("Failed to get account status from {}: {:?}", key, e);
+                return Err("Failed to get account status".into());
+            }
         }
         Ok(MainCommandResponse::UpdateAccounts(true))
+    }
+
+    async fn register_preferences(
+        &self,
+        package_name: String,
+        prefs: Vec<PreferenceUIData>,
+    ) -> Result<MainCommandResponse> {
+        let ext_handler: State<ExtensionHandler> = self.app_handle.state();
+        ext_handler
+            .register_ui_preferences(package_name, prefs)
+            .await?;
+        Ok(MainCommandResponse::RegisterUserPreference(true))
+    }
+
+    async fn unregister_preferences(
+        &self,
+        package_name: String,
+        pref_keys: Vec<String>,
+    ) -> Result<MainCommandResponse> {
+        let ext_handler: State<ExtensionHandler> = self.app_handle.state();
+        ext_handler
+            .unregister_ui_preferences(package_name, pref_keys)
+            .await?;
+        Ok(MainCommandResponse::RegisterUserPreference(true))
     }
 
     #[tracing::instrument(level = "debug", skip(self, command))]
@@ -201,7 +225,8 @@ impl ReplyHandler {
                 let _ = tx.send(payload);
             });
         tracing::debug!("Sending ui request {:?}", request);
-        self.app_handle.emit("ui-requests", request)
+        self.app_handle
+            .emit("ui-requests", request)
             .map_err(error_helpers::to_extension_error)?;
 
         let res = rx.await;
@@ -246,32 +271,36 @@ impl ReplyHandler {
     ) -> Result<MainCommandResponse> {
         tracing::debug!("Got request from extension {:?}", command);
 
-        Ok(match command {
-            MainCommand::GetSong(get_song_options) => self.get_songs(get_song_options)?,
-            MainCommand::GetEntity(get_entity_options) => self.get_entity(get_entity_options)?,
+        match command {
+            MainCommand::GetSong(get_song_options) => self.get_songs(get_song_options),
+            MainCommand::GetEntity(get_entity_options) => self.get_entity(get_entity_options),
             MainCommand::GetCurrentSong()
             | MainCommand::GetPlayerState()
             | MainCommand::GetVolume()
             | MainCommand::GetTime()
-            | MainCommand::GetQueue() => self.send_ui_request(command).await?,
-            MainCommand::GetPreference(preference_data) => self.get_preferences(preference_data)?,
-            MainCommand::SetPreference(preference_data) => self.set_preferences(preference_data)?,
-            MainCommand::GetSecure(preference_data) => self.get_secure(preference_data)?,
-            MainCommand::SetSecure(preference_data) => self.set_secure(preference_data)?,
-            MainCommand::AddSongs(vec) => self.add_songs(vec)?,
-            MainCommand::RemoveSong(song) => self.remove_song(song)?,
-            MainCommand::UpdateSong(song) => self.update_song(song)?,
-            MainCommand::AddPlaylist(queryable_playlist) => {
-                self.add_playlist(queryable_playlist)?
-            }
+            | MainCommand::GetQueue() => self.send_ui_request(command).await,
+            MainCommand::GetPreference(preference_data) => self.get_preferences(preference_data),
+            MainCommand::SetPreference(preference_data) => self.set_preferences(preference_data),
+            MainCommand::GetSecure(preference_data) => self.get_secure(preference_data),
+            MainCommand::SetSecure(preference_data) => self.set_secure(preference_data),
+            MainCommand::AddSongs(vec) => self.add_songs(vec),
+            MainCommand::RemoveSong(song) => self.remove_song(song),
+            MainCommand::UpdateSong(song) => self.update_song(song),
+            MainCommand::AddPlaylist(queryable_playlist) => self.add_playlist(queryable_playlist),
             MainCommand::AddToPlaylist(add_to_playlist_request) => self.add_to_playlist(
                 add_to_playlist_request.playlist_id,
                 add_to_playlist_request.songs,
-            )?,
-            MainCommand::RegisterOAuth(url) => self.register_oauth(url, ext)?,
-            MainCommand::OpenExternalUrl(url) => self.open_external(url)?,
-            MainCommand::UpdateAccounts(key) => self.update_accounts(key)?,
-            MainCommand::ExtensionsUpdated() => self.extension_updated().await?,
-        })
+            ),
+            MainCommand::RegisterOAuth(url) => self.register_oauth(url, ext),
+            MainCommand::OpenExternalUrl(url) => self.open_external(url),
+            MainCommand::UpdateAccounts(key) => self.update_accounts(key).await,
+            MainCommand::ExtensionsUpdated() => self.extension_updated().await,
+            MainCommand::RegisterUserPreference(prefs) => {
+                self.register_preferences(ext, prefs).await
+            }
+            MainCommand::UnregisterUserPreference(pref_keys) => {
+                self.unregister_preferences(ext, pref_keys).await
+            }
+        }
     }
 }

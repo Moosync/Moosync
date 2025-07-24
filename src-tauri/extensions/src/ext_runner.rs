@@ -46,7 +46,10 @@ use tokio::sync::{
     Mutex,
 };
 use tracing::{debug, error, info};
-use types::{errors::Result as MoosyncResult, extensions::ExtensionExtraEventResponse};
+use types::{
+    errors::Result as MoosyncResult, extensions::ExtensionExtraEventResponse,
+    preferences::PreferenceUIData,
+};
 use types::{
     extensions::{
         sanitize_album, sanitize_artist, sanitize_playlist, sanitize_song, ExtensionCommand,
@@ -257,6 +260,7 @@ struct Extension {
     author: Option<String>,
     version: String,
     path: PathBuf,
+    preferences: HashMap<String, PreferenceUIData>,
     active: bool,
 }
 
@@ -271,7 +275,7 @@ impl From<&Extension> for ExtensionDetail {
             version: val.version.clone(),
             has_started: true,
             entry: val.path.clone().to_str().unwrap().to_string(),
-            preferences: vec![],
+            preferences: val.preferences.clone().into_values().collect(),
             extension_path: val.path.clone().to_str().unwrap().to_string(),
             extension_icon: Some(val.icon.clone()),
             active: val.active,
@@ -377,6 +381,7 @@ impl ExtensionHandlerInner {
             author: manifest.author,
             version: manifest.version,
             path: manifest.extension_entry.clone(),
+            preferences: Default::default(),
             active: false,
         }
     }
@@ -831,6 +836,39 @@ impl ExtensionHandlerInner {
         Ok(())
     }
 
+    pub async fn register_ui_preferences(
+        &self,
+        package_name: String,
+        prefs: Vec<PreferenceUIData>,
+    ) -> MoosyncResult<()> {
+        let mut extensions = self.extensions_map.lock().await;
+        if let Some(ext) = extensions.get_mut(&package_name) {
+            for pref in prefs {
+                ext.preferences.insert(pref.key.clone(), pref);
+            }
+
+            return Ok(());
+        }
+
+        Err("Extension not found".into())
+    }
+
+    pub async fn unregister_ui_preferences(
+        &self,
+        package_name: String,
+        pref_keys: Vec<String>,
+    ) -> MoosyncResult<()> {
+        let mut extensions = self.extensions_map.lock().await;
+        if let Some(ext) = extensions.get_mut(&package_name) {
+            for pref in pref_keys {
+                ext.preferences.remove(&pref);
+            }
+
+            return Ok(());
+        }
+
+        Err("Extension not found".into())
+    }
     // #[tracing::instrument(level = "debug", skip(self))]
     // pub async fn listen_command_once(&mut self) {
     //     if let Some(resp) = &self.main_command_rx.recv().await {

@@ -37,7 +37,6 @@ use wasm_bindgen::JsValue;
 #[cfg(all(not(feature = "extensions"), feature = "core"))]
 use core::str;
 
-
 #[cfg(not(feature = "extensions"))]
 #[derive(Debug, thiserror::Error)]
 pub enum MoosyncError {
@@ -180,6 +179,7 @@ pub type Result<T> = std::result::Result<T, MoosyncError>;
 
 /// Helper functions for converting errors to MoosyncError variants
 /// These can be used with .map_err() directly
+#[cfg(not(feature = "extensions"))]
 pub mod error_helpers {
     use super::MoosyncError;
 
@@ -199,7 +199,9 @@ pub mod error_helpers {
         MoosyncError::AuthError(Box::new(e))
     }
 
-    pub fn to_file_system_error<E: std::error::Error + Send + Sync + 'static>(e: E) -> MoosyncError {
+    pub fn to_file_system_error<E: std::error::Error + Send + Sync + 'static>(
+        e: E,
+    ) -> MoosyncError {
         MoosyncError::FileSystemError(Box::new(e))
     }
 

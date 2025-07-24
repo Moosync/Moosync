@@ -263,6 +263,7 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
     let (show_input, inp_type) = match data._type {
         PreferenceTypes::FilePicker => (false, ""),
         PreferenceTypes::EditText => match data.input_type.clone().unwrap() {
+            InputType::SecureText => (true, "password"),
             InputType::Text => (true, "text"),
             InputType::Number => (true, "number"),
         },
@@ -275,13 +276,18 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
         proc_macro2::Span::call_site(),
     );
 
+    let is_secure = data
+        .input_type
+        .clone()
+        .is_some_and(|v| v == InputType::SecureText);
+
     let stream = quote! {
         #[component()]
         pub fn #fn_name() -> impl IntoView {
             let i18n = use_i18n();
 
             view! {
-                <InputPref key=#key.to_string() title=t!(i18n, #name) tooltip=t!(i18n, #tooltip) show_input=#show_input inp_type=#inp_type.to_string() mobile=#mobile />
+                <InputPref key=#key.to_string() title=t!(i18n, #name) tooltip=t!(i18n, #tooltip) show_input=#show_input inp_type=#inp_type.to_string() mobile=#mobile is_secure=#is_secure />
             }
         }
     };

@@ -105,6 +105,34 @@ pub fn open_file_browser_single(
     })
 }
 
+#[tracing::instrument(level = "debug", skip(key, setter))]
+pub fn load_secure<T>(key: String, setter: impl Set<Value = T> + 'static)
+where
+    T: DeserializeOwned,
+{
+    spawn_local(async move {
+        let res = super::invoke::get_secure(key.clone()).await;
+        if let Err(e) = res {
+            tracing::error!("Failed to load secure preference: {}: {:?}", key, e);
+            return;
+        }
+        setter.set(serde_wasm_bindgen::from_value(res.unwrap()).unwrap());
+    });
+}
+
+#[tracing::instrument(level = "debug", skip(key, value))]
+pub fn save_secure<T>(key: String, value: T)
+where
+    T: Serialize + 'static,
+{
+    spawn_local(async move {
+        let res = super::invoke::set_secure(key.clone(), Some(value)).await;
+        if let Err(e) = res {
+            tracing::error!("Error saving secure {}: {:?}", key, e);
+        }
+    });
+}
+
 #[tracing::instrument(level = "debug", skip(cb))]
 pub fn watch_preferences(cb: fn((String, JsValue))) -> js_sys::Function {
     let owner = Owner::new();

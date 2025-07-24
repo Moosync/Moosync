@@ -16,7 +16,7 @@
 
 use std::{collections::HashMap, sync::Arc};
 
-use leptos::{component, prelude::*, view, IntoView};
+use leptos::{component, prelude::*, reactive::wrappers::write::SignalSetter, view, IntoView};
 use leptos_i18n::t;
 use leptos_use::use_debounce_fn_with_arg;
 use types::{
@@ -41,8 +41,8 @@ use crate::{
         context_menu::{create_context_menu, ThemesContextMenu},
         invoke::{get_installed_extensions, load_all_themes, remove_extension},
         prefs::{
-            load_selective, open_file_browser, open_file_browser_single, save_selective,
-            save_selective_number,
+            load_secure, load_selective, open_file_browser, open_file_browser_single, save_secure,
+            save_selective, save_selective_number,
         },
     },
 };
@@ -158,6 +158,7 @@ pub fn InputPref<K, H, K1, H1>(
     #[prop()] show_input: bool,
     #[prop()] inp_type: String,
     #[prop()] mobile: bool,
+    #[prop(default = false)] is_secure: bool,
 ) -> impl IntoView
 where
     K: Fn() -> H + Send + Sync + 'static,
@@ -165,6 +166,17 @@ where
     K1: Fn() -> H1 + Send + Sync + 'static,
     H1: IntoView + Copy + 'static,
 {
+    let load_fn: fn(String, SignalSetter<String>) = if is_secure {
+        load_secure::<String>
+    } else {
+        load_selective::<String>
+    };
+    let save_fn: fn(String, String) = if is_secure {
+        save_secure::<String>
+    } else {
+        save_selective::<String>
+    };
+
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
     if is_mobile && !mobile {
@@ -183,7 +195,7 @@ where
             pref_value.set(format!("{num_pref}"));
         });
     } else {
-        load_selective(pref_key.clone(), pref_value.write_only());
+        load_fn(pref_key.clone(), pref_value.write_only().into());
     }
     let inp_type_clone = inp_type.clone();
     Effect::new(move || {
@@ -197,7 +209,7 @@ where
         if inp_type_clone.clone() == "number" {
             save_selective_number(pref_key.clone(), value);
         } else {
-            save_selective(pref_key.clone(), value);
+            save_fn(pref_key.clone(), value);
         }
     });
 

@@ -60,11 +60,13 @@ pub struct Page {
     pub icon: String,
 }
 
-#[derive(Debug, Serialize, Clone, Deserialize)]
+#[derive(Debug, Serialize, Clone, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum InputType {
     Text,
     Number,
+    #[serde(rename = "password")]
+    SecureText,
 }
 
 #[derive(Debug, Serialize, Clone, Deserialize)]

@@ -14,13 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, rc::Rc, sync::Arc};
 
 use leptos::{component, prelude::*, reactive::wrappers::write::SignalSetter, view, IntoView};
 use leptos_i18n::t;
 use leptos_use::use_debounce_fn_with_arg;
 use types::{
-    preferences::{CheckboxItems, CheckboxPreference},
+    preferences::{CheckboxItems, CheckboxPreference, InputType},
     themes::ThemeDetails,
     ui::{extensions::ExtensionDetail, themes::ThemeModalState},
     window::DialogFilter,
@@ -57,9 +57,9 @@ pub fn PathsPref<K, H, K1, H1>(
 ) -> impl IntoView
 where
     K: Fn() -> H + Send + Sync + 'static,
-    H: IntoView + Copy + 'static,
+    H: IntoView + 'static,
     K1: Fn() -> H1 + Send + Sync + 'static,
-    H1: IntoView + Copy + 'static,
+    H1: IntoView + 'static,
 {
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
@@ -162,9 +162,9 @@ pub fn InputPref<K, H, K1, H1>(
 ) -> impl IntoView
 where
     K: Fn() -> H + Send + Sync + 'static,
-    H: IntoView + Copy + 'static,
+    H: IntoView + 'static,
     K1: Fn() -> H1 + Send + Sync + 'static,
-    H1: IntoView + Copy + 'static,
+    H1: IntoView + 'static,
 {
     let load_fn: fn(String, SignalSetter<String>) = if is_secure {
         load_secure::<String>
@@ -289,9 +289,9 @@ pub fn CheckboxPref<K, H, K1, H1>(
 ) -> impl IntoView
 where
     K: Fn() -> H + Send + Sync + 'static,
-    H: IntoView + Copy + 'static,
+    H: IntoView + 'static,
     K1: Fn() -> H1 + Send + Sync + 'static,
-    H1: IntoView + Copy + 'static,
+    H1: IntoView + 'static,
 {
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
@@ -645,99 +645,106 @@ where
                     key=|e| e.package_name.clone()
                     children=move |extension: ExtensionDetail| {
                         view! {
-                            <div class="row no-gutters align-items-center">
-                                <div class="row no-gutters">
-                                    <div class="col-auto align-self-center title d-flex preference-title">
-                                        {extension.name}
+                            <div class="container-fluid">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="row no-gutters">
+                                        <div class="col-auto align-self-center title d-flex preference-title">
+                                            {extension.name}
+                                        </div>
+
                                     </div>
-
                                 </div>
-                            </div>
 
-                            <For
-                                each=move || extension.preferences.clone()
-                                key=|p| p.key.clone()
-                                children=move |preference| {
-                                    match preference._type {
-                                        types::preferences::PreferenceTypes::DirectoryGroup => {
-                                            view! {
-                                                <PathsPref
-                                                    key=preference.key
-                                                    title=|| view! { title }
-                                                    tooltip=|| view! { tooltip }
-                                                    mobile=true
-                                                />
+                                <For
+                                    each=move || extension.preferences.clone()
+                                    key=|p| p.key.clone()
+                                    children=move |preference| {
+                                        let title = preference.title;
+                                        let tooltip = preference.description;
+                                        match preference._type {
+                                            types::preferences::PreferenceTypes::DirectoryGroup => {
+                                                view! {
+                                                    <PathsPref
+                                                        key=preference.key
+                                                        title=move || title.clone()
+                                                        tooltip=move || tooltip.clone()
+                                                        mobile=true
+                                                    />
+                                                }
+                                                    .into_any()
                                             }
-                                                .into_any()
-                                        }
-                                        types::preferences::PreferenceTypes::EditText => {
-                                            view! {
-                                                <InputPref
-                                                    key=preference.key
-                                                    title=|| view! { title }
-                                                    tooltip=|| view! { tooltip }
-                                                    show_input=true
-                                                    inp_type=serde_wasm_bindgen::to_value(
-                                                            &preference.input_type,
-                                                        )
-                                                        .unwrap()
-                                                        .as_string()
-                                                        .unwrap_or("text".to_string())
-                                                    mobile=true
-                                                />
+                                            types::preferences::PreferenceTypes::EditText => {
+                                                view! {
+                                                    <InputPref
+                                                        key=preference.key
+                                                        title=move || title.clone()
+                                                        tooltip=move || tooltip.clone()
+                                                        show_input=true
+                                                        inp_type=serde_wasm_bindgen::to_value(
+                                                                &preference.input_type,
+                                                            )
+                                                            .unwrap()
+                                                            .as_string()
+                                                            .unwrap_or("text".to_string())
+                                                        mobile=true
+                                                        is_secure=preference
+                                                            .input_type
+                                                            .is_some_and(|v| v == InputType::SecureText)
+                                                    />
+                                                }
+                                                    .into_any()
                                             }
-                                                .into_any()
-                                        }
-                                        types::preferences::PreferenceTypes::FilePicker => {
-                                            view! {
-                                                <InputPref
-                                                    key=preference.key
-                                                    title=|| view! { title }
-                                                    tooltip=|| view! { tooltip }
-                                                    show_input=false
-                                                    inp_type="".to_string()
-                                                    mobile=true
-                                                />
+                                            types::preferences::PreferenceTypes::FilePicker => {
+                                                view! {
+                                                    <InputPref
+                                                        key=preference.key
+                                                        title=move || title.clone()
+                                                        tooltip=move || tooltip.clone()
+                                                        show_input=false
+                                                        inp_type="".to_string()
+                                                        mobile=true
+                                                    />
+                                                }
+                                                    .into_any()
                                             }
-                                                .into_any()
-                                        }
-                                        types::preferences::PreferenceTypes::CheckboxGroup => {
-                                            view! {
-                                                <CheckboxPref
-                                                    key=preference.key
-                                                    title=|| view! { title }
-                                                    tooltip=|| view! { tooltip }
-                                                    items=preference.items.unwrap_or_default()
-                                                    single=preference.single.unwrap_or_default()
-                                                    mobile=true
-                                                />
+                                            types::preferences::PreferenceTypes::CheckboxGroup => {
+                                                view! {
+                                                    <CheckboxPref
+                                                        key=preference.key
+                                                        title=move || title.clone()
+                                                        tooltip=move || tooltip.clone()
+                                                        items=preference.items.unwrap_or_default()
+                                                        single=preference.single.unwrap_or_default()
+                                                        mobile=true
+                                                    />
+                                                }
+                                                    .into_any()
                                             }
-                                                .into_any()
-                                        }
-                                        types::preferences::PreferenceTypes::Dropdown => {
-                                            view! {
-                                                <DropdownPref
-                                                    key=preference.key
-                                                    title=|| view! { title }
-                                                    tooltip=|| view! { tooltip }
-                                                    mobile=true
-                                                />
+                                            types::preferences::PreferenceTypes::Dropdown => {
+                                                view! {
+                                                    <DropdownPref
+                                                        key=preference.key
+                                                        title=move || title.clone()
+                                                        tooltip=move || tooltip.clone()
+                                                        mobile=true
+                                                    />
+                                                }
+                                                    .into_any()
                                             }
-                                                .into_any()
-                                        }
-                                        types::preferences::PreferenceTypes::ThemeSelector
-                                        | types::preferences::PreferenceTypes::Extensions => {
-                                            ().into_any()
-                                        }
-                                        types::preferences::PreferenceTypes::ButtonGroup
-                                        | types::preferences::PreferenceTypes::ProgressBar
-                                        | types::preferences::PreferenceTypes::TextField
-                                        | types::preferences::PreferenceTypes::InfoField => {
-                                            ().into_any()
+                                            types::preferences::PreferenceTypes::ThemeSelector
+                                            | types::preferences::PreferenceTypes::Extensions => {
+                                                ().into_any()
+                                            }
+                                            types::preferences::PreferenceTypes::ButtonGroup
+                                            | types::preferences::PreferenceTypes::ProgressBar
+                                            | types::preferences::PreferenceTypes::TextField
+                                            | types::preferences::PreferenceTypes::InfoField => {
+                                                ().into_any()
+                                            }
                                         }
                                     }
-                                }
-                            />
+                                />
+                            </div>
                         }
                     }
                 />
@@ -757,9 +764,9 @@ pub fn DropdownPref<K, H, K1, H1>(
 ) -> impl IntoView
 where
     K: Fn() -> H + Send + Sync + 'static,
-    H: IntoView + Copy + 'static,
+    H: IntoView + 'static,
     K1: Fn() -> H1 + Send + Sync + 'static,
-    H1: IntoView + Copy + 'static,
+    H1: IntoView + 'static,
 {
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();

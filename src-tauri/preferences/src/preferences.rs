@@ -38,11 +38,9 @@ use serde::{de::DeserializeOwned, Serialize};
 use serde_json::Value;
 use whoami;
 
-use types::errors::{MoosyncError, Result, error_helpers};
+use types::errors::{error_helpers, MoosyncError, Result};
 
 // const SCHEMA: &str = include_str!("./schema.json");
-
-
 
 #[derive(Debug)]
 pub struct PreferenceConfig {
@@ -81,7 +79,9 @@ impl PreferenceConfig {
             Err(e) => {
                 tracing::warn!("Error getting keystore password: {:?} (May happen if the app is run for the first time)", e);
                 let key = ChaCha20Poly1305::generate_key(&mut OsRng);
-                entry.set_secret(key.as_slice()).map_err(error_helpers::to_config_error)?;
+                entry
+                    .set_secret(key.as_slice())
+                    .map_err(error_helpers::to_config_error)?;
 
                 let entry = Entry::new("moosync", whoami::username().as_str())
                     .map_err(error_helpers::to_config_error)?;
@@ -130,7 +130,9 @@ impl PreferenceConfig {
         let key = format!("prefs.{}", key);
         tracing::debug!("Loading selective {}", key);
 
-        let val: Option<T> = prefs.dot_get(key.as_str()).map_err(error_helpers::to_parse_error)?;
+        let val: Option<T> = prefs
+            .dot_get(key.as_str())
+            .map_err(error_helpers::to_parse_error)?;
         drop(prefs);
         if val.is_none() {
             return Err(format!("No value found for {}", key).into());
@@ -221,10 +223,13 @@ impl PreferenceConfig {
     {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         {
+            use types::errors::error_helpers::to_auth_error;
+
             let data: String = self.load_selective(key.clone())?;
             let mut split = data.split(':');
             let nonce = split.next().unwrap();
-            let nonce = GenericArray::clone_from_slice(&hex::decode(nonce).unwrap()[0..12]);
+            let nonce =
+                GenericArray::clone_from_slice(&hex::decode(nonce).map_err(to_auth_error)?[0..12]);
             let ciphertext = hex::decode(split.next().unwrap()).unwrap();
 
             let secret = self.secret.lock().unwrap();

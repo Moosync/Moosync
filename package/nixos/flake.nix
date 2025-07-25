@@ -26,7 +26,7 @@
         moosync = pkgs.stdenv.mkDerivation {
           name = "${pname}-${version}";
           src = src;
-          nativeBuildInputs = [ pkgs.binutils pkgs.libarchive ];
+          nativeBuildInputs = [ pkgs.binutils pkgs.libarchive pkgs.autoPatchelfHook ];
           buildInputs = [
             pkgs.gtk3
             pkgs.webkitgtk_4_1
@@ -63,7 +63,7 @@
             owner = "Moosync";
             repo = "Moosync";
             rev = "Moosync-v11.0.2";
-            sha256 = "6ae6e8c57227a1418d2e644871ae6f577a2bc56cdc3762de04a7143166c31458";
+            sha256 = "sha256-EGCvBsdaCdR+izHSzgbUzc0JHtWPlL+PTK5dhzv8OLI=";
           };
           nativeBuildInputs = [
             pkgs.pkg-config
@@ -71,6 +71,7 @@
             pkgs.rustc
             pkgs.cargo
             pkgs.python3
+            pkgs.autoPatchelfHook
           ];
           buildInputs = [
             pkgs.gtk3

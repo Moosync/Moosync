@@ -126,10 +126,22 @@
         };
 
         nixosModules.moosync = { config, pkgs, ... }: {
-          environment.systemPackages = [ moosync ];
+          environment.systemPackages = with pkgs; [
+            moosync
+            gnome.gnome-keyring
+          ];
+        
+          services.dbus.enable = true;
+          services.gnome.gnome-keyring.enable = true;
         };
         nixosModules.moosync-source = { config, pkgs, ... }: {
-          environment.systemPackages = [ moosync-source ];
+            environment.systemPackages = with pkgs; [
+              moosync-source
+              gnome.gnome-keyring
+            ];
+          
+            services.dbus.enable = true;
+            services.gnome.gnome-keyring.enable = true;
         };
       }
     );

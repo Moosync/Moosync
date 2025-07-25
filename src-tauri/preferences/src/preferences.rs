@@ -135,7 +135,11 @@ impl PreferenceConfig {
             .map_err(error_helpers::to_parse_error)?;
         drop(prefs);
         if val.is_none() {
-            return Err(format!("No value found for {}", key).into());
+            return Err(format!(
+                "No value found for {}. This is just a warning and shouldn't lead to any failure",
+                key
+            )
+            .into());
         }
 
         Ok(val.unwrap())

@@ -40,7 +40,7 @@ pub async fn get_lyrics(
     artists: Vec<String>,
     title: String,
 ) -> Result<String> {
-    let cache_string = format!("get_lyrics_{}_{}_{:?}_{}", id, url, artists, title);
+    let cache_string = format!("get_lyrics_{id}_{url}_{artists:?}_{title}");
 
     let cached = cache.get(&cache_string);
     if cached.is_ok() {

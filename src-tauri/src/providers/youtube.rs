@@ -312,7 +312,7 @@ impl YoutubeProvider {
 
         Song {
             song: QueryableSong {
-                _id: id.clone().map(|id| format!("youtube:{}", id)),
+                _id: id.clone().map(|id| format!("youtube:{id}")),
                 title: snippet.title,
                 date: snippet.published_at.map(|v| v.to_string()),
                 duration: content_details.duration.map(|d| {
@@ -339,7 +339,7 @@ impl YoutubeProvider {
             artists: Some(vec![QueryableArtist {
                 artist_id: snippet
                     .channel_id
-                    .map(|id| format!("youtube-artist:{}", id)),
+                    .map(|id| format!("youtube-artist:{id}")),
                 artist_name: snippet.channel_title,
                 ..Default::default()
             }]),
@@ -849,7 +849,7 @@ impl GenericProvider for YoutubeProvider {
     async fn playlist_from_url(&self, url: String) -> Result<QueryablePlaylist> {
         if let Some(api_client) = self.get_api_client().await.as_ref() {
             let playlist_id = Url::parse(url.as_str())
-                .map_err(|_| MoosyncError::String(format!("Failed to parse URL {}", url)))?;
+                .map_err(|_| MoosyncError::String(format!("Failed to parse URL {url}")))?;
             let playlist_id = playlist_id.query_pairs().find(|(k, _)| k == "list");
 
             if playlist_id.is_none() {

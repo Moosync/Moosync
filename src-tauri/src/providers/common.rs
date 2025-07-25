@@ -124,7 +124,7 @@ pub async fn refresh_login(
                     serde_json::to_string(&e)
                 )),
                 oauth2::RequestTokenError::Request(e) => error_helpers::to_network_error(e),
-                oauth2::RequestTokenError::Parse(e, _) => MoosyncError::String(format!("Parse error: {}", e)),
+                oauth2::RequestTokenError::Parse(e, _) => MoosyncError::String(format!("Parse error: {e}")),
                 oauth2::RequestTokenError::Other(e) => MoosyncError::String(e.to_string()),
             })?;
 
@@ -192,7 +192,7 @@ pub async fn authorize(
     }
 
     let parsed_code = if code.starts_with("?") {
-        Url::parse(format!("https://moosync.app/login{}", code).as_str()).unwrap()
+        Url::parse(format!("https://moosync.app/login{code}").as_str()).unwrap()
     } else {
         Url::parse(code.as_str()).unwrap()
     };
@@ -222,7 +222,7 @@ pub async fn authorize(
                 serde_json::to_string(&e)
             )),
             oauth2::RequestTokenError::Request(e) => error_helpers::to_network_error(e),
-            oauth2::RequestTokenError::Parse(e, _) => MoosyncError::String(format!("Parse error: {}", e)),
+            oauth2::RequestTokenError::Parse(e, _) => MoosyncError::String(format!("Parse error: {e}")),
             oauth2::RequestTokenError::Other(e) => MoosyncError::String(e.to_string()),
         })?;
 

@@ -49,7 +49,7 @@ impl OAuthHandler {
         if url.starts_with("https://moosync.app") {
             let new_path = url_parsed.path().trim_start_matches('/');
             let query = url_parsed.query().unwrap_or("");
-            let converted_url = format!("moosync://{}?{}", new_path, query);
+            let converted_url = format!("moosync://{new_path}?{query}");
             url_parsed = Url::parse(converted_url.as_str()).unwrap();
         }
         let path = url_parsed.host_str().unwrap().to_string();

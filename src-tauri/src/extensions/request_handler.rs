@@ -22,7 +22,7 @@ use serde_json::Value;
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use types::{
     entities::{GetEntityOptions, QueryablePlaylist},
-    errors::{error_helpers, MoosyncError, Result},
+    errors::{error_helpers, Result},
     extensions::{MainCommand, MainCommandResponse},
     preferences::PreferenceUIData,
     songs::{GetSongOptions, SearchableSong, Song},
@@ -160,7 +160,7 @@ impl ReplyHandler {
     pub fn register_oauth(&self, data: String, ext: String) -> Result<MainCommandResponse> {
         // TODO: Implement oauth registration
         let oauth: State<'_, OAuthHandler> = self.app_handle.state();
-        oauth.register_oauth_path(data, format!("extension:{}", ext));
+        oauth.register_oauth_path(data, format!("extension:{ext}"));
         Ok(MainCommandResponse::RegisterOAuth(false))
     }
 

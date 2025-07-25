@@ -59,7 +59,7 @@ impl Logger {
         file_appender.write_all(parsed_stripped.as_bytes())?;
         drop(file_appender);
 
-        println!("{}", parsed);
+        println!("{parsed}");
 
         Ok(())
     }

@@ -178,10 +178,9 @@ pub fn run() {
     #[cfg(desktop)]
     let is_mobile_init_script = format!(
         r#"
-    window.is_mobile = {};
+    window.is_mobile = false;
     window.is_mobile_player = false;
     "#,
-        true
     );
 
     #[cfg(mobile)]
@@ -196,10 +195,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .append_invoke_initialization_script(format!(
             r#"
-            window.LOGGING_FILTER = "{}";
-            {}
-            "#,
-            filter, is_mobile_init_script
+            window.LOGGING_FILTER = "{filter}";
+            {is_mobile_init_script}
+            "#
         ))
         .invoke_handler(tauri::generate_handler![
             // Preferences

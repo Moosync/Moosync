@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{collections::HashMap, rc::Rc, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use leptos::{component, prelude::*, reactive::wrappers::write::SignalSetter, view, IntoView};
 use leptos_i18n::t;

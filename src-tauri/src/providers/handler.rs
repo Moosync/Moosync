@@ -265,7 +265,7 @@ impl ProviderHandler {
                 return Ok(key.clone());
             }
         }
-        Err(format!("Provider for id {} not found", id).into())
+        Err(format!("Provider for id {id} not found").into())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]

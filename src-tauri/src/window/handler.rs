@@ -39,8 +39,8 @@ impl WindowHandler {
 
     #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn is_maximized(&self, window: Window) -> Result<bool> {
-        Ok(window.is_maximized()
-            .map_err(error_helpers::to_plugin_error)?)
+        window.is_maximized()
+            .map_err(error_helpers::to_plugin_error)
     }
 
     #[tracing::instrument(level = "debug", skip(self))]

@@ -44,9 +44,9 @@ use tauri::{AppHandle, Manager, State};
 use tokio::sync::{Mutex, RwLock, RwLockReadGuard};
 use types::{
     entities::{EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
-    errors::{MoosyncError, Result, error_helpers},
+    errors::{error_helpers, MoosyncError, Result},
     oauth::OAuth2Client,
-    providers::generic::{Pagination, ProviderStatus, GenericProvider},
+    providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::{QueryableSong, Song, SongType},
     ui::extensions::{ContextMenuReturnType, ExtensionProviderScope},
 };
@@ -278,7 +278,7 @@ impl SpotifyProvider {
         let id = item.id.unwrap().to_string();
         Song {
             song: QueryableSong {
-                _id: Some(format!("spotify:{}", id)),
+                _id: Some(format!("spotify:{id}")),
                 title: Some(item.name),
                 duration: Some(item.duration.num_seconds() as f64),
                 type_: SongType::SPOTIFY,
@@ -308,7 +308,10 @@ impl SpotifyProvider {
     async fn fetch_user_details(&self) -> Result<(ProviderStatus, bool)> {
         tracing::info!("Fetching user details for spotify");
         if let Some(api_client) = self.api_client.read().await.as_ref() {
-            let user = api_client.api_client.current_user().await
+            let user = api_client
+                .api_client
+                .current_user()
+                .await
                 .map_err(error_helpers::to_provider_error)?;
             let mut is_premium = false;
             if let Some(subscription) = user.product {
@@ -501,7 +504,7 @@ impl GenericProvider for SpotifyProvider {
                     oauth_handler
                         .handle_oauth(
                             app_handle.clone(),
-                            format!("moosync://spotifyoauthcallback{}", parsed_code),
+                            format!("moosync://spotifyoauthcallback{parsed_code}"),
                         )
                         .unwrap();
                     let _ = write!(&mut writer, "Logged in! You may return back to the app.");
@@ -765,8 +768,11 @@ impl GenericProvider for SpotifyProvider {
             tracing::debug!("Parsing id {}", track_id);
             let res = api_client
                 .api_client
-                .track(TrackId::from_id_or_uri(track_id.as_str())
-                    .map_err(error_helpers::to_provider_error)?, None)
+                .track(
+                    TrackId::from_id_or_uri(track_id.as_str())
+                        .map_err(error_helpers::to_provider_error)?,
+                    None,
+                )
                 .await
                 .map_err(error_helpers::to_provider_error)?;
 
@@ -866,7 +872,10 @@ impl GenericProvider for SpotifyProvider {
                 let id = id.replace("spotify-album:", "");
                 let id = AlbumId::from_id_or_uri(id.as_str())
                     .map_err(error_helpers::to_provider_error)?;
-                let album = api_client.api_client.album(id.clone(), None).await
+                let album = api_client
+                    .api_client
+                    .album(id.clone(), None)
+                    .await
                     .map_err(error_helpers::to_provider_error)?;
                 let album_tracks = api_client
                     .api_client
@@ -940,9 +949,12 @@ impl GenericProvider for SpotifyProvider {
                 let album_ids = album_ids.collect::<Vec<_>>().await;
 
                 for chunk in album_ids.chunks(20) {
-                    let albums = api_client.api_client.albums(chunk.to_vec(), None).await
+                    let albums = api_client
+                        .api_client
+                        .albums(chunk.to_vec(), None)
+                        .await
                         .map_err(error_helpers::to_provider_error)?;
-                    tracing::debug!("Got albums {:?}", albums);
+                    tracing::debug!("Got albums {:?}", albums.len());
                     for a in albums {
                         let mut tracks = a.tracks.items.clone();
                         let parsed = tracks.iter_mut().map(|t| {

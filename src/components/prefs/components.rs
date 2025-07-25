@@ -661,11 +661,12 @@ where
                                     children=move |preference| {
                                         let title = preference.title;
                                         let tooltip = preference.description;
+                                        let key = format!("extensions.{}", preference.key);
                                         match preference._type {
                                             types::preferences::PreferenceTypes::DirectoryGroup => {
                                                 view! {
                                                     <PathsPref
-                                                        key=preference.key
+                                                        key=key
                                                         title=move || title.clone()
                                                         tooltip=move || tooltip.clone()
                                                         mobile=true
@@ -676,7 +677,7 @@ where
                                             types::preferences::PreferenceTypes::EditText => {
                                                 view! {
                                                     <InputPref
-                                                        key=preference.key
+                                                        key=key
                                                         title=move || title.clone()
                                                         tooltip=move || tooltip.clone()
                                                         show_input=true
@@ -697,7 +698,7 @@ where
                                             types::preferences::PreferenceTypes::FilePicker => {
                                                 view! {
                                                     <InputPref
-                                                        key=preference.key
+                                                        key=key
                                                         title=move || title.clone()
                                                         tooltip=move || tooltip.clone()
                                                         show_input=false
@@ -710,7 +711,7 @@ where
                                             types::preferences::PreferenceTypes::CheckboxGroup => {
                                                 view! {
                                                     <CheckboxPref
-                                                        key=preference.key
+                                                        key=key
                                                         title=move || title.clone()
                                                         tooltip=move || tooltip.clone()
                                                         items=preference.items.unwrap_or_default()
@@ -723,7 +724,7 @@ where
                                             types::preferences::PreferenceTypes::Dropdown => {
                                                 view! {
                                                     <DropdownPref
-                                                        key=preference.key
+                                                        key=key
                                                         title=move || title.clone()
                                                         tooltip=move || tooltip.clone()
                                                         mobile=true

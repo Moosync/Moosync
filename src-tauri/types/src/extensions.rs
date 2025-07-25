@@ -521,14 +521,62 @@ impl MainCommand {
     #[cfg(any(not(feature = "extensions"), feature = "extensions-core"))]
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn to_request(
-        &self,
+        &mut self,
         package_name: String,
     ) -> MoosyncResult<GenericExtensionHostRequest<MainCommand>> {
+        self.sanitize_command(&package_name);
         Ok(GenericExtensionHostRequest {
             channel: uuid::Uuid::new_v4().to_string(),
             package_name: package_name,
             data: Some(self.clone()),
         })
+    }
+
+    fn sanitize_command(&mut self, package_name: &str) {
+        match self {
+            MainCommand::GetPreference(preference_data) => {
+                preference_data.key = format!("extensions.{}", preference_data.key);
+            }
+            MainCommand::SetPreference(preference_data) => {
+                preference_data.key = format!("extensions.{}", preference_data.key);
+            }
+            MainCommand::GetSecure(preference_data) => {
+                preference_data.key = format!("extensions.{}", preference_data.key);
+            }
+            MainCommand::SetSecure(preference_data) => {
+                preference_data.key = format!("extensions.{}", preference_data.key);
+            }
+            MainCommand::AddSongs(songs) => {
+                let prefix = format!("{}:", package_name);
+                for song in songs {
+                    sanitize_song(&prefix, song);
+                }
+            }
+            MainCommand::RemoveSong(song) => {
+                let prefix = format!("{}:", package_name);
+                sanitize_song(&prefix, song);
+            }
+            MainCommand::UpdateSong(song) => {
+                let prefix = format!("{}:", package_name);
+                sanitize_song(&prefix, song);
+            }
+            MainCommand::AddPlaylist(queryable_playlist) => {
+                let prefix = format!("{}:", package_name);
+                sanitize_playlist(&prefix, queryable_playlist);
+            }
+            MainCommand::AddToPlaylist(add_to_playlist_request) => {
+                let prefix = format!("{}:", package_name);
+                for song in add_to_playlist_request.songs.iter_mut() {
+                    sanitize_song(&prefix, song);
+                }
+            }
+            MainCommand::RegisterOAuth(_) => todo!(),
+            MainCommand::OpenExternalUrl(_) => todo!(),
+            MainCommand::UpdateAccounts(package_name_inner) => {
+                package_name_inner.replace(package_name.to_string());
+            }
+            _ => {}
+        }
     }
 
     #[cfg(any(not(feature = "extensions"), feature = "extensions-core"))]

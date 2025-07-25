@@ -77,6 +77,8 @@ struct MainCommandUserData {
 host_fn!(send_main_command(user_data: MainCommandUserData; command: MainCommand) -> Option<Value> {
     let user_data = user_data.get()?;
     let user_data = user_data.lock().unwrap();
+
+    let mut command = command;
     tracing::debug!("Got extension command {:?}", command);
     match command.to_request(user_data.package_name.clone()) {
         Ok(request) => {

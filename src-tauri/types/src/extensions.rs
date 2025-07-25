@@ -650,13 +650,6 @@ pub fn sanitize_playlist(prefix: &str, playlist: &mut QueryablePlaylist) {
     }
 }
 
-fn sanitize_prefs(options: &PreferenceData) -> PreferenceData {
-    PreferenceData {
-        key: format!("extensions.{}", options.key),
-        ..options.clone()
-    }
-}
-
 #[derive(Debug)]
 pub enum RunnerCommandResp {
     ExtensionList(Vec<ExtensionDetail>),

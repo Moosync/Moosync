@@ -226,10 +226,6 @@ impl GenericProvider for ExtensionProvider {
             return Err("Playlist ID cannot be None".into());
         }
 
-        if pagination.offset > 0 {
-            return Ok((vec![], pagination.next_page()));
-        }
-
         let res = send_extension_event!(
             self,
             ExtensionExtraEvent::RequestedPlaylistSongs(

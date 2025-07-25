@@ -275,10 +275,16 @@ impl PlayerHolder {
         let player_state = create_read_slice(player_store, |p| p.get_player_state());
         tracing::debug!("Autoplay {} {:?}", autoplay, player_state.get());
 
+        let old_pos = self.active_player.load(Ordering::Relaxed);
+
+        // Pause old player till we switch
+        if let Some(old_player) = self.players.lock().await.get(old_pos) {
+            let _ = old_player.pause();
+        }
+
         let pos = self.get_player(player_store, song).await?;
 
         // Stop current player only if we need to switch;
-        let old_pos = self.active_player.load(Ordering::Relaxed);
         if old_pos != pos {
             self.stop_playback().await?;
         }

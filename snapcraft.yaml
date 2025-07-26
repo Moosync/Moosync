@@ -110,7 +110,7 @@ parts:
       - xdg-utils
       - libsecret-1-0
       - libatk-bridge2.0-0
-      - libpangoft2.0-0
+      - libpangoft2-1.0-0
     override-build: |
       set -eux
       rustup target add wasm32-unknown-unknown

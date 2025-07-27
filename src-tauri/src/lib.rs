@@ -332,16 +332,23 @@ pub fn run() {
             if !log_path.exists() {
                 fs::create_dir_all(log_path.clone())?;
             }
-            let file_appender = RollingFileAppender::new(Rotation::DAILY, log_path, "moosync");
-            let log_layer = fmt::layer()
-                .pretty()
-                .with_ansi(false)
-                .with_target(true)
-                .with_writer(file_appender);
-            let subscriber = tracing_subscriber::registry()
-                .with(layer)
-                .with(log_layer)
-                .with(filter);
+
+            #[cfg(desktop)]
+            let subscriber = {
+                let file_appender = RollingFileAppender::new(Rotation::DAILY, &log_path, "moosync");
+                let log_layer = fmt::layer()
+                    .pretty()
+                    .with_ansi(false)
+                    .with_target(true)
+                    .with_writer(file_appender);
+                tracing_subscriber::registry()
+                    .with(filter)
+                    .with(layer)
+                    .with(log_layer)
+            };
+
+            #[cfg(mobile)]
+            let subscriber = tracing_subscriber::registry().with(filter).with(layer);
 
             tracing::subscriber::set_global_default(subscriber).unwrap();
 

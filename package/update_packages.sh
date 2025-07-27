@@ -12,6 +12,9 @@ VERSION=$(grep -o '"version": "[^"]*"' ../src-tauri/tauri.conf.json | cut -d'"' 
 echo "Current Tauri version: $VERSION (will not be modified)"
 echo "Downloading binaries and updating package files for version $VERSION"
 
+# Path to Nix flake
+NIX_FLAKE="nixos/flake.nix"
+
 # Create a temporary directory for downloads
 TEMP_DIR=$(mktemp -d)
 echo "Using temporary directory: $TEMP_DIR"
@@ -190,6 +193,20 @@ update_debian() {
     fi
 }
 
+# Update Nix flake with new version and checksum
+update_nix_flake() {
+    echo "Updating Nix flake..."
+    if [ -f "$NIX_FLAKE" ]; then
+        # Update version in flake.nix
+        sed -i "s/version = \".*\";/version = \"$VERSION\";/" "$NIX_FLAKE"
+        # Update sha256 for moosync deb package using the calculated checksum
+        sed -i "s/sha256 = \"[a-f0-9]\{64\}\";/sha256 = \"$DEB_CHECKSUM\";/" "$NIX_FLAKE"
+        echo "✓ Nix flake updated with version $VERSION and checksum $DEB_CHECKSUM"
+    else
+        echo "Nix flake not found at $NIX_FLAKE"
+    fi
+}
+
 # Function to publish changes for each package type
 publish_changes() {
     echo "Publishing changes..."
@@ -279,6 +296,7 @@ update_snap
 update_aur
 update_fedora
 update_debian
+update_nix_flake
 
 # Clean up temporary files
 rm -rf "$TEMP_DIR"

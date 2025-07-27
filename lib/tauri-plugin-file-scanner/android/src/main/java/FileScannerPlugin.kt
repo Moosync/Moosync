@@ -51,7 +51,7 @@ class FileScannerPlugin(private val activity: Activity): Plugin(activity) {
         val args = invoke.parseArgs(ScanArgs::class.java)
         CoroutineScope(Dispatchers.IO).launch {
             Log.d("file-scanner", "scanning audio files")
-            val songs = AudioScanner().readDirectory(activity)
+            val songs = AudioScanner().readDirectory(activity.applicationContext)
             val ret = Gson().toJson(songs)
             val obj = JSObject()
             obj.put("songs", ret);

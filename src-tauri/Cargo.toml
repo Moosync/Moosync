@@ -26,9 +26,7 @@ mpris = { path = "./mpris" }
 preferences = { path = "./preferences" }
 themes = { path = "./themes" }
 types = { path = "./types" }
-youtube = { path = "./youtube" }
 rodio-player = { path = "./rodio-player" }
-google-youtube3 = "6.0.0"
 oauth2 = { default-features = false, version = "5.0", features = ["reqwest"] }
 regex = { default-features = false, version = "1.11.1" }
 reqwest = { default-features = false, version = "0.12.20" }

@@ -8,10 +8,9 @@ description: |
   Some of its features include:
     - Play audio files on your desktop.
     - Seamlessly integrate your Spotify and Youtube playlists.
-    - Add Spotify and Youtube tracks and playlists by URLs.
-    - Play songs directly from youtube using youtube embed.
+    - Add Spotify tracks and playlists by URLs.
     - Scrobble your tracks on LastFM.
-    - Get music recommendations directly from Spotify, Youtube and LastFM
+    - Get music recommendations directly from Spotify and LastFM
     - Mix and match songs from different providers in a single playlist
     - Easy to use interface
     - Customizable theme engine
@@ -78,9 +77,6 @@ parts:
       - file
       - libfuse2
       - xdg-utils
-      - libsecret-1-dev
-      - libatk-bridge2.0-dev
-      - libpango1.0-dev
     stage-packages:
       - libwebkit2gtk-4.1-0
       - libayatana-appindicator3-1
@@ -108,9 +104,6 @@ parts:
       - libappindicator3-1
       - libfuse2
       - xdg-utils
-      - libsecret-1-0
-      - libatk-bridge2.0-0
-      - libpangoft2-1.0-0
     override-build: |
       set -eux
       rustup target add wasm32-unknown-unknown

@@ -13,23 +13,23 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles("consumer-rules.pro")
-//        ndk {
-//            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
-//        }
+        //        ndk {
+        //            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64"))
+        //        }
     }
 
-//    sourceSets {
-//        getByName("main") {
-//            jniLibs.srcDir("src/main/jniLibs")
-//        }
-//    }
+    //    sourceSets {
+    //        getByName("main") {
+    //            jniLibs.srcDir("src/main/jniLibs")
+    //        }
+    //    }
 
     buildTypes {
         release {
             isMinifyEnabled = false
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro"
             )
         }
     }
@@ -37,9 +37,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
+    kotlinOptions { jvmTarget = "1.8" }
 }
 
 dependencies {
@@ -57,14 +55,14 @@ dependencies {
     implementation(project(":tauri-android"))
 }
 
-//val rustBasePath = "./librespot-jni"
-//val archTriplets = mapOf(
+// val rustBasePath = "./librespot-jni"
+// val archTriplets = mapOf(
 //    "armeabi-v7a" to "armv7-linux-androideabi",
 //    "arm64-v8a" to "aarch64-linux-android",
 //    "x86_64" to "x86_64-linux-android"
-//)
+// )
 //
-//archTriplets.forEach { (arch, target) ->
+// archTriplets.forEach { (arch, target) ->
 //    val cargoTargetDirectory = "$rustBasePath/target"
 //
 //    // Build with cargo
@@ -112,5 +110,4 @@ dependencies {
 //    tasks.named("clean").configure {
 //        dependsOn("clean${arch.capitalize()}")
 //    }
-//}
-
+// }

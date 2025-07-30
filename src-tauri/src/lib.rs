@@ -90,7 +90,6 @@ use {
         open_file_browser, open_window, restart_app, toggle_dev_tools, toggle_fullscreen,
         update_zoom,
     },
-    youtube::get_youtube_scraper_state,
 };
 
 mod db;
@@ -108,7 +107,6 @@ mod scanner;
 mod themes;
 mod updater;
 mod window;
-mod youtube;
 
 #[cfg(desktop)]
 #[derive(Parser, Debug)]
@@ -366,9 +364,6 @@ pub fn run() {
 
             let window_state = get_window_state();
             app.manage(window_state);
-
-            let yt_state = get_youtube_scraper_state();
-            app.manage(yt_state);
 
             let scanner_state = get_scanner_state();
             app.manage(scanner_state);

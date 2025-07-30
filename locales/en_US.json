@@ -31,7 +31,7 @@
       "description_placeholder": "Description..."
     },
     "url": {
-      "input_hint": "Enter URL Here.. (Youtube or Spotify)"
+      "input_hint": "Enter URL Here..."
     }
   },
   "songView": {
@@ -91,7 +91,6 @@
     "hot_from": "Hot from"
   },
   "providers": {
-    "youtube": "Youtube",
     "spotify": "Spotify",
     "invidious": "Invidious",
     "lastfm": "LastFM"
@@ -149,12 +148,6 @@
         "noPersist": "Don't persist volume",
         "persistSeparateVolumes": "Persist separate volumes for each provider",
         "persistClampVolume": "Persist volume and clamp to max volume"
-      },
-      "youtube": {
-        "client_id": "Youtube Client ID",
-        "client_secret": "Youtube Client Secret",
-        "client_id_tooltip": "Youtube client ID required to login to Youtube. Click to know more",
-        "client_secret_tooltip": "Youtube client Secret required to login to Youtube. Click to know more"
       },
       "language": "Language",
       "language_tooltip": "Change application language"

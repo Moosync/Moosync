@@ -45,7 +45,6 @@ pub enum SongType {
     #[default]
     LOCAL,
     URL,
-    YOUTUBE,
     SPOTIFY,
     DASH,
     HLS,
@@ -56,7 +55,6 @@ impl Display for SongType {
         let data = match self {
             SongType::LOCAL => "LOCAL",
             SongType::URL => "URL",
-            SongType::YOUTUBE => "YOUTUBE",
             SongType::SPOTIFY => "SPOTIFY",
             SongType::DASH => "DASH",
             SongType::HLS => "HLS",
@@ -73,7 +71,6 @@ impl FromStr for SongType {
         match s {
             "LOCAL" => Ok(SongType::LOCAL),
             "URL" => Ok(SongType::URL),
-            "YOUTUBE" => Ok(SongType::YOUTUBE),
             "SPOTIFY" => Ok(SongType::SPOTIFY),
             "DASH" => Ok(SongType::DASH),
             "HLS" => Ok(SongType::HLS),
@@ -95,7 +92,6 @@ where
         match self {
             SongType::LOCAL => ToSql::<Text, Sqlite>::to_sql("LOCAL", out),
             SongType::URL => ToSql::<Text, Sqlite>::to_sql("URL", out),
-            SongType::YOUTUBE => ToSql::<Text, Sqlite>::to_sql("YOUTUBE", out),
             SongType::SPOTIFY => ToSql::<Text, Sqlite>::to_sql("SPOTIFY", out),
             SongType::DASH => ToSql::<Text, Sqlite>::to_sql("DASH", out),
             SongType::HLS => ToSql::<Text, Sqlite>::to_sql("HLS", out),
@@ -114,7 +110,6 @@ where
         match String::from_sql(bytes)?.as_str() {
             "LOCAL" => Ok(SongType::LOCAL),
             "URL" => Ok(SongType::URL),
-            "YOUTUBE" => Ok(SongType::YOUTUBE),
             "SPOTIFY" => Ok(SongType::SPOTIFY),
             "DASH" => Ok(SongType::DASH),
             "HLS" => Ok(SongType::HLS),

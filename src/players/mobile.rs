@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-
 use leptos::{html::Div, prelude::*, task::spawn_local};
 
 use serde::Deserialize;
@@ -156,12 +155,7 @@ impl GenericPlayer for MobilePlayer {
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn provides(&self) -> &[SongType] {
-        &[
-            SongType::LOCAL,
-            SongType::URL,
-            SongType::YOUTUBE,
-            SongType::SPOTIFY,
-        ]
+        &[SongType::LOCAL, SongType::URL, SongType::SPOTIFY]
     }
 
     #[tracing::instrument(level = "debug", skip(self, _volume))]
@@ -204,10 +198,6 @@ impl GenericPlayer for MobilePlayer {
                 return playback_url.starts_with("http://")
                     || playback_url.starts_with("https://")
                     || playback_url.parse::<u64>().is_ok();
-            }
-
-            if self.key == "YOUTUBE" {
-                return playback_url.len() == 11 || playback_url.starts_with("https://");
             }
 
             if self.key == "LIBRESPOT" {

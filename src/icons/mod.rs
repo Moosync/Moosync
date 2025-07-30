@@ -66,4 +66,3 @@ pub mod themes_icon;
 pub mod tooltip;
 pub mod trash_icon;
 pub mod volume_icon;
-pub mod youtube_icon;

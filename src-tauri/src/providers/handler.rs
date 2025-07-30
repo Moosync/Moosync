@@ -31,16 +31,16 @@ use tauri::{
 use tokio::sync::{Mutex, RwLock};
 use types::{
     entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
+    errors::error_helpers,
     errors::{MoosyncError, Result},
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
     ui::extensions::ContextMenuReturnType,
-    errors::error_helpers,
 };
 
 use crate::{extensions::get_extension_handler, providers::extension::ExtensionProvider};
 
-use super::{spotify::SpotifyProvider, youtube::YoutubeProvider};
+use super::spotify::SpotifyProvider;
 
 macro_rules! generate_wrapper {
     ($($func_name:ident {
@@ -126,8 +126,6 @@ impl ProviderHandler {
         let spotify_provider = Box::new(SpotifyProvider::new(app.clone(), store.status_tx.clone()));
         provider_store.insert(spotify_provider.key(), spotify_provider);
 
-        let youtube_provider = Box::new(YoutubeProvider::new(app, store.status_tx.clone()));
-        provider_store.insert(youtube_provider.key(), youtube_provider);
         drop(provider_store);
 
         store
@@ -220,7 +218,8 @@ impl ProviderHandler {
                 });
             }
 
-            self.app_handle.emit("providers-updated", Value::Null)
+            self.app_handle
+                .emit("providers-updated", Value::Null)
                 .map_err(error_helpers::to_extension_error)?;
         }
         Ok(())

@@ -88,18 +88,6 @@ page:
           - title: settings.system.volumePersistMode.persistClampVolume
             key: persist_clamp
 
-      - type: EditText
-        title: settings.system.youtube.client_id
-        inputType: text
-        description: settings.system.youtube.client_id_tooltip
-        key: youtube.client_id
-
-      - type: EditText
-        title: settings.system.youtube.client_secret
-        inputType: text
-        description: settings.system.youtube.client_secret_tooltip
-        key: youtube.client_secret
-
       - type: Dropdown
         title: settings.system.language
         description: settings.system.language_tooltip

@@ -33,9 +33,6 @@
         "MoosyncSpotifyRefreshToken": {
           "type": "string"
         },
-        "MoosyncYoutubeRefreshToken": {
-          "type": "string"
-        },
         "music_paths": {
           "$ref": "#/$defs/paths"
         },

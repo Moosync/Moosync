@@ -174,12 +174,7 @@ impl GenericPlayer for LocalPlayer {
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn provides(&self) -> &[SongType] {
-        &[
-            SongType::LOCAL,
-            SongType::URL,
-            SongType::YOUTUBE,
-            SongType::SPOTIFY,
-        ]
+        &[SongType::LOCAL, SongType::URL, SongType::SPOTIFY]
     }
 
     #[tracing::instrument(level = "debug", skip(self, volume))]

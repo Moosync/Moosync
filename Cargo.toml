@@ -72,7 +72,6 @@ members = [
     "src-tauri/preferences",
     "src-tauri/themes",
     "src-tauri/types",
-    "src-tauri/youtube",
     "src-tauri/rodio-player",
     "src/pref_gen",
     "src-tauri/tauri-invoke-proc",

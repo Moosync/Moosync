@@ -22,10 +22,9 @@ import app.moosync.audioplayer.models.Song
 import app.moosync.audioplayer.services.players.GenericPlayer
 import app.moosync.audioplayer.services.players.LocalPlayer
 import app.moosync.audioplayer.services.players.PlayerListeners
-import app.moosync.audioplayer.services.players.YoutubePlayer
 
 class PlaybackManager(mContext: Context, private val playerListeners: PlayerListeners) {
-    private val players: HashMap<String, GenericPlayer> = hashMapOf(Pair("LOCAL", LocalPlayer()), Pair("YOUTUBE", YoutubePlayer(mContext)))
+    private val players: HashMap<String, GenericPlayer> = hashMapOf(Pair("LOCAL", LocalPlayer()))
 
     init {
         for (player in players.values) {

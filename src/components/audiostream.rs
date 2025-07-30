@@ -92,18 +92,12 @@ impl PlayerHolder {
             let local_player = LocalPlayer::new();
             players.push(Box::new(local_player));
 
-            // let youtube_player = YoutubePlayer::new();
-            // players.push(Box::new(youtube_player));
-
             let librespot_player = LibrespotPlayer::new();
             players.push(Box::new(librespot_player));
         } else {
             let mut mobile_player_local = MobilePlayer::new("LOCAL".into());
             mobile_player_local.add_listeners(state_setter.clone());
             players.push(Box::new(mobile_player_local));
-
-            let mobile_player_youtube = MobilePlayer::new("YOUTUBE".into());
-            players.push(Box::new(mobile_player_youtube));
 
             let local_player = LocalPlayer::new();
             players.push(Box::new(local_player));

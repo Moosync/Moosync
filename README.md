@@ -13,10 +13,10 @@
 ## Features
 
 - Play audio files on your desktop.
-- Seamlessly integrate your Spotify and Youtube songs.
+- Seamlessly integrate your Spotify songs.
 - Lyrics fetch support
 - Scrobble your tracks on LastFM.
-- Get music recommendations directly from Spotify, Youtube and LastFM
+- Get music recommendations directly from Spotify and LastFM
 - Mix and match songs from different providers in a single playlist
 - Easy to use interface
 - Customizable theme engine

@@ -19,7 +19,7 @@ use types::ui::extensions::PackageNameArgs;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
-    icons::{spotify_icon::SpotifyIcon, youtube_icon::YoutubeIcon},
+    icons::spotify_icon::SpotifyIcon,
     utils::{common::convert_file_src, invoke::get_extension_icon},
 };
 
@@ -32,10 +32,7 @@ pub fn ProviderIcon(
     let provider_icon = RwSignal::new(String::new());
     let extension_clone = extension.clone();
     spawn_local(async move {
-        if !extension_clone.is_empty()
-            && extension_clone != "youtube"
-            && extension_clone != "spotify"
-        {
+        if !extension_clone.is_empty() && extension_clone != "spotify" {
             let extension_clone = extension_clone.replace("extension:", "");
             let res = get_extension_icon(
                 PackageNameArgs {
@@ -56,16 +53,7 @@ pub fn ProviderIcon(
         <div class="d-flex provider-icon">
             {move || {
                 let extension = extension.as_str();
-                if extension == "youtube" {
-                    view! {
-                        <YoutubeIcon fill=if accounts {
-                            "#E62017".into()
-                        } else {
-                            Default::default()
-                        } />
-                    }
-                        .into_any()
-                } else if extension == "spotify" {
+                if extension == "spotify" {
                     view! {
                         <SpotifyIcon fill=if accounts {
                             "#07C330".into()

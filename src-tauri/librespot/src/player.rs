@@ -32,7 +32,7 @@ use regex::Regex;
 use reqwest::header::{CONTENT_LENGTH, CONTENT_TYPE};
 
 use types::canvaz::{Canvaz, CanvazArtist, CanvazResponse, Type};
-use types::errors::{Result, error_helpers};
+use types::errors::{error_helpers, Result};
 use url::Url;
 
 use crate::canvaz::entity_canvaz_request::Entity;
@@ -63,7 +63,7 @@ pub fn new_player(
         ..Default::default()
     };
 
-    let mixer = mixer::find(None).unwrap()(mixer_config);
+    let mixer = mixer::find(None).unwrap()(mixer_config).expect("Could not get default mixer");
 
     let p = Player::new(
         player_config,
@@ -118,9 +118,14 @@ pub fn get_lyrics(track_uri: String, session: Session) -> Result<String> {
         .unwrap();
 
     runtime.block_on(async {
-        let track_id_res = SpotifyId::from_uri(track_uri.as_str()).map_err(error_helpers::to_parse_error)?;
+        let track_id_res =
+            SpotifyId::from_uri(track_uri.as_str()).map_err(error_helpers::to_parse_error)?;
 
-        let resp = session.spclient().get_lyrics(&track_id_res).await.map_err(error_helpers::to_network_error)?;
+        let resp = session
+            .spclient()
+            .get_lyrics(&track_id_res)
+            .await
+            .map_err(error_helpers::to_network_error)?;
 
         let str = String::from_utf8(resp.to_vec())?;
         Ok(str)
@@ -241,10 +246,13 @@ pub fn get_canvas(track_uri: String, session: Session) -> Result<CanvazResponse>
         let token = session
             .token_provider()
             .get_token("playlist-read")
-            .await.map_err(error_helpers::to_network_error)?
+            .await
+            .map_err(error_helpers::to_network_error)?
             .access_token;
 
-        let body = req.write_to_bytes().map_err(error_helpers::to_parse_error)?;
+        let body = req
+            .write_to_bytes()
+            .map_err(error_helpers::to_parse_error)?;
 
         let resp = reqwest::Client::builder()
             .build()
@@ -255,11 +263,16 @@ pub fn get_canvas(track_uri: String, session: Session) -> Result<CanvazResponse>
             .header(CONTENT_LENGTH, body.len())
             .body(body)
             .send()
-            .await.map_err(error_helpers::to_network_error)?;
+            .await
+            .map_err(error_helpers::to_network_error)?;
 
-        let bytes = resp.bytes().await.map_err(error_helpers::to_network_error)?;
+        let bytes = resp
+            .bytes()
+            .await
+            .map_err(error_helpers::to_network_error)?;
 
-        let data = EntityCanvazResponse::parse_from_tokio_bytes(&bytes.clone()).map_err(error_helpers::to_parse_error)?;
+        let data = EntityCanvazResponse::parse_from_tokio_bytes(&bytes.clone())
+            .map_err(error_helpers::to_parse_error)?;
 
         parse_canvaz(data)
     })

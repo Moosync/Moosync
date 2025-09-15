@@ -141,7 +141,7 @@ impl ReplyHandler {
     pub fn get_secure(&self, data: PreferenceData) -> Result<MainCommandResponse> {
         let preferences: State<'_, PreferenceConfig> = self.app_handle.state();
         let val = preferences.get_secure(data.key.clone())?;
-        Ok(MainCommandResponse::GetPreference(PreferenceData {
+        Ok(MainCommandResponse::GetSecure(PreferenceData {
             key: data.key,
             value: val,
             default_value: None,

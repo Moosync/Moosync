@@ -541,10 +541,12 @@ impl MainCommand {
                 preference_data.key = format!("extensions.{}", preference_data.key);
             }
             MainCommand::GetSecure(preference_data) => {
-                preference_data.key = format!("extensions.{}", preference_data.key);
+                preference_data.key =
+                    format!("extensions.{}.{}", package_name, preference_data.key);
             }
             MainCommand::SetSecure(preference_data) => {
-                preference_data.key = format!("extensions.{}", preference_data.key);
+                preference_data.key =
+                    format!("extensions.{}.{}", package_name, preference_data.key);
             }
             MainCommand::AddSongs(songs) => {
                 let prefix = format!("{}:", package_name);

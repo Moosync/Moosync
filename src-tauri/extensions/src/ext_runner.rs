@@ -93,6 +93,13 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command: MainCommand)
             tracing::trace!("Sending request {:?}", request);
             ext_command_tx.send(request.clone()).unwrap();
 
+            match command {
+                MainCommand::UpdateAccounts(_) => {
+                    return Ok(Some(MainCommandResponse::UpdateAccounts(true)));
+                },
+                _ => {}
+            }
+
             tracing::trace!("waiting on response for {:?}", command);
             if let Some(resp) = block_on(rx.recv()) {
                 {

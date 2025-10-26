@@ -444,19 +444,16 @@ impl PlayerStore {
         self.data.player_details.volume
     }
 
+    // TODO: If data does not exist, remove from queue
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn get_queue_songs(&self) -> Vec<Song> {
         self.data
             .queue
             .song_queue
             .iter()
-            .map(|index| {
-                self.data
-                    .queue
-                    .data
-                    .get(index)
-                    .cloned()
-                    .expect("Song does not exist in data")
+            .filter_map(|id| match self.data.queue.data.get(id).cloned() {
+                Some(song) => Some(song),
+                None => None,
             })
             .collect()
     }

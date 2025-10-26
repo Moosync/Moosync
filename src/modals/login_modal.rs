@@ -15,7 +15,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use leptos::{component, prelude::*, task::spawn_local, view, IntoView};
-use serde::Serialize;
 
 use crate::{
     modals::common::GenericModal,
@@ -50,11 +49,6 @@ pub fn LoginModal(
 
     let open_external = move |_| {
         let url = url.get();
-
-        #[derive(Serialize)]
-        struct OpenExternalArgs {
-            url: String,
-        }
 
         spawn_local(async move {
             let res = crate::utils::invoke::open_external(url).await;

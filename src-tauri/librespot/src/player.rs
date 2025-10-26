@@ -19,8 +19,8 @@ use std::sync::Arc;
 use futures_util::StreamExt;
 
 use librespot::core::cache::Cache;
-use librespot::core::SpotifyId;
 use librespot::core::{authentication::Credentials, config::SessionConfig, session::Session};
+use librespot::core::{SpotifyUri};
 use librespot::discovery::DeviceType;
 
 use librespot::playback::config::{PlayerConfig, VolumeCtrl};
@@ -119,11 +119,15 @@ pub fn get_lyrics(track_uri: String, session: Session) -> Result<String> {
 
     runtime.block_on(async {
         let track_id_res =
-            SpotifyId::from_uri(track_uri.as_str()).map_err(error_helpers::to_parse_error)?;
+            SpotifyUri::from_uri(track_uri.as_str()).map_err(error_helpers::to_parse_error)?;
 
         let resp = session
             .spclient()
-            .get_lyrics(&track_id_res)
+            .get_lyrics(
+                &(&track_id_res)
+                    .try_into()
+                    .map_err(error_helpers::to_parse_error)?,
+            )
             .await
             .map_err(error_helpers::to_network_error)?;
 

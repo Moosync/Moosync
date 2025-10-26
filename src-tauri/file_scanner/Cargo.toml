@@ -9,13 +9,13 @@ edition = "2021"
 substring = "1.4.5"
 types = { path = "../types", default-features = false, features = ["core"] }
 blake3 = { version = "1.8.2", default-features = false }
-fast_image_resize = "5.1.4"
-image = { version = "0.25.6" }
+fast_image_resize = "5.3.0"
+image = { version = "0.25.8" }
 lazy_static = "1.5.0"
 lofty = { default-features = false, version = "0.22.4" }
-regex = { default-features = false, version = "1.11.1" }
+regex = { default-features = false, version = "1.12.2" }
 threadpool = "1.8.1"
 num_cpus = "1.17.0"
-uuid = { version = "1.17.0", default-features = false, features = ["v4"] }
+uuid = { version = "1.18.1", default-features = false, features = ["v4"] }
 dunce = "1.0.5"
 tracing = { version = "0.1.41", default-features = false }

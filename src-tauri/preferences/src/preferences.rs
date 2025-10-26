@@ -26,10 +26,7 @@ use std::sync::Mutex;
 
 use crossbeam_channel::{bounded, Receiver, Sender};
 
-use chacha20poly1305::{
-    aead::{generic_array::GenericArray, Aead, OsRng},
-    AeadCore, ChaCha20Poly1305, Key, KeyInit, KeySizeUser,
-};
+use chacha20poly1305::{aead::Aead, AeadCore, ChaCha20Poly1305, Key, KeyInit, KeySizeUser};
 use json_dotpath::DotPaths;
 // use jsonschema::Validator;
 use keyring::Entry;
@@ -72,13 +69,13 @@ impl PreferenceConfig {
         let secret = match entry.get_secret() {
             Ok(password) => {
                 tracing::debug!("Got keystore password");
-                Key::from(GenericArray::clone_from_slice(
-                    &password[0..ChaCha20Poly1305::key_size()],
-                ))
+                Key::try_from(&password[0..ChaCha20Poly1305::key_size()])
+                    .map_err(|e| error_helpers::to_config_error(e))?
             }
             Err(e) => {
                 tracing::warn!("Error getting keystore password: {:?} (May happen if the app is run for the first time)", e);
-                let key = ChaCha20Poly1305::generate_key(&mut OsRng);
+                let key = ChaCha20Poly1305::generate_key()
+                    .map_err(|e| error_helpers::to_config_error(e))?;
                 entry
                     .set_secret(key.as_slice())
                     .map_err(error_helpers::to_config_error)?;
@@ -94,7 +91,7 @@ impl PreferenceConfig {
         };
 
         #[cfg(target_os = "android")]
-        let secret = ChaCha20Poly1305::generate_key(&mut OsRng);
+        let secret = ChaCha20Poly1305::generate_key();
 
         let mut config_file = File::open(config_file_path.clone())?;
         let mut prefs = String::new();
@@ -227,13 +224,21 @@ impl PreferenceConfig {
     {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         {
+            use chacha20poly1305::aead::Nonce;
             use types::errors::error_helpers::to_auth_error;
 
             let data: String = self.load_selective(key.clone())?;
             let mut split = data.split(':');
-            let nonce = split.next().unwrap();
-            let nonce =
-                GenericArray::clone_from_slice(&hex::decode(nonce).map_err(to_auth_error)?[0..12]);
+            let nonce_hex = split.next().unwrap();
+            let nonce_bytes = hex::decode(nonce_hex).map_err(to_auth_error)?;
+            let nonce_slice = nonce_bytes.get(..12).ok_or_else(|| {
+                MoosyncError::String("Nonce is too short, expected 12 bytes".to_string())
+            })?;
+            let nonce_array: [u8; 12] = nonce_slice
+                .try_into()
+                .expect("Slice length is guaranteed to be 12");
+            let nonce = Nonce::<ChaCha20Poly1305>::from(nonce_array);
+
             let ciphertext = hex::decode(split.next().unwrap()).unwrap();
 
             let secret = self.secret.lock().unwrap();
@@ -265,11 +270,13 @@ impl PreferenceConfig {
 
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         {
+            use types::errors::error_helpers::to_auth_error;
+
             let value = value.unwrap();
 
             let secret = self.secret.lock().unwrap();
             let cipher = ChaCha20Poly1305::new(&secret);
-            let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
+            let nonce = ChaCha20Poly1305::generate_nonce().map_err(to_auth_error)?;
             let encrypted = cipher
                 .encrypt(&nonce, (serde_json::to_string(&value)).unwrap().as_bytes())
                 .unwrap();

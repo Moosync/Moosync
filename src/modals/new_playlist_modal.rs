@@ -130,7 +130,7 @@ pub fn NewPlaylistModal(
                                                 <NewPlaylistIcon />
                                             </div>
                                             <div class="item-title text-center">
-                                                {t!(i18n, contextMenu.playlist.newPlaylist)}
+                                                {t!(i18n, context_menu.playlist.new_playlist)}
                                             </div>
                                         </div>
                                     </div>
@@ -151,7 +151,7 @@ pub fn NewPlaylistModal(
                                                 <ImportPlaylistIcon />
                                             </div>
                                             <div class="item-title text-center">
-                                                {t!(i18n, contextMenu.playlist.addFromURL)}
+                                                {t!(i18n, context_menu.playlist.add_from_url)}
                                             </div>
                                         </div>
                                     </div>
@@ -269,7 +269,7 @@ pub fn NewPlaylistModal(
                                                             if let Some(playlist) = playlist {
                                                                 playlist.playlist_name.into_any()
                                                             } else {
-                                                                t!(i18n, contextMenu.playlist.newPlaylist).into_any()
+                                                                t!(i18n, context_menu.playlist.new_playlist).into_any()
                                                             }
                                                         }}
                                                     </div>

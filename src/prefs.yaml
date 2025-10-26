@@ -4,14 +4,14 @@ page:
     icon: Paths
     data:
       - type: DirectoryGroup
-        description: settings.paths.songDirectories_tooltip
-        title: settings.paths.songDirectories
+        description: settings.paths.song_directories_tooltip
+        title: settings.paths.song_directories
         key: music_paths
         mobile: false
 
       - type: DirectoryGroup
-        description: settings.paths.songDirectories_exclude_tooltip
-        title: settings.paths.songDirectories_exclude
+        description: settings.paths.song_directories_exclude_tooltip
+        title: settings.paths.song_directories_exclude
         key: exclude_music_paths
         mobile: false
 
@@ -36,14 +36,14 @@ page:
         mobile: false
 
       - type: FilePicker
-        description: settings.paths.thumbnailPath_tooltip
-        title: settings.paths.thumbnailPath
+        description: settings.paths.thumbnail_path_tooltip
+        title: settings.paths.thumbnail_path
         key: thumbnail_path
         mobile: false
 
       - type: FilePicker
-        description: settings.paths.artworkPath_tooltip
-        title: settings.paths.artworkPath
+        description: settings.paths.artwork_path_tooltip
+        title: settings.paths.artwork_path
         key: artwork_path
         mobile: false
 
@@ -51,41 +51,42 @@ page:
     path: system
     icon: System
     data:
+
       - type: CheckboxGroup
-        title: settings.system.systemSettings.title
-        description: settings.system.systemSettings_tooltip
+        title: settings.system.system_settings.title
+        description: settings.system.system_settings_tooltip
         key: system_settings
         mobile: false
         items:
-          - title: settings.system.systemSettings.systemStartup
+          - title: settings.system.system_settings.system_startup
             key: auto_startup
 
-          - title: settings.system.systemSettings.minimizeTray
+          - title: settings.system.system_settings.minimize_tray
             key: minimize_to_tray
 
-          - title: settings.system.systemSettings.enableJukeboxMode
+          - title: settings.system.system_settings.enable_jukebox_mode
             key: jukebox_mode
 
       - type: CheckboxGroup
-        title: settings.system.queueSettings.title
-        description: settings.system.queueSettings.tooltip
+        title: settings.system.queue_settings.title
+        description: settings.system.queue_settings.tooltip
         key: queue_settings
         items:
-          - title: settings.system.queueSettings.clearQueue
+          - title: settings.system.queue_settings.clear_queue
             key: clear_queue
 
       - type: CheckboxGroup
-        title: settings.system.volumePersistMode.title
-        description: settings.system.volumePersistMode.tooltip
+        title: settings.system.volume_persist_mode.title
+        description: settings.system.volume_persist_mode.tooltip
         single: true
         key: volume_persist_mode
         mobile: false
         items:
-          - title: settings.system.volumePersistMode.noPersist
+          - title: settings.system.volume_persist_mode.no_persist
             key: no_persist
-          - title: settings.system.volumePersistMode.persistSeparateVolumes
+          - title: settings.system.volume_persist_mode.persist_separate_volumes
             key: persist_separate
-          - title: settings.system.volumePersistMode.persistClampVolume
+          - title: settings.system.volume_persist_mode.persist_clamp_volume
             key: persist_clamp
 
       - type: Dropdown

@@ -16,17 +16,23 @@
       "assetProtocol": {
         "enable": true,
         "scope": {
-          "allow": ["**/*"],
+          "allow": [
+            "**/*"
+          ],
           "requireLiteralLeadingDot": false
         }
       },
       "csp": {
-        "default-src": "'self' tauri: ipc: http://ipc.localhost asset: http://tauri.localhost http://asset.localhost",
-        "connect-src": "ipc: http://ipc.localhost tauri: http://tauri.localhost",
-        "media-src": "'self' blob: asset: https://asset.localhost tauri: http://tauri.localhost ipc: http://ipc.localhost https: http:",
-        "img-src": "'self' asset: https://asset.localhost https: http:",
-        "style-src": "'unsafe-inline' 'self' tauri: ipc: http://ipc.localhost asset: http://tauri.localhost http://asset.localhost",
-        "script-src": "'wasm-unsafe-eval' tauri: http://tauri.localhost"
+        "default-src": "* data: mediastream: blob: filesystem: about: ws: wss: 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline';",
+        "script-src": "* data: blob: 'unsafe-inline' 'unsafe-eval';",
+        "script-src-elem": "* data: blob: 'unsafe-inline' 'unsafe-eval';",
+        "connect-src": "* data: blob: 'unsafe-inline';",
+        "img-src": "* data: blob: 'unsafe-inline';",
+        "media-src": "* data: blob: 'unsafe-inline';",
+        "frame-src": "* data: blob;",
+        "style-src": "* data: blob: 'unsafe-inline';",
+        "font-src": "* data: blob: 'unsafe-inline';",
+        "frame-ancestors": "* data: blob;"
       },
       "dangerousDisableAssetCspModification": false,
       "freezePrototype": false,
@@ -69,9 +75,18 @@
   "identifier": "app.moosync.moosync",
   "plugins": {
     "deep-link": {
-      "mobile": [{ "host": "moosync.app", "pathPattern": [".*"] }],
+      "mobile": [
+        {
+          "host": "moosync.app",
+          "pathPattern": [
+            ".*"
+          ]
+        }
+      ],
       "desktop": {
-        "schemes": ["moosync"]
+        "schemes": [
+          "moosync"
+        ]
       }
     },
     "updater": {

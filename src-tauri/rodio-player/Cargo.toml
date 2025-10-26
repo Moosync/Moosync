@@ -9,8 +9,8 @@ rodio = { git = "https://github.com/RustAudio/rodio", default-features = false, 
     "playback",
 ] }
 types = { path = "../types", default-features = false, features = ["core"] }
-stream-download = "0.21.1"
+stream-download = "0.22.7"
 tracing = { version = "0.1.41", default-features = false }
 futures = "0.3.31"
-tokio = {version = "1.45.1", features = ["rt-multi-thread"]}
-hls_client = { version = "1.1.0", default-features = false, features = ["stream_download", "reqwest-native-tls", "tracing"] }
+tokio = {version = "1.48.0", features = ["rt-multi-thread"]}
+hls_client = { git = "https://github.com/Ovenoboyo/hls_client_rs", default-features = false, features = ["stream_download", "reqwest-native-tls", "tracing"] }

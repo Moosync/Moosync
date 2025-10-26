@@ -348,6 +348,7 @@ impl SpotifyProvider {
             popularity: 0,
             preview_url: track.preview_url,
             track_number: track.track_number,
+            r#type: rspotify::model::Type::Track,
         }
     }
 
@@ -615,9 +616,10 @@ impl GenericProvider for SpotifyProvider {
 
                     match i.track.unwrap() {
                         rspotify::model::PlayableItem::Track(t) => {
-                            ret.push(self.parse_playlist_item(t));
+                            ret.push(__self.parse_playlist_item(t));
                         }
-                        rspotify::model::PlayableItem::Episode(_) => {
+                        rspotify::model::PlayableItem::Unknown(_)
+                        | rspotify::model::PlayableItem::Episode(_) => {
                             continue;
                         }
                     }
@@ -838,6 +840,7 @@ impl GenericProvider for SpotifyProvider {
                         restrictions: None,
                         popularity: 0,
                         preview_url: t.preview_url.clone(),
+                        r#type: rspotify::model::Type::Track,
                     })
                 })
                 .collect());

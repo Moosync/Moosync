@@ -8,10 +8,11 @@ mock = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-getrandom = {version = "0.3.3", features = ["wasm_js"]}
+getrandom = { version = "0.3.4", features = ["wasm_js"] }
 console_error_panic_hook = "0.1.7"
 
-leptos = { version = "0.7.8", features = ["csr"] }
+leptos = { version = "0.8.11", features = ["csr"] }
+leptos_meta = { version = "0.8.2" }
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
@@ -21,36 +22,44 @@ types = { path = "src-tauri/types", default-features = false, features = [
     "ui",
 ] }
 chrono = "=0.4.40"
-leptos-use = "0.15.8"
-tokio = { version = "1.45.1", features = ["rt", "sync"], default-features = false }
-serde_json = "1.0.140"
-leptos_router = { version = "0.7.8" }
+leptos-use = "0.16.3"
+tokio = { version = "1.48.0", features = [
+    "rt",
+    "sync",
+], default-features = false }
+serde_json = "1.0.145"
+leptos_router = { version = "0.8.9" }
 leptos_virtual_scroller = { git = "https://github.com/Ovenoboyo/leptos_virtual_scroller" }
 leptos_context_menu = { git = "https://github.com/Ovenoboyo/leptos_context_menu" }
 futures = "0.3.31"
-web-sys = { version = "0.3.77", features = [
+web-sys = { version = "0.3.81", features = [
     "Window",
     "Document",
     "HtmlElement",
     "Element",
     "CssStyleDeclaration",
 ] }
-regex = "1.11.1"
+regex = "1.12.2"
 colors-transform = "0.2.11"
-leptos_i18n = { version = "0.5", features = ["csr", "interpolate_display", "json_files"], default-features = false }
+leptos_i18n = { version = "0.6.0-rc", features = [
+    "csr",
+], default-features = false }
 pref_gen = { path = "src/pref_gen" }
-rand = "0.9.1"
-dyn-clone = "1.0.19"
+rand = "0.9.2"
+dyn-clone = "1.0.20"
 itertools = "0.14.0"
-bitcode = { version = "0.6.6" }
+bitcode = { version = "0.6.7" }
 indexed_db_futures = { version = "0.6.4", features = ["serde"] }
 lazy_static = "1.5.0"
 tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
 tauri-invoke-proc = { path = "src-tauri/tauri-invoke-proc" }
 url-escape = "0.1.1"
 wasm-timer = "0.2.5"
-uuid = {version = "1.17.0", features = ["js"]}
+uuid = { version = "1.18.1", features = ["js"] }
+
+[build-dependencies]
+leptos_i18n_build = { version = "0.6.0-rc", features = ["pretty_print", "csr"] }
 
 [workspace]
 resolver = "2"
@@ -77,43 +86,43 @@ members = [
     "src-tauri/tauri-invoke-proc",
     "lib/tauri-plugin-file-scanner",
     "lib/tauri-plugin-audioplayer",
-    "lib/tauri-plugin-self-update"
+    "lib/tauri-plugin-self-update",
 ]
 
 [package.metadata.leptos-i18n]
-default = "en_US"
+default = "en-US"
 locales = [
-    "af_ZA",
-    "ar_SA",
-    "ca_ES",
-    "cs_CZ",
-    "da_DK",
-    "de_DE",
-    "el_GR",
-    "en_US",
-    "es_ES",
-    "fi_FI",
-    "fr_FR",
-    "he_IL",
-    "hi_IN",
-    "hu_HU",
-    "it_IT",
-    "ja_JP",
-    "ko_KR",
-    "nl_NL",
-    "no_NO",
-    "pl_PL",
-    "pt_BR",
-    "pt_PT",
-    "ro_RO",
-    "ru_RU",
-    "sr_SP",
-    "sv_SE",
-    "tr_TR",
-    "uk_UA",
-    "vi_VN",
-    "zh_CN",
-    "zh_TW",
+    "af-ZA",
+    "ar-SA",
+    "ca-ES",
+    "cs-CZ",
+    "da-DK",
+    "de-DE",
+    "el-GR",
+    "en-US",
+    "es-ES",
+    "fi-FI",
+    "fr-FR",
+    "he-IL",
+    "hi-IN",
+    "hu-HU",
+    "it-IT",
+    "ja-JP",
+    "ko-KR",
+    "nl-NL",
+    "no-NO",
+    "pl-PL",
+    "pt-BR",
+    "pt-PT",
+    "ro-RO",
+    "ru-RU",
+    "sr-SP",
+    "sv-SE",
+    "tr-TR",
+    "uk-UA",
+    "vi-VN",
+    "zh-CN",
+    "zh-TW",
 ]
 
 [profile.dev]

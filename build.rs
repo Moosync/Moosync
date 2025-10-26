@@ -14,6 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use leptos_i18n_build::{Options, TranslationsInfos};
 use std::{
     env, fs,
     path::{Path, PathBuf},
@@ -37,6 +38,20 @@ fn find_function_details_json(target_dir: &Path) -> Option<PathBuf> {
 }
 
 fn main() {
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=Cargo.toml");
+
+    let i18n_mod_directory = PathBuf::from(std::env::var_os("OUT_DIR").unwrap()).join("i18n");
+
+    let options = Options::default().interpolate_display(true);
+    let translations_infos = TranslationsInfos::parse(options).unwrap();
+
+    translations_infos.rerun_if_locales_changed();
+
+    translations_infos
+        .generate_i18n_module(i18n_mod_directory)
+        .unwrap();
+
     let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR is not set");
     let manifest_dir = Path::new(&manifest_dir);
 

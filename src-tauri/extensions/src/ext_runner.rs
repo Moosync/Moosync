@@ -535,7 +535,10 @@ impl ExtensionHandlerInner {
                     let mut plugin = block_on(plugin_mutex.lock());
 
                     tracing::trace!("Callign entry");
-                    plugin.call::<(), ()>("entry", ()).unwrap();
+                    if let Err(e) = plugin.call::<(), ()>("entry", ()) {
+                        tracing::error!("Failed to called extension entry: {:?}", e);
+                        return;
+                    }
                 }
                 {
                     let mut extensions_map = block_on(extension_map.lock());

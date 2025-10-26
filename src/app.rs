@@ -110,7 +110,7 @@ pub fn MainApp() -> impl IntoView {
             "queue",
         ),
         Tab::new(
-            move || t_string!(use_i18n(), sidebar.tabs.allSongs),
+            move || t_string!(use_i18n(), sidebar.tabs.all_songs),
             "Songs",
             "/main/allsongs",
         ),
@@ -261,6 +261,8 @@ fn handle_theme(id: String) {
 #[tracing::instrument(level = "debug", skip())]
 #[component]
 pub fn App() -> impl IntoView {
+    leptos_meta::provide_meta_context();
+
     let _ = use_event_listener(document().body(), keydown, |ev| {
         if ev.shift_key() && ev.ctrl_key() && ev.key_code() == 75 {
             spawn_local(async move {

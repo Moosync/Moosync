@@ -103,14 +103,18 @@ impl ExtensionHandler {
                         resp = ext_command_rx.recv() => {
                             if let Some(resp) = resp {
                                 tracing::trace!("Got ext command {:?}", resp);
-                                ui_request_tx.send(resp).unwrap();
+                                if let Err(e) = ui_request_tx.send(resp) {
+                                    tracing::error!("Failed to send ext command: {:?}", e);
+                                }
                             }
                         }
                         resp = ui_reply_rx.recv() => {
                             if let Some(resp) = resp {
                                 tracing::trace!("Got ui reply {:?} {:?}", resp, inner);
                                 let inner = inner.lock().await;
-                                inner.handle_main_command_reply(&resp).unwrap();
+                                if let Err(e) = inner.handle_main_command_reply(&resp) {
+                                    tracing::error!("Failed to handle ui reply: {:?}", e);
+                                }
                             }
                         }
                     }

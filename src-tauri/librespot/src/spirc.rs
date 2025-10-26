@@ -26,7 +26,7 @@ use std::{
 use futures::executor::block_on;
 use librespot::{
     connect::{ConnectConfig, LoadRequest, LoadRequestOptions, Spirc},
-    core::{cache::Cache, token::Token, Session, SpotifyId},
+    core::{cache::Cache, token::Token, Session, SpotifyUri},
     discovery::Credentials,
     playback::{
         config::PlayerConfig,
@@ -37,11 +37,11 @@ use serde::{Deserialize, Serialize};
 use tokio::{runtime::Builder, sync::Mutex as AsyncMutex};
 
 use crate::player::{create_session, get_canvas, get_lyrics, new_player};
+use types::errors::error_helpers;
 use types::{
     canvaz::CanvazResponse,
     errors::{MoosyncError, Result},
 };
-use types::errors::error_helpers;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ParsedToken {
@@ -258,7 +258,8 @@ impl SpircWrapper {
                 tx.send(res).unwrap();
             }
             Message::Load(uri, autoplay) => {
-                let track_id = SpotifyId::from_uri(uri.as_str()).map_err(error_helpers::to_media_error);
+                let track_id =
+                    SpotifyUri::from_uri(uri.as_str()).map_err(error_helpers::to_media_error);
                 match track_id {
                     Err(e) => {
                         tx.send(Err(e)).unwrap();

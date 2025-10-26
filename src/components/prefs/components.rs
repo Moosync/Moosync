@@ -116,7 +116,7 @@ where
                         class="add-directories-button"
                         on:click=move |_| open_file_browser(true, true, vec![], selected_paths)
                     >
-                        {t!(i18n, settings.paths.addFolder)}
+                        {t!(i18n, settings.paths.add_folder)}
                     </div>
                 </div>
             </div>

@@ -2,7 +2,7 @@
   "sidebar": {
     "tabs": {
       "queue": "Queue",
-      "allSongs": "Songs",
+      "all_songs": "Songs",
       "playlists": "Playlists",
       "albums": "Albums",
       "artists": "Artists",
@@ -15,7 +15,7 @@
     }
   },
   "topbar": {
-    "searchPlaceholder": "Search..."
+    "search_placeholder": "Search..."
   },
   "pages": {
     "playlists": "Playlists",
@@ -34,19 +34,19 @@
       "input_hint": "Enter URL Here..."
     }
   },
-  "songView": {
+  "song_view": {
     "details": {
-      "songCount": "{count} song | {count} songs"
+      "song_count": "{count} song | {count} songs"
     },
-    "songList": {
+    "song_list": {
       "topbar": {
-        "searchPlaceholder": "Search..."
+        "search_placeholder": "Search..."
       }
     }
   },
   "loading": "Loading...",
   "now_playing": "Now playing",
-  "contextMenu": {
+  "context_menu": {
     "sort_by": "Sort by",
     "sort": {
       "title": "Title",
@@ -55,25 +55,25 @@
       "genre": "Genre",
       "date_added": "Date added",
       "provider": "Provider",
-      "playCount": "Play count"
+      "play_count": "Play count"
     },
     "playlist": {
-      "newPlaylist": "New Playlist",
-      "addFromURL": "Import from URL",
+      "new_playlist": "New Playlist",
+      "add_from_url": "Import from URL",
       "remove": "Remove playlist",
       "export": "Export playlist",
       "add": "Add To Playlist",
       "save": "Add To Library"
     },
     "song": {
-      "playNext": "Play Next",
-      "clearAndPlay": "Clear queue and play",
-      "addToQueue": "Add To Queue",
+      "play_next": "Play Next",
+      "clear_and_play": "Clear queue and play",
+      "add_to_queue": "Add To Queue",
       "remove": "Remove from Library",
-      "add": "Add Song to Library",
-      "removeFromPlaylist": "Remove from playlist",
-      "gotoAlbum": "Go to album ({{ title }})",
-      "gotoArtists": "Go to artists"
+      "add_to_library": "Add Song to Library",
+      "remove_from_playlist": "Remove from playlist",
+      "go_to_album": "Go to album ({{ title }})",
+      "go_to_artists": "Go to artists"
     },
     "artist": {
       "remove": "Remove artist"
@@ -81,8 +81,8 @@
     "album": {
       "remove": "Remove album"
     },
-    "moreInfo": "More Info",
-    "incorrectPlayback": "Incorrect playback?"
+    "more_info": "More Info",
+    "incorrect_playback": "Incorrect playback?"
   },
   "explore": {
     "you_listened_to": "You've listened to",
@@ -101,16 +101,16 @@
   },
   "settings": {
     "paths": {
-      "songDirectories": "Song Folders",
-      "songDirectories_tooltip": "Directories where all your local music is stored",
-      "songDirectories_exclude": "Excluded Songs",
-      "songDirectories_exclude_tooltip": "Songs in these folders will not be included in the library",
-      "addFolder": "Add Folder...",
+      "song_directories": "Song Folders",
+      "song_directories_tooltip": "Directories where all your local music is stored",
+      "song_directories_exclude": "Excluded Songs",
+      "song_directories_exclude_tooltip": "Songs in these folders will not be included in the library",
+      "add_folder": "Add Folder...",
       "remove": "Remove",
-      "artworkPath": "Downloaded Artwork Path",
-      "artworkPath_tooltip": "Directory where downloaded artworks are stored",
-      "thumbnailPath": "Downloaded Thumbnail Path",
-      "thumbnailPath_tooltip": "Directory where generated thumbnails are stored",
+      "artwork_path": "Downloaded Artwork Path",
+      "artwork_path_tooltip": "Directory where downloaded artworks are stored",
+      "thumbnail_path": "Downloaded Thumbnail Path",
+      "thumbnail_path_tooltip": "Directory where generated thumbnails are stored",
       "splitter": "Artist name split pattern",
       "splitter_tooltip": "Regex to split artist names. Leave empty to disable splitting.",
       "scan_interval": "Scan interval",
@@ -130,33 +130,33 @@
       "remove": "Remove"
     },
     "system": {
-      "systemSettings": {
+      "system_settings": {
         "title": "System Settings",
-        "systemStartup": "Start app on system startup",
-        "minimizeTray": "Minimize to tray on close",
-        "enableJukeboxMode": "Enable toggle for Jukebox mode"
+        "system_startup": "Start app on system startup",
+        "minimize_tray": "Minimize to tray on close",
+        "enable_jukebox_mode": "Enable toggle for Jukebox mode"
       },
-      "systemSettings_tooltip": "Settings which are related to your system",
-      "queueSettings": {
+      "system_settings_tooltip": "Settings which are related to your system",
+      "queue_settings": {
         "title": "Queue Settings",
         "tooltip": "Settings which are related to queue",
-        "clearQueue": "Clear queue"
+        "clear_queue": "Clear queue"
       },
-      "volumePersistMode": {
+      "volume_persist_mode": {
         "title": "Volume Persist Mode",
         "tooltip": "How volume should be persisted across sessions",
-        "noPersist": "Don't persist volume",
-        "persistSeparateVolumes": "Persist separate volumes for each provider",
-        "persistClampVolume": "Persist volume and clamp to max volume"
+        "no_persist": "Don't persist volume",
+        "persist_separate_volumes": "Persist separate volumes for each provider",
+        "persist_clamp_volume": "Persist volume and clamp to max volume"
       },
       "language": "Language",
       "language_tooltip": "Change application language"
     },
     "logs": {
-      "logSettings": "Log Settings",
+      "log_settings": "Log Settings",
       "level": "Level",
       "process": "Process",
-      "filterMessage": "Filter Message",
+      "filter_message": "Filter Message",
       "levels": {
         "all": "All",
         "debug": "Debug",
@@ -174,8 +174,8 @@
     }
   },
   "hotkeys": {
-    "play": "Play Song",
-    "pause": "Pause song",
+    "play_song": "Play Song",
+    "pause_song": "Pause song",
     "play_toggle": "Toggle play",
     "mute_active": "Mute",
     "mute_inactive": "Unmute",

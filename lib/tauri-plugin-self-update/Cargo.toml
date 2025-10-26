@@ -9,10 +9,10 @@ exclude = ["/examples", "/dist-js", "/guest-js", "/node_modules"]
 links = "tauri-plugin-self-update"
 
 [dependencies]
-tauri = { version = "2.3.1" }
+tauri = { version = "2.9.1" }
 serde = "1.0"
 types = { path = "../../src-tauri/types" }
 thiserror = "2"
 
 [build-dependencies]
-tauri-plugin = { version = "2.0.4", features = ["build"] }
+tauri-plugin = { version = "2.5.1", features = ["build"] }

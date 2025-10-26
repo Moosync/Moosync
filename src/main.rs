@@ -23,14 +23,13 @@ mod pages;
 mod players;
 mod store;
 mod utils;
+include!(concat!(env!("OUT_DIR"), "/i18n/mod.rs"));
 
 use crate::i18n::I18nContextProvider;
 use app::*;
 use leptos::prelude::*;
 use tracing_subscriber::{fmt, layer::SubscriberExt};
 use utils::tracing_writer::MakeConsoleWriter;
-
-leptos_i18n::load_locales!();
 
 #[tracing::instrument(level = "debug", skip())]
 fn main() {

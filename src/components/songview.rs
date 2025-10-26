@@ -76,7 +76,7 @@ pub fn SongView(
     let song_details_container = NodeRef::<Div>::new();
     let song_list_container = NodeRef::<Div>::new();
 
-    let ignore__class_list = &[
+    let ignore_class_list = &[
         "context-menu-root",
         "context-menu-outer",
         "context-menu-item",
@@ -93,7 +93,7 @@ pub fn SongView(
             }
 
             for ele in class_list.values().into_iter().flatten() {
-                if ignore__class_list.contains(&ele.as_string().unwrap_or_default().as_str()) {
+                if ignore_class_list.contains(&ele.as_string().unwrap_or_default().as_str()) {
                     return true;
                 }
             }

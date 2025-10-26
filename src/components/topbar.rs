@@ -493,7 +493,7 @@ pub fn TopBar() -> impl IntoView {
                                     <input
                                         class="form-control searchbar"
                                         placeholder=move || {
-                                            t_string!(i18n, topbar.searchPlaceholder)
+                                            t_string!(i18n, topbar.search_placeholder)
                                         }
 
                                         on:blur=move |_| handle_input_focus(InputFocus::Blur)

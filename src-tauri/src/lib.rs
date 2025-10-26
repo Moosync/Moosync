@@ -176,9 +176,10 @@ pub fn run() {
     #[cfg(desktop)]
     let is_mobile_init_script = format!(
         r#"
-    window.is_mobile = false;
+    window.is_mobile = {};
     window.is_mobile_player = false;
     "#,
+        args.mobile
     );
 
     #[cfg(mobile)]

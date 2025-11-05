@@ -412,6 +412,18 @@ impl ExtensionHandlerInner {
                 let parsed = re
                     .replace_all(key.as_str(), |caps: &Captures| {
                         let var_name = &caps[1];
+                        if var_name == "CACHE_DIR" {
+                            let ext_cache_dir =
+                                cache_path.join("extensions").join(manifest.name.clone());
+                            if let Err(e) = fs::create_dir_all(&ext_cache_dir) {
+                                tracing::error!(
+                                    "Failed to create cache dir for extension {}: {:?}",
+                                    manifest.name,
+                                    e
+                                );
+                            }
+                            return ext_cache_dir.to_string_lossy().to_string();
+                        }
                         env::var(var_name).unwrap_or_else(|_| "".to_string())
                     })
                     .to_string();

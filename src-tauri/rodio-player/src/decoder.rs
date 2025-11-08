@@ -1,9 +1,9 @@
 // Adapted from https://github.com/tarkah/ffmpeg-decoder-rs
 
+use std::fmt::Display;
 use std::num::NonZero;
 use std::str::FromStr;
 use std::sync::Arc;
-use std::thread;
 
 use rodio::source::SeekError;
 use rodio::{Sample, Source};
@@ -14,10 +14,7 @@ use tracing::error;
 use std::ffi::{c_int, CString, NulError};
 use std::time::Duration;
 
-use rsmpeg::ffi::{
-    AVSampleFormat, AVMEDIA_TYPE_AUDIO, AV_SAMPLE_FMT_DBL, AV_SAMPLE_FMT_FLT, AV_SAMPLE_FMT_FLTP,
-    AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_S32, AV_SAMPLE_FMT_U8,
-};
+use rsmpeg::ffi::{AVSampleFormat, AVMEDIA_TYPE_AUDIO, AV_SAMPLE_FMT_FLT};
 
 use rsmpeg::avcodec::AVCodecContext;
 use rsmpeg::avutil::{err2str, sample_fmt_is_planar, AVFrame, AVSamples};
@@ -82,9 +79,10 @@ impl Decoder {
         }
     }
 
-    pub fn open<'b, S: Into<&'b str>>(path: S) -> Result<Decoder, Error> {
+    pub fn open<'b, S: Display>(path: S) -> Result<Decoder, Error> {
+        // https://www.ffmpeg.org/ffmpeg-protocols.html#cache
         let format_ctx = AVFormatContextInput::builder()
-            .url(&CString::from_str(path.into())?)
+            .url(&CString::from_str(&format!("cache:{}", path))?)
             .open()?;
 
         // Find first audio stream in file
@@ -336,7 +334,7 @@ impl Source for Decoder {
                 timestamp,
                 rsmpeg::ffi::AVSEEK_FLAG_BACKWARD as i32,
             )
-            .map_err(Into::<SeekError>::into(Into::<Error>::into))?;
+            .map_err(|e| Into::<SeekError>::into(Into::<Error>::into(e)))?;
 
         self.requested_seek_timestamp = timestamp;
         self.resync_after_seek().map_err(Into::<SeekError>::into)?;

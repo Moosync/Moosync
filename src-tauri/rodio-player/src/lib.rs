@@ -30,13 +30,14 @@ use hls_client::{config::ConfigBuilder, stream::HLSStream};
 use rodio::Sink;
 use stream_download::{storage::temp::TempStorageProvider, Settings, StreamDownload};
 use tracing::{debug, error, info, trace};
-use types::{
-    errors::Result,
-    ui::player_details::PlayerEvents,
-};
 use types::errors::error_helpers;
+use types::{errors::Result, ui::player_details::PlayerEvents};
 
+const VIDEO_URL: &str = "https://www.youtube.com/watch?v=DLzxrzFCyOs";
 
+mod decoder;
+#[cfg(test)]
+mod test;
 
 pub struct RodioPlayer {
     tx: Sender<RodioCommand>,
@@ -61,6 +62,7 @@ impl RodioPlayer {
             fs::create_dir(cache_dir.clone()).unwrap();
         }
         let tx = Self::initialize(events_tx, cache_dir);
+
         Self {
             tx,
             events_rx: Arc::new(Mutex::new(events_rx)),
@@ -81,7 +83,11 @@ impl RodioPlayer {
 
     async fn handle_hls_stream(cache_dir: PathBuf, src: &str, sink: &Arc<Sink>) -> Result<()> {
         let reader = StreamDownload::new::<HLSStream>(
-            ConfigBuilder::new().url(src).map_err(error_helpers::to_playback_error)?.build().map_err(error_helpers::to_playback_error)?,
+            ConfigBuilder::new()
+                .url(src)
+                .map_err(error_helpers::to_playback_error)?
+                .build()
+                .map_err(error_helpers::to_playback_error)?,
             TempStorageProvider::new_in(cache_dir.clone()),
             Settings::default(),
         )
@@ -116,7 +122,8 @@ impl RodioPlayer {
             Ok(reader) => {
                 trace!("Stream created");
 
-                let decoder = rodio::Decoder::new(reader).map_err(error_helpers::to_playback_error)?;
+                let decoder =
+                    rodio::Decoder::new(reader).map_err(error_helpers::to_playback_error)?;
                 trace!("Decoder created");
                 sink.append(decoder);
                 trace!("Decoder appended");
@@ -131,7 +138,8 @@ impl RodioPlayer {
         let path = PathBuf::from_str(src).unwrap();
         if path.exists() {
             let file = fs::File::open(path)?;
-            let decoder = rodio::Decoder::try_from(file).map_err(error_helpers::to_playback_error)?;
+            let decoder =
+                rodio::Decoder::try_from(file).map_err(error_helpers::to_playback_error)?;
             sink.append(decoder);
 
             trace!("Local file {} appended", src);

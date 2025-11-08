@@ -9,7 +9,7 @@ mod tests {
         let sink = rodio::Sink::connect_new(stream_handle.mixer());
 
         let path =
-            "https://rr2---sn-n4v7snly.googlevideo.com/videoplayback?expire=1762355028&ei=9BILab_EI_CSsfIP9Njs6QU&ip=104.3.190.153&id=o-ANqSKQPze4otmtCqBsg36e4sShLFWpFk3em_o4FsdVVi&itag=251&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&met=1762333428%2C&mh=4I&mm=31%2C26&mn=sn-n4v7snly%2Csn-a5msen76&ms=au%2Conr&mv=m&mvi=2&pl=21&rms=au%2Cau&gcr=us&initcwndbps=2263750&bui=AdEuB5SuPzw6X5GwWbbq-sB4fKfO-OXU4dtDY6N2F3KThhihSWG4ynDn6dPB_vAEg5Jgb0FLkKIY1Lbc&vprv=1&svpuc=1&mime=audio%2Fwebm&ns=ZqkW5Pdb7QHeXceHIKsvkRoQ&rqh=1&gir=yes&clen=3101071&dur=200.941&lmt=1727211552505889&mt=1762333053&fvip=5&keepalive=yes&lmw=1&fexp=51557447%2C51565116%2C51565682%2C51580970&c=TVHTML5&sefc=1&txp=4532434&n=3naMyj8xGAg_Zg&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cgcr%2Cbui%2Cvprv%2Csvpuc%2Cmime%2Cns%2Crqh%2Cgir%2Cclen%2Cdur%2Clmt&lsparams=met%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRAIgeZFz9jV09S9pG8_tlcfZypbrVNHsYLHIUMS53p7bJJICIH-KjLFPUWk1_49RjCsS0kYXL3dzaIiIS9zcwFSyXTb2&sig=AJfQdSswRQIhAOa9A0pfA39hUn9CJ5190aJzlSPv1HOeG5eco9eoETHDAiB98EQ2TAJit7eW9nXdd1NLyO_0pRZFQX-xqH24UBD_CQ%3D%3D";
+            "cache:https://rr2---sn-n4v7snly.googlevideo.com/videoplayback?expire=1762584679&ei=B5QOaYvNKtWVt7EPseqswAM&ip=104.3.190.153&id=o-AJkAqaNmEKaDuYdfbLWpd7CbnWgGe3gMBV1Eb3ok4oRx&itag=251&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&met=1762563079%2C&mh=4I&mm=31%2C29&mn=sn-n4v7snly%2Csn-o097znzk&ms=au%2Crdu&mv=m&mvi=2&pl=21&rms=au%2Cau&gcr=us&initcwndbps=1971250&bui=AdEuB5Sn94SZSbAcqoX1ZM8QQhLwuJ1KrJDTjXtdeUWh8iYYdt9FoETQNsdfpXuywoRpkvvFgKaAqw_c&vprv=1&svpuc=1&mime=audio%2Fwebm&ns=-QFyWvPM8mdnsNbC7mzEHwIQ&rqh=1&gir=yes&clen=3101071&dur=200.941&lmt=1727211552505889&mt=1762562709&fvip=1&keepalive=yes&lmw=1&fexp=51557447%2C51565116%2C51565682%2C51580970&c=TVHTML5&sefc=1&txp=4532434&n=XPx-34_FHpj9Aw&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cgcr%2Cbui%2Cvprv%2Csvpuc%2Cmime%2Cns%2Crqh%2Cgir%2Cclen%2Cdur%2Clmt&lsparams=met%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRAIgFRt8wd-zQFz2oMxD7C86pBj0JaWIxv-CFpAlajuIRioCIAcKpMKFXi-MH7kDDVshgRfj75Xqki1mdNhngJIuU0Tz&sig=AJfQdSswRQIhANwiQsEP-Ww04aVquMJzYhwvz_asvll7nntVNZTo9mvmAiBArLsbwxj4GYPZyG9IM6qo4BlPmC3Q1IB_Iwlq6nJqUA==";
         let decoder = Decoder::open(path).unwrap();
 
         // let mut out = File::create("./out.mp3").unwrap();
@@ -22,11 +22,16 @@ mod tests {
 
         let sink_arc = Arc::new(sink);
         thread::spawn(move || {
+            // let mut i = 0;
             let sink = sink_arc.clone();
             loop {
                 println!("Seeking");
                 sink.try_seek(Duration::from_secs(30)).unwrap();
-                thread::sleep(Duration::from_secs(10));
+                thread::sleep(Duration::from_secs(2));
+                // i += 1;
+                // if i > 2 {
+                //     break;
+                // }
             }
         })
         .join()

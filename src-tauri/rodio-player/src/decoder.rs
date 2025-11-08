@@ -3,7 +3,9 @@
 use std::num::NonZero;
 use std::str::FromStr;
 use std::sync::Arc;
+use std::thread;
 
+use rodio::source::SeekError;
 use rodio::{Sample, Source};
 use rsmpeg::avformat::{self, AVFormatContextInput};
 use rsmpeg::error::RsmpegError;
@@ -13,34 +15,16 @@ use std::ffi::{c_int, CString, NulError};
 use std::time::Duration;
 
 use rsmpeg::ffi::{
-    avcodec_flush_buffers, avformat_flush, AVSampleFormat, AVMEDIA_TYPE_AUDIO, AV_SAMPLE_FMT_DBL,
-    AV_SAMPLE_FMT_FLT, AV_SAMPLE_FMT_FLTP, AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_S32, AV_SAMPLE_FMT_U8,
+    AVSampleFormat, AVMEDIA_TYPE_AUDIO, AV_SAMPLE_FMT_DBL, AV_SAMPLE_FMT_FLT, AV_SAMPLE_FMT_FLTP,
+    AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_S32, AV_SAMPLE_FMT_U8,
 };
 
-use rsmpeg::avcodec::{AVCodecContext, AVPacket};
+use rsmpeg::avcodec::AVCodecContext;
 use rsmpeg::avutil::{err2str, sample_fmt_is_planar, AVFrame, AVSamples};
 use rsmpeg::swresample::SwrContext;
 
 // Rodio needs f32 samples in non planar format
 const DEFAULT_CONVERSION_FORMAT: AVSampleFormat = AV_SAMPLE_FMT_FLT;
-
-pub type Ret = std::result::Result<::std::os::raw::c_int, ::std::os::raw::c_int>;
-/// This is a common pattern in FFmpeg that an api returns negative number as an
-/// error, zero or bigger a success. Here we triage the returned number of FFmpeg
-/// API to `Ok(positive)` and `Err(negative)`.
-pub trait RetUpgrade {
-    fn upgrade(self) -> Ret;
-}
-
-impl RetUpgrade for ::std::os::raw::c_int {
-    fn upgrade(self) -> Ret {
-        if self < 0 {
-            Ret::Err(self)
-        } else {
-            Ret::Ok(self)
-        }
-    }
-}
 
 use thiserror::Error;
 
@@ -58,10 +42,10 @@ pub enum Error {
     AVError(c_int),
 }
 
-impl Into<rodio::source::SeekError> for Error {
-    fn into(self) -> rodio::source::SeekError {
+impl Into<SeekError> for Error {
+    fn into(self) -> SeekError {
         let arc = Arc::new(self);
-        rodio::source::SeekError::Other(arc)
+        SeekError::Other(arc)
     }
 }
 
@@ -132,7 +116,7 @@ impl Decoder {
         // Get pointer to extended_data (frame plane pointers)
         let extended_data_ptr = frame.extended_data.cast();
 
-        let (data, size) = if let Some(swr_ctx) = &mut self.swr_ctx {
+        if let Some(swr_ctx) = &mut self.swr_ctx {
             // Convert (this will handle planar -> interleaved and type conversion)
             let out_samples = swr_ctx.get_out_samples(num_samples);
 
@@ -167,17 +151,15 @@ impl Decoder {
 
             // Create a slice referencing the buffer and copy into current_frame
             let p = samples.audio_data[0] as *const u8;
-            (p, dst_bufsize as usize)
+            let slice = unsafe { std::slice::from_raw_parts(p, dst_bufsize as usize) };
+            self.current_frame.clear();
+            self.current_frame.extend_from_slice(slice);
         } else {
             // Assume interleaved and already in desired format - take contiguous buffer
             // frame.linesize[0] holds the size in bytes of the first buffer
             let size = frame.linesize[0] as usize;
             let p: *const u8 = frame.extended_data.cast::<u8>();
-            (p, size)
-        };
-
-        unsafe {
-            let slice = std::slice::from_raw_parts(data, size);
+            let slice = unsafe { std::slice::from_raw_parts(p, size) };
             self.current_frame.clear();
             self.current_frame.extend_from_slice(slice);
         }
@@ -208,10 +190,10 @@ impl Decoder {
         // Attempt to receive one decoded frame
         match self.codec_ctx.receive_frame() {
             Ok(frame) => {
-                // println!(
-                //     "Decoded frame: timestamp={}, packet_pos={}",
-                //     frame.best_effort_timestamp, packet.pos
-                // );
+                println!(
+                    "Decoded frame: timestamp={}, packet_pos={}",
+                    frame.best_effort_timestamp, packet.pos
+                );
                 Ok(Some(frame))
             }
             Err(RsmpegError::DecoderDrainError) => Ok(None), // We sent what we had, probably can't decode anymore
@@ -240,30 +222,10 @@ impl Decoder {
 
     fn flush_buffers(&mut self) {
         self.current_frame.clear();
-        self.codec_ctx.flush_buffers();
     }
 
     fn resync_after_seek(&mut self) -> Result<(), Error> {
         println!("Resyncing to {}", self.requested_seek_timestamp);
-
-        // let _ = self.codec_ctx.send_packet(None);
-
-        // loop {
-        //     match self.codec_ctx.receive_frame() {
-        //         Ok(_frame) => {
-        //             // We intentionally drop frames to flush the decoder
-        //             continue;
-        //         }
-        //         Err(RsmpegError::DecoderDrainError) | Err(RsmpegError::DecoderFlushedError) => {
-        //             // No more frames to receive
-        //             break;
-        //         }
-        //         Err(e) => {
-        //             // other errors — break but surface the error if needed
-        //             return Err(Error::RsmpegError(e));
-        //         }
-        //     }
-        // }
 
         loop {
             match self.decode_next_packet() {
@@ -281,150 +243,6 @@ impl Decoder {
 
         Ok(())
     }
-}
-
-pub fn inspect_samples(frame: &AVFrame) {
-    let fmt = frame.format;
-    let nb_samples = frame.nb_samples as usize;
-    let channels = frame.ch_layout.nb_channels as usize;
-    let planar = unsafe { sample_fmt_is_planar(fmt) };
-
-    println!(
-        "Inspecting frame: format={:?} planar={} channels={} samples={}",
-        fmt, planar, channels, nb_samples
-    );
-
-    if nb_samples == 0 || channels == 0 {
-        println!("(Empty frame)");
-        return;
-    }
-
-    unsafe {
-        if planar {
-            for ch in 0..channels {
-                let data_ptr = *frame.extended_data.add(ch);
-                print!("ch {}: ", ch);
-                match fmt {
-                    AV_SAMPLE_FMT_FLT | AV_SAMPLE_FMT_FLTP => {
-                        let slice = std::slice::from_raw_parts(data_ptr as *const f32, nb_samples);
-                        dump_f32_stats(slice);
-                    }
-                    AV_SAMPLE_FMT_S16 => {
-                        let slice = std::slice::from_raw_parts(data_ptr as *const i16, nb_samples);
-                        dump_i16_stats(slice);
-                    }
-                    AV_SAMPLE_FMT_S32 => {
-                        let slice = std::slice::from_raw_parts(data_ptr as *const i32, nb_samples);
-                        dump_i32_stats(slice);
-                    }
-                    AV_SAMPLE_FMT_DBL => {
-                        let slice = std::slice::from_raw_parts(data_ptr as *const f64, nb_samples);
-                        dump_f64_stats(slice);
-                    }
-                    AV_SAMPLE_FMT_U8 => {
-                        let slice = std::slice::from_raw_parts(data_ptr as *const u8, nb_samples);
-                        dump_u8_stats(slice);
-                    }
-                    _ => println!("(Unsupported planar format for inspection)"),
-                }
-            }
-        } else {
-            let data_ptr = *frame.extended_data;
-            match fmt {
-                AV_SAMPLE_FMT_FLT => {
-                    let slice =
-                        std::slice::from_raw_parts(data_ptr as *const f32, nb_samples * channels);
-                    dump_f32_stats(slice);
-                }
-                AV_SAMPLE_FMT_S16 => {
-                    let slice =
-                        std::slice::from_raw_parts(data_ptr as *const i16, nb_samples * channels);
-                    dump_i16_stats(slice);
-                }
-                AV_SAMPLE_FMT_S32 => {
-                    let slice =
-                        std::slice::from_raw_parts(data_ptr as *const i32, nb_samples * channels);
-                    dump_i32_stats(slice);
-                }
-                AV_SAMPLE_FMT_DBL => {
-                    let slice =
-                        std::slice::from_raw_parts(data_ptr as *const f64, nb_samples * channels);
-                    dump_f64_stats(slice);
-                }
-                AV_SAMPLE_FMT_U8 => {
-                    let slice =
-                        std::slice::from_raw_parts(data_ptr as *const u8, nb_samples * channels);
-                    dump_u8_stats(slice);
-                }
-                i => println!("(Unsupported interleaved format for inspection), {}", i),
-            }
-        }
-    }
-}
-
-fn dump_f32_stats(samples: &[f32]) {
-    let mean = samples.iter().copied().sum::<f32>() / samples.len() as f32;
-    let min = samples.iter().fold(f32::INFINITY, |a, &b| a.min(b));
-    let max = samples.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
-    println!(
-        "f32: mean={:.6} min={:.6} max={:.6} first10={:?}",
-        mean,
-        min,
-        max,
-        &samples[..samples.len().min(10)]
-    );
-}
-
-fn dump_i16_stats(samples: &[i16]) {
-    let mean = samples.iter().map(|&x| x as f32).sum::<f32>() / samples.len() as f32;
-    let min = *samples.iter().min().unwrap();
-    let max = *samples.iter().max().unwrap();
-    println!(
-        "i16: mean={:.2} min={} max={} first10={:?}",
-        mean,
-        min,
-        max,
-        &samples[..samples.len().min(10)]
-    );
-}
-
-fn dump_i32_stats(samples: &[i32]) {
-    let mean = samples.iter().map(|&x| x as f64).sum::<f64>() / samples.len() as f64;
-    let min = *samples.iter().min().unwrap();
-    let max = *samples.iter().max().unwrap();
-    println!(
-        "i32: mean={:.2} min={} max={} first10={:?}",
-        mean,
-        min,
-        max,
-        &samples[..samples.len().min(10)]
-    );
-}
-
-fn dump_f64_stats(samples: &[f64]) {
-    let mean = samples.iter().copied().sum::<f64>() / samples.len() as f64;
-    let min = samples.iter().fold(f64::INFINITY, |a, &b| a.min(b));
-    let max = samples.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
-    println!(
-        "f64: mean={:.6} min={:.6} max={:.6} first10={:?}",
-        mean,
-        min,
-        max,
-        &samples[..samples.len().min(10)]
-    );
-}
-
-fn dump_u8_stats(samples: &[u8]) {
-    let mean = samples.iter().map(|&x| x as f32).sum::<f32>() / samples.len() as f32;
-    let min = *samples.iter().min().unwrap();
-    let max = *samples.iter().max().unwrap();
-    println!(
-        "u8: mean={:.2} min={} max={} first10={:?}",
-        mean,
-        min,
-        max,
-        &samples[..samples.len().min(10)]
-    );
 }
 
 unsafe impl Send for Decoder {}
@@ -502,7 +320,7 @@ impl Source for Decoder {
         None
     }
 
-    fn try_seek(&mut self, pos: Duration) -> Result<(), rodio::source::SeekError> {
+    fn try_seek(&mut self, pos: Duration) -> Result<(), SeekError> {
         let stream = &self.format_ctx.streams()[self.stream_idx];
         let time_base = stream.time_base;
 
@@ -510,53 +328,18 @@ impl Source for Decoder {
         let timestamp =
             (pos.as_secs_f64() * time_base.den as f64 / time_base.num as f64).round() as i64;
 
-        println!("Seeking to {}", timestamp);
-
-        let res: ::std::os::raw::c_int = unsafe { avformat_flush(self.format_ctx.as_mut_ptr()) };
-
-        // Perform the seek
-        // self.format_ctx
-        //     .seek(
-        //         self.stream_idx as i32,
-        //         timestamp,
-        //         rsmpeg::ffi::AVSEEK_FLAG_BACKWARD as i32,
-        //     )
-        //     .map_err(|e| Into::<rodio::source::SeekError>::into(Into::<Error>::into(e)))?;
-
         self.flush_buffers();
-        // self.first_frame_stored = false;
-        // self.swr_ctx = Self::initialize_swr_context(&self.codec_ctx)
-        //     .map_err(Into::<rodio::source::SeekError>::into)?;
 
-        // self.codec_ctx.flush_buffers();
-        // let res: ::std::os::raw::c_int = unsafe { avformat_flush(self.format_ctx.as_mut_ptr()) };
-        // (res.upgrade()).unwrap();
-
-        let stream = self
-            .format_ctx
-            .find_best_stream(AVMEDIA_TYPE_AUDIO)
-            .unwrap();
-        if let Some((stream_idx, codec)) = stream {
-            // Get the streams codec
-            let mut codec_ctx = AVCodecContext::new(&codec);
-            codec_ctx
-                .apply_codecpar(
-                    &self
-                        .format_ctx
-                        .streams()
-                        .get(stream_idx)
-                        .unwrap()
-                        .codecpar(),
-                )
-                .unwrap();
-            codec_ctx.open(None).unwrap();
-            self.codec_ctx = codec_ctx;
-
-            self.swr_ctx = Self::initialize_swr_context(&self.codec_ctx).unwrap();
-        }
+        self.format_ctx
+            .seek(
+                self.stream_idx as i32,
+                timestamp,
+                rsmpeg::ffi::AVSEEK_FLAG_BACKWARD as i32,
+            )
+            .map_err(Into::<SeekError>::into(Into::<Error>::into))?;
 
         self.requested_seek_timestamp = timestamp;
-        // self.resync_after_seek().unwrap();
+        self.resync_after_seek().map_err(Into::<SeekError>::into)?;
 
         Ok(())
     }

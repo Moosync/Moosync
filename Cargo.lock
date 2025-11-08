@@ -8742,6 +8742,7 @@ name = "rodio-player"
 version = "0.1.0"
 dependencies = [
  "futures",
+ "num_cpus",
  "rodio 0.21.1 (git+https://github.com/RustAudio/rodio)",
  "rsmpeg",
  "thiserror 2.0.17",

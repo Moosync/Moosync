@@ -24,8 +24,7 @@ use types::errors::Result;
 
 #[tracing::instrument(level = "debug", skip())]
 pub fn get_rodio_state(app: AppHandle) -> RodioPlayer {
-    let cache_dir = app.path().app_cache_dir().unwrap();
-    let rodio_player = RodioPlayer::new(cache_dir);
+    let rodio_player = RodioPlayer::new();
 
     let events_rx = rodio_player.get_events_rx();
     thread::spawn(move || {

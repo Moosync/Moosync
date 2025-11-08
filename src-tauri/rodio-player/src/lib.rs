@@ -15,9 +15,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    fs,
-    path::PathBuf,
-    str::FromStr,
     sync::{
         mpsc::{channel, Receiver, Sender},
         Arc, Mutex,
@@ -26,14 +23,12 @@ use std::{
     time::Duration,
 };
 
-use hls_client::{config::ConfigBuilder, stream::HLSStream};
 use rodio::Sink;
-use stream_download::{storage::temp::TempStorageProvider, Settings, StreamDownload};
-use tracing::{debug, error, info, trace};
-use types::errors::error_helpers;
+use tracing::{debug, error, info};
+use types::errors::MoosyncError;
 use types::{errors::Result, ui::player_details::PlayerEvents};
 
-const VIDEO_URL: &str = "https://www.youtube.com/watch?v=DLzxrzFCyOs";
+use crate::decoder::FFMPEGDecoder;
 
 mod decoder;
 #[cfg(test)]
@@ -55,13 +50,9 @@ enum RodioCommand {
 
 impl RodioPlayer {
     #[tracing::instrument(level = "debug", skip())]
-    pub fn new(cache_dir: PathBuf) -> Self {
+    pub fn new() -> Self {
         let (events_tx, events_rx) = channel::<PlayerEvents>();
-        let cache_dir = cache_dir.join("rodio");
-        if !cache_dir.exists() {
-            fs::create_dir(cache_dir.clone()).unwrap();
-        }
-        let tx = Self::initialize(events_tx, cache_dir);
+        let tx = Self::initialize(events_tx);
 
         Self {
             tx,
@@ -69,85 +60,10 @@ impl RodioPlayer {
         }
     }
 
-    async fn set_src(cache_dir: PathBuf, src: String, sink: &Arc<Sink>) -> Result<()> {
-        if src.ends_with(".m3u8") || src.contains(".m3u8") {
-            Self::handle_hls_stream(cache_dir.clone(), &src, sink).await?;
-        } else if src.starts_with("http") {
-            Self::handle_http_stream(cache_dir.clone(), &src, sink).await?;
-        } else {
-            Self::handle_local_file(&src, sink).await?;
-        }
+    async fn set_src(src: String, sink: &Arc<Sink>) -> Result<()> {
+        sink.append(FFMPEGDecoder::open(src).map_err(Into::<MoosyncError>::into)?);
 
         Ok(())
-    }
-
-    async fn handle_hls_stream(cache_dir: PathBuf, src: &str, sink: &Arc<Sink>) -> Result<()> {
-        let reader = StreamDownload::new::<HLSStream>(
-            ConfigBuilder::new()
-                .url(src)
-                .map_err(error_helpers::to_playback_error)?
-                .build()
-                .map_err(error_helpers::to_playback_error)?,
-            TempStorageProvider::new_in(cache_dir.clone()),
-            Settings::default(),
-        )
-        .await
-        .map_err(error_helpers::to_playback_error)?;
-
-        info!("HLS Stream content length {:?}", reader.content_length());
-        trace!("Stream created");
-
-        let decoder = rodio::Decoder::new(reader).map_err(error_helpers::to_playback_error)?;
-        trace!("Decoder created");
-        sink.append(decoder);
-        trace!("Decoder appended");
-
-        Ok(())
-    }
-
-    async fn handle_http_stream(cache_dir: PathBuf, src: &str, sink: &Arc<Sink>) -> Result<()> {
-        trace!("Creating HTTP stream");
-
-        match StreamDownload::new_http(
-            src.parse().unwrap(),
-            TempStorageProvider::new_in(cache_dir.clone()),
-            Settings::default()
-                .on_progress(move |_cl, state, _c| {
-                    tracing::debug!("Progress: {}", state.current_position)
-                })
-                .prefetch_bytes(512),
-        )
-        .await
-        {
-            Ok(reader) => {
-                trace!("Stream created");
-
-                let decoder =
-                    rodio::Decoder::new(reader).map_err(error_helpers::to_playback_error)?;
-                trace!("Decoder created");
-                sink.append(decoder);
-                trace!("Decoder appended");
-
-                Ok(())
-            }
-            Err(e) => Err(e.to_string().into()),
-        }
-    }
-
-    async fn handle_local_file(src: &str, sink: &Arc<Sink>) -> Result<()> {
-        let path = PathBuf::from_str(src).unwrap();
-        if path.exists() {
-            let file = fs::File::open(path)?;
-            let decoder =
-                rodio::Decoder::try_from(file).map_err(error_helpers::to_playback_error)?;
-            sink.append(decoder);
-
-            trace!("Local file {} appended", src);
-
-            return Ok(());
-        }
-
-        Err("Failed to read local file".into())
     }
 
     pub fn get_events_rx(&self) -> Arc<Mutex<Receiver<PlayerEvents>>> {
@@ -158,7 +74,7 @@ impl RodioPlayer {
         events_tx.send(event).unwrap();
     }
 
-    fn initialize(events_tx: Sender<PlayerEvents>, cache_dir: PathBuf) -> Sender<RodioCommand> {
+    fn initialize(events_tx: Sender<PlayerEvents>) -> Sender<RodioCommand> {
         let (tx, rx) = channel::<RodioCommand>();
         let ret = tx.clone();
 
@@ -189,9 +105,7 @@ impl RodioPlayer {
                             Self::send_event(events_tx.clone(), PlayerEvents::TimeUpdate(0f64));
                             Self::send_event(events_tx.clone(), PlayerEvents::Loading);
 
-                            if let Err(err) =
-                                Self::set_src(cache_dir.clone(), src.clone(), &sink).await
-                            {
+                            if let Err(err) = Self::set_src(src.clone(), &sink).await {
                                 error!("Failed to set src: {:?}", err);
                                 Self::send_event(events_tx.clone(), PlayerEvents::Error(err))
                             } else {

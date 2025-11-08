@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::decoder::Decoder;
-    use std::{ffi::CString, fs::File, io::Write, sync::Arc, thread, time::Duration};
+    use crate::decoder::FFMPEGDecoder;
+    use std::{sync::Arc, thread, time::Duration};
 
     #[test]
     fn test_decoder() {
@@ -10,7 +10,7 @@ mod tests {
 
         let path =
             "cache:https://rr2---sn-n4v7snly.googlevideo.com/videoplayback?expire=1762584679&ei=B5QOaYvNKtWVt7EPseqswAM&ip=104.3.190.153&id=o-AJkAqaNmEKaDuYdfbLWpd7CbnWgGe3gMBV1Eb3ok4oRx&itag=251&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&met=1762563079%2C&mh=4I&mm=31%2C29&mn=sn-n4v7snly%2Csn-o097znzk&ms=au%2Crdu&mv=m&mvi=2&pl=21&rms=au%2Cau&gcr=us&initcwndbps=1971250&bui=AdEuB5Sn94SZSbAcqoX1ZM8QQhLwuJ1KrJDTjXtdeUWh8iYYdt9FoETQNsdfpXuywoRpkvvFgKaAqw_c&vprv=1&svpuc=1&mime=audio%2Fwebm&ns=-QFyWvPM8mdnsNbC7mzEHwIQ&rqh=1&gir=yes&clen=3101071&dur=200.941&lmt=1727211552505889&mt=1762562709&fvip=1&keepalive=yes&lmw=1&fexp=51557447%2C51565116%2C51565682%2C51580970&c=TVHTML5&sefc=1&txp=4532434&n=XPx-34_FHpj9Aw&sparams=expire%2Cei%2Cip%2Cid%2Citag%2Csource%2Crequiressl%2Cxpc%2Cgcr%2Cbui%2Cvprv%2Csvpuc%2Cmime%2Cns%2Crqh%2Cgir%2Cclen%2Cdur%2Clmt&lsparams=met%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRAIgFRt8wd-zQFz2oMxD7C86pBj0JaWIxv-CFpAlajuIRioCIAcKpMKFXi-MH7kDDVshgRfj75Xqki1mdNhngJIuU0Tz&sig=AJfQdSswRQIhANwiQsEP-Ww04aVquMJzYhwvz_asvll7nntVNZTo9mvmAiBArLsbwxj4GYPZyG9IM6qo4BlPmC3Q1IB_Iwlq6nJqUA==";
-        let decoder = Decoder::open(path).unwrap();
+        let decoder = FFMPEGDecoder::open(path).unwrap();
 
         // let mut out = File::create("./out.mp3").unwrap();
         // for frame in decoder {

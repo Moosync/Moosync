@@ -10,6 +10,7 @@ use rodio::{Sample, Source};
 use rsmpeg::avformat::{self, AVFormatContextInput};
 use rsmpeg::error::RsmpegError;
 use tracing::error;
+use types::errors::MoosyncError;
 
 use std::ffi::{c_int, CString, NulError};
 use std::time::Duration;
@@ -46,17 +47,22 @@ impl Into<SeekError> for Error {
     }
 }
 
-pub struct Decoder {
+impl Into<MoosyncError> for Error {
+    fn into(self) -> MoosyncError {
+        MoosyncError::PlaybackError(Box::new(self))
+    }
+}
+
+pub struct FFMPEGDecoder {
     format_ctx: AVFormatContextInput,
     stream_idx: usize,
     codec_ctx: AVCodecContext,
     swr_ctx: Option<SwrContext>,
     current_frame: Vec<u8>, // holds interleaved f32 bytes ready to be consumed
-    first_frame_stored: bool,
     requested_seek_timestamp: i64,
 }
 
-impl Decoder {
+impl FFMPEGDecoder {
     fn initialize_swr_context(codec_ctx: &AVCodecContext) -> Result<Option<SwrContext>, Error> {
         // Initialize swr context if conversion is needed OR if the decoded format is planar.
         // (Planar -> interleaved needs SwrContext even if sample formats are both float)
@@ -79,13 +85,12 @@ impl Decoder {
         }
     }
 
-    pub fn open<'b, S: Display>(path: S) -> Result<Decoder, Error> {
+    pub fn open<'b, S: Display>(path: S) -> Result<FFMPEGDecoder, Error> {
         // https://www.ffmpeg.org/ffmpeg-protocols.html#cache
         let format_ctx = AVFormatContextInput::builder()
             .url(&CString::from_str(&format!("cache:{}", path))?)
             .open()?;
 
-        // Find first audio stream in file
         let stream = format_ctx.find_best_stream(AVMEDIA_TYPE_AUDIO)?;
         if let Some((stream_idx, codec)) = stream {
             // Get the streams codec
@@ -94,13 +99,12 @@ impl Decoder {
             codec_ctx.open(None)?;
 
             let swr_ctx = Self::initialize_swr_context(&codec_ctx)?;
-            return Ok(Decoder {
+            return Ok(FFMPEGDecoder {
                 format_ctx,
                 stream_idx,
                 codec_ctx,
                 swr_ctx,
                 current_frame: Vec::new(),
-                first_frame_stored: false,
                 requested_seek_timestamp: 0,
             });
         }
@@ -187,13 +191,7 @@ impl Decoder {
 
         // Attempt to receive one decoded frame
         match self.codec_ctx.receive_frame() {
-            Ok(frame) => {
-                println!(
-                    "Decoded frame: timestamp={}, packet_pos={}",
-                    frame.best_effort_timestamp, packet.pos
-                );
-                Ok(Some(frame))
-            }
+            Ok(frame) => Ok(Some(frame)),
             Err(RsmpegError::DecoderDrainError) => Ok(None), // We sent what we had, probably can't decode anymore
             Err(e) => Err(Error::RsmpegError(e)),
         }
@@ -243,9 +241,9 @@ impl Decoder {
     }
 }
 
-unsafe impl Send for Decoder {}
+unsafe impl Send for FFMPEGDecoder {}
 
-impl Iterator for Decoder {
+impl Iterator for FFMPEGDecoder {
     type Item = Sample;
 
     #[inline]
@@ -254,10 +252,17 @@ impl Iterator for Decoder {
             return Some(self.next_sample());
         }
 
-        if let Err(e) = self.process_next_packet() {
-            error!("Error filling buffer: {:?}", e);
-            self.flush_buffers();
-            return None;
+        match self.process_next_packet() {
+            Err(Error::WrongStream(expected, got)) => {
+                tracing::debug!("Tried to decode stream {}, expected {}", got, expected);
+                return self.next();
+            }
+            Err(e) => {
+                error!("Error filling buffer: {:?}", e);
+                self.flush_buffers();
+                return None;
+            }
+            _ => (),
         }
 
         if !self.current_frame.is_empty() {
@@ -268,7 +273,7 @@ impl Iterator for Decoder {
     }
 }
 
-impl Decoder {
+impl FFMPEGDecoder {
     // Helper to read next sample as f32 from current_frame bytes.
     // We assume output format is interleaved f32 (AV_SAMPLE_FMT_FLT).
     fn next_sample(&mut self) -> Sample {
@@ -285,7 +290,7 @@ impl Decoder {
     }
 }
 
-impl Source for Decoder {
+impl Source for FFMPEGDecoder {
     #[inline]
     fn channels(&self) -> NonZero<u16> {
         NonZero::new(self.codec_ctx.ch_layout.nb_channels as u16).unwrap()

@@ -5,18 +5,11 @@ edition = "2021"
 
 [dependencies]
 rodio = { git = "https://github.com/RustAudio/rodio", default-features = false, features = [
-    "symphonia-all",
     "playback",
 ] }
 types = { path = "../types", default-features = false, features = ["core"] }
-stream-download = "0.22.7"
 tracing = { version = "0.1.41", default-features = false }
 futures = "0.3.31"
 tokio = { version = "1.48.0", features = ["rt-multi-thread"] }
-hls_client = { git = "https://github.com/Ovenoboyo/hls_client_rs", default-features = false, features = [
-    "stream_download",
-    "reqwest-native-tls",
-    "tracing",
-] }
 rsmpeg = "0.18.0"
 thiserror = "2.0.17"

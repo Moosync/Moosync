@@ -91,7 +91,8 @@ impl PreferenceConfig {
         };
 
         #[cfg(target_os = "android")]
-        let secret = ChaCha20Poly1305::generate_key();
+        let secret =
+            ChaCha20Poly1305::generate_key().map_err(|e| error_helpers::to_config_error(e))?;
 
         let mut config_file = File::open(config_file_path.clone())?;
         let mut prefs = String::new();

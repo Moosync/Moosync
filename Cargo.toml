@@ -58,8 +58,26 @@ url-escape = "0.1.1"
 wasm-timer = "0.2.5"
 uuid = { version = "1.18.1", features = ["js"] }
 
+
 [build-dependencies]
-leptos_i18n_build = { version = "0.6.0-rc", features = ["pretty_print", "csr"] }
+
+# Pin deps for leptos_i18n_build
+leptos_i18n_build = { version = "0.6.0-rc.1", features = [
+    "pretty_print",
+    "csr",
+] }
+icu = { version = "=2.0.0", default-features = false }
+icu_locale = { version = "=2.0.0", default-features = false }
+icu_provider = { version = "=2.0.0", default-features = false }
+fixed_decimal = { version = "=0.7.0", default-features = false }
+icu_provider_export = { version = "=2.0.0", default-features = false }
+icu_provider_source = { version = "=2.0.0", default-features = false }
+icu_plurals = { version = "=2.0.0", default-features = false }
+icu_datetime = { version = "=2.0.0", default-features = false }
+icu_calendar = { version = "=2.0.0", default-features = false }
+icu_list = { version = "=2.0.0", default-features = false }
+icu_decimal = { version = "=2.0.0", default-features = false }
+icu_experimental = { version = "=0.3.0", default-features = false }
 
 [workspace]
 resolver = "2"
@@ -70,6 +88,9 @@ exclude = [
     "lib/extensions-wasm/test-cli",
 ]
 members = [
+    "lib/tauri-plugin-audioplayer",
+    "lib/tauri-plugin-file-scanner",
+    "lib/tauri-plugin-self-update",
     "src-tauri",
     "src-tauri/database",
     "src-tauri/extensions",
@@ -79,14 +100,11 @@ members = [
     "src-tauri/macros",
     "src-tauri/mpris",
     "src-tauri/preferences",
+    "src-tauri/rodio-player",
+    "src-tauri/tauri-invoke-proc",
     "src-tauri/themes",
     "src-tauri/types",
-    "src-tauri/rodio-player",
     "src/pref_gen",
-    "src-tauri/tauri-invoke-proc",
-    "lib/tauri-plugin-file-scanner",
-    "lib/tauri-plugin-audioplayer",
-    "lib/tauri-plugin-self-update",
 ]
 
 [package.metadata.leptos-i18n]

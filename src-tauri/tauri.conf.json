@@ -43,8 +43,8 @@
     "withGlobalTauri": true
   },
   "build": {
-    "beforeDevCommand": "trunk serve",
-    "beforeBuildCommand": "trunk build --release",
+    "beforeDevCommand": "./build.sh && trunk serve",
+    "beforeBuildCommand": "./build.sh && trunk build --release",
     "devUrl": "http://localhost:1420",
     "frontendDist": "../dist"
   },

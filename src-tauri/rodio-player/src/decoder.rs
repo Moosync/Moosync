@@ -6,7 +6,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 
 use rodio::source::SeekError;
-use rodio::{Sample, Source};
+use rodio::{Sample, SampleRate, Source};
 use rsmpeg::avformat::{self, AVFormatContextInput};
 use rsmpeg::error::RsmpegError;
 use tracing::error;
@@ -297,7 +297,7 @@ impl Source for FFMPEGDecoder {
     }
 
     #[inline]
-    fn sample_rate(&self) -> NonZero<u32> {
+    fn sample_rate(&self) -> SampleRate {
         NonZero::new(self.codec_ctx.sample_rate as u32).unwrap()
     }
 

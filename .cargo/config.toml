@@ -16,5 +16,8 @@ rustflags = [
 ]
 
 [env]
-FFMPEG_PKG_CONFIG_PATH = "/home/ovenoboyo/projects/moosync/tauri/Moosync/src-tauri/rodio-player/ffmpeg/build/build/lib/pkgconfig"
-FFMPEG_INCLUDE_DIR = "/home/ovenoboyo/projects/moosync/tauri/Moosync/src-tauri/rodio-player/ffmpeg/build/build/include"
+FFMPEG_PKG_CONFIG_PATH = ""
+FFMPEG_INCLUDE_DIR = ""
+FFMPEG_LINK_MODE = "static"
+PKG_CONFIG_SYSROOT_DIR = ""
+BINDGEN_EXTRA_CLANG_ARGS = ""

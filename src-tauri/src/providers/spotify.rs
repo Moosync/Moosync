@@ -632,7 +632,9 @@ impl GenericProvider for SpotifyProvider {
 
     #[tracing::instrument(level = "debug", skip(self))]
     async fn get_playback_url(&self, _: Song, _: String) -> Result<String> {
-        Err(MoosyncError::SwitchProviders("youtube".into()))
+        Err(MoosyncError::SwitchProviders(
+            "extension:moosync.youtubedl".into(),
+        ))
     }
 
     #[tracing::instrument(level = "debug", skip(self, term))]

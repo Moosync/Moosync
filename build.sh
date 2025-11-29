@@ -71,6 +71,20 @@ else
     ffmpeg_build_dir="$ffmpeg_dir/build-ffmpeg-$target"
     prefix="$ffmpeg_build_dir/build"
 
+    extra_configure_flags=""
+    if echo "$target" | grep -q "apple-darwin"; then
+        extra_configure_flags="-I/opt/homebrew/include --extra-ldflags=-L/opt/homebrew/lib "
+    elif echo "$target" | grep -q "windows"; then
+        vcpkg_triplet=""
+        case "$TAURI_ENV_ARCH" in
+            x86_64) vcpkg_triplet="x64-windows" ;;
+            i686) vcpkg_triplet="x86-windows" ;;
+        esac
+        if [ -n "$VCPKG_ROOT" ] && [ -n "$vcpkg_triplet" ]; then
+            extra_configure_flags="-I\"$VCPKG_ROOT/installed/$vcpkg_triplet/include\" --extra-ldflags=\"-L$VCPKG_ROOT/installed/$vcpkg_triplet/lib\" "
+        fi
+    fi
+
     if [ ! -d "$ffmpeg_dir" ]; then
         echo "--- Cloning FFmpeg ---"
         git clone https://github.com/ffmpeg/ffmpeg --depth 1 --single-branch --branch release/7.0 "$ffmpeg_dir"
@@ -85,6 +99,7 @@ else
 
             echo "--- Configuring FFmpeg ---"
             ../configure \
+                "$extra_configure_flags" \
                 --prefix="$prefix" \
                 --disable-everything \
                 --disable-programs \

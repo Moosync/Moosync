@@ -142,6 +142,9 @@ else
                 --enable-libopus \
                 --enable-libvorbis \
                 --enable-openssl \
+                --disable-vaapi \
+                --disable-vdpau \
+                --disable-libdrm \
                 --enable-static
 
             echo "--- Compiling FFmpeg ---"

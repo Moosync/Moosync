@@ -15,7 +15,7 @@ keyring = { version = "3", default-features = false, features = [
     "sync-secret-service",
 ] }
 whoami = { default-features = false, version = "1.6.1" }
-hex = { default-features = false, version = "0.4.3" }
+hex = { version = "0.4.3" }
 chacha20poly1305 = "0.11.0-rc"
 json_dotpath = "1.1.0"
 crossbeam-channel = { default-features = false, version = "0.5.15" }

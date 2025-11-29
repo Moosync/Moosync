@@ -108,6 +108,7 @@ jobs:
         run: pwd
 
       - name: Install LLVM and Clang
+        if: contains(matrix.os, 'ubuntu')
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "20"

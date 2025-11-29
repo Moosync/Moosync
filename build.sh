@@ -81,7 +81,7 @@ else
             i686) vcpkg_triplet="x86-windows" ;;
         esac
         if [ -n "$VCPKG_ROOT" ] && [ -n "$vcpkg_triplet" ]; then
-            extra_configure_flags="-I\"$VCPKG_ROOT/installed/$vcpkg_triplet/include\" --extra-ldflags=\"-L$VCPKG_ROOT/installed/$vcpkg_triplet/lib\" "
+            extra_configure_flags="-I$VCPKG_ROOT/installed/$vcpkg_triplet/include --extra-ldflags=-L$VCPKG_ROOT/installed/$vcpkg_triplet/lib "
         fi
     fi
 
@@ -99,7 +99,7 @@ else
 
             echo "--- Configuring FFmpeg ---"
             ../configure \
-                "$extra_configure_flags" \
+                ${extra_configure_flags:+"$extra_configure_flags"} \
                 --prefix="$prefix" \
                 --disable-everything \
                 --disable-programs \

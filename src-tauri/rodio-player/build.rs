@@ -21,9 +21,5 @@ fn main() {
     if let Ok("android") = target_os.as_ref().map(|x| &**x) {
         println!("cargo:rustc-link-lib=dylib=stdc++");
         println!("cargo:rustc-link-lib=c++_shared");
-        println!("cargo:rustc-link-lib=avformat");
-        println!("cargo:rustc-link-lib=avcodec");
-        println!("cargo:rustc-link-lib=swresample");
-        println!("cargo:rustc-link-lib=avutil");
     }
 }

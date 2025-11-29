@@ -50,7 +50,7 @@ if [ "$is_android_build" = true ]; then
     android_ffmpeg_build_dir="$android_maker_dir/build/ffmpeg/$ABI"
     if [ ! -d "$android_ffmpeg_build_dir" ]; then
         echo "--- Building FFmpeg for Android ---"
-        ANDROID_NDK_HOME=$NDK_HOME ANDROID_SDK_HOME=$ANDROID_HOME "$android_maker_dir/ffmpeg-android-maker.sh" --source-git-branch=release/8.0 --enable-libmp3lame --enable-libopus -android=26 -abis=$ABI
+        ANDROID_NDK_HOME=$NDK_HOME ANDROID_SDK_HOME=$ANDROID_HOME "$android_maker_dir/ffmpeg-android-maker.sh" --source-git-branch=release/7.0 --enable-libmp3lame --enable-libopus -android=26 -abis=$ABI
     else
         echo "--- FFmpeg for Android already built, skipping ---"
     fi
@@ -73,7 +73,7 @@ else
 
     if [ ! -d "$ffmpeg_dir" ]; then
         echo "--- Cloning FFmpeg ---"
-        git clone https://github.com/ffmpeg/ffmpeg --depth 1 --single-branch --branch release/8.0 "$ffmpeg_dir"
+        git clone https://github.com/ffmpeg/ffmpeg --depth 1 --single-branch --branch release/7.0 "$ffmpeg_dir"
     fi
 
     if [ ! -d "$ffmpeg_build_dir" ]; then
@@ -93,6 +93,7 @@ else
                 --disable-doc \
                 --disable-htmlpages \
                 --disable-manpages \
+                --disable-shared \
                 --enable-network \
                 --enable-swresample \
                 --enable-avformat \

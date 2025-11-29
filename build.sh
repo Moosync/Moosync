@@ -62,6 +62,7 @@ if [ "$is_android_build" = true ]; then
     find "$android_ffmpeg_build_dir/lib" -name "*.so" -exec cp {} "$jni_libs_dir" \;
 
     ffmpeg_pkg_config_path="$android_ffmpeg_build_dir/lib/pkgconfig"
+    ffmpeg_libs_dir="$android_ffmpeg_build_dir/lib"
     ffmpeg_include_dir="$android_ffmpeg_build_dir/include"
     ffmpeg_link_mode="static"
     TOOLCHAIN_ROOT="$NDK_HOME/toolchains/llvm/prebuilt/$(ls $NDK_HOME/toolchains/llvm/prebuilt | head -n 1)"
@@ -152,6 +153,7 @@ else
     fi
 
     ffmpeg_pkg_config_path="$ffmpeg_build_dir/build/lib/pkgconfig"
+    ffmpeg_libs_dir="$ffmpeg_build_dir/build/lib"
     ffmpeg_include_dir="$ffmpeg_build_dir/build/include"
     ffmpeg_link_mode="static"
 fi
@@ -167,8 +169,9 @@ update_cargo_config() {
 }
 
 # Update .cargo/config.toml with ffmpeg paths
-update_cargo_config "s|FFMPEG_PKG_CONFIG_PATH = \".*\"|FFMPEG_PKG_CONFIG_PATH = \"$ffmpeg_pkg_config_path\"|"
+# update_cargo_config "s|FFMPEG_PKG_CONFIG_PATH = \".*\"|FFMPEG_PKG_CONFIG_PATH = \"$ffmpeg_pkg_config_path\"|"
 update_cargo_config "s|FFMPEG_INCLUDE_DIR = \".*\"|FFMPEG_INCLUDE_DIR = \"$ffmpeg_include_dir\"|"
+update_cargo_config "s|FFMPEG_LIBS_DIR = \".*\"|FFMPEG_LIBS_DIR = \"$ffmpeg_libs_dir\"|"
 update_cargo_config "s|FFMPEG_LINK_MODE = \".*\"|FFMPEG_LINK_MODE = \"$ffmpeg_link_mode\"|"
 update_cargo_config "s|BINDGEN_EXTRA_CLANG_ARGS = \".*\"|BINDGEN_EXTRA_CLANG_ARGS = \"$NDK_SYSROOT\"|"
 

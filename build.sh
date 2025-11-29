@@ -1,6 +1,7 @@
 #!/bin/sh
 
 set -e
+set -x
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
 

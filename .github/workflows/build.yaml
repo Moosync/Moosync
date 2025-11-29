@@ -108,13 +108,13 @@ jobs:
         run: pwd
 
       - name: Install LLVM and Clang
-        if: contains(matrix.platform, 'ubuntu')
+        if: matrix.platform == 'ubuntu-22.04'
         uses: KyleMayes/install-llvm-action@v2
         with:
           version: "20"
 
       - name: Symlink libclang.so (Linux)
-        if: contains(matrix.platform, 'ubuntu')
+        if: matrix.platform == 'ubuntu-22.04'
         run: sudo ln -s libclang.so /lib/x86_64-linux-gnu/libclang.so
         working-directory: ${{ env.LLVM_PATH }}/lib
 
@@ -122,7 +122,7 @@ jobs:
         run: npm install -g @tauri-apps/cli@latest
 
       - name: Free Disk Space (Ubuntu)
-        if: contains(matrix.platform, 'ubuntu')
+        if: matrix.platform == 'ubuntu-22.04'
         uses: jlumbroso/free-disk-space@main
         with:
           large-packages: false

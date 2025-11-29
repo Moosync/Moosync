@@ -122,6 +122,7 @@ jobs:
         run: npm install -g @tauri-apps/cli@latest
 
       - name: Free Disk Space (Ubuntu)
+        if: contains(matrix.os, 'ubuntu')
         uses: jlumbroso/free-disk-space@main
 
       - name: Build Tauri app (no publish)

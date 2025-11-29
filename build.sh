@@ -156,16 +156,20 @@ else
     ffmpeg_link_mode="static"
 fi
 
-# Handle sed -i difference between GNU and BSD
-sedi_cmd="sed -i"
-if echo "$target" | grep -q "apple-darwin"; then
-    sedi_cmd="sed -i '' -e"
-fi
+# Function to update .cargo/config.toml in a cross-platform way
+update_cargo_config() {
+    expression="$1"
+    if echo "$target" | grep -q "apple-darwin"; then
+        sed -i '' -e "$expression" .cargo/config.toml
+    else
+        sed -i -e "$expression" .cargo/config.toml
+    fi
+}
 
 # Update .cargo/config.toml with ffmpeg paths
-eval $sedi_cmd "s|FFMPEG_PKG_CONFIG_PATH = \".*\"|FFMPEG_PKG_CONFIG_PATH = \"$ffmpeg_pkg_config_path\"|" .cargo/config.toml
-eval $sedi_cmd "s|FFMPEG_INCLUDE_DIR = \".*\"|FFMPEG_INCLUDE_DIR = \"$ffmpeg_include_dir\"|" .cargo/config.toml
-eval $sedi_cmd "s|FFMPEG_LINK_MODE = \".*\"|FFMPEG_LINK_MODE = \"$ffmpeg_link_mode\"|" .cargo/config.toml
-eval $sedi_cmd "s|BINDGEN_EXTRA_CLANG_ARGS = \".*\"|BINDGEN_EXTRA_CLANG_ARGS = \"$NDK_SYSROOT\"|" .cargo/config.toml
+update_cargo_config "s|FFMPEG_PKG_CONFIG_PATH = \".*\"|FFMPEG_PKG_CONFIG_PATH = \"$ffmpeg_pkg_config_path\"|"
+update_cargo_config "s|FFMPEG_INCLUDE_DIR = \".*\"|FFMPEG_INCLUDE_DIR = \"$ffmpeg_include_dir\"|"
+update_cargo_config "s|FFMPEG_LINK_MODE = \".*\"|FFMPEG_LINK_MODE = \"$ffmpeg_link_mode\"|"
+update_cargo_config "s|BINDGEN_EXTRA_CLANG_ARGS = \".*\"|BINDGEN_EXTRA_CLANG_ARGS = \"$NDK_SYSROOT\"|"
 
 echo "Updated ffmpeg config in .cargo/config.toml"

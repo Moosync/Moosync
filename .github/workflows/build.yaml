@@ -121,6 +121,9 @@ jobs:
       - name: Install tauri CLI
         run: npm install -g @tauri-apps/cli@latest
 
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+
       - name: Build Tauri app (no publish)
         if: ${{ !inputs.publish }}
         uses: tauri-apps/tauri-action@v0

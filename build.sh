@@ -73,7 +73,7 @@ else
 
     extra_configure_flags=""
     if echo "$target" | grep -q "apple-darwin"; then
-        extra_configure_flags="-I/opt/homebrew/include --extra-ldflags=-L/opt/homebrew/lib "
+        extra_configure_flags="--extra-cflags=-I/opt/homebrew/include --extra-ldflags=-L/opt/homebrew/lib "
     elif echo "$target" | grep -q "windows"; then
         vcpkg_triplet=""
         case "$TAURI_ENV_ARCH" in
@@ -81,7 +81,7 @@ else
             i686) vcpkg_triplet="x86-windows" ;;
         esac
         if [ -n "$VCPKG_ROOT" ] && [ -n "$vcpkg_triplet" ]; then
-            extra_configure_flags="-I$VCPKG_ROOT/installed/$vcpkg_triplet/include --extra-ldflags=-L$VCPKG_ROOT/installed/$vcpkg_triplet/lib "
+            extra_configure_flags="--extra-cflags=-I$VCPKG_ROOT/installed/$vcpkg_triplet/include --extra-ldflags=-L$VCPKG_ROOT/installed/$vcpkg_triplet/lib "
         fi
     fi
 

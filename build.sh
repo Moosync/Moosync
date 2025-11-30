@@ -61,6 +61,7 @@ if [ "$is_android_build" = true ]; then
     mkdir -p "$jni_libs_dir"
     find "$android_ffmpeg_build_dir/lib" -name "*.so" -exec cp {} "$jni_libs_dir" \;
 
+    ffmpeg_build_dir="$android_ffmpeg_build_dir"
     ffmpeg_pkg_config_path="$android_ffmpeg_build_dir/lib/pkgconfig"
     ffmpeg_libs_dir="$android_ffmpeg_build_dir/lib"
     ffmpeg_include_dir="$android_ffmpeg_build_dir/include"
@@ -177,5 +178,8 @@ update_cargo_config "s|FFMPEG_INCLUDE_DIR = \".*\"|FFMPEG_INCLUDE_DIR = \"$ffmpe
 update_cargo_config "s|FFMPEG_LIBS_DIR = \".*\"|FFMPEG_LIBS_DIR = \"$ffmpeg_libs_dir\"|"
 update_cargo_config "s|FFMPEG_LINK_MODE = \".*\"|FFMPEG_LINK_MODE = \"$ffmpeg_link_mode\"|"
 update_cargo_config "s|BINDGEN_EXTRA_CLANG_ARGS = \".*\"|BINDGEN_EXTRA_CLANG_ARGS = \"$NDK_SYSROOT\"|"
+
+# delete recusrive symlink
+rm -rf "$ffmpeg_build_dir/src"
 
 echo "Updated ffmpeg config in .cargo/config.toml"

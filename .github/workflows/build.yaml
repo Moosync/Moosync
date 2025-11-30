@@ -97,6 +97,12 @@ jobs:
       #   with:
       #     crate: trunk
 
+      - name: Free Disk Space (Ubuntu)
+        if: matrix.platform == 'ubuntu-22.04'
+        uses: jlumbroso/free-disk-space@main
+        with:
+          large-packages: false
+
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
@@ -121,12 +127,6 @@ jobs:
 
       - name: Install tauri CLI
         run: npm install -g @tauri-apps/cli@latest
-
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'ubuntu-22.04'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          large-packages: false
 
       - name: Build Tauri app (no publish)
         if: ${{ !inputs.publish }}

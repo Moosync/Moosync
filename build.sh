@@ -100,6 +100,11 @@ else
         (
             cd "$ffmpeg_build_dir" || exit
 
+            libvorbis_flag="--enable-libvorbis"
+            if echo "$target" | grep -q "windows"; then
+                libvorbis_flag=""
+            fi
+
             echo "--- Configuring FFmpeg ---"
             ../configure \
                 ${extra_configure_flags:+$extra_configure_flags} \
@@ -141,7 +146,7 @@ else
                 --enable-filter=volume \
                 --enable-libmp3lame \
                 --enable-libopus \
-                --enable-libvorbis \
+                $libvorbis_flag \
                 --enable-openssl \
                 --disable-vaapi \
                 --disable-vdpau \
@@ -173,7 +178,7 @@ update_cargo_config() {
 }
 
 # Update .cargo/config.toml with ffmpeg paths
-# update_cargo_config "s|FFMPEG_PKG_CONFIG_PATH = \".*\"|FFMPEG_PKG_CONFIG_PATH = \"$ffmpeg_pkg_config_path\"|"
+update_cargo_config "s|FFMPEG_PKG_CONFIG_PATH = \".*\"|FFMPEG_PKG_CONFIG_PATH = \"$ffmpeg_pkg_config_path\"|"
 update_cargo_config "s|FFMPEG_INCLUDE_DIR = \".*\"|FFMPEG_INCLUDE_DIR = \"$ffmpeg_include_dir\"|"
 update_cargo_config "s|FFMPEG_LIBS_DIR = \".*\"|FFMPEG_LIBS_DIR = \"$ffmpeg_libs_dir\"|"
 update_cargo_config "s|FFMPEG_LINK_MODE = \".*\"|FFMPEG_LINK_MODE = \"$ffmpeg_link_mode\"|"

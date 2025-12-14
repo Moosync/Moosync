@@ -84,7 +84,12 @@ else
             i686) vcpkg_triplet="x86-windows" ;;
         esac
         if [ -n "$VCPKG_ROOT" ] && [ -n "$vcpkg_triplet" ]; then
-            extra_configure_flags="--extra-cflags=-I$VCPKG_ROOT/installed/$vcpkg_triplet/include --extra-ldflags=-L$VCPKG_ROOT/installed/$vcpkg_triplet/lib"
+            POSIX_VCPKG_ROOT=$(echo "$VCPKG_ROOT" | sed 's/\\/\//g' | sed 's/://')
+            if echo "$VCPKG_ROOT" | grep -q '^\w:'; then
+                 # For drive letters (e.g., C:), prefix with a slash
+                POSIX_VCPKG_ROOT="/$POSIX_VCPKG_ROOT"
+            fi
+            extra_configure_flags="--extra-cflags=-I$POSIX_VCPKG_ROOT/installed/$vcpkg_triplet/include --extra-ldflags=-L$POSIX_VCPKG_ROOT/installed/$vcpkg_triplet/lib"
         fi
     fi
 

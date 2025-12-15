@@ -170,6 +170,12 @@ else
                 --disable-libdrm \
                 --enable-static
 
+            if [ $? -ne 0 ]; then
+                echo "--- FFmpeg configure failed, printing config.log ---"
+                cat "$ffmpeg_build_dir/ffbuild/config.log"
+                exit 1
+            fi
+
             echo "--- Compiling FFmpeg ---"
             make -j"$(nproc)"
 

@@ -78,6 +78,7 @@ jobs:
             pkg-config
             yasm
             nasm
+            git
 
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v7

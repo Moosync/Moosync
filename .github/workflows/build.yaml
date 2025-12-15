@@ -159,11 +159,8 @@ jobs:
           git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git
           cd FFmpeg
 
-          export CC=cl
-
           ./configure \
             --prefix=/c/ffmpeg-static \
-            --toolchain=msvc \
             --disable-everything \
             --disable-programs \
             --enable-gpl \

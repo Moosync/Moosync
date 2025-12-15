@@ -96,7 +96,7 @@ else
 
             extra_ldflags="-L$VCPKG_LIB_DIR -L$POSIX_VCPKG_ROOT/packages/openssl_$vcpkg_triplet-static-md/lib"
 
-            extra_configure_flags="--extra-cflags='$extra_cflags' --extra-ldflags='$extra_ldflags'"
+            extra_configure_flags="--extra-cflags=$extra_cflags --extra-ldflags=$extra_ldflags"
         fi
     fi
 

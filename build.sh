@@ -92,11 +92,11 @@ else
             VCPKG_INCLUDE_DIR="$POSIX_VCPKG_ROOT/installed/$vcpkg_triplet/include"
             VCPKG_LIB_DIR="$POSIX_VCPKG_ROOT/installed/$vcpkg_triplet/lib"
 
-            extra_cflags="-I$VCPKG_INCLUDE_DIR -I$VCPKG_INCLUDE_DIR/openssl"
+            extra_cflags="-I$VCPKG_INCLUDE_DIR -I$VCPKG_ROOT/installed/$vcpkg_triplet-static-md/include"
 
             extra_ldflags="-L$VCPKG_LIB_DIR -L$POSIX_VCPKG_ROOT/packages/openssl_$vcpkg_triplet-static-md/lib"
 
-            extra_configure_flags="--extra-cflags=$extra_cflags --extra-ldflags=$extra_ldflags"
+            extra_configure_flags="--extra-cflags=\"$extra_cflags\" --extra-ldflags=\"$extra_ldflags\""
         fi
     fi
 

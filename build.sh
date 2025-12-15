@@ -109,8 +109,8 @@ else
         echo "--- Windows target detected: assuming prebuilt FFmpeg at C:\\ffmpeg-static ---"
         # Use single quotes so backslashes are preserved literally
         ffmpeg_pkg_config_path=''
-        ffmpeg_libs_dir='C:\\ffmpeg-static\\usr\\lib'
-        ffmpeg_include_dir='C:\\ffmpeg-static\\usr\\include'
+        ffmpeg_libs_dir='C:\\\\ffmpeg-static\\\\usr\\\\lib'
+        ffmpeg_include_dir='C:\\\\ffmpeg-static\\\\usr\\\\include'
         ffmpeg_link_mode="static"
     else
         if [ ! -d "$ffmpeg_dir" ]; then

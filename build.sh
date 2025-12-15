@@ -103,91 +103,102 @@ else
         fi
     fi
 
-    if [ ! -d "$ffmpeg_dir" ]; then
-        echo "--- Cloning FFmpeg ---"
-        git clone https://github.com/ffmpeg/ffmpeg --depth 1 --single-branch --branch release/7.0 "$ffmpeg_dir"
+    # If the non-Android target is Windows, assume FFmpeg is prebuilt and
+    # available at the following Windows paths. Skip cloning/building in that case.
+    if echo "$target" | grep -q "windows"; then
+        echo "--- Windows target detected: assuming prebuilt FFmpeg at C:\\ffmpeg-static ---"
+        # Use single quotes so backslashes are preserved literally
+        ffmpeg_pkg_config_path=''
+        ffmpeg_libs_dir='C:\\ffmpeg-static\\usr\\lib'
+        ffmpeg_include_dir='C:\\ffmpeg-static\\usr\\include'
+        ffmpeg_link_mode="static"
+    else
+        if [ ! -d "$ffmpeg_dir" ]; then
+            echo "--- Cloning FFmpeg ---"
+            git clone https://github.com/ffmpeg/ffmpeg --depth 1 --single-branch --branch release/7.0 "$ffmpeg_dir"
+        fi
+
+        if [ ! -d "$ffmpeg_build_dir" ]; then
+            echo "--- Building FFmpeg ---"
+            mkdir -p "$ffmpeg_build_dir"
+            
+            (
+                cd "$ffmpeg_build_dir" || exit
+
+                libvorbis_flag="--enable-libvorbis"
+                if echo "$target" | grep -q "windows"; then
+                    libvorbis_flag=""
+                fi
+
+                echo "--- Configuring FFmpeg ---"
+                ../configure \
+                    "${extra_configure_flags[@]}" \
+                    --prefix="$prefix" \
+                    --disable-everything \
+                    --disable-programs \
+                    --enable-gpl \
+                    --enable-version3 \
+                    --disable-doc \
+                    --disable-htmlpages \
+                    --disable-manpages \
+                    --disable-shared \
+                    --enable-network \
+                    --enable-swresample \
+                    --enable-avformat \
+                    --enable-parsers \
+                    --enable-protocols \
+                    --enable-demuxer=aac \
+                    --enable-demuxer=flac \
+                    --enable-demuxer=mp3 \
+                    --enable-demuxer=mov \
+                    --enable-demuxer=ogg \
+                    --enable-demuxer=wav \
+                    --enable-muxer=adts \
+                    --enable-muxer=flac \
+                    --enable-muxer=mp3 \
+                    --enable-muxer=mp4 \
+                    --enable-muxer=ogg \
+                    --enable-muxer=wav \
+                    --enable-avcodec \
+                    --enable-decoder=aac \
+                    --enable-decoder=flac \
+                    --enable-decoder=mp3 \
+                    --enable-decoder=vorbis \
+                    --enable-decoder=opus \
+                    --enable-decoder=pcm_s16le \
+                    --enable-encoder=flac \
+                    --enable-encoder=pcm_s16le \
+                    --enable-filter=aresample \
+                    --enable-filter=aformat \
+                    --enable-filter=volume \
+                    --enable-libmp3lame \
+                    --enable-libopus \
+                    $libvorbis_flag \
+                    --enable-openssl \
+                    --disable-vaapi \
+                    --disable-vdpau \
+                    --disable-libdrm \
+                    --enable-static
+
+                if [ $? -ne 0 ]; then
+                    echo "--- FFmpeg configure failed, printing config.log ---"
+                    cat "$ffmpeg_build_dir/ffbuild/config.log"
+                    exit 1
+                fi
+
+                echo "--- Compiling FFmpeg ---"
+                make -j"$(nproc)"
+
+                echo "--- Installing FFmpeg ---"
+                make install
+            )
+        fi
+
+        ffmpeg_pkg_config_path="$ffmpeg_build_dir/build/lib/pkgconfig"
+        ffmpeg_libs_dir="$ffmpeg_build_dir/build/lib"
+        ffmpeg_include_dir="$ffmpeg_build_dir/build/include"
+        ffmpeg_link_mode="static"
     fi
-
-    if [ ! -d "$ffmpeg_build_dir" ]; then
-        echo "--- Building FFmpeg ---"
-        mkdir -p "$ffmpeg_build_dir"
-        
-        (
-            cd "$ffmpeg_build_dir" || exit
-
-            libvorbis_flag="--enable-libvorbis"
-            if echo "$target" | grep -q "windows"; then
-                libvorbis_flag=""
-            fi
-
-            echo "--- Configuring FFmpeg ---"
-            ../configure \
-                "${extra_configure_flags[@]}" \
-                --prefix="$prefix" \
-                --disable-everything \
-                --disable-programs \
-                --enable-gpl \
-                --enable-version3 \
-                --disable-doc \
-                --disable-htmlpages \
-                --disable-manpages \
-                --disable-shared \
-                --enable-network \
-                --enable-swresample \
-                --enable-avformat \
-                --enable-parsers \
-                --enable-protocols \
-                --enable-demuxer=aac \
-                --enable-demuxer=flac \
-                --enable-demuxer=mp3 \
-                --enable-demuxer=mov \
-                --enable-demuxer=ogg \
-                --enable-demuxer=wav \
-                --enable-muxer=adts \
-                --enable-muxer=flac \
-                --enable-muxer=mp3 \
-                --enable-muxer=mp4 \
-                --enable-muxer=ogg \
-                --enable-muxer=wav \
-                --enable-avcodec \
-                --enable-decoder=aac \
-                --enable-decoder=flac \
-                --enable-decoder=mp3 \
-                --enable-decoder=vorbis \
-                --enable-decoder=opus \
-                --enable-decoder=pcm_s16le \
-                --enable-encoder=flac \
-                --enable-encoder=pcm_s16le \
-                --enable-filter=aresample \
-                --enable-filter=aformat \
-                --enable-filter=volume \
-                --enable-libmp3lame \
-                --enable-libopus \
-                $libvorbis_flag \
-                --enable-openssl \
-                --disable-vaapi \
-                --disable-vdpau \
-                --disable-libdrm \
-                --enable-static
-
-            if [ $? -ne 0 ]; then
-                echo "--- FFmpeg configure failed, printing config.log ---"
-                cat "$ffmpeg_build_dir/ffbuild/config.log"
-                exit 1
-            fi
-
-            echo "--- Compiling FFmpeg ---"
-            make -j"$(nproc)"
-
-            echo "--- Installing FFmpeg ---"
-            make install
-        )
-    fi
-
-    ffmpeg_pkg_config_path="$ffmpeg_build_dir/build/lib/pkgconfig"
-    ffmpeg_libs_dir="$ffmpeg_build_dir/build/lib"
-    ffmpeg_include_dir="$ffmpeg_build_dir/build/include"
-    ffmpeg_link_mode="static"
 fi
 
 # Function to update .cargo/config.toml in a cross-platform way

@@ -65,6 +65,20 @@ jobs:
         run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
         if: matrix.platform == 'windows-latest'
 
+      - name: Setup MSYS2 (Windows only)
+        if: matrix.platform == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >
+            mingw-w64-x86_64-toolchain
+            make
+            diffutils
+            pkg-config
+            yasm
+            nasm
+
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v7
         if: matrix.platform == 'windows-latest'
@@ -74,7 +88,7 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Install OpenSSL (Windows only)
-        run: vcpkg install openssl:x64-windows-static-md openssl:x64-windows-static mp3lame libvorbis yasm
+        run: vcpkg install openssl:x64-windows-static-md libmp3lame:x64-windows-static libvorbis:x64-windows-static libopus:x64-windows-static yasm
         if: matrix.platform == 'windows-latest'
         env:
           VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
@@ -127,6 +141,77 @@ jobs:
 
       - name: Install tauri CLI
         run: npm install -g @tauri-apps/cli@latest
+
+      - name: Build custom FFmpeg (Windows only)
+        if: matrix.platform == 'windows-latest'
+        shell: msys2 {0}
+        run: |
+          set -eux
+
+          export VCPKG_ROOT="/c/vcpkg"
+          export VCPKG_TRIPLET="x64-windows-static"
+
+          export PKG_CONFIG_PATH="$VCPKG_ROOT/installed/$VCPKG_TRIPLET/lib/pkgconfig"
+          export CFLAGS="-I$VCPKG_ROOT/installed/$VCPKG_TRIPLET/include"
+          export LDFLAGS="-L$VCPKG_ROOT/installed/$VCPKG_TRIPLET/lib"
+
+          git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git
+          cd FFmpeg
+
+          export CC=cl
+
+          ./configure \
+            --prefix=/c/ffmpeg-static \
+            --toolchain=msvc \
+            --disable-everything \
+            --disable-programs \
+            --enable-gpl \
+            --enable-version3 \
+            --disable-doc \
+            --disable-htmlpages \
+            --disable-manpages \
+            --disable-shared \
+            --enable-static \
+            --enable-network \
+            --enable-swresample \
+            --enable-avformat \
+            --enable-avcodec \
+            --enable-parsers \
+            --enable-protocols \
+            --enable-demuxer=aac \
+            --enable-demuxer=flac \
+            --enable-demuxer=mp3 \
+            --enable-demuxer=mov \
+            --enable-demuxer=ogg \
+            --enable-demuxer=wav \
+            --enable-muxer=adts \
+            --enable-muxer=flac \
+            --enable-muxer=mp3 \
+            --enable-muxer=mp4 \
+            --enable-muxer=ogg \
+            --enable-muxer=wav \
+            --enable-decoder=aac \
+            --enable-decoder=flac \
+            --enable-decoder=mp3 \
+            --enable-decoder=vorbis \
+            --enable-decoder=opus \
+            --enable-decoder=pcm_s16le \
+            --enable-encoder=flac \
+            --enable-encoder=pcm_s16le \
+            --enable-filter=aresample \
+            --enable-filter=aformat \
+            --enable-filter=volume \
+            --enable-libmp3lame \
+            --enable-libvorbis \
+            --enable-openssl \
+            --disable-vaapi \
+            --disable-vdpau \
+            --disable-libdrm \
+
+          make -j$(nproc)
+          make install
+
+          ls -la /c/ffmpeg-static/*
 
       - name: Build Tauri app (no publish)
         if: ${{ !inputs.publish }}

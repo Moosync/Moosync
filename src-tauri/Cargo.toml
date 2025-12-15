@@ -62,6 +62,7 @@ tokio = { version = "1.48.0", features = ["sync"] }
 semver = "1.0.27"
 # https://github.com/bytecodealliance/rustix/issues/1519
 rustix = { version = "=1.0.8" }
+libz-sys = { version = "1.1" }
 
 [build-dependencies.tauri-build]
 version = "2.5.1"

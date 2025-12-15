@@ -74,9 +74,10 @@ else
     ffmpeg_build_dir="$ffmpeg_dir/build-ffmpeg-$target"
     prefix="$ffmpeg_build_dir/build"
 
-    extra_configure_flags=""
+    extra_configure_flags=() # Initialize as an array
     if echo "$target" | grep -q "apple-darwin"; then
-        extra_configure_flags="--extra-cflags=-I/opt/homebrew/include --extra-ldflags=-L/opt/homebrew/lib"
+        extra_configure_flags+=("--extra-cflags=-I/opt/homebrew/include")
+        extra_configure_flags+=("--extra-ldflags=-L/opt/homebrew/lib")
     elif echo "$target" | grep -q "windows"; then
         vcpkg_triplet=""
         case "$TAURI_ENV_ARCH" in
@@ -96,7 +97,8 @@ else
 
             extra_ldflags="-L$VCPKG_LIB_DIR -L$POSIX_VCPKG_ROOT/packages/openssl_$vcpkg_triplet-static-md/lib"
 
-            extra_configure_flags="--extra-cflags=\"$extra_cflags\" --extra-ldflags=\"$extra_ldflags\""
+            extra_configure_flags+=("--extra-cflags=$extra_cflags") # Add to array
+            extra_configure_flags+=("--extra-ldflags=$extra_ldflags") # Add to array
         fi
     fi
 
@@ -119,7 +121,7 @@ else
 
             echo "--- Configuring FFmpeg ---"
             ../configure \
-                ${extra_configure_flags:+$extra_configure_flags} \
+                "${extra_configure_flags[@]}" \
                 --prefix="$prefix" \
                 --disable-everything \
                 --disable-programs \

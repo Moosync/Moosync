@@ -16,9 +16,9 @@ rustflags = [
 ]
 
 [env]
-# FFMPEG_PKG_CONFIG_PATH = ""
-FFMPEG_INCLUDE_DIR = ""
-FFMPEG_LIBS_DIR = ""
+# FFMPEG_PKG_CONFIG_PATH = "/home/ovenoboyo/projects/moosync/tauri/Moosync/ffmpeg/build-ffmpeg-x86_64-unknown-linux-gnu/build/lib/pkgconfig"
+FFMPEG_INCLUDE_DIR = "/home/ovenoboyo/projects/moosync/tauri/Moosync/ffmpeg/build-ffmpeg-x86_64-unknown-linux-gnu/build/include"
+FFMPEG_LIBS_DIR = "/home/ovenoboyo/projects/moosync/tauri/Moosync/ffmpeg/build-ffmpeg-x86_64-unknown-linux-gnu/build/lib"
 FFMPEG_LINK_MODE = "static"
 PKG_CONFIG_SYSROOT_DIR = ""
 BINDGEN_EXTRA_CLANG_ARGS = ""

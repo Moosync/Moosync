@@ -73,6 +73,9 @@ jobs:
           update: true
           install: >
             mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-lame
+            mingw-w64-x86_64-libvorbis
+            mingw-w64-x86_64-openssl
             make
             diffutils
             pkg-config
@@ -197,7 +200,8 @@ jobs:
             --enable-encoder=flac \
             --enable-encoder=pcm_s16le \
             --enable-filter=aresample \
-            --enable-filter=aformat \
+            --enable-filter=aformat \            --disable-everything \
+
             --enable-filter=volume \
             --enable-libmp3lame \
             --enable-libvorbis \

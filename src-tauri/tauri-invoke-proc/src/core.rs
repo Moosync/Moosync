@@ -81,6 +81,8 @@ pub fn generate_tauri_invoke_wrapper(_attr: TokenStream, item: TokenStream) -> T
         .expect("Failed to acquire lock on FUNCTION_DETAILS")
         .push(details);
 
+    write_function_details_to_file();
+
     // Return the original function unchanged
     TokenStream::from(quote! {
         #input
@@ -258,7 +260,6 @@ fn resolve_type_path(ty: &Box<Type>) -> String {
 }
 
 // Ensure the global variable is written to the file at program exit
-#[ctor::dtor]
 fn write_function_details_to_file() {
     // Retrieve the crate name from the environment variable
     let crate_name =
@@ -282,8 +283,7 @@ fn write_function_details_to_file() {
 
     // Path to the output JSON file in the source directory
     let crate_path = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR is not set");
-    let file_path = Path::new(&crate_path)
-        .join("function_details.json");
+    let file_path = Path::new(&crate_path).join("function_details.json");
 
     // Read existing JSON file content, if any
     let mut existing_data = match std::fs::read_to_string(file_path.clone()) {
@@ -302,6 +302,6 @@ fn write_function_details_to_file() {
     let json_output =
         serde_json::to_string_pretty(&existing_data).expect("Failed to serialize JSON data");
 
-    eprintln!("Writing output to {:?}", file_path);
+    // eprintln!("Writing output to {:?}", file_path);
     std::fs::write(file_path, json_output).expect("Failed to write JSON data to file");
 }

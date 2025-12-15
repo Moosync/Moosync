@@ -89,7 +89,14 @@ else
                  # For drive letters (e.g., C:), prefix with a slash
                 POSIX_VCPKG_ROOT="/$POSIX_VCPKG_ROOT"
             fi
-            extra_configure_flags="--extra-cflags=-I$POSIX_VCPKG_ROOT/installed/$vcpkg_triplet/include --extra-ldflags=-L$POSIX_VCPKG_ROOT/installed/$vcpkg_triplet/lib"
+            VCPKG_INCLUDE_DIR="$POSIX_VCPKG_ROOT/installed/$vcpkg_triplet/include"
+            VCPKG_LIB_DIR="$POSIX_VCPKG_ROOT/installed/$vcpkg_triplet/lib"
+
+            extra_cflags="-I$VCPKG_INCLUDE_DIR -I$VCPKG_INCLUDE_DIR/openssl"
+
+            extra_ldflags="-L$VCPKG_LIB_DIR -L$POSIX_VCPKG_ROOT/packages/openssl_$vcpkg_triplet-static-md/lib"
+
+            extra_configure_flags="--extra-cflags='$extra_cflags' --extra-ldflags='$extra_ldflags'"
         fi
     fi
 
@@ -125,6 +132,8 @@ else
                 --enable-network \
                 --enable-swresample \
                 --enable-avformat \
+                --enable-parsers \
+                --enable-protocols \
                 --enable-demuxer=aac \
                 --enable-demuxer=flac \
                 --enable-demuxer=mp3 \
@@ -192,4 +201,4 @@ update_cargo_config "s|BINDGEN_EXTRA_CLANG_ARGS = \".*\"|BINDGEN_EXTRA_CLANG_ARG
 # delete recusrive symlink
 rm -rf "$ffmpeg_build_dir/src"
 
-echo "Updated ffmpeg config in .cargo/config.toml"
+echo "Updated ffmpeg config in .cargo/config.toml"flac

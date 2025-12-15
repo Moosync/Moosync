@@ -78,6 +78,7 @@ jobs:
             pkg-config
             yasm
             nasm
+            zlib
             git
 
       - name: Export GitHub Actions cache environment variables
@@ -89,7 +90,7 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Install OpenSSL (Windows only)
-        run: vcpkg install openssl:x64-windows-static-md mp3lame yasm
+        run: vcpkg install openssl:x64-windows-static-md zlib
         if: matrix.platform == 'windows-latest'
         env:
           VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
@@ -206,7 +207,7 @@ jobs:
               --disable-vdpau \
               --disable-libdrm \
               --enable-static
-              
+
           make -j$(nproc)
           make install
 

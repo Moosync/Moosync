@@ -74,7 +74,7 @@ else
     ffmpeg_build_dir="$ffmpeg_dir/build-ffmpeg-$target"
     prefix="$ffmpeg_build_dir/build"
 
-    extra_configure_flags=() # Initialize as an array
+    extra_configure_flags=()
     if echo "$target" | grep -q "apple-darwin"; then
         extra_configure_flags+=("--extra-cflags=-I/opt/homebrew/include")
         extra_configure_flags+=("--extra-ldflags=-L/opt/homebrew/lib")
@@ -93,12 +93,13 @@ else
             VCPKG_INCLUDE_DIR="$POSIX_VCPKG_ROOT/installed/$vcpkg_triplet/include"
             VCPKG_LIB_DIR="$POSIX_VCPKG_ROOT/installed/$vcpkg_triplet/lib"
 
-            extra_cflags="-I$VCPKG_INCLUDE_DIR -I$VCPKG_ROOT/installed/$vcpkg_triplet-static-md/include"
+            extra_cflags="-I$VCPKG_INCLUDE_DIR -I$POSIX_VCPKG_ROOT/installed/$vcpkg_triplet-static-md/include"
 
             extra_ldflags="-L$VCPKG_LIB_DIR -L$POSIX_VCPKG_ROOT/packages/openssl_$vcpkg_triplet-static-md/lib"
 
-            extra_configure_flags+=("--extra-cflags=$extra_cflags") # Add to array
-            extra_configure_flags+=("--extra-ldflags=$extra_ldflags") # Add to array
+            extra_configure_flags+=("--extra-cflags=$extra_cflags") 
+            extra_configure_flags+=("--extra-ldflags=$extra_ldflags")
+            extra_configure_flags+=("--toolchain=msvc")
         fi
     fi
 

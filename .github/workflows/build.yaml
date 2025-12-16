@@ -134,7 +134,7 @@ jobs:
           cd FFmpeg
 
           ./configure \
-            --prefix=/c/ffmpeg-static \
+              --prefix=/c/ffmpeg-static \
               --toolchain=msvc \
               --target-os=win64 \
               --arch=x86_64 \

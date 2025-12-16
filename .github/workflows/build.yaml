@@ -137,7 +137,7 @@ jobs:
 
           bash which link.exe
           bash which link
-          (Get-Command cmd).Path
+          (Get-Command link).Path
           bash ./configure --prefix="$Prefix" --toolchain=msvc --target-os=win64 --arch=x86_64 --disable-everything --disable-programs --enable-gpl --enable-version3 --disable-doc --disable-htmlpages --disable-manpages --disable-shared --enable-network --enable-swresample --enable-avformat --enable-parsers --enable-protocols --enable-demuxer=aac --enable-demuxer=flac --enable-demuxer=mp3 --enable-demuxer=mov --enable-demuxer=ogg --enable-demuxer=wav --enable-muxer=adts --enable-muxer=flac --enable-muxer=mp3 --enable-muxer=mp4 --enable-muxer=ogg --enable-muxer=wav --enable-avcodec --enable-decoder=aac --enable-decoder=flac --enable-decoder=mp3 --enable-decoder=vorbis --enable-decoder=opus --enable-decoder=pcm_s16le --enable-encoder=flac --enable-encoder=pcm_s16le --enable-filter=aresample --enable-filter=aformat --enable-filter=volume --enable-libmp3lame --enable-libopus --enable-libvorbis --enable-openssl --disable-vaapi --disable-vdpau --disable-libdrm --enable-static
           
           $Jobs = [Environment]::ProcessorCount

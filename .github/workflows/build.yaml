@@ -127,7 +127,6 @@ jobs:
 
       - name: Build custom FFmpeg (Windows only)
         if: matrix.platform == 'windows-latest'
-        shell: msys2 {0}
         run: |
           set -eux
 

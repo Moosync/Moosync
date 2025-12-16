@@ -151,13 +151,6 @@ jobs:
         run: |
           set -eux
 
-          export VCPKG_ROOT="/c/vcpkg"
-          export VCPKG_TRIPLET="x64-windows-static"
-
-          export PKG_CONFIG_PATH="$VCPKG_ROOT/installed/$VCPKG_TRIPLET/lib/pkgconfig"
-          export CFLAGS="-I$VCPKG_ROOT/installed/$VCPKG_TRIPLET/include"
-          export LDFLAGS="-L$VCPKG_ROOT/installed/$VCPKG_TRIPLET/lib"
-
           git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git
           cd FFmpeg
 
@@ -214,6 +207,12 @@ jobs:
 
           ls -la /c/ffmpeg-static/*
 
+      - name: Setup MinGW PATH (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: powershell
+        run: |
+          echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
       - name: Build Tauri app (no publish)
         if: ${{ !inputs.publish }}
         uses: tauri-apps/tauri-action@v0
@@ -233,6 +232,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          OPENSSL_NO_VENDOR: 1
         with:
           tagName: Moosync-v__VERSION__ # the action automatically replaces __VERSION__ with the app version.
           releaseName: "Moosync v__VERSION__"

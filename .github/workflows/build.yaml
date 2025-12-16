@@ -58,9 +58,9 @@ jobs:
           brew install openssl@3
 
       # https://github.com/sfackler/rust-openssl/blob/master/.github/workflows/ci.yml#L94
-      - name: Install vcpkg (Windows only)
-        run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
-        if: matrix.platform == 'windows-latest'
+      # - name: Install vcpkg (Windows only)
+      #   run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+      #   if: matrix.platform == 'windows-latest'
 
       - name: Setup MSYS2 (Windows only)
         if: matrix.platform == 'windows-latest'
@@ -73,6 +73,7 @@ jobs:
             mingw-w64-x86_64-lame
             mingw-w64-x86_64-libvorbis
             mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-binutils
             make
             diffutils
             pkg-config
@@ -89,11 +90,11 @@ jobs:
             core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
-      - name: Install OpenSSL (Windows only)
-        run: vcpkg install openssl:x64-mingw-static zlib zlib:x64-mingw-static
-        if: matrix.platform == 'windows-latest'
-        env:
-          VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+      # - name: Install OpenSSL (Windows only)
+      #   run: vcpkg install openssl:x64-mingw-static zlib:x64-mingw-static
+      #   if: matrix.platform == 'windows-latest'
+      #   env:
+      #     VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable

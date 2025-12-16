@@ -15,6 +15,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 fn main() {
-    // println!("cargo:rustc-link-lib=z");
+    println!("cargo:rustc-link-lib=z");
     tauri_build::build()
 }

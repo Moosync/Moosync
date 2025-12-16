@@ -90,7 +90,7 @@ jobs:
             core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
 
       - name: Install OpenSSL (Windows only)
-        run: vcpkg install openssl:x64-mingw-static-md zlib zlib:x64-mingw-static
+        run: vcpkg install openssl:x64-mingw-static zlib zlib:x64-mingw-static
         if: matrix.platform == 'windows-latest'
         env:
           VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"

@@ -220,6 +220,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+          OPENSSL_NO_VENDOR: 1
         with:
           args: ${{ matrix.args }}
           tauriScript: tauri
@@ -232,7 +233,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-          OPENSSL_NO_VENDOR: 1
+
         with:
           tagName: Moosync-v__VERSION__ # the action automatically replaces __VERSION__ with the app version.
           releaseName: "Moosync v__VERSION__"

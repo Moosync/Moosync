@@ -9,7 +9,7 @@ on:
         options:
           - '[{"platform": "ubuntu-22.04", "args": ""}]'
           - '[{"platform": "ubuntu-22.04-arm", "args": ""}]'
-          - '[{"platform": "windows-latest", "args": ""}]'
+          - '[{"platform": "windows-latest", "args": "--target x86_64-pc-windows-gnu"}]'
           - '[{"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}]'
           - '[{"platform": "macos-15-intel", "args": "--target x86_64-apple-darwin"}]'
           - '[{"platform": "ubuntu-22.04", "args": ""}, {"platform": "ubuntu-22.04-arm", "args": ""}, {"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}, {"platform": "macos-15-intel", "args": "--target x86_64-apple-darwin"}, {"platform": "windows-latest", "args": ""}]'

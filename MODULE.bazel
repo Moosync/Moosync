@@ -1,0 +1,344 @@
+module(
+    name = "moosync",
+    version = "11.0.2",
+)
+
+bazel_dep(name = "rules_rust", version = "0.68.1")
+bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.68.1")
+
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    edition = "2024",
+    versions = [
+        # "1.86.0",
+        "nightly/2025-12-16",
+    ],
+)
+use_repo(
+    rust,
+    "rust_toolchains",
+)
+
+register_toolchains("@rust_toolchains//:all")
+
+register_toolchains("@rules_rust//rust/private/dummy_cc_toolchain:dummy_cc_wasm32_toolchain")
+
+register_toolchains("//:wasm_bindgen_toolchain")
+
+crate = use_extension(
+    "@rules_rust//crate_universe:extensions.bzl",
+    "crate",
+)
+crate.spec(
+    features = ["derive"],
+    package = "serde",
+    version = "1.0.228",
+)
+crate.spec(
+    package = "serde_json",
+    version = "1.0.145",
+)
+crate.spec(
+    package = "url-escape",
+    version = "0.1.1",
+)
+crate.spec(
+    package = "tracing",
+    version = "0.1.41",
+)
+crate.spec(
+    features = ["env-filter"],
+    package = "tracing-subscriber",
+    version = "0.3.20",
+)
+crate.spec(
+    package = "regex",
+    version = "1.12.2",
+)
+crate.spec(
+    package = "lazy_static",
+    version = "1.5.0",
+)
+crate.spec(
+    package = "once_cell",
+    version = "1.21.3",
+)
+crate.spec(
+    package = "itertools",
+    version = "0.14.0",
+)
+crate.spec(
+    package = "dyn-clone",
+    version = "1.0.20",
+)
+crate.spec(
+    package = "futures",
+    version = "0.3.31",
+)
+crate.spec(
+    package = "rand",
+    version = "0.9.2",
+)
+crate.spec(
+    features = [
+        "js",
+        "v4",
+    ],
+    package = "uuid",
+    version = "1.18.1",
+)
+crate.spec(
+    package = "chrono",
+    version = "0.4.40",
+)
+crate.spec(
+    package = "url-escape",
+    version = "0.1.1",
+)
+crate.spec(
+    package = "thiserror",
+    version = "2.0.17",
+)
+crate.spec(
+    package = "async-trait",
+    version = "0.1.89",
+)
+crate.spec(
+    package = "bitcode",
+    version = "0.6.7",
+)
+crate.spec(
+    features = ["wasm_js"],
+    package = "getrandom",
+    version = "0.3.4",
+)
+crate.spec(
+    default_features = False,
+    package = "wasm-bindgen",
+    version = "0.2.106",
+)
+crate.spec(
+    package = "wasm-bindgen-futures",
+    version = "0.4",
+)
+crate.spec(
+    package = "js-sys",
+    version = "0.3",
+)
+crate.spec(
+    features = [
+        "Window",
+        "Document",
+        "HtmlElement",
+        "Element",
+        "CssStyleDeclaration",
+    ],
+    package = "web-sys",
+    version = "0.3.81",
+)
+crate.spec(
+    package = "wasm-timer",
+    version = "0.2.5",
+)
+crate.spec(
+    features = ["serde"],
+    package = "indexed_db_futures",
+    version = "0.6.4",
+)
+crate.spec(
+    package = "serde-wasm-bindgen",
+    version = "0.6",
+)
+crate.spec(
+    features = ["csr"],
+    package = "leptos",
+    version = "0.8.11",
+)
+crate.spec(
+    package = "leptos_meta",
+    version = "0.8.2",
+)
+crate.spec(
+    package = "leptos_dom",
+    version = "0.8.7",
+)
+crate.spec(
+    package = "colors-transform",
+    version = "0.2.11",
+)
+crate.spec(
+    package = "leptos_router",
+    version = "0.8.9",
+)
+crate.spec(
+    package = "leptos-use",
+    version = "0.16.3",
+)
+crate.spec(
+    default_features = False,
+    features = ["csr"],
+    package = "leptos_i18n",
+    version = "0.6.0-rc",
+)
+crate.spec(
+    git = "https://github.com/Ovenoboyo/leptos_virtual_scroller",
+    package = "leptos_virtual_scroller",
+)
+crate.spec(
+    git = "https://github.com/Ovenoboyo/leptos_context_menu",
+    package = "leptos_context_menu",
+)
+crate.spec(
+    default_features = False,
+    features = [
+        "rt",
+        "sync",
+    ],
+    package = "tokio",
+    version = "1.48.0",
+)
+crate.spec(
+    package = "serde_yaml",
+    version = "0.9",
+)
+crate.spec(
+    package = "console_error_panic_hook",
+    version = "0.1.7",
+)
+crate.spec(
+    package = "proc-macro2",
+    version = "1.0.103",
+)
+crate.spec(
+    package = "quote",
+    version = "1.0.41",
+)
+crate.spec(
+    package = "syn",
+    version = "2.0.108",
+)
+crate.spec(
+    package = "oauth2",
+    version = "5.0",
+)
+crate.spec(
+    features = [
+        "pretty_print",
+        "csr",
+    ],
+    package = "leptos_i18n_build",
+    version = "0.6.0-rc.1",
+)
+crate.spec(
+    default_features = False,
+    package = "icu",
+    version = "2.0.0",
+)
+crate.spec(
+    default_features = False,
+    package = "icu_locale",
+    version = "2.0.0",
+)
+crate.spec(
+    default_features = False,
+    package = "icu_provider",
+    version = "2.0.0",
+)
+crate.spec(
+    default_features = False,
+    package = "icu_provider_export",
+    version = "2.0.0",
+)
+crate.spec(
+    default_features = False,
+    package = "icu_provider_source",
+    version = "2.0.0",
+)
+crate.spec(
+    default_features = False,
+    package = "icu_plurals",
+    version = "2.0.0",
+)
+crate.spec(
+    default_features = False,
+    package = "icu_datetime",
+    version = "2.0.0",
+)
+crate.spec(
+    default_features = False,
+    package = "icu_calendar",
+    version = "2.0.0",
+)
+crate.spec(
+    default_features = False,
+    package = "icu_list",
+    version = "2.0.0",
+)
+crate.spec(
+    default_features = False,
+    package = "icu_decimal",
+    version = "2.0.0",
+)
+crate.spec(
+    default_features = False,
+    package = "icu_experimental",
+    version = "0.3.0",
+)
+crate.spec(
+    default_features = False,
+    package = "fixed_decimal",
+    version = "0.7.0",
+)
+crate.from_specs()
+use_repo(crate, "crates")
+
+rust_host_tools = use_extension("@rules_rust//rust:extensions.bzl", "rust_host_tools")
+rust_host_tools.host_tools(
+    name = "rust_host_tools_nightly",
+    version = "nightly",
+)
+use_repo(
+    rust_host_tools,
+    "rust_host_tools_nightly",
+)
+
+bindeps = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
+bindeps.spec(
+    artifact = "bin",
+    package = "trunk",
+    version = "=0.7.0",
+)
+bindeps.annotation(
+    crate = "trunk",
+    gen_all_binaries = True,
+)
+bindeps.spec(
+    artifact = "bin",
+    package = "wasm-bindgen-cli",
+    version = "=0.2.106",
+)
+bindeps.annotation(
+    crate = "wasm-bindgen-cli",
+    gen_all_binaries = True,
+)
+bindeps.from_specs(
+    name = "bindeps",
+    host_tools = "@rust_host_tools_nightly",
+)
+use_repo(bindeps, "bindeps")
+
+### Gazelle
+bazel_dep(name = "rules_go", version = "0.59.0")
+bazel_dep(name = "gazelle", version = "0.47.0")
+bazel_dep(name = "gazelle_rust", version = "0.1.0")
+
+GAZELLE_RUST_COMMIT = "45fd3f131f9ae2c5bbb271440ff463d4edba9540"
+
+GAZELLE_RUST_SHA256 = None
+
+archive_override(
+    module_name = "gazelle_rust",
+    sha256 = GAZELLE_RUST_SHA256,
+    strip_prefix = "gazelle_rust-{}".format(GAZELLE_RUST_COMMIT),
+    url = "https://github.com/mrkkrp/gazelle_rust/archive/{}.zip".format(GAZELLE_RUST_COMMIT),
+)

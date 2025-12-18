@@ -1,0 +1,30 @@
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+rust_library(
+    name = "canvaz",
+    srcs = ["canvaz.rs"],
+)
+
+rust_library(
+    name = "lib",
+    srcs = ["lib.rs"],
+    deps = ["//ui/src/players:librespot"],
+)
+
+rust_library(
+    name = "player",
+    srcs = ["player.rs"],
+    deps = ["//ui/src/players:librespot"],
+)
+
+rust_library(
+    name = "spirc",
+    srcs = ["spirc.rs"],
+    deps = ["//ui/src/players:librespot"],
+)
+
+rust_library(
+    name = "utils",
+    srcs = ["utils.rs"],
+    deps = ["//ui/src/players:librespot"],
+)

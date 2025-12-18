@@ -1,0 +1,18 @@
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+rust_library(
+    name = "desktop",
+    srcs = ["desktop.rs"],
+    deps = ["//core/types"],
+)
+
+rust_library(
+    name = "lib",
+    srcs = ["lib.rs"],
+)
+
+rust_library(
+    name = "mobile",
+    srcs = ["mobile.rs"],
+    deps = ["//core/types"],
+)

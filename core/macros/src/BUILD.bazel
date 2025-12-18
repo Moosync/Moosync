@@ -1,0 +1,16 @@
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+rust_library(
+    name = "command_macro",
+    srcs = ["command_macro.rs"],
+)
+
+rust_library(
+    name = "database_macro",
+    srcs = ["database_macro.rs"],
+)
+
+rust_library(
+    name = "lib",
+    srcs = ["lib.rs"],
+)

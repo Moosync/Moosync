@@ -1,0 +1,31 @@
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+
+rust_library(
+    name = "cache",
+    srcs = ["cache.rs"],
+)
+
+rust_library(
+    name = "database",
+    srcs = ["database.rs"],
+)
+
+rust_library(
+    name = "lib",
+    srcs = ["lib.rs"],
+)
+
+rust_library(
+    name = "migrations",
+    srcs = ["migrations.rs"],
+)
+
+rust_library(
+    name = "test",
+    srcs = ["test.rs"],
+)
+
+rust_test(
+    name = "test_test",
+    crate = ":test",
+)

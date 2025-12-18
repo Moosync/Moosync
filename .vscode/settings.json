@@ -14,5 +14,6 @@
   // ],
   "rust-analyzer.showUnlinkedFileNotification": false,
   "editor.formatOnSave": true,
-  "rust-analyzer.checkOnSave": true
+  "rust-analyzer.checkOnSave": true,
+  "bazel.lsp.command": "bazel-lsp"
 }

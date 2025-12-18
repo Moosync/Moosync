@@ -10,3 +10,5 @@ keystore.properties
 src-tauri/gen/android/app/
 ffmpeg/
 ffmpeg-android-maker/
+bazel-*
+rust-project.json

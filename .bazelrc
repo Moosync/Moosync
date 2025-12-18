@@ -1,0 +1,3 @@
+# Use nightly rustc by default
+common --@rules_rust//rust/toolchain/channel=nightly
+common --experimental_isolated_extension_usages

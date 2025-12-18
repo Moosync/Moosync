@@ -22,7 +22,7 @@ use serde_json::Value;
 use tauri::AppHandle;
 use tokio::sync::Mutex;
 use types::{
-    entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
+    entities::{Album, Artist, Playlist, SearchResult},
     errors::Result,
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
@@ -194,7 +194,7 @@ impl GenericProvider for ExtensionProvider {
     async fn fetch_user_playlists(
         &self,
         pagination: Pagination,
-    ) -> Result<(Vec<QueryablePlaylist>, Pagination)> {
+    ) -> Result<(Vec<Playlist>, Pagination)> {
         if !self.provides.contains(&ExtensionProviderScope::Playlists) {
             return Err("Extension does not have this capability".into());
         }
@@ -212,7 +212,7 @@ impl GenericProvider for ExtensionProvider {
     #[tracing::instrument(level = "debug", skip(self))]
     async fn get_playlist_content(
         &self,
-        playlist: QueryablePlaylist,
+        playlist: Playlist,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
         if !self
@@ -307,7 +307,7 @@ impl GenericProvider for ExtensionProvider {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn playlist_from_url(&self, url: String) -> Result<QueryablePlaylist> {
+    async fn playlist_from_url(&self, url: String) -> Result<Playlist> {
         if !self
             .provides
             .contains(&ExtensionProviderScope::PlaylistFromUrl)
@@ -366,7 +366,7 @@ impl GenericProvider for ExtensionProvider {
 
     async fn get_album_content(
         &self,
-        album: QueryableAlbum,
+        album: Album,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
         if !self.provides.contains(&ExtensionProviderScope::AlbumSongs) {
@@ -388,7 +388,7 @@ impl GenericProvider for ExtensionProvider {
 
     async fn get_artist_content(
         &self,
-        artist: QueryableArtist,
+        artist: Artist,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
         if !self.provides.contains(&ExtensionProviderScope::ArtistSongs) {
@@ -435,7 +435,7 @@ impl GenericProvider for ExtensionProvider {
 
     async fn get_playlist_context_menu(
         &self,
-        playlist: QueryablePlaylist,
+        playlist: Playlist,
     ) -> Result<Vec<ContextMenuReturnType>> {
         if !self
             .provides

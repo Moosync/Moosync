@@ -57,7 +57,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::songs::QueryableSong",
+          "arg_type": "types::songs::InnerSong",
           "name": "a"
         }
       ],
@@ -113,7 +113,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::entities::QueryablePlaylist",
+          "arg_type": "types::entities::Playlist",
           "name": "playlist"
         }
       ],
@@ -195,7 +195,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::entities::QueryableAlbum",
+          "arg_type": "types::entities::Album",
           "name": "album"
         }
       ],
@@ -209,7 +209,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::entities::QueryableArtist",
+          "arg_type": "types::entities::Artist",
           "name": "artist"
         }
       ],
@@ -223,7 +223,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::entities::QueryablePlaylist",
+          "arg_type": "types::entities::Playlist",
           "name": "playlist"
         }
       ],
@@ -928,7 +928,7 @@
         }
       ],
       "name": "fetch_user_playlists",
-      "ret": "types::errors::Result<(Vec<types::entities::QueryablePlaylist>, types::providers::generic::Pagination)>"
+      "ret": "types::errors::Result<(Vec<types::entities::Playlist>, types::providers::generic::Pagination)>"
     },
     {
       "args": [
@@ -945,7 +945,7 @@
           "name": "key"
         },
         {
-          "arg_type": "types::entities::QueryablePlaylist",
+          "arg_type": "types::entities::Playlist",
           "name": "playlist"
         },
         {
@@ -1050,7 +1050,7 @@
         }
       ],
       "name": "playlist_from_url",
-      "ret": "types::errors::Result<types::entities::QueryablePlaylist>"
+      "ret": "types::errors::Result<types::entities::Playlist>"
     },
     {
       "args": [
@@ -1167,7 +1167,7 @@
           "name": "key"
         },
         {
-          "arg_type": "types::entities::QueryableArtist",
+          "arg_type": "types::entities::Artist",
           "name": "artist"
         },
         {
@@ -1197,7 +1197,7 @@
           "name": "key"
         },
         {
-          "arg_type": "types::entities::QueryableAlbum",
+          "arg_type": "types::entities::Album",
           "name": "album"
         },
         {
@@ -1267,7 +1267,7 @@
           "name": "key"
         },
         {
-          "arg_type": "types::entities::QueryablePlaylist",
+          "arg_type": "types::entities::Playlist",
           "name": "playlist"
         }
       ],

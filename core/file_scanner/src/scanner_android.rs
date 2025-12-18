@@ -17,7 +17,7 @@
 use std::sync::{mpsc::Sender, Mutex};
 
 use types::errors::Result;
-use types::{entities::QueryablePlaylist, songs::Song};
+use types::{entities::Playlist, songs::Song};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ScanState {
@@ -66,7 +66,7 @@ impl ScannerHolder {
         artist_split: String,
         scan_threads: f64,
         song_tx: Sender<(Option<String>, Vec<Song>)>,
-        playlist_tx: Sender<Vec<QueryablePlaylist>>,
+        playlist_tx: Sender<Vec<Playlist>>,
     ) -> Result<()> {
         Ok(())
     }

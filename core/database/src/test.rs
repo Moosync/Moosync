@@ -18,10 +18,8 @@ use std::{env::temp_dir, fs, path::PathBuf};
 
 use crate::database::Database;
 use types::{
-    entities::{
-        GetEntityOptions, QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist,
-    },
-    songs::{GetSongOptions, QueryableSong, SearchableSong, Song, SongType},
+    entities::{Album, Artist, Genre, GetEntityOptions, Playlist},
+    songs::{GetSongOptions, InnerSong, SearchableSong, Song, SongType},
 };
 use uuid::Uuid;
 
@@ -44,7 +42,7 @@ fn cleanup(db_path: &PathBuf) {
 // Test utility function to create a test song
 fn create_test_song(title: &str, path: &str) -> Song {
     Song {
-        song: QueryableSong {
+        song: InnerSong {
             _id: None,
             title: Some(title.to_string()),
             path: Some(path.to_string()),
@@ -60,17 +58,17 @@ fn create_test_song(title: &str, path: &str) -> Song {
             type_: SongType::LOCAL,
             ..Default::default()
         },
-        album: Some(QueryableAlbum {
+        album: Some(Album {
             album_id: None,
             album_name: Some("Test Album".to_string()),
             ..Default::default()
         }),
-        artists: Some(vec![QueryableArtist {
+        artists: Some(vec![Artist {
             artist_id: None,
             artist_name: Some("Test Artist".to_string()),
             ..Default::default()
         }]),
-        genre: Some(vec![QueryableGenre {
+        genre: Some(vec![Genre {
             genre_id: None,
             genre_name: Some("Test Genre".to_string()),
             ..Default::default()
@@ -137,12 +135,16 @@ fn test_get_songs_by_options() {
 
     let songs = db.get_songs_by_options(options).unwrap();
     assert_eq!(songs.len(), 2);
-    assert!(songs
-        .iter()
-        .any(|s| s.song.title.as_ref().unwrap() == "Song 1"));
-    assert!(songs
-        .iter()
-        .any(|s| s.song.title.as_ref().unwrap() == "Song 2"));
+    assert!(
+        songs
+            .iter()
+            .any(|s| s.song.title.as_ref().unwrap() == "Song 1")
+    );
+    assert!(
+        songs
+            .iter()
+            .any(|s| s.song.title.as_ref().unwrap() == "Song 2")
+    );
 
     // Test fetching by exact path
     let options = GetSongOptions {
@@ -177,7 +179,7 @@ fn test_update_song() {
     let song_id = songs[0].song._id.clone().unwrap();
 
     // Update the song
-    let updatable_song = QueryableSong {
+    let updatable_song = InnerSong {
         _id: Some(song_id.clone()),
         title: Some("Updated Title".to_string()),
         ..Default::default()
@@ -297,7 +299,7 @@ fn test_playlist_operations() {
     let db = Database::new(db_path.clone());
 
     // Create a playlist
-    let playlist = QueryablePlaylist {
+    let playlist = Playlist {
         playlist_id: None,
         playlist_name: "Test Playlist".to_string(),
         playlist_coverpath: None,
@@ -324,7 +326,7 @@ fn test_playlist_operations() {
         .unwrap();
 
     // Get playlist songs
-    let playlist_options = QueryablePlaylist {
+    let playlist_options = Playlist {
         playlist_id: Some(playlist_id.clone()),
         ..Default::default()
     };
@@ -343,10 +345,12 @@ fn test_playlist_operations() {
     let playlist = &playlists[0];
 
     // Verify we can access the playlist's properties
-    assert!(playlist["playlist_name"]
-        .as_str()
-        .unwrap()
-        .contains("Test Playlist"));
+    assert!(
+        playlist["playlist_name"]
+            .as_str()
+            .unwrap()
+            .contains("Test Playlist")
+    );
 
     // Remove one song from playlist
     let song_id_to_remove = songs[0].song._id.clone().unwrap();
@@ -359,7 +363,7 @@ fn test_playlist_operations() {
     // Verify playlist is gone
     let all_playlists = db
         .get_entity_by_options(GetEntityOptions {
-            playlist: Some(QueryablePlaylist::default()),
+            playlist: Some(Playlist::default()),
             inclusive: Some(true),
             ..Default::default()
         })
@@ -385,7 +389,7 @@ fn test_album_operations() {
     .unwrap();
 
     // Get the album
-    let album_options = QueryableAlbum {
+    let album_options = Album {
         album_name: Some("Test Album".to_string()),
         ..Default::default()
     };
@@ -407,7 +411,7 @@ fn test_album_operations() {
     assert!(album["album_name"].as_str().unwrap().contains("Test Album"));
 
     // Test updating album
-    let mut album_to_update = QueryableAlbum {
+    let mut album_to_update = Album {
         album_name: Some("Test Album".to_string()),
         year: Some("2023".to_string()),
         ..Default::default()
@@ -437,7 +441,7 @@ fn test_album_operations() {
     // Verify update
     let updated_album = db
         .get_entity_by_options(GetEntityOptions {
-            album: Some(QueryableAlbum {
+            album: Some(Album {
                 album_id: Some(album_id),
                 ..Default::default()
             }),
@@ -473,7 +477,7 @@ fn test_artist_operations() {
     .unwrap();
 
     // Get the artist
-    let artist_options = QueryableArtist {
+    let artist_options = Artist {
         artist_name: Some("Test Artist".to_string()),
         ..Default::default()
     };
@@ -492,13 +496,15 @@ fn test_artist_operations() {
     let artist = &artists[0];
 
     // Verify we can access the artist's properties
-    assert!(artist["artist_name"]
-        .as_str()
-        .unwrap()
-        .contains("Test Artist"));
+    assert!(
+        artist["artist_name"]
+            .as_str()
+            .unwrap()
+            .contains("Test Artist")
+    );
 
     // Test updating artist
-    let mut artist_to_update = QueryableArtist {
+    let mut artist_to_update = Artist {
         artist_name: Some("Test Artist".to_string()),
         artist_coverpath: Some("https://example.com/cover.jpg".to_string()),
         ..Default::default()
@@ -538,7 +544,7 @@ fn test_artist_operations() {
     // Verify update
     let updated_artist = db
         .get_entity_by_options(GetEntityOptions {
-            artist: Some(QueryableArtist {
+            artist: Some(Artist {
                 artist_id: Some(artist_id.clone()),
                 ..Default::default()
             }),
@@ -584,7 +590,7 @@ fn test_search() {
     .unwrap();
 
     // Create a searchable playlist
-    let playlist = QueryablePlaylist {
+    let playlist = Playlist {
         playlist_id: None,
         playlist_name: "Searchable Playlist".to_string(),
         playlist_coverpath: None,
@@ -600,17 +606,19 @@ fn test_search() {
     assert!(!search_results.songs.is_empty());
     assert!(!search_results.playlists.is_empty());
 
-    assert!(search_results.songs.iter().any(|s| s
-        .song
-        .title
-        .as_ref()
-        .unwrap()
-        .contains("Searchable")));
+    assert!(
+        search_results
+            .songs
+            .iter()
+            .any(|s| s.song.title.as_ref().unwrap().contains("Searchable"))
+    );
 
-    assert!(search_results
-        .playlists
-        .iter()
-        .any(|p| p.playlist_name.contains("Searchable")));
+    assert!(
+        search_results
+            .playlists
+            .iter()
+            .any(|p| p.playlist_name.contains("Searchable"))
+    );
 
     cleanup(&db_path);
 }

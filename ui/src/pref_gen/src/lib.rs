@@ -17,7 +17,6 @@
 use std::{fs, path::PathBuf};
 
 use quote::quote;
-use syn::{LitStr, parse_macro_input};
 use types::preferences::{InputType, PreferenceTypes, PreferenceUIData, PreferenceUIFile};
 
 #[tracing::instrument(level = "debug", skip(path_lit))]

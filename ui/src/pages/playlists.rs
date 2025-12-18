@@ -24,18 +24,18 @@ use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::{PlaylistSortByColumns, UiStore};
 use crate::utils::common::{convert_file_src, fetch_infinite};
 use crate::utils::context_menu::{
-    create_context_menu, PlaylistContextMenu, PlaylistItemContextMenu,
+    PlaylistContextMenu, PlaylistItemContextMenu, create_context_menu,
 };
 use crate::utils::db_utils::get_songs_by_option;
 use crate::utils::songs::get_songs_from_indices;
 use leptos::task::spawn_local;
-use leptos::{component, prelude::*, view, IntoView};
+use leptos::{IntoView, component, prelude::*, view};
 use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
 use rand::seq::IndexedRandom;
 use std::collections::HashMap;
 use std::sync::Arc;
-use types::entities::QueryablePlaylist;
+use types::entities::Playlist;
 use types::songs::{GetSongOptions, Song};
 use types::ui::song_details::{DefaultDetails, SongDetailIcons};
 
@@ -50,7 +50,7 @@ pub fn SinglePlaylist() -> impl IntoView {
         params.with(|params| {
             let entity = params.get("entity");
             if let Some(entity) = entity {
-                let album = serde_json::from_str::<QueryablePlaylist>(&entity);
+                let album = serde_json::from_str::<Playlist>(&entity);
                 if let Ok(album) = album {
                     return Some(album);
                 }
@@ -77,7 +77,7 @@ pub fn SinglePlaylist() -> impl IntoView {
         if let Some(playlist) = playlist {
             get_songs_by_option(
                 GetSongOptions {
-                    playlist: Some(QueryablePlaylist {
+                    playlist: Some(Playlist {
                         playlist_id: Some(playlist.playlist_id.unwrap()),
                         ..Default::default()
                     }),
@@ -181,7 +181,7 @@ pub fn AllPlaylists() -> impl IntoView {
     let refresh_playlist_items: Arc<Box<dyn Fn() + Send + Sync>> = Arc::new(Box::new(move || {
         tracing::debug!("Refreshing playlists");
         owner.with(|| {
-            get_playlists_by_option(QueryablePlaylist::default(), playlists.write_only());
+            get_playlists_by_option(Playlist::default(), playlists.write_only());
         });
     }));
 

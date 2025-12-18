@@ -9,9 +9,7 @@ diesel_logger = { git = "https://github.com/Ovenoboyo/diesel-logger.git" }
 tracing = { version = "0.1.41", default-features = false }
 diesel = { version = "2.3.3", default-features = false }
 diesel_migrations = { version = "2.3.0", default-features = false }
-macros = { path = "../macros", features = [] }
 serde = { version = "1.0", default-features = false }
-types = { path = "../types", features = [] }
 uuid = { version = "1.18.1", default-features = false }
 
 # [target.'cfg(any(windows))'.dependencies]

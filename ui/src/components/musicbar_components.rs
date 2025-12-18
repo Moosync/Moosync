@@ -19,11 +19,11 @@ use std::time::Duration;
 use ev::mouseup;
 use leptos::ev::{pointermove, touchend};
 use leptos::*;
-use leptos::{component, prelude::*, view, IntoView};
+use leptos::{IntoView, component, prelude::*, view};
 use leptos_dom::helpers::TimeoutHandle;
 use leptos_use::{use_document, use_event_listener};
 use task::spawn_local;
-use types::entities::{QueryableArtist, QueryablePlaylist};
+use types::entities::{Artist, Playlist};
 use types::ui::player_details::PlayerState;
 
 use crate::components::artist_list::ArtistList;
@@ -49,7 +49,7 @@ pub fn Details() -> impl IntoView {
         create_read_slice(player_store, |player_store| player_store.get_current_song());
 
     let title = RwSignal::new("-".to_string());
-    let artists_list = RwSignal::<Vec<QueryableArtist>>::new(vec![]);
+    let artists_list = RwSignal::<Vec<Artist>>::new(vec![]);
     let cover_img = RwSignal::new("".to_string());
 
     Effect::new(move || {
@@ -181,7 +181,7 @@ pub fn Controls(
         if let Some(current_song) = current_song {
             spawn_local(async move {
                 // Don't care if favorites playlist already exists
-                let _ = crate::utils::invoke::create_playlist(QueryablePlaylist {
+                let _ = crate::utils::invoke::create_playlist(Playlist {
                     playlist_id: Some("favorite".into()),
                     playlist_name: "Favorites".into(),
                     playlist_coverpath: Some("favorites".into()),

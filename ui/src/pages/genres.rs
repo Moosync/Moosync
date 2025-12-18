@@ -20,12 +20,12 @@ use crate::i18n::use_i18n;
 use crate::store::player_store::PlayerStore;
 use crate::utils::db_utils::get_genres_by_option;
 use crate::utils::db_utils::get_songs_by_option;
-use leptos::{component, prelude::*, view, IntoView};
+use leptos::{IntoView, component, prelude::*, view};
 use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
 use rand::seq::IndexedRandom;
 use std::sync::Arc;
-use types::entities::QueryableGenre;
+use types::entities::Genre;
 use types::songs::{GetSongOptions, Song};
 use types::ui::song_details::SongDetailIcons;
 
@@ -40,7 +40,7 @@ pub fn SingleGenre() -> impl IntoView {
 
     get_songs_by_option(
         GetSongOptions {
-            genre: Some(QueryableGenre {
+            genre: Some(Genre {
                 genre_id: Some(genre_id),
                 ..Default::default()
             }),
@@ -124,7 +124,7 @@ pub fn SingleGenre() -> impl IntoView {
 #[component()]
 pub fn AllGenres() -> impl IntoView {
     let genres = RwSignal::new(vec![]);
-    get_genres_by_option(QueryableGenre::default(), genres.write_only());
+    get_genres_by_option(Genre::default(), genres.write_only());
 
     let i18n = use_i18n();
     view! {

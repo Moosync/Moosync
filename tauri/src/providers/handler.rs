@@ -30,7 +30,7 @@ use tauri::{
 };
 use tokio::sync::{Mutex, RwLock};
 use types::{
-    entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
+    entities::{Album, Artist, Playlist, SearchResult},
     errors::error_helpers,
     errors::{MoosyncError, Result},
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
@@ -305,12 +305,12 @@ impl ProviderHandler {
             args: {
                 pagination: Pagination
             },
-            result_type: (Vec<QueryablePlaylist>, Pagination),
+            result_type: (Vec<Playlist>, Pagination),
             method_name: fetch_user_playlists,
         },
         fetch_playlist_content {
             args: {
-                playlist: QueryablePlaylist,
+                playlist: Playlist,
                 pagination: Pagination
             },
             result_type: (Vec<Song>, Pagination),
@@ -335,7 +335,7 @@ impl ProviderHandler {
             args: {
                 url: String
             },
-            result_type: QueryablePlaylist,
+            result_type: Playlist,
             method_name: playlist_from_url,
         },
         song_from_url {
@@ -361,7 +361,7 @@ impl ProviderHandler {
         },
         get_album_content {
             args: {
-                album: QueryableAlbum,
+                album: Album,
                 pagination: Pagination
             },
             result_type: (Vec<Song>, Pagination),
@@ -369,7 +369,7 @@ impl ProviderHandler {
         },
         get_artist_content {
             args: {
-                artist: QueryableArtist,
+                artist: Artist,
                 pagination: Pagination
             },
             result_type: (Vec<Song>, Pagination),
@@ -391,7 +391,7 @@ impl ProviderHandler {
         },
         get_playlist_context_menu  {
             args: {
-                playlist: QueryablePlaylist,
+                playlist: Playlist,
             },
             result_type: Vec<ContextMenuReturnType>,
             method_name: get_playlist_context_menu,
@@ -424,19 +424,19 @@ generate_command_async!(provider_login, ProviderHandler, String, key: String, ac
 generate_command_async!(provider_signout, ProviderHandler, (), key: String, account_id: String);
 generate_command_async!(provider_authorize, ProviderHandler, (), key: String, code: String);
 generate_command_async!(get_provider_key_by_id, ProviderHandler, String, id: String);
-generate_command_async_cached!(fetch_user_playlists, ProviderHandler, (Vec<QueryablePlaylist>, Pagination), key: String, pagination: Pagination);
-generate_command_async_cached!(fetch_playlist_content, ProviderHandler, (Vec<Song>, Pagination), key: String, playlist: QueryablePlaylist, pagination: Pagination);
+generate_command_async_cached!(fetch_user_playlists, ProviderHandler, (Vec<Playlist>, Pagination), key: String, pagination: Pagination);
+generate_command_async_cached!(fetch_playlist_content, ProviderHandler, (Vec<Song>, Pagination), key: String, playlist: Playlist, pagination: Pagination);
 generate_command_async_cached!(fetch_playback_url, ProviderHandler, String, key: String, song: Song, player: String);
 generate_command_async_cached!(provider_search, ProviderHandler, SearchResult, key: String, term: String);
 generate_command_async!(get_all_status, ProviderHandler, HashMap<String, ProviderStatus>, );
-generate_command_async_cached!(playlist_from_url, ProviderHandler, QueryablePlaylist, key: String, url: String);
+generate_command_async_cached!(playlist_from_url, ProviderHandler, Playlist, key: String, url: String);
 generate_command_async_cached!(song_from_url, ProviderHandler, Song, key: String, url: String);
 generate_command_async_cached!(get_song_from_id, ProviderHandler, Song, key: String, id: String);
 generate_command_async_cached!(match_url, ProviderHandler, bool, key: String, url: String);
 generate_command_async_cached!(get_suggestions, ProviderHandler, Vec<Song>, key: String);
-generate_command_async_cached!(get_artist_content, ProviderHandler, (Vec<Song>, Pagination), key: String, artist: QueryableArtist, pagination: Pagination);
-generate_command_async_cached!(get_album_content, ProviderHandler, (Vec<Song>, Pagination), key: String, album: QueryableAlbum, pagination: Pagination);
+generate_command_async_cached!(get_artist_content, ProviderHandler, (Vec<Song>, Pagination), key: String, artist: Artist, pagination: Pagination);
+generate_command_async_cached!(get_album_content, ProviderHandler, (Vec<Song>, Pagination), key: String, album: Album, pagination: Pagination);
 generate_command_async_cached!(get_provider_lyrics, ProviderHandler, String, key: String, song: Song);
 generate_command_async!(get_song_context_menu, ProviderHandler, Vec<ContextMenuReturnType>, key: String, songs: Vec<Song>);
-generate_command_async!(get_playlist_context_menu, ProviderHandler, Vec<ContextMenuReturnType>, key: String, playlist: QueryablePlaylist);
+generate_command_async!(get_playlist_context_menu, ProviderHandler, Vec<ContextMenuReturnType>, key: String, playlist: Playlist);
 generate_command_async!(trigger_context_menu_action, ProviderHandler, (), key: String, action: String);

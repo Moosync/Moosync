@@ -43,11 +43,11 @@ use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
 use tokio::sync::{Mutex, RwLock, RwLockReadGuard};
 use types::{
-    entities::{EntityInfo, QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
+    entities::{EntityInfo, Album, Artist, Playlist, SearchResult},
     errors::{error_helpers, MoosyncError, Result},
     oauth::OAuth2Client,
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
-    songs::{QueryableSong, Song, SongType},
+    songs::{InnerSong, Song, SongType},
     ui::extensions::{ContextMenuReturnType, ExtensionProviderScope},
 };
 use url::Url;
@@ -232,8 +232,8 @@ impl SpotifyProvider {
     }
 
     #[tracing::instrument(level = "debug", skip(self, playlist))]
-    fn parse_playlist(&self, playlist: SimplifiedPlaylist) -> QueryablePlaylist {
-        QueryablePlaylist {
+    fn parse_playlist(&self, playlist: SimplifiedPlaylist) -> Playlist {
+        Playlist {
             playlist_id: Some(format!("spotify-playlist:{}", playlist.id.id())),
             playlist_name: playlist.name,
             playlist_coverpath: playlist.images.first().map(|i| i.url.clone()),
@@ -244,8 +244,8 @@ impl SpotifyProvider {
     }
 
     #[tracing::instrument(level = "debug", skip(artist))]
-    fn parse_artists(artist: SimplifiedArtist, images: Option<Vec<Image>>) -> QueryableArtist {
-        QueryableArtist {
+    fn parse_artists(artist: SimplifiedArtist, images: Option<Vec<Image>>) -> Artist {
+        Artist {
             artist_id: Some(format!("spotify-artist:{}", artist.id.clone().unwrap())),
             artist_name: Some(artist.name),
             artist_coverpath: images.and_then(|i| i.first().map(|im| im.url.clone())),
@@ -262,8 +262,8 @@ impl SpotifyProvider {
     }
 
     #[tracing::instrument(level = "debug", skip(album))]
-    fn parse_album(album: SimplifiedAlbum) -> QueryableAlbum {
-        QueryableAlbum {
+    fn parse_album(album: SimplifiedAlbum) -> Album {
+        Album {
             album_id: Some(format!("spotify-album:{}", album.id.clone().unwrap())),
             album_name: Some(album.name),
             album_artist: album.artists.first().map(|a| a.name.clone()),
@@ -277,7 +277,7 @@ impl SpotifyProvider {
     fn parse_playlist_item(&self, item: FullTrack) -> Song {
         let id = item.id.unwrap().to_string();
         Song {
-            song: QueryableSong {
+            song: InnerSong {
                 _id: Some(format!("spotify:{id}")),
                 title: Some(item.name),
                 duration: Some(item.duration.num_seconds() as f64),
@@ -563,7 +563,7 @@ impl GenericProvider for SpotifyProvider {
     async fn fetch_user_playlists(
         &self,
         pagination: Pagination,
-    ) -> Result<(Vec<QueryablePlaylist>, Pagination)> {
+    ) -> Result<(Vec<Playlist>, Pagination)> {
         let mut ret = vec![];
         if let Some(api_client) = self.get_api_client().await.as_ref() {
             let playlists = api_client
@@ -585,7 +585,7 @@ impl GenericProvider for SpotifyProvider {
     #[tracing::instrument(level = "debug", skip(self, playlist, pagination))]
     async fn get_playlist_content(
         &self,
-        playlist: QueryablePlaylist,
+        playlist: Playlist,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
         let mut ret = vec![];
@@ -661,14 +661,14 @@ impl GenericProvider for SpotifyProvider {
                     (
                         SearchType::Playlist,
                         rspotify::model::SearchResult::Playlists,
-                        |item, vec: &mut Vec<QueryablePlaylist>| vec
+                        |item, vec: &mut Vec<Playlist>| vec
                             .push(self.parse_playlist(item)),
                         ret.playlists
                     ),
                     (
                         SearchType::Artist,
                         rspotify::model::SearchResult::Artists,
-                        |item: FullArtist, vec: &mut Vec<QueryableArtist>| vec.push(
+                        |item: FullArtist, vec: &mut Vec<Artist>| vec.push(
                             Self::parse_artists(
                                 SimplifiedArtist {
                                     external_urls: item.external_urls,
@@ -684,7 +684,7 @@ impl GenericProvider for SpotifyProvider {
                     (
                         SearchType::Album,
                         rspotify::model::SearchResult::Albums,
-                        |item, vec: &mut Vec<QueryableAlbum>| vec.push(Self::parse_album(item)),
+                        |item, vec: &mut Vec<Album>| vec.push(Self::parse_album(item)),
                         ret.albums
                     )
                 ]
@@ -715,7 +715,7 @@ impl GenericProvider for SpotifyProvider {
     }
 
     #[tracing::instrument(level = "debug", skip(self, url))]
-    async fn playlist_from_url(&self, url: String) -> Result<QueryablePlaylist> {
+    async fn playlist_from_url(&self, url: String) -> Result<Playlist> {
         let playlist_id = Url::parse(url.as_str());
         let playlist_id = if let Ok(playlist_id) = playlist_id {
             playlist_id.path().to_string()
@@ -852,7 +852,7 @@ impl GenericProvider for SpotifyProvider {
 
     async fn get_album_content(
         &self,
-        album: QueryableAlbum,
+        album: Album,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
         if let Some(api_client) = self.get_api_client().await.as_ref() {
@@ -904,7 +904,7 @@ impl GenericProvider for SpotifyProvider {
 
     async fn get_artist_content(
         &self,
-        artist: QueryableArtist,
+        artist: Artist,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)> {
         if let Some(api_client) = self.get_api_client().await.as_ref() {
@@ -992,7 +992,7 @@ impl GenericProvider for SpotifyProvider {
 
     async fn get_playlist_context_menu(
         &self,
-        _: QueryablePlaylist,
+        _: Playlist,
     ) -> Result<Vec<ContextMenuReturnType>> {
         return Err("Not implemented".into());
     }

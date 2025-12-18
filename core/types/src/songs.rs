@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     common::{SearchByTerm, deserialize_default},
-    entities::{QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist},
+    entities::{Album, Artist, Genre, Playlist},
 };
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone, PartialEq, Eq, Copy, Encode, Decode)]
@@ -65,7 +65,7 @@ impl FromStr for SongType {
 }
 
 #[derive(Debug, Deserialize, Serialize, Default, Clone, Encode, Decode)]
-pub struct QueryableSong {
+pub struct InnerSong {
     pub _id: Option<String>,
     pub path: Option<String>,
     pub size: Option<f64>,
@@ -79,7 +79,7 @@ pub struct QueryableSong {
     #[cfg_attr(feature = "core", diesel(column_name = "releasetype"))]
     pub release_type: Option<String>,
     pub bitrate: Option<f64>,
-    pub codec: Option<String>,
+    pub codec: Option<String>, 
     pub container: Option<String>,
     pub duration: Option<f64>,
     #[serde(rename = "sampleRate")]
@@ -106,23 +106,23 @@ pub struct QueryableSong {
     pub library_item: Option<bool>,
 }
 
-impl std::hash::Hash for QueryableSong {
+impl std::hash::Hash for InnerSong {
     #[tracing::instrument(level = "debug", skip(self, state))]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self._id.hash(state);
     }
 }
 
-impl PartialEq for QueryableSong {
+impl PartialEq for InnerSong {
     #[tracing::instrument(level = "debug", skip(self, other))]
     fn eq(&self, other: &Self) -> bool {
         self._id == other._id
     }
 }
 
-impl Eq for QueryableSong {}
+impl Eq for InnerSong {}
 
-impl SearchByTerm for QueryableSong {
+impl SearchByTerm for InnerSong {
     #[tracing::instrument(level = "debug", skip(term))]
     fn search_by_term(term: Option<String>) -> Self {
         let mut data = Self::default();
@@ -152,23 +152,23 @@ pub struct SearchableSong {
 #[derive(Debug, Deserialize, Clone, Serialize, Default)]
 pub struct GetSongOptions {
     pub song: Option<SearchableSong>,
-    pub artist: Option<QueryableArtist>,
-    pub album: Option<QueryableAlbum>,
-    pub genre: Option<QueryableGenre>,
-    pub playlist: Option<QueryablePlaylist>,
+    pub artist: Option<Artist>,
+    pub album: Option<Album>,
+    pub genre: Option<Genre>,
+    pub playlist: Option<Playlist>,
     pub inclusive: Option<bool>,
 }
 
 #[derive(Default, Deserialize, Serialize, Clone, PartialEq, Eq, Encode, Decode)]
 pub struct Song {
     #[serde(flatten)]
-    pub song: QueryableSong,
+    pub song: InnerSong,
     #[serde(default, deserialize_with = "deserialize_default")]
-    pub album: Option<QueryableAlbum>,
+    pub album: Option<Album>,
     #[serde(default, deserialize_with = "deserialize_default")]
-    pub artists: Option<Vec<QueryableArtist>>,
+    pub artists: Option<Vec<Artist>>,
     #[serde(default, deserialize_with = "deserialize_default")]
-    pub genre: Option<Vec<QueryableGenre>>,
+    pub genre: Option<Vec<Genre>>,
 }
 
 impl std::fmt::Debug for Song {

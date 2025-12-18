@@ -25,11 +25,11 @@ use crate::store::ui_store::UiStore;
 use crate::utils::common::{convert_file_src, fetch_infinite};
 use crate::utils::db_utils::get_artists_by_option;
 use crate::utils::songs::get_songs_from_indices;
-use leptos::{component, prelude::*, view, IntoView};
+use leptos::{IntoView, component, prelude::*, view};
 use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
 use std::collections::HashMap;
-use types::entities::QueryableArtist;
+use types::entities::Artist;
 use types::songs::{GetSongOptions, Song};
 use types::ui::extensions::ExtensionProviderScope;
 use types::ui::song_details::{DefaultDetails, SongDetailIcons};
@@ -49,7 +49,7 @@ pub fn SingleArtist() -> impl IntoView {
             let entity = params.get("entity");
             tracing::info!("Got entity {:?}", entity);
             if let Some(entity) = entity {
-                let album = serde_json::from_str::<QueryableArtist>(&entity);
+                let album = serde_json::from_str::<Artist>(&entity);
                 match album {
                     Ok(album) => return Some(album),
                     Err(e) => tracing::error!("Failed to parse artist: {:?}", e),
@@ -80,7 +80,7 @@ pub fn SingleArtist() -> impl IntoView {
 
             get_songs_by_option(
                 GetSongOptions {
-                    artist: Some(QueryableArtist {
+                    artist: Some(Artist {
                         artist_id: artist.artist_id,
                         ..Default::default()
                     }),
@@ -166,7 +166,7 @@ pub fn SingleArtist() -> impl IntoView {
 #[component()]
 pub fn AllArtists() -> impl IntoView {
     let artists = RwSignal::new(vec![]);
-    get_artists_by_option(QueryableArtist::default(), artists.write_only());
+    get_artists_by_option(Artist::default(), artists.write_only());
 
     let i18n = use_i18n();
     view! {

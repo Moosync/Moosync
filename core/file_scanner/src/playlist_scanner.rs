@@ -23,8 +23,8 @@ use std::{
 };
 
 use types::{
-    entities::{QueryableArtist, QueryablePlaylist},
-    songs::{QueryableSong, Song, SongType},
+    entities::{Artist, Playlist},
+    songs::{InnerSong, Song, SongType},
 };
 
 use substring::Substring;
@@ -61,11 +61,11 @@ impl<'a> PlaylistScanner<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip(self, artists))]
-    fn parse_artists(&self, artists: Option<String>) -> Vec<QueryableArtist> {
-        let mut ret: Vec<QueryableArtist> = vec![];
+    fn parse_artists(&self, artists: Option<String>) -> Vec<Artist> {
+        let mut ret: Vec<Artist> = vec![];
         if artists.is_some() {
             for artist in artists.unwrap().split(';') {
-                ret.push(QueryableArtist {
+                ret.push(Artist {
                     artist_id: Some(Uuid::new_v4().to_string()),
                     artist_name: Some(artist.to_string()),
                     ..Default::default()
@@ -76,7 +76,7 @@ impl<'a> PlaylistScanner<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip(self, path))]
-    fn scan_playlist(&self, path: &PathBuf) -> Result<(QueryablePlaylist, Vec<Song>)> {
+    fn scan_playlist(&self, path: &PathBuf) -> Result<(Playlist, Vec<Song>)> {
         let file = File::open(path)?;
         let lines = io::BufReader::new(file).lines();
 
@@ -95,8 +95,12 @@ impl<'a> PlaylistScanner<'a> {
                 let metadata = line.substring(8, line.len());
                 let split_index = metadata.find(',').unwrap_or_default();
 
-                duration = Some(metadata.substring(0, split_index).parse::<f64>()
-                    .map_err(error_helpers::to_parse_error)?);
+                duration = Some(
+                    metadata
+                        .substring(0, split_index)
+                        .parse::<f64>()
+                        .map_err(error_helpers::to_parse_error)?,
+                );
 
                 let non_duration = metadata.substring(split_index + 1, metadata.len());
 
@@ -145,7 +149,7 @@ impl<'a> PlaylistScanner<'a> {
                     continue;
                 }
 
-                let mut song = QueryableSong::default();
+                let mut song = InnerSong::default();
 
                 let s_type = song_type.clone();
 
@@ -199,7 +203,7 @@ impl<'a> PlaylistScanner<'a> {
         }
 
         Ok((
-            QueryablePlaylist {
+            Playlist {
                 playlist_id: Some(playlist_id),
                 playlist_name: playlist_title,
                 playlist_path: Some(path.to_string_lossy().to_string()),
@@ -234,7 +238,7 @@ impl<'a> PlaylistScanner<'a> {
     pub fn start(
         &self,
         tx_song: Sender<(Option<String>, Result<Song>)>,
-        tx_playlist: Sender<Result<QueryablePlaylist>>,
+        tx_playlist: Sender<Result<Playlist>>,
     ) -> Result<usize> {
         self.check_dirs()?;
 

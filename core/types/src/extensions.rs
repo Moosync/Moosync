@@ -22,9 +22,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::{
-    entities::{
-        GetEntityOptions, QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist,
-    },
+    entities::{Album, Artist, Genre, GetEntityOptions, Playlist},
     errors::{MoosyncError, Result as MoosyncResult},
     preferences::PreferenceUIData,
     songs::{GetSongOptions, Song},
@@ -478,7 +476,7 @@ pub enum MainCommand {
     AddSongs(Vec<Song>),
     RemoveSong(Song),
     UpdateSong(Song),
-    AddPlaylist(QueryablePlaylist),
+    AddPlaylist(Playlist),
     AddToPlaylist(AddToPlaylistRequest),
     RegisterOAuth(String),
     OpenExternalUrl(String),
@@ -597,7 +595,7 @@ impl MainCommand {
     }
 }
 
-pub fn sanitize_album(prefix: &str, album: &mut QueryableAlbum) {
+pub fn sanitize_album(prefix: &str, album: &mut Album) {
     if let Some(id) = album.album_id.as_mut() {
         if !id.starts_with(prefix) {
             *id = format!("{}{}", prefix, id);
@@ -605,7 +603,7 @@ pub fn sanitize_album(prefix: &str, album: &mut QueryableAlbum) {
     }
 }
 
-pub fn sanitize_artist(prefix: &str, artist: &mut QueryableArtist) {
+pub fn sanitize_artist(prefix: &str, artist: &mut Artist) {
     if let Some(id) = artist.artist_id.as_mut() {
         if !id.starts_with(prefix) {
             *id = format!("{}{}", prefix, id);
@@ -613,7 +611,7 @@ pub fn sanitize_artist(prefix: &str, artist: &mut QueryableArtist) {
     }
 }
 
-pub fn sanitize_genre(prefix: &str, genre: &mut QueryableGenre) {
+pub fn sanitize_genre(prefix: &str, genre: &mut Genre) {
     if let Some(id) = genre.genre_id.as_mut() {
         if !id.starts_with(prefix) {
             *id = format!("{}{}", prefix, id);
@@ -641,7 +639,7 @@ pub fn sanitize_song(prefix: &str, song: &mut Song) {
     }
 }
 
-pub fn sanitize_playlist(prefix: &str, playlist: &mut QueryablePlaylist) {
+pub fn sanitize_playlist(prefix: &str, playlist: &mut Playlist) {
     if let Some(playlist_id) = playlist.playlist_id.as_mut() {
         if !playlist_id.starts_with(prefix) {
             *playlist_id = format!("{}{}", prefix, playlist_id);

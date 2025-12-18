@@ -21,7 +21,7 @@ use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use types::{
-    entities::{GetEntityOptions, QueryablePlaylist},
+    entities::{GetEntityOptions, Playlist},
     errors::{error_helpers, Result},
     extensions::{MainCommand, MainCommandResponse},
     preferences::PreferenceUIData,
@@ -82,7 +82,7 @@ impl ReplyHandler {
     }
 
     #[tracing::instrument(level = "debug", skip(self, data))]
-    pub fn add_playlist(&self, data: QueryablePlaylist) -> Result<MainCommandResponse> {
+    pub fn add_playlist(&self, data: Playlist) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
         let ret = database.create_playlist(data)?;
         Ok(MainCommandResponse::AddPlaylist(ret))

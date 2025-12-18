@@ -30,9 +30,7 @@ use leptos_use::on_click_outside;
 use leptos_virtual_scroller::VirtualScroller;
 use types::ui::extensions::ExtensionProviderScope;
 use types::{
-    entities::{
-        GetEntityOptions, QueryableAlbum, QueryableArtist, QueryableGenre, QueryablePlaylist,
-    },
+    entities::{Album, Artist, Genre, GetEntityOptions, Playlist},
     songs::{GetSongOptions, SearchableSong, Song},
 };
 use web_sys::SubmitEvent;
@@ -219,7 +217,7 @@ async fn get_search_res(
     match location.as_str() {
         "/main/artists" => {
             let res = crate::utils::invoke::get_entity_by_options(GetEntityOptions {
-                artist: Some(QueryableArtist {
+                artist: Some(Artist {
                     artist_name: Some(term.clone()),
                     ..Default::default()
                 }),
@@ -227,7 +225,7 @@ async fn get_search_res(
             })
             .await?;
 
-            let res = serde_wasm_bindgen::from_value::<Vec<QueryableArtist>>(res)?;
+            let res = serde_wasm_bindgen::from_value::<Vec<Artist>>(res)?;
             Ok(res
                 .into_iter()
                 .map(|a| SearchResultItemData {
@@ -251,7 +249,7 @@ async fn get_search_res(
         }
         "/main/albums" => {
             let res = crate::utils::invoke::get_entity_by_options(GetEntityOptions {
-                album: Some(QueryableAlbum {
+                album: Some(Album {
                     album_name: Some(term.clone()),
                     ..Default::default()
                 }),
@@ -259,7 +257,7 @@ async fn get_search_res(
             })
             .await?;
 
-            let res = serde_wasm_bindgen::from_value::<Vec<QueryableAlbum>>(res)?;
+            let res = serde_wasm_bindgen::from_value::<Vec<Album>>(res)?;
             Ok(res
                 .into_iter()
                 .map(|a| SearchResultItemData {
@@ -283,7 +281,7 @@ async fn get_search_res(
         }
         "/main/genres" => {
             let res = crate::utils::invoke::get_entity_by_options(GetEntityOptions {
-                genre: Some(QueryableGenre {
+                genre: Some(Genre {
                     genre_name: Some(term.clone()),
                     ..Default::default()
                 }),
@@ -291,7 +289,7 @@ async fn get_search_res(
             })
             .await?;
 
-            let res = serde_wasm_bindgen::from_value::<Vec<QueryableGenre>>(res)?;
+            let res = serde_wasm_bindgen::from_value::<Vec<Genre>>(res)?;
             Ok(res
                 .into_iter()
                 .map(|a| SearchResultItemData {
@@ -315,7 +313,7 @@ async fn get_search_res(
         }
         "/main/playlists" => {
             let res = crate::utils::invoke::get_entity_by_options(GetEntityOptions {
-                playlist: Some(QueryablePlaylist {
+                playlist: Some(Playlist {
                     playlist_name: term.clone(),
                     playlist_path: Some(term.clone()),
                     ..Default::default()
@@ -324,7 +322,7 @@ async fn get_search_res(
             })
             .await?;
 
-            let res = serde_wasm_bindgen::from_value::<Vec<QueryablePlaylist>>(res)?;
+            let res = serde_wasm_bindgen::from_value::<Vec<Playlist>>(res)?;
 
             Ok(res
                 .into_iter()
@@ -354,19 +352,19 @@ async fn get_search_res(
                     path: Some(term.clone()),
                     ..Default::default()
                 }),
-                album: Some(QueryableAlbum {
+                album: Some(Album {
                     album_name: Some(term.clone()),
                     ..Default::default()
                 }),
-                artist: Some(QueryableArtist {
+                artist: Some(Artist {
                     artist_name: Some(term.clone()),
                     ..Default::default()
                 }),
-                genre: Some(QueryableGenre {
+                genre: Some(Genre {
                     genre_name: Some(term.clone()),
                     ..Default::default()
                 }),
-                playlist: Some(QueryablePlaylist {
+                playlist: Some(Playlist {
                     playlist_name: term,
                     ..Default::default()
                 }),

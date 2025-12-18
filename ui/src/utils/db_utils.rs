@@ -22,11 +22,11 @@ use indexed_db_futures::prelude::*;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use serde_wasm_bindgen::from_value;
-use types::entities::QueryableAlbum;
-use types::entities::QueryableArtist;
-use types::entities::QueryableGenre;
+use types::entities::Album;
+use types::entities::Artist;
+use types::entities::Genre;
 use types::{
-    entities::{GetEntityOptions, QueryablePlaylist},
+    entities::{GetEntityOptions, Playlist},
     songs::{GetSongOptions, Song},
 };
 use wasm_bindgen::JsValue;
@@ -45,7 +45,7 @@ pub fn get_songs_by_option(options: GetSongOptions, setter: impl Set<Value = Vec
 #[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(feature = "mock")]
 pub fn get_songs_by_option(options: GetSongOptions, setter: impl Set<Value = Vec<Song>> + 'static) {
-    use types::{entities::QueryableArtist, songs::SongType};
+    use types::{entities::Artist, songs::SongType};
 
     let mut songs = vec![];
     for i in 0..1000 {
@@ -54,7 +54,7 @@ pub fn get_songs_by_option(options: GetSongOptions, setter: impl Set<Value = Vec
         song.song.title = Some(format!("hello world {}", i));
         song.song.song_cover_path_low = Some("https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/200px-SMPTE_Color_Bars.svg.png".to_string());
         song.song.song_cover_path_high = Some("https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/200px-SMPTE_Color_Bars.svg.png".to_string());
-        song.artists = Some(vec![QueryableArtist {
+        song.artists = Some(vec![Artist {
             artist_name: Some("Test artist".to_string()),
             ..Default::default()
         }]);
@@ -71,12 +71,12 @@ pub fn get_songs_by_option(options: GetSongOptions, setter: impl Set<Value = Vec
 #[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(feature = "mock")]
 pub fn get_playlists_by_option(
-    options: QueryablePlaylist,
-    setter: impl Set<Value = Vec<QueryablePlaylist>> + 'static,
+    options: Playlist,
+    setter: impl Set<Value = Vec<Playlist>> + 'static,
 ) {
     let mut songs = vec![];
     for i in 0..1000 {
-        let mut playlist = QueryablePlaylist::default();
+        let mut playlist = Playlist::default();
         playlist.playlist_id = Some(format!("playlist_id_{}", i));
         playlist.playlist_name = format!("Playlist {}", i);
         playlist.playlist_coverpath = Some("https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/200px-SMPTE_Color_Bars.svg.png".to_string());
@@ -88,13 +88,10 @@ pub fn get_playlists_by_option(
 
 #[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(feature = "mock")]
-pub fn get_artists_by_option(
-    options: QueryableArtist,
-    setter: impl Set<Value = Vec<QueryableArtist>> + 'static,
-) {
+pub fn get_artists_by_option(options: Artist, setter: impl Set<Value = Vec<Artist>> + 'static) {
     let mut songs = vec![];
     for i in 0..1000 {
-        let mut artist = QueryableArtist::default();
+        let mut artist = Artist::default();
         artist.artist_id = Some(format!("artist_id_{}", i));
         artist.artist_name = Some(format!("Artist {}", i));
         artist.artist_coverpath = Some("https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/200px-SMPTE_Color_Bars.svg.png".to_string());
@@ -106,13 +103,10 @@ pub fn get_artists_by_option(
 
 #[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(feature = "mock")]
-pub fn get_albums_by_option(
-    options: QueryableAlbum,
-    setter: impl Set<Value = Vec<QueryableAlbum>> + 'static,
-) {
+pub fn get_albums_by_option(options: Album, setter: impl Set<Value = Vec<Album>> + 'static) {
     let mut songs = vec![];
     for i in 0..1000 {
-        let mut album = QueryableAlbum::default();
+        let mut album = Album::default();
         album.album_id = Some(format!("album_id_{}", i));
         album.album_name = Some(format!("Album {}", i));
         album.album_coverpath_high = Some("https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/SMPTE_Color_Bars.svg/200px-SMPTE_Color_Bars.svg.png".to_string());
@@ -124,13 +118,10 @@ pub fn get_albums_by_option(
 
 #[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(feature = "mock")]
-pub fn get_genres_by_option(
-    options: QueryableGenre,
-    setter: impl Set<Value = Vec<QueryableGenre>> + 'static,
-) {
+pub fn get_genres_by_option(options: Genre, setter: impl Set<Value = Vec<Genre>> + 'static) {
     let mut songs = vec![];
     for i in 0..1000 {
-        let mut album = QueryableGenre::default();
+        let mut album = Genre::default();
         album.genre_id = Some(format!("genre_id_{}", i));
         album.genre_name = Some(format!("Genre {}", i));
         songs.push(album);
@@ -143,12 +134,12 @@ pub fn get_genres_by_option(
 #[cfg(not(feature = "mock"))]
 pub fn get_playlists_local<T>(setter: T)
 where
-    T: Set<Value = Vec<QueryablePlaylist>> + Update<Value = Vec<QueryablePlaylist>> + 'static,
+    T: Set<Value = Vec<Playlist>> + Update<Value = Vec<Playlist>> + 'static,
 {
     spawn_local(async move {
         let songs = serde_wasm_bindgen::from_value(
             super::invoke::get_entity_by_options(GetEntityOptions {
-                playlist: Some(QueryablePlaylist::default()),
+                playlist: Some(Playlist::default()),
                 ..Default::default()
             })
             .await
@@ -161,12 +152,9 @@ where
 
 #[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
-pub fn get_playlists_by_option<T>(options: QueryablePlaylist, setter: T)
+pub fn get_playlists_by_option<T>(options: Playlist, setter: T)
 where
-    T: Set<Value = Vec<QueryablePlaylist>>
-        + Update<Value = Vec<QueryablePlaylist>>
-        + Copy
-        + 'static,
+    T: Set<Value = Vec<Playlist>> + Update<Value = Vec<Playlist>> + Copy + 'static,
 {
     use std::{collections::HashMap, sync::Arc};
 
@@ -190,7 +178,7 @@ where
             tracing::error!("Error getting playlists: {:?}", res);
             return;
         }
-        let songs: Vec<QueryablePlaylist> = from_value(res.unwrap()).unwrap();
+        let songs: Vec<Playlist> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
 
         tracing::debug!(
@@ -229,10 +217,7 @@ where
 
 #[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
-pub fn get_artists_by_option(
-    options: QueryableArtist,
-    setter: impl Set<Value = Vec<QueryableArtist>> + 'static,
-) {
+pub fn get_artists_by_option(options: Artist, setter: impl Set<Value = Vec<Artist>> + 'static) {
     use leptos::task::spawn_local;
 
     spawn_local(async move {
@@ -245,17 +230,14 @@ pub fn get_artists_by_option(
             tracing::error!("Error getting artists: {:?}", res);
             return;
         }
-        let songs: Vec<QueryableArtist> = from_value(res.unwrap()).unwrap();
+        let songs: Vec<Artist> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
     });
 }
 
 #[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
-pub fn get_albums_by_option(
-    options: QueryableAlbum,
-    setter: impl Set<Value = Vec<QueryableAlbum>> + 'static,
-) {
+pub fn get_albums_by_option(options: Album, setter: impl Set<Value = Vec<Album>> + 'static) {
     use leptos::task::spawn_local;
 
     spawn_local(async move {
@@ -268,17 +250,14 @@ pub fn get_albums_by_option(
             tracing::error!("Error getting albums: {:?}", res);
             return;
         }
-        let songs: Vec<QueryableAlbum> = from_value(res.unwrap()).unwrap();
+        let songs: Vec<Album> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
     });
 }
 
 #[tracing::instrument(level = "debug", skip(options, setter))]
 #[cfg(not(feature = "mock"))]
-pub fn get_genres_by_option(
-    options: QueryableGenre,
-    setter: impl Set<Value = Vec<QueryableGenre>> + 'static,
-) {
+pub fn get_genres_by_option(options: Genre, setter: impl Set<Value = Vec<Genre>> + 'static) {
     use leptos::task::spawn_local;
 
     spawn_local(async move {
@@ -291,7 +270,7 @@ pub fn get_genres_by_option(
             tracing::error!("Error getting genres: {:?}", res);
             return;
         }
-        let songs: Vec<QueryableGenre> = from_value(res.unwrap()).unwrap();
+        let songs: Vec<Genre> = from_value(res.unwrap()).unwrap();
         setter.set(songs);
     });
 }
@@ -338,7 +317,7 @@ pub fn add_to_playlist(id: String, songs: Vec<Song>) {
 
 #[tracing::instrument(level = "debug", skip(cb))]
 pub fn create_playlist_and(
-    playlist: QueryablePlaylist,
+    playlist: Playlist,
     songs: Option<Vec<Song>>,
     cb: Arc<Box<dyn Fn() + Send + Sync>>,
 ) {
@@ -363,7 +342,7 @@ pub fn create_playlist_and(
 }
 
 #[tracing::instrument(level = "debug", skip(playlist, refresh_cb))]
-pub fn remove_playlist(playlist: QueryablePlaylist, refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>) {
+pub fn remove_playlist(playlist: Playlist, refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>) {
     if playlist.playlist_id.is_none() {
         return;
     }
@@ -378,7 +357,7 @@ pub fn remove_playlist(playlist: QueryablePlaylist, refresh_cb: Arc<Box<dyn Fn()
 }
 
 #[tracing::instrument(level = "debug", skip(playlist))]
-pub fn export_playlist(playlist: QueryablePlaylist) {
+pub fn export_playlist(playlist: Playlist) {
     spawn_local(async move {
         let res = super::invoke::export_playlist(playlist.playlist_id.unwrap()).await;
         if let Err(res) = res {

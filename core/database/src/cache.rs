@@ -20,22 +20,24 @@ use std::{
 };
 
 use diesel::{
+    ExpressionMethods, RunQueryDsl, SqliteConnection,
     connection::SimpleConnection,
     insert_into,
     query_dsl::methods::FilterDsl,
     r2d2::{self, ConnectionManager, Pool},
-    ExpressionMethods, RunQueryDsl, SqliteConnection,
 };
 
 use serde::{Deserialize, Serialize};
 use tracing::debug;
-use types::cache::CacheModel;
 use types::errors::{Result, error_helpers};
 
 use super::migrations::run_migration_cache;
-use types::cache_schema::{
-    self,
-    cache::{dsl::cache, url},
+use crate::{
+    cache_schema::{
+        self,
+        cache::{dsl::cache, url},
+    },
+    models::CacheModel,
 };
 
 #[derive(Debug)]
@@ -91,7 +93,8 @@ impl CacheHolder {
             .on_conflict(cache_schema::cache::url)
             .do_update()
             .set(&cache_model)
-            .execute(&mut conn).map_err(error_helpers::to_database_error)?;
+            .execute(&mut conn)
+            .map_err(error_helpers::to_database_error)?;
         Ok(())
     }
 
@@ -102,7 +105,10 @@ impl CacheHolder {
     {
         let mut conn = self.pool.get().unwrap();
 
-        let data: CacheModel = cache.filter(url.eq(_url)).first::<CacheModel>(&mut conn).map_err(error_helpers::to_database_error)?;
+        let data: CacheModel = cache
+            .filter(url.eq(_url))
+            .first::<CacheModel>(&mut conn)
+            .map_err(error_helpers::to_database_error)?;
         let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
 
         let expires = Duration::from_secs(data.expires as u64);

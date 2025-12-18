@@ -12,3 +12,4 @@ ffmpeg/
 ffmpeg-android-maker/
 bazel-*
 rust-project.json
+.ropeproject/

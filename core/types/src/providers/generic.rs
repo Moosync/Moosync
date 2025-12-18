@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist, SearchResult},
+    entities::{Album, Artist, Playlist, SearchResult},
     errors::Result,
     songs::Song,
     ui::extensions::{ContextMenuReturnType, ExtensionProviderScope},
@@ -108,10 +108,10 @@ pub trait GenericProvider: std::fmt::Debug + Send + Sync {
     async fn fetch_user_playlists(
         &self,
         pagination: Pagination,
-    ) -> Result<(Vec<QueryablePlaylist>, Pagination)>;
+    ) -> Result<(Vec<Playlist>, Pagination)>;
     async fn get_playlist_content(
         &self,
-        playlist: QueryablePlaylist,
+        playlist: Playlist,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)>;
     async fn get_playback_url(&self, song: Song, player: String) -> Result<String>;
@@ -119,19 +119,19 @@ pub trait GenericProvider: std::fmt::Debug + Send + Sync {
     async fn search(&self, term: String) -> Result<SearchResult>;
 
     async fn match_url(&self, url: String) -> Result<bool>;
-    async fn playlist_from_url(&self, url: String) -> Result<QueryablePlaylist>;
+    async fn playlist_from_url(&self, url: String) -> Result<Playlist>;
     async fn song_from_url(&self, url: String) -> Result<Song>;
     async fn song_from_id(&self, id: String) -> Result<Song>;
     async fn get_suggestions(&self) -> Result<Vec<Song>>;
 
     async fn get_album_content(
         &self,
-        album: QueryableAlbum,
+        album: Album,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)>;
     async fn get_artist_content(
         &self,
-        artist: QueryableArtist,
+        artist: Artist,
         pagination: Pagination,
     ) -> Result<(Vec<Song>, Pagination)>;
 
@@ -139,7 +139,7 @@ pub trait GenericProvider: std::fmt::Debug + Send + Sync {
     async fn get_song_context_menu(&self, songs: Vec<Song>) -> Result<Vec<ContextMenuReturnType>>;
     async fn get_playlist_context_menu(
         &self,
-        playlist: QueryablePlaylist,
+        playlist: Playlist,
     ) -> Result<Vec<ContextMenuReturnType>>;
     async fn trigger_context_menu_action(&self, action_id: String) -> Result<()>;
 }

@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::{
-    entities::{QueryableAlbum, QueryableArtist, QueryablePlaylist},
+    entities::{Album, Artist, Playlist},
     preferences::PreferenceUIData,
     songs::Song,
 };
@@ -122,17 +122,17 @@ pub enum ExtensionExtraEvent {
     RequestedSearchResult([String; 1]),
     RequestedRecommendations,
     RequestedLyrics([Song; 1]),
-    RequestedArtistSongs(QueryableArtist, Option<String>),
-    RequestedAlbumSongs(QueryableAlbum, Option<String>),
+    RequestedArtistSongs(Artist, Option<String>),
+    RequestedAlbumSongs(Album, Option<String>),
     SongAdded([Vec<Song>; 1]),
     SongRemoved([Vec<Song>; 1]),
-    PlaylistAdded([Vec<QueryablePlaylist>; 1]),
-    PlaylistRemoved([Vec<QueryablePlaylist>; 1]),
+    PlaylistAdded([Vec<Playlist>; 1]),
+    PlaylistRemoved([Vec<Playlist>; 1]),
     RequestedSongFromId([String; 1]),
     GetRemoteURL([Song; 1]),
     Scrobble([Song; 1]),
     RequestedSongContextMenu([Vec<Song>; 1]),
-    RequestedPlaylistContextMenu([QueryablePlaylist; 1]),
+    RequestedPlaylistContextMenu([Playlist; 1]),
     ContextMenuAction([String; 1]),
 }
 
@@ -147,7 +147,7 @@ pub struct ExtensionExtraEventArgs {
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistReturnType {
-    pub playlists: Vec<QueryablePlaylist>,
+    pub playlists: Vec<Playlist>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -167,9 +167,9 @@ pub struct SongsWithPageTokenReturnType {
 #[serde(rename_all = "camelCase")]
 pub struct SearchReturnType {
     pub songs: Vec<Song>,
-    pub playlists: Vec<QueryablePlaylist>,
-    pub artists: Vec<QueryableArtist>,
-    pub albums: Vec<QueryableAlbum>,
+    pub playlists: Vec<Playlist>,
+    pub artists: Vec<Artist>,
+    pub albums: Vec<Album>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
@@ -196,7 +196,7 @@ pub struct SongReturnType {
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistAndSongsReturnType {
-    pub playlist: Option<QueryablePlaylist>,
+    pub playlist: Option<Playlist>,
     pub songs: Option<Vec<Song>>,
 }
 

@@ -16,7 +16,6 @@ config_setting(
 rust_library(
     name = "types",
     srcs = [
-        "src/cache.rs",
         "src/canvaz.rs",
         "src/common.rs",
         "src/entities.rs",

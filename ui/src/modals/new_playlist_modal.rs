@@ -17,9 +17,9 @@
 use std::sync::Arc;
 
 use leptos::task::spawn_local;
-use leptos::{component, prelude::*, view, IntoView};
+use leptos::{IntoView, component, prelude::*, view};
 use leptos_i18n::t;
-use types::entities::QueryablePlaylist;
+use types::entities::Playlist;
 use types::songs::Song;
 use types::ui::extensions::ExtensionProviderScope;
 
@@ -49,7 +49,7 @@ pub fn NewPlaylistModal(
 ) -> impl IntoView {
     let state = RwSignal::new(initial_state);
 
-    let playlist = RwSignal::new(None::<QueryablePlaylist>);
+    let playlist = RwSignal::new(None::<Playlist>);
     let import_url = RwSignal::new(String::new());
     let provider_store: Arc<ProviderStore> = expect_context();
     Effect::new(move || {
@@ -195,7 +195,7 @@ pub fn NewPlaylistModal(
                                                             if let Some(p) = p {
                                                                 p.playlist_name = event_target_value(&e)
                                                             } else {
-                                                                *p = Some(QueryablePlaylist {
+                                                                *p = Some(Playlist {
                                                                     playlist_name: event_target_value(&e),
                                                                     ..Default::default()
                                                                 })

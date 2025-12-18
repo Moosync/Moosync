@@ -17,7 +17,7 @@
 use itertools::Itertools;
 use leptos::prelude::*;
 use leptos_context_menu::ContextMenuItemInner;
-use types::entities::QueryableArtist;
+use types::entities::Artist;
 
 use crate::store::ui_store::{PlaylistSortBy, PlaylistSortByColumns, UiStore};
 
@@ -55,7 +55,7 @@ where
 }
 
 #[tracing::instrument(level = "debug", skip(artists))]
-pub fn get_artist_string(artists: Option<Vec<QueryableArtist>>) -> String {
+pub fn get_artist_string(artists: Option<Vec<Artist>>) -> String {
     artists
         .map(|a| a.iter().filter_map(|a| a.artist_name.clone()).join(", "))
         .unwrap_or_default()

@@ -14,15 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use leptos::{component, prelude::*, view, IntoView};
-use leptos_router::{hooks::use_navigate, NavigateOptions};
-use types::entities::QueryableArtist;
+use leptos::{IntoView, component, prelude::*, view};
+use leptos_router::{NavigateOptions, hooks::use_navigate};
+use types::entities::Artist;
 
 use crate::store::ui_store::UiStore;
 
 #[tracing::instrument(level = "debug", skip())]
 #[component]
-pub fn ArtistList(#[prop()] artists: Option<Vec<QueryableArtist>>) -> impl IntoView {
+pub fn ArtistList(#[prop()] artists: Option<Vec<Artist>>) -> impl IntoView {
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get_untracked();
 

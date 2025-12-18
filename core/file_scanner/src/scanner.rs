@@ -25,7 +25,7 @@ use std::{
 
 use threadpool::ThreadPool;
 use types::errors::Result;
-use types::{entities::QueryablePlaylist, songs::Song};
+use types::{entities::Playlist, songs::Song};
 
 use crate::{playlist_scanner::PlaylistScanner, song_scanner::SongScanner};
 
@@ -75,7 +75,7 @@ impl ScannerHolder {
         artist_split: String,
         scan_threads: f64,
         song_tx: Sender<(Option<String>, Vec<Song>)>,
-        playlist_tx: Sender<Vec<QueryablePlaylist>>,
+        playlist_tx: Sender<Vec<Playlist>>,
     ) -> Result<()> {
         let mut state = self.state.lock().unwrap();
         if *state != ScanState::UNDEFINED {
@@ -108,7 +108,7 @@ impl ScannerHolder {
         );
 
         let (tx_song, rx_song) = mpsc::channel::<(Option<String>, Result<Song>)>();
-        let (tx_playlist, rx_playlist) = mpsc::channel::<Result<QueryablePlaylist>>();
+        let (tx_playlist, rx_playlist) = mpsc::channel::<Result<Playlist>>();
 
         song_scanner.start(tx_song.clone())?;
         let playlist_scanner = PlaylistScanner::new(dir, thumbnail_dir, song_scanner);

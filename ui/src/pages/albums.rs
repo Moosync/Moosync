@@ -26,11 +26,11 @@ use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::UiStore;
 use crate::utils::common::{convert_file_src, fetch_infinite};
 use crate::utils::songs::get_songs_from_indices;
-use leptos::{component, prelude::*, view, IntoView};
+use leptos::{IntoView, component, prelude::*, view};
 use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
 use rand::seq::IndexedRandom;
-use types::entities::QueryableAlbum;
+use types::entities::Album;
 use types::songs::{GetSongOptions, Song};
 use types::ui::extensions::ExtensionProviderScope;
 use types::ui::song_details::{DefaultDetails, SongDetailIcons};
@@ -46,7 +46,7 @@ pub fn SingleAlbum() -> impl IntoView {
         params.with(|params| {
             let entity = params.get("entity");
             if let Some(entity) = entity {
-                let album = serde_json::from_str::<QueryableAlbum>(&entity);
+                let album = serde_json::from_str::<Album>(&entity);
                 if let Ok(album) = album {
                     return Some(album);
                 }
@@ -74,7 +74,7 @@ pub fn SingleAlbum() -> impl IntoView {
 
             get_songs_by_option(
                 GetSongOptions {
-                    album: Some(QueryableAlbum {
+                    album: Some(Album {
                         album_id: album.album_id,
                         ..Default::default()
                     }),
@@ -159,7 +159,7 @@ pub fn SingleAlbum() -> impl IntoView {
 #[component()]
 pub fn AllAlbums() -> impl IntoView {
     let albums = RwSignal::new(vec![]);
-    get_albums_by_option(QueryableAlbum::default(), albums.write_only());
+    get_albums_by_option(Album::default(), albums.write_only());
 
     let i18n = use_i18n();
     view! {

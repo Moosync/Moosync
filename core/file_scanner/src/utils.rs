@@ -26,8 +26,8 @@ use std::{
     path::{Path, PathBuf},
 };
 use types::{
-    entities::{QueryableAlbum, QueryableArtist, QueryableGenre},
-    songs::{QueryableSong, Song, SongType},
+    entities::{Album, Artist, Genre},
+    songs::{InnerSong, Song, SongType},
 };
 use uuid::Uuid;
 
@@ -108,8 +108,7 @@ pub fn get_files_recursively(dir: PathBuf) -> Result<FileList> {
 
 #[tracing::instrument(level = "debug", skip(data, path, dimensions))]
 fn generate_image(data: &[u8], path: PathBuf, dimensions: u32) -> Result<()> {
-    let img = image::load_from_memory(data)
-        .map_err(error_helpers::to_media_error)?;
+    let img = image::load_from_memory(data).map_err(error_helpers::to_media_error)?;
 
     let width = NonZeroU32::new(img.width()).unwrap();
     let height = NonZeroU32::new(img.height()).unwrap();
@@ -118,7 +117,8 @@ fn generate_image(data: &[u8], path: PathBuf, dimensions: u32) -> Result<()> {
         height.into(),
         img.to_rgba8().into_vec(),
         fr::PixelType::U8x4,
-    ).map_err(error_helpers::to_media_error)?;
+    )
+    .map_err(error_helpers::to_media_error)?;
 
     // Create container for data of destination image
     let dst_width = NonZeroU32::new(dimensions).unwrap();
@@ -131,14 +131,16 @@ fn generate_image(data: &[u8], path: PathBuf, dimensions: u32) -> Result<()> {
     // Create Resizer instance and resize source image
     // into buffer of destination image
     let mut resizer = fr::Resizer::new();
-    resizer.resize(
-        &src_image,
-        &mut dst_image,
-        Some(&ResizeOptions {
-            algorithm: fast_image_resize::ResizeAlg::Nearest,
-            ..Default::default()
-        }),
-    ).map_err(error_helpers::to_media_error)?;
+    resizer
+        .resize(
+            &src_image,
+            &mut dst_image,
+            Some(&ResizeOptions {
+                algorithm: fast_image_resize::ResizeAlg::Nearest,
+                ..Default::default()
+            }),
+        )
+        .map_err(error_helpers::to_media_error)?;
 
     image::save_buffer(
         path,
@@ -146,7 +148,8 @@ fn generate_image(data: &[u8], path: PathBuf, dimensions: u32) -> Result<()> {
         dst_width.get(),
         dst_height.get(),
         ColorType::Rgba8,
-    ).map_err(error_helpers::to_media_error)?;
+    )
+    .map_err(error_helpers::to_media_error)?;
 
     Ok(())
 }
@@ -211,7 +214,7 @@ pub fn scan_file(
     artist_split: &str,
 ) -> Result<Song> {
     let mut song: Song = Song {
-        song: QueryableSong::default(),
+        song: InnerSong::default(),
         album: None,
         artists: Some(vec![]),
         genre: Some(vec![]),
@@ -224,8 +227,7 @@ pub fn scan_file(
     song.song.type_ = SongType::LOCAL;
 
     let file = if guess {
-        read_from_path(path.clone())
-            .map_err(error_helpers::to_media_error)?
+        read_from_path(path.clone()).map_err(error_helpers::to_media_error)?
     } else {
         let file_res = Probe::open(path.clone())
             .map_err(error_helpers::to_media_error)?
@@ -298,9 +300,9 @@ pub fn scan_file(
             .map(|s| s.to_string())
             .or(path.file_name().map(|s| s.to_string_lossy().to_string()));
         // song.album = metadata.album().map(|s| s.to_string());
-        let artists: Option<Vec<QueryableArtist>> = metadata.artist().map(|s| {
+        let artists: Option<Vec<Artist>> = metadata.artist().map(|s| {
             s.split(artist_split)
-                .map(|s| QueryableArtist {
+                .map(|s| Artist {
                     artist_id: Some(Uuid::new_v4().to_string()),
                     artist_name: Some(s.trim().to_string()),
                     ..Default::default()
@@ -314,7 +316,7 @@ pub fn scan_file(
                 .get_string(&lofty::prelude::ItemKey::TrackNumber)
                 .map(|s| s.parse().unwrap_or_default());
 
-            song.album = Some(QueryableAlbum {
+            song.album = Some(Album {
                 album_id: Some(Uuid::new_v4().to_string()),
                 album_name: album.map(|v| v.to_string()),
                 album_coverpath_high: song.song.song_cover_path_high.clone(),
@@ -330,7 +332,7 @@ pub fn scan_file(
 
         song.song.year = metadata.year().map(|s| s.to_string());
         song.genre = metadata.genre().map(|s| {
-            vec![QueryableGenre {
+            vec![Genre {
                 genre_name: Some(s.to_string()),
                 ..Default::default()
             }]

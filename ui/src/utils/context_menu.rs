@@ -22,11 +22,11 @@ use leptos_context_menu::{
 };
 use leptos_i18n::t_string;
 use leptos_router::{
-    hooks::{use_navigate, use_query_map},
     NavigateOptions,
+    hooks::{use_navigate, use_query_map},
 };
 use types::{
-    entities::{QueryableArtist, QueryablePlaylist},
+    entities::{Artist, Playlist},
     songs::Song,
     ui::extensions::ExtensionProviderScope,
 };
@@ -62,7 +62,7 @@ where
     pub current_song: Option<Song>,
     pub song_list: T,
     pub selected_songs: RwSignal<Vec<usize>>,
-    pub playlists: RwSignal<Vec<QueryablePlaylist>>,
+    pub playlists: RwSignal<Vec<Playlist>>,
     pub refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>,
 }
 
@@ -147,7 +147,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self, artist))]
-    pub fn goto_artist(&self, artist: QueryableArtist) {
+    pub fn goto_artist(&self, artist: Artist) {
         let navigate = use_navigate();
         navigate(
             format!(
@@ -165,7 +165,7 @@ where
             params.with(|params| {
                 let entity = params.get("entity");
                 if let Some(entity) = entity {
-                    let playlist = serde_json::from_str::<QueryablePlaylist>(&entity);
+                    let playlist = serde_json::from_str::<Playlist>(&entity);
                     if let Ok(playlist) = playlist {
                         return Some(playlist);
                     }
@@ -465,7 +465,7 @@ impl ContextMenuData<Self> for PlaylistContextMenu {
 }
 
 pub struct PlaylistItemContextMenu {
-    pub playlist: Option<QueryablePlaylist>,
+    pub playlist: Option<Playlist>,
     pub refresh_cb: Arc<Box<dyn Fn() + Send + Sync>>,
 }
 

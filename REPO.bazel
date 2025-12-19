@@ -1,12 +1,6 @@
 ignore_directories([
-    "core/librespot",
-    "core/lyrics",
     "core/macros",
-    "core/mpris",
-    "core/preferences",
-    "core/preferences",
     "core/rodio-player",
-    "core/themes",
     "tauri",
     "target",
     "lib",

@@ -20,19 +20,19 @@ use std::{
     io::Write,
     path::PathBuf,
     str::FromStr,
-    sync::{mpsc::Sender, Mutex},
+    sync::{Mutex, mpsc::Sender},
 };
 
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
 use notify::{Event, Watcher};
 use regex::Regex;
+use types::errors::error_helpers;
 use types::{
     errors::{MoosyncError, Result},
     themes::ThemeDetails,
 };
 use uuid::Uuid;
-use types::errors::error_helpers;
 
 pub struct ThemeHolder {
     pub theme_dir: PathBuf,
@@ -107,10 +107,11 @@ impl ThemeHolder {
         let theme_path = self.theme_dir.join(theme.id.clone());
 
         if !theme_path.exists() {
-            fs::create_dir_all(&theme_path)?;
+            fs::create_dir_all(&theme_path).map_err(error_helpers::to_file_system_error)?;
         }
         let theme_config = theme_path.join("config.json");
-        fs::write(theme_config, serde_json::to_string(&theme)?)?;
+        fs::write(theme_config, serde_json::to_string(&theme)?)
+            .map_err(error_helpers::to_file_system_error)?;
 
         Ok(())
     }
@@ -119,7 +120,7 @@ impl ThemeHolder {
     pub fn remove_theme(&self, id: String) -> Result<()> {
         let theme_path = self.theme_dir.join(id.clone());
         if theme_path.exists() {
-            fs::remove_dir_all(&theme_path)?;
+            fs::remove_dir_all(&theme_path).map_err(error_helpers::to_file_system_error)?;
         }
 
         Ok(())
@@ -150,7 +151,8 @@ impl ThemeHolder {
         let root_dir = self.theme_dir.join(id.clone());
         let theme_config = root_dir.join("config.json");
         if theme_config.exists() {
-            let data = fs::read_to_string(theme_config)?;
+            let data =
+                fs::read_to_string(theme_config).map_err(error_helpers::to_file_system_error)?;
             return Ok(serde_json::from_str(&data)?);
         }
 
@@ -160,7 +162,7 @@ impl ThemeHolder {
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn load_all_themes(&self) -> Result<HashMap<String, ThemeDetails>> {
         let theme_dir = self.theme_dir.clone();
-        let entries = fs::read_dir(theme_dir)?;
+        let entries = fs::read_dir(theme_dir).map_err(error_helpers::to_file_system_error)?;
         let mut ret = HashMap::new();
         ret.insert("default".into(), ThemeDetails::default());
         for theme_dir in entries.flatten() {
@@ -188,19 +190,26 @@ impl ThemeHolder {
         zip_extensions::zip_extract(&theme_path, &extract_dir.clone())
             .map_err(error_helpers::to_file_system_error)?;
 
-        for item in extract_dir.read_dir()? {
+        for item in extract_dir
+            .read_dir()
+            .map_err(error_helpers::to_file_system_error)?
+        {
             if item.is_ok() {
                 let item = item.unwrap().path();
                 if item.is_file() && item.file_name().unwrap().to_string_lossy() == "config.json" {
-                    let config = fs::read(item)?;
+                    let config = fs::read(item).map_err(error_helpers::to_file_system_error)?;
                     let parsed: ThemeDetails = serde_json::from_slice(config.as_slice())?;
                     let final_theme_path = self.theme_dir.join(parsed.id);
                     let options = CopyOptions::default().overwrite(true);
 
-                    fs::create_dir_all(final_theme_path.clone())?;
+                    fs::create_dir_all(final_theme_path.clone())
+                        .map_err(error_helpers::to_file_system_error)?;
 
                     let mut item_list = vec![];
-                    for items in extract_dir.read_dir()? {
+                    for items in extract_dir
+                        .read_dir()
+                        .map_err(error_helpers::to_file_system_error)?
+                    {
                         item_list.push(items.unwrap().path());
                     }
                     tracing::info!("Moving from {:?} to {:?}", item_list, final_theme_path);
@@ -222,7 +231,7 @@ impl ThemeHolder {
         let mut theme = self.load_theme(id.clone())?;
         let theme_dir = self.tmp_dir.join(format!("theme-unpacked-{}", id));
         if !theme_dir.exists() {
-            fs::create_dir_all(theme_dir.clone())?;
+            fs::create_dir_all(theme_dir.clone()).map_err(error_helpers::to_file_system_error)?;
         }
 
         let config_path = theme_dir.clone().join("config.json");
@@ -230,20 +239,22 @@ impl ThemeHolder {
         if let Some(custom_css) = theme.theme.custom_css {
             let (transformed, _) = transform_css(custom_css, None)?;
             let custom_css_path = theme_dir.join("custom.css");
-            fs::write(custom_css_path.clone(), transformed)?;
+            fs::write(custom_css_path.clone(), transformed)
+                .map_err(error_helpers::to_file_system_error)?;
             theme.theme.custom_css = Some("custom.css".into());
         }
 
-        fs::write(config_path.clone(), serde_json::to_string_pretty(&theme)?)?;
+        fs::write(config_path.clone(), serde_json::to_string_pretty(&theme)?)
+            .map_err(error_helpers::to_file_system_error)?;
 
         zip_extensions::zip_create_from_directory(&export_path, &theme_dir)
             .map_err(error_helpers::to_file_system_error)?;
 
         if let Some(custom_css_path) = theme.theme.custom_css {
-            fs::remove_file(custom_css_path)?;
+            fs::remove_file(custom_css_path).map_err(error_helpers::to_file_system_error)?;
         }
-        fs::remove_file(config_path)?;
-        fs::remove_dir(theme_dir)?;
+        fs::remove_file(config_path).map_err(error_helpers::to_file_system_error)?;
+        fs::remove_dir(theme_dir).map_err(error_helpers::to_file_system_error)?;
 
         Ok(())
     }
@@ -252,13 +263,17 @@ impl ThemeHolder {
     pub async fn download_theme(&self, url: String) -> Result<()> {
         let file_path = self.tmp_dir.join(format!("{}.mstx", uuid::Uuid::new_v4()));
 
-        let mut stream = reqwest::get(url).await
-            .map_err(error_helpers::to_network_error)?.bytes_stream();
-        let mut file = File::create(file_path.clone())?;
+        let mut stream = reqwest::get(url)
+            .await
+            .map_err(error_helpers::to_network_error)?
+            .bytes_stream();
+        let mut file =
+            File::create(file_path.clone()).map_err(error_helpers::to_file_system_error)?;
 
         while let Some(chunk_result) = stream.next().await {
             let chunk = chunk_result.map_err(error_helpers::to_network_error)?;
-            file.write_all(&chunk)?;
+            file.write_all(&chunk)
+                .map_err(error_helpers::to_file_system_error)?;
         }
 
         tracing::info!("Wrote file");
@@ -294,7 +309,10 @@ impl ThemeHolder {
         .await
         .map_err(error_helpers::to_network_error)?;
 
-        let releases_resp = res.json::<GithubReleasesResp>().await.map_err(error_helpers::to_network_error)?;
+        let releases_resp = res
+            .json::<GithubReleasesResp>()
+            .await
+            .map_err(error_helpers::to_network_error)?;
 
         let mut ret = HashMap::new();
         for item in releases_resp.assets.clone() {
@@ -337,7 +355,8 @@ pub fn transform_css(css_path: String, root: Option<PathBuf>) -> Result<(String,
     }
 
     let mut imports = vec![parsed_path.clone()];
-    let mut css = fs::read_to_string(parsed_path.clone())?;
+    let mut css =
+        fs::read_to_string(parsed_path.clone()).map_err(error_helpers::to_file_system_error)?;
     let import_regex = Regex::new(r"@import\s(.*)").unwrap();
     let cloned_css = css.clone();
     let matches = import_regex.captures_iter(cloned_css.as_str());
@@ -363,5 +382,3 @@ pub fn transform_css(css_path: String, root: Option<PathBuf>) -> Result<(String,
 
     Ok((css, imports))
 }
-
-

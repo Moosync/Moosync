@@ -1,0 +1,33 @@
+load("@rules_rust//rust:defs.bzl", "rust_library")
+
+filegroup(
+    name = "canvaz_proto",
+    srcs = ["src/canvaz.proto"],
+)
+
+rust_library(
+    name = "librespot",
+    srcs = [
+        "src/canvaz.rs",
+        "src/lib.rs",
+        "src/player.rs",
+        "src/spirc.rs",
+        "src/utils.rs",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "//core/types",
+        "@crates//:env_logger",
+        "@crates//:futures",
+        "@crates//:futures-util",
+        "@crates//:librespot",
+        "@crates//:protobuf",
+        "@crates//:regex",
+        "@crates//:reqwest",
+        "@crates//:serde",
+        "@crates//:tokio",
+        "@crates//:tracing",
+        "@crates//:url",
+        "@crates//:uuid",
+    ],
+)

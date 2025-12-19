@@ -24,18 +24,18 @@ use std::{
 
 use std::sync::Mutex;
 
-use crossbeam_channel::{bounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender, bounded};
 
-use chacha20poly1305::{aead::Aead, AeadCore, ChaCha20Poly1305, Key, KeyInit, KeySizeUser};
+use chacha20poly1305::{AeadCore, ChaCha20Poly1305, Key, KeyInit, KeySizeUser, aead::Aead};
 use json_dotpath::DotPaths;
 // use jsonschema::Validator;
 use keyring::Entry;
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use whoami;
 
-use types::errors::{error_helpers, MoosyncError, Result};
+use types::errors::{MoosyncError, Result, error_helpers};
 
 // const SCHEMA: &str = include_str!("./schema.json");
 
@@ -54,12 +54,14 @@ impl PreferenceConfig {
         let config_file_path = data_dir.join("config.json");
 
         if !data_dir.exists() {
-            fs::create_dir_all(data_dir)?;
+            fs::create_dir_all(data_dir).map_err(error_helpers::to_file_system_error)?;
         }
 
         if !config_file_path.exists() {
-            let mut file = File::create(config_file_path.clone())?;
-            file.write_all(b"{\"prefs\": {}}")?;
+            let mut file = File::create(config_file_path.clone())
+                .map_err(error_helpers::to_file_system_error)?;
+            file.write_all(b"{\"prefs\": {}}")
+                .map_err(error_helpers::to_file_system_error)?;
         }
 
         let entry = Entry::new("moosync", whoami::username().as_str())
@@ -73,7 +75,10 @@ impl PreferenceConfig {
                     .map_err(|e| error_helpers::to_config_error(e))?
             }
             Err(e) => {
-                tracing::warn!("Error getting keystore password: {:?} (May happen if the app is run for the first time)", e);
+                tracing::warn!(
+                    "Error getting keystore password: {:?} (May happen if the app is run for the first time)",
+                    e
+                );
                 let key = ChaCha20Poly1305::generate_key()
                     .map_err(|e| error_helpers::to_config_error(e))?;
                 entry
@@ -94,9 +99,12 @@ impl PreferenceConfig {
         let secret =
             ChaCha20Poly1305::generate_key().map_err(|e| error_helpers::to_config_error(e))?;
 
-        let mut config_file = File::open(config_file_path.clone())?;
+        let mut config_file =
+            File::open(config_file_path.clone()).map_err(error_helpers::to_file_system_error)?;
         let mut prefs = String::new();
-        config_file.read_to_string(&mut prefs)?;
+        config_file
+            .read_to_string(&mut prefs)
+            .map_err(error_helpers::to_file_system_error)?;
 
         let prefs = serde_json::from_str(&prefs).unwrap_or_default();
 
@@ -181,9 +189,14 @@ impl PreferenceConfig {
         drop(prefs);
 
         let config_file_path = self.config_file.lock().expect("poisoned");
-        let mut config_file = File::create(config_file_path.as_os_str())?;
-        config_file.write_all(&serde_json::to_vec(&writable)?)?;
-        config_file.flush()?;
+        let mut config_file = File::create(config_file_path.as_os_str())
+            .map_err(error_helpers::to_file_system_error)?;
+        config_file
+            .write_all(&serde_json::to_vec(&writable)?)
+            .map_err(error_helpers::to_file_system_error)?;
+        config_file
+            .flush()
+            .map_err(error_helpers::to_file_system_error)?;
 
         let parsed = serde_json::to_value(value).unwrap();
 

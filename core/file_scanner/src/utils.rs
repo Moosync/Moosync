@@ -43,7 +43,7 @@ use types::errors::error_helpers;
 #[tracing::instrument(level = "debug", skip(dir))]
 pub fn check_directory(dir: PathBuf) -> Result<()> {
     if !dir.is_dir() {
-        fs::create_dir_all(dir)?
+        fs::create_dir_all(dir).map_err(error_helpers::to_file_system_error)?
     }
 
     Ok(())
@@ -89,7 +89,7 @@ pub fn get_files_recursively(dir: PathBuf) -> Result<FileList> {
         }
     }
 
-    let dir_entries = fs::read_dir(dir)?;
+    let dir_entries = fs::read_dir(dir).map_err(error_helpers::to_file_system_error)?;
 
     for entry in dir_entries {
         let Ok(entry) = entry else { continue };
@@ -172,8 +172,8 @@ fn store_picture(thumbnail_dir: &Path, picture: &Picture) -> Result<(PathBuf, Pa
     }
 
     Ok((
-        dunce::canonicalize(high_path)?,
-        dunce::canonicalize(low_path)?,
+        dunce::canonicalize(high_path).map_err(error_helpers::to_file_system_error)?,
+        dunce::canonicalize(low_path).map_err(error_helpers::to_file_system_error)?,
     ))
 }
 
@@ -221,7 +221,12 @@ pub fn scan_file(
     };
     song.song._id = Some(Uuid::new_v4().to_string());
     song.song.title = Some(path.file_name().unwrap().to_string_lossy().to_string());
-    song.song.path = Some(dunce::canonicalize(path)?.to_string_lossy().to_string());
+    song.song.path = Some(
+        dunce::canonicalize(path)
+            .map_err(error_helpers::to_file_system_error)?
+            .to_string_lossy()
+            .to_string(),
+    );
     song.song.size = Some(size);
     song.song.duration = Some(0f64);
     song.song.type_ = SongType::LOCAL;

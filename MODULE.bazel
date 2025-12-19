@@ -397,6 +397,7 @@ crates.spec(
 )
 crates.spec(
     default_features = False,
+    features = ["v4"],
     package = "uuid",
     version = "1.18.1",
 )
@@ -420,6 +421,49 @@ crates.spec(
 crates.spec(
     package = "glob",
     version = "0.3.3",
+)
+crates.spec(
+    default_features = False,
+    package = "blake3",
+    version = "1.8.2",
+)
+crates.spec(
+    package = "fast_image_resize",
+    version = "5.3.0",
+)
+crates.spec(
+    package = "image",
+    version = "0.25.8",
+)
+crates.spec(
+    package = "lazy_static",
+    version = "1.5.0",
+)
+crates.spec(
+    default_features = False,
+    package = "lofty",
+    version = "0.22.4",
+)
+crates.spec(
+    default_features = False,
+    package = "regex",
+    version = "1.12.2",
+)
+crates.spec(
+    package = "threadpool",
+    version = "1.8.1",
+)
+crates.spec(
+    package = "num_cpus",
+    version = "1.17.0",
+)
+crates.spec(
+    package = "dunce",
+    version = "1.0.5",
+)
+crates.spec(
+    package = "substring",
+    version = "1.4.5",
 )
 crates.from_specs(host_tools = "@rust_host_tools_nightly")
 use_repo(crates, "crates")

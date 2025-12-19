@@ -77,7 +77,7 @@ impl<'a> PlaylistScanner<'a> {
 
     #[tracing::instrument(level = "debug", skip(self, path))]
     fn scan_playlist(&self, path: &PathBuf) -> Result<(Playlist, Vec<Song>)> {
-        let file = File::open(path)?;
+        let file = File::open(path).map_err(error_helpers::to_file_system_error)?;
         let lines = io::BufReader::new(file).lines();
 
         let mut songs: Vec<Song> = vec![];
@@ -160,7 +160,12 @@ impl<'a> PlaylistScanner<'a> {
                     let song_path = PathBuf::from_str(line.as_str());
                     let Ok(mut path_parsed) = song_path;
                     if path_parsed.is_relative() {
-                        path_parsed = path.parent().unwrap().join(path_parsed).canonicalize()?;
+                        path_parsed = path
+                            .parent()
+                            .unwrap()
+                            .join(path_parsed)
+                            .canonicalize()
+                            .map_err(error_helpers::to_file_system_error)?;
                     }
 
                     if !path_parsed.exists() {
@@ -171,7 +176,8 @@ impl<'a> PlaylistScanner<'a> {
                         continue;
                     }
 
-                    let metadata = fs::metadata(&path_parsed)?;
+                    let metadata =
+                        fs::metadata(&path_parsed).map_err(error_helpers::to_file_system_error)?;
                     song.size = Some(metadata.len() as f64);
                     song.path = Some(path_parsed.to_string_lossy().to_string());
 

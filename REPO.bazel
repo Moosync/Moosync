@@ -1,5 +1,4 @@
 ignore_directories([
-    "core/file_scanner",
     "core/librespot",
     "core/lyrics",
     "core/macros",

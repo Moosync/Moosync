@@ -297,33 +297,19 @@ use_repo(wasm_crates, "wasmCrates")
 
 crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
 crates.spec(
+    default_features = False,
+    package = "base64",
+    version = "0.22.1",
+)
+crates.spec(
     package = "bitcode",
     version = "0.6.7",
 )
 crates.spec(
-    package = "thiserror",
-    version = "2.0.17",
+    package = "command-group",
+    version = "5.0.1",
 )
 crates.spec(
-    features = ["derive"],
-    package = "serde",
-    version = "1.0.228",
-)
-crates.spec(
-    package = "tracing",
-    version = "0.1.41",
-)
-crates.spec(
-    default_features = False,
-    package = "serde_json",
-    version = "1.0",
-)
-crates.spec(
-    git = "https://github.com/Ovenoboyo/diesel-logger.git",
-    package = "diesel_logger",
-)
-crates.spec(
-    # default_features = False,
     features = [
         "sqlite",
         "chrono",
@@ -333,9 +319,81 @@ crates.spec(
     version = "2.3.3",
 )
 crates.spec(
+    git = "https://github.com/Ovenoboyo/diesel-logger.git",
+    package = "diesel_logger",
+)
+crates.spec(
     default_features = False,
     package = "diesel_migrations",
     version = "2.3.0",
+)
+crates.spec(
+    package = "extism",
+    version = "1.12.0",
+)
+crates.spec(
+    package = "extism-convert",
+    version = "1.12.0",
+)
+crates.spec(
+    package = "fs_extra",
+    version = "1.3.0",
+)
+crates.spec(
+    default_features = False,
+    features = ["executor"],
+    package = "futures",
+    version = "0.3.31",
+)
+crates.spec(
+    features = ["tokio"],
+    package = "interprocess",
+    version = "2.2.3",
+)
+crates.spec(
+    features = ["bundled"],
+    package = "libsqlite3-sys",
+    version = "0.35.0",
+)
+crates.spec(
+    package = "regex",
+    version = "1.12.2",
+)
+crates.spec(
+    package = "rust-crypto",
+    version = "0.2.36",
+)
+crates.spec(
+    default_features = False,
+    features = ["derive"],
+    package = "serde",
+    version = "1.0.228",
+)
+crates.spec(
+    default_features = False,
+    package = "serde_json",
+    version = "1.0.145",
+)
+crates.spec(
+    package = "serde_yaml",
+    version = "0.9.34",
+)
+crates.spec(
+    package = "thiserror",
+    version = "2.0.17",
+)
+crates.spec(
+    features = [
+        "rt-multi-thread",
+        "macros",
+    ],
+    package = "tokio",
+    version = "1.48.0",
+)
+crates.spec(
+    default_features = False,
+    package = "tracing",
+    version = "0.1.41",
 )
 crates.spec(
     default_features = False,
@@ -343,15 +401,21 @@ crates.spec(
     version = "1.18.1",
 )
 crates.spec(
-    features = ["bundled"],
-    package = "libsqlite3-sys",
-    version = "0.35.0",
+    package = "wasmtime",
+    version = "37",
 )
-
-# build-dependencies
 crates.spec(
-    package = "anyhow",
-    version = "1.0.100",
+    default_features = False,
+    package = "zip-extensions",
+    version = "0.8",
+)
+crates.spec(
+    features = [
+        "json",
+        "stream",
+    ],
+    package = "reqwest",
+    version = "0.12.26",
 )
 crates.spec(
     package = "glob",

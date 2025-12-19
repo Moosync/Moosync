@@ -1,10 +1,6 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_shared_library", "rust_test")
 
-# gazelle:rust_cargo_lockfile Cargo.lock
-# gazelle:rust_crates_prefix @crates//:
-# gazelle:rust_mode generate_from_cargo
-
 filegroup(
     name = "migrations",
     srcs = glob([
@@ -22,12 +18,11 @@ rust_shared_library(
         "src/lib.rs",
         "src/macros.rs",
         "src/migrations.rs",
+        "src/models.rs",
         "src/schema.rs",
         "src/test.rs",
-        "src/models.rs",
     ],
     compile_data = [
-        "Cargo.toml",
         ":migrations",
     ],
     visibility = ["//visibility:public"],
@@ -47,7 +42,6 @@ rust_shared_library(
 cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
-    compile_data = ["Cargo.toml"],
     crate_root = "build.rs",
     visibility = ["//visibility:public"],
     deps = ["@crates//:glob"],

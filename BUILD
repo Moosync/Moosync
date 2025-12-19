@@ -2,6 +2,9 @@ load("@gazelle//:def.bzl", "gazelle")
 
 # gazelle:exclude ui
 # gazelle:exclude core/types
+# gazelle:exclude core/database
+# gazelle:exclude core/extensions
+# gazelle:exclude tauri-invoke-proc
 
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen_toolchain")
 

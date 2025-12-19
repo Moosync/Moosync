@@ -24,21 +24,22 @@ use std::{
     thread,
 };
 
+use crate::models::{
+    ExtensionCommand, ExtensionCommandResponse, GenericExtensionHostRequest, MainCommand,
+    MainCommandResponse, RunnerCommand, RunnerCommandResp,
+};
 use ext_runner::{ExtCommandReceiver, ExtensionHandlerInner};
 use fs_extra::dir::CopyOptions;
 use futures::lock::Mutex;
-use futures::{executor::block_on, StreamExt};
+use futures::{StreamExt, executor::block_on};
 use serde_json::Value;
 use tokio::{
     select,
-    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
 };
 use types::{
-    errors::{error_helpers, MoosyncError, Result},
-    extensions::{
-        ExtensionCommand, ExtensionCommandResponse, ExtensionManifest, GenericExtensionHostRequest,
-        MainCommand, MainCommandResponse, RunnerCommand, RunnerCommandResp,
-    },
+    errors::{MoosyncError, Result, error_helpers},
+    extensions::ExtensionManifest,
     moosync_err,
     preferences::PreferenceUIData,
     ui::extensions::{
@@ -47,8 +48,8 @@ use types::{
     },
 };
 use zip_extensions::zip_extract;
-
 mod ext_runner;
+pub mod models;
 
 pub type UiRequestSender = UnboundedSender<GenericExtensionHostRequest<MainCommand>>;
 pub type UiRequestReceiver = UnboundedReceiver<GenericExtensionHostRequest<MainCommand>>;
@@ -127,8 +128,9 @@ impl ExtensionHandler {
     fn get_extension_version(&self, ext_path: PathBuf) -> Result<String> {
         let manifest_path = ext_path.join("package.json");
         if manifest_path.exists() {
-            let package_manifest: ExtensionManifest =
-                serde_json::from_slice(&fs::read(manifest_path)?)?;
+            let package_manifest: ExtensionManifest = serde_json::from_slice(
+                &fs::read(manifest_path).map_err(error_helpers::to_file_system_error)?,
+            )?;
 
             return Ok(package_manifest.version);
         }
@@ -155,8 +157,9 @@ impl ExtensionHandler {
 
         zip_extract(&ext_path, &tmp_dir).map_err(error_helpers::to_file_system_error)?;
 
-        let package_manifest: ExtensionManifest =
-            serde_json::from_slice(&fs::read(tmp_dir.join("package.json"))?)?;
+        let package_manifest: ExtensionManifest = serde_json::from_slice(
+            &fs::read(tmp_dir.join("package.json")).map_err(error_helpers::to_file_system_error)?,
+        )?;
 
         if !package_manifest.moosync_extension {
             return Err(MoosyncError::String(
@@ -172,7 +175,8 @@ impl ExtensionHandler {
                 let new_version = self.get_ext_version(package_manifest.version)?;
 
                 if new_version > old_version {
-                    fs::remove_dir_all(ext_extract_path.clone())?;
+                    fs::remove_dir_all(ext_extract_path.clone())
+                        .map_err(error_helpers::to_file_system_error)?;
                 } else {
                     return Err(MoosyncError::String(format!(
                         "Duplicate extension {}. Can not install",
@@ -194,7 +198,7 @@ impl ExtensionHandler {
         );
         if !parent_dir.exists() {
             tracing::debug!("Creating dir {:?}", parent_dir);
-            fs::create_dir_all(parent_dir)?;
+            fs::create_dir_all(parent_dir).map_err(error_helpers::to_file_system_error)?;
         }
         fs_extra::move_items(&[tmp_dir.clone()], parent_dir, &options)
             .map_err(error_helpers::to_file_system_error)?;
@@ -207,7 +211,8 @@ impl ExtensionHandler {
         fs::rename(
             parent_dir.join(tmp_dir.file_name().unwrap()),
             parent_dir.join(package_manifest.name),
-        )?;
+        )
+        .map_err(error_helpers::to_file_system_error)?;
 
         self.find_new_extensions().await.unwrap();
 
@@ -218,7 +223,7 @@ impl ExtensionHandler {
     pub async fn remove_extension(&self, package_name: String) -> Result<()> {
         let ext_path = self.extensions_dir.join(package_name.clone());
         if ext_path.exists() {
-            fs::remove_dir_all(ext_path)?;
+            fs::remove_dir_all(ext_path).map_err(error_helpers::to_file_system_error)?;
             self.send_remove_extension(PackageNameArgs { package_name })
                 .await?;
             self.find_new_extensions().await?;
@@ -243,11 +248,13 @@ impl ExtensionHandler {
             .await
             .map_err(error_helpers::to_network_error)?
             .bytes_stream();
-        let mut file = File::create(file_path.clone())?;
+        let mut file =
+            File::create(file_path.clone()).map_err(error_helpers::to_file_system_error)?;
 
         while let Some(chunk_result) = stream.next().await {
             let chunk = chunk_result.map_err(error_helpers::to_network_error)?;
-            file.write_all(&chunk)?;
+            file.write_all(&chunk)
+                .map_err(error_helpers::to_file_system_error)?;
         }
 
         tracing::info!("Wrote file");

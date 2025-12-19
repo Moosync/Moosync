@@ -33,30 +33,32 @@ use crypto::{
     digest::Digest,
     sha2::{Sha256, Sha512},
 };
-use extism::{host_fn, Error, Manifest, Plugin, PluginBuilder, UserData, ValType::I64, Wasm, PTR};
+use extism::{Error, Manifest, PTR, Plugin, PluginBuilder, UserData, ValType::I64, Wasm, host_fn};
+use extism_convert::Json;
 use futures::executor::block_on;
 use interprocess::local_socket::{
-    prelude::LocalSocketStream, traits::Stream, GenericFilePath, GenericNamespaced, NameType,
-    ToFsName, ToNsName,
+    GenericFilePath, GenericNamespaced, NameType, ToFsName, ToNsName, prelude::LocalSocketStream,
+    traits::Stream,
 };
 use regex::{Captures, Regex};
 use serde_json::Value;
 use tokio::sync::{
-    mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     Mutex,
+    mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
 };
 use tracing::{debug, error, info};
 use types::{
-    errors::Result as MoosyncResult, extensions::ExtensionExtraEventResponse,
-    preferences::PreferenceUIData,
+    errors::Result as MoosyncResult, extensions::ExtensionManifest, preferences::PreferenceUIData,
 };
 use types::{
-    extensions::{
-        sanitize_album, sanitize_artist, sanitize_playlist, sanitize_song, ExtensionCommand,
-        ExtensionCommandResponse, ExtensionManifest, GenericExtensionHostRequest, MainCommand,
-        MainCommandResponse, RunnerCommand, RunnerCommandResp,
-    },
+    extensions::{sanitize_album, sanitize_artist, sanitize_playlist, sanitize_song},
     ui::extensions::ExtensionDetail,
+};
+
+use crate::models::{
+    ExtensionCommand, ExtensionCommandResponse, ExtensionExtraEventResponse,
+    GenericExtensionHostRequest, MainCommand, MainCommandResponse, RunnerCommand,
+    RunnerCommandResp,
 };
 
 // Ext handler inner
@@ -74,13 +76,13 @@ struct MainCommandUserData {
     package_name: String,
 }
 
-host_fn!(send_main_command(user_data: MainCommandUserData; command: MainCommand) -> Option<Value> {
+host_fn!(send_main_command(user_data: MainCommandUserData; command: Json<MainCommand>) -> Option<Value> {
     let user_data = user_data.get()?;
     let user_data = user_data.lock().unwrap();
 
-    let mut command = command;
+    let mut command = command.0;
     tracing::debug!("Got extension command {:?}", command);
-    match command.to_request(user_data.package_name.clone()) {
+    match command.to_request(gen_channel_id(), user_data.package_name.clone()) {
         Ok(request) => {
             let reply_map = user_data.reply_map.clone();
             let (tx, mut rx) = unbounded_channel();
@@ -95,7 +97,7 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command: MainCommand)
 
             match command {
                 MainCommand::UpdateAccounts(_) => {
-                    return Ok(Some(MainCommandResponse::UpdateAccounts(true)));
+                    return Ok(Some(Json(MainCommandResponse::UpdateAccounts(true))));
                 },
                 _ => {}
             }
@@ -107,7 +109,7 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command: MainCommand)
                     reply_map.remove(&request.channel);
                 }
                 tracing::debug!("Got response for {:?}: {:?}", command, resp);
-                return Ok(resp.data)
+                return Ok(resp.data.map(Json))
             } else {
                 return Err(Error::msg("Failed to receive response"))
             }
@@ -530,7 +532,7 @@ impl ExtensionHandlerInner {
                 ext_command_tx
                     .send(
                         MainCommand::ExtensionsUpdated()
-                            .to_request("".into())
+                            .to_request(gen_channel_id(), "".into())
                             .unwrap(),
                     )
                     .unwrap();
@@ -565,7 +567,7 @@ impl ExtensionHandlerInner {
                 ext_command_tx
                     .send(
                         MainCommand::ExtensionsUpdated()
-                            .to_request("".into())
+                            .to_request(gen_channel_id(), "".into())
                             .unwrap(),
                     )
                     .unwrap();
@@ -574,7 +576,7 @@ impl ExtensionHandlerInner {
 
         if let Err(e) = self.ext_command_tx.send(
             MainCommand::ExtensionsUpdated()
-                .to_request("".into())
+                .to_request(gen_channel_id(), "".into())
                 .unwrap(),
         ) {
             tracing::error!("Failed to send extension update command: {:?}", e);
@@ -900,4 +902,8 @@ impl ExtensionHandlerInner {
     //         self.handle_extension_command(resp).await
     //     }
     // }
+}
+
+fn gen_channel_id() -> String {
+    uuid::Uuid::new_v4().to_string()
 }

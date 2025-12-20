@@ -2,3 +2,4 @@
 common --@rules_rust//rust/toolchain/channel=nightly
 common --experimental_isolated_extension_usages
 common --action_env=CARGO_PKG_AUTHORS=Moosync --action_env=CARGO_PKG_DESCRIPTION= --action_env=CARGO_PKG_HOMEPAGE= --action_env=CARGO_PKG_LICENSE= --action_env=CARGO_PKG_REPOSITORY=
+common --repo_env=BAZEL_CONLYOPTS="-std=gnu17"

@@ -9,6 +9,8 @@ load("@gazelle//:def.bzl", "gazelle")
 # gazelle:exclude core/lyrics
 # gazelle:exclude core/mpris
 # gazelle:exclude core/preferences
+# gazelle:exclude core/themes
+# gazelle:exclude core/rodio
 # gazelle:exclude tauri-invoke-proc
 
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen_toolchain")

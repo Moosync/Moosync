@@ -1,6 +1,5 @@
 ignore_directories([
     "core/macros",
-    "core/rodio-player",
     "tauri",
     "target",
     "lib",

@@ -1,7 +1,7 @@
 [package]
 name = "tauri-plugin-self-update"
 version = "0.1.0"
-authors = [ "You" ]
+authors = ["You"]
 description = ""
 edition = "2021"
 rust-version = "1.77.2"
@@ -11,7 +11,7 @@ links = "tauri-plugin-self-update"
 [dependencies]
 tauri = { version = "2.9.1" }
 serde = "1.0"
-types = { path = "../../src-tauri/types" }
+# types = { path = "../../src-tauri/types" }
 thiserror = "2"
 
 [build-dependencies]

@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use macros::generate_command;
+use crate::macros::generate_command;
 use tauri::{AppHandle, State};
 use types::errors::Result;
 

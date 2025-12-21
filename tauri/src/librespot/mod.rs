@@ -19,7 +19,7 @@ use librespot::{
     spirc::ParsedToken, utils::event_to_map, Cache, ConnectConfig, Credentials, DeviceType,
     LibrespotHolder, PlayerConfig, PlayerEvent, REGISTERED_EVENTS,
 };
-use macros::{generate_command, generate_command_cached};
+use crate::macros::{generate_command, generate_command_cached};
 
 use tauri::{AppHandle, Emitter, Manager, State};
 use types::{canvaz::CanvazResponse, errors::Result, errors::error_helpers};

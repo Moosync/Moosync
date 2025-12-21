@@ -1,29 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>@TITLE@</title>
+<html>
+  <body>
+    <script type="module">
+      import init from '/@JS_ENTRY@';
 
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      margin: 0;
-      padding: 1rem;
-    }
-  </style>
-</head>
+      async function run() {
+        await init();
+      }
 
-<body>
-  <h1>@TITLE@</h1>
-  <div id="app"></div>
-
-  <script type="module">
-
-        import { __wbg_init }, * as bindings from '/@JS_ENTRY@';
-        const wasm = await __wbg_init({ module_or_path: '@WASM_ENTRY' });
-
-
-        window.wasmBindings = bindings;
-  </script>
-</body>
+      run();
+    </script>
+  </body>
 </html>

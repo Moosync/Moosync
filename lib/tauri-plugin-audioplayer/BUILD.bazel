@@ -1,6 +1,38 @@
-load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_library")
 
-rust_binary(
-    name = "build",
+filegroup(
+    name = "permissions",
+    srcs = glob([
+        "permissions/**/*",
+    ]),
+)
+
+rust_library(
+    name = "tauri-plugin-audioplayer",
+    srcs = [
+        "src/desktop.rs",
+        "src/lib.rs",
+        "src/mobile.rs",
+    ],
+    compile_data = [
+        ":permissions",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":build_script",
+        "//core/types",
+        "@crates//:serde",
+        "@crates//:tauri",
+    ],
+)
+
+cargo_build_script(
+    name = "build_script",
     srcs = ["build.rs"],
+    compile_data = ["Cargo.toml"],
+    crate_root = "build.rs",
+    pkg_name = "tauri-plugin-audioplayer",
+    visibility = ["//visibility:public"],
+    deps = ["@crates//:tauri-plugin"],
 )

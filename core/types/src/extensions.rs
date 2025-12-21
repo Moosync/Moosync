@@ -16,27 +16,13 @@
 
 use std::fmt::Debug;
 
-use serde::{Deserialize, Serialize, Serializer};
-use serde_json::Value;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::{
-    entities::{Album, Artist, Genre, GetEntityOptions, Playlist},
-    errors::{MoosyncError, Result as MoosyncResult},
-    preferences::PreferenceUIData,
-    songs::{GetSongOptions, Song},
-    ui::{
-        extensions::{
-            AccountLoginArgs, AddToPlaylistRequest, ContextMenuReturnType, CustomRequestReturnType,
-            ExtensionAccountDetail, ExtensionDetail, ExtensionExtraEvent, ExtensionExtraEventArgs,
-            ExtensionProviderScope, ExtensionUIRequest, PackageNameArgs, PlaybackDetailsReturnType,
-            PlaylistAndSongsReturnType, PlaylistReturnType, PreferenceData,
-            RecommendationsReturnType, SearchReturnType, SongReturnType,
-            SongsWithPageTokenReturnType,
-        },
-        player_details::PlayerState,
-    },
+    entities::{Album, Artist, Genre, Playlist},
+    songs::Song,
 };
 
 #[derive(Debug, Deserialize, Clone)]

@@ -1,9 +1,5 @@
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
-# gazelle:rust_cargo_lockfile Cargo.lock
-# gazelle:rust_crates_prefix @crates//:
-# gazelle:rust_mode generate_from_cargo
-
 rust_library(
     name = "preferences",
     srcs = [

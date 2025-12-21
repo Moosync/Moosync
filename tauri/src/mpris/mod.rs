@@ -16,9 +16,9 @@
 
 use std::thread;
 
-use macros::generate_command;
+use crate::macros::generate_command;
 use mpris::MprisHolder;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tauri::{AppHandle, Emitter, State};
 use types::{errors::Result, mpris::MprisPlayerDetails, ui::player_details::PlayerState};
 

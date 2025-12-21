@@ -16,16 +16,16 @@
 
 use database::cache::CacheHolder;
 use extensions::ExtensionHandler;
-use macros::generate_command_async;
-use macros::generate_command_async_cached;
+use extensions::models::GenericExtensionHostRequest;
+use crate::macros::generate_command_async;
+use crate::macros::generate_command_async_cached;
 use request_handler::ReplyHandler;
 use serde_json::Value;
-use tauri::async_runtime;
 use tauri::AppHandle;
 use tauri::Manager;
 use tauri::State;
+use tauri::async_runtime;
 use types::errors::Result;
-use types::extensions::GenericExtensionHostRequest;
 use types::ui::extensions::ExtensionDetail;
 use types::ui::extensions::ExtensionExtraEventArgs;
 use types::ui::extensions::FetchedExtensionManifest;

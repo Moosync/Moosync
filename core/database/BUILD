@@ -1,5 +1,5 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
-load("@rules_rust//rust:defs.bzl", "rust_shared_library", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
 filegroup(
     name = "migrations",
@@ -9,7 +9,7 @@ filegroup(
     ]),
 )
 
-rust_shared_library(
+rust_library(
     name = "database",
     srcs = [
         "src/cache.rs",

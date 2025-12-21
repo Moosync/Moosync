@@ -18,7 +18,7 @@ use bitcode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 use super::{
-    common::{BridgeUtils, SearchByTerm, deserialize_default},
+    common::{SearchByTerm, deserialize_default},
     songs::Song,
 };
 

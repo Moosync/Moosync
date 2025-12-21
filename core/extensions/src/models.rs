@@ -524,7 +524,7 @@ impl MainCommand {
         }
     }
 
-    pub fn to_ui_request(&mut self, channel: String) -> MoosyncResult<ExtensionUIRequest> {
+    pub fn to_ui_request(&mut self) -> MoosyncResult<ExtensionUIRequest> {
         let (r#type, data) = match self {
             MainCommand::GetCurrentSong() => ("getCurrentSong", Value::Null),
             MainCommand::GetPlayerState() => ("getPlayerState", Value::Null),
@@ -536,7 +536,7 @@ impl MainCommand {
 
         Ok(ExtensionUIRequest {
             type_: r#type.into(),
-            channel,
+            channel: uuid::Uuid::new_v4().to_string(),
             data: Some(data),
         })
     }

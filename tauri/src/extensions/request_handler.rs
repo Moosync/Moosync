@@ -15,15 +15,17 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use database::database::Database;
-use extensions::ExtensionHandler;
+use extensions::{
+    ExtensionHandler,
+    models::{MainCommand, MainCommandResponse},
+};
 use futures::channel::oneshot;
 use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use types::{
     entities::{GetEntityOptions, Playlist},
-    errors::{error_helpers, Result},
-    extensions::{MainCommand, MainCommandResponse},
+    errors::{Result, error_helpers},
     preferences::PreferenceUIData,
     songs::{GetSongOptions, SearchableSong, Song},
     ui::extensions::PreferenceData,

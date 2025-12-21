@@ -17,17 +17,54 @@
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use oauth2::{basic::BasicClient, AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
+use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl, basic::BasicClient};
 use oauth2::{AuthorizationCode, CsrfToken, PkceCodeChallenge, RefreshToken, Scope, TokenResponse};
 use preferences::preferences::PreferenceConfig;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager, State};
-use types::errors::{MoosyncError, Result};
-use types::oauth::{OAuth2Client, OAuth2Verifier, OAuthTokenResponse};
-use url::Url;
 use types::errors::error_helpers;
+use types::errors::{MoosyncError, Result};
+use url::Url;
 
 use crate::window::handler::WindowHandler;
+
+use oauth2::{
+    Client, EmptyExtraTokenFields, EndpointNotSet, EndpointSet, PkceCodeVerifier,
+    RevocationErrorResponseType, StandardErrorResponse, StandardRevocableToken,
+    StandardTokenIntrospectionResponse, StandardTokenResponse,
+    basic::{BasicErrorResponseType, BasicTokenType},
+};
+
+pub type OAuthTokenResponse = StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>;
+pub type OAuth2Client = Client<
+    StandardErrorResponse<BasicErrorResponseType>,
+    StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>,
+    StandardTokenIntrospectionResponse<EmptyExtraTokenFields, BasicTokenType>,
+    StandardRevocableToken,
+    StandardErrorResponse<RevocationErrorResponseType>,
+    EndpointSet,
+    EndpointNotSet,
+    EndpointNotSet,
+    EndpointNotSet,
+    EndpointSet,
+>;
+
+pub type OAuth2Verifier = Option<(
+    Client<
+        StandardErrorResponse<BasicErrorResponseType>,
+        StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>,
+        StandardTokenIntrospectionResponse<EmptyExtraTokenFields, BasicTokenType>,
+        StandardRevocableToken,
+        StandardErrorResponse<RevocationErrorResponseType>,
+        EndpointSet,
+        EndpointNotSet,
+        EndpointNotSet,
+        EndpointNotSet,
+        EndpointSet,
+    >,
+    PkceCodeVerifier,
+    CsrfToken,
+)>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TokenHolder {
@@ -124,7 +161,9 @@ pub async fn refresh_login(
                     serde_json::to_string(&e)
                 )),
                 oauth2::RequestTokenError::Request(e) => error_helpers::to_network_error(e),
-                oauth2::RequestTokenError::Parse(e, _) => MoosyncError::String(format!("Parse error: {e}")),
+                oauth2::RequestTokenError::Parse(e, _) => {
+                    MoosyncError::String(format!("Parse error: {e}"))
+                }
                 oauth2::RequestTokenError::Other(e) => MoosyncError::String(e.to_string()),
             })?;
 
@@ -222,7 +261,9 @@ pub async fn authorize(
                 serde_json::to_string(&e)
             )),
             oauth2::RequestTokenError::Request(e) => error_helpers::to_network_error(e),
-            oauth2::RequestTokenError::Parse(e, _) => MoosyncError::String(format!("Parse error: {e}")),
+            oauth2::RequestTokenError::Parse(e, _) => {
+                MoosyncError::String(format!("Parse error: {e}"))
+            }
             oauth2::RequestTokenError::Other(e) => MoosyncError::String(e.to_string()),
         })?;
 

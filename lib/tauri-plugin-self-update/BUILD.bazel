@@ -1,6 +1,43 @@
-load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_library")
 
-rust_binary(
-    name = "build",
+# gazelle:rust_cargo_lockfile Cargo.lock
+# gazelle:rust_crates_prefix @crates//:
+# gazelle:rust_mode generate_from_cargo
+
+filegroup(
+    name = "permissions",
+    srcs = glob([
+        "permissions/**/*",
+    ]),
+)
+
+rust_library(
+    name = "tauri-plugin-self-update",
+    srcs = [
+        "src/desktop.rs",
+        "src/lib.rs",
+        "src/mobile.rs",
+        "src/models.rs",
+    ],
+    compile_data = [
+        "Cargo.toml",
+        ":permissions",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":build_script",
+        "@crates//:serde",
+        "@crates//:tauri",
+    ],
+)
+
+cargo_build_script(
+    name = "build_script",
     srcs = ["build.rs"],
+    compile_data = ["Cargo.toml"],
+    crate_root = "build.rs",
+    pkg_name = "tauri-plugin-self-update",
+    visibility = ["//visibility:public"],
+    deps = ["@crates//:tauri-plugin"],
 )

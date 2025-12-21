@@ -24,7 +24,7 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 use std::sync::Mutex;
 use std::{env, fs};
-use syn::{parse_macro_input, FnArg, ItemFn, ReturnType, Type};
+use syn::{FnArg, ItemFn, ReturnType, Type, parse_macro_input};
 
 use crate::common::{FnArgs, FnDetails};
 
@@ -110,7 +110,7 @@ fn parse_use_statements_from_source(src_path: &Path) -> HashMap<String, HashSet<
     let mut use_map = HashMap::new();
 
     fn recursive_scan(dir: &Path, use_map: &mut HashMap<String, HashSet<String>>) {
-        for entry in fs::read_dir(dir).expect("Failed to read directory") {
+        for entry in fs::read_dir(dir).expect(&format!("Failed to read directory {:?}", dir)) {
             let entry = entry.expect("Failed to read directory entry");
             let path = entry.path();
 
@@ -282,7 +282,7 @@ fn write_function_details_to_file() {
     }
 
     // Path to the output JSON file in the source directory
-    let crate_path = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR is not set");
+    let crate_path = env::var("OUT_DIR").expect("OUT_DIR is not set");
     let file_path = Path::new(&crate_path).join("function_details.json");
 
     // Read existing JSON file content, if any

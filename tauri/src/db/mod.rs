@@ -14,13 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::macros::generate_command;
 use database::{cache::CacheHolder, database::Database};
-use macros::generate_command;
 use serde_json::Value;
 use std::fs;
 use tauri::{App, AppHandle, Manager, State};
 use tracing::{info, trace};
-use types::errors::Result;
+use types::errors::{Result, error_helpers};
 use types::songs::AllAnalytics;
 use types::{
     entities::{Album, Artist, GetEntityOptions, Playlist, SearchResult},
@@ -42,7 +42,7 @@ pub fn export_playlist(
     let exported = db.export_playlist(id)?;
     let selected_file = window_handler.open_save_file(app)?;
     trace!("Exported playlist");
-    Ok(fs::write(selected_file, exported)?)
+    Ok(fs::write(selected_file, exported).map_err(error_helpers::to_file_system_error)?)
 }
 
 generate_command!(insert_songs, Database, Vec<Song>, songs: Vec<Song>);

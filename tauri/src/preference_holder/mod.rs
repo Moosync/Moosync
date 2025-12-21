@@ -16,17 +16,17 @@
 
 use std::thread;
 
+use crate::macros::generate_command;
 use extensions::ExtensionHandler;
-use macros::generate_command;
 use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
-use tauri::{async_runtime, App, AppHandle, Emitter, Manager, State};
+use tauri::{App, AppHandle, Emitter, Manager, State, async_runtime};
 use types::errors::error_helpers;
 use types::{errors::Result, preferences::CheckboxPreference};
 
 use crate::{
     providers::handler::ProviderHandler,
-    scanner::{start_scan, ScanTask},
+    scanner::{ScanTask, start_scan},
 };
 
 const UI_KEYS: &[&str] = &[

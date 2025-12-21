@@ -51,12 +51,13 @@ impl Logger {
     pub fn renderer_write(&self, data: Vec<u8>) -> Result<()> {
         let mut file_appender = self.file_appender.lock().unwrap();
 
-        let parsed = str::from_utf8(&data)
-            .map_err(error_helpers::to_parse_error)?;
+        let parsed = str::from_utf8(&data).map_err(error_helpers::to_parse_error)?;
         let re = get_regex();
         let parsed_stripped = re.replace_all(parsed, "");
 
-        file_appender.write_all(parsed_stripped.as_bytes())?;
+        file_appender
+            .write_all(parsed_stripped.as_bytes())
+            .map_err(error_helpers::to_file_system_error)?;
         drop(file_appender);
 
         println!("{parsed}");

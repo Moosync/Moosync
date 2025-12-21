@@ -1,5 +1,5 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
-load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
 
 rust_library(
     name = "rodio_player",
@@ -42,5 +42,9 @@ cargo_build_script(
 rust_test(
     name = "rodio_player_test",
     crate = ":rodio_player",
-    deps = ["@crates//:rodio"],
+)
+
+rust_binary(
+    name = "build",
+    srcs = ["build.rs"],
 )

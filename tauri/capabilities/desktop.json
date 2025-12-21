@@ -5,9 +5,5 @@
     "windows",
     "linux"
   ],
-  "permissions": [
-    "updater:default",
-    "updater:default",
-    "updater:default"
-  ]
+  "permissions": []
 }

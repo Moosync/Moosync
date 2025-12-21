@@ -17,16 +17,16 @@
 use std::env;
 use std::path::PathBuf;
 
-use macros::{generate_command, generate_command_async};
+use crate::macros::{generate_command, generate_command_async};
 use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
 use tauri::{App, AppHandle, Emitter, Manager, State, WebviewWindow, WebviewWindowBuilder, Window};
 use tauri_plugin_dialog::{DialogExt, FilePath};
 use tauri_plugin_opener::OpenerExt;
+use types::errors::error_helpers;
 use types::errors::{MoosyncError, Result};
 use types::preferences::CheckboxPreference;
 use types::window::{DialogFilter, FileResponse};
-use types::errors::error_helpers;
 
 #[derive(Debug)]
 pub struct WindowHandler {}
@@ -39,7 +39,8 @@ impl WindowHandler {
 
     #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn is_maximized(&self, window: Window) -> Result<bool> {
-        window.is_maximized()
+        window
+            .is_maximized()
             .map_err(error_helpers::to_plugin_error)
     }
 
@@ -51,8 +52,7 @@ impl WindowHandler {
     #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn close_window(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        window.close()
-            .map_err(error_helpers::to_plugin_error)?;
+        window.close().map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
@@ -64,16 +64,14 @@ impl WindowHandler {
     #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn maximize_window(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        window.maximize()
-            .map_err(error_helpers::to_plugin_error)?;
+        window.maximize().map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn minimize_window(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        window.minimize()
-            .map_err(error_helpers::to_plugin_error)?;
+        window.minimize().map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
 
@@ -82,28 +80,29 @@ impl WindowHandler {
         let scale_factor: f64 = preference.load_selective("zoomFactor".into())?;
         let windows = app.webview_windows();
         for window in windows.values() {
-            window.with_webview(move |webview| {
-                #[cfg(target_os = "linux")]
-                {
-                    // see https://docs.rs/webkit2gtk/0.18.2/webkit2gtk/struct.WebView.html
-                    // and https://docs.rs/webkit2gtk/0.18.2/webkit2gtk/trait.WebViewExt.html
-                    use webkit2gtk::WebViewExt;
-                    webview.inner().set_zoom_level(scale_factor);
-                }
+            window
+                .with_webview(move |webview| {
+                    #[cfg(target_os = "linux")]
+                    {
+                        // see https://docs.rs/webkit2gtk/0.18.2/webkit2gtk/struct.WebView.html
+                        // and https://docs.rs/webkit2gtk/0.18.2/webkit2gtk/trait.WebViewExt.html
+                        use webkit2gtk::WebViewExt;
+                        webview.inner().set_zoom_level(scale_factor);
+                    }
 
-                #[cfg(windows)]
-                unsafe {
-                    // see https://docs.rs/webview2-com/0.19.1/webview2_com/Microsoft/Web/WebView2/Win32/struct.ICoreWebView2Controller.html
-                    webview.controller().SetZoomFactor(scale_factor).unwrap();
-                }
+                    #[cfg(windows)]
+                    unsafe {
+                        // see https://docs.rs/webview2-com/0.19.1/webview2_com/Microsoft/Web/WebView2/Win32/struct.ICoreWebView2Controller.html
+                        webview.controller().SetZoomFactor(scale_factor).unwrap();
+                    }
 
-                // #[cfg(target_os = "macos")]
-                // unsafe {
-                //     use objc::{sel, sel_impl};
-                //     let () = objc::msg_send![webview.inner(), setPageZoom: scale_factor];
-                // }
-            })
-            .map_err(error_helpers::to_plugin_error)?;
+                    // #[cfg(target_os = "macos")]
+                    // unsafe {
+                    //     use objc::{sel, sel_impl};
+                    //     let () = objc::msg_send![webview.inner(), setPageZoom: scale_factor];
+                    // }
+                })
+                .map_err(error_helpers::to_plugin_error)?;
         }
 
         Ok(())
@@ -135,7 +134,8 @@ impl WindowHandler {
     #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn enable_fullscreen(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        window.set_fullscreen(true)
+        window
+            .set_fullscreen(true)
             .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
@@ -143,7 +143,8 @@ impl WindowHandler {
     #[tracing::instrument(level = "debug", skip(self, window))]
     pub fn disable_fullscreen(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        window.set_fullscreen(false)
+        window
+            .set_fullscreen(false)
             .map_err(error_helpers::to_plugin_error)?;
         Ok(())
     }
@@ -152,9 +153,11 @@ impl WindowHandler {
     pub fn toggle_fullscreen(&self, window: Window) -> Result<()> {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         {
-            let is_fullscreen = window.is_fullscreen()
+            let is_fullscreen = window
+                .is_fullscreen()
                 .map_err(error_helpers::to_plugin_error)?;
-            window.set_fullscreen(!is_fullscreen)
+            window
+                .set_fullscreen(!is_fullscreen)
                 .map_err(error_helpers::to_plugin_error)?;
         }
         Ok(())

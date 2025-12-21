@@ -1,6 +1,6 @@
-load("@rules_rust//rust:defs.bzl", "rust_shared_library", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
-rust_shared_library(
+rust_library(
     name = "file_scanner",
     srcs = [
         "src/lib.rs",

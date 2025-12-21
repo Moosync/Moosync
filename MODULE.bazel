@@ -8,6 +8,7 @@ bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.68.1")
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_foreign_cc", version = "0.15.1")
 bazel_dep(name = "rules_perl", version = "0.5.0")
+bazel_dep(name = "rules_python", version = "1.7.0")
 
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
@@ -126,7 +127,7 @@ register_toolchains("@rules_rust//rust/private/dummy_cc_toolchain:dummy_cc_wasm3
 
 register_toolchains("//:wasm_bindgen_toolchain")
 
-wasm_crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
+wasm_crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate", isolate = True)
 wasm_crates.spec(
     features = ["derive"],
     package = "serde",
@@ -152,14 +153,6 @@ wasm_crates.spec(
 wasm_crates.spec(
     package = "regex",
     version = "1.12.2",
-)
-wasm_crates.spec(
-    package = "lazy_static",
-    version = "1.5.0",
-)
-wasm_crates.spec(
-    package = "once_cell",
-    version = "1.21.3",
 )
 wasm_crates.spec(
     package = "itertools",
@@ -281,7 +274,6 @@ wasm_crates.spec(
 wasm_crates.spec(
     default_features = False,
     features = [
-        "rt",
         "sync",
     ],
     package = "tokio",
@@ -296,28 +288,8 @@ wasm_crates.spec(
     version = "0.1.7",
 )
 wasm_crates.spec(
-    package = "proc-macro2",
-    version = "1.0.103",
-)
-wasm_crates.spec(
-    package = "quote",
-    version = "1.0.41",
-)
-wasm_crates.spec(
-    package = "syn",
-    version = "2.0.108",
-)
-wasm_crates.spec(
     package = "oauth2",
     version = "5.0",
-)
-wasm_crates.spec(
-    features = [
-        "pretty_print",
-        "csr",
-    ],
-    package = "leptos_i18n_build",
-    version = "0.6.0-rc.1",
 )
 wasm_crates.spec(
     default_features = False,
@@ -379,13 +351,49 @@ wasm_crates.spec(
     package = "fixed_decimal",
     version = "0.7.0",
 )
+wasm_crates.spec(
+    package = "bitcode",
+    version = "0.6.7",
+)
+wasm_crates.spec(
+    package = "thiserror",
+    version = "2.0.17",
+)
+wasm_crates.spec(
+    package = "lazy_static",
+    version = "1.5.0",
+)
+wasm_crates.spec(
+    package = "once_cell",
+    version = "1.21.3",
+)
+wasm_crates.spec(
+    package = "proc-macro2",
+    version = "1.0.103",
+)
+wasm_crates.spec(
+    package = "quote",
+    version = "1.0.41",
+)
+wasm_crates.spec(
+    package = "syn",
+    version = "2.0.108",
+)
+wasm_crates.spec(
+    features = [
+        "pretty_print",
+        "csr",
+    ],
+    package = "leptos_i18n_build",
+    version = "0.6.0-rc.1",
+)
 wasm_crates.from_specs(
     name = "wasmCrates",
     host_tools = "@rust_host_tools_nightly",
 )
 use_repo(wasm_crates, "wasmCrates")
 
-crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
+crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate", isolate = True)
 crates.spec(
     default_features = False,
     package = "base64",
@@ -693,19 +701,226 @@ crates.spec(
     git = "https://github.com/RustAudio/rodio",
     package = "rodio",
 )
+crates.spec(
+    package = "tauri",
+    version = "2.9.1",
+)
+crates.annotation(
+    crate = "tauri-macros",
+    patch_args = ["-p1"],
+    patches = ["//patches:tauri_macros.patch"],
+)
+crates.spec(
+    features = ["build"],
+    package = "tauri-plugin",
+    version = "2.5.1",
+)
+crates.spec(
+    features = [
+        "v4",
+        "js",
+    ],
+    package = "uuid",
+    version = "1.18.1",
+)
+crates.spec(
+    package = "async-trait",
+    version = "0.1.89",
+)
+crates.spec(
+    default_features = False,
+    package = "chrono",
+    version = "=0.4.40",  # Exact version match
+)
+crates.spec(
+    default_features = False,
+    package = "futures",
+    version = "0.3.31",
+)
+crates.spec(
+    default_features = False,
+    package = "iso8601",
+    version = "0.6.3",
+)
+crates.spec(
+    package = "open",
+    version = "5.3.2",
+)
+crates.spec(
+    package = "rspotify",
+    version = "0.15.2",
+)
+crates.spec(
+    default_features = False,
+    package = "serde_json",
+    version = "1.0",
+)
+crates.spec(
+    package = "tracing-appender",
+    version = "0.2.3",
+)
+crates.spec(
+    package = "url",
+    version = "2.5.7",
+)
+crates.spec(
+    default_features = False,
+    features = ["reqwest"],
+    package = "oauth2",
+    version = "5.0",
+)
+crates.spec(
+    default_features = False,
+    package = "regex",
+    version = "1.12.2",
+)
+crates.spec(
+    default_features = False,
+    package = "reqwest",
+    version = "0.12.24",
+)
+crates.spec(
+    default_features = False,
+    package = "serde",
+    version = "1.0",
+)
+crates.spec(
+    default_features = False,
+    features = [
+        "common-controls-v6",
+        "wry",
+        "protocol-asset",
+        "tray-icon",
+        "devtools",
+        "test",
+    ],
+    package = "tauri",
+    version = "2.9.1",
+)
+
+# Git Dependencies
+crates.spec(
+    branch = "v2",
+    git = "https://github.com/tauri-apps/plugins-workspace",
+    package = "tauri-plugin-deep-link",
+)
+crates.spec(
+    branch = "v2",
+    git = "https://github.com/tauri-apps/plugins-workspace",
+    package = "tauri-plugin-dialog",
+)
+crates.spec(
+    branch = "v2",
+    git = "https://github.com/tauri-apps/plugins-workspace",
+    package = "tauri-plugin-single-instance",
+)
+crates.spec(
+    branch = "v2",
+    git = "https://github.com/tauri-apps/plugins-workspace",
+    package = "tauri-plugin-autostart",
+)
+crates.spec(
+    branch = "v2",
+    git = "https://github.com/tauri-apps/plugins-workspace",
+    package = "tauri-plugin-opener",
+)
+crates.spec(
+    default_features = False,
+    package = "tracing",
+    version = "0.1.41",
+)
+crates.spec(
+    default_features = False,
+    features = [
+        "ansi",
+        "env-filter",
+    ],
+    package = "tracing-subscriber",
+    version = "0.3.20",
+)
+crates.spec(
+    features = ["ring"],
+    package = "rustls",
+    version = "0.23.34",
+)
+crates.spec(
+    package = "openssl",
+    version = "0.10.75",
+)
+crates.spec(
+    package = "openssl-sys",
+    version = "0.9.111",
+)
+crates.annotation(
+    build_script_data = [
+        "@@//external/openssl:gen_dir",
+    ],
+    build_script_env = {
+        "OPENSSL_NO_VENDOR": "1",
+        "OPENSSL_LIB_DIR": "$(execpath @@//external/openssl:gen_dir)/lib64",
+        "OPENSSL_INCLUDE_DIR": "$(execpath @@//external/openssl:gen_dir)/include",
+        "OPENSSL_STATIC": "1",
+    },
+    crate = "openssl-sys",
+)
+crates.spec(
+    features = ["derive"],
+    package = "clap",
+    version = "4.5.50",
+)
+crates.spec(
+    features = ["sync"],
+    package = "tokio",
+    version = "1.48.0",
+)
+crates.spec(
+    package = "semver",
+    version = "1.0.27",
+)
+crates.spec(
+    package = "rustix",
+    version = "=1.0.8",
+)
+crates.spec(
+    package = "libz-sys",
+    version = "1.1",
+)
+crates.spec(
+    package = "tauri-build",
+    version = "2.5.1",
+)
+crates.spec(
+    package = "tauri-plugin-updater",
+    version = "2.9.0",
+)
+crates.spec(
+    package = "webkit2gtk",
+    version = "2.0.1",
+)
+crates.spec(
+    package = "objc",
+    version = "0.2.7",
+)
+crates.spec(
+    package = "syn",
+    version = "2.0.108",
+)
+crates.spec(
+    package = "once_cell",
+    version = "1.21.3",
+)
+crates.spec(
+    package = "proc-macro2",
+    version = "1.0.103",
+)
+crates.spec(
+    package = "quote",
+    version = "1.0.41",
+)
 crates.from_specs(host_tools = "@rust_host_tools_nightly")
 use_repo(crates, "crates")
 
-bindeps = use_extension("@rules_rust//crate_universe:extension.bzl", "crate")
-bindeps.spec(
-    artifact = "bin",
-    package = "trunk",
-    version = "=0.7.0",
-)
-bindeps.annotation(
-    crate = "trunk",
-    gen_all_binaries = True,
-)
+bindeps = use_extension("@rules_rust//crate_universe:extension.bzl", "crate", isolate = True)
 bindeps.spec(
     artifact = "bin",
     package = "wasm-bindgen-cli",

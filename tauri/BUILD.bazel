@@ -1,6 +1,151 @@
-load("@rules_rust//rust:defs.bzl", "rust_binary")
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
+load("//tools:defs.bzl", "expand_template")
+
+# gazelle:rust_cargo_lockfile Cargo.lock
+# gazelle:rust_crates_prefix @crates//:
+# gazelle:rust_mode generate_from_cargo
+
+filegroup(
+    name = "desktop_file",
+    srcs = [
+        "moosync.desktop",
+    ],
+)
+
+filegroup(
+    name = "resources",
+    srcs = glob([
+        "icons/**/*",
+        "capabilities/**/*",
+    ]),
+)
+
+expand_template(
+    name = "tauri_config",
+    out_name = "tauri.conf.json",
+    substitutions = {
+        # TODO: Need a gen_rule for this
+        "@DIST@": "../ui/dist",
+        "@DESKTOP@": "moosync.desktop",
+        "@ICONS@": "icons",
+    },
+    template = "tauri.conf.json",
+)
+
+rust_library(
+    name = "app_lib",
+    srcs = [
+        "src/db/mod.rs",
+        "src/extensions/mod.rs",
+        "src/extensions/request_handler.rs",
+        "src/lib.rs",
+        "src/librespot/mod.rs",
+        "src/logger/mod.rs",
+        "src/lyrics/mod.rs",
+        "src/macros.rs",
+        "src/mobile_player/mod.rs",
+        "src/mpris/mod.rs",
+        "src/oauth/handler.rs",
+        "src/oauth/mod.rs",
+        "src/preference_holder/mod.rs",
+        "src/providers/common.rs",
+        "src/providers/extension.rs",
+        "src/providers/handler.rs",
+        "src/providers/mod.rs",
+        "src/providers/spotify.rs",
+        "src/rodio/mod.rs",
+        "src/scanner/mod.rs",
+        "src/themes/mod.rs",
+        "src/updater/desktop.rs",
+        "src/updater/mobile.rs",
+        "src/updater/mod.rs",
+        "src/window/handler.rs",
+        "src/window/mod.rs",
+    ],
+    compile_data = [
+        # "Cargo.toml",
+        # ":tauri_config",
+        ":resources",
+        "//ui:moosync_ui_dist",
+    ],
+    data = [
+        ":tauri_config",
+    ],
+    proc_macro_deps = [
+        "@crates//:async-trait",
+        "//tauri-invoke-proc:tauri_invoke_proc",
+    ],
+    rustc_env = {
+        "TAURI_CONF_JSON": "$(execpath :tauri_config)",
+    },
+    visibility = ["//visibility:public"],
+    deps = [
+        ":build_script",
+        "//core/database",
+        "//core/extensions",
+        "//core/file_scanner",
+        "//core/librespot",
+        "//core/lyrics",
+        "//core/mpris",
+        "//core/preferences",
+        "//core/rodio_player",
+        "//core/themes",
+        "//core/types",
+        "//lib/tauri-plugin-audioplayer",
+        "//lib/tauri-plugin-file-scanner",
+        "//lib/tauri-plugin-self-update",
+        "@crates//:chrono",
+        "@crates//:clap",
+        "@crates//:futures",
+        "@crates//:oauth2",
+        "@crates//:regex",
+        "@crates//:reqwest",
+        "@crates//:rspotify",
+        "@crates//:rustls",
+        "@crates//:serde",
+        "@crates//:serde_json",
+        "@crates//:tauri",
+        "@crates//:tauri-plugin-autostart",
+        "@crates//:tauri-plugin-deep-link",
+        "@crates//:tauri-plugin-dialog",
+        "@crates//:tauri-plugin-opener",
+        "@crates//:tauri-plugin-single-instance",
+        "@crates//:tauri-plugin-updater",
+        "@crates//:tokio",
+        "@crates//:tracing",
+        "@crates//:tracing-appender",
+        "@crates//:tracing-subscriber",
+        "@crates//:url",
+        "@crates//:webkit2gtk",
+    ],
+)
 
 rust_binary(
-    name = "build",
+    name = "moosync",
+    srcs = ["src/main.rs"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":app_lib",
+        ":build_script",
+        "@crates//:tracing",
+    ],
+)
+
+cargo_build_script(
+    name = "build_script",
     srcs = ["build.rs"],
+    build_script_env = {
+        "DEP_TAURI_DEV": "false",
+    },
+    crate_root = "build.rs",
+    data = [
+        "Cargo.toml",
+        ":tauri_config",
+    ] + glob(["src/**/*"]),
+    visibility = ["//visibility:public"],
+    deps = [
+        # "//vendor/tauri-build-2.5.3:tauri_build",
+        "@crates//:tauri-build",
+    ],
 )

@@ -1,7 +1,5 @@
 ignore_directories([
-    "core/macros",
-    "tauri",
     "target",
-    "lib",
+    "lib/extensions-wasm",
     "ui/target",
 ])

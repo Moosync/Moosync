@@ -1,6 +1,7 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_binary")
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
+load("//tools:defs.bzl", "assemble_moosync_dist", "expand_template")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -148,7 +149,7 @@ rust_binary(
     platform = "@rules_rust//rust/platform:wasm",
     deps = [
         ":build_script",
-        "//core/types",
+        "//core/types:types_ui",
         "@wasmCrates//:bitcode",
         "@wasmCrates//:chrono",
         "@wasmCrates//:colors-transform",
@@ -203,28 +204,30 @@ cargo_build_script(
 )
 
 rust_wasm_bindgen(
-    name = "moosync_ui_bindgen",
+    name = "moosync_ui",
     bindgen_flags = [
         "--no-typescript",
-        "--no-modules-global",
-        "wasm",
     ],
-    out_name = "moosync_ui",  # The name of the output JS/TS files
-    target = "no-modules",
-    wasm_file = ":moosync_ui_bin",  # Reference the rust_binary target
+    out_name = "moosync_ui",
+    target = "web",
+    wasm_file = ":moosync_ui_bin",
 )
 
-genrule(
-    name = "moosync_ui",
+expand_template(
+    name = "moosync_index",
+    out_name = "index.html",
+    substitutions = {
+        "@JS_ENTRY@": "moosync_ui.js",
+    },
+    template = "index.html.in",
+)
+
+assemble_moosync_dist(
+    name = "moosync_ui_dist",
     srcs = [
-        "index.html.in",
-        ":moosync_ui_bindgen",
+        ":moosync_index",  # The generated HTML
+        ":moosync_ui",  # The JS and WASM files
     ],
-    outs = ["moosync_ui/index.html"],
-    cmd = """
-sed \
-  -e 's|@JS_ENTRY@|moosync_ui_bg.js|g' \
-  -e 's|@WASM_ENTRY@|moosync_ui_bg.wasm|g' \
-  $(location index.html.in) > $@
-""",
+    out_dir_name = "dist",
+    visibility = ["//visibility:public"],
 )

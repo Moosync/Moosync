@@ -29,7 +29,7 @@ use librespot::{
 use logger::{get_logger_state, renderer_write};
 use lyrics::{get_lyrics, get_lyrics_state};
 use mobile_player::{
-    mobile_load, mobile_pause, mobile_play, mobile_seek, mobile_stop, MobilePlayer,
+    MobilePlayer, mobile_load, mobile_pause, mobile_play, mobile_seek, mobile_stop,
 };
 use mpris::{get_mpris_state, set_metadata, set_playback_state, set_position};
 use preference_holder::{
@@ -58,7 +58,7 @@ use providers::handler::{
     get_suggestions, initialize_all_providers, match_url, playlist_from_url, provider_authorize,
     provider_login, provider_search, provider_signout, song_from_url, trigger_context_menu_action,
 };
-use scanner::{get_scanner_state, start_scan, ScanTask};
+use scanner::{ScanTask, get_scanner_state, start_scan};
 use tauri::{Manager, State};
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{
@@ -83,7 +83,7 @@ use {
             update_songs,
         },
     },
-    oauth::handler::{get_oauth_state, OAuthHandler},
+    oauth::handler::{OAuthHandler, get_oauth_state},
     window::handler::{
         close_window, disable_fullscreen, enable_fullscreen, get_platform, get_window_state,
         has_frame, is_maximized, maximize_window, minimize_window, open_external,
@@ -97,6 +97,7 @@ mod extensions;
 mod librespot;
 mod logger;
 mod lyrics;
+mod macros;
 mod mobile_player;
 mod mpris;
 mod oauth;
@@ -116,7 +117,6 @@ struct Args {
     mobile: bool,
 }
 
-#[tracing::instrument(level = "debug", skip())]
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let _ = rustls::crypto::ring::default_provider().install_default();

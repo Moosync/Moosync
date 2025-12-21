@@ -25,27 +25,26 @@ use std::{
 use async_trait::async_trait;
 
 use chrono::{DateTime, TimeDelta};
-use futures::{channel::mpsc::UnboundedSender, SinkExt, StreamExt};
+use futures::{SinkExt, StreamExt, channel::mpsc::UnboundedSender};
 use oauth2::{CsrfToken, PkceCodeVerifier};
 use preferences::preferences::PreferenceConfig;
 use regex::Regex;
 use rspotify::{
+    AuthCodePkceSpotify, Token,
     clients::{BaseClient, OAuthClient},
     model::{
         AlbumId, ArtistId, FullAlbum, FullArtist, FullTrack, Id, Image, PlaylistId,
         PlaylistTracksRef, SearchType, SimplifiedAlbum, SimplifiedArtist, SimplifiedPlaylist,
         SimplifiedTrack, SubscriptionLevel, TrackId,
     },
-    AuthCodePkceSpotify, Token,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Manager, State};
 use tokio::sync::{Mutex, RwLock, RwLockReadGuard};
 use types::{
-    entities::{EntityInfo, Album, Artist, Playlist, SearchResult},
-    errors::{error_helpers, MoosyncError, Result},
-    oauth::OAuth2Client,
+    entities::{Album, Artist, EntityInfo, Playlist, SearchResult},
+    errors::{MoosyncError, Result, error_helpers},
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::{InnerSong, Song, SongType},
     ui::extensions::{ContextMenuReturnType, ExtensionProviderScope},
@@ -55,7 +54,8 @@ use url::Url;
 use crate::{librespot::initialize_librespot, oauth::handler::OAuthHandler};
 
 use super::common::{
-    authorize, get_oauth_client, login, refresh_login, LoginArgs, OAuthClientArgs, TokenHolder,
+    LoginArgs, OAuth2Client, OAuthClientArgs, TokenHolder, authorize, get_oauth_client, login,
+    refresh_login,
 };
 
 macro_rules! search_and_parse_all {
@@ -661,24 +661,21 @@ impl GenericProvider for SpotifyProvider {
                     (
                         SearchType::Playlist,
                         rspotify::model::SearchResult::Playlists,
-                        |item, vec: &mut Vec<Playlist>| vec
-                            .push(self.parse_playlist(item)),
+                        |item, vec: &mut Vec<Playlist>| vec.push(self.parse_playlist(item)),
                         ret.playlists
                     ),
                     (
                         SearchType::Artist,
                         rspotify::model::SearchResult::Artists,
-                        |item: FullArtist, vec: &mut Vec<Artist>| vec.push(
-                            Self::parse_artists(
-                                SimplifiedArtist {
-                                    external_urls: item.external_urls,
-                                    href: Some(item.href),
-                                    id: Some(item.id),
-                                    name: item.name,
-                                },
-                                Some(item.images)
-                            )
-                        ),
+                        |item: FullArtist, vec: &mut Vec<Artist>| vec.push(Self::parse_artists(
+                            SimplifiedArtist {
+                                external_urls: item.external_urls,
+                                href: Some(item.href),
+                                id: Some(item.id),
+                                name: item.name,
+                            },
+                            Some(item.images)
+                        )),
                         ret.artists
                     ),
                     (
@@ -990,10 +987,7 @@ impl GenericProvider for SpotifyProvider {
         return Err("Not implemented".into());
     }
 
-    async fn get_playlist_context_menu(
-        &self,
-        _: Playlist,
-    ) -> Result<Vec<ContextMenuReturnType>> {
+    async fn get_playlist_context_menu(&self, _: Playlist) -> Result<Vec<ContextMenuReturnType>> {
         return Err("Not implemented".into());
     }
 

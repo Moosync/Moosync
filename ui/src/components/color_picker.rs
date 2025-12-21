@@ -16,18 +16,11 @@
 
 // Adapted from https://github.com/laxsjo/lax-utils/
 
-use leptos::{ev::*, html::*, logging::log, prelude::*};
 use std::{fmt::Display, str::FromStr};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ColorSpaceInfo {
-    pub labels: (&'static str, &'static str, &'static str),
-    pub units: (
-        Option<&'static str>,
-        Option<&'static str>,
-        Option<&'static str>,
-    ),
-}
+use leptos::{IntoView, component, html::Div, prelude::*, view};
+use leptos_dom::log;
+use web_sys::PointerEvent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ColorSpace {
@@ -552,8 +545,6 @@ pub fn ColorPicker(
     #[prop(default="#ffffff".into())] force_color: String,
     #[prop(optional)] node_ref: Option<NodeRef<Div>>,
 ) -> impl IntoView {
-    const DECIMAL_PRECISION: usize = 2;
-
     let node_ref = node_ref.unwrap_or_default();
 
     let normalised_inputs = RwSignal::new(false);

@@ -16,8 +16,8 @@
 
 use std::thread;
 
+use crate::macros::generate_command_async;
 use futures::executor::block_on;
-use macros::generate_command_async;
 use rodio_player::RodioPlayer;
 use tauri::{AppHandle, Emitter, Manager, State};
 use types::errors::Result;

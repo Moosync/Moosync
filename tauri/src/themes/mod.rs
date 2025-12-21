@@ -16,7 +16,7 @@
 
 use std::{collections::HashMap, fs, sync::mpsc::channel};
 
-use macros::{generate_command, generate_command_async};
+use crate::macros::{generate_command, generate_command_async};
 use tauri::{App, AppHandle, Emitter, Manager, State};
 use themes::themes::ThemeHolder;
 use types::{errors::Result, themes::ThemeDetails};

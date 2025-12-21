@@ -6,11 +6,11 @@ rust_library(
     compile_data = ["Cargo.toml"],
     visibility = ["//visibility:public"],
     deps = [
-        "//core/types",
-        "@crates//:proc-macro2",
-        "@crates//:quote",
-        "@crates//:serde_yaml",
-        "@crates//:syn",
-        "@crates//:tracing",
+        "//core/types:types_ui",
+        "@wasmCrates//:proc-macro2",
+        "@wasmCrates//:quote",
+        "@wasmCrates//:serde_yaml",
+        "@wasmCrates//:syn",
+        "@wasmCrates//:tracing",
     ],
 )

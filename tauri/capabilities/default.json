@@ -1,7 +1,15 @@
 {
   "identifier": "default",
   "description": "default permissions",
-  "windows": ["main"],
-  "permissions": ["audioplayer:default"],
-  "platforms": ["linux", "macOS", "windows", "android", "iOS"]
+  "windows": [
+    "main"
+  ],
+  "permissions": [],
+  "platforms": [
+    "linux",
+    "macOS",
+    "windows",
+    "android",
+    "iOS"
+  ]
 }

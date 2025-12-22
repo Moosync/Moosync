@@ -1,5 +1,0 @@
-ignore_directories([
-    "target",
-    "lib/extensions-wasm",
-    "ui/target",
-])

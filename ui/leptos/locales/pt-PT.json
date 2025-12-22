@@ -1,0 +1,232 @@
+{
+  "sidebar": {
+    "tabs": {
+      "queue": "Fila",
+      "allSongs": "Todas as músicas",
+      "playlists": "Playlists",
+      "albums": "álbuns",
+      "artists": "artistas",
+      "genre": "Genres",
+      "explore": "EXPLORAR",
+      "paths": "Paths",
+      "themes": "Themes",
+      "extensions": "Extensions",
+      "system": "System"
+    }
+  },
+  "topbar": {
+    "searchPlaceholder": "Buscar..."
+  },
+  "pages": {
+    "playlists": "Playlists",
+    "albums": "álbuns",
+    "artists": "artistas",
+    "genres": "Genres",
+    "explore": "EXPLORAR"
+  },
+  "playlists": {
+    "local": "Local",
+    "new_playlist": {
+      "create": "Create",
+      "description_placeholder": "Description..."
+    },
+    "url": {
+      "input_hint": "Enter URL Here.. (Youtube or Spotify)"
+    }
+  },
+  "songView": {
+    "details": {
+      "songCount": "{count} música, {count} músicas"
+    },
+    "songList": {
+      "topbar": {
+        "searchPlaceholder": "Buscar..."
+      }
+    }
+  },
+  "loading": "Carregandochar@@0",
+  "now_playing": "Now playing",
+  "contextMenu": {
+    "sort_by": "Sort by",
+    "sort": {
+      "title": "Título",
+      "album": "Album (Track No.)",
+      "artist": "Artista",
+      "genre": "gênero",
+      "date_added": "Data de inclusão",
+      "provider": "Fornecedor",
+      "playCount": "Contagem de reprodução"
+    },
+    "playlist": {
+      "newPlaylist": "New Playlist",
+      "addFromURL": "Importar da URL",
+      "remove": "Remover playlist",
+      "export": "Exportar playlist",
+      "add": "Adicionar à playlist",
+      "save": "Adicionar à biblioteca"
+    },
+    "song": {
+      "playNext": "Reproduzir seguinte",
+      "clearAndPlay": "Limpar fila e reproduzir",
+      "addToQueue": "Adicionar à fila",
+      "remove": "Remover da biblioteca",
+      "add": "Add Song to Library",
+      "removeFromPlaylist": "Remover da playlist",
+      "gotoAlbum": "Go to album ({{ title }})",
+      "gotoArtists": "Goto artists"
+    },
+    "artist": {
+      "remove": "Remove artist"
+    },
+    "album": {
+      "remove": "Remove album"
+    },
+    "moreInfo": "Mais informações",
+    "incorrectPlayback": "Incorrect playback?"
+  },
+  "explore": {
+    "you_listened_to": "You've listened to",
+    "of_music": "of music",
+    "played_for": "Played for",
+    "hot_from": "Hot from"
+  },
+  "providers": {
+    "youtube": "Youtube",
+    "spotify": "Spotify",
+    "invidious": "Invidioso",
+    "lastfm": "LastFM"
+  },
+  "accounts": {
+    "connect": "Connect",
+    "sign_out": "Sign out"
+  },
+  "settings": {
+    "paths": {
+      "songDirectories": "Diretórios de músicas",
+      "songDirectories_tooltip": "Diretórios onde todas as suas músicas locais são armazenadas",
+      "songDirectories_exclude": "Diretórios na lista negra",
+      "songDirectories_exclude_tooltip": "As músicas nestes diretórios não seriam escaneadas",
+      "addFolder": "Adicionar Pasta...",
+      "remove": "Excluir",
+      "artworkPath": "Caminho de Arte Baixado",
+      "artworkPath_tooltip": "Diretório onde as artes baixadas são armazenadas",
+      "thumbnailPath": "Caminho da miniatura baixado",
+      "thumbnailPath_tooltip": "Diretório onde as miniaturas geradas são armazenadas",
+      "splitter": "Padrão de divisão do nome do artista",
+      "splitter_tooltip": "Regex para dividir nomes de artistas. Deixe em branco para desativar a divisão.",
+      "scan_interval": "Scan interval",
+      "scan_interval_tooltip": "Interval in minutes to trigger a scan task. Set to -1 to disable automatic scanning",
+      "scan_threads": "Scan CPU threads",
+      "scan_threads_tooltip": "Number of threads to use when scanning for local music"
+    },
+    "themes": {
+      "themes": "Temas",
+      "themes_tooltip": "Personalizar cores"
+    },
+    "extensions": {
+      "extensions": "Extensões",
+      "extensions_tooltip": "Lista de todas as extensões instaladas",
+      "discover": "Pendentes",
+      "install": "Instalar do arquivo",
+      "remove": "Excluir"
+    },
+    "system": {
+      "systemSettings": {
+        "title": "Configurações do Sistema",
+        "systemStartup": "Iniciar aplicativo na inicialização do sistema",
+        "minimizeTray": "Minimizar para a bandeja ao fechar",
+        "enableJukeboxMode": "Ativar alternância para o modo Jukebox"
+      },
+      "systemSettings_tooltip": "Configurações que estão relacionadas ao seu sistema",
+      "queueSettings": {
+        "title": "Configurações de Fila",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
+      },
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
+      },
+      "youtube": {
+        "client_id": "ID de Cliente Youtube",
+        "client_secret": "Segredo de Cliente Youtube",
+        "client_id_tooltip": "ID do cliente Youtube necessário para se conectar ao Youtube. Clique para saber mais",
+        "client_secret_tooltip": "Segredo do cliente Youtube necessário para acessar o Youtube. Clique para saber mais"
+      },
+      "language": "IDIOMA",
+      "language_tooltip": "Change application language"
+    },
+    "logs": {
+      "logSettings": "Configurações de Log",
+      "level": "Nível",
+      "process": "processo",
+      "filterMessage": "Filtrar mensagem",
+      "levels": {
+        "all": "All",
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "debug_logging": "Enable debug logging",
+      "table": {
+        "time": "Time",
+        "level": "Level",
+        "process": "Process",
+        "message": "Message"
+      }
+    }
+  },
+  "hotkeys": {
+    "play": "Play Song",
+    "pause": "Pause song",
+    "play_toggle": "Toggle play",
+    "mute_active": "Mute",
+    "mute_inactive": "Unmute",
+    "mute_toggle": " Toggle mute",
+    "volume_inc": "Increase volume",
+    "volume_dec": "Decrease volume",
+    "repeat_active": "Repeat song",
+    "repeat_inactive": "Disable repeat",
+    "repeat_toggle": "Toggle repeat",
+    "queue_open": "Open song queue",
+    "queue_close": "Close song queue",
+    "queue_toggle": "Toggle song queue",
+    "reload_page": "Reload page",
+    "devtools": "Toggle dev-tools",
+    "help": "Open help",
+    "fullscreen": "Fullscreen",
+    "next_song": "Skip song",
+    "prev_song": "Prev song",
+    "seek_forward": "Seek 5s forward",
+    "seek_backwards": "Seek 5s backwards",
+    "seek_0": "Seek to 0%",
+    "seek_1": "Seek to 10%",
+    "seek_2": "Seek to 20%",
+    "seek_3": "Seek to 30%",
+    "seek_4": "Seek to 40%",
+    "seek_5": "Seek to 50%",
+    "seek_6": "Seek to 60%",
+    "seek_7": "Seek to 70%",
+    "seek_8": "Seek to 80%",
+    "seek_9": "Seek to 90%"
+  },
+  "tray": {
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "prev": "Prev",
+    "repeat": "Repeat",
+    "no_repeat": "No repeat",
+    "shuffle": "Shuffle",
+    "show_app": "Show app",
+    "quit": "Quit"
+  },
+  "toasts": {
+    "queued": "Queued {count} song | Queued {count} songs",
+    "shuffled": "Shuffled"
+  }
+}

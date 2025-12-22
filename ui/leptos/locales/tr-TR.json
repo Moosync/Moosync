@@ -1,0 +1,232 @@
+{
+  "sidebar": {
+    "tabs": {
+      "queue": "Sıra",
+      "allSongs": "Tüm Şarkılar",
+      "playlists": "Çalma listeleri",
+      "albums": "Albümler",
+      "artists": "Sanatçılar",
+      "genre": "Türler",
+      "explore": "Keşfet",
+      "paths": "Dosya Dizini",
+      "themes": "Temalar",
+      "extensions": "Eklentiler",
+      "system": "Sistem Ayarları"
+    }
+  },
+  "topbar": {
+    "searchPlaceholder": "Ara..."
+  },
+  "pages": {
+    "playlists": "Çalma listeleri",
+    "albums": "Albümler",
+    "artists": "Sanatçılar",
+    "genres": "Türler",
+    "explore": "Keşfet"
+  },
+  "playlists": {
+    "local": "Yerel",
+    "new_playlist": {
+      "create": "Oluştur",
+      "description_placeholder": "Açıklama..."
+    },
+    "url": {
+      "input_hint": "URL'yi yapıştır (Youtube veya Spotify)"
+    }
+  },
+  "songView": {
+    "details": {
+      "songCount": "{count} şarkı | {count} şarkı"
+    },
+    "songList": {
+      "topbar": {
+        "searchPlaceholder": "Ara..."
+      }
+    }
+  },
+  "loading": "Yükleniyor...",
+  "now_playing": "Şuan çalıyor",
+  "contextMenu": {
+    "sort_by": "Sırala",
+    "sort": {
+      "title": "Başlığa göre sırala",
+      "album": "Albüm(No) göre sırala",
+      "artist": "Sanatçı",
+      "genre": "Tür",
+      "date_added": "Eklenme tarihi",
+      "provider": "Sağlayıcı",
+      "playCount": "Çalma Sayısı"
+    },
+    "playlist": {
+      "newPlaylist": "Yeni Oynatma Listesi",
+      "addFromURL": "URL'den ekle",
+      "remove": "Çalma listesini sil",
+      "export": "Çalma listesini dışa aktar",
+      "add": "Çalma listesine ekle",
+      "save": "Kütüphaneye Ekle"
+    },
+    "song": {
+      "playNext": "Bundan sonra oynat",
+      "clearAndPlay": "Çalınacakları temizle ve bunu oynat",
+      "addToQueue": "Sıraya ekle",
+      "remove": "Kütüphaneden kaldır",
+      "add": "Müziği Kütüphaneye Ekle",
+      "removeFromPlaylist": "Oynatma listesinden kaldır",
+      "gotoAlbum": "Go to album ({{ title }})",
+      "gotoArtists": "Sanatçıya git"
+    },
+    "artist": {
+      "remove": "Sanatçıyı kaldır"
+    },
+    "album": {
+      "remove": "Albümü kaldır"
+    },
+    "moreInfo": "Daha fazla bilgi",
+    "incorrectPlayback": "Yanlış mı oynatılıyor?"
+  },
+  "explore": {
+    "you_listened_to": "Şunu dinlediniz",
+    "of_music": "müsik dan",
+    "played_for": "Oynadi icin",
+    "hot_from": "Sıcak gelen"
+  },
+  "providers": {
+    "youtube": "YouTube",
+    "spotify": "Spotify",
+    "invidious": "Invidious",
+    "lastfm": "LastFM"
+  },
+  "accounts": {
+    "connect": "Bağla",
+    "sign_out": "Çıkış yap"
+  },
+  "settings": {
+    "paths": {
+      "songDirectories": "Şarkı Dizinleri",
+      "songDirectories_tooltip": "Tüm yerel müziğinizin depolandığı dizinler",
+      "songDirectories_exclude": "Kara Listeye Alınmış Dizinler",
+      "songDirectories_exclude_tooltip": "Bu dizinlerdeki şarkılar taranmayacaktır",
+      "addFolder": "Klasör Ekle...",
+      "remove": "Kaldır",
+      "artworkPath": "İndirilen Çizim Konumu",
+      "artworkPath_tooltip": "İndirilen çizimlerin depolandığı dizin",
+      "thumbnailPath": "İndirilen Küçük Resim Yolu",
+      "thumbnailPath_tooltip": "Oluşturulan küçük resimlerin depolandığı dizin",
+      "splitter": "Sanatçı adı bölünmüş desen",
+      "splitter_tooltip": "Sanatçı adlarını bölmek için regex. Bölmeyi devre dışı bırakmak için boş bırakın.",
+      "scan_interval": "Tarama aralığı",
+      "scan_interval_tooltip": "Bir tarama görevini tetiklemek için dakika cinsinden aralık. Otomatik taramayı devre dışı bırakmak için -1 olarak ayarlayın",
+      "scan_threads": "CPU iş parçacıklarını tara",
+      "scan_threads_tooltip": "Yerel müzik taraması yaparken kullanılacak iş parçacığı sayısı"
+    },
+    "themes": {
+      "themes": "Temalar",
+      "themes_tooltip": "Renkleri özelleştir"
+    },
+    "extensions": {
+      "extensions": "Uzantılar",
+      "extensions_tooltip": "Yüklü tüm uzantıların listesi",
+      "discover": "Keşfet",
+      "install": "Dosyadan yükle",
+      "remove": "Kaldır"
+    },
+    "system": {
+      "systemSettings": {
+        "title": "Sistem Ayarları",
+        "systemStartup": "Uygulamayı sistem başlangıcında başlat",
+        "minimizeTray": "Kapatıldığında sistem tepsisine küçült",
+        "enableJukeboxMode": "Jukebox modu için geçişi etkinleştir"
+      },
+      "systemSettings_tooltip": "Sisteminizle ilgili ayarlar",
+      "queueSettings": {
+        "title": "Oynatma sırası ayarları",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
+      },
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
+      },
+      "youtube": {
+        "client_id": "Youtube İstemci Kimliği",
+        "client_secret": "Spotify İstemci Kimliği",
+        "client_id_tooltip": "Youtube'a giriş yapmak için Youtube müşteri kimliği gereklidir. Daha fazla bilgi için tıklayın",
+        "client_secret_tooltip": "Youtube istemcisi Youtube'a giriş yapmak için gizli bilgi gereklidir. Daha fazla bilgi için tıklayın"
+      },
+      "language": "Dil",
+      "language_tooltip": "Change application language"
+    },
+    "logs": {
+      "logSettings": "Günlük Ayarları",
+      "level": "Düzey",
+      "process": "İşlem",
+      "filterMessage": "Mesaj Filtrele",
+      "levels": {
+        "all": "Hepsi",
+        "debug": "Hata ayıklama",
+        "info": "Bilgi",
+        "warn": "Uyarı",
+        "error": "Hata"
+      },
+      "debug_logging": "Hata kayıt dökümünü aktif et",
+      "table": {
+        "time": "Zaman",
+        "level": "Seviye",
+        "process": "İşlem",
+        "message": "Mesaj"
+      }
+    }
+  },
+  "hotkeys": {
+    "play": "Oynat",
+    "pause": "Durdur",
+    "play_toggle": "Oynatmayı başlat/durdur",
+    "mute_active": "Sustur",
+    "mute_inactive": "Susturmayı kaldır",
+    "mute_toggle": "Sesi aç/kapa",
+    "volume_inc": "Ses seviyesini arttır",
+    "volume_dec": "Ses seviyesini azalt",
+    "repeat_active": "Şarkıyı tekrarla",
+    "repeat_inactive": "Tekrarı devre dışı bırak",
+    "repeat_toggle": "Tekrarlamayı aç/kapa",
+    "queue_open": "Oynatma sırasını aç",
+    "queue_close": "Oynatma sırasını kapat",
+    "queue_toggle": "Oynatma sırasını aç/kapat",
+    "reload_page": "Sayfayı yenile",
+    "devtools": "Geliştirici araçlarını aç/kapat",
+    "help": "Yardım",
+    "fullscreen": "Tam Ekran",
+    "next_song": "Şarkıyı atla",
+    "prev_song": "Önceki şarkı",
+    "seek_forward": "5 saniye ileri sar",
+    "seek_backwards": "5 saniye geri sar",
+    "seek_0": "0'a kadar ara",
+    "seek_1": "10'a kadar ara",
+    "seek_2": "20'a kadar ara",
+    "seek_3": "30'a kadar ara",
+    "seek_4": "40'a kadar ara",
+    "seek_5": "50'a kadar ara",
+    "seek_6": "60'a kadar ara",
+    "seek_7": "70'a kadar ara",
+    "seek_8": "80'a kadar ara",
+    "seek_9": "90'a kadar ara"
+  },
+  "tray": {
+    "play": "Oynat",
+    "pause": "Duraklat",
+    "next": "Sonraki",
+    "prev": "Önceki",
+    "repeat": "Tekrarla",
+    "no_repeat": "Tekrarlama yok",
+    "shuffle": "Karıştır",
+    "show_app": "Uygulamayı göster",
+    "quit": "Çıkış"
+  },
+  "toasts": {
+    "queued": "Sıralanmış {count} şarkı | Sıralanmış {count} şarkılar",
+    "shuffled": "Karışık"
+  }
+}

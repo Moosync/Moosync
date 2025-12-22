@@ -1,16 +1,12 @@
 def _expand_template_impl(ctx):
     output = ctx.actions.declare_file(ctx.attr.out_name)
 
-    # --- CHANGE 1: Expand Locations ---
-    # We iterate over the input dictionary and resolve $(execpath) tags.
-    # ctx.expand_location(string, targets) handles the magic.
     final_subs = {}
     for key, value in ctx.attr.substitutions.items():
         # data needs to be passed here so Bazel can look up the targets
         expanded_val = ctx.expand_location(value, ctx.attr.data)
         final_subs[key] = expanded_val
 
-    # (Optional) processing for target_substitutions from previous steps...
     if hasattr(ctx.attr, "target_substitutions"):
         for target, placeholder in ctx.attr.target_substitutions.items():
             files = target.files.to_list()
@@ -18,7 +14,6 @@ def _expand_template_impl(ctx):
                 fail("Target {} must produce exactly one file".format(target.label))
             final_subs[placeholder] = files[0].basename
 
-    # Encode the expanded dictionary to JSON
     subs_json = json.encode(final_subs)
 
     args = ctx.actions.args()
@@ -28,10 +23,6 @@ def _expand_template_impl(ctx):
 
     ctx.actions.run(
         outputs = [output],
-        # --- CHANGE 2: Add data to inputs ---
-        # We must add ctx.files.data to inputs, or Bazel won't build them
-        # before running this action (though for simple expansion it matters less,
-        # it is required for correctness).
         inputs = [ctx.file.template] + ctx.files.data,
         executable = ctx.executable._builder,
         tools = [ctx.executable._builder],
@@ -60,47 +51,96 @@ expand_template = rule(
     },
 )
 
-def _assemble_moosync_dist_impl(ctx):
-    output_dir = ctx.actions.declare_directory(ctx.attr.out_dir_name)
+def _html_page_impl(ctx):
+    out_dir = ctx.actions.declare_directory(ctx.attr.name)
+
+    expanded_content = ctx.expand_location(ctx.attr.content, targets = ctx.attr.data)
 
     args = ctx.actions.args()
-    args.add(output_dir.path)
-    args.add_all(ctx.files.srcs)
+    args.add("--output_dir", out_dir.path)
+    args.add("--title", ctx.attr.title)
+    args.add("--header", ctx.attr.header)
+    args.add("--content", expanded_content)
+    args.add("--public_path", ctx.attr.public_path)
 
-    ctx.actions.run(
-        outputs = [output_dir],
-        inputs = ctx.files.srcs,
-        executable = ctx.executable._builder,
-        tools = [ctx.executable._builder],
-        arguments = [args],
-        mnemonic = "AssembleDist",
-        progress_message = "Assembling dist directory...",
+    args.add_all("--css", ctx.files.css)
+    args.add_all("--js", ctx.files.js)
+    args.add_all("--wasm", ctx.files.wasm)
+    args.add_all("--fonts", ctx.files.fonts)
+    args.add_all("--assets", ctx.files.assets)
+
+    all_inputs = (
+        ctx.files.css +
+        ctx.files.js +
+        ctx.files.wasm +
+        ctx.files.fonts +
+        ctx.files.assets +
+        ctx.files.data
     )
 
-    return [DefaultInfo(files = depset([output_dir]))]
+    ctx.actions.run(
+        outputs = [out_dir],
+        inputs = all_inputs,
+        executable = ctx.executable._generator,
+        arguments = [args],
+        mnemonic = "HtmlBundle",
+    )
 
-assemble_moosync_dist = rule(
-    implementation = _assemble_moosync_dist_impl,
+    return [DefaultInfo(
+        files = depset([out_dir]),
+        runfiles = ctx.runfiles(files = [out_dir]),
+    )]
+
+html_page = rule(
+    implementation = _html_page_impl,
     doc = """
-    Collects a list of files and directories and copies them into a single output directory.
-    
-    This is useful for creating a 'dist' folder for web deployment. It flattens
-    the directory structure (all inputs are copied to the root of the output dir).
-    """,
+Generates a static HTML bundle directory with `index.html` and an `assets/` folder.
+Handles copying and linking CSS, JS, WASM (preload), and Fonts (preload).
+""",
     attrs = {
-        "srcs": attr.label_list(
-            allow_files = True,
+        "title": attr.string(
             mandatory = True,
-            doc = "List of files or targets (like bindgen outputs, HTML files) to copy.",
+            doc = "The content of the <title> tag.",
         ),
-        "out_dir_name": attr.string(
-            default = "dist",
-            doc = "The name of the output directory to create.",
+        "header": attr.string(
+            doc = "The main H1 header text displayed at the top of the body.",
         ),
-        "_builder": attr.label(
-            default = Label("//tools:assemble_bin"),
+        "content": attr.string(
+            doc = "The main text body. Supports $(rootpath) expansion.",
+        ),
+        "public_path": attr.string(
+            default = "",
+            doc = "A URL prefix to prepend to asset links.",
+        ),
+        "css": attr.label_list(
+            allow_files = [".css", ".map"],
+            doc = "CSS files to link in the <head>.",
+        ),
+        "js": attr.label_list(
+            allow_files = [".js", ".map"],
+            doc = "JS files to include at the bottom of the <body>.",
+        ),
+        "wasm": attr.label_list(
+            allow_files = [".wasm"],
+            doc = "WASM binaries to be preloaded in <head>.",
+        ),
+        "fonts": attr.label_list(
+            allow_files = [".woff", ".woff2", ".ttf", ".otf"],
+            doc = "Font files to be preloaded in <head>.",
+        ),
+        "assets": attr.label_list(
+            allow_files = True,
+            doc = "Generic assets (images, etc) to copy to the output directory.",
+        ),
+        "data": attr.label_list(
+            allow_files = True,
+            doc = "Targets referenced in the 'content' string for location expansion.",
+        ),
+        "_generator": attr.label(
+            default = Label("//tools:html_generator"),
             executable = True,
             cfg = "exec",
+            doc = "The internal Python tool used to generate the bundle.",
         ),
     },
 )

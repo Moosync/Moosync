@@ -1,0 +1,232 @@
+{
+  "sidebar": {
+    "tabs": {
+      "queue": "Kø",
+      "allSongs": "Alle Sange",
+      "playlists": "Afspilningslister",
+      "albums": "Albummer",
+      "artists": "Kunstnere",
+      "genre": "Genres",
+      "explore": "Udforsk",
+      "paths": "Paths",
+      "themes": "Themes",
+      "extensions": "Extensions",
+      "system": "System"
+    }
+  },
+  "topbar": {
+    "searchPlaceholder": "Søg..."
+  },
+  "pages": {
+    "playlists": "Afspilningslister",
+    "albums": "Albummer",
+    "artists": "Kunstnere",
+    "genres": "Genres",
+    "explore": "Udforsk"
+  },
+  "playlists": {
+    "local": "Local",
+    "new_playlist": {
+      "create": "Create",
+      "description_placeholder": "Description..."
+    },
+    "url": {
+      "input_hint": "Enter URL Here.. (Youtube or Spotify)"
+    }
+  },
+  "songView": {
+    "details": {
+      "songCount": "{count} nummer {count} sange"
+    },
+    "songList": {
+      "topbar": {
+        "searchPlaceholder": "Søg..."
+      }
+    }
+  },
+  "loading": "Indlæser...",
+  "now_playing": "Now playing",
+  "contextMenu": {
+    "sort_by": "Sort by",
+    "sort": {
+      "title": "Titel",
+      "album": "Album (Track No.)",
+      "artist": "Kunstner",
+      "genre": "Genre",
+      "date_added": "Dato tilføjet",
+      "provider": "Udbyder",
+      "playCount": "Antal spil"
+    },
+    "playlist": {
+      "newPlaylist": "New Playlist",
+      "addFromURL": "Importer fra URL",
+      "remove": "Fjern afspilningsliste",
+      "export": "Eksporter afspilningsliste",
+      "add": "Føj Til Spilleliste",
+      "save": "Føj Til Bibliotek"
+    },
+    "song": {
+      "playNext": "Afspil Næste",
+      "clearAndPlay": "Ryd kø og afspil",
+      "addToQueue": "Føj Til Kø",
+      "remove": "Fjern fra bibliotek",
+      "add": "Add Song to Library",
+      "removeFromPlaylist": "Fjern fra afspilningsliste",
+      "gotoAlbum": "Go to album ({{ title }})",
+      "gotoArtists": "Goto artists"
+    },
+    "artist": {
+      "remove": "Remove artist"
+    },
+    "album": {
+      "remove": "Remove album"
+    },
+    "moreInfo": "Mere Info",
+    "incorrectPlayback": "Incorrect playback?"
+  },
+  "explore": {
+    "you_listened_to": "You've listened to",
+    "of_music": "of music",
+    "played_for": "Played for",
+    "hot_from": "Hot from"
+  },
+  "providers": {
+    "youtube": "YouTube",
+    "spotify": "Spotify",
+    "invidious": "Invidiøs",
+    "lastfm": "LastFM"
+  },
+  "accounts": {
+    "connect": "Connect",
+    "sign_out": "Sign out"
+  },
+  "settings": {
+    "paths": {
+      "songDirectories": "Sang Mapper",
+      "songDirectories_tooltip": "Mapper hvor al din lokale musik er gemt",
+      "songDirectories_exclude": "Sortlistede Mapper",
+      "songDirectories_exclude_tooltip": "Sange i disse mapper ville ikke blive scannet",
+      "addFolder": "Tilføj Mappe...",
+      "remove": "Fjern",
+      "artworkPath": "Downloadet Artwork Sti",
+      "artworkPath_tooltip": "Mappe, hvor downloadede kunstværker gemmes",
+      "thumbnailPath": "Downloadet Miniaturesti",
+      "thumbnailPath_tooltip": "Mappe, hvor genererede miniaturer er gemt",
+      "splitter": "Kunstner navn split mønster",
+      "splitter_tooltip": "Regex for at opdele kunstnernavne. Efterlad blank for at deaktivere opdeling.",
+      "scan_interval": "Scan interval",
+      "scan_interval_tooltip": "Interval in minutes to trigger a scan task. Set to -1 to disable automatic scanning",
+      "scan_threads": "Scan CPU threads",
+      "scan_threads_tooltip": "Number of threads to use when scanning for local music"
+    },
+    "themes": {
+      "themes": "Temaer",
+      "themes_tooltip": "Tilpas farver"
+    },
+    "extensions": {
+      "extensions": "Udvidelser",
+      "extensions_tooltip": "Liste over alle installerede udvidelser",
+      "discover": "Opdag",
+      "install": "Installer fra fil",
+      "remove": "Fjern"
+    },
+    "system": {
+      "systemSettings": {
+        "title": "Systemindstillinger",
+        "systemStartup": "Start app ved systemopstart",
+        "minimizeTray": "Minimér til bakke ved lukning",
+        "enableJukeboxMode": "Aktivér skift for Jukebox-tilstand"
+      },
+      "systemSettings_tooltip": "Indstillinger, der er relateret til dit system",
+      "queueSettings": {
+        "title": "Kø Indstillinger",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
+      },
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
+      },
+      "youtube": {
+        "client_id": "Youtube Klient ID",
+        "client_secret": "Youtube Klient Hemmelig",
+        "client_id_tooltip": "Youtube klient ID kræves for at logge ind på Youtube. Klik for at vide mere",
+        "client_secret_tooltip": "Youtube klient Hemmelighed kræves for at logge ind på Youtube. Klik for at vide mere"
+      },
+      "language": "Sprog",
+      "language_tooltip": "Change application language"
+    },
+    "logs": {
+      "logSettings": "Log Indstillinger",
+      "level": "Niveau",
+      "process": "Proces",
+      "filterMessage": "Filtrer Besked",
+      "levels": {
+        "all": "All",
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "debug_logging": "Enable debug logging",
+      "table": {
+        "time": "Time",
+        "level": "Level",
+        "process": "Process",
+        "message": "Message"
+      }
+    }
+  },
+  "hotkeys": {
+    "play": "Play Song",
+    "pause": "Pause song",
+    "play_toggle": "Toggle play",
+    "mute_active": "Mute",
+    "mute_inactive": "Unmute",
+    "mute_toggle": " Toggle mute",
+    "volume_inc": "Increase volume",
+    "volume_dec": "Decrease volume",
+    "repeat_active": "Repeat song",
+    "repeat_inactive": "Disable repeat",
+    "repeat_toggle": "Toggle repeat",
+    "queue_open": "Open song queue",
+    "queue_close": "Close song queue",
+    "queue_toggle": "Toggle song queue",
+    "reload_page": "Reload page",
+    "devtools": "Toggle dev-tools",
+    "help": "Open help",
+    "fullscreen": "Fullscreen",
+    "next_song": "Skip song",
+    "prev_song": "Prev song",
+    "seek_forward": "Seek 5s forward",
+    "seek_backwards": "Seek 5s backwards",
+    "seek_0": "Seek to 0%",
+    "seek_1": "Seek to 10%",
+    "seek_2": "Seek to 20%",
+    "seek_3": "Seek to 30%",
+    "seek_4": "Seek to 40%",
+    "seek_5": "Seek to 50%",
+    "seek_6": "Seek to 60%",
+    "seek_7": "Seek to 70%",
+    "seek_8": "Seek to 80%",
+    "seek_9": "Seek to 90%"
+  },
+  "tray": {
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "prev": "Prev",
+    "repeat": "Repeat",
+    "no_repeat": "No repeat",
+    "shuffle": "Shuffle",
+    "show_app": "Show app",
+    "quit": "Quit"
+  },
+  "toasts": {
+    "queued": "Queued {count} song | Queued {count} songs",
+    "shuffled": "Shuffled"
+  }
+}

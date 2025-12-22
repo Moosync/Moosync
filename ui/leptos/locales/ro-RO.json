@@ -1,0 +1,232 @@
+{
+  "sidebar": {
+    "tabs": {
+      "queue": "Coadă",
+      "allSongs": "Toate melodiile",
+      "playlists": "Liste",
+      "albums": "Albume",
+      "artists": "Artişti",
+      "genre": "Genres",
+      "explore": "Explorați",
+      "paths": "Paths",
+      "themes": "Themes",
+      "extensions": "Extensions",
+      "system": "System"
+    }
+  },
+  "topbar": {
+    "searchPlaceholder": "Caută..."
+  },
+  "pages": {
+    "playlists": "Liste",
+    "albums": "Albume",
+    "artists": "Artişti",
+    "genres": "Genres",
+    "explore": "Explorați"
+  },
+  "playlists": {
+    "local": "Local",
+    "new_playlist": {
+      "create": "Create",
+      "description_placeholder": "Description..."
+    },
+    "url": {
+      "input_hint": "Enter URL Here.. (Youtube or Spotify)"
+    }
+  },
+  "songView": {
+    "details": {
+      "songCount": "{count} melodie | {count} melodii"
+    },
+    "songList": {
+      "topbar": {
+        "searchPlaceholder": "Caută..."
+      }
+    }
+  },
+  "loading": "Încărcare...",
+  "now_playing": "Now playing",
+  "contextMenu": {
+    "sort_by": "Sort by",
+    "sort": {
+      "title": "Titlu",
+      "album": "Album (Track No.)",
+      "artist": "Artist",
+      "genre": "Gen",
+      "date_added": "Data adăugării",
+      "provider": "Furnizor",
+      "playCount": "Număr de redări"
+    },
+    "playlist": {
+      "newPlaylist": "New Playlist",
+      "addFromURL": "Importă din URL",
+      "remove": "Elimină playlist",
+      "export": "Exportă playlist",
+      "add": "Adaugă la Playlist",
+      "save": "Adaugă la bibliotecă"
+    },
+    "song": {
+      "playNext": "Redă următorul",
+      "clearAndPlay": "Curăță coada de redare",
+      "addToQueue": "Adaugă la coadă",
+      "remove": "Elimină din bibliotecă",
+      "add": "Add Song to Library",
+      "removeFromPlaylist": "Elimină din playlist",
+      "gotoAlbum": "Go to album ({{ title }})",
+      "gotoArtists": "Goto artists"
+    },
+    "artist": {
+      "remove": "Remove artist"
+    },
+    "album": {
+      "remove": "Remove album"
+    },
+    "moreInfo": "Mai multe informații",
+    "incorrectPlayback": "Incorrect playback?"
+  },
+  "explore": {
+    "you_listened_to": "You've listened to",
+    "of_music": "of music",
+    "played_for": "Played for",
+    "hot_from": "Hot from"
+  },
+  "providers": {
+    "youtube": "Youtube",
+    "spotify": "Spotify",
+    "invidious": "Invidios",
+    "lastfm": "LastFM"
+  },
+  "accounts": {
+    "connect": "Connect",
+    "sign_out": "Sign out"
+  },
+  "settings": {
+    "paths": {
+      "songDirectories": "Directoare melodii",
+      "songDirectories_tooltip": "Directoare unde toată muzica ta locală este stocată",
+      "songDirectories_exclude": "Dosare blocate",
+      "songDirectories_exclude_tooltip": "Melodiile din aceste directoare nu ar fi scanate",
+      "addFolder": "Adaugă Dosar...",
+      "remove": "Elimină",
+      "artworkPath": "Calea Artwork descărcată",
+      "artworkPath_tooltip": "Director în care sunt stocate opere de artă descărcate",
+      "thumbnailPath": "Calea de miniatură descărcată",
+      "thumbnailPath_tooltip": "Directorul unde miniaturile generate sunt stocate",
+      "splitter": "Sablon divizat pentru numele artistului",
+      "splitter_tooltip": "Regex pentru împărțirea numelor artiștilor. Lăsați gol pentru a dezactiva divizarea.",
+      "scan_interval": "Scan interval",
+      "scan_interval_tooltip": "Interval in minutes to trigger a scan task. Set to -1 to disable automatic scanning",
+      "scan_threads": "Scan CPU threads",
+      "scan_threads_tooltip": "Number of threads to use when scanning for local music"
+    },
+    "themes": {
+      "themes": "Teme",
+      "themes_tooltip": "Personalizare culori"
+    },
+    "extensions": {
+      "extensions": "Extensii",
+      "extensions_tooltip": "Lista tuturor extensiilor instalate",
+      "discover": "Descoperă",
+      "install": "Instalează din fișier",
+      "remove": "Elimină"
+    },
+    "system": {
+      "systemSettings": {
+        "title": "Setări de sistem",
+        "systemStartup": "Pornește aplicația la pornirea sistemului",
+        "minimizeTray": "Minimizează în tăviță la închidere",
+        "enableJukeboxMode": "Activează comutator pentru modul Jukebox"
+      },
+      "systemSettings_tooltip": "Setări care sunt legate de sistemul dvs.",
+      "queueSettings": {
+        "title": "Setări coadă",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
+      },
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
+      },
+      "youtube": {
+        "client_id": "ID Client YouTube",
+        "client_secret": "Secret Client Youtube",
+        "client_id_tooltip": "ID client Youtube necesar pentru conectare pe Youtube. Click pentru a afla mai multe",
+        "client_secret_tooltip": "Secretul clientului Youtube este necesar pentru a te autentifica pe Youtube. Apasă pentru a afla mai multe"
+      },
+      "language": "Limba",
+      "language_tooltip": "Change application language"
+    },
+    "logs": {
+      "logSettings": "Setări Jurnal",
+      "level": "Nivel",
+      "process": "Procesare",
+      "filterMessage": "Filtrare mesaj",
+      "levels": {
+        "all": "All",
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Warn",
+        "error": "Error"
+      },
+      "debug_logging": "Enable debug logging",
+      "table": {
+        "time": "Time",
+        "level": "Level",
+        "process": "Process",
+        "message": "Message"
+      }
+    }
+  },
+  "hotkeys": {
+    "play": "Play Song",
+    "pause": "Pause song",
+    "play_toggle": "Toggle play",
+    "mute_active": "Mute",
+    "mute_inactive": "Unmute",
+    "mute_toggle": " Toggle mute",
+    "volume_inc": "Increase volume",
+    "volume_dec": "Decrease volume",
+    "repeat_active": "Repeat song",
+    "repeat_inactive": "Disable repeat",
+    "repeat_toggle": "Toggle repeat",
+    "queue_open": "Open song queue",
+    "queue_close": "Close song queue",
+    "queue_toggle": "Toggle song queue",
+    "reload_page": "Reload page",
+    "devtools": "Toggle dev-tools",
+    "help": "Open help",
+    "fullscreen": "Fullscreen",
+    "next_song": "Skip song",
+    "prev_song": "Prev song",
+    "seek_forward": "Seek 5s forward",
+    "seek_backwards": "Seek 5s backwards",
+    "seek_0": "Seek to 0%",
+    "seek_1": "Seek to 10%",
+    "seek_2": "Seek to 20%",
+    "seek_3": "Seek to 30%",
+    "seek_4": "Seek to 40%",
+    "seek_5": "Seek to 50%",
+    "seek_6": "Seek to 60%",
+    "seek_7": "Seek to 70%",
+    "seek_8": "Seek to 80%",
+    "seek_9": "Seek to 90%"
+  },
+  "tray": {
+    "play": "Play",
+    "pause": "Pause",
+    "next": "Next",
+    "prev": "Prev",
+    "repeat": "Repeat",
+    "no_repeat": "No repeat",
+    "shuffle": "Shuffle",
+    "show_app": "Show app",
+    "quit": "Quit"
+  },
+  "toasts": {
+    "queued": "Queued {count} song | Queued {count} songs",
+    "shuffled": "Shuffled"
+  }
+}

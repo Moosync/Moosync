@@ -1,25 +1,4 @@
-load("@gazelle//:def.bzl", "gazelle")
-
-# gazelle:exclude ui
-# gazelle:exclude core/types
-# gazelle:exclude core/database
-# gazelle:exclude core/extensions
-# gazelle:exclude core/file_scanner
-# gazelle:exclude core/librespot
-# gazelle:exclude core/lyrics
-# gazelle:exclude core/mpris
-# gazelle:exclude core/preferences
-# gazelle:exclude core/themes
-# gazelle:exclude core/rodio-player
-# gazelle:exclude lib/
-# gazelle:exclude tauri-invoke-proc
-
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen_toolchain")
-
-gazelle(
-    name = "gazelle",
-    gazelle = "@gazelle_rust//:gazelle_bin",
-)
 
 rust_wasm_bindgen_toolchain(
     name = "wasm_bindgen_toolchain_impl",

@@ -1,0 +1,232 @@
+{
+  "sidebar": {
+    "tabs": {
+      "queue": "Warteschlange",
+      "allSongs": "Alle Titel",
+      "playlists": "Playlists",
+      "albums": "Alben",
+      "artists": "Künstler",
+      "genre": "Genres",
+      "explore": "Erkunden",
+      "paths": "Pfade",
+      "themes": "Design",
+      "extensions": "Erweiterungen",
+      "system": "System"
+    }
+  },
+  "topbar": {
+    "searchPlaceholder": "Suchen..."
+  },
+  "pages": {
+    "playlists": "Playlists",
+    "albums": "Alben",
+    "artists": "Künstler",
+    "genres": "Genres",
+    "explore": "Erkunden"
+  },
+  "playlists": {
+    "local": "Lokal",
+    "new_playlist": {
+      "create": "Erstellen",
+      "description_placeholder": "Beschreibung..."
+    },
+    "url": {
+      "input_hint": "URL hier eingeben (Youtube oder Spotify)"
+    }
+  },
+  "songView": {
+    "details": {
+      "songCount": "{count} Titel | {count} Titel"
+    },
+    "songList": {
+      "topbar": {
+        "searchPlaceholder": "Suchen..."
+      }
+    }
+  },
+  "loading": "Wird geladen...",
+  "now_playing": "Jetzt spielt",
+  "contextMenu": {
+    "sort_by": "Sortieren nach",
+    "sort": {
+      "title": "Titel",
+      "album": "Album (Track Nr.)",
+      "artist": "Künstler",
+      "genre": "Genre",
+      "date_added": "Hinzugefügt am",
+      "provider": "Anbieter",
+      "playCount": "Wiedergabezähler"
+    },
+    "playlist": {
+      "newPlaylist": "New Playlist",
+      "addFromURL": "Von URL importieren",
+      "remove": "Playlist entfernen",
+      "export": "Playlist exportieren",
+      "add": "Zur Playlist hinzufügen",
+      "save": "Zur Bibliothek hinzufügen"
+    },
+    "song": {
+      "playNext": "Als nächstes abspielen",
+      "clearAndPlay": "Warteschlange leeren und abspielen",
+      "addToQueue": "Zur Warteschlange hinzufügen",
+      "remove": "Aus der Bibliothek entfernen",
+      "add": "Add Song to Library",
+      "removeFromPlaylist": "Aus Wiedergabeliste entfernen",
+      "gotoAlbum": "Go to album ({{ title }})",
+      "gotoArtists": "Gehe zu Künstler"
+    },
+    "artist": {
+      "remove": "Künstler entfernen"
+    },
+    "album": {
+      "remove": "Album entfernen"
+    },
+    "moreInfo": "Mehr Info",
+    "incorrectPlayback": "Falscher Titel?"
+  },
+  "explore": {
+    "you_listened_to": "Du hast für",
+    "of_music": "Musik gehört",
+    "played_for": "Gespielt für",
+    "hot_from": "Heiß von"
+  },
+  "providers": {
+    "youtube": "YouTube",
+    "spotify": "Spotify",
+    "invidious": "Invidious",
+    "lastfm": "LastFM"
+  },
+  "accounts": {
+    "connect": "Verbinden",
+    "sign_out": "Ausloggen"
+  },
+  "settings": {
+    "paths": {
+      "songDirectories": "Songverzeichnisse",
+      "songDirectories_tooltip": "Verzeichnisse, in denen deine Musik gespeichert ist",
+      "songDirectories_exclude": "Ignorierte Verzeichnisse",
+      "songDirectories_exclude_tooltip": "Titel in diesen Verzeichnissen werden nicht gescannt",
+      "addFolder": "Ordner hinzufügen...",
+      "remove": "Entfernen",
+      "artworkPath": "Pfad für heruntergeladene Albumcover",
+      "artworkPath_tooltip": "Verzeichnis, in dem heruntergeladene Albumcover gespeichert werden",
+      "thumbnailPath": "Verzeichnis, in dem heruntergeladene Vorschaubilder gespeichert werden",
+      "thumbnailPath_tooltip": "Verzeichnis in dem die erzeugten Vorschaubilder gespeichert werden",
+      "splitter": "Interpreten Teilungsmuster",
+      "splitter_tooltip": "Regex um Interpreten zu teilen. Leer lassen, um die Aufteilung zu deaktivieren.",
+      "scan_interval": "Intervall zwischen Scans",
+      "scan_interval_tooltip": "Intervall in Minuten zwischen Scans. Setze auf -1 um automatisches Scannen zu untersagen",
+      "scan_threads": "Scan CPU-Threads",
+      "scan_threads_tooltip": "Anzahl der CPU-Threads, die beim Scannen nach lokaler Musik verwendet werden sollen"
+    },
+    "themes": {
+      "themes": "Designs",
+      "themes_tooltip": "Farben anpassen"
+    },
+    "extensions": {
+      "extensions": "Erweiterungen",
+      "extensions_tooltip": "Liste aller installierten Erweiterungen",
+      "discover": "Entdecken",
+      "install": "Aus Datei installieren",
+      "remove": "Entfernen"
+    },
+    "system": {
+      "systemSettings": {
+        "title": "Systemeinstellungen",
+        "systemStartup": "App beim Systemstart starten",
+        "minimizeTray": "Beim Schließen in den Tray minimieren",
+        "enableJukeboxMode": "Schalter für Jukebox-Modus aktivieren"
+      },
+      "systemSettings_tooltip": "Einstellungen, die sich auf Ihr System beziehen",
+      "queueSettings": {
+        "title": "Warteschlangen-Einstellungen",
+        "tooltip": "Settings which are related to queue",
+        "clearQueue": "Clear queue"
+      },
+      "volumePersistMode": {
+        "title": "Volume Persist Mode",
+        "tooltip": "How volume should be persisted across sessions",
+        "noPersist": "Don't persist volume",
+        "persistSeparateVolumes": "Persist separate volumes for each provider",
+        "persistClampVolume": "Persist volume and clamp to max volume"
+      },
+      "youtube": {
+        "client_id": "YouTube Client-ID",
+        "client_secret": "Youtube Client Geheimnis",
+        "client_id_tooltip": "Youtube Client-ID erforderlich, um sich bei Youtube anzumelden. Klicken Sie hier, um mehr zu erfahren",
+        "client_secret_tooltip": "Youtube Client Secret erforderlich, um sich bei Youtube anzumelden. Klicken Sie hier, um mehr zu erfahren"
+      },
+      "language": "Sprache",
+      "language_tooltip": "Change application language"
+    },
+    "logs": {
+      "logSettings": "Log-Einstellungen",
+      "level": "Stufe",
+      "process": "Verarbeiten",
+      "filterMessage": "Nachricht filtern",
+      "levels": {
+        "all": "Alles",
+        "debug": "Debug",
+        "info": "Info",
+        "warn": "Warnungen",
+        "error": "Fehler"
+      },
+      "debug_logging": "Debug-Protokollierung aktivieren",
+      "table": {
+        "time": "Zeit",
+        "level": "Stufe",
+        "process": "Prozess",
+        "message": "Nachricht"
+      }
+    }
+  },
+  "hotkeys": {
+    "play": "Titel spielen",
+    "pause": "Titel pausieren",
+    "play_toggle": "Wiedergabe umschalten",
+    "mute_active": "Stumm",
+    "mute_inactive": "Ton ein",
+    "mute_toggle": " Stummschaltung umschalten",
+    "volume_inc": "Lautstärke erhöhen",
+    "volume_dec": "Lautstärke reduzieren",
+    "repeat_active": "Titel wiederholen",
+    "repeat_inactive": "Wiederholung deaktivieren",
+    "repeat_toggle": "Wiederholung umschalten",
+    "queue_open": "Warteschlange öffnen",
+    "queue_close": "Warteschlange schließen",
+    "queue_toggle": "Warteschlange umschalten",
+    "reload_page": "Seite neu laden",
+    "devtools": "Dev-Tools umschalten",
+    "help": "Hilfe öffnen",
+    "fullscreen": "Vollbildmodus",
+    "next_song": "Titel überspringen",
+    "prev_song": "Vorheriger Titel",
+    "seek_forward": "5s vorwärts springen",
+    "seek_backwards": "5s rückwärts springen",
+    "seek_0": "Auf 0% springen",
+    "seek_1": "Auf 10% springen",
+    "seek_2": "Auf 20% springen",
+    "seek_3": "Auf 30% springen",
+    "seek_4": "Auf 40% springen",
+    "seek_5": "Auf 50% springen",
+    "seek_6": "Auf 60% springen",
+    "seek_7": "Auf 70% springen",
+    "seek_8": "Auf 80% springen",
+    "seek_9": "Auf 90% springen"
+  },
+  "tray": {
+    "play": "Wiedergeben",
+    "pause": "Pausieren",
+    "next": "Nächstes",
+    "prev": "Vorheriges",
+    "repeat": "Wiederholen",
+    "no_repeat": "Nicht wiederholen",
+    "shuffle": "Shuffle",
+    "show_app": "App anzeigen",
+    "quit": "Beenden"
+  },
+  "toasts": {
+    "queued": "{count} Titel der Warteschlange hinzugefügt | {count} Titel der Warteschlange hinzugefügt",
+    "shuffled": "Shuffle erfolgreich"
+  }
+}

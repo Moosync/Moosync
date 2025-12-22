@@ -2,10 +2,6 @@ load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library")
 load("//tools:defs.bzl", "expand_template")
 
-# gazelle:rust_cargo_lockfile Cargo.lock
-# gazelle:rust_crates_prefix @crates//:
-# gazelle:rust_mode generate_from_cargo
-
 filegroup(
     name = "desktop_file",
     srcs = [
@@ -23,10 +19,13 @@ filegroup(
 
 expand_template(
     name = "tauri_config",
+    data = [
+        "//ui:moosync_ui",
+    ],
     out_name = "tauri.conf.json",
     substitutions = {
-        # TODO: Need a gen_rule for this
-        "@DIST@": "../ui/dist",
+        # Relative from tauri build script but we need to escape to exec root
+        "@DIST@": "../../../../$(execpath //ui:moosync_ui)",
         "@DESKTOP@": "moosync.desktop",
         "@ICONS@": "icons",
     },
@@ -64,10 +63,8 @@ rust_library(
         "src/window/mod.rs",
     ],
     compile_data = [
-        # "Cargo.toml",
-        # ":tauri_config",
         ":resources",
-        "//ui:moosync_ui_dist",
+        "//ui:moosync_ui",
     ],
     data = [
         ":tauri_config",
@@ -112,6 +109,7 @@ rust_library(
         "@crates//:tauri-plugin-opener",
         "@crates//:tauri-plugin-single-instance",
         "@crates//:tauri-plugin-updater",
+        "@crates//:tauri-utils",
         "@crates//:tokio",
         "@crates//:tracing",
         "@crates//:tracing-appender",
@@ -145,7 +143,6 @@ cargo_build_script(
     ] + glob(["src/**/*"]),
     visibility = ["//visibility:public"],
     deps = [
-        # "//vendor/tauri-build-2.5.3:tauri_build",
         "@crates//:tauri-build",
     ],
 )

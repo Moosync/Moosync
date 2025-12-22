@@ -1,0 +1,113 @@
+page:
+  - title: sidebar.tabs.paths
+    path: paths
+    icon: Paths
+    data:
+      - type: DirectoryGroup
+        description: settings.paths.song_directories_tooltip
+        title: settings.paths.song_directories
+        key: music_paths
+        mobile: false
+
+      - type: DirectoryGroup
+        description: settings.paths.song_directories_exclude_tooltip
+        title: settings.paths.song_directories_exclude
+        key: exclude_music_paths
+        mobile: false
+
+      - type: EditText
+        description: settings.paths.scan_threads_tooltip
+        title: settings.paths.scan_threads
+        inputType: number
+        key: scan_threads
+        mobile: false
+
+      - type: EditText
+        description: settings.paths.splitter_tooltip
+        title: settings.paths.splitter
+        inputType: text
+        key: artist_splitter
+
+      - type: EditText
+        description: settings.paths.scan_interval_tooltip
+        title: settings.paths.scan_interval
+        inputType: number
+        key: scan_interval
+        mobile: false
+
+      - type: FilePicker
+        description: settings.paths.thumbnail_path_tooltip
+        title: settings.paths.thumbnail_path
+        key: thumbnail_path
+        mobile: false
+
+      - type: FilePicker
+        description: settings.paths.artwork_path_tooltip
+        title: settings.paths.artwork_path
+        key: artwork_path
+        mobile: false
+
+  - title: sidebar.tabs.system
+    path: system
+    icon: System
+    data:
+
+      - type: CheckboxGroup
+        title: settings.system.system_settings.title
+        description: settings.system.system_settings_tooltip
+        key: system_settings
+        mobile: false
+        items:
+          - title: settings.system.system_settings.system_startup
+            key: auto_startup
+
+          - title: settings.system.system_settings.minimize_tray
+            key: minimize_to_tray
+
+          - title: settings.system.system_settings.enable_jukebox_mode
+            key: jukebox_mode
+
+      - type: CheckboxGroup
+        title: settings.system.queue_settings.title
+        description: settings.system.queue_settings.tooltip
+        key: queue_settings
+        items:
+          - title: settings.system.queue_settings.clear_queue
+            key: clear_queue
+
+      - type: CheckboxGroup
+        title: settings.system.volume_persist_mode.title
+        description: settings.system.volume_persist_mode.tooltip
+        single: true
+        key: volume_persist_mode
+        mobile: false
+        items:
+          - title: settings.system.volume_persist_mode.no_persist
+            key: no_persist
+          - title: settings.system.volume_persist_mode.persist_separate_volumes
+            key: persist_separate
+          - title: settings.system.volume_persist_mode.persist_clamp_volume
+            key: persist_clamp
+
+      - type: Dropdown
+        title: settings.system.language
+        description: settings.system.language_tooltip
+        key: i18n_language
+
+  - title: sidebar.tabs.themes
+    path: themes
+    icon: Themes
+    data:
+      - type: ThemeSelector
+        title: settings.themes.themes
+        description: settings.themes.themes_tooltip
+        key: themes.active_theme
+
+  - title: sidebar.tabs.extensions
+    path: extensions
+    icon: Extensions
+    data:
+      - type: Extensions
+        title: settings.extensions.extensions
+        description: settings.extensions.extensions_tooltip
+        key: extensions

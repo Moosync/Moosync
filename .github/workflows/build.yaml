@@ -20,9 +20,9 @@ jobs:
       matrix:
         include:
           - name: Linux x64
-            os: ubuntu-latest
+            os: ubuntu-22.04
           - name: Linux ARM64
-            os: ubuntu-24.04-arm
+            os: ubuntu-22.04-arm
           - name: macOS x64
             os: macos-15-intel
           - name: macOS ARM64
@@ -39,22 +39,33 @@ jobs:
 
       - uses: bazel-contrib/setup-bazel@0.16.0
         with:
-          # Avoid downloading Bazel every time.
           bazelisk-cache: true
-          # Store build cache per workflow.
           disk-cache: ${{ github.workflow }}
-          # Share repository cache between workflows.
           repository-cache: true
 
-      - name: Mount Bazel Cache
-        uses: actions/cache@v4
+      - name: Install Common linux Dependencies
+        if: startsWith(matrix.os, 'ubuntu-22.04')
+        uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          path: |
-            ~/.cache/bazel
-            ~/_bazel_runner
-          key: bazel-${{ runner.os }}-${{ hashFiles('.bazelversion', 'MODULE.bazel', 'WORKSPACE') }}
-          restore-keys: |
-            bazel-${{ runner.os }}-
+          packages: >
+            libwebkit2gtk-4.1-dev gir1.2-javascriptcoregtk-4.1
+            libgtk-3-dev libunwind-dev librsvg2-dev patchelf 
+            alsa-tools libasound2-dev libudev-dev 
+            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev 
+            gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad 
+            gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools 
+            gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl 
+            gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio libappindicator3-dev
+          version: 1.0
+
+      - name: Install ARM-Only linux Dependencies
+        if: matrix.os == 'ubuntu-22.04-arm'
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: >
+            build-essential curl file xdg-utils libssl-dev libfuse2 
+            libayatana-appindicator3-dev
+          version: 1.0
 
       # - name: Configure Windows Environment
       #   if: runner.os == 'Windows'

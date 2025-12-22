@@ -1,263 +1,82 @@
-name: "build"
+name: build
 
 on:
-  workflow_dispatch:
-    inputs:
-      os:
-        description: Select OS
-        type: choice
-        options:
-          - '[{"platform": "ubuntu-22.04", "args": ""}]'
-          - '[{"platform": "ubuntu-22.04-arm", "args": ""}]'
-          - '[{"platform": "windows-latest", "args": "--target x86_64-pc-windows-gnu"}]'
-          - '[{"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}]'
-          - '[{"platform": "macos-15-intel", "args": "--target x86_64-apple-darwin"}]'
-          - '[{"platform": "ubuntu-22.04", "args": ""}, {"platform": "ubuntu-22.04-arm", "args": ""}, {"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}, {"platform": "macos-15-intel", "args": "--target x86_64-apple-darwin"}, {"platform": "windows-latest", "args": ""}]'
-        default: '[{"platform": "ubuntu-22.04", "args": ""}, {"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}, {"platform": "macos-15-intel", "args": "--target x86_64-apple-darwin"}, {"platform": "windows-latest", "args": ""}]'
-        required: true
-      publish:
-        description: Publish release?
-        type: boolean
-        default: false
-        required: true
   push:
-    branches:
-      - release
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
 
 jobs:
-  publish-tauri:
-    permissions:
-      contents: write
+  build-and-test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
+    continue-on-error: false
+
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJson(inputs.os) }}
+        include:
+          - name: Linux x64
+            os: ubuntu-latest
+          - name: Linux ARM64
+            os: ubuntu-24.04-arm
+          - name: macOS x64
+            os: macos-15-intel
+          - name: macOS ARM64
+            os: macos-latest
+          - name: Windows x64
+            os: windows-latest
 
-    runs-on: ${{ matrix.platform }}
     steps:
+      - name: Enable Git Long Paths (Windows)
+        if: runner.os == 'Windows'
+        run: git config --system core.longpaths true
+
       - uses: actions/checkout@v4
 
-      - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'ubuntu-22.04-arm'
-        uses: awalsh128/cache-apt-pkgs-action@latest
+      - uses: bazel-contrib/setup-bazel@0.16.0
         with:
-          packages: libwebkit2gtk-4.1-dev gir1.2-javascriptcoregtk-4.1 libgtk-3-dev libunwind-dev libappindicator3-dev librsvg2-dev patchelf alsa-tools libasound2-dev libudev-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio autoconf automake build-essential cmake git-core libass-dev libfreetype6-dev libgnutls28-dev libmp3lame-dev libsdl2-dev libtool libva-dev libvdpau-dev libvorbis-dev libxcb1-dev libxcb-shm0-dev libxcb-xfixes0-dev meson ninja-build pkg-config texinfo wget yasm zlib1g-dev libclang-dev
-          version: 1.0
+          # Avoid downloading Bazel every time.
+          bazelisk-cache: true
+          # Store build cache per workflow.
+          disk-cache: ${{ github.workflow }}
+          # Share repository cache between workflows.
+          repository-cache: true
 
-      - name: Install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04-arm'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y curl libwebkit2gtk-4.1-dev build-essential libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf libfuse2 file gstreamer1.0-pulseaudio libunwind-dev alsa-tools libasound2-dev libudev-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio xdg-utils autoconf automake build-essential cmake git-core libass-dev libfreetype6-dev libgnutls28-dev libmp3lame-dev libsdl2-dev libtool libva-dev libvdpau-dev libvorbis-dev libxcb1-dev libxcb-shm0-dev libxcb-xfixes0-dev meson ninja-build pkg-config texinfo wget yasm zlib1g-dev libclang-dev
-
-      - name: install dependencies (macos only)
-        if: matrix.platform == 'macos-latest' || matrix.platform == 'macos-15-intel'
-        run: |
-          brew update
-          brew upgrade
-          brew install openssl@3
-
-      # https://github.com/sfackler/rust-openssl/blob/master/.github/workflows/ci.yml#L94
-      # - name: Install vcpkg (Windows only)
-      #   run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
-      #   if: matrix.platform == 'windows-latest'
-
-      - name: Setup MSYS2 (Windows only)
-        if: matrix.platform == 'windows-latest'
-        uses: msys2/setup-msys2@v2
+      - name: Mount Bazel Cache
+        uses: actions/cache@v4
         with:
-          msystem: MINGW64
-          update: true
-          install: >
-            mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-lame
-            mingw-w64-x86_64-libvorbis
-            mingw-w64-x86_64-openssl
-            mingw-w64-x86_64-binutils
-            make
-            diffutils
-            pkg-config
-            yasm
-            nasm
-            zlib
-            git
-
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        if: matrix.platform == 'windows-latest'
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
-      # - name: Install OpenSSL (Windows only)
-      #   run: vcpkg install openssl:x64-mingw-static zlib:x64-mingw-static
-      #   if: matrix.platform == 'windows-latest'
-      #   env:
-      #     VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
-
-      - name: install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          # Update logic to include Windows GNU target
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin,wasm32-unknown-unknown' || matrix.platform == 'windows-latest' && 'wasm32-unknown-unknown,x86_64-pc-windows-gnu' || 'wasm32-unknown-unknown' }}
-
-      - uses: cargo-bins/cargo-binstall@main
-      # - uses: jetli/trunk-action@v0.5.0
-      #   with:
-      #     # Optional version of trunk to install(eg. 'v0.19.1', 'latest')
-      #     version: "latest"
-      #
-      - name: Install trunk
-        run: cargo binstall trunk -y
-      #   uses: baptiste0928/cargo-install@v3
-      #   with:
-      #     crate: trunk
-
-      - name: Free Disk Space (Ubuntu)
-        if: matrix.platform == 'ubuntu-22.04'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          large-packages: false
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-          cache-all-crates: true
-          workspaces: |
-            . -> target
-
-      - name: Current PWD
-        run: pwd
-
-      - name: Install LLVM and Clang
-        if: matrix.platform == 'ubuntu-22.04'
-        uses: KyleMayes/install-llvm-action@v2
-        with:
-          version: "20"
-
-      - name: Symlink libclang.so (Linux)
-        if: matrix.platform == 'ubuntu-22.04'
-        run: sudo ln -s libclang.so /lib/x86_64-linux-gnu/libclang.so
-        working-directory: ${{ env.LLVM_PATH }}/lib
-
-      - name: Install tauri CLI
-        run: npm install -g @tauri-apps/cli@latest
-
-      - name: Build custom FFmpeg (Windows only)
-        if: matrix.platform == 'windows-latest'
-        shell: msys2 {0}
-        run: |
-          set -eux
-
-          git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git
-          cd FFmpeg
-
-          ./configure \
-            --prefix=/c/ffmpeg-static \
-              --disable-everything \
-              --disable-programs \
-              --enable-gpl \
-              --enable-version3 \
-              --disable-doc \
-              --disable-htmlpages \
-              --disable-manpages \
-              --disable-shared \
-              --enable-network \
-              --enable-swresample \
-              --enable-avformat \
-              --enable-parsers \
-              --enable-protocols \
-              --enable-demuxer=aac \
-              --enable-demuxer=flac \
-              --enable-demuxer=mp3 \
-              --enable-demuxer=mov \
-              --enable-demuxer=ogg \
-              --enable-demuxer=wav \
-              --enable-muxer=adts \
-              --enable-muxer=flac \
-              --enable-muxer=mp3 \
-              --enable-muxer=mp4 \
-              --enable-muxer=ogg \
-              --enable-muxer=wav \
-              --enable-avcodec \
-              --enable-decoder=aac \
-              --enable-decoder=flac \
-              --enable-decoder=mp3 \
-              --enable-decoder=vorbis \
-              --enable-decoder=opus \
-              --enable-decoder=pcm_s16le \
-              --enable-encoder=flac \
-              --enable-encoder=pcm_s16le \
-              --enable-filter=aresample \
-              --enable-filter=aformat \
-              --enable-filter=volume \
-              --enable-libmp3lame \
-              --enable-libopus \
-              --enable-libvorbis \
-              --enable-openssl \
-              --disable-vaapi \
-              --disable-vdpau \
-              --disable-libdrm \
-              --enable-static
-
-          make -j$(nproc)
-          make install
-
-          ls -la /c/ffmpeg-static/*
-
-      - name: Setup MinGW PATH (Windows)
-        if: matrix.platform == 'windows-latest'
-        shell: powershell
-        run: |
-          echo "C:\msys64\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
-
-      - name: Build Tauri app (no publish)
-        if: ${{ !inputs.publish }}
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-          OPENSSL_NO_VENDOR: 1
-        with:
-          args: ${{ matrix.args }}
-          tauriScript: tauri
-          projectPath: "."
-
-      - name: Publish Tauri release
-        if: ${{ inputs.publish }}
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-
-        with:
-          tagName: Moosync-v__VERSION__ # the action automatically replaces __VERSION__ with the app version.
-          releaseName: "Moosync v__VERSION__"
-          releaseBody: "See the assets to download this version and install."
-          releaseDraft: true
-          prerelease: true
-          args: ${{ matrix.args }}
-          tauriScript: tauri
-          projectPath: "."
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: moosync-build-${{ matrix.platform }}
           path: |
-            target/**/latest.json
-            target/**/*.rpm
-            target/**/*.AppImage
-            target/**/*.AppImage.sig
-            target/**/*.dmg
-            target/**/*.deb
-            target/**/*-setup.exe
-            target/**/*-setup.exe.sig
-            target/**/*_en-US.msi
-            target/**/*_en-US.msi.sig
-            target/**/*.app.tar.gz
-            target/**/*.app.tar.gz.sig
+            ~/.cache/bazel
+            ~/_bazel_runner
+          key: bazel-${{ runner.os }}-${{ hashFiles('.bazelversion', 'MODULE.bazel', 'WORKSPACE') }}
+          restore-keys: |
+            bazel-${{ runner.os }}-
+
+      # - name: Configure Windows Environment
+      #   if: runner.os == 'Windows'
+      #   shell: bash
+      #   run: |
+      #     echo "BAZEL_SH=C:\msys64\usr\bin\bash.exe" >> $GITHUB_ENV
+      #     echo "BAZEL_VC=C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC" >> $GITHUB_ENV
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            curl
+            git
+            patch 
+            diffutils 
+            zip 
+            unzip
+
+      # Build Step
+      - name: Bazel Build
+        run: bazel build //tauri:moosync
+
+      # - name: Bazel Test
+      #   run: bazel test //... --keep_going --test_output=errors
+      #   env:
+      #     BAZEL_SH: ${{ env.BAZEL_SH }}

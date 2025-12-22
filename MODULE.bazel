@@ -14,6 +14,14 @@ bazel_dep(name = "rules_nodejs", version = "6.2.0")
 bazel_dep(name = "aspect_rules_rollup", version = "2.0.1")
 bazel_dep(name = "gzgz_rules_sass", version = "1.0.4")
 
+single_version_override(
+    module_name = "rules_foreign_cc",
+    patch_strip = 1,
+    patches = [
+        "//patches:0001-Fix-pkgconfig_build.bzl-for-Windows-build-with-Bzlmod.patch",
+    ],
+)
+
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(

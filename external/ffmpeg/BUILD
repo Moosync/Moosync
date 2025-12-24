@@ -120,10 +120,9 @@ cmake(
 
 configure_make(
     name = "ffmpeg",
-    build_data = select({
-        "@platforms//os:windows": ["@nasm//:nasm"],
-        "//conditions:default": [],
-    }),
+    build_data = [
+        "@nasm//:nasm",
+    ],
     configure_in_place = True,
     configure_options = [
         "--disable-everything",

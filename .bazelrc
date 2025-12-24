@@ -7,4 +7,4 @@ common:linux --repo_env=BAZEL_CONLYOPTS="-std=gnu17"
 # common --incompatible_strict_action_env
 startup --windows_enable_symlinks
 build --enable_runfiles
-build:windows --experimental_output_paths=strip
+build:windows --spawn_strategy=local

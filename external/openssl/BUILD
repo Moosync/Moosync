@@ -34,7 +34,7 @@ config_setting(
 alias(
     name = "openssl",
     actual = select({
-        ":msvc_compiler": "openssl_msvc",
+        "@platforms//os:windows": ":openssl_msvc",
         "//conditions:default": "openssl_default",
     }),
     visibility = ["//visibility:public"],

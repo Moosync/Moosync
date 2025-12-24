@@ -93,7 +93,7 @@ jobs:
         run: bazel build //external/ffmpeg
 
       - name: Bazel Build core
-        run: bazel build --keep_going //core:...
+        run: bazel build --keep_going //core/...
 
       - name: Bazel Build ui
         run: bazel build //ui:moosync_ui

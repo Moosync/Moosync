@@ -186,10 +186,6 @@ configure_make(
             "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lm -lpthread\"",
         ],
     }),
-    data = select({
-        "@platforms//os:windows": ["fix_ffmpeg.sh"],
-        "//conditions:default": [],
-    }),
     env = select({
         "@platforms//os:windows": {
             "PATH": "$$(dirname $(execpath @nasm//:nasm))",

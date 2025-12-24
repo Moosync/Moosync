@@ -58,7 +58,7 @@ jobs:
             gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools 
             gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl 
             gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio libappindicator3-dev 
-            nasm yasm autoconf automake libtool pkg-config make build-essential
+            nasm yasm autoconf automake libtool pkg-config make build-essential clang
           version: 1.0
 
       - name: Install ARM-Only linux Dependencies
@@ -90,7 +90,7 @@ jobs:
 
       # Build Step
       - name: Bazel Build ffmpeg
-        run: bazel build //external:ffmpeg
+        run: bazel build //external/ffmpeg
 
       - name: Bazel Build core
         run: bazel build --keep_going //core:...

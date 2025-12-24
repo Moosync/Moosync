@@ -71,7 +71,7 @@ rust_library(
     ],
     proc_macro_deps = [
         "@crates//:async-trait",
-        "//tauri-invoke-proc:tauri_invoke_proc",
+        "//ui/tauri-invoke-proc:tauri_invoke_proc",
     ],
     rustc_env = {
         "TAURI_CONF_JSON": "$(execpath :tauri_config)",

@@ -57,7 +57,8 @@ jobs:
             gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad 
             gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools 
             gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl 
-            gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio libappindicator3-dev nasm yasm
+            gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio libappindicator3-dev 
+            nasm yasm autoconf automake libtool pkg-config make build-essential
           version: 1.0
 
       - name: Install ARM-Only linux Dependencies
@@ -65,8 +66,7 @@ jobs:
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
           packages: >
-            build-essential curl file xdg-utils libssl-dev libfuse2 
-            libayatana-appindicator3-dev
+            curl file xdg-utils libssl-dev libfuse2 libayatana-appindicator3-dev
           version: 1.0
 
       # - name: Configure Windows Environment
@@ -89,8 +89,14 @@ jobs:
             unzip
 
       # Build Step
-      - name: Bazel Build
-        run: bazel build //tauri:moosync
+      - name: Bazel Build ffmpeg
+        run: bazel build //external:ffmpeg
+
+      - name: Bazel Build core
+        run: bazel build --keep_going //core:...
+
+      - name: Bazel Build ui
+        run: bazel build //ui:moosync_ui
 
       # - name: Bazel Test
       #   run: bazel test //... --keep_going --test_output=errors

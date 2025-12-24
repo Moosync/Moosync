@@ -121,7 +121,9 @@ configure_make(
     name = "openssl_default",
     configure_command = "config",
     configure_in_place = True,
-    configure_options = CONFIGURE_OPTIONS,
+    configure_options = CONFIGURE_OPTIONS + [
+        "--libdir=lib",
+    ],
     env = select({
         "@platforms//os:macos": {
             "AR": "",
@@ -135,7 +137,7 @@ configure_make(
     lib_source = "@openssl//:all_srcs",
     # Note that for Linux builds, libssl must come before libcrypto on the linker command-line.
     # As such, libssl must be listed before libcrypto
-    out_lib_dir = "lib64",
+    out_lib_dir = "lib",
     out_static_libs = [
         "libssl.a",
         "libcrypto.a",

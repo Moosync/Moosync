@@ -889,7 +889,7 @@ crates.annotation(
     ],
     build_script_env = {
         "OPENSSL_NO_VENDOR": "1",
-        "OPENSSL_LIB_DIR": "$(execpath @@//external/openssl:gen_dir)/lib64",
+        "OPENSSL_LIB_DIR": "$(execpath @@//external/openssl:gen_dir)/lib",
         "OPENSSL_INCLUDE_DIR": "$(execpath @@//external/openssl:gen_dir)/include",
         "OPENSSL_STATIC": "1",
     },

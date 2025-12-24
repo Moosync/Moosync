@@ -183,7 +183,7 @@ configure_make(
             "--pkg-config=/usr/bin/pkg-config",
         ],
         "//conditions:default": [
-            "--extra-libs=\"-logg -lvorbis -lvorbisenc -lvorbisfile -lm -lpthread\"",
+            "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lm -lpthread\"",
         ],
     }),
     data = select({

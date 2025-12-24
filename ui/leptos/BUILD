@@ -205,8 +205,8 @@ cargo_build_script(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//tauri-invoke-proc:tauri_invoke_proc_ui",
         "//ui/leptos/src/pref_gen",
+        "//ui/tauri-invoke-proc:tauri_invoke_proc_ui",
         "@wasmCrates//:leptos_i18n_build",
     ],
 )

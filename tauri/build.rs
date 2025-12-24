@@ -18,7 +18,7 @@ use std::fs;
 use std::path::Path;
 
 fn main() {
-    // println!("cargo:rustc-link-lib=z");
+    println!("cargo:rustc-link-lib=z");
     tauri_build::build();
 
     let out_dir = env::var("OUT_DIR").expect("OUT_DIR not set");

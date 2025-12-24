@@ -115,8 +115,12 @@ rust_library(
         "@crates//:tracing-appender",
         "@crates//:tracing-subscriber",
         "@crates//:url",
-        "@crates//:webkit2gtk",
-    ],
+    ] + select({
+        "@platforms//os:linux": [
+            "@crates//:webkit2gtk",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 rust_binary(

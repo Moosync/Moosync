@@ -33,7 +33,9 @@ jobs:
     steps:
       - name: Enable Git Long Paths (Windows)
         if: runner.os == 'Windows'
-        run: git config --system core.longpaths true
+        run: |
+          git config --system core.longpaths true 
+          git config --global core.symlinks true
 
       - uses: actions/checkout@v4
 

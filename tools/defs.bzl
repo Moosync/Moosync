@@ -1,3 +1,6 @@
+load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
+load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
+
 def _expand_template_impl(ctx):
     output = ctx.actions.declare_file(ctx.attr.out_name)
 
@@ -142,5 +145,57 @@ Handles copying and linking CSS, JS, WASM (preload), and Fonts (preload).
             cfg = "exec",
             doc = "The internal Python tool used to generate the bundle.",
         ),
+    },
+)
+
+def _pkg_config_impl(ctx):
+    # output file: <name>.pc
+    out = ctx.actions.declare_file("lib/pkgconfig/" + ctx.attr.lib_name + ".pc")
+
+    # We use ${pcfiledir} to make it relocatable (relative paths)
+    # This ensures it works inside the sandbox AND in the final install
+    content = """prefix=${{pcfiledir}}/..
+exec_prefix=${{prefix}}
+libdir=${{prefix}}/lib/lib
+includedir=${{prefix}}/include
+
+Name: {name}
+Description: {desc}
+Version: {version}
+Requires: {requires}
+Libs: -L${{libdir}} {libs}
+Cflags: -I${{includedir}} {cflags}
+""".format(
+        name = ctx.attr.lib_name,
+        desc = ctx.attr.description,
+        version = ctx.attr.version,
+        requires = ", ".join(ctx.attr.requires),
+        libs = " ".join(["-l" + l for l in ctx.attr.libs]),
+        cflags = " ".join(ctx.attr.cflags),
+    )
+
+    ctx.actions.write(out, content)
+
+    return [
+        DefaultInfo(files = depset([out])),
+        CcInfo(
+            compilation_context = cc_common.create_compilation_context(
+                headers = depset([out]),
+            ),
+            linking_context = cc_common.create_linking_context(
+                linker_inputs = depset([]),
+            ),
+        ),
+    ]
+
+pkg_config = rule(
+    implementation = _pkg_config_impl,
+    attrs = {
+        "lib_name": attr.string(mandatory = True),
+        "description": attr.string(default = "Library"),
+        "version": attr.string(default = "1.0.0"),
+        "requires": attr.string_list(default = []),
+        "libs": attr.string_list(mandatory = True),  # e.g. ["ogg"] -> -logg
+        "cflags": attr.string_list(default = []),
     },
 )

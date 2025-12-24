@@ -1,57 +1,130 @@
+load("@rules_foreign_cc//foreign_cc:cmake.bzl", "cmake")
 load("@rules_foreign_cc//foreign_cc:configure.bzl", "configure_make")
+load("@rules_foreign_cc//foreign_cc:make.bzl", "make_variant")
+
+make_variant(
+    name = "lame_msvc",
+    # We can pass the makefile flag directly here
+    args = [
+        "/f Makefile.MSVC",
+        "comp=msvc",
+        "ASM=nasm",
+        "MACHINE=/MACHINE:X64",
+        "MSVCVER=Win64",
+    ],
+    build_data = [
+        "@nasm//:nasm",
+    ],
+    env = {
+        "PATH": "$$(dirname $(execpath @nasm//:nasm))",
+    },
+    lib_source = "@lame//:all_srcs",
+    # Windows ffmpeg tries to find mp3lame.lib not libmp3lame.lib
+    out_static_libs = ["mp3lame.lib"],
+    # Manual install still required as NMake files don't support 'install'
+    postfix_script = "\n".join([
+        "mkdir -p $$INSTALLDIR/lib",
+        "mkdir -p $$INSTALLDIR/include/lame",
+        "find . -name 'libmp3lame*.lib' -exec cp {} $$INSTALLDIR/lib/mp3lame.lib \\; -quit",
+        "cp include/lame.h $$INSTALLDIR/include/lame/",
+    ]),
+    tags = ["manual"],
+    toolchain = "@rules_foreign_cc//toolchains:preinstalled_nmake_toolchain",
+)
 
 configure_make(
-    name = "lame",
+    name = "lame_nix",
     configure_options = [
         "--disable-shared",
         "--enable-static",
-        "--disable-frontend",  # We only need the library, not the lame CLI tool
+        "--disable-frontend",
     ],
+    env = select({
+        "@platforms//os:macos": {
+            "AR": "",
+        },
+        "//conditions:default": {},
+    }),
+    lib_name = "lame",
     lib_source = "@lame//:all_srcs",
     out_static_libs = ["libmp3lame.a"],
+    tags = ["manual"],
+)
+
+alias(
+    name = "lame",
+    actual = select({
+        "@platforms//os:windows": ":lame_msvc",
+        "//conditions:default": ":lame_nix",
+    }),
     visibility = ["//visibility:public"],
 )
 
 # Build libopus
-configure_make(
+cmake(
     name = "opus",
-    configure_options = [
-        "--disable-shared",
-        "--enable-static",
-        "--disable-doc",
-        "--disable-extra-programs",
-    ],
+    cache_entries = {
+        "CMAKE_INSTALL_LIBDIR": "lib",
+        "BUILD_SHARED_LIBS": "OFF",
+        "BUILD_TESTING": "OFF",
+        "OPUS_BUILD_PROGRAMS": "OFF",
+    },
     lib_source = "@opus//:all_srcs",
-    out_static_libs = ["libopus.a"],
+    out_static_libs = select({
+        "@platforms//os:windows": ["opus.lib"],
+        "//conditions:default": ["libopus.a"],
+    }),
     visibility = ["//visibility:public"],
 )
 
-# Build libogg
-configure_make(
+cmake(
     name = "ogg",
+    cache_entries = {
+        "CMAKE_INSTALL_LIBDIR": "lib",
+        "BUILD_SHARED_LIBS": "OFF",
+        "BUILD_TESTING": "OFF",
+    },
     lib_source = "@libogg//:all_srcs",
-    out_static_libs = ["libogg.a"],
+    out_static_libs = select({
+        "@platforms//os:windows": ["ogg.lib"],
+        "//conditions:default": ["libogg.a"],
+    }),
+    visibility = ["//visibility:public"],
 )
 
-# Build libvorbis
-configure_make(
+cmake(
     name = "vorbis",
-    configure_options = [
-        "--disable-oggtest",
-    ],
+    cache_entries = {
+        "CMAKE_INSTALL_LIBDIR": "lib",
+        "BUILD_SHARED_LIBS": "OFF",
+        "OGG_ROOT": "$$EXT_BUILD_DEPS$$",  # Critical: Helps Vorbis find Ogg
+    },
     lib_source = "@libvorbis//:all_srcs",
-    out_static_libs = [
-        "libvorbis.a",
-        "libvorbisfile.a",
-        "libvorbisenc.a",
-    ],
+
+    # 2. Define output libraries
+    out_static_libs = select({
+        "@platforms//os:windows": [
+            "vorbis.lib",
+            "vorbisenc.lib",
+            "vorbisfile.lib",
+        ],
+        "//conditions:default": [
+            "libvorbis.a",
+            "libvorbisenc.a",
+            "libvorbisfile.a",
+        ],
+    }),
     visibility = ["//visibility:public"],
     deps = [":ogg"],
 )
 
 configure_make(
     name = "ffmpeg",
-    args = ["-j16"],
+    build_data = select({
+        "@platforms//os:windows": ["@nasm//:nasm"],
+        "//conditions:default": [],
+    }),
+    configure_in_place = True,
     configure_options = [
         "--disable-everything",
         "--disable-programs",
@@ -98,7 +171,32 @@ configure_make(
         "--disable-vdpau",
         "--disable-libdrm",
         "--enable-static",
-    ],
+        # TODO: Figure out why -logg isn't added by pkg-config
+    ] + select({
+        "@platforms//os:windows": [
+            "--toolchain=msvc",
+            "--target-os=win64",
+            "--arch=x86_64",
+            "--extra-cflags=-I$$EXT_BUILD_DEPS$$/openssl/include",
+            "--extra-ldflags=-LIBPATH:$$EXT_BUILD_DEPS$$/openssl/lib",
+            "--extra-libs=\"ogg.lib vorbis.lib vorbisenc.lib vorbisfile.lib crypt32.lib advapi32.lib user32.lib\"",
+            # TODO: Hermetic pkg-config is broken, use msys2 one
+            "--pkg-config=/usr/bin/pkg-config",
+        ],
+        "//conditions:default": [
+            "--extra-libs=\"-logg -lvorbis -lvorbisenc -lvorbisfile -lm -lpthread\"",
+        ],
+    }),
+    data = select({
+        "@platforms//os:windows": ["fix_ffmpeg.sh"],
+        "//conditions:default": [],
+    }),
+    env = select({
+        "@platforms//os:windows": {
+            "PATH": "$$(dirname $(execpath @nasm//:nasm))",
+        },
+        "//conditions:default": {},
+    }),
     install_prefix = "build",
     lib_source = "@ffmpeg_7_0//:all_srcs",
     out_static_libs = [
@@ -110,9 +208,17 @@ configure_make(
         "libswresample.a",
         "libswscale.a",
     ],
+
+    # 2. Conditionally inject the fix script before make
+    tool_prefix = select({
+        # Escape quotes for Bazel + powershell + bash: 2^4 quotes
+        "@bazel_tools//src/conditions:windows": "sed -i 's|gsub(/\\\\\\\\/,|gsub(/\\\\\\\\\\\\\\\\/,|' ffbuild/config.mak &&",
+        "//conditions:default": "",
+    }),
     visibility = ["//visibility:public"],
     deps = [
         ":lame",
+        ":ogg",
         ":opus",
         ":vorbis",
         "//external/openssl",

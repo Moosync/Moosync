@@ -26,10 +26,12 @@ genrule(
             echo "Error: Could not find .js file in sources" >&2; exit 1
         fi
 
-        OUT_DIR=$$(dirname "$@")
-        REL_PATH=$$(realpath --relative-to="$$OUT_DIR" "$$JS_FILE")
+        PYTHON_BIN="$(PYTHON3)"
+        REL_PATH=$$(python3 -c "import os; print(os.path.relpath('$$JS_FILE', os.path.dirname('$@')))")
+
         sed "s|@JS_ENTRY@|./$$REL_PATH|g" $(location main.js.in) > $@
     """,
+    toolchains = ["@rules_python//python:current_py_toolchain"],
 )
 
 rollup(

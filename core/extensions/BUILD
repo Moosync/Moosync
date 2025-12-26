@@ -7,6 +7,7 @@ rust_library(
         "src/lib.rs",
         "src/models.rs",
     ],
+    crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",

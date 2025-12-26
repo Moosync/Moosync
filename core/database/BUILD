@@ -25,6 +25,7 @@ rust_library(
     compile_data = [
         ":migrations",
     ],
+    crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
     deps = [
         ":build_script",
@@ -49,6 +50,5 @@ cargo_build_script(
 
 rust_test(
     name = "database_test",
-    compile_data = ["Cargo.toml"],
     crate = ":database",
 )

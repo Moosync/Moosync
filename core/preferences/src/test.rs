@@ -173,7 +173,7 @@ fn test_secure_preferences() -> Result<()> {
     let config_file_path = prefs.config_file.lock().unwrap().clone();
 
     // Read the raw file content to check if it contains the plaintext password
-    let raw_file_content = fs::read_to_string(&config_file_path)?;
+    let raw_file_content = fs::read_to_string(&config_file_path).unwrap();
 
     // Verify the file doesn't contain the plaintext password
     assert!(

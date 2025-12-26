@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use leptos_i18n_build::{Options, TranslationsInfos};
+use leptos_i18n_build::{ParseOptions, TranslationsInfos};
 use pref_gen::generate_components;
 use std::{
     env, fs,
@@ -45,7 +45,7 @@ fn main() {
 
     let i18n_mod_directory = PathBuf::from(std::env::var_os("OUT_DIR").unwrap()).join("i18n");
 
-    let options = Options::default().interpolate_display(true);
+    let options = ParseOptions::default().interpolate_display(true);
     eprintln!("Using options: {:?}", env!("CARGO_MANIFEST_DIR"));
 
     let translations_infos = TranslationsInfos::parse(options).unwrap();

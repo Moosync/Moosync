@@ -76,26 +76,21 @@ pub struct InnerSong {
     pub year: Option<String>,
     pub lyrics: Option<String>,
     #[serde(rename = "releaseType")]
-    #[cfg_attr(feature = "core", diesel(column_name = "releasetype"))]
     pub release_type: Option<String>,
     pub bitrate: Option<f64>,
     pub codec: Option<String>, 
     pub container: Option<String>,
     pub duration: Option<f64>,
     #[serde(rename = "sampleRate")]
-    #[cfg_attr(feature = "core", diesel(column_name = "samplerate"))]
     pub sample_rate: Option<f64>,
     pub hash: Option<String>,
     #[serde(rename = "type")]
     pub type_: SongType,
     pub url: Option<String>,
-    #[cfg_attr(feature = "core", diesel(column_name = "song_coverpath_high"))]
     #[serde(rename = "song_coverPath_high")]
     pub song_cover_path_high: Option<String>,
-    #[cfg_attr(feature = "core", diesel(column_name = "playbackurl"))]
     #[serde(rename = "playbackUrl")]
     pub playback_url: Option<String>,
-    #[cfg_attr(feature = "core", diesel(column_name = "song_coverpath_low"))]
     #[serde(rename = "song_coverPath_low")]
     pub song_cover_path_low: Option<String>,
     pub date_added: Option<i64>,

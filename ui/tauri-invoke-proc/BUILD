@@ -7,7 +7,6 @@ rust_proc_macro(
         "src/core.rs",
         "src/lib.rs",
     ],
-    compile_data = ["Cargo.toml"],
     crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
     deps = [
@@ -27,7 +26,6 @@ rust_library(
         "src/common.rs",
         "src/ui.rs",
     ],
-    compile_data = ["Cargo.toml"],
     crate_root = "src/ui.rs",
     visibility = ["//visibility:public"],
     deps = [

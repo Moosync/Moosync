@@ -1,6 +1,6 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
-load("@rules_rust//rust:defs.bzl", "rust_binary")
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
+load("//rust:defs.bzl", "cargo_build", "rust_binary_with_export")
 
 package(default_visibility = ["//ui/gen_dist:__subpackages__"])
 
@@ -21,7 +21,7 @@ filegroup(
     srcs = ["prefs.yaml"],
 )
 
-rust_binary(
+rust_binary_with_export(
     name = "moosync_ui_bin",
     srcs = [
         "src/app.rs",
@@ -145,6 +145,7 @@ rust_binary(
     compile_data = [
         "Cargo.toml",
     ],
+    crate_root = "src/main.rs",
     platform = "@rules_rust//rust/platform:wasm",
     rustc_flags = [
         # Don't want a 700mb binary even in debug
@@ -155,6 +156,7 @@ rust_binary(
         "-C",
         "strip=symbols",
     ],
+    visibility = ["//visibility:public"],
     deps = [
         ":build_script",
         "//core/types:types_ui",
@@ -164,6 +166,7 @@ rust_binary(
         "@wasmCrates//:console_error_panic_hook",
         "@wasmCrates//:dyn-clone",
         "@wasmCrates//:futures",
+        "@wasmCrates//:getrandom",
         "@wasmCrates//:indexed_db_futures",
         "@wasmCrates//:itertools",
         "@wasmCrates//:js-sys",
@@ -203,7 +206,6 @@ cargo_build_script(
         ":locales",
         ":prefs_yaml",
     ],
-    visibility = ["//visibility:public"],
     deps = [
         "//ui/leptos/src/pref_gen",
         "//ui/tauri-invoke-proc:tauri_invoke_proc_ui",
@@ -212,11 +214,36 @@ cargo_build_script(
 )
 
 rust_wasm_bindgen(
-    name = "moosync_ui_bindgen",
+    name = "moosync_ui_bindgen_internal",
     bindgen_flags = [
         "--no-typescript",
     ],
     out_name = "moosync_ui_bindgen",
     target = "web",
+    visibility = ["//visibility:private"],
     wasm_file = ":moosync_ui_bin",
+)
+
+cargo_build(
+    name = "moosync_ui_bindgen_cargo",
+    srcs = [":moosync_ui_bin_export"],
+    out_name = "moosync_ui_bindgen",
+    run_wasm_bindgen = True,
+    rustflags = [
+        "--cfg",
+        "erase_components",
+        "-C",
+        "debuginfo=0",
+    ],
+    target = "wasm32-unknown-unknown",
+    visibility = ["//visibility:private"],
+)
+
+alias(
+    name = "moosync_ui_bindgen",
+    actual = select({
+        "@platforms//os:windows": ":moosync_ui_bindgen_cargo",
+        "//conditions:default": ":moosync_ui_bindgen_internal",
+    }),
+    visibility = ["//ui/gen_dist:__subpackages__"],
 )

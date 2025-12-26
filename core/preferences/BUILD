@@ -7,6 +7,7 @@ rust_library(
         "src/preferences.rs",
         "src/test.rs",
     ],
+    crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",
@@ -25,4 +26,7 @@ rust_library(
 rust_test(
     name = "preferences_test",
     crate = ":preferences",
+    deps = [
+        "@crates//:uuid",
+    ],
 )

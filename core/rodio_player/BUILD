@@ -8,6 +8,7 @@ rust_library(
         "src/lib.rs",
         "src/test.rs",
     ],
+    crate_root = "src/lib.rs",
     data = ["//external/ffmpeg:gen_dir"],
     rustc_env = {
         "FFMPEG_INCLUDE_DIR": "$(execpath //external/ffmpeg:gen_dir)/include",
@@ -30,10 +31,6 @@ rust_library(
 cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
-    build_script_env = {
-        "FFMPEG_INCLUDE_DIR": "$(execpath //external/ffmpeg:gen_dir)/include",
-        "FFMPEG_LIB_DIR": "$(execpath //external/ffmpeg:gen_dir)/lib",
-    },
     crate_root = "build.rs",
     data = ["//external/ffmpeg:gen_dir"],
     visibility = ["//visibility:public"],

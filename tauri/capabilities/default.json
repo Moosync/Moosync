@@ -4,9 +4,7 @@
   "windows": [
     "main"
   ],
-  "permissions": [
-    "audioplayer:default"
-  ],
+  "permissions": [],
   "platforms": [
     "linux",
     "macOS",

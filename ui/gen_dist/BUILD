@@ -6,6 +6,32 @@ package(default_visibility = ["//ui:__subpackages__"])
 
 npm_link_all_packages(name = "node_modules")
 
+genrule(
+    name = "generate_entry",
+    srcs = [
+        "main.js.in",
+        "//ui/leptos:moosync_ui_bindgen",
+    ],
+    outs = ["main.js"],
+    cmd = """
+        JS_FILE=""
+        for f in $(SRCS); do
+            if [[ "$$f" == *.js ]]; then
+                JS_FILE="$$f"
+                break
+            fi
+        done
+
+        if [ -z "$$JS_FILE" ]; then
+            echo "Error: Could not find .js file in sources" >&2; exit 1
+        fi
+
+        OUT_DIR=$$(dirname "$@")
+        REL_PATH=$$(realpath --relative-to="$$OUT_DIR" "$$JS_FILE")
+        sed "s|@JS_ENTRY@|./$$REL_PATH|g" $(location main.js.in) > $@
+    """,
+)
+
 rollup(
     name = "moosync_ui_bundle",
     srcs = [
@@ -13,7 +39,7 @@ rollup(
         "//ui/leptos:moosync_ui_bindgen",
     ],
     config_file = ":rollup.config.js",
-    entry_point = "main.js",
+    entry_point = ":generate_entry",
     node_modules = ":node_modules",
     deps = [
         ":node_modules/@rollup/plugin-node-resolve",

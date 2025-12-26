@@ -6,6 +6,7 @@ rust_library(
         "src/lib.rs",
         "src/mpris.rs",
     ],
+    crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",

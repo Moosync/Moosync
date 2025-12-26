@@ -6,6 +6,7 @@ rust_library(
         "src/lib.rs",
         "src/test.rs",
     ],
+    crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
     deps = [
         "//core/librespot",

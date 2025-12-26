@@ -115,6 +115,7 @@ filegroup(
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
     edition = "2024",
+    extra_target_triples = ["wasm32-unknown-unknown"],
     versions = [
         # "1.86.0",
         "nightly/2025-12-16",
@@ -275,7 +276,7 @@ wasm_crates.spec(
     default_features = False,
     features = ["csr"],
     package = "leptos_i18n",
-    version = "0.6.0-rc",
+    version = "0.6.0-rc.4",
 )
 wasm_crates.spec(
     git = "https://github.com/Ovenoboyo/leptos_virtual_scroller",
@@ -308,57 +309,57 @@ wasm_crates.spec(
 wasm_crates.spec(
     default_features = False,
     package = "icu",
-    version = "2.0.0",
+    version = "2.1.1",
 )
 wasm_crates.spec(
     default_features = False,
     package = "icu_locale",
-    version = "2.0.0",
+    version = "2.1.1",
 )
 wasm_crates.spec(
     default_features = False,
     package = "icu_provider",
-    version = "2.0.0",
+    version = "2.1.1",
 )
 wasm_crates.spec(
     default_features = False,
     package = "icu_provider_export",
-    version = "2.0.0",
+    version = "2.1.1",
 )
 wasm_crates.spec(
     default_features = False,
     package = "icu_provider_source",
-    version = "2.0.0",
+    version = "2.1.1",
 )
 wasm_crates.spec(
     default_features = False,
     package = "icu_plurals",
-    version = "2.0.0",
+    version = "2.1.1",
 )
 wasm_crates.spec(
     default_features = False,
     package = "icu_datetime",
-    version = "2.0.0",
+    version = "2.1.1",
 )
 wasm_crates.spec(
     default_features = False,
     package = "icu_calendar",
-    version = "2.0.0",
+    version = "2.1.1",
 )
 wasm_crates.spec(
     default_features = False,
     package = "icu_list",
-    version = "2.0.0",
+    version = "2.1.1",
 )
 wasm_crates.spec(
     default_features = False,
     package = "icu_decimal",
-    version = "2.0.0",
+    version = "2.1.1",
 )
 wasm_crates.spec(
     default_features = False,
     package = "icu_experimental",
-    version = "0.3.0",
+    version = "0.4.0",
 )
 wasm_crates.spec(
     default_features = False,
@@ -660,7 +661,7 @@ crates.spec(
 )
 crates.spec(
     package = "chacha20poly1305",
-    version = "0.11.0-rc",
+    version = "0.10.1",
 )
 crates.spec(
     package = "json_dotpath",
@@ -700,6 +701,9 @@ crates.annotation(
         "FFMPEG_LINK_MODE": "static",
     },
     crate = "rusty_ffmpeg",
+    rustc_flags = [
+        "-lz",
+    ],
 )
 crates.spec(
     default_features = False,

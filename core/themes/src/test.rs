@@ -21,7 +21,7 @@ use types::{
     themes::{ThemeDetails, ThemeItem},
 };
 
-use crate::themes::{transform_css, ThemeHolder};
+use crate::themes::{ThemeHolder, transform_css};
 
 #[test]
 fn test_transformcss() -> Result<()> {
@@ -33,13 +33,14 @@ fn test_transformcss() -> Result<()> {
     fs::write(
         root_theme.clone(),
         "@import \"./test1.css;\"\n\n@import \"./test1.css;\"",
-    )?;
-    fs::write(subroot_theme.clone(), "hello1")?;
+    )
+    .unwrap();
+    fs::write(subroot_theme.clone(), "hello1").unwrap();
 
-    let (res, _) = transform_css(root_theme.to_string_lossy().to_string(), Some(temp_dir))?;
+    let (res, _) = transform_css(root_theme.to_string_lossy().to_string(), Some(temp_dir)).unwrap();
 
-    fs::remove_file(root_theme)?;
-    fs::remove_file(subroot_theme)?;
+    fs::remove_file(root_theme).unwrap();
+    fs::remove_file(subroot_theme).unwrap();
 
     if res == "hello1\n\nhello1" {
         return Ok(());
@@ -58,22 +59,24 @@ fn test_transformcss_with_nested_imports() -> Result<()> {
     fs::write(
         root_theme.clone(),
         "@import \"./level1.css;\"\n\nbody { color: red; }",
-    )?;
+    )
+    .unwrap();
 
     fs::write(
         level1_theme.clone(),
         "@import \"./level2.css;\"\n\nh1 { font-size: 20px; }",
-    )?;
+    )
+    .unwrap();
 
-    fs::write(level2_theme.clone(), "p { margin: 10px; }")?;
+    fs::write(level2_theme.clone(), "p { margin: 10px; }").unwrap();
 
     // Test the transformation
     let (res, imports) = transform_css(root_theme.to_string_lossy().to_string(), Some(temp_dir))?;
 
     // Clean up files
-    fs::remove_file(root_theme)?;
-    fs::remove_file(level1_theme)?;
-    fs::remove_file(level2_theme)?;
+    fs::remove_file(root_theme).unwrap();
+    fs::remove_file(level1_theme).unwrap();
+    fs::remove_file(level2_theme).unwrap();
 
     // Verify results
     assert_eq!(
@@ -98,13 +101,14 @@ fn test_transformcss_with_theme_dir_replacement() -> Result<()> {
     fs::write(
         theme_file.clone(),
         "body { background-image: url('%themeDir%/assets/bg.png'); }",
-    )?;
+    )
+    .unwrap();
 
     // Test the transformation
     let (res, _) = transform_css(theme_file.to_string_lossy().to_string(), Some(temp_dir))?;
 
     // Clean up
-    fs::remove_file(theme_file.clone())?;
+    fs::remove_file(theme_file.clone()).unwrap();
 
     // Get the expected parent directory
     let expected_dir = theme_file.parent().unwrap().to_str().unwrap();
@@ -155,13 +159,14 @@ fn test_transformcss_with_invalid_imports() -> Result<()> {
     fs::write(
         theme_file.clone(),
         "@import \"./non_existent_file.css;\"\nbody { color: blue; }",
-    )?;
+    )
+    .unwrap();
 
     // Test the transformation (should fail due to invalid import)
     let result = transform_css(theme_file.to_string_lossy().to_string(), Some(temp_dir));
 
     // Clean up
-    fs::remove_file(theme_file)?;
+    fs::remove_file(theme_file).unwrap();
 
     // Verify it returns an error
     assert!(result.is_err(), "Should return error for invalid import");
@@ -177,8 +182,8 @@ fn test_theme_export_import_cycle() -> Result<()> {
     let temp_tmp_dir = temp_dir.join("temp_tmp_export");
     let export_path = temp_dir.join("exported_theme.mstx");
 
-    fs::create_dir_all(&temp_theme_dir)?;
-    fs::create_dir_all(&temp_tmp_dir)?;
+    fs::create_dir_all(&temp_theme_dir).unwrap();
+    fs::create_dir_all(&temp_tmp_dir).unwrap();
 
     // Setup channel for theme change notifications
     let (tx, _rx) = channel();
@@ -230,9 +235,9 @@ fn test_theme_export_import_cycle() -> Result<()> {
     );
 
     // Clean up
-    fs::remove_file(&export_path)?;
-    fs::remove_dir_all(&temp_theme_dir)?;
-    fs::remove_dir_all(&temp_tmp_dir)?;
+    fs::remove_file(&export_path).unwrap();
+    fs::remove_dir_all(&temp_theme_dir).unwrap();
+    fs::remove_dir_all(&temp_tmp_dir).unwrap();
 
     Ok(())
 }
@@ -244,8 +249,8 @@ fn test_get_css_functionality() -> Result<()> {
     let temp_theme_dir = temp_dir.join("temp_themes_css");
     let temp_tmp_dir = temp_dir.join("temp_tmp_css");
 
-    fs::create_dir_all(&temp_theme_dir)?;
-    fs::create_dir_all(&temp_tmp_dir)?;
+    fs::create_dir_all(&temp_theme_dir).unwrap();
+    fs::create_dir_all(&temp_tmp_dir).unwrap();
 
     // Setup channel for theme change notifications
     let (tx, _rx) = channel();
@@ -256,8 +261,8 @@ fn test_get_css_functionality() -> Result<()> {
     // Create a test CSS file
     let css_content = "body { color: green; }";
     let css_path = temp_theme_dir.join("css_test_theme").join("style.css");
-    fs::create_dir_all(css_path.parent().unwrap())?;
-    fs::write(&css_path, css_content)?;
+    fs::create_dir_all(css_path.parent().unwrap()).unwrap();
+    fs::write(&css_path, css_content).unwrap();
 
     // Create a test theme
     let theme_details = ThemeDetails {
@@ -287,8 +292,8 @@ fn test_get_css_functionality() -> Result<()> {
     assert_eq!(css, css_content, "CSS content should match");
 
     // Clean up
-    fs::remove_dir_all(temp_theme_dir)?;
-    fs::remove_dir_all(temp_tmp_dir)?;
+    fs::remove_dir_all(temp_theme_dir).unwrap();
+    fs::remove_dir_all(temp_tmp_dir).unwrap();
 
     Ok(())
 }

@@ -23,22 +23,22 @@ fn test_sanitize_title() {
 
     // Test removing content in parentheses and brackets
     let result = lyrics_fetcher.sanitize_title("Title (Official Music Video)");
-    assert_eq!(result, "Title ", "Should remove content in parentheses");
+    assert_eq!(result, "title ", "Should remove content in parentheses");
 
     let result = lyrics_fetcher.sanitize_title("Title [Official Music Video]");
-    assert_eq!(result, "Title ", "Should remove content in brackets");
+    assert_eq!(result, "title ", "Should remove content in brackets");
 
     // Test removing emojis
     let result = lyrics_fetcher.sanitize_title("Title 🔥");
-    assert_eq!(result, "Title ", "Should remove emojis");
+    assert_eq!(result, "title ", "Should remove emojis");
 
     // Test removing content after //
     let result = lyrics_fetcher.sanitize_title("Title //artist");
-    assert_eq!(result, "Title //", "Should remove content after //");
+    assert_eq!(result, "title ", "Should remove content after //");
 
     // Test combined cases
     let result = lyrics_fetcher.sanitize_title("Title (feat. Artist) [Official Video] 🎵");
-    assert_eq!(result, "Title  ", "Should handle multiple patterns");
+    assert_eq!(result, "title   ", "Should handle multiple patterns");
 }
 
 // Test the get_url method

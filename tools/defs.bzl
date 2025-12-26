@@ -6,7 +6,6 @@ def _expand_template_impl(ctx):
 
     final_subs = {}
     for key, value in ctx.attr.substitutions.items():
-        # data needs to be passed here so Bazel can look up the targets
         expanded_val = ctx.expand_location(value, ctx.attr.data)
         final_subs[key] = expanded_val
 
@@ -42,8 +41,6 @@ expand_template = rule(
         "template": attr.label(allow_single_file = True, mandatory = True),
         "out_name": attr.string(default = "index.html"),
         "substitutions": attr.string_dict(),
-        # --- CHANGE 3: New Attribute ---
-        # This allows you to pass the targets referenced in substitutions
         "data": attr.label_list(allow_files = True),
         "target_substitutions": attr.label_keyed_string_dict(allow_files = True),
         "_builder": attr.label(
@@ -149,11 +146,7 @@ Handles copying and linking CSS, JS, WASM (preload), and Fonts (preload).
 )
 
 def _pkg_config_impl(ctx):
-    # output file: <name>.pc
     out = ctx.actions.declare_file("lib/pkgconfig/" + ctx.attr.lib_name + ".pc")
-
-    # We use ${pcfiledir} to make it relocatable (relative paths)
-    # This ensures it works inside the sandbox AND in the final install
     content = """prefix=${{pcfiledir}}/..
 exec_prefix=${{prefix}}
 libdir=${{prefix}}/lib/lib

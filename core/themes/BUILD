@@ -7,7 +7,7 @@ rust_library(
         "src/test.rs",
         "src/themes.rs",
     ],
-    compile_data = ["Cargo.toml"],
+    crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",
@@ -26,6 +26,5 @@ rust_library(
 
 rust_test(
     name = "themes_test",
-    compile_data = ["Cargo.toml"],
     crate = ":themes",
 )

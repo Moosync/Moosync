@@ -11,6 +11,7 @@ rust_library(
         "src/types.rs",
         "src/utils.rs",
     ],
+    crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",

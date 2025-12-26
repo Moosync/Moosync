@@ -21,7 +21,6 @@ rust_library(
         "src/models.rs",
     ],
     compile_data = [
-        "Cargo.toml",
         ":permissions",
     ],
     visibility = ["//visibility:public"],
@@ -35,7 +34,6 @@ rust_library(
 cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
-    compile_data = ["Cargo.toml"],
     crate_root = "build.rs",
     pkg_name = "tauri-plugin-self-update",
     visibility = ["//visibility:public"],

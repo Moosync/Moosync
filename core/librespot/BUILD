@@ -14,6 +14,7 @@ rust_library(
         "src/spirc.rs",
         "src/utils.rs",
     ],
+    crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",

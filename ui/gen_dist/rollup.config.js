@@ -3,9 +3,10 @@
 // So we need to patch the module resolution to read the target dir from the symlink
 // (I know it makes no sense but it works). Everthing below resolves symlinks from
 // aspect_rules_js's pnpm style node_modules structure.
+const path = require('path');
 if (process.platform === 'win32') {
     const fs = require('fs');
-    const path = require('path');
+
     const Module = require('module');
 
 

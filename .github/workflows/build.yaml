@@ -58,23 +58,20 @@ jobs:
             gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools 
             gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl 
             gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio libappindicator3-dev 
-            nasm yasm autoconf automake libtool pkg-config make build-essential clang
+            nasm yasm autoconf automake libtool pkg-config make build-essential clang xdg-utils libfuse2 
+            libayatana-appindicator3-dev
           version: 1.0
 
-      - name: Install ARM-Only linux Dependencies
-        if: matrix.os == 'ubuntu-22.04-arm'
-        uses: awalsh128/cache-apt-pkgs-action@latest
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        if: runner.os == 'Windows'
+
         with:
-          packages: >
-            curl file xdg-utils libssl-dev libfuse2 libayatana-appindicator3-dev
-          version: 1.0
+          target: wasm32-unknown-unknown
 
-      # - name: Configure Windows Environment
-      #   if: runner.os == 'Windows'
-      #   shell: bash
-      #   run: |
-      #     echo "BAZEL_SH=C:\msys64\usr\bin\bash.exe" >> $GITHUB_ENV
-      #     echo "BAZEL_VC=C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC" >> $GITHUB_ENV
+      - uses: taiki-e/install-action@v2
+        if: runner.os == 'Windows'
+        with:
+          tool: wasm-bindgen-cli
 
       - uses: msys2/setup-msys2@v2
         if: runner.os == 'Windows'
@@ -88,15 +85,8 @@ jobs:
             zip 
             unzip
 
-      # Build Step
-      - name: Bazel Build ffmpeg
-        run: bazel build //external/ffmpeg
-
-      - name: Bazel Build core
-        run: bazel build --keep_going //core/...
-
       - name: Bazel Build ui
-        run: bazel build //ui:moosync_ui
+        run: bazel build //tauri:moosync
 
       # - name: Bazel Test
       #   run: bazel test //... --keep_going --test_output=errors

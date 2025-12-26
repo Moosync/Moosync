@@ -237,6 +237,7 @@ cargo_build(
     ],
     target = "wasm32-unknown-unknown",
     visibility = ["//visibility:private"],
+    wasm_bindgen_path = "wasm-bindgen",
 )
 
 alias(

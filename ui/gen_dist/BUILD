@@ -44,6 +44,7 @@ rollup(
     deps = [
         ":node_modules/@rollup/plugin-node-resolve",
         ":node_modules/@tauri-apps/api",
+        ":node_modules/rollup",
     ],
 )
 

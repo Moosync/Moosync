@@ -27,8 +27,8 @@ genrule(
         fi
 
         PYTHON_BIN="$(PYTHON3)"
-        REL_PATH=$$(python3 -c "import os; print(os.path.relpath('$$JS_FILE', os.path.dirname('$@')))")
-
+        REL_PATH=$$(python3 -c "import os, pathlib; print(pathlib.Path(os.path.relpath('$$JS_FILE', os.path.dirname('$@'))).as_posix())")
+        
         sed "s|@JS_ENTRY@|./$$REL_PATH|g" $(location main.js.in) > $@
     """,
     toolchains = ["@rules_python//python:current_py_toolchain"],

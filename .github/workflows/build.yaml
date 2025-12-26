@@ -58,8 +58,15 @@ jobs:
             gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools 
             gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl 
             gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio libappindicator3-dev 
-            nasm yasm autoconf automake libtool pkg-config make build-essential clang xdg-utils libfuse2 
-            libayatana-appindicator3-dev
+            nasm yasm autoconf automake libtool pkg-config make build-essential clang
+          version: 1.0
+
+      - name: Install ARM-Only linux Dependencies
+        if: matrix.os == 'ubuntu-22.04-arm'
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: >
+            curl file xdg-utils libfuse2 libayatana-appindicator3-dev
           version: 1.0
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1

@@ -1,4 +1,4 @@
-load("@rules_rust//rust:defs.bzl", "rust_library")
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
 filegroup(
     name = "canvaz_proto",
@@ -13,6 +13,7 @@ rust_library(
         "src/player.rs",
         "src/spirc.rs",
         "src/utils.rs",
+        "src/tests.rs",
     ],
     crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
@@ -31,4 +32,9 @@ rust_library(
         "@crates//:url",
         "@crates//:uuid",
     ],
+)
+
+rust_test(
+    name = "librespot_test",
+    crate = ":librespot",
 )

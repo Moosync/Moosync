@@ -1,4 +1,9 @@
-load("@rules_rust//rust:defs.bzl", "rust_library")
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+
+rust_test(
+    name = "extensions_test",
+    crate = ":extensions",
+)
 
 rust_library(
     name = "extensions",
@@ -6,6 +11,7 @@ rust_library(
         "src/ext_runner.rs",
         "src/lib.rs",
         "src/models.rs",
+        "src/tests.rs",
     ],
     crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],

@@ -14,7 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#[cfg(not(test))]
 pub use souvlaki::MediaControlEvent;
+#[cfg(test)]
+pub use crate::mock_souvlaki::souvlaki::{MediaControlEvent, MediaControls};
+
 use std::{
     sync::{
         mpsc::{self, Receiver},
@@ -23,7 +27,10 @@ use std::{
     time::Duration,
 };
 
-use souvlaki::{MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
+#[cfg(not(test))]
+use souvlaki::{MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
+#[cfg(test)]
+use crate::mock_souvlaki::souvlaki::{MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 use types::{
     errors::{MoosyncError, Result},
     mpris::MprisPlayerDetails,

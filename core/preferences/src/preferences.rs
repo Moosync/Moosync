@@ -32,7 +32,10 @@ use chacha20poly1305::{
 };
 use json_dotpath::DotPaths;
 // use jsonschema::Validator;
+#[cfg(not(test))]
 use keyring::Entry;
+#[cfg(test)]
+use crate::tests::mock_keyring::Entry;
 
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;

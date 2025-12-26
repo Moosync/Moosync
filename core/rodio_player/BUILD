@@ -6,7 +6,7 @@ rust_library(
     srcs = [
         "src/decoder.rs",
         "src/lib.rs",
-        "src/test.rs",
+        "src/tests.rs",
     ],
     crate_root = "src/lib.rs",
     data = ["//external/ffmpeg:gen_dir"],

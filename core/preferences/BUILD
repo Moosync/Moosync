@@ -5,7 +5,7 @@ rust_library(
     srcs = [
         "src/lib.rs",
         "src/preferences.rs",
-        "src/test.rs",
+        "src/tests.rs",
     ],
     crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],

@@ -38,7 +38,8 @@ use spirc::{ParsedToken, SpircWrapper};
 use types::canvaz::CanvazResponse;
 use types::errors::{MoosyncError, Result};
 
-
+#[cfg(test)]
+mod tests;
 
 #[derive(Clone)]
 pub struct ConfigHolder {
@@ -98,7 +99,7 @@ impl LibrespotHolder {
             use env_logger::Env;
 
             let env = Env::default().filter_or("MOOSYNC_LOG", "error");
-            env_logger::init_from_env(env);
+            let _ = env_logger::try_init_from_env(env);
         }
         Self {
             ..Default::default()

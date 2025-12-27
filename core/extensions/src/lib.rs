@@ -51,6 +51,9 @@ use zip_extensions::zip_extract;
 mod ext_runner;
 pub mod models;
 
+#[cfg(test)]
+mod tests;
+
 pub type UiRequestSender = UnboundedSender<GenericExtensionHostRequest<MainCommand>>;
 pub type UiRequestReceiver = UnboundedReceiver<GenericExtensionHostRequest<MainCommand>>;
 

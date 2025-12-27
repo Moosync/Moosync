@@ -17,4 +17,6 @@
 pub mod preferences;
 
 #[cfg(test)]
-mod test;
+mod tests;
+
+pub mod context;

@@ -32,7 +32,7 @@ use crate::decoder::FFMPEGDecoder;
 
 mod decoder;
 #[cfg(test)]
-mod test;
+mod tests;
 
 pub struct RodioPlayer {
     tx: Sender<RodioCommand>,

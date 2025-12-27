@@ -971,7 +971,16 @@ crates.spec(
     package = "quote",
     version = "1.0.41",
 )
-crates.from_specs(host_tools = "@rust_host_tools_nightly")
+crates.from_specs(
+    host_tools = "@rust_host_tools_nightly",
+    supported_platform_triples = [
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc",
+        "x86_64-apple-darwin",
+        "aarch64-apple-darwin",
+    ],
+)
 use_repo(crates, "crates")
 
 bindeps = use_extension("@rules_rust//crate_universe:extension.bzl", "crate", isolate = True)
@@ -987,6 +996,13 @@ bindeps.annotation(
 bindeps.from_specs(
     name = "bindeps",
     host_tools = "@rust_host_tools_nightly",
+    supported_platform_triples = [
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc",
+        "x86_64-apple-darwin",
+        "aarch64-apple-darwin",
+    ],
 )
 use_repo(bindeps, "bindeps")
 

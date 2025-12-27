@@ -33,12 +33,12 @@ jobs:
           - name: macOS x64
             os: macos-15-intel
             target: //package/apple:Moosync
-            artifact_pattern: "bazel-bin/package/apple/Moosync.app"
+            artifact_pattern: "bazel-bin/package/apple/Moosync.zip"
 
           - name: macOS ARM64
             os: macos-latest
             target: //package/apple:Moosync
-            artifact_pattern: "bazel-bin/package/apple/Moosync.app"
+            artifact_pattern: "bazel-bin/package/apple/Moosync.zip"
 
           - name: Windows x64
             os: windows-latest
@@ -127,6 +127,8 @@ jobs:
         run: |
           mkdir -p dist
           cp -rL ${{ matrix.artifact_pattern }} dist/ 2>/dev/null || echo "Warning: No artifacts found matching pattern"
+          pwd
+          tree
           ls -R dist/
 
       - name: Upload Artifact

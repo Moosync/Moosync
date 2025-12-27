@@ -17,7 +17,6 @@ bazel_dep(name = "nasm", version = "2.16.03.bcr.2")
 bazel_dep(name = "rules_cc", version = "0.2.16")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
 bazel_dep(name = "rules_appimage", version = "1.19.0")
-bazel_dep(name = "rules_apple", version = "4.3.3")
 bazel_dep(name = "rpmpack", version = "0.6.0")
 
 single_version_override(

@@ -1,24 +1,41 @@
-load("@rules_apple//apple:macos.bzl", "macos_application")
-load("@rules_apple//apple:versioning.bzl", "apple_bundle_version")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_files")
+load("@rules_pkg//pkg:zip.bzl", "pkg_zip")
 
-filegroup(
-    name = "AppIcons",
-    srcs = glob(["Resources/Assets.xcassets/**"]),
+genrule(
+    name = "rename_binary",
+    srcs = ["//tauri:moosync"],
+    outs = ["Moosync"],
+    cmd = "cp $< $@",
+    executable = True,
 )
 
-apple_bundle_version(
-    name = "moosync_version",
-    build_version = "12.0.0",
-    short_version_string = "12.0",
+pkg_files(
+    name = "app_binary",
+    srcs = [":rename_binary"],
+    attributes = pkg_attributes(mode = "0755"),
+    prefix = "Moosync.app/Contents/MacOS",
 )
 
-macos_application(
-    name = "Moosync",
-    app_icons = [":AppIcons"],
-    bundle_id = "com.moosync.music",
-    bundle_name = "Moosync",
-    infoplists = ["Info.plist"],
-    minimum_os_version = "10.15",
-    version = ":moosync_version",  # Or hardcoded string "1.0.0"
-    deps = ["//tauri:moosync"],
+# 2. Place Info.plist into Contents/
+pkg_files(
+    name = "app_plist",
+    srcs = ["Info.plist"],
+    prefix = "Moosync.app/Contents",
+)
+
+pkg_files(
+    name = "app_resources",
+    srcs = glob(["Resources/**"]),
+    prefix = "Moosync.app/Contents/Resources",
+    strip_prefix = "Resources",
+)
+
+pkg_zip(
+    name = "moosync_mac_app",
+    srcs = [
+        ":app_binary",
+        ":app_plist",
+        ":app_resources",
+    ],
+    out = "Moosync.zip",
 )

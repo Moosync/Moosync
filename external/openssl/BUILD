@@ -48,6 +48,7 @@ configure_make_variant(
     configure_command = "Configure",
     configure_in_place = True,
     configure_options = CONFIGURE_OPTIONS + [
+        "VC-WIN64A",
         "--libdir=lib",
         # Unset Microsoft Assembler (MASM) flags set by built-in MSVC toolchain,
         # as NASM is unsed to build OpenSSL rather than MASM

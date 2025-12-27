@@ -92,6 +92,13 @@ jobs:
             curl file xdg-utils libfuse2 libayatana-appindicator3-dev
           version: 1.0
 
+      - name: install dependencies (macos only)
+        if: matrix.os == 'macos-15-intel'
+        run: |
+          brew update
+          brew upgrade
+          brew install nasm
+
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         if: runner.os == 'Windows'
         with:
@@ -127,8 +134,6 @@ jobs:
         run: |
           mkdir -p dist
           cp -rL ${{ matrix.artifact_pattern }} dist/ 2>/dev/null || echo "Warning: No artifacts found matching pattern"
-          pwd
-          tree
           ls -R dist/
 
       - name: Upload Artifact

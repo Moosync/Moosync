@@ -23,12 +23,12 @@ jobs:
             os: ubuntu-22.04
             # REPLACE with your actual Linux package target (e.g. //package/linux:moosync_deb)
             target: //package:moosync_deb
-            artifact_pattern: "bazel-bin/package/linux/*.deb"
+            artifact_pattern: "bazel-bin/package/*.deb"
 
           - name: Linux ARM64
             os: ubuntu-22.04-arm
             target: //package:moosync_deb
-            artifact_pattern: "bazel-bin/package/linux/*.deb"
+            artifact_pattern: "bazel-bin/package/*.deb"
 
           - name: macOS x64
             os: macos-15-intel

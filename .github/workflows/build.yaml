@@ -33,12 +33,12 @@ jobs:
           - name: macOS x64
             os: macos-15-intel
             target: //package/apple:Moosync
-            artifact_pattern: "bazel-bin/package/apple/Moosync.zip"
+            artifact_pattern: "bazel-bin/package/apple/Moosync*"
 
           - name: macOS ARM64
             os: macos-latest
             target: //package/apple:Moosync
-            artifact_pattern: "bazel-bin/package/apple/Moosync.zip"
+            artifact_pattern: "bazel-bin/package/apple/Moosync*"
 
           - name: Windows x64
             os: windows-latest
@@ -121,10 +121,6 @@ jobs:
             zip 
             unzip
             mingw-w64-x86_64-nasm
-
-      - name: Bazel clean (Windows only)
-        if: runner.os == 'Windows'
-        run: bazel clean --expunge
 
       - name: Bazel Build Package
         run: bazel build ${{ matrix.target }} -c opt

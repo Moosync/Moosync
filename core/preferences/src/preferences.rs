@@ -32,10 +32,9 @@ use chacha20poly1305::{
 };
 use json_dotpath::DotPaths;
 // use jsonschema::Validator;
-#[cfg(not(test))]
 use keyring::Entry;
 #[cfg(test)]
-use crate::tests::mock_keyring::Entry;
+use mockall::automock;
 
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
@@ -46,20 +45,28 @@ use types::errors::{
     error_helpers::{self, to_file_system_error},
 };
 
+use crate::context::{KeyringContext, RealKeyringContext};
+
 // const SCHEMA: &str = include_str!("./schema.json");
 
-#[derive(Debug)]
 pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,
     pub secret: Mutex<Key>,
     pub memcache: Mutex<Value>,
     sender: Sender<(String, Value)>,
     receiver: Receiver<(String, Value)>,
+    _keyring_context: Box<dyn KeyringContext>,
 }
 
 impl PreferenceConfig {
     #[tracing::instrument(level = "debug", skip(data_dir))]
     pub fn new(data_dir: PathBuf) -> Result<Self> {
+        let context = RealKeyringContext::new("moosync", whoami::username().as_str())
+            .map_err(error_helpers::to_config_error)?;
+        Self::new_with_context(data_dir, Box::new(context))
+    }
+
+    pub fn new_with_context(data_dir: PathBuf, context: Box<dyn KeyringContext>) -> Result<Self> {
         let config_file_path = data_dir.join("config.json");
 
         if !data_dir.exists() {
@@ -72,11 +79,8 @@ impl PreferenceConfig {
                 .map_err(to_file_system_error)?;
         }
 
-        let entry = Entry::new("moosync", whoami::username().as_str())
-            .map_err(error_helpers::to_config_error)?;
-
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        let secret = match entry.get_secret() {
+        let secret = match context.get_secret() {
             Ok(password) => {
                 tracing::debug!("Got keystore password");
                 Key::from(GenericArray::clone_from_slice(
@@ -89,13 +93,11 @@ impl PreferenceConfig {
                     e
                 );
                 let key = ChaCha20Poly1305::generate_key(&mut OsRng);
-                entry
+                context
                     .set_secret(key.as_slice())
                     .map_err(error_helpers::to_config_error)?;
 
-                let entry = Entry::new("moosync", whoami::username().as_str())
-                    .map_err(error_helpers::to_config_error)?;
-                match entry.get_secret() {
+                match context.get_secret() {
                     Ok(_) => {}
                     Err(_) => panic!("Failed to set secret key"),
                 };
@@ -114,13 +116,6 @@ impl PreferenceConfig {
 
         let prefs = serde_json::from_str(&prefs).unwrap_or_default();
 
-        // let schema = serde_json::from_str(SCHEMA).unwrap();
-        // let schema = match jsonschema::validator_for(&schema) {
-        //     Ok(s) => s,
-        //     Err(e) => panic!("{}: {}", e, e.instance_path),
-        // };
-        // schema.validate(&prefs)?;
-
         let (sender, receiver) = bounded(1);
 
         Ok(PreferenceConfig {
@@ -129,6 +124,7 @@ impl PreferenceConfig {
             memcache: Mutex::new(prefs),
             sender,
             receiver,
+            _keyring_context: context,
         })
     }
 

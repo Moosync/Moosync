@@ -5,8 +5,8 @@ rust_library(
     srcs = [
         "src/lib.rs",
         "src/mpris.rs",
-        "src/mock_souvlaki.rs",
         "src/tests.rs",
+        "src/context/mod.rs",
     ],
     crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
@@ -15,6 +15,7 @@ rust_library(
         "@crates//:souvlaki",
         "@crates//:tracing",
         "@crates//:windows",
+        "@crates//:mockall",
     ],
 )
 

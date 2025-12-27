@@ -1,28 +1,8 @@
-use super::preferences::PreferenceConfig;
+use super::{preferences::PreferenceConfig, context::MockKeyringContext};
 use std::env::temp_dir;
 use types::ui::extensions::PreferenceData;
 use serde_json::Value;
 use uuid::Uuid;
-
-pub mod mock_keyring {
-    use types::errors::MoosyncError;
-
-    pub struct Entry {}
-
-    impl Entry {
-        pub fn new(_service: &str, _user: &str) -> Result<Self, MoosyncError> {
-            Ok(Self {})
-        }
-
-        pub fn get_secret(&self) -> Result<Vec<u8>, MoosyncError> {
-            Ok(vec![0; 32])
-        }
-
-        pub fn set_secret(&self, _secret: &[u8]) -> Result<(), MoosyncError> {
-            Ok(())
-        }
-    }
-}
 
 fn get_test_db_path() -> std::path::PathBuf {
     let file_name = format!("moosync_test_prefs_{}.db", Uuid::new_v4());
@@ -31,15 +11,21 @@ fn get_test_db_path() -> std::path::PathBuf {
 
 #[test]
 fn test_preferences_new() {
+    let mut mock_context = Box::new(MockKeyringContext::new());
+    mock_context.expect_get_secret().returning(|| Ok(vec![0; 32]));
+
     let db_path = get_test_db_path();
-    let prefs = PreferenceConfig::new(db_path.clone());
+    let prefs = PreferenceConfig::new_with_context(db_path.clone(), mock_context);
     assert!(prefs.is_ok());
 }
 
 #[test]
 fn test_set_and_get_preference() {
+    let mut mock_context = Box::new(MockKeyringContext::new());
+    mock_context.expect_get_secret().returning(|| Ok(vec![0; 32]));
+
     let db_path = get_test_db_path();
-    let prefs = PreferenceConfig::new(db_path.clone()).unwrap();
+    let prefs = PreferenceConfig::new_with_context(db_path.clone(), mock_context).unwrap();
 
     let key = "test.key".to_string();
     let value = "test_value".to_string();

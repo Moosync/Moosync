@@ -28,5 +28,5 @@ pub use mpris_android::{MediaControlEvent, MprisHolder};
 
 #[cfg(test)]
 mod tests;
-#[cfg(test)]
-mod mock_souvlaki;
+
+pub mod context;

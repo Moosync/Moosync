@@ -6,6 +6,7 @@ rust_library(
         "src/lib.rs",
         "src/preferences.rs",
         "src/tests.rs",
+        "src/context/mod.rs",
     ],
     crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
@@ -20,6 +21,7 @@ rust_library(
         "@crates//:serde_json",
         "@crates//:tracing",
         "@crates//:whoami",
+        "@crates//:mockall",
     ],
 )
 
@@ -28,5 +30,6 @@ rust_test(
     crate = ":preferences",
     deps = [
         "@crates//:uuid",
+        "@crates//:mockall",
     ],
 )

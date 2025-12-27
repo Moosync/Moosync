@@ -953,6 +953,14 @@ crates.spec(
     package = "quote",
     version = "1.0.41",
 )
+crates.spec(
+    package = "mockall",
+    version = "0.13.1",
+)
+crates.spec(
+    package = "mockall_double",
+    version = "0.3.1",
+)
 crates.from_specs(host_tools = "@rust_host_tools_nightly")
 use_repo(crates, "crates")
 

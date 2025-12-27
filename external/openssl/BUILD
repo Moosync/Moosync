@@ -51,6 +51,7 @@ configure_make_variant(
         "--libdir=lib",
         # Unset Microsoft Assembler (MASM) flags set by built-in MSVC toolchain,
         # as NASM is unsed to build OpenSSL rather than MASM
+        "AR=\"lib\"",
         "CC=\"cl\"",
         "ASFLAGS= ",
         "CFLAGS=\"/W3 /wd4090 /nologo /O2 /Zi /MP\"",

@@ -33,6 +33,7 @@ rust_library(
         "@crates//:diesel",
         "@crates//:diesel_logger",
         "@crates//:diesel_migrations",
+        "@crates//:libsqlite3-sys",
         "@crates//:serde",
         "@crates//:serde_json",
         "@crates//:tracing",

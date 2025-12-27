@@ -24,7 +24,6 @@ mod players;
 mod store;
 mod utils;
 
-#[allow(deprecated)]
 include!(concat!(env!("OUT_DIR"), "/i18n/mod.rs"));
 
 use crate::i18n::I18nContextProvider;

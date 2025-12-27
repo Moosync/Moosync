@@ -21,14 +21,29 @@ jobs:
         include:
           - name: Linux x64
             os: ubuntu-22.04
+            # REPLACE with your actual Linux package target (e.g. //package/linux:moosync_deb)
+            target: //package:moosync_deb
+            artifact_pattern: "bazel-bin/package/linux/*.deb"
+
           - name: Linux ARM64
             os: ubuntu-22.04-arm
+            target: //package:moosync_deb
+            artifact_pattern: "bazel-bin/package/linux/*.deb"
+
           - name: macOS x64
             os: macos-15-intel
+            target: //package/apple:Moosync
+            artifact_pattern: "bazel-bin/package/apple/Moosync.app"
+
           - name: macOS ARM64
             os: macos-latest
+            target: //package/apple:Moosync
+            artifact_pattern: "bazel-bin/package/apple/Moosync.app"
+
           - name: Windows x64
             os: windows-latest
+            target: //tauri:moosync
+            artifact_pattern: "bazel-bin/tauri/moosync.exe"
 
     steps:
       - name: Enable Git Long Paths (Windows)
@@ -61,6 +76,37 @@ jobs:
             nasm yasm autoconf automake libtool pkg-config make build-essential clang
           version: 1.0
 
+      # https://github.com/sfackler/rust-openssl/blob/master/.github/workflows/ci.yml#L94
+      - name: Install vcpkg (Windows only)
+        run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
+        if: runner.os == 'Windows'
+
+      - name: Export GitHub Actions cache environment variables
+        uses: actions/github-script@v7
+        if: runner.os == 'Windows'
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Install nasm (Windows only)
+        if: runner.os == 'Windows'
+        run: |
+          vcpkg install nasm:x64-windows
+          $vcpkgRoot = $env:VCPKG_INSTALLATION_ROOT
+          $nasmDir = "$vcpkgRoot\installed\x64-windows\tools\nasm"
+
+          if (Test-Path "$nasmDir\nasm.exe") {
+            Write-Host "NASM found at: $nasmDir"
+          } else {
+            Write-Error "NASM binary not found after installation!"
+            exit 1
+          }
+
+          echo "$nasmDir" >> $env:GITHUB_PATH
+        env:
+          VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+
       - name: Install ARM-Only linux Dependencies
         if: matrix.os == 'ubuntu-22.04-arm'
         uses: awalsh128/cache-apt-pkgs-action@latest
@@ -71,7 +117,6 @@ jobs:
 
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         if: runner.os == 'Windows'
-
         with:
           target: wasm32-unknown-unknown
 
@@ -92,10 +137,23 @@ jobs:
             zip 
             unzip
 
-      - name: Bazel Build ui
-        run: bazel build //tauri:moosync
+      - name: Bazel clean (Windows only)
+        if: runner.os == 'Windows'
+        run: bazel clean --expunge
 
-      # - name: Bazel Test
-      #   run: bazel test //... --keep_going --test_output=errors
-      #   env:
-      #     BAZEL_SH: ${{ env.BAZEL_SH }}
+      - name: Bazel Build Package
+        run: bazel build ${{ matrix.target }} -c opt
+
+      - name: Prepare Artifacts for Upload
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp -rL ${{ matrix.artifact_pattern }} dist/ 2>/dev/null || echo "Warning: No artifacts found matching pattern"
+          ls -R dist/
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: moosync-package-${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: warn

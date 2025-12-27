@@ -52,7 +52,7 @@ configure_make_variant(
         # Unset Microsoft Assembler (MASM) flags set by built-in MSVC toolchain,
         # as NASM is unsed to build OpenSSL rather than MASM
         "CC=\"cl\"",
-        "ASFLAGS=\" \"",
+        "ASFLAGS= ",
         "CFLAGS=\"/W3 /wd4090 /nologo /O2 /Zi /MP\"",
         "LDFLAGS=\"/nologo /debug /Zi\"",
         "ARFLAGS=\"/nologo\"",

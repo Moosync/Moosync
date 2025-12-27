@@ -4,7 +4,9 @@ common --@rules_rust//rust/toolchain/channel=nightly
 common --experimental_isolated_extension_usages
 common --action_env=CARGO_PKG_AUTHORS=Moosync --action_env=CARGO_PKG_DESCRIPTION= --action_env=CARGO_PKG_HOMEPAGE= --action_env=CARGO_PKG_LICENSE= --action_env=CARGO_PKG_REPOSITORY= --action_env=CARGO_MANIFEST_LINKS="https://github.com/Moosync/Moosync"
 common:linux --repo_env=BAZEL_CONLYOPTS="-std=gnu17"
-# common --incompatible_strict_action_env
+common:linux --incompatible_strict_action_env
+common:macos --incompatible_strict_action_env
 startup --windows_enable_symlinks
 build --enable_runfiles
 build:windows --spawn_strategy=local
+common --registry=https://raw.githubusercontent.com/bazelbuild/bazel-central-registry/main

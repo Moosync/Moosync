@@ -51,17 +51,21 @@ const { nodeResolve } = require('@rollup/plugin-node-resolve')
 
 
 function findTauriApiPath() {
+    const tauriApiPath = require.resolve('@tauri-apps/api');
+    return [path.dirname(path.dirname(path.dirname(tauriApiPath)))]
+}
+
+function getPlugins() {
     if (process.platform === 'win32') {
-        const tauriApiPath = require.resolve('@tauri-apps/api');
-        return [path.dirname(path.dirname(path.dirname(tauriApiPath)))]
+        return [
+            nodeResolve({
+                moduleDirectories: findTauriApiPath(),
+            }),
+        ]
     }
-    return []
+    return [nodeResolve()]
 }
 
 module.exports = {
-    plugins: [
-        nodeResolve({
-            moduleDirectories: findTauriApiPath()
-        }),
-    ],
+    plugins: getPlugins(),
 }

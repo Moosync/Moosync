@@ -192,3 +192,25 @@ pkg_config = rule(
         "cflags": attr.string_list(default = []),
     },
 )
+
+def _dirgroup_impl(ctx):
+    output_dir = ctx.actions.declare_directory(ctx.attr.name)
+    cmd = "cp -fL {srcs} {out_dir}".format(
+        srcs = " ".join([f.path for f in ctx.files.srcs]),
+        out_dir = output_dir.path,
+    )
+
+    ctx.actions.run_shell(
+        inputs = ctx.files.srcs,
+        outputs = [output_dir],
+        command = cmd,
+        mnemonic = "CopyToDir",
+    )
+    return [DefaultInfo(files = depset([output_dir]))]
+
+dirgroup = rule(
+    implementation = _dirgroup_impl,
+    attrs = {
+        "srcs": attr.label_list(allow_files = True),
+    },
+)

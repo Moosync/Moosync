@@ -227,6 +227,7 @@ rust_wasm_bindgen(
 cargo_build(
     name = "moosync_ui_bindgen_cargo",
     srcs = [":moosync_ui_bin_export"],
+    binary_name = "moosync-ui-bin-internal.wasm",
     out_name = "moosync_ui_bindgen",
     run_wasm_bindgen = True,
     rustflags = [

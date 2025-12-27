@@ -144,6 +144,8 @@ configure_make(
         "--enable-demuxer=mov",
         "--enable-demuxer=ogg",
         "--enable-demuxer=wav",
+        # https://www.mail-archive.com/ffmpeg-devel@ffmpeg.org/msg33510.html
+        "--enable-demuxer=w64",
         "--enable-muxer=adts",
         "--enable-muxer=flac",
         "--enable-muxer=mp3",
@@ -178,7 +180,7 @@ configure_make(
             "--arch=x86_64",
             "--extra-cflags=-I$$EXT_BUILD_DEPS$$/openssl/include",
             "--extra-ldflags=-LIBPATH:$$EXT_BUILD_DEPS$$/openssl/lib",
-            "--extra-libs=\"ogg.lib vorbis.lib vorbisenc.lib vorbisfile.lib crypt32.lib advapi32.lib user32.lib\"",
+            "--extra-libs=\"libssl.lib libcrypto.lib ogg.lib vorbis.lib vorbisenc.lib vorbisfile.lib crypt32.lib advapi32.lib user32.lib\"",
             # TODO: Hermetic pkg-config is broken, use msys2 one
             "--pkg-config=/usr/bin/pkg-config",
         ],

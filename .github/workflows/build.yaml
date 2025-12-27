@@ -56,9 +56,9 @@ jobs:
 
       - uses: bazel-contrib/setup-bazel@0.16.0
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}
-          repository-cache: true
+          bazelisk-cache: ${{ runner.os != 'Windows' }}
+          disk-cache: ${{ runner.os != 'Windows' && github.workflow || false }}
+          repository-cache: ${{ runner.os != 'Windows' }}
 
       - name: Install Common linux Dependencies
         if: startsWith(matrix.os, 'ubuntu-22.04')

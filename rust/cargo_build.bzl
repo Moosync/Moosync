@@ -49,7 +49,7 @@ def _cargo_generic_build_impl(ctx):
 
     script = """
     set -e
-    ROOT=$(pwd)
+    ROOT=$(cygpath -m $(pwd))
 
     BUILD_DIR=bazel-out/b/build_dir
     

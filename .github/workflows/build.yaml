@@ -127,7 +127,6 @@ jobs:
         shell: bash
         if: runner.os == 'Windows'
         run: |
-          which pkgconf
           which pkg-config
 
       - name: Bazel Build Package

@@ -8,7 +8,6 @@ alias(
     actual = select({
         "@platforms//cpu:x86_64": "@linuxdeploy_x86_64//file",
         "@platforms//cpu:arm64": "@linuxdeploy_arm64//file",
-        "@platforms//cpu:aarch64": "@linuxdeploy_arm64//file",
         "//conditions:default": "@linuxdeploy_x86_64//file",
     }),
 )
@@ -164,7 +163,7 @@ genrule(
 filegroup(
     name = "linux_release",
     srcs = select({
-        ":cpu_arm64": [":rename_arm64"],
+        "@platforms//cpu:arm64": [":rename_arm64"],
         "//conditions:default": [":rename_x64"],
     }),
     visibility = ["//visibility:public"],

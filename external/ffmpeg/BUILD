@@ -182,7 +182,8 @@ configure_make(
             "--extra-ldflags=-LIBPATH:$$EXT_BUILD_DEPS$$/openssl/lib",
             "--extra-libs=\"libssl.lib libcrypto.lib ogg.lib vorbis.lib vorbisenc.lib vorbisfile.lib crypt32.lib advapi32.lib user32.lib\"",
             # TODO: Hermetic pkg-config is broken, use msys2 one
-            "--pkg-config=$${MSYS2_PATH//\\//}/usr/bin/pkg-config",
+            # NOTE: Only on github actions. Change it if you're building locally
+            "--pkg-config=D:/a/_temp/msys64/usr/bin/pkg-config",
         ],
         "//conditions:default": [
             "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lm -lpthread\"",

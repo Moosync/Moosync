@@ -179,9 +179,9 @@ configure_make(
             "--toolchain=msvc",
             "--target-os=win64",
             "--arch=x86_64",
-            "--extra-cflags=-I$$EXT_BUILD_DEPS/openssl/include",
-            "--extra-ldflags=-LIBPATH:$$EXT_BUILD_DEPS/openssl/lib",
-            "--extra-libs=\"libssl.lib libcrypto.lib ogg.lib vorbis.lib vorbisenc.lib vorbisfile.lib crypt32.lib advapi32.lib user32.lib\"",
+            "--extra-cflags=/I$$EXT_BUILD_DEPS/openssl/include",
+            "--extra-ldflags=/LIBPATH:$$EXT_BUILD_DEPS/openssl/lib",
+            "--extra-libs=\"libssl.lib libcrypto.lib ogg.lib vorbis.lib vorbisenc.lib vorbisfile.lib crypt32.lib advapi32.lib user32.lib ws2_32.lib bcrypt.lib secur32.lib shlwapi.lib\"",
             # TODO: Hermetic pkg-config is broken, use msys2 one
             # NOTE: Only on github actions. Change it if you're building locally
             "--pkg-config=\"D:/a/_temp/msys64/usr/bin/pkg-config.exe $$BAZEL_PKG_FLAGS\"",
@@ -194,7 +194,6 @@ configure_make(
         "@platforms//os:windows": {
             "PATH": "$$(dirname $(execpath @nasm//:nasm))",
             "BAZEL_PKG_FLAGS": " ".join([
-                "--with-path=$$(cygpath -u $${EXT_BUILD_DEPS}/openssl/lib/pkgconfig)",
                 "--with-path=$$(cygpath -u $${EXT_BUILD_DEPS}/ogg/lib/pkgconfig)",
                 "--with-path=$$(cygpath -u $${EXT_BUILD_DEPS}/vorbis/lib/pkgconfig)",
                 "--with-path=$$(cygpath -u $${EXT_BUILD_DEPS}/opus/lib/pkgconfig)",

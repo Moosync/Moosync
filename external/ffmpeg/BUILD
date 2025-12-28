@@ -179,8 +179,8 @@ configure_make(
             "--toolchain=msvc",
             "--target-os=win64",
             "--arch=x86_64",
-            "--extra-cflags=-I$$EXT_BUILD_DEPS$$/openssl/include",
-            "--extra-ldflags=-LIBPATH:$$EXT_BUILD_DEPS$$/openssl/lib",
+            "--extra-cflags=-I$$EXT_BUILD_DEPS/openssl/include",
+            "--extra-ldflags=-LIBPATH:$$EXT_BUILD_DEPS/openssl/lib",
             "--extra-libs=\"libssl.lib libcrypto.lib ogg.lib vorbis.lib vorbisenc.lib vorbisfile.lib crypt32.lib advapi32.lib user32.lib\"",
             # TODO: Hermetic pkg-config is broken, use msys2 one
             # NOTE: Only on github actions. Change it if you're building locally

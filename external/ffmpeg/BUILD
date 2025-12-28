@@ -171,6 +171,7 @@ configure_make(
         "--disable-vaapi",
         "--disable-vdpau",
         "--disable-libdrm",
+        "--disable-ffnvcodec",
         "--enable-static",
         # TODO: Figure out why -logg isn't added by pkg-config
     ] + select({

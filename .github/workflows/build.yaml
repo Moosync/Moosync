@@ -142,9 +142,8 @@ jobs:
         with:
           name: build-logs
           path: |
-            bazel-out/**/config.log
-            bazel-out/**/build_script.log
-            bazel-out/**/ffbuild/config.log
+            bazel-bin/
+            bazel-out/
           retention-days: 1
 
       - name: Prepare Artifacts for Upload

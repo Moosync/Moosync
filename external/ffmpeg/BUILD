@@ -184,8 +184,7 @@ configure_make(
             "--extra-libs=\"libssl.lib libcrypto.lib ogg.lib vorbis.lib vorbisenc.lib vorbisfile.lib crypt32.lib advapi32.lib user32.lib\"",
             # TODO: Hermetic pkg-config is broken, use msys2 one
             # NOTE: Only on github actions. Change it if you're building locally
-            "--pkg-config=D:/a/_temp/msys64/usr/bin/pkg-config.exe",
-            "--pkg-config-flags=\"$$BAZEL_PKG_FLAGS\"",
+            "--pkg-config=\"D:/a/_temp/msys64/usr/bin/pkg-config.exe $$BAZEL_PKG_FLAGS\"",
         ],
         "//conditions:default": [
             "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lm -lpthread\"",

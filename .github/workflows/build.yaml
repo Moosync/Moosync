@@ -120,7 +120,15 @@ jobs:
             diffutils 
             zip 
             unzip
+            pkgconf
             mingw-w64-x86_64-nasm
+
+      - name: Check pkg-config
+        shell: bash
+        if: runner.os == 'Windows'
+        run: |
+          which pkgconf
+          which pkg-config
 
       - name: Bazel Build Package
         run: bazel build ${{ matrix.target }} -c opt  --experimental_ui_max_stdouterr_bytes=50000000

@@ -110,6 +110,7 @@ jobs:
           tool: wasm-bindgen-cli
 
       - uses: msys2/setup-msys2@v2
+        id: msys2
         if: runner.os == 'Windows'
         with:
           update: true
@@ -127,9 +128,9 @@ jobs:
         shell: bash
         if: runner.os == 'Windows'
         run: |
-          ls -la /usr/bin/
-          ls -la /usr/bin/pkg-config.exe
-          which pkg-config
+          tree $MSYS2_PATH/
+        env:
+          MSYS2_PATH: ${{ steps.msys2.outputs.msys2-location }}
 
       - name: Bazel Build Package
         run: bazel build ${{ matrix.target }} -c opt  --experimental_ui_max_stdouterr_bytes=50000000 --sandbox_debug

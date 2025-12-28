@@ -185,6 +185,7 @@ configure_make(
             # TODO: Hermetic pkg-config is broken, use msys2 one
             # NOTE: Only on github actions. Change it if you're building locally
             "--pkg-config=D:/a/_temp/msys64/usr/bin/pkg-config.exe",
+            "--pkg-config-flags=$$BAZEL_PKG_FLAGS",
         ],
         "//conditions:default": [
             "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lm -lpthread\"",
@@ -193,6 +194,12 @@ configure_make(
     env = select({
         "@platforms//os:windows": {
             "PATH": "$$(dirname $(execpath @nasm//:nasm))",
+            "BAZEL_PKG_FLAGS": " ".join([
+                "--with-path=$$(cygpath -u $${EXT_BUILD_DEPS}/openssl/lib/pkgconfig)",
+                "--with-path=$$(cygpath -u $${EXT_BUILD_DEPS}/ogg/lib/pkgconfig)",
+                "--with-path=$$(cygpath -u $${EXT_BUILD_DEPS}/vorbis/lib/pkgconfig)",
+                "--with-path=$$(cygpath -u $${EXT_BUILD_DEPS}/opus/lib/pkgconfig)",
+            ]),
         },
         "//conditions:default": {},
     }),

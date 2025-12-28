@@ -10,3 +10,6 @@ startup --windows_enable_symlinks
 build --enable_runfiles
 build:windows --spawn_strategy=local
 common --registry=https://raw.githubusercontent.com/bazelbuild/bazel-central-registry/main
+
+build:linux --@rules_rust//rust/settings:lto=fat
+build:macos --@rules_rust//rust/settings:lto=fat

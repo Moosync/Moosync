@@ -56,7 +56,7 @@ genrule(
     ],
     outs = ["Moosync.AppImage"],
     cmd = """
-    cp $(location @linuxdeploy//file) linuxdeploy
+    cp $(location :linuxdeploy_tool) linuxdeploy
     chmod +x linuxdeploy
     
     cp $(location @linuxdeploy_plugin_gtk//file) linuxdeploy-plugin-gtk.sh

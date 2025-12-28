@@ -71,18 +71,6 @@ rust_library(
     rustc_env = {
         "TAURI_CONF_JSON": "$(execpath :tauri_config)",
     },
-    rustc_flags = [
-        "-C",
-        "lto=true",
-        "-C",
-        "codegen-units=1",
-        "-C",
-        "panic=abort",
-        "-C",
-        "opt-level=3",
-        "-C",
-        "strip=symbols",
-    ],
     visibility = ["//visibility:public"],
     deps = [
         ":build_script",
@@ -134,6 +122,16 @@ rust_binary_with_export(
     name = "moosync_internal",
     srcs = ["src/main.rs"],
     binary_name = "moosync",
+    rustc_flags = [
+        "-C",
+        "codegen-units=1",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "strip=symbols",
+        "-C",
+        "panic=abort",
+    ],
     visibility = ["//visibility:private"],
     deps = [
         ":app_lib",

@@ -42,7 +42,7 @@ jobs:
 
           - name: Windows x64
             os: windows-latest
-            target: //external/ffmpeg
+            target: //tauri:moosync
             artifact_pattern: "bazel-bin/tauri/moosync.exe"
 
     steps:
@@ -125,53 +125,18 @@ jobs:
             pkgconf
             mingw-w64-x86_64-nasm
 
-      - name: Check pkg-config
-        shell: bash
-        if: runner.os == 'Windows'
-        run: |
-          ls -laR $MSYS2_PATH/usr/bin
-        env:
-          MSYS2_PATH: ${{ steps.msys2.outputs.msys2-location }}
-
       - name: Bazel Build Package
-        run: bazel build ${{ matrix.target }} -c opt  --experimental_ui_max_stdouterr_bytes=50000000 --sandbox_debug
+        run: bazel build ${{ matrix.target }} -c opt
         env:
           MSYS2_PATH: ${{ runner.os == 'Windows' && steps.msys2.outputs.msys2-location }}
       - name: Upload configuration logs on failure
-        if: failure()
+        if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
           path: |
             bazel-bin/
-            bazel-out/
           retention-days: 1
-
-      - name: Check vorbis
-        if: failure()
-        shell: bash
-        run: |
-          echo $PKG_CONFIG_PATH
-
-          OGG_PATH="/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/ogg/lib/pkgconfig"
-          OPUS_PATH="/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/opus/lib/pkgconfig"
-          VORBIS_PATH="/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/vorbis/lib/pkgconfig"
-          SSL_PATH="/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/openssl/lib/pkgconfig"
-
-          D:/a/_temp/msys64/usr/bin/pkg-config \
-            --with-path="$OGG_PATH" \
-            --with-path="$OPUS_PATH" \
-            --with-path="$VORBIS_PATH" \
-            --with-path="$SSL_PATH" \
-            --exists --print-errors --debug --list-all vorbis
-            
-          D:/a/_temp/msys64/usr/bin/pkg-config --variable=pc_path pkg-config
-          D:/a/_temp/msys64/usr/bin/pkg-config --print-provides /d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/vorbis/lib/pkgconfig/vorbis.pc
-        env:
-          MSYS2_PATH: ${{ steps.msys2.outputs.msys2-location }}
-          MSYS_NO_PATHCONV: 1
-          MSYS2_ARG_CONV_EXCL: "*"
-          PKG_CONFIG_PATH: "/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/ogg/lib/pkgconfig;/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/opus/lib/pkgconfig;/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/vorbis/lib/pkgconfig;/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/openssl/lib/pkgconfig"
 
       - name: Prepare Artifacts for Upload
         shell: bash

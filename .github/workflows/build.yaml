@@ -128,7 +128,7 @@ jobs:
         shell: bash
         if: runner.os == 'Windows'
         run: |
-          tree $MSYS2_PATH/
+          ls -laR $MSYS2_PATH/
         env:
           MSYS2_PATH: ${{ steps.msys2.outputs.msys2-location }}
 

@@ -194,10 +194,10 @@ configure_make(
         "@platforms//os:windows": {
             "PATH": "$$(dirname $(execpath @nasm//:nasm))",
             "PKG_CONFIG_PATH": ":".join([
-                "$$EXT_BUILD_DEPS$$/openssl/lib/pkgconfig",
-                "$$EXT_BUILD_DEPS$$/ogg/lib/pkgconfig",
-                "$$EXT_BUILD_DEPS$$/vorbis/lib/pkgconfig",
-                "$$EXT_BUILD_DEPS$$/opus/lib/pkgconfig",
+                "$$EXT_BUILD_DEPS/openssl/lib/pkgconfig",
+                "$$EXT_BUILD_DEPS/ogg/lib/pkgconfig",
+                "$$EXT_BUILD_DEPS/vorbis/lib/pkgconfig",
+                "$$EXT_BUILD_DEPS/opus/lib/pkgconfig",
             ]),
         },
         "//conditions:default": {},

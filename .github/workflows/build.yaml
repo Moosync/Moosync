@@ -127,7 +127,7 @@ jobs:
         shell: bash
         if: runner.os == 'Windows'
         run: |
-          ls -la /usr/bin/pkg-config
+          ls -la /usr/bin/
           ls -la /usr/bin/pkg-config.exe
           which pkg-config
 

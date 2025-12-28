@@ -42,7 +42,7 @@ jobs:
 
           - name: Windows x64
             os: windows-latest
-            target: //tauri:moosync
+            target: //external/ffmpeg
             artifact_pattern: "bazel-bin/tauri/moosync.exe"
 
     steps:

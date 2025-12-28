@@ -184,7 +184,7 @@ configure_make(
             "--extra-libs=\"libssl.lib libcrypto.lib ogg.lib vorbis.lib vorbisenc.lib vorbisfile.lib crypt32.lib advapi32.lib user32.lib\"",
             # TODO: Hermetic pkg-config is broken, use msys2 one
             # NOTE: Only on github actions. Change it if you're building locally
-            "--pkg-config=D:/a/_temp/msys64/usr/bin/pkg-config",
+            "--pkg-config=D:/a/_temp/msys64/usr/bin/pkg-config.exe",
         ],
         "//conditions:default": [
             "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lm -lpthread\"",
@@ -193,12 +193,6 @@ configure_make(
     env = select({
         "@platforms//os:windows": {
             "PATH": "$$(dirname $(execpath @nasm//:nasm))",
-            "PKG_CONFIG_PATH": ";".join([
-                "$$EXT_BUILD_DEPS/openssl/lib/pkgconfig",
-                "$$EXT_BUILD_DEPS/ogg/lib/pkgconfig",
-                "$$EXT_BUILD_DEPS/vorbis/lib/pkgconfig",
-                "$$EXT_BUILD_DEPS/opus/lib/pkgconfig",
-            ]),
         },
         "//conditions:default": {},
     }),

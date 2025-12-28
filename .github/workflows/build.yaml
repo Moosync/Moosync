@@ -151,6 +151,7 @@ jobs:
         if: failure()
         shell: bash
         run: |
+          echo $PKG_CONFIG_PATH
           D:/a/_temp/msys64/usr/bin/pkg-config --exists --print-errors --debug --list-all vorbis
           D:/a/_temp/msys64/usr/bin/pkg-config --variable=pc_path pkg-config
           D:/a/_temp/msys64/usr/bin/pkg-config --print-provides /d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/vorbis/lib/pkgconfig/vorbis.pc
@@ -158,7 +159,7 @@ jobs:
           MSYS2_PATH: ${{ steps.msys2.outputs.msys2-location }}
           MSYS_NO_PATHCONV: 1
           MSYS2_ARG_CONV_EXCL: "*"
-          PKG_CONFIG_PATH: "/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/ogg/lib/pkgconfig:/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/opus/lib/pkgconfig:/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/vorbis/lib/pkgconfig:/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/openssl/lib/pkgconfig"
+          PKG_CONFIG_PATH: "/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/ogg/lib/pkgconfig;/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/opus/lib/pkgconfig;/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/vorbis/lib/pkgconfig;/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/openssl/lib/pkgconfig"
 
       - name: Prepare Artifacts for Upload
         shell: bash

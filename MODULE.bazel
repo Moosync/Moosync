@@ -36,9 +36,15 @@ git_override(
 http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
 
 http_file(
-    name = "linuxdeploy",
+    name = "linuxdeploy_x86_64",
     executable = True,
     urls = ["https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"],
+)
+
+http_file(
+    name = "linuxdeploy_arm64",
+    executable = True,
+    urls = ["https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-aarch64.AppImage"],
 )
 
 http_file(

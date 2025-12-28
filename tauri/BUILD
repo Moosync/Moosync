@@ -71,6 +71,18 @@ rust_library(
     rustc_env = {
         "TAURI_CONF_JSON": "$(execpath :tauri_config)",
     },
+    rustc_flags = [
+        "-C",
+        "lto=true",
+        "-C",
+        "codegen-units=1",
+        "-C",
+        "panic=abort",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "strip=symbols",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         ":build_script",
@@ -166,7 +178,7 @@ cargo_build(
         "OPENSSL_INCLUDE_DIR": "$ROOT/$(execpath //external/openssl:gen_dir)/include",
         "OPENSSL_STATIC": "1",
     },
-    out_name = "moosync.exe",
+    out_name = "moosync_cargo.exe",
     rustflags = [
         "-C",
         "link-arg=User32.lib",

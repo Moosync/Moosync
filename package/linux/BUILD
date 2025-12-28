@@ -3,9 +3,14 @@ load("@rules_pkg//pkg:deb.bzl", "pkg_deb")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("//:version.bzl", "APP_NAME", "RELEASE", "VERSION")
 
-config_setting(
-    name = "cpu_arm64",
-    values = {"cpu": "aarch64"},
+alias(
+    name = "linuxdeploy_tool",
+    actual = select({
+        "@platforms//cpu:x86_64": "@linuxdeploy_x86_64//file",
+        "@platforms//cpu:arm64": "@linuxdeploy_arm64//file",
+        "@platforms//cpu:aarch64": "@linuxdeploy_arm64//file",
+        "//conditions:default": "@linuxdeploy_x86_64//file",
+    }),
 )
 
 ARCH_DEB = select({
@@ -78,7 +83,7 @@ genrule(
     mv *.AppImage $@
     """,
     tools = [
-        "@linuxdeploy//file",
+        ":linuxdeploy_tool",
         "@linuxdeploy_plugin_gtk//file",
     ],
 )

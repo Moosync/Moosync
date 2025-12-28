@@ -152,7 +152,19 @@ jobs:
         shell: bash
         run: |
           echo $PKG_CONFIG_PATH
-          D:/a/_temp/msys64/usr/bin/pkg-config --exists --print-errors --debug --list-all vorbis
+
+          OGG_PATH="/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/ogg/lib/pkgconfig"
+          OPUS_PATH="/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/opus/lib/pkgconfig"
+          VORBIS_PATH="/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/vorbis/lib/pkgconfig"
+          SSL_PATH="/d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/openssl/lib/pkgconfig"
+
+          D:/a/_temp/msys64/usr/bin/pkg-config \
+            --with-path="$OGG_PATH" \
+            --with-path="$OPUS_PATH" \
+            --with-path="$VORBIS_PATH" \
+            --with-path="$SSL_PATH" \
+            --exists --print-errors --debug --list-all vorbis
+            
           D:/a/_temp/msys64/usr/bin/pkg-config --variable=pc_path pkg-config
           D:/a/_temp/msys64/usr/bin/pkg-config --print-provides /d/_bazel/execroot/_main/bazel-out/x64_windows-opt/bin/external/ffmpeg/ffmpeg.ext_build_deps/vorbis/lib/pkgconfig/vorbis.pc
         env:

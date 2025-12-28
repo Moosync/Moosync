@@ -17,7 +17,7 @@ bazel_dep(name = "nasm", version = "2.16.03.bcr.2")
 bazel_dep(name = "rules_cc", version = "0.2.16")
 bazel_dep(name = "rules_pkg", version = "1.0.1")
 bazel_dep(name = "rules_appimage", version = "1.19.0")
-bazel_dep(name = "rpmpack", version = "0.6.0")
+bazel_dep(name = "rpmpack")
 
 single_version_override(
     module_name = "rules_foreign_cc",
@@ -25,6 +25,26 @@ single_version_override(
     patches = [
         "//patches:0001-Fix-pkgconfig_build.bzl-for-Windows-build-with-Bzlmod.patch",
     ],
+)
+
+git_override(
+    module_name = "rpmpack",
+    commit = "2467806670a618497006ff8d8623b0430c7605a9",
+    remote = "https://github.com/google/rpmpack.git",
+)
+
+http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+
+http_file(
+    name = "linuxdeploy",
+    executable = True,
+    urls = ["https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"],
+)
+
+http_file(
+    name = "linuxdeploy_plugin_gtk",
+    executable = True,
+    urls = ["https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"],
 )
 
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")

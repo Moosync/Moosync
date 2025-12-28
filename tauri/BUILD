@@ -166,7 +166,7 @@ cargo_build(
         "OPENSSL_INCLUDE_DIR": "$ROOT/$(execpath //external/openssl:gen_dir)/include",
         "OPENSSL_STATIC": "1",
     },
-    out_name = "moosync",
+    out_name = "moosync.exe",
     rustflags = [
         "-C",
         "link-arg=User32.lib",

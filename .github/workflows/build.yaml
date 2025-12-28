@@ -8,6 +8,8 @@ on:
 
   workflow_dispatch:
 
+env:
+  APP_NAME: "Moosync"
 jobs:
   build-and-test:
     name: ${{ matrix.name }}
@@ -21,29 +23,41 @@ jobs:
         include:
           - name: Linux x64
             os: ubuntu-22.04
-            # REPLACE with your actual Linux package target (e.g. //package/linux:moosync_deb)
-            target: //package:moosync_deb
-            artifact_pattern: "bazel-bin/package/*.deb"
+            target: //package/linux:linux_release
+            artifact_path_base: "bazel-bin/package/linux"
+            artifact_patterns: |
+              Moosync-*-*.x86_64.rpm
+              Moosync-*-*.amd64.deb
+              Moosync-*-*.x86_64.AppImage
 
           - name: Linux ARM64
             os: ubuntu-22.04-arm
-            target: //package:moosync_deb
-            artifact_pattern: "bazel-bin/package/*.deb"
+            target: //package/linux:linux_release
+            artifact_path_base: "bazel-bin/package/linux"
+            artifact_patterns: |
+              Moosync-*-*.aarch64.rpm
+              Moosync-*-*.arm64.deb
+              Moosync-*-*.aarch64.AppImage
 
           - name: macOS x64
             os: macos-15-intel
-            target: //package/apple:Moosync
-            artifact_pattern: "bazel-bin/package/apple/Moosync*"
+            target: //package/apple:apple_release
+            artifact_path_base: "bazel-bin/package/apple"
+            artifact_patterns: "Moosync-*-*.darwin-x64.zip"
 
           - name: macOS ARM64
             os: macos-latest
-            target: //package/apple:Moosync
-            artifact_pattern: "bazel-bin/package/apple/Moosync*"
+            target: //package/apple:apple_release
+            artifact_path_base: "bazel-bin/package/apple"
+            artifact_patterns: "Moosync-*-*.darwin-arm64.zip"
 
           - name: Windows x64
             os: windows-latest
-            target: //tauri:moosync
-            artifact_pattern: "bazel-bin/tauri/moosync.exe"
+            target: //package/windows:windows_release
+            artifact_path_base: "bazel-bin/package/windows"
+            artifact_patterns: |
+              Moosync-*-*.x86_64-setup.exe
+              Moosync-*-*.x86_64.exe
 
     steps:
       - name: Enable Git Long Paths (Windows)
@@ -76,14 +90,6 @@ jobs:
             nasm yasm autoconf automake libtool pkg-config make build-essential clang
           version: 1.0
 
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        if: runner.os == 'Windows'
-        with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
-
       - name: Install ARM-Only linux Dependencies
         if: matrix.os == 'ubuntu-22.04-arm'
         uses: awalsh128/cache-apt-pkgs-action@latest
@@ -98,16 +104,6 @@ jobs:
           brew update
           brew upgrade
           brew install nasm
-
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        if: runner.os == 'Windows'
-        with:
-          target: wasm32-unknown-unknown
-
-      - uses: taiki-e/install-action@v2
-        if: runner.os == 'Windows'
-        with:
-          tool: wasm-bindgen-cli
 
       - uses: msys2/setup-msys2@v2
         id: msys2
@@ -124,25 +120,32 @@ jobs:
             unzip
             pkgconf
             mingw-w64-x86_64-nasm
+            mingw-w64-x86_64-nsis
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        if: runner.os == 'Windows'
+        with:
+          target: wasm32-unknown-unknown
+          cache: false
+
+      - uses: taiki-e/install-action@v2
+        if: runner.os == 'Windows'
+        with:
+          tool: wasm-bindgen-cli
 
       - name: Bazel Build Package
         run: bazel build ${{ matrix.target }} -c opt
         env:
           MSYS2_PATH: ${{ runner.os == 'Windows' && steps.msys2.outputs.msys2-location }}
-      - name: Upload configuration logs on failure
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs
-          path: |
-            bazel-bin/
-          retention-days: 1
 
       - name: Prepare Artifacts for Upload
         shell: bash
         run: |
           mkdir -p dist
-          cp -rL ${{ matrix.artifact_pattern }} dist/ 2>/dev/null || echo "Warning: No artifacts found matching pattern"
+          echo "${{ matrix.artifact_patterns }}" | while read -r pattern; do
+            if [[ -z "$pattern" ]]; then continue; fi
+            cp -L ${{ matrix.artifact_path_base }}/$pattern dist/
+          done
           ls -R dist/
 
       - name: Upload Artifact

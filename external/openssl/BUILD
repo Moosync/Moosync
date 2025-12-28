@@ -14,6 +14,7 @@ CONFIGURE_OPTIONS = [
     "no-idea",
     "no-weak-ssl-ciphers",
     "no-tests",
+    "no-shared",
 ]
 
 LIB_NAME = "openssl"
@@ -61,7 +62,6 @@ configure_make_variant(
     env = {
         "PATH": "$$(dirname $(execpath @nasm//:nasm))",
         "PERL": "$$EXT_BUILD_ROOT$$/$(PERL)",
-        "CFLAGS": "-Zi",
         "CXXFLAGS": " ",
         "LDFLAGS": " ",
     },

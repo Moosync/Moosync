@@ -124,6 +124,7 @@ jobs:
 
       - name: Add MSYS2 to PATH
         shell: powershell
+        if: runner.os == 'Windows'
         run: |
           $root = "${{ steps.msys2.outputs.msys2-location }}"
 

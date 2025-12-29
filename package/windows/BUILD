@@ -9,9 +9,9 @@ genrule(
     outs = ["MoosyncSetup.exe"],
     cmd = """
     makensis \
-      /V4 \
-      /DBINARY_PATH="$(location //tauri:moosync)" \
-      /DOUTFILE="$@" \
+      -V4 \
+      -DBINARY_PATH="$(location //tauri:moosync)" \
+      -DOUTFILE="$@" \
       "$(location moosync.nsi)"
     """,
 )

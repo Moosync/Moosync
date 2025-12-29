@@ -67,6 +67,7 @@ jobs:
           git config --global core.symlinks true
 
       - name: Free Disk Space (Linux)
+        if: startsWith(matrix.os, 'ubuntu-22.04')
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
@@ -98,7 +99,7 @@ jobs:
             gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools 
             gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl 
             gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio libappindicator3-dev 
-            nasm yasm autoconf automake libtool pkg-config make build-essential clang
+            nasm yasm autoconf automake libtool pkg-config make build-essential clang libenchant-2-2
           version: 1.0
 
       - name: Install ARM-Only linux Dependencies

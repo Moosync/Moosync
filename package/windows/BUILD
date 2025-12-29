@@ -8,9 +8,10 @@ genrule(
     ],
     outs = ["MoosyncSetup.exe"],
     cmd = """
+    ROOT=$$(cygpath -m "$$PWD")
     makensis \
       -V4 \
-      -DBINARY_PATH="$(location //tauri:moosync)" \
+      -DBINARY_PATH="$$ROOT/$(location //tauri:moosync)" \
       -DOUTFILE="$@" \
       "$(location moosync.nsi)"
     """,

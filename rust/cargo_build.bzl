@@ -90,6 +90,8 @@ def _cargo_generic_build_impl(ctx):
         cp "{out_name}.js" "$ROOT/{out_js_path}"
     else
         cp "$EXPECTED_BIN" "$ROOT/{out_wasm_path}"
+        echo "Copied binary to $ROOT/{out_wasm_path}"
+        ls -la "$ROOT/{out_wasm_path}"
     fi
     """.format(
         source_path = source_dir.path,

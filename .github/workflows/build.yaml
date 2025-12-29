@@ -67,7 +67,7 @@ jobs:
           git config --global core.symlinks true
 
       - name: Free Disk Space (Linux)
-        if: startsWith(matrix.os, 'ubuntu-22.04')
+        if: matrix.os == 'ubuntu-22.04'
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false

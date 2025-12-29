@@ -17,7 +17,7 @@ genrule(
       -DOUTFILE="$$OUT_PATH" \
       "$(location moosync.nsi)"
 
-    ls -la $$OUT_PATH
+    ls -la "$$(cygpath -u "$$OUT_PATH")"
     """,
 )
 

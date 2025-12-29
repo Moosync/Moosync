@@ -1,0 +1,562 @@
+crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate", isolate = True)
+crates.spec(
+    default_features = False,
+    package = "base64",
+    version = "0.22.1",
+)
+crates.spec(
+    package = "bitcode",
+    version = "0.6.7",
+)
+crates.spec(
+    package = "command-group",
+    version = "5.0.1",
+)
+crates.spec(
+    features = [
+        "sqlite",
+        "chrono",
+        "serde_json",
+    ],
+    package = "diesel",
+    version = "2.3.3",
+)
+crates.spec(
+    git = "https://github.com/Ovenoboyo/diesel-logger.git",
+    package = "diesel_logger",
+)
+crates.spec(
+    default_features = False,
+    package = "diesel_migrations",
+    version = "2.3.0",
+)
+crates.spec(
+    package = "extism",
+    version = "1.12.0",
+)
+crates.spec(
+    package = "extism-convert",
+    version = "1.12.0",
+)
+crates.spec(
+    package = "fs_extra",
+    version = "1.3.0",
+)
+crates.spec(
+    default_features = False,
+    features = ["executor"],
+    package = "futures",
+    version = "0.3.31",
+)
+crates.spec(
+    features = ["tokio"],
+    package = "interprocess",
+    version = "2.2.3",
+)
+crates.spec(
+    features = ["bundled"],
+    package = "libsqlite3-sys",
+    version = "0.35.0",
+)
+crates.spec(
+    package = "regex",
+    version = "1.12.2",
+)
+crates.spec(
+    package = "rust-crypto",
+    version = "0.2.36",
+)
+crates.spec(
+    default_features = False,
+    features = ["derive"],
+    package = "serde",
+    version = "1.0.228",
+)
+crates.spec(
+    default_features = False,
+    package = "serde_json",
+    version = "1.0.145",
+)
+crates.spec(
+    package = "serde_yaml",
+    version = "0.9.34",
+)
+crates.spec(
+    package = "thiserror",
+    version = "2.0.17",
+)
+crates.spec(
+    features = [
+        "rt-multi-thread",
+        "macros",
+    ],
+    package = "tokio",
+    version = "1.48.0",
+)
+crates.spec(
+    default_features = False,
+    package = "tracing",
+    version = "0.1.41",
+)
+crates.spec(
+    default_features = False,
+    features = ["v4"],
+    package = "uuid",
+    version = "1.18.1",
+)
+crates.spec(
+    package = "wasmtime",
+    version = "37",
+)
+crates.spec(
+    default_features = False,
+    package = "zip-extensions",
+    version = "0.8",
+)
+crates.spec(
+    features = [
+        "json",
+        "stream",
+    ],
+    package = "reqwest",
+    version = "0.12.26",
+)
+crates.spec(
+    package = "glob",
+    version = "0.3.3",
+)
+crates.spec(
+    default_features = False,
+    package = "blake3",
+    version = "1.8.2",
+)
+crates.spec(
+    package = "fast_image_resize",
+    version = "5.3.0",
+)
+crates.spec(
+    package = "image",
+    version = "0.25.8",
+)
+crates.spec(
+    package = "lazy_static",
+    version = "1.5.0",
+)
+crates.spec(
+    default_features = False,
+    package = "lofty",
+    version = "0.22.4",
+)
+crates.spec(
+    default_features = False,
+    package = "regex",
+    version = "1.12.2",
+)
+crates.spec(
+    package = "threadpool",
+    version = "1.8.1",
+)
+crates.spec(
+    package = "num_cpus",
+    version = "1.17.0",
+)
+crates.spec(
+    package = "dunce",
+    version = "1.0.5",
+)
+crates.spec(
+    package = "substring",
+    version = "1.4.5",
+)
+crates.spec(
+    default_features = False,
+    package = "regex",
+    version = "1.12.2",
+)
+crates.spec(
+    package = "url",
+    version = "2.5.7",
+)
+crates.spec(
+    default_features = False,
+    package = "tracing",
+    version = "0.1.41",
+)
+crates.spec(
+    default_features = False,
+    package = "futures-util",
+    version = "0.3.31",
+)
+crates.spec(
+    branch = "dev",
+    default_features = False,
+    features = [
+        "rodio-backend",
+        "native-tls",
+    ],
+    git = "https://github.com/librespot-org/librespot",
+    package = "librespot",
+)
+crates.spec(
+    default_features = False,
+    features = ["bytes"],
+    package = "protobuf",
+    version = "3.7.2",
+)
+crates.spec(
+    package = "env_logger",
+    version = "0.11.8",
+)
+crates.spec(
+    features = [
+        "Win32_Foundation",
+        "Win32_Graphics_Gdi",
+        "Win32_System_LibraryLoader",
+        "Win32_UI_WindowsAndMessaging",
+    ],
+    package = "windows",
+    version = "0.44",
+)
+crates.spec(
+    package = "raw-window-handle",
+    version = "0.5.2",
+)
+crates.spec(
+    package = "souvlaki",
+    version = "0.7.3",
+)
+crates.spec(
+    features = ["tokio"],
+    package = "zbus",
+    version = "5.12.0",
+)
+crates.spec(
+    default_features = False,
+    features = [
+        "apple-native",
+        "windows-native",
+        "sync-secret-service",
+    ],
+    package = "keyring",
+    version = "3",
+)
+crates.spec(
+    default_features = False,
+    package = "whoami",
+    version = "1.6.1",
+)
+crates.spec(
+    package = "hex",
+    version = "0.4.3",
+)
+crates.spec(
+    package = "chacha20poly1305",
+    version = "0.10.1",
+)
+crates.spec(
+    package = "json_dotpath",
+    version = "1.1.0",
+)
+crates.spec(
+    package = "crossbeam-channel",
+    version = "0.5.15",
+)
+crates.spec(
+    default_features = False,
+    package = "jsonschema",
+    version = "0.33.0",
+)
+crates.spec(
+    package = "generic-array",
+    version = "1.3.5",
+)
+crates.spec(
+    package = "notify",
+    version = "8.2.0",
+)
+crates.spec(
+    default_features = False,
+    features = ["ffmpeg7"],
+    package = "rusty_ffmpeg",
+    version = "0.16.7+ffmpeg.8",
+)
+crates.annotation(
+    build_script_data = ["@@//external/ffmpeg:gen_dir"],
+    build_script_env = {
+        "FFMPEG_INCLUDE_DIR": "$(execpath @@//external/ffmpeg:gen_dir)/include",
+        "FFMPEG_LIBS_DIR": "$(execpath @@//external/ffmpeg:gen_dir)/lib",
+        "FFMPEG_LINK_MODE": "static",
+    },
+    build_script_rustc_env = {
+        "FFMPEG_LINK_MODE": "static",
+    },
+    crate = "rusty_ffmpeg",
+    rustc_flags = [
+        "-lz",
+    ],
+)
+crates.spec(
+    default_features = False,
+    features = ["ffmpeg7"],
+    package = "rsmpeg",
+    version = "0.18.0",
+)
+crates.spec(
+    default_features = False,
+    features = [
+        "playback",
+    ],
+    git = "https://github.com/RustAudio/rodio",
+    package = "rodio",
+)
+crates.spec(
+    package = "tauri",
+    version = "2.9.1",
+)
+crates.annotation(
+    crate = "tauri",
+    rustc_flags = [
+        "-C",
+        "debug-assertions=off",
+    ],
+)
+crates.spec(
+    package = "tauri-utils",
+    version = "2.8.1",
+)
+crates.annotation(
+    crate = "tauri-utils",
+    rustc_flags = [
+        "-C",
+        "debug-assertions=off",
+    ],
+)
+crates.annotation(
+    crate = "tauri-macros",
+    patch_args = ["-p1"],
+    patches = ["//patches:tauri_macros.patch"],
+)
+crates.spec(
+    features = ["build"],
+    package = "tauri-plugin",
+    version = "2.5.1",
+)
+crates.spec(
+    features = [
+        "v4",
+        "js",
+    ],
+    package = "uuid",
+    version = "1.18.1",
+)
+crates.spec(
+    package = "async-trait",
+    version = "0.1.89",
+)
+crates.spec(
+    default_features = False,
+    package = "chrono",
+    version = "=0.4.40",  # Exact version match
+)
+crates.spec(
+    default_features = False,
+    package = "futures",
+    version = "0.3.31",
+)
+crates.spec(
+    default_features = False,
+    package = "iso8601",
+    version = "0.6.3",
+)
+crates.spec(
+    package = "open",
+    version = "5.3.2",
+)
+crates.spec(
+    package = "rspotify",
+    version = "0.15.2",
+)
+crates.spec(
+    default_features = False,
+    package = "serde_json",
+    version = "1.0",
+)
+crates.spec(
+    package = "tracing-appender",
+    version = "0.2.3",
+)
+crates.spec(
+    package = "url",
+    version = "2.5.7",
+)
+crates.spec(
+    default_features = False,
+    features = ["reqwest"],
+    package = "oauth2",
+    version = "5.0",
+)
+crates.spec(
+    default_features = False,
+    package = "regex",
+    version = "1.12.2",
+)
+crates.spec(
+    default_features = False,
+    package = "reqwest",
+    version = "0.12.24",
+)
+crates.spec(
+    default_features = False,
+    package = "serde",
+    version = "1.0",
+)
+crates.spec(
+    default_features = False,
+    features = [
+        "common-controls-v6",
+        "wry",
+        "protocol-asset",
+        "tray-icon",
+        "devtools",
+        "test",
+    ],
+    package = "tauri",
+    version = "2.9.1",
+)
+
+# Git Dependencies
+crates.spec(
+    branch = "v2",
+    git = "https://github.com/tauri-apps/plugins-workspace",
+    package = "tauri-plugin-deep-link",
+)
+crates.spec(
+    branch = "v2",
+    git = "https://github.com/tauri-apps/plugins-workspace",
+    package = "tauri-plugin-dialog",
+)
+crates.spec(
+    branch = "v2",
+    git = "https://github.com/tauri-apps/plugins-workspace",
+    package = "tauri-plugin-single-instance",
+)
+crates.spec(
+    branch = "v2",
+    git = "https://github.com/tauri-apps/plugins-workspace",
+    package = "tauri-plugin-autostart",
+)
+crates.spec(
+    branch = "v2",
+    git = "https://github.com/tauri-apps/plugins-workspace",
+    package = "tauri-plugin-opener",
+)
+crates.spec(
+    default_features = False,
+    package = "tracing",
+    version = "0.1.41",
+)
+crates.spec(
+    default_features = False,
+    features = [
+        "ansi",
+        "env-filter",
+    ],
+    package = "tracing-subscriber",
+    version = "0.3.20",
+)
+crates.spec(
+    default_features = False,
+    features = [
+        "ring",
+        "std",
+        "logging",
+        "tls12",
+    ],
+    package = "rustls",
+    version = "0.23.34",
+)
+crates.spec(
+    package = "openssl",
+    version = "0.10.75",
+)
+crates.spec(
+    package = "openssl-sys",
+    version = "0.9.111",
+)
+crates.annotation(
+    build_script_data = [
+        "@@//external/openssl:gen_dir",
+    ],
+    build_script_env = {
+        "OPENSSL_NO_VENDOR": "1",
+        "OPENSSL_LIB_DIR": "$(execpath @@//external/openssl:gen_dir)/lib",
+        "OPENSSL_INCLUDE_DIR": "$(execpath @@//external/openssl:gen_dir)/include",
+        "OPENSSL_STATIC": "1",
+    },
+    crate = "openssl-sys",
+)
+crates.spec(
+    features = ["derive"],
+    package = "clap",
+    version = "4.5.50",
+)
+crates.spec(
+    features = ["sync"],
+    package = "tokio",
+    version = "1.48.0",
+)
+crates.spec(
+    package = "semver",
+    version = "1.0.27",
+)
+crates.spec(
+    package = "rustix",
+    version = "=1.0.8",
+)
+crates.spec(
+    package = "libz-sys",
+    version = "1.1",
+)
+crates.spec(
+    package = "tauri-build",
+    version = "2.5.1",
+)
+crates.spec(
+    package = "tauri-plugin-updater",
+    version = "2.9.0",
+)
+crates.spec(
+    package = "webkit2gtk",
+    version = "2.0.1",
+)
+crates.spec(
+    package = "objc",
+    version = "0.2.7",
+)
+crates.spec(
+    package = "syn",
+    version = "2.0.108",
+)
+crates.spec(
+    package = "once_cell",
+    version = "1.21.3",
+)
+crates.spec(
+    package = "proc-macro2",
+    version = "1.0.103",
+)
+crates.spec(
+    package = "quote",
+    version = "1.0.41",
+)
+crates.from_specs(
+    host_tools = "@rust_host_tools_nightly",
+    supported_platform_triples = [
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc",
+        "x86_64-apple-darwin",
+        "aarch64-apple-darwin",
+    ],
+)
+use_repo(crates, "crates")

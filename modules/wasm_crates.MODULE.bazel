@@ -1,0 +1,296 @@
+wasm_crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate", isolate = True)
+wasm_crates.spec(
+    features = ["derive"],
+    package = "serde",
+    version = "1.0.228",
+)
+wasm_crates.spec(
+    package = "serde_json",
+    version = "1.0.145",
+)
+wasm_crates.spec(
+    package = "url-escape",
+    version = "0.1.1",
+)
+wasm_crates.spec(
+    package = "tracing",
+    version = "0.1.41",
+)
+wasm_crates.spec(
+    features = ["env-filter"],
+    package = "tracing-subscriber",
+    version = "0.3.20",
+)
+wasm_crates.spec(
+    package = "regex",
+    version = "1.12.2",
+)
+wasm_crates.spec(
+    package = "itertools",
+    version = "0.14.0",
+)
+wasm_crates.spec(
+    package = "dyn-clone",
+    version = "1.0.20",
+)
+wasm_crates.spec(
+    package = "futures",
+    version = "0.3.31",
+)
+wasm_crates.spec(
+    package = "rand",
+    version = "0.9.2",
+)
+wasm_crates.spec(
+    features = [
+        "js",
+        "v4",
+    ],
+    package = "uuid",
+    version = "1.18.1",
+)
+wasm_crates.spec(
+    package = "chrono",
+    version = "0.4.40",
+)
+wasm_crates.spec(
+    package = "url-escape",
+    version = "0.1.1",
+)
+wasm_crates.spec(
+    package = "async-trait",
+    version = "0.1.89",
+)
+wasm_crates.spec(
+    features = ["wasm_js"],
+    package = "getrandom",
+    version = "0.3.4",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "wasm-bindgen",
+    version = "0.2.106",
+)
+wasm_crates.spec(
+    package = "wasm-bindgen-futures",
+    version = "0.4",
+)
+wasm_crates.spec(
+    package = "js-sys",
+    version = "0.3",
+)
+wasm_crates.spec(
+    features = [
+        "Window",
+        "Document",
+        "HtmlElement",
+        "Element",
+        "CssStyleDeclaration",
+    ],
+    package = "web-sys",
+    version = "0.3.81",
+)
+wasm_crates.spec(
+    package = "wasm-timer",
+    version = "0.2.5",
+)
+wasm_crates.spec(
+    features = ["serde"],
+    package = "indexed_db_futures",
+    version = "0.6.4",
+)
+wasm_crates.spec(
+    package = "serde-wasm-bindgen",
+    version = "0.6",
+)
+wasm_crates.spec(
+    features = ["csr"],
+    package = "leptos",
+    version = "0.8.11",
+)
+wasm_crates.spec(
+    package = "leptos_meta",
+    version = "0.8.2",
+)
+wasm_crates.spec(
+    package = "leptos_dom",
+    version = "0.8.7",
+)
+wasm_crates.spec(
+    package = "colors-transform",
+    version = "0.2.11",
+)
+wasm_crates.spec(
+    package = "leptos_router",
+    version = "0.8.9",
+)
+wasm_crates.spec(
+    package = "leptos-use",
+    version = "0.16.3",
+)
+wasm_crates.spec(
+    default_features = False,
+    features = ["csr"],
+    package = "leptos_i18n",
+    version = "0.6.0-rc.4",
+)
+wasm_crates.spec(
+    git = "https://github.com/Ovenoboyo/leptos_virtual_scroller",
+    package = "leptos_virtual_scroller",
+)
+wasm_crates.spec(
+    git = "https://github.com/Ovenoboyo/leptos_context_menu",
+    package = "leptos_context_menu",
+)
+wasm_crates.spec(
+    default_features = False,
+    features = [
+        "sync",
+    ],
+    package = "tokio",
+    version = "1.48.0",
+)
+wasm_crates.spec(
+    package = "serde_yaml",
+    version = "0.9",
+)
+wasm_crates.spec(
+    package = "console_error_panic_hook",
+    version = "0.1.7",
+)
+wasm_crates.spec(
+    package = "oauth2",
+    version = "5.0",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "icu",
+    version = "2.1.1",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "icu_locale",
+    version = "2.1.1",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "icu_provider",
+    version = "2.1.1",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "icu_provider_export",
+    version = "2.1.1",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "icu_provider_source",
+    version = "2.1.1",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "icu_plurals",
+    version = "2.1.1",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "icu_datetime",
+    version = "2.1.1",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "icu_calendar",
+    version = "2.1.1",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "icu_list",
+    version = "2.1.1",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "icu_decimal",
+    version = "2.1.1",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "icu_experimental",
+    version = "0.4.0",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "fixed_decimal",
+    version = "0.7.0",
+)
+wasm_crates.spec(
+    package = "bitcode",
+    version = "0.6.7",
+)
+wasm_crates.spec(
+    package = "thiserror",
+    version = "2.0.17",
+)
+wasm_crates.spec(
+    package = "lazy_static",
+    version = "1.5.0",
+)
+wasm_crates.spec(
+    package = "once_cell",
+    version = "1.21.3",
+)
+wasm_crates.spec(
+    package = "proc-macro2",
+    version = "1.0.103",
+)
+wasm_crates.spec(
+    package = "quote",
+    version = "1.0.41",
+)
+wasm_crates.spec(
+    package = "syn",
+    version = "2.0.108",
+)
+wasm_crates.spec(
+    features = [
+        "pretty_print",
+        "csr",
+    ],
+    package = "leptos_i18n_build",
+    version = "0.6.0-rc.1",
+)
+wasm_crates.from_specs(
+    name = "wasmCrates",
+    host_tools = "@rust_host_tools_nightly",
+    supported_platform_triples = [
+        "wasm32-unknown-unknown",
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc",
+        "x86_64-apple-darwin",
+        "aarch64-apple-darwin",
+    ],
+)
+use_repo(wasm_crates, "wasmCrates")
+
+bindeps = use_extension("@rules_rust//crate_universe:extension.bzl", "crate", isolate = True)
+bindeps.spec(
+    artifact = "bin",
+    package = "wasm-bindgen-cli",
+    version = "=0.2.106",
+)
+bindeps.annotation(
+    crate = "wasm-bindgen-cli",
+    gen_all_binaries = True,
+)
+bindeps.from_specs(
+    name = "bindeps",
+    host_tools = "@rust_host_tools_nightly",
+    supported_platform_triples = [
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc",
+        "x86_64-apple-darwin",
+        "aarch64-apple-darwin",
+    ],
+)
+use_repo(bindeps, "bindeps")

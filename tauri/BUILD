@@ -1,7 +1,7 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_library")
-load("//rust:defs.bzl", "cargo_build", "rust_binary_with_export")
 load("//tools:defs.bzl", "expand_template")
+load("//tools/rust:defs.bzl", "cargo_build", "rust_binary_with_export")
 
 filegroup(
     name = "resources",

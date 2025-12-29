@@ -1,0 +1,29 @@
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    edition = "2024",
+    extra_target_triples = ["wasm32-unknown-unknown"],
+    versions = [
+        # "1.86.0",
+        "nightly/2025-12-16",
+    ],
+)
+use_repo(
+    rust,
+    "rust_toolchains",
+)
+
+rust_host_tools = use_extension("@rules_rust//rust:extensions.bzl", "rust_host_tools")
+rust_host_tools.host_tools(
+    name = "rust_host_tools_nightly",
+    version = "nightly",
+)
+use_repo(
+    rust_host_tools,
+    "rust_host_tools_nightly",
+)
+
+register_toolchains("@rust_toolchains//:all")
+
+register_toolchains("@rules_rust//rust/private/dummy_cc_toolchain:dummy_cc_wasm32_toolchain")
+
+register_toolchains("//:wasm_bindgen_toolchain")

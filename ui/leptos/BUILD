@@ -1,6 +1,6 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
-load("//rust:defs.bzl", "cargo_build", "rust_binary_with_export")
+load("//tools/rust:defs.bzl", "cargo_build", "rust_binary_with_export")
 
 package(default_visibility = ["//ui/gen_dist:__subpackages__"])
 

@@ -88,53 +88,60 @@ impl LyricsFetcher {
             .user_agent("Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11")
             .build().map_err(error_helpers::to_network_error)?;
 
-        let resp = client.get(url).send().await.map_err(error_helpers::to_network_error)?.text().await.map_err(error_helpers::to_network_error)?;
-        let json: Value = serde_json::from_str(resp.as_str()).map_err(error_helpers::to_parse_error)?;
+        let resp = client
+            .get(url)
+            .send()
+            .await
+            .map_err(error_helpers::to_network_error)?
+            .text()
+            .await
+            .map_err(error_helpers::to_network_error)?;
+        let json: Value =
+            serde_json::from_str(resp.as_str()).map_err(error_helpers::to_parse_error)?;
 
         // tracing::info!("{}", resp);
 
-        if let Some(resp) = json.get("response") {
-            if let Some(result) = resp.get("sections") {
-                if let Some(result) = result.get(0) {
-                    if let Some(result) = result.get("hits") {
-                        if let Some(result) = result.get(0) {
-                            if let Some(result) = result.get("result") {
-                                if let Some(result) = result.get("url") {
-                                    let url = result.as_str().unwrap();
-                                    let lyrics_resp = client.get(url).send().await.map_err(error_helpers::to_network_error)?.text().await.map_err(error_helpers::to_network_error)?;
+        if let Some(resp) = json.get("response")
+            && let Some(result) = resp.get("sections")
+            && let Some(result) = result.get(0)
+            && let Some(result) = result.get("hits")
+            && let Some(result) = result.get(0)
+            && let Some(result) = result.get("result")
+            && let Some(result) = result.get("url")
+        {
+            let url = result.as_str().unwrap();
+            let lyrics_resp = client
+                .get(url)
+                .send()
+                .await
+                .map_err(error_helpers::to_network_error)?
+                .text()
+                .await
+                .map_err(error_helpers::to_network_error)?;
 
-                                    let split =
-                                        lyrics_resp.split("window.__PRELOADED_STATE__ = ").nth(1);
+            let split = lyrics_resp.split("window.__PRELOADED_STATE__ = ").nth(1);
 
-                                    if let Some(split) = split {
-                                        let split = split.split("');").next();
-                                        if let Some(split) = split {
-                                            let parsed = split.replace("JSON.parse(", "");
-                                            let split = parsed.split("\"lyricsData").nth(1);
+            if let Some(split) = split {
+                let split = split.split("');").next();
+                if let Some(split) = split {
+                    let parsed = split.replace("JSON.parse(", "");
+                    let split = parsed.split("\"lyricsData").nth(1);
 
-                                            if let Some(split) = split {
-                                                let split = split.split("html\\\"").nth(1);
-                                                if let Some(split) = split {
-                                                    let split = split.split("\",").nth(0);
-                                                    if let Some(split) = split {
-                                                        let res = split
-                                                            .replace("<br>", "\n")
-                                                            .replace("\\\\n", "")
-                                                            .replace('\\', "");
+                    if let Some(split) = split {
+                        let split = split.split("html\\\"").nth(1);
+                        if let Some(split) = split {
+                            let split = split.split("\",").nth(0);
+                            if let Some(split) = split {
+                                let res = split
+                                    .replace("<br>", "\n")
+                                    .replace("\\\\n", "")
+                                    .replace('\\', "");
 
-                                                        // Remove HTML tags using regex
-                                                        let re =
-                                                            Regex::new(r#"<([^>]+)>"#).unwrap();
-                                                        let data =
-                                                            re.replace_all(&res, "").to_string();
+                                // Remove HTML tags using regex
+                                let re = Regex::new(r#"<([^>]+)>"#).unwrap();
+                                let data = re.replace_all(&res, "").to_string();
 
-                                                        return Ok(data);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                return Ok(data);
                             }
                         }
                     }
@@ -158,43 +165,50 @@ impl LyricsFetcher {
             .user_agent("Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11")
             .build().map_err(error_helpers::to_network_error)?;
 
-        let request = client.get(url).send().await.map_err(error_helpers::to_network_error)?;
-        let lyrics_resp = request.text().await.map_err(error_helpers::to_network_error)?;
+        let request = client
+            .get(url)
+            .send()
+            .await
+            .map_err(error_helpers::to_network_error)?;
+        let lyrics_resp = request
+            .text()
+            .await
+            .map_err(error_helpers::to_network_error)?;
 
-        let suggestions: Value = serde_json::from_str(&lyrics_resp).map_err(error_helpers::to_parse_error)?;
-        if let Some(suggestions) = suggestions.get("songs") {
-            if let Some(suggestion) = suggestions.as_array() {
-                if let Some(suggestion) = suggestion.first() {
-                    if let Some(suggestion) = suggestion.as_object() {
-                        if let Some(suggestion) = suggestion.get("url") {
-                            let lyrics_resp = client
-                                .get(suggestion.as_str().unwrap())
-                                .send()
-                                .await.map_err(error_helpers::to_network_error)?
-                                .text()
-                                .await.map_err(error_helpers::to_network_error)?;
+        let suggestions: Value =
+            serde_json::from_str(&lyrics_resp).map_err(error_helpers::to_parse_error)?;
+        if let Some(suggestions) = suggestions.get("songs")
+            && let Some(suggestion) = suggestions.as_array()
+            && let Some(suggestion) = suggestion.first()
+            && let Some(suggestion) = suggestion.as_object()
+            && let Some(suggestion) = suggestion.get("url")
+        {
+            let lyrics_resp = client
+                .get(suggestion.as_str().unwrap())
+                .send()
+                .await
+                .map_err(error_helpers::to_network_error)?
+                .text()
+                .await
+                .map_err(error_helpers::to_network_error)?;
 
-                            let lyrics = lyrics_resp
-                                .split("<div class=\"ringtone\">")
-                                .nth(1)
-                                .unwrap_or("")
-                                .split("<div class=\"noprint\"")
-                                .next()
-                                .unwrap_or("");
+            let lyrics = lyrics_resp
+                .split("<div class=\"ringtone\">")
+                .nth(1)
+                .unwrap_or("")
+                .split("<div class=\"noprint\"")
+                .next()
+                .unwrap_or("");
 
-                            let index = lyrics.find("-->").unwrap_or(0) + 3;
-                            let lyrics = &lyrics.get(index..);
-                            if let Some(lyrics) = lyrics {
-                                let lyrics = lyrics
-                                    .split("</div>")
-                                    .next()
-                                    .unwrap_or("")
-                                    .replace("<br>", "\n");
-                                return Ok(lyrics.to_string());
-                            }
-                        }
-                    }
-                }
+            let index = lyrics.find("-->").unwrap_or(0) + 3;
+            let lyrics = &lyrics.get(index..);
+            if let Some(lyrics) = lyrics {
+                let lyrics = lyrics
+                    .split("</div>")
+                    .next()
+                    .unwrap_or("")
+                    .replace("<br>", "\n");
+                return Ok(lyrics.to_string());
             }
         }
 
@@ -207,18 +221,17 @@ impl LyricsFetcher {
     fn get_spotify_lyrics(&self, librespot: &LibrespotHolder, uri: String) -> Result<String> {
         let res = librespot.get_lyrics(format!("spotify:track:{}", uri))?;
         let parsed: Value = serde_json::from_str(&res).map_err(error_helpers::to_parse_error)?;
-        if let Some(lyrics_obj) = parsed.get("lyrics") {
-            if let Some(lines) = lyrics_obj.get("lines") {
-                if let Some(lines_arr) = lines.as_array() {
-                    let mut res = String::new();
-                    for line in lines_arr {
-                        if let Some(words) = line.get("words") {
-                            res.push_str(words.as_str().unwrap())
-                        }
-                    }
-                    return Ok(res);
+        if let Some(lyrics_obj) = parsed.get("lyrics")
+            && let Some(lines) = lyrics_obj.get("lines")
+            && let Some(lines_arr) = lines.as_array()
+        {
+            let mut res = String::new();
+            for line in lines_arr {
+                if let Some(words) = line.get("words") {
+                    res.push_str(words.as_str().unwrap())
                 }
             }
+            return Ok(res);
         }
 
         Ok(String::new())

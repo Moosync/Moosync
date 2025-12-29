@@ -30,22 +30,22 @@ pub enum Error {
     #[error("Wrong stream got selected somehow, expected {0}, got {1}")]
     WrongStream(usize, i32),
     #[error("Rsmpeg genric error: {0}")]
-    RsmpegError(#[from] rsmpeg::error::RsmpegError),
+    Rsmpeg(#[from] rsmpeg::error::RsmpegError),
     #[error("Error parsing string: {0}")]
-    StringError(#[from] NulError),
+    String(#[from] NulError),
     #[error("AVERROR({code}): `{msg}`", code = .0, msg = err2str(*.0).unwrap_or_else(|| "Unknown error code.".to_string()))]
-    AVError(c_int),
+    AV(c_int),
 }
 
-impl Into<SeekError> for Error {
-    fn into(self) -> SeekError {
-        SeekError::Other(Box::new(self))
+impl From<Error> for SeekError {
+    fn from(e: Error) -> SeekError {
+        SeekError::Other(Box::new(e))
     }
 }
 
-impl Into<MoosyncError> for Error {
-    fn into(self) -> MoosyncError {
-        MoosyncError::PlaybackError(Box::new(self))
+impl From<Error> for MoosyncError {
+    fn from(e: Error) -> Self {
+        MoosyncError::PlaybackError(Box::new(e))
     }
 }
 
@@ -81,7 +81,7 @@ impl FFMPEGDecoder {
         }
     }
 
-    pub fn open<'b>(path: &str) -> Result<FFMPEGDecoder, Error> {
+    pub fn open(path: &str) -> Result<FFMPEGDecoder, Error> {
         let input_path = if path.starts_with("http") {
             CString::from_str(&format!("cache:{}", path))?
         } else {
@@ -91,7 +91,7 @@ impl FFMPEGDecoder {
         let format_ctx = AVFormatContextInput::builder()
             .url(&input_path)
             .open()
-            .map_err(|e| Error::AVError(e.raw_error().unwrap_or_default()))?;
+            .map_err(|e| Error::AV(e.raw_error().unwrap_or_default()))?;
 
         let stream = format_ctx.find_best_stream(AVMEDIA_TYPE_AUDIO)?;
         if let Some((stream_idx, codec)) = stream {
@@ -110,12 +110,12 @@ impl FFMPEGDecoder {
                 requested_seek_timestamp: 0,
             });
         }
-        return Err(Error::NoAudioStream);
+        Err(Error::NoAudioStream)
     }
 
     fn convert_and_store_frame(&mut self, frame: &AVFrame) -> Result<(), Error> {
-        let num_samples = frame.nb_samples as i32;
-        let num_channels = self.codec_ctx.ch_layout.nb_channels as i32;
+        let num_samples = frame.nb_samples;
+        let num_channels = self.codec_ctx.ch_layout.nb_channels;
 
         // Get pointer to extended_data (frame plane pointers)
         let extended_data_ptr = frame.extended_data.cast();
@@ -126,13 +126,9 @@ impl FFMPEGDecoder {
 
             // Many rsmpeg/swresample wrappers expect you to provide buffers.
             // Use AVSamples to allocate the output buffer and call convert with its pointer(s).
-            let mut samples = AVSamples::new(
-                num_channels as i32,
-                out_samples,
-                DEFAULT_CONVERSION_FORMAT,
-                0,
-            )
-            .expect("AVSamples allocation failed");
+            let mut samples =
+                AVSamples::new(num_channels, out_samples, DEFAULT_CONVERSION_FORMAT, 0)
+                    .expect("AVSamples allocation failed");
 
             let converted = unsafe {
                 // Call convert with allocated output buffers
@@ -145,13 +141,9 @@ impl FFMPEGDecoder {
             };
 
             // `converted` is number of samples output per channel
-            let (_, dst_bufsize) = AVSamples::get_buffer_size(
-                num_channels as i32,
-                converted,
-                DEFAULT_CONVERSION_FORMAT,
-                0,
-            )
-            .unwrap();
+            let (_, dst_bufsize) =
+                AVSamples::get_buffer_size(num_channels, converted, DEFAULT_CONVERSION_FORMAT, 0)
+                    .unwrap();
 
             // Create a slice referencing the buffer and copy into current_frame
             let p = samples.audio_data[0] as *const u8;
@@ -195,7 +187,7 @@ impl FFMPEGDecoder {
         match self.codec_ctx.receive_frame() {
             Ok(frame) => Ok(Some(frame)),
             Err(RsmpegError::DecoderDrainError) => Ok(None), // We sent what we had, probably can't decode anymore
-            Err(e) => Err(Error::RsmpegError(e)),
+            Err(e) => Err(Error::Rsmpeg(e)),
         }
     }
 
@@ -279,7 +271,7 @@ impl FFMPEGDecoder {
     // Helper to read next sample as f32 from current_frame bytes.
     // We assume output format is interleaved f32 (AV_SAMPLE_FMT_FLT).
     fn next_sample(&mut self) -> Sample {
-        if self.current_frame.len() == 0 {
+        if self.current_frame.is_empty() {
             return 0f32;
         }
         // pop 4 bytes (f32 LE) and convert

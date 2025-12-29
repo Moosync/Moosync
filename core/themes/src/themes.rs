@@ -66,22 +66,19 @@ impl ThemeHolder {
             let root = self.theme_dir.clone();
             if let Ok(mut watcher) =
                 notify::recommended_watcher(move |ev: notify::Result<Event>| {
-                    if let Ok(ev) = ev {
-                        if ev.kind.is_modify() {
-                            match transform_css(
-                                root_path.clone().to_string_lossy().to_string(),
-                                Some(root.clone()),
-                            ) {
-                                Ok((transformed, _)) => {
-                                    if let Err(e) = tx.send(transformed) {
-                                        tracing::error!(
-                                            "Failed to notify of file changes: {:?}",
-                                            e
-                                        );
-                                    }
+                    if let Ok(ev) = ev
+                        && ev.kind.is_modify()
+                    {
+                        match transform_css(
+                            root_path.clone().to_string_lossy().to_string(),
+                            Some(root.clone()),
+                        ) {
+                            Ok((transformed, _)) => {
+                                if let Err(e) = tx.send(transformed) {
+                                    tracing::error!("Failed to notify of file changes: {:?}", e);
                                 }
-                                Err(e) => tracing::error!("Failed to transform css: {:?}", e),
                             }
+                            Err(e) => tracing::error!("Failed to transform css: {:?}", e),
                         }
                     }
                 })
@@ -193,31 +190,30 @@ impl ThemeHolder {
         for item in extract_dir
             .read_dir()
             .map_err(error_helpers::to_file_system_error)?
+            .flatten()
         {
-            if item.is_ok() {
-                let item = item.unwrap().path();
-                if item.is_file() && item.file_name().unwrap().to_string_lossy() == "config.json" {
-                    let config = fs::read(item).map_err(error_helpers::to_file_system_error)?;
-                    let parsed: ThemeDetails = serde_json::from_slice(config.as_slice())?;
-                    let final_theme_path = self.theme_dir.join(parsed.id);
-                    let options = CopyOptions::default().overwrite(true);
+            let item = item.path();
+            if item.is_file() && item.file_name().unwrap().to_string_lossy() == "config.json" {
+                let config = fs::read(item).map_err(error_helpers::to_file_system_error)?;
+                let parsed: ThemeDetails = serde_json::from_slice(config.as_slice())?;
+                let final_theme_path = self.theme_dir.join(parsed.id);
+                let options = CopyOptions::default().overwrite(true);
 
-                    fs::create_dir_all(final_theme_path.clone())
-                        .map_err(error_helpers::to_file_system_error)?;
+                fs::create_dir_all(final_theme_path.clone())
+                    .map_err(error_helpers::to_file_system_error)?;
 
-                    let mut item_list = vec![];
-                    for items in extract_dir
-                        .read_dir()
-                        .map_err(error_helpers::to_file_system_error)?
-                    {
-                        item_list.push(items.unwrap().path());
-                    }
-                    tracing::info!("Moving from {:?} to {:?}", item_list, final_theme_path);
-                    fs_extra::move_items(item_list.as_slice(), final_theme_path, &options)
-                        .map_err(error_helpers::to_file_system_error)?;
-
-                    return Ok(());
+                let mut item_list = vec![];
+                for items in extract_dir
+                    .read_dir()
+                    .map_err(error_helpers::to_file_system_error)?
+                {
+                    item_list.push(items.unwrap().path());
                 }
+                tracing::info!("Moving from {:?} to {:?}", item_list, final_theme_path);
+                fs_extra::move_items(item_list.as_slice(), final_theme_path, &options)
+                    .map_err(error_helpers::to_file_system_error)?;
+
+                return Ok(());
             }
         }
         Err(MoosyncError::String("Failed to parse theme".to_string()))

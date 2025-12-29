@@ -17,7 +17,7 @@
 use std::sync::Arc;
 
 use leptos::task::spawn_local;
-use leptos::{IntoView, component, prelude::*, view};
+use leptos::{component, prelude::*, view, IntoView};
 use leptos_i18n::t;
 use types::entities::Playlist;
 use types::songs::Song;
@@ -168,7 +168,6 @@ pub fn NewPlaylistModal(
                                 <div class="row no-gutters d-flex" no-gutters="">
                                     {move || {
                                         if is_mobile {
-                                            view! {};
                                             ().into_any()
                                         } else {
                                             view! {
@@ -238,7 +237,6 @@ pub fn NewPlaylistModal(
                                 <div class="row no-gutters d-flex">
                                     {move || {
                                         if is_mobile {
-                                            view! {};
                                             ().into_any()
                                         } else {
                                             view! {

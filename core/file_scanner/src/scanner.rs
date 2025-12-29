@@ -18,8 +18,8 @@ use std::{
     path::PathBuf,
     str::FromStr,
     sync::{
-        mpsc::{self, Sender},
         Mutex,
+        mpsc::{self, Sender},
     },
 };
 
@@ -146,5 +146,11 @@ impl ScannerHolder {
         *state = ScanState::UNDEFINED;
 
         Ok(())
+    }
+}
+
+impl Default for ScannerHolder {
+    fn default() -> Self {
+        Self::new()
     }
 }

@@ -20,6 +20,7 @@ genrule(
     mv package/windows/MoosyncSetup.exe "$$(cygpath -u "$$OUT_PATH")"
     ls -la "$$(cygpath -u "$$OUT_PATH")"
     """,
+    target_compatible_with = ["@platforms//os:windows"],
 )
 
 genrule(
@@ -28,6 +29,7 @@ genrule(
     outs = ["Moosync.exe"],
     cmd = "cp $< $@",
     executable = True,
+    target_compatible_with = ["@platforms//os:windows"],
 )
 
 genrule(
@@ -48,10 +50,12 @@ genrule(
         rel = RELEASE,
         ver = VERSION,
     ),
+    target_compatible_with = ["@platforms//os:windows"],
 )
 
 filegroup(
     name = "windows_release",
     srcs = [":rename_windows"],
+    target_compatible_with = ["@platforms//os:windows"],
     visibility = ["//visibility:public"],
 )

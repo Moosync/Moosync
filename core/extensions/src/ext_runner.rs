@@ -95,11 +95,8 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command: Json<MainCom
             tracing::trace!("Sending request {:?}", request);
             ext_command_tx.send(request.clone()).unwrap();
 
-            match command {
-                MainCommand::UpdateAccounts(_) => {
-                    return Ok(Some(Json(MainCommandResponse::UpdateAccounts(true))));
-                },
-                _ => {}
+            if let MainCommand::UpdateAccounts(_) = command {
+                return Ok(Some(Json(MainCommandResponse::UpdateAccounts(true))));
             }
 
             tracing::trace!("waiting on response for {:?}", command);

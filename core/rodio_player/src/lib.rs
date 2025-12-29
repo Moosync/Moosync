@@ -16,8 +16,8 @@
 
 use std::{
     sync::{
-        mpsc::{channel, Receiver, Sender},
         Arc, Mutex,
+        mpsc::{Receiver, Sender, channel},
     },
     thread,
     time::Duration,
@@ -226,5 +226,11 @@ impl RodioPlayer {
     #[tracing::instrument(level = "debug", skip(self))]
     pub async fn rodio_get_volume(&self) -> Result<f32> {
         Ok(0f32)
+    }
+}
+
+impl Default for RodioPlayer {
+    fn default() -> Self {
+        Self::new()
     }
 }

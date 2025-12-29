@@ -71,7 +71,6 @@ where
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(untagged)]
-
 pub enum ExtensionCommandResponse {
     GetProviderScopes(Vec<ExtensionProviderScope>),
     GetAccounts(Vec<ExtensionAccountDetail>),
@@ -88,7 +87,7 @@ pub enum ExtensionCommand {
     GetProviderScopes(PackageNameArgs),
     GetAccounts(PackageNameArgs),
     PerformAccountLogin(AccountLoginArgs),
-    ExtraExtensionEvent(ExtensionExtraEventArgs),
+    ExtraExtensionEvent(Box<ExtensionExtraEventArgs>),
 }
 
 impl TryFrom<(&str, &Value)> for ExtensionCommand {
@@ -470,7 +469,7 @@ impl MainCommand {
         self.sanitize_command(&package_name);
         Ok(GenericExtensionHostRequest {
             channel,
-            package_name: package_name,
+            package_name,
             data: Some(self.clone()),
         })
     }

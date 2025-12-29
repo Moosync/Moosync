@@ -123,7 +123,7 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
         use leptos::prelude::*;
         use leptos_i18n::t_string;
         use leptos_router::{
-            components::{Outlet, ParentRoute, Redirect, Route, RouteChildren, Routes},
+            components::{Outlet, ParentRoute, Redirect, Route},
             path, MatchNestedRoutes,
         };
         use types::preferences::CheckboxItems;
@@ -133,12 +133,10 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
 
         #[component]
         pub fn PrefApp() -> impl IntoView {
-            let i18n = use_i18n();
-
             let ui_store = expect_context::<RwSignal<UiStore>>();
             let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get();
 
-            let mut tabs = vec![
+            let tabs = vec![
                 #(#tabs)*
             ];
             view! {

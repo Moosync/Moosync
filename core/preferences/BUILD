@@ -3,10 +3,11 @@ load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 rust_library(
     name = "preferences",
     srcs = [
+        "src/context/keyring_context.rs",
+        "src/context/mod.rs",
         "src/lib.rs",
         "src/preferences.rs",
         "src/tests.rs",
-        "src/context/mod.rs",
     ],
     crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
@@ -17,11 +18,11 @@ rust_library(
         "@crates//:hex",
         "@crates//:json_dotpath",
         "@crates//:keyring",
+        "@crates//:mockall",
         "@crates//:serde",
         "@crates//:serde_json",
         "@crates//:tracing",
         "@crates//:whoami",
-        "@crates//:mockall",
     ],
 )
 
@@ -29,7 +30,7 @@ rust_test(
     name = "preferences_test",
     crate = ":preferences",
     deps = [
-        "@crates//:uuid",
         "@crates//:mockall",
+        "@crates//:uuid",
     ],
 )

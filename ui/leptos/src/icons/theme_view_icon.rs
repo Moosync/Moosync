@@ -21,7 +21,7 @@ use types::themes::ThemeDetails;
 #[component]
 pub fn ThemeViewIcon(
     #[prop()] active: ReadSignal<bool>,
-    #[prop()] theme: Box<ThemeDetails>,
+    #[prop()] theme: ThemeDetails,
 ) -> impl IntoView {
     view! {
         <svg viewBox="0 0 711 407" fill="none" xmlns="http://www.w3.org/2000/svg">

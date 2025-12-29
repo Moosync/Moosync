@@ -451,10 +451,7 @@ impl PlayerStore {
             .queue
             .song_queue
             .iter()
-            .filter_map(|id| match self.data.queue.data.get(id).cloned() {
-                Some(song) => Some(song),
-                None => None,
-            })
+            .filter_map(|id| self.data.queue.data.get(id).cloned())
             .collect()
     }
 

@@ -252,7 +252,6 @@ pub fn Explore() -> impl IntoView {
                         }
                             .into_any()
                     } else {
-                        view! {};
                         ().into_any()
                     }
                 }}

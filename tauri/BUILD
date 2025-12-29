@@ -195,6 +195,7 @@ cargo_build(
         "-C",
         "link-arg=/LIBPATH:$ROOT/$(execpath //external/openssl:gen_dir)/lib",
     ],
+    target_compatible_with = ["@platforms//os:windows"],
     visibility = ["//visibility:private"],
 )
 

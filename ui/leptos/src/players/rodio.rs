@@ -18,7 +18,7 @@ use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration};
 
 use leptos::{
     leptos_dom::helpers::IntervalHandle,
-    prelude::{NodeRef, set_interval_with_handle},
+    prelude::{set_interval_with_handle, NodeRef},
     task::spawn_local,
 };
 use types::{songs::SongType, ui::player_details::PlayerEvents};
@@ -85,8 +85,8 @@ impl GenericPlayer for RodioPlayer {
         spawn_local(async move {
             let res = rodio_stop().await;
 
-            if res.is_err() {
-                tracing::error!("Error stopping {:?}", res.unwrap_err());
+            if let Err(e) = res {
+                tracing::error!("Error stopping {:?}", e);
             }
         });
 
@@ -107,8 +107,8 @@ impl GenericPlayer for RodioPlayer {
         spawn_local(async move {
             let res = rodio_play().await;
 
-            if res.is_err() {
-                tracing::error!("Error playing {:?}", res.unwrap_err());
+            if let Err(e) = res {
+                tracing::error!("Error playing {:?}", e);
             }
         });
         Ok(())
@@ -119,8 +119,8 @@ impl GenericPlayer for RodioPlayer {
         spawn_local(async move {
             let res = rodio_pause().await;
 
-            if res.is_err() {
-                tracing::error!("Error playing {:?}", res.unwrap_err());
+            if let Err(e) = res {
+                tracing::error!("Error playing {:?}", e);
             }
         });
         Ok(())
@@ -130,8 +130,8 @@ impl GenericPlayer for RodioPlayer {
     fn seek(&self, pos: f64) -> Result<()> {
         spawn_local(async move {
             let res = rodio_seek(pos).await;
-            if res.is_err() {
-                tracing::error!("Error playing {:?}", res.unwrap_err());
+            if let Err(e) = res {
+                tracing::error!("Error playing {:?}", e);
             }
         });
         Ok(())
@@ -170,8 +170,8 @@ impl GenericPlayer for RodioPlayer {
         tracing::debug!("Setting volume {}", parsed_volume);
         spawn_local(async move {
             let res = rodio_set_volume(parsed_volume as f32).await;
-            if res.is_err() {
-                tracing::error!("Error setting volume {}: {:?}", volume, res.unwrap_err());
+            if let Err(e) = res {
+                tracing::error!("Error setting volume {}: {:?}", volume, e);
             }
         });
 

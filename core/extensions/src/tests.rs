@@ -1,8 +1,7 @@
-use super::models::{RunnerCommand, MainCommand, MainCommandResponse};
-use types::songs::{GetSongOptions, Song, InnerSong};
-use types::entities::GetEntityOptions;
-use types::ui::extensions::{PackageNameArgs, AccountLoginArgs};
+use super::models::{MainCommand, RunnerCommand};
 use serde_json::Value;
+use types::songs::{InnerSong, Song};
+use types::ui::extensions::PackageNameArgs;
 
 #[test]
 fn test_runner_command_try_from() {
@@ -12,12 +11,16 @@ fn test_runner_command_try_from() {
 
     // Test GetInstalledExtensions
     let cmd = RunnerCommand::try_from(("getInstalledExtensions", &Value::Null));
-    assert!(matches!(cmd.unwrap(), RunnerCommand::GetInstalledExtensions));
+    assert!(matches!(
+        cmd.unwrap(),
+        RunnerCommand::GetInstalledExtensions
+    ));
 
     // Test GetExtensionIcon
     let args = serde_json::to_value(PackageNameArgs {
         package_name: "test.pkg".to_string(),
-    }).unwrap();
+    })
+    .unwrap();
     let cmd = RunnerCommand::try_from(("getExtensionIcon", &args));
     if let RunnerCommand::GetExtensionIcon(pkg_args) = cmd.unwrap() {
         assert_eq!(pkg_args.package_name, "test.pkg");
@@ -32,7 +35,7 @@ fn test_runner_command_try_from() {
 
 #[test]
 fn test_main_command_sanitize() {
-    let mut song = Song {
+    let song = Song {
         song: InnerSong {
             _id: Some("123".to_string()),
             path: Some("/path".to_string()),

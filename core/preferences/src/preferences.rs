@@ -31,10 +31,6 @@ use chacha20poly1305::{
     aead::{Aead, OsRng, generic_array::GenericArray},
 };
 use json_dotpath::DotPaths;
-// use jsonschema::Validator;
-use keyring::Entry;
-#[cfg(test)]
-use mockall::automock;
 
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
@@ -45,28 +41,29 @@ use types::errors::{
     error_helpers::{self, to_file_system_error},
 };
 
-use crate::context::{KeyringContext, RealKeyringContext};
+use crate::context::{Keyring, KeyringContext};
 
 // const SCHEMA: &str = include_str!("./schema.json");
 
+#[derive(Debug)]
 pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,
     pub secret: Mutex<Key>,
     pub memcache: Mutex<Value>,
     sender: Sender<(String, Value)>,
     receiver: Receiver<(String, Value)>,
-    _keyring_context: Box<dyn KeyringContext>,
+    _keyring_context: Box<dyn Keyring>,
 }
 
 impl PreferenceConfig {
     #[tracing::instrument(level = "debug", skip(data_dir))]
     pub fn new(data_dir: PathBuf) -> Result<Self> {
-        let context = RealKeyringContext::new("moosync", whoami::username().as_str())
+        let context = KeyringContext::new("moosync", whoami::username().as_str())
             .map_err(error_helpers::to_config_error)?;
         Self::new_with_context(data_dir, Box::new(context))
     }
 
-    pub fn new_with_context(data_dir: PathBuf, context: Box<dyn KeyringContext>) -> Result<Self> {
+    pub fn new_with_context(data_dir: PathBuf, context: Box<dyn Keyring>) -> Result<Self> {
         let config_file_path = data_dir.join("config.json");
 
         if !data_dir.exists() {
@@ -168,10 +165,10 @@ impl PreferenceConfig {
         } else {
             let old_value: Option<Value> = prefs.dot_get(key.as_str()).unwrap();
 
-            if let Some(old_value) = old_value {
-                if old_value == serde_json::to_value(&value).unwrap() {
-                    return Ok(());
-                }
+            if let Some(old_value) = old_value
+                && old_value == serde_json::to_value(&value).unwrap()
+            {
+                return Ok(());
             }
 
             {
@@ -220,10 +217,10 @@ impl PreferenceConfig {
         let mut preference: Value = self.load_selective(parent.to_string())?;
         if preference.is_array() {
             for item in preference.as_array_mut().unwrap() {
-                if let Some(key) = item.get("key") {
-                    if key == child {
-                        return Ok(serde_json::from_value((*item).take())?);
-                    }
+                if let Some(key) = item.get("key")
+                    && key == child
+                {
+                    return Ok(serde_json::from_value((*item).take())?);
                 }
             }
         }

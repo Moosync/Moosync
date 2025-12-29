@@ -203,7 +203,7 @@ impl ExtensionHandler {
             tracing::debug!("Creating dir {:?}", parent_dir);
             fs::create_dir_all(parent_dir).map_err(error_helpers::to_file_system_error)?;
         }
-        fs_extra::move_items(&[tmp_dir.clone()], parent_dir, &options)
+        fs_extra::move_items(std::slice::from_ref(&tmp_dir), parent_dir, &options)
             .map_err(error_helpers::to_file_system_error)?;
 
         tracing::debug!(
@@ -344,10 +344,8 @@ impl ExtensionHandler {
         }
 
         tracing::trace!("Should wait for response {}", wait);
-        if wait {
-            if let Some(resp) = rx.recv().await {
-                return Ok(resp);
-            }
+        if wait && let Some(resp) = rx.recv().await {
+            return Ok(resp);
         }
 
         Ok(ExtensionCommandResponse::Empty)
@@ -357,7 +355,7 @@ impl ExtensionHandler {
         let package_name = args.package_name.clone();
         let resp = self
             .send_extension_command(
-                ExtensionCommand::ExtraExtensionEvent(args),
+                ExtensionCommand::ExtraExtensionEvent(Box::new(args)),
                 !package_name.is_empty(),
             )
             .await?;

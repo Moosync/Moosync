@@ -63,8 +63,8 @@ impl<'a> PlaylistScanner<'a> {
     #[tracing::instrument(level = "debug", skip(self, artists))]
     fn parse_artists(&self, artists: Option<String>) -> Vec<Artist> {
         let mut ret: Vec<Artist> = vec![];
-        if artists.is_some() {
-            for artist in artists.unwrap().split(';') {
+        if let Some(artists) = artists {
+            for artist in artists.split(';') {
                 ret.push(Artist {
                     artist_id: Some(Uuid::new_v4().to_string()),
                     artist_name: Some(artist.to_string()),
@@ -108,14 +108,12 @@ impl<'a> PlaylistScanner<'a> {
                 let title_str;
 
                 let separator_with_space = non_duration.find(" - ");
-                if separator_with_space.is_some() {
-                    (artists_str, title_str) =
-                        non_duration.split_at(separator_with_space.unwrap() + 1);
+                if let Some(separator_with_space) = separator_with_space {
+                    (artists_str, title_str) = non_duration.split_at(separator_with_space + 1);
                 } else {
                     let separator_without_space = non_duration.find('-');
-                    if separator_without_space.is_some() {
-                        (artists_str, title_str) =
-                            non_duration.split_at(separator_without_space.unwrap());
+                    if let Some(separator_without_space) = separator_without_space {
+                        (artists_str, title_str) = non_duration.split_at(separator_without_space);
                     } else {
                         title_str = non_duration;
                     }
@@ -226,11 +224,13 @@ impl<'a> PlaylistScanner<'a> {
         s: Song,
         playlist_id: Option<String>,
     ) {
-        if s.song.type_ == SongType::LOCAL && s.song.path.is_some() {
+        if s.song.type_ == SongType::LOCAL
+            && let Some(path) = s.song.path
+        {
             self.song_scanner.scan_in_pool(
                 tx_song,
                 s.song.size.unwrap_or_default(),
-                PathBuf::from_str(s.song.path.unwrap().as_str()).unwrap(),
+                PathBuf::from_str(path.as_str()).unwrap(),
                 playlist_id,
             )
         } else {
@@ -254,12 +254,12 @@ impl<'a> PlaylistScanner<'a> {
 
         for playlist in file_list.playlist_list {
             let playlist_scan_res = self.scan_playlist(&playlist);
-            if playlist_scan_res.is_err() {
+            if let Err(e) = playlist_scan_res {
                 tx_playlist
                     .send(Err(MoosyncError::String(format!(
                         "Failed to scan {}: {:?}",
                         playlist.display(),
-                        playlist_scan_res.unwrap_err()
+                        e
                     ))))
                     .expect("channel will be there waiting for the pool");
                 continue;

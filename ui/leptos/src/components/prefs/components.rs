@@ -474,7 +474,7 @@ where
                         >
                             <ThemeViewIcon
                                 active=signal.read_only()
-                                theme=Box::new(theme.clone())
+                                theme=theme.clone()
                             />
                             <div class="theme-title-text">{theme.name}</div>
                             <div class="theme-author">{theme.author}</div>

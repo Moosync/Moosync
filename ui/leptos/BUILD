@@ -237,6 +237,7 @@ cargo_build(
         "debuginfo=0",
     ],
     target = "wasm32-unknown-unknown",
+    target_compatible_with = ["@platforms//os:windows"],
     visibility = ["//visibility:private"],
     wasm_bindgen_path = "wasm-bindgen",
 )

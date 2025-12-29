@@ -106,18 +106,18 @@ impl From<types::entities::Album> for QueryableAlbum {
     }
 }
 
-impl Into<types::entities::Album> for QueryableAlbum {
-    #[tracing::instrument(level = "debug", skip(self))]
-    fn into(self) -> types::entities::Album {
+impl From<QueryableAlbum> for types::entities::Album {
+    #[tracing::instrument(level = "debug", skip())]
+    fn from(val: QueryableAlbum) -> Self {
         types::entities::Album {
-            album_id: self.album_id,
-            album_name: self.album_name,
-            album_artist: self.album_artist,
-            album_coverpath_high: self.album_coverpath_high,
-            album_song_count: self.album_song_count,
-            year: self.year,
-            album_coverpath_low: self.album_coverpath_low,
-            album_extra_info: self
+            album_id: val.album_id,
+            album_name: val.album_name,
+            album_artist: val.album_artist,
+            album_coverpath_high: val.album_coverpath_high,
+            album_song_count: val.album_song_count,
+            year: val.year,
+            album_coverpath_low: val.album_coverpath_low,
+            album_extra_info: val
                 .album_extra_info
                 .map(|info| types::entities::EntityInfo(info.0)),
         }
@@ -172,19 +172,19 @@ impl From<types::entities::Artist> for QueryableArtist {
     }
 }
 
-impl Into<types::entities::Artist> for QueryableArtist {
-    #[tracing::instrument(level = "debug", skip(self))]
-    fn into(self) -> types::entities::Artist {
+impl From<QueryableArtist> for types::entities::Artist {
+    #[tracing::instrument(level = "debug", skip())]
+    fn from(val: QueryableArtist) -> Self {
         types::entities::Artist {
-            artist_id: self.artist_id,
-            artist_mbid: self.artist_mbid,
-            artist_name: self.artist_name,
-            artist_coverpath: self.artist_coverpath,
-            artist_song_count: self.artist_song_count,
-            artist_extra_info: self
+            artist_id: val.artist_id,
+            artist_mbid: val.artist_mbid,
+            artist_name: val.artist_name,
+            artist_coverpath: val.artist_coverpath,
+            artist_song_count: val.artist_song_count,
+            artist_extra_info: val
                 .artist_extra_info
                 .map(|info| types::entities::EntityInfo(info.0)),
-            sanitized_artist_name: self.sanitized_artist_name,
+            sanitized_artist_name: val.sanitized_artist_name,
         }
     }
 }
@@ -229,13 +229,13 @@ impl From<types::entities::Genre> for QueryableGenre {
     }
 }
 
-impl Into<types::entities::Genre> for QueryableGenre {
-    #[tracing::instrument(level = "debug", skip(self))]
-    fn into(self) -> types::entities::Genre {
+impl From<QueryableGenre> for types::entities::Genre {
+    #[tracing::instrument(level = "debug", skip())]
+    fn from(val: QueryableGenre) -> Self {
         types::entities::Genre {
-            genre_id: self.genre_id,
-            genre_name: self.genre_name,
-            genre_song_count: self.genre_song_count,
+            genre_id: val.genre_id,
+            genre_name: val.genre_name,
+            genre_song_count: val.genre_song_count,
         }
     }
 }
@@ -283,7 +283,6 @@ impl BridgeUtils for PlaylistBridge {
 #[derive(Default, Clone, Debug, Insertable, Queryable, Identifiable, AsChangeset)]
 #[diesel(table_name = playlists)]
 #[diesel(primary_key(playlist_id))]
-
 pub struct QueryablePlaylist {
     pub playlist_id: Option<String>,
     pub playlist_name: String,
@@ -313,25 +312,26 @@ impl From<types::entities::Playlist> for QueryablePlaylist {
     }
 }
 
-impl Into<types::entities::Playlist> for QueryablePlaylist {
-    #[tracing::instrument(level = "debug", skip(self))]
-    fn into(self) -> types::entities::Playlist {
+impl From<QueryablePlaylist> for types::entities::Playlist {
+    #[tracing::instrument(level = "debug", skip())]
+    fn from(val: QueryablePlaylist) -> Self {
         types::entities::Playlist {
-            playlist_id: self.playlist_id,
-            playlist_name: self.playlist_name,
-            playlist_coverpath: self.playlist_coverpath,
-            playlist_song_count: self.playlist_song_count,
-            playlist_desc: self.playlist_desc,
-            playlist_path: self.playlist_path,
-            extension: self.extension,
-            icon: self.icon,
-            library_item: self.library_item,
+            playlist_id: val.playlist_id,
+            playlist_name: val.playlist_name,
+            playlist_coverpath: val.playlist_coverpath,
+            playlist_song_count: val.playlist_song_count,
+            playlist_desc: val.playlist_desc,
+            playlist_path: val.playlist_path,
+            extension: val.extension,
+            icon: val.icon,
+            library_item: val.library_item,
         }
     }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Copy, FromSqlRow, AsExpression)]
 #[diesel(sql_type = diesel::sql_types::Text)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum QueryableSongType {
     #[default]
     LOCAL,
@@ -342,7 +342,7 @@ pub enum QueryableSongType {
 }
 
 impl From<SongType> for QueryableSongType {
-    #[tracing::instrument(level = "debug", skip(value))]
+    #[tracing::instrument(level = "debug", skip())]
     fn from(value: SongType) -> Self {
         match value {
             SongType::LOCAL => Self::LOCAL,
@@ -354,15 +354,15 @@ impl From<SongType> for QueryableSongType {
     }
 }
 
-impl Into<SongType> for QueryableSongType {
-    #[tracing::instrument(level = "debug", skip(self))]
-    fn into(self) -> SongType {
-        match self {
-            Self::LOCAL => SongType::LOCAL,
-            Self::URL => SongType::URL,
-            Self::SPOTIFY => SongType::SPOTIFY,
-            Self::DASH => SongType::DASH,
-            Self::HLS => SongType::HLS,
+impl From<QueryableSongType> for SongType {
+    #[tracing::instrument(level = "debug", skip())]
+    fn from(val: QueryableSongType) -> Self {
+        match val {
+            QueryableSongType::LOCAL => SongType::LOCAL,
+            QueryableSongType::URL => SongType::URL,
+            QueryableSongType::SPOTIFY => SongType::SPOTIFY,
+            QueryableSongType::DASH => SongType::DASH,
+            QueryableSongType::HLS => SongType::HLS,
         }
     }
 }
@@ -487,37 +487,37 @@ impl From<InnerSong> for QueryableSong {
     }
 }
 
-impl Into<InnerSong> for QueryableSong {
-    #[tracing::instrument(level = "debug", skip(self))]
-    fn into(self) -> InnerSong {
+impl From<QueryableSong> for InnerSong {
+    #[tracing::instrument(level = "debug", skip())]
+    fn from(val: QueryableSong) -> Self {
         InnerSong {
-            _id: self._id,
-            path: self.path,
-            size: self.size,
-            inode: self.inode,
-            deviceno: self.deviceno,
-            title: self.title,
-            date: self.date,
-            year: self.year,
-            lyrics: self.lyrics,
-            release_type: self.release_type,
-            bitrate: self.bitrate,
-            codec: self.codec,
-            container: self.container,
-            duration: self.duration,
-            sample_rate: self.sample_rate,
-            hash: self.hash,
-            type_: self.type_.into(),
-            url: self.url,
-            song_cover_path_high: self.song_cover_path_high,
-            playback_url: self.playback_url,
-            song_cover_path_low: self.song_cover_path_low,
-            date_added: self.date_added,
-            provider_extension: self.provider_extension,
-            icon: self.icon,
-            show_in_library: self.show_in_library,
-            track_no: self.track_no,
-            library_item: self.library_item,
+            _id: val._id,
+            path: val.path,
+            size: val.size,
+            inode: val.inode,
+            deviceno: val.deviceno,
+            title: val.title,
+            date: val.date,
+            year: val.year,
+            lyrics: val.lyrics,
+            release_type: val.release_type,
+            bitrate: val.bitrate,
+            codec: val.codec,
+            container: val.container,
+            duration: val.duration,
+            sample_rate: val.sample_rate,
+            hash: val.hash,
+            type_: val.type_.into(),
+            url: val.url,
+            song_cover_path_high: val.song_cover_path_high,
+            playback_url: val.playback_url,
+            song_cover_path_low: val.song_cover_path_low,
+            date_added: val.date_added,
+            provider_extension: val.provider_extension,
+            icon: val.icon,
+            show_in_library: val.show_in_library,
+            track_no: val.track_no,
+            library_item: val.library_item,
         }
     }
 }
@@ -534,7 +534,6 @@ pub struct QueryableAnalytics {
 
 #[derive(Default, Clone, Debug, Insertable, Queryable, AsChangeset)]
 #[diesel(table_name = cache)]
-
 pub struct CacheModel {
     pub id: Option<i32>,
     pub url: String,

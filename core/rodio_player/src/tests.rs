@@ -1,15 +1,11 @@
 use super::RodioPlayer;
-use types::ui::player_details::PlayerEvents;
-use std::sync::mpsc::Receiver;
 
 #[test]
 fn test_rodio_player_new() {
     let player = RodioPlayer::new();
     // We can't assert much about internal state without more access, but we can verify it constructed
     let rx = player.get_events_rx();
-    let locked_rx = rx.lock().unwrap();
-    // Should be able to lock
-    assert!(true);
+    let _locked_rx = rx.lock().unwrap();
 }
 
 #[tokio::test]

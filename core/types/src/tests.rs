@@ -1,6 +1,6 @@
-use super::songs::{SongType, InnerSong, Song};
 use super::common::SearchByTerm;
-use super::entities::{Album, Artist};
+use super::entities::Artist;
+use super::songs::{InnerSong, Song, SongType};
 use std::str::FromStr;
 
 #[test]

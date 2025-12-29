@@ -157,7 +157,7 @@ jobs:
           tool: wasm-bindgen-cli
 
       - name: Bazel Build Package
-        run: bazel build ${{ matrix.target }} -c opt --sandbox_debug
+        run: bazel build ${{ matrix.target }} -c opt --sandbox_debug --verbose_failures
         env:
           MSYS2_PATH: ${{ runner.os == 'Windows' && steps.msys2.outputs.msys2-location }}
 

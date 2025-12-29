@@ -129,8 +129,6 @@ rust_binary_with_export(
         "opt-level=3",
         "-C",
         "strip=symbols",
-        "-C",
-        "panic=abort",
     ],
     visibility = ["//visibility:private"],
     deps = [

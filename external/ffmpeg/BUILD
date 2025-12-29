@@ -95,7 +95,8 @@ configure_make(
         "libswscale.a",
     ],
     tool_prefix = select({
-        "@bazel_tools//src/conditions:windows": "sed -i 's|gsub(/\\\\/,|gsub(/\\\\\\\\/,|' ffbuild/config.mak &&",
+        # Escape quotes for Bazel + powershell + bash: 2^4 quotes
+        "@bazel_tools//src/conditions:windows": "sed -i 's|gsub(/\\\\\\\\/,|gsub(/\\\\\\\\\\\\\\\\/,|' ffbuild/config.mak &&",
         "//conditions:default": "",
     }),
     visibility = ["//visibility:public"],

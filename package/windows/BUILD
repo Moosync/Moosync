@@ -10,11 +10,14 @@ genrule(
     cmd = """
     ls -la $$PWD/$(location //tauri:moosync)
     BINARY_ABS_PATH=$$(cygpath -w "$$PWD/$(location //tauri:moosync)")
+    OUT_PATH=$$(cygpath -w "$$PWD/$@")
     makensis \
       -V4 \
       -DBINARY_PATH="$$BINARY_ABS_PATH" \
-      -DOUTFILE="$@" \
+      -DOUTFILE="$$OUT_PATH" \
       "$(location moosync.nsi)"
+
+    ls -la $$OUT_PATH
     """,
 )
 

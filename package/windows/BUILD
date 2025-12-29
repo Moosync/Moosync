@@ -9,7 +9,7 @@ genrule(
     outs = ["MoosyncSetup.exe"],
     cmd = """
     ls -la $$PWD/$(location //tauri:moosync)
-    BINARY_ABS_PATH=$$(cygpath -w "$$PWD/$(location //tauri:moosync)" | sed 's/\\\\/\\\\\\\\/g')
+    BINARY_ABS_PATH=$$(cygpath -w "$$PWD/$(location //tauri:moosync)")
     makensis \
       -V4 \
       -DBINARY_PATH="$$BINARY_ABS_PATH" \

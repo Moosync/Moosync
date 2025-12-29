@@ -17,6 +17,7 @@ genrule(
       -DOUTFILE="$$OUT_PATH" \
       "$(location moosync.nsi)"
 
+    mv package/windows/MoosyncSetup.exe "$$(cygpath -u "$$OUT_PATH")"
     ls -la "$$(cygpath -u "$$OUT_PATH")"
     """,
 )

@@ -1,32 +1,27 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_library")
-load("//rust:defs.bzl", "cargo_build", "rust_binary_with_export")
 load("//tools:defs.bzl", "expand_template")
-
-filegroup(
-    name = "desktop_file",
-    srcs = [
-        "moosync.desktop",
-    ],
-)
+load("//tools/rust:defs.bzl", "cargo_build", "rust_binary_with_export")
 
 filegroup(
     name = "resources",
     srcs = glob([
-        "icons/**/*",
         "capabilities/**/*",
     ]),
 )
 
 expand_template(
     name = "tauri_config",
-    data = ["//ui:moosync_ui"],
+    data = [
+        "//package:icons",
+        "//ui:moosync_ui",
+    ],
     out_name = "tauri.conf.json",
     substitutions = {
         # Relative from tauri build script but we need to escape to exec root
         "@DIST@": "../../../../$(execpath //ui:moosync_ui)",
-        "@DESKTOP@": "moosync.desktop",
-        "@ICONS@": "icons",
+        "@DESKTOP@": "",
+        "@ICONS@": "../../../../$(execpath //package:icons)",
     },
     template = "tauri.conf.json",
 )
@@ -63,6 +58,7 @@ rust_library(
     ],
     compile_data = [
         ":resources",
+        "//package:icons",
         "//ui:moosync_ui",
     ],
     data = [
@@ -125,6 +121,15 @@ rust_library(
 rust_binary_with_export(
     name = "moosync_internal",
     srcs = ["src/main.rs"],
+    binary_name = "moosync",
+    rustc_flags = [
+        "-C",
+        "codegen-units=1",
+        "-C",
+        "opt-level=3",
+        "-C",
+        "strip=symbols",
+    ],
     visibility = ["//visibility:private"],
     deps = [
         ":app_lib",
@@ -152,14 +157,44 @@ cargo_build_script(
 cargo_build(
     name = "moosync_cargo",
     srcs = [":moosync_internal_export"],
-    data = ["//external/ffmpeg:gen_dir"],
+    # app-lib.exe builds with an icon
+    binary_name = "app-lib.exe",
+    data = [
+        "//external/ffmpeg:gen_dir",
+        "//external/openssl",
+        "//external/openssl:gen_dir",
+    ],
     env = {
         "FFMPEG_INCLUDE_DIR": "$ROOT/$(execpath //external/ffmpeg:gen_dir)/include",
         "FFMPEG_LIBS_DIR": "$ROOT/$(execpath //external/ffmpeg:gen_dir)/lib",
         "FFMPEG_LINK_MODE": "static",
         "DEP_TAURI_DEV": "false",
+        "OPENSSL_NO_VENDOR": "1",
+        "OPENSSL_LIB_DIR": "$ROOT/$(execpath //external/openssl:gen_dir)/lib",
+        "OPENSSL_INCLUDE_DIR": "$ROOT/$(execpath //external/openssl:gen_dir)/include",
+        "OPENSSL_STATIC": "1",
     },
-    out_name = "moosync",
+    out_name = "moosync_cargo.exe",
+    rustflags = [
+        "-C",
+        "link-arg=User32.lib",
+        "-C",
+        "link-arg=Gdi32.lib",
+        "-C",
+        "link-arg=Crypt32.lib",
+        "-C",
+        "link-arg=Advapi32.lib",
+        "-C",
+        "link-arg=Ws2_32.lib",
+        "-C",
+        "link-arg=Bcrypt.lib",
+        "-C",
+        "link-arg=libssl.lib",
+        "-C",
+        "link-arg=libcrypto.lib",
+        "-C",
+        "link-arg=/LIBPATH:$ROOT/$(execpath //external/openssl:gen_dir)/lib",
+    ],
     visibility = ["//visibility:private"],
 )
 

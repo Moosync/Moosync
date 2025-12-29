@@ -1,6 +1,6 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen")
-load("//rust:defs.bzl", "cargo_build", "rust_binary_with_export")
+load("//tools/rust:defs.bzl", "cargo_build", "rust_binary_with_export")
 
 package(default_visibility = ["//ui/gen_dist:__subpackages__"])
 
@@ -227,6 +227,7 @@ rust_wasm_bindgen(
 cargo_build(
     name = "moosync_ui_bindgen_cargo",
     srcs = [":moosync_ui_bin_export"],
+    binary_name = "moosync-ui-bin-internal.wasm",
     out_name = "moosync_ui_bindgen",
     run_wasm_bindgen = True,
     rustflags = [

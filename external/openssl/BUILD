@@ -14,6 +14,7 @@ CONFIGURE_OPTIONS = [
     "no-idea",
     "no-weak-ssl-ciphers",
     "no-tests",
+    "no-shared",
 ]
 
 LIB_NAME = "openssl"
@@ -48,20 +49,21 @@ configure_make_variant(
     configure_command = "Configure",
     configure_in_place = True,
     configure_options = CONFIGURE_OPTIONS + [
-        "--libdir=lib",
+        "VC-WIN64A",
+        "AR=\"lib\"",
+        "CC=\"cl\"",
         # Unset Microsoft Assembler (MASM) flags set by built-in MSVC toolchain,
         # as NASM is unsed to build OpenSSL rather than MASM
-        "CC=\"cl\"",
         "ASFLAGS=\" \"",
-        "CFLAGS=\"/W3 /wd4090 /nologo /O2 /Zi /MP\"",
-        "LDFLAGS=\"/nologo /debug /Zi\"",
-        "ARFLAGS=\"/nologo\"",
         "LD=\"link\"",
+        "--libdir=lib",
     ],
     configure_prefix = "$$PERL",
     env = {
         "PATH": "$$(dirname $(execpath @nasm//:nasm))",
         "PERL": "$$EXT_BUILD_ROOT$$/$(PERL)",
+        "CXXFLAGS": " ",
+        "LDFLAGS": " ",
     },
     lib_name = LIB_NAME,
     lib_source = "@openssl//:all_srcs",

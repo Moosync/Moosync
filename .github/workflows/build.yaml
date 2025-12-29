@@ -8,6 +8,8 @@ on:
 
   workflow_dispatch:
 
+env:
+  APP_NAME: "Moosync"
 jobs:
   build-and-test:
     name: ${{ matrix.name }}
@@ -21,14 +23,41 @@ jobs:
         include:
           - name: Linux x64
             os: ubuntu-22.04
+            target: //package/linux:linux_release
+            artifact_path_base: "bazel-bin/package/linux"
+            artifact_patterns: |
+              Moosync-*-*.x86_64.rpm
+              Moosync-*-*.amd64.deb
+              Moosync-*-*.x86_64.AppImage
+
           - name: Linux ARM64
             os: ubuntu-22.04-arm
+            target: //package/linux:linux_release
+            artifact_path_base: "bazel-bin/package/linux"
+            artifact_patterns: |
+              Moosync-*-*.aarch64.rpm
+              Moosync-*-*.arm64.deb
+              Moosync-*-*.aarch64.AppImage
+
           - name: macOS x64
             os: macos-15-intel
+            target: //package/apple:apple_release
+            artifact_path_base: "bazel-bin/package/apple"
+            artifact_patterns: "Moosync-*-*.darwin-x64.zip"
+
           - name: macOS ARM64
             os: macos-latest
+            target: //package/apple:apple_release
+            artifact_path_base: "bazel-bin/package/apple"
+            artifact_patterns: "Moosync-*-*.darwin-arm64.zip"
+
           - name: Windows x64
             os: windows-latest
+            target: //package/windows:windows_release
+            artifact_path_base: "bazel-bin/package/windows"
+            artifact_patterns: |
+              Moosync-*-*.x86_64-setup.exe
+              Moosync-*-*.x86_64.exe
 
     steps:
       - name: Enable Git Long Paths (Windows)
@@ -37,12 +66,24 @@ jobs:
           git config --system core.longpaths true 
           git config --global core.symlinks true
 
+      - name: Free Disk Space (Linux)
+        if: matrix.os == 'ubuntu-22.04'
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
       - uses: actions/checkout@v4
 
       - uses: bazel-contrib/setup-bazel@0.16.0
         with:
           bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}
+          disk-cache: true
           repository-cache: true
 
       - name: Install Common linux Dependencies
@@ -58,7 +99,7 @@ jobs:
             gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools 
             gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl 
             gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio libappindicator3-dev 
-            nasm yasm autoconf automake libtool pkg-config make build-essential clang
+            nasm yasm autoconf automake libtool pkg-config make build-essential clang libenchant-2-2
           version: 1.0
 
       - name: Install ARM-Only linux Dependencies
@@ -69,21 +110,19 @@ jobs:
             curl file xdg-utils libfuse2 libayatana-appindicator3-dev
           version: 1.0
 
-      - uses: actions-rust-lang/setup-rust-toolchain@v1
-        if: runner.os == 'Windows'
-
-        with:
-          target: wasm32-unknown-unknown
-
-      - uses: taiki-e/install-action@v2
-        if: runner.os == 'Windows'
-        with:
-          tool: wasm-bindgen-cli
+      - name: install dependencies (macos only)
+        if: matrix.os == 'macos-15-intel'
+        run: |
+          brew update
+          brew upgrade
+          brew install nasm
 
       - uses: msys2/setup-msys2@v2
+        id: msys2
         if: runner.os == 'Windows'
         with:
           update: true
+          msystem: MSYS
           install: >-
             curl
             git
@@ -91,11 +130,51 @@ jobs:
             diffutils 
             zip 
             unzip
+            pkgconf
+            mingw-w64-x86_64-nasm
+            mingw-w64-x86_64-nsis
 
-      - name: Bazel Build ui
-        run: bazel build //tauri:moosync
+      - name: Add MSYS2 to PATH
+        shell: powershell
+        if: runner.os == 'Windows'
+        run: |
+          $root = "${{ steps.msys2.outputs.msys2-location }}"
 
-      # - name: Bazel Test
-      #   run: bazel test //... --keep_going --test_output=errors
-      #   env:
-      #     BAZEL_SH: ${{ env.BAZEL_SH }}
+          # Add MinGW64 bin (This is where makensis lives)
+          echo "$root\mingw64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+          # Add MSYS generic bin (This is where bash/sh live)
+          echo "$root\usr\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        if: runner.os == 'Windows'
+        with:
+          target: wasm32-unknown-unknown
+          cache: false
+
+      - uses: taiki-e/install-action@v2
+        if: runner.os == 'Windows'
+        with:
+          tool: wasm-bindgen-cli
+
+      - name: Bazel Build Package
+        run: bazel build ${{ matrix.target }} -c opt
+        env:
+          MSYS2_PATH: ${{ runner.os == 'Windows' && steps.msys2.outputs.msys2-location }}
+
+      - name: Prepare Artifacts for Upload
+        shell: bash
+        run: |
+          mkdir -p dist
+          echo "${{ matrix.artifact_patterns }}" | while read -r pattern; do
+            if [[ -z "$pattern" ]]; then continue; fi
+            cp -L ${{ matrix.artifact_path_base }}/$pattern dist/
+          done
+          ls -R dist/
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: moosync-package-${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: warn

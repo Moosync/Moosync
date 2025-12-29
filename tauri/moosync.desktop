@@ -1,9 +1,0 @@
-[Desktop Entry]
-Categories=
-Comment=A Music player
-Exec=moosync %U
-Icon=moosync
-Name=Moosync
-Terminal=false
-Type=Application
-MimeType=x-scheme-handler/moosync;

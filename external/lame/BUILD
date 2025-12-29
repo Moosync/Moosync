@@ -24,7 +24,7 @@ make_variant(
     postfix_script = "\n".join([
         "mkdir -p $$INSTALLDIR/lib",
         "mkdir -p $$INSTALLDIR/include/lame",
-        "find . -name 'libmp3lame*.lib' -exec cp {} $$INSTALLDIR/lib/mp3lame.lib \\\\; -quit",
+        "find . -name 'libmp3lame*.lib' -exec cp {} $$INSTALLDIR/lib/mp3lame.lib \\; -quit",
         "cp include/lame.h $$INSTALLDIR/include/lame/",
     ]),
     tags = ["manual"],

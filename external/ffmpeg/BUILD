@@ -57,6 +57,7 @@ configure_make(
         "--disable-libdrm",
         "--disable-ffnvcodec",
         "--enable-static",
+        # TODO: Figure out why -logg isn't added by pkg-config
     ] + select({
         "@platforms//os:windows": [
             "--toolchain=msvc",
@@ -65,6 +66,8 @@ configure_make(
             "--extra-cflags=-I$$EXT_BUILD_DEPS/openssl/include",
             "--extra-ldflags=-LIBPATH:$$EXT_BUILD_DEPS/openssl/lib",
             "--extra-libs=\"libssl.lib libcrypto.lib ogg.lib vorbis.lib vorbisenc.lib vorbisfile.lib crypt32.lib advapi32.lib user32.lib ws2_32.lib bcrypt.lib secur32.lib shlwapi.lib\"",
+            # TODO: Hermetic pkg-config is broken, use msys2 one
+            # NOTE: Only on github actions. Change it if you're building locally
             "--pkg-config=\"D:/a/_temp/msys64/usr/bin/pkg-config.exe $$BAZEL_PKG_FLAGS\"",
         ],
         "//conditions:default": [
@@ -74,6 +77,7 @@ configure_make(
     env = select({
         "@platforms//os:windows": {
             "PATH": "$$(dirname $(execpath @nasm//:nasm))",
+            # I have no idea why windows pkgconf doesn't respect PKG_CONFIG_PATH on github actions
             "BAZEL_PKG_FLAGS": " ".join([
                 "--with-path=$$(cygpath -u $${EXT_BUILD_DEPS}/openssl/lib/pkgconfig)",
                 "--with-path=$$(cygpath -u $${EXT_BUILD_DEPS}/ogg/lib/pkgconfig)",

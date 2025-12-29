@@ -5,7 +5,7 @@ cmake(
     cache_entries = {
         "CMAKE_INSTALL_LIBDIR": "lib",
         "BUILD_SHARED_LIBS": "OFF",
-        "OGG_ROOT": "$$EXT_BUILD_DEPS$$",  # Critical: Helps Vorbis find Ogg
+        "OGG_ROOT": "$$EXT_BUILD_DEPS$$",
     },
     lib_source = "@libvorbis//:all_srcs",
     out_static_libs = select({

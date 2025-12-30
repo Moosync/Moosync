@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use leptos::{IntoView, component, html::Div, prelude::*, view};
+use leptos::{component, html::Div, prelude::*, view, IntoView};
 use leptos_use::on_click_outside;
 
 use crate::{icons::cross_icon::CrossIcon, store::modal_store};
@@ -34,7 +34,7 @@ where
 
     view! {
         <div style="position: absolute; z-index: 9999;">
-            <div class="modal fade showw">
+            <div class="modal fade show">
                 <div
                     node_ref=target
                     class=move || format!("modal-dialog {} modal-dialog-centered", size())

@@ -354,7 +354,7 @@ impl Extism for ExtismContext {
                     tracing::error!("Failed to called extension entry: {:?}", e);
                 }
             }
-            reply_handler.as_ref()(&package_name, MainCommand::ExtensionsUpdated());
+            let _ = reply_handler.as_ref()(&package_name, MainCommand::ExtensionsUpdated());
         });
 
         plugin_clone

@@ -306,7 +306,7 @@ pub fn Search() -> impl IntoView {
 
     view! {
         <div class="w-100 h-100">
-            <div class="container-fluid h-100 d-flex flex-column">
+            <div class="container-fluid h-100 d-flex flex-column mt-3">
 
                 <TabCarousel keys=keys.clone() selected=selected_provider single_select=true />
                 <TabCarousel

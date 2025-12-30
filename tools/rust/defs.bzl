@@ -2,7 +2,7 @@ load("@rules_rust//rust:defs.bzl", "rust_binary")
 load(":cargo_build.bzl", "cargo_build_")
 load(":cargo_gen.bzl", "export_cargo_package")
 
-def rust_binary_with_export(name, srcs, deps = [], edition = "2021", visibility = None, **kwargs):
+def rust_binary_with_export(name, srcs, deps = [], edition = "2024", visibility = None, **kwargs):
     internal_name = name + "_internal"
     export_name = name + "_export"
 

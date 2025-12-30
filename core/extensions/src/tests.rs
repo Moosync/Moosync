@@ -13,10 +13,8 @@ use types::ui::extensions::PackageNameArgs;
 static INIT: std::sync::Once = std::sync::Once::new();
 
 fn init_env() {
-    INIT.call_once(|| {
-        unsafe {
-            std::env::set_var("XDG_CACHE_HOME", std::env::temp_dir());
-        }
+    INIT.call_once(|| unsafe {
+        std::env::set_var("XDG_CACHE_HOME", std::env::temp_dir());
     });
 }
 
@@ -119,11 +117,7 @@ fn test_find_and_spawn_extensions() {
         "icon": "icon.png",
         "author": "Author"
     }"#;
-    std::fs::write(
-        ext_path.join("package.json"),
-        manifest,
-    )
-    .unwrap();
+    std::fs::write(ext_path.join("package.json"), manifest).unwrap();
 
     // Create dummy wasm file
     std::fs::write(ext_path.join("main.wasm"), b"dummy").unwrap();
@@ -135,30 +129,21 @@ fn test_find_and_spawn_extensions() {
         .expect_spawn_extension()
         .times(1)
         .returning(|_| {
-            // Return a dummy plugin wrapped in Arc<Mutex>
-            // We can't easily construct a real Plugin here without valid wasm and runtime
-            // So we might need to mock Plugin too or just accept that spawn_extension returns opaque object
-            // But ExtensionHandlerInner stores Plugin.
-            // Wait, Extism trait returns Arc<Mutex<Plugin>>. Plugin is a struct from extism crate.
-            // Constructing a real Plugin requires valid WASM.
-            // If I can't construct a fake Plugin, I might have trouble.
-            // However, the test environment might support building a minimal valid WASM plugin.
-            // Or I can use a minimal valid WASM byte array.
-
             let wasm = extism::Wasm::data(
                 // Minimal valid WASM module
-                vec![
-                    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00
-                ]
+                vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00],
             );
             let manifest = extism::Manifest::new([wasm]);
             let plugin = extism::PluginBuilder::new(manifest).build().unwrap();
             Arc::new(Mutex::new(plugin))
         });
 
-    let _reply_handler: ReplyHandler = Arc::new(Box::new(|_, _| Ok(crate::models::MainCommandResponse::ExtensionsUpdated(true))));
+    let _reply_handler: ReplyHandler = Arc::new(Box::new(|_, _| {
+        Ok(crate::models::MainCommandResponse::ExtensionsUpdated(true))
+    }));
 
-    let mut handler = ExtensionHandlerInner::new_with_context(extensions_path, Box::new(mock_extism));
+    let mut handler =
+        ExtensionHandlerInner::new_with_context(extensions_path, Box::new(mock_extism));
 
     // Initially no extensions
     if let RunnerCommandResp::ExtensionList(list) = handler
@@ -171,7 +156,9 @@ fn test_find_and_spawn_extensions() {
     }
 
     // Find and spawn
-    handler.handle_runner_command(RunnerCommand::FindNewExtensions).unwrap();
+    handler
+        .handle_runner_command(RunnerCommand::FindNewExtensions)
+        .unwrap();
 
     // Now should have 1 extension
     if let RunnerCommandResp::ExtensionList(list) = handler
@@ -205,11 +192,7 @@ async fn test_handle_extension_command() {
         "moosyncExtension": true,
         "icon": "icon.png"
     }"#;
-    std::fs::write(
-        ext_path.join("package.json"),
-        manifest,
-    )
-    .unwrap();
+    std::fs::write(ext_path.join("package.json"), manifest).unwrap();
     std::fs::write(ext_path.join("main.wasm"), b"dummy").unwrap();
 
     let mut mock_extism = MockExtism::new();
@@ -229,21 +212,27 @@ async fn test_handle_extension_command() {
         .times(1)
         .returning(|_, _, cmd| {
             if let ExtensionCommand::GetProviderScopes(_) = cmd {
-                 Ok(ExtensionCommandResponse::GetProviderScopes(vec![]))
+                Ok(ExtensionCommandResponse::GetProviderScopes(vec![]))
             } else {
                 panic!("Wrong command passed to extism");
             }
         });
 
-    let mut handler = ExtensionHandlerInner::new_with_context(extensions_path, Box::new(mock_extism));
-    handler.handle_runner_command(RunnerCommand::FindNewExtensions).unwrap();
+    let mut handler =
+        ExtensionHandlerInner::new_with_context(extensions_path, Box::new(mock_extism));
+    handler
+        .handle_runner_command(RunnerCommand::FindNewExtensions)
+        .unwrap();
 
     let cmd = ExtensionCommand::GetProviderScopes(PackageNameArgs {
         package_name: "test.pkg".to_string(),
     });
 
     let resp = handler.handle_extension_command(cmd).await.unwrap();
-    assert!(matches!(resp, ExtensionCommandResponse::GetProviderScopes(_)));
+    assert!(matches!(
+        resp,
+        ExtensionCommandResponse::GetProviderScopes(_)
+    ));
 }
 
 #[test]
@@ -264,23 +253,25 @@ fn test_register_unregister_ui_preferences() {
         "moosyncExtension": true,
         "icon": "icon.png"
     }"#;
-    std::fs::write(
-        ext_path.join("package.json"),
-        manifest,
-    )
-    .unwrap();
+    std::fs::write(ext_path.join("package.json"), manifest).unwrap();
     std::fs::write(ext_path.join("main.wasm"), b"dummy").unwrap();
 
     let mut mock_extism = MockExtism::new();
-    mock_extism.expect_spawn_extension().times(1).returning(|_| {
-        let wasm = extism::Wasm::data(vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
-        let manifest = extism::Manifest::new([wasm]);
-        let plugin = extism::PluginBuilder::new(manifest).build().unwrap();
-        Arc::new(Mutex::new(plugin))
-    });
+    mock_extism
+        .expect_spawn_extension()
+        .times(1)
+        .returning(|_| {
+            let wasm = extism::Wasm::data(vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
+            let manifest = extism::Manifest::new([wasm]);
+            let plugin = extism::PluginBuilder::new(manifest).build().unwrap();
+            Arc::new(Mutex::new(plugin))
+        });
 
-    let mut handler = ExtensionHandlerInner::new_with_context(extensions_path, Box::new(mock_extism));
-    handler.handle_runner_command(RunnerCommand::FindNewExtensions).unwrap();
+    let mut handler =
+        ExtensionHandlerInner::new_with_context(extensions_path, Box::new(mock_extism));
+    handler
+        .handle_runner_command(RunnerCommand::FindNewExtensions)
+        .unwrap();
 
     // Test register
     let prefs = vec![PreferenceUIData {
@@ -288,7 +279,6 @@ fn test_register_unregister_ui_preferences() {
         title: "Pref 1".to_string(),
         description: "Description".to_string(),
         _type: PreferenceTypes::Extensions, // Using a valid type
-        default: Some(serde_json::Value::Bool(true)),
         ..Default::default()
     }];
 

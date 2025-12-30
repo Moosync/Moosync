@@ -174,7 +174,7 @@ def _create_external_package_info(target, name, package_name, version, features)
         source_package_path = target.label.package,
         deps = (),
         source_files = (),
-        edition = "2021",
+        edition = "2024",
         crate_root = None,
         build_script_source_file = None,
         build_script_data_files = (),

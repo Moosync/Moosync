@@ -88,6 +88,7 @@ crates.spec(
 crates.spec(
     features = [
         "rt-multi-thread",
+        "rt",
         "macros",
     ],
     package = "tokio",

@@ -1,6 +1,8 @@
-use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig};
 #[cfg(test)]
 use mockall::mock;
+use souvlaki::{
+    MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig,
+};
 
 use std::time::Duration;
 
@@ -37,7 +39,7 @@ impl SouvlakiMprisContext {
 
         #[cfg(target_os = "windows")]
         let (hwnd, _dummy_window) = {
-            let dummy_window = windows::DummyWindow::new().unwrap();
+            let dummy_window = crate::win32::DummyWindow::new().unwrap();
             let handle = Some(dummy_window.handle.0 as _);
             (handle, dummy_window)
         };
@@ -56,7 +58,7 @@ impl SouvlakiMprisContext {
             loop {
                 std::thread::sleep(std::time::Duration::from_millis(100));
                 #[cfg(target_os = "windows")]
-                windows::pump_event_queue();
+                crate::win32::pump_event_queue();
             }
         });
 
@@ -98,14 +100,10 @@ impl MprisContext for SouvlakiMprisContext {
     fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<()> {
         let parsed = match state {
             PlayerState::Playing => MediaPlayback::Playing {
-                progress: Some(MediaPosition(Duration::from_millis(
-                    duration,
-                ))),
+                progress: Some(MediaPosition(Duration::from_millis(duration))),
             },
             PlayerState::Paused | PlayerState::Loading => MediaPlayback::Paused {
-                progress: Some(MediaPosition(Duration::from_millis(
-                    duration,
-                ))),
+                progress: Some(MediaPosition(Duration::from_millis(duration))),
             },
             PlayerState::Stopped => MediaPlayback::Stopped,
         };

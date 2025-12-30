@@ -30,3 +30,6 @@ pub use mpris_android::{MediaControlEvent, MprisHolder};
 mod tests;
 
 pub mod context;
+
+#[cfg(target_os = "windows")]
+mod win32;

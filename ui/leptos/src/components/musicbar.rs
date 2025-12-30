@@ -139,32 +139,28 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     });
 
     let listener = move |client_y: i32| {
-        if is_dragging.get_untracked() {
-            if let Some(musicinfo) = musicinfo.get_untracked() {
-                if let Some(musicbar) = musicbar.get_untracked() {
-                    let start_offset = start_offset.get_untracked();
-                    let page_height = page_height.get_untracked();
-                    let client_y_diff = (client_y - start_offset).clamp(0, page_height);
-                    let musicbar_pos = client_y_diff - page_height;
-                    let _ =
-                        musicinfo.style(("transform", format!("translateY({client_y_diff}px)")));
-                    let _ = musicbar.style(("transform", format!("translateY({musicbar_pos}px)")));
+        if is_dragging.get_untracked() && let Some(musicinfo) = musicinfo.get_untracked() && let Some(musicbar) = musicbar.get_untracked() {
+            let start_offset = start_offset.get_untracked();
+            let page_height = page_height.get_untracked();
+            let client_y_diff = (client_y - start_offset).clamp(0, page_height);
+            let musicbar_pos = client_y_diff - page_height;
+            let _ =
+                musicinfo.style(("transform", format!("translateY({client_y_diff}px)")));
+            let _ = musicbar.style(("transform", format!("translateY({musicbar_pos}px)")));
 
-                    let sidebar = document()
-                        .get_element_by_id("sidebar")
-                        .map(|e| e.dyn_into::<HtmlElement>().unwrap());
-                    if let Some(sidebar) = sidebar {
-                        let style = sidebar.style();
-                        let opacity = client_y_diff as f64 / start_offset as f64;
-                        style
-                            .set_property("opacity", &format!("{}", opacity.abs()))
-                            .unwrap();
-                    }
+            let sidebar = document()
+                .get_element_by_id("sidebar")
+                .map(|e| e.dyn_into::<HtmlElement>().unwrap());
+            if let Some(sidebar) = sidebar {
+                let style = sidebar.style();
+                let opacity = client_y_diff as f64 / start_offset as f64;
+                style
+                    .set_property("opacity", &format!("{}", opacity.abs()))
+                    .unwrap();
+            }
 
-                    if client_y_diff.abs() > (0.2 * page_height as f64) as i32 {
-                        has_moved.set(true);
-                    }
-                }
+            if client_y_diff.abs() > (0.2 * page_height as f64) as i32 {
+                has_moved.set(true);
             }
         }
     };
@@ -248,34 +244,30 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     });
 
     let listener = move |client_y: i32| {
-        if is_dragging.get_untracked() {
-            if let Some(musicinfo) = musicinfo.get_untracked() {
-                if let Some(musicbar) = musicbar.get_untracked() {
-                    let page_height = page_height.get_untracked();
-                    let start_offset = start_offset.get_untracked();
-                    let client_y_diff =
-                        (client_y - start_offset).clamp(-(page_height - MUSICBAR_HEIGHT), 0);
-                    let musicinfo_pos = page_height + client_y_diff;
+        if is_dragging.get_untracked() && let Some(musicinfo) = musicinfo.get_untracked() && let Some(musicbar) = musicbar.get_untracked() {
+            let page_height = page_height.get_untracked();
+            let start_offset = start_offset.get_untracked();
+            let client_y_diff =
+                (client_y - start_offset).clamp(-(page_height - MUSICBAR_HEIGHT), 0);
+            let musicinfo_pos = page_height + client_y_diff;
 
-                    let _ =
-                        musicinfo.style(("transform", format!("translateY({musicinfo_pos}px)")));
-                    let _ = musicbar.style(("transform", format!("translateY({client_y_diff}px)")));
+            let _ =
+                musicinfo.style(("transform", format!("translateY({musicinfo_pos}px)")));
+            let _ = musicbar.style(("transform", format!("translateY({client_y_diff}px)")));
 
-                    let sidebar = document()
-                        .get_element_by_id("sidebar")
-                        .map(|e| e.dyn_into::<HtmlElement>().unwrap());
-                    if let Some(sidebar) = sidebar {
-                        let style = sidebar.style();
-                        let opacity = client_y as f64 / start_offset as f64;
-                        style
-                            .set_property("opacity", &format!("{opacity}"))
-                            .unwrap();
-                    }
+            let sidebar = document()
+                .get_element_by_id("sidebar")
+                .map(|e| e.dyn_into::<HtmlElement>().unwrap());
+            if let Some(sidebar) = sidebar {
+                let style = sidebar.style();
+                let opacity = client_y as f64 / start_offset as f64;
+                style
+                    .set_property("opacity", &format!("{opacity}"))
+                    .unwrap();
+            }
 
-                    if client_y_diff.abs() > (0.2 * page_height as f64) as i32 {
-                        has_moved.set(true);
-                    }
-                }
+            if client_y_diff.abs() > (0.2 * page_height as f64) as i32 {
+                has_moved.set(true);
             }
         }
     };

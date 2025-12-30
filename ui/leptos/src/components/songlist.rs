@@ -283,12 +283,10 @@ where
 
     Effect::new(move || {
         let show_searchbar = show_searchbar.get();
-        if show_searchbar {
-            if let Some(searchbar) = searchbar_ref.get() {
-                (searchbar as HtmlInputElement)
-                    .focus()
-                    .expect("Could not focus on searchbar");
-            }
+        if show_searchbar && let Some(searchbar) = searchbar_ref.get() {
+            (searchbar as HtmlInputElement)
+                .focus()
+                .expect("Could not focus on searchbar");
         }
     });
 

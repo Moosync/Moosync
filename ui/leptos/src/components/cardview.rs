@@ -26,8 +26,8 @@ use crate::{
     store::ui_store::UiStore,
     utils::common::convert_file_src,
 };
-use leptos::{IntoView, component, prelude::*, view};
-use leptos_router::{NavigateOptions, hooks::use_navigate};
+use leptos::{component, prelude::*, view, IntoView};
+use leptos_router::{hooks::use_navigate, NavigateOptions};
 use leptos_virtual_scroller::VirtualGridScroller;
 use serde::Serialize;
 
@@ -118,13 +118,11 @@ where
                                 }
                                     .into_any()
                             } else {
-                                if let Some(cover) = item.cover.clone() {
-                                    if cover == "favorites" {
-                                        return view! {
-                                            <FavPlaylistIcon class="rounded-corners img-fluid w-100 h-100" />
-                                        }
-                                            .into_any();
+                                if let Some(cover) = item.cover.clone() &&  cover == "favorites" {
+                                    return view! {
+                                        <FavPlaylistIcon class="rounded-corners img-fluid w-100 h-100" />
                                     }
+                                        .into_any();
                                 }
                                 view! {
                                     <img

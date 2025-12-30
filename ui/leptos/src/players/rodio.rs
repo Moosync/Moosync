@@ -76,10 +76,8 @@ impl GenericPlayer for RodioPlayer {
     #[tracing::instrument(level = "debug", skip(self))]
     fn stop(&mut self) -> Result<()> {
         let unlisten = self.unlisten.take();
-        if let Some(unlisten) = &unlisten {
-            if let Err(e) = unlisten.call0(&JsValue::NULL) {
-                tracing::error!("Error removing listeners {:?}", e);
-            }
+        if let Some(unlisten) = &unlisten && let Err(e) = unlisten.call0(&JsValue::NULL) {
+            tracing::error!("Error removing listeners {:?}", e);
         }
 
         spawn_local(async move {

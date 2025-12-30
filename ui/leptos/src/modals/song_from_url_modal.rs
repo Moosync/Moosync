@@ -50,14 +50,12 @@ pub fn SongFromUrlModal() -> impl IntoView {
         spawn_local(async move {
             for key in provider_keys {
                 let matched = match_url(key.clone(), song_url.clone(), false).await;
-                if let Ok(matched) = matched {
-                    if matched {
-                        let imported = song_from_url(key, song_url, false).await;
-                        if let Ok(song) = imported {
-                            imported_song.set(Some(song));
-                        }
-                        return;
+                if let Ok(matched) = matched && matched {
+                    let imported = song_from_url(key, song_url, false).await;
+                    if let Ok(song) = imported {
+                        imported_song.set(Some(song));
                     }
+                    return;
                 }
             }
         });
@@ -87,13 +85,11 @@ pub fn SongFromUrlModal() -> impl IntoView {
                     <div class="row no-gutters d-flex">
                         <div class="col-auto playlist-url-cover">
                             {move || {
-                                if let Some(song) = imported_song.get() {
-                                    if song.song.song_cover_path_high.is_some() {
-                                        return view! {
-                                            <img class="h-100 w-100" src=get_high_img(&song) />
-                                        }
-                                            .into_any();
+                                if let Some(song) = imported_song.get() && song.song.song_cover_path_high.is_some() {
+                                    return view! {
+                                        <img class="h-100 w-100" src=get_high_img(&song) />
                                     }
+                                        .into_any();
                                 }
                                 view! { <SongDefaultIcon /> }.into_any()
                             }}

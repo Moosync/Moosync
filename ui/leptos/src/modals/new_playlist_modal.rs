@@ -62,13 +62,11 @@ pub fn NewPlaylistModal(
         spawn_local(async move {
             let import_url = import_url.clone();
             for key in provider_store.get_provider_keys(ExtensionProviderScope::PlaylistFromUrl) {
-                if let Ok(matched) = match_url(key.clone(), import_url.clone(), false).await {
-                    if matched {
-                        let imported =
-                            playlist_from_url(key.clone(), import_url.clone(), false).await;
-                        if let Ok(imported) = imported {
-                            playlist.set(Some(imported));
-                        }
+                if let Ok(matched) = match_url(key.clone(), import_url.clone(), false).await && matched {
+                    let imported =
+                        playlist_from_url(key.clone(), import_url.clone(), false).await;
+                    if let Ok(imported) = imported {
+                        playlist.set(Some(imported));
                     }
                 }
             }
@@ -242,11 +240,9 @@ pub fn NewPlaylistModal(
                                             view! {
                                                 <div class="col-auto playlist-url-cover">
                                                     {move || {
-                                                        if let Some(playlist) = playlist.get() {
-                                                            if let Some(cover) = playlist.playlist_coverpath {
-                                                                return view! { <img class="h-100 w-100" src=cover /> }
-                                                                    .into_any();
-                                                            }
+                                                        if let Some(playlist) = playlist.get() && let Some(cover) = playlist.playlist_coverpath {
+                                                            return view! { <img class="h-100 w-100" src=cover /> }
+                                                                .into_any();
                                                         }
                                                         view! { <SongDefaultIcon /> }.into_any()
                                                     }}

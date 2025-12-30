@@ -345,14 +345,13 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                                                                     },
                                                                 ],
                                                             )
-                                                            .await
+                                                            .await && let Some(file) = res.first()
                                                         {
-                                                            if let Some(file) = res.first() {
                                                                 new_theme
                                                                     .update(|t| {
                                                                         t.theme.custom_css = Some(file.path.clone());
                                                                     });
-                                                            }
+
                                                         }
                                                     });
                                                 }

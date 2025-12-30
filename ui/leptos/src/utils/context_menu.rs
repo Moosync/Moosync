@@ -132,17 +132,15 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn goto_album(&self) {
         let navigate = use_navigate();
-        if let Some(song) = &self.current_song {
-            if let Some(album) = &song.album {
-                navigate(
-                    format!(
-                        "/main/albums/single?entity={}",
-                        url_escape::encode_component(&serde_json::to_string(&album).unwrap())
-                    )
-                    .as_str(),
-                    NavigateOptions::default(),
-                );
-            }
+        if let Some(song) = &self.current_song && let Some(album) = &song.album {
+            navigate(
+                format!(
+                    "/main/albums/single?entity={}",
+                    url_escape::encode_component(&serde_json::to_string(&album).unwrap())
+                )
+                .as_str(),
+                NavigateOptions::default(),
+            );
         }
     }
 
@@ -204,16 +202,14 @@ where
         let i18n = use_i18n();
 
         let mut artist_items = vec![];
-        if let Some(song) = &self.current_song {
-            if let Some(artists) = &song.artists {
-                for artist in artists.clone() {
-                    let artist_name = artist.artist_name.clone().unwrap_or_default();
-                    artist_items.push(ContextMenuItemInner::<Self>::new_with_handler(
-                        artist_name,
-                        move |_, cx| cx.goto_artist(artist.clone()),
-                        None,
-                    ))
-                }
+        if let Some(song) = &self.current_song && let Some(artists) = &song.artists {
+            for artist in artists.clone() {
+                let artist_name = artist.artist_name.clone().unwrap_or_default();
+                artist_items.push(ContextMenuItemInner::<Self>::new_with_handler(
+                    artist_name,
+                    move |_, cx| cx.goto_artist(artist.clone()),
+                    None,
+                ))
             }
         }
 

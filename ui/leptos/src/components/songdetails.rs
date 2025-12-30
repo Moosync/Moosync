@@ -101,17 +101,15 @@ where
             let provider_store = provider_store.clone();
             spawn_local(async move {
                 let lyrics = fetch_lyrics(&song).await;
-                if lyrics.is_none() {
-                    if let Some(song) = song {
-                        let valid_providers =
-                            provider_store.get_provider_keys(ExtensionProviderScope::Lyrics);
-                        for provider in valid_providers {
-                            let song = song.clone();
-                            let res = get_provider_lyrics(provider, song, false).await;
-                            if let Ok(res) = res {
-                                selected_lyrics.set(Some(res));
-                                return;
-                            }
+                if lyrics.is_none() && let Some(song) = song {
+                    let valid_providers =
+                        provider_store.get_provider_keys(ExtensionProviderScope::Lyrics);
+                    for provider in valid_providers {
+                        let song = song.clone();
+                        let res = get_provider_lyrics(provider, song, false).await;
+                        if let Ok(res) = res {
+                            selected_lyrics.set(Some(res));
+                            return;
                         }
                     }
                 }
@@ -181,10 +179,8 @@ where
                                     let cover_path = selected_cover_path.get();
                                     if !show_default_cover_img.get() {
                                         tracing::debug!("Got cover path {:?}", cover_path);
-                                        if let Some(cover) = cover_path.clone() {
-                                            if cover == "favorites" {
-                                                return view! { <FavPlaylistIcon class="" /> }.into_any();
-                                            }
+                                        if let Some(cover) = cover_path.clone() && cover == "favorites" {
+                                            return view! { <FavPlaylistIcon class="" /> }.into_any();
                                         }
                                         view! {
                                             <img

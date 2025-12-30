@@ -313,11 +313,9 @@ impl PlayerStore {
         self.scrobble_time += 0f64.max(new_time - self.data.player_details.current_time);
         self.data.player_details.current_time = new_time;
 
-        if self.scrobble_time > 20f64 && !self.scrobbled {
-            if let Some(current_song) = self.get_current_song() {
-                self.scrobbled = true;
-                send_extension_event(ExtensionExtraEvent::Scrobble([current_song]));
-            }
+        if self.scrobble_time > 20f64 && !self.scrobbled && let Some(current_song) = self.get_current_song() {
+            self.scrobbled = true;
+            send_extension_event(ExtensionExtraEvent::Scrobble([current_song]));
         }
 
         set_position(new_time);
@@ -410,16 +408,12 @@ impl PlayerStore {
         let mut volume = self.data.player_details.volume;
         let song_key = self.get_song_key();
         if !song_key.is_empty() {
-            if let VolumeMode::PersistSeparate = self.data.player_details.volume_mode {
-                if let Some(current_volume) = self.data.player_details.volume_map.get(&song_key) {
-                    volume = *current_volume;
-                }
+            if let VolumeMode::PersistSeparate = self.data.player_details.volume_mode && let Some(current_volume) = self.data.player_details.volume_map.get(&song_key) {
+                volume = *current_volume;
             }
 
-            if let VolumeMode::PersistClamp = self.data.player_details.volume_mode {
-                if let Some(current_clamp) = self.data.player_details.clamp_map.get(&song_key) {
-                    clamp = *current_clamp;
-                }
+            if let VolumeMode::PersistClamp = self.data.player_details.volume_mode && let Some(current_clamp) = self.data.player_details.clamp_map.get(&song_key) {
+                clamp = *current_clamp;
             }
         }
         let maxv = (clamp).ln();
@@ -435,10 +429,8 @@ impl PlayerStore {
     pub fn get_raw_volume(&self) -> f64 {
         if let VolumeMode::PersistSeparate = self.data.player_details.volume_mode {
             let song_key = self.get_song_key();
-            if !song_key.is_empty() {
-                if let Some(volume) = self.data.player_details.volume_map.get(&song_key) {
-                    return *volume;
-                }
+            if !song_key.is_empty() && let Some(volume) = self.data.player_details.volume_map.get(&song_key) {
+                return *volume;
             }
         }
         self.data.player_details.volume
@@ -536,10 +528,8 @@ impl PlayerStore {
         self.data.queue.song_queue.clear();
         self.data.queue.current_index = 0;
 
-        if !only_one_song {
-            if let Some(current_song) = current_song {
-                self.add_to_queue(vec![current_song]);
-            }
+        if !only_one_song && let Some(current_song) = current_song {
+            self.add_to_queue(vec![current_song]);
         }
 
         self.update_current_song(false);

@@ -168,10 +168,8 @@ pub fn MusicInfoMobile(
         format_duration(p.get_current_time(), false)
     });
     let total_time = Memo::new(move |_| {
-        if let Some(current_song) = current_song.get() {
-            if let Some(duration) = current_song.song.duration {
-                return format_duration(duration, false);
-            }
+        if let Some(current_song) = current_song.get() && let Some(duration) = current_song.song.duration {
+            return format_duration(duration, false);
         }
         "00:00".to_string()
     });
@@ -180,23 +178,20 @@ pub fn MusicInfoMobile(
     Effect::new(move || {
         let current_song = current_song.get();
         canvaz_sig.set(None);
-        if let Some(current_song) = current_song {
-            if current_song.song.type_ == SongType::SPOTIFY
-                && current_song.song.playback_url.is_some()
-            {
-                spawn_local(async move {
-                    let res = crate::utils::invoke::get_canvaz(
-                        current_song.song.playback_url.unwrap().clone(),
-                        false,
-                    )
-                    .await;
-                    if let Ok(res) = res {
-                        canvaz_sig.set(res.canvases.first().map(|c| c.url.clone()));
-                    } else {
-                        tracing::error!("Failed to get canvaz {:?}", res);
-                    }
-                });
-            }
+        if let Some(current_song) = current_song && current_song.song.type_ == SongType::SPOTIFY
+                && current_song.song.playback_url.is_some() {
+            spawn_local(async move {
+                let res = crate::utils::invoke::get_canvaz(
+                    current_song.song.playback_url.unwrap().clone(),
+                    false,
+                )
+                .await;
+                if let Ok(res) = res {
+                    canvaz_sig.set(res.canvases.first().map(|c| c.url.clone()));
+                } else {
+                    tracing::error!("Failed to get canvaz {:?}", res);
+                }
+            });
         }
     });
 
@@ -219,17 +214,15 @@ pub fn MusicInfoMobile(
         let provider_store = provider_store.clone();
         spawn_local(async move {
             let lyrics = fetch_lyrics(&song).await;
-            if lyrics.is_none() {
-                if let Some(song) = song {
-                    let valid_providers =
-                        provider_store.get_provider_keys(ExtensionProviderScope::Lyrics);
-                    for provider in valid_providers {
-                        let song = song.clone();
-                        let res = get_provider_lyrics(provider, song, false).await;
-                        if let Ok(res) = res {
-                            selected_lyrics.set(Some(res));
-                            return;
-                        }
+            if lyrics.is_none() && let Some(song) = song {
+                let valid_providers =
+                    provider_store.get_provider_keys(ExtensionProviderScope::Lyrics);
+                for provider in valid_providers {
+                    let song = song.clone();
+                    let res = get_provider_lyrics(provider, song, false).await;
+                    if let Ok(res) = res {
+                        selected_lyrics.set(Some(res));
+                        return;
                     }
                 }
             }
@@ -461,23 +454,20 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
     Effect::new(move || {
         let current_song = current_song.get();
         canvaz_sig.set(None);
-        if let Some(current_song) = current_song {
-            if current_song.song.type_ == SongType::SPOTIFY
-                && current_song.song.playback_url.is_some()
-            {
-                spawn_local(async move {
-                    let res = crate::utils::invoke::get_canvaz(
-                        current_song.song.playback_url.unwrap().clone(),
-                        false,
-                    )
-                    .await;
-                    if let Ok(res) = res {
-                        canvaz_sig.set(res.canvases.first().map(|c| c.url.clone()));
-                    } else {
-                        tracing::error!("Failed to get canvaz {:?}", res)
-                    }
-                });
-            }
+        if let Some(current_song) = current_song && current_song.song.type_ == SongType::SPOTIFY
+                && current_song.song.playback_url.is_some() {
+            spawn_local(async move {
+                let res = crate::utils::invoke::get_canvaz(
+                    current_song.song.playback_url.unwrap().clone(),
+                    false,
+                )
+                .await;
+                if let Ok(res) = res {
+                    canvaz_sig.set(res.canvases.first().map(|c| c.url.clone()));
+                } else {
+                    tracing::error!("Failed to get canvaz {:?}", res)
+                }
+            });
         }
     });
 

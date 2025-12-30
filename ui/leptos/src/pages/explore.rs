@@ -86,14 +86,12 @@ pub fn Explore() -> impl IntoView {
                         ..Default::default()
                     })
                     .await;
-                    if let Ok(song) = song {
-                        if let Some(song) = song.first() {
-                            analytics.update(|a| {
-                                if let Some(a) = a.as_mut() {
-                                    a.songs.push((song.clone(), time))
-                                }
-                            });
-                        }
+                    if let Ok(song) = song && let Some(song) = song.first() {
+                        analytics.update(|a| {
+                            if let Some(a) = a.as_mut() {
+                                a.songs.push((song.clone(), time))
+                            }
+                        });
                     }
                 }
             }

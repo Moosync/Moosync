@@ -229,10 +229,10 @@ impl ProviderHandler {
     pub async fn initialize_provider(&self, key: String) {
         let provider_store = self.provider_store.read().await;
         let provider = provider_store.get(&key);
-        if let Some(provider) = provider {
-            if let Err(e) = provider.initialize().await {
-                tracing::error!("Error initializing provider {}: {:?}", provider.key(), e);
-            }
+        if let Some(provider) = provider
+            && let Err(e) = provider.initialize().await
+        {
+            tracing::error!("Error initializing provider {}: {:?}", provider.key(), e);
         }
     }
 

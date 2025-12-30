@@ -195,9 +195,7 @@ impl ReplyHandler {
         prefs: Vec<PreferenceUIData>,
     ) -> Result<MainCommandResponse> {
         let ext_handler: State<ExtensionHandler> = self.app_handle.state();
-        ext_handler
-            .register_ui_preferences(package_name, prefs)
-            .await?;
+        ext_handler.register_ui_preferences(package_name, prefs).await?;
         Ok(MainCommandResponse::RegisterUserPreference(true))
     }
 
@@ -207,9 +205,7 @@ impl ReplyHandler {
         pref_keys: Vec<String>,
     ) -> Result<MainCommandResponse> {
         let ext_handler: State<ExtensionHandler> = self.app_handle.state();
-        ext_handler
-            .unregister_ui_preferences(package_name, pref_keys)
-            .await?;
+        ext_handler.unregister_ui_preferences(package_name, pref_keys).await?;
         Ok(MainCommandResponse::RegisterUserPreference(true))
     }
 
@@ -268,10 +264,11 @@ impl ReplyHandler {
     #[tracing::instrument(level = "debug", skip(self))]
     pub async fn handle_request(
         &self,
-        ext: String,
+        ext: &str,
         command: MainCommand,
     ) -> Result<MainCommandResponse> {
         tracing::debug!("Got request from extension {:?}", command);
+        let ext = ext.to_string();
 
         match command {
             MainCommand::GetSong(get_song_options) => self.get_songs(get_song_options),

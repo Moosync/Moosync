@@ -11,4 +11,10 @@ toolchain(
     toolchain_type = "@rules_rust_wasm_bindgen//:toolchain_type",
 )
 
+config_setting(
+    name = "release",
+    values = {"compilation_mode": "opt"},
+    visibility = ["//visibility:public"],
+)
+
 exports_files(["clippy.toml"])

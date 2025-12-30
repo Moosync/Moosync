@@ -27,7 +27,8 @@ macro_rules! generate_command {
             } else {
                 tracing::error!("Error getting result {:?}", ret);
             }
-            ret
+            #[allow(clippy::needless_question_mark)]
+            Ok(ret?)
         }
     };
 }
@@ -73,7 +74,8 @@ macro_rules! generate_command_cached {
                     tracing::error!("Error getting result {:?}", e);
                 }
             }
-            res
+            #[allow(clippy::needless_question_mark)]
+            Ok(res?)
         }
     };
 }
@@ -92,7 +94,8 @@ macro_rules! generate_command_async {
             } else {
                 tracing::error!("Error getting result {:?}", ret);
             }
-            ret
+            #[allow(clippy::needless_question_mark)]
+            Ok(ret?)
         }
     };
 }
@@ -140,7 +143,8 @@ macro_rules! generate_command_async_cached {
                     tracing::error!("Error getting result {:?}", e);
                 }
             }
-            res
+            #[allow(clippy::needless_question_mark)]
+            Ok(res?)
         }
     };
 }

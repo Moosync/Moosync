@@ -14,90 +14,48 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use database::cache::CacheHolder;
-use extensions::ExtensionHandler;
-use extensions::models::GenericExtensionHostRequest;
+use std::sync::Arc;
+
 use crate::macros::generate_command_async;
 use crate::macros::generate_command_async_cached;
+use database::cache::CacheHolder;
+use extensions::ExtensionHandler;
 use request_handler::ReplyHandler;
 use serde_json::Value;
 use tauri::AppHandle;
 use tauri::Manager;
 use tauri::State;
-use tauri::async_runtime;
 use types::errors::Result;
 use types::ui::extensions::ExtensionDetail;
 use types::ui::extensions::ExtensionExtraEventArgs;
 use types::ui::extensions::FetchedExtensionManifest;
 use types::ui::extensions::PackageNameArgs;
 
-use crate::providers::handler::ProviderHandler;
-
 mod request_handler;
-
-#[tracing::instrument(level = "debug", skip(app_handle))]
-async fn extension_runner_connected(app_handle: AppHandle) {
-    let provider_handler: State<ProviderHandler> = app_handle.state();
-    provider_handler
-        .discover_provider_extensions()
-        .await
-        .unwrap();
-}
 
 #[tracing::instrument(level = "debug", skip(app))]
 pub fn get_extension_state(app: AppHandle) -> Result<ExtensionHandler> {
     let ext_path = app.path().app_data_dir().unwrap().join("extensions");
     let tmp_dir = app.path().temp_dir().unwrap();
     let cache_dir = app.path().cache_dir().unwrap();
-    let (ext_handler, mut ui_request_rx, ui_reply_tx) =
-        ExtensionHandler::new(ext_path, cache_dir, tmp_dir);
 
-    let app_clone = app.clone();
-    async_runtime::spawn(async move {
-        let app_handle = app.clone();
-        let reply_handler = ReplyHandler::new(app_handle);
-        loop {
-            tracing::trace!("Waiting for extension UI requests");
-            if let Some(resp) = ui_request_rx.recv().await {
-                if let Some(data) = resp.data {
-                    tracing::debug!("Got main command {:?}", data);
-                    match reply_handler
-                        .handle_request(resp.package_name.clone(), data)
-                        .await
-                    {
-                        Ok(reply) => {
-                            ui_reply_tx
-                                .send(GenericExtensionHostRequest {
-                                    channel: resp.channel,
-                                    package_name: resp.package_name,
-                                    data: Some(reply),
-                                })
-                                .unwrap();
-                        }
-                        Err(e) => {
-                            tracing::error!("Failed to handle extension command {:?}", e);
-                            ui_reply_tx
-                                .send(GenericExtensionHostRequest {
-                                    channel: resp.channel,
-                                    package_name: resp.package_name,
-                                    data: None,
-                                })
-                                .unwrap();
-                        }
-                    }
-                }
-            }
-        }
-    });
-    async_runtime::spawn(extension_runner_connected(app_clone));
+    let ext_handler = ExtensionHandler::new(
+        ext_path,
+        tmp_dir,
+        cache_dir,
+        Arc::new(Box::new(move |ext, command| {
+            let app = app.clone();
+            let reply_handler = ReplyHandler::new(app);
+            tauri::async_runtime::block_on(reply_handler.handle_request(ext, command))
+        })),
+    );
 
     Ok(ext_handler)
 }
 
 #[tracing::instrument(level = "debug", skip(app))]
 pub fn get_extension_handler(app: &AppHandle) -> State<'_, ExtensionHandler> {
-    let ext_state = app.state();
-    ext_state
+    app.state()
 }
 
 generate_command_async_cached!(

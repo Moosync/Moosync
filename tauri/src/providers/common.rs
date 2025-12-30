@@ -130,6 +130,8 @@ pub async fn refresh_login(
 ) -> Result<TokenHolder> {
     let preferences: State<PreferenceConfig> = app.state();
     let refresh_token: Result<String> = preferences.inner().get_secure(key.into());
+
+    #[allow(clippy::unnecessary_unwrap)]
     if refresh_token.is_err() {
         tracing::error!("Error fetching refresh token {:?}", refresh_token);
         let preferences: State<PreferenceConfig> = app.state();
@@ -142,6 +144,7 @@ pub async fn refresh_login(
         .into());
     }
 
+    #[allow(clippy::unnecessary_unwrap)]
     let refresh_token = refresh_token.unwrap();
     if !refresh_token.is_empty() {
         let http_client = reqwest::ClientBuilder::new()

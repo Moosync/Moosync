@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    sync::{atomic::AtomicBool, mpsc::channel, Arc, Mutex},
+    sync::{Arc, Mutex, atomic::AtomicBool, mpsc::channel},
     thread::{self},
     time::Duration,
 };
@@ -56,19 +56,21 @@ impl ScanTask {
         let cancellation_token = Arc::new(AtomicBool::new(false));
         let cancellation_token_inner = Arc::clone(&cancellation_token);
 
-        thread::spawn(move || loop {
-            thread::sleep(Duration::from_secs(scan_duration_s));
+        thread::spawn(move || {
+            loop {
+                thread::sleep(Duration::from_secs(scan_duration_s));
 
-            tracing::info!("Running scan task - {}s", scan_duration_s);
-            if cancellation_token_inner.load(std::sync::atomic::Ordering::Acquire) {
-                tracing::info!("Scan task cancelled - {}s", scan_duration_s);
-                break;
-            }
+                tracing::info!("Running scan task - {}s", scan_duration_s);
+                if cancellation_token_inner.load(std::sync::atomic::Ordering::Acquire) {
+                    tracing::info!("Scan task cancelled - {}s", scan_duration_s);
+                    break;
+                }
 
-            let app = app.clone();
-            let res = start_scan(app, None);
-            if let Err(e) = res {
-                tracing::error!("Scan failed: {:?}", e);
+                let app = app.clone();
+                let res = start_scan(app, None);
+                if let Err(e) = res {
+                    tracing::error!("Scan failed: {:?}", e);
+                }
             }
         });
 
@@ -120,13 +122,12 @@ pub fn start_scan_inner(app: AppHandle, mut paths: Option<Vec<String>>) -> Resul
 
             for (playlist_id, songs) in song_rx {
                 let res = database.insert_songs(songs);
-                if let Ok(res) = res {
-                    if let Some(playlist_id) = playlist_id.as_ref() {
-                        for song in res {
-                            if let Some(song_id) = song.song._id {
-                                let _ =
-                                    database.add_to_playlist_bridge(playlist_id.clone(), song_id);
-                            }
+                if let Ok(res) = res
+                    && let Some(playlist_id) = playlist_id.as_ref()
+                {
+                    for song in res {
+                        if let Some(song_id) = song.song._id {
+                            let _ = database.add_to_playlist_bridge(playlist_id.clone(), song_id);
                         }
                     }
                 }

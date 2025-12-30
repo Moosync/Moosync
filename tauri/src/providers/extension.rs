@@ -17,7 +17,7 @@
 use std::fmt::Debug;
 
 use async_trait::async_trait;
-use futures::{channel::mpsc::UnboundedSender, SinkExt};
+use futures::{SinkExt, channel::mpsc::UnboundedSender};
 use serde_json::Value;
 use tauri::AppHandle;
 use tokio::sync::Mutex;
@@ -168,7 +168,7 @@ impl GenericProvider for ExtensionProvider {
             })
             .await;
         tracing::debug!("Got extension login response {:?}", ret);
-        ret
+        Ok(ret?)
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -253,16 +253,16 @@ impl GenericProvider for ExtensionProvider {
             return Err("Extension does not have this capability".into());
         }
 
-        if let Some(playback_url) = song.song.playback_url.clone() {
-            if playback_url.starts_with("extension://") {
-                let res = send_extension_event!(
-                    self,
-                    ExtensionExtraEvent::CustomRequest([playback_url.clone()]),
-                    CustomRequestReturnType
-                );
-                tracing::info!("Got custom request {:?}", res);
-                return Ok(res.redirect_url.unwrap_or(playback_url));
-            }
+        if let Some(playback_url) = song.song.playback_url.clone()
+            && playback_url.starts_with("extension://")
+        {
+            let res = send_extension_event!(
+                self,
+                ExtensionExtraEvent::CustomRequest([playback_url.clone()]),
+                CustomRequestReturnType
+            );
+            tracing::info!("Got custom request {:?}", res);
+            return Ok(res.redirect_url.unwrap_or(playback_url));
         }
 
         let res = send_extension_event!(

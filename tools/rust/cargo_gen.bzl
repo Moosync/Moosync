@@ -317,7 +317,7 @@ def _cargo_toml_aspect_impl(target, context):
 
     final_bs_source, final_bs_data = _finalize_build_script_details(is_build_script, attribute_bs_source, crate_root_file, source_files, attribute_bs_data, dep_bs_source, dep_bs_data)
 
-    edition = getattr(context.rule.attr, "edition", "2021") or "2021"
+    edition = getattr(context.rule.attr, "edition", "2024") or "2024"
 
     package_info = _create_internal_package_info(
         context,

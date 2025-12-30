@@ -13,3 +13,7 @@ common --registry=https://raw.githubusercontent.com/bazelbuild/bazel-central-reg
 
 build:linux --@rules_rust//rust/settings:lto=fat
 build:macos --@rules_rust//rust/settings:lto=fat
+
+coverage --experimental_fetch_all_coverage_outputs
+build --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
+build --output_groups=+clippy_checks

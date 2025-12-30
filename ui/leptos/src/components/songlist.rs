@@ -417,17 +417,9 @@ where
         selected.len() < 2 || !selected.contains(&index)
     };
 
-    let root_ref = if root_ref.is_none() {
-        NodeRef::new()
-    } else {
-        root_ref.unwrap()
-    };
+    let root_ref = root_ref.unwrap_or_default();
 
-    let scroller_ref = if scroller_ref.is_none() {
-        NodeRef::new()
-    } else {
-        scroller_ref.unwrap()
-    };
+    let scroller_ref = scroller_ref.unwrap_or_default();
 
     let _ = use_event_listener(scroller_ref, scroll, move |ev| {
         let target = event_target::<HtmlDivElement>(&ev);

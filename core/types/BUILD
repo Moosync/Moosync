@@ -1,4 +1,4 @@
-load("@rules_rust//rust:defs.bzl", "rust_library")
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -31,6 +31,7 @@ rust_library(
         "src/ui/themes.rs",
         "src/ui/updater.rs",
         "src/window.rs",
+        "src/tests.rs",
     ],
     proc_macro_deps = [
         "@crates//:async-trait",
@@ -44,6 +45,11 @@ rust_library(
             "@crates//:thiserror",
             "@crates//:tracing",
         ],
+)
+
+rust_test(
+    name = "types_test",
+    crate = ":types",
 )
 
 rust_library(

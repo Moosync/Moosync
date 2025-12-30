@@ -75,17 +75,9 @@ where
 
     let show_lyrics_old = RwSignal::new(false);
 
-    let buttons_ref = if buttons_ref.is_some() {
-        buttons_ref.unwrap()
-    } else {
-        NodeRef::new()
-    };
+    let buttons_ref = buttons_ref.unwrap_or_default();
 
-    let root_ref = if root_ref.is_some() {
-        root_ref.unwrap()
-    } else {
-        NodeRef::new()
-    };
+    let root_ref = root_ref.unwrap_or_default();
 
     if show_lyrics {
         use_resize_observer(document().body().unwrap(), move |entries, _| {

@@ -42,7 +42,9 @@ pub fn export_playlist(
     let exported = db.export_playlist(id)?;
     let selected_file = window_handler.open_save_file(app)?;
     trace!("Exported playlist");
-    Ok(fs::write(selected_file, exported).map_err(error_helpers::to_file_system_error)?)
+    fs::write(selected_file, exported).map_err(error_helpers::to_file_system_error)?;
+
+    Ok(())
 }
 
 generate_command!(insert_songs, Database, Vec<Song>, songs: Vec<Song>);
@@ -68,10 +70,10 @@ generate_command!(get_top_listened_songs, Database, AllAnalytics,);
 #[tracing::instrument(level = "debug", skip(app))]
 pub fn get_cache_state(app: &mut App) -> CacheHolder {
     let path = app.path().app_cache_dir().unwrap().join("http_cache.db");
-    if let Some(parent) = path.parent() {
-        if !parent.exists() {
-            fs::create_dir_all(parent).unwrap();
-        }
+    if let Some(parent) = path.parent()
+        && !parent.exists()
+    {
+        fs::create_dir_all(parent).unwrap();
     }
 
     CacheHolder::new(path)
@@ -80,10 +82,10 @@ pub fn get_cache_state(app: &mut App) -> CacheHolder {
 #[tracing::instrument(level = "debug", skip(app))]
 pub fn get_db_state(app: &mut App) -> Database {
     let path = app.path().app_data_dir().unwrap().join("songs.db");
-    if let Some(parent) = path.parent() {
-        if !parent.exists() {
-            fs::create_dir_all(parent).unwrap();
-        }
+    if let Some(parent) = path.parent()
+        && !parent.exists()
+    {
+        fs::create_dir_all(parent).unwrap();
     }
 
     Database::new(path)

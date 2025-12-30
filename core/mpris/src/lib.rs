@@ -25,3 +25,8 @@ pub mod mpris_android;
 
 #[cfg(target_os = "android")]
 pub use mpris_android::{MediaControlEvent, MprisHolder};
+
+#[cfg(test)]
+mod tests;
+
+pub mod context;

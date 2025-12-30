@@ -197,19 +197,18 @@ impl SpotifyProvider {
             .await
             .as_ref()
             .map(|api_client| api_client.token_expiry <= Instant::now())
+            && expired
         {
-            if expired {
-                tracing::info!(
-                    "spotify token expired. refreshing {:?}",
-                    self.api_client
-                        .read()
-                        .await
-                        .as_ref()
-                        .map(|api_client| api_client.token_expiry)
-                );
+            tracing::info!(
+                "spotify token expired. refreshing {:?}",
+                self.api_client
+                    .read()
+                    .await
+                    .as_ref()
+                    .map(|api_client| api_client.token_expiry)
+            );
 
-                let _ = self.refresh_login().await;
-            }
+            let _ = self.refresh_login().await;
         }
 
         self.api_client.read().await
@@ -314,10 +313,10 @@ impl SpotifyProvider {
                 .await
                 .map_err(error_helpers::to_provider_error)?;
             let mut is_premium = false;
-            if let Some(subscription) = user.product {
-                if subscription == SubscriptionLevel::Premium {
-                    is_premium = true
-                }
+            if let Some(subscription) = user.product
+                && subscription == SubscriptionLevel::Premium
+            {
+                is_premium = true
             }
             return Ok((
                 self.get_provider_status(user.display_name).await,
@@ -854,18 +853,18 @@ impl GenericProvider for SpotifyProvider {
     ) -> Result<(Vec<Song>, Pagination)> {
         if let Some(api_client) = self.get_api_client().await.as_ref() {
             let mut raw_id = album.album_id;
-            if let Some(id) = &raw_id {
-                if !self.match_id(id.clone()) {
-                    if let Some(album_name) = album.album_name {
-                        let res = self.search(album_name).await?;
-                        if let Some(album) = res.albums.first() {
-                            raw_id = album.album_id.clone();
-                        } else {
-                            raw_id = None;
-                        }
+            if let Some(id) = &raw_id
+                && !self.match_id(id.clone())
+            {
+                if let Some(album_name) = album.album_name {
+                    let res = self.search(album_name).await?;
+                    if let Some(album) = res.albums.first() {
+                        raw_id = album.album_id.clone();
                     } else {
                         raw_id = None;
                     }
+                } else {
+                    raw_id = None;
                 }
             }
 
@@ -912,18 +911,18 @@ impl GenericProvider for SpotifyProvider {
             }
 
             let mut raw_id = artist.artist_id;
-            if let Some(id) = &raw_id {
-                if !self.match_id(id.clone()) {
-                    if let Some(artist_name) = artist.artist_name {
-                        let res = self.search(artist_name).await?;
-                        if let Some(artist) = res.artists.first() {
-                            raw_id = artist.artist_id.clone();
-                        } else {
-                            raw_id = None;
-                        }
+            if let Some(id) = &raw_id
+                && !self.match_id(id.clone())
+            {
+                if let Some(artist_name) = artist.artist_name {
+                    let res = self.search(artist_name).await?;
+                    if let Some(artist) = res.artists.first() {
+                        raw_id = artist.artist_id.clone();
                     } else {
                         raw_id = None;
                     }
+                } else {
+                    raw_id = None;
                 }
             }
 
@@ -940,10 +939,10 @@ impl GenericProvider for SpotifyProvider {
                 );
 
                 let album_ids = albums.filter_map(|a| async {
-                    if let Ok(a) = a {
-                        if let Some(id) = a.id {
-                            return Some(id);
-                        }
+                    if let Ok(a) = a
+                        && let Some(id) = a.id
+                    {
+                        return Some(id);
                     }
                     None
                 });

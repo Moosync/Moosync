@@ -177,28 +177,25 @@ fn replace_serde_json_with_jsvalue(
             let mut type_path = type_path.clone();
 
             // Check if the type is `serde_json::Value`
-            if let Some(first_segment) = type_path.path.segments.first_mut() {
-                if first_segment.ident == "serde_json" {
-                    if let syn::PathArguments::None = first_segment.arguments {
-                        if type_path.path.segments.len() == 2
-                            && type_path.path.segments[1].ident == "Value"
-                        {
-                            if has_generics {
-                                return (
-                                    new_count + 1,
-                                    syn::parse_str(format!("T{}", new_count + 1).as_str())
-                                        .expect("Failed to parse replacement generic type"),
-                                );
-                            }
-                            // Replace `serde_json::Value` with `serde_wasm_bindgen::JsValue`
-                            return (
-                                new_count + 1,
-                                syn::parse_str("wasm_bindgen::JsValue")
-                                    .expect("Failed to parse replacement type"),
-                            );
-                        }
-                    }
+            if let Some(first_segment) = type_path.path.segments.first_mut()
+                && first_segment.ident == "serde_json"
+                && let syn::PathArguments::None = first_segment.arguments
+                && type_path.path.segments.len() == 2
+                && type_path.path.segments[1].ident == "Value"
+            {
+                if has_generics {
+                    return (
+                        new_count + 1,
+                        syn::parse_str(format!("T{}", new_count + 1).as_str())
+                            .expect("Failed to parse replacement generic type"),
+                    );
                 }
+                // Replace `serde_json::Value` with `serde_wasm_bindgen::JsValue`
+                return (
+                    new_count + 1,
+                    syn::parse_str("wasm_bindgen::JsValue")
+                        .expect("Failed to parse replacement type"),
+                );
             }
 
             // Recursively process generic arguments, if any
@@ -363,5 +360,5 @@ fn parse_fn(dets: &FnDetails, valid_crates: &Vec<String>) -> proc_macro2::TokenS
             #ret_val
         }
     };
-    proc_macro2::TokenStream::from(tokens)
+    tokens
 }

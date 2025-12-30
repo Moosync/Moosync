@@ -154,13 +154,12 @@ pub fn run() {
                 None,
             ))
             .on_window_event(|window, event| {
-                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                    if let Ok(should_close) = handle_window_close(window.app_handle()) {
-                        if !should_close {
-                            window.hide().unwrap();
-                            api.prevent_close();
-                        }
-                    }
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event
+                    && let Ok(should_close) = handle_window_close(window.app_handle())
+                    && !should_close
+                {
+                    window.hide().unwrap();
+                    api.prevent_close();
                 }
             });
     }

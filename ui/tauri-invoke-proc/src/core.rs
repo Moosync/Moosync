@@ -110,7 +110,9 @@ fn parse_use_statements_from_source(src_path: &Path) -> HashMap<String, HashSet<
     let mut use_map = HashMap::new();
 
     fn recursive_scan(dir: &Path, use_map: &mut HashMap<String, HashSet<String>>) {
-        for entry in fs::read_dir(dir).expect(&format!("Failed to read directory {:?}", dir)) {
+        for entry in
+            fs::read_dir(dir).unwrap_or_else(|_| panic!("Failed to read directory {:?}", dir))
+        {
             let entry = entry.expect("Failed to read directory entry");
             let path = entry.path();
 

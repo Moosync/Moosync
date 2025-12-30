@@ -234,8 +234,8 @@ impl GenericPlayer for LibrespotPlayer {
         spawn_local(async move {
             let res = librespot_play().await;
 
-            if res.is_err() {
-                tracing::error!("Error playing {:?}", res.unwrap_err());
+            if let Err(e) = res {
+                tracing::error!("Error playing {:?}", e);
             }
         });
         Ok(())
@@ -246,8 +246,8 @@ impl GenericPlayer for LibrespotPlayer {
         spawn_local(async move {
             let res = librespot_pause().await;
 
-            if res.is_err() {
-                tracing::error!("Error pausing {:?}", res.unwrap_err());
+            if let Err(e) = res {
+                tracing::error!("Error pausing {:?}", e);
             }
         });
         Ok(())
@@ -258,8 +258,8 @@ impl GenericPlayer for LibrespotPlayer {
         let time = self.time.clone();
         spawn_local(async move {
             let res = librespot_seek((pos * 1000f64) as u32).await;
-            if res.is_err() {
-                tracing::error!("Error seeking to {}: {:?}", pos, res.unwrap_err());
+            if let Err(e) = res {
+                tracing::error!("Error seeking to {}: {:?}", pos, e);
                 return;
             }
 
@@ -287,8 +287,8 @@ impl GenericPlayer for LibrespotPlayer {
         let parsed_volume = (volume / 100f64 * (u16::MAX as f64)) as u16;
         spawn_local(async move {
             let res = librespot_volume(parsed_volume).await;
-            if res.is_err() {
-                tracing::error!("Error setting volume {}: {:?}", volume, res.unwrap_err());
+            if let Err(e) = res {
+                tracing::error!("Error setting volume {}: {:?}", volume, e);
             }
         });
 

@@ -245,6 +245,7 @@ macro_rules! fetch_infinite {
                     $is_loading.update(move |map| {
                         map.remove(&key);
                     });
+                    #[allow(clippy::unnecessary_unwrap)]
                     break 'fetch Err(res.unwrap_err());
                 }
 

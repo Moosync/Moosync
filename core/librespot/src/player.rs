@@ -18,9 +18,9 @@ use std::sync::Arc;
 
 use futures_util::StreamExt;
 
+use librespot::core::SpotifyUri;
 use librespot::core::cache::Cache;
 use librespot::core::{authentication::Credentials, config::SessionConfig, session::Session};
-use librespot::core::{SpotifyUri};
 use librespot::discovery::DeviceType;
 
 use librespot::playback::config::{PlayerConfig, VolumeCtrl};
@@ -32,7 +32,7 @@ use regex::Regex;
 use reqwest::header::{CONTENT_LENGTH, CONTENT_TYPE};
 
 use types::canvaz::{Canvaz, CanvazArtist, CanvazResponse, Type};
-use types::errors::{error_helpers, Result};
+use types::errors::{Result, error_helpers};
 use url::Url;
 
 use crate::canvaz::entity_canvaz_request::Entity;
@@ -179,25 +179,23 @@ fn validate_uri(val: &str) -> (Option<String>, Option<String>) {
     let track_regex = Regex::new(
             r"^(?P<urlType>(?:spotify:|(?:https?:\/\/(?:open|play)\.spotify\.com\/)))(?:embed)?\/?(?P<type>album|track|playlist|artist)(?::|\/)((?:[0-9a-zA-Z]){22})"
         ).unwrap();
-    if let Some(captures) = track_regex.captures(val) {
-        if let Some(url_type) = captures.name("urlType") {
-            if let Some(match_type) = captures.name("type") {
-                if url_type.as_str().starts_with("https") {
-                    if let Ok(parsed_url) = Url::parse(val) {
-                        if let Some(last_segment) = parsed_url
-                            .path_segments()
-                            .and_then(|segments| segments.last())
-                        {
-                            return (
-                                Some(format!("spotify:{}:{}", match_type.as_str(), last_segment)),
-                                Some(match_type.as_str().to_string()),
-                            );
-                        }
-                    }
-                } else {
-                    return (Some(val.to_string()), Some(match_type.as_str().to_string()));
-                }
+    if let Some(captures) = track_regex.captures(val)
+        && let Some(url_type) = captures.name("urlType")
+        && let Some(match_type) = captures.name("type")
+    {
+        if url_type.as_str().starts_with("https") {
+            if let Ok(parsed_url) = Url::parse(val)
+                && let Some(last_segment) = parsed_url
+                    .path_segments()
+                    .and_then(|mut segments| segments.next_back())
+            {
+                return (
+                    Some(format!("spotify:{}:{}", match_type.as_str(), last_segment)),
+                    Some(match_type.as_str().to_string()),
+                );
             }
+        } else {
+            return (Some(val.to_string()), Some(match_type.as_str().to_string()));
         }
     }
 

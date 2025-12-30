@@ -540,40 +540,28 @@ impl Database {
 
         trace!("Getting entity by options");
 
-        if options.album.is_some() {
-            return Ok(serde_json::to_value(self.get_albums(
-                options.album.unwrap(),
-                inclusive,
-                &mut conn,
-            )?)
-            .unwrap());
+        if let Some(album) = options.album {
+            return Ok(
+                serde_json::to_value(self.get_albums(album, inclusive, &mut conn)?).unwrap(),
+            );
         }
 
-        if options.artist.is_some() {
-            return Ok(serde_json::to_value(self.get_artists(
-                options.artist.unwrap(),
-                inclusive,
-                &mut conn,
-            )?)
-            .unwrap());
+        if let Some(artist) = options.artist {
+            return Ok(
+                serde_json::to_value(self.get_artists(artist, inclusive, &mut conn)?).unwrap(),
+            );
         }
 
-        if options.genre.is_some() {
-            return Ok(serde_json::to_value(self.get_genres(
-                options.genre.unwrap(),
-                inclusive,
-                &mut conn,
-            )?)
-            .unwrap());
+        if let Some(genre) = options.genre {
+            return Ok(
+                serde_json::to_value(self.get_genres(genre, inclusive, &mut conn)?).unwrap(),
+            );
         }
 
-        if options.playlist.is_some() {
-            return Ok(serde_json::to_value(self.get_playlists(
-                options.playlist.unwrap(),
-                inclusive,
-                &mut conn,
-            )?)
-            .unwrap());
+        if let Some(playlist) = options.playlist {
+            return Ok(
+                serde_json::to_value(self.get_playlists(playlist, inclusive, &mut conn)?).unwrap(),
+            );
         }
 
         Ok(Value::Null)
@@ -783,7 +771,7 @@ impl Database {
             predicate = filter_field!(predicate, &song.hash, schema::allsongs::hash, inclusive);
             predicate = filter_field!(
                 predicate,
-                song.type_.map(|v| QueryableSongType::from(v)),
+                song.type_.map(QueryableSongType::from),
                 schema::allsongs::type_,
                 inclusive
             );
@@ -1352,18 +1340,18 @@ impl Database {
 
 #[tracing::instrument(level = "debug", skip())]
 fn merge(a: &mut Value, b: Value) {
-    if let Value::Object(a) = a {
-        if let Value::Object(b) = b {
-            for (k, v) in b {
-                if v.is_null() {
-                    a.remove(&k);
-                } else {
-                    merge(a.entry(k).or_insert(Value::Null), v);
-                }
+    if let Value::Object(a) = a
+        && let Value::Object(b) = b
+    {
+        for (k, v) in b {
+            if v.is_null() {
+                a.remove(&k);
+            } else {
+                merge(a.entry(k).or_insert(Value::Null), v);
             }
-
-            return;
         }
+
+        return;
     }
 
     *a = b;

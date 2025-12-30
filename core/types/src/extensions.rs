@@ -46,34 +46,34 @@ pub struct ExtensionManifest {
 }
 
 pub fn sanitize_album(prefix: &str, album: &mut Album) {
-    if let Some(id) = album.album_id.as_mut() {
-        if !id.starts_with(prefix) {
-            *id = format!("{}{}", prefix, id);
-        }
+    if let Some(id) = album.album_id.as_mut()
+        && !id.starts_with(prefix)
+    {
+        *id = format!("{}{}", prefix, id);
     }
 }
 
 pub fn sanitize_artist(prefix: &str, artist: &mut Artist) {
-    if let Some(id) = artist.artist_id.as_mut() {
-        if !id.starts_with(prefix) {
-            *id = format!("{}{}", prefix, id);
-        }
+    if let Some(id) = artist.artist_id.as_mut()
+        && !id.starts_with(prefix)
+    {
+        *id = format!("{}{}", prefix, id);
     }
 }
 
 pub fn sanitize_genre(prefix: &str, genre: &mut Genre) {
-    if let Some(id) = genre.genre_id.as_mut() {
-        if !id.starts_with(prefix) {
-            *id = format!("{}{}", prefix, id);
-        }
+    if let Some(id) = genre.genre_id.as_mut()
+        && !id.starts_with(prefix)
+    {
+        *id = format!("{}{}", prefix, id);
     }
 }
 
 pub fn sanitize_song(prefix: &str, song: &mut Song) {
-    if let Some(id) = song.song._id.as_mut() {
-        if !id.starts_with(prefix) {
-            *id = format!("{}{}", prefix, id);
-        }
+    if let Some(id) = song.song._id.as_mut()
+        && !id.starts_with(prefix)
+    {
+        *id = format!("{}{}", prefix, id);
     }
 
     if let Some(album) = song.album.as_mut() {
@@ -90,9 +90,9 @@ pub fn sanitize_song(prefix: &str, song: &mut Song) {
 }
 
 pub fn sanitize_playlist(prefix: &str, playlist: &mut Playlist) {
-    if let Some(playlist_id) = playlist.playlist_id.as_mut() {
-        if !playlist_id.starts_with(prefix) {
-            *playlist_id = format!("{}{}", prefix, playlist_id);
-        }
+    if let Some(playlist_id) = playlist.playlist_id.as_mut()
+        && !playlist_id.starts_with(prefix)
+    {
+        *playlist_id = format!("{}{}", prefix, playlist_id);
     }
 }

@@ -256,7 +256,7 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                                                 {move || {
                                                     let new_theme = new_theme.get();
                                                     view! {
-                                                        <ThemeViewIcon active=active.read_only() theme=new_theme />
+                                                        <ThemeViewIcon active=active.read_only() theme=*new_theme />
                                                     }
                                                 }}
                                             </div>
@@ -451,7 +451,7 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                                                             </div>
                                                             <ThemeViewIcon
                                                                 active=active
-                                                                theme=Box::new(theme.clone())
+                                                                theme=theme.clone()
                                                             />
                                                             <div class="theme-title-text">{theme.name}</div>
                                                             <div class="theme-author">{theme.author}</div>
@@ -495,7 +495,7 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                                                         <div class="mr-3" style="min-width: 200px;">
                                                             <ThemeViewIcon
                                                                 active=active
-                                                                theme=Box::new(theme.clone())
+                                                                theme=theme.clone()
                                                             />
                                                         </div>
                                                         <div class="d-flex flex-column">

@@ -122,14 +122,17 @@ rust_binary_with_export(
     name = "moosync_internal",
     srcs = ["src/main.rs"],
     binary_name = "moosync",
-    rustc_flags = [
-        "-C",
-        "codegen-units=1",
-        "-C",
-        "opt-level=3",
-        "-C",
-        "strip=symbols",
-    ],
+    rustc_flags = select({
+        "//:release": [
+            "-C",
+            "codegen-units=1",
+            "-C",
+            "opt-level=3",
+            "-C",
+            "strip=symbols",
+        ],
+        "//conditions:default": [],
+    }),
     visibility = ["//visibility:private"],
     deps = [
         ":app_lib",
@@ -195,6 +198,7 @@ cargo_build(
         "-C",
         "link-arg=/LIBPATH:$ROOT/$(execpath //external/openssl:gen_dir)/lib",
     ],
+    target_compatible_with = ["@platforms//os:windows"],
     visibility = ["//visibility:private"],
 )
 

@@ -66,27 +66,27 @@ pub fn get_files_recursively(dir: PathBuf) -> Result<FileList> {
         });
     }
 
-    if dir.is_file() {
-        if let Ok(metadata) = fs::metadata(&dir) {
-            let extension = dir
-                .extension()
-                .unwrap_or_default()
-                .to_str()
-                .unwrap_or_default();
-            if !extension.is_empty() {
-                if SONG_RE.is_match(extension) {
-                    file_list.push((dir.clone(), metadata.len() as f64));
-                }
-
-                if PLAYLIST_RE.is_match(extension) {
-                    playlist_list.push(dir);
-                }
+    if dir.is_file()
+        && let Ok(metadata) = fs::metadata(&dir)
+    {
+        let extension = dir
+            .extension()
+            .unwrap_or_default()
+            .to_str()
+            .unwrap_or_default();
+        if !extension.is_empty() {
+            if SONG_RE.is_match(extension) {
+                file_list.push((dir.clone(), metadata.len() as f64));
             }
-            return Ok(FileList {
-                file_list,
-                playlist_list,
-            });
+
+            if PLAYLIST_RE.is_match(extension) {
+                playlist_list.push(dir);
+            }
         }
+        return Ok(FileList {
+            file_list,
+            playlist_list,
+        });
     }
 
     let dir_entries = fs::read_dir(dir).map_err(error_helpers::to_file_system_error)?;
@@ -255,12 +255,10 @@ pub fn scan_file(
     song.song.sample_rate = properties.sample_rate().map(|v| v as f64);
     song.song.duration = Some(properties.duration().as_secs() as f64);
 
-    if tags.is_some() {
-        let metadata = tags.unwrap();
-
+    if let Some(metadata) = tags {
         let picture = metadata.pictures().first();
-        if picture.is_some() {
-            match store_picture(thumbnail_dir, picture.unwrap()) {
+        if let Some(picture) = picture {
+            match store_picture(thumbnail_dir, picture) {
                 Ok((high_path, low_path)) => {
                     song.song.song_cover_path_high = Some(high_path.to_string_lossy().to_string());
                     song.song.song_cover_path_low = Some(low_path.to_string_lossy().to_string());

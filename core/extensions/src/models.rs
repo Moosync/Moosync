@@ -5,7 +5,7 @@ use serde_json::Value;
 use types::{
     entities::{GetEntityOptions, Playlist},
     errors::{MoosyncError, Result as MoosyncResult},
-    extensions::{sanitize_playlist, sanitize_song},
+    extensions::{sanitize_album, sanitize_artist, sanitize_playlist, sanitize_song},
     preferences::PreferenceUIData,
     songs::{GetSongOptions, Song},
     ui::{
@@ -71,7 +71,6 @@ where
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(untagged)]
-
 pub enum ExtensionCommandResponse {
     GetProviderScopes(Vec<ExtensionProviderScope>),
     GetAccounts(Vec<ExtensionAccountDetail>),
@@ -82,13 +81,134 @@ pub enum ExtensionCommandResponse {
     Empty,
 }
 
+impl ExtensionCommandResponse {
+    pub fn sanitize(&mut self, package_name: &str) {
+        match self {
+            ExtensionCommandResponse::GetProviderScopes(_) => {}
+            ExtensionCommandResponse::GetAccounts(accounts) => {
+                for account in accounts {
+                    account.package_name = package_name.to_string();
+                }
+            }
+            ExtensionCommandResponse::PerformAccountLogin(_) => {}
+            ExtensionCommandResponse::ExtraExtensionEvent(resp) => {
+                let prefix = format!("{}:", package_name);
+                let resp = resp.as_mut();
+                match resp {
+                    ExtensionExtraEventResponse::RequestedPlaylists(playlist_return_type) => {
+                        playlist_return_type
+                            .playlists
+                            .iter_mut()
+                            .for_each(|p| sanitize_playlist(&prefix, p));
+                    }
+                    ExtensionExtraEventResponse::RequestedPlaylistSongs(
+                        songs_with_page_token_return_type,
+                    ) => {
+                        songs_with_page_token_return_type
+                            .songs
+                            .iter_mut()
+                            .for_each(|s| sanitize_song(&prefix, s));
+                    }
+                    ExtensionExtraEventResponse::OauthCallback => {}
+                    ExtensionExtraEventResponse::SongQueueChanged => {}
+                    ExtensionExtraEventResponse::Seeked => {}
+                    ExtensionExtraEventResponse::VolumeChanged => {}
+                    ExtensionExtraEventResponse::PlayerStateChanged => {}
+                    ExtensionExtraEventResponse::SongChanged => {}
+                    ExtensionExtraEventResponse::PreferenceChanged => {}
+                    ExtensionExtraEventResponse::PlaybackDetailsRequested(_) => {}
+                    ExtensionExtraEventResponse::CustomRequest(_) => {}
+                    ExtensionExtraEventResponse::RequestedSongFromURL(song_return_type) => {
+                        if let Some(song) = song_return_type.song.as_mut() {
+                            sanitize_song(&prefix, song);
+                        }
+                    }
+                    ExtensionExtraEventResponse::RequestedPlaylistFromURL(
+                        playlist_and_songs_return_type,
+                    ) => {
+                        if let Some(playlist) = playlist_and_songs_return_type.playlist.as_mut() {
+                            sanitize_playlist(&prefix, playlist);
+                        }
+
+                        if let Some(songs) = playlist_and_songs_return_type.songs.as_mut() {
+                            songs.iter_mut().for_each(|s| sanitize_song(&prefix, s));
+                        }
+                    }
+                    ExtensionExtraEventResponse::RequestedSearchResult(search_return_type) => {
+                        search_return_type
+                            .songs
+                            .iter_mut()
+                            .for_each(|s| sanitize_song(&prefix, s));
+                        search_return_type
+                            .albums
+                            .iter_mut()
+                            .for_each(|s| sanitize_album(&prefix, s));
+                        search_return_type
+                            .artists
+                            .iter_mut()
+                            .for_each(|s| sanitize_artist(&prefix, s));
+                        search_return_type
+                            .playlists
+                            .iter_mut()
+                            .for_each(|s| sanitize_playlist(&prefix, s));
+                    }
+                    ExtensionExtraEventResponse::RequestedRecommendations(
+                        recommendations_return_type,
+                    ) => {
+                        recommendations_return_type
+                            .songs
+                            .iter_mut()
+                            .for_each(|s| sanitize_song(&prefix, s));
+                    }
+                    ExtensionExtraEventResponse::RequestedLyrics(_) => {}
+                    ExtensionExtraEventResponse::RequestedArtistSongs(
+                        songs_with_page_token_return_type,
+                    ) => {
+                        songs_with_page_token_return_type
+                            .songs
+                            .iter_mut()
+                            .for_each(|s| sanitize_song(&prefix, s));
+                    }
+                    ExtensionExtraEventResponse::RequestedAlbumSongs(
+                        songs_with_page_token_return_type,
+                    ) => {
+                        songs_with_page_token_return_type
+                            .songs
+                            .iter_mut()
+                            .for_each(|s| sanitize_song(&prefix, s));
+                    }
+                    ExtensionExtraEventResponse::SongAdded => {}
+                    ExtensionExtraEventResponse::SongRemoved => {}
+                    ExtensionExtraEventResponse::PlaylistAdded => {}
+                    ExtensionExtraEventResponse::PlaylistRemoved => {}
+                    ExtensionExtraEventResponse::RequestedSongFromId(song_return_type) => {
+                        if let Some(song) = song_return_type.song.as_mut() {
+                            sanitize_song(&prefix, song);
+                        }
+                    }
+                    ExtensionExtraEventResponse::GetRemoteURL(_) => {}
+                    ExtensionExtraEventResponse::Scrobble => {}
+                    ExtensionExtraEventResponse::RequestedSongContextMenu(
+                        _context_menu_return_type,
+                    ) => {}
+                    ExtensionExtraEventResponse::RequestedPlaylistContextMenu(
+                        _context_menu_return_type,
+                    ) => {}
+                    ExtensionExtraEventResponse::ContextMenuAction => {}
+                }
+            }
+            ExtensionCommandResponse::Empty => {}
+        }
+    }
+}
+
 #[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", tag = "type", content = "data")]
 pub enum ExtensionCommand {
     GetProviderScopes(PackageNameArgs),
     GetAccounts(PackageNameArgs),
     PerformAccountLogin(AccountLoginArgs),
-    ExtraExtensionEvent(ExtensionExtraEventArgs),
+    ExtraExtensionEvent(Box<ExtensionExtraEventArgs>),
 }
 
 impl TryFrom<(&str, &Value)> for ExtensionCommand {
@@ -127,24 +247,27 @@ impl TryFrom<(&str, &Value)> for ExtensionCommand {
 }
 
 impl ExtensionCommand {
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn to_plugin_call(&self) -> (String, &'static str, Vec<u8>) {
+    pub fn get_package_name(&self) -> String {
         match self {
-            Self::GetProviderScopes(args) => (
-                args.package_name.clone(),
-                "get_provider_scopes_wrapper",
-                vec![],
-            ),
-            Self::GetAccounts(args) => (args.package_name.clone(), "get_accounts_wrapper", vec![]),
+            Self::GetProviderScopes(args) => args.package_name.clone(),
+            Self::GetAccounts(args) => args.package_name.clone(),
+            Self::PerformAccountLogin(args) => args.package_name.clone(),
+            Self::ExtraExtensionEvent(args) => args.package_name.clone(),
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub fn to_plugin_call(&self) -> (&'static str, Vec<u8>) {
+        match self {
+            Self::GetProviderScopes(_) => ("get_provider_scopes_wrapper", vec![]),
+            Self::GetAccounts(_) => ("get_accounts_wrapper", vec![]),
             Self::PerformAccountLogin(args) => (
-                args.package_name.clone(),
                 "perform_account_login_wrapper",
                 serde_json::to_vec(&args).unwrap(),
             ),
 
             // TODO: Why the fuck did I decide to split some events as "extra"
             Self::ExtraExtensionEvent(args) => {
-                let package_name = args.package_name.clone();
                 let res = match &args.data {
                     ExtensionExtraEvent::RequestedPlaylists(_) => ("get_playlists_wrapper", vec![]),
                     ExtensionExtraEvent::RequestedPlaylistSongs(id, _, token) => (
@@ -245,7 +368,7 @@ impl ExtensionCommand {
                         serde_json::to_vec(&action_id[0].clone()).unwrap(),
                     ),
                 };
-                (package_name, res.0, res.1)
+                (res.0, res.1)
             }
         }
     }
@@ -377,7 +500,6 @@ pub enum RunnerCommand {
     GetExtensionIcon(PackageNameArgs),
     ToggleExtensionStatus(PackageNameArgs),
     RemoveExtension(PackageNameArgs),
-    StopProcess,
     GetDisplayName(PackageNameArgs),
 }
 
@@ -398,7 +520,6 @@ impl TryFrom<(&str, &Value)> for RunnerCommand {
             "removeExtension" => Ok(Self::RemoveExtension(
                 serde_json::from_value(data.clone()).unwrap(),
             )),
-            "stopProcess" => Ok(Self::StopProcess),
             "getDisplayName" => Ok(Self::GetDisplayName(
                 serde_json::from_value(data.clone()).unwrap(),
             )),
@@ -470,7 +591,7 @@ impl MainCommand {
         self.sanitize_command(&package_name);
         Ok(GenericExtensionHostRequest {
             channel,
-            package_name: package_name,
+            package_name,
             data: Some(self.clone()),
         })
     }

@@ -29,3 +29,6 @@ pub mod extensions;
 pub mod themes;
 pub mod ui;
 pub mod window;
+
+#[cfg(test)]
+mod tests;

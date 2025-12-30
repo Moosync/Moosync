@@ -21,26 +21,19 @@ use std::{
     path::PathBuf,
     str::FromStr,
     sync::Arc,
-    thread,
 };
 
-use crate::models::{
-    ExtensionCommand, ExtensionCommandResponse, GenericExtensionHostRequest, MainCommand,
-    MainCommandResponse, RunnerCommand, RunnerCommandResp,
+use crate::{
+    context::ReplyHandler,
+    errors::ExtensionError,
+    models::{ExtensionCommand, ExtensionCommandResponse, RunnerCommand, RunnerCommandResp},
 };
-use ext_runner::{ExtCommandReceiver, ExtensionHandlerInner};
+use ext_runner::ExtensionHandlerInner;
 use fs_extra::dir::CopyOptions;
-use futures::lock::Mutex;
-use futures::{StreamExt, executor::block_on};
+use futures::{StreamExt, lock::Mutex};
 use serde_json::Value;
-use tokio::{
-    select,
-    sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
-};
 use types::{
-    errors::{MoosyncError, Result, error_helpers},
     extensions::ExtensionManifest,
-    moosync_err,
     preferences::PreferenceUIData,
     ui::extensions::{
         AccountLoginArgs, ExtensionAccountDetail, ExtensionDetail, ExtensionExtraEventArgs,
@@ -48,14 +41,13 @@ use types::{
     },
 };
 use zip_extensions::zip_extract;
+mod context;
+mod errors;
 mod ext_runner;
 pub mod models;
 
-pub type UiRequestSender = UnboundedSender<GenericExtensionHostRequest<MainCommand>>;
-pub type UiRequestReceiver = UnboundedReceiver<GenericExtensionHostRequest<MainCommand>>;
-
-pub type UiReplySender = UnboundedSender<GenericExtensionHostRequest<MainCommandResponse>>;
-pub type UiReplyReceiver = UnboundedReceiver<GenericExtensionHostRequest<MainCommandResponse>>;
+#[cfg(test)]
+mod tests;
 
 pub struct ExtensionHandler {
     pub extensions_dir: PathBuf,
@@ -64,107 +56,60 @@ pub struct ExtensionHandler {
 }
 
 impl ExtensionHandler {
-    #[tracing::instrument(level = "debug", skip(extensions_dir, tmp_dir))]
+    #[tracing::instrument(level = "debug", skip(reply_handler))]
     pub fn new(
         extensions_dir: PathBuf,
         tmp_dir: PathBuf,
         cache_dir: PathBuf,
-    ) -> (Self, UiRequestReceiver, UiReplySender) {
-        let (ext_command_tx, ext_command_rx) = unbounded_channel();
-        let (ui_request_tx, ui_request_rx) = unbounded_channel();
-        let (ui_reply_tx, ui_reply_rx) = unbounded_channel();
-
-        let ret = Self {
+        reply_handler: ReplyHandler,
+    ) -> Self {
+        Self {
             inner: Arc::new(Mutex::new(ExtensionHandlerInner::new(
-                &extensions_dir,
-                &cache_dir,
-                ext_command_tx,
+                extensions_dir.clone(),
+                cache_dir,
+                reply_handler,
             ))),
             extensions_dir,
             tmp_dir,
-        };
-
-        ret.listen_ext_reply_and_command(ext_command_rx, ui_request_tx, ui_reply_rx);
-
-        (ret, ui_request_rx, ui_reply_tx)
-    }
-
-    fn listen_ext_reply_and_command(
-        &self,
-        mut ext_command_rx: ExtCommandReceiver,
-        ui_request_tx: UiRequestSender,
-        mut ui_reply_rx: UiReplyReceiver,
-    ) {
-        let inner = self.inner.clone();
-        thread::spawn(move || {
-            block_on(async move {
-                loop {
-                    tracing::trace!("handling ext commands");
-                    select! {
-                        resp = ext_command_rx.recv() => {
-                            if let Some(resp) = resp {
-                                tracing::trace!("Got ext command {:?}", resp);
-                                if let Err(e) = ui_request_tx.send(resp) {
-                                    tracing::error!("Failed to send ext command: {:?}", e);
-                                }
-                            }
-                        }
-                        resp = ui_reply_rx.recv() => {
-                            if let Some(resp) = resp {
-                                tracing::trace!("Got ui reply {:?} {:?}", resp, inner);
-                                let inner = inner.lock().await;
-                                if let Err(e) = inner.handle_main_command_reply(&resp) {
-                                    tracing::error!("Failed to handle ui reply: {:?}", e);
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        });
+        }
     }
 
     #[tracing::instrument(level = "debug", skip(self, ext_path))]
-    fn get_extension_version(&self, ext_path: PathBuf) -> Result<String> {
+    fn get_extension_version(&self, ext_path: PathBuf) -> Result<String, ExtensionError> {
         let manifest_path = ext_path.join("package.json");
         if manifest_path.exists() {
-            let package_manifest: ExtensionManifest = serde_json::from_slice(
-                &fs::read(manifest_path).map_err(error_helpers::to_file_system_error)?,
-            )?;
+            let package_manifest: ExtensionManifest =
+                serde_json::from_slice(&fs::read(manifest_path)?)?;
 
             return Ok(package_manifest.version);
         }
 
-        Err(MoosyncError::String("No extension found".into()))
+        Err(ExtensionError::NoExtensionFound)
     }
 
     #[tracing::instrument(level = "debug", skip(self, version))]
-    fn get_ext_version(&self, version: String) -> Result<u64> {
+    fn get_ext_version(&self, version: String) -> Result<u64, ExtensionError> {
         Ok(u64::from_str(
             &version.split('.').collect::<Vec<&str>>().join(""),
         )?)
     }
 
     #[tracing::instrument(level = "debug", skip(self, ext_path))]
-    pub async fn install_extension(&self, ext_path: String) -> Result<()> {
+    pub async fn install_extension(&self, ext_path: String) -> Result<(), ExtensionError> {
         tracing::debug!("ext path {}", ext_path);
-        let ext_path =
-            PathBuf::from_str(&ext_path).map_err(|e| MoosyncError::String(e.to_string()))?;
+        let ext_path = PathBuf::from_str(&ext_path).unwrap();
 
         let tmp_dir = self
             .tmp_dir
             .join(format!("moosync_ext_{}", uuid::Uuid::new_v4()));
 
-        zip_extract(&ext_path, &tmp_dir).map_err(error_helpers::to_file_system_error)?;
+        zip_extract(&ext_path, &tmp_dir).map_err(|e| ExtensionError::ZipError(Box::new(e)))?;
 
-        let package_manifest: ExtensionManifest = serde_json::from_slice(
-            &fs::read(tmp_dir.join("package.json")).map_err(error_helpers::to_file_system_error)?,
-        )?;
+        let package_manifest: ExtensionManifest =
+            serde_json::from_slice(&fs::read(tmp_dir.join("package.json"))?)?;
 
         if !package_manifest.moosync_extension {
-            return Err(MoosyncError::String(
-                "Extension is not a moosync extension".to_string(),
-            ));
+            return Err(ExtensionError::NotAnExtension);
         }
 
         let ext_extract_path = self.extensions_dir.join(package_manifest.name.clone());
@@ -175,13 +120,9 @@ impl ExtensionHandler {
                 let new_version = self.get_ext_version(package_manifest.version)?;
 
                 if new_version > old_version {
-                    fs::remove_dir_all(ext_extract_path.clone())
-                        .map_err(error_helpers::to_file_system_error)?;
+                    fs::remove_dir_all(ext_extract_path.clone())?;
                 } else {
-                    return Err(MoosyncError::String(format!(
-                        "Duplicate extension {}. Can not install",
-                        package_manifest.name
-                    )));
+                    return Err(ExtensionError::DuplicateExtension(package_manifest.name));
                 }
             }
             Err(_) => {
@@ -198,10 +139,9 @@ impl ExtensionHandler {
         );
         if !parent_dir.exists() {
             tracing::debug!("Creating dir {:?}", parent_dir);
-            fs::create_dir_all(parent_dir).map_err(error_helpers::to_file_system_error)?;
+            fs::create_dir_all(parent_dir)?;
         }
-        fs_extra::move_items(&[tmp_dir.clone()], parent_dir, &options)
-            .map_err(error_helpers::to_file_system_error)?;
+        fs_extra::move_items(std::slice::from_ref(&tmp_dir), parent_dir, &options)?;
 
         tracing::debug!(
             "Renaming {:?} to {:?}",
@@ -211,30 +151,32 @@ impl ExtensionHandler {
         fs::rename(
             parent_dir.join(tmp_dir.file_name().unwrap()),
             parent_dir.join(package_manifest.name),
-        )
-        .map_err(error_helpers::to_file_system_error)?;
+        )?;
 
-        self.find_new_extensions().await.unwrap();
+        self.find_new_extensions().await?;
 
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self, package_name))]
-    pub async fn remove_extension(&self, package_name: String) -> Result<()> {
+    pub async fn remove_extension(&self, package_name: String) -> Result<(), ExtensionError> {
         let ext_path = self.extensions_dir.join(package_name.clone());
         if ext_path.exists() {
-            fs::remove_dir_all(ext_path).map_err(error_helpers::to_file_system_error)?;
+            fs::remove_dir_all(ext_path)?;
             self.send_remove_extension(PackageNameArgs { package_name })
                 .await?;
             self.find_new_extensions().await?;
             Ok(())
         } else {
-            Err(MoosyncError::String("Extension not found".to_string()))
+            Err(ExtensionError::NoExtensionFound)
         }
     }
 
     #[tracing::instrument(level = "debug", skip(self, fetched_ext))]
-    pub async fn download_extension(&self, fetched_ext: FetchedExtensionManifest) -> Result<()> {
+    pub async fn download_extension(
+        &self,
+        fetched_ext: FetchedExtensionManifest,
+    ) -> Result<(), ExtensionError> {
         let parsed_url = fetched_ext.url;
         let file_path = self.tmp_dir.join(format!(
             "{}-{}.msox",
@@ -244,17 +186,12 @@ impl ExtensionHandler {
 
         tracing::info!("parsed url {}. Saving at {:?}", parsed_url, file_path);
 
-        let mut stream = reqwest::get(parsed_url)
-            .await
-            .map_err(error_helpers::to_network_error)?
-            .bytes_stream();
-        let mut file =
-            File::create(file_path.clone()).map_err(error_helpers::to_file_system_error)?;
+        let mut stream = reqwest::get(parsed_url).await?.bytes_stream();
+        let mut file = File::create(file_path.clone())?;
 
         while let Some(chunk_result) = stream.next().await {
-            let chunk = chunk_result.map_err(error_helpers::to_network_error)?;
-            file.write_all(&chunk)
-                .map_err(error_helpers::to_file_system_error)?;
+            let chunk = chunk_result?;
+            file.write_all(&chunk)?;
         }
 
         tracing::info!("Wrote file");
@@ -265,98 +202,79 @@ impl ExtensionHandler {
         Ok(())
     }
 
-    async fn send_remove_extension(&self, package_name: PackageNameArgs) -> Result<()> {
+    async fn send_remove_extension(
+        &self,
+        package_name: PackageNameArgs,
+    ) -> Result<(), ExtensionError> {
         let mut inner = self.inner.lock().await;
-        inner
-            .handle_runner_command(RunnerCommand::RemoveExtension(package_name))
-            .await?;
+        inner.handle_runner_command(RunnerCommand::RemoveExtension(package_name))?;
         Ok(())
     }
 
-    pub async fn find_new_extensions(&self) -> Result<()> {
+    pub async fn find_new_extensions(&self) -> Result<(), ExtensionError> {
         let mut inner = self.inner.lock().await;
-        inner
-            .handle_runner_command(RunnerCommand::FindNewExtensions)
-            .await?;
+        inner.handle_runner_command(RunnerCommand::FindNewExtensions)?;
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn get_installed_extensions(&self) -> Result<Vec<ExtensionDetail>> {
+    pub async fn get_installed_extensions(&self) -> Result<Vec<ExtensionDetail>, ExtensionError> {
         let mut inner = self.inner.lock().await;
-        let ret = inner
-            .handle_runner_command(RunnerCommand::GetInstalledExtensions)
-            .await?;
+        let ret = inner.handle_runner_command(RunnerCommand::GetInstalledExtensions)?;
         if let RunnerCommandResp::ExtensionList(list) = ret {
             return Ok(list);
         }
-        Err("Failed to retrieve extensions list".into())
+
+        Err(ExtensionError::InvalidResponse)
     }
 
-    pub async fn get_extension_icon(&self, args: PackageNameArgs) -> Result<String> {
+    pub async fn get_extension_icon(
+        &self,
+        args: PackageNameArgs,
+    ) -> Result<String, ExtensionError> {
         let mut inner = self.inner.lock().await;
-        let ret = inner
-            .handle_runner_command(RunnerCommand::GetExtensionIcon(args))
-            .await?;
+        let package_name = args.package_name.clone();
+        let ret = inner.handle_runner_command(RunnerCommand::GetExtensionIcon(args))?;
         if let RunnerCommandResp::ExtensionIcon(Some(icon)) = ret {
             return Ok(icon);
         }
-        Err("Could not find extension icon".into())
+        Err(ExtensionError::NoExtensionIconFound(package_name))
     }
 
     pub async fn register_ui_preferences(
         &self,
         package_name: String,
         prefs: Vec<PreferenceUIData>,
-    ) -> Result<()> {
+    ) -> Result<(), ExtensionError> {
         let inner = self.inner.lock().await;
-        inner.register_ui_preferences(package_name, prefs).await
+        inner.register_ui_preferences(package_name, prefs)
     }
 
     pub async fn unregister_ui_preferences(
         &self,
         package_name: String,
         pref_keys: Vec<String>,
-    ) -> Result<()> {
+    ) -> Result<(), ExtensionError> {
         let inner = self.inner.lock().await;
-        inner
-            .unregister_ui_preferences(package_name, pref_keys)
-            .await
+        inner.unregister_ui_preferences(package_name, pref_keys)
     }
 
     pub async fn send_extension_command(
         &self,
         command: ExtensionCommand,
-        wait: bool,
-    ) -> Result<ExtensionCommandResponse> {
+    ) -> Result<ExtensionCommandResponse, ExtensionError> {
         tracing::trace!("Sending extension command {:?}", command);
-        let (tx, mut rx) = unbounded_channel();
-
-        {
-            let mut inner = self.inner.lock().await;
-            if let Err(e) = inner.handle_extension_command(&command, tx).await {
-                tracing::error!("Failed to execute command {:?}: {:?}", command, e);
-                return moosync_err!(ExtensionError, e);
-            }
-        }
-
-        tracing::trace!("Should wait for response {}", wait);
-        if wait {
-            if let Some(resp) = rx.recv().await {
-                return Ok(resp);
-            }
-        }
-
-        Ok(ExtensionCommandResponse::Empty)
+        let mut inner = self.inner.lock().await;
+        inner.handle_extension_command(command).await
     }
 
-    pub async fn send_extra_event(&self, args: ExtensionExtraEventArgs) -> Result<Value> {
+    pub async fn send_extra_event(
+        &self,
+        args: ExtensionExtraEventArgs,
+    ) -> Result<Value, ExtensionError> {
         let package_name = args.package_name.clone();
         let resp = self
-            .send_extension_command(
-                ExtensionCommand::ExtraExtensionEvent(args),
-                !package_name.is_empty(),
-            )
+            .send_extension_command(ExtensionCommand::ExtraExtensionEvent(Box::new(args)))
             .await?;
 
         if !package_name.is_empty() {
@@ -364,7 +282,7 @@ impl ExtensionHandler {
                 return Ok(serde_json::to_value(resp).unwrap());
             }
 
-            Err(MoosyncError::String("Extension sent invalid reply".into()))
+            Err(ExtensionError::InvalidResponse)
         } else {
             Ok(Value::Null)
         }
@@ -373,12 +291,9 @@ impl ExtensionHandler {
     pub async fn get_provider_scopes(
         &self,
         package_name: PackageNameArgs,
-    ) -> Result<Vec<ExtensionProviderScope>> {
+    ) -> Result<Vec<ExtensionProviderScope>, ExtensionError> {
         let resp = self
-            .send_extension_command(
-                ExtensionCommand::GetProviderScopes(package_name.clone()),
-                true,
-            )
+            .send_extension_command(ExtensionCommand::GetProviderScopes(package_name.clone()))
             .await?;
         if let ExtensionCommandResponse::GetProviderScopes(scopes) = resp {
             return Ok(scopes);
@@ -389,9 +304,9 @@ impl ExtensionHandler {
     pub async fn get_accounts(
         &self,
         package_name: PackageNameArgs,
-    ) -> Result<Vec<ExtensionAccountDetail>> {
+    ) -> Result<Vec<ExtensionAccountDetail>, ExtensionError> {
         let resp = self
-            .send_extension_command(ExtensionCommand::GetAccounts(package_name.clone()), true)
+            .send_extension_command(ExtensionCommand::GetAccounts(package_name.clone()))
             .await?;
         if let ExtensionCommandResponse::GetAccounts(accounts) = resp {
             return Ok(accounts);
@@ -399,9 +314,9 @@ impl ExtensionHandler {
         Ok(vec![])
     }
 
-    pub async fn account_login(&self, args: AccountLoginArgs) -> Result<String> {
+    pub async fn account_login(&self, args: AccountLoginArgs) -> Result<String, ExtensionError> {
         if let ExtensionCommandResponse::PerformAccountLogin(url) = self
-            .send_extension_command(ExtensionCommand::PerformAccountLogin(args), true)
+            .send_extension_command(ExtensionCommand::PerformAccountLogin(args))
             .await?
         {
             return Ok(url);
@@ -411,7 +326,9 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn get_extension_manifest(&self) -> Result<Vec<FetchedExtensionManifest>> {
+    pub async fn get_extension_manifest(
+        &self,
+    ) -> Result<Vec<FetchedExtensionManifest>, ExtensionError> {
         #[derive(serde::Deserialize, Debug, Clone)]
         struct GithubReleaseAsset {
             browser_download_url: String,
@@ -440,20 +357,17 @@ impl ExtensionHandler {
         .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
         .header("Accept", "application/json")
         .send()
-        .await.map_err(error_helpers::to_network_error)?;
-        let releases_resp = res
-            .json::<GithubReleasesResp>()
-            .await
-            .map_err(error_helpers::to_network_error)?;
+        .await?;
+        let releases_resp = res.json::<GithubReleasesResp>().await?;
 
         let mut ret = vec![];
         for item in releases_resp.assets.clone() {
             if item.name == "manifest.json" {
                 let res = client.get(&item.browser_download_url).header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
                         .header("Accept", "application/json")
-                        .send().await.map_err(error_helpers::to_network_error)?;
+                        .send().await?;
 
-                let bytes = res.bytes().await.map_err(error_helpers::to_network_error)?;
+                let bytes = res.bytes().await?;
                 let manifests: HashMap<String, ExtensionManifestItem> =
                     serde_json::from_slice(&bytes)?;
                 for (package_name, manifest) in manifests {

@@ -144,10 +144,10 @@ impl SpotifyProvider {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn create_api_client(&self) {
+    async fn create_api_client(&self) -> Result<()> {
         tracing::debug!("Creating spotify api client");
         if let Some(token) = self.tokens.lock().await.as_ref() {
-            tracing::debug!("Got tokens lock");
+            tracing::debug!("Got tokens lock {:?}", token);
             *self.api_client.write().await = Some(ApiClient {
                 api_client: AuthCodePkceSpotify::from_token(Token {
                     access_token: token.access_token.clone(),
@@ -167,27 +167,29 @@ impl SpotifyProvider {
             });
 
             let res = self.fetch_user_details().await;
-            let mut is_spotify_premium = false;
-            if let Ok((res, is_premium)) = res {
-                let _ = self.status_tx.lock().await.send(res).await;
-                is_spotify_premium = is_premium;
-            } else {
-                let _ = self
-                    .status_tx
-                    .lock()
-                    .await
-                    .send(self.get_provider_status(Some("".into())).await)
-                    .await;
-            }
 
-            if is_spotify_premium {
-                tracing::debug!("Initializing librespot");
-                if let Err(err) = initialize_librespot(self.app.clone(), token.access_token.clone())
-                {
-                    tracing::error!("Error initializing librespot {:?}", err);
+            match res {
+                Ok((res, is_premium)) => {
+                    let _ = self.status_tx.lock().await.send(res).await;
+                    let is_spotify_premium = is_premium;
+                    if is_spotify_premium {
+                        tracing::debug!("Initializing librespot");
+                        initialize_librespot(self.app.clone(), token.access_token.clone())?;
+                    }
+                }
+                Err(e) => {
+                    return Err(e);
+                    // let _ = self
+                    //     .status_tx
+                    //     .lock()
+                    //     .await
+                    //     .send(self.get_provider_status(Some("".into())).await)
+                    //     .await;
                 }
             }
         }
+
+        Ok(())
     }
 
     async fn get_api_client(&self) -> RwLockReadGuard<'_, Option<ApiClient>> {
@@ -225,7 +227,7 @@ impl SpotifyProvider {
             )
             .await?,
         );
-        self.create_api_client().await;
+        self.create_api_client().await?;
 
         Ok(())
     }
@@ -312,6 +314,7 @@ impl SpotifyProvider {
                 .current_user()
                 .await
                 .map_err(error_helpers::to_provider_error)?;
+            tracing::info!("Got user {:?}", user);
             let mut is_premium = false;
             if let Some(subscription) = user.product
                 && subscription == SubscriptionLevel::Premium
@@ -408,12 +411,32 @@ impl GenericProvider for SpotifyProvider {
                 config.redirect_uri = "https://moosync.app/spotify";
             }
             config.scopes = vec![
-                "playlist-read-private",
-                "user-top-read",
-                "user-library-read",
-                "user-read-private",
-                "streaming",
                 "app-remote-control",
+                "playlist-modify",
+                "playlist-modify-private",
+                "playlist-modify-public",
+                "playlist-read",
+                "playlist-read-collaborative",
+                "playlist-read-private",
+                "streaming",
+                "ugc-image-upload",
+                "user-follow-modify",
+                "user-follow-read",
+                "user-library-modify",
+                "user-library-read",
+                "user-modify",
+                "user-modify-playback-state",
+                "user-modify-private",
+                "user-personalized",
+                "user-read-birthdate",
+                "user-read-currently-playing",
+                "user-read-email",
+                "user-read-play-history",
+                "user-read-playback-position",
+                "user-read-playback-state",
+                "user-read-private",
+                "user-read-recently-played",
+                "user-top-read",
             ];
         }
 
@@ -554,7 +577,7 @@ impl GenericProvider for SpotifyProvider {
             .await?,
         );
 
-        self.create_api_client().await;
+        self.create_api_client().await?;
         Ok(())
     }
 

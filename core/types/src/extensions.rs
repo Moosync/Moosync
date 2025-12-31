@@ -16,13 +16,20 @@
 
 use std::fmt::Debug;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use crate::errors::Result as MoosyncResult;
 use crate::{
-    entities::{Album, Artist, Genre, Playlist},
-    songs::Song,
+    entities::{Album, Artist, Genre, GetEntityOptions, Playlist},
+    preferences::PreferenceUIData,
+    songs::{GetSongOptions, Song},
+    ui::{
+        extensions::{AddToPlaylistRequest, ExtensionUIRequest, PreferenceData},
+        player_details::PlayerState,
+    },
 };
 
 #[derive(Debug, Deserialize, Clone)]
@@ -94,5 +101,127 @@ pub fn sanitize_playlist(prefix: &str, playlist: &mut Playlist) {
         && !playlist_id.starts_with(prefix)
     {
         *playlist_id = format!("{}{}", prefix, playlist_id);
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub enum MainCommand {
+    GetSong(GetSongOptions),
+    GetEntity(GetEntityOptions),
+    GetCurrentSong(),
+    GetPlayerState(),
+    GetVolume(),
+    GetTime(),
+    GetQueue(),
+    GetPreference(PreferenceData),
+    SetPreference(PreferenceData),
+    GetSecure(PreferenceData),
+    SetSecure(PreferenceData),
+    AddSongs(Vec<Song>),
+    RemoveSong(Song),
+    UpdateSong(Song),
+    AddPlaylist(Playlist),
+    AddToPlaylist(AddToPlaylistRequest),
+    RegisterOAuth(String),
+    OpenExternalUrl(String),
+    UpdateAccounts(Option<String>),
+    RegisterUserPreference(Vec<PreferenceUIData>),
+    UnregisterUserPreference(Vec<String>),
+    ExtensionsUpdated(),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum MainCommandResponse {
+    GetSong(Vec<Song>),
+    GetEntity(Value),
+    GetCurrentSong(Option<Song>),
+    GetPlayerState(PlayerState),
+    GetVolume(f64),
+    GetTime(f64),
+    GetQueue(Value),
+    GetPreference(PreferenceData),
+    SetPreference(bool),
+    GetSecure(PreferenceData),
+    SetSecure(bool),
+    AddSongs(Vec<Song>),
+    RemoveSong(bool),
+    UpdateSong(Song),
+    AddPlaylist(String),
+    AddToPlaylist(bool),
+    RegisterOAuth(bool),
+    OpenExternalUrl(bool),
+    UpdateAccounts(bool),
+    RegisterUserPreference(bool),
+    UnregisterUserPreference(bool),
+    ExtensionsUpdated(bool),
+}
+
+impl MainCommand {
+    #[allow(unused)]
+    fn sanitize_command(&mut self, package_name: &str) {
+        match self {
+            MainCommand::GetPreference(preference_data) => {
+                preference_data.key = format!("extensions.{}", preference_data.key);
+            }
+            MainCommand::SetPreference(preference_data) => {
+                preference_data.key = format!("extensions.{}", preference_data.key);
+            }
+            MainCommand::GetSecure(preference_data) => {
+                preference_data.key =
+                    format!("extensions.{}.{}", package_name, preference_data.key);
+            }
+            MainCommand::SetSecure(preference_data) => {
+                preference_data.key =
+                    format!("extensions.{}.{}", package_name, preference_data.key);
+            }
+            MainCommand::AddSongs(songs) => {
+                let prefix = format!("{}:", package_name);
+                for song in songs {
+                    sanitize_song(&prefix, song);
+                }
+            }
+            MainCommand::RemoveSong(song) => {
+                let prefix = format!("{}:", package_name);
+                sanitize_song(&prefix, song);
+            }
+            MainCommand::UpdateSong(song) => {
+                let prefix = format!("{}:", package_name);
+                sanitize_song(&prefix, song);
+            }
+            MainCommand::AddPlaylist(queryable_playlist) => {
+                let prefix = format!("{}:", package_name);
+                sanitize_playlist(&prefix, queryable_playlist);
+            }
+            MainCommand::AddToPlaylist(add_to_playlist_request) => {
+                let prefix = format!("{}:", package_name);
+                for song in add_to_playlist_request.songs.iter_mut() {
+                    sanitize_song(&prefix, song);
+                }
+            }
+            MainCommand::RegisterOAuth(_) => todo!(),
+            MainCommand::OpenExternalUrl(_) => todo!(),
+            MainCommand::UpdateAccounts(package_name_inner) => {
+                package_name_inner.replace(package_name.to_string());
+            }
+            _ => {}
+        }
+    }
+
+    pub fn to_ui_request(&mut self) -> MoosyncResult<ExtensionUIRequest> {
+        let (r#type, data) = match self {
+            MainCommand::GetCurrentSong() => ("getCurrentSong", Value::Null),
+            MainCommand::GetPlayerState() => ("getPlayerState", Value::Null),
+            MainCommand::GetVolume() => ("getVolume", Value::Null),
+            MainCommand::GetTime() => ("getTime", Value::Null),
+            MainCommand::GetQueue() => ("getQueue", Value::Null),
+            _ => unreachable!("Any other request should not have been sent as UI request"),
+        };
+
+        Ok(ExtensionUIRequest {
+            type_: r#type.into(),
+            channel: "".into(),
+            data: Some(data),
+        })
     }
 }

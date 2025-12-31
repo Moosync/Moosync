@@ -15,10 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use database::database::Database;
-use extensions::{
-    ExtensionHandler,
-    models::{MainCommand, MainCommandResponse},
-};
+use extensions::ExtensionHandler;
 use futures::channel::oneshot;
 use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
@@ -26,6 +23,7 @@ use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use types::{
     entities::{GetEntityOptions, Playlist},
     errors::{Result, error_helpers},
+    extensions::{MainCommand, MainCommandResponse},
     preferences::PreferenceUIData,
     songs::{GetSongOptions, SearchableSong, Song},
     ui::extensions::PreferenceData,
@@ -195,7 +193,9 @@ impl ReplyHandler {
         prefs: Vec<PreferenceUIData>,
     ) -> Result<MainCommandResponse> {
         let ext_handler: State<ExtensionHandler> = self.app_handle.state();
-        ext_handler.register_ui_preferences(package_name, prefs).await?;
+        ext_handler
+            .register_ui_preferences(package_name, prefs)
+            .await?;
         Ok(MainCommandResponse::RegisterUserPreference(true))
     }
 
@@ -205,7 +205,9 @@ impl ReplyHandler {
         pref_keys: Vec<String>,
     ) -> Result<MainCommandResponse> {
         let ext_handler: State<ExtensionHandler> = self.app_handle.state();
-        ext_handler.unregister_ui_preferences(package_name, pref_keys).await?;
+        ext_handler
+            .unregister_ui_preferences(package_name, pref_keys)
+            .await?;
         Ok(MainCommandResponse::RegisterUserPreference(true))
     }
 
@@ -216,7 +218,8 @@ impl ReplyHandler {
         }
 
         let (tx, rx) = oneshot::channel();
-        let request = command.to_ui_request()?;
+        let mut request = command.to_ui_request()?;
+        request.channel = uuid::Uuid::new_v4().to_string();
         self.app_handle
             .once(format!("ui-reply-{}", request.channel), move |f| {
                 let payload = f.payload().to_string();

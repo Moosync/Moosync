@@ -15,5 +15,18 @@
   "rust-analyzer.showUnlinkedFileNotification": false,
   "editor.formatOnSave": true,
   "rust-analyzer.checkOnSave": true,
-  "bazel.lsp.command": "bazel-lsp"
+  "bazel.lsp.command": "bazel-lsp",
+  "testing.coverageToolbarEnabled": true,
+  "cmake.postRunCoverageTarget": "bazel-out/**/coverage.dat",
+  "code-coverage-lcov.path.searchPath": "bazel-out/_coverage/_coverage_report.dat",
+  "bazel-import.kindPattern": "(ts|js|rust|cc)_library",
+  "bazel-import.fixDepsOnCurrent": true,
+  "bazel-import.buildFile": "BUILD",
+  "bazel.buildifierFixOnFormat": true,
+  "rust-analyzer.check.overrideCommand": [
+    "${workspaceFolder}/tools/rust_analyzer.sh",
+    "$saved_file",
+    "${workspaceFolder}"
+  ],
+  "rust-analyzer.trace.server": "messages",
 }

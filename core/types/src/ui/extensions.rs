@@ -32,8 +32,8 @@ use super::player_details::PlayerState;
 pub struct ExtensionUIRequest {
     #[serde(rename = "type")]
     pub type_: String,
-    pub data: Option<Value>,
     pub channel: String,
+    pub data: Option<Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

@@ -31,8 +31,9 @@ use types::extensions::{ExtensionManifest, ManifestPermissions};
 use crate::{
     context::{Extism, MainCommandUserData, ReplyHandler, SocketUserData},
     errors::ExtensionError,
-    models::{ExtensionCommand, ExtensionCommandResponse, MainCommand},
+    models::{ExtensionCommand, ExtensionCommandResponse},
 };
+use types::extensions::MainCommand;
 
 host_fn!(send_main_command(user_data: MainCommandUserData; command: Json<MainCommand>) -> Option<Value> {
     let user_data = user_data.get()?;

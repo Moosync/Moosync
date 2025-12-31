@@ -39,6 +39,10 @@ crates.spec(
     version = "1.12.0",
 )
 crates.spec(
+    package = "extism-pdk",
+    version = "1.3.0",
+)
+crates.spec(
     package = "fs_extra",
     version = "1.3.0",
 )
@@ -375,7 +379,7 @@ crates.spec(
 )
 crates.spec(
     package = "rspotify",
-    version = "0.15.2",
+    version = "0.15.3",
 )
 crates.spec(
     default_features = False,

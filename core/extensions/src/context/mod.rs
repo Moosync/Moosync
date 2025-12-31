@@ -7,12 +7,16 @@ use std::{
 
 use extism::Plugin;
 use interprocess::local_socket::Stream as LocalSocketStream;
-use types::{errors::MoosyncError, extensions::ExtensionManifest};
+use types::{
+    errors::MoosyncError,
+    extensions::{ExtensionManifest, MainCommand, MainCommandResponse},
+};
 
 use crate::{
     errors::ExtensionError,
-    models::{ExtensionCommand, ExtensionCommandResponse, MainCommand, MainCommandResponse},
+    models::{ExtensionCommand, ExtensionCommandResponse},
 };
+
 pub use extism_context::ExtismContext;
 
 mod extism_context;

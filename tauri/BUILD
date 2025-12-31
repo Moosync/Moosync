@@ -110,6 +110,7 @@ rust_library(
         "@crates//:tracing-appender",
         "@crates//:tracing-subscriber",
         "@crates//:url",
+        "@crates//:uuid",
     ] + select({
         "@platforms//os:linux": [
             "@crates//:webkit2gtk",

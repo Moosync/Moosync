@@ -1,11 +1,12 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use super::models::{MainCommand, RunnerCommand};
+use super::models::RunnerCommand;
 use crate::context::{MockExtism, ReplyHandler};
 use crate::ext_runner::ExtensionHandlerInner;
 use crate::models::{ExtensionCommand, ExtensionCommandResponse, RunnerCommandResp};
 use serde_json::Value;
+use types::extensions::MainCommand;
 use types::preferences::{PreferenceTypes, PreferenceUIData};
 use types::songs::{InnerSong, Song};
 use types::ui::extensions::PackageNameArgs;
@@ -139,7 +140,9 @@ fn test_find_and_spawn_extensions() {
         });
 
     let _reply_handler: ReplyHandler = Arc::new(Box::new(|_, _| {
-        Ok(crate::models::MainCommandResponse::ExtensionsUpdated(true))
+        Ok(types::extensions::MainCommandResponse::ExtensionsUpdated(
+            true,
+        ))
     }));
 
     let mut handler =

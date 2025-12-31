@@ -18,7 +18,7 @@ use crate::{
     entities::{Album, Artist, Playlist, SearchResult},
     errors::Result,
     songs::Song,
-    ui::extensions::{ContextMenuReturnType, ExtensionProviderScope},
+    ui::extensions::{ContextMenuReturnType, ExtensionExtraEvent, ExtensionProviderScope},
 };
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
@@ -142,4 +142,5 @@ pub trait GenericProvider: std::fmt::Debug + Send + Sync {
         playlist: Playlist,
     ) -> Result<Vec<ContextMenuReturnType>>;
     async fn trigger_context_menu_action(&self, action_id: String) -> Result<()>;
+    async fn handle_extra_event(&self, event: ExtensionExtraEvent) -> Result<()>;
 }

@@ -35,13 +35,16 @@ use crate::{
 };
 use types::extensions::MainCommand;
 
-host_fn!(send_main_command(user_data: MainCommandUserData; command: Json<MainCommand>) -> Option<Value> {
+host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Json<MainCommand>) -> Option<Value> {
     let user_data = user_data.get()?;
     let user_data = user_data.lock().unwrap();
 
+    let mut command = command_wrapper.0;
+    command.sanitize_command(&user_data.package_name);
+
     let response = user_data.reply_handler
     .clone()
-    .as_ref()(&user_data.package_name, command.0)
+    .as_ref()(&user_data.package_name, command)
     .map_err(|e| Error::msg(e.to_string()))?;
 
     Ok(Some(Json(response)))

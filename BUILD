@@ -16,5 +16,3 @@ config_setting(
     values = {"compilation_mode": "opt"},
     visibility = ["//visibility:public"],
 )
-
-exports_files(["clippy.toml"])

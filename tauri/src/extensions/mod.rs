@@ -21,13 +21,11 @@ use crate::macros::generate_command_async_cached;
 use database::cache::CacheHolder;
 use extensions::ExtensionHandler;
 use request_handler::ReplyHandler;
-use serde_json::Value;
 use tauri::AppHandle;
 use tauri::Manager;
 use tauri::State;
 use types::errors::Result;
 use types::ui::extensions::ExtensionDetail;
-use types::ui::extensions::ExtensionExtraEventArgs;
 use types::ui::extensions::FetchedExtensionManifest;
 use types::ui::extensions::PackageNameArgs;
 
@@ -70,11 +68,5 @@ generate_command_async!(
     get_installed_extensions,
     ExtensionHandler,
     Vec<ExtensionDetail>,
-);
-generate_command_async!(
-    send_extra_event,
-    ExtensionHandler,
-    Value,
-    args: ExtensionExtraEventArgs
 );
 generate_command_async_cached!(get_extension_icon, ExtensionHandler, String, args: PackageNameArgs);

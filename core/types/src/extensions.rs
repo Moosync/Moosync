@@ -104,7 +104,7 @@ pub fn sanitize_playlist(prefix: &str, playlist: &mut Playlist) {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub enum MainCommand {
     GetSong(GetSongOptions),
     GetEntity(GetEntityOptions),
@@ -128,6 +128,7 @@ pub enum MainCommand {
     RegisterUserPreference(Vec<PreferenceUIData>),
     UnregisterUserPreference(Vec<String>),
     ExtensionsUpdated(),
+    GetAppVersion(),
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -155,11 +156,11 @@ pub enum MainCommandResponse {
     RegisterUserPreference(bool),
     UnregisterUserPreference(bool),
     ExtensionsUpdated(bool),
+    GetAppVersion(String),
 }
 
 impl MainCommand {
-    #[allow(unused)]
-    fn sanitize_command(&mut self, package_name: &str) {
+    pub fn sanitize_command(&mut self, package_name: &str) {
         match self {
             MainCommand::GetPreference(preference_data) => {
                 preference_data.key = format!("extensions.{}", preference_data.key);

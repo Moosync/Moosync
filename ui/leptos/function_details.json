@@ -381,20 +381,6 @@
           "name": "db"
         },
         {
-          "arg_type": "types::ui::extensions::ExtensionExtraEventArgs",
-          "name": "args"
-        }
-      ],
-      "name": "send_extra_event",
-      "ret": "types::errors::Result<serde_json::Value>"
-    },
-    {
-      "args": [
-        {
-          "arg_type": "tauri::State<extensions::ExtensionHandler>",
-          "name": "db"
-        },
-        {
           "arg_type": "tauri::State<database::cache::CacheHolder>",
           "name": "cache"
         },
@@ -1290,6 +1276,24 @@
         }
       ],
       "name": "trigger_context_menu_action",
+      "ret": "types::errors::Result<()>"
+    },
+    {
+      "args": [
+        {
+          "arg_type": "tauri::State<crate::providers::handler::ProviderHandler>",
+          "name": "db"
+        },
+        {
+          "arg_type": "String",
+          "name": "key"
+        },
+        {
+          "arg_type": "types::ui::extensions::ExtensionExtraEvent",
+          "name": "event"
+        }
+      ],
+      "name": "handle_extra_event",
       "ret": "types::errors::Result<()>"
     },
     {

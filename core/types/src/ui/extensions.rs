@@ -206,14 +206,14 @@ pub struct RecommendationsReturnType {
     pub songs: Vec<Song>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct AddToPlaylistRequest {
     #[serde(rename = "playlistID")]
     pub playlist_id: String,
     pub songs: Vec<Song>,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, Clone, PartialEq)]
 pub struct PreferenceData {
     pub key: String,
     pub value: Option<Value>,
@@ -269,4 +269,8 @@ pub enum ExtensionProviderScope {
     SongContextMenu,
     PlaylistContextMenu,
     Accounts,
+    DatabaseSongEvents,
+    DatabasePlaylistEvents,
+    PlayerUiEvents,
+    PlayerDataEvents,
 }

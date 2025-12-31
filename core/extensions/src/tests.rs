@@ -84,9 +84,7 @@ fn test_main_command_sanitize() {
     };
 
     let mut cmd = MainCommand::AddSongs(vec![song.clone()]);
-
-    // Use to_request to trigger sanitization
-    let _ = cmd.to_request("chan".to_string(), "test.pkg".to_string());
+    cmd.sanitize_command("test.pkg");
 
     if let MainCommand::AddSongs(songs) = cmd {
         // Sanitization logic in extensions uses "test.pkg:" prefix

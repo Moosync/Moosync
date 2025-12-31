@@ -18,7 +18,7 @@ use bitcode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 use super::{
-    common::{SearchByTerm, deserialize_default},
+    common::{deserialize_default, SearchByTerm},
     songs::Song,
 };
 
@@ -209,7 +209,7 @@ impl SearchByTerm for Genre {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
 pub struct GetEntityOptions {
     pub artist: Option<Artist>,
     pub album: Option<Album>,

@@ -1,5 +1,6 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_library")
+load("//:version.bzl", "VERSION")
 load("//tools:defs.bzl", "expand_template")
 load("//tools/rust:defs.bzl", "cargo_build", "rust_binary_with_export")
 
@@ -69,6 +70,7 @@ rust_library(
         "//ui/tauri-invoke-proc:tauri_invoke_proc",
     ],
     rustc_env = {
+        "APP_VERSION": VERSION,
         "TAURI_CONF_JSON": "$(execpath :tauri_config)",
     },
     visibility = ["//visibility:public"],

@@ -49,14 +49,15 @@ use themes::{
 
 use extensions::{
     download_extension, get_extension_icon, get_extension_manifest, get_installed_extensions,
-    install_extension, remove_extension, send_extra_event,
+    install_extension, remove_extension,
 };
 use providers::handler::{
     fetch_playback_url, fetch_playlist_content, fetch_user_playlists, get_album_content,
     get_all_status, get_artist_content, get_playlist_context_menu, get_provider_key_by_id,
     get_provider_keys, get_provider_lyrics, get_song_context_menu, get_song_from_id,
-    get_suggestions, initialize_all_providers, match_url, playlist_from_url, provider_authorize,
-    provider_login, provider_search, provider_signout, song_from_url, trigger_context_menu_action,
+    get_suggestions, handle_extra_event, initialize_all_providers, match_url, playlist_from_url,
+    provider_authorize, provider_login, provider_search, provider_signout, song_from_url,
+    trigger_context_menu_action,
 };
 use scanner::{ScanTask, get_scanner_state, start_scan};
 use tauri::{Manager, State};
@@ -277,7 +278,6 @@ pub fn run() {
             get_installed_extensions,
             get_extension_manifest,
             get_extension_icon,
-            send_extra_event,
             //Provider Handler
             get_provider_keys,
             initialize_all_providers,
@@ -301,6 +301,7 @@ pub fn run() {
             get_song_context_menu,
             get_playlist_context_menu,
             trigger_context_menu_action,
+            handle_extra_event,
             // Rodio player
             rodio_get_volume,
             rodio_load,

@@ -303,6 +303,9 @@ impl ReplyHandler {
             MainCommand::UnregisterUserPreference(pref_keys) => {
                 self.unregister_preferences(ext, pref_keys).await
             }
+            MainCommand::GetAppVersion() => Ok(MainCommandResponse::GetAppVersion(
+                env!("APP_VERSION").to_string(),
+            )),
         }
     }
 }

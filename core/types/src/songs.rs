@@ -21,7 +21,7 @@ use bitcode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 use super::{
-    common::{SearchByTerm, deserialize_default},
+    common::{deserialize_default, SearchByTerm},
     entities::{Album, Artist, Genre, Playlist},
 };
 
@@ -78,7 +78,7 @@ pub struct InnerSong {
     #[serde(rename = "releaseType")]
     pub release_type: Option<String>,
     pub bitrate: Option<f64>,
-    pub codec: Option<String>, 
+    pub codec: Option<String>,
     pub container: Option<String>,
     pub duration: Option<f64>,
     #[serde(rename = "sampleRate")]
@@ -128,7 +128,7 @@ impl SearchByTerm for InnerSong {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, Default, Serialize)]
+#[derive(Debug, Deserialize, Clone, Default, Serialize, PartialEq)]
 pub struct SearchableSong {
     pub _id: Option<String>,
     pub path: Option<String>,
@@ -144,7 +144,7 @@ pub struct SearchableSong {
     pub show_in_library: Option<bool>,
 }
 
-#[derive(Debug, Deserialize, Clone, Serialize, Default)]
+#[derive(Debug, Deserialize, Clone, Serialize, Default, PartialEq)]
 pub struct GetSongOptions {
     pub song: Option<SearchableSong>,
     pub artist: Option<Artist>,

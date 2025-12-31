@@ -31,11 +31,10 @@ use tauri::{
 use tokio::sync::{Mutex, RwLock};
 use types::{
     entities::{Album, Artist, Playlist, SearchResult},
-    errors::error_helpers,
-    errors::{MoosyncError, Result},
+    errors::{MoosyncError, Result, error_helpers},
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
-    ui::extensions::ContextMenuReturnType,
+    ui::extensions::{ContextMenuReturnType, ExtensionExtraEvent},
 };
 
 use crate::{extensions::get_extension_handler, providers::extension::ExtensionProvider};
@@ -278,6 +277,27 @@ impl ProviderHandler {
         Ok(self.provider_status.lock().await.clone())
     }
 
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn handle_extra_event(&self, key: String, event: ExtensionExtraEvent) -> Result<()> {
+        let provider_keys = if key.is_empty() {
+            self.get_provider_keys().await?
+        } else {
+            vec![key]
+        };
+
+        let provider_store = self.provider_store.read().await;
+        for provider_key in provider_keys {
+            let provider = provider_store.get(&provider_key);
+            if let Some(provider) = provider
+                && let Err(e) = provider.handle_extra_event(event.clone()).await
+            {
+                tracing::error!("Provider failed to handle event {:?}: {}", event, e);
+            }
+        }
+
+        Ok(())
+    }
+
     generate_wrapper_mut!(
         provider_login {
             args: {
@@ -440,3 +460,4 @@ generate_command_async_cached!(get_provider_lyrics, ProviderHandler, String, key
 generate_command_async!(get_song_context_menu, ProviderHandler, Vec<ContextMenuReturnType>, key: String, songs: Vec<Song>);
 generate_command_async!(get_playlist_context_menu, ProviderHandler, Vec<ContextMenuReturnType>, key: String, playlist: Playlist);
 generate_command_async!(trigger_context_menu_action, ProviderHandler, (), key: String, action: String);
+generate_command_async!(handle_extra_event, ProviderHandler, (), key: String, event: ExtensionExtraEvent);

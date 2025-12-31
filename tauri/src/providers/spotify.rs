@@ -47,7 +47,7 @@ use types::{
     errors::{MoosyncError, Result, error_helpers},
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::{InnerSong, Song, SongType},
-    ui::extensions::{ContextMenuReturnType, ExtensionProviderScope},
+    ui::extensions::{ContextMenuReturnType, ExtensionExtraEvent, ExtensionProviderScope},
 };
 use url::Url;
 
@@ -1014,6 +1014,10 @@ impl GenericProvider for SpotifyProvider {
     }
 
     async fn trigger_context_menu_action(&self, _: String) -> Result<()> {
+        return Err("Not implemented".into());
+    }
+
+    async fn handle_extra_event(&self, _: ExtensionExtraEvent) -> Result<()> {
         return Err("Not implemented".into());
     }
 

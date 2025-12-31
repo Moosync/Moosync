@@ -23,7 +23,7 @@ use tauri::AppHandle;
 use tokio::sync::Mutex;
 use types::{
     entities::{Album, Artist, Playlist, SearchResult},
-    errors::Result,
+    errors::{MoosyncError, Result},
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
     songs::Song,
     ui::extensions::{
@@ -475,5 +475,37 @@ impl GenericProvider for ExtensionProvider {
         let res = send_extension_event!(self, ExtensionExtraEvent::RequestedSongFromId([id]), Song);
 
         Ok(res)
+    }
+
+    async fn handle_extra_event(&self, event: ExtensionExtraEvent) -> Result<()> {
+        let required_scope = match event {
+            ExtensionExtraEvent::SongAdded(_) | ExtensionExtraEvent::SongRemoved(_) => {
+                ExtensionProviderScope::DatabaseSongEvents
+            }
+            ExtensionExtraEvent::PlaylistAdded(_) | ExtensionExtraEvent::PlaylistRemoved(_) => {
+                ExtensionProviderScope::DatabasePlaylistEvents
+            }
+            ExtensionExtraEvent::VolumeChanged(_)
+            | ExtensionExtraEvent::Seeked(_)
+            | ExtensionExtraEvent::PlayerStateChanged(_) => ExtensionProviderScope::PlayerUiEvents,
+            ExtensionExtraEvent::SongQueueChanged(_) | ExtensionExtraEvent::SongChanged(_) => {
+                ExtensionProviderScope::PlayerDataEvents
+            }
+            _ => {
+                return Err(MoosyncError::String(format!(
+                    "Cannot send event {:?} manually",
+                    event
+                )));
+            }
+        };
+
+        if !self.provides.contains(&required_scope) {
+            return Err("Extension does not have this capability".into());
+        }
+
+        // Discard result since all these events shouldn't return anything
+        let _ = send_extension_event!(self, event, Value);
+
+        Ok(())
     }
 }

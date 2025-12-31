@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use leptos::{component, prelude::*, task::spawn_local, view, IntoView};
+use leptos::{IntoView, component, prelude::*, task::spawn_local, view};
 
 use crate::{
     modals::common::GenericModal, store::modal_store::ModalStore, utils::invoke::provider_signout,

@@ -17,8 +17,8 @@
 use ev::{mousedown, mousemove, mouseup, touchend, touchmove, touchstart};
 use html::Div;
 use leptos::*;
-use leptos::{component, prelude::*, view, IntoView};
-use leptos_use::{use_event_listener, use_event_listener_with_options, UseEventListenerOptions};
+use leptos::{IntoView, component, prelude::*, view};
+use leptos_use::{UseEventListenerOptions, use_event_listener, use_event_listener_with_options};
 use wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
 
@@ -139,13 +139,15 @@ fn musicinfo_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     });
 
     let listener = move |client_y: i32| {
-        if is_dragging.get_untracked() && let Some(musicinfo) = musicinfo.get_untracked() && let Some(musicbar) = musicbar.get_untracked() {
+        if is_dragging.get_untracked()
+            && let Some(musicinfo) = musicinfo.get_untracked()
+            && let Some(musicbar) = musicbar.get_untracked()
+        {
             let start_offset = start_offset.get_untracked();
             let page_height = page_height.get_untracked();
             let client_y_diff = (client_y - start_offset).clamp(0, page_height);
             let musicbar_pos = client_y_diff - page_height;
-            let _ =
-                musicinfo.style(("transform", format!("translateY({client_y_diff}px)")));
+            let _ = musicinfo.style(("transform", format!("translateY({client_y_diff}px)")));
             let _ = musicbar.style(("transform", format!("translateY({musicbar_pos}px)")));
 
             let sidebar = document()
@@ -244,15 +246,17 @@ fn musicbar_drag(musicbar: NodeRef<Div>, musicinfo: NodeRef<Div>) {
     });
 
     let listener = move |client_y: i32| {
-        if is_dragging.get_untracked() && let Some(musicinfo) = musicinfo.get_untracked() && let Some(musicbar) = musicbar.get_untracked() {
+        if is_dragging.get_untracked()
+            && let Some(musicinfo) = musicinfo.get_untracked()
+            && let Some(musicbar) = musicbar.get_untracked()
+        {
             let page_height = page_height.get_untracked();
             let start_offset = start_offset.get_untracked();
             let client_y_diff =
                 (client_y - start_offset).clamp(-(page_height - MUSICBAR_HEIGHT), 0);
             let musicinfo_pos = page_height + client_y_diff;
 
-            let _ =
-                musicinfo.style(("transform", format!("translateY({musicinfo_pos}px)")));
+            let _ = musicinfo.style(("transform", format!("translateY({musicinfo_pos}px)")));
             let _ = musicbar.style(("transform", format!("translateY({client_y_diff}px)")));
 
             let sidebar = document()

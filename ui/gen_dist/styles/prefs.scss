@@ -26,6 +26,7 @@
 .ext-input-hover {
     border: 0;
     border-bottom: 1px solid transparent;
+
     &:hover {
         border-bottom: 1px solid var(--accent);
     }

@@ -17,7 +17,7 @@
 use leptos::ev::{mousedown, touchstart};
 use leptos::html::Div;
 use leptos::task::spawn_local;
-use leptos::{component, prelude::*, view, IntoView};
+use leptos::{IntoView, component, prelude::*, view};
 use leptos_use::use_event_listener;
 use leptos_virtual_scroller::VirtualScroller;
 use std::sync::Arc;
@@ -168,7 +168,9 @@ pub fn MusicInfoMobile(
         format_duration(p.get_current_time(), false)
     });
     let total_time = Memo::new(move |_| {
-        if let Some(current_song) = current_song.get() && let Some(duration) = current_song.song.duration {
+        if let Some(current_song) = current_song.get()
+            && let Some(duration) = current_song.song.duration
+        {
             return format_duration(duration, false);
         }
         "00:00".to_string()
@@ -178,8 +180,10 @@ pub fn MusicInfoMobile(
     Effect::new(move || {
         let current_song = current_song.get();
         canvaz_sig.set(None);
-        if let Some(current_song) = current_song && current_song.song.type_ == SongType::SPOTIFY
-                && current_song.song.playback_url.is_some() {
+        if let Some(current_song) = current_song
+            && current_song.song.type_ == SongType::SPOTIFY
+            && current_song.song.playback_url.is_some()
+        {
             spawn_local(async move {
                 let res = crate::utils::invoke::get_canvaz(
                     current_song.song.playback_url.unwrap().clone(),
@@ -214,7 +218,9 @@ pub fn MusicInfoMobile(
         let provider_store = provider_store.clone();
         spawn_local(async move {
             let lyrics = fetch_lyrics(&song).await;
-            if lyrics.is_none() && let Some(song) = song {
+            if lyrics.is_none()
+                && let Some(song) = song
+            {
                 let valid_providers =
                     provider_store.get_provider_keys(ExtensionProviderScope::Lyrics);
                 for provider in valid_providers {
@@ -454,8 +460,10 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
     Effect::new(move || {
         let current_song = current_song.get();
         canvaz_sig.set(None);
-        if let Some(current_song) = current_song && current_song.song.type_ == SongType::SPOTIFY
-                && current_song.song.playback_url.is_some() {
+        if let Some(current_song) = current_song
+            && current_song.song.type_ == SongType::SPOTIFY
+            && current_song.song.playback_url.is_some()
+        {
             spawn_local(async move {
                 let res = crate::utils::invoke::get_canvaz(
                     current_song.song.playback_url.unwrap().clone(),

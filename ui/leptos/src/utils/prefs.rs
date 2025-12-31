@@ -18,7 +18,7 @@ use std::rc::Rc;
 
 use leptos::prelude::Owner;
 use leptos::{prelude::Set, task::spawn_local};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use types::themes::ThemeDetails;
 use types::window::DialogFilter;
 use wasm_bindgen::JsValue;

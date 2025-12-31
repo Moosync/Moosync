@@ -24,7 +24,7 @@ use crate::utils::db_utils::add_songs_to_library;
 use crate::utils::invoke::{match_url, song_from_url};
 use crate::{icons::song_default_icon::SongDefaultIcon, store::modal_store::ModalStore};
 use leptos::task::spawn_local;
-use leptos::{component, prelude::*, view, IntoView};
+use leptos::{IntoView, component, prelude::*, view};
 use types::songs::Song;
 use types::ui::extensions::ExtensionProviderScope;
 
@@ -50,7 +50,9 @@ pub fn SongFromUrlModal() -> impl IntoView {
         spawn_local(async move {
             for key in provider_keys {
                 let matched = match_url(key.clone(), song_url.clone(), false).await;
-                if let Ok(matched) = matched && matched {
+                if let Ok(matched) = matched
+                    && matched
+                {
                     let imported = song_from_url(key, song_url, false).await;
                     if let Ok(song) = imported {
                         imported_song.set(Some(song));

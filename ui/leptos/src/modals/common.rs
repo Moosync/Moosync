@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use leptos::{component, html::Div, prelude::*, view, IntoView};
+use leptos::{IntoView, component, html::Div, prelude::*, view};
 use leptos_use::on_click_outside;
 
 use crate::{icons::cross_icon::CrossIcon, store::modal_store};

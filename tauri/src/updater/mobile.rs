@@ -6,7 +6,7 @@ use std::env;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager, Runtime, State};
 use tauri_plugin_self_update::{PlatformInfo, Release, SelfUpdateExt};
-use types::errors::{error_helpers, Result};
+use types::errors::{Result, error_helpers};
 use types::ui::updater::UpdateMetadata;
 
 const URL: &'static str =

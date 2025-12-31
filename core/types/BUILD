@@ -23,6 +23,7 @@ rust_library(
         "src/providers/generic.rs",
         "src/providers/mod.rs",
         "src/songs.rs",
+        "src/tests.rs",
         "src/themes.rs",
         "src/ui/extensions.rs",
         "src/ui/mod.rs",
@@ -31,7 +32,6 @@ rust_library(
         "src/ui/themes.rs",
         "src/ui/updater.rs",
         "src/window.rs",
-        "src/tests.rs",
     ],
     proc_macro_deps = [
         "@crates//:async-trait",

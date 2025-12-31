@@ -16,7 +16,7 @@
 
 use std::{collections::HashMap, sync::Arc};
 
-use leptos::{component, prelude::*, reactive::wrappers::write::SignalSetter, view, IntoView};
+use leptos::{IntoView, component, prelude::*, reactive::wrappers::write::SignalSetter, view};
 use leptos_i18n::t;
 use leptos_use::use_debounce_fn_with_arg;
 use types::{
@@ -38,7 +38,7 @@ use crate::{
         ui_store::UiStore,
     },
     utils::{
-        context_menu::{create_context_menu, ThemesContextMenu},
+        context_menu::{ThemesContextMenu, create_context_menu},
         invoke::{get_installed_extensions, load_all_themes, remove_extension},
         prefs::{
             load_secure, load_selective, open_file_browser, open_file_browser_single, save_secure,

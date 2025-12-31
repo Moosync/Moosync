@@ -14,12 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::macros::{generate_command, generate_command_cached};
 use database::cache::CacheHolder;
 use librespot::{
-    spirc::ParsedToken, utils::event_to_map, Cache, ConnectConfig, Credentials, DeviceType,
-    LibrespotHolder, PlayerConfig, PlayerEvent, REGISTERED_EVENTS,
+    Cache, ConnectConfig, Credentials, DeviceType, LibrespotHolder, PlayerConfig, PlayerEvent,
+    REGISTERED_EVENTS, spirc::ParsedToken, utils::event_to_map,
 };
-use crate::macros::{generate_command, generate_command_cached};
 
 use tauri::{AppHandle, Emitter, Manager, State};
 use types::{canvaz::CanvazResponse, errors::Result, errors::error_helpers};
@@ -46,9 +46,13 @@ pub fn initialize_librespot(app: AppHandle, access_token: String) -> Result<()> 
         ..Default::default()
     };
 
-    let credentials_path = app.path().app_config_dir()
+    let credentials_path = app
+        .path()
+        .app_config_dir()
         .map_err(error_helpers::to_plugin_error)?;
-    let audio_path = app.path().app_cache_dir()
+    let audio_path = app
+        .path()
+        .app_cache_dir()
         .map_err(error_helpers::to_plugin_error)?;
     let cache_config = Cache::new(
         Some(credentials_path.clone()),

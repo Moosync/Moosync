@@ -16,7 +16,7 @@
 
 use std::sync::Arc;
 
-use leptos::{component, prelude::*, view, IntoView};
+use leptos::{IntoView, component, prelude::*, view};
 use leptos_i18n::t;
 use types::{
     songs::{GetSongOptions, SearchableSong, Song},
@@ -35,7 +35,7 @@ use crate::{
     store::{player_store::PlayerStore, provider_store::ProviderStore, ui_store::UiStore},
     utils::{
         common::{format_duration, get_high_img},
-        context_menu::{create_context_menu, SongItemContextMenu},
+        context_menu::{SongItemContextMenu, create_context_menu},
         db_utils::get_playlists_local,
         invoke::{
             get_provider_key_by_id, get_song_from_id, get_songs_by_options, get_suggestions,
@@ -86,7 +86,9 @@ pub fn Explore() -> impl IntoView {
                         ..Default::default()
                     })
                     .await;
-                    if let Ok(song) = song && let Some(song) = song.first() {
+                    if let Ok(song) = song
+                        && let Some(song) = song.first()
+                    {
                         analytics.update(|a| {
                             if let Some(a) = a.as_mut() {
                                 a.songs.push((song.clone(), time))

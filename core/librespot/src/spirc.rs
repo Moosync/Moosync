@@ -16,8 +16,8 @@
 
 use std::{
     sync::{
-        mpsc::{self, Receiver, Sender},
         Arc, Mutex,
+        mpsc::{self, Receiver, Sender},
     },
     thread::{self, JoinHandle},
     time::{SystemTime, UNIX_EPOCH},
@@ -26,7 +26,7 @@ use std::{
 use futures::executor::block_on;
 use librespot::{
     connect::{ConnectConfig, LoadRequest, LoadRequestOptions, Spirc},
-    core::{cache::Cache, token::Token, Session, SpotifyUri},
+    core::{Session, SpotifyUri, cache::Cache, token::Token},
     discovery::Credentials,
     playback::{
         config::PlayerConfig,
@@ -192,21 +192,23 @@ impl SpircWrapper {
         tx: Sender<PlayerEvent>,
         mut events_channel: PlayerEventChannel,
     ) -> JoinHandle<()> {
-        thread::spawn(move || loop {
-            tracing::trace!("Listening for librespot events");
-            let message = events_channel.blocking_recv();
-            if let Some(m) = message {
-                tx.send(m.clone()).unwrap();
-                if let PlayerEvent::SessionDisconnected {
-                    connection_id: _,
-                    user_name: _,
-                } = m
-                {
+        thread::spawn(move || {
+            loop {
+                tracing::trace!("Listening for librespot events");
+                let message = events_channel.blocking_recv();
+                if let Some(m) = message {
+                    tx.send(m.clone()).unwrap();
+                    if let PlayerEvent::SessionDisconnected {
+                        connection_id: _,
+                        user_name: _,
+                    } = m
+                    {
+                        return;
+                    }
+                } else {
+                    tracing::info!("Closing spirc event listener");
                     return;
                 }
-            } else {
-                tracing::info!("Closing spirc event listener");
-                return;
             }
         })
     }
@@ -313,22 +315,24 @@ impl SpircWrapper {
         mut spirc: Spirc,
         mut session: Session,
     ) -> JoinHandle<()> {
-        thread::spawn(move || loop {
-            tracing::trace!("Receiving librespot commands");
-            if let Ok((message, tx)) = rx.recv() {
-                if message == Message::Close {
-                    spirc.shutdown().unwrap();
-                    session.shutdown();
-                    tx.send(Ok(MessageReply::None)).unwrap();
+        thread::spawn(move || {
+            loop {
+                tracing::trace!("Receiving librespot commands");
+                if let Ok((message, tx)) = rx.recv() {
+                    if message == Message::Close {
+                        spirc.shutdown().unwrap();
+                        session.shutdown();
+                        tx.send(Ok(MessageReply::None)).unwrap();
+                        channel_close_tx.send(()).unwrap();
+                        return;
+                    }
+
+                    tracing::info!("handling: {:?}", message);
+                    Self::handle_command(message, tx, &mut spirc, &mut session);
+                } else {
                     channel_close_tx.send(()).unwrap();
                     return;
                 }
-
-                tracing::info!("handling: {:?}", message);
-                Self::handle_command(message, tx, &mut spirc, &mut session);
-            } else {
-                channel_close_tx.send(()).unwrap();
-                return;
             }
         })
     }

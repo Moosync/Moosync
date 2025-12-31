@@ -26,7 +26,7 @@ use crate::{
         songdetails::SongDetails,
         songlist::{ShowProvidersArgs, SongList},
     },
-    utils::context_menu::{create_context_menu, SongsContextMenu},
+    utils::context_menu::{SongsContextMenu, create_context_menu},
 };
 
 #[tracing::instrument(

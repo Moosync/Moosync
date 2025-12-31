@@ -2,27 +2,33 @@
     background: var(--primary);
     height: 70px;
 }
+
 .gear-icon {
     height: 26px;
     width: 26px;
     margin-left: 10px;
 }
+
 .update-icon {
     height: 26px;
     width: 26px;
     margin-left: 10px;
 }
+
 .icons-bar {
     margin-right: 30px;
 }
+
 .refresh-icon {
     height: 22px;
     width: 22px;
 }
+
 .jukebox-icon {
     height: 22px;
     width: 22px;
 }
+
 .searchbar {
     color: var(--textPrimary) !important;
     background: rgba(0, 0, 0, 0);
@@ -38,21 +44,26 @@
     top: 50%;
     box-shadow: none;
     margin-left: calc(24px + 18px);
+
     &::-webkit-input-placeholder {
         color: var(--textSecondary);
     }
+
     &:focus {
         background: rgba(0, 0, 0, 0) !important;
         outline: 0;
     }
 }
+
 .full-border {
     border-radius: 58px;
 }
+
 .half-border {
     border-radius: 18px 18px 0 0;
     box-shadow: 0px -2px 17px 0px rgb(0 0 0 / 27%) !important;
 }
+
 .search-icon {
     position: absolute;
     height: 24px;
@@ -61,6 +72,7 @@
     margin-top: -12px;
     margin-left: 15px;
 }
+
 .go-arrow {
     position: absolute;
     height: 20px;
@@ -69,6 +81,7 @@
     margin-top: -12px;
     margin-right: 20px;
 }
+
 .search-results {
     position: absolute;
     top: 50px;
@@ -80,6 +93,7 @@
     max-height: 60vh;
     overflow: hidden;
 }
+
 .search-invisible {
     visibility: hidden;
     opacity: 0;
@@ -87,6 +101,7 @@
         visibility 0s linear 300ms,
         opacity 300ms;
 }
+
 .search-visible {
     visibility: visible;
     opacity: 1;
@@ -94,20 +109,24 @@
         visibility 0s linear 0s,
         opacity 300ms;
 }
+
 .searchbar-container {
     height: 50px;
     background: var(--secondary);
     position: relative;
 }
+
 .search-container {
     position: relative;
 }
+
 .custom-popover {
     position: fixed;
     top: 60px;
     right: 45px;
     padding: 5px 15px 10px 15px;
 }
+
 .ripple {
     position: relative;
     overflow: hidden;
@@ -121,6 +140,7 @@
     cursor: pointer;
     margin-top: 10px;
 }
+
 .title-wrapper {
     font-weight: 700;
     font-size: 14px;
@@ -132,13 +152,16 @@
     margin-right: 25px;
     margin-left: 8px;
 }
+
 .icon-wrapper {
     width: 26px;
     margin-left: 15px;
 }
-.icon-wrapper > svg {
+
+.icon-wrapper>svg {
     width: 100%;
 }
+
 .icons-invisible {
     display: none !important;
 }

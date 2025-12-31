@@ -10,9 +10,11 @@
     border-bottom: 1px solid var(--divider);
     border-radius: 0;
     padding: 0;
+
     &:hover {
         border-bottom: 1px solid var(--accent);
     }
+
     &:focus {
         outline: none;
         -webkit-box-shadow: none;
@@ -37,7 +39,7 @@
     text-align: start;
 }
 
-.preview > svg {
+.preview>svg {
     width: 100%;
 }
 
@@ -84,11 +86,12 @@
     opacity: 0;
     cursor: pointer;
     transition: opacity 0.2s ease;
+
     &:hover {
         opacity: 0.6;
     }
 
-    > svg {
+    >svg {
         height: calc(100% - 70px);
         align-self: center;
     }

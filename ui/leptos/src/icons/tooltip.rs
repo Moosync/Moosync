@@ -16,7 +16,7 @@
 
 use std::time::Duration;
 
-use leptos::{component, prelude::*, view, IntoView};
+use leptos::{IntoView, component, prelude::*, view};
 
 #[tracing::instrument(level = "debug", skip(children))]
 #[component]

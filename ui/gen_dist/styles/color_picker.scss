@@ -7,11 +7,7 @@
 
     display: grid;
     grid:
-        "map dis" auto
-        "map csp" auto
-        "inp csp" auto
-        "inp opt" auto
-        / minmax(auto, max-content) 1fr;
+        "map dis" auto "map csp" auto "inp csp" auto "inp opt" auto / minmax(auto, max-content) 1fr;
     gap: 0.8rem;
 
     width: 100%;
@@ -80,11 +76,9 @@
     }
 
     &__cursor {
-        --border-color: hsl(
-            0,
-            0%,
-            calc(max(var(--cursor-y) * 2, var(--cursor-x) * 2) * 100%)
-        );
+        --border-color: hsl(0,
+                0%,
+                calc(max(var(--cursor-y) * 2, var(--cursor-x) * 2) * 100%));
 
         z-index: 3;
         cursor: pointer;
@@ -127,16 +121,14 @@
 
     border-radius: 0.8rem;
 
-    background: linear-gradient(
-        to right,
-        #ff0000 0,
-        #ffff00 16.67%,
-        #00ff00 33.33%,
-        #00ffff 50%,
-        #0000ff 66.67%,
-        #ff00ff 83.33%,
-        #ff0000 100%
-    );
+    background: linear-gradient(to right,
+            #ff0000 0,
+            #ffff00 16.67%,
+            #00ff00 33.33%,
+            #00ffff 50%,
+            #0000ff 66.67%,
+            #ff00ff 83.33%,
+            #ff0000 100%);
 
     * {
         user-select: none;

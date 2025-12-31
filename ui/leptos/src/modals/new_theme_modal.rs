@@ -29,7 +29,7 @@ use crate::{
         prefs::{import_theme, open_file_browser_single, save_theme},
     },
 };
-use leptos::{component, prelude::*, task::spawn_local, view, IntoView};
+use leptos::{IntoView, component, prelude::*, task::spawn_local, view};
 use leptos_use::on_click_outside;
 use types::{
     themes::{ThemeDetails, ThemeItem},

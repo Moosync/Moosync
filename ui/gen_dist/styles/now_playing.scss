@@ -27,7 +27,7 @@
         display: none;
     }
 
-    .image-container > div > div > img {
+    .image-container>div>div>img {
         display: none;
     }
 
@@ -54,7 +54,7 @@
         left: 0px;
         width: 100vw !important;
 
-        > pre {
+        >pre {
             height: calc(100% - 120px - 30px);
             padding-left: 30px;
             font-size: 20px;

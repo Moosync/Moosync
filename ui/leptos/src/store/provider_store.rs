@@ -79,7 +79,9 @@ impl ProviderStore {
                 modal_store.update(|m| m.clear_active_modal());
             }
 
-            if let Some(spotify) = provider_status.get("spotify") && spotify.user_name.is_some() {
+            if let Some(spotify) = provider_status.get("spotify")
+                && spotify.user_name.is_some()
+            {
                 LibrespotPlayer::set_initialized(true);
             }
         });

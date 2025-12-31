@@ -132,7 +132,9 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn goto_album(&self) {
         let navigate = use_navigate();
-        if let Some(song) = &self.current_song && let Some(album) = &song.album {
+        if let Some(song) = &self.current_song
+            && let Some(album) = &song.album
+        {
             navigate(
                 format!(
                     "/main/albums/single?entity={}",
@@ -202,7 +204,9 @@ where
         let i18n = use_i18n();
 
         let mut artist_items = vec![];
-        if let Some(song) = &self.current_song && let Some(artists) = &song.artists {
+        if let Some(song) = &self.current_song
+            && let Some(artists) = &song.artists
+        {
             for artist in artists.clone() {
                 let artist_name = artist.artist_name.clone().unwrap_or_default();
                 artist_items.push(ContextMenuItemInner::<Self>::new_with_handler(

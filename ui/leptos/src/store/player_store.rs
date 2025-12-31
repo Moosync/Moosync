@@ -313,7 +313,10 @@ impl PlayerStore {
         self.scrobble_time += 0f64.max(new_time - self.data.player_details.current_time);
         self.data.player_details.current_time = new_time;
 
-        if self.scrobble_time > 20f64 && !self.scrobbled && let Some(current_song) = self.get_current_song() {
+        if self.scrobble_time > 20f64
+            && !self.scrobbled
+            && let Some(current_song) = self.get_current_song()
+        {
             self.scrobbled = true;
             send_extension_event(ExtensionExtraEvent::Scrobble([current_song]));
         }
@@ -408,11 +411,15 @@ impl PlayerStore {
         let mut volume = self.data.player_details.volume;
         let song_key = self.get_song_key();
         if !song_key.is_empty() {
-            if let VolumeMode::PersistSeparate = self.data.player_details.volume_mode && let Some(current_volume) = self.data.player_details.volume_map.get(&song_key) {
+            if let VolumeMode::PersistSeparate = self.data.player_details.volume_mode
+                && let Some(current_volume) = self.data.player_details.volume_map.get(&song_key)
+            {
                 volume = *current_volume;
             }
 
-            if let VolumeMode::PersistClamp = self.data.player_details.volume_mode && let Some(current_clamp) = self.data.player_details.clamp_map.get(&song_key) {
+            if let VolumeMode::PersistClamp = self.data.player_details.volume_mode
+                && let Some(current_clamp) = self.data.player_details.clamp_map.get(&song_key)
+            {
                 clamp = *current_clamp;
             }
         }
@@ -429,7 +436,9 @@ impl PlayerStore {
     pub fn get_raw_volume(&self) -> f64 {
         if let VolumeMode::PersistSeparate = self.data.player_details.volume_mode {
             let song_key = self.get_song_key();
-            if !song_key.is_empty() && let Some(volume) = self.data.player_details.volume_map.get(&song_key) {
+            if !song_key.is_empty()
+                && let Some(volume) = self.data.player_details.volume_map.get(&song_key)
+            {
                 return *volume;
             }
         }

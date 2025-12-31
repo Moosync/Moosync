@@ -13,9 +13,11 @@
     opacity: 1;
     transition: opacity 0.2s ease-in-out;
     border: none !important;
+
     &:first-child {
         margin-top: 12px;
     }
+
     &:last-child {
         margin-bottom: 12px;
     }
@@ -28,10 +30,12 @@
     padding-top: 5px;
     padding-bottom: 5px;
     justify-content: space-between;
+
     &.context-menu-open {
         background-color: var(--accent);
         color: var(--textInverse);
     }
+
     &:hover {
         background-color: var(--accent);
         color: var(--textInverse);
@@ -51,7 +55,8 @@
     align-items: center;
     max-width: 100%;
     margin-left: 20px;
-    & > svg {
+
+    &>svg {
         width: 14px;
         height: 14px;
     }

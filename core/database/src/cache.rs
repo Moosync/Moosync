@@ -20,16 +20,16 @@ use std::{
 };
 
 use diesel::{
-    ExpressionMethods, RunQueryDsl, SqliteConnection,
     connection::SimpleConnection,
     insert_into,
     query_dsl::methods::FilterDsl,
     r2d2::{self, ConnectionManager, Pool},
+    ExpressionMethods, RunQueryDsl, SqliteConnection,
 };
 
 use serde::{Deserialize, Serialize};
 use tracing::debug;
-use types::errors::{Result, error_helpers};
+use types::errors::{error_helpers, Result};
 
 use super::migrations::run_migration_cache;
 use crate::{

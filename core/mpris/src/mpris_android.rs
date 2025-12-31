@@ -17,8 +17,8 @@
 use std::{
     collections::HashMap,
     sync::{
-        mpsc::{self, Receiver, Sender},
         Arc, Mutex,
+        mpsc::{self, Receiver, Sender},
     },
     time::Duration,
 };

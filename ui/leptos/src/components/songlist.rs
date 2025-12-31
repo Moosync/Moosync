@@ -17,18 +17,18 @@
 use std::{
     collections::HashMap,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
 };
 
 use itertools::Itertools;
 use leptos::{
-    component,
+    IntoView, component,
     ev::{keydown, keyup, scroll},
     html::Div,
     prelude::*,
-    view, IntoView,
+    view,
 };
 use leptos_use::use_event_listener;
 use leptos_virtual_scroller::VirtualScroller;
@@ -49,7 +49,7 @@ use crate::{
     },
     utils::{
         common::{format_duration, get_low_img},
-        context_menu::{create_context_menu, SongItemContextMenu, SortContextMenu},
+        context_menu::{SongItemContextMenu, SortContextMenu, create_context_menu},
         db_utils::get_playlists_local,
     },
 };

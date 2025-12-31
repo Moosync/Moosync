@@ -472,7 +472,9 @@ pub fn Slider() -> impl IntoView {
 
     Effect::new(move || {
         let current_song = current_song.get();
-        if let Some(current_song) = current_song && let Some(duration) = current_song.song.duration {
+        if let Some(current_song) = current_song
+            && let Some(duration) = current_song.song.duration
+        {
             total_time.set(duration);
         }
     });

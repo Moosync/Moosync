@@ -21,7 +21,7 @@ use crate::{
     utils::invoke::{provider_search, search_all},
 };
 use colors_transform::{Color, Rgb};
-use leptos::{component, ev::wheel, html::Div, prelude::*, view, IntoView, Params};
+use leptos::{IntoView, Params, component, ev::wheel, html::Div, prelude::*, view};
 use leptos_router::{hooks::use_query, params::Params};
 use leptos_use::{use_event_listener, use_resize_observer};
 use types::ui::extensions::ExtensionProviderScope;

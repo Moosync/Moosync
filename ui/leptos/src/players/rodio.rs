@@ -18,7 +18,7 @@ use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration};
 
 use leptos::{
     leptos_dom::helpers::IntervalHandle,
-    prelude::{set_interval_with_handle, NodeRef},
+    prelude::{NodeRef, set_interval_with_handle},
     task::spawn_local,
 };
 use types::{songs::SongType, ui::player_details::PlayerEvents};
@@ -76,7 +76,9 @@ impl GenericPlayer for RodioPlayer {
     #[tracing::instrument(level = "debug", skip(self))]
     fn stop(&mut self) -> Result<()> {
         let unlisten = self.unlisten.take();
-        if let Some(unlisten) = &unlisten && let Err(e) = unlisten.call0(&JsValue::NULL) {
+        if let Some(unlisten) = &unlisten
+            && let Err(e) = unlisten.call0(&JsValue::NULL)
+        {
             tracing::error!("Error removing listeners {:?}", e);
         }
 

@@ -17,7 +17,7 @@
 use std::sync::Arc;
 
 use leptos::task::spawn_local;
-use leptos::{component, prelude::*, view, IntoView};
+use leptos::{IntoView, component, prelude::*, view};
 use leptos_i18n::t;
 use types::entities::Playlist;
 use types::songs::Song;
@@ -62,9 +62,10 @@ pub fn NewPlaylistModal(
         spawn_local(async move {
             let import_url = import_url.clone();
             for key in provider_store.get_provider_keys(ExtensionProviderScope::PlaylistFromUrl) {
-                if let Ok(matched) = match_url(key.clone(), import_url.clone(), false).await && matched {
-                    let imported =
-                        playlist_from_url(key.clone(), import_url.clone(), false).await;
+                if let Ok(matched) = match_url(key.clone(), import_url.clone(), false).await
+                    && matched
+                {
+                    let imported = playlist_from_url(key.clone(), import_url.clone(), false).await;
                     if let Ok(imported) = imported {
                         playlist.set(Some(imported));
                     }

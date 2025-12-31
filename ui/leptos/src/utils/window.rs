@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use leptos::{
-    prelude::{expect_context, RwSignal, Update},
+    prelude::{RwSignal, Update, expect_context},
     task::spawn_local,
 };
 

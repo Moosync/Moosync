@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use leptos::{component, html::Div, prelude::*, view, IntoView};
+use leptos::{IntoView, component, html::Div, prelude::*, view};
 use leptos_use::use_resize_observer;
 use types::{
     songs::Song,
@@ -101,7 +101,9 @@ where
             let provider_store = provider_store.clone();
             spawn_local(async move {
                 let lyrics = fetch_lyrics(&song).await;
-                if lyrics.is_none() && let Some(song) = song {
+                if lyrics.is_none()
+                    && let Some(song) = song
+                {
                     let valid_providers =
                         provider_store.get_provider_keys(ExtensionProviderScope::Lyrics);
                     for provider in valid_providers {

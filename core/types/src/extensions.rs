@@ -132,7 +132,6 @@ pub enum MainCommand {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(untagged)]
 pub enum MainCommandResponse {
     GetSong(Vec<Song>),
     GetEntity(Value),
@@ -157,6 +156,7 @@ pub enum MainCommandResponse {
     UnregisterUserPreference(bool),
     ExtensionsUpdated(bool),
     GetAppVersion(String),
+    Error(String),
 }
 
 impl MainCommand {

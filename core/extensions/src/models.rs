@@ -194,7 +194,7 @@ impl ExtensionCommandResponse {
     }
 }
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase", tag = "type", content = "data")]
 pub enum ExtensionCommand {
     GetProviderScopes(PackageNameArgs),

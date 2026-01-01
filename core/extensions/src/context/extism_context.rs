@@ -26,7 +26,7 @@ use interprocess::local_socket::{
 };
 use regex::{Captures, Regex};
 use serde_json::Value;
-use types::extensions::{ExtensionManifest, ManifestPermissions};
+use types::extensions::{ExtensionManifest, MainCommandResponse, ManifestPermissions};
 
 use crate::{
     context::{Extism, MainCommandUserData, ReplyHandler, SocketUserData},
@@ -35,7 +35,7 @@ use crate::{
 };
 use types::extensions::MainCommand;
 
-host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Json<MainCommand>) -> Option<Value> {
+host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Json<MainCommand>) {
     let user_data = user_data.get()?;
     let user_data = user_data.lock().unwrap();
 
@@ -45,9 +45,16 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Json
     let response = user_data.reply_handler
     .clone()
     .as_ref()(&user_data.package_name, command)
-    .map_err(|e| Error::msg(e.to_string()))?;
+    .map_err(|e| Error::msg(e.to_string()));
 
-    Ok(Some(Json(response)))
+    match response {
+        Ok(response) => {
+            Ok(Json(response))
+        }
+        Err(e) => {
+            Ok(Json(MainCommandResponse::Error(e.to_string())))
+        }
+    }
 });
 
 host_fn!(system_time() -> u64 {

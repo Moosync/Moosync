@@ -22,9 +22,10 @@ use leptos::*;
 use leptos::{IntoView, component, prelude::*, view};
 use leptos_dom::helpers::TimeoutHandle;
 use leptos_use::{use_document, use_event_listener};
+use songs_proto::moosync::types::{Artist, Playlist};
 use task::spawn_local;
-use types::entities::{Artist, Playlist};
 use types::ui::player_details::PlayerState;
+use types::prelude::SongsExt;
 
 use crate::components::artist_list::ArtistList;
 use crate::components::low_img::LowImg;
@@ -53,14 +54,11 @@ pub fn Details() -> impl IntoView {
     let cover_img = RwSignal::new("".to_string());
 
     Effect::new(move || {
-        let current_song = current_song.get().clone();
+        let current_song = current_song.get();
         if let Some(current_song) = &current_song {
-            title.set(current_song.song.title.clone().unwrap());
+            title.set(current_song.get_title().unwrap());
             cover_img.set(get_low_img(current_song));
-
-            if let Some(artists) = &current_song.artists {
-                artists_list.set(artists.clone())
-            }
+            artists_list.set(current_song.artists .clone());
             return;
         }
         title.set("-".into());
@@ -98,7 +96,7 @@ pub fn Details() -> impl IntoView {
                 <div class="row no-gutters w-100 flex-nowrap text-truncate">
                     {move || {
                         let artists = artists_list.get();
-                        view! { <ArtistList artists=Some(artists) /> }
+                        view! { <ArtistList artists=artists /> }
                     }}
 
                 </div>
@@ -134,7 +132,7 @@ pub fn Controls(
         });
         let total_duration_sig = create_read_slice(player_store, |p| {
             if let Some(current_song) = p.get_current_song() {
-                format_duration(current_song.song.duration.unwrap_or(-1f64), false)
+                format_duration(current_song.get_duration_or_default(), false)
             } else {
                 "00:00".to_string()
             }
@@ -156,7 +154,7 @@ pub fn Controls(
                 tracing::debug!("Checking song in favorites");
                 let res = crate::utils::invoke::is_song_in_playlist(
                     "favorite".into(),
-                    current_song.song._id.unwrap_or_default(),
+                    current_song.get_id().unwrap_or_default(),
                 )
                 .await;
                 match res {
@@ -195,7 +193,7 @@ pub fn Controls(
                 } else {
                     crate::utils::invoke::remove_from_playlist(
                         "favorite".into(),
-                        vec![current_song.song._id.unwrap_or_default()],
+                        vec![current_song.get_id().unwrap_or_default()],
                     )
                     .await
                 };
@@ -473,9 +471,8 @@ pub fn Slider() -> impl IntoView {
     Effect::new(move || {
         let current_song = current_song.get();
         if let Some(current_song) = current_song
-            && let Some(duration) = current_song.song.duration
         {
-            total_time.set(duration);
+            total_time.set(current_song.get_duration_or_default());
         }
     });
 

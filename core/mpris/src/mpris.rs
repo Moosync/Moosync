@@ -17,13 +17,14 @@
 pub use souvlaki::MediaControlEvent;
 
 use std::sync::{
-    Arc, Mutex,
     mpsc::{self, Receiver},
+    Arc, Mutex,
 };
 
-use types::{errors::Result, mpris::MprisPlayerDetails, ui::player_details::PlayerState};
+use types::{errors::Result, ui::player_details::PlayerState};
 
 use crate::context::{MprisContext, SouvlakiMprisContext};
+use crate::MprisPlayerDetails;
 
 pub struct MprisHolder {
     context: Mutex<Box<dyn MprisContext>>,

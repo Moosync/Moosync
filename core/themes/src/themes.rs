@@ -27,11 +27,10 @@ use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
 use notify::{Event, Watcher};
 use regex::Regex;
+use themes_proto::moosync::types::ThemeDetails;
 use types::errors::error_helpers;
-use types::{
-    errors::{MoosyncError, Result},
-    themes::ThemeDetails,
-};
+use types::errors::{MoosyncError, Result};
+use types::prelude::ThemeExt;
 use uuid::Uuid;
 
 pub struct ThemeHolder {
@@ -126,7 +125,7 @@ impl ThemeHolder {
     pub fn get_css(&self, id: String) -> Result<String> {
         let root_dir = self.theme_dir.join(id.clone());
         let ret = self.load_theme(id)?;
-        if let Some(custom_css) = &ret.theme.custom_css {
+        if let Some(custom_css) = &ret.theme.unwrap_or_default().custom_css {
             let (transformed, imports) = transform_css(custom_css.clone(), Some(root_dir))?;
             if let Err(e) = self.watch_theme_changes(imports) {
                 tracing::error!("Failed to watch css changes: {:?}", e);
@@ -232,12 +231,14 @@ impl ThemeHolder {
 
         let config_path = theme_dir.clone().join("config.json");
 
-        if let Some(custom_css) = theme.theme.custom_css {
-            let (transformed, _) = transform_css(custom_css, None)?;
+        if let Some(theme) = theme.theme.as_mut()
+            && let Some(custom_css) = &theme.custom_css
+        {
+            let (transformed, _) = transform_css(custom_css.clone(), None)?;
             let custom_css_path = theme_dir.join("custom.css");
             fs::write(custom_css_path.clone(), transformed)
                 .map_err(error_helpers::to_file_system_error)?;
-            theme.theme.custom_css = Some("custom.css".into());
+            theme.custom_css = Some("custom.css".into());
         }
 
         fs::write(config_path.clone(), serde_json::to_string_pretty(&theme)?)
@@ -246,7 +247,7 @@ impl ThemeHolder {
         zip_extensions::zip_create_from_directory(&export_path, &theme_dir)
             .map_err(error_helpers::to_file_system_error)?;
 
-        if let Some(custom_css_path) = theme.theme.custom_css {
+        if let Some(custom_css_path) = theme.get_theme_item_or_default().custom_css {
             fs::remove_file(custom_css_path).map_err(error_helpers::to_file_system_error)?;
         }
         fs::remove_file(config_path).map_err(error_helpers::to_file_system_error)?;

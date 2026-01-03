@@ -1,5 +1,5 @@
-use super::{MprisHolder, context::MockMprisContext};
-use types::mpris::MprisPlayerDetails;
+use super::{context::MockMprisContext, MprisHolder};
+use crate::MprisPlayerDetails;
 use types::ui::player_details::PlayerState;
 
 #[test]

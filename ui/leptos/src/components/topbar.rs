@@ -16,25 +16,11 @@
 
 use std::sync::Arc;
 
+use types::prelude::SongsExt;
 use crate::components::provider_icon::ProviderIcon;
 use crate::i18n::use_i18n;
 use crate::store::ui_store::UiStore;
 use crate::utils::error::Result;
-use leptos::task::spawn_local;
-use leptos::{
-    IntoView, component, ev::Event, prelude::*, reactive::wrappers::write::SignalSetter, view,
-};
-use leptos_i18n::t_string;
-use leptos_router::{NavigateOptions, hooks::use_navigate};
-use leptos_use::on_click_outside;
-use leptos_virtual_scroller::VirtualScroller;
-use types::ui::extensions::ExtensionProviderScope;
-use types::{
-    entities::{Album, Artist, Genre, GetEntityOptions, Playlist},
-    songs::{GetSongOptions, SearchableSong, Song},
-};
-use web_sys::SubmitEvent;
-
 use crate::{
     components::low_img::LowImg,
     icons::{
@@ -47,6 +33,20 @@ use crate::{
         provider_store::ProviderStore,
     },
 };
+use leptos::task::spawn_local;
+use leptos::{
+    IntoView, component, ev::Event, prelude::*, reactive::wrappers::write::SignalSetter, view,
+};
+use leptos_i18n::t_string;
+use leptos_router::{NavigateOptions, hooks::use_navigate};
+use leptos_use::on_click_outside;
+use leptos_virtual_scroller::VirtualScroller;
+use songs_proto::moosync::types::{
+    Album, Artist, Genre, GetEntityOptions, GetSongOptions, Playlist, SearchableSong, Song,
+};
+use types::ui::extensions::ExtensionProviderScope;
+use web_sys::SubmitEvent;
+
 
 enum InputFocus {
     Focus,
@@ -374,19 +374,15 @@ async fn get_search_res(
             Ok(res
                 .into_iter()
                 .map(|s| SearchResultItemData {
-                    key: s.song._id.clone(),
+                    key: s.get_id().clone(),
                     cover: s.album.as_ref().and_then(|a| a.album_coverpath_low.clone()),
-                    title: s.song.title.clone().unwrap_or_default(),
+                    title: s.get_title().unwrap_or_default(),
                     subtitle: s
                         .artists
-                        .as_ref()
-                        .map(|a| {
-                            a.iter()
+                        .iter()
                                 .filter_map(|a| a.artist_name.clone())
                                 .collect::<Vec<_>>()
-                                .join(",")
-                        })
-                        .unwrap_or_default(),
+                                .join(","),
                     on_click: Arc::new(Box::new(move || {})),
                     on_icon_click: Arc::new(Box::new(move || {
                         play_now.set(s.clone());

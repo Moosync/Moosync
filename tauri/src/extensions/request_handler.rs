@@ -19,13 +19,15 @@ use extensions::ExtensionHandler;
 use futures::channel::oneshot;
 use preferences::preferences::PreferenceConfig;
 use serde_json::Value;
+use songs_proto::moosync::types::{
+    GetEntityOptions, GetSongOptions, Playlist, SearchableSong, Song,
+};
 use tauri::{AppHandle, Emitter, Listener, Manager, State};
 use types::{
-    entities::{GetEntityOptions, Playlist},
     errors::{Result, error_helpers},
     extensions::{MainCommand, MainCommandResponse},
     preferences::PreferenceUIData,
-    songs::{GetSongOptions, SearchableSong, Song},
+    prelude::SongsExt,
     ui::extensions::PreferenceData,
 };
 
@@ -106,7 +108,7 @@ impl ReplyHandler {
     #[tracing::instrument(level = "debug", skip(self, data))]
     pub fn remove_song(&self, data: Song) -> Result<MainCommandResponse> {
         let database: State<'_, Database> = self.app_handle.state();
-        if let Some(song_id) = data.song._id {
+        if let Some(song_id) = data.get_id() {
             database.remove_songs(vec![song_id])?;
         }
         Ok(MainCommandResponse::RemoveSong(true))

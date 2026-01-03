@@ -24,10 +24,8 @@ use diesel::{
     sql_types::Text,
     sqlite::Sqlite,
 };
-use types::{
-    common::BridgeUtils,
-    songs::{InnerSong, SongType},
-};
+
+use songs_proto::moosync::types::{Album, Artist, Genre, InnerSong, Playlist, SongType};
 
 use crate::{
     cache_schema::cache,
@@ -36,6 +34,11 @@ use crate::{
         playlist_bridge, playlists,
     },
 };
+use types::prelude::InnerSongExt;
+
+pub trait BridgeUtils {
+    fn insert_value(entity: String, song: String) -> Self;
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, FromSqlRow, AsExpression)]
 #[diesel(sql_type = diesel::sql_types::Text)]
@@ -69,13 +72,6 @@ where
     }
 }
 
-impl From<types::entities::EntityInfo> for EntityInfo {
-    #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: types::entities::EntityInfo) -> Self {
-        Self(value.0)
-    }
-}
-
 #[derive(Default, Clone, Debug, Insertable, Queryable, Identifiable, AsChangeset)]
 #[diesel(table_name = albums)]
 #[diesel(primary_key(album_id))]
@@ -90,9 +86,9 @@ pub struct QueryableAlbum {
     pub album_extra_info: Option<EntityInfo>,
 }
 
-impl From<types::entities::Album> for QueryableAlbum {
+impl From<songs_proto::moosync::types::Album> for QueryableAlbum {
     #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: types::entities::Album) -> Self {
+    fn from(value: songs_proto::moosync::types::Album) -> Self {
         Self {
             album_id: value.album_id,
             album_name: value.album_name,
@@ -101,15 +97,15 @@ impl From<types::entities::Album> for QueryableAlbum {
             album_song_count: value.album_song_count,
             year: value.year,
             album_coverpath_low: value.album_coverpath_low,
-            album_extra_info: value.album_extra_info.map(EntityInfo::from),
+            album_extra_info: None,
         }
     }
 }
 
-impl From<QueryableAlbum> for types::entities::Album {
+impl From<QueryableAlbum> for songs_proto::moosync::types::Album {
     #[tracing::instrument(level = "debug", skip())]
     fn from(val: QueryableAlbum) -> Self {
-        types::entities::Album {
+        songs_proto::moosync::types::Album {
             album_id: val.album_id,
             album_name: val.album_name,
             album_artist: val.album_artist,
@@ -117,9 +113,6 @@ impl From<QueryableAlbum> for types::entities::Album {
             album_song_count: val.album_song_count,
             year: val.year,
             album_coverpath_low: val.album_coverpath_low,
-            album_extra_info: val
-                .album_extra_info
-                .map(|info| types::entities::EntityInfo(info.0)),
         }
     }
 }
@@ -157,33 +150,30 @@ pub struct QueryableArtist {
     pub sanitized_artist_name: Option<String>,
 }
 
-impl From<types::entities::Artist> for QueryableArtist {
+impl From<songs_proto::moosync::types::Artist> for QueryableArtist {
     #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: types::entities::Artist) -> Self {
+    fn from(value: songs_proto::moosync::types::Artist) -> Self {
         Self {
             artist_id: value.artist_id,
             artist_mbid: value.artist_mbid,
             artist_name: value.artist_name,
             artist_coverpath: value.artist_coverpath,
             artist_song_count: value.artist_song_count,
-            artist_extra_info: value.artist_extra_info.map(EntityInfo::from),
+            artist_extra_info: None,
             sanitized_artist_name: value.sanitized_artist_name,
         }
     }
 }
 
-impl From<QueryableArtist> for types::entities::Artist {
+impl From<QueryableArtist> for songs_proto::moosync::types::Artist {
     #[tracing::instrument(level = "debug", skip())]
     fn from(val: QueryableArtist) -> Self {
-        types::entities::Artist {
+        songs_proto::moosync::types::Artist {
             artist_id: val.artist_id,
             artist_mbid: val.artist_mbid,
             artist_name: val.artist_name,
             artist_coverpath: val.artist_coverpath,
             artist_song_count: val.artist_song_count,
-            artist_extra_info: val
-                .artist_extra_info
-                .map(|info| types::entities::EntityInfo(info.0)),
             sanitized_artist_name: val.sanitized_artist_name,
         }
     }
@@ -218,9 +208,9 @@ pub struct QueryableGenre {
     pub genre_song_count: f64,
 }
 
-impl From<types::entities::Genre> for QueryableGenre {
+impl From<songs_proto::moosync::types::Genre> for QueryableGenre {
     #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: types::entities::Genre) -> Self {
+    fn from(value: songs_proto::moosync::types::Genre) -> Self {
         Self {
             genre_id: value.genre_id,
             genre_name: value.genre_name,
@@ -229,10 +219,10 @@ impl From<types::entities::Genre> for QueryableGenre {
     }
 }
 
-impl From<QueryableGenre> for types::entities::Genre {
+impl From<QueryableGenre> for songs_proto::moosync::types::Genre {
     #[tracing::instrument(level = "debug", skip())]
     fn from(val: QueryableGenre) -> Self {
-        types::entities::Genre {
+        songs_proto::moosync::types::Genre {
             genre_id: val.genre_id,
             genre_name: val.genre_name,
             genre_song_count: val.genre_song_count,
@@ -295,9 +285,9 @@ pub struct QueryablePlaylist {
     pub library_item: Option<bool>,
 }
 
-impl From<types::entities::Playlist> for QueryablePlaylist {
+impl From<songs_proto::moosync::types::Playlist> for QueryablePlaylist {
     #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: types::entities::Playlist) -> Self {
+    fn from(value: songs_proto::moosync::types::Playlist) -> Self {
         Self {
             playlist_id: value.playlist_id,
             playlist_name: value.playlist_name,
@@ -312,10 +302,10 @@ impl From<types::entities::Playlist> for QueryablePlaylist {
     }
 }
 
-impl From<QueryablePlaylist> for types::entities::Playlist {
+impl From<QueryablePlaylist> for songs_proto::moosync::types::Playlist {
     #[tracing::instrument(level = "debug", skip())]
     fn from(val: QueryablePlaylist) -> Self {
-        types::entities::Playlist {
+        songs_proto::moosync::types::Playlist {
             playlist_id: val.playlist_id,
             playlist_name: val.playlist_name,
             playlist_coverpath: val.playlist_coverpath,
@@ -334,22 +324,28 @@ impl From<QueryablePlaylist> for types::entities::Playlist {
 #[allow(clippy::upper_case_acronyms)]
 pub enum QueryableSongType {
     #[default]
-    LOCAL,
-    URL,
-    SPOTIFY,
-    DASH,
-    HLS,
+    Local,
+    Url,
+    Spotify,
+    Dash,
+    Hls,
+}
+
+impl From<QueryableSongType> for i32 {
+    fn from(value: QueryableSongType) -> Self {
+        SongType::from(value).into()
+    }
 }
 
 impl From<SongType> for QueryableSongType {
     #[tracing::instrument(level = "debug", skip())]
     fn from(value: SongType) -> Self {
         match value {
-            SongType::LOCAL => Self::LOCAL,
-            SongType::URL => Self::URL,
-            SongType::SPOTIFY => Self::SPOTIFY,
-            SongType::DASH => Self::DASH,
-            SongType::HLS => Self::HLS,
+            SongType::Local => Self::Local,
+            SongType::Url => Self::Url,
+            SongType::Spotify => Self::Spotify,
+            SongType::Dash => Self::Dash,
+            SongType::Hls => Self::Hls,
         }
     }
 }
@@ -358,11 +354,11 @@ impl From<QueryableSongType> for SongType {
     #[tracing::instrument(level = "debug", skip())]
     fn from(val: QueryableSongType) -> Self {
         match val {
-            QueryableSongType::LOCAL => SongType::LOCAL,
-            QueryableSongType::URL => SongType::URL,
-            QueryableSongType::SPOTIFY => SongType::SPOTIFY,
-            QueryableSongType::DASH => SongType::DASH,
-            QueryableSongType::HLS => SongType::HLS,
+            QueryableSongType::Local => SongType::Local,
+            QueryableSongType::Url => SongType::Url,
+            QueryableSongType::Spotify => SongType::Spotify,
+            QueryableSongType::Dash => SongType::Dash,
+            QueryableSongType::Hls => SongType::Hls,
         }
     }
 }
@@ -377,11 +373,11 @@ where
         out: &mut diesel::serialize::Output<'b, '_, Sqlite>,
     ) -> diesel::serialize::Result {
         match self {
-            Self::LOCAL => ToSql::<Text, Sqlite>::to_sql("LOCAL", out),
-            Self::URL => ToSql::<Text, Sqlite>::to_sql("URL", out),
-            Self::SPOTIFY => ToSql::<Text, Sqlite>::to_sql("SPOTIFY", out),
-            Self::DASH => ToSql::<Text, Sqlite>::to_sql("DASH", out),
-            Self::HLS => ToSql::<Text, Sqlite>::to_sql("HLS", out),
+            Self::Local => ToSql::<Text, Sqlite>::to_sql("LOCAL", out),
+            Self::Url => ToSql::<Text, Sqlite>::to_sql("URL", out),
+            Self::Spotify => ToSql::<Text, Sqlite>::to_sql("SPOTIFY", out),
+            Self::Dash => ToSql::<Text, Sqlite>::to_sql("DASH", out),
+            Self::Hls => ToSql::<Text, Sqlite>::to_sql("HLS", out),
         }
     }
 }
@@ -394,12 +390,12 @@ where
     #[tracing::instrument(level = "debug", skip(bytes))]
     fn from_sql(bytes: DB::RawValue<'_>) -> deserialize::Result<Self> {
         match String::from_sql(bytes)?.as_str() {
-            "LOCAL" => Ok(Self::LOCAL),
-            "URL" => Ok(Self::URL),
-            "SPOTIFY" => Ok(Self::SPOTIFY),
-            "DASH" => Ok(Self::DASH),
-            "HLS" => Ok(Self::HLS),
-            _ => Ok(Self::LOCAL),
+            "LOCAL" => Ok(Self::Local),
+            "URL" => Ok(Self::Url),
+            "SPOTIFY" => Ok(Self::Spotify),
+            "DASH" => Ok(Self::Dash),
+            "HLS" => Ok(Self::Hls),
+            _ => Ok(Self::Local),
         }
     }
 }
@@ -456,7 +452,8 @@ impl From<InnerSong> for QueryableSong {
     #[tracing::instrument(level = "debug", skip(value))]
     fn from(value: InnerSong) -> Self {
         Self {
-            _id: value._id,
+            type_: value.get_type_or_default().into(),
+            _id: value.id,
             path: value.path,
             size: value.size,
             inode: value.inode,
@@ -472,7 +469,6 @@ impl From<InnerSong> for QueryableSong {
             duration: value.duration,
             sample_rate: value.sample_rate,
             hash: value.hash,
-            type_: QueryableSongType::from(value.type_),
             url: value.url,
             song_cover_path_high: value.song_cover_path_high,
             playback_url: value.playback_url,
@@ -491,7 +487,7 @@ impl From<QueryableSong> for InnerSong {
     #[tracing::instrument(level = "debug", skip())]
     fn from(val: QueryableSong) -> Self {
         InnerSong {
-            _id: val._id,
+            id: val._id,
             path: val.path,
             size: val.size,
             inode: val.inode,
@@ -507,7 +503,7 @@ impl From<QueryableSong> for InnerSong {
             duration: val.duration,
             sample_rate: val.sample_rate,
             hash: val.hash,
-            type_: val.type_.into(),
+            r#type: val.type_.into(),
             url: val.url,
             song_cover_path_high: val.song_cover_path_high,
             playback_url: val.playback_url,
@@ -539,4 +535,59 @@ pub struct CacheModel {
     pub url: String,
     pub blob: Vec<u8>,
     pub expires: i64,
+}
+
+pub trait SearchByTerm {
+    fn search_by_term(term: Option<String>) -> Self;
+}
+
+impl SearchByTerm for InnerSong {
+    #[tracing::instrument(level = "debug", skip(term))]
+    fn search_by_term(term: Option<String>) -> Self {
+        let mut data = Self::default();
+        data.title.clone_from(&term);
+        data.path = term;
+
+        data
+    }
+}
+
+impl SearchByTerm for Album {
+    #[tracing::instrument(level = "debug", skip(term))]
+    fn search_by_term(term: Option<String>) -> Self {
+        Self {
+            album_name: term,
+            ..Default::default()
+        }
+    }
+}
+
+impl SearchByTerm for Artist {
+    #[tracing::instrument(level = "debug", skip(term))]
+    fn search_by_term(term: Option<String>) -> Self {
+        Self {
+            artist_name: term,
+            ..Default::default()
+        }
+    }
+}
+
+impl SearchByTerm for Genre {
+    #[tracing::instrument(level = "debug", skip(term))]
+    fn search_by_term(term: Option<String>) -> Self {
+        Self {
+            genre_name: term,
+            ..Default::default()
+        }
+    }
+}
+
+impl SearchByTerm for Playlist {
+    #[tracing::instrument(level = "debug", skip(term))]
+    fn search_by_term(term: Option<String>) -> Self {
+        Self {
+            playlist_name: term.unwrap_or_default(),
+            ..Default::default()
+        }
+    }
 }

@@ -717,20 +717,6 @@
           "name": "db"
         },
         {
-          "arg_type": "types::mpris::MprisPlayerDetails",
-          "name": "metadata"
-        }
-      ],
-      "name": "set_metadata",
-      "ret": "types::errors::Result<()>"
-    },
-    {
-      "args": [
-        {
-          "arg_type": "tauri::State<mpris::MprisHolder>",
-          "name": "db"
-        },
-        {
           "arg_type": "types::ui::player_details::PlayerState",
           "name": "state"
         }
@@ -2448,20 +2434,6 @@
         }
       ],
       "name": "mobile_seek",
-      "ret": "types::errors::Result<()>"
-    },
-    {
-      "args": [
-        {
-          "arg_type": "tauri::State<mpris::MprisHolder>",
-          "name": "db"
-        },
-        {
-          "arg_type": "types::mpris::MprisPlayerDetails",
-          "name": "metadata"
-        }
-      ],
-      "name": "set_metadata",
       "ret": "types::errors::Result<()>"
     },
     {

@@ -19,6 +19,7 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",
+        "//core/types/protos:songs_rs",
         "@crates//:env_logger",
         "@crates//:futures",
         "@crates//:futures-util",

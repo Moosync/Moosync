@@ -17,15 +17,14 @@
 use crate::macros::generate_command;
 use database::{cache::CacheHolder, database::Database};
 use serde_json::Value;
+use songs_proto::moosync::types::AllAnalytics;
+use songs_proto::moosync::types::{
+    Album, Artist, GetEntityOptions, GetSongOptions, InnerSong, Playlist, SearchResult, Song,
+};
 use std::fs;
 use tauri::{App, AppHandle, Manager, State};
 use tracing::{info, trace};
 use types::errors::{Result, error_helpers};
-use types::songs::AllAnalytics;
-use types::{
-    entities::{Album, Artist, GetEntityOptions, Playlist, SearchResult},
-    songs::{GetSongOptions, InnerSong, Song},
-};
 
 use crate::window::handler::WindowHandler;
 

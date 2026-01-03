@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use leptos::{IntoView, component, prelude::*, view};
+use leptos::{component, prelude::*, view, IntoView};
 use rand::seq::IndexedRandom;
+use songs_proto::moosync::types::GetSongOptions;
 use std::sync::Arc;
-use types::songs::GetSongOptions;
 use types::ui::song_details::SongDetailIcons;
 
 use crate::store::player_store::PlayerStore;

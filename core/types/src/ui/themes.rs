@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::themes::ThemeDetails;
+use themes_proto::moosync::types::ThemeDetails;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ThemeModalState {
     None,
     NewTheme(Box<ThemeDetails>),

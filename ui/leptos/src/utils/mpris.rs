@@ -16,30 +16,29 @@
 
 use std::sync::Mutex;
 
-use crate::utils::entities::get_artist_string;
 use lazy_static::lazy_static;
 use leptos::task::spawn_local;
-use types::{mpris::MprisPlayerDetails, songs::Song, ui::player_details::PlayerState};
+use types::ui::player_details::PlayerState;
 
-#[tracing::instrument(level = "debug", skip(song))]
-pub fn set_metadata(song: &Song) {
-    let metadata = MprisPlayerDetails {
-        title: song.song.title.clone(),
-        id: song.song._id.clone(),
-        artist_name: Some(get_artist_string(song.artists.clone())),
-        album_name: song.album.clone().map(|a| a.album_name.unwrap_or_default()),
-        album_artist: None,
-        genres: None,
-        duration: song.song.duration,
-        thumbnail: song.song.song_cover_path_high.clone(),
-    };
-    spawn_local(async move {
-        let res = crate::utils::invoke::set_metadata(metadata).await;
-        if let Err(err) = res {
-            tracing::error!("Failed to set mpris metadata {:?}", err);
-        }
-    })
-}
+// #[tracing::instrument(level = "debug", skip(song))]
+// pub fn set_metadata(song: &Song) {
+//     let metadata = MprisPlayerDetails {
+//         title: song.get_title(),
+//         id: song.get_id().clone(),
+//         artist_name: Some(get_artist_string(song.artists.clone())),
+//         album_name: song.album.clone().map(|a| a.album_name.unwrap_or_default()),
+//         album_artist: None,
+//         genres: None,
+//         duration: song.get_duration_or_default(),
+//         thumbnail: song.song.get_cover().clone(),
+//     };
+//     spawn_local(async move {
+//         let res = crate::utils::invoke::set_metadata(metadata).await;
+//         if let Err(err) = res {
+//             tracing::error!("Failed to set mpris metadata {:?}", err);
+//         }
+//     })
+// }
 
 #[tracing::instrument(level = "debug", skip(state))]
 pub fn set_playback_state(state: PlayerState) {

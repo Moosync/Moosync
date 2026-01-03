@@ -16,18 +16,17 @@
 
 use leptos::{IntoView, component, prelude::*, view};
 use leptos_router::{NavigateOptions, hooks::use_navigate};
-use types::entities::Artist;
+use songs_proto::moosync::types::Artist;
 
 use crate::store::ui_store::UiStore;
 
 #[tracing::instrument(level = "debug", skip())]
 #[component]
-pub fn ArtistList(#[prop()] artists: Option<Vec<Artist>>) -> impl IntoView {
+pub fn ArtistList(#[prop()] artists: Vec<Artist>) -> impl IntoView {
     let ui_store = expect_context::<RwSignal<UiStore>>();
     let is_mobile = create_read_slice(ui_store, |u| u.get_is_mobile()).get_untracked();
 
-    let artists_list = artists.unwrap_or_default();
-    artists_list
+    artists
         .iter()
         .enumerate()
         .map(|(pos, a)| {
@@ -53,7 +52,7 @@ pub fn ArtistList(#[prop()] artists: Option<Vec<Artist>>) -> impl IntoView {
                 >
                     <div class="text song-subtitle text-truncate" title=artist_name.clone()>
                         {artist_name.clone()}
-                        {if pos == artists_list.len() - 1 { "" } else { "," }}
+                        {if pos == artists.len() - 1 { "" } else { "," }}
                     </div>
                 </div>
             }

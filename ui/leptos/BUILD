@@ -160,6 +160,8 @@ rust_binary_with_export(
     deps = [
         ":build_script",
         "//core/types:types_ui",
+        "//core/types/protos:songs_rs",
+        "//core/types/protos:themes_rs",
         "@wasmCrates//:bitcode",
         "@wasmCrates//:chrono",
         "@wasmCrates//:colors-transform",

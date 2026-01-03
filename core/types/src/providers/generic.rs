@@ -15,13 +15,12 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use crate::{
-    entities::{Album, Artist, Playlist, SearchResult},
     errors::Result,
-    songs::Song,
     ui::extensions::{ContextMenuReturnType, ExtensionExtraEvent, ExtensionProviderScope},
 };
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
+use songs_proto::moosync::types::{Album, Artist, Playlist, SearchResult, Song};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Pagination {

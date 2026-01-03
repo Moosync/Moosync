@@ -84,6 +84,8 @@ rust_library(
         "//core/rodio_player",
         "//core/themes",
         "//core/types",
+        "//core/types/protos:songs_rs",
+        "//core/types/protos:themes_rs",
         "//lib/tauri-plugin-audioplayer",
         "//lib/tauri-plugin-file-scanner",
         "//lib/tauri-plugin-self-update",
@@ -177,6 +179,7 @@ cargo_build(
         "OPENSSL_LIB_DIR": "$ROOT/$(execpath //external/openssl:gen_dir)/lib",
         "OPENSSL_INCLUDE_DIR": "$ROOT/$(execpath //external/openssl:gen_dir)/include",
         "OPENSSL_STATIC": "1",
+        "APP_VERSION": VERSION,
     },
     out_name = "moosync_cargo.exe",
     rustflags = [

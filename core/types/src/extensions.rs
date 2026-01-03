@@ -23,13 +23,14 @@ use std::path::PathBuf;
 
 use crate::errors::Result as MoosyncResult;
 use crate::{
-    entities::{Album, Artist, Genre, GetEntityOptions, Playlist},
     preferences::PreferenceUIData,
-    songs::{GetSongOptions, Song},
     ui::{
         extensions::{AddToPlaylistRequest, ExtensionUIRequest, PreferenceData},
         player_details::PlayerState,
     },
+};
+use songs_proto::moosync::types::{
+    Album, Artist, Genre, GetEntityOptions, GetSongOptions, Playlist, Song,
 };
 
 #[derive(Debug, Deserialize, Clone)]
@@ -76,24 +77,30 @@ pub fn sanitize_genre(prefix: &str, genre: &mut Genre) {
     }
 }
 
-pub fn sanitize_song(prefix: &str, song: &mut Song) {
-    if let Some(id) = song.song._id.as_mut()
-        && !id.starts_with(prefix)
-    {
-        *id = format!("{}{}", prefix, id);
+pub fn sanitize_song(prefix: &str, song: &mut Song) -> MoosyncResult<()> {
+    if let Some(song) = song.song.as_mut() {
+        if let Some(id) = song.id.as_mut()
+            && !id.starts_with(prefix)
+        {
+            *id = format!("{}{}", prefix, id);
+        }
+    } else {
+        return Err("Song cannot be empty".into());
     }
 
     if let Some(album) = song.album.as_mut() {
         sanitize_album(prefix, album);
     }
 
-    if let Some(artists) = song.artists.as_mut() {
-        artists.iter_mut().for_each(|a| sanitize_artist(prefix, a));
-    }
+    song.artists
+        .iter_mut()
+        .for_each(|a| sanitize_artist(prefix, a));
 
-    if let Some(genre) = song.genre.as_mut() {
-        genre.iter_mut().for_each(|a| sanitize_genre(prefix, a));
-    }
+    song.genre
+        .iter_mut()
+        .for_each(|a| sanitize_genre(prefix, a));
+
+    Ok(())
 }
 
 pub fn sanitize_playlist(prefix: &str, playlist: &mut Playlist) {
@@ -160,7 +167,7 @@ pub enum MainCommandResponse {
 }
 
 impl MainCommand {
-    pub fn sanitize_command(&mut self, package_name: &str) {
+    pub fn sanitize_command(&mut self, package_name: &str) -> MoosyncResult<()> {
         match self {
             MainCommand::GetPreference(preference_data) => {
                 preference_data.key = format!("extensions.{}", preference_data.key);
@@ -179,16 +186,16 @@ impl MainCommand {
             MainCommand::AddSongs(songs) => {
                 let prefix = format!("{}:", package_name);
                 for song in songs {
-                    sanitize_song(&prefix, song);
+                    sanitize_song(&prefix, song)?;
                 }
             }
             MainCommand::RemoveSong(song) => {
                 let prefix = format!("{}:", package_name);
-                sanitize_song(&prefix, song);
+                sanitize_song(&prefix, song)?;
             }
             MainCommand::UpdateSong(song) => {
                 let prefix = format!("{}:", package_name);
-                sanitize_song(&prefix, song);
+                sanitize_song(&prefix, song)?;
             }
             MainCommand::AddPlaylist(queryable_playlist) => {
                 let prefix = format!("{}:", package_name);
@@ -197,7 +204,7 @@ impl MainCommand {
             MainCommand::AddToPlaylist(add_to_playlist_request) => {
                 let prefix = format!("{}:", package_name);
                 for song in add_to_playlist_request.songs.iter_mut() {
-                    sanitize_song(&prefix, song);
+                    sanitize_song(&prefix, song)?;
                 }
             }
             MainCommand::RegisterOAuth(_) => todo!(),
@@ -207,6 +214,8 @@ impl MainCommand {
             }
             _ => {}
         }
+
+        Ok(())
     }
 
     pub fn to_ui_request(&mut self) -> MoosyncResult<ExtensionUIRequest> {

@@ -33,10 +33,10 @@ use leptos::{IntoView, component, prelude::*, view};
 use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
 use rand::seq::IndexedRandom;
+use songs_proto::moosync::types::{GetSongOptions, Song};
 use std::collections::HashMap;
 use std::sync::Arc;
-use types::entities::Playlist;
-use types::songs::{GetSongOptions, Song};
+use songs_proto::moosync::types::Playlist;
 use types::ui::song_details::{DefaultDetails, SongDetailIcons};
 
 use crate::store::provider_store::ProviderStore;

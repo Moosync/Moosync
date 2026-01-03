@@ -18,6 +18,7 @@ rust_library(
     deps = [
         ":build_script",
         "//core/types",
+        "//core/types/protos:songs_rs",
         "//external/ffmpeg",
         "@crates//:rodio",
         "@crates//:rsmpeg",

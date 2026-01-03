@@ -16,7 +16,8 @@
 
 use leptos::prelude::*;
 use leptos_context_menu::ContextMenuItemInner;
-use types::songs::Song;
+use songs_proto::moosync::types::Song;
+use types::prelude::SongsExt;
 
 use crate::{
     store::ui_store::{SongSortBy, SongSortByColumns, UiStore},
@@ -124,18 +125,16 @@ where
 pub async fn fetch_lyrics(song: &Option<Song>) -> Option<String> {
     tracing::debug!("Fetching lyrics");
     if let Some(song) = song {
-        let lyrics = song.song.lyrics.clone();
+        let lyrics = song.get_lyrics();
         if lyrics.is_none() {
             let res = get_lyrics(
-                song.song._id.clone().unwrap_or_default(),
-                song.song.playback_url.clone().unwrap_or_default(),
+                song.get_id().clone().unwrap_or_default(),
+                song.get_playback_url().unwrap_or_default(),
                 song.artists
-                    .clone()
-                    .unwrap_or_default()
                     .iter()
                     .map(|a| a.artist_name.clone().unwrap_or_default())
                     .collect::<Vec<String>>(),
-                song.song.title.clone().unwrap_or_default(),
+                song.get_title().unwrap_or_default(),
             )
             .await;
             if let Ok(lyrics) = res {

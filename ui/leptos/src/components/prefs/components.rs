@@ -19,9 +19,9 @@ use std::{collections::HashMap, sync::Arc};
 use leptos::{IntoView, component, prelude::*, reactive::wrappers::write::SignalSetter, view};
 use leptos_i18n::t;
 use leptos_use::use_debounce_fn_with_arg;
+use themes_proto::moosync::types::ThemeDetails;
 use types::{
     preferences::{CheckboxItems, CheckboxPreference, InputType},
-    themes::ThemeDetails,
     ui::{extensions::ExtensionDetail, themes::ThemeModalState},
     window::DialogFilter,
 };
@@ -611,7 +611,7 @@ where
             <div class="row no-gutters path-prefs-background w-100 mt-2 d-flex">
                 <For
                     each=move || extensions.get()
-                    key=|e| e.clone()
+                    key=|e| e.package_name.clone()
                     children=move |extension: ExtensionDetail| {
                         view! {
                             <div class="row no-gutters mt-3 item w-100">

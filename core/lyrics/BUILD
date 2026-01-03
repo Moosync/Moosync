@@ -11,6 +11,7 @@ rust_library(
     deps = [
         "//core/librespot",
         "//core/types",
+        "//core/types/protos:songs_rs",
         "@crates//:regex",
         "@crates//:reqwest",
         "@crates//:serde_json",

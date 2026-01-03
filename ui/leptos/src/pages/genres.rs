@@ -25,8 +25,8 @@ use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
 use rand::seq::IndexedRandom;
 use std::sync::Arc;
-use types::entities::Genre;
-use types::songs::{GetSongOptions, Song};
+use songs_proto::moosync::types::Genre;
+use songs_proto::moosync::types::{GetSongOptions, Song};
 use types::ui::song_details::SongDetailIcons;
 
 #[tracing::instrument(level = "debug", skip())]

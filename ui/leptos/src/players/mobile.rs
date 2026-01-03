@@ -19,7 +19,9 @@ use leptos::{html::Div, prelude::*, task::spawn_local};
 use crate::utils::error::Result;
 use serde::Deserialize;
 use tokio::sync::oneshot::Sender as OneShotSender;
-use types::{songs::SongType, ui::player_details::PlayerEvents};
+use songs_proto::moosync::types::{Song, SongType};
+use types::prelude::SongsExt;
+use types::{ui::player_details::PlayerEvents};
 use wasm_bindgen::JsValue;
 
 use crate::utils::{
@@ -156,7 +158,7 @@ impl GenericPlayer for MobilePlayer {
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn provides(&self) -> &[SongType] {
-        &[SongType::LOCAL, SongType::URL, SongType::SPOTIFY]
+        &[SongType::Local, SongType::Url, SongType::Spotify]
     }
 
     #[tracing::instrument(level = "debug", skip(self, _volume))]
@@ -191,8 +193,8 @@ impl GenericPlayer for MobilePlayer {
     }
 
     #[tracing::instrument(level = "debug", skip(self, song))]
-    fn can_play(&self, song: &types::songs::Song) -> bool {
-        let playback_url = song.song.path.clone().or(song.song.playback_url.clone());
+    fn can_play(&self, song: &Song) -> bool {
+        let playback_url = song.get_path().or(song.get_playback_url());
         tracing::debug!("Checking playback url {:?}", playback_url);
         if let Some(playback_url) = playback_url {
             if self.key == "LOCAL" {

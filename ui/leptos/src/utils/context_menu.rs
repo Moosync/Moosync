@@ -25,11 +25,8 @@ use leptos_router::{
     NavigateOptions,
     hooks::{use_navigate, use_query_map},
 };
-use types::{
-    entities::{Artist, Playlist},
-    songs::Song,
-    ui::extensions::ExtensionProviderScope,
-};
+use songs_proto::moosync::types::{Artist, Playlist, Song};
+use types::ui::extensions::ExtensionProviderScope;
 
 use crate::{
     i18n::use_i18n,
@@ -179,7 +176,7 @@ where
             let selected_songs = self
                 .current_or_list()
                 .into_iter()
-                .filter_map(|s| s.song._id)
+                .filter_map(|s| s.song.and_then(|s| s.id))
                 .collect();
             let refresh_cb = self.refresh_cb.clone();
             spawn_local(async move {
@@ -204,10 +201,8 @@ where
         let i18n = use_i18n();
 
         let mut artist_items = vec![];
-        if let Some(song) = &self.current_song
-            && let Some(artists) = &song.artists
-        {
-            for artist in artists.clone() {
+        if let Some(song) = &self.current_song {
+            for artist in song.artists.clone() {
                 let artist_name = artist.artist_name.clone().unwrap_or_default();
                 artist_items.push(ContextMenuItemInner::<Self>::new_with_handler(
                     artist_name,
@@ -237,7 +232,7 @@ where
         let library_menu_item = if self
             .current_song
             .as_ref()
-            .map(|s| s.song.library_item.unwrap_or_default())
+            .map(|s| s.song.clone().unwrap_or_default().library_item.unwrap_or_default())
             .unwrap_or_default()
         {
             ContextMenuItemInner::<Self>::new_with_handler(

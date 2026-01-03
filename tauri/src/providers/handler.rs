@@ -23,13 +23,12 @@ use std::{collections::HashMap, sync::Arc};
 
 use crate::macros::{generate_command_async, generate_command_async_cached};
 use database::cache::CacheHolder;
+use songs_proto::moosync::types::{Album, Artist, Playlist, SearchResult, Song};
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::{Mutex, RwLock};
 use types::{
-    entities::{Album, Artist, Playlist, SearchResult},
     errors::{MoosyncError, Result, error_helpers},
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
-    songs::Song,
     ui::extensions::{ContextMenuReturnType, ExtensionExtraEvent},
 };
 

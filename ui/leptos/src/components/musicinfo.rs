@@ -20,8 +20,8 @@ use leptos::task::spawn_local;
 use leptos::{IntoView, component, prelude::*, view};
 use leptos_use::use_event_listener;
 use leptos_virtual_scroller::VirtualScroller;
+use songs_proto::moosync::types::{Song, SongType};
 use std::sync::Arc;
-use types::songs::{Song, SongType};
 use types::ui::extensions::ExtensionProviderScope;
 use types::ui::player_details::PlayerState;
 use types::ui::song_details::SongDetailIcons;
@@ -48,6 +48,7 @@ use crate::{
     store::player_store::PlayerStore,
     utils::common::get_low_img,
 };
+use types::prelude::SongsExt;
 
 #[tracing::instrument(
     level = "trace",
@@ -75,6 +76,7 @@ where
     D: Get<Value = bool> + 'static + Send + Sync,
     P: Set<Value = usize> + 'static + Send + Sync,
 {
+    let extension = song.get_extension();
     view! {
         <div class="container-fluid item-container" class:pl-2=is_mobile class:pr-0=is_mobile>
             <div class="row item-row no-gutters">
@@ -87,11 +89,10 @@ where
                 <div class="col-lg-7 col-xl-8" class:col-5=!is_mobile class:col-7=is_mobile>
                     <div class="d-flex">
                         <div class="text-left song-title text-truncate">
-                            {song.song.title.clone()}
+                            {song.get_title()}
                         </div>
                         {move || {
-                            let extension = song.song.provider_extension.clone();
-                            if let Some(extension) = extension {
+                            if let Some(extension) = extension.clone() {
                                 view! { <ProviderIcon extension=extension /> }.into_any()
                             } else {
                                 ().into_any()
@@ -152,7 +153,7 @@ pub fn MusicInfoMobile(
 
     let song_title = Memo::new(move |_| {
         if let Some(current_song) = current_song.get() {
-            return current_song.song.title;
+            return current_song.get_title();
         }
         None
     });
@@ -169,9 +170,8 @@ pub fn MusicInfoMobile(
     });
     let total_time = Memo::new(move |_| {
         if let Some(current_song) = current_song.get()
-            && let Some(duration) = current_song.song.duration
         {
-            return format_duration(duration, false);
+            return format_duration(current_song.get_duration_or_default(), false);
         }
         "00:00".to_string()
     });
@@ -181,12 +181,12 @@ pub fn MusicInfoMobile(
         let current_song = current_song.get();
         canvaz_sig.set(None);
         if let Some(current_song) = current_song
-            && current_song.song.type_ == SongType::SPOTIFY
-            && current_song.song.playback_url.is_some()
+            && current_song.get_type_or_default() == SongType::Spotify
+            && current_song.get_playback_url().is_some()
         {
             spawn_local(async move {
                 let res = crate::utils::invoke::get_canvaz(
-                    current_song.song.playback_url.unwrap().clone(),
+                    current_song.get_playback_url().unwrap().clone(),
                     false,
                 )
                 .await;
@@ -365,7 +365,7 @@ pub fn MusicInfoMobile(
 
                                                 <VirtualScroller
                                                     each=queue_songs
-                                                    key=|(_, s)| s.song._id.clone()
+                                                    key=|(_, s)| s.get_id()
                                                     item_height=95usize
                                                     inner_el_style="width: calc(100% - 15px);"
                                                     node_ref=scroller_ref
@@ -461,12 +461,12 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
         let current_song = current_song.get();
         canvaz_sig.set(None);
         if let Some(current_song) = current_song
-            && current_song.song.type_ == SongType::SPOTIFY
-            && current_song.song.playback_url.is_some()
+            && current_song.get_type_or_default() == SongType::Spotify
+            && current_song.get_playback_url().is_some()
         {
             spawn_local(async move {
                 let res = crate::utils::invoke::get_canvaz(
-                    current_song.song.playback_url.unwrap().clone(),
+                    current_song.get_playback_url().unwrap().clone(),
                     false,
                 )
                 .await;
@@ -578,7 +578,7 @@ pub fn MusicInfo(#[prop()] show: Signal<bool>, #[prop()] node_ref: NodeRef<Div>)
 
                                             <VirtualScroller
                                                 each=queue_songs
-                                                key=|(i, s)| format!("{:?}-{}", s.song._id, i)
+                                                key=|(i, s)| format!("{:?}-{}", s.get_id(), i)
                                                 item_height=95usize
                                                 inner_el_style="width: calc(100% - 15px);"
                                                 node_ref=scroller_ref

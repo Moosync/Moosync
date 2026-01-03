@@ -16,12 +16,10 @@
 
 use std::{fs, sync::mpsc::channel};
 
-use types::{
-    errors::Result,
-    themes::{ThemeDetails, ThemeItem},
-};
+use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
+use types::errors::Result;
 
-use crate::themes::{ThemeHolder, transform_css};
+use crate::themes::{transform_css, ThemeHolder};
 
 #[test]
 fn test_transformcss() -> Result<()> {
@@ -199,7 +197,7 @@ fn test_theme_export_import_cycle() -> Result<()> {
         id: theme_id.to_string(),
         name: "Export Test Theme".to_string(),
         author: Some("Export Author".to_string()),
-        theme: ThemeItem {
+        theme: Some(ThemeItem {
             primary: "#aabbcc".to_string(),
             secondary: "#ddeeff".to_string(),
             tertiary: "#112233".to_string(),
@@ -209,7 +207,7 @@ fn test_theme_export_import_cycle() -> Result<()> {
             accent: "#ddeeff".to_string(),
             divider: "#112233".to_string(),
             custom_css: None, // No CSS for simplicity
-        },
+        }),
     };
 
     // Save the theme
@@ -269,7 +267,7 @@ fn test_get_css_functionality() -> Result<()> {
         id: "css_test_theme".to_string(),
         name: "CSS Test Theme".to_string(),
         author: Some("CSS Author".to_string()),
-        theme: ThemeItem {
+        theme: Some(ThemeItem {
             primary: "#123456".to_string(),
             secondary: "#234567".to_string(),
             tertiary: "#345678".to_string(),
@@ -279,7 +277,7 @@ fn test_get_css_functionality() -> Result<()> {
             accent: "#789abc".to_string(),
             divider: "#89abcd".to_string(),
             custom_css: Some("style.css".to_string()),
-        },
+        }),
     };
 
     // Save the theme

@@ -258,6 +258,23 @@ wasm_crates.spec(
     package = "leptos_i18n_build",
     version = "0.6.0-rc.1",
 )
+wasm_crates.spec(
+    package = "prost",
+    version = "0.12",
+)
+wasm_crates.spec(
+    default_features = False,
+    package = "prost-types",
+    version = "0.12",
+)
+wasm_crates.spec(
+    package = "protoc-gen-prost",
+    version = "0.3.1",
+)
+wasm_crates.annotation(
+    crate = "protoc-gen-prost",
+    gen_binaries = ["protoc-gen-prost"],
+)
 wasm_crates.from_specs(
     name = "wasmCrates",
     host_tools = "@rust_host_tools_nightly",

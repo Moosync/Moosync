@@ -17,7 +17,100 @@
 use std::{fs, path::PathBuf};
 
 use quote::quote;
-use types::preferences::{InputType, PreferenceTypes, PreferenceUIData, PreferenceUIFile};
+
+use std::hash::Hasher;
+
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+#[derive(Debug, Serialize, Clone, Deserialize)]
+pub struct CheckboxPreference {
+    pub key: String,
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PathsValue {
+    pub enabled: bool,
+    pub path: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Default)]
+#[serde(rename_all = "PascalCase")]
+pub enum PreferenceTypes {
+    DirectoryGroup,
+    #[default]
+    EditText,
+    FilePicker,
+    CheckboxGroup,
+    ThemeSelector,
+    Extensions,
+    ButtonGroup,
+    ProgressBar,
+    TextField,
+    InfoField,
+    Dropdown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PreferenceUIFile {
+    pub page: Vec<Page>,
+}
+
+#[derive(Debug, Serialize, Clone, Deserialize)]
+pub struct Page {
+    pub data: Vec<PreferenceUIData>,
+    pub title: String,
+    pub path: String,
+    pub icon: String,
+}
+
+#[derive(Debug, Serialize, Clone, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum InputType {
+    #[default]
+    Text,
+    Number,
+    #[serde(rename = "password")]
+    SecureText,
+}
+
+#[derive(Debug, Serialize, Clone, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct PreferenceUIData {
+    #[serde(rename = "type")]
+    pub _type: PreferenceTypes,
+    pub title: String,
+    pub key: String,
+    pub description: String,
+    pub input_type: Option<InputType>,
+    pub single: Option<bool>,
+    pub items: Option<Vec<CheckboxItems>>,
+    pub default: Option<Value>,
+    pub mobile: Option<bool>,
+}
+
+impl PartialEq for PreferenceUIData {
+    #[tracing::instrument(level = "debug", skip(self, other))]
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key
+    }
+}
+
+impl std::cmp::Eq for PreferenceUIData {}
+
+impl std::hash::Hash for PreferenceUIData {
+    #[tracing::instrument(level = "debug", skip(self, state))]
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.key.hash(state)
+    }
+}
+
+#[derive(Debug, Serialize, Clone, Deserialize, PartialEq, Eq, Hash)]
+pub struct CheckboxItems {
+    pub title: String,
+    pub key: String,
+}
 
 #[tracing::instrument(level = "debug", skip(path_lit))]
 fn get_path(path_lit: String) -> proc_macro2::TokenStream {
@@ -172,17 +265,16 @@ fn generate_children(data: &[PreferenceUIData]) -> Vec<(syn::Ident, proc_macro2:
 
     for item in data {
         let stream = match item._type {
-            types::preferences::PreferenceTypes::DirectoryGroup => generate_paths(item),
-            types::preferences::PreferenceTypes::EditText
-            | types::preferences::PreferenceTypes::FilePicker => generate_input(item),
-            types::preferences::PreferenceTypes::CheckboxGroup => generate_checkbox(item),
-            types::preferences::PreferenceTypes::ThemeSelector => generate_themes(item),
-            types::preferences::PreferenceTypes::Extensions => generate_extensions(item),
-            types::preferences::PreferenceTypes::Dropdown => generate_dropdowns(item),
-            types::preferences::PreferenceTypes::ButtonGroup
-            | types::preferences::PreferenceTypes::InfoField
-            | types::preferences::PreferenceTypes::ProgressBar
-            | types::preferences::PreferenceTypes::TextField => continue,
+            PreferenceTypes::DirectoryGroup => generate_paths(item),
+            PreferenceTypes::EditText | PreferenceTypes::FilePicker => generate_input(item),
+            PreferenceTypes::CheckboxGroup => generate_checkbox(item),
+            PreferenceTypes::ThemeSelector => generate_themes(item),
+            PreferenceTypes::Extensions => generate_extensions(item),
+            PreferenceTypes::Dropdown => generate_dropdowns(item),
+            PreferenceTypes::ButtonGroup
+            | PreferenceTypes::InfoField
+            | PreferenceTypes::ProgressBar
+            | PreferenceTypes::TextField => continue,
         };
         ret.push(stream);
     }

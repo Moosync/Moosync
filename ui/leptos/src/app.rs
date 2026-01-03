@@ -215,7 +215,8 @@ fn handle_theme(id: String) {
 
     spawn_local(async move {
         let theme = load_theme(id).await.unwrap();
-
+        let theme_id = theme.id.clone();
+        let theme_inner = theme.theme.unwrap_or_default();
         let document_element = document()
             .document_element()
             .unwrap()
@@ -226,31 +227,31 @@ fn handle_theme(id: String) {
         style.set_css_text("");
 
         style
-            .set_property("--primary", &theme.theme.primary)
+            .set_property("--primary", &theme_inner.primary)
             .unwrap();
         style
-            .set_property("--secondary", &theme.theme.secondary)
+            .set_property("--secondary", &theme_inner.secondary)
             .unwrap();
         style
-            .set_property("--tertiary", &theme.theme.tertiary)
+            .set_property("--tertiary", &theme_inner.tertiary)
             .unwrap();
         style
-            .set_property("--textPrimary", &theme.theme.text_primary)
+            .set_property("--textPrimary", &theme_inner.text_primary)
             .unwrap();
         style
-            .set_property("--textSecondary", &theme.theme.text_secondary)
+            .set_property("--textSecondary", &theme_inner.text_secondary)
             .unwrap();
         style
-            .set_property("--textInverse", &theme.theme.text_inverse)
+            .set_property("--textInverse", &theme_inner.text_inverse)
             .unwrap();
-        style.set_property("--accent", &theme.theme.accent).unwrap();
+        style.set_property("--accent", &theme_inner.accent).unwrap();
         style
-            .set_property("--divider", &theme.theme.divider)
+            .set_property("--divider", &theme_inner.divider)
             .unwrap();
 
-        if theme.theme.custom_css.is_some() {
+        if theme_inner.custom_css.is_some() {
             spawn_local(async move {
-                if let Ok(custom_css) = get_css(theme.id).await {
+                if let Ok(custom_css) = get_css(theme_id).await {
                     update_css(custom_css);
                 }
             });

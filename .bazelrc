@@ -17,3 +17,4 @@ build:macos --@rules_rust//rust/settings:lto=fat
 coverage --experimental_fetch_all_coverage_outputs
 build --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
 build --output_groups=+clippy_checks
+build --@rules_rust//rust/settings:rustc_output_diagnostics=true --output_groups=+rust_lib_rustc_output,+rust_metadata_rustc_output

@@ -19,7 +19,9 @@ use std::{collections::HashMap, fs, sync::mpsc::channel};
 use crate::macros::{generate_command, generate_command_async};
 use tauri::{App, AppHandle, Emitter, Manager, State};
 use themes::themes::ThemeHolder;
-use types::{errors::Result, themes::ThemeDetails};
+use types::{errors::Result};
+use themes_proto::moosync::types::{ThemeDetails};
+
 
 use crate::window::handler::WindowHandler;
 

@@ -22,8 +22,9 @@ use std::{path::PathBuf, vec};
 
 use crate::macros::{filter_field, filter_field_like};
 use crate::models::{
-    AlbumBridge, ArtistBridge, GenreBridge, PlaylistBridge, QueryableAlbum, QueryableAnalytics,
-    QueryableArtist, QueryableGenre, QueryablePlaylist, QueryableSong, QueryableSongType,
+    AlbumBridge, ArtistBridge, BridgeUtils, GenreBridge, PlaylistBridge, QueryableAlbum,
+    QueryableAnalytics, QueryableArtist, QueryableGenre, QueryablePlaylist, QueryableSong,
+    QueryableSongType, SearchByTerm,
 };
 use diesel::{BoolExpressionMethods, Insertable, TextExpressionMethods};
 use diesel::{
@@ -51,14 +52,14 @@ use crate::schema::{
     genres::{dsl::genres, genre_id},
     playlist_bridge::dsl::playlist_bridge,
 };
-use types::common::{BridgeUtils, SearchByTerm};
-use types::entities::{EntityInfo, SearchResult};
-use types::errors::{Result, error_helpers};
-use types::songs::{AllAnalytics, SearchableSong};
-use types::{
-    entities::{Album, Artist, Genre, GetEntityOptions, Playlist},
-    songs::{GetSongOptions, InnerSong, Song},
+use songs_proto::moosync::types::SearchResult;
+use songs_proto::moosync::types::{Album, Artist, Genre, GetEntityOptions, Playlist};
+use songs_proto::moosync::types::{AllAnalytics, SearchableSong};
+use songs_proto::moosync::types::{
+    GetSongOptions, InnerSong, Song, SongType, all_analytics::SongListenTime,
 };
+use types::errors::{Result, error_helpers};
+use types::prelude::SongsExt;
 
 use super::migrations::run_migrations;
 
@@ -223,45 +224,45 @@ impl Database {
         let mut conn = self.pool.get().unwrap();
         trace!("Inserting songs");
         for song in songs {
-            if song.song._id.is_none() {
-                song.song._id = Some(Uuid::new_v4().to_string());
-            }
+            if let Some(inner_song) = song.song.as_mut() {
+                if inner_song.id.is_none() {
+                    inner_song.id = Some(Uuid::new_v4().to_string());
+                }
 
-            let parsed_song = QueryableSong::from(song.song.clone());
-            let changed = insert_into(allsongs)
-                .values(&parsed_song)
-                .on_conflict(song_path)
-                .do_update()
-                .set(&parsed_song)
-                .execute(&mut conn)
-                .map_err(error_helpers::to_database_error)?;
-
-            if changed == 0 {
-                continue;
-            }
-
-            if let Some(_album) = &mut song.album {
-                let album_id_ = self
-                    .get_albums(
-                        Album::search_by_term(_album.album_name.clone()),
-                        false,
-                        &mut conn,
-                    )?
-                    .first()
-                    .map(|v| v.album_id.clone().unwrap())
-                    .unwrap_or_else(|| self.insert_album(&mut conn, _album.clone()).unwrap());
-
-                AlbumBridge::insert_value(album_id_.clone(), song.song._id.clone().unwrap())
-                    .insert_into(album_bridge)
-                    .on_conflict_do_nothing()
+                let parsed_song = QueryableSong::from(inner_song.clone());
+                let changed = insert_into(allsongs)
+                    .values(&parsed_song)
+                    .on_conflict(song_path)
+                    .do_update()
+                    .set(&parsed_song)
                     .execute(&mut conn)
                     .map_err(error_helpers::to_database_error)?;
 
-                _album.album_id = Some(album_id_);
-            }
+                if changed == 0 {
+                    continue;
+                }
 
-            if let Some(_artists) = &mut song.artists {
-                for mut _artist in _artists {
+                if let Some(_album) = &mut song.album {
+                    let album_id_ = self
+                        .get_albums(
+                            Album::search_by_term(_album.album_name.clone()),
+                            false,
+                            &mut conn,
+                        )?
+                        .first()
+                        .map(|v| v.album_id.clone().unwrap())
+                        .unwrap_or_else(|| self.insert_album(&mut conn, _album.clone()).unwrap());
+
+                    AlbumBridge::insert_value(album_id_.clone(), inner_song.id.clone().unwrap())
+                        .insert_into(album_bridge)
+                        .on_conflict_do_nothing()
+                        .execute(&mut conn)
+                        .map_err(error_helpers::to_database_error)?;
+
+                    _album.album_id = Some(album_id_);
+                }
+
+                for mut _artist in song.artists.iter_mut() {
                     let artist_id_ = self
                         .get_artists(
                             Artist::search_by_term(_artist.artist_name.clone()),
@@ -272,7 +273,7 @@ impl Database {
                         .map(|v| v.artist_id.clone().unwrap())
                         .unwrap_or_else(|| self.insert_artist(&mut conn, _artist.clone()).unwrap());
 
-                    ArtistBridge::insert_value(artist_id_.clone(), song.song._id.clone().unwrap())
+                    ArtistBridge::insert_value(artist_id_.clone(), inner_song.id.clone().unwrap())
                         .insert_into(artist_bridge)
                         .on_conflict_do_nothing()
                         .execute(&mut conn)
@@ -280,10 +281,8 @@ impl Database {
 
                     _artist.artist_id = Some(artist_id_);
                 }
-            }
 
-            if let Some(_genres) = &mut song.genre {
-                for mut _genre in _genres {
+                for mut _genre in song.genre.iter_mut() {
                     let genre_id_ = self
                         .get_genres(
                             Genre::search_by_term(_genre.genre_name.clone()),
@@ -294,7 +293,7 @@ impl Database {
                         .map(|v| v.genre_id.clone().unwrap())
                         .unwrap_or_else(|| self.insert_genre(&mut conn, _genre.clone()).unwrap());
 
-                    GenreBridge::insert_value(genre_id_.clone(), song.song._id.clone().unwrap())
+                    GenreBridge::insert_value(genre_id_.clone(), inner_song.id.clone().unwrap())
                         .insert_into(genre_bridge)
                         .on_conflict_do_nothing()
                         .execute(&mut conn)
@@ -302,9 +301,9 @@ impl Database {
 
                     _genre.genre_id = Some(genre_id_);
                 }
-            }
 
-            trace!("Inserted song, {:?}", song);
+                trace!("Inserted song, {:?}", song);
+            }
         }
         info!("Inserted all songs");
         Ok(())
@@ -363,7 +362,7 @@ impl Database {
     #[tracing::instrument(level = "debug", skip(self, song))]
     pub fn update_song(&self, song: InnerSong) -> Result<()> {
         trace!("Updating song");
-        if let Some(id) = song._id.as_ref() {
+        if let Some(id) = song.id.as_ref() {
             update(allsongs.filter(schema::allsongs::_id.eq(id.clone())))
                 .set(QueryableSong::from(song))
                 .execute(&mut self.pool.get().unwrap())
@@ -707,7 +706,7 @@ impl Database {
         let mut genre: Vec<QueryableGenre> = vec![];
 
         let album_data =
-            QueryDsl::filter(album_bridge, schema::album_bridge::song.eq(s._id.clone()))
+            QueryDsl::filter(album_bridge, schema::album_bridge::song.eq(s.id.clone()))
                 .first::<AlbumBridge>(conn);
 
         if let Ok(album_data) = album_data {
@@ -719,7 +718,7 @@ impl Database {
         }
 
         let artist_data =
-            QueryDsl::filter(artist_bridge, schema::artist_bridge::song.eq(s._id.clone()))
+            QueryDsl::filter(artist_bridge, schema::artist_bridge::song.eq(s.id.clone()))
                 .first::<ArtistBridge>(conn);
 
         if let Ok(artist_data) = artist_data {
@@ -729,7 +728,7 @@ impl Database {
         }
 
         let genre_data =
-            QueryDsl::filter(genre_bridge, schema::genre_bridge::song.eq(s._id.clone()))
+            QueryDsl::filter(genre_bridge, schema::genre_bridge::song.eq(s.id.clone()))
                 .first::<GenreBridge>(conn);
 
         if let Ok(genre_data) = genre_data {
@@ -739,10 +738,10 @@ impl Database {
         }
 
         Ok(Song {
-            song: s,
+            song: Some(s),
             album: album.map(|v| v.into()),
-            artists: Some(artist.into_iter().map(|v| v.into()).collect()),
-            genre: Some(genre.into_iter().map(|v| v.into()).collect()),
+            artists: artist.into_iter().map(|v| v.into()).collect(),
+            genre: genre.into_iter().map(|v| v.into()).collect(),
         })
     }
 
@@ -757,7 +756,7 @@ impl Database {
 
         if let Some(song) = options.song {
             let mut predicate = schema::allsongs::table.into_boxed();
-            predicate = filter_field!(predicate, &song._id, schema::allsongs::_id, inclusive);
+            predicate = filter_field!(predicate, &song.id, schema::allsongs::_id, inclusive);
             predicate =
                 filter_field_like!(predicate, &song.path, schema::allsongs::path, inclusive);
             predicate =
@@ -771,7 +770,8 @@ impl Database {
             predicate = filter_field!(predicate, &song.hash, schema::allsongs::hash, inclusive);
             predicate = filter_field!(
                 predicate,
-                song.type_.map(QueryableSongType::from),
+                song.r#type
+                    .map(|t| QueryableSongType::from(SongType::try_from(t).unwrap_or_default())),
                 schema::allsongs::type_,
                 inclusive
             );
@@ -822,12 +822,12 @@ impl Database {
         let term = format!("%{}%", term);
         let songs = self.get_songs_by_options(GetSongOptions {
             song: Some(SearchableSong {
-                _id: None,
+                id: None,
                 path: Some(term.clone()),
                 title: Some(term.clone()),
                 sample_rate: None,
                 hash: None,
-                type_: None,
+                r#type: None,
                 url: None,
                 playback_url: None,
                 provider_extension: None,
@@ -850,7 +850,6 @@ impl Database {
                 album_song_count: 0f64,
                 year: None,
                 album_coverpath_low: None,
-                album_extra_info: None,
             },
             false,
             &mut conn,
@@ -863,7 +862,6 @@ impl Database {
                 artist_name: Some(term.clone()),
                 artist_coverpath: None,
                 artist_song_count: 0f64,
-                artist_extra_info: None,
                 sanitized_artist_name: None,
             },
             false,
@@ -951,9 +949,9 @@ impl Database {
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn add_to_playlist(&self, id: String, mut songs: Vec<Song>) -> Result<()> {
         trace!("Adding to playlist");
-        songs.iter_mut().for_each(|v| {
-            v.song.show_in_library = Some(false);
-        });
+        // songs.iter_mut().for_each(|v| {
+        //     v.song.show_in_library = Some(false);
+        // });
         let res = self.insert_songs_by_ref(songs.as_mut_slice());
         if let Err(e) = res {
             // Lets hope it only fails due to unique value constrains
@@ -965,10 +963,14 @@ impl Database {
 
         let mut conn = self.pool.get().unwrap();
         for s in songs {
+            if s.song.is_none() {
+                continue;
+            }
+
             if let Err(e) = insert_into(playlist_bridge)
                 .values((
                     schema::playlist_bridge::playlist.eq(id.clone()),
-                    schema::playlist_bridge::song.eq(s.song._id.clone()),
+                    schema::playlist_bridge::song.eq(s.get_id().unwrap_or_default()),
                 ))
                 .execute(&mut conn)
             {
@@ -1011,50 +1013,10 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self, old_info, new_info))]
-    fn merge_extra_info(
-        &self,
-        old_info: Option<EntityInfo>,
-        new_info: Option<EntityInfo>,
-    ) -> Option<EntityInfo> {
-        if old_info.is_none() && new_info.is_none() {
-            return None;
-        }
-
-        if old_info.is_none() {
-            return new_info;
-        }
-
-        if new_info.is_none() {
-            return old_info;
-        }
-
-        let mut res = old_info.clone().unwrap();
-        let mut a: Value = serde_json::from_str(res.0.as_str()).unwrap();
-        let b: Value = serde_json::from_str(new_info.unwrap().0.as_str()).unwrap();
-        merge(&mut a, b);
-        res.0 = serde_json::to_string(&a).unwrap();
-        Some(res)
-    }
-
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn update_album(&self, mut album: Album) -> Result<()> {
+    pub fn update_album(&self, album: Album) -> Result<()> {
         trace!("Updating album");
         let mut conn = self.pool.get().unwrap();
-
-        let existing_album_info = self
-            .get_albums(
-                Album {
-                    album_id: album.album_id.clone(),
-                    ..Default::default()
-                },
-                false,
-                &mut conn,
-            )?
-            .first()
-            .and_then(|a| a.album_extra_info.clone());
-
-        album.album_extra_info = self.merge_extra_info(existing_album_info, album.album_extra_info);
 
         update(albums)
             .filter(schema::albums::album_id.eq(album.album_id.clone()))
@@ -1067,24 +1029,9 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn update_artist(&self, mut artist: Artist) -> Result<()> {
+    pub fn update_artist(&self, artist: Artist) -> Result<()> {
         trace!("Updating artist");
         let mut conn = self.pool.get().unwrap();
-
-        let existing_artist_info = self
-            .get_artists(
-                Artist {
-                    artist_id: artist.artist_id.clone(),
-                    ..Default::default()
-                },
-                false,
-                &mut conn,
-            )?
-            .first()
-            .and_then(|a| a.artist_extra_info.clone());
-
-        artist.artist_extra_info =
-            self.merge_extra_info(existing_artist_info, artist.artist_extra_info);
 
         update(artists)
             .filter(schema::artists::artist_id.eq(artist.artist_id.clone()))
@@ -1114,20 +1061,21 @@ impl Database {
         let mut conn = self.pool.get().unwrap();
 
         for song in songs {
-            if let Some(album) = song.album {
-                self.update_album(album)?;
-            }
+            if let Some(inner_song) = song.song {
+                if let Some(album) = song.album {
+                    self.update_album(album)?;
+                }
 
-            if let Some(artist) = song.artists {
-                for a in artist {
+                for a in song.artists {
                     self.update_artist(a)?;
                 }
+
+                update(allsongs)
+                    .filter(schema::allsongs::_id.eq(inner_song.id.clone()))
+                    .set(QueryableSong::from(inner_song))
+                    .execute(&mut conn)
+                    .map_err(error_helpers::to_database_error)?;
             }
-            update(allsongs)
-                .filter(schema::allsongs::_id.eq(song.song._id.clone()))
-                .set(QueryableSong::from(song.song))
-                .execute(&mut conn)
-                .map_err(error_helpers::to_database_error)?;
         }
         info!("Updated songs");
         Ok(())
@@ -1228,7 +1176,12 @@ impl Database {
             total_listen_time: total_listen_time.unwrap_or_default(),
             songs: songs
                 .into_iter()
-                .filter_map(|(s, time)| s.map(|s| (s, time.unwrap_or_default())))
+                .filter_map(|(s, time)| {
+                    s.map(|s| SongListenTime {
+                        song_id: s,
+                        time: time.unwrap_or_default(),
+                    })
+                })
                 .collect(),
         })
     }
@@ -1264,17 +1217,17 @@ impl Database {
         let mut ret = format!("#EXTM3U\n#PLAYLIST:{}\n", playlist.playlist_name);
 
         for s in playlist_songs {
-            if let Some(path) = &s.song.path {
-                let duration = s.song.duration.unwrap_or(0f64);
-                let title = s.song.title.unwrap_or_default();
-                let album_info = s.album.as_ref().map_or(String::new(), |album| {
-                    format!("#EXTALB:{}", album.album_name.clone().unwrap_or_default())
-                });
-                let genre_info = if let Some(genre) = &s.genre {
-                    if !genre.is_empty() {
+            if let Some(inner_song) = s.song {
+                if let Some(path) = &inner_song.path {
+                    let duration = inner_song.duration.unwrap_or(0f64);
+                    let title = inner_song.title.unwrap_or_default();
+                    let album_info = s.album.as_ref().map_or(String::new(), |album| {
+                        format!("#EXTALB:{}", album.album_name.clone().unwrap_or_default())
+                    });
+                    let genre_info = if !s.genre.is_empty() {
                         format!(
                             "#EXTGENRE:{}",
-                            genre
+                            s.genre
                                 .iter()
                                 .filter_map(|g| g.genre_name.clone())
                                 .collect::<Vec<String>>()
@@ -1282,33 +1235,29 @@ impl Database {
                         )
                     } else {
                         String::new()
-                    }
-                } else {
-                    String::new()
-                };
-                let cover_path = match s.song.song_cover_path_high {
-                    Some(cover) => format!("#EXTIMG:{}", cover),
-                    None => String::new(),
-                };
-                let song_info = format!("#MOOSINF:{}", s.song.type_);
-                let file_path = format!("file://{}", path);
+                    };
+                    let cover_path = match inner_song.song_cover_path_high {
+                        Some(cover) => format!("#EXTIMG:{}", cover),
+                        None => String::new(),
+                    };
+                    let song_info = format!("#MOOSINF:{}", inner_song.r#type);
+                    let file_path = format!("file://{}", path);
 
-                write!(
-                    ret,
-                    "#EXTINF:{},{}\n{}\n{}\n{}\n{}\n{}\n",
-                    duration, title, album_info, genre_info, cover_path, song_info, file_path
-                )?;
-            } else if let Some(url) = &s.song.url {
-                let duration = s.song.duration.unwrap_or(0f64);
-                let title = s.song.title.unwrap_or_default();
-                let album_info = s.album.as_ref().map_or(String::new(), |album| {
-                    format!("#EXTALB:{}", album.album_name.clone().unwrap_or_default())
-                });
-                let genre_info = if let Some(genre) = &s.genre {
-                    if !genre.is_empty() {
+                    write!(
+                        ret,
+                        "#EXTINF:{},{}\n{}\n{}\n{}\n{}\n{}\n",
+                        duration, title, album_info, genre_info, cover_path, song_info, file_path
+                    )?;
+                } else if let Some(url) = &inner_song.url {
+                    let duration = inner_song.duration.unwrap_or(0f64);
+                    let title = inner_song.title.unwrap_or_default();
+                    let album_info = s.album.as_ref().map_or(String::new(), |album| {
+                        format!("#EXTALB:{}", album.album_name.clone().unwrap_or_default())
+                    });
+                    let genre_info = if !s.genre.is_empty() {
                         format!(
                             "#EXTGENRE:{}",
-                            genre
+                            s.genre
                                 .iter()
                                 .filter_map(|g| g.genre_name.clone())
                                 .collect::<Vec<String>>()
@@ -1316,43 +1265,22 @@ impl Database {
                         )
                     } else {
                         String::new()
-                    }
-                } else {
-                    String::new()
-                };
-                let cover_path = match s.song.song_cover_path_high {
-                    Some(cover) => format!("#EXTIMG:{}", cover),
-                    None => String::new(),
-                };
-                let song_info = format!("#MOOSINF:{}", s.song.type_);
+                    };
+                    let cover_path = match inner_song.song_cover_path_high {
+                        Some(cover) => format!("#EXTIMG:{}", cover),
+                        None => String::new(),
+                    };
+                    let song_info = format!("#MOOSINF:{}", inner_song.r#type);
 
-                write!(
-                    ret,
-                    "#EXTINF:{},{}\n{}\n{}\n{}\n{}\n{}\n",
-                    duration, title, album_info, genre_info, cover_path, song_info, url
-                )?;
+                    write!(
+                        ret,
+                        "#EXTINF:{},{}\n{}\n{}\n{}\n{}\n{}\n",
+                        duration, title, album_info, genre_info, cover_path, song_info, url
+                    )?;
+                }
             }
         }
 
         Ok(ret.replace("\n\n", "\n"))
     }
-}
-
-#[tracing::instrument(level = "debug", skip())]
-fn merge(a: &mut Value, b: Value) {
-    if let Value::Object(a) = a
-        && let Value::Object(b) = b
-    {
-        for (k, v) in b {
-            if v.is_null() {
-                a.remove(&k);
-            } else {
-                merge(a.entry(k).or_insert(Value::Null), v);
-            }
-        }
-
-        return;
-    }
-
-    *a = b;
 }

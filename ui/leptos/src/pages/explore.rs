@@ -15,11 +15,11 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 use std::sync::Arc;
-
+use types::prelude::SongsExt;
+use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song, all_analytics::SongListenTime};
 use leptos::{IntoView, component, prelude::*, view};
 use leptos_i18n::t;
 use types::{
-    songs::{GetSongOptions, SearchableSong, Song},
     ui::{extensions::ExtensionProviderScope, song_details::SongDetailIcons},
 };
 use wasm_bindgen_futures::spawn_local;
@@ -63,7 +63,7 @@ pub fn Explore() -> impl IntoView {
                 total_listen_time: a.total_listen_time,
                 songs: vec![],
             }));
-            for (song_id, time) in a.songs {
+            for SongListenTime{song_id, time} in a.songs {
                 let provider = get_provider_key_by_id(song_id.clone()).await;
                 if let Ok(provider) = provider {
                     let song = get_song_from_id(provider.clone(), song_id, false).await;
@@ -80,7 +80,7 @@ pub fn Explore() -> impl IntoView {
                 } else {
                     let song = get_songs_by_options(GetSongOptions {
                         song: Some(SearchableSong {
-                            _id: Some(song_id),
+                            id: Some(song_id),
                             ..Default::default()
                         }),
                         ..Default::default()
@@ -214,7 +214,7 @@ pub fn Explore() -> impl IntoView {
                                 <div class="col-3 small-song-first">
                                     <For
                                         each=move || first_four_songs.get().unwrap_or_default()
-                                        key=move |(s, _)| s.song._id.clone()
+                                        key=move |(s, _)| s.get_id().clone()
                                         children=move |(s, time)| {
                                             view! {
                                                 <SongListItem
@@ -233,7 +233,7 @@ pub fn Explore() -> impl IntoView {
                                 <div class="col-3 small-song-second">
                                     <For
                                         each=move || second_four_songs.get().unwrap_or_default()
-                                        key=move |(s, _)| s.song._id.clone()
+                                        key=move |(s, _)| s.get_id().clone()
                                         children=move |(s, time)| {
                                             view! {
                                                 <SongListItem
@@ -263,16 +263,16 @@ pub fn Explore() -> impl IntoView {
 
                     <CardView
                         items=suggestion_items
-                        key=|a| a.song._id.clone()
+                        key=|a| a.get_id().clone()
                         songs_view=true
                         on_click=Box::new(move |item| { play_now.set(item) })
                         card_item=move |(_, item)| {
                             let song_context_menu = song_context_menu.clone();
                             SimplifiedCardItem {
-                                title: item.song.title.clone().unwrap_or_default(),
+                                title: item.get_title().unwrap_or_default(),
                                 cover: Some(get_high_img(item)),
                                 id: item.clone(),
-                                icon: item.song.provider_extension.clone(),
+                                icon: item.get_extension(),
                                 context_menu: Some(
                                     Arc::new(
                                         Box::new(move |ev, song| {

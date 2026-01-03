@@ -31,7 +31,7 @@ use lyrics::{get_lyrics, get_lyrics_state};
 use mobile_player::{
     MobilePlayer, mobile_load, mobile_pause, mobile_play, mobile_seek, mobile_stop,
 };
-use mpris::{get_mpris_state, set_metadata, set_playback_state, set_position};
+use mpris::{get_mpris_state, set_playback_state, set_position};
 use preference_holder::{
     get_preference_state, get_secure, handle_pref_changes, initial, load_selective,
     load_selective_array, save_selective, set_secure,
@@ -265,7 +265,7 @@ pub fn run() {
             get_themes_manifest,
             download_theme,
             // MPRIS
-            set_metadata,
+            // set_metadata,
             set_playback_state,
             set_position,
             // Lyrics

@@ -15,8 +15,9 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use chrono::{Duration, NaiveTime, Timelike};
-use types::songs::Song;
+use songs_proto::moosync::types::Song;
 use wasm_bindgen::prelude::*;
+use types::prelude::SongsExt;
 
 #[wasm_bindgen]
 extern "C" {
@@ -149,7 +150,7 @@ pub async fn get_blob_url(src: String) -> String {
 
 #[tracing::instrument(level = "debug", skip(song))]
 pub fn get_low_img(song: &Song) -> String {
-    if let Some(cover) = &song.song.song_cover_path_low {
+    if let Some(song) = &song.song && let Some(cover) = &song.song_cover_path_low {
         return convert_file_src(cover.to_string());
     }
 
@@ -161,7 +162,7 @@ pub fn get_low_img(song: &Song) -> String {
         return convert_file_src(cover.to_string());
     }
 
-    if let Some(cover) = &song.song.song_cover_path_high {
+    if let Some(cover) = &song.get_cover() {
         return convert_file_src(cover.to_string());
     }
 
@@ -178,7 +179,7 @@ pub fn get_low_img(song: &Song) -> String {
 
 #[tracing::instrument(level = "debug", skip(song))]
 pub fn get_high_img(song: &Song) -> String {
-    if let Some(cover) = &song.song.song_cover_path_high {
+    if let Some(song) = &song.song && let Some(cover) = &song.song_cover_path_high {
         return convert_file_src(cover.to_string());
     }
 
@@ -190,7 +191,7 @@ pub fn get_high_img(song: &Song) -> String {
         return convert_file_src(cover.to_string());
     }
 
-    if let Some(cover) = &song.song.song_cover_path_low {
+    if let Some(song) = &song.song && let Some(cover) = &song.song_cover_path_low {
         return convert_file_src(cover.to_string());
     }
 
@@ -209,7 +210,7 @@ macro_rules! fetch_infinite {
     ($provider:expr, $fetch_content:ident, $update_signal:expr, $next_page_signal:ident, $is_loading:ident, $($arg:expr),*) => {
             'fetch: {
                 use types::providers::generic::Pagination;
-                use types::common::Unique;
+                // use types::common::Unique;
                 use leptos::prelude::*;
                 use std::sync::Arc;
 
@@ -273,7 +274,7 @@ macro_rules! fetch_infinite {
 
                     $update_signal.update(|signal| {
                         signal.append(&mut res);
-                        signal.unique();
+                        // signal.unique();
                         tracing::debug!("new playlists {:?}", signal);
                     });
 

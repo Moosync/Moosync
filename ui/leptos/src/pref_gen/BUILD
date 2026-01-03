@@ -5,9 +5,10 @@ rust_library(
     srcs = ["src/lib.rs"],
     visibility = ["//visibility:public"],
     deps = [
-        "//core/types:types_ui",
         "@wasmCrates//:proc-macro2",
         "@wasmCrates//:quote",
+        "@wasmCrates//:serde",
+        "@wasmCrates//:serde_json",
         "@wasmCrates//:serde_yaml",
         "@wasmCrates//:syn",
         "@wasmCrates//:tracing",

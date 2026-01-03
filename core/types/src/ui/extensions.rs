@@ -16,14 +16,10 @@
 
 use std::hash;
 
+use crate::preferences::PreferenceUIData;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
-use crate::{
-    entities::{Album, Artist, Playlist},
-    preferences::PreferenceUIData,
-    songs::Song,
-};
+use songs_proto::moosync::types::{Album, Artist, Playlist, Song};
 
 use super::player_details::PlayerState;
 
@@ -47,7 +43,7 @@ pub struct FetchedExtensionManifest {
     pub version: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionDetail {
     pub name: String,
@@ -85,7 +81,7 @@ impl PartialEq for ExtensionDetail {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ExtensionAccountDetail {
     pub id: String,
@@ -144,7 +140,7 @@ pub struct ExtensionExtraEventArgs {
     pub package_name: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistReturnType {
     pub playlists: Vec<Playlist>,
@@ -156,14 +152,14 @@ pub struct SongsReturnType {
     pub songs: Vec<Song>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SongsWithPageTokenReturnType {
     pub songs: Vec<Song>,
     pub next_page_token: Option<serde_json::Value>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchReturnType {
     pub songs: Vec<Song>,
@@ -172,14 +168,14 @@ pub struct SearchReturnType {
     pub albums: Vec<Album>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaybackDetailsReturnType {
     pub duration: u32,
     pub url: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct CustomRequestReturnType {
     pub mime_type: Option<String>,
@@ -187,20 +183,20 @@ pub struct CustomRequestReturnType {
     pub redirect_url: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SongReturnType {
     pub song: Option<Song>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PlaylistAndSongsReturnType {
     pub playlist: Option<Playlist>,
     pub songs: Option<Vec<Song>>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct RecommendationsReturnType {
     pub songs: Vec<Song>,

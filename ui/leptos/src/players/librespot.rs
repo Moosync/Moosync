@@ -18,9 +18,10 @@ use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration};
 
 use crate::utils::error::Result;
 use leptos::{leptos_dom::helpers::IntervalHandle, prelude::*};
-use types::{preferences::CheckboxPreference, ui::player_details::PlayerEvents};
+use types::{preferences::CheckboxPreference, ui::player_details::PlayerEvents, prelude::SongsExt};
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
+use songs_proto::moosync::types::{Song, SongType};
 
 use crate::utils::{
     common::listen_event,
@@ -270,16 +271,16 @@ impl GenericPlayer for LibrespotPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    fn provides(&self) -> &[types::songs::SongType] {
-        &[types::songs::SongType::SPOTIFY]
+    fn provides(&self) -> &[SongType] {
+        &[SongType::Spotify]
     }
 
     #[tracing::instrument(level = "debug", skip(self, song))]
-    fn can_play(&self, song: &types::songs::Song) -> bool {
+    fn can_play(&self, song: &Song) -> bool {
         Self::initialize_librespot();
         let initialized = *INITIALIZED.lock().unwrap();
         tracing::debug!("Librespot initialized: {}", initialized);
-        initialized && song.song.type_ == types::songs::SongType::SPOTIFY
+        initialized && song.get_type_or_default() == SongType::Spotify
     }
 
     #[tracing::instrument(level = "debug", skip(self, volume))]

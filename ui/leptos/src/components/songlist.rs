@@ -32,8 +32,10 @@ use leptos::{
 };
 use leptos_use::use_event_listener;
 use leptos_virtual_scroller::VirtualScroller;
-use types::{songs::Song, ui::extensions::ExtensionProviderScope};
+use types::{ui::extensions::ExtensionProviderScope};
 use web_sys::{HtmlDivElement, HtmlInputElement, MouseEvent};
+use songs_proto::moosync::types::Song;
+use types::prelude::SongsExt;
 
 use crate::{
     components::{artist_list::ArtistList, low_img::LowImg, provider_icon::ProviderIcon},
@@ -73,6 +75,9 @@ pub fn SongListItem(
 
     let on_context_menu = Arc::new(Box::new(on_context_menu));
     let on_context_menu_cl = on_context_menu.clone();
+
+    let extension = song.get_extension();
+    let duration = song.get_duration_or_default();
     view! {
         <div
             class="container-fluid w-100 mb-3"
@@ -93,11 +98,11 @@ pub fn SongListItem(
                     <div class="row no-gutters align-items-center">
                         <div class="col-auto d-flex">
                             <div class="title text-truncate mr-2">
-                                {song.song.title.clone().unwrap_or_default()}
+                                {song.get_title().unwrap_or_default()}
                             </div>
                             {move || {
-                                let extension = song.song.provider_extension.clone();
-                                if let Some(extension) = extension {
+                                
+                                if let Some(extension) = extension.clone() {
                                     view! { <ProviderIcon extension=extension /> }.into_any()
                                 } else {
                                     ().into_any()
@@ -116,7 +121,7 @@ pub fn SongListItem(
                     {if let Some(custom_duration) = custom_duration {
                         custom_duration
                     } else {
-                        format_duration(song.song.duration.unwrap_or(-1f64), false)
+                        format_duration(duration, false)
                     }}
                 </div>
 
@@ -233,14 +238,26 @@ where
         if enable_sort {
             let sort = songs_sort.get();
             match sort.sort_by {
-                SongSortByColumns::Album => songs.sort_by(|a, b| a.album.cmp(&b.album)),
-                SongSortByColumns::Artist => songs.sort_by(|a, b| a.artists.cmp(&b.artists)),
-                SongSortByColumns::Date => songs.sort_by(|a, b| a.song.date.cmp(&b.song.date)),
-                SongSortByColumns::Genre => songs.sort_by(|a, b| a.genre.cmp(&b.genre)),
+                SongSortByColumns::Album => songs.sort_by(|a, b| {
+                    let id_a = a.album.as_ref().map(|alb| &alb.album_id);
+                    let id_b = b.album.as_ref().map(|alb| &alb.album_id);
+                    id_a.cmp(&id_b)
+                }),
+                SongSortByColumns::Artist => songs.sort_by(|a, b| {
+                    let id_a = a.artists.first().map(|art| &art.artist_id);
+                    let id_b = b.artists.first().map(|art| &art.artist_id);
+                    id_a.cmp(&id_b)
+                }),
+                SongSortByColumns::Date => songs.sort_by_key(|a| a.get_date()),
+                SongSortByColumns::Genre => songs.sort_by(|a, b| {
+                    let id_a = a.genre.first().map(|art| &art.genre_id);
+                    let id_b = b.genre.first().map(|art| &art.genre_id);
+                    id_a.cmp(&id_b)
+                }),
                 SongSortByColumns::PlayCount => {}
                 SongSortByColumns::Title => songs.sort_by(|a, b| {
-                    let title_a = a.song.title.as_ref().map(|t| t.to_lowercase());
-                    let title_b = b.song.title.as_ref().map(|t| t.to_lowercase());
+                    let title_a = a.get_title().as_ref().map(|t| t.to_lowercase());
+                    let title_b = b.get_title().as_ref().map(|t| t.to_lowercase());
                     title_a.cmp(&title_b)
                 }),
             }
@@ -266,7 +283,7 @@ where
             .get()
             .into_iter()
             .filter(|s| {
-                if let Some(title) = &s.song.title {
+                if let Some(title) = &s.get_title() {
                     title.to_lowercase().contains(filter)
                 } else {
                     false
@@ -542,7 +559,7 @@ where
                         <VirtualScroller
                             node_ref=scroller_ref
                             each=filtered_songs
-                            key=|(_, s)| s.song._id.clone()
+                            key=|(_, s)| s.get_id().clone()
                             item_height=95usize
                             inner_el_style="width: calc(100% - 15px);"
                             header_height=header_height + 45usize

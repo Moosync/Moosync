@@ -2,13 +2,6 @@ load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
 package(default_visibility = ["//visibility:public"])
 
-config_setting(
-    name = "is_wasm",
-    constraint_values = [
-        "@platforms//cpu:wasm32",
-    ],
-)
-
 rust_library(
     name = "types",
     srcs = [
@@ -24,7 +17,6 @@ rust_library(
         "src/providers/mod.rs",
         "src/songs.rs",
         "src/tests.rs",
-        "src/themes.rs",
         "src/ui/extensions.rs",
         "src/ui/mod.rs",
         "src/ui/player_details.rs",
@@ -39,6 +31,8 @@ rust_library(
     visibility = ["//visibility:public"],
     deps =
         [
+            "//core/types/protos:songs_rs",
+            "//core/types/protos:themes_rs",
             "@crates//:bitcode",
             "@crates//:serde",
             "@crates//:serde_json",
@@ -66,7 +60,6 @@ rust_library(
         "src/providers/generic.rs",
         "src/providers/mod.rs",
         "src/songs.rs",
-        "src/themes.rs",
         "src/ui/extensions.rs",
         "src/ui/mod.rs",
         "src/ui/player_details.rs",
@@ -77,8 +70,11 @@ rust_library(
     ],
     crate_name = "types",
     proc_macro_deps = ["@wasmCrates//:async-trait"],
+    target_compatible_with = ["@platforms//cpu:wasm32"],
     visibility = ["//visibility:public"],
     deps = [
+        "//core/types/protos:songs_rs",
+        "//core/types/protos:themes_rs",
         "@wasmCrates//:bitcode",
         "@wasmCrates//:serde",
         "@wasmCrates//:serde_json",

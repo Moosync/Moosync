@@ -31,11 +31,11 @@ use std::{
 use crate::utils::error::{MoosyncError, Result};
 use tokio::sync::oneshot;
 use types::{
-    songs::Song,
     ui::{
         extensions::ExtensionExtraEvent,
         player_details::{PlayerEvents, PlayerState},
     },
+    prelude::SongsExt
 };
 use wasm_timer::Instant;
 
@@ -53,9 +53,9 @@ use crate::{
     utils::{
         extensions::send_extension_event,
         invoke::{fetch_playback_url, increment_play_count, increment_play_time},
-        mpris::set_metadata,
     },
 };
+use songs_proto::moosync::types::Song;
 
 pub struct PlayerHolder {
     providers: Arc<ProviderStore>,
@@ -154,15 +154,14 @@ impl PlayerHolder {
     ) -> Result<usize> {
         // Try to get playback URL from extension if dummy url is provided
         let mut already_fetched = false;
-        if song.song.path.is_none()
+        if song.get_path().is_none()
             && song
-                .song
-                .playback_url
+                .get_playback_url()
                 .as_ref()
                 .is_some_and(|u| u.starts_with("extension://"))
         {
             let playback_url = self.get_playback_url(song, "".to_string()).await?;
-            song.song.playback_url = Some(playback_url);
+            song.song.as_mut().unwrap().playback_url = Some(playback_url);
             already_fetched = true;
         }
 
@@ -173,13 +172,13 @@ impl PlayerHolder {
         });
         let player = players.iter().position(|p| {
             tracing::debug!(
-                "Checking player capabilities {}, type: {}, url: {:?}",
+                "Checking player capabilities {}, type: {:?}, url: {:?}",
                 p.key(),
-                song.song.type_,
-                song.song.playback_url
+                song.get_type_or_default(),
+                song.get_playback_url()
             );
             let res = !player_blacklist.get_untracked().contains(&p.key())
-                && p.provides().contains(&song.song.type_)
+                && p.provides().contains(&song.get_type_or_default())
                 && p.can_play(song);
 
             tracing::debug!("Checked player capabilities {}", p.key());
@@ -202,7 +201,7 @@ impl PlayerHolder {
                 let playback_url = self.get_playback_url(song, player.key()).await;
                 if let Ok(playback_url) = playback_url {
                     tracing::info!("Got new playback url {}", playback_url);
-                    song.song.playback_url = Some(playback_url);
+                    song.song.as_mut().unwrap().playback_url = Some(playback_url);
                     if player.can_play(song) {
                         tracing::info!("Using player {}", player.key());
                         return Ok(i);
@@ -236,14 +235,13 @@ impl PlayerHolder {
 
     #[tracing::instrument(level = "debug", skip(self, song, player))]
     pub async fn get_playback_url(&self, song: &Song, player: String) -> Result<String> {
-        let id = song.song._id.clone().unwrap();
+        let id = song.get_id().unwrap();
         let provider = self.providers.get_provider_key_by_id(id.clone()).await?;
 
         let invalidate_cache = song
-            .song
-            .playback_url
+            .get_playback_url()
             .as_ref()
-            .is_some_and(|u| u.starts_with("extension://"));
+            .is_some_and(|u: &String| u.starts_with("extension://"));
         fetch_playback_url(provider, song.clone(), player, invalidate_cache).await
     }
 
@@ -278,7 +276,7 @@ impl PlayerHolder {
             self.stop_playback().await?;
         }
 
-        let src = song.song.playback_url.clone().or(song.song.path.clone());
+        let src = song.get_playback_url().or(song.get_path());
 
         let mut players = self.players.lock().await;
         let player = players.get_mut(pos).unwrap();
@@ -515,8 +513,8 @@ pub fn AudioStream() -> impl IntoView {
 
         send_extension_event(ExtensionExtraEvent::SongChanged([current_song.clone()]));
         if let Some(mut current_song) = current_song {
-            tracing::info!("Loading song {:?}", current_song.song.title);
-            set_metadata(&current_song);
+            tracing::info!("Loading song {:?}", current_song.get_title());
+            // set_metadata(&current_song);
 
             let last_song_sig = last_song_sig.get_untracked();
             let players = players_clone.clone();

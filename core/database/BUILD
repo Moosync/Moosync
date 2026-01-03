@@ -30,6 +30,7 @@ rust_library(
     deps = [
         ":build_script",
         "//core/types",
+        "//core/types/protos:songs_rs",
         "@crates//:diesel",
         "@crates//:diesel_logger",
         "@crates//:diesel_migrations",

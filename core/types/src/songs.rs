@@ -21,7 +21,7 @@ use bitcode::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 
 use super::{
-    common::{deserialize_default, SearchByTerm},
+    common::{SearchByTerm, deserialize_default},
     entities::{Album, Artist, Genre, Playlist},
 };
 
@@ -38,11 +38,11 @@ impl Display for SongType {
     #[tracing::instrument(level = "debug", skip(self, f))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let data = match self {
-            SongType::LOCAL => "LOCAL",
-            SongType::URL => "URL",
-            SongType::SPOTIFY => "SPOTIFY",
-            SongType::DASH => "DASH",
-            SongType::HLS => "HLS",
+            SongType::Local => "LOCAL",
+            SongType::Url => "URL",
+            SongType::Spotify => "SPOTIFY",
+            SongType::Dash => "DASH",
+            SongType::Hls => "HLS",
         };
         write!(f, "{}", data)
     }
@@ -54,11 +54,11 @@ impl FromStr for SongType {
     #[tracing::instrument(level = "debug", skip(s))]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "LOCAL" => Ok(SongType::LOCAL),
-            "URL" => Ok(SongType::URL),
-            "SPOTIFY" => Ok(SongType::SPOTIFY),
-            "DASH" => Ok(SongType::DASH),
-            "HLS" => Ok(SongType::HLS),
+            "LOCAL" => Ok(SongType::Local),
+            "URL" => Ok(SongType::Url),
+            "SPOTIFY" => Ok(SongType::Spotify),
+            "DASH" => Ok(SongType::Dash),
+            "HLS" => Ok(SongType::Hls),
             _ => Err(MoosyncError::String(format!("Invalid song type: {}", s))),
         }
     }
@@ -181,7 +181,7 @@ impl std::fmt::Debug for Song {
             .unwrap_or_else(|| "No Artist".to_string());
 
         let title = self.song.title.as_deref().unwrap_or("No Title");
-        let song_id = self.song._id.as_deref().unwrap_or("No ID");
+        let song_id = self.song.id.as_deref().unwrap_or("No ID");
 
         write!(f, "{} - {} ({})", artist_names, title, song_id)
     }
@@ -190,7 +190,7 @@ impl std::fmt::Debug for Song {
 impl std::hash::Hash for Song {
     #[tracing::instrument(level = "debug", skip(self, state))]
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.song._id.hash(state);
+        self.song.id.hash(state);
     }
 }
 

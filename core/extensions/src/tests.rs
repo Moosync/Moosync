@@ -6,9 +6,9 @@ use crate::context::{MockExtism, ReplyHandler};
 use crate::ext_runner::ExtensionHandlerInner;
 use crate::models::{ExtensionCommand, ExtensionCommandResponse, RunnerCommandResp};
 use serde_json::Value;
+use songs_proto::moosync::types::{InnerSong, Song};
 use types::extensions::MainCommand;
 use types::preferences::{PreferenceTypes, PreferenceUIData};
-use types::songs::{InnerSong, Song};
 use types::ui::extensions::PackageNameArgs;
 
 static INIT: std::sync::Once = std::sync::Once::new();
@@ -75,21 +75,24 @@ fn test_runner_command_try_from() {
 #[test]
 fn test_main_command_sanitize() {
     let song = Song {
-        song: InnerSong {
-            _id: Some("123".to_string()),
+        song: Some(InnerSong {
+            id: Some("123".to_string()),
             path: Some("/path".to_string()),
             ..Default::default()
-        },
+        }),
         ..Default::default()
     };
 
     let mut cmd = MainCommand::AddSongs(vec![song.clone()]);
-    cmd.sanitize_command("test.pkg");
+    cmd.sanitize_command("test.pkg").unwrap();
 
     if let MainCommand::AddSongs(songs) = cmd {
         // Sanitization logic in extensions uses "test.pkg:" prefix
         // Let's verify what sanitize_song does. It usually prefixes the ID if present.
-        assert_eq!(songs[0].song._id.as_ref().unwrap(), "test.pkg:123");
+        assert_eq!(
+            songs[0].song.as_ref().unwrap().id.as_ref().unwrap(),
+            "test.pkg:123"
+        );
     } else {
         panic!("Wrong command type");
     }

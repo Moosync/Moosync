@@ -19,13 +19,13 @@ use std::fmt::Debug;
 use async_trait::async_trait;
 use futures::{SinkExt, channel::mpsc::UnboundedSender};
 use serde_json::Value;
+use songs_proto::moosync::types::{Album, Artist, Playlist, SearchResult, Song};
 use tauri::AppHandle;
 use tokio::sync::Mutex;
 use types::{
-    entities::{Album, Artist, Playlist, SearchResult},
     errors::{MoosyncError, Result},
+    prelude::SongsExt,
     providers::generic::{GenericProvider, Pagination, ProviderStatus},
-    songs::Song,
     ui::extensions::{
         AccountLoginArgs, ContextMenuReturnType, CustomRequestReturnType, ExtensionDetail,
         ExtensionExtraEvent, ExtensionExtraEventArgs, ExtensionProviderScope, PackageNameArgs,
@@ -253,7 +253,7 @@ impl GenericProvider for ExtensionProvider {
             return Err("Extension does not have this capability".into());
         }
 
-        if let Some(playback_url) = song.song.playback_url.clone()
+        if let Some(playback_url) = song.get_playback_url()
             && playback_url.starts_with("extension://")
         {
             let res = send_extension_event!(

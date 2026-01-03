@@ -19,11 +19,9 @@ use std::rc::Rc;
 use crate::utils::error::Result;
 use dyn_clone::DynClone;
 use leptos::{html::Div, prelude::NodeRef};
+use songs_proto::moosync::types::{Song, SongType};
 use tokio::sync::oneshot::Sender as OneShotSender;
-use types::{
-    songs::{Song, SongType},
-    ui::player_details::PlayerEvents,
-};
+use types::ui::player_details::PlayerEvents;
 
 pub type PlayerEventsSender = Rc<Box<dyn Fn(String, PlayerEvents)>>;
 

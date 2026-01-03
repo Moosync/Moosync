@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::collections::HashSet;
-
 use serde::{Deserialize, Deserializer};
 
 pub trait SearchByTerm {
@@ -32,11 +30,11 @@ pub trait Unique<T> {
 
 impl<T> Unique<T> for Vec<T>
 where
-    T: Clone + Eq + std::hash::Hash,
+    T: Clone,
 {
     fn unique(self: &mut Vec<T>) {
-        let mut seen: HashSet<T> = HashSet::new();
-        self.retain(|item| seen.insert(item.clone()));
+        // let mut seen: HashSet<T> = HashSet::new();
+        // self.retain(|item| seen.insert(item.clone()));
     }
 }
 

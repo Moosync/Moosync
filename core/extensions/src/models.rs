@@ -20,7 +20,7 @@ pub struct GenericExtensionHostRequest<T: Clone + Debug> {
     pub data: Option<T>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum ExtensionExtraEventResponse {
     RequestedPlaylists(PlaylistReturnType),
@@ -61,7 +61,7 @@ where
     field.serialize_none()
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 #[serde(untagged)]
 pub enum ExtensionCommandResponse {
     GetProviderScopes(Vec<ExtensionProviderScope>),
@@ -74,7 +74,7 @@ pub enum ExtensionCommandResponse {
 }
 
 impl ExtensionCommandResponse {
-    pub fn sanitize(&mut self, package_name: &str) {
+    pub fn sanitize(&mut self, package_name: &str) -> MoosyncResult<()> {
         match self {
             ExtensionCommandResponse::GetProviderScopes(_) => {}
             ExtensionCommandResponse::GetAccounts(accounts) => {
@@ -96,10 +96,9 @@ impl ExtensionCommandResponse {
                     ExtensionExtraEventResponse::RequestedPlaylistSongs(
                         songs_with_page_token_return_type,
                     ) => {
-                        songs_with_page_token_return_type
-                            .songs
-                            .iter_mut()
-                            .for_each(|s| sanitize_song(&prefix, s));
+                        for s in &mut songs_with_page_token_return_type.songs {
+                            sanitize_song(&prefix, s)?;
+                        }
                     }
                     ExtensionExtraEventResponse::OauthCallback => {}
                     ExtensionExtraEventResponse::SongQueueChanged => {}
@@ -112,7 +111,7 @@ impl ExtensionCommandResponse {
                     ExtensionExtraEventResponse::CustomRequest(_) => {}
                     ExtensionExtraEventResponse::RequestedSongFromURL(song_return_type) => {
                         if let Some(song) = song_return_type.song.as_mut() {
-                            sanitize_song(&prefix, song);
+                            sanitize_song(&prefix, song)?;
                         }
                     }
                     ExtensionExtraEventResponse::RequestedPlaylistFromURL(
@@ -123,14 +122,15 @@ impl ExtensionCommandResponse {
                         }
 
                         if let Some(songs) = playlist_and_songs_return_type.songs.as_mut() {
-                            songs.iter_mut().for_each(|s| sanitize_song(&prefix, s));
+                            for s in songs {
+                                sanitize_song(&prefix, s)?;
+                            }
                         }
                     }
                     ExtensionExtraEventResponse::RequestedSearchResult(search_return_type) => {
-                        search_return_type
-                            .songs
-                            .iter_mut()
-                            .for_each(|s| sanitize_song(&prefix, s));
+                        for s in &mut search_return_type.songs {
+                            sanitize_song(&prefix, s)?;
+                        }
                         search_return_type
                             .albums
                             .iter_mut()
@@ -147,27 +147,24 @@ impl ExtensionCommandResponse {
                     ExtensionExtraEventResponse::RequestedRecommendations(
                         recommendations_return_type,
                     ) => {
-                        recommendations_return_type
-                            .songs
-                            .iter_mut()
-                            .for_each(|s| sanitize_song(&prefix, s));
+                        for s in &mut recommendations_return_type.songs {
+                            sanitize_song(&prefix, s)?;
+                        }
                     }
                     ExtensionExtraEventResponse::RequestedLyrics(_) => {}
                     ExtensionExtraEventResponse::RequestedArtistSongs(
                         songs_with_page_token_return_type,
                     ) => {
-                        songs_with_page_token_return_type
-                            .songs
-                            .iter_mut()
-                            .for_each(|s| sanitize_song(&prefix, s));
+                        for s in &mut songs_with_page_token_return_type.songs {
+                            sanitize_song(&prefix, s)?;
+                        }
                     }
                     ExtensionExtraEventResponse::RequestedAlbumSongs(
                         songs_with_page_token_return_type,
                     ) => {
-                        songs_with_page_token_return_type
-                            .songs
-                            .iter_mut()
-                            .for_each(|s| sanitize_song(&prefix, s));
+                        for s in &mut songs_with_page_token_return_type.songs {
+                            sanitize_song(&prefix, s)?;
+                        }
                     }
                     ExtensionExtraEventResponse::SongAdded => {}
                     ExtensionExtraEventResponse::SongRemoved => {}
@@ -175,7 +172,7 @@ impl ExtensionCommandResponse {
                     ExtensionExtraEventResponse::PlaylistRemoved => {}
                     ExtensionExtraEventResponse::RequestedSongFromId(song_return_type) => {
                         if let Some(song) = song_return_type.song.as_mut() {
-                            sanitize_song(&prefix, song);
+                            sanitize_song(&prefix, song)?;
                         }
                     }
                     ExtensionExtraEventResponse::GetRemoteURL(_) => {}
@@ -191,6 +188,7 @@ impl ExtensionCommandResponse {
             }
             ExtensionCommandResponse::Empty => {}
         }
+        Ok(())
     }
 }
 

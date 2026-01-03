@@ -18,14 +18,14 @@ use std::{
     path::PathBuf,
     str::FromStr,
     sync::{
-        Mutex,
         mpsc::{self, Sender},
+        Mutex,
     },
 };
 
+use songs_proto::moosync::types::{Playlist, Song};
 use threadpool::ThreadPool;
 use types::errors::Result;
-use types::{entities::Playlist, songs::Song};
 
 use crate::{playlist_scanner::PlaylistScanner, song_scanner::SongScanner};
 
@@ -134,7 +134,7 @@ impl ScannerHolder {
                     //     if let Ok(res) = res {
                     //         let _ = database.add_to_playlist_bridge(
                     //             item.0.unwrap(),
-                    //             res[0].song._id.clone().unwrap(),
+                    //             res[0].song.id.clone().unwrap(),
                     //         );
                     //     }
                     // }

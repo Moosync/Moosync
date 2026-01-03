@@ -15,6 +15,7 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",
+        "//core/types/protos:songs_rs",
         "@crates//:blake3",
         "@crates//:dunce",
         "@crates//:fast_image_resize",

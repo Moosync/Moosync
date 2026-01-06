@@ -1,15 +1,17 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use super::models::RunnerCommand;
 use crate::context::{MockExtism, ReplyHandler};
 use crate::ext_runner::ExtensionHandlerInner;
-use crate::models::{ExtensionCommand, ExtensionCommandResponse, RunnerCommandResp};
-use serde_json::Value;
+use crate::models::SanitizeCommand;
+use extensions_proto::moosync::types::{
+    AddSongsRequest, ExtensionCommand, ExtensionCommandResponse, ExtensionsUpdatedResponse,
+    GetProviderScopesRequest, GetProviderScopesResponse, MainCommand, MainCommandResponse,
+    RunnerCommand, extension_command, extension_command_response, main_command,
+    main_command_response, runner_command, runner_command_response,
+};
 use songs_proto::moosync::types::{InnerSong, Song};
-use types::extensions::MainCommand;
-use types::preferences::{PreferenceTypes, PreferenceUIData};
-use types::ui::extensions::PackageNameArgs;
+use ui_proto::moosync::types::{PreferenceTypes, PreferenceUiData};
 
 static INIT: std::sync::Once = std::sync::Once::new();
 
@@ -43,36 +45,6 @@ impl Drop for TempDir {
 }
 
 #[test]
-fn test_runner_command_try_from() {
-    // Test FindNewExtensions
-    let cmd = RunnerCommand::try_from(("findNewExtensions", &Value::Null));
-    assert!(matches!(cmd.unwrap(), RunnerCommand::FindNewExtensions));
-
-    // Test GetInstalledExtensions
-    let cmd = RunnerCommand::try_from(("getInstalledExtensions", &Value::Null));
-    assert!(matches!(
-        cmd.unwrap(),
-        RunnerCommand::GetInstalledExtensions
-    ));
-
-    // Test GetExtensionIcon
-    let args = serde_json::to_value(PackageNameArgs {
-        package_name: "test.pkg".to_string(),
-    })
-    .unwrap();
-    let cmd = RunnerCommand::try_from(("getExtensionIcon", &args));
-    if let RunnerCommand::GetExtensionIcon(pkg_args) = cmd.unwrap() {
-        assert_eq!(pkg_args.package_name, "test.pkg");
-    } else {
-        panic!("Wrong command type");
-    }
-
-    // Invalid command
-    let cmd = RunnerCommand::try_from(("invalidCommand", &Value::Null));
-    assert!(cmd.is_err());
-}
-
-#[test]
 fn test_main_command_sanitize() {
     let song = Song {
         song: Some(InnerSong {
@@ -83,14 +55,17 @@ fn test_main_command_sanitize() {
         ..Default::default()
     };
 
-    let mut cmd = MainCommand::AddSongs(vec![song.clone()]);
-    cmd.sanitize_command("test.pkg").unwrap();
+    let mut cmd = MainCommand {
+        command: Some(main_command::Command::AddSongs(AddSongsRequest {
+            songs: vec![song.clone()],
+        })),
+    };
 
-    if let MainCommand::AddSongs(songs) = cmd {
-        // Sanitization logic in extensions uses "test.pkg:" prefix
-        // Let's verify what sanitize_song does. It usually prefixes the ID if present.
+    cmd.sanitize("test.pkg").unwrap();
+
+    if let Some(main_command::Command::AddSongs(req)) = cmd.command {
         assert_eq!(
-            songs[0].song.as_ref().unwrap().id.as_ref().unwrap(),
+            req.songs[0].song.clone().unwrap().id.as_ref().unwrap(),
             "test.pkg:123"
         );
     } else {
@@ -108,7 +83,6 @@ fn test_find_and_spawn_extensions() {
     let ext_path = extensions_path.join("test_ext");
     std::fs::create_dir_all(&ext_path).unwrap();
 
-    // Create a dummy package.json
     let manifest = r#"{
         "name": "test.pkg",
         "displayName": "Test Extension",
@@ -120,60 +94,75 @@ fn test_find_and_spawn_extensions() {
         "author": "Author"
     }"#;
     std::fs::write(ext_path.join("package.json"), manifest).unwrap();
-
-    // Create dummy wasm file
     std::fs::write(ext_path.join("main.wasm"), b"dummy").unwrap();
 
     let mut mock_extism = MockExtism::new();
 
-    // spawn_extension should be called
     mock_extism
         .expect_spawn_extension()
         .times(1)
         .returning(|_| {
-            let wasm = extism::Wasm::data(
-                // Minimal valid WASM module
-                vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00],
-            );
+            let wasm = extism::Wasm::data(vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
             let manifest = extism::Manifest::new([wasm]);
             let plugin = extism::PluginBuilder::new(manifest).build().unwrap();
             Arc::new(Mutex::new(plugin))
         });
 
     let _reply_handler: ReplyHandler = Arc::new(Box::new(|_, _| {
-        Ok(types::extensions::MainCommandResponse::ExtensionsUpdated(
-            true,
-        ))
+        Ok(MainCommandResponse {
+            response: Some(main_command_response::Response::ExtensionsUpdated(
+                ExtensionsUpdatedResponse {},
+            )),
+        })
     }));
 
     let mut handler =
         ExtensionHandlerInner::new_with_context(extensions_path, Box::new(mock_extism));
 
-    // Initially no extensions
-    if let RunnerCommandResp::ExtensionList(list) = handler
-        .handle_runner_command(RunnerCommand::GetInstalledExtensions)
-        .unwrap()
+    // 1. Check initially empty
+    let req = RunnerCommand {
+        // Use Default::default() for the Empty message
+        command: Some(runner_command::Command::GetInstalledExtensions(
+            Default::default(),
+        )),
+    };
+
+    let resp = handler.handle_runner_command(req).unwrap();
+
+    if let Some(runner_command_response::Response::GetInstalledExtensions(installed)) =
+        resp.response
     {
-        assert_eq!(list.len(), 0);
+        assert_eq!(installed.extensions.len(), 0);
     } else {
-        panic!("Wrong response");
+        panic!("Wrong response type");
     }
 
-    // Find and spawn
-    handler
-        .handle_runner_command(RunnerCommand::FindNewExtensions)
-        .unwrap();
+    // 2. Find new extensions
+    let req_find = RunnerCommand {
+        command: Some(runner_command::Command::FindNewExtensions(
+            Default::default(),
+        )),
+    };
+    handler.handle_runner_command(req_find).unwrap();
 
-    // Now should have 1 extension
-    if let RunnerCommandResp::ExtensionList(list) = handler
-        .handle_runner_command(RunnerCommand::GetInstalledExtensions)
-        .unwrap()
+    // 3. Check again, should have 1
+    let req_get = RunnerCommand {
+        command: Some(runner_command::Command::GetInstalledExtensions(
+            Default::default(),
+        )),
+    };
+
+    let resp = handler.handle_runner_command(req_get).unwrap();
+
+    if let Some(runner_command_response::Response::GetInstalledExtensions(installed)) =
+        resp.response
     {
+        let list = installed.extensions;
         assert_eq!(list.len(), 1);
         assert_eq!(list[0].package_name, "test.pkg");
         assert_eq!(list[0].name, "Test Extension");
     } else {
-        panic!("Wrong response");
+        panic!("Wrong response type");
     }
 }
 
@@ -187,7 +176,6 @@ async fn test_handle_extension_command() {
     let ext_path = extensions_path.join("test_ext");
     std::fs::create_dir_all(&ext_path).unwrap();
 
-    // Create a dummy package.json
     let manifest = r#"{
         "name": "test.pkg",
         "displayName": "Test Extension",
@@ -215,8 +203,12 @@ async fn test_handle_extension_command() {
         .expect_execute_command()
         .times(1)
         .returning(|_, _, cmd| {
-            if let ExtensionCommand::GetProviderScopes(_) = cmd {
-                Ok(ExtensionCommandResponse::GetProviderScopes(vec![]))
+            if let Some(extension_command::Event::GetProviderScopes(_)) = cmd.event {
+                Ok(ExtensionCommandResponse {
+                    response: Some(extension_command_response::Response::GetProviderScopes(
+                        GetProviderScopesResponse { scopes: vec![] },
+                    )),
+                })
             } else {
                 panic!("Wrong command passed to extism");
             }
@@ -224,18 +216,26 @@ async fn test_handle_extension_command() {
 
     let mut handler =
         ExtensionHandlerInner::new_with_context(extensions_path, Box::new(mock_extism));
-    handler
-        .handle_runner_command(RunnerCommand::FindNewExtensions)
-        .unwrap();
 
-    let cmd = ExtensionCommand::GetProviderScopes(PackageNameArgs {
+    let req = RunnerCommand {
+        command: Some(runner_command::Command::FindNewExtensions(
+            Default::default(),
+        )),
+    };
+    handler.handle_runner_command(req).unwrap();
+
+    let cmd = ExtensionCommand {
         package_name: "test.pkg".to_string(),
-    });
+        event: Some(extension_command::Event::GetProviderScopes(
+            GetProviderScopesRequest {},
+        )),
+    };
 
     let resp = handler.handle_extension_command(cmd).await.unwrap();
+
     assert!(matches!(
-        resp,
-        ExtensionCommandResponse::GetProviderScopes(_)
+        resp.unwrap().response,
+        Some(extension_command_response::Response::GetProviderScopes(_))
     ));
 }
 
@@ -273,16 +273,19 @@ fn test_register_unregister_ui_preferences() {
 
     let mut handler =
         ExtensionHandlerInner::new_with_context(extensions_path, Box::new(mock_extism));
-    handler
-        .handle_runner_command(RunnerCommand::FindNewExtensions)
-        .unwrap();
 
-    // Test register
-    let prefs = vec![PreferenceUIData {
+    let req_find = RunnerCommand {
+        command: Some(runner_command::Command::FindNewExtensions(
+            Default::default(),
+        )),
+    };
+    handler.handle_runner_command(req_find).unwrap();
+
+    let prefs = vec![PreferenceUiData {
         key: "pref1".to_string(),
         title: "Pref 1".to_string(),
         description: "Description".to_string(),
-        _type: PreferenceTypes::Extensions, // Using a valid type
+        r#type: PreferenceTypes::Extensions.into(),
         ..Default::default()
     }];
 
@@ -291,14 +294,20 @@ fn test_register_unregister_ui_preferences() {
         .unwrap();
 
     // Verify stored
-    if let RunnerCommandResp::ExtensionList(list) = handler
-        .handle_runner_command(RunnerCommand::GetInstalledExtensions)
-        .unwrap()
+    let req_get = RunnerCommand {
+        command: Some(runner_command::Command::GetInstalledExtensions(
+            Default::default(),
+        )),
+    };
+    let resp = handler.handle_runner_command(req_get).unwrap();
+
+    if let Some(runner_command_response::Response::GetInstalledExtensions(installed)) =
+        resp.response
     {
-        assert_eq!(list[0].preferences.len(), 1);
-        assert_eq!(list[0].preferences[0].key, "pref1");
+        assert_eq!(installed.extensions[0].preferences.len(), 1);
+        assert_eq!(installed.extensions[0].preferences[0].key, "pref1");
     } else {
-        panic!("Wrong response");
+        panic!("Wrong response type");
     }
 
     // Test unregister
@@ -307,12 +316,18 @@ fn test_register_unregister_ui_preferences() {
         .unwrap();
 
     // Verify removed
-    if let RunnerCommandResp::ExtensionList(list) = handler
-        .handle_runner_command(RunnerCommand::GetInstalledExtensions)
-        .unwrap()
+    let req_get_again = RunnerCommand {
+        command: Some(runner_command::Command::GetInstalledExtensions(
+            Default::default(),
+        )),
+    };
+    let resp = handler.handle_runner_command(req_get_again).unwrap();
+
+    if let Some(runner_command_response::Response::GetInstalledExtensions(installed)) =
+        resp.response
     {
-        assert_eq!(list[0].preferences.len(), 0);
+        assert_eq!(installed.extensions[0].preferences.len(), 0);
     } else {
-        panic!("Wrong response");
+        panic!("Wrong response type");
     }
 }

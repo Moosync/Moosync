@@ -22,6 +22,7 @@ use std::{
     },
 };
 
+use extensions_proto::moosync::types::ExtensionProviderScope;
 use itertools::Itertools;
 use leptos::{
     IntoView, component,
@@ -32,10 +33,9 @@ use leptos::{
 };
 use leptos_use::use_event_listener;
 use leptos_virtual_scroller::VirtualScroller;
-use types::{ui::extensions::ExtensionProviderScope};
-use web_sys::{HtmlDivElement, HtmlInputElement, MouseEvent};
 use songs_proto::moosync::types::Song;
 use types::prelude::SongsExt;
+use web_sys::{HtmlDivElement, HtmlInputElement, MouseEvent};
 
 use crate::{
     components::{artist_list::ArtistList, low_img::LowImg, provider_icon::ProviderIcon},
@@ -101,7 +101,7 @@ pub fn SongListItem(
                                 {song.get_title().unwrap_or_default()}
                             </div>
                             {move || {
-                                
+
                                 if let Some(extension) = extension.clone() {
                                     view! { <ProviderIcon extension=extension /> }.into_any()
                                 } else {

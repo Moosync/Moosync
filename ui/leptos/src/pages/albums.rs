@@ -32,8 +32,8 @@ use leptos_router::hooks::use_query_map;
 use rand::seq::IndexedRandom;
 use songs_proto::moosync::types::Album;
 use songs_proto::moosync::types::{GetSongOptions, Song};
-use types::ui::extensions::ExtensionProviderScope;
-use types::ui::song_details::{DefaultDetails, SongDetailIcons};
+use extensions_proto::moosync::types::ExtensionProviderScope;
+use crate::utils::common::{DefaultDetails, SongDetailIcons};
 use wasm_bindgen_futures::spawn_local;
 
 use crate::utils::db_utils::{get_albums_by_option, get_songs_by_option};

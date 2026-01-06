@@ -7,11 +7,25 @@ proto_library(
     name = "extensions_proto",
     srcs = ["extensions.proto"],
     deps = [
+        ":ui_proto",
         "//core/types/protos:songs_proto",
-        "//core/types/protos/ui:player_proto",
-        "//core/types/protos/ui:preferences_proto",
+        "@com_google_protobuf//:empty_proto",
         "@com_google_protobuf//:struct_proto",
     ],
+)
+
+proto_library(
+    name = "ui_proto",
+    srcs = ["ui.proto"],
+    deps = [
+        "@com_google_protobuf//:struct_proto",
+    ],
+)
+
+rust_prost_library(
+    name = "ui_rs",
+    proto = ":ui_proto",
+    visibility = ["//visibility:public"],
 )
 
 rust_prost_library(

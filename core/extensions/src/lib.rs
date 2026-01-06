@@ -23,23 +23,17 @@ use std::{
     sync::Arc,
 };
 
-use crate::{
-    context::ReplyHandler,
-    errors::ExtensionError,
-    models::{ExtensionCommand, ExtensionCommandResponse, RunnerCommand, RunnerCommandResp},
-};
+use crate::{context::ReplyHandler, errors::ExtensionError};
 use ext_runner::ExtensionHandlerInner;
+use extensions_proto::moosync::types::{
+    ExtensionCommand, ExtensionCommandResponse, ExtensionDetail, ExtensionManifest,
+    FetchedExtensionManifest, PackageName, RunnerCommand, RunnerCommandResponse, runner_command,
+    runner_command_response,
+};
 use fs_extra::dir::CopyOptions;
 use futures::{StreamExt, lock::Mutex};
 use serde_json::Value;
-use types::{
-    extensions::ExtensionManifest,
-    preferences::PreferenceUIData,
-    ui::extensions::{
-        AccountLoginArgs, ExtensionAccountDetail, ExtensionDetail, ExtensionExtraEventArgs,
-        ExtensionProviderScope, FetchedExtensionManifest, PackageNameArgs,
-    },
-};
+use ui_proto::moosync::types::PreferenceUiData;
 use zip_extensions::zip_extract;
 
 mod context;
@@ -164,7 +158,7 @@ impl ExtensionHandler {
         let ext_path = self.extensions_dir.join(package_name.clone());
         if ext_path.exists() {
             fs::remove_dir_all(ext_path)?;
-            self.send_remove_extension(PackageNameArgs { package_name })
+            self.send_remove_extension(PackageName { package_name })
                 .await?;
             self.find_new_extensions().await?;
             Ok(())
@@ -203,40 +197,47 @@ impl ExtensionHandler {
         Ok(())
     }
 
-    async fn send_remove_extension(
-        &self,
-        package_name: PackageNameArgs,
-    ) -> Result<(), ExtensionError> {
+    async fn send_remove_extension(&self, package_name: PackageName) -> Result<(), ExtensionError> {
         let mut inner = self.inner.lock().await;
-        inner.handle_runner_command(RunnerCommand::RemoveExtension(package_name))?;
+        inner.handle_runner_command(RunnerCommand {
+            command: Some(runner_command::Command::RemoveExtension(package_name)),
+        })?;
         Ok(())
     }
 
     pub async fn find_new_extensions(&self) -> Result<(), ExtensionError> {
         let mut inner = self.inner.lock().await;
-        inner.handle_runner_command(RunnerCommand::FindNewExtensions)?;
+        inner.handle_runner_command(RunnerCommand {
+            command: Some(runner_command::Command::FindNewExtensions(
+                Default::default(),
+            )),
+        })?;
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
     pub async fn get_installed_extensions(&self) -> Result<Vec<ExtensionDetail>, ExtensionError> {
         let mut inner = self.inner.lock().await;
-        let ret = inner.handle_runner_command(RunnerCommand::GetInstalledExtensions)?;
-        if let RunnerCommandResp::ExtensionList(list) = ret {
-            return Ok(list);
+        let RunnerCommandResponse { response } = inner.handle_runner_command(RunnerCommand {
+            command: Some(runner_command::Command::GetInstalledExtensions(
+                Default::default(),
+            )),
+        })?;
+        if let Some(runner_command_response::Response::GetInstalledExtensions(list)) = response {
+            return Ok(list.extensions);
         }
 
         Err(ExtensionError::InvalidResponse)
     }
 
-    pub async fn get_extension_icon(
-        &self,
-        args: PackageNameArgs,
-    ) -> Result<String, ExtensionError> {
+    pub async fn get_extension_icon(&self, package_name: String) -> Result<String, ExtensionError> {
         let mut inner = self.inner.lock().await;
-        let package_name = args.package_name.clone();
-        let ret = inner.handle_runner_command(RunnerCommand::GetExtensionIcon(args))?;
-        if let RunnerCommandResp::ExtensionIcon(Some(icon)) = ret {
+        let RunnerCommandResponse { response } = inner.handle_runner_command(RunnerCommand {
+            command: Some(runner_command::Command::GetExtensionIcon(PackageName {
+                package_name: package_name.clone(),
+            })),
+        })?;
+        if let Some(runner_command_response::Response::GetExtensionIcon(icon)) = response {
             return Ok(icon);
         }
         Err(ExtensionError::NoExtensionIconFound(package_name))
@@ -245,7 +246,7 @@ impl ExtensionHandler {
     pub async fn register_ui_preferences(
         &self,
         package_name: String,
-        prefs: Vec<PreferenceUIData>,
+        prefs: Vec<PreferenceUiData>,
     ) -> Result<(), ExtensionError> {
         let inner = self.inner.lock().await;
         inner.register_ui_preferences(package_name, prefs)
@@ -263,67 +264,11 @@ impl ExtensionHandler {
     pub async fn send_extension_command(
         &self,
         command: ExtensionCommand,
-    ) -> Result<ExtensionCommandResponse, ExtensionError> {
+    ) -> Result<Option<ExtensionCommandResponse>, ExtensionError> {
         tracing::trace!("Sending extension command {:?}", command);
+
         let mut inner = self.inner.lock().await;
         inner.handle_extension_command(command).await
-    }
-
-    pub async fn send_extra_event(
-        &self,
-        args: ExtensionExtraEventArgs,
-    ) -> Result<Value, ExtensionError> {
-        let package_name = args.package_name.clone();
-        let resp = self
-            .send_extension_command(ExtensionCommand::ExtraExtensionEvent(Box::new(args)))
-            .await?;
-
-        if !package_name.is_empty() {
-            if let ExtensionCommandResponse::ExtraExtensionEvent(resp) = resp {
-                return Ok(serde_json::to_value(resp).unwrap());
-            }
-
-            Err(ExtensionError::InvalidResponse)
-        } else {
-            Ok(Value::Null)
-        }
-    }
-
-    pub async fn get_provider_scopes(
-        &self,
-        package_name: PackageNameArgs,
-    ) -> Result<Vec<ExtensionProviderScope>, ExtensionError> {
-        let resp = self
-            .send_extension_command(ExtensionCommand::GetProviderScopes(package_name.clone()))
-            .await?;
-        if let ExtensionCommandResponse::GetProviderScopes(scopes) = resp {
-            return Ok(scopes);
-        }
-        Ok(vec![])
-    }
-
-    pub async fn get_accounts(
-        &self,
-        package_name: PackageNameArgs,
-    ) -> Result<Vec<ExtensionAccountDetail>, ExtensionError> {
-        let resp = self
-            .send_extension_command(ExtensionCommand::GetAccounts(package_name.clone()))
-            .await?;
-        if let ExtensionCommandResponse::GetAccounts(accounts) = resp {
-            return Ok(accounts);
-        }
-        Ok(vec![])
-    }
-
-    pub async fn account_login(&self, args: AccountLoginArgs) -> Result<String, ExtensionError> {
-        if let ExtensionCommandResponse::PerformAccountLogin(url) = self
-            .send_extension_command(ExtensionCommand::PerformAccountLogin(args))
-            .await?
-        {
-            return Ok(url);
-        }
-
-        Ok(String::new())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]

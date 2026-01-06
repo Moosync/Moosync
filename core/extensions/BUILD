@@ -23,7 +23,9 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",
+        "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",
+        "//core/types/protos:ui_rs",
         "@crates//:extism",
         "@crates//:extism-convert",
         "@crates//:fs_extra",

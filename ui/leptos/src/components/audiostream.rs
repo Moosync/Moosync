@@ -29,14 +29,11 @@ use std::{
 };
 
 use crate::utils::error::{MoosyncError, Result};
+use extensions_proto::moosync::types::PlayerState;
+use extensions_proto::moosync::types::player_event::Event as PlayerEvents;
 use tokio::sync::oneshot;
-use types::{
-    ui::{
-        extensions::ExtensionExtraEvent,
-        player_details::{PlayerEvents, PlayerState},
-    },
-    prelude::SongsExt
-};
+use types::prelude::SongsExt;
+
 use wasm_timer::Instant;
 
 use leptos::{IntoView, component, html::Div, prelude::*, task::spawn_local, view};
@@ -50,10 +47,7 @@ use crate::{
         rodio::RodioPlayer,
     },
     store::{player_store::PlayerStore, provider_store::ProviderStore, ui_store::UiStore},
-    utils::{
-        extensions::send_extension_event,
-        invoke::{fetch_playback_url, increment_play_count, increment_play_time},
-    },
+    utils::invoke::{fetch_playback_url, increment_play_count, increment_play_time},
 };
 use songs_proto::moosync::types::Song;
 
@@ -415,10 +409,10 @@ impl PlayerHolder {
 
         let setter = move |player: String, ev: PlayerEvents| {
             match ev {
-                PlayerEvents::Play => player_state_setter.set(PlayerState::Playing),
-                PlayerEvents::Pause => player_state_setter.set(PlayerState::Paused),
-                PlayerEvents::Loading => player_state_setter.set(PlayerState::Loading),
-                PlayerEvents::Ended => {
+                PlayerEvents::Play(_) => player_state_setter.set(PlayerState::Playing),
+                PlayerEvents::Pause(_) => player_state_setter.set(PlayerState::Paused),
+                PlayerEvents::Loading(_) => player_state_setter.set(PlayerState::Loading),
+                PlayerEvents::Ended(_) => {
                     tracing::debug!("Got ended");
                     tracing::debug!("Player {} sent event: {:?}", player, ev);
                     next_song_setter.set(());
@@ -511,7 +505,7 @@ pub fn AudioStream() -> impl IntoView {
         let current_song = current_song_sig.get();
         let _ = force_load_sig.get();
 
-        send_extension_event(ExtensionExtraEvent::SongChanged([current_song.clone()]));
+        // send_extension_event(ExtensionExtraEvent::SongChanged([current_song.clone()]));
         if let Some(mut current_song) = current_song {
             tracing::info!("Loading song {:?}", current_song.get_title());
             // set_metadata(&current_song);

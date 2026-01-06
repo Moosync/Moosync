@@ -14,14 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-use std::sync::Arc;
-use types::prelude::SongsExt;
-use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song, all_analytics::SongListenTime};
+use crate::utils::common::SongDetailIcons;
+use extensions_proto::moosync::types::ExtensionProviderScope;
 use leptos::{IntoView, component, prelude::*, view};
 use leptos_i18n::t;
-use types::{
-    ui::{extensions::ExtensionProviderScope, song_details::SongDetailIcons},
+use songs_proto::moosync::types::{
+    GetSongOptions, SearchableSong, Song, all_analytics::SongListenTime,
 };
+use std::sync::Arc;
+use types::prelude::SongsExt;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
@@ -63,7 +64,7 @@ pub fn Explore() -> impl IntoView {
                 total_listen_time: a.total_listen_time,
                 songs: vec![],
             }));
-            for SongListenTime{song_id, time} in a.songs {
+            for SongListenTime { song_id, time } in a.songs {
                 let provider = get_provider_key_by_id(song_id.clone()).await;
                 if let Ok(provider) = provider {
                     let song = get_song_from_id(provider.clone(), song_id, false).await;

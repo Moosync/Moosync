@@ -320,7 +320,7 @@
         }
       ],
       "name": "get_extension_manifest",
-      "ret": "types::errors::Result<Vec<types::ui::extensions::FetchedExtensionManifest>>"
+      "ret": "types::errors::Result<Vec<extensions_proto::moosync::types::FetchedExtensionManifest>>"
     },
     {
       "args": [
@@ -357,7 +357,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::ui::extensions::FetchedExtensionManifest",
+          "arg_type": "extensions_proto::moosync::types::FetchedExtensionManifest",
           "name": "fetched_ext"
         }
       ],
@@ -372,7 +372,7 @@
         }
       ],
       "name": "get_installed_extensions",
-      "ret": "types::errors::Result<Vec<types::ui::extensions::ExtensionDetail>>"
+      "ret": "types::errors::Result<Vec<extensions_proto::moosync::types::ExtensionDetail>>"
     },
     {
       "args": [
@@ -385,7 +385,7 @@
           "name": "cache"
         },
         {
-          "arg_type": "types::ui::extensions::PackageNameArgs",
+          "arg_type": "String",
           "name": "args"
         },
         {
@@ -689,7 +689,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::ui::player_details::PlayerState",
+          "arg_type": "extensions_proto::moosync::types::PlayerState",
           "name": "state"
         }
       ],
@@ -996,7 +996,7 @@
         }
       ],
       "name": "get_all_status",
-      "ret": "types::errors::Result<std::collections::HashMap<String, types::providers::generic::ProviderStatus>>"
+      "ret": "types::errors::Result<std::collections::HashMap<String, extensions_proto::moosync::types::ProviderStatus>>"
     },
     {
       "args": [
@@ -1226,7 +1226,7 @@
         }
       ],
       "name": "get_song_context_menu",
-      "ret": "types::errors::Result<Vec<types::ui::extensions::ContextMenuReturnType>>"
+      "ret": "types::errors::Result<Vec<extensions_proto::moosync::types::ContextMenuReturnType>>"
     },
     {
       "args": [
@@ -1244,7 +1244,7 @@
         }
       ],
       "name": "get_playlist_context_menu",
-      "ret": "types::errors::Result<Vec<types::ui::extensions::ContextMenuReturnType>>"
+      "ret": "types::errors::Result<Vec<extensions_proto::moosync::types::ContextMenuReturnType>>"
     },
     {
       "args": [
@@ -1275,7 +1275,7 @@
           "name": "key"
         },
         {
-          "arg_type": "types::ui::extensions::ExtensionExtraEvent",
+          "arg_type": "extensions_proto::moosync::types::ExtensionCommand",
           "name": "event"
         }
       ],

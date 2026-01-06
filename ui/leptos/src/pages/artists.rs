@@ -31,8 +31,8 @@ use leptos_router::hooks::use_query_map;
 use songs_proto::moosync::types::{GetSongOptions, Song};
 use std::collections::HashMap;
 use songs_proto::moosync::types::Artist;
-use types::ui::extensions::ExtensionProviderScope;
-use types::ui::song_details::{DefaultDetails, SongDetailIcons};
+use extensions_proto::moosync::types::ExtensionProviderScope;
+use crate::utils::common::{DefaultDetails, SongDetailIcons};
 use uuid::Uuid;
 use wasm_bindgen_futures::spawn_local;
 

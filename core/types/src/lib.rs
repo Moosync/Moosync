@@ -15,22 +15,12 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod canvaz;
-pub mod common;
-// pub mod entities;
 pub mod errors;
-
 pub mod mpris;
 pub mod preferences;
-// pub mod songs;
-
 pub mod providers;
-
-pub mod extensions;
 pub mod ui;
 pub mod window;
-
-#[cfg(test)]
-mod tests;
 
 pub mod prelude {
     use songs_proto::moosync::types::{InnerSong, Song, SongType};

@@ -14,27 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use extensions_proto::moosync::types::PlayerState;
 use indexed_db_futures::{database::Database, prelude::*};
 use leptos::prelude::*;
 use rand::seq::SliceRandom;
 use serde::Serialize;
-use std::{cmp::min, collections::HashMap};
 use songs_proto::moosync::types::Song;
+use std::{cmp::min, collections::HashMap};
 use types::{
-    prelude::SongsExt,
     preferences::CheckboxPreference,
-    ui::extensions::ExtensionExtraEvent,
-    ui::player_details::{PlayerState, RepeatModes, VolumeMode},
+    prelude::SongsExt,
+    ui::player_details::{RepeatModes, VolumeMode},
 };
 use wasm_bindgen_futures::spawn_local;
 
-use crate::{
-    store::ui_store::UiStore,
-    utils::{
-        extensions::send_extension_event,
-        mpris::{set_playback_state, set_position},
-    },
-};
+use crate::store::ui_store::UiStore;
 
 #[derive(Debug, Default, PartialEq, Clone, Serialize)]
 pub struct Queue {
@@ -171,11 +165,12 @@ impl PlayerStore {
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn update_current_song(&mut self, force: bool) {
         self.data.player_details.last_song_played_duration = self.data.player_details.current_time;
-        self.data.player_details.last_song =
-            self.get_current_song().and_then(|s| s.song.and_then(|s| s.id));
+        self.data.player_details.last_song = self
+            .get_current_song()
+            .and_then(|s| s.song.and_then(|s| s.id));
 
         self.data.player_details.current_time = 0f64;
-        set_position(self.data.player_details.current_time);
+        // set_position(self.data.player_details.current_time);
 
         if self.data.queue.current_index >= self.data.queue.song_queue.len() {
             self.data.queue.current_index = 0;
@@ -245,7 +240,11 @@ impl PlayerStore {
 
     #[tracing::instrument(level = "debug", skip(self, song, index))]
     fn insert_song_at_index(&mut self, song: Song, index: usize, dump: bool) {
-        let song_id = song.song.as_ref().and_then(|s| s.id.clone()).unwrap_or_default();
+        let song_id = song
+            .song
+            .as_ref()
+            .and_then(|s| s.id.clone())
+            .unwrap_or_default();
         self.data.queue.data.insert(song_id.clone(), song);
         let insertion_index = min(self.data.queue.song_queue.len(), index);
         self.data.queue.song_queue.insert(insertion_index, song_id);
@@ -311,15 +310,20 @@ impl PlayerStore {
         self.scrobble_time += 0f64.max(new_time - self.data.player_details.current_time);
         self.data.player_details.current_time = new_time;
 
-        if self.scrobble_time > 20f64
-            && !self.scrobbled
-            && let Some(current_song) = self.get_current_song()
-        {
-            self.scrobbled = true;
-            send_extension_event(ExtensionExtraEvent::Scrobble([current_song]));
-        }
+        // if self.scrobble_time > 20f64
+        // && !self.scrobbled
+        // && let Some(current_song) = self.get_current_song()
+        // {
+        // self.scrobbled = true;
+        // send_extension_event(ExtensionCommand {
+        //     package_name: "".into(),
+        //     event: Some(extension_command::Event::Scrobble(ScrobbleRequest {
+        //         song: Some(current_song),
+        //     })),
+        // });
+        // }
 
-        set_position(new_time);
+        // set_position(new_time);
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -330,7 +334,12 @@ impl PlayerStore {
     #[tracing::instrument(level = "debug", skip(self, new_time))]
     pub fn force_seek_percent(&mut self, new_time: f64) {
         let new_time_c = if let Some(current_song) = &self.data.current_song {
-            current_song.song.as_ref().and_then(|s| s.duration).unwrap_or_default() * new_time
+            current_song
+                .song
+                .as_ref()
+                .and_then(|s| s.duration)
+                .unwrap_or_default()
+                * new_time
         } else {
             0f64
         };
@@ -338,7 +347,10 @@ impl PlayerStore {
         tracing::debug!(
             "Got seek {}, {:?}, {}",
             new_time,
-            self.data.current_song.clone().map(|c| c.song.as_ref().and_then(|s| s.duration)),
+            self.data
+                .current_song
+                .clone()
+                .map(|c| c.song.as_ref().and_then(|s| s.duration)),
             new_time_c
         );
         self.data.player_details.force_seek = new_time_c;
@@ -357,8 +369,8 @@ impl PlayerStore {
         self.data.player_details.state = state;
         self.dump_store(&[DumpType::PlayerState]);
 
-        set_playback_state(state);
-        send_extension_event(ExtensionExtraEvent::PlayerStateChanged([state]))
+        // set_playback_state(state);
+        // send_extension_event(ExtensionExtraEvent::PlayerStateChanged([state]))
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -383,7 +395,7 @@ impl PlayerStore {
         self.data.player_details.volume = volume;
 
         self.dump_store(&[DumpType::PlayerState]);
-        send_extension_event(ExtensionExtraEvent::VolumeChanged([volume]))
+        // send_extension_event(ExtensionExtraEvent::VolumeChanged([volume]))
     }
 
     pub fn toggle_mute(&mut self) {

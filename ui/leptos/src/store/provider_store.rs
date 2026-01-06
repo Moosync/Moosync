@@ -18,10 +18,10 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 
 use crate::utils::error::Result;
+use extensions_proto::moosync::types::ExtensionProviderScope;
+use extensions_proto::moosync::types::ProviderStatus;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
-use types::providers::generic::ProviderStatus;
-use types::ui::extensions::ExtensionProviderScope;
 use wasm_bindgen::JsValue;
 
 use crate::players::librespot::LibrespotPlayer;
@@ -122,7 +122,7 @@ impl ProviderStore {
             .get_untracked()
             .into_iter()
             .filter_map(|status| {
-                if status.scopes.contains(&scope) {
+                if status.scopes.contains(&scope.into()) {
                     return Some(status.key.clone());
                 }
                 None

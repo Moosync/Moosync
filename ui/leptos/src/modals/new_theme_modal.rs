@@ -25,14 +25,15 @@ use crate::{
     },
     store::{modal_store::ModalStore, ui_store::UiStore},
     utils::{
+        common::ThemeModalState,
         invoke::{download_theme, get_themes_manifest},
         prefs::{import_theme, open_file_browser_single, save_theme},
     },
 };
-use leptos::{component, prelude::*, task::spawn_local, view, IntoView};
+use leptos::{IntoView, component, prelude::*, task::spawn_local, view};
 use leptos_use::on_click_outside;
 use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
-use types::{ui::themes::ThemeModalState, window::DialogFilter};
+use types::window::DialogFilter;
 
 use crate::modals::common::GenericModal;
 

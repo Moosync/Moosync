@@ -15,7 +15,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use leptos::{IntoView, component, prelude::*, view};
-use types::ui::extensions::PackageNameArgs;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
@@ -34,13 +33,7 @@ pub fn ProviderIcon(
     spawn_local(async move {
         if !extension_clone.is_empty() && extension_clone != "spotify" {
             let extension_clone = extension_clone.replace("extension:", "");
-            let res = get_extension_icon(
-                PackageNameArgs {
-                    package_name: extension_clone,
-                },
-                true,
-            )
-            .await;
+            let res = get_extension_icon(extension_clone, true).await;
 
             if let Ok(res) = res {
                 provider_icon.set(convert_file_src(res));

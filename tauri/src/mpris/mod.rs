@@ -17,10 +17,11 @@
 use std::thread;
 
 use crate::macros::generate_command;
+use extensions_proto::moosync::types::PlayerState;
 use mpris::MprisHolder;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tauri::{AppHandle, Emitter, State};
-use types::{errors::Result, ui::player_details::PlayerState};
+use types::errors::Result;
 
 #[tracing::instrument(level = "debug", skip(app))]
 pub fn get_mpris_state(app: AppHandle) -> Result<MprisHolder> {

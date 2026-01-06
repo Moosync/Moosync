@@ -16,6 +16,7 @@
 
 use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration};
 
+use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
 use leptos::{
     leptos_dom::helpers::IntervalHandle,
     prelude::{NodeRef, set_interval_with_handle},
@@ -23,7 +24,6 @@ use leptos::{
 };
 use songs_proto::moosync::types::{Song, SongType};
 use types::prelude::SongsExt;
-use types::{ui::player_details::PlayerEvents};
 use wasm_bindgen::JsValue;
 
 use crate::utils::{
@@ -203,7 +203,7 @@ impl GenericPlayer for RodioPlayer {
                         let mut time = time.lock().unwrap();
                         *time += 1f64;
                         let tx = tx.borrow_mut();
-                        tx("rodio".into(), PlayerEvents::TimeUpdate(*time));
+                        tx("rodio".into(), PlayerEvent::TimeUpdate(*time));
                     },
                     Duration::from_secs(1),
                 )
@@ -235,7 +235,7 @@ impl GenericPlayer for RodioPlayer {
 
                 *time.lock().unwrap() = 0f64;
                 let tx = tx.borrow_mut();
-                tx("rodio".into(), PlayerEvents::TimeUpdate(0f64));
+                tx("rodio".into(), PlayerEvent::TimeUpdate(0f64));
             };
 
         let tx = RefCell::new(state_setter);
@@ -245,23 +245,23 @@ impl GenericPlayer for RodioPlayer {
         let unlisten = listen_event("rodio_event", move |data| {
             tracing::debug!("Got rodio event {:?}", data);
             let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
-            let event: PlayerEvents = serde_wasm_bindgen::from_value(payload).unwrap();
+            let event: PlayerEvent = serde_wasm_bindgen::from_value(payload).unwrap();
 
             match event {
-                PlayerEvents::Play => start_timer(timer.clone(), time.clone(), tx.clone()),
-                PlayerEvents::Pause => stop_timer(timer.clone(), time.clone(), tx.clone()),
-                PlayerEvents::Ended => {
+                PlayerEvent::Play(_) => start_timer(timer.clone(), time.clone(), tx.clone()),
+                PlayerEvent::Pause(_) => stop_timer(timer.clone(), time.clone(), tx.clone()),
+                PlayerEvent::Ended(_) => {
                     stop_and_clear_timer(timer.clone(), time.clone(), tx.clone())
                 }
-                PlayerEvents::Loading => stop_timer(timer.clone(), time.clone(), tx.clone()),
-                PlayerEvents::TimeUpdate(pos) => {
+                PlayerEvent::Loading(_) => stop_timer(timer.clone(), time.clone(), tx.clone()),
+                PlayerEvent::TimeUpdate(pos) => {
                     let time = time.clone();
                     *time.lock().unwrap() = pos;
 
                     let tx = tx.borrow_mut();
-                    tx("rodio".into(), PlayerEvents::TimeUpdate(pos));
+                    tx("rodio".into(), PlayerEvent::TimeUpdate(pos));
                 }
-                PlayerEvents::Error(_) => stop_timer(timer.clone(), time.clone(), tx.clone()),
+                PlayerEvent::Error(_) => stop_timer(timer.clone(), time.clone(), tx.clone()),
             }
 
             let tx = tx.borrow_mut();

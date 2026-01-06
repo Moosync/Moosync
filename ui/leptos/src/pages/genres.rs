@@ -27,7 +27,7 @@ use rand::seq::IndexedRandom;
 use std::sync::Arc;
 use songs_proto::moosync::types::Genre;
 use songs_proto::moosync::types::{GetSongOptions, Song};
-use types::ui::song_details::SongDetailIcons;
+use crate::utils::common::SongDetailIcons;
 
 #[tracing::instrument(level = "debug", skip())]
 #[component()]

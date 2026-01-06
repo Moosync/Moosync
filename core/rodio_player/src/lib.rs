@@ -23,10 +23,11 @@ use std::{
     time::Duration,
 };
 
+use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
 use rodio::Sink;
 use tracing::{debug, error, info};
 use types::errors::MoosyncError;
-use types::{errors::Result, ui::player_details::PlayerEvents};
+use types::errors::Result;
 
 use crate::decoder::FFMPEGDecoder;
 
@@ -36,7 +37,7 @@ mod tests;
 
 pub struct RodioPlayer {
     tx: Sender<RodioCommand>,
-    events_rx: Arc<Mutex<Receiver<PlayerEvents>>>,
+    events_rx: Arc<Mutex<Receiver<PlayerEvent>>>,
 }
 
 enum RodioCommand {
@@ -51,7 +52,7 @@ enum RodioCommand {
 impl RodioPlayer {
     #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
-        let (events_tx, events_rx) = channel::<PlayerEvents>();
+        let (events_tx, events_rx) = channel::<PlayerEvent>();
         let tx = Self::initialize(events_tx);
 
         Self {
@@ -66,15 +67,15 @@ impl RodioPlayer {
         Ok(())
     }
 
-    pub fn get_events_rx(&self) -> Arc<Mutex<Receiver<PlayerEvents>>> {
+    pub fn get_events_rx(&self) -> Arc<Mutex<Receiver<PlayerEvent>>> {
         self.events_rx.clone()
     }
 
-    fn send_event(events_tx: Sender<PlayerEvents>, event: PlayerEvents) {
+    fn send_event(events_tx: Sender<PlayerEvent>, event: PlayerEvent) {
         events_tx.send(event).unwrap();
     }
 
-    fn initialize(events_tx: Sender<PlayerEvents>) -> Sender<RodioCommand> {
+    fn initialize(events_tx: Sender<PlayerEvent>) -> Sender<RodioCommand> {
         let (tx, rx) = channel::<RodioCommand>();
         let ret = tx.clone();
 
@@ -102,12 +103,15 @@ impl RodioPlayer {
                             }
 
                             sink.clear();
-                            Self::send_event(events_tx.clone(), PlayerEvents::TimeUpdate(0f64));
-                            Self::send_event(events_tx.clone(), PlayerEvents::Loading);
+                            Self::send_event(events_tx.clone(), PlayerEvent::TimeUpdate(0f64));
+                            Self::send_event(events_tx.clone(), PlayerEvent::Loading(true));
 
                             if let Err(err) = Self::set_src(src.clone(), &sink).await {
                                 error!("Failed to set src: {:?}", err);
-                                Self::send_event(events_tx.clone(), PlayerEvents::Error(err))
+                                Self::send_event(
+                                    events_tx.clone(),
+                                    PlayerEvent::Error(err.to_string()),
+                                )
                             } else {
                                 debug!("Set src");
                                 let src_clone = src.clone();
@@ -125,7 +129,7 @@ impl RodioPlayer {
                                         if last_src == src_clone {
                                             Self::send_event(
                                                 events_tx.clone(),
-                                                PlayerEvents::Ended,
+                                                PlayerEvent::Ended(true),
                                             );
                                         }
                                     }
@@ -135,20 +139,20 @@ impl RodioPlayer {
                         RodioCommand::Play => {
                             if !sink.empty() {
                                 sink.play();
-                                Self::send_event(events_tx.clone(), PlayerEvents::Play)
+                                Self::send_event(events_tx.clone(), PlayerEvent::Play(true))
                             }
                         }
                         RodioCommand::Pause => {
                             if !sink.empty() {
                                 sink.pause();
-                                Self::send_event(events_tx.clone(), PlayerEvents::Pause)
+                                Self::send_event(events_tx.clone(), PlayerEvent::Pause(true))
                             }
                         }
                         RodioCommand::Stop => {
                             if !sink.empty() {
                                 sink.stop();
                                 sink.clear();
-                                Self::send_event(events_tx.clone(), PlayerEvents::Pause)
+                                Self::send_event(events_tx.clone(), PlayerEvent::Pause(true))
                             }
                         }
                         RodioCommand::SetVolume(volume) => {
@@ -163,7 +167,7 @@ impl RodioPlayer {
                                 } else {
                                     Self::send_event(
                                         events_tx.clone(),
-                                        PlayerEvents::TimeUpdate(pos as f64),
+                                        PlayerEvent::TimeUpdate(pos as f64),
                                     )
                                 }
                             } else {

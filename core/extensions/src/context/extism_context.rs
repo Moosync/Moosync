@@ -17,6 +17,11 @@ use crypto::{
     sha1::Sha1,
     sha2::{Sha256, Sha512},
 };
+use extensions_proto::moosync::types::{
+    Error as MainCommandError, ExtensionCommand, ExtensionCommandResponse, ExtensionManifest,
+    ExtensionsUpdatedRequest, MainCommand, MainCommandResponse, ManifestPermissions, main_command,
+    main_command_response,
+};
 use extism::{Error, ValType::I64};
 use extism::{Manifest, PTR, Plugin, PluginBuilder, UserData, Wasm, host_fn};
 use extism_convert::Json;
@@ -25,23 +30,24 @@ use interprocess::local_socket::{
     traits::Stream,
 };
 use regex::{Captures, Regex};
-use serde_json::Value;
-use types::extensions::{ExtensionManifest, MainCommandResponse, ManifestPermissions};
 
 use crate::{
     context::{Extism, MainCommandUserData, ReplyHandler, SocketUserData},
     errors::ExtensionError,
-    models::{ExtensionCommand, ExtensionCommandResponse},
+    models::SanitizeCommand,
 };
-use types::extensions::MainCommand;
 
 host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Json<MainCommand>) {
     let user_data = user_data.get()?;
     let user_data = user_data.lock().unwrap();
 
     let mut command = command_wrapper.0;
-    if let Err(e) = command.sanitize_command(&user_data.package_name) {
-        return Ok(Json(MainCommandResponse::Error(e.to_string())));
+    if let Err(e) = command.sanitize(&user_data.package_name) {
+        return Ok(Json(MainCommandResponse {
+            response: Some(main_command_response::Response::Error(MainCommandError {
+                message: e.to_string()
+            })),
+        }));
     }
 
     let response = user_data.reply_handler
@@ -54,7 +60,11 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Json
             Ok(Json(response))
         }
         Err(e) => {
-            Ok(Json(MainCommandResponse::Error(e.to_string())))
+            Ok(Json(MainCommandResponse {
+                response: Some(main_command_response::Response::Error(MainCommandError {
+                    message: e.to_string()
+                })),
+            }))
         }
     }
 });
@@ -249,7 +259,9 @@ impl ExtismContext {
                 tracing::warn!("Path {:?} does not exist", parsed_path);
                 continue;
             }
-            allowed_paths.insert(parsed, value.clone());
+
+            let Ok(value_path) = PathBuf::from_str(value);
+            allowed_paths.insert(parsed, value_path);
         }
 
         tracing::info!("Got allowed paths {:?}", allowed_paths);
@@ -367,7 +379,14 @@ impl Extism for ExtismContext {
                     tracing::error!("Failed to called extension entry: {:?}", e);
                 }
             }
-            let _ = reply_handler.as_ref()(&package_name, MainCommand::ExtensionsUpdated());
+            let _ = reply_handler.as_ref()(
+                &package_name,
+                MainCommand {
+                    command: Some(main_command::Command::ExtensionsUpdated(
+                        ExtensionsUpdatedRequest {},
+                    )),
+                },
+            );
         });
 
         plugin_clone
@@ -380,12 +399,15 @@ impl Extism for ExtismContext {
         command: ExtensionCommand,
     ) -> Result<ExtensionCommandResponse, ExtensionError> {
         tokio::task::spawn_blocking(move || {
-            let (fn_name, args) = command.to_plugin_call();
             let mut plugin = plugin.lock().unwrap();
-            tracing::debug!("Calling {} on {:?}", fn_name, plugin.id);
-            let res = plugin.call::<_, Value>(fn_name, args.clone())?;
-            tracing::trace!("Finished calling {} on {:?}", fn_name, plugin.id);
-            let mut parsed_resp = command.parse_response(res)?;
+            tracing::debug!("Calling {:?} on {:?}", command, plugin.id);
+            let res = plugin.call::<_, Json<ExtensionCommandResponse>>(
+                "handle_extension_command",
+                Json(command),
+            )?;
+            tracing::trace!("Finished calling on {:?}", plugin.id);
+
+            let mut parsed_resp = res.0;
             parsed_resp.sanitize(&package_name)?;
             Ok(parsed_resp)
         })

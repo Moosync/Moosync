@@ -17,6 +17,7 @@
 use std::time::Duration;
 
 use ev::mouseup;
+use extensions_proto::moosync::types::PlayerState;
 use leptos::ev::{pointermove, touchend};
 use leptos::*;
 use leptos::{IntoView, component, prelude::*, view};
@@ -24,7 +25,6 @@ use leptos_dom::helpers::TimeoutHandle;
 use leptos_use::{use_document, use_event_listener};
 use songs_proto::moosync::types::{Artist, Playlist};
 use task::spawn_local;
-use types::ui::player_details::PlayerState;
 use types::prelude::SongsExt;
 
 use crate::components::artist_list::ArtistList;
@@ -58,7 +58,7 @@ pub fn Details() -> impl IntoView {
         if let Some(current_song) = &current_song {
             title.set(current_song.get_title().unwrap());
             cover_img.set(get_low_img(current_song));
-            artists_list.set(current_song.artists .clone());
+            artists_list.set(current_song.artists.clone());
             return;
         }
         title.set("-".into());
@@ -470,8 +470,7 @@ pub fn Slider() -> impl IntoView {
 
     Effect::new(move || {
         let current_song = current_song.get();
-        if let Some(current_song) = current_song
-        {
+        if let Some(current_song) = current_song {
             total_time.set(current_song.get_duration_or_default());
         }
     });

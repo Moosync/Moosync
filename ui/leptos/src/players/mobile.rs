@@ -17,11 +17,11 @@
 use leptos::{html::Div, prelude::*, task::spawn_local};
 
 use crate::utils::error::Result;
+use extensions_proto::moosync::types::player_event::Event as PlayerEvents;
 use serde::Deserialize;
-use tokio::sync::oneshot::Sender as OneShotSender;
 use songs_proto::moosync::types::{Song, SongType};
+use tokio::sync::oneshot::Sender as OneShotSender;
 use types::prelude::SongsExt;
-use types::{ui::player_details::PlayerEvents};
 use wasm_bindgen::JsValue;
 
 use crate::utils::{
@@ -98,9 +98,9 @@ impl MobilePlayer {
     }
 
     generate_event_listeners!(
-        listen_onplay => ("onPlay", KeyEvent) => |_| PlayerEvents::Play,
-        listen_onpause => ("onPause", KeyEvent) => |_| PlayerEvents::Pause,
-        listen_onended => ("onSongEnded", KeyEvent) => |_| PlayerEvents::Ended,
+        listen_onplay => ("onPlay", KeyEvent) => |_| PlayerEvents::Play(true),
+        listen_onpause => ("onPause", KeyEvent) => |_| PlayerEvents::Pause(true),
+        listen_onended => ("onSongEnded", KeyEvent) => |_| PlayerEvents::Ended(true),
         listen_ontimeupdate => ("onTimeChange", TimeChangeEvent) => |evt: TimeChangeEvent|{
             PlayerEvents::TimeUpdate(evt.pos / 1000f64)
         }

@@ -24,7 +24,7 @@ use colors_transform::{Color, Rgb};
 use leptos::{IntoView, Params, component, ev::wheel, html::Div, prelude::*, view};
 use leptos_router::{hooks::use_query, params::Params};
 use leptos_use::{use_event_listener, use_resize_observer};
-use types::ui::extensions::ExtensionProviderScope;
+use extensions_proto::moosync::types::ExtensionProviderScope;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::window;
 

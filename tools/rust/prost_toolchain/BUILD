@@ -3,6 +3,7 @@ load("@rules_rust_prost//:defs.bzl", "rust_prost_toolchain")
 
 PROST_OPTS = [
     "type_attribute=.=#[derive(serde::Serialize\\,serde::Deserialize)]",
+    "type_attribute=.=#[serde(rename_all=\"camelCase\")]",
 ]
 
 rust_library_group(

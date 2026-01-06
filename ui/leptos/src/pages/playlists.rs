@@ -22,6 +22,7 @@ use crate::modals::new_playlist_modal::PlaylistModalState;
 use crate::store::modal_store::{ModalStore, Modals};
 use crate::store::player_store::PlayerStore;
 use crate::store::ui_store::{PlaylistSortByColumns, UiStore};
+use crate::utils::common::{DefaultDetails, SongDetailIcons};
 use crate::utils::common::{convert_file_src, fetch_infinite};
 use crate::utils::context_menu::{
     PlaylistContextMenu, PlaylistItemContextMenu, create_context_menu,
@@ -33,11 +34,10 @@ use leptos::{IntoView, component, prelude::*, view};
 use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
 use rand::seq::IndexedRandom;
+use songs_proto::moosync::types::Playlist;
 use songs_proto::moosync::types::{GetSongOptions, Song};
 use std::collections::HashMap;
 use std::sync::Arc;
-use songs_proto::moosync::types::Playlist;
-use types::ui::song_details::{DefaultDetails, SongDetailIcons};
 
 use crate::store::provider_store::ProviderStore;
 use crate::{icons::plus_button::PlusIcon, utils::db_utils::get_playlists_by_option};

@@ -21,7 +21,7 @@ use leptos::{IntoView, component, prelude::*, view};
 use leptos_i18n::t;
 use songs_proto::moosync::types::Playlist;
 use songs_proto::moosync::types::Song;
-use types::ui::extensions::ExtensionProviderScope;
+use extensions_proto::moosync::types::ExtensionProviderScope;
 
 use crate::i18n::use_i18n;
 use crate::icons::{

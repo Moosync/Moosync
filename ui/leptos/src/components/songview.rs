@@ -16,10 +16,10 @@
 
 use std::collections::HashMap;
 
+use crate::utils::common::{DefaultDetails, SongDetailIcons};
 use leptos::{component, html::Div, prelude::*, view};
 use leptos_use::on_click_outside;
 use songs_proto::moosync::types::Song;
-use types::{ui::song_details::DefaultDetails, ui::song_details::SongDetailIcons};
 use web_sys::{Event, Node};
 
 use crate::{

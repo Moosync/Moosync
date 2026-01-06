@@ -24,11 +24,11 @@ use leptos::{
 };
 
 use crate::utils::error::Result;
+use extensions_proto::moosync::types::player_event::Event as PlayerEvents;
 use leptos_use::use_event_listener;
-use tokio::sync::oneshot::Sender as OneShotSender;
 use songs_proto::moosync::types::{Song, SongType};
+use tokio::sync::oneshot::Sender as OneShotSender;
 use types::prelude::SongsExt;
-use types::{ui::player_details::PlayerEvents};
 use wasm_bindgen::JsCast;
 use wasm_bindgen_futures::JsFuture;
 use web_sys::HtmlAudioElement;
@@ -97,12 +97,12 @@ impl LocalPlayer {
     }
 
     generate_event_listeners!(
-        listen_onplay => play => |_| PlayerEvents::Play,
-        listen_onpause => pause => |_| PlayerEvents::Pause,
-        listen_onended => ended => |_| PlayerEvents::Ended,
-        listen_onloadstart => loadstart => |_| PlayerEvents::Loading,
-        listen_onloadend => loadeddata => |_| PlayerEvents::Play,
-        listen_onerror => error => |err| PlayerEvents::Error(format!("{err:?}").into()),
+        listen_onplay => play => |_| PlayerEvents::Play(true),
+        listen_onpause => pause => |_| PlayerEvents::Pause(true),
+        listen_onended => ended => |_| PlayerEvents::Ended(true),
+        listen_onloadstart => loadstart => |_| PlayerEvents::Loading(true),
+        listen_onloadend => loadeddata => |_| PlayerEvents::Play(true),
+        listen_onerror => error => |err| PlayerEvents::Error(format!("{err:?}")),
         listen_ontimeupdate => timeupdate => |evt|{
             let target = event_target::<leptos::web_sys::HtmlAudioElement>(&evt);
             let time = target.current_time();
@@ -161,7 +161,7 @@ impl GenericPlayer for LocalPlayer {
                 if let Some(tx) = event_tx {
                     tx(
                         "local".into(),
-                        PlayerEvents::Error(format!("Error playing audio: {e:?}").into()),
+                        PlayerEvents::Error(format!("Error playing audio: {e:?}")),
                     );
                 }
             }

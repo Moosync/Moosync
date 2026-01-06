@@ -59,8 +59,8 @@ where
 {
     use std::{collections::HashMap, sync::Arc};
 
+    use extensions_proto::moosync::types::ExtensionProviderScope;
     use leptos::{prelude::*, task::spawn_local};
-    use types::ui::extensions::ExtensionProviderScope;
 
     use crate::{store::provider_store::ProviderStore, utils::common::fetch_infinite};
 

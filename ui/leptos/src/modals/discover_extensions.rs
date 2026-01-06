@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use leptos::{IntoView, component, prelude::*, task::spawn_local, view};
-use types::ui::extensions::FetchedExtensionManifest;
+use extensions_proto::moosync::types::FetchedExtensionManifest;
 
 use crate::{
     modals::common::GenericModal, store::modal_store::ModalStore,

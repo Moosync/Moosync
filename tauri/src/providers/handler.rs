@@ -14,23 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use futures::{
-    StreamExt,
-    channel::mpsc::{UnboundedReceiver, UnboundedSender, unbounded},
-};
 use serde_json::Value;
 use std::{collections::HashMap, sync::Arc};
 
 use crate::macros::{generate_command_async, generate_command_async_cached};
 use database::cache::CacheHolder;
+use extensions_proto::moosync::types::{ContextMenuReturnType, ProviderStatus, extension_command};
 use songs_proto::moosync::types::{Album, Artist, Playlist, SearchResult, Song};
+
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::{Mutex, RwLock};
-use types::{
-    errors::{MoosyncError, Result, error_helpers},
-    providers::generic::{GenericProvider, Pagination, ProviderStatus},
-    ui::extensions::{ContextMenuReturnType, ExtensionExtraEvent},
-};
+use types::errors::{MoosyncError, Result, error_helpers};
+use types::providers::generic::Pagination;
 
 use crate::{extensions::get_extension_handler, providers::extension::ExtensionProvider};
 
@@ -46,58 +41,24 @@ macro_rules! get_provider {
 
 #[derive(Debug)]
 pub struct ProviderHandler {
-    provider_store: Arc<RwLock<HashMap<String, Box<dyn GenericProvider>>>>,
+    provider_store: Arc<RwLock<HashMap<String, ExtensionProvider>>>,
     app_handle: AppHandle,
-    status_tx: UnboundedSender<ProviderStatus>,
     provider_status: Arc<Mutex<HashMap<String, ProviderStatus>>>,
 }
 
 impl ProviderHandler {
     #[tracing::instrument(level = "debug", skip(app))]
     pub fn new(app: AppHandle) -> Self {
-        let (status_tx, status_rx) = unbounded();
-        let store = Self {
+        Self {
             app_handle: app.clone(),
             provider_store: Default::default(),
-            status_tx,
             provider_status: Default::default(),
-        };
-        store.listen_status_changes(status_rx);
-        store
+        }
     }
 
     pub async fn request_account_status(&self, key: &str) -> Result<()> {
-        let provider_store = self.provider_store.read().await;
-        if let Some(provider) = provider_store.get(key) {
-            tracing::debug!("Requesting account status from {}", key);
-            provider.requested_account_status().await?;
-        }
-
-        Err("Provider not found".into())
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, status_rx))]
-    pub fn listen_status_changes(&self, status_rx: UnboundedReceiver<ProviderStatus>) {
-        let status_rx = Arc::new(Mutex::new(status_rx));
-        let provider_status = self.provider_status.clone();
-        let app_handle = self.app_handle.clone();
-        tauri::async_runtime::spawn(async move {
-            let status_rx = status_rx.clone();
-            let mut status_rx = status_rx.lock().await;
-            let provider_status = provider_status.clone();
-            let app_handle = app_handle.clone();
-
-            while let Some(status) = status_rx.next().await {
-                tracing::debug!("Got provider status update {:?}", status);
-                let mut provider_status = provider_status.lock().await;
-                provider_status.insert(status.key.clone(), status);
-                let res = app_handle.emit("provider-status-update", provider_status.clone());
-                if let Err(e) = res {
-                    tracing::error!("Error emitting status update: {:?}", e);
-                }
-                tracing::debug!(provider_status = ?provider_status, "Emitted status update");
-            }
-        });
+        tracing::debug!("Requesting account status from {}", key);
+        self.update_accounts(key.into()).await
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -105,17 +66,15 @@ impl ProviderHandler {
         let ext_handler = get_extension_handler(&self.app_handle);
         let extensions_res = ext_handler.get_installed_extensions().await?;
         for extension in extensions_res {
-            if !extension.active {
-                continue;
-            }
-            let provides = ext_handler
-                .get_provider_scopes(extension.package_name.clone().into())
-                .await;
+            let mut provider = ExtensionProvider::new(extension.clone(), self.app_handle.clone());
+
+            let provides = provider.get_provider_scopes().await;
             tracing::info!(
                 "Got provider scopes from {} {:?}",
                 extension.package_name,
                 provides
             );
+
             if let Ok(provides) = provides {
                 tracing::info!(
                     "Inserting extension provider {:?} {:?}",
@@ -123,12 +82,6 @@ impl ProviderHandler {
                     provides,
                 );
 
-                let provider = Box::new(ExtensionProvider::new(
-                    extension.clone(),
-                    provides,
-                    self.app_handle.clone(),
-                    self.status_tx.clone(),
-                ));
                 let key = {
                     let mut provider_store = self.provider_store.write().await;
                     let key = provider.key();
@@ -136,7 +89,9 @@ impl ProviderHandler {
                     tracing::info!("provider_store: {:?}", provider_store.keys());
                     key
                 };
-                self.initialize_provider(key).await;
+                if let Err(e) = self.update_accounts(key.clone()).await {
+                    tracing::error!("Failed to update accounts for {}: {}", key, e);
+                }
             }
 
             self.app_handle
@@ -147,13 +102,27 @@ impl ProviderHandler {
     }
 
     #[tracing::instrument(level = "debug", skip(self, key))]
-    pub async fn initialize_provider(&self, key: String) {
-        let provider_store = self.provider_store.read().await;
-        let provider = provider_store.get(&key);
-        if let Some(provider) = provider
-            && let Err(e) = provider.initialize().await
-        {
-            tracing::error!("Error initializing provider {}: {:?}", provider.key(), e);
+    pub async fn update_accounts(&self, key: String) -> Result<()> {
+        let mut provider_store = self.provider_store.write().await;
+        let provider = provider_store.get_mut(&key);
+        if let Some(provider) = provider {
+            let accounts = provider.get_accounts().await?;
+            tracing::debug!("Got provider accounts {:?}", accounts);
+            let mut provider_status = self.provider_status.lock().await;
+            for account in accounts {
+                // TODO: Support multiple accounts per provider
+                provider_status.insert(key.clone(), account);
+            }
+            let res = self
+                .app_handle
+                .emit("provider-status-update", provider_status.clone());
+            if let Err(e) = res {
+                tracing::error!("Error emitting status update: {:?}", e);
+            }
+            tracing::debug!(provider_status = ?provider_status, "Emitted status update");
+            Ok(())
+        } else {
+            Err(format!("Provider ({}) not found", key).into())
         }
     }
 
@@ -180,7 +149,11 @@ impl ProviderHandler {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn handle_extra_event(&self, key: String, event: ExtensionExtraEvent) -> Result<()> {
+    pub async fn handle_extra_event(
+        &self,
+        key: String,
+        event: extension_command::Event,
+    ) -> Result<()> {
         let provider_keys = if key.is_empty() {
             self.get_provider_keys().await?
         } else {
@@ -193,7 +166,12 @@ impl ProviderHandler {
             if let Some(provider) = provider
                 && let Err(e) = provider.handle_extra_event(event.clone()).await
             {
-                tracing::error!("Provider failed to handle event {:?}: {}", event, e);
+                tracing::warn!(
+                    "Provider {} failed to handle event {:?}: {}",
+                    provider_key,
+                    event,
+                    e
+                );
             }
         }
 
@@ -367,4 +345,4 @@ generate_command_async_cached!(get_provider_lyrics, ProviderHandler, String, key
 generate_command_async!(get_song_context_menu, ProviderHandler, Vec<ContextMenuReturnType>, key: String, songs: Vec<Song>);
 generate_command_async!(get_playlist_context_menu, ProviderHandler, Vec<ContextMenuReturnType>, key: String, playlist: Playlist);
 generate_command_async!(trigger_context_menu_action, ProviderHandler, (), key: String, action: String);
-generate_command_async!(handle_extra_event, ProviderHandler, (), key: String, event: ExtensionExtraEvent);
+generate_command_async!(handle_extra_event, ProviderHandler, (), key: String, event: extension_command::Event);

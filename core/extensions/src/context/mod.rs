@@ -5,17 +5,14 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use extensions_proto::moosync::types::{
+    ExtensionCommand, ExtensionCommandResponse, ExtensionManifest, MainCommand, MainCommandResponse,
+};
 use extism::Plugin;
 use interprocess::local_socket::Stream as LocalSocketStream;
-use types::{
-    errors::MoosyncError,
-    extensions::{ExtensionManifest, MainCommand, MainCommandResponse},
-};
+use types::errors::MoosyncError;
 
-use crate::{
-    errors::ExtensionError,
-    models::{ExtensionCommand, ExtensionCommandResponse},
-};
+use crate::errors::ExtensionError;
 
 pub use extism_context::ExtismContext;
 

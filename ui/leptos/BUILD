@@ -131,7 +131,6 @@ rust_binary_with_export(
         "src/utils/db_utils.rs",
         "src/utils/entities.rs",
         "src/utils/error.rs",
-        "src/utils/extensions.rs",
         "src/utils/invoke.rs",
         "src/utils/mod.rs",
         "src/utils/mpris.rs",
@@ -160,8 +159,10 @@ rust_binary_with_export(
     deps = [
         ":build_script",
         "//core/types:types_ui",
+        "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",
         "//core/types/protos:themes_rs",
+        "//core/types/protos:ui_rs",
         "@wasmCrates//:bitcode",
         "@wasmCrates//:chrono",
         "@wasmCrates//:colors-transform",

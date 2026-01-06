@@ -7,10 +7,8 @@ use souvlaki::{
 use std::time::Duration;
 
 use crate::MprisPlayerDetails;
-use types::{
-    errors::{MoosyncError, Result},
-    ui::player_details::PlayerState,
-};
+use extensions_proto::moosync::types::PlayerState;
+use types::errors::{MoosyncError, Result};
 
 pub trait MprisContext: Send + Sync {
     fn attach(&mut self, sender: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<()>;
@@ -54,10 +52,12 @@ impl SouvlakiMprisContext {
             MediaControls::new(config).map_err(|e| MoosyncError::String(format!("{:?}", e)))?;
 
         #[cfg(target_os = "windows")]
-        std::thread::spawn(move || loop {
-            std::thread::sleep(std::time::Duration::from_millis(100));
-            #[cfg(target_os = "windows")]
-            crate::win32::pump_event_queue();
+        std::thread::spawn(move || {
+            loop {
+                std::thread::sleep(std::time::Duration::from_millis(100));
+                #[cfg(target_os = "windows")]
+                crate::win32::pump_event_queue();
+            }
         });
 
         Ok(Self { controls })

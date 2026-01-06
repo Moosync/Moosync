@@ -29,6 +29,7 @@ use crate::{
         prefs::watch_preferences,
     },
 };
+use extensions_proto::moosync::types::{ExtensionUiRequest, PlayerState, main_command};
 use leptos::{
     IntoView, component,
     ev::{contextmenu, keydown},
@@ -43,10 +44,7 @@ use leptos_router::{
 };
 use leptos_use::use_event_listener;
 use serde::Serialize;
-use types::{
-    preferences::CheckboxPreference, ui::extensions::ExtensionUIRequest,
-    ui::player_details::PlayerState,
-};
+use types::preferences::CheckboxPreference;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlElement;
@@ -313,55 +311,56 @@ pub fn App() -> impl IntoView {
     let ui_requests_unlisten = listen_event("ui-requests", move |data| {
         owner.with(|| {
             let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
-            let payload: ExtensionUIRequest = serde_wasm_bindgen::from_value(payload).unwrap();
+            let payload: ExtensionUiRequest = serde_wasm_bindgen::from_value(payload).unwrap();
 
-            #[tracing::instrument(level = "debug", skip(payload, data))]
-            fn send_reply<T>(payload: ExtensionUIRequest, data: T)
+            #[tracing::instrument(level = "debug", skip(channel, data))]
+            fn send_reply<T>(channel: String, data: T)
             where
                 T: Serialize + Clone,
             {
                 let value = serde_wasm_bindgen::to_value(&data).unwrap();
                 spawn_local(async move {
-                    let res = emit(format!("ui-reply-{}", payload.channel).as_str(), value);
+                    let res = emit(format!("ui-reply-{}", channel).as_str(), value);
                     wasm_bindgen_futures::JsFuture::from(res).await.unwrap();
                 });
             }
 
-            match payload.type_.as_str() {
-                "getCurrentSong" => {
+            let channel = payload.channel.clone();
+            match payload.r#type.unwrap().command.unwrap() {
+                main_command::Command::GetCurrentSong(_) => {
                     let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
                         p.get_current_song()
                     })
                     .get_untracked();
-                    send_reply(payload, data);
+                    send_reply(channel, data);
                 }
-                "getVolume" => {
+                main_command::Command::GetVolume(_) => {
                     let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
                         p.get_volume()
                     })
                     .get_untracked();
-                    send_reply(payload, data);
+                    send_reply(channel, data);
                 }
-                "getTime" => {
+                main_command::Command::GetTime(_) => {
                     let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
                         p.get_time()
                     })
                     .get_untracked();
-                    send_reply(payload, data);
+                    send_reply(channel, data);
                 }
-                "getQueue" => {
+                main_command::Command::GetQueue(_) => {
                     let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
                         p.get_queue()
                     })
                     .get_untracked();
-                    send_reply(payload, data);
+                    send_reply(channel, data);
                 }
-                "getPlayerState" => {
+                main_command::Command::GetPlayerState(_) => {
                     let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
                         p.get_player_state()
                     })
                     .get_untracked();
-                    send_reply(payload, data);
+                    send_reply(channel, data);
                 }
                 _ => {}
             };

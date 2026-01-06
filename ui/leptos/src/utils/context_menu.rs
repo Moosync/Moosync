@@ -16,6 +16,7 @@
 
 use std::sync::Arc;
 
+use extensions_proto::moosync::types::ExtensionProviderScope;
 use leptos::{prelude::*, task::spawn_local};
 use leptos_context_menu::{
     BottomSheet, ContextMenu, ContextMenuData, ContextMenuItemInner, ContextMenuItems, Menu,
@@ -26,7 +27,6 @@ use leptos_router::{
     hooks::{use_navigate, use_query_map},
 };
 use songs_proto::moosync::types::{Artist, Playlist, Song};
-use types::ui::extensions::ExtensionProviderScope;
 
 use crate::{
     i18n::use_i18n,
@@ -37,7 +37,10 @@ use crate::{
         provider_store::ProviderStore,
         ui_store::UiStore,
     },
-    utils::{entities::get_playlist_sort_cx_items, songs::get_songs_from_indices},
+    utils::{
+        common::ThemeModalState, entities::get_playlist_sort_cx_items,
+        songs::get_songs_from_indices,
+    },
 };
 
 use super::{
@@ -232,7 +235,13 @@ where
         let library_menu_item = if self
             .current_song
             .as_ref()
-            .map(|s| s.song.clone().unwrap_or_default().library_item.unwrap_or_default())
+            .map(|s| {
+                s.song
+                    .clone()
+                    .unwrap_or_default()
+                    .library_item
+                    .unwrap_or_default()
+            })
             .unwrap_or_default()
         {
             ContextMenuItemInner::<Self>::new_with_handler(
@@ -388,7 +397,7 @@ impl ThemesContextMenu {
                 if let Ok(theme) = theme {
                     modal_store.update(|m| {
                         m.set_active_modal(Modals::ThemeModal(Box::new(
-                            types::ui::themes::ThemeModalState::NewTheme(Box::new(theme)),
+                            ThemeModalState::NewTheme(Box::new(theme)),
                         )));
                         m.on_modal_close(move || refresh_cb.as_ref()());
                     });

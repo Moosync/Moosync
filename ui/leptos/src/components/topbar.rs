@@ -16,7 +16,6 @@
 
 use std::sync::Arc;
 
-use types::prelude::SongsExt;
 use crate::components::provider_icon::ProviderIcon;
 use crate::i18n::use_i18n;
 use crate::store::ui_store::UiStore;
@@ -33,6 +32,7 @@ use crate::{
         provider_store::ProviderStore,
     },
 };
+use extensions_proto::moosync::types::ExtensionProviderScope;
 use leptos::task::spawn_local;
 use leptos::{
     IntoView, component, ev::Event, prelude::*, reactive::wrappers::write::SignalSetter, view,
@@ -44,9 +44,8 @@ use leptos_virtual_scroller::VirtualScroller;
 use songs_proto::moosync::types::{
     Album, Artist, Genre, GetEntityOptions, GetSongOptions, Playlist, SearchableSong, Song,
 };
-use types::ui::extensions::ExtensionProviderScope;
+use types::prelude::SongsExt;
 use web_sys::SubmitEvent;
-
 
 enum InputFocus {
     Focus,
@@ -145,7 +144,7 @@ pub fn Accounts() -> impl IntoView {
                                         .get()
                                         .into_iter()
                                         .filter(|s| {
-                                            s.scopes.contains(&ExtensionProviderScope::Accounts)
+                                            s.scopes.contains(&ExtensionProviderScope::Accounts.into())
                                         });
                                     binding
                                         .map(|status| {
@@ -380,9 +379,9 @@ async fn get_search_res(
                     subtitle: s
                         .artists
                         .iter()
-                                .filter_map(|a| a.artist_name.clone())
-                                .collect::<Vec<_>>()
-                                .join(","),
+                        .filter_map(|a| a.artist_name.clone())
+                        .collect::<Vec<_>>()
+                        .join(","),
                     on_click: Arc::new(Box::new(move || {})),
                     on_icon_click: Arc::new(Box::new(move || {
                         play_now.set(s.clone());

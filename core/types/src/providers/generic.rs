@@ -14,13 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{
-    errors::Result,
-    ui::extensions::{ContextMenuReturnType, ExtensionExtraEvent, ExtensionProviderScope},
-};
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use songs_proto::moosync::types::{Album, Artist, Playlist, SearchResult, Song};
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct Pagination {
@@ -78,68 +72,4 @@ impl Pagination {
     pub fn invalidate(&mut self) {
         self.is_valid = false;
     }
-}
-
-#[derive(Debug, Default, Clone, Serialize, Deserialize)]
-pub struct ProviderStatus {
-    pub key: String,
-    pub name: String,
-    pub user_name: Option<String>,
-    pub logged_in: bool,
-    pub bg_color: String,
-    pub account_id: String,
-    pub scopes: Vec<ExtensionProviderScope>,
-}
-
-#[async_trait]
-pub trait GenericProvider: std::fmt::Debug + Send + Sync {
-    async fn initialize(&self) -> Result<()>;
-    async fn get_provider_scopes(&self) -> Result<Vec<ExtensionProviderScope>>;
-    fn key(&self) -> String;
-    fn match_id(&self, id: String) -> bool;
-
-    async fn login(&self, account_id: String) -> Result<String>;
-    async fn signout(&self, account_id: String) -> Result<()>;
-    async fn requested_account_status(&self) -> Result<()>;
-
-    async fn authorize(&self, code: String) -> Result<()>;
-
-    async fn fetch_user_playlists(
-        &self,
-        pagination: Pagination,
-    ) -> Result<(Vec<Playlist>, Pagination)>;
-    async fn get_playlist_content(
-        &self,
-        playlist: Playlist,
-        pagination: Pagination,
-    ) -> Result<(Vec<Song>, Pagination)>;
-    async fn get_playback_url(&self, song: Song, player: String) -> Result<String>;
-
-    async fn search(&self, term: String) -> Result<SearchResult>;
-
-    async fn match_url(&self, url: String) -> Result<bool>;
-    async fn playlist_from_url(&self, url: String) -> Result<Playlist>;
-    async fn song_from_url(&self, url: String) -> Result<Song>;
-    async fn song_from_id(&self, id: String) -> Result<Song>;
-    async fn get_suggestions(&self) -> Result<Vec<Song>>;
-
-    async fn get_album_content(
-        &self,
-        album: Album,
-        pagination: Pagination,
-    ) -> Result<(Vec<Song>, Pagination)>;
-    async fn get_artist_content(
-        &self,
-        artist: Artist,
-        pagination: Pagination,
-    ) -> Result<(Vec<Song>, Pagination)>;
-
-    async fn get_lyrics(&self, song: Song) -> Result<String>;
-    async fn get_song_context_menu(&self, songs: Vec<Song>) -> Result<Vec<ContextMenuReturnType>>;
-    async fn get_playlist_context_menu(
-        &self,
-        playlist: Playlist,
-    ) -> Result<Vec<ContextMenuReturnType>>;
-    async fn trigger_context_menu_action(&self, action_id: String) -> Result<()>;
-    async fn handle_extra_event(&self, event: ExtensionExtraEvent) -> Result<()>;
 }

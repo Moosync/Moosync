@@ -22,6 +22,7 @@ use std::hash::Hasher;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use ui_proto::moosync::types::CheckboxItem;
 
 #[derive(Debug, Serialize, Clone, Deserialize)]
 pub struct CheckboxPreference {
@@ -59,7 +60,7 @@ pub struct PreferenceUIFile {
 
 #[derive(Debug, Serialize, Clone, Deserialize)]
 pub struct Page {
-    pub data: Vec<PreferenceUIData>,
+    pub data: Vec<PreferenceUiData>,
     pub title: String,
     pub path: String,
     pub icon: String,
@@ -77,7 +78,7 @@ pub enum InputType {
 
 #[derive(Debug, Serialize, Clone, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct PreferenceUIData {
+pub struct PreferenceUiData {
     #[serde(rename = "type")]
     pub _type: PreferenceTypes,
     pub title: String,
@@ -85,31 +86,25 @@ pub struct PreferenceUIData {
     pub description: String,
     pub input_type: Option<InputType>,
     pub single: Option<bool>,
-    pub items: Option<Vec<CheckboxItems>>,
+    pub items: Option<Vec<CheckboxItem>>,
     pub default: Option<Value>,
     pub mobile: Option<bool>,
 }
 
-impl PartialEq for PreferenceUIData {
+impl PartialEq for PreferenceUiData {
     #[tracing::instrument(level = "debug", skip(self, other))]
     fn eq(&self, other: &Self) -> bool {
         self.key == other.key
     }
 }
 
-impl std::cmp::Eq for PreferenceUIData {}
+impl std::cmp::Eq for PreferenceUiData {}
 
-impl std::hash::Hash for PreferenceUIData {
+impl std::hash::Hash for PreferenceUiData {
     #[tracing::instrument(level = "debug", skip(self, state))]
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.key.hash(state)
     }
-}
-
-#[derive(Debug, Serialize, Clone, Deserialize, PartialEq, Eq, Hash)]
-pub struct CheckboxItems {
-    pub title: String,
-    pub key: String,
 }
 
 #[tracing::instrument(level = "debug", skip(path_lit))]
@@ -219,7 +214,7 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
             components::{Outlet, ParentRoute, Redirect, Route},
             path, MatchNestedRoutes,
         };
-        use types::preferences::CheckboxItems;
+        use ui_proto::moosync::types::CheckboxItem;
         use crate::store::ui_store::UiStore;
 
         #(#ret)*
@@ -260,7 +255,7 @@ fn generate_component(config: &PreferenceUIFile) -> proc_macro2::TokenStream {
 }
 
 #[tracing::instrument(level = "debug", skip(data))]
-fn generate_children(data: &[PreferenceUIData]) -> Vec<(syn::Ident, proc_macro2::TokenStream)> {
+fn generate_children(data: &[PreferenceUiData]) -> Vec<(syn::Ident, proc_macro2::TokenStream)> {
     let mut ret = vec![];
 
     for item in data {
@@ -283,7 +278,7 @@ fn generate_children(data: &[PreferenceUIData]) -> Vec<(syn::Ident, proc_macro2:
 }
 
 #[tracing::instrument(level = "debug", skip(data))]
-fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
+fn generate_checkbox(data: &PreferenceUiData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
     let mobile = data.mobile.unwrap_or(true);
 
@@ -306,7 +301,7 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
         let item_name = get_path(items.title.clone());
 
         let stream = quote! {
-            CheckboxItems {
+            CheckboxItem {
                 title: t!(i18n, #item_name)().to_html(),
                 key: #item_key.to_string(),
             },
@@ -344,7 +339,7 @@ fn generate_checkbox(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Token
 }
 
 #[tracing::instrument(level = "debug", skip(data))]
-fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
+fn generate_input(data: &PreferenceUiData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
     let mobile = data.mobile.unwrap_or(true);
 
@@ -388,7 +383,7 @@ fn generate_input(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
 }
 
 #[tracing::instrument(level = "debug", skip(data))]
-fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
+fn generate_paths(data: &PreferenceUiData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
     let mobile = data.mobile.unwrap_or(true);
 
@@ -415,7 +410,7 @@ fn generate_paths(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStr
 }
 
 #[tracing::instrument(level = "debug", skip(data))]
-fn generate_themes(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
+fn generate_themes(data: &PreferenceUiData) -> (syn::Ident, proc_macro2::TokenStream) {
     let key = data.key.clone();
 
     let name = get_path(data.title.clone());
@@ -442,7 +437,7 @@ fn generate_themes(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenSt
 }
 
 #[tracing::instrument(level = "debug", skip(data))]
-fn generate_extensions(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
+fn generate_extensions(data: &PreferenceUiData) -> (syn::Ident, proc_macro2::TokenStream) {
     let name = get_path(data.title.clone());
 
     let tooltip = get_path(data.description.clone());
@@ -469,7 +464,7 @@ fn generate_extensions(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::Tok
 }
 
 #[tracing::instrument(level = "debug", skip(data))]
-fn generate_dropdowns(data: &PreferenceUIData) -> (syn::Ident, proc_macro2::TokenStream) {
+fn generate_dropdowns(data: &PreferenceUiData) -> (syn::Ident, proc_macro2::TokenStream) {
     let name = get_path(data.title.clone());
     let key = data.key.clone();
     let mobile = data.mobile.unwrap_or(true);

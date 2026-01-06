@@ -27,7 +27,7 @@ use crate::{icons::song_default_icon::SongDefaultIcon, store::modal_store::Modal
 use leptos::task::spawn_local;
 use leptos::{IntoView, component, prelude::*, view};
 use songs_proto::moosync::types::Song;
-use types::ui::extensions::ExtensionProviderScope;
+use extensions_proto::moosync::types::ExtensionProviderScope;
 
 #[tracing::instrument(level = "debug", skip())]
 #[component]

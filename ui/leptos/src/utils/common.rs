@@ -16,8 +16,9 @@
 
 use chrono::{Duration, NaiveTime, Timelike};
 use songs_proto::moosync::types::Song;
-use wasm_bindgen::prelude::*;
+use themes_proto::moosync::types::ThemeDetails;
 use types::prelude::SongsExt;
+use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
@@ -150,7 +151,9 @@ pub async fn get_blob_url(src: String) -> String {
 
 #[tracing::instrument(level = "debug", skip(song))]
 pub fn get_low_img(song: &Song) -> String {
-    if let Some(song) = &song.song && let Some(cover) = &song.song_cover_path_low {
+    if let Some(song) = &song.song
+        && let Some(cover) = &song.song_cover_path_low
+    {
         return convert_file_src(cover.to_string());
     }
 
@@ -179,7 +182,9 @@ pub fn get_low_img(song: &Song) -> String {
 
 #[tracing::instrument(level = "debug", skip(song))]
 pub fn get_high_img(song: &Song) -> String {
-    if let Some(song) = &song.song && let Some(cover) = &song.song_cover_path_high {
+    if let Some(song) = &song.song
+        && let Some(cover) = &song.song_cover_path_high
+    {
         return convert_file_src(cover.to_string());
     }
 
@@ -191,7 +196,9 @@ pub fn get_high_img(song: &Song) -> String {
         return convert_file_src(cover.to_string());
     }
 
-    if let Some(song) = &song.song && let Some(cover) = &song.song_cover_path_low {
+    if let Some(song) = &song.song
+        && let Some(cover) = &song.song_cover_path_low
+    {
         return convert_file_src(cover.to_string());
     }
 
@@ -397,3 +404,28 @@ pub(crate) use fetch_infinite;
 use wasm_bindgen_futures::spawn_local;
 
 use crate::i18n::Locale;
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ThemeModalState {
+    None,
+    NewTheme(Box<ThemeDetails>),
+    ImportTheme,
+    DiscoverTheme,
+}
+
+use std::sync::Arc;
+
+#[derive(Default, Clone)]
+pub struct SongDetailIcons {
+    pub play: Option<Arc<Box<dyn Fn() + Send + Sync>>>,
+    pub add_to_queue: Option<Arc<Box<dyn Fn() + Send + Sync>>>,
+    pub random: Option<Arc<Box<dyn Fn() + Send + Sync>>>,
+    pub add_to_library: Option<Arc<Box<dyn Fn() + Send + Sync>>>,
+}
+
+#[derive(Default, Clone)]
+pub struct DefaultDetails {
+    pub title: Option<String>,
+    pub subtitle: Option<String>,
+    pub icon: Option<String>,
+}

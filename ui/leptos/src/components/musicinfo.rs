@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::utils::common::SongDetailIcons;
+use extensions_proto::moosync::types::ExtensionProviderScope;
+use extensions_proto::moosync::types::PlayerState;
 use leptos::ev::{mousedown, touchstart};
 use leptos::html::Div;
 use leptos::task::spawn_local;
@@ -22,9 +25,6 @@ use leptos_use::use_event_listener;
 use leptos_virtual_scroller::VirtualScroller;
 use songs_proto::moosync::types::{Song, SongType};
 use std::sync::Arc;
-use types::ui::extensions::ExtensionProviderScope;
-use types::ui::player_details::PlayerState;
-use types::ui::song_details::SongDetailIcons;
 use web_sys::{ScrollBehavior, ScrollToOptions};
 
 use crate::components::artist_list::ArtistList;
@@ -169,8 +169,7 @@ pub fn MusicInfoMobile(
         format_duration(p.get_current_time(), false)
     });
     let total_time = Memo::new(move |_| {
-        if let Some(current_song) = current_song.get()
-        {
+        if let Some(current_song) = current_song.get() {
             return format_duration(current_song.get_duration_or_default(), false);
         }
         "00:00".to_string()

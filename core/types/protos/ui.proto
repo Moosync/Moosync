@@ -1,19 +1,8 @@
-
 syntax = "proto3";
 
-package moosync.ui.types;
+package moosync.types;
 
 import "google/protobuf/struct.proto";
-
-message CheckboxPreference {
-  string key = 1;
-  bool enabled = 2;
-}
-
-message PathsValue {
-  bool enabled = 1;
-  string path = 2;
-}
 
 enum PreferenceTypes {
   DIRECTORY_GROUP = 0;
@@ -40,7 +29,7 @@ message CheckboxItem {
   string key = 2;
 }
 
-message PreferenceUIData {
+message PreferenceUiData {
   PreferenceTypes type = 1;
   string title = 2;
   string key = 3;
@@ -53,7 +42,7 @@ message PreferenceUIData {
 }
 
 message Page {
-  repeated PreferenceUIData data = 1;
+  repeated PreferenceUiData data = 1;
   string title = 2;
   string path = 3;
   string icon = 4;

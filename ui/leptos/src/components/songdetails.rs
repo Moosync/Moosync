@@ -14,14 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::utils::common::{DefaultDetails, SongDetailIcons};
+use extensions_proto::moosync::types::ExtensionProviderScope;
 use leptos::{IntoView, component, html::Div, prelude::*, view};
 use leptos_use::use_resize_observer;
-use types::{
-    ui::{
-        extensions::ExtensionProviderScope,
-        song_details::{DefaultDetails, SongDetailIcons},
-    },
-};
 use songs_proto::moosync::types::Song;
 use types::prelude::SongsExt;
 use wasm_bindgen_futures::spawn_local;
@@ -127,10 +123,13 @@ where
 
         if let Some(selected_song) = selected_song {
             selected_title.set(selected_song.get_title());
-            selected_artists.set(Some(selected_song.artists.iter()
+            selected_artists.set(Some(
+                selected_song
+                    .artists
+                    .iter()
                     .map(|a| a.artist_name.clone().unwrap_or_default())
                     .collect::<Vec<String>>()
-                    .join(", ")
+                    .join(", "),
             ));
             selected_duration.set(Some(format_duration(
                 selected_song.get_duration_or_default(),

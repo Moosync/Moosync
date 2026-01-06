@@ -24,7 +24,7 @@ use extensions_proto::moosync::types::{
 };
 use extism::{Error, ValType::I64};
 use extism::{Manifest, PTR, Plugin, PluginBuilder, UserData, Wasm, host_fn};
-use extism_convert::Json;
+use extism_convert::Prost;
 use interprocess::local_socket::{
     GenericFilePath, GenericNamespaced, NameType, Stream as LocalSocketStream, ToFsName, ToNsName,
     traits::Stream,
@@ -37,13 +37,13 @@ use crate::{
     models::SanitizeCommand,
 };
 
-host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Json<MainCommand>) {
+host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Prost<MainCommand>) {
     let user_data = user_data.get()?;
     let user_data = user_data.lock().unwrap();
 
     let mut command = command_wrapper.0;
     if let Err(e) = command.sanitize(&user_data.package_name) {
-        return Ok(Json(MainCommandResponse {
+        return Ok(Prost(MainCommandResponse {
             response: Some(main_command_response::Response::Error(MainCommandError {
                 message: e.to_string()
             })),
@@ -57,10 +57,10 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Json
 
     match response {
         Ok(response) => {
-            Ok(Json(response))
+            Ok(Prost(response))
         }
         Err(e) => {
-            Ok(Json(MainCommandResponse {
+            Ok(Prost(MainCommandResponse {
                 response: Some(main_command_response::Response::Error(MainCommandError {
                     message: e.to_string()
                 })),
@@ -374,9 +374,9 @@ impl Extism for ExtismContext {
         thread::spawn(move || {
             {
                 let mut plugin = plugin.lock().unwrap();
-                tracing::trace!("Calling entry");
+                println!("Calling entry");
                 if let Err(e) = plugin.call::<(), ()>("entry", ()) {
-                    tracing::error!("Failed to called extension entry: {:?}", e);
+                    println!("Failed to called extension entry: {:?}", e);
                 }
             }
             let _ = reply_handler.as_ref()(
@@ -401,9 +401,9 @@ impl Extism for ExtismContext {
         tokio::task::spawn_blocking(move || {
             let mut plugin = plugin.lock().unwrap();
             tracing::debug!("Calling {:?} on {:?}", command, plugin.id);
-            let res = plugin.call::<_, Json<ExtensionCommandResponse>>(
+            let res = plugin.call::<_, Prost<ExtensionCommandResponse>>(
                 "handle_extension_command",
-                Json(command),
+                Prost(command),
             )?;
             tracing::trace!("Finished calling on {:?}", plugin.id);
 

@@ -42,6 +42,8 @@ mod ext_runner;
 pub mod models;
 
 #[cfg(test)]
+mod sample_tests;
+#[cfg(test)]
 mod tests;
 
 pub struct ExtensionHandler {

@@ -13,7 +13,10 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",
+        "//core/types/protos:extensions_rs",
+        "//core/types/protos:songs_rs",
         "@crates//:mockall",
+        "@crates//:serde",
         "@crates//:souvlaki",
         "@crates//:tracing",
         "@crates//:windows",

@@ -16,14 +16,12 @@
 
 use std::sync::Arc;
 
-use types::{
-    songs::Song,
-    ui::{themes::ThemeModalState, updater::UpdateMetadata},
-};
+use songs_proto::moosync::types::Song;
+use types::ui::updater::UpdateMetadata;
 
-use crate::modals::new_playlist_modal::PlaylistModalState;
+use crate::{modals::new_playlist_modal::PlaylistModalState, utils::common::ThemeModalState};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Modals {
     LoginModal(String, String, String),
     SignoutModal(String, String, String),

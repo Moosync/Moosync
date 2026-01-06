@@ -14,6 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+pub struct MprisPlayerDetails {
+    pub id: Option<String>,
+    pub title: Option<String>,
+    #[serde(rename = "artistName")]
+    pub artist_name: Option<String>,
+    #[serde(rename = "albumName")]
+    pub album_name: Option<String>,
+    #[serde(rename = "albumArtist")]
+    pub album_artist: Option<String>,
+    pub genres: Option<Vec<String>>,
+    pub duration: Option<f64>,
+    pub thumbnail: Option<String>,
+}
+
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 mod mpris;
 

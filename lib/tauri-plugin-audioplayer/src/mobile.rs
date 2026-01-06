@@ -26,11 +26,10 @@ use tauri::{
 };
 use types::{
     errors::{MoosyncError, Result},
-    mpris::MprisPlayerDetails,
     songs::Song,
 };
-use types::errors::error_helpers;
 
+use types::errors::error_helpers;
 
 #[cfg(target_os = "ios")]
 tauri::ios_plugin_binding!(init_plugin_audioplayer);
@@ -53,6 +52,22 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
     ret.register_media_callback(app.clone());
 
     Ok(ret)
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MprisPlayerDetails {
+    pub id: Option<String>,
+    pub title: Option<String>,
+    #[serde(rename = "artistName")]
+    pub artist_name: Option<String>,
+    #[serde(rename = "albumName")]
+    pub album_name: Option<String>,
+    #[serde(rename = "albumArtist")]
+    pub album_artist: Option<String>,
+    pub genres: Option<Vec<String>>,
+    pub duration: Option<f64>,
+    pub thumbnail: Option<String>,
 }
 
 /// Access to the audioplayer APIs.

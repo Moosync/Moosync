@@ -16,15 +16,13 @@
 
 use std::{collections::HashMap, sync::Arc};
 
+use extensions_proto::moosync::types::ExtensionDetail;
 use leptos::{IntoView, component, prelude::*, reactive::wrappers::write::SignalSetter, view};
 use leptos_i18n::t;
 use leptos_use::use_debounce_fn_with_arg;
-use types::{
-    preferences::{CheckboxItems, CheckboxPreference, InputType},
-    themes::ThemeDetails,
-    ui::{extensions::ExtensionDetail, themes::ThemeModalState},
-    window::DialogFilter,
-};
+use themes_proto::moosync::types::ThemeDetails;
+use types::{preferences::CheckboxPreference, window::DialogFilter};
+use ui_proto::moosync::types::{CheckboxItem, InputType};
 use wasm_bindgen_futures::spawn_local;
 
 use crate::{
@@ -38,6 +36,7 @@ use crate::{
         ui_store::UiStore,
     },
     utils::{
+        common::ThemeModalState,
         context_menu::{ThemesContextMenu, create_context_menu},
         invoke::{get_installed_extensions, load_all_themes, remove_extension},
         prefs::{
@@ -283,7 +282,7 @@ pub fn CheckboxPref<K, H, K1, H1>(
     #[prop()] key: String,
     #[prop()] title: K,
     #[prop()] tooltip: K1,
-    #[prop()] items: Vec<CheckboxItems>,
+    #[prop()] items: Vec<CheckboxItem>,
     #[prop()] single: bool,
     #[prop()] mobile: bool,
 ) -> impl IntoView
@@ -611,7 +610,7 @@ where
             <div class="row no-gutters path-prefs-background w-100 mt-2 d-flex">
                 <For
                     each=move || extensions.get()
-                    key=|e| e.clone()
+                    key=|e| e.package_name.clone()
                     children=move |extension: ExtensionDetail| {
                         view! {
                             <div class="row no-gutters mt-3 item w-100">
@@ -662,8 +661,8 @@ where
                                         let title = preference.title;
                                         let tooltip = preference.description;
                                         let key = format!("extensions.{}", preference.key);
-                                        match preference._type {
-                                            types::preferences::PreferenceTypes::DirectoryGroup => {
+                                        match ui_proto::moosync::types::PreferenceTypes::try_from(preference.r#type).unwrap() {
+                                            ui_proto::moosync::types::PreferenceTypes::DirectoryGroup => {
                                                 view! {
                                                     <PathsPref
                                                         key=key
@@ -674,7 +673,8 @@ where
                                                 }
                                                     .into_any()
                                             }
-                                            types::preferences::PreferenceTypes::EditText => {
+                                            ui_proto::moosync::types::PreferenceTypes::EditText => {
+                                                let secure_text: i32 = InputType::SecureText.into();
                                                 view! {
                                                     <InputPref
                                                         key=key
@@ -690,12 +690,12 @@ where
                                                         mobile=true
                                                         is_secure=preference
                                                             .input_type
-                                                            .is_some_and(|v| v == InputType::SecureText)
+                                                            .is_some_and(|v| v == secure_text)
                                                     />
                                                 }
                                                     .into_any()
                                             }
-                                            types::preferences::PreferenceTypes::FilePicker => {
+                                            ui_proto::moosync::types::PreferenceTypes::FilePicker => {
                                                 view! {
                                                     <InputPref
                                                         key=key
@@ -708,20 +708,20 @@ where
                                                 }
                                                     .into_any()
                                             }
-                                            types::preferences::PreferenceTypes::CheckboxGroup => {
+                                            ui_proto::moosync::types::PreferenceTypes::CheckboxGroup => {
                                                 view! {
                                                     <CheckboxPref
                                                         key=key
                                                         title=move || title.clone()
                                                         tooltip=move || tooltip.clone()
-                                                        items=preference.items.unwrap_or_default()
+                                                        items=preference.items
                                                         single=preference.single.unwrap_or_default()
                                                         mobile=true
                                                     />
                                                 }
                                                     .into_any()
                                             }
-                                            types::preferences::PreferenceTypes::Dropdown => {
+                                            ui_proto::moosync::types::PreferenceTypes::Dropdown => {
                                                 view! {
                                                     <DropdownPref
                                                         key=key
@@ -732,14 +732,14 @@ where
                                                 }
                                                     .into_any()
                                             }
-                                            types::preferences::PreferenceTypes::ThemeSelector
-                                            | types::preferences::PreferenceTypes::Extensions => {
+                                            ui_proto::moosync::types::PreferenceTypes::ThemeSelector
+                                            | ui_proto::moosync::types::PreferenceTypes::Extensions => {
                                                 ().into_any()
                                             }
-                                            types::preferences::PreferenceTypes::ButtonGroup
-                                            | types::preferences::PreferenceTypes::ProgressBar
-                                            | types::preferences::PreferenceTypes::TextField
-                                            | types::preferences::PreferenceTypes::InfoField => {
+                                            ui_proto::moosync::types::PreferenceTypes::ButtonGroup
+                                            | ui_proto::moosync::types::PreferenceTypes::ProgressBar
+                                            | ui_proto::moosync::types::PreferenceTypes::TextField
+                                            | ui_proto::moosync::types::PreferenceTypes::InfoField => {
                                                 ().into_any()
                                             }
                                         }

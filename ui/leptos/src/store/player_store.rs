@@ -14,38 +14,30 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use bitcode::{Decode, Encode};
+use extensions_proto::moosync::types::PlayerState;
 use indexed_db_futures::{database::Database, prelude::*};
-use itertools::Itertools;
 use leptos::prelude::*;
 use rand::seq::SliceRandom;
 use serde::Serialize;
+use songs_proto::moosync::types::Song;
 use std::{cmp::min, collections::HashMap};
 use types::{
     preferences::CheckboxPreference,
-    songs::Song,
-    ui::extensions::ExtensionExtraEvent,
-    ui::player_details::{PlayerState, RepeatModes, VolumeMode},
+    prelude::SongsExt,
+    ui::player_details::{RepeatModes, VolumeMode},
 };
 use wasm_bindgen_futures::spawn_local;
 
-use crate::{
-    store::ui_store::UiStore,
-    utils::{
-        db_utils::{read_from_indexed_db, write_to_indexed_db},
-        extensions::send_extension_event,
-        mpris::{set_playback_state, set_position},
-    },
-};
+use crate::store::ui_store::UiStore;
 
-#[derive(Debug, Default, PartialEq, Clone, Serialize, Encode, Decode)]
+#[derive(Debug, Default, PartialEq, Clone, Serialize)]
 pub struct Queue {
     pub song_queue: Vec<String>,
     pub current_index: usize,
     pub data: HashMap<String, Song>,
 }
 
-#[derive(Debug, Default, Clone, Encode, Decode)]
+#[derive(Debug, Default, Clone)]
 pub struct PlayerDetails {
     pub current_time: f64,
     pub last_song: Option<String>,
@@ -61,7 +53,7 @@ pub struct PlayerDetails {
     clamp_map: HashMap<String, f64>,
 }
 
-#[derive(Debug, Default, Clone, Encode, Decode)]
+#[derive(Debug, Default, Clone)]
 pub struct PlayerStoreData {
     pub queue: Queue,
     pub current_song: Option<Song>,
@@ -173,11 +165,12 @@ impl PlayerStore {
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn update_current_song(&mut self, force: bool) {
         self.data.player_details.last_song_played_duration = self.data.player_details.current_time;
-        self.data.player_details.last_song =
-            self.get_current_song().map(|s| s.song._id.unwrap().clone());
+        self.data.player_details.last_song = self
+            .get_current_song()
+            .and_then(|s| s.song.and_then(|s| s.id));
 
         self.data.player_details.current_time = 0f64;
-        set_position(self.data.player_details.current_time);
+        // set_position(self.data.player_details.current_time);
 
         if self.data.queue.current_index >= self.data.queue.song_queue.len() {
             self.data.queue.current_index = 0;
@@ -247,7 +240,11 @@ impl PlayerStore {
 
     #[tracing::instrument(level = "debug", skip(self, song, index))]
     fn insert_song_at_index(&mut self, song: Song, index: usize, dump: bool) {
-        let song_id = song.song._id.clone().unwrap();
+        let song_id = song
+            .song
+            .as_ref()
+            .and_then(|s| s.id.clone())
+            .unwrap_or_default();
         self.data.queue.data.insert(song_id.clone(), song);
         let insertion_index = min(self.data.queue.song_queue.len(), index);
         self.data.queue.song_queue.insert(insertion_index, song_id);
@@ -313,15 +310,20 @@ impl PlayerStore {
         self.scrobble_time += 0f64.max(new_time - self.data.player_details.current_time);
         self.data.player_details.current_time = new_time;
 
-        if self.scrobble_time > 20f64
-            && !self.scrobbled
-            && let Some(current_song) = self.get_current_song()
-        {
-            self.scrobbled = true;
-            send_extension_event(ExtensionExtraEvent::Scrobble([current_song]));
-        }
+        // if self.scrobble_time > 20f64
+        // && !self.scrobbled
+        // && let Some(current_song) = self.get_current_song()
+        // {
+        // self.scrobbled = true;
+        // send_extension_event(ExtensionCommand {
+        //     package_name: "".into(),
+        //     event: Some(extension_command::Event::Scrobble(ScrobbleRequest {
+        //         song: Some(current_song),
+        //     })),
+        // });
+        // }
 
-        set_position(new_time);
+        // set_position(new_time);
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -332,7 +334,12 @@ impl PlayerStore {
     #[tracing::instrument(level = "debug", skip(self, new_time))]
     pub fn force_seek_percent(&mut self, new_time: f64) {
         let new_time_c = if let Some(current_song) = &self.data.current_song {
-            current_song.song.duration.unwrap_or_default() * new_time
+            current_song
+                .song
+                .as_ref()
+                .and_then(|s| s.duration)
+                .unwrap_or_default()
+                * new_time
         } else {
             0f64
         };
@@ -340,7 +347,10 @@ impl PlayerStore {
         tracing::debug!(
             "Got seek {}, {:?}, {}",
             new_time,
-            self.data.current_song.clone().map(|c| c.song.duration),
+            self.data
+                .current_song
+                .clone()
+                .map(|c| c.song.as_ref().and_then(|s| s.duration)),
             new_time_c
         );
         self.data.player_details.force_seek = new_time_c;
@@ -359,18 +369,16 @@ impl PlayerStore {
         self.data.player_details.state = state;
         self.dump_store(&[DumpType::PlayerState]);
 
-        set_playback_state(state);
-        send_extension_event(ExtensionExtraEvent::PlayerStateChanged([state]))
+        // set_playback_state(state);
+        // send_extension_event(ExtensionExtraEvent::PlayerStateChanged([state]))
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn get_song_key(&self) -> String {
         if let Some(current_song) = &self.data.current_song {
             return current_song
-                .song
-                .provider_extension
-                .clone()
-                .unwrap_or(current_song.song.type_.to_string());
+                .get_extension()
+                .unwrap_or(current_song.get_type_or_default().as_str_name().to_string());
         }
         "".to_string()
     }
@@ -387,7 +395,7 @@ impl PlayerStore {
         self.data.player_details.volume = volume;
 
         self.dump_store(&[DumpType::PlayerState]);
-        send_extension_event(ExtensionExtraEvent::VolumeChanged([volume]))
+        // send_extension_event(ExtensionExtraEvent::VolumeChanged([volume]))
     }
 
     pub fn toggle_mute(&mut self) {
@@ -594,95 +602,95 @@ impl PlayerStore {
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn dump_store(&self, dump_types: &[DumpType]) {
-        let db = Database::open("moosync").build();
+        // let db = Database::open("moosync").build();
 
-        let data = dump_types
-            .iter()
-            .map(|d| match d {
-                DumpType::PlayerState => (
-                    "dump_player_state",
-                    bitcode::encode(&self.data.player_details),
-                ),
-                DumpType::SongQueue => (
-                    "dump_song_queue",
-                    bitcode::encode(&self.data.queue.song_queue),
-                ),
-                DumpType::CurrentIndex => (
-                    "dump_current_index",
-                    bitcode::encode(&self.data.queue.current_index),
-                ),
-                DumpType::QueueData => ("dump_queue_data", bitcode::encode(&self.data.queue.data)),
-            })
-            .collect_vec();
+        // let data = dump_types
+        //     .iter()
+        //     .map(|d| match d {
+        //         DumpType::PlayerState => (
+        //             "dump_player_state",
+        //             bitcode::encode(&self.data.player_details),
+        //         ),
+        //         DumpType::SongQueue => (
+        //             "dump_song_queue",
+        //             bitcode::encode(&self.data.queue.song_queue),
+        //         ),
+        //         DumpType::CurrentIndex => (
+        //             "dump_current_index",
+        //             bitcode::encode(&self.data.queue.current_index),
+        //         ),
+        //         DumpType::QueueData => ("dump_queue_data", bitcode::encode(&self.data.queue.data)),
+        //     })
+        //     .collect_vec();
 
-        if let Ok(db) = db {
-            spawn_local(async move {
-                if let Ok(db) = db.await {
-                    for dump_type in data {
-                        if let Err(e) =
-                            write_to_indexed_db(&db, "player_store", dump_type.0, dump_type.1).await
-                        {
-                            tracing::error!("Failed to dump store: {:?}", e);
-                        }
-                    }
-                }
-            });
-        }
+        // if let Ok(db) = db {
+        //     spawn_local(async move {
+        //         if let Ok(db) = db.await {
+        //             for dump_type in data {
+        //                 if let Err(e) =
+        //                     write_to_indexed_db(&db, "player_store", dump_type.0, dump_type.1).await
+        //                 {
+        //                     tracing::error!("Failed to dump store: {:?}", e);
+        //                 }
+        //             }
+        //         }
+        //     });
+        // }
     }
 
-    #[tracing::instrument(level = "debug", skip(db, signal))]
-    fn restore_store(signal: RwSignal<Option<PlayerStoreData>>, db: Database) {
-        spawn_local(async move {
-            let mut restored_data = PlayerStoreData::default();
+    #[tracing::instrument(level = "debug", skip(_db, _signal))]
+    fn restore_store(_signal: RwSignal<Option<PlayerStoreData>>, _db: Database) {
+        // spawn_local(async move {
+        //     let mut restored_data = PlayerStoreData::default();
 
-            if let Ok(Some(bytes)) =
-                read_from_indexed_db(db.clone(), "player_store", "dump_player_state").await
-            {
-                let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
-                if let Ok(data) = bitcode::decode::<PlayerDetails>(&bytes) {
-                    restored_data.player_details = data;
-                }
-            }
-            if let Ok(Some(bytes)) =
-                read_from_indexed_db(db.clone(), "player_store", "dump_song_queue").await
-            {
-                let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
-                if let Ok(data) = bitcode::decode::<Vec<String>>(&bytes) {
-                    restored_data.queue.song_queue = data;
-                }
-            }
-            if let Ok(Some(bytes)) =
-                read_from_indexed_db(db.clone(), "player_store", "dump_current_index").await
-            {
-                let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
-                if let Ok(data) = bitcode::decode::<usize>(&bytes) {
-                    restored_data.queue.current_index = data;
-                }
-            }
-            if let Ok(Some(bytes)) =
-                read_from_indexed_db(db.clone(), "player_store", "dump_queue_data").await
-            {
-                let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
-                if let Ok(data) = bitcode::decode::<HashMap<String, Song>>(&bytes) {
-                    restored_data.queue.data = data;
-                }
-            }
+        //     if let Ok(Some(bytes)) =
+        //         read_from_indexed_db(db.clone(), "player_store", "dump_player_state").await
+        //     {
+        //         let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
+        //         if let Ok(data) = bitcode::decode::<PlayerDetails>(&bytes) {
+        //             restored_data.player_details = data;
+        //         }
+        //     }
+        //     if let Ok(Some(bytes)) =
+        //         read_from_indexed_db(db.clone(), "player_store", "dump_song_queue").await
+        //     {
+        //         let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
+        //         if let Ok(data) = bitcode::decode::<Vec<String>>(&bytes) {
+        //             restored_data.queue.song_queue = data;
+        //         }
+        //     }
+        //     if let Ok(Some(bytes)) =
+        //         read_from_indexed_db(db.clone(), "player_store", "dump_current_index").await
+        //     {
+        //         let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
+        //         if let Ok(data) = bitcode::decode::<usize>(&bytes) {
+        //             restored_data.queue.current_index = data;
+        //         }
+        //     }
+        //     if let Ok(Some(bytes)) =
+        //         read_from_indexed_db(db.clone(), "player_store", "dump_queue_data").await
+        //     {
+        //         let bytes = js_sys::Uint8Array::new(&bytes).to_vec();
+        //         if let Ok(data) = bitcode::decode::<HashMap<String, Song>>(&bytes) {
+        //             restored_data.queue.data = data;
+        //         }
+        //     }
 
-            tracing::debug!("Restored {:?}", restored_data);
+        //     tracing::debug!("Restored {:?}", restored_data);
 
-            if let Some(song_id) = restored_data
-                .queue
-                .song_queue
-                .get(restored_data.queue.current_index)
-            {
-                restored_data.current_song = restored_data.queue.data.get(song_id).cloned();
-            }
+        //     if let Some(song_id) = restored_data
+        //         .queue
+        //         .song_queue
+        //         .get(restored_data.queue.current_index)
+        //     {
+        //         restored_data.current_song = restored_data.queue.data.get(song_id).cloned();
+        //     }
 
-            signal.set(Some(PlayerStoreData {
-                player_blacklist: vec![],
-                force_load_song: false,
-                ..restored_data
-            }));
-        });
+        //     signal.set(Some(PlayerStoreData {
+        //         player_blacklist: vec![],
+        //         force_load_song: false,
+        //         ..restored_data
+        //     }));
+        // });
     }
 }

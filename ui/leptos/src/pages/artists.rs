@@ -28,11 +28,11 @@ use crate::utils::songs::get_songs_from_indices;
 use leptos::{IntoView, component, prelude::*, view};
 use leptos_i18n::t;
 use leptos_router::hooks::use_query_map;
+use songs_proto::moosync::types::{GetSongOptions, Song};
 use std::collections::HashMap;
-use types::entities::Artist;
-use types::songs::{GetSongOptions, Song};
-use types::ui::extensions::ExtensionProviderScope;
-use types::ui::song_details::{DefaultDetails, SongDetailIcons};
+use songs_proto::moosync::types::Artist;
+use extensions_proto::moosync::types::ExtensionProviderScope;
+use crate::utils::common::{DefaultDetails, SongDetailIcons};
 use uuid::Uuid;
 use wasm_bindgen_futures::spawn_local;
 

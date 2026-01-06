@@ -23,14 +23,17 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use extensions_proto::moosync::types::{
+    ExtensionCommand, ExtensionCommandResponse, ExtensionDetail, ExtensionManifest,
+    InstalledExtensions, RunnerCommand, RunnerCommandResponse, runner_command,
+    runner_command_response,
+};
 use extism::Plugin;
-use types::ui::extensions::ExtensionDetail;
-use types::{extensions::ExtensionManifest, preferences::PreferenceUIData};
+use ui_proto::moosync::types::PreferenceUiData;
 
 use crate::{
     context::{Extism, ExtismContext, ReplyHandler},
     errors::ExtensionError,
-    models::{ExtensionCommand, ExtensionCommandResponse, RunnerCommand, RunnerCommandResp},
 };
 
 #[derive(Debug, Clone)]
@@ -41,8 +44,7 @@ struct Extension {
     icon: String,
     author: Option<String>,
     version: String,
-    path: PathBuf,
-    preferences: HashMap<String, PreferenceUIData>,
+    preferences: HashMap<String, PreferenceUiData>,
     active: bool,
 }
 
@@ -56,9 +58,7 @@ impl From<&Extension> for ExtensionDetail {
             author: val.author.clone(),
             version: val.version.clone(),
             has_started: true,
-            entry: val.path.clone().to_str().unwrap().to_string(),
             preferences: val.preferences.clone().into_values().collect(),
-            extension_path: val.path.clone().to_str().unwrap().to_string(),
             extension_icon: Some(val.icon.clone()),
             active: val.active,
         }
@@ -126,13 +126,15 @@ impl ExtensionHandlerInner {
             if let Ok(contents) = fs::read(manifest_path.clone()) {
                 match serde_json::from_slice::<ExtensionManifest>(&contents) {
                     Ok(mut manifest) => {
-                        manifest.extension_entry = manifest_path
+                        let extension_entry_path = manifest_path
                             .parent()
                             .unwrap()
                             .join(manifest.extension_entry);
+                        manifest.extension_entry =
+                            extension_entry_path.to_string_lossy().to_string();
                         if !extensions_map.contains_key(&manifest.name)
-                            && manifest.extension_entry.extension().unwrap() == "wasm"
-                            && manifest.extension_entry.exists()
+                            && extension_entry_path.extension().unwrap() == "wasm"
+                            && extension_entry_path.exists()
                         {
                             manifest.icon = manifest_path
                                 .parent()
@@ -159,7 +161,6 @@ impl ExtensionHandlerInner {
             icon: manifest.icon,
             author: manifest.author,
             version: manifest.version,
-            path: manifest.extension_entry.clone(),
             preferences: Default::default(),
             active: true,
         }
@@ -202,10 +203,10 @@ impl ExtensionHandlerInner {
     pub async fn handle_extension_command(
         &mut self,
         command: ExtensionCommand,
-    ) -> Result<ExtensionCommandResponse, ExtensionError> {
+    ) -> Result<Option<ExtensionCommandResponse>, ExtensionError> {
         tracing::debug!("Executing command {:?}", command);
 
-        let package_name = command.get_package_name();
+        let package_name = command.package_name.clone();
         let plugins = self.get_extensions(package_name);
         let plugin_len = plugins.len();
 
@@ -217,7 +218,7 @@ impl ExtensionHandlerInner {
             );
 
             if plugin_len == 1 {
-                return resp.await;
+                return Ok(Some(resp.await?));
             }
 
             // if let Err(e) = resp {
@@ -225,44 +226,61 @@ impl ExtensionHandlerInner {
             // }
         }
 
-        Ok(ExtensionCommandResponse::Empty)
+        Ok(None)
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn handle_runner_command(
         &mut self,
         command: RunnerCommand,
-    ) -> Result<RunnerCommandResp, ExtensionError> {
+    ) -> Result<RunnerCommandResponse, ExtensionError> {
         tracing::info!("Got runner command {:?}", command);
-        let ret = match command {
-            RunnerCommand::GetInstalledExtensions => {
+        let ret = match command.command.unwrap() {
+            runner_command::Command::GetInstalledExtensions(_) => {
                 let extensions_map = self.extensions_map.lock().unwrap();
                 let extensions = extensions_map
                     .values()
                     .map(|e| e.into())
                     .collect::<Vec<ExtensionDetail>>();
                 tracing::debug!("Extension map: {:?}", extensions);
-                RunnerCommandResp::ExtensionList(extensions)
+                RunnerCommandResponse {
+                    response: Some(runner_command_response::Response::GetInstalledExtensions(
+                        InstalledExtensions { extensions },
+                    )),
+                }
             }
-            RunnerCommand::FindNewExtensions => {
+            runner_command::Command::FindNewExtensions(_) => {
                 self.spawn_extensions();
-                RunnerCommandResp::Empty()
+                RunnerCommandResponse {
+                    response: Some(runner_command_response::Response::FindNewExtensions(
+                        Default::default(),
+                    )),
+                }
             }
-            RunnerCommand::GetExtensionIcon(p) => RunnerCommandResp::ExtensionIcon(
-                self.get_extensions(p.package_name)
-                    .first()
-                    .map(|e| e.icon.clone()),
-            ),
-            RunnerCommand::ToggleExtensionStatus(_) => todo!(),
-            RunnerCommand::RemoveExtension(p) => {
+            runner_command::Command::GetExtensionIcon(p) => RunnerCommandResponse {
+                response: Some(runner_command_response::Response::GetExtensionIcon(
+                    self.get_extensions(p.package_name)
+                        .first()
+                        .map(|e| e.icon.clone())
+                        .unwrap_or_default(),
+                )),
+            },
+            runner_command::Command::RemoveExtension(p) => {
                 self.remove_extension(&p.package_name);
-                RunnerCommandResp::Empty()
+                RunnerCommandResponse {
+                    response: Some(runner_command_response::Response::RemoveExtension(
+                        Default::default(),
+                    )),
+                }
             }
-            RunnerCommand::GetDisplayName(p) => RunnerCommandResp::ExtensionIcon(
-                self.get_extensions(p.package_name)
-                    .first()
-                    .map(|e| e.name.clone()),
-            ),
+            runner_command::Command::GetDisplayName(p) => RunnerCommandResponse {
+                response: Some(runner_command_response::Response::GetDisplayName(
+                    self.get_extensions(p.package_name)
+                        .first()
+                        .map(|e| e.name.clone())
+                        .unwrap_or_default(),
+                )),
+            },
         };
 
         tracing::debug!("Got runner command response {:?}", ret);
@@ -272,7 +290,7 @@ impl ExtensionHandlerInner {
     pub fn register_ui_preferences(
         &self,
         package_name: String,
-        prefs: Vec<PreferenceUIData>,
+        prefs: Vec<PreferenceUiData>,
     ) -> Result<(), ExtensionError> {
         let mut extensions = self.extensions_map.lock().unwrap();
         if let Some(ext) = extensions.get_mut(&package_name) {

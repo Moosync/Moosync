@@ -17,6 +17,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use types::prelude::SongsExt;
 use crate::modals::common::GenericModal;
 use crate::store::provider_store::ProviderStore;
 use crate::utils::common::get_high_img;
@@ -25,8 +26,8 @@ use crate::utils::invoke::{match_url, song_from_url};
 use crate::{icons::song_default_icon::SongDefaultIcon, store::modal_store::ModalStore};
 use leptos::task::spawn_local;
 use leptos::{IntoView, component, prelude::*, view};
-use types::songs::Song;
-use types::ui::extensions::ExtensionProviderScope;
+use songs_proto::moosync::types::Song;
+use extensions_proto::moosync::types::ExtensionProviderScope;
 
 #[tracing::instrument(level = "debug", skip())]
 #[component]
@@ -87,7 +88,7 @@ pub fn SongFromUrlModal() -> impl IntoView {
                     <div class="row no-gutters d-flex">
                         <div class="col-auto playlist-url-cover">
                             {move || {
-                                if let Some(song) = imported_song.get() && song.song.song_cover_path_high.is_some() {
+                                if let Some(song) = imported_song.get() && song.get_cover().is_some() {
                                     return view! {
                                         <img class="h-100 w-100" src=get_high_img(&song) />
                                     }
@@ -108,7 +109,7 @@ pub fn SongFromUrlModal() -> impl IntoView {
                                             prop:value=move || {
                                                 imported_song
                                                     .get()
-                                                    .map(|s| s.song.title.clone())
+                                                    .map(|s| s.get_title())
                                                     .unwrap_or_default()
                                             }
                                         />
@@ -119,7 +120,6 @@ pub fn SongFromUrlModal() -> impl IntoView {
                                                 .get()
                                                 .map(|s| {
                                                     s.artists
-                                                        .unwrap_or_default()
                                                         .iter()
                                                         .map(|a| a.artist_name.clone().unwrap_or_default())
                                                         .collect::<Vec<String>>()

@@ -14,154 +14,51 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use futures::{
-    StreamExt,
-    channel::mpsc::{UnboundedReceiver, UnboundedSender, unbounded},
-    future::join_all,
-};
 use serde_json::Value;
 use std::{collections::HashMap, sync::Arc};
 
 use crate::macros::{generate_command_async, generate_command_async_cached};
 use database::cache::CacheHolder;
-use tauri::{
-    AppHandle, Emitter, State,
-    async_runtime::{self},
-};
+use extensions_proto::moosync::types::{ContextMenuReturnType, ProviderStatus, extension_command};
+use songs_proto::moosync::types::{Album, Artist, Playlist, SearchResult, Song};
+
+use tauri::{AppHandle, Emitter, State};
 use tokio::sync::{Mutex, RwLock};
-use types::{
-    entities::{Album, Artist, Playlist, SearchResult},
-    errors::{MoosyncError, Result, error_helpers},
-    providers::generic::{GenericProvider, Pagination, ProviderStatus},
-    songs::Song,
-    ui::extensions::{ContextMenuReturnType, ExtensionExtraEvent},
-};
+use types::errors::{MoosyncError, Result, error_helpers};
+use types::providers::generic::Pagination;
 
 use crate::{extensions::get_extension_handler, providers::extension::ExtensionProvider};
 
-use super::spotify::SpotifyProvider;
-
-macro_rules! generate_wrapper {
-    ($($func_name:ident {
-        args: { $($param_name:ident: $param_type:ty),* $(,)? },
-        result_type: $result_type:ty,
-        method_name: $method_name:ident,
-    }),* $(,)?) => {
-        $(
-            #[tracing::instrument(level = "debug", skip(self))]
-            pub async fn $func_name(&self, key: String, $($param_name: $param_type),*) -> Result<$result_type> {
-                let mut provider_key = key;
-                let provider_store = self.provider_store.read().await;
-                loop {
-                    let provider = provider_store.get(&provider_key);
-                    if let Some(provider) = provider {
-                        tracing::debug!("calling provider {} - {}", provider_key, stringify!($method_name));
-                        let res = provider.$method_name($($param_name.clone()),*).await;
-                        match res {
-                            Ok(result) => return Ok(result),
-                            Err(MoosyncError::SwitchProviders(e)) => {provider_key = e; continue;},
-                            Err(err) => return Err(format!("{} - {}", provider_key, err).into()),
-                        }
-                    }
-
-                    return Err(format!("Provider ({}) not found for method {}", provider_key, stringify!($method_name)).into());
-                }
-            }
-        )*
-    }
-}
-
-macro_rules! generate_wrapper_mut {
-    ($($func_name:ident {
-        args: { $($param_name:ident: $param_type:ty),* $(,)? },
-        result_type: $result_type:ty,
-        method_name: $method_name:ident,
-    }),* $(,)?) => {
-        $(
-            #[tracing::instrument(level = "debug", skip(self))]
-            pub async fn $func_name(&self, key: String, $($param_name: $param_type),*) -> Result<$result_type> {
-                let mut provider_key = key;
-                let provider_store = self.provider_store.read().await;
-                loop {
-                    let provider = provider_store.get(&provider_key);
-                    if let Some(provider) = provider {
-                        let res = provider.$method_name($($param_name.clone()),*).await;
-                        match res {
-                            Ok(result) => return Ok(result),
-                            Err(MoosyncError::SwitchProviders(e)) => {provider_key = e; continue;},
-                            Err(err) => return Err(err),
-                        }
-                    }
-
-                    return Err(format!("Provider ({}) not found for method {}", provider_key, stringify!($method_name)).into());
-                }
-            }
-        )*
-    }
+macro_rules! get_provider {
+    ($self:ident, $key:ident) => {{
+        let guard = $self.provider_store.read().await;
+        if !guard.contains_key(&$key) {
+            return Err(MoosyncError::from(format!("Provider ({}) not found", $key)).into());
+        }
+        tokio::sync::RwLockReadGuard::map(guard, |store| store.get(&$key).unwrap())
+    }};
 }
 
 #[derive(Debug)]
 pub struct ProviderHandler {
-    provider_store: Arc<RwLock<HashMap<String, Box<dyn GenericProvider>>>>,
+    provider_store: Arc<RwLock<HashMap<String, ExtensionProvider>>>,
     app_handle: AppHandle,
-    status_tx: UnboundedSender<ProviderStatus>,
     provider_status: Arc<Mutex<HashMap<String, ProviderStatus>>>,
 }
 
 impl ProviderHandler {
     #[tracing::instrument(level = "debug", skip(app))]
     pub fn new(app: AppHandle) -> Self {
-        let (status_tx, status_rx) = unbounded();
-        let store = Self {
+        Self {
             app_handle: app.clone(),
             provider_store: Default::default(),
-            status_tx,
             provider_status: Default::default(),
-        };
-        store.listen_status_changes(status_rx);
-
-        let mut provider_store = store.provider_store.blocking_write();
-
-        let spotify_provider = Box::new(SpotifyProvider::new(app.clone(), store.status_tx.clone()));
-        provider_store.insert(spotify_provider.key(), spotify_provider);
-
-        drop(provider_store);
-
-        store
+        }
     }
 
     pub async fn request_account_status(&self, key: &str) -> Result<()> {
-        let provider_store = self.provider_store.read().await;
-        if let Some(provider) = provider_store.get(key) {
-            tracing::debug!("Requesting account status from {}", key);
-            provider.requested_account_status().await?;
-        }
-
-        Err("Provider not found".into())
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, status_rx))]
-    pub fn listen_status_changes(&self, status_rx: UnboundedReceiver<ProviderStatus>) {
-        let status_rx = Arc::new(Mutex::new(status_rx));
-        let provider_status = self.provider_status.clone();
-        let app_handle = self.app_handle.clone();
-        tauri::async_runtime::spawn(async move {
-            let status_rx = status_rx.clone();
-            let mut status_rx = status_rx.lock().await;
-            let provider_status = provider_status.clone();
-            let app_handle = app_handle.clone();
-
-            while let Some(status) = status_rx.next().await {
-                tracing::debug!("Got provider status update {:?}", status);
-                let mut provider_status = provider_status.lock().await;
-                provider_status.insert(status.key.clone(), status);
-                let res = app_handle.emit("provider-status-update", provider_status.clone());
-                if let Err(e) = res {
-                    tracing::error!("Error emitting status update: {:?}", e);
-                }
-                tracing::debug!(provider_status = ?provider_status, "Emitted status update");
-            }
-        });
+        tracing::debug!("Requesting account status from {}", key);
+        self.update_accounts(key.into()).await
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -169,17 +66,15 @@ impl ProviderHandler {
         let ext_handler = get_extension_handler(&self.app_handle);
         let extensions_res = ext_handler.get_installed_extensions().await?;
         for extension in extensions_res {
-            if !extension.active {
-                continue;
-            }
-            let provides = ext_handler
-                .get_provider_scopes(extension.package_name.clone().into())
-                .await;
+            let mut provider = ExtensionProvider::new(extension.clone(), self.app_handle.clone());
+
+            let provides = provider.get_provider_scopes().await;
             tracing::info!(
                 "Got provider scopes from {} {:?}",
                 extension.package_name,
                 provides
             );
+
             if let Ok(provides) = provides {
                 tracing::info!(
                     "Inserting extension provider {:?} {:?}",
@@ -187,12 +82,6 @@ impl ProviderHandler {
                     provides,
                 );
 
-                let provider = Box::new(ExtensionProvider::new(
-                    extension.clone(),
-                    provides,
-                    self.app_handle.clone(),
-                    self.status_tx.clone(),
-                ));
                 let key = {
                     let mut provider_store = self.provider_store.write().await;
                     let key = provider.key();
@@ -200,21 +89,9 @@ impl ProviderHandler {
                     tracing::info!("provider_store: {:?}", provider_store.keys());
                     key
                 };
-
-                let provider_store = self.provider_store.clone();
-                async_runtime::spawn(async move {
-                    let provider_store = provider_store.read().await;
-                    if let Some(provider) = provider_store.get(&key) {
-                        let res = provider.initialize().await;
-                        if let Err(err) = res {
-                            tracing::error!(
-                                "Error initializing extension provider {}: {:?}",
-                                key,
-                                err
-                            );
-                        }
-                    }
-                });
+                if let Err(e) = self.update_accounts(key.clone()).await {
+                    tracing::error!("Failed to update accounts for {}: {}", key, e);
+                }
             }
 
             self.app_handle
@@ -225,34 +102,28 @@ impl ProviderHandler {
     }
 
     #[tracing::instrument(level = "debug", skip(self, key))]
-    pub async fn initialize_provider(&self, key: String) {
-        let provider_store = self.provider_store.read().await;
-        let provider = provider_store.get(&key);
-        if let Some(provider) = provider
-            && let Err(e) = provider.initialize().await
-        {
-            tracing::error!("Error initializing provider {}: {:?}", provider.key(), e);
+    pub async fn update_accounts(&self, key: String) -> Result<()> {
+        let mut provider_store = self.provider_store.write().await;
+        let provider = provider_store.get_mut(&key);
+        if let Some(provider) = provider {
+            let accounts = provider.get_accounts().await?;
+            tracing::debug!("Got provider accounts {:?}", accounts);
+            let mut provider_status = self.provider_status.lock().await;
+            for account in accounts {
+                // TODO: Support multiple accounts per provider
+                provider_status.insert(key.clone(), account);
+            }
+            let res = self
+                .app_handle
+                .emit("provider-status-update", provider_status.clone());
+            if let Err(e) = res {
+                tracing::error!("Error emitting status update: {:?}", e);
+            }
+            tracing::debug!(provider_status = ?provider_status, "Emitted status update");
+            Ok(())
+        } else {
+            Err(format!("Provider ({}) not found", key).into())
         }
-    }
-
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn initialize_all_providers(&self) -> Result<()> {
-        let provider_store = self.provider_store.read().await;
-        let mut fut = vec![];
-        for (_, provider) in provider_store.iter() {
-            let key = provider.key();
-            fut.push(Box::pin(async move {
-                tracing::info!("Initializing {}", key);
-                let err = provider.initialize().await;
-                if let Err(err) = err {
-                    tracing::error!("Error initializing {}: {:?}", provider.key(), err);
-                } else {
-                    tracing::info!("Initialized {}", provider.key());
-                }
-            }));
-        }
-        join_all(fut).await;
-        Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self, id))]
@@ -278,7 +149,11 @@ impl ProviderHandler {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn handle_extra_event(&self, key: String, event: ExtensionExtraEvent) -> Result<()> {
+    pub async fn handle_extra_event(
+        &self,
+        key: String,
+        event: extension_command::Event,
+    ) -> Result<()> {
         let provider_keys = if key.is_empty() {
             self.get_provider_keys().await?
         } else {
@@ -291,146 +166,157 @@ impl ProviderHandler {
             if let Some(provider) = provider
                 && let Err(e) = provider.handle_extra_event(event.clone()).await
             {
-                tracing::error!("Provider failed to handle event {:?}: {}", event, e);
+                tracing::warn!(
+                    "Provider {} failed to handle event {:?}: {}",
+                    provider_key,
+                    event,
+                    e
+                );
             }
         }
 
         Ok(())
     }
 
-    generate_wrapper_mut!(
-        provider_login {
-            args: {
-                account_id: String
-            },
-            result_type: String,
-            method_name: login,
-        },
-        provider_signout {
-            args: {
-                account_id: String
-            },
-            result_type: (),
-            method_name: signout,
-        },
-        provider_authorize {
-            args: { code: String },
-            result_type: (),
-            method_name: authorize,
-        }
-    );
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn provider_login(&self, key: String, account_id: String) -> Result<String> {
+        let provider = get_provider!(self, key);
+        provider.login(account_id).await
+    }
 
-    generate_wrapper!(
-        fetch_user_playlists {
-            args: {
-                pagination: Pagination
-            },
-            result_type: (Vec<Playlist>, Pagination),
-            method_name: fetch_user_playlists,
-        },
-        fetch_playlist_content {
-            args: {
-                playlist: Playlist,
-                pagination: Pagination
-            },
-            result_type: (Vec<Song>, Pagination),
-            method_name: get_playlist_content,
-        },
-        fetch_playback_url {
-            args: {
-                song: Song,
-                player: String
-            },
-            result_type: String,
-            method_name: get_playback_url,
-        },
-        provider_search {
-            args: {
-                term: String
-            },
-            result_type: SearchResult,
-            method_name: search,
-        },
-        playlist_from_url {
-            args: {
-                url: String
-            },
-            result_type: Playlist,
-            method_name: playlist_from_url,
-        },
-        song_from_url {
-            args: {
-                url: String
-            },
-            result_type: Song,
-            method_name: song_from_url,
-        },
-        match_url {
-            args: {
-                url: String
-            },
-            result_type: bool,
-            method_name: match_url,
-        },
-        get_suggestions {
-            args: {
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn provider_signout(&self, key: String, account_id: String) -> Result<()> {
+        let provider = get_provider!(self, key);
+        provider.signout(account_id).await
+    }
 
-            },
-            result_type: Vec<Song>,
-            method_name: get_suggestions,
-        },
-        get_album_content {
-            args: {
-                album: Album,
-                pagination: Pagination
-            },
-            result_type: (Vec<Song>, Pagination),
-            method_name: get_album_content,
-        },
-        get_artist_content {
-            args: {
-                artist: Artist,
-                pagination: Pagination
-            },
-            result_type: (Vec<Song>, Pagination),
-            method_name: get_artist_content,
-        },
-        get_provider_lyrics  {
-            args: {
-                song: Song,
-            },
-            result_type: String,
-            method_name: get_lyrics,
-        },
-        get_song_context_menu  {
-            args: {
-                songs: Vec<Song>,
-            },
-            result_type: Vec<ContextMenuReturnType>,
-            method_name: get_song_context_menu,
-        },
-        get_playlist_context_menu  {
-            args: {
-                playlist: Playlist,
-            },
-            result_type: Vec<ContextMenuReturnType>,
-            method_name: get_playlist_context_menu,
-        },
-        trigger_context_menu_action {
-            args: {
-                action: String,
-            },
-            result_type: (),
-            method_name: trigger_context_menu_action,
-        },
-        get_song_from_id {
-            args: {
-                id: String,
-            },
-            result_type: Song,
-            method_name: song_from_id,
-        }
-    );
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn provider_authorize(&self, key: String, code: String) -> Result<()> {
+        let provider = get_provider!(self, key);
+        provider.authorize(code).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn fetch_user_playlists(
+        &self,
+        key: String,
+        pagination: Pagination,
+    ) -> Result<(Vec<Playlist>, Pagination)> {
+        let provider = get_provider!(self, key);
+        provider.fetch_user_playlists(pagination).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn fetch_playlist_content(
+        &self,
+        key: String,
+        playlist: Playlist,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
+        let provider = get_provider!(self, key);
+        provider.get_playlist_content(playlist, pagination).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn fetch_playback_url(
+        &self,
+        key: String,
+        song: Song,
+        player: String,
+    ) -> Result<String> {
+        let provider = get_provider!(self, key);
+        provider.get_playback_url(song, player).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn provider_search(&self, key: String, term: String) -> Result<SearchResult> {
+        let provider = get_provider!(self, key);
+        provider.search(term).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn playlist_from_url(&self, key: String, url: String) -> Result<Playlist> {
+        let provider = get_provider!(self, key);
+        provider.playlist_from_url(url).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn song_from_url(&self, key: String, url: String) -> Result<Song> {
+        let provider = get_provider!(self, key);
+        provider.song_from_url(url).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn match_url(&self, key: String, url: String) -> Result<bool> {
+        let provider = get_provider!(self, key);
+        provider.match_url(url).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn get_suggestions(&self, key: String) -> Result<Vec<Song>> {
+        let provider = get_provider!(self, key);
+        provider.get_suggestions().await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn get_album_content(
+        &self,
+        key: String,
+        album: Album,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
+        let provider = get_provider!(self, key);
+        provider.get_album_content(album, pagination).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn get_artist_content(
+        &self,
+        key: String,
+        artist: Artist,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
+        let provider = get_provider!(self, key);
+        provider.get_artist_content(artist, pagination).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn get_provider_lyrics(&self, key: String, song: Song) -> Result<String> {
+        let provider = get_provider!(self, key);
+        provider.get_lyrics(song).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn get_song_context_menu(
+        &self,
+        key: String,
+        songs: Vec<Song>,
+    ) -> Result<Vec<ContextMenuReturnType>> {
+        let provider = get_provider!(self, key);
+        provider.get_song_context_menu(songs).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn get_playlist_context_menu(
+        &self,
+        key: String,
+        playlist: Playlist,
+    ) -> Result<Vec<ContextMenuReturnType>> {
+        let provider = get_provider!(self, key);
+        provider.get_playlist_context_menu(playlist).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn trigger_context_menu_action(&self, key: String, action: String) -> Result<()> {
+        let provider = get_provider!(self, key);
+        provider.trigger_context_menu_action(action).await
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn get_song_from_id(&self, key: String, id: String) -> Result<Song> {
+        let provider = get_provider!(self, key);
+        provider.song_from_id(id).await
+    }
 }
 
 #[tracing::instrument(level = "debug", skip(app))]
@@ -439,7 +325,6 @@ pub fn get_provider_handler_state(app: AppHandle) -> ProviderHandler {
 }
 
 generate_command_async!(get_provider_keys, ProviderHandler, Vec<String>,);
-generate_command_async!(initialize_all_providers, ProviderHandler, (),);
 generate_command_async!(provider_login, ProviderHandler, String, key: String, account_id: String);
 generate_command_async!(provider_signout, ProviderHandler, (), key: String, account_id: String);
 generate_command_async!(provider_authorize, ProviderHandler, (), key: String, code: String);
@@ -460,4 +345,4 @@ generate_command_async_cached!(get_provider_lyrics, ProviderHandler, String, key
 generate_command_async!(get_song_context_menu, ProviderHandler, Vec<ContextMenuReturnType>, key: String, songs: Vec<Song>);
 generate_command_async!(get_playlist_context_menu, ProviderHandler, Vec<ContextMenuReturnType>, key: String, playlist: Playlist);
 generate_command_async!(trigger_context_menu_action, ProviderHandler, (), key: String, action: String);
-generate_command_async!(handle_extra_event, ProviderHandler, (), key: String, event: ExtensionExtraEvent);
+generate_command_async!(handle_extra_event, ProviderHandler, (), key: String, event: extension_command::Event);

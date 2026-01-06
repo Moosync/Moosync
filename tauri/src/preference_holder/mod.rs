@@ -25,7 +25,6 @@ use types::errors::error_helpers;
 use types::{errors::Result, preferences::CheckboxPreference};
 
 use crate::{
-    providers::handler::ProviderHandler,
     scanner::{ScanTask, start_scan},
 };
 
@@ -66,11 +65,6 @@ pub fn handle_pref_changes(app: AppHandle) {
                         tracing::error!("{}", e);
                     }
                 });
-            }
-
-            if key.starts_with("prefs.spotify") {
-                let provider_state: State<ProviderHandler> = app.state();
-                provider_state.initialize_provider("spotify".into()).await;
             }
 
             if key.starts_with("prefs.system_settings") {

@@ -17,37 +17,56 @@ use crypto::{
     sha1::Sha1,
     sha2::{Sha256, Sha512},
 };
+use extensions_proto::moosync::types::{
+    Error as MainCommandError, ExtensionCommand, ExtensionCommandResponse, ExtensionManifest,
+    ExtensionsUpdatedRequest, MainCommand, MainCommandResponse, ManifestPermissions, main_command,
+    main_command_response,
+};
 use extism::{Error, ValType::I64};
 use extism::{Manifest, PTR, Plugin, PluginBuilder, UserData, Wasm, host_fn};
-use extism_convert::Json;
+use extism_convert::Prost;
 use interprocess::local_socket::{
     GenericFilePath, GenericNamespaced, NameType, Stream as LocalSocketStream, ToFsName, ToNsName,
     traits::Stream,
 };
 use regex::{Captures, Regex};
-use serde_json::Value;
-use types::extensions::{ExtensionManifest, ManifestPermissions};
 
 use crate::{
     context::{Extism, MainCommandUserData, ReplyHandler, SocketUserData},
     errors::ExtensionError,
-    models::{ExtensionCommand, ExtensionCommandResponse},
+    models::SanitizeCommand,
 };
-use types::extensions::MainCommand;
 
-host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Json<MainCommand>) -> Option<Value> {
+host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Prost<MainCommand>) {
     let user_data = user_data.get()?;
     let user_data = user_data.lock().unwrap();
 
     let mut command = command_wrapper.0;
-    command.sanitize_command(&user_data.package_name);
+    if let Err(e) = command.sanitize(&user_data.package_name) {
+        return Ok(Prost(MainCommandResponse {
+            response: Some(main_command_response::Response::Error(MainCommandError {
+                message: e.to_string()
+            })),
+        }));
+    }
 
     let response = user_data.reply_handler
     .clone()
     .as_ref()(&user_data.package_name, command)
-    .map_err(|e| Error::msg(e.to_string()))?;
+    .map_err(|e| Error::msg(e.to_string()));
 
-    Ok(Some(Json(response)))
+    match response {
+        Ok(response) => {
+            Ok(Prost(response))
+        }
+        Err(e) => {
+            Ok(Prost(MainCommandResponse {
+                response: Some(main_command_response::Response::Error(MainCommandError {
+                    message: e.to_string()
+                })),
+            }))
+        }
+    }
 });
 
 host_fn!(system_time() -> u64 {
@@ -240,7 +259,9 @@ impl ExtismContext {
                 tracing::warn!("Path {:?} does not exist", parsed_path);
                 continue;
             }
-            allowed_paths.insert(parsed, value.clone());
+
+            let Ok(value_path) = PathBuf::from_str(value);
+            allowed_paths.insert(parsed, value_path);
         }
 
         tracing::info!("Got allowed paths {:?}", allowed_paths);
@@ -353,12 +374,19 @@ impl Extism for ExtismContext {
         thread::spawn(move || {
             {
                 let mut plugin = plugin.lock().unwrap();
-                tracing::trace!("Calling entry");
+                println!("Calling entry");
                 if let Err(e) = plugin.call::<(), ()>("entry", ()) {
-                    tracing::error!("Failed to called extension entry: {:?}", e);
+                    println!("Failed to called extension entry: {:?}", e);
                 }
             }
-            let _ = reply_handler.as_ref()(&package_name, MainCommand::ExtensionsUpdated());
+            let _ = reply_handler.as_ref()(
+                &package_name,
+                MainCommand {
+                    command: Some(main_command::Command::ExtensionsUpdated(
+                        ExtensionsUpdatedRequest {},
+                    )),
+                },
+            );
         });
 
         plugin_clone
@@ -371,13 +399,16 @@ impl Extism for ExtismContext {
         command: ExtensionCommand,
     ) -> Result<ExtensionCommandResponse, ExtensionError> {
         tokio::task::spawn_blocking(move || {
-            let (fn_name, args) = command.to_plugin_call();
             let mut plugin = plugin.lock().unwrap();
-            tracing::debug!("Calling {} on {:?}", fn_name, plugin.id);
-            let res = plugin.call::<_, Value>(fn_name, args.clone())?;
-            tracing::trace!("Finished calling {} on {:?}", fn_name, plugin.id);
-            let mut parsed_resp = command.parse_response(res)?;
-            parsed_resp.sanitize(&package_name);
+            tracing::debug!("Calling {:?} on {:?}", command, plugin.id);
+            let res = plugin.call::<_, Prost<ExtensionCommandResponse>>(
+                "handle_extension_command",
+                Prost(command),
+            )?;
+            tracing::trace!("Finished calling on {:?}", plugin.id);
+
+            let mut parsed_resp = res.0;
+            parsed_resp.sanitize(&package_name)?;
             Ok(parsed_resp)
         })
         .await

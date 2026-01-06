@@ -60,7 +60,16 @@ fn main() {
     let manifest_dir = Path::new(&manifest_dir);
 
     if let Some(file_path) = find_function_details_json(manifest_dir) {
-        generate_tauri_invoke_wrapper(&file_path, vec!["types".into()]);
+        generate_tauri_invoke_wrapper(
+            &file_path,
+            vec![
+                "types".into(),
+                "themes_proto".into(),
+                "songs_proto".into(),
+                "extensions_proto".into(),
+                "ui_proto".into(),
+            ],
+        );
     } else {
         panic!("Could not find function_details.json {:?}", manifest_dir);
     }

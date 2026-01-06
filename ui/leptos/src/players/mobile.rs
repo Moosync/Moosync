@@ -17,9 +17,11 @@
 use leptos::{html::Div, prelude::*, task::spawn_local};
 
 use crate::utils::error::Result;
+use extensions_proto::moosync::types::player_event::Event as PlayerEvents;
 use serde::Deserialize;
+use songs_proto::moosync::types::{Song, SongType};
 use tokio::sync::oneshot::Sender as OneShotSender;
-use types::{songs::SongType, ui::player_details::PlayerEvents};
+use types::prelude::SongsExt;
 use wasm_bindgen::JsValue;
 
 use crate::utils::{
@@ -96,9 +98,9 @@ impl MobilePlayer {
     }
 
     generate_event_listeners!(
-        listen_onplay => ("onPlay", KeyEvent) => |_| PlayerEvents::Play,
-        listen_onpause => ("onPause", KeyEvent) => |_| PlayerEvents::Pause,
-        listen_onended => ("onSongEnded", KeyEvent) => |_| PlayerEvents::Ended,
+        listen_onplay => ("onPlay", KeyEvent) => |_| PlayerEvents::Play(true),
+        listen_onpause => ("onPause", KeyEvent) => |_| PlayerEvents::Pause(true),
+        listen_onended => ("onSongEnded", KeyEvent) => |_| PlayerEvents::Ended(true),
         listen_ontimeupdate => ("onTimeChange", TimeChangeEvent) => |evt: TimeChangeEvent|{
             PlayerEvents::TimeUpdate(evt.pos / 1000f64)
         }
@@ -156,7 +158,7 @@ impl GenericPlayer for MobilePlayer {
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn provides(&self) -> &[SongType] {
-        &[SongType::LOCAL, SongType::URL, SongType::SPOTIFY]
+        &[SongType::Local, SongType::Url, SongType::Spotify]
     }
 
     #[tracing::instrument(level = "debug", skip(self, _volume))]
@@ -191,8 +193,8 @@ impl GenericPlayer for MobilePlayer {
     }
 
     #[tracing::instrument(level = "debug", skip(self, song))]
-    fn can_play(&self, song: &types::songs::Song) -> bool {
-        let playback_url = song.song.path.clone().or(song.song.playback_url.clone());
+    fn can_play(&self, song: &Song) -> bool {
+        let playback_url = song.get_path().or(song.get_playback_url());
         tracing::debug!("Checking playback url {:?}", playback_url);
         if let Some(playback_url) = playback_url {
             if self.key == "LOCAL" {

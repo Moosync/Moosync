@@ -21,8 +21,10 @@ use std::sync::{
     mpsc::{self, Receiver},
 };
 
-use types::{errors::Result, mpris::MprisPlayerDetails, ui::player_details::PlayerState};
+use extensions_proto::moosync::types::PlayerState;
+use types::errors::Result;
 
+use crate::MprisPlayerDetails;
 use crate::context::{MprisContext, SouvlakiMprisContext};
 
 pub struct MprisHolder {

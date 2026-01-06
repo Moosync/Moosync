@@ -31,7 +31,7 @@ use lyrics::{get_lyrics, get_lyrics_state};
 use mobile_player::{
     MobilePlayer, mobile_load, mobile_pause, mobile_play, mobile_seek, mobile_stop,
 };
-use mpris::{get_mpris_state, set_metadata, set_playback_state, set_position};
+use mpris::{get_mpris_state, set_playback_state, set_position};
 use preference_holder::{
     get_preference_state, get_secure, handle_pref_changes, initial, load_selective,
     load_selective_array, save_selective, set_secure,
@@ -55,9 +55,8 @@ use providers::handler::{
     fetch_playback_url, fetch_playlist_content, fetch_user_playlists, get_album_content,
     get_all_status, get_artist_content, get_playlist_context_menu, get_provider_key_by_id,
     get_provider_keys, get_provider_lyrics, get_song_context_menu, get_song_from_id,
-    get_suggestions, handle_extra_event, initialize_all_providers, match_url, playlist_from_url,
-    provider_authorize, provider_login, provider_search, provider_signout, song_from_url,
-    trigger_context_menu_action,
+    get_suggestions, handle_extra_event, match_url, playlist_from_url, provider_authorize,
+    provider_login, provider_search, provider_signout, song_from_url, trigger_context_menu_action,
 };
 use scanner::{ScanTask, get_scanner_state, start_scan};
 use tauri::{Manager, State};
@@ -266,7 +265,7 @@ pub fn run() {
             get_themes_manifest,
             download_theme,
             // MPRIS
-            set_metadata,
+            // set_metadata,
             set_playback_state,
             set_position,
             // Lyrics
@@ -280,7 +279,6 @@ pub fn run() {
             get_extension_icon,
             //Provider Handler
             get_provider_keys,
-            initialize_all_providers,
             provider_login,
             provider_signout,
             provider_authorize,

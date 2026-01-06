@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package moosync.types;
+
+message ThemeItem {
+  string primary = 1;
+  string secondary = 2;
+  string tertiary = 3;
+  string text_primary = 4;
+  string text_secondary = 5;
+  string text_inverse = 6;
+  string accent = 7;
+  string divider = 8;
+  optional string custom_css = 9;
+}
+
+message ThemeDetails {
+  string id = 1;
+  string name = 2;
+  optional string author = 3;
+  ThemeItem theme = 4;
+}

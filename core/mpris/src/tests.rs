@@ -1,6 +1,6 @@
 use super::{MprisHolder, context::MockMprisContext};
-use types::mpris::MprisPlayerDetails;
-use types::ui::player_details::PlayerState;
+use crate::MprisPlayerDetails;
+use extensions_proto::moosync::types::PlayerState;
 
 #[test]
 fn test_mpris_holder_new() {

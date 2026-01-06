@@ -20,14 +20,13 @@ use crate::macros::generate_command_async;
 use crate::macros::generate_command_async_cached;
 use database::cache::CacheHolder;
 use extensions::ExtensionHandler;
+use extensions_proto::moosync::types::ExtensionDetail;
+use extensions_proto::moosync::types::FetchedExtensionManifest;
 use request_handler::ReplyHandler;
 use tauri::AppHandle;
 use tauri::Manager;
 use tauri::State;
 use types::errors::Result;
-use types::ui::extensions::ExtensionDetail;
-use types::ui::extensions::FetchedExtensionManifest;
-use types::ui::extensions::PackageNameArgs;
 
 mod request_handler;
 
@@ -69,4 +68,4 @@ generate_command_async!(
     ExtensionHandler,
     Vec<ExtensionDetail>,
 );
-generate_command_async_cached!(get_extension_icon, ExtensionHandler, String, args: PackageNameArgs);
+generate_command_async_cached!(get_extension_icon, ExtensionHandler, String, args: String);

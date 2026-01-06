@@ -27,3 +27,9 @@ register_toolchains("@rust_toolchains//:all")
 register_toolchains("@rules_rust//rust/private/dummy_cc_toolchain:dummy_cc_wasm32_toolchain")
 
 register_toolchains("//:wasm_bindgen_toolchain")
+
+register_toolchains("//tools/rust/prost_toolchain:prost_toolchain_wasm")
+
+register_toolchains("//tools/rust/prost_toolchain:prost_toolchain_default_x86_64")
+
+register_toolchains("//tools/rust/prost_toolchain:prost_toolchain_default_arm64")

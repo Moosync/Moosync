@@ -16,102 +16,510 @@
 
 use std::fmt::Debug;
 
-use async_trait::async_trait;
-use futures::{SinkExt, channel::mpsc::UnboundedSender};
-use serde_json::Value;
+use extensions_proto::moosync::types::{
+    ContextMenuActionRequest, ContextMenuReturnType, CustomRequest, ExtensionCommand,
+    ExtensionDetail, ExtensionProviderScope, GetAccountsRequest, GetProviderScopesRequest,
+    OauthCallbackRequest, PerformAccountLoginRequest, PlaybackDetailsRequestedRequest,
+    ProviderStatus, RequestedAlbumSongsRequest, RequestedArtistSongsRequest,
+    RequestedLyricsRequest, RequestedPlaylistContextMenuRequest, RequestedPlaylistFromUrlRequest,
+    RequestedPlaylistSongsRequest, RequestedPlaylistsRequest, RequestedRecommendationsRequest,
+    RequestedSearchResultRequest, RequestedSongContextMenuRequest, RequestedSongFromIdRequest,
+    RequestedSongFromUrlRequest, extension_command, extension_command_response,
+};
+use songs_proto::moosync::types::{Album, Artist, Playlist, SearchResult, Song};
 use tauri::AppHandle;
-use tokio::sync::Mutex;
 use types::{
-    entities::{Album, Artist, Playlist, SearchResult},
     errors::{MoosyncError, Result},
-    providers::generic::{GenericProvider, Pagination, ProviderStatus},
-    songs::Song,
-    ui::extensions::{
-        AccountLoginArgs, ContextMenuReturnType, CustomRequestReturnType, ExtensionDetail,
-        ExtensionExtraEvent, ExtensionExtraEventArgs, ExtensionProviderScope, PackageNameArgs,
-        PlaybackDetailsReturnType, PlaylistAndSongsReturnType, PlaylistReturnType,
-        RecommendationsReturnType, SearchReturnType, SongReturnType, SongsWithPageTokenReturnType,
-    },
+    prelude::SongsExt,
+    providers::generic::Pagination,
 };
 
 use crate::extensions::get_extension_handler;
 
 macro_rules! send_extension_event {
-    ($self:ident, $data:expr, $return_type:ty) => {{
+    // Usage: send_extension_event!(self, request_struct, VariantName)
+    ($self:ident, $req_data:expr, $variant:ident) => {{
         let extension_handler = get_extension_handler(&$self.app_handle);
-        let res = extension_handler
-            .send_extra_event(ExtensionExtraEventArgs {
-                data: $data,
+        let event_wrapper = extension_command::Event::$variant($req_data);
+
+        let res_wrapper = extension_handler
+            .send_extension_command(ExtensionCommand {
+                event: Some(event_wrapper),
                 package_name: $self.extension.package_name.clone(),
             })
-            .await?;
-        tracing::info!("parsing res {:?} as {}", res, stringify!($return_type));
-        let res = serde_json::from_value::<$return_type>(res)?;
-        tracing::info!("parsed res");
-        res
+            .await
+            .map_err(|e| MoosyncError::String(e.to_string()))?;
+
+        // FIX: Use match instead of 'if let'.
+        // We assume 'res_wrapper' is Option<ExtensionCommandResponse> based on your snippet.
+        // If it is just ExtensionCommandResponse, remove the outer match.
+        match res_wrapper {
+            Some(res) => match res.response {
+                Some(extension_command_response::Response::$variant(inner)) => {
+                    tracing::debug!("Received response for {}", stringify!($variant));
+                    inner
+                }
+                Some(unexpected) => {
+                    let msg = format!(
+                        "Expected response variant {}, got {:?}",
+                        stringify!($variant),
+                        unexpected
+                    );
+                    tracing::error!("{}", msg);
+                    return Err(MoosyncError::String(msg));
+                }
+                None => {
+                    return Err(MoosyncError::String(
+                        "Received empty extension response (inner None)".into(),
+                    ));
+                }
+            },
+            None => {
+                // This replaces your implicit else.
+                // We must return an Error here, not Default::default(),
+                // because the caller expects a concrete response type.
+                return Err(MoosyncError::String(
+                    "Received empty extension response (outer None)".into(),
+                ));
+            }
+        }
     }};
 }
 
 pub struct ExtensionProvider {
     extension: ExtensionDetail,
-    provides: Vec<ExtensionProviderScope>,
+    provides: Option<Vec<i32>>,
     app_handle: AppHandle,
-    status_tx: Mutex<UnboundedSender<ProviderStatus>>,
 }
 
 impl ExtensionProvider {
-    #[tracing::instrument(level = "debug", skip(extension, provides, app_handle, status_tx))]
-    pub fn new(
-        extension: ExtensionDetail,
-        provides: Vec<ExtensionProviderScope>,
-        app_handle: AppHandle,
-        status_tx: UnboundedSender<ProviderStatus>,
-    ) -> Self {
+    #[tracing::instrument(level = "debug", skip(extension, app_handle))]
+    pub fn new(extension: ExtensionDetail, app_handle: AppHandle) -> Self {
         Self {
             extension,
-            provides,
+            provides: None,
             app_handle,
-            status_tx: Mutex::new(status_tx),
         }
     }
 
-    async fn get_accounts(&self) -> Result<()> {
-        if self.provides.contains(&ExtensionProviderScope::Accounts) {
-            let extension_handler = get_extension_handler(&self.app_handle);
-            let accounts = extension_handler
-                .get_accounts(PackageNameArgs {
-                    package_name: self.extension.package_name.clone(),
-                })
-                .await?;
+    fn check_scope(&self, scope: ExtensionProviderScope) -> Result<()> {
+        let has_scope = self
+            .provides
+            .as_ref()
+            .map(|scopes| scopes.contains(&scope.into()))
+            .unwrap_or(false);
 
-            for account in accounts {
-                let _ = self
-                    .status_tx
-                    .lock()
-                    .await
-                    .send(ProviderStatus {
-                        key: self.key(),
-                        name: account.name,
-                        user_name: account.username,
-                        logged_in: account.logged_in,
-                        bg_color: account.bg_color,
-                        account_id: account.id,
-                        scopes: self.get_provider_scopes().await.unwrap(),
-                    })
-                    .await;
-            }
+        if has_scope {
+            Ok(())
         } else {
-            let _ = self
-                .status_tx
-                .lock()
-                .await
-                .send(ProviderStatus {
+            Err(MoosyncError::String(
+                "Extension does not have this capability".into(),
+            ))
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub fn key(&self) -> String {
+        format!("extension:{}", self.extension.package_name)
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub fn match_id(&self, id: String) -> bool {
+        id.starts_with(&format!("{}:", self.extension.package_name))
+    }
+
+    pub async fn get_provider_scopes(&mut self) -> Result<Vec<i32>> {
+        if let Some(provides) = &self.provides {
+            Ok(provides.clone())
+        } else {
+            let res = send_extension_event!(self, GetProviderScopesRequest {}, GetProviderScopes);
+            self.provides.replace(res.scopes.clone());
+            Ok(res.scopes)
+        }
+    }
+
+    pub async fn get_accounts(&mut self) -> Result<Vec<ProviderStatus>> {
+        if self.check_scope(ExtensionProviderScope::Accounts).is_ok() {
+            let res = send_extension_event!(self, GetAccountsRequest {}, GetAccounts);
+            let scopes = self.get_provider_scopes().await.unwrap_or_default();
+            Ok(res
+                .accounts
+                .into_iter()
+                .map(|account| ProviderStatus {
                     key: self.key(),
-                    scopes: self.get_provider_scopes().await.unwrap(),
-                    name: self.extension.name.clone(),
-                    ..Default::default()
+                    name: account.name,
+                    user_name: account.username,
+                    logged_in: account.logged_in,
+                    bg_color: account.bg_color,
+                    account_id: account.id,
+                    scopes: scopes.clone(),
                 })
-                .await;
+                .collect())
+        } else {
+            Ok(vec![ProviderStatus {
+                key: self.key(),
+                scopes: self.get_provider_scopes().await.unwrap_or_default(),
+                name: self.extension.name.clone(),
+                ..Default::default()
+            }])
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn login(&self, account_id: String) -> Result<String> {
+        let res = send_extension_event!(
+            self,
+            PerformAccountLoginRequest {
+                account_id,
+                login_status: true,
+            },
+            PerformAccountLogin
+        );
+
+        tracing::debug!("Got extension login response {:?}", res);
+        Ok(res.status)
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn signout(&self, account_id: String) -> Result<()> {
+        let _ = send_extension_event!(
+            self,
+            PerformAccountLoginRequest {
+                account_id,
+                login_status: false,
+            },
+            PerformAccountLogin
+        );
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn authorize(&self, code: String) -> Result<()> {
+        let _ = send_extension_event!(
+            self,
+            OauthCallbackRequest { callback_uri: code },
+            OauthCallback
+        );
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn fetch_user_playlists(
+        &self,
+        pagination: Pagination,
+    ) -> Result<(Vec<Playlist>, Pagination)> {
+        self.check_scope(ExtensionProviderScope::Playlists)?;
+
+        if pagination.offset > 0 {
+            return Ok((vec![], pagination.next_page()));
+        }
+
+        let res = send_extension_event!(
+            self,
+            RequestedPlaylistsRequest { refresh: false },
+            RequestedPlaylists
+        );
+        Ok((res.playlists, pagination.next_page()))
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn get_playlist_content(
+        &self,
+        playlist: Playlist,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
+        self.check_scope(ExtensionProviderScope::PlaylistSongs)?;
+
+        let playlist_id = playlist
+            .playlist_id
+            .ok_or(MoosyncError::String("Playlist ID cannot be None".into()))?;
+
+        let res = send_extension_event!(
+            self,
+            RequestedPlaylistSongsRequest {
+                id: playlist_id,
+                refresh: false,
+                page_token: pagination.token.clone(),
+            },
+            RequestedPlaylistSongs
+        );
+
+        let next_token = res.next_page_token.map(|v| v.to_string());
+
+        Ok((res.songs, pagination.next_page_wtoken(next_token)))
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn get_playback_url(&self, song: Song, _player: String) -> Result<String> {
+        self.check_scope(ExtensionProviderScope::PlaybackDetails)?;
+
+        if let Some(playback_url) = &song.get_playback_url()
+            && playback_url.starts_with("extension://")
+        {
+            let res = send_extension_event!(
+                self,
+                CustomRequest {
+                    request_id: playback_url.clone(),
+                    payload: None
+                },
+                CustomRequest
+            );
+            tracing::info!("Got custom request {:?}", res);
+            return Ok(res.redirect_url.unwrap_or(playback_url.clone()));
+        }
+
+        let res = send_extension_event!(
+            self,
+            PlaybackDetailsRequestedRequest { song: Some(song) },
+            PlaybackDetailsRequested
+        );
+
+        Ok(res.url)
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn search(&self, term: String) -> Result<SearchResult> {
+        self.check_scope(ExtensionProviderScope::Search)?;
+
+        let res = send_extension_event!(
+            self,
+            RequestedSearchResultRequest { query: term },
+            RequestedSearchResult
+        );
+
+        Ok(SearchResult {
+            songs: res.songs,
+            artists: res.artists,
+            playlists: res.playlists,
+            albums: res.albums,
+            genres: vec![],
+        })
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn match_url(&self, url: String) -> Result<bool> {
+        let res = send_extension_event!(
+            self,
+            RequestedPlaylistFromUrlRequest {
+                url,
+                refresh: false
+            },
+            RequestedPlaylistFromUrl
+        );
+
+        Ok(res.playlist.is_some())
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn playlist_from_url(&self, url: String) -> Result<Playlist> {
+        self.check_scope(ExtensionProviderScope::PlaylistFromUrl)?;
+
+        let res = send_extension_event!(
+            self,
+            RequestedPlaylistFromUrlRequest {
+                url,
+                refresh: false
+            },
+            RequestedPlaylistFromUrl
+        );
+
+        res.playlist
+            .ok_or_else(|| MoosyncError::String("Playlist not found".into()))
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn song_from_url(&self, url: String) -> Result<Song> {
+        self.check_scope(ExtensionProviderScope::SongFromUrl)?;
+
+        let res = send_extension_event!(
+            self,
+            RequestedSongFromUrlRequest {
+                url,
+                refresh: false
+            },
+            RequestedSongFromUrl
+        );
+
+        res.song
+            .ok_or_else(|| MoosyncError::String("Song not found".into()))
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    pub async fn get_suggestions(&self) -> Result<Vec<Song>> {
+        self.check_scope(ExtensionProviderScope::Recommendations)?;
+
+        let res = send_extension_event!(
+            self,
+            RequestedRecommendationsRequest { refresh: false },
+            RequestedRecommendations
+        );
+
+        Ok(res.songs)
+    }
+
+    pub async fn get_album_content(
+        &self,
+        album: Album,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
+        self.check_scope(ExtensionProviderScope::AlbumSongs)?;
+
+        let res = send_extension_event!(
+            self,
+            RequestedAlbumSongsRequest {
+                album: Some(album),
+                page_token: pagination.token.clone(),
+            },
+            RequestedAlbumSongs
+        );
+
+        let next_token = res.next_page_token.map(|v| v.to_string());
+        Ok((res.songs, pagination.next_page_wtoken(next_token)))
+    }
+
+    pub async fn get_artist_content(
+        &self,
+        artist: Artist,
+        pagination: Pagination,
+    ) -> Result<(Vec<Song>, Pagination)> {
+        self.check_scope(ExtensionProviderScope::ArtistSongs)?;
+
+        let res = send_extension_event!(
+            self,
+            RequestedArtistSongsRequest {
+                artist: Some(artist),
+                page_token: pagination.token.clone(),
+            },
+            RequestedArtistSongs
+        );
+
+        Ok((res.songs, pagination.next_page_wtoken(res.next_page_token)))
+    }
+
+    pub async fn get_lyrics(&self, song: Song) -> Result<String> {
+        self.check_scope(ExtensionProviderScope::Lyrics)?;
+
+        let res = send_extension_event!(
+            self,
+            RequestedLyricsRequest { song: Some(song) },
+            RequestedLyrics
+        );
+
+        Ok(res.lyrics)
+    }
+
+    pub async fn get_song_context_menu(
+        &self,
+        songs: Vec<Song>,
+    ) -> Result<Vec<ContextMenuReturnType>> {
+        self.check_scope(ExtensionProviderScope::SongContextMenu)?;
+
+        let res = send_extension_event!(
+            self,
+            RequestedSongContextMenuRequest { songs },
+            RequestedSongContextMenu
+        );
+
+        Ok(vec![res.menu.unwrap_or_default()])
+    }
+
+    pub async fn get_playlist_context_menu(
+        &self,
+        playlist: Playlist,
+    ) -> Result<Vec<ContextMenuReturnType>> {
+        self.check_scope(ExtensionProviderScope::PlaylistContextMenu)?;
+
+        let res = send_extension_event!(
+            self,
+            RequestedPlaylistContextMenuRequest {
+                playlist: Some(playlist)
+            },
+            RequestedPlaylistContextMenu
+        );
+
+        Ok(vec![res.menu.unwrap_or_default()])
+    }
+
+    pub async fn trigger_context_menu_action(&self, action_id: String) -> Result<()> {
+        self.check_scope(ExtensionProviderScope::PlaylistContextMenu)?;
+        self.check_scope(ExtensionProviderScope::SongContextMenu)?;
+
+        let _ = send_extension_event!(
+            self,
+            ContextMenuActionRequest { action_id },
+            ContextMenuAction
+        );
+
+        Ok(())
+    }
+
+    pub async fn song_from_id(&self, id: String) -> Result<Song> {
+        let res =
+            send_extension_event!(self, RequestedSongFromIdRequest { id }, RequestedSongFromId);
+
+        res.song
+            .ok_or_else(|| MoosyncError::String("Song not found".into()))
+    }
+
+    pub async fn handle_extra_event(&self, event: extension_command::Event) -> Result<()> {
+        let required_scope = match &event {
+            extension_command::Event::SongAdded(_) | extension_command::Event::SongRemoved(_) => {
+                ExtensionProviderScope::DatabaseSongEvents
+            }
+            extension_command::Event::PlaylistAdded(_)
+            | extension_command::Event::PlaylistRemoved(_) => {
+                ExtensionProviderScope::DatabasePlaylistEvents
+            }
+            extension_command::Event::VolumeChanged(_)
+            | extension_command::Event::Seeked(_)
+            | extension_command::Event::PlayerStateChanged(_) => {
+                ExtensionProviderScope::PlayerUiEvents
+            }
+            extension_command::Event::SongQueueChanged(_)
+            | extension_command::Event::SongChanged(_) => ExtensionProviderScope::PlayerDataEvents,
+            extension_command::Event::Scrobble(_) => ExtensionProviderScope::Scrobble,
+
+            _ => {
+                return Err(MoosyncError::String(
+                    "Event not mapped to a scope or manual send prohibited".into(),
+                ));
+            }
+        };
+
+        self.check_scope(required_scope)?;
+
+        match event {
+            extension_command::Event::SongAdded(req) => {
+                let _ = send_extension_event!(self, req, SongAdded);
+            }
+            extension_command::Event::SongRemoved(req) => {
+                let _ = send_extension_event!(self, req, SongRemoved);
+            }
+            extension_command::Event::PlaylistAdded(req) => {
+                let _ = send_extension_event!(self, req, PlaylistAdded);
+            }
+            extension_command::Event::PlaylistRemoved(req) => {
+                let _ = send_extension_event!(self, req, PlaylistRemoved);
+            }
+            extension_command::Event::VolumeChanged(req) => {
+                let _ = send_extension_event!(self, req, VolumeChanged);
+            }
+            extension_command::Event::Seeked(req) => {
+                let _ = send_extension_event!(self, req, Seeked);
+            }
+            extension_command::Event::PlayerStateChanged(req) => {
+                let _ = send_extension_event!(self, req, PlayerStateChanged);
+            }
+            extension_command::Event::SongQueueChanged(req) => {
+                let _ = send_extension_event!(self, req, SongQueueChanged);
+            }
+            extension_command::Event::SongChanged(req) => {
+                let _ = send_extension_event!(self, req, SongChanged);
+            }
+            extension_command::Event::Scrobble(req) => {
+                let _ = send_extension_event!(self, req, Scrobble);
+            }
+            _ => {}
         }
 
         Ok(())
@@ -125,387 +533,5 @@ impl Debug for ExtensionProvider {
             .field("extension", &self.extension)
             .field("provides", &self.provides)
             .finish()
-    }
-}
-
-#[async_trait]
-impl GenericProvider for ExtensionProvider {
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn initialize(&self) -> Result<()> {
-        tracing::debug!(
-            "Got extension provider scopes: {:?}",
-            self.get_provider_scopes().await.unwrap()
-        );
-        self.get_accounts().await
-    }
-
-    async fn get_provider_scopes(&self) -> Result<Vec<ExtensionProviderScope>> {
-        Ok(self.provides.clone())
-    }
-
-    #[tracing::instrument(level = "debug", skip(self))]
-    fn key(&self) -> String {
-        format!("extension:{}", self.extension.package_name)
-    }
-
-    #[tracing::instrument(level = "debug", skip(self))]
-    fn match_id(&self, id: String) -> bool {
-        id.starts_with(&format!("{}:", self.extension.package_name))
-    }
-
-    async fn requested_account_status(&self) -> Result<()> {
-        self.get_accounts().await
-    }
-
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn login(&self, account_id: String) -> Result<String> {
-        let extension_handler = get_extension_handler(&self.app_handle);
-        let ret = extension_handler
-            .account_login(AccountLoginArgs {
-                package_name: self.extension.package_name.clone(),
-                account_id,
-                login_status: true,
-            })
-            .await;
-        tracing::debug!("Got extension login response {:?}", ret);
-        Ok(ret?)
-    }
-
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn signout(&self, account_id: String) -> Result<()> {
-        let extension_handler = get_extension_handler(&self.app_handle);
-        extension_handler
-            .account_login(AccountLoginArgs {
-                package_name: self.extension.package_name.clone(),
-                account_id,
-                login_status: false,
-            })
-            .await?;
-        Ok(())
-    }
-
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn authorize(&self, code: String) -> Result<()> {
-        let _ = send_extension_event!(self, ExtensionExtraEvent::OauthCallback([code]), Value);
-        Ok(())
-    }
-
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn fetch_user_playlists(
-        &self,
-        pagination: Pagination,
-    ) -> Result<(Vec<Playlist>, Pagination)> {
-        if !self.provides.contains(&ExtensionProviderScope::Playlists) {
-            return Err("Extension does not have this capability".into());
-        }
-        if pagination.offset > 0 {
-            return Ok((vec![], pagination.next_page()));
-        }
-
-        let res = send_extension_event!(
-            self,
-            ExtensionExtraEvent::RequestedPlaylists([false]),
-            PlaylistReturnType
-        );
-        Ok((res.playlists, pagination.next_page()))
-    }
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn get_playlist_content(
-        &self,
-        playlist: Playlist,
-        pagination: Pagination,
-    ) -> Result<(Vec<Song>, Pagination)> {
-        if !self
-            .provides
-            .contains(&ExtensionProviderScope::PlaylistSongs)
-        {
-            return Err("Extension does not have this capability".into());
-        }
-
-        if playlist.playlist_id.is_none() {
-            return Err("Playlist ID cannot be None".into());
-        }
-
-        let res = send_extension_event!(
-            self,
-            ExtensionExtraEvent::RequestedPlaylistSongs(
-                playlist.playlist_id.unwrap(),
-                false,
-                pagination.token.clone()
-            ),
-            SongsWithPageTokenReturnType
-        );
-
-        Ok((
-            res.songs,
-            pagination.next_page_wtoken(
-                res.next_page_token
-                    .map(|v| serde_json::to_string(&v).unwrap_or_default()),
-            ),
-        ))
-    }
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn get_playback_url(&self, song: Song, _player: String) -> Result<String> {
-        if !self
-            .provides
-            .contains(&ExtensionProviderScope::PlaybackDetails)
-        {
-            return Err("Extension does not have this capability".into());
-        }
-
-        if let Some(playback_url) = song.song.playback_url.clone()
-            && playback_url.starts_with("extension://")
-        {
-            let res = send_extension_event!(
-                self,
-                ExtensionExtraEvent::CustomRequest([playback_url.clone()]),
-                CustomRequestReturnType
-            );
-            tracing::info!("Got custom request {:?}", res);
-            return Ok(res.redirect_url.unwrap_or(playback_url));
-        }
-
-        let res = send_extension_event!(
-            self,
-            ExtensionExtraEvent::PlaybackDetailsRequested([song]),
-            PlaybackDetailsReturnType
-        );
-
-        Ok(res.url)
-    }
-
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn search(&self, term: String) -> Result<SearchResult> {
-        if !self.provides.contains(&ExtensionProviderScope::Search) {
-            return Err("Extension does not have this capability".into());
-        }
-
-        let res = send_extension_event!(
-            self,
-            ExtensionExtraEvent::RequestedSearchResult([term]),
-            SearchReturnType
-        );
-
-        Ok(SearchResult {
-            songs: res.songs,
-            artists: res.artists,
-            playlists: res.playlists,
-            albums: res.albums,
-            genres: vec![],
-        })
-    }
-
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn match_url(&self, url: String) -> Result<bool> {
-        let res = send_extension_event!(
-            self,
-            ExtensionExtraEvent::RequestedPlaylistFromURL(url, false),
-            PlaylistAndSongsReturnType
-        );
-
-        Ok(res.playlist.is_some())
-    }
-
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn playlist_from_url(&self, url: String) -> Result<Playlist> {
-        if !self
-            .provides
-            .contains(&ExtensionProviderScope::PlaylistFromUrl)
-        {
-            return Err("Extension does not have this capability".into());
-        }
-
-        let res = send_extension_event!(
-            self,
-            ExtensionExtraEvent::RequestedPlaylistFromURL(url, false),
-            PlaylistAndSongsReturnType
-        );
-
-        if let Some(playlist) = res.playlist {
-            return Ok(playlist);
-        }
-        Err("Playlist not found".into())
-    }
-
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn song_from_url(&self, url: String) -> Result<Song> {
-        if !self.provides.contains(&ExtensionProviderScope::SongFromUrl) {
-            return Err("Extension does not have this capability".into());
-        }
-
-        let res = send_extension_event!(
-            self,
-            ExtensionExtraEvent::RequestedSongFromURL(url, false),
-            SongReturnType
-        );
-
-        if let Some(song) = res.song {
-            return Ok(song);
-        }
-
-        Err("Song not found".into())
-    }
-
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn get_suggestions(&self) -> Result<Vec<Song>> {
-        if !self
-            .provides
-            .contains(&ExtensionProviderScope::Recommendations)
-        {
-            return Err("Extension does not have this capability".into());
-        }
-
-        let res = send_extension_event!(
-            self,
-            ExtensionExtraEvent::RequestedRecommendations,
-            RecommendationsReturnType
-        );
-
-        Ok(res.songs)
-    }
-
-    async fn get_album_content(
-        &self,
-        album: Album,
-        pagination: Pagination,
-    ) -> Result<(Vec<Song>, Pagination)> {
-        if !self.provides.contains(&ExtensionProviderScope::AlbumSongs) {
-            return Err("Extension does not have this capability".into());
-        }
-
-        let res = send_extension_event!(
-            self,
-            ExtensionExtraEvent::RequestedAlbumSongs(album, pagination.token.clone()),
-            SongsWithPageTokenReturnType
-        );
-
-        let pagination = pagination.next_page_wtoken(
-            res.next_page_token
-                .map(|t| serde_json::to_string(&t).unwrap_or_default()),
-        );
-        Ok((res.songs, pagination))
-    }
-
-    async fn get_artist_content(
-        &self,
-        artist: Artist,
-        pagination: Pagination,
-    ) -> Result<(Vec<Song>, Pagination)> {
-        if !self.provides.contains(&ExtensionProviderScope::ArtistSongs) {
-            return Err("Extension does not have this capability".into());
-        }
-
-        let res = send_extension_event!(
-            self,
-            ExtensionExtraEvent::RequestedArtistSongs(artist, pagination.token.clone()),
-            SongsWithPageTokenReturnType
-        );
-
-        let pagination = pagination.next_page_wtoken(
-            res.next_page_token
-                .map(|t| serde_json::to_string(&t).unwrap_or_default()),
-        );
-        Ok((res.songs, pagination))
-    }
-
-    async fn get_lyrics(&self, song: Song) -> Result<String> {
-        if !self.provides.contains(&ExtensionProviderScope::Lyrics) {
-            return Err("Extension does not have this capability".into());
-        }
-        let res = send_extension_event!(self, ExtensionExtraEvent::RequestedLyrics([song]), String);
-
-        Ok(res)
-    }
-
-    async fn get_song_context_menu(&self, song: Vec<Song>) -> Result<Vec<ContextMenuReturnType>> {
-        if !self
-            .provides
-            .contains(&ExtensionProviderScope::SongContextMenu)
-        {
-            return Err("Extension does not have this capability".into());
-        }
-        let res = send_extension_event!(
-            self,
-            ExtensionExtraEvent::RequestedSongContextMenu([song]),
-            Vec<ContextMenuReturnType>
-        );
-
-        Ok(res)
-    }
-
-    async fn get_playlist_context_menu(
-        &self,
-        playlist: Playlist,
-    ) -> Result<Vec<ContextMenuReturnType>> {
-        if !self
-            .provides
-            .contains(&ExtensionProviderScope::PlaylistContextMenu)
-        {
-            return Err("Extension does not have this capability".into());
-        }
-        let res = send_extension_event!(
-            self,
-            ExtensionExtraEvent::RequestedPlaylistContextMenu([playlist]),
-            Vec<ContextMenuReturnType>
-        );
-
-        Ok(res)
-    }
-
-    async fn trigger_context_menu_action(&self, action_id: String) -> Result<()> {
-        if !self
-            .provides
-            .contains(&ExtensionProviderScope::PlaylistContextMenu)
-            && !self
-                .provides
-                .contains(&ExtensionProviderScope::SongContextMenu)
-        {
-            return Err("Extension does not have this capability".into());
-        }
-        let res = send_extension_event!(
-            self,
-            ExtensionExtraEvent::ContextMenuAction([action_id]),
-            ()
-        );
-
-        Ok(res)
-    }
-
-    async fn song_from_id(&self, id: String) -> Result<Song> {
-        let res = send_extension_event!(self, ExtensionExtraEvent::RequestedSongFromId([id]), Song);
-
-        Ok(res)
-    }
-
-    async fn handle_extra_event(&self, event: ExtensionExtraEvent) -> Result<()> {
-        let required_scope = match event {
-            ExtensionExtraEvent::SongAdded(_) | ExtensionExtraEvent::SongRemoved(_) => {
-                ExtensionProviderScope::DatabaseSongEvents
-            }
-            ExtensionExtraEvent::PlaylistAdded(_) | ExtensionExtraEvent::PlaylistRemoved(_) => {
-                ExtensionProviderScope::DatabasePlaylistEvents
-            }
-            ExtensionExtraEvent::VolumeChanged(_)
-            | ExtensionExtraEvent::Seeked(_)
-            | ExtensionExtraEvent::PlayerStateChanged(_) => ExtensionProviderScope::PlayerUiEvents,
-            ExtensionExtraEvent::SongQueueChanged(_) | ExtensionExtraEvent::SongChanged(_) => {
-                ExtensionProviderScope::PlayerDataEvents
-            }
-            _ => {
-                return Err(MoosyncError::String(format!(
-                    "Cannot send event {:?} manually",
-                    event
-                )));
-            }
-        };
-
-        if !self.provides.contains(&required_scope) {
-            return Err("Extension does not have this capability".into());
-        }
-
-        // Discard result since all these events shouldn't return anything
-        let _ = send_extension_event!(self, event, Value);
-
-        Ok(())
     }
 }

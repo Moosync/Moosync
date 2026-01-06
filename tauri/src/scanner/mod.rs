@@ -23,8 +23,9 @@ use std::{
 use database::database::Database;
 use file_scanner::ScannerHolder;
 use preferences::preferences::PreferenceConfig;
+use songs_proto::moosync::types::Song;
 use tauri::{AppHandle, Manager, State};
-use types::{errors::Result, songs::Song};
+use types::{errors::Result, prelude::SongsExt};
 
 #[tracing::instrument(level = "debug", skip())]
 pub fn get_scanner_state() -> ScannerHolder {
@@ -126,7 +127,7 @@ pub fn start_scan_inner(app: AppHandle, mut paths: Option<Vec<String>>) -> Resul
                     && let Some(playlist_id) = playlist_id.as_ref()
                 {
                     for song in res {
-                        if let Some(song_id) = song.song._id {
+                        if let Some(song_id) = song.get_id() {
                             let _ = database.add_to_playlist_bridge(playlist_id.clone(), song_id);
                         }
                     }

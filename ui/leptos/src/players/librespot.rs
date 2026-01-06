@@ -17,8 +17,10 @@
 use std::{cell::RefCell, rc::Rc, sync::Mutex, time::Duration};
 
 use crate::utils::error::Result;
+use extensions_proto::moosync::types::player_event::Event as PlayerEvents;
 use leptos::{leptos_dom::helpers::IntervalHandle, prelude::*};
-use types::{preferences::CheckboxPreference, ui::player_details::PlayerEvents};
+use songs_proto::moosync::types::{Song, SongType};
+use types::{preferences::CheckboxPreference, prelude::SongsExt};
 use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 
@@ -216,10 +218,7 @@ impl GenericPlayer for LibrespotPlayer {
             let res = librespot_load(src.clone(), false).await;
             if let Err(err) = res {
                 if let Some(player_state_tx) = player_state_tx {
-                    player_state_tx(
-                        "librespot".into(),
-                        PlayerEvents::Error(format!("{err:?}").into()),
-                    );
+                    player_state_tx("librespot".into(), PlayerEvents::Error(format!("{err:?}")));
                 }
             } else if autoplay {
                 let _ = librespot_play().await;
@@ -270,16 +269,16 @@ impl GenericPlayer for LibrespotPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    fn provides(&self) -> &[types::songs::SongType] {
-        &[types::songs::SongType::SPOTIFY]
+    fn provides(&self) -> &[SongType] {
+        &[SongType::Spotify]
     }
 
     #[tracing::instrument(level = "debug", skip(self, song))]
-    fn can_play(&self, song: &types::songs::Song) -> bool {
+    fn can_play(&self, song: &Song) -> bool {
         Self::initialize_librespot();
         let initialized = *INITIALIZED.lock().unwrap();
         tracing::debug!("Librespot initialized: {}", initialized);
-        initialized && song.song.type_ == types::songs::SongType::SPOTIFY
+        initialized && song.get_type_or_default() == SongType::Spotify
     }
 
     #[tracing::instrument(level = "debug", skip(self, volume))]
@@ -319,27 +318,27 @@ impl GenericPlayer for LibrespotPlayer {
             tx.clone(),
             (
                 "librespot_event_Stopped",
-                PlayerEvents::Ended,
+                PlayerEvents::Ended(true),
                 Self::stop_and_clear_timer
             ),
             (
                 "librespot_event_Playing",
-                PlayerEvents::Play,
+                PlayerEvents::Play(true),
                 Self::start_timer
             ),
             (
                 "librespot_event_Paused",
-                PlayerEvents::Pause,
+                PlayerEvents::Pause(true),
                 Self::stop_timer
             ),
             (
                 "librespot_event_Loading",
-                PlayerEvents::Loading,
+                PlayerEvents::Loading(true),
                 Self::stop_timer
             ),
             (
                 "librespot_event_EndOfTrack",
-                PlayerEvents::Ended,
+                PlayerEvents::Ended(true),
                 Self::stop_and_clear_timer
             ),
             (
@@ -349,7 +348,7 @@ impl GenericPlayer for LibrespotPlayer {
             ),
             (
                 "librespot_event_TrackChanged",
-                PlayerEvents::Loading,
+                PlayerEvents::Loading(true),
                 Self::stop_and_clear_timer
             ),
             (

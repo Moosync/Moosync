@@ -49,9 +49,9 @@ https://chiru.no/stream.flac"#;
 
     for (i, (_playlist, song)) in rx_song.into_iter().enumerate() {
         match i {
-            0 => assert_eq!(song.unwrap().song.title.unwrap(), "stream"),
-            1 => assert_eq!(song.unwrap().song.title.unwrap(), "320"),
-            2 => assert_eq!(song.unwrap().song.title.unwrap(), "stream.flac"),
+            0 => assert_eq!(song.unwrap().song.unwrap().title.unwrap(), "stream"),
+            1 => assert_eq!(song.unwrap().song.unwrap().title.unwrap(), "320"),
+            2 => assert_eq!(song.unwrap().song.unwrap().title.unwrap(), "stream.flac"),
             _ => {
                 println!("{:?}", song);
                 unreachable!()
@@ -104,7 +104,7 @@ https://example.com/track2"#;
 
     let mut titles = Vec::new();
     for (_playlist, song) in rx_song.into_iter() {
-        titles.push(song.unwrap().song.title.unwrap());
+        titles.push(song.unwrap().song.unwrap().title.unwrap());
     }
     assert_eq!(titles, vec!["track1", "track2"]);
 
@@ -149,7 +149,7 @@ https://example.com/lonely_track"#;
 
     let songs: Vec<_> = rx_song
         .into_iter()
-        .map(|(_playlist, song)| song.unwrap().song.title.unwrap())
+        .map(|(_playlist, song)| song.unwrap().song.unwrap().title.unwrap())
         .collect();
     assert_eq!(songs, vec!["lonely_track"]);
 

@@ -12,3 +12,5 @@ ffmpeg-android-maker/
 bazel-*
 rust-project.json
 .ropeproject/
+**/.gradle
+**/.settings

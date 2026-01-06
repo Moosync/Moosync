@@ -29,12 +29,12 @@
           "name": "db"
         },
         {
-          "arg_type": "Vec<types::songs::Song>",
+          "arg_type": "Vec<songs_proto::moosync::types::Song>",
           "name": "songs"
         }
       ],
       "name": "insert_songs",
-      "ret": "types::errors::Result<Vec<types::songs::Song>>"
+      "ret": "types::errors::Result<Vec<songs_proto::moosync::types::Song>>"
     },
     {
       "args": [
@@ -57,7 +57,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::songs::InnerSong",
+          "arg_type": "songs_proto::moosync::types::InnerSong",
           "name": "a"
         }
       ],
@@ -71,12 +71,12 @@
           "name": "db"
         },
         {
-          "arg_type": "types::songs::GetSongOptions",
+          "arg_type": "songs_proto::moosync::types::GetSongOptions",
           "name": "options"
         }
       ],
       "name": "get_songs_by_options",
-      "ret": "types::errors::Result<Vec<types::songs::Song>>"
+      "ret": "types::errors::Result<Vec<songs_proto::moosync::types::Song>>"
     },
     {
       "args": [
@@ -85,7 +85,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::entities::GetEntityOptions",
+          "arg_type": "songs_proto::moosync::types::GetEntityOptions",
           "name": "options"
         }
       ],
@@ -104,7 +104,7 @@
         }
       ],
       "name": "search_all",
-      "ret": "types::errors::Result<types::entities::SearchResult>"
+      "ret": "types::errors::Result<songs_proto::moosync::types::SearchResult>"
     },
     {
       "args": [
@@ -113,7 +113,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::entities::Playlist",
+          "arg_type": "songs_proto::moosync::types::Playlist",
           "name": "playlist"
         }
       ],
@@ -131,7 +131,7 @@
           "name": "id"
         },
         {
-          "arg_type": "Vec<types::songs::Song>",
+          "arg_type": "Vec<songs_proto::moosync::types::Song>",
           "name": "songs"
         }
       ],
@@ -195,7 +195,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::entities::Album",
+          "arg_type": "songs_proto::moosync::types::Album",
           "name": "album"
         }
       ],
@@ -209,7 +209,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::entities::Artist",
+          "arg_type": "songs_proto::moosync::types::Artist",
           "name": "artist"
         }
       ],
@@ -223,7 +223,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::entities::Playlist",
+          "arg_type": "songs_proto::moosync::types::Playlist",
           "name": "playlist"
         }
       ],
@@ -237,7 +237,7 @@
           "name": "db"
         },
         {
-          "arg_type": "Vec<types::songs::Song>",
+          "arg_type": "Vec<songs_proto::moosync::types::Song>",
           "name": "songs"
         }
       ],
@@ -302,7 +302,7 @@
         }
       ],
       "name": "get_top_listened_songs",
-      "ret": "types::errors::Result<types::songs::AllAnalytics>"
+      "ret": "types::errors::Result<songs_proto::moosync::types::AllAnalytics>"
     },
     {
       "args": [
@@ -320,7 +320,7 @@
         }
       ],
       "name": "get_extension_manifest",
-      "ret": "types::errors::Result<Vec<types::ui::extensions::FetchedExtensionManifest>>"
+      "ret": "types::errors::Result<Vec<extensions_proto::moosync::types::FetchedExtensionManifest>>"
     },
     {
       "args": [
@@ -357,7 +357,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::ui::extensions::FetchedExtensionManifest",
+          "arg_type": "extensions_proto::moosync::types::FetchedExtensionManifest",
           "name": "fetched_ext"
         }
       ],
@@ -372,7 +372,7 @@
         }
       ],
       "name": "get_installed_extensions",
-      "ret": "types::errors::Result<Vec<types::ui::extensions::ExtensionDetail>>"
+      "ret": "types::errors::Result<Vec<extensions_proto::moosync::types::ExtensionDetail>>"
     },
     {
       "args": [
@@ -385,7 +385,7 @@
           "name": "cache"
         },
         {
-          "arg_type": "types::ui::extensions::PackageNameArgs",
+          "arg_type": "String",
           "name": "args"
         },
         {
@@ -689,21 +689,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::mpris::MprisPlayerDetails",
-          "name": "metadata"
-        }
-      ],
-      "name": "set_metadata",
-      "ret": "types::errors::Result<()>"
-    },
-    {
-      "args": [
-        {
-          "arg_type": "tauri::State<mpris::MprisHolder>",
-          "name": "db"
-        },
-        {
-          "arg_type": "types::ui::player_details::PlayerState",
+          "arg_type": "extensions_proto::moosync::types::PlayerState",
           "name": "state"
         }
       ],
@@ -914,7 +900,7 @@
         }
       ],
       "name": "fetch_user_playlists",
-      "ret": "types::errors::Result<(Vec<types::entities::Playlist>, types::providers::generic::Pagination)>"
+      "ret": "types::errors::Result<(Vec<songs_proto::moosync::types::Playlist>, types::providers::generic::Pagination)>"
     },
     {
       "args": [
@@ -931,7 +917,7 @@
           "name": "key"
         },
         {
-          "arg_type": "types::entities::Playlist",
+          "arg_type": "songs_proto::moosync::types::Playlist",
           "name": "playlist"
         },
         {
@@ -944,7 +930,7 @@
         }
       ],
       "name": "fetch_playlist_content",
-      "ret": "types::errors::Result<(Vec<types::songs::Song>, types::providers::generic::Pagination)>"
+      "ret": "types::errors::Result<(Vec<songs_proto::moosync::types::Song>, types::providers::generic::Pagination)>"
     },
     {
       "args": [
@@ -961,7 +947,7 @@
           "name": "key"
         },
         {
-          "arg_type": "types::songs::Song",
+          "arg_type": "songs_proto::moosync::types::Song",
           "name": "song"
         },
         {
@@ -1000,7 +986,7 @@
         }
       ],
       "name": "provider_search",
-      "ret": "types::errors::Result<types::entities::SearchResult>"
+      "ret": "types::errors::Result<songs_proto::moosync::types::SearchResult>"
     },
     {
       "args": [
@@ -1010,7 +996,7 @@
         }
       ],
       "name": "get_all_status",
-      "ret": "types::errors::Result<std::collections::HashMap<String, types::providers::generic::ProviderStatus>>"
+      "ret": "types::errors::Result<std::collections::HashMap<String, extensions_proto::moosync::types::ProviderStatus>>"
     },
     {
       "args": [
@@ -1036,7 +1022,7 @@
         }
       ],
       "name": "playlist_from_url",
-      "ret": "types::errors::Result<types::entities::Playlist>"
+      "ret": "types::errors::Result<songs_proto::moosync::types::Playlist>"
     },
     {
       "args": [
@@ -1062,7 +1048,7 @@
         }
       ],
       "name": "song_from_url",
-      "ret": "types::errors::Result<types::songs::Song>"
+      "ret": "types::errors::Result<songs_proto::moosync::types::Song>"
     },
     {
       "args": [
@@ -1088,7 +1074,7 @@
         }
       ],
       "name": "get_song_from_id",
-      "ret": "types::errors::Result<types::songs::Song>"
+      "ret": "types::errors::Result<songs_proto::moosync::types::Song>"
     },
     {
       "args": [
@@ -1136,7 +1122,7 @@
         }
       ],
       "name": "get_suggestions",
-      "ret": "types::errors::Result<Vec<types::songs::Song>>"
+      "ret": "types::errors::Result<Vec<songs_proto::moosync::types::Song>>"
     },
     {
       "args": [
@@ -1153,7 +1139,7 @@
           "name": "key"
         },
         {
-          "arg_type": "types::entities::Artist",
+          "arg_type": "songs_proto::moosync::types::Artist",
           "name": "artist"
         },
         {
@@ -1166,7 +1152,7 @@
         }
       ],
       "name": "get_artist_content",
-      "ret": "types::errors::Result<(Vec<types::songs::Song>, types::providers::generic::Pagination)>"
+      "ret": "types::errors::Result<(Vec<songs_proto::moosync::types::Song>, types::providers::generic::Pagination)>"
     },
     {
       "args": [
@@ -1183,7 +1169,7 @@
           "name": "key"
         },
         {
-          "arg_type": "types::entities::Album",
+          "arg_type": "songs_proto::moosync::types::Album",
           "name": "album"
         },
         {
@@ -1196,7 +1182,7 @@
         }
       ],
       "name": "get_album_content",
-      "ret": "types::errors::Result<(Vec<types::songs::Song>, types::providers::generic::Pagination)>"
+      "ret": "types::errors::Result<(Vec<songs_proto::moosync::types::Song>, types::providers::generic::Pagination)>"
     },
     {
       "args": [
@@ -1213,7 +1199,7 @@
           "name": "key"
         },
         {
-          "arg_type": "types::songs::Song",
+          "arg_type": "songs_proto::moosync::types::Song",
           "name": "song"
         },
         {
@@ -1235,12 +1221,12 @@
           "name": "key"
         },
         {
-          "arg_type": "Vec<types::songs::Song>",
+          "arg_type": "Vec<songs_proto::moosync::types::Song>",
           "name": "songs"
         }
       ],
       "name": "get_song_context_menu",
-      "ret": "types::errors::Result<Vec<types::ui::extensions::ContextMenuReturnType>>"
+      "ret": "types::errors::Result<Vec<extensions_proto::moosync::types::ContextMenuReturnType>>"
     },
     {
       "args": [
@@ -1253,12 +1239,12 @@
           "name": "key"
         },
         {
-          "arg_type": "types::entities::Playlist",
+          "arg_type": "songs_proto::moosync::types::Playlist",
           "name": "playlist"
         }
       ],
       "name": "get_playlist_context_menu",
-      "ret": "types::errors::Result<Vec<types::ui::extensions::ContextMenuReturnType>>"
+      "ret": "types::errors::Result<Vec<extensions_proto::moosync::types::ContextMenuReturnType>>"
     },
     {
       "args": [
@@ -1289,7 +1275,7 @@
           "name": "key"
         },
         {
-          "arg_type": "types::ui::extensions::ExtensionExtraEvent",
+          "arg_type": "extensions_proto::moosync::types::ExtensionCommand",
           "name": "event"
         }
       ],
@@ -1421,7 +1407,7 @@
           "name": "db"
         },
         {
-          "arg_type": "types::themes::ThemeDetails",
+          "arg_type": "themes_proto::moosync::types::ThemeDetails",
           "name": "theme"
         }
       ],
@@ -1454,7 +1440,7 @@
         }
       ],
       "name": "load_theme",
-      "ret": "types::errors::Result<types::themes::ThemeDetails>"
+      "ret": "types::errors::Result<themes_proto::moosync::types::ThemeDetails>"
     },
     {
       "args": [
@@ -1464,7 +1450,7 @@
         }
       ],
       "name": "load_all_themes",
-      "ret": "types::errors::Result<std::collections::HashMap<String, types::themes::ThemeDetails>>"
+      "ret": "types::errors::Result<std::collections::HashMap<String, themes_proto::moosync::types::ThemeDetails>>"
     },
     {
       "args": [
@@ -1502,7 +1488,7 @@
         }
       ],
       "name": "get_themes_manifest",
-      "ret": "types::errors::Result<std::collections::HashMap<String, types::themes::ThemeDetails>>"
+      "ret": "types::errors::Result<std::collections::HashMap<String, themes_proto::moosync::types::ThemeDetails>>"
     },
     {
       "args": [

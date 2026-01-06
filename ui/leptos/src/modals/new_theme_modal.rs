@@ -25,19 +25,42 @@ use crate::{
     },
     store::{modal_store::ModalStore, ui_store::UiStore},
     utils::{
+        common::ThemeModalState,
         invoke::{download_theme, get_themes_manifest},
         prefs::{import_theme, open_file_browser_single, save_theme},
     },
 };
 use leptos::{IntoView, component, prelude::*, task::spawn_local, view};
 use leptos_use::on_click_outside;
-use types::{
-    themes::{ThemeDetails, ThemeItem},
-    ui::themes::ThemeModalState,
-    window::DialogFilter,
-};
+use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
+use types::window::DialogFilter;
 
 use crate::modals::common::GenericModal;
+
+trait DefaultTheme {
+    fn default_theme() -> Self;
+}
+
+impl DefaultTheme for ThemeDetails {
+    fn default_theme() -> Self {
+        Self {
+            id: "default".into(),
+            name: "Default".into(),
+            author: Some("Moosync".into()),
+            theme: Some(ThemeItem {
+                primary: "#212121".into(),
+                secondary: "#282828".into(),
+                tertiary: "#151515".into(),
+                text_primary: "#ffffff".into(),
+                text_secondary: "#565656".into(),
+                text_inverse: "#000000".into(),
+                accent: "#65CB88".into(),
+                divider: "rgba(79, 79, 79, 0.67)".into(),
+                custom_css: None,
+            }),
+        }
+    }
+}
 
 #[tracing::instrument(level = "debug", skip())]
 #[component]
@@ -106,7 +129,7 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                                                 state
                                                     .set(
                                                         Box::new(
-                                                            ThemeModalState::NewTheme(Box::new(ThemeDetails::new())),
+                                                            ThemeModalState::NewTheme(Box::new(ThemeDetails::default_theme())),
                                                         ),
                                                     )
                                             }
@@ -146,7 +169,7 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                     let new_theme = RwSignal::new(theme);
                     let active = RwSignal::new(false);
                     let show_color_picker = RwSignal::new((false, 0));
-                    let colors = create_read_slice(new_theme, move |t| t.theme.clone());
+                    let colors = create_read_slice(new_theme, move |t| t.theme.clone().unwrap_or_default());
                     let hex_code = RwSignal::new(String::new());
                     let color_picker_coords_x = RwSignal::new("0px".to_string());
                     let color_picker_coords_y = RwSignal::new("0px".to_string());
@@ -178,15 +201,17 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                         let hex_code = hex_code.get();
                         new_theme
                             .update(move |theme| {
-                                match index {
-                                    0 => theme.theme.primary = hex_code,
-                                    1 => theme.theme.secondary = hex_code,
-                                    2 => theme.theme.tertiary = hex_code,
-                                    3 => theme.theme.text_primary = hex_code,
-                                    4 => theme.theme.text_secondary = hex_code,
-                                    5 => theme.theme.text_inverse = hex_code,
-                                    6 => theme.theme.accent = hex_code,
-                                    _ => unreachable!(),
+                                if let Some(theme) = theme.theme.as_mut() {
+                                    match index {
+                                        0 => theme.primary = hex_code,
+                                        1 => theme.secondary = hex_code,
+                                        2 => theme.tertiary = hex_code,
+                                        3 => theme.text_primary = hex_code,
+                                        4 => theme.text_secondary = hex_code,
+                                        5 => theme.text_inverse = hex_code,
+                                        6 => theme.accent = hex_code,
+                                        _ => unreachable!(),
+                                    }
                                 }
                             });
                     });
@@ -349,7 +374,9 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                                                         {
                                                                 new_theme
                                                                     .update(|t| {
-                                                                        t.theme.custom_css = Some(file.path.clone());
+                                                                        if let Some(theme) = t.theme.as_mut() {
+                                                                            theme.custom_css = Some(file.path.clone());
+                                                                        }
                                                                     });
 
                                                         }
@@ -364,12 +391,12 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                                                     class="item-text text-truncate theme-custom-css"
                                                     title=move || {
                                                         let theme = new_theme.get();
-                                                        theme.theme.custom_css
+                                                        theme.theme.unwrap_or_default().custom_css
                                                     }
                                                 >
                                                     {move || {
                                                         let theme = new_theme.get();
-                                                        theme.theme.custom_css
+                                                        theme.theme.unwrap_or_default().custom_css
                                                     }}
                                                 </div>
                                             </div>
@@ -379,7 +406,9 @@ pub fn NewThemeModal(#[prop()] initial_state: Box<ThemeModalState>) -> impl Into
                                             on:click=move |_| {
                                                 new_theme
                                                     .update(|t| {
-                                                        t.theme.custom_css = None;
+                                                        if let Some(theme) = t.theme.as_mut() {
+                                                            theme.custom_css = None;
+                                                        }
                                                     });
                                             }
                                             align-self="center"

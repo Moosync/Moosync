@@ -6,11 +6,9 @@ use souvlaki::{
 
 use std::time::Duration;
 
-use types::{
-    errors::{MoosyncError, Result},
-    mpris::MprisPlayerDetails,
-    ui::player_details::PlayerState,
-};
+use crate::MprisPlayerDetails;
+use extensions_proto::moosync::types::PlayerState;
+use types::errors::{MoosyncError, Result};
 
 pub trait MprisContext: Send + Sync {
     fn attach(&mut self, sender: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<()>;

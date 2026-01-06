@@ -3,6 +3,7 @@ load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 rust_test(
     name = "extensions_test",
     crate = ":extensions",
+    data = glob(["tests/fixtures/**"]),
 )
 
 rust_library(
@@ -14,6 +15,7 @@ rust_library(
         "src/ext_runner.rs",
         "src/lib.rs",
         "src/models.rs",
+        "src/sample_tests.rs",
         "src/tests.rs",
     ],
     crate_root = "src/lib.rs",
@@ -23,6 +25,9 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",
+        "//core/types/protos:extensions_rs",
+        "//core/types/protos:songs_rs",
+        "//core/types/protos:ui_rs",
         "@crates//:extism",
         "@crates//:extism-convert",
         "@crates//:fs_extra",

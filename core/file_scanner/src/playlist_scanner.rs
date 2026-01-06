@@ -14,6 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use crate::{
+    song_scanner::SongScanner,
+    utils::{check_directory, get_files_recursively},
+};
+use songs_proto::moosync::types::{Artist, InnerSong, Playlist, Song, SongType};
 use std::{
     fs::{self, File},
     io::{self, BufRead},
@@ -21,23 +26,10 @@ use std::{
     str::FromStr,
     sync::mpsc::Sender,
 };
-
-use types::{
-    entities::{Artist, Playlist},
-    songs::{InnerSong, Song, SongType},
-};
-
 use substring::Substring;
-use types::errors::{MoosyncError, Result};
-
-use uuid::Uuid;
-
-use crate::{
-    song_scanner::SongScanner,
-    utils::{check_directory, get_files_recursively},
-};
-
 use types::errors::error_helpers;
+use types::errors::{MoosyncError, Result};
+use uuid::Uuid;
 
 pub struct PlaylistScanner<'a> {
     dir: PathBuf,
@@ -151,10 +143,12 @@ impl<'a> PlaylistScanner<'a> {
 
                 let s_type = song_type.clone();
 
-                song.type_ = SongType::from_str(s_type.unwrap_or("LOCAL".to_string()).as_str())?;
-                song._id = Some(Uuid::new_v4().to_string());
+                song.r#type = SongType::from_str_name(s_type.unwrap_or_default().as_str())
+                    .unwrap_or(SongType::Local)
+                    .into();
+                song.id = Some(Uuid::new_v4().to_string());
 
-                if song.type_ == SongType::LOCAL {
+                if SongType::try_from(song.r#type).unwrap() == SongType::Local {
                     let song_path = PathBuf::from_str(line.as_str());
                     let Ok(mut path_parsed) = song_path;
                     if path_parsed.is_relative() {
@@ -193,10 +187,10 @@ impl<'a> PlaylistScanner<'a> {
                 song.title = title;
                 // song.playlist_id = Some(playlist_id.clone());
                 songs.push(Song {
-                    song,
+                    song: Some(song),
                     album: None,
-                    artists: Some(self.parse_artists(artists)),
-                    genre: Some(vec![]),
+                    artists: self.parse_artists(artists),
+                    genre: vec![],
                 });
 
                 artists = None;
@@ -224,12 +218,13 @@ impl<'a> PlaylistScanner<'a> {
         s: Song,
         playlist_id: Option<String>,
     ) {
-        if s.song.type_ == SongType::LOCAL
-            && let Some(path) = s.song.path
+        if let Some(song) = s.song.as_ref()
+            && SongType::try_from(song.r#type).unwrap() == SongType::Local
+            && let Some(path) = song.path.as_ref()
         {
             self.song_scanner.scan_in_pool(
                 tx_song,
-                s.song.size.unwrap_or_default(),
+                song.size.unwrap_or_default(),
                 PathBuf::from_str(path.as_str()).unwrap(),
                 playlist_id,
             )

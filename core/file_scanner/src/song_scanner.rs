@@ -19,7 +19,7 @@ use std::{path::PathBuf, sync::mpsc::Sender};
 use crate::utils::{check_directory, get_files_recursively, scan_file};
 use threadpool::ThreadPool;
 use types::errors::Result;
-use types::songs::Song;
+use songs_proto::moosync::types::Song;
 
 pub struct SongScanner<'a> {
     dir: PathBuf,

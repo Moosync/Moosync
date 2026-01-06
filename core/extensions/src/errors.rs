@@ -16,25 +16,27 @@ pub enum ExtensionError {
     ReqwestError(Box<dyn std::error::Error + Send + Sync>),
     ExtVersionError(Box<dyn std::error::Error + Send + Sync>),
     ParseError(Box<dyn std::error::Error + Send + Sync>),
+    SanitizeError(String),
 }
 
 impl Display for ExtensionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ExtensionError::ExtismError(e) => write!(f, "{}", e),
-
             ExtensionError::IoError(e) => write!(f, "IO Error: {}", e),
             ExtensionError::SerdeError(e) => write!(f, "Serde Error: {}", e),
             ExtensionError::ZipError(e) => write!(f, "Zip Error: {}", e),
             ExtensionError::ReqwestError(e) => write!(f, "Reqwest Error: {}", e),
             ExtensionError::ExtVersionError(e) => write!(f, "Version Error: {}", e),
             ExtensionError::ParseError(e) => write!(f, "Parse Error: {}", e),
-
             ExtensionError::NotAnExtension => write!(f, "Not an extension"),
             ExtensionError::NoExtensionFound => write!(f, "No extension found"),
             ExtensionError::InvalidResponse => write!(f, "Invalid response"),
             ExtensionError::NoExtensionIconFound(s) => write!(f, "No icon found: {}", s),
             ExtensionError::DuplicateExtension(s) => write!(f, "Duplicate extension: {}", s),
+            ExtensionError::SanitizeError(e) => {
+                write!(f, "Extension Response / request sanitization error: {}", e)
+            }
         }
     }
 }

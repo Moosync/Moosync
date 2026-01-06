@@ -11,6 +11,7 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",
+        "//core/types/protos:themes_rs",
         "@crates//:fs_extra",
         "@crates//:futures",
         "@crates//:notify",

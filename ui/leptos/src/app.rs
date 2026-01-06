@@ -29,6 +29,7 @@ use crate::{
         prefs::watch_preferences,
     },
 };
+use extensions_proto::moosync::types::{ExtensionUiRequest, PlayerState, main_command};
 use leptos::{
     IntoView, component,
     ev::{contextmenu, keydown},
@@ -43,10 +44,7 @@ use leptos_router::{
 };
 use leptos_use::use_event_listener;
 use serde::Serialize;
-use types::{
-    preferences::CheckboxPreference, ui::extensions::ExtensionUIRequest,
-    ui::player_details::PlayerState,
-};
+use types::preferences::CheckboxPreference;
 use wasm_bindgen::{JsCast, JsValue};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlElement;
@@ -215,7 +213,8 @@ fn handle_theme(id: String) {
 
     spawn_local(async move {
         let theme = load_theme(id).await.unwrap();
-
+        let theme_id = theme.id.clone();
+        let theme_inner = theme.theme.unwrap_or_default();
         let document_element = document()
             .document_element()
             .unwrap()
@@ -226,31 +225,31 @@ fn handle_theme(id: String) {
         style.set_css_text("");
 
         style
-            .set_property("--primary", &theme.theme.primary)
+            .set_property("--primary", &theme_inner.primary)
             .unwrap();
         style
-            .set_property("--secondary", &theme.theme.secondary)
+            .set_property("--secondary", &theme_inner.secondary)
             .unwrap();
         style
-            .set_property("--tertiary", &theme.theme.tertiary)
+            .set_property("--tertiary", &theme_inner.tertiary)
             .unwrap();
         style
-            .set_property("--textPrimary", &theme.theme.text_primary)
+            .set_property("--textPrimary", &theme_inner.text_primary)
             .unwrap();
         style
-            .set_property("--textSecondary", &theme.theme.text_secondary)
+            .set_property("--textSecondary", &theme_inner.text_secondary)
             .unwrap();
         style
-            .set_property("--textInverse", &theme.theme.text_inverse)
+            .set_property("--textInverse", &theme_inner.text_inverse)
             .unwrap();
-        style.set_property("--accent", &theme.theme.accent).unwrap();
+        style.set_property("--accent", &theme_inner.accent).unwrap();
         style
-            .set_property("--divider", &theme.theme.divider)
+            .set_property("--divider", &theme_inner.divider)
             .unwrap();
 
-        if theme.theme.custom_css.is_some() {
+        if theme_inner.custom_css.is_some() {
             spawn_local(async move {
-                if let Ok(custom_css) = get_css(theme.id).await {
+                if let Ok(custom_css) = get_css(theme_id).await {
                     update_css(custom_css);
                 }
             });
@@ -312,55 +311,56 @@ pub fn App() -> impl IntoView {
     let ui_requests_unlisten = listen_event("ui-requests", move |data| {
         owner.with(|| {
             let payload = js_sys::Reflect::get(&data, &JsValue::from_str("payload")).unwrap();
-            let payload: ExtensionUIRequest = serde_wasm_bindgen::from_value(payload).unwrap();
+            let payload: ExtensionUiRequest = serde_wasm_bindgen::from_value(payload).unwrap();
 
-            #[tracing::instrument(level = "debug", skip(payload, data))]
-            fn send_reply<T>(payload: ExtensionUIRequest, data: T)
+            #[tracing::instrument(level = "debug", skip(channel, data))]
+            fn send_reply<T>(channel: String, data: T)
             where
                 T: Serialize + Clone,
             {
                 let value = serde_wasm_bindgen::to_value(&data).unwrap();
                 spawn_local(async move {
-                    let res = emit(format!("ui-reply-{}", payload.channel).as_str(), value);
+                    let res = emit(format!("ui-reply-{}", channel).as_str(), value);
                     wasm_bindgen_futures::JsFuture::from(res).await.unwrap();
                 });
             }
 
-            match payload.type_.as_str() {
-                "getCurrentSong" => {
+            let channel = payload.channel.clone();
+            match payload.r#type.unwrap().command.unwrap() {
+                main_command::Command::GetCurrentSong(_) => {
                     let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
                         p.get_current_song()
                     })
                     .get_untracked();
-                    send_reply(payload, data);
+                    send_reply(channel, data);
                 }
-                "getVolume" => {
+                main_command::Command::GetVolume(_) => {
                     let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
                         p.get_volume()
                     })
                     .get_untracked();
-                    send_reply(payload, data);
+                    send_reply(channel, data);
                 }
-                "getTime" => {
+                main_command::Command::GetTime(_) => {
                     let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
                         p.get_time()
                     })
                     .get_untracked();
-                    send_reply(payload, data);
+                    send_reply(channel, data);
                 }
-                "getQueue" => {
+                main_command::Command::GetQueue(_) => {
                     let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
                         p.get_queue()
                     })
                     .get_untracked();
-                    send_reply(payload, data);
+                    send_reply(channel, data);
                 }
-                "getPlayerState" => {
+                main_command::Command::GetPlayerState(_) => {
                     let data = create_read_slice(expect_context::<RwSignal<PlayerStore>>(), |p| {
                         p.get_player_state()
                     })
                     .get_untracked();
-                    send_reply(payload, data);
+                    send_reply(channel, data);
                 }
                 _ => {}
             };

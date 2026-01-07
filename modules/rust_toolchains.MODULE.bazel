@@ -28,8 +28,7 @@ register_toolchains("@rules_rust//rust/private/dummy_cc_toolchain:dummy_cc_wasm3
 
 register_toolchains("//:wasm_bindgen_toolchain")
 
-register_toolchains("//tools/rust/prost_toolchain:prost_toolchain_wasm")
-
-register_toolchains("//tools/rust/prost_toolchain:prost_toolchain_default_x86_64")
-
-register_toolchains("//tools/rust/prost_toolchain:prost_toolchain_default_arm64")
+register_toolchains(
+    "//tools/rust/prost_toolchain:prost_toolchain_wasm",
+    "//tools/rust/prost_toolchain:prost_toolchain_default",  # Register this AFTER the specific ones if strictly needed, but here they are disjoint sets (wasm vs default)
+)

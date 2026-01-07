@@ -1,3 +1,4 @@
+load("@com_google_protobuf//bazel:py_proto_library.bzl", "py_proto_library")
 load("@rules_go//proto:def.bzl", "go_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@rules_rust_prost//:defs.bzl", "rust_prost_library")
@@ -89,4 +90,28 @@ go_proto_library(
     protos = [":themes_proto"],
     visibility = ["//visibility:public"],
     deps = [":songs_go_proto"],
+)
+
+py_proto_library(
+    name = "extensions_py_proto",
+    visibility = ["//visibility:public"],
+    deps = [":extensions_proto"],
+)
+
+py_proto_library(
+    name = "songs_py_proto",
+    visibility = ["//visibility:public"],
+    deps = [":songs_proto"],
+)
+
+py_proto_library(
+    name = "ui_py_proto",
+    visibility = ["//visibility:public"],
+    deps = [":ui_proto"],
+)
+
+py_proto_library(
+    name = "themes_py_proto",
+    visibility = ["//visibility:public"],
+    deps = [":themes_proto"],
 )

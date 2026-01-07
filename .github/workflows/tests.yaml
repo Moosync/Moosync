@@ -35,7 +35,7 @@ jobs:
             gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl 
             gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
             nasm yasm autoconf automake libtool pkg-config make build-essential clang libenchant-2-2
-            curl file xdg-utils libfuse2 libayatana-appindicator3-dev
+            curl file xdg-utils libfuse2 libayatana-appindicator3-dev libdbus-1-dev 
           version: 1.0
 
       - name: Run Tests

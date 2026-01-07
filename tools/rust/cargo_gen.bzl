@@ -258,10 +258,15 @@ def _finalize_build_script_details(is_build_script, attribute_source, crate_root
 
     return final_source_file, tuple(final_data_files)
 
-def _create_internal_package_info(context, name, package_name, version, features, is_binary, is_build_script, is_proc_macro, dependencies, build_dependencies, source_files, edition, crate_root, build_script_source, build_script_data, extra_cargo_toml):
+def _create_internal_package_info(context, name, package_name, version, features, is_binary, is_build_script, is_proc_macro, is_prost, dependencies, build_dependencies, source_files, edition, crate_root, build_script_source, build_script_data, extra_cargo_toml):
     package_path = context.label.package
     if is_binary and not is_build_script:
         export_package_path = package_path + "_bin"
+    elif is_prost:
+        suffix = name
+        if suffix.endswith("_rs"):
+            suffix = suffix[:-3]
+        export_package_path = package_path + "/" + suffix
     else:
         export_package_path = package_path
 
@@ -287,6 +292,12 @@ def _create_internal_package_info(context, name, package_name, version, features
 
 def _cargo_toml_aspect_impl(target, context):
     source_files, extra_cargo_toml = _collect_source_files_and_manifest(context)
+    is_prost = False
+    if OutputGroupInfo in target and hasattr(target[OutputGroupInfo], "rust_generated_srcs"):
+        generated_srcs = target[OutputGroupInfo].rust_generated_srcs.to_list()
+        source_files.extend(generated_srcs)
+        is_prost = True
+
     crate_root_file, source_files = _determine_crate_root_file(context, source_files)
 
     attribute_bs_source, attribute_bs_data = _extract_build_script_info(context)
@@ -305,6 +316,11 @@ def _cargo_toml_aspect_impl(target, context):
     version = getattr(context.rule.attr, "version", "*")
     features = getattr(context.rule.attr, "crate_features", [])
     cargo_package_name = _determine_cargo_package_name(target_name)
+    if is_prost:
+        if cargo_package_name.endswith("-rs"):
+            cargo_package_name = cargo_package_name[:-3] + "_proto"
+        elif cargo_package_name.endswith("_rs"):
+            cargo_package_name = cargo_package_name[:-3] + "_proto"
 
     if is_external_workspace:
         return _create_external_package_info(target, target_name, cargo_package_name, version, features)
@@ -328,6 +344,7 @@ def _cargo_toml_aspect_impl(target, context):
         is_binary,
         is_build_script,
         is_proc_macro,
+        is_prost,
         direct_dependencies,
         build_dependencies,
         source_files,

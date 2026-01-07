@@ -286,7 +286,7 @@ crates.spec(
     version = "0.16.7+ffmpeg.8",
 )
 crates.annotation(
-    build_script_data = ["//external/ffmpeg:gen_dir"],
+    build_script_data = ["@@//external/ffmpeg:gen_dir"],
     build_script_env = {
         "FFMPEG_INCLUDE_DIR": "$(execpath @@//external/ffmpeg:gen_dir)/include",
         "FFMPEG_LIBS_DIR": "$(execpath @@//external/ffmpeg:gen_dir)/lib",

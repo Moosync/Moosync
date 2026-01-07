@@ -1,12 +1,18 @@
 name: build
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
-    branches: ["main"]
-
   workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - linux
+          - macos
+          - windows
 
 env:
   APP_NAME: "Moosync"
@@ -14,6 +20,8 @@ jobs:
   build-and-test:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+
+    if: ${{ github.event.inputs.platform == 'all' || (github.event.inputs.platform == 'linux' && startsWith(matrix.os, 'ubuntu')) || (github.event.inputs.platform == 'macos' && startsWith(matrix.os, 'macos')) || (github.event.inputs.platform == 'windows' && startsWith(matrix.os, 'windows')) }}
 
     continue-on-error: false
 

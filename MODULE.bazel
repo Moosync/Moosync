@@ -19,6 +19,7 @@ bazel_dep(name = "rules_foreign_cc", version = "0.15.1")
 bazel_dep(name = "rules_perl", version = "0.5.0")
 bazel_dep(name = "rules_python", version = "1.7.0")
 bazel_dep(name = "aspect_rules_js", version = "2.0.0")
+bazel_dep(name = "aspect_rules_ts", version = "3.1.0")
 bazel_dep(name = "rules_nodejs", version = "6.2.0")
 bazel_dep(name = "aspect_rules_rollup", version = "2.0.1")
 bazel_dep(name = "gzgz_rules_sass", version = "1.0.4")
@@ -39,3 +40,17 @@ include("//modules:rust_toolchains.MODULE.bazel")
 include("//modules:frontend_toolchains.MODULE.bazel")
 include("//modules:crates.MODULE.bazel")
 include("//modules:wasm_crates.MODULE.bazel")
+
+rules_ts_ext = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts_ext.deps(
+    ts_version_from = "//ui/gen_dist:package.json",
+)
+use_repo(rules_ts_ext, "npm_typescript")
+
+npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm")
+npm.npm_translate_lock(
+    name = "proto_npm",
+    pnpm_lock = "//core/types/protos:pnpm-lock.yaml",
+    verify_node_modules_ignored = "//:.bazelignore",
+)
+use_repo(npm, "proto_npm")

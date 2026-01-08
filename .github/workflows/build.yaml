@@ -21,7 +21,11 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
 
-    if: ${{ github.event.inputs.platform == 'all' || (github.event.inputs.platform == 'linux' && startsWith(matrix.os, 'ubuntu')) || (github.event.inputs.platform == 'macos' && startsWith(matrix.os, 'macos')) || (github.event.inputs.platform == 'windows' && startsWith(matrix.os, 'windows')) }}
+    if: >-
+      github.event.inputs.platform == 'all' ||
+      (github.event.inputs.platform == 'linux' && startsWith(matrix.os, 'ubuntu')) ||
+      (github.event.inputs.platform == 'macos' && startsWith(matrix.os, 'macos')) ||
+      (github.event.inputs.platform == 'windows' && startsWith(matrix.os, 'windows'))
 
     continue-on-error: false
 

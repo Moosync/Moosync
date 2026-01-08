@@ -292,9 +292,30 @@ impl ExtismContext {
         user_data: UserData<MainCommandUserData>,
         sock_data: UserData<SocketUserData>,
     ) -> Arc<Mutex<Plugin>> {
+        let cache_path = self.cache_path.join("wasmtime").join("config.toml");
+        if !cache_path.exists() {
+            fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
+        }
+        fs::write(
+            &cache_path,
+            format!(
+                r#"
+            [cache]
+            enabled = {}
+            directory = "{}"
+            cleanup-interval = "30m"
+            files-total-size-soft-limit = "1Gi"
+            "#,
+                if cfg!(test) { "false" } else { "true" },
+                cache_path.parent().unwrap().join("cache").to_string_lossy()
+            ),
+        )
+        .unwrap();
+
         #[allow(unused_mut)]
         let mut plugin_builder = PluginBuilder::new(plugin_manifest)
             .with_wasi(true)
+            .with_cache_config(cache_path)
             .with_function(
                 "send_main_command",
                 [PTR],
@@ -319,30 +340,6 @@ impl ExtismContext {
             )
             .with_function("read_sock", [I64, I64], [PTR], sock_data, read_sock)
             .with_function("hash", [PTR, PTR], [PTR], UserData::default(), hash);
-
-        #[cfg(any(target_os = "android", target_os = "ios"))]
-        {
-            let cache_path = self.cache_path.join("wasmtime").join("config.toml");
-            if !cache_path.exists() {
-                fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
-            }
-            fs::write(
-                &cache_path,
-                format!(
-                    r#"
-            [cache]
-            enabled = true
-            directory = "{}"
-            cleanup-interval = "30m"
-            files-total-size-soft-limit = "1Gi"
-            "#,
-                    cache_path.parent().unwrap().join("cache").to_string_lossy()
-                ),
-            )
-            .unwrap();
-
-            plugin_builder = plugin_builder.with_cache_config(cache_path);
-        }
 
         let plugin = plugin_builder.build().unwrap();
 

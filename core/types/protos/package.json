@@ -1,0 +1,16 @@
+{
+    "name": "moosync-protos",
+    "version": "1.0.0",
+    "devDependencies": {
+        "@bufbuild/protobuf": "^1.10.0",
+        "@bufbuild/protoc-gen-es": "^1.10.0",
+        "ts-proto": "^1.181.0"
+    },
+    "pnpm": {
+        "onlyBuiltDependencies": [
+            "ts-proto",
+            "@bufbuild/protoc-gen-es"
+        ]
+    },
+    "packageManager": "pnpm@9.1.1"
+}

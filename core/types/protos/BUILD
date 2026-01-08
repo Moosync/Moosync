@@ -1,9 +1,13 @@
+load("@aspect_rules_ts//ts:proto.bzl", "ts_proto_library")
 load("@com_google_protobuf//bazel:py_proto_library.bzl", "py_proto_library")
+load("@proto_npm//:defs.bzl", "npm_link_all_packages")
 load("@rules_go//proto:def.bzl", "go_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@rules_rust_prost//:defs.bzl", "rust_prost_library")
 
 package(default_visibility = ["//visibility:public"])
+
+npm_link_all_packages(name = "node_modules")
 
 proto_library(
     name = "extensions_proto",
@@ -114,4 +118,37 @@ py_proto_library(
     name = "themes_py_proto",
     visibility = ["//visibility:public"],
     deps = [":themes_proto"],
+)
+
+ts_proto_library(
+    name = "extensions_ts_proto",
+    node_modules = ":node_modules",
+    proto = ":extensions_proto",
+    proto_srcs = ["extensions.proto"],
+    protoc_gen_options = {"import_extension": "js"},
+    visibility = ["//visibility:public"],
+)
+
+ts_proto_library(
+    name = "songs_ts_proto",
+    node_modules = ":node_modules",
+    proto = ":songs_proto",
+    proto_srcs = ["songs.proto"],
+    visibility = ["//visibility:public"],
+)
+
+ts_proto_library(
+    name = "ui_ts_proto",
+    node_modules = ":node_modules",
+    proto = ":ui_proto",
+    proto_srcs = ["ui.proto"],
+    visibility = ["//visibility:public"],
+)
+
+ts_proto_library(
+    name = "themes_ts_proto",
+    node_modules = ":node_modules",
+    proto = ":themes_proto",
+    proto_srcs = ["themes.proto"],
+    visibility = ["//visibility:public"],
 )

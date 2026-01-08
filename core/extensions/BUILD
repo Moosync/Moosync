@@ -41,6 +41,7 @@ rust_library(
         "@crates//:serde_json",
         "@crates//:tokio",
         "@crates//:tracing",
+        "@crates//:tracing-subscriber",
         "@crates//:uuid",
         "@crates//:zip-extensions",
     ],

@@ -47,6 +47,13 @@ async fn setup_extension() -> (ExtensionHandlerInner, Arc<Mutex<Vec<MainCommand>
         panic!("Extensions path not found: {:?}", extensions_path);
     }
 
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        tracing_subscriber::fmt()
+            .with_env_filter("debug,extism=debug,extism_pdk=debug,cranelift_codegen=warn,wasmtime_cranelift=warn,wasmtime_internal_cranelift=warn,wasmtime=warn")
+            .init();
+    });
+
     let captured_commands = Arc::new(Mutex::new(Vec::<MainCommand>::new()));
     let captured_commands_clone = captured_commands.clone();
 

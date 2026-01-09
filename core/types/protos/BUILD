@@ -3,6 +3,7 @@ load("@com_google_protobuf//bazel:py_proto_library.bzl", "py_proto_library")
 load("@proto_npm//:defs.bzl", "npm_link_all_packages")
 load("@rules_go//proto:def.bzl", "go_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@rules_python//python:defs.bzl", "py_library")
 load("@rules_rust_prost//:defs.bzl", "rust_prost_library")
 
 package(default_visibility = ["//visibility:public"])
@@ -94,6 +95,12 @@ go_proto_library(
     protos = [":themes_proto"],
     visibility = ["//visibility:public"],
     deps = [":songs_go_proto"],
+)
+
+py_library(
+    name = "moosync_python_root",
+    imports = ["."],
+    visibility = ["//visibility:public"],
 )
 
 py_proto_library(

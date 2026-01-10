@@ -1,0 +1,76 @@
+--- a/private/prost.bzl	2026-01-01 17:49:43.429035533 -0800
++++ b/private/prost.bzl	2026-01-01 17:50:01.298196436 -0800
+@@ -23,6 +23,7 @@
+     "can_build_metadata",
+     "can_use_metadata_for_pipelining",
+     "generate_output_diagnostics",
++    "transform_deps"
+ )
+ load("//:providers.bzl", "ProstProtoInfo")
+ load(":prost_transform.bzl", "ProstTransformInfo")
+@@ -266,6 +267,18 @@
+         if RustAnalyzerGroupInfo in prost_runtime:
+             rust_analyzer_deps.extend(prost_runtime[RustAnalyzerGroupInfo].deps)
+ 
++    if hasattr(prost_toolchain, "extra_deps"):
++        for extra_dep in prost_toolchain.extra_deps:
++            if rust_common.crate_group_info in extra_dep:
++                runtime_deps.extend(extra_dep[rust_common.crate_group_info].dep_variant_infos.to_list())
++            else:
++                runtime_deps.append(rust_common.dep_variant_info(
++                    crate_info = extra_dep[rust_common.crate_info] if rust_common.crate_info in extra_dep else None,
++                    dep_info = extra_dep[rust_common.dep_info] if rust_common.dep_info in extra_dep else None,
++                    cc_info = extra_dep[CcInfo] if CcInfo in extra_dep else None,
++                    build_info = None,
++                ))
++
+     proto_deps = getattr(ctx.rule.attr, "deps", [])
+ 
+     direct_deps = []
+@@ -401,6 +414,8 @@
+ def _rust_prost_library_impl(ctx):
+     proto_dep = ctx.attr.proto
+     rust_proto_info = proto_dep[ProstProtoInfo]
++    rust_deps = ctx.attr.rust_deps
+     dep_variant_info = rust_proto_info.dep_variant_info
+     rust_generated_srcs = proto_dep[OutputGroupInfo].rust_generated_srcs
+     proto_descriptor_set = proto_dep[OutputGroupInfo].proto_descriptor_set
+@@ -415,7 +430,7 @@
+         DefaultInfo(files = depset([dep_variant_info.crate_info.output])),
+         rust_common.crate_group_info(
+             dep_variant_infos = depset(
+-                [dep_variant_info],
++                [dep_variant_info] + transform_deps(rust_deps),
+                 transitive = transitive,
+             ),
+         ),
+@@ -441,6 +456,10 @@
+             executable = True,
+             cfg = "exec",
+         ),
++        "rust_deps": attr.label_list(
++            doc = "Crates that the prost library should depend on",
++            default = []
++        )
+     },
+     provides = [
+         rust_common.crate_group_info,
+@@ -482,6 +501,7 @@
+         tonic_runtime = ctx.attr.tonic_runtime,
+         include_transitive_deps = ctx.attr.include_transitive_deps,
+         compile_well_known_types = ctx.attr.compile_well_known_types,
++        extra_deps = ctx.attr.extra_deps,
+     )]
+ 
+ rust_prost_toolchain = rule(
+@@ -543,6 +563,10 @@
+             providers = [[rust_common.crate_info], [rust_common.crate_group_info]],
+             aspects = [rust_analyzer_aspect],
+         ),
++        "extra_deps": attr.label_list(
++            doc = "Extra dependencies to include in the compilation of generated protos (e.g. serde).",
++            providers = [[rust_common.crate_info], [rust_common.crate_group_info]],
++        ),
+     }, **proto_toolchains.if_legacy_toolchain({
+         "_legacy_proto_toolchain": attr.label(
+             default = Label("//private:legacy_proto_toolchain"),

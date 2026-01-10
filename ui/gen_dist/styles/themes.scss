@@ -1,0 +1,98 @@
+.theme-title {
+    font-size: 16px;
+    font-weight: 700;
+    text-align: start;
+    max-width: 100%;
+    margin-bottom: 15px !important;
+    color: var(--textPrimary);
+    background-color: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--divider);
+    border-radius: 0;
+    padding: 0;
+
+    &:hover {
+        border-bottom: 1px solid var(--accent);
+    }
+
+    &:focus {
+        outline: none;
+        -webkit-box-shadow: none;
+        background: transparent;
+    }
+}
+
+.theme-title-text {
+    font-size: 16px;
+    font-weight: 700;
+    text-align: start;
+    color: var(--textPrimary);
+}
+
+.theme-custom-css {
+    width: calc(100% - 70px);
+    color: var(--textSecondary);
+}
+
+.theme-author {
+    font-size: 14px;
+    text-align: start;
+}
+
+.preview>svg {
+    width: 100%;
+}
+
+.color-box {
+    width: 90px;
+    height: 40px;
+    border-radius: 4px;
+    border: 0.61px solid var(--textPrimary);
+}
+
+.color-title {
+    text-align: left;
+}
+
+.custom-css-background {
+    width: 100%;
+    align-content: flex-start;
+    background-color: var(--tertiary);
+    height: 65px;
+    overflow: hidden;
+}
+
+.custom-css-item {
+    height: 35px;
+    flex-wrap: nowrap;
+    width: calc(100% - 45px);
+}
+
+.custom-css-cross-icon {
+    width: 20px;
+    position: absolute;
+    right: 20px;
+}
+
+.theme-download-wrapper {
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    height: calc(100% - 64px);
+    width: calc(100% - 18px);
+    background: rgb(0, 0, 0);
+    border-radius: 6px;
+    left: 9.4px;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+        opacity: 0.6;
+    }
+
+    >svg {
+        height: calc(100% - 70px);
+        align-self: center;
+    }
+}

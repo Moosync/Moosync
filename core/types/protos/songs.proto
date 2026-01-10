@@ -1,0 +1,132 @@
+syntax = "proto3";
+
+package moosync.types;
+
+message Album {
+  optional string album_id = 1;
+  optional string album_name = 2;
+  optional string album_artist = 3;
+  optional string album_coverpath_high = 4;
+  double album_song_count = 5;
+  optional string year = 6;
+  optional string album_coverpath_low = 7;
+}
+
+message Artist {
+  optional string artist_id = 1;
+  optional string artist_mbid = 2;
+  optional string artist_name = 3;
+  optional string artist_coverpath = 4;
+  double artist_song_count = 5;
+  optional string sanitized_artist_name = 7;
+}
+
+message Genre {
+  optional string genre_id = 1;
+  optional string genre_name = 2;
+  double genre_song_count = 3;
+}
+
+message Playlist {
+  optional string playlist_id = 1;
+  string playlist_name = 2;
+  optional string playlist_coverpath = 3;
+  double playlist_song_count = 4;
+  optional string playlist_desc = 5;
+  optional string playlist_path = 6;
+  optional string extension = 7;
+  optional string icon = 8;
+  optional bool library_item = 9;
+}
+
+enum SongType {
+  LOCAL = 0;
+  URL = 1;
+  SPOTIFY = 2;
+  DASH = 3;
+  HLS = 4;
+}
+
+message InnerSong {
+  optional string id = 1; // _id
+  optional string path = 2;
+  optional double size = 3;
+  optional string inode = 4;
+  optional string deviceno = 5;
+  optional string title = 6;
+  optional string date = 7;
+  optional string year = 8;
+  optional string lyrics = 9;
+  optional string release_type = 10;
+  optional double bitrate = 11;
+  optional string codec = 12;
+  optional string container = 13;
+  optional double duration = 14;
+  optional double sample_rate = 15;
+  optional string hash = 16;
+  SongType type = 17;
+  optional string url = 18;
+  optional string song_cover_path_high = 19;
+  optional string playback_url = 20;
+  optional string song_cover_path_low = 21;
+  optional int64 date_added = 22;
+  optional string provider_extension = 23;
+  optional string icon = 24;
+  optional bool show_in_library = 25;
+  optional double track_no = 26;
+  optional bool library_item = 27;
+}
+
+message SearchableSong {
+  optional string id = 1;
+  optional string path = 2;
+  optional string title = 3;
+  optional double sample_rate = 4;
+  optional string hash = 5;
+  optional SongType type = 6;
+  optional string url = 7;
+  optional string playback_url = 8;
+  optional string provider_extension = 9;
+  optional bool show_in_library = 10;
+}
+
+message GetSongOptions {
+  optional SearchableSong song = 1;
+  optional Artist artist = 2;
+  optional Album album = 3;
+  optional Genre genre = 4;
+  optional Playlist playlist = 5;
+  optional bool inclusive = 6;
+}
+
+message Song {
+  InnerSong song = 1;
+  optional Album album = 2;
+  repeated Artist artists = 3;
+  repeated Genre genre = 4;
+}
+
+message AllAnalytics {
+  double total_listen_time = 1;
+  message SongListenTime {
+    string song_id = 1;
+    double time = 2;
+  }
+  repeated SongListenTime songs = 2;
+}
+
+message SearchResult {
+  repeated Song songs = 1;
+  repeated Artist artists = 2;
+  repeated Playlist playlists = 3;
+  repeated Album albums = 4;
+  repeated Genre genres = 5;
+}
+
+message GetEntityOptions {
+  optional Artist artist = 1;
+  optional Album album = 2;
+  optional Genre genre = 3;
+  optional Playlist playlist = 4;
+  optional bool inclusive = 5;
+}

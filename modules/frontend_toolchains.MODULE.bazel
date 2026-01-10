@@ -1,0 +1,13 @@
+npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm")
+npm.npm_translate_lock(
+    name = "npm",
+    pnpm_lock = "//ui/gen_dist:pnpm-lock.yaml",
+    verify_node_modules_ignored = "//:.bazelignore",
+)
+use_repo(npm, "npm")
+
+sass = use_extension("@gzgz_rules_sass//sass:extensions.bzl", "sass")
+sass.toolchain(sass_version = "1.63.6")
+use_repo(sass, "sass_toolchains")
+
+register_toolchains("@sass_toolchains//:all")

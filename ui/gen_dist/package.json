@@ -1,0 +1,26 @@
+{
+    "name": "moosync",
+    "version": "1.0.0",
+    "devDependencies": {
+        "@rollup/plugin-node-resolve": "^16.0.3",
+        "@tauri-apps/api": "^2.9.1",
+        "rollup": "^4.9.0"
+    },
+    "pnpm": {
+        "onlyBuiltDependencies": [],
+        "supportedArchitectures": {
+            "os": [
+                "win32",
+                "linux",
+                "darwin"
+            ],
+            "cpu": [
+                "x64",
+                "arm64"
+            ]
+        },
+        "overrides": {
+            "rollup": "npm:@rollup/wasm-node"
+        }
+    }
+}

@@ -1,0 +1,339 @@
+.image-container-music-info {
+    position: relative;
+    padding-left: 72px;
+    overflow-y: scroll;
+    transition: color 0.3s ease;
+    color: transparent;
+    text-shadow: 0 0 white;
+
+    &:hover {
+        color: white;
+    }
+}
+
+.music-info-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding-top: 60px;
+    padding-bottom: 30px;
+}
+
+.queue-container {
+    overflow-y: scroll;
+    color: white !important;
+}
+
+.right-container {
+    margin-left: 5rem;
+}
+
+.bg-img,
+.canvaz-vid {
+    height: 100vh;
+    width: 100vw;
+    object-fit: cover;
+    filter: blur(10px);
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -9999;
+    transform: translateZ(0);
+    /*Run on GPU*/
+    will-change: transform;
+}
+
+.dark-overlay {
+    height: calc(100% + 28px + 5px + 3px);
+    width: 100vw;
+    z-index: -9998;
+    position: absolute;
+    left: 0;
+    background: rgba(0, 0, 0, 0.75);
+    transform: translateZ(0);
+    /*for older browsers*/
+    will-change: transform;
+}
+
+.flip-list-move {
+    transition: transform 0.3s;
+}
+
+.ghost {
+    opacity: 0.3;
+}
+
+.rounded-btn {
+    background: var(--primary);
+    border-radius: 17px;
+    padding: 8px 17px 8px 17px;
+    margin-right: 17px;
+    filter: drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.28));
+}
+
+.queue-container-outer {
+    height: 95%;
+    padding: 12px !important;
+}
+
+.empty-message {
+    margin-left: -30px;
+    font-size: 36px;
+}
+
+.animate__animated.animate__fadeOut {
+    --animate-duration: 0.3s;
+}
+
+.cross-icon {
+    width: 18px;
+    margin-right: 1.5rem;
+}
+
+.audioStream-slot {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding-right: 25px;
+}
+
+.video-container {
+    position: relative;
+    text-shadow: 0 0 white;
+}
+
+.musicinfo-open {
+    transform: translateY(-4px);
+}
+
+.musicinfo-close {
+    transform: translateY(100vh);
+}
+
+.item-container {
+    position: relative;
+    height: 87px;
+}
+
+.image {
+    object-fit: cover;
+    width: 55px;
+    height: 55px;
+    border-radius: 10px;
+}
+
+.song-title {
+    font-weight: 600;
+    font-size: 16px;
+    min-width: 0;
+}
+
+.song-subtitle {
+    font-weight: 250;
+    font-size: 14px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.item-row {
+    height: 80px;
+    padding: 12px !important;
+}
+
+.divider {
+    margin-top: 8px;
+    border-bottom: 1px solid var(--divider) !important;
+    width: 100%;
+}
+
+.remove-button {
+    color: var(--accent);
+    cursor: pointer;
+    padding: 10px;
+
+    svg {
+        width: 22px;
+        height: 22px;
+    }
+}
+
+.play-button,
+.now-playing {
+    width: calc(80px - (12px * 2));
+    height: calc(80px - (12px * 2));
+    background: rgba(0, 0, 0, 0.6);
+    position: absolute;
+    border-radius: 10px;
+}
+
+.play-button {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+
+    &:hover {
+        opacity: 1;
+    }
+}
+
+.provider-icon {
+    align-self: center;
+    min-width: 20px;
+    min-width: 20px;
+    height: 20px;
+    width: 20px;
+}
+
+// .img-container
+//   min-width: calc(56px + 12px)
+
+.text-content {
+    min-width: 0%;
+}
+
+.player-container {
+    display: flex;
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 999;
+    display: none;
+}
+
+.animated-playing {
+    padding-top: 14px;
+    padding-bottom: 14px;
+}
+
+.equalizer-bg {
+    width: 56px;
+    height: 56px;
+    background: rgba(0, 0, 0, 0.6);
+    position: absolute;
+    top: 0;
+    border-radius: 10px;
+}
+
+animation-play {
+    animation-play-state: running !important;
+}
+
+.animation-pause {
+    animation-play-state: paused !important;
+}
+
+#eF20KXoiB5d2_ts {
+    animation: eF20KXoiB5d2_ts__ts 800ms linear infinite normal forwards;
+}
+
+@keyframes eF20KXoiB5d2_ts__ts {
+    0% {
+        transform: translate(1.989899px, 14px) scale(1, 1);
+    }
+
+    25% {
+        transform: translate(1.989899px, 14px) scale(1, 0.645321);
+    }
+
+    50% {
+        transform: translate(1.989899px, 14px) scale(1, 0.380465);
+    }
+
+    75% {
+        transform: translate(1.989899px, 14px) scale(1, 0.645169);
+    }
+
+    100% {
+        transform: translate(1.989899px, 14px) scale(1, 0.999765);
+    }
+}
+
+#eF20KXoiB5d3_ts {
+    animation: eF20KXoiB5d3_ts__ts 800ms linear infinite normal forwards;
+}
+
+@keyframes eF20KXoiB5d3_ts__ts {
+    0% {
+        transform: translate(6.030915px, 14.000671px) scale(1, 1);
+    }
+
+    25% {
+        transform: translate(6.030915px, 14.000671px) scale(1, 0.588887);
+    }
+
+    50% {
+        transform: translate(6.030915px, 14.000671px) scale(1, 0.999748);
+    }
+
+    75% {
+        transform: translate(6.030915px, 14.000671px) scale(1, 1.547215);
+    }
+
+    100% {
+        transform: translate(6.030915px, 14.000671px) scale(1, 0.999435);
+    }
+}
+
+#eF20KXoiB5d4_ts {
+    animation: eF20KXoiB5d4_ts__ts 800ms linear infinite normal forwards;
+}
+
+@keyframes eF20KXoiB5d4_ts__ts {
+    0% {
+        transform: translate(9.851647px, 14.039325px) scale(1, 1);
+    }
+
+    25% {
+        transform: translate(9.851647px, 14.039325px) scale(1, 1.691557);
+    }
+
+    50% {
+        transform: translate(9.851647px, 14.039325px) scale(1, 2.623789);
+    }
+
+    75% {
+        transform: translate(9.851647px, 14.039325px) scale(1, 1.694809);
+    }
+
+    100% {
+        transform: translate(9.851647px, 14.039325px) scale(1, 0.997334);
+    }
+}
+
+.lyrics-container {
+    height: 100%;
+    width: calc(100% + 27px);
+    overflow: auto;
+    border-radius: 28px;
+
+    &>pre {
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding: 10px;
+        color: white;
+        text-align: left;
+        line-height: 1.5;
+        width: 100%;
+        word-break: break-all;
+        white-space: pre-wrap;
+        height: 100%;
+        overflow: auto;
+    }
+
+    &>svg {
+        position: absolute;
+        top: 0px;
+        right: 20px;
+    }
+}
+
+.lyrics-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 28px;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+}

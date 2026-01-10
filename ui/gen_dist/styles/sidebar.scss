@@ -1,0 +1,170 @@
+.b-sidebar-outer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+    overflow: visible;
+    z-index: 1035;
+}
+
+.b-sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    width: 100vw;
+    height: 100vh;
+    opacity: 0.6;
+}
+
+.b-sidebar {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    max-height: 100%;
+    margin: 0;
+    outline: 0;
+    transform: translateX(0);
+
+    &.slide {
+        transition: transform 0.2s ease-in-out;
+
+        @media (prefers-reduced-motion: reduce) {
+            transition: none;
+        }
+    }
+
+    &:not(.b-sidebar-right) {
+        left: 0;
+        right: auto;
+
+        &.slide:not(.show) {
+            transform: translateX(-100%);
+        }
+
+        >.b-sidebar-header .close {
+            margin-left: auto;
+        }
+    }
+
+    &.b-sidebar-right {
+        left: auto;
+        right: 0;
+
+        &.slide:not(.show) {
+            transform: translateX(100%);
+        }
+
+        >.b-sidebar-header .close {
+            margin-right: auto;
+        }
+    }
+
+    >.b-sidebar-header {
+        font-size: 16px;
+        padding: 0px 15px;
+        display: flex;
+        flex-direction: row;
+        flex-grow: 0;
+        align-items: center;
+
+        @at-root {
+
+            // Keep the buttons on the correct end when in RTL mode
+            [dir="rtl"] & {
+                flex-direction: row-reverse;
+            }
+        }
+
+        .close {
+            float: none;
+            font-size: 16px;
+        }
+    }
+
+    >.b-sidebar-body {
+        flex-grow: 1;
+        height: 100%;
+        overflow-y: auto;
+    }
+
+    >.b-sidebar-footer {
+        flex-grow: 0;
+    }
+}
+
+.icon {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+}
+
+.icon-padding-open {
+    padding: 0.25rem 0rem 0.25rem 1.8rem;
+}
+
+.icon-padding-closed {
+    padding: 0.5rem 0rem 0.25rem 1rem;
+}
+
+.icon-transition {
+    transition: 0.1s;
+}
+
+.icon-padding-open.icon-transition:hover {
+    margin-left: 0.6rem;
+}
+
+.text-padding {
+    padding-left: 2rem;
+    user-select: none;
+}
+
+.text-format {
+    color: var(--textPrimary);
+}
+
+.text-active {
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.button-bar {
+    margin-top: 1.25rem;
+    vertical-align: middle;
+}
+
+.whitebar {
+    width: 3px;
+    height: auto;
+    background: var(--textPrimary);
+}
+
+.whitebar-active {
+    background: var(--accent);
+}
+
+.button-active {
+    background: linear-gradient(270deg,
+            rgba(var(--secondary-rgb), 0) 0%,
+            rgba(var(--accent-rgb), 0.22) 100%);
+}
+
+.icon-active {
+    padding-left: calc(1.8rem - 3px);
+}
+
+.text-delay-enter-active {
+    display: none;
+    transition-delay: 0.08s;
+}
+
+.tabs-holder {
+    flex-direction: column;
+}

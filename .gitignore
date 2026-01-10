@@ -8,3 +8,9 @@ src-extensions/server
 perf.data*
 keystore.properties
 src-tauri/gen/android/app/
+ffmpeg-android-maker/
+bazel-*
+rust-project.json
+.ropeproject/
+**/.gradle
+**/.settings

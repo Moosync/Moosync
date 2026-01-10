@@ -1,0 +1,15 @@
+{
+  "identifier": "default",
+  "description": "default permissions",
+  "windows": [
+    "main"
+  ],
+  "permissions": [],
+  "platforms": [
+    "linux",
+    "macOS",
+    "windows",
+    "android",
+    "iOS"
+  ]
+}

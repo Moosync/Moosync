@@ -1,0 +1,52 @@
+name: Comment Trigger
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  actions: write
+  pull-requests: read
+
+jobs:
+  trigger-build:
+    runs-on: ubuntu-latest
+    if: github.event.issue.pull_request && startsWith(github.event.comment.body, '/build')
+    steps:
+      - name: Get PR Branch
+        id: get-branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch=$(gh pr view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json headRefName -q .headRefName)
+          echo "branch=$branch" >> $GITHUB_OUTPUT
+
+      - name: Parse Platform
+        id: parse
+        run: |
+          body="${{ github.event.comment.body }}"
+          platform="all"
+          if [[ "$body" =~ ^/build[[:space:]]+([^[:space:]]+) ]]; then
+            platform="${BASH_REMATCH[1]}"
+          fi
+          
+          # Basic validation/normalization
+          case "$platform" in
+            linux|windows|macos|all) ;;
+            *) 
+              echo "Unknown platform '$platform', defaulting to 'all'"
+              platform="all" 
+              ;;
+          esac
+
+          echo "platform=$platform" >> $GITHUB_OUTPUT
+
+      - name: Trigger Build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Triggering build for branch '${{ steps.get-branch.outputs.branch }}' with platform '${{ steps.parse.outputs.platform }}'"
+          gh workflow run build.yaml \
+            --repo ${{ github.repository }} \
+            --ref ${{ steps.get-branch.outputs.branch }} \
+            -f platform=${{ steps.parse.outputs.platform }}

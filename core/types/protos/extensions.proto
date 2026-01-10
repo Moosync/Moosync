@@ -1,0 +1,495 @@
+syntax = "proto3";
+
+package moosync.types;
+
+import "core/types/protos/songs.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/empty.proto";
+import "core/types/protos/ui.proto";
+
+message RunnerCommand {
+  oneof command {
+    google.protobuf.Empty find_new_extensions = 1;
+    google.protobuf.Empty get_installed_extensions = 2;
+    PackageName get_extension_icon = 3;
+    PackageName remove_extension = 4;
+    PackageName get_display_name = 5;
+  }
+}
+
+message RunnerCommandResponse {
+  oneof response {
+    google.protobuf.Empty find_new_extensions = 1;
+    InstalledExtensions get_installed_extensions = 2;
+    string get_extension_icon = 3;
+    google.protobuf.Empty remove_extension = 4;
+    string get_display_name = 5;
+  }
+}
+
+message ExtensionCommand {
+  string package_name = 1;
+  oneof event {
+    RequestedPlaylistsRequest requested_playlists = 2;
+    RequestedPlaylistSongsRequest requested_playlist_songs = 3;
+    OauthCallbackRequest oauth_callback = 4;
+    SongQueueChangedRequest song_queue_changed = 5;
+    SeekedRequest seeked = 6;
+    VolumeChangedRequest volume_changed = 7;
+    PlayerStateChangedRequest player_state_changed = 8;
+    SongChangedRequest song_changed = 9;
+    PreferenceChangedRequest preference_changed = 10;
+    PlaybackDetailsRequestedRequest playback_details_requested = 11;
+    CustomRequest custom_request = 12;
+    RequestedSongFromUrlRequest requested_song_from_url = 13;
+    RequestedPlaylistFromUrlRequest requested_playlist_from_url = 14;
+    RequestedSearchResultRequest requested_search_result = 15;
+    RequestedRecommendationsRequest requested_recommendations = 16;
+    RequestedLyricsRequest requested_lyrics = 17;
+    RequestedArtistSongsRequest requested_artist_songs = 18;
+    RequestedAlbumSongsRequest requested_album_songs = 19;
+    SongAddedRequest song_added = 20;
+    SongRemovedRequest song_removed = 21;
+    PlaylistAddedRequest playlist_added = 22;
+    PlaylistRemovedRequest playlist_removed = 23;
+    RequestedSongFromIdRequest requested_song_from_id = 24;
+    GetRemoteUrlRequest get_remote_url = 25;
+    ScrobbleRequest scrobble = 26;
+    RequestedSongContextMenuRequest requested_song_context_menu = 27;
+    RequestedPlaylistContextMenuRequest requested_playlist_context_menu = 28;
+    ContextMenuActionRequest context_menu_action = 29;
+    GetProviderScopesRequest get_provider_scopes = 30;
+    GetAccountsRequest get_accounts = 31;
+    PerformAccountLoginRequest perform_account_login = 32;
+  }
+}
+
+message ExtensionCommandResponse {
+  oneof response {
+    RequestedPlaylistsResponse requested_playlists = 1;
+    RequestedPlaylistSongsResponse requested_playlist_songs = 2;
+    OauthCallbackResponse oauth_callback = 3;
+    SongQueueChangedResponse song_queue_changed = 4;
+    SeekedResponse seeked = 5;
+    VolumeChangedResponse volume_changed = 6;
+    PlayerStateChangedResponse player_state_changed = 7;
+    SongChangedResponse song_changed = 8;
+    PreferenceChangedResponse preference_changed = 9;
+    PlaybackDetailsRequestedResponse playback_details_requested = 10;
+    CustomRequestResponse custom_request = 11;
+    RequestedSongFromUrlResponse requested_song_from_url = 12;
+    RequestedPlaylistFromUrlResponse requested_playlist_from_url = 13;
+    RequestedSearchResultResponse requested_search_result = 14;
+    RequestedRecommendationsResponse requested_recommendations = 15;
+    RequestedLyricsResponse requested_lyrics = 16;
+    RequestedArtistSongsResponse requested_artist_songs = 17;
+    RequestedAlbumSongsResponse requested_album_songs = 18;
+    SongAddedResponse song_added = 19;
+    SongRemovedResponse song_removed = 20;
+    PlaylistAddedResponse playlist_added = 21;
+    PlaylistRemovedResponse playlist_removed = 22;
+    RequestedSongFromIdResponse requested_song_from_id = 23;
+    GetRemoteUrlResponse get_remote_url = 24;
+    ScrobbleResponse scrobble = 25;
+    RequestedSongContextMenuResponse requested_song_context_menu = 26;
+    RequestedPlaylistContextMenuResponse requested_playlist_context_menu = 27;
+    ContextMenuActionResponse context_menu_action = 28;
+    GetProviderScopesResponse get_provider_scopes = 29;
+    GetAccountsResponse get_accounts = 30;
+    PerformAccountLoginResponse perform_account_login = 31;
+  }
+}
+
+message RequestedPlaylistsRequest { bool refresh = 1; }
+message RequestedPlaylistsResponse { repeated Playlist playlists = 1; }
+
+message RequestedPlaylistSongsRequest {
+  string id = 1;
+  bool refresh = 2;
+  optional string page_token = 3;
+}
+message RequestedPlaylistSongsResponse {
+  repeated Song songs = 1;
+  optional string next_page_token = 2;
+}
+
+message OauthCallbackRequest { string callback_uri = 1; }
+message OauthCallbackResponse {}
+
+message SongQueueChangedRequest { google.protobuf.Struct queue_state = 1; }
+message SongQueueChangedResponse {}
+
+message SeekedRequest { double position = 1; }
+message SeekedResponse {}
+
+message VolumeChangedRequest { double volume = 1; }
+message VolumeChangedResponse {}
+
+message PlayerStateChangedRequest { PlayerState state = 1; }
+message PlayerStateChangedResponse {}
+
+message SongChangedRequest { Song song = 1; }
+message SongChangedResponse {}
+
+message PreferenceChangedRequest { PreferenceArgs preference = 1; }
+message PreferenceChangedResponse {}
+
+message PlaybackDetailsRequestedRequest { Song song = 1; }
+message PlaybackDetailsRequestedResponse {
+  uint32 duration = 1;
+  string url = 2;
+}
+
+message CustomRequest {
+  string request_id = 1;
+  optional google.protobuf.Struct payload = 2;
+}
+message CustomRequestResponse {
+  optional string mime_type = 1;
+  optional bytes data = 2;
+  optional string redirect_url = 3;
+}
+
+message RequestedSongFromUrlRequest {
+  string url = 1;
+  bool refresh = 2;
+}
+message RequestedSongFromUrlResponse { optional Song song = 1; }
+
+message RequestedPlaylistFromUrlRequest {
+  string url = 1;
+  bool refresh = 2;
+}
+message RequestedPlaylistFromUrlResponse {
+  optional Playlist playlist = 1;
+  repeated Song songs = 2;
+}
+
+message RequestedSearchResultRequest { string query = 1; }
+message RequestedSearchResultResponse {
+  repeated Song songs = 1;
+  repeated Playlist playlists = 2;
+  repeated Artist artists = 3;
+  repeated Album albums = 4;
+}
+
+message RequestedRecommendationsRequest { bool refresh = 1; }
+message RequestedRecommendationsResponse { repeated Song songs = 1; }
+
+message RequestedLyricsRequest { Song song = 1; }
+message RequestedLyricsResponse { string lyrics = 1; }
+
+message RequestedArtistSongsRequest {
+  Artist artist = 1;
+  optional string page_token = 2;
+}
+message RequestedArtistSongsResponse {
+  repeated Song songs = 1;
+  optional string next_page_token = 2;
+}
+
+message RequestedAlbumSongsRequest {
+  Album album = 1;
+  optional string page_token = 2;
+}
+message RequestedAlbumSongsResponse {
+  repeated Song songs = 1;
+  optional string next_page_token = 2;
+}
+
+message SongAddedRequest { repeated Song songs = 1; }
+message SongAddedResponse {}
+
+message SongRemovedRequest { repeated Song songs = 1; }
+message SongRemovedResponse {}
+
+message PlaylistAddedRequest { repeated Playlist playlists = 1; }
+message PlaylistAddedResponse {}
+
+message PlaylistRemovedRequest { repeated Playlist playlists = 1; }
+message PlaylistRemovedResponse {}
+
+message RequestedSongFromIdRequest { string id = 1; }
+message RequestedSongFromIdResponse { optional Song song = 1; }
+
+message GetRemoteUrlRequest { Song song = 1; }
+message GetRemoteUrlResponse { string url = 1; }
+
+message ScrobbleRequest { Song song = 1; }
+message ScrobbleResponse {}
+
+message RequestedSongContextMenuRequest { repeated Song songs = 1; }
+message RequestedSongContextMenuResponse { ContextMenuReturnType menu = 1; }
+
+message RequestedPlaylistContextMenuRequest { Playlist playlist = 1; }
+message RequestedPlaylistContextMenuResponse { ContextMenuReturnType menu = 1; }
+
+message ContextMenuActionRequest { string action_id = 1; }
+message ContextMenuActionResponse {}
+
+message GetProviderScopesRequest {}
+message GetProviderScopesResponse {
+  repeated ExtensionProviderScope scopes = 1;
+}
+
+message GetAccountsRequest {}
+message GetAccountsResponse { repeated ExtensionAccountDetail accounts = 1; }
+
+message PerformAccountLoginRequest {
+  string account_id = 2;
+  bool login_status = 3;
+}
+message PerformAccountLoginResponse { string status = 1; }
+
+message MainCommand {
+  oneof command {
+    GetSongRequest get_song = 1;
+    GetEntityRequest get_entity = 2;
+    GetCurrentSongRequest get_current_song = 3;
+    GetPlayerStateRequest get_player_state = 4;
+    GetVolumeRequest get_volume = 5;
+    GetTimeRequest get_time = 6;
+    GetQueueRequest get_queue = 7;
+    GetPreferenceRequest get_preference = 8;
+    SetPreferenceRequest set_preference = 9;
+    GetSecureRequest get_secure = 10;
+    SetSecureRequest set_secure = 11;
+    AddSongsRequest add_songs = 12;
+    RemoveSongRequest remove_song = 13;
+    UpdateSongRequest update_song = 14;
+    AddPlaylistRequest add_playlist = 15;
+    AddToPlaylistRequest add_to_playlist = 16;
+    RegisterOauthRequest register_oauth = 17;
+    OpenExternalUrlRequest open_external_url = 18;
+    UpdateAccountsRequest update_accounts = 19;
+    RegisterUserPreferenceRequest register_user_preference = 20;
+    UnregisterUserPreferenceRequest unregister_user_preference = 21;
+    ExtensionsUpdatedRequest extensions_updated = 22;
+    GetAppVersionRequest get_app_version = 23;
+  }
+}
+
+message MainCommandResponse {
+  oneof response {
+    GetSongResponse get_song = 1;
+    GetEntityResponse get_entity = 2;
+    GetCurrentSongResponse get_current_song = 3;
+    GetPlayerStateResponse get_player_state = 4;
+    GetVolumeResponse get_volume = 5;
+    GetTimeResponse get_time = 6;
+    GetQueueResponse get_queue = 7;
+    GetPreferenceResponse get_preference = 8;
+    SetPreferenceResponse set_preference = 9;
+    GetSecureResponse get_secure = 10;
+    SetSecureResponse set_secure = 11;
+    AddSongsResponse add_songs = 12;
+    RemoveSongResponse remove_song = 13;
+    UpdateSongResponse update_song = 14;
+    AddPlaylistResponse add_playlist = 15;
+    AddToPlaylistResponse add_to_playlist = 16;
+    RegisterOauthResponse register_oauth = 17;
+    OpenExternalUrlResponse open_external_url = 18;
+    UpdateAccountsResponse update_accounts = 19;
+    RegisterUserPreferenceResponse register_user_preference = 20;
+    UnregisterUserPreferenceResponse unregister_user_preference = 21;
+    ExtensionsUpdatedResponse extensions_updated = 22;
+    GetAppVersionResponse get_app_version = 23;
+    Error error = 24;
+  }
+}
+
+message GetSongRequest { GetSongOptions options = 1; }
+message GetSongResponse { repeated Song songs = 1; }
+
+message GetEntityRequest { GetEntityOptions options = 1; }
+message GetEntityResponse { google.protobuf.Struct entity = 1; }
+
+message GetCurrentSongRequest {}
+message GetCurrentSongResponse { Song song = 1; }
+
+message GetPlayerStateRequest {}
+message GetPlayerStateResponse { PlayerState state = 1; }
+
+message GetVolumeRequest {}
+message GetVolumeResponse { double volume = 1; }
+
+message GetTimeRequest {}
+message GetTimeResponse { double time = 1; }
+
+message GetQueueRequest {}
+message GetQueueResponse { google.protobuf.Struct queue = 1; }
+
+message GetPreferenceRequest { PreferenceData data = 1; }
+message GetPreferenceResponse { PreferenceData data = 1; }
+
+message SetPreferenceRequest { PreferenceData data = 1; }
+message SetPreferenceResponse { bool success = 1; }
+
+message GetSecureRequest { PreferenceData data = 1; }
+message GetSecureResponse { PreferenceData data = 1; }
+
+message SetSecureRequest { PreferenceData data = 1; }
+message SetSecureResponse { bool success = 1; }
+
+message AddSongsRequest { repeated Song songs = 1; }
+message AddSongsResponse { repeated Song songs = 1; }
+
+message RemoveSongRequest { Song song = 1; }
+message RemoveSongResponse { bool success = 1; }
+
+message UpdateSongRequest { Song song = 1; }
+message UpdateSongResponse { Song song = 1; }
+
+message AddPlaylistRequest { Playlist playlist = 1; }
+message AddPlaylistResponse { string playlist_id = 1; }
+
+message AddToPlaylistRequest {
+  string playlist_id = 1;
+  repeated Song songs = 2;
+}
+message AddToPlaylistResponse { bool success = 1; }
+
+message RegisterOauthRequest { string url = 1; }
+message RegisterOauthResponse { bool success = 1; }
+
+message OpenExternalUrlRequest { string url = 1; }
+message OpenExternalUrlResponse { bool success = 1; }
+
+message UpdateAccountsRequest { optional string account = 1; }
+message UpdateAccountsResponse { bool success = 1; }
+
+message RegisterUserPreferenceRequest { repeated PreferenceUiData prefs = 1; }
+message RegisterUserPreferenceResponse { bool success = 1; }
+
+message UnregisterUserPreferenceRequest { repeated string keys = 1; }
+message UnregisterUserPreferenceResponse { bool success = 1; }
+
+message ExtensionsUpdatedRequest {}
+message ExtensionsUpdatedResponse {}
+
+message GetAppVersionRequest {}
+message GetAppVersionResponse { string version = 1; }
+
+message PreferenceData {
+  string key = 1;
+  optional google.protobuf.Value value = 2;
+}
+
+message PreferenceArgs {
+  string key = 1;
+  google.protobuf.Struct value = 2;
+}
+
+message ContextMenuReturnType {
+  string name = 1;
+  string icon = 2;
+  string action_id = 3;
+}
+
+message ManifestPermissions {
+  repeated string hosts = 1;
+  map<string, string> paths = 2;
+}
+
+message ExtensionManifest {
+  bool moosync_extension = 1;
+  string display_name = 2;
+  string extension_entry = 3;
+  optional string author = 4;
+  string name = 5;
+  string version = 6;
+  string icon = 7;
+  optional ManifestPermissions permissions = 8;
+}
+
+message ExtensionDetail {
+  string name = 1;
+  string package_name = 2;
+  optional string desc = 3;
+  optional string author = 4;
+  string version = 5;
+  bool has_started = 6;
+  repeated PreferenceUiData preferences = 8;
+  optional string extension_icon = 10;
+  bool active = 11;
+}
+
+message ExtensionAccountDetail {
+  string id = 1;
+  string package_name = 2;
+  string name = 3;
+  string bg_color = 4;
+  string icon = 5;
+  bool logged_in = 6;
+  optional string username = 7;
+}
+
+message FetchedExtensionManifest {
+  string name = 1;
+  string package_name = 2;
+  optional string logo = 3;
+  optional string description = 4;
+  string url = 5;
+  string version = 6;
+}
+
+enum ExtensionProviderScope {
+  SEARCH = 0;
+  PLAYLISTS = 1;
+  PLAYLIST_SONGS = 2;
+  ARTIST_SONGS = 3;
+  ALBUM_SONGS = 4;
+  RECOMMENDATIONS = 5;
+  SCROBBLE = 6;
+  PLAYLIST_FROM_URL = 7;
+  SONG_FROM_URL = 8;
+  PLAYBACK_DETAILS = 9;
+  LYRICS = 10;
+  SONG_CONTEXT_MENU = 11;
+  PLAYLIST_CONTEXT_MENU = 12;
+  ACCOUNTS = 13;
+  DATABASE_SONG_EVENTS = 14;
+  DATABASE_PLAYLIST_EVENTS = 15;
+  PLAYER_UI_EVENTS = 16;
+  PLAYER_DATA_EVENTS = 17;
+}
+
+message ProviderStatus {
+  string key = 1;
+  string name = 2;
+  optional string user_name = 3;
+  bool logged_in = 4;
+  string bg_color = 5;
+  string account_id = 6;
+  repeated ExtensionProviderScope scopes = 7;
+}
+
+message ExtensionUiRequest {
+  MainCommand type = 1;
+  string channel = 2;
+}
+
+enum PlayerState {
+  STOPPED = 0;
+  PLAYING = 1;
+  PAUSED = 2;
+  LOADING = 3;
+}
+
+message PlayerEvent {
+  oneof event {
+    bool play = 1;
+    bool pause = 2;
+    bool ended = 3;
+    bool loading = 4;
+    double time_update = 5;
+    string error = 6;
+  }
+}
+
+
+message PackageName { string package_name = 1; }
+
+message InstalledExtensions { repeated ExtensionDetail extensions = 1; }
+
+message Error { string message = 1; }

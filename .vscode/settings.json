@@ -14,5 +14,60 @@
   // ],
   "rust-analyzer.showUnlinkedFileNotification": false,
   "editor.formatOnSave": true,
-  "rust-analyzer.checkOnSave": true
+  "rust-analyzer.checkOnSave": true,
+  "bazel.lsp.command": "bazel-lsp",
+  "testing.coverageToolbarEnabled": true,
+  "cmake.postRunCoverageTarget": "bazel-out/**/coverage.dat",
+  "code-coverage-lcov.path.searchPath": "bazel-out/_coverage/_coverage_report.dat",
+  "bazel-import.kindPattern": "(ts|js|rust|cc)_library",
+  "bazel-import.fixDepsOnCurrent": true,
+  "bazel-import.buildFile": "BUILD",
+  "bazel.buildifierFixOnFormat": true,
+  "rust-analyzer.check.overrideCommand": [
+    "${workspaceFolder}/tools/rust_analyzer.sh",
+    "$saved_file",
+    "${workspaceFolder}"
+  ],
+  "rust-analyzer.trace.server": "messages",
+  // Settings for go/bazel are based on editor setup instructions at
+  // https://github.com/bazelbuild/rules_go/wiki/Editor-setup#visual-studio-code
+  "go.goroot": "${workspaceFolder}/lib/extensions_sdk/bazel-extensions_sdk/external/rules_go++go_sdk+main___download_0/",
+  "go.gopath": "${workspaceFolder}/lib/extensions_sdk/wasm-extension-go/",
+  "go.toolsEnvVars": {
+    "GOPACKAGESDRIVER": "${workspaceFolder}/lib/extensions_sdk/tools/gopackagedriver.sh"
+  },
+  "go.enableCodeLens": {
+    "runtest": false
+  },
+  "gopls": {
+    "build.workspaceFiles": [
+      "**/BUILD",
+      "**/WORKSPACE",
+      "**/*.{bzl,bazel}",
+    ],
+    "build.directoryFilters": [
+      "-bazel-bin",
+      "-bazel-out",
+      "-bazel-testlogs",
+      "-bazel-extensions_sdk",
+      "-bazel-Moosync"
+    ],
+    "formatting.gofumpt": true,
+    "formatting.local": "github.com/Moosync/extensions-sdk/wasm-extension-go",
+    "ui.completion.usePlaceholders": true,
+    "ui.semanticTokens": true,
+    "ui.codelenses": {
+      "gc_details": false,
+      "regenerate_cgo": false,
+      "generate": false,
+      "test": false,
+      "tidy": false,
+      "upgrade_dependency": false,
+      "vendor": false
+    },
+  },
+  "go.useLanguageServer": true,
+  "go.buildOnSave": "off",
+  "go.lintOnSave": "off",
+  "go.vetOnSave": "off",
 }

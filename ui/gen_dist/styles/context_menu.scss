@@ -1,0 +1,63 @@
+.context-menu-outer {
+    max-width: 600px;
+    min-width: 100px;
+    z-index: 9999;
+    color: var(--textPrimary);
+    background: var(--secondary);
+    border-radius: 16px;
+    pointer-events: all;
+    overflow: visible;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    box-shadow: 0 10px 40px 10px rgba(0, 0, 0, 0.1);
+    opacity: 1;
+    transition: opacity 0.2s ease-in-out;
+    border: none !important;
+
+    &:first-child {
+        margin-top: 12px;
+    }
+
+    &:last-child {
+        margin-bottom: 12px;
+    }
+}
+
+.context-menu-item {
+    color: var(--textPrimary);
+    padding-left: 15px;
+    padding-right: 15px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    justify-content: space-between;
+
+    &.context-menu-open {
+        background-color: var(--accent);
+        color: var(--textInverse);
+    }
+
+    &:hover {
+        background-color: var(--accent);
+        color: var(--textInverse);
+    }
+}
+
+.context-menu-item-text {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    max-width: 100%;
+}
+
+.context-menu-item-icon {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    max-width: 100%;
+    margin-left: 20px;
+
+    &>svg {
+        width: 14px;
+        height: 14px;
+    }
+}

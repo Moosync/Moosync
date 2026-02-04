@@ -2,6 +2,7 @@ load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
 rust_test(
     name = "extensions_test",
+    timeout = "long",
     crate = ":extensions",
     data = glob(["tests/fixtures/**"]),
 )

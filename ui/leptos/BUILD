@@ -141,9 +141,6 @@ rust_binary_with_export(
         "src/utils/window.rs",
         "src/utils/yt_player.rs",
     ],
-    compile_data = [
-        "Cargo.toml",
-    ],
     crate_root = "src/main.rs",
     platform = "@rules_rust//rust/platform:wasm",
     rustc_flags = [
@@ -201,10 +198,8 @@ rust_binary_with_export(
 cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
-    compile_data = ["Cargo.toml"],
     crate_root = "build.rs",
     data = [
-        "Cargo.toml",
         ":function_details",
         ":locales",
         ":prefs_yaml",

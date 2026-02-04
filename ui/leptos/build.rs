@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use leptos_i18n_build::{ParseOptions, TranslationsInfos};
+use leptos_i18n_build::{Config, ParseOptions, TranslationsInfos};
 use pref_gen::generate_components;
 use std::{
     env, fs,
@@ -39,7 +39,7 @@ fn find_function_details_json(target_dir: &Path) -> Option<PathBuf> {
     None
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=Cargo.toml");
 
@@ -48,7 +48,40 @@ fn main() {
     let options = ParseOptions::default().interpolate_display(true);
     eprintln!("Using options: {:?}", env!("CARGO_MANIFEST_DIR"));
 
-    let translations_infos = TranslationsInfos::parse(options).unwrap();
+    let translations_infos = TranslationsInfos::parse(
+        Config::new("en-US")?
+            .add_locale("af-ZA")?
+            .add_locale("ar-SA")?
+            .add_locale("ca-ES")?
+            .add_locale("cs-CZ")?
+            .add_locale("da-DK")?
+            .add_locale("de-DE")?
+            .add_locale("el-GR")?
+            .add_locale("es-ES")?
+            .add_locale("fi-FI")?
+            .add_locale("fr-FR")?
+            .add_locale("he-IL")?
+            .add_locale("hi-IN")?
+            .add_locale("hu-HU")?
+            .add_locale("it-IT")?
+            .add_locale("ja-JP")?
+            .add_locale("ko-KR")?
+            .add_locale("nl-NL")?
+            .add_locale("no-NO")?
+            .add_locale("pl-PL")?
+            .add_locale("pt-BR")?
+            .add_locale("pt-PT")?
+            .add_locale("ro-RO")?
+            .add_locale("ru-RU")?
+            .add_locale("sr-SP")?
+            .add_locale("sv-SE")?
+            .add_locale("tr-TR")?
+            .add_locale("uk-UA")?
+            .add_locale("vi-VN")?
+            .add_locale("zh-CN")?
+            .add_locale("zh-TW")?
+            .parse_options(options),
+    )?;
 
     translations_infos.rerun_if_locales_changed();
 
@@ -79,4 +112,6 @@ fn main() {
     if cfg!(debug_assertions) {
         println!("cargo:rustc-cfg=erase_components");
     }
+
+    Ok(())
 }

@@ -16,60 +16,82 @@ on:
 
 env:
   APP_NAME: "Moosync"
+
 jobs:
+  configure:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          MATRIX_JSON='{"include": []}'
+                  
+          LINUX_X64='{
+            "name": "Linux x64",
+            "os": "ubuntu-22.04",
+            "target": "//package/linux:linux_release",
+            "artifact_path_base": "bazel-bin/package/linux",
+            "artifact_patterns": "Moosync-*-*.x86_64.rpm\nMoosync-*-*.amd64.deb\nMoosync-*-*.x86_64.AppImage"
+          }'
+
+          LINUX_ARM='{
+            "name": "Linux ARM64",
+            "os": "ubuntu-24.04-arm",
+            "target": "//package/linux:linux_release",
+            "artifact_path_base": "bazel-bin/package/linux",
+            "artifact_patterns": "Moosync-*-*.aarch64.rpm\nMoosync-*-*.arm64.deb\nMoosync-*-*.aarch64.AppImage"
+          }'
+
+          MAC_X64='{
+            "name": "macOS x64",
+            "os": "macos-13",
+            "target": "//package/apple:apple_release",
+            "artifact_path_base": "bazel-bin/package/apple",
+            "artifact_patterns": "Moosync-*-*.darwin-x64.zip"
+          }'
+
+          MAC_ARM='{
+            "name": "macOS ARM64",
+            "os": "macos-latest",
+            "target": "//package/apple:apple_release",
+            "artifact_path_base": "bazel-bin/package/apple",
+            "artifact_patterns": "Moosync-*-*.darwin-arm64.zip"
+          }'
+
+          WIN_X64='{
+            "name": "Windows x64",
+            "os": "windows-latest",
+            "target": "//package/windows:windows_release",
+            "artifact_path_base": "bazel-bin/package/windows",
+            "artifact_patterns": "Moosync-*-*.x86_64-setup.exe\nMoosync-*-*.x86_64.exe"
+          }'
+
+          INPUT="${{ inputs.platform }}"
+
+          if [[ "$INPUT" == "all" || "$INPUT" == "linux" ]]; then
+             MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$LINUX_X64, $LINUX_ARM]")
+          fi
+
+          if [[ "$INPUT" == "all" || "$INPUT" == "macos" ]]; then
+             MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$MAC_X64, $MAC_ARM]")
+          fi
+
+          if [[ "$INPUT" == "all" || "$INPUT" == "windows" ]]; then
+             MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$WIN_X64]")
+          fi
+
+          echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+
   build-and-test:
-    name: ${{ matrix.name }}
+    needs: configure
     runs-on: ${{ matrix.os }}
-
-    if: >-
-      github.event.inputs.platform == 'all' ||
-      (github.event.inputs.platform == 'linux' && startsWith(matrix.os, 'ubuntu')) ||
-      (github.event.inputs.platform == 'macos' && startsWith(matrix.os, 'macos')) ||
-      (github.event.inputs.platform == 'windows' && startsWith(matrix.os, 'windows'))
-
+    name: ${{ matrix.name }}
     continue-on-error: false
-
+    
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - name: Linux x64
-            os: ubuntu-22.04
-            target: //package/linux:linux_release
-            artifact_path_base: "bazel-bin/package/linux"
-            artifact_patterns: |
-              Moosync-*-*.x86_64.rpm
-              Moosync-*-*.amd64.deb
-              Moosync-*-*.x86_64.AppImage
-
-          - name: Linux ARM64
-            os: ubuntu-22.04-arm
-            target: //package/linux:linux_release
-            artifact_path_base: "bazel-bin/package/linux"
-            artifact_patterns: |
-              Moosync-*-*.aarch64.rpm
-              Moosync-*-*.arm64.deb
-              Moosync-*-*.aarch64.AppImage
-
-          - name: macOS x64
-            os: macos-15-intel
-            target: //package/apple:apple_release
-            artifact_path_base: "bazel-bin/package/apple"
-            artifact_patterns: "Moosync-*-*.darwin-x64.zip"
-
-          - name: macOS ARM64
-            os: macos-latest
-            target: //package/apple:apple_release
-            artifact_path_base: "bazel-bin/package/apple"
-            artifact_patterns: "Moosync-*-*.darwin-arm64.zip"
-
-          - name: Windows x64
-            os: windows-latest
-            target: //package/windows:windows_release
-            artifact_path_base: "bazel-bin/package/windows"
-            artifact_patterns: |
-              Moosync-*-*.x86_64-setup.exe
-              Moosync-*-*.x86_64.exe
+      matrix: ${{ fromJson(needs.configure.outputs.matrix) }}
 
     steps:
       - name: Enable Git Long Paths (Windows)
@@ -136,13 +158,7 @@ jobs:
           update: true
           msystem: MSYS
           install: >-
-            curl
-            git
-            patch 
-            diffutils 
-            zip 
-            unzip
-            pkgconf
+            curl git patch diffutils zip unzip pkgconf
             mingw-w64-x86_64-nasm
             mingw-w64-x86_64-nsis
 
@@ -172,7 +188,7 @@ jobs:
       - name: Bazel Build Package
         run: bazel build ${{ matrix.target }} -c opt
         env:
-          MSYS2_PATH: ${{ runner.os == 'Windows' && steps.msys2.outputs.msys2-location }}
+          MSYS2_PATH: ${{ runner.os == 'Windows' && steps.msys2.outputs.msys2-location || '' }}
 
       - name: Prepare Artifacts for Upload
         shell: bash

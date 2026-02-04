@@ -301,12 +301,10 @@ impl ExtismContext {
             format!(
                 r#"
             [cache]
-            enabled = {}
             directory = "{}"
             cleanup-interval = "30m"
             files-total-size-soft-limit = "1Gi"
             "#,
-                if cfg!(test) { "false" } else { "true" },
                 cache_path.parent().unwrap().join("cache").to_string_lossy()
             ),
         )

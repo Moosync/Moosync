@@ -185,6 +185,10 @@ pub fn event_to_map(event: PlayerEvent) -> HashMap<String, String> {
             map.insert("position_ms".to_string(), position_ms.to_string());
             map.insert("event".to_string(), "PositionChanged".to_string());
         }
+        PlayerEvent::AddedToQueue { track_id } => {
+            map.insert("track_id".to_string(), track_id.to_string());
+            map.insert("event".to_string(), "AddedToQueue".to_string());
+        }
     }
 
     map

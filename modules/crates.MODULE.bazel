@@ -203,6 +203,10 @@ crates.spec(
     package = "librespot",
 )
 crates.spec(
+    package = "vergen",
+    version = "=9.0.6",
+)
+crates.spec(
     default_features = False,
     features = ["bytes"],
     package = "protobuf",
@@ -407,6 +411,10 @@ crates.spec(
 )
 crates.spec(
     default_features = False,
+    features = [
+        "json",
+        "stream",
+    ],
     package = "reqwest",
     version = "0.12.24",
 )

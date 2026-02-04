@@ -122,6 +122,7 @@ py_proto_library(
 
 ts_proto_library(
     name = "extensions_ts_proto",
+    copy_files = False,
     node_modules = ":node_modules",
     proto = ":extensions_proto",
     proto_srcs = ["extensions.proto"],
@@ -131,6 +132,7 @@ ts_proto_library(
 
 ts_proto_library(
     name = "songs_ts_proto",
+    copy_files = False,
     node_modules = ":node_modules",
     proto = ":songs_proto",
     proto_srcs = ["songs.proto"],
@@ -139,6 +141,7 @@ ts_proto_library(
 
 ts_proto_library(
     name = "ui_ts_proto",
+    copy_files = False,
     node_modules = ":node_modules",
     proto = ":ui_proto",
     proto_srcs = ["ui.proto"],
@@ -147,6 +150,7 @@ ts_proto_library(
 
 ts_proto_library(
     name = "themes_ts_proto",
+    copy_files = False,
     node_modules = ":node_modules",
     proto = ":themes_proto",
     proto_srcs = ["themes.proto"],

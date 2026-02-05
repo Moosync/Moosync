@@ -37,7 +37,7 @@ jobs:
 
           LINUX_ARM='{
             "name": "Linux ARM64",
-            "os": "ubuntu-24.04-arm",
+            "os": "ubuntu-22.04-arm",
             "target": "//package/linux:linux_release",
             "artifact_path_base": "bazel-bin/package/linux",
             "artifact_patterns": "Moosync-*-*.aarch64.rpm\nMoosync-*-*.arm64.deb\nMoosync-*-*.aarch64.AppImage"
@@ -45,7 +45,7 @@ jobs:
 
           MAC_X64='{
             "name": "macOS x64",
-            "os": "macos-13",
+            "os": "macos-15-intel",
             "target": "//package/apple:apple_release",
             "artifact_path_base": "bazel-bin/package/apple",
             "artifact_patterns": "Moosync-*-*.darwin-x64.zip"

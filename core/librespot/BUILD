@@ -32,6 +32,7 @@ rust_library(
         "@crates//:tracing",
         "@crates//:url",
         "@crates//:uuid",
+        "@crates//:vergen",
     ],
 )
 

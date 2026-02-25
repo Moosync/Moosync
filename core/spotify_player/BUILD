@@ -6,7 +6,7 @@ filegroup(
 )
 
 rust_library(
-    name = "librespot",
+    name = "spotify_player",
     srcs = [
         "src/canvaz.rs",
         "src/lib.rs",
@@ -37,6 +37,6 @@ rust_library(
 )
 
 rust_test(
-    name = "librespot_test",
-    crate = ":librespot",
+    name = "spotify_player_test",
+    crate = ":spotify_player",
 )

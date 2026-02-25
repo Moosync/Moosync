@@ -15,8 +15,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use database::cache::CacheHolder;
-use librespot::LibrespotHolder;
 use lyrics::LyricsFetcher;
+use spotify_player::LibrespotHolder;
 use tauri::State;
 use types::errors::Result;
 

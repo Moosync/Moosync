@@ -9,7 +9,7 @@ rust_library(
     crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
     deps = [
-        "//core/librespot",
+        "//core/spotify_player",
         "//core/types",
         "//core/types/protos:songs_rs",
         "@crates//:regex",

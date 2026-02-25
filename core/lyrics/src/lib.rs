@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use librespot::LibrespotHolder;
 use regex::Regex;
+use spotify_player::LibrespotHolder;
 
 use serde_json::Value;
 use types::errors::{Result, error_helpers};

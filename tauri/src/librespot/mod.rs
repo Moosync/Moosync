@@ -16,7 +16,7 @@
 
 use crate::macros::{generate_command, generate_command_cached};
 use database::cache::CacheHolder;
-use librespot::{
+use spotify_player::{
     Cache, ConnectConfig, Credentials, DeviceType, LibrespotHolder, PlayerConfig, PlayerEvent,
     REGISTERED_EVENTS, spirc::ParsedToken, utils::event_to_map,
 };

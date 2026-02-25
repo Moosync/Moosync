@@ -148,7 +148,6 @@ jobs:
         if: matrix.os == 'macos-15-intel'
         run: |
           brew update
-          brew upgrade
           brew install nasm
 
       - uses: msys2/setup-msys2@v2

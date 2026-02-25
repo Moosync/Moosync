@@ -21,10 +21,10 @@ use crate::{
     utils::invoke::{provider_search, search_all},
 };
 use colors_transform::{Color, Rgb};
-use leptos::{IntoView, Params, component, ev::wheel, html::Div, prelude::*, view};
-use leptos_router::{hooks::use_query, params::Params};
-use leptos_use::{use_event_listener, use_resize_observer};
 use extensions_proto::moosync::types::ExtensionProviderScope;
+use leptos::{IntoView, component, ev::wheel, html::Div, prelude::*, view};
+use leptos_router::hooks::use_query_map;
+use leptos_use::{use_event_listener, use_resize_observer};
 use wasm_bindgen_futures::spawn_local;
 use web_sys::window;
 
@@ -33,11 +33,6 @@ use crate::{
     icons::{next_icon::NextIcon, prev_icon::PrevIcon},
     store::provider_store::ProviderStore,
 };
-
-#[derive(Params, PartialEq)]
-struct SearchQuery {
-    q: Option<String>,
-}
 
 #[tracing::instrument(level = "debug", skip(keys, selected, single_select))]
 #[component()]
@@ -225,15 +220,8 @@ pub fn TabCarousel(
 #[tracing::instrument(level = "debug", skip())]
 #[component()]
 pub fn Search() -> impl IntoView {
-    let query = use_query::<SearchQuery>();
-    let term = move || {
-        query.with(|query| {
-            query
-                .as_ref()
-                .map(|query| query.q.clone())
-                .unwrap_or_default()
-        })
-    };
+    let params = use_query_map();
+    let term = Memo::new(move |_| params.with(|params| params.get("q")));
 
     let search_results = RwSignal::new(HashMap::new());
 
@@ -259,7 +247,7 @@ pub fn Search() -> impl IntoView {
     let keys_clone = keys.clone();
     let is_loading = RwSignal::new(HashMap::new());
     Effect::new(move || {
-        let search_term = term();
+        let search_term = term.get();
         if let Some(search_term) = search_term {
             if search_term.is_empty() {
                 return;

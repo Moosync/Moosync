@@ -1,4 +1,6 @@
+load("@rules_proto//proto:defs.bzl", "ProtoInfo")
 load("@rules_rust//rust/private:providers.bzl", "CrateInfo")
+load("@rules_rust_prost//:providers.bzl", "ProstProtoInfo")
 
 CRATE_NAME_OVERRIDE = {
     "crypto": "rust-crypto",
@@ -229,6 +231,67 @@ def _process_dependencies(context):
         else:
             direct_dependencies.append(dependency_data)
 
+    if context.rule.kind == "rust_prost_library" and hasattr(context.rule.attr, "proto") and ProtoInfo in context.rule.attr.proto:
+        pinfo = context.rule.attr.proto[ProtoInfo]
+        direct_files = pinfo.direct_sources
+        for f in pinfo.transitive_imports.to_list():
+            if f.owner and f.owner.workspace_name == "" and f not in direct_files:
+                name = f.basename
+                if name.endswith(".proto"):
+                    name = name[:-6]
+
+                dependency_data = struct(
+                    name = name + "_rs",
+                    cargo_pkg_name = name + "_proto",
+                    is_external = False,
+                    version = "0.1.0",
+                    features = (),
+                    path = f.dirname + "/" + name,
+                    git = None,
+                )
+                direct_dependencies.append(dependency_data)
+
+        if ProstProtoInfo in context.rule.attr.proto:
+            pr_info = context.rule.attr.proto[ProstProtoInfo]
+            for dep in pr_info.transitive_dep_infos.to_list():
+                if hasattr(dep, "crate_info") and dep.crate_info:
+                    name = dep.crate_info.name
+                    if name.endswith("_proto") and dep.crate_info.owner and dep.crate_info.owner.workspace_name != "":
+                        files = dep.crate_info.srcs.to_list()
+                        if files:
+                            package_path = "external/" + name
+                            package_info = struct(
+                                name = name,
+                                cargo_pkg_name = name,
+                                version = "0.1.0",
+                                features = (),
+                                is_external = False,
+                                is_binary = False,
+                                is_prost = True,
+                                is_proc_macro = False,
+                                package_path = package_path,
+                                source_package_path = package_path,
+                                deps = (),
+                                build_deps = (),
+                                source_files = tuple(files),
+                                edition = "2024",
+                                crate_root = files[0],
+                                build_script_source_file = None,
+                                build_script_data_files = (),
+                                extra_cargo_toml = None,
+                            )
+                            transitive_packages.append(depset([package_info]))
+                            dependency_data = struct(
+                                name = name,
+                                cargo_pkg_name = name,
+                                is_external = False,
+                                version = "0.1.0",
+                                features = (),
+                                path = package_path,
+                                git = None,
+                            )
+                            direct_dependencies.append(dependency_data)
+
     return direct_dependencies, build_dependencies, transitive_packages, inherited_build_script_source, inherited_build_script_data
 
 def _process_data_dependencies(context, transitive_packages, source_files):
@@ -277,6 +340,7 @@ def _create_internal_package_info(context, name, package_name, version, features
         features = tuple(features),
         is_external = False,
         is_binary = is_binary and not is_build_script,
+        is_prost = is_prost,
         is_proc_macro = is_proc_macro,
         package_path = export_package_path,
         source_package_path = package_path,
@@ -317,9 +381,7 @@ def _cargo_toml_aspect_impl(target, context):
     features = getattr(context.rule.attr, "crate_features", [])
     cargo_package_name = _determine_cargo_package_name(target_name)
     if is_prost:
-        if cargo_package_name.endswith("-rs"):
-            cargo_package_name = cargo_package_name[:-3] + "_proto"
-        elif cargo_package_name.endswith("_rs"):
+        if cargo_package_name.endswith("-rs") or cargo_package_name.endswith("_rs"):
             cargo_package_name = cargo_package_name[:-3] + "_proto"
 
     if is_external_workspace:
@@ -388,11 +450,11 @@ def _format_external_crate_dependency_string(dependency):
 
     if not features:
         if default_features_bool == "true":
-            return '{} = "{}"'.format(dependency.cargo_pkg_name, dependency.version)
+            return '{} = "={}"'.format(dependency.cargo_pkg_name, dependency.version)
         else:
-            return '{} = {{ version = "{}", default-features = false }}'.format(dependency.cargo_pkg_name, dependency.version)
+            return '{} = {{ version = "={}", default-features = false }}'.format(dependency.cargo_pkg_name, dependency.version)
     else:
-        return '{} = {{ version = "{}", default-features = {}, features = [{}] }}'.format(
+        return '{} = {{ version = "={}", default-features = {}, features = [{}] }}'.format(
             dependency.cargo_pkg_name,
             dependency.version,
             default_features_bool,
@@ -406,7 +468,7 @@ def _format_path_dependency_string(package, dependency):
     return '{} = {{ path = "{}{}" }}'.format(dependency.cargo_pkg_name, path_prefix, clean_path)
 
 def _generate_dependency_section_lines(header, dependencies, package):
-    if not dependencies:
+    if not dependencies and not package.is_prost:
         return []
     lines = [header]
     for dependency in dependencies:
@@ -416,6 +478,9 @@ def _generate_dependency_section_lines(header, dependencies, package):
             lines.append(_format_external_crate_dependency_string(dependency))
         else:
             lines.append(_format_path_dependency_string(package, dependency))
+    if package.is_prost:
+        lines.append('prost = "*"')
+        lines.append('serde = "*"')
     lines.append("")
     return lines
 

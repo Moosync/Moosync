@@ -14,8 +14,8 @@ GIT_OVERRIDES = {
     "tauri_plugin_single-instance": struct(repo = "https://github.com/tauri-apps/plugins-workspace", branch = "v2"),
     "tauri_plugin_updater": struct(repo = "https://github.com/tauri-apps/plugins-workspace", branch = "v2"),
     "diesel_logger": struct(repo = "https://github.com/Ovenoboyo/diesel-logger.git", branch = "master"),
-    "librespot": struct(repo = "https://github.com/librespot-org/librespot", branch = "dev"),
-    "rodio": struct(repo = "https://github.com/RustAudio/rodio", branch = "master"),
+    "librespot": struct(repo = "https://github.com/librespot-org/librespot", rev = "33bf3a77ed4b549df67e8347d7d6e55b007b3ec2"),
+    "rodio": struct(repo = "https://github.com/RustAudio/rodio", rev = "ffa1d8a2e5fc3efdec2c675eecca8f1f4be4e0f2"),
 }
 
 KNOWN_CRATE_RENAMES = [

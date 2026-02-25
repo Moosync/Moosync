@@ -193,7 +193,6 @@ crates.spec(
     version = "0.3.31",
 )
 crates.spec(
-    branch = "dev",
     default_features = False,
     features = [
         "rodio-backend",
@@ -201,6 +200,7 @@ crates.spec(
     ],
     git = "https://github.com/librespot-org/librespot",
     package = "librespot",
+    rev = "33bf3a77ed4b549df67e8347d7d6e55b007b3ec2",
 )
 crates.spec(
     package = "vergen",
@@ -317,6 +317,7 @@ crates.spec(
     ],
     git = "https://github.com/RustAudio/rodio",
     package = "rodio",
+    rev = "ffa1d8a2e5fc3efdec2c675eecca8f1f4be4e0f2",
 )
 crates.spec(
     package = "tauri",

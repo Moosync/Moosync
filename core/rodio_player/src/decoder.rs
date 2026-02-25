@@ -1,6 +1,8 @@
 // Adapted from https://github.com/tarkah/ffmpeg-decoder-rs
 
+use std::num::NonZero;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use rodio::source::SeekError;
 use rodio::{ChannelCount, Sample, SampleRate, Source};
@@ -39,7 +41,7 @@ pub enum Error {
 
 impl From<Error> for SeekError {
     fn from(e: Error) -> SeekError {
-        SeekError::Other(Box::new(e))
+        SeekError::Other(Arc::new(e))
     }
 }
 
@@ -287,12 +289,12 @@ impl FFMPEGDecoder {
 impl Source for FFMPEGDecoder {
     #[inline]
     fn channels(&self) -> ChannelCount {
-        self.codec_ctx.ch_layout.nb_channels as u16
+        NonZero::new(self.codec_ctx.ch_layout.nb_channels as u16).unwrap()
     }
 
     #[inline]
     fn sample_rate(&self) -> SampleRate {
-        self.codec_ctx.sample_rate as u32
+        NonZero::new(self.codec_ctx.sample_rate as u32).unwrap()
     }
 
     #[inline]

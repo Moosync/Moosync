@@ -24,7 +24,6 @@ use std::{
 };
 
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
-use rodio::Sink;
 use tracing::{debug, error, info};
 use types::errors::MoosyncError;
 use types::errors::Result;
@@ -61,7 +60,7 @@ impl RodioPlayer {
         }
     }
 
-    async fn set_src(src: String, sink: &Arc<Sink>) -> Result<()> {
+    async fn set_src(src: String, sink: &Arc<rodio::Player>) -> Result<()> {
         sink.append(FFMPEGDecoder::open(&src).map_err(Into::<MoosyncError>::into)?);
 
         Ok(())
@@ -80,8 +79,8 @@ impl RodioPlayer {
         let ret = tx.clone();
 
         thread::spawn(move || {
-            let stream_handle = rodio::OutputStreamBuilder::open_default_stream().unwrap();
-            let sink = Arc::new(rodio::Sink::connect_new(stream_handle.mixer()));
+            let stream_handle = rodio::DeviceSinkBuilder::open_default_sink().unwrap();
+            let sink = Arc::new(rodio::Player::connect_new(stream_handle.mixer()));
 
             let runtime = tokio::runtime::Builder::new_multi_thread()
                 .enable_all()

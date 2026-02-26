@@ -69,7 +69,7 @@ jobs:
             "artifact_patterns": "Moosync-*-*.x86_64-setup.exe\nMoosync-*-*.x86_64.exe"
           }'
 
-          INPUT="${{ inputs.platform }}"
+          INPUT="${{ inputs.platform || 'all' }}"
 
           if [[ "$INPUT" == "all" || "$INPUT" == "linux" ]]; then
              MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$LINUX_X64, $LINUX_ARM]")

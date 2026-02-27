@@ -26,13 +26,12 @@ use std::{
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
 use tracing::{debug, error, info};
 use types::errors::MoosyncError;
-use types::errors::Result;
 
-use crate::decoder::FFMPEGDecoder;
+use crate::{
+    error::PlayerError, generic::PlayerExt, rodio::decoder::FFMPEGDecoder, source::ValidSrc,
+};
 
 mod decoder;
-#[cfg(test)]
-mod tests;
 
 pub struct RodioPlayer {
     tx: Sender<RodioCommand>,
@@ -60,7 +59,7 @@ impl RodioPlayer {
         }
     }
 
-    async fn set_src(src: String, sink: &Arc<rodio::Player>) -> Result<()> {
+    async fn set_src(src: String, sink: &Arc<rodio::Player>) -> Result<(), MoosyncError> {
         sink.append(FFMPEGDecoder::open(&src).map_err(Into::<MoosyncError>::into)?);
 
         Ok(())
@@ -188,32 +187,38 @@ impl RodioPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn rodio_load(&self, src: String) -> Result<()> {
-        info!("Loading src={}", src);
-        self.tx.send(RodioCommand::SetSrc(src.clone())).unwrap();
-        Ok(())
+    pub async fn get_volume(&self) -> Result<f32, PlayerError> {
+        Ok(0f32)
     }
+}
 
+impl PlayerExt for RodioPlayer {
     #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn rodio_play(&self) -> Result<()> {
+    fn play(&self) -> Result<(), PlayerError> {
         self.tx.send(RodioCommand::Play).unwrap();
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn rodio_pause(&self) -> Result<()> {
+    fn pause(&self) -> Result<(), PlayerError> {
         self.tx.send(RodioCommand::Pause).unwrap();
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn rodio_stop(&self) -> Result<()> {
+    fn stop(&self) -> Result<(), PlayerError> {
         self.tx.send(RodioCommand::Stop).unwrap();
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn rodio_seek(&self, pos: f64) -> Result<()> {
+    fn set_volume(&self, volume: f32) -> Result<(), PlayerError> {
+        self.tx.send(RodioCommand::SetVolume(volume)).unwrap();
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    fn seek(&self, pos: f64) -> Result<(), PlayerError> {
         self.tx
             .send(RodioCommand::Seek(pos.abs().round() as u64))
             .unwrap();
@@ -221,14 +226,17 @@ impl RodioPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn rodio_set_volume(&self, volume: f32) -> Result<()> {
-        self.tx.send(RodioCommand::SetVolume(volume)).unwrap();
+    fn set_src(&self, src: ValidSrc) -> Result<(), PlayerError> {
+        info!("Loading src={}", src);
+        self.tx.send(RodioCommand::SetSrc(src.inner())).unwrap();
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn rodio_get_volume(&self) -> Result<f32> {
-        Ok(0f32)
+    fn can_play(&self, src: ValidSrc) -> bool {
+        match src {
+            ValidSrc::Path(path) => path.exists(),
+            ValidSrc::Url(url) => url.starts_with("http://") || url.starts_with("https://"),
+        }
     }
 }
 

@@ -26,7 +26,7 @@ const DEFAULT_CONVERSION_FORMAT: AVSampleFormat = AV_SAMPLE_FMT_FLT;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq, Eq)]
-pub enum Error {
+pub enum DecoderError {
     #[error("Could not find any audio stream")]
     NoAudioStream,
     #[error("Wrong stream got selected somehow, expected {0}, got {1}")]
@@ -39,14 +39,14 @@ pub enum Error {
     AV(c_int),
 }
 
-impl From<Error> for SeekError {
-    fn from(e: Error) -> SeekError {
+impl From<DecoderError> for SeekError {
+    fn from(e: DecoderError) -> SeekError {
         SeekError::Other(Arc::new(e))
     }
 }
 
-impl From<Error> for MoosyncError {
-    fn from(e: Error) -> Self {
+impl From<DecoderError> for MoosyncError {
+    fn from(e: DecoderError) -> Self {
         MoosyncError::PlaybackError(Box::new(e))
     }
 }
@@ -61,7 +61,9 @@ pub struct FFMPEGDecoder {
 }
 
 impl FFMPEGDecoder {
-    fn initialize_swr_context(codec_ctx: &AVCodecContext) -> Result<Option<SwrContext>, Error> {
+    fn initialize_swr_context(
+        codec_ctx: &AVCodecContext,
+    ) -> Result<Option<SwrContext>, DecoderError> {
         // Initialize swr context if conversion is needed OR if the decoded format is planar.
         // (Planar -> interleaved needs SwrContext even if sample formats are both float)
         let need_swr = codec_ctx.sample_fmt != DEFAULT_CONVERSION_FORMAT
@@ -83,7 +85,7 @@ impl FFMPEGDecoder {
         }
     }
 
-    pub fn open(path: &str) -> Result<FFMPEGDecoder, Error> {
+    pub fn open(path: &str) -> Result<FFMPEGDecoder, DecoderError> {
         let input_path = if path.starts_with("http") {
             CString::from_str(&format!("cache:{}", path))?
         } else {
@@ -93,7 +95,7 @@ impl FFMPEGDecoder {
         let format_ctx = AVFormatContextInput::builder()
             .url(&input_path)
             .open()
-            .map_err(|e| Error::AV(e.raw_error().unwrap_or_default()))?;
+            .map_err(|e| DecoderError::AV(e.raw_error().unwrap_or_default()))?;
 
         let stream = format_ctx.find_best_stream(AVMEDIA_TYPE_AUDIO)?;
         if let Some((stream_idx, codec)) = stream {
@@ -112,10 +114,10 @@ impl FFMPEGDecoder {
                 requested_seek_timestamp: 0,
             });
         }
-        Err(Error::NoAudioStream)
+        Err(DecoderError::NoAudioStream)
     }
 
-    fn convert_and_store_frame(&mut self, frame: &AVFrame) -> Result<(), Error> {
+    fn convert_and_store_frame(&mut self, frame: &AVFrame) -> Result<(), DecoderError> {
         let num_samples = frame.nb_samples;
         let num_channels = self.codec_ctx.ch_layout.nb_channels;
 
@@ -165,7 +167,7 @@ impl FFMPEGDecoder {
         Ok(())
     }
 
-    fn decode_next_packet(&mut self) -> Result<Option<AVFrame>, Error> {
+    fn decode_next_packet(&mut self) -> Result<Option<AVFrame>, DecoderError> {
         // Read the next packet
         let packet_opt = self.format_ctx.read_packet()?;
 
@@ -176,7 +178,7 @@ impl FFMPEGDecoder {
 
         // Only handle our chosen stream
         if (packet.stream_index as usize) != self.stream_idx {
-            return Err(Error::WrongStream(
+            return Err(DecoderError::WrongStream(
                 /*expected=*/ self.stream_idx,
                 /*got=*/ packet.stream_index,
             ));
@@ -189,11 +191,11 @@ impl FFMPEGDecoder {
         match self.codec_ctx.receive_frame() {
             Ok(frame) => Ok(Some(frame)),
             Err(RsmpegError::DecoderDrainError) => Ok(None), // We sent what we had, probably can't decode anymore
-            Err(e) => Err(Error::Rsmpeg(e)),
+            Err(e) => Err(DecoderError::Rsmpeg(e)),
         }
     }
 
-    fn process_next_packet(&mut self) -> Result<(), Error> {
+    fn process_next_packet(&mut self) -> Result<(), DecoderError> {
         if !self.current_frame.is_empty() {
             return Ok(());
         }
@@ -216,7 +218,7 @@ impl FFMPEGDecoder {
         self.current_frame.clear();
     }
 
-    fn resync_after_seek(&mut self) -> Result<(), Error> {
+    fn resync_after_seek(&mut self) -> Result<(), DecoderError> {
         println!("Resyncing to {}", self.requested_seek_timestamp);
 
         loop {
@@ -249,7 +251,7 @@ impl Iterator for FFMPEGDecoder {
         }
 
         match self.process_next_packet() {
-            Err(Error::WrongStream(expected, got)) => {
+            Err(DecoderError::WrongStream(expected, got)) => {
                 tracing::debug!("Tried to decode stream {}, expected {}", got, expected);
                 return self.next();
             }
@@ -335,7 +337,7 @@ impl Source for FFMPEGDecoder {
                 timestamp,
                 rsmpeg::ffi::AVSEEK_FLAG_BACKWARD as i32,
             )
-            .map_err(|e| Into::<SeekError>::into(Into::<Error>::into(e)))?;
+            .map_err(|e| Into::<SeekError>::into(Into::<DecoderError>::into(e)))?;
 
         self.requested_seek_timestamp = timestamp;
         self.resync_after_seek().map_err(Into::<SeekError>::into)?;

@@ -37,10 +37,6 @@ use preference_holder::{
     load_selective_array, save_selective, set_secure,
 };
 use providers::handler::get_provider_handler_state;
-use rodio::{
-    get_rodio_state, rodio_get_volume, rodio_load, rodio_pause, rodio_play, rodio_seek,
-    rodio_set_volume, rodio_stop,
-};
 use tauri_plugin_deep_link::DeepLinkExt;
 use themes::{
     download_theme, export_theme, get_css, get_theme_handler_state, get_themes_manifest,
@@ -103,7 +99,6 @@ mod mpris;
 mod oauth;
 mod preference_holder;
 mod providers;
-mod rodio;
 mod scanner;
 mod themes;
 mod updater;
@@ -300,14 +295,6 @@ pub fn run() {
             get_playlist_context_menu,
             trigger_context_menu_action,
             handle_extra_event,
-            // Rodio player
-            rodio_get_volume,
-            rodio_load,
-            rodio_pause,
-            rodio_play,
-            rodio_seek,
-            rodio_set_volume,
-            rodio_stop,
             // Logger
             renderer_write,
             // Mobile player
@@ -384,9 +371,6 @@ pub fn run() {
 
             let provider_handler_state = get_provider_handler_state(app.app_handle().clone());
             app.manage(provider_handler_state);
-
-            let rodio_state = get_rodio_state(app.app_handle().clone());
-            app.manage(rodio_state);
 
             let logger = get_logger_state(app.app_handle().clone());
             app.manage(logger);

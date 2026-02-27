@@ -58,6 +58,7 @@ pub mod prelude {
         fn get_extension(&self) -> Option<String>;
         fn get_lyrics(&self) -> Option<String>;
         fn get_date(&self) -> Option<String>;
+        fn to_string(&self) -> String;
     }
 
     impl SongsExt for Song {
@@ -107,6 +108,14 @@ pub mod prelude {
         }
         fn get_date(&self) -> Option<String> {
             self.song.as_ref().and_then(|s| s.date.clone())
+        }
+
+        fn to_string(&self) -> String {
+            format!(
+                "{:?} - {}",
+                self.artists,
+                self.get_title().unwrap_or_default()
+            )
         }
     }
 

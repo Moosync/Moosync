@@ -5,7 +5,7 @@
       // optional:
       // "component",
       "server"
-    ],
+    ]
   },
   // "rust-analyzer.rustfmt.overrideCommand": [
   //   "/home/ovenoboyo/.cargo/bin/leptosfmt",
@@ -64,10 +64,16 @@
       "tidy": false,
       "upgrade_dependency": false,
       "vendor": false
-    },
+    }
   },
   "go.useLanguageServer": true,
   "go.buildOnSave": "off",
   "go.lintOnSave": "off",
   "go.vetOnSave": "off",
+  "java.import.exclusions": [
+    "**/ide_bazel/**",
+    "**/bazel-*/**",
+    "**/.cache/bazel/**"
+  ],
+  "java.configuration.updateBuildConfiguration": "interactive"
 }

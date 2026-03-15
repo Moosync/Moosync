@@ -1,5 +1,5 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
-load("@rules_rust//rust:defs.bzl", "rust_library")
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_shared_library")
 load("//:version.bzl", "VERSION")
 load("//tools:defs.bzl", "expand_template")
 load("//tools/rust:defs.bzl", "cargo_build", "rust_binary_with_export")
@@ -80,7 +80,6 @@ rust_library(
         "//core/lyrics",
         "//core/mpris",
         "//core/preferences",
-        "//core/rodio_player",
         "//core/spotify_player",
         "//core/themes",
         "//core/types",
@@ -99,6 +98,7 @@ rust_library(
         "@crates//:reqwest",
         "@crates//:rspotify",
         "@crates//:rustls",
+        "@crates//:semver",
         "@crates//:serde",
         "@crates//:serde_json",
         "@crates//:tauri",
@@ -117,9 +117,13 @@ rust_library(
         "@crates//:uuid",
     ] + select({
         "@platforms//os:linux": [
+            "//core/rodio_player",
             "@crates//:webkit2gtk",
         ],
-        "//conditions:default": [],
+        "@platforms//os:android": [],
+        "//conditions:default": [
+            "//core/rodio_player",
+        ],
     }),
 )
 
@@ -145,9 +149,39 @@ rust_binary_with_export(
     ],
 )
 
+# Android shared library - produces libapp_lib.so for JNI loading
+# Uses android_entry.rs which re-exports from app_lib to avoid proc macro issues
+rust_shared_library(
+    name = "moosync_android",
+    srcs = ["src/android_entry.rs"],
+    crate_name = "app_lib",
+    rustc_flags = [
+        # Android 15 requires 16KB page alignment
+        "-C",
+        "link-arg=-z",
+        "-C",
+        "link-arg=max-page-size=16384",
+    ] + select({
+        "//:release": [
+            "-C",
+            "opt-level=3",
+            "-C",
+            "strip=symbols",
+        ],
+        "//conditions:default": [],
+    }),
+    target_compatible_with = ["@platforms//os:android"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":app_lib",
+    ],
+)
+
 cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
+    # Note: Android env vars are always set but only take effect when CARGO_CFG_TARGET_OS=android
+    # We use a separate android_build_script target with explicit Android configuration
     build_script_env = {
         "DEP_TAURI_DEV": "false",
     },
@@ -155,10 +189,18 @@ cargo_build_script(
     data = [
         "Cargo.toml",
         ":tauri_config",
-    ] + glob(["src/**/*"]),
+    ] + glob(["src/**/*"]) + select({
+        # Use build setting flag instead of platform - persists across exec transitions
+        "//tools:target_android": [
+            # Include tauri android sources for build script
+            "@crates//:tauri",
+        ],
+        "//conditions:default": [],
+    }),
     visibility = ["//visibility:public"],
     deps = [
         "@crates//:tauri-build",
+        "@crates//:tauri",
     ],
 )
 

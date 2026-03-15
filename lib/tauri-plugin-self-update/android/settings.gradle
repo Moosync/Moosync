@@ -27,5 +27,7 @@ dependencyResolutionManagement {
     }
 }
 
+rootProject.name = 'tauri-plugin-self-update'
+
 include ':tauri-android'
 project(':tauri-android').projectDir = new File('./.tauri/tauri-api')

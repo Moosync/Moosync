@@ -293,7 +293,7 @@ bindeps = use_extension("@rules_rust//crate_universe:extension.bzl", "crate", is
 bindeps.spec(
     artifact = "bin",
     package = "wasm-bindgen-cli",
-    version = "=0.2.108",
+    version = "=0.2.114",
 )
 bindeps.annotation(
     crate = "wasm-bindgen-cli",

@@ -25,11 +25,8 @@ use tauri::{
     AppHandle, Runtime,
 };
 
-use types::{
-    errors::{MoosyncError, Result},
-    songs::Song,
-};
-use types::errors::error_helpers;
+use songs_proto::moosync::types::Song;
+use types::errors::{MoosyncError, Result, error_helpers};
 
 #[cfg(target_os = "ios")]
 tauri::ios_plugin_binding!(init_plugin_file_scanner);

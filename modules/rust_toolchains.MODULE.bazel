@@ -1,7 +1,12 @@
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
     edition = "2024",
-    extra_target_triples = ["wasm32-unknown-unknown"],
+    extra_target_triples = [
+        "wasm32-unknown-unknown",
+        "aarch64-linux-android",
+        "armv7-linux-androideabi",
+        "x86_64-linux-android",
+    ],
     versions = [
         # "1.86.0",
         "nightly/2025-12-16",

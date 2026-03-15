@@ -16,6 +16,7 @@
 
 use serde::{Deserialize, Serialize};
 
+#[cfg(not(target_os = "android"))]
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct MprisPlayerDetails {
     pub id: Option<String>,
@@ -43,9 +44,13 @@ pub mod mpris_android;
 #[cfg(target_os = "android")]
 pub use mpris_android::{MediaControlEvent, MprisHolder};
 
+#[cfg(target_os = "android")]
+pub use tauri_plugin_audioplayer::MprisPlayerDetails;
+
 #[cfg(test)]
 mod tests;
 
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 pub mod context;
 
 #[cfg(target_os = "windows")]

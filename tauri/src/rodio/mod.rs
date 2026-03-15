@@ -14,14 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#[cfg(desktop)]
 use std::thread;
 
+#[cfg(desktop)]
 use crate::macros::generate_command_async;
+#[cfg(desktop)]
 use futures::executor::block_on;
+#[cfg(desktop)]
 use rodio_player::RodioPlayer;
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::AppHandle;
+#[cfg(desktop)]
+use tauri::{Emitter, Manager, State};
 use types::errors::Result;
 
+// Desktop implementation
+#[cfg(desktop)]
 #[tracing::instrument(level = "debug", skip())]
 pub fn get_rodio_state(app: AppHandle) -> RodioPlayer {
     let rodio_player = RodioPlayer::new();
@@ -41,6 +49,7 @@ pub fn get_rodio_state(app: AppHandle) -> RodioPlayer {
     rodio_player
 }
 
+#[cfg(desktop)]
 #[tracing::instrument(level = "debug", skip(app, src))]
 #[tauri::command(async)]
 #[tauri_invoke_proc::parse_tauri_command]
@@ -52,10 +61,73 @@ pub fn rodio_load(app: AppHandle, src: String) -> Result<()> {
     Ok(())
 }
 
-// generate_command_async!(rodio_load, RodioPlayer, (), src: String);
+#[cfg(desktop)]
 generate_command_async!(rodio_play, RodioPlayer, (),);
+#[cfg(desktop)]
 generate_command_async!(rodio_pause, RodioPlayer, (),);
+#[cfg(desktop)]
 generate_command_async!(rodio_stop, RodioPlayer, (),);
+#[cfg(desktop)]
 generate_command_async!(rodio_seek, RodioPlayer, (), pos: f64);
+#[cfg(desktop)]
 generate_command_async!(rodio_set_volume, RodioPlayer, (), volume: f32);
+#[cfg(desktop)]
 generate_command_async!(rodio_get_volume, RodioPlayer, f32,);
+
+// Mobile stubs - rodio is not used on mobile, audio is handled by tauri-plugin-audioplayer
+#[cfg(mobile)]
+pub struct RodioPlayerStub;
+
+#[cfg(mobile)]
+pub fn get_rodio_state(_app: AppHandle) -> RodioPlayerStub {
+    RodioPlayerStub
+}
+
+#[cfg(mobile)]
+#[tauri::command(async)]
+#[tauri_invoke_proc::parse_tauri_command]
+pub fn rodio_load(_app: AppHandle, _src: String) -> Result<()> {
+    Ok(())
+}
+
+#[cfg(mobile)]
+#[tauri::command(async)]
+#[tauri_invoke_proc::parse_tauri_command]
+pub fn rodio_play(_app: AppHandle) -> Result<()> {
+    Ok(())
+}
+
+#[cfg(mobile)]
+#[tauri::command(async)]
+#[tauri_invoke_proc::parse_tauri_command]
+pub fn rodio_pause(_app: AppHandle) -> Result<()> {
+    Ok(())
+}
+
+#[cfg(mobile)]
+#[tauri::command(async)]
+#[tauri_invoke_proc::parse_tauri_command]
+pub fn rodio_stop(_app: AppHandle) -> Result<()> {
+    Ok(())
+}
+
+#[cfg(mobile)]
+#[tauri::command(async)]
+#[tauri_invoke_proc::parse_tauri_command]
+pub fn rodio_seek(_app: AppHandle, _pos: f64) -> Result<()> {
+    Ok(())
+}
+
+#[cfg(mobile)]
+#[tauri::command(async)]
+#[tauri_invoke_proc::parse_tauri_command]
+pub fn rodio_set_volume(_app: AppHandle, _volume: f32) -> Result<()> {
+    Ok(())
+}
+
+#[cfg(mobile)]
+#[tauri::command(async)]
+#[tauri_invoke_proc::parse_tauri_command]
+pub fn rodio_get_volume(_app: AppHandle) -> Result<f32> {
+    Ok(0.0)
+}

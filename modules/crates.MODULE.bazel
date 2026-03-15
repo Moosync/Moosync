@@ -119,8 +119,10 @@ crates.spec(
     version = "0.8",
 )
 crates.spec(
+    default_features = False,
     features = [
         "json",
+        "rustls-tls",
         "stream",
     ],
     package = "reqwest",
@@ -196,7 +198,7 @@ crates.spec(
     default_features = False,
     features = [
         "rodio-backend",
-        "native-tls",
+        "rustls-tls-native-roots",
     ],
     git = "https://github.com/librespot-org/librespot",
     package = "librespot",
@@ -325,6 +327,13 @@ crates.spec(
 )
 crates.annotation(
     crate = "tauri",
+    # Include android sources in build script and set override path for Bazel
+    build_script_data = ["@@//tools:tauri_android_sources"],
+    build_script_env = {
+        "TAURI_ANDROID_LIBRARY_PATH_OVERRIDE": "$(execpath @@//tools:tauri_android_sources)/mobile/android",
+    },
+    patch_args = ["-p1"],
+    patches = ["//patches:tauri_android_build.patch"],
     rustc_flags = [
         "-C",
         "debug-assertions=off",
@@ -383,6 +392,11 @@ crates.spec(
     version = "5.3.2",
 )
 crates.spec(
+    default_features = False,
+    features = [
+        "client-reqwest",
+        "reqwest-rustls-tls",
+    ],
     package = "rspotify",
     version = "0.15.3",
 )
@@ -414,6 +428,7 @@ crates.spec(
     default_features = False,
     features = [
         "json",
+        "rustls-tls",
         "stream",
     ],
     package = "reqwest",
@@ -428,6 +443,7 @@ crates.spec(
     default_features = False,
     features = [
         "common-controls-v6",
+        "custom-protocol",
         "wry",
         "protocol-asset",
         "tray-icon",
@@ -464,6 +480,59 @@ crates.spec(
     git = "https://github.com/tauri-apps/plugins-workspace",
     package = "tauri-plugin-opener",
 )
+
+# Annotations for external tauri plugins to receive DEP_TAURI_ANDROID_LIBRARY_PATH
+# Need build_script_env to override the path from tauri's build script
+crates.annotation(
+    crate = "tauri-plugin-deep-link",
+    build_script_data = ["@@//tools:tauri_android_sources"],
+    build_script_env = {
+        "DEP_TAURI_ANDROID_LIBRARY_PATH": "$(execpath @@//tools:tauri_android_sources)/mobile/android",
+    },
+)
+crates.annotation(
+    crate = "tauri-plugin-dialog",
+    build_script_data = ["@@//tools:tauri_android_sources"],
+    build_script_env = {
+        "DEP_TAURI_ANDROID_LIBRARY_PATH": "$(execpath @@//tools:tauri_android_sources)/mobile/android",
+    },
+)
+crates.annotation(
+    crate = "tauri-plugin-single-instance",
+    build_script_data = ["@@//tools:tauri_android_sources"],
+    build_script_env = {
+        "DEP_TAURI_ANDROID_LIBRARY_PATH": "$(execpath @@//tools:tauri_android_sources)/mobile/android",
+    },
+)
+crates.annotation(
+    crate = "tauri-plugin-autostart",
+    build_script_data = ["@@//tools:tauri_android_sources"],
+    build_script_env = {
+        "DEP_TAURI_ANDROID_LIBRARY_PATH": "$(execpath @@//tools:tauri_android_sources)/mobile/android",
+    },
+)
+crates.annotation(
+    crate = "tauri-plugin-opener",
+    build_script_data = ["@@//tools:tauri_android_sources"],
+    build_script_env = {
+        "DEP_TAURI_ANDROID_LIBRARY_PATH": "$(execpath @@//tools:tauri_android_sources)/mobile/android",
+    },
+)
+crates.annotation(
+    crate = "tauri-plugin-updater",
+    build_script_data = ["@@//tools:tauri_android_sources"],
+    build_script_env = {
+        "DEP_TAURI_ANDROID_LIBRARY_PATH": "$(execpath @@//tools:tauri_android_sources)/mobile/android",
+    },
+)
+crates.annotation(
+    crate = "tauri-plugin-fs",
+    build_script_data = ["@@//tools:tauri_android_sources"],
+    build_script_env = {
+        "DEP_TAURI_ANDROID_LIBRARY_PATH": "$(execpath @@//tools:tauri_android_sources)/mobile/android",
+    },
+)
+
 crates.spec(
     default_features = False,
     package = "tracing",
@@ -489,26 +558,9 @@ crates.spec(
     package = "rustls",
     version = "0.23.34",
 )
-crates.spec(
-    package = "openssl",
-    version = "0.10.75",
-)
-crates.spec(
-    package = "openssl-sys",
-    version = "0.9.111",
-)
-crates.annotation(
-    build_script_data = [
-        "@@//external/openssl:gen_dir",
-    ],
-    build_script_env = {
-        "OPENSSL_NO_VENDOR": "1",
-        "OPENSSL_LIB_DIR": "$(execpath @@//external/openssl:gen_dir)/lib",
-        "OPENSSL_INCLUDE_DIR": "$(execpath @@//external/openssl:gen_dir)/include",
-        "OPENSSL_STATIC": "1",
-    },
-    crate = "openssl-sys",
-)
+# NOTE: openssl/openssl-sys removed - using rustls instead
+# If openssl is needed for desktop builds, it will be pulled in transitively
+# and the annotation can be re-added conditionally
 crates.spec(
     features = ["derive"],
     package = "clap",
@@ -534,6 +586,14 @@ crates.spec(
 crates.spec(
     package = "tauri-build",
     version = "2.5.1",
+)
+crates.spec(
+    package = "tauri-cli",
+    version = "2.5.0",
+)
+crates.annotation(
+    crate = "tauri-cli",
+    gen_binaries = ["cargo-tauri"],
 )
 crates.spec(
     package = "tauri-plugin-updater",
@@ -596,6 +656,10 @@ crates.from_specs(
         "x86_64-pc-windows-msvc",
         "x86_64-apple-darwin",
         "aarch64-apple-darwin",
+        # Android
+        "aarch64-linux-android",
+        "armv7-linux-androideabi",
+        "x86_64-linux-android",
     ],
 )
 use_repo(crates, "crates")

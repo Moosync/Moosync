@@ -23,11 +23,11 @@ use std::{
     time::Duration,
 };
 
-use crate::MprisPlayerDetails;
 use serde_json::Value;
 use tauri::{AppHandle, Listener};
-use tauri_plugin_audioplayer::AudioplayerExt;
-use types::{errors::Result, ui::player_details::PlayerState};
+use tauri_plugin_audioplayer::{AudioplayerExt, MprisPlayerDetails};
+use extensions_proto::moosync::types::PlayerState;
+use types::errors::Result;
 
 pub struct MprisHolder {
     last_duration: Mutex<u64>,

@@ -1,5 +1,11 @@
 /src/main/java/app/moosync/moosync/generated
 /src/main/jniLibs/**/*.so
-/src/main/assets/tauri.conf.json
 /tauri.build.gradle.kts
 /proguard-tauri.pro
+
+# Generated Kotlin files from tauri/wry crates (BuildTask.kt generates these)
+/src/main/java/app/moosync/moosync/*.kt
+!/src/main/java/app/moosync/moosync/MainActivity.kt
+
+# UI dist bundle (copied from bazel-bin by BuildTask.kt)
+/src/main/assets/

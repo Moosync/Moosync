@@ -26,15 +26,33 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         ":build_script",
+        "//core/types",
         "@crates//:serde",
         "@crates//:tauri",
     ],
 )
 
+filegroup(
+    name = "android_sources",
+    srcs = glob(["android/**/*"]),
+)
+
 cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
+    build_script_env = select({
+        "//tools:target_android": {
+            "DEP_TAURI_ANDROID_LIBRARY_PATH": "$(execpath //tools:tauri_android_sources)/mobile/android",
+        },
+        "//conditions:default": {},
+    }),
     crate_root = "build.rs",
+    data = [
+        ":android_sources",
+    ] + select({
+        "//tools:target_android": ["//tools:tauri_android_sources"],
+        "//conditions:default": [],
+    }),
     pkg_name = "tauri-plugin-self-update",
     visibility = ["//visibility:public"],
     deps = ["@crates//:tauri-plugin"],

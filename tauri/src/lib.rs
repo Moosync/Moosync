@@ -18,6 +18,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use std::fs;
 
+#[cfg(desktop)]
 use clap::Parser;
 use db::is_song_in_playlist;
 use extensions::get_extension_state;
@@ -60,6 +61,7 @@ use providers::handler::{
 };
 use scanner::{ScanTask, get_scanner_state, start_scan};
 use tauri::{Manager, State};
+#[cfg(desktop)]
 use tracing_appender::rolling::{RollingFileAppender, Rotation};
 use tracing_subscriber::{
     filter::EnvFilter,

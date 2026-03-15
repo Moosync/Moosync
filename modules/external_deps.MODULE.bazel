@@ -37,7 +37,7 @@ srcs = glob(["**"]),
 visibility = ["//visibility:public"],
 )
 """,
-    sha256 = "4a48a15d8df93c2dbe537129dd810ee473af06308bdeb5bcdb1f2a82f5bf5fb6",
+    sha256 = "6cdab245a47672d89edf7a3d3d1cb21cb904b888e84e4dfe2489513a7ab8ae5b",
     strip_prefix = "FFmpeg-release-7.0",
     urls = ["https://github.com/FFmpeg/FFmpeg/archive/refs/heads/release/7.0.zip"],
 )

@@ -25,12 +25,11 @@ android {
             val keystoreProperties = Properties()
             if (keystorePropertiesFile.exists()) {
                 keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+                keyAlias = keystoreProperties["keyAlias"] as String?
+                keyPassword = keystoreProperties["password"] as String?
+                storeFile = (keystoreProperties["storeFile"] as String?)?.let { file(it) }
+                storePassword = keystoreProperties["password"] as String?
             }
-    
-            keyAlias = keystoreProperties["keyAlias"] as String
-            keyPassword = keystoreProperties["password"] as String
-            storeFile = file(keystoreProperties["storeFile"] as String)
-            storePassword = keystoreProperties["password"] as String
         }
     }
     
@@ -63,7 +62,7 @@ android {
 }
 
 rust {
-    rootDirRel = "../../../"
+    rootDirRel = "../../../../"
 }
 
 dependencies {
@@ -73,6 +72,16 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")
+
+    // Tauri core
+    implementation(project(":tauri-android"))
+
+    // Tauri plugins
+    implementation(project(":tauri-plugin-audioplayer"))
+    implementation(project(":tauri-plugin-file-scanner"))
+    implementation(project(":tauri-plugin-self-update"))
+    implementation(project(":tauri-plugin-opener"))
+    implementation(project(":tauri-plugin-deep-link"))
 }
 
 apply(from = "tauri.build.gradle.kts")

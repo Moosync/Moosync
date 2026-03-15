@@ -14,10 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::sync::{Mutex, mpsc::Sender};
+use std::sync::mpsc::Sender;
 
+use songs_proto::moosync::types::{Playlist, Song};
 use types::errors::Result;
-use types::{entities::Playlist, songs::Song};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ScanState {

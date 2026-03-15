@@ -25,7 +25,7 @@ fn setup_x86_64_android_workaround() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").expect("CARGO_CFG_TARGET_OS not set");
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").expect("CARGO_CFG_TARGET_ARCH not set");
     if target_arch == "x86_64" && target_os == "android" {
-        let android_ndk_home = env::var("NDK_HOME").expect("NDK_HOME not set");
+        let android_ndk_home = env::var("ANDROID_NDK_HOME").expect("ANDROID_NDK_HOME not set");
         let build_os = match env::consts::OS {
             "linux" => "linux",
             "macos" => "darwin",

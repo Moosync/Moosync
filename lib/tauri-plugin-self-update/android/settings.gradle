@@ -29,5 +29,29 @@ dependencyResolutionManagement {
 
 rootProject.name = 'tauri-plugin-self-update'
 
-include ':tauri-android'
-project(':tauri-android').projectDir = new File('./.tauri/tauri-api')
+// Get Bazel output_base for finding tauri-android
+def bazelOutputBase = {
+    try {
+        def process = ['bazel', 'info', 'output_base'].execute()
+        process.waitFor()
+        return process.text.trim()
+    } catch (Exception e) {
+        // bazel not available - fallback to OS-specific default
+        def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+        def user = System.getProperty('user.name')
+        def home = System.getProperty('user.home')
+        return isWindows ? "${home}\\_bazel_${user}" : "${home}/.cache/bazel/_bazel_${user}"
+    }
+}()
+
+def execroot = bazelOutputBase
+
+if (execroot) {
+    def tauriDir = new File(execroot, 'external').listFiles()?.find {
+        it.name.matches('.*crates__tauri-\\d+\\..*') && !it.name.contains('plugin')
+    }
+    if (tauriDir) {
+        include ':tauri-android'
+        project(':tauri-android').projectDir = new File(tauriDir, 'mobile/android')
+    }
+}

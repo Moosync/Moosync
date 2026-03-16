@@ -297,8 +297,11 @@ pub fn App() -> impl IntoView {
     provide_context(Arc::new(ProviderStore::new()));
 
     spawn_local(async move {
-        let id = load_selective("themes.active_theme".into()).await.unwrap();
-        handle_theme(serde_wasm_bindgen::from_value(id).unwrap());
+        if let Ok(id) = load_selective("themes.active_theme".into()).await {
+            if let Ok(theme) = serde_wasm_bindgen::from_value(id) {
+                handle_theme(theme);
+            }
+        }
     });
 
     let _ = use_event_listener(document().body(), contextmenu, move |ev| {

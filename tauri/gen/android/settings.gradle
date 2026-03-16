@@ -1,5 +1,23 @@
 rootProject.name = 'moosync-android'
 
+// Get Bazel output_base once at startup, before any bazel build runs
+ext.bazelOutputBase = {
+    try {
+        def process = ['bazel', 'info', 'output_base'].execute()
+        process.waitFor()
+        return process.text.trim()
+    } catch (Exception e) {
+        // bazel not available - fallback to OS-specific default
+        def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+        def user = System.getProperty('user.name')
+        def home = System.getProperty('user.home')
+        return isWindows ? "${home}\\_bazel_${user}" : "${home}/.cache/bazel/_bazel_${user}"
+    }
+}()
+
+// Export for tauri.settings.gradle and plugins
+ext.BAZEL_CACHE_DIR = ext.bazelOutputBase
+
 include ':app'
 
 apply from: 'tauri.settings.gradle'

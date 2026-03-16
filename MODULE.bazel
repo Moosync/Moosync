@@ -66,3 +66,7 @@ android_ndk_repository_extension.configure(
 use_repo(android_ndk_repository_extension, "androidndk")
 
 register_toolchains("@androidndk//:all")
+
+# Tauri crate discovery - resolves @crates//:tauri to get actual repo name
+tauri_ext = use_extension("//tools:tauri_crate.bzl", "tauri_extension")
+use_repo(tauri_ext, "tauri_crate")

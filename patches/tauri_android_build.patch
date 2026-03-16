@@ -1,0 +1,39 @@
+--- a/build.rs
++++ b/build.rs
+@@ -256,8 +256,12 @@ fn main() {
+   println!("cargo:dev={dev}");
+
+   let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
+-  let mobile = target_os == "ios" || target_os == "android";
++  // Support Bazel cross-compilation by allowing override via env var
++  let force_android = std::env::var("TAURI_ANDROID_BUILD").map(|v| v == "true").unwrap_or(false);
++  let effective_target_os = if force_android { "android" } else { target_os.as_str() };
++  let mobile = effective_target_os == "ios" || effective_target_os == "android";
+   alias("desktop", !mobile);
+   alias("mobile", mobile);
+
+   let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+@@ -278,7 +282,7 @@ fn main() {
+     embed_manifest_for_tests();
+   }
+
+-  if target_os == "android" {
++  if effective_target_os == "android" {
+     fn env_var(var: &str) -> String {
+       std::env::var(var).unwrap_or_else(|_| {
+         panic!("`{var}` is not set, which is needed to generate the kotlin files for android.")
+@@ -329,8 +333,12 @@ fn main() {
+       .expect("failed to write proguard-tauri.pro");
+     }
+
+-    let lib_path =
+-      PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("mobile/android");
++    // Support Bazel: allow overriding the android library path via env var
++    let lib_path = if let Ok(override_path) = std::env::var("TAURI_ANDROID_LIBRARY_PATH_OVERRIDE") {
++      PathBuf::from(override_path)
++    } else {
++      PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap()).join("mobile/android")
++    };
+     println!("cargo:android_library_path={}", lib_path.display());
+   }
+

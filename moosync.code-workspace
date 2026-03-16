@@ -1,0 +1,34 @@
+{
+  "folders": [
+    {
+      "path": "."
+    },
+    {
+      "name": "Android",
+      "path": "tauri/gen/android"
+    },
+    {
+      "name": "Plugin: audioplayer",
+      "path": "lib/tauri-plugin-audioplayer/android"
+    },
+    {
+      "name": "Plugin: file-scanner",
+      "path": "lib/tauri-plugin-file-scanner/android"
+    },
+    {
+      "name": "Plugin: self-update",
+      "path": "lib/tauri-plugin-self-update/android"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "tauri/gen/android": true,
+      "lib/tauri-plugin-*/android": true,
+      "bazel-*": true
+    },
+    "search.exclude": {
+      "lib/tauri-plugin-*/android": true,
+      "bazel-*": true
+    }
+  }
+}

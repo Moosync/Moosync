@@ -1,0 +1,1 @@
+tauri/gen/android/gradlew

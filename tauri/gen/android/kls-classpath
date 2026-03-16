@@ -1,0 +1,41 @@
+#!/bin/bash
+# Custom classpath script for Kotlin Language Server
+# This uses the project's gradlew wrapper instead of system gradle
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Create a temp init script to print classpath (same approach as Kotlin LSP)
+INIT_SCRIPT=$(mktemp --suffix=.gradle)
+cat > "$INIT_SCRIPT" << 'GRADLE_SCRIPT'
+allprojects { project ->
+    task klsClasspath {
+        doLast {
+            if (project.hasProperty('android')) {
+                project.android.getBootClasspath().each {
+                    println it
+                }
+                def variants = []
+                if (project.android.hasProperty('applicationVariants')) {
+                    variants += project.android.applicationVariants
+                }
+                if (project.android.hasProperty('libraryVariants')) {
+                    variants += project.android.libraryVariants
+                }
+                variants.each { variant ->
+                    if (variant.name.contains('debug') || variant.name.contains('Debug')) {
+                        variant.getCompileClasspath().each {
+                            println it
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+GRADLE_SCRIPT
+
+# Run gradle with the init script
+./gradlew -q -I "$INIT_SCRIPT" klsClasspath 2>/dev/null | grep -E '\.(jar|aar)$|/classes$' | sort -u | tr '\n' ':'
+
+rm -f "$INIT_SCRIPT"

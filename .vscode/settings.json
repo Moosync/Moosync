@@ -75,5 +75,9 @@
     "**/bazel-*/**",
     "**/.cache/bazel/**"
   ],
-  "java.configuration.updateBuildConfiguration": "interactive"
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "kotlin.languageServer.enabled": true,
+  "kotlin.scripts.enabled": true,
+  "kotlin.externalSources.autoConvertToKotlin": false,
+  "kotlin.compiler.jvm.target": "1.8"
 }

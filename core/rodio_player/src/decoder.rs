@@ -55,35 +55,32 @@ pub struct FFMPEGDecoder {
     format_ctx: AVFormatContextInput,
     stream_idx: usize,
     codec_ctx: AVCodecContext,
-    swr_ctx: Option<SwrContext>,
+    swr_ctx: SwrContext,  // Always used for format + sample rate conversion
     current_frame: Vec<u8>, // holds interleaved f32 bytes ready to be consumed
     requested_seek_timestamp: i64,
+    output_sample_rate: u32,  // Target sample rate (matches audio device)
 }
 
 impl FFMPEGDecoder {
-    fn initialize_swr_context(codec_ctx: &AVCodecContext) -> Result<Option<SwrContext>, Error> {
-        // Initialize swr context if conversion is needed OR if the decoded format is planar.
-        // (Planar -> interleaved needs SwrContext even if sample formats are both float)
-        let need_swr = codec_ctx.sample_fmt != DEFAULT_CONVERSION_FORMAT
-            || sample_fmt_is_planar(codec_ctx.sample_fmt);
+    fn initialize_swr_context(codec_ctx: &AVCodecContext, output_sample_rate: i32) -> Result<SwrContext, Error> {
+        // Always use SwrContext to handle format AND sample rate conversion
+        eprintln!(">>> DECODER: sample_fmt={}, sample_rate={} -> {}, channels={}",
+            codec_ctx.sample_fmt, codec_ctx.sample_rate, output_sample_rate,
+            codec_ctx.ch_layout.nb_channels);
 
-        if need_swr {
-            let mut ctx = SwrContext::new(
-                &codec_ctx.ch_layout,
-                DEFAULT_CONVERSION_FORMAT,
-                codec_ctx.sample_rate,
-                &codec_ctx.ch_layout,
-                codec_ctx.sample_fmt,
-                codec_ctx.sample_rate,
-            )?;
-            ctx.init()?;
-            Ok(Some(ctx))
-        } else {
-            Ok(None)
-        }
+        let mut ctx = SwrContext::new(
+            &codec_ctx.ch_layout,
+            DEFAULT_CONVERSION_FORMAT,
+            output_sample_rate,  // Output at device's native rate
+            &codec_ctx.ch_layout,
+            codec_ctx.sample_fmt,
+            codec_ctx.sample_rate,  // Input at source rate
+        )?;
+        ctx.init()?;
+        Ok(ctx)
     }
 
-    pub fn open(path: &str) -> Result<FFMPEGDecoder, Error> {
+    pub fn open(path: &str, output_sample_rate: u32) -> Result<FFMPEGDecoder, Error> {
         let input_path = if path.starts_with("http") {
             CString::from_str(&format!("cache:{}", path))?
         } else {
@@ -102,7 +99,7 @@ impl FFMPEGDecoder {
             codec_ctx.apply_codecpar(&format_ctx.streams().get(stream_idx).unwrap().codecpar())?;
             codec_ctx.open(None)?;
 
-            let swr_ctx = Self::initialize_swr_context(&codec_ctx)?;
+            let swr_ctx = Self::initialize_swr_context(&codec_ctx, output_sample_rate as i32)?;
             return Ok(FFMPEGDecoder {
                 format_ctx,
                 stream_idx,
@@ -110,6 +107,7 @@ impl FFMPEGDecoder {
                 swr_ctx,
                 current_frame: Vec::new(),
                 requested_seek_timestamp: 0,
+                output_sample_rate,
             });
         }
         Err(Error::NoAudioStream)
@@ -122,9 +120,8 @@ impl FFMPEGDecoder {
         // Get pointer to extended_data (frame plane pointers)
         let extended_data_ptr = frame.extended_data.cast();
 
-        if let Some(swr_ctx) = &mut self.swr_ctx {
-            // Convert (this will handle planar -> interleaved and type conversion)
-            let out_samples = swr_ctx.get_out_samples(num_samples);
+        // Convert using SwrContext (handles format + sample rate conversion)
+        let out_samples = self.swr_ctx.get_out_samples(num_samples);
 
             // Many rsmpeg/swresample wrappers expect you to provide buffers.
             // Use AVSamples to allocate the output buffer and call convert with its pointer(s).
@@ -134,7 +131,7 @@ impl FFMPEGDecoder {
 
             let converted = unsafe {
                 // Call convert with allocated output buffers
-                swr_ctx.convert(
+                self.swr_ctx.convert(
                     samples.audio_data.as_mut_ptr(),
                     out_samples,
                     extended_data_ptr,
@@ -147,20 +144,12 @@ impl FFMPEGDecoder {
                 AVSamples::get_buffer_size(num_channels, converted, DEFAULT_CONVERSION_FORMAT, 0)
                     .unwrap();
 
-            // Create a slice referencing the buffer and copy into current_frame
-            let p = samples.audio_data[0] as *const u8;
-            let slice = unsafe { std::slice::from_raw_parts(p, dst_bufsize as usize) };
-            self.current_frame.clear();
-            self.current_frame.extend_from_slice(slice);
-        } else {
-            // Assume interleaved and already in desired format - take contiguous buffer
-            // frame.linesize[0] holds the size in bytes of the first buffer
-            let size = frame.linesize[0] as usize;
-            let p: *const u8 = frame.extended_data.cast::<u8>();
-            let slice = unsafe { std::slice::from_raw_parts(p, size) };
-            self.current_frame.clear();
-            self.current_frame.extend_from_slice(slice);
-        }
+
+        // Create a slice referencing the buffer and copy into current_frame
+        let p = samples.audio_data[0] as *const u8;
+        let slice = unsafe { std::slice::from_raw_parts(p, dst_bufsize as usize) };
+        self.current_frame.clear();
+        self.current_frame.extend_from_slice(slice);
 
         Ok(())
     }
@@ -289,12 +278,17 @@ impl FFMPEGDecoder {
 impl Source for FFMPEGDecoder {
     #[inline]
     fn channels(&self) -> ChannelCount {
-        NonZero::new(self.codec_ctx.ch_layout.nb_channels as u16).unwrap()
+        static CH_LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+        let ch = self.codec_ctx.ch_layout.nb_channels as u16;
+        if !CH_LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) {
+            eprintln!(">>> SOURCE: channels={}, sample_rate={}", ch, self.output_sample_rate);
+        }
+        NonZero::new(ch).unwrap()
     }
 
     #[inline]
     fn sample_rate(&self) -> SampleRate {
-        NonZero::new(self.codec_ctx.sample_rate as u32).unwrap()
+        NonZero::new(self.output_sample_rate).unwrap()
     }
 
     #[inline]

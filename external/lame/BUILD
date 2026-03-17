@@ -37,6 +37,7 @@ configure_make(
         "--disable-shared",
         "--enable-static",
         "--disable-frontend",
+        "--with-pic",
     ],
     env = select({
         "@platforms//os:macos": {

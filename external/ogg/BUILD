@@ -4,6 +4,7 @@ cmake(
     name = "ogg",
     cache_entries = {
         "CMAKE_INSTALL_LIBDIR": "lib",
+        "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
         "BUILD_SHARED_LIBS": "OFF",
         "BUILD_TESTING": "OFF",
     },

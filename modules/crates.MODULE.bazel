@@ -322,6 +322,10 @@ crates.spec(
     rev = "ffa1d8a2e5fc3efdec2c675eecca8f1f4be4e0f2",
 )
 crates.spec(
+    package = "libpulse-binding",
+    version = "2.30.1",
+)
+crates.spec(
     package = "tauri",
     version = "2.9.1",
 )

@@ -57,6 +57,7 @@ configure_make(
         "--disable-libdrm",
         "--disable-ffnvcodec",
         "--enable-static",
+        "--enable-pic",
         # TODO: Figure out why -logg isn't added by pkg-config
     ] + select({
         "@platforms//os:windows": [

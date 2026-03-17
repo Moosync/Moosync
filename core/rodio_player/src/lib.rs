@@ -15,6 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
+    num::NonZero,
     sync::{
         Arc, Mutex,
         mpsc::{Receiver, Sender, channel},
@@ -23,6 +24,7 @@ use std::{
     time::Duration,
 };
 
+use rodio::cpal::traits::{DeviceTrait, HostTrait};
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
 use tracing::{debug, error, info};
 use types::errors::MoosyncError;
@@ -33,6 +35,42 @@ use crate::decoder::FFMPEGDecoder;
 mod decoder;
 #[cfg(test)]
 mod tests;
+
+// PulseAudio monitoring is only available on Linux
+#[cfg(target_os = "linux")]
+mod pulse_monitor;
+
+/// Get the system's preferred sample rate.
+/// On Linux: queries PulseAudio/PipeWire for the actual default sink sample rate.
+/// On other platforms: uses cpal's default output config.
+fn get_system_sample_rate() -> u32 {
+    #[cfg(target_os = "linux")]
+    {
+        // Try PulseAudio first (works with PipeWire too)
+        if let Some(rate) = pulse_monitor::get_default_sample_rate() {
+            eprintln!(">>> PulseAudio: Detected sample rate: {} Hz", rate);
+            return rate;
+        }
+        eprintln!(">>> PulseAudio: Not available, falling back to cpal");
+    }
+
+    // Fallback: use cpal's default config
+    get_cpal_default_sample_rate()
+}
+
+/// Get sample rate from cpal's default output config.
+fn get_cpal_default_sample_rate() -> u32 {
+    let device = rodio::cpal::default_host()
+        .default_output_device()
+        .expect("No audio output device found");
+
+    let default_rate = device
+        .default_output_config()
+        .map(|c: rodio::cpal::SupportedStreamConfig| c.sample_rate())
+        .unwrap_or(44100);
+    eprintln!(">>> cpal: Using sample rate: {} Hz", default_rate);
+    default_rate
+}
 
 pub struct RodioPlayer {
     tx: Sender<RodioCommand>,
@@ -51,6 +89,7 @@ enum RodioCommand {
 impl RodioPlayer {
     #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
+        eprintln!(">>> RODIO PLAYER BUILD TEST 1 <<<");
         let (events_tx, events_rx) = channel::<PlayerEvent>();
         let tx = Self::initialize(events_tx);
 
@@ -60,8 +99,8 @@ impl RodioPlayer {
         }
     }
 
-    async fn set_src(src: String, sink: &Arc<rodio::Player>) -> Result<()> {
-        sink.append(FFMPEGDecoder::open(&src).map_err(Into::<MoosyncError>::into)?);
+    async fn set_src(src: String, sink: &Arc<rodio::Player>, output_sample_rate: u32) -> Result<()> {
+        sink.append(FFMPEGDecoder::open(&src, output_sample_rate).map_err(Into::<MoosyncError>::into)?);
 
         Ok(())
     }
@@ -79,7 +118,19 @@ impl RodioPlayer {
         let ret = tx.clone();
 
         thread::spawn(move || {
-            let stream_handle = rodio::DeviceSinkBuilder::open_default_sink().unwrap();
+            // Get the system's preferred sample rate
+            let system_sample_rate = get_system_sample_rate();
+
+            // Open stream with the detected sample rate
+            let stream_handle = rodio::DeviceSinkBuilder::from_default_device()
+                .expect("No audio device found")
+                .with_sample_rate(NonZero::new(system_sample_rate).unwrap())
+                .open_stream()
+                .unwrap();
+            let cfg = stream_handle.config();
+            let output_sample_rate = cfg.sample_rate().get();
+            eprintln!(">>> OUTPUT STREAM: channels={}, sample_rate={}, format={:?}",
+                cfg.channel_count(), output_sample_rate, cfg.sample_format());
             let sink = Arc::new(rodio::Player::connect_new(stream_handle.mixer()));
 
             let runtime = tokio::runtime::Builder::new_multi_thread()
@@ -105,7 +156,7 @@ impl RodioPlayer {
                             Self::send_event(events_tx.clone(), PlayerEvent::TimeUpdate(0f64));
                             Self::send_event(events_tx.clone(), PlayerEvent::Loading(true));
 
-                            if let Err(err) = Self::set_src(src.clone(), &sink).await {
+                            if let Err(err) = Self::set_src(src.clone(), &sink, output_sample_rate).await {
                                 error!("Failed to set src: {:?}", err);
                                 Self::send_event(
                                     events_tx.clone(),

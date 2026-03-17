@@ -4,6 +4,7 @@ cmake(
     name = "vorbis",
     cache_entries = {
         "CMAKE_INSTALL_LIBDIR": "lib",
+        "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
         "BUILD_SHARED_LIBS": "OFF",
         "OGG_ROOT": "$$EXT_BUILD_DEPS$$",
     },

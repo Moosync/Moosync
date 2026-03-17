@@ -125,6 +125,7 @@ configure_make(
     configure_in_place = True,
     configure_options = CONFIGURE_OPTIONS + [
         "--libdir=lib",
+        "-fPIC",
     ],
     env = select({
         "@platforms//os:macos": {

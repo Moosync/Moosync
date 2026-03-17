@@ -7,7 +7,10 @@ rust_library(
         "src/decoder.rs",
         "src/lib.rs",
         "src/tests.rs",
-    ],
+    ] + select({
+        "@platforms//os:linux": ["src/pulse_monitor.rs"],
+        "//conditions:default": [],
+    }),
     crate_root = "src/lib.rs",
     data = ["//external/ffmpeg:gen_dir"],
     rustc_env = {
@@ -27,7 +30,10 @@ rust_library(
         "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",
-    ],
+    ] + select({
+        "@platforms//os:linux": ["@crates//:libpulse-binding"],
+        "//conditions:default": [],
+    }),
 )
 
 cargo_build_script(

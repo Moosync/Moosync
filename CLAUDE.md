@@ -16,15 +16,34 @@ Tauri-based music player app with Bazel build system.
 ### Android builds
 Android NDK is optional - desktop builds work without it. The wrapper extension in `tools/android_ndk_optional.bzl` provides a stub when NDK is absent.
 
-**Building Android shared library:**
+**Building APKs (full build with Bazel + Gradle):**
+```bash
+cd tauri/gen/android
+
+# Individual architecture APKs (~200MB each)
+./gradlew assembleArm64Debug assembleX86_64Debug \
+  -PtargetList=aarch64,x86_64 \
+  -PabiList=arm64-v8a,x86_64 \
+  -ParchList=arm64,x86_64
+
+# Or universal APK with all architectures (~400MB)
+./gradlew assembleUniversalDebug -PtargetList=aarch64,x86_64 ...
+```
+
+APK outputs are in `tauri/gen/android/app/build/outputs/apk/<flavor>/debug/`.
+
+**Quick APK rebuild (skip Bazel):**
+```bash
+./gradlew assembleArm64Debug -PskipBazel
+```
+Use `-PskipBazel` when the native .so is already built and you only changed Kotlin/Java code.
+
+**Building just the shared library (Bazel only):**
 ```bash
 bazel build //tauri:moosync_android --config=android --platforms=//toolchains/android:arm64-v8a
 ```
 - `--config=android` sets required env vars (`TAURI_ANDROID_BUILD=true`, `--//tools:target_os=android`)
 - `--platforms=` satisfies `target_compatible_with` constraints (use `arm64-v8a`, `armeabi-v7a`, or `x86_64`)
-
-**APK packaging:**
-Use `./gradlew assembleDebug -PskipBazel` when the native .so is already built and you just need to repackage the APK. Only omit `-PskipBazel` when the Rust code changed and needs rebuilding.
 
 ## Working Preferences
 

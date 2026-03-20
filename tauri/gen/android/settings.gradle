@@ -15,9 +15,53 @@ ext.bazelOutputBase = {
     }
 }()
 
-// Export for tauri.settings.gradle and plugins
+// Export for plugins
 ext.BAZEL_CACHE_DIR = ext.bazelOutputBase
 
 include ':app'
 
-apply from: 'tauri.settings.gradle'
+// Parse app/build.gradle.kts to find required tauri plugins
+def buildGradle = new File(settingsDir, 'app/build.gradle.kts')
+def requiredPlugins = []
+buildGradle.eachLine { line ->
+    def match = line =~ /implementation\(project\(":(.+)"\)\)/
+    if (match) {
+        requiredPlugins << match[0][1]
+    }
+}
+
+def libDir = new File(settingsDir, '../../../lib')
+def externalDir = new File("${ext.bazelOutputBase}/external")
+
+// Include each required plugin from either local lib/ or Bazel external/
+requiredPlugins.each { pluginName ->
+    // Check local lib/ first
+    def localDir = new File(libDir, "${pluginName}/android")
+    if (localDir.exists()) {
+        include ":${pluginName}"
+        project(":${pluginName}").projectDir = localDir
+        return
+    }
+
+    // Check Bazel external/ for crates.io plugins
+    if (externalDir.exists()) {
+        def externalPluginDir = externalDir.listFiles()?.find {
+            it.name.contains(pluginName) && new File(it, 'android').exists()
+        }
+        if (externalPluginDir) {
+            include ":${pluginName}"
+            project(":${pluginName}").projectDir = new File(externalPluginDir, 'android')
+        }
+    }
+}
+
+// Tauri Android API (from tauri crate)
+if (externalDir.exists()) {
+    def tauriDir = externalDir.listFiles()?.find {
+        it.name.matches('.*crates__tauri-\\d+\\..*') && !it.name.contains('plugin')
+    }
+    if (tauriDir) {
+        include ':tauri-android'
+        project(':tauri-android').projectDir = new File(tauriDir, 'mobile/android')
+    }
+}

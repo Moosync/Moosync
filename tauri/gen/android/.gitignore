@@ -16,5 +16,4 @@ local.properties
 key.properties
 
 /.tauri
-/tauri.settings.gradle
 .kotlin

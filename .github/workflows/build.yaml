@@ -186,15 +186,8 @@ jobs:
         with:
           tool: wasm-bindgen-cli
 
-      - name: Debug linker
-        if: runner.os == 'Linux'
-        run: |
-          which ld || echo "ld not in PATH"
-          ls -la /usr/bin/ld* || echo "no ld in /usr/bin"
-          dpkg -l | grep binutils || echo "binutils not installed"
-
       - name: Bazel Build Package
-        run: bazel build ${{ matrix.target }} -c opt
+        run: bazel build ${{ matrix.target }} -c opt --action_env=PATH
         env:
           MSYS2_PATH: ${{ runner.os == 'Windows' && steps.msys2.outputs.msys2-location || '' }}
           # Unset Android env vars since we remove the SDK to save space (android: true in free-disk-space)

@@ -55,15 +55,15 @@ npm.npm_translate_lock(
 )
 use_repo(npm, "proto_npm")
 
-# Android NDK toolchain
-android_ndk_repository_extension = use_extension(
-    "@rules_android_ndk//:extension.bzl",
-    "android_ndk_repository_extension",
+# Android NDK toolchain (optional - provides stub when NDK not installed)
+android_ndk_optional = use_extension(
+    "//tools:android_ndk_optional.bzl",
+    "android_ndk_optional",
 )
-android_ndk_repository_extension.configure(
+android_ndk_optional.configure(
     api_level = 26,  # minSdk from build.gradle.kts
 )
-use_repo(android_ndk_repository_extension, "androidndk")
+use_repo(android_ndk_optional, "androidndk")
 
 register_toolchains("@androidndk//:all")
 

@@ -335,6 +335,41 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
+    "//tools:android_ndk_optional.bzl%android_ndk_optional": {
+      "os:linux": {
+        "bzlTransitiveDigest": "yFd8x0e3vsVnhkjobyTeRScPWxUE3K/O4pFiJSLR2VQ=",
+        "usagesDigest": "S9mvVyMMrvSc8OQW6jlSqmmfySubS7pR78HC0IDPW9c=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {
+          "ANDROID_HOME": "/var/home/mulverine/Android/Sdk",
+          "ANDROID_NDK_HOME": "/var/home/mulverine/Android/Sdk/ndk/29.0.14206865"
+        },
+        "generatedRepoSpecs": {
+          "androidndk": {
+            "repoRuleId": "@@rules_android_ndk+//:rules.bzl%android_ndk_repository",
+            "attributes": {
+              "api_level": 26
+            }
+          }
+        },
+        "moduleExtensionMetadata": {
+          "explicitRootModuleDirectDeps": [
+            "androidndk"
+          ],
+          "explicitRootModuleDirectDevDeps": [],
+          "useAllRepos": "NO",
+          "reproducible": false
+        },
+        "recordedRepoMappingEntries": [
+          [
+            "",
+            "rules_android_ndk",
+            "rules_android_ndk+"
+          ]
+        ]
+      }
+    },
     "@@aspect_rules_ts+//ts:extensions.bzl%ext": {
       "general": {
         "bzlTransitiveDigest": "7k3bewVApw4Kc6Rpho1Rrs1nrW/5jphUA5Mh1iHE2U4=",
@@ -525,25 +560,6 @@
           "androidsdk": {
             "repoRuleId": "@@rules_android+//rules/android_sdk_repository:rule.bzl%_android_sdk_repository",
             "attributes": {}
-          }
-        },
-        "recordedRepoMappingEntries": []
-      }
-    },
-    "@@rules_android_ndk+//:extension.bzl%android_ndk_repository_extension": {
-      "general": {
-        "bzlTransitiveDigest": "oV/TPZWCXAAcpJG/DBV/lNiWCISUTk5ba0KRjUb7adg=",
-        "usagesDigest": "VnVbwOQVfp0egUlmRy0IEd03gblMLkYZFNC8OJn5oyg=",
-        "recordedFileInputs": {},
-        "recordedDirentsInputs": {},
-        "envVariables": {},
-        "generatedRepoSpecs": {
-          "androidndk": {
-            "repoRuleId": "@@rules_android_ndk+//:rules.bzl%android_ndk_repository",
-            "attributes": {
-              "api_level": 26,
-              "path": ""
-            }
           }
         },
         "recordedRepoMappingEntries": []

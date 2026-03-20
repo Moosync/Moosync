@@ -13,7 +13,17 @@ Tauri-based music player app with Bazel build system.
 - `//tauri:moosync_android` - Android shared library
 - `//ui:moosync_ui` - Web UI bundle
 
-### Android APK builds
+### Android builds
+Android NDK is optional - desktop builds work without it. The wrapper extension in `tools/android_ndk_optional.bzl` provides a stub when NDK is absent.
+
+**Building Android shared library:**
+```bash
+bazel build //tauri:moosync_android --config=android --platforms=//toolchains/android:arm64-v8a
+```
+- `--config=android` sets required env vars (`TAURI_ANDROID_BUILD=true`, `--//tools:target_os=android`)
+- `--platforms=` satisfies `target_compatible_with` constraints (use `arm64-v8a`, `armeabi-v7a`, or `x86_64`)
+
+**APK packaging:**
 Use `./gradlew assembleDebug -PskipBazel` when the native .so is already built and you just need to repackage the APK. Only omit `-PskipBazel` when the Rust code changed and needs rebuilding.
 
 ## Working Preferences

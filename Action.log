@@ -1,0 +1,152 @@
+Extracting Bazel installation...
+Starting local Bazel server (8.5.1) and connecting to it...
+INFO: Invocation ID: bfe7e207-d3a7-4ef4-b40c-4c782e7331b4
+Computing main repo mapping: 
+Computing main repo mapping: 
+Computing main repo mapping: 
+Loading: 
+Loading: 2 packages loaded
+Analyzing: target //package/linux:linux_release (3 packages loaded, 0 targets configured)
+Analyzing: target //package/linux:linux_release (3 packages loaded, 0 targets configured)
+
+DEBUG: Rule '+_repo_rules+linuxdeploy_plugin_gtk' indicated that a canonical reproducible form can be obtained by modifying arguments integrity = "sha256-sPTLxoSgEDqWUfCVW2NerqAJazpmwPWiwqozeWA3UXE="
+DEBUG: Repository +_repo_rules+linuxdeploy_plugin_gtk instantiated at:
+  <builtin>: in <toplevel>
+Repository rule http_file defined at:
+  /home/runner/.bazel/external/bazel_tools/tools/build_defs/repo/http.bzl:522:28: in <toplevel>
+Analyzing: target //package/linux:linux_release (36 packages loaded, 31 targets configured)
+
+DEBUG: Rule '+_repo_rules+linuxdeploy_arm64' indicated that a canonical reproducible form can be obtained by modifying arguments integrity = "sha256-nExp0NsXrHHFvksIvK5VgOKwlTcaOBTplBsrQETo/AA="
+DEBUG: Repository +_repo_rules+linuxdeploy_arm64 instantiated at:
+  <builtin>: in <toplevel>
+Repository rule http_file defined at:
+  /home/runner/.bazel/external/bazel_tools/tools/build_defs/repo/http.bzl:522:28: in <toplevel>
+Analyzing: target //package/linux:linux_release (108 packages loaded, 35 targets configured)
+
+Analyzing: target //package/linux:linux_release (153 packages loaded, 3148 targets configured)
+
+Analyzing: target //package/linux:linux_release (155 packages loaded, 3158 targets configured)
+
+Analyzing: target //package/linux:linux_release (180 packages loaded, 3294 targets configured)
+
+Analyzing: target //package/linux:linux_release (187 packages loaded, 3313 targets configured)
+
+Analyzing: target //package/linux:linux_release (189 packages loaded, 3313 targets configured)
+
+Analyzing: target //package/linux:linux_release (192 packages loaded, 3313 targets configured)
+
+Analyzing: target //package/linux:linux_release (205 packages loaded, 3313 targets configured)
+
+Analyzing: target //package/linux:linux_release (219 packages loaded, 9705 targets configured)
+
+Analyzing: target //package/linux:linux_release (244 packages loaded, 16775 targets configured)
+
+Analyzing: target //package/linux:linux_release (290 packages loaded, 18435 targets configured)
+
+Analyzing: target //package/linux:linux_release (358 packages loaded, 20702 targets configured)
+
+Analyzing: target //package/linux:linux_release (431 packages loaded, 23941 targets configured)
+
+Analyzing: target //package/linux:linux_release (476 packages loaded, 27326 targets configured)
+
+Analyzing: target //package/linux:linux_release (555 packages loaded, 29872 targets configured)
+
+Analyzing: target //package/linux:linux_release (601 packages loaded, 32058 targets configured)
+
+Analyzing: target //package/linux:linux_release (664 packages loaded, 34432 targets configured)
+
+Analyzing: target //package/linux:linux_release (705 packages loaded, 36825 targets configured)
+
+Analyzing: target //package/linux:linux_release (730 packages loaded, 37715 targets configured)
+
+Analyzing: target //package/linux:linux_release (734 packages loaded, 38047 targets configured)
+
+DEBUG: Rule 'rules_rust++rust+rust_linux_aarch64__aarch64-unknown-linux-gnu__nightly_tools' indicated that a canonical reproducible form can be obtained by modifying arguments sha256s = {"2025-12-16/rustc-nightly-aarch64-unknown-linux-gnu.tar.xz": "87db3e7428ecfbecba461651beb3af1a11031f64cf00f9fe650fc7f946ef5d12", "2025-12-16/clippy-nightly-aarch64-unknown-linux-gnu.tar.xz": "c2b2296589529dd7ce2822be391d71732ef3c8ad725b982c2561d774d48de235", "2025-12-16/cargo-nightly-aarch64-unknown-linux-gnu.tar.xz": "82fe267420ceabebdcc4f33f5f5b905516060d1e4cfd23a56655a6da2fcb38d0", "2025-12-16/llvm-tools-nightly-aarch64-unknown-linux-gnu.tar.xz": "845d905b8c69d8d7de8327a74fc64544ffc3a0052910492cbdb7b7d4b66419b5", "2025-12-16/rust-std-nightly-aarch64-unknown-linux-gnu.tar.xz": "b5f92be04e676e76eeaa75562615e72ffe551be846cbcb21d9a4f3eeae77b123"}
+DEBUG: Repository rules_rust++rust+rust_linux_aarch64__aarch64-unknown-linux-gnu__nightly_tools instantiated at:
+  <builtin>: in <toplevel>
+Repository rule rust_toolchain_tools_repository defined at:
+  /home/runner/.bazel/external/rules_rust+/rust/repositories.bzl:569:50: in <toplevel>
+Analyzing: target //package/linux:linux_release (787 packages loaded, 48747 targets configured)
+
+Analyzing: target //package/linux:linux_release (832 packages loaded, 49870 targets configured)
+
+Analyzing: target //package/linux:linux_release (916 packages loaded, 52424 targets configured)
+
+Analyzing: target //package/linux:linux_release (982 packages loaded, 54983 targets configured)
+
+Analyzing: target //package/linux:linux_release (1018 packages loaded, 56815 targets configured)
+
+Analyzing: target //package/linux:linux_release (1025 packages loaded, 56961 targets configured)
+
+Analyzing: target //package/linux:linux_release (1041 packages loaded, 63431 targets configured)
+
+Analyzing: target //package/linux:linux_release (1079 packages loaded, 65293 targets configured)
+
+Analyzing: target //package/linux:linux_release (1099 packages loaded, 67641 targets configured)
+
+Analyzing: target //package/linux:linux_release (1154 packages loaded, 80480 targets configured)
+
+Analyzing: target //package/linux:linux_release (1246 packages loaded, 84237 targets configured)
+
+Analyzing: target //package/linux:linux_release (1341 packages loaded, 93749 targets configured)
+
+Analyzing: target //package/linux:linux_release (1383 packages loaded, 97710 targets configured)
+
+Analyzing: target //package/linux:linux_release (1426 packages loaded, 99879 targets configured)
+
+Analyzing: target //package/linux:linux_release (1486 packages loaded, 104510 targets configured)
+
+Analyzing: target //package/linux:linux_release (1553 packages loaded, 106479 targets configured)
+
+Analyzing: target //package/linux:linux_release (1629 packages loaded, 109196 targets configured)
+
+Analyzing: target //package/linux:linux_release (1707 packages loaded, 112344 targets configured)
+
+Analyzing: target //package/linux:linux_release (1708 packages loaded, 112376 targets configured)
+
+Analyzing: target //package/linux:linux_release (1708 packages loaded, 112376 targets configured)
+
+Analyzing: target //package/linux:linux_release (1708 packages loaded, 112376 targets configured)
+
+DEBUG: Rule 'rules_rust++rust+rust_linux_aarch64__wasm32-unknown-unknown__nightly_tools' indicated that a canonical reproducible form can be obtained by modifying arguments sha256s = {"2025-12-16/rustc-nightly-aarch64-unknown-linux-gnu.tar.xz": "87db3e7428ecfbecba461651beb3af1a11031f64cf00f9fe650fc7f946ef5d12", "2025-12-16/clippy-nightly-aarch64-unknown-linux-gnu.tar.xz": "c2b2296589529dd7ce2822be391d71732ef3c8ad725b982c2561d774d48de235", "2025-12-16/cargo-nightly-aarch64-unknown-linux-gnu.tar.xz": "82fe267420ceabebdcc4f33f5f5b905516060d1e4cfd23a56655a6da2fcb38d0", "2025-12-16/llvm-tools-nightly-aarch64-unknown-linux-gnu.tar.xz": "845d905b8c69d8d7de8327a74fc64544ffc3a0052910492cbdb7b7d4b66419b5", "2025-12-16/rust-std-nightly-wasm32-unknown-unknown.tar.xz": "bb09279eb7e73b094dabcdbf6c350bb299a9e06a56daaa610829e0d2738bd127"}
+DEBUG: Repository rules_rust++rust+rust_linux_aarch64__wasm32-unknown-unknown__nightly_tools instantiated at:
+  <builtin>: in <toplevel>
+Repository rule rust_toolchain_tools_repository defined at:
+  /home/runner/.bazel/external/rules_rust+/rust/repositories.bzl:569:50: in <toplevel>
+Analyzing: target //package/linux:linux_release (1708 packages loaded, 112376 targets configured)
+
+INFO: Analyzed target //package/linux:linux_release (1709 packages loaded, 112788 targets configured).
+[9 / 30] [Prepa] Writing file external/rules_pkg+/pkg/private/deb/_make_deb.venv/lib/python3.11/site-packages/bazel.pth [for tool]
+[144 / 532] Creating runfiles tree bazel-out/aarch64-opt-exec-ST-d57f47055a04/bin/tools/html_generator.runfiles [for tool]; 0s local ... (3 actions running)
+[183 / 644] Creating runfiles tree bazel-out/aarch64-opt-exec-ST-d57f47055a04/bin/tools/html_generator.runfiles [for tool]; 1s local ... (4 actions, 3 running)
+[309 / 1,407] Creating runfiles tree bazel-out/aarch64-opt-exec-ST-d57f47055a04/bin/external/rules_rust++_crate+++bindeps+bindeps__serde_json-1.0.149/_bs-.runfiles [for tool]; 0s local ... (3 actions, 2 running)
+[388 / 1,580] Creating runfiles tree bazel-out/aarch64-opt-exec-ST-d57f47055a04/bin/external/rules_rust++_crate+++bindeps+bindeps__libc-0.2.183/_bs-.runfiles [for tool]; 0s local ... (3 actions, 2 running)
+[474 / 1,933] Creating runfiles tree bazel-out/aarch64-opt-exec-ST-d57f47055a04/bin/external/rules_rust++_crate+++bindeps+bindeps__getrandom-0.4.2/_bs-.runfiles [for tool]; 0s local ... (2 actions, 1 running)
+[599 / 2,377] Creating runfiles tree bazel-out/aarch64-opt-exec-ST-d57f47055a04/bin/tools/replace_bin.runfiles [for tool]; 1s local ... (4 actions, 3 running)
+[680 / 2,531] Creating runfiles tree bazel-out/aarch64-opt-exec-ST-d57f47055a04/bin/external/rules_rust++_crate+++wasm_crates+wasmCrates__rustls-0.23.37/_bs-.runfiles [for tool]; 0s local ... (4 actions, 2 running)
+[699 / 2,589] Creating runfiles tree bazel-out/aarch64-opt-exec-ST-d57f47055a04/bin/external/rules_rust++_crate+++wasm_crates+wasmCrates__ring-0.17.14/_bs-.runfiles [for tool]; 1s local ... (4 actions, 3 running)
+[777 / 2,812] Creating runfiles tree bazel-out/aarch64-opt/bin/external/rules_rust++_crate+++crates+crates__librespot-protocol-0.8.0/_bs-.runfiles; 0s local ... (3 actions running)
+[942 / 5,021] [Prepa] Copying files to directory tools/tauri_android_sources ... (2 actions, 1 running)
+[949 / 5,147] Copying files to directory tools/tauri_android_sources; 0s local, disk-cache ... (2 actions running)
+[1,094 / 6,301] [Prepa] Creating symlink external/rules_rust++rust+rust_linux_aarch64__wasm32-unknown-unknown__nightly_tools/rust_toolchain/lib/librustc_driver-c9b91677b251624d.so
+[1,095 / 6,329] [Prepa] Writing file core/types/protos/ui_proto.prost_deps_info
+[1,287 / 6,334] Extracting npm package @rollup/plugin-node-resolve@16.0.3(@rollup/wasm-node@4.54.0); 0s linux-sandbox, disk-cache ... (2 actions, 1 running)
+[1,342 / 6,334] BootstrapGNUMake external/rules_foreign_cc+/toolchains/private/make [for tool]; 0s linux-sandbox, disk-cache ... (4 actions running)
+ERROR: /home/runner/.bazel/external/rules_rust+/util/process_wrapper/BUILD.bazel:30:36: Compiling Rust (without process_wrapper) bin process_wrapper (6 files) [for tool] failed: (Exit 1): bootstrap_process_wrapper.sh failed: error executing Rustc command (from target @@rules_rust+//util/process_wrapper:process_wrapper) bazel-out/aarch64-opt-exec-ST-d57f47055a04/bin/external/rules_rust+/util/process_wrapper/bootstrap_process_wrapper.sh -- ... (remaining 36 arguments skipped)
+
+Use --sandbox_debug to see verbose messages from the sandbox and retain the sandbox build root for debugging
+error: linking with `/usr/bin/gcc` failed: exit status: 1
+  |
+  = note:  "/usr/bin/gcc" "/tmp/rustcjFekJl/symbols.o" "<17 object files omitted>" "-Wl,--as-needed" "-Wl,-Bstatic" "/home/runner/.bazel/execroot/_main/bazel-out/aarch64-opt-exec-ST-d57f47055a04/bin/external/rules_rust++i+rules_rust_tinyjson/libtinyjson-1317710085.rlib" "<sysroot>/lib/rustlib/aarch64-unknown-linux-gnu/lib/{libstd-*,libpanic_unwind-*,libobject-*,libmemchr-*,libaddr2line-*,libgimli-*,libcfg_if-*,librustc_demangle-*,libstd_detect-*,libhashbrown-*,librustc_std_workspace_alloc-*,libminiz_oxide-*,libadler2-*,libunwind-*,liblibc-*,librustc_std_workspace_core-*,liballoc-*,libcore-*,libcompiler_builtins-*}.rlib" "-Wl,-Bdynamic" "-lgcc_s" "-lutil" "-lrt" "-lpthread" "-lm" "-ldl" "-lc" "-L" "/tmp/rustcjFekJl/raw-dylibs" "-Wl,--eh-frame-hdr" "-Wl,-z,noexecstack" "-L" "<sysroot>/lib/rustlib/aarch64-unknown-linux-gnu/lib" "-L" "<sysroot>/lib/rustlib/aarch64-unknown-linux-gnu/lib" "-o" "bazel-out/aarch64-opt-exec-ST-d57f47055a04/bin/external/rules_rust+/util/process_wrapper/process_wrapper" "-Wl,--gc-sections" "-pie" "-Wl,-z,relro,-z,now" "-Wl,-O1" "-Wl,--strip-debug" "-nodefaultlibs" "-fuse-ld=gold" "-B/usr/bin" "-Wl,-no-as-needed" "-Wl,-z,relro,-z,now" "-pass-exit-codes" "-Wl,--gc-sections" "-Wl,--push-state,-as-needed" "-lstdc++" "-Wl,--pop-state" "-Wl,--push-state,-as-needed" "-lm" "-Wl,--pop-state" "-fuse-ld=lld"
+  = note: some arguments are omitted. use `--verbose` to show all linker arguments
+  = note: collect2: fatal error: cannot find 'ld'
+          compilation terminated.
+          
+
+error: aborting due to 1 previous error
+
+Target //package/linux:linux_release failed to build
+Use --verbose_failures to see the command lines of failed build steps.
+INFO: Elapsed time: 74.500s, Critical Path: 2.11s
+INFO: 1347 processes: 1 disk cache hit, 1322 internal, 21 linux-sandbox, 3 local.
+ERROR: Build did NOT complete successfully

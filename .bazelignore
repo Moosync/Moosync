@@ -1,3 +1,7 @@
 ui/gen_dist/node_modules
 core/types/protos/node_modules
 lib/extensions_sdk
+tauri/gen/android
+lib/tauri-plugin-audioplayer/android/build
+lib/tauri-plugin-file-scanner/android/build
+lib/tauri-plugin-self-update/android/build

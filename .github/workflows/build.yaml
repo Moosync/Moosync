@@ -190,6 +190,9 @@ jobs:
         run: bazel build ${{ matrix.target }} -c opt
         env:
           MSYS2_PATH: ${{ runner.os == 'Windows' && steps.msys2.outputs.msys2-location || '' }}
+          # Unset Android env vars since we remove the SDK to save space (android: true in free-disk-space)
+          ANDROID_HOME: ""
+          ANDROID_NDK_HOME: ""
 
       - name: Prepare Artifacts for Upload
         shell: bash

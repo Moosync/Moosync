@@ -58,3 +58,11 @@ When checking build output files, don't tail excessive lines (100+). Use grep to
 
 ### Sequential builds
 Wait for background builds to fully complete (task notification received) before starting the next one. Overlapping builds cause lock contention and confusing state.
+
+## TODO Directory
+
+The `TODO/` directory contains project documentation, architectural plans, and feature specifications. Each file is named in UPPERCASE with `.md` extension.
+
+**CRITICAL:** When creating a new TODO file, **ALWAYS** update `TODO/INDEX.md` with a short summary. **ALSO** remove entries from the index when TODOs are finished or deleted - the index must always reflect the actual state of the directory.
+
+Existing TODOs are indexed in `TODO/INDEX.md` - check there first before creating duplicates.

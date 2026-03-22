@@ -56,11 +56,15 @@ open class BuildTask : DefaultTask() {
                 bazelArgs.add("--//:release")
             }
 
-            project.exec {
-                workingDir(rootDir)
-                executable("bazel")
-                args(bazelArgs)
-            }.assertNormalExitValue()
+            project.exec(
+                object : org.gradle.api.Action<org.gradle.process.ExecSpec> {
+                    override fun execute(spec: org.gradle.process.ExecSpec) {
+                        spec.workingDir(rootDir)
+                        spec.executable("bazel")
+                        spec.args(bazelArgs)
+                    }
+                }
+            ).assertNormalExitValue()
 
             // Copy the built .so to jniLibs
             val soFile = File(rootDir, "bazel-bin/tauri/libapp_lib.so")

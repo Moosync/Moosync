@@ -1,0 +1,111 @@
+name: Package Apple SDK
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild even if SDK already exists'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  SDK_RELEASE_TAG: "apple-sdk-v1"
+
+permissions:
+  contents: write
+
+jobs:
+  package-sdk:
+    runs-on: macos-latest
+    steps:
+      - name: Check if SDK already exists
+        if: ${{ !inputs.force_rebuild }}
+        id: check-existing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if release exists and has assets
+          if gh release view "$SDK_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" &>/dev/null; then
+            ASSET_COUNT=$(gh release view "$SDK_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets -q '.assets | length')
+            if [ "$ASSET_COUNT" -gt 0 ]; then
+              echo "SDK release already exists with $ASSET_COUNT assets"
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if SDK exists
+        if: steps.check-existing.outputs.skip == 'true'
+        run: |
+          echo "SDK already packaged. Use force_rebuild=true to rebuild."
+          exit 0
+
+      - name: Get Xcode version
+        if: steps.check-existing.outputs.skip != 'true'
+        id: xcode-version
+        run: |
+          XCODE_VERSION=$(xcodebuild -version | head -1 | awk '{print $2}')
+          echo "version=$XCODE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Xcode version: $XCODE_VERSION"
+
+      - name: Clone rules_applecross
+        if: steps.check-existing.outputs.skip != 'true'
+        run: |
+          git clone --depth 1 https://github.com/apple-cross-toolchain/rules_applecross.git
+
+      - name: Install zstd
+        if: steps.check-existing.outputs.skip != 'true'
+        run: brew install zstd
+
+      - name: Package SDK
+        if: steps.check-existing.outputs.skip != 'true'
+        working-directory: rules_applecross
+        run: |
+          ./tools/package-sdks.sh
+          ls -lh apple-sdks-*.tar.zst
+
+      - name: Compute SHA256
+        if: steps.check-existing.outputs.skip != 'true'
+        id: sha256
+        working-directory: rules_applecross
+        run: |
+          SDK_FILE=$(ls apple-sdks-*.tar.zst)
+          SHA256=$(shasum -a 256 "$SDK_FILE" | awk '{print $1}')
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "filename=$SDK_FILE" >> "$GITHUB_OUTPUT"
+          echo "SHA256: $SHA256"
+          echo "Filename: $SDK_FILE"
+
+      - name: Create pre-release
+        if: steps.check-existing.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        working-directory: rules_applecross
+        run: |
+          SDK_FILE="${{ steps.sha256.outputs.filename }}"
+          SHA256="${{ steps.sha256.outputs.sha256 }}"
+          XCODE_VERSION="${{ steps.xcode-version.outputs.version }}"
+
+          # Delete existing release if present
+          gh release delete "$SDK_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --yes || true
+
+          # Create pre-release with SDK
+          gh release create "$SDK_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Apple SDK (Xcode $XCODE_VERSION)" \
+            --notes "$(cat <<EOF
+          **Internal use only** - Apple SDK for cross-compilation.
+
+          - Xcode version: $XCODE_VERSION
+          - SHA256: \`$SHA256\`
+
+          This is an automated pre-release used by CI for cross-compiling macOS builds from Linux.
+          EOF
+          )" \
+            --prerelease \
+            "$SDK_FILE"
+
+          echo "SDK uploaded successfully!"
+          echo "URL: https://github.com/$GITHUB_REPOSITORY/releases/download/$SDK_RELEASE_TAG/$SDK_FILE"

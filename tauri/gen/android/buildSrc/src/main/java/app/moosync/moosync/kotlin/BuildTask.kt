@@ -3,6 +3,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
+import org.gradle.api.execution.ExecSpec
 
 open class BuildTask : DefaultTask() {
     @Input
@@ -56,7 +57,7 @@ open class BuildTask : DefaultTask() {
                 bazelArgs.add("--//:release")
             }
 
-            project.exec { spec ->
+            project.exec { spec: ExecSpec ->
                 spec.workingDir(rootDir)
                 spec.executable("bazel")
                 spec.args(bazelArgs)

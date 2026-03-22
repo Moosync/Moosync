@@ -114,6 +114,12 @@ jobs:
           docker-images: false   # Slow
           swap-storage: true
 
+      - name: Set up swap space
+        if: matrix.os == 'ubuntu-22.04'
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 10
+
       - uses: actions/checkout@v4
 
       - uses: bazel-contrib/setup-bazel@0.16.0

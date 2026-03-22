@@ -56,10 +56,10 @@ open class BuildTask : DefaultTask() {
                 bazelArgs.add("--//:release")
             }
 
-            project.exec {
-                workingDir(rootDir)
-                executable("bazel")
-                args(bazelArgs)
+            project.exec { spec ->
+                spec.workingDir(rootDir)
+                spec.executable("bazel")
+                spec.args(bazelArgs)
             }.assertNormalExitValue()
 
             // Copy the built .so to jniLibs
@@ -81,6 +81,12 @@ open class BuildTask : DefaultTask() {
         val genDir = File(project.projectDir, "src/main/java/app/moosync/moosync")
         if (!File(genDir, "WryActivity.kt").exists()) {
             generateKotlinFiles(rootDir, genDir)
+        }
+
+        // Copy proguard rules from tauri crate (only once)
+        val proguardDest = File(project.projectDir, "proguard-tauri.pro")
+        if (!proguardDest.exists()) {
+            copyProguardRules(rootDir, proguardDest)
         }
     }
 
@@ -126,6 +132,29 @@ open class BuildTask : DefaultTask() {
                 .replace("{{class-init}}", "")
             File(genDir, file.name).writeText(content)
             println("Generated ${file.name} from wry crate")
+        }
+    }
+
+    private fun copyProguardRules(rootDir: File, destFile: File) {
+        val externalDir = File(rootDir, "bazel-Moosync/external")
+        if (!externalDir.exists()) {
+            println("Warning: bazel-Moosync/external not found, skipping proguard copy")
+            return
+        }
+
+        val tauriDir = externalDir.listFiles()?.find {
+            it.name.contains("tauri-2.") && !it.name.contains("plugin")
+        }
+        if (tauriDir == null) {
+            println("Warning: Could not find tauri crate in $externalDir")
+            return
+        }
+
+        val proguardSrc = File(tauriDir, "mobile/proguard-tauri.pro")
+        if (proguardSrc.exists()) {
+            val content = proguardSrc.readText().replace("\$PACKAGE", appPackage)
+            destFile.writeText(content)
+            println("Generated proguard-tauri.pro from tauri crate")
         }
     }
 }

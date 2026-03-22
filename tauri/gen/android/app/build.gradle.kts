@@ -10,6 +10,12 @@ plugins {
 android {
     compileSdk = 34
     namespace = "app.moosync.moosync"
+
+    // JNI libs are placed in src/main/jniLibs/<abi>/ by BuildTask.kt
+    sourceSets.getByName("main") {
+        jniLibs.srcDirs("src/main/jniLibs")
+    }
+
     defaultConfig {
         manifestPlaceholders["usesCleartextTraffic"] = "false"
         applicationId = "app.moosync.moosync"
@@ -83,5 +89,3 @@ dependencies {
     implementation(project(":tauri-plugin-opener"))
     implementation(project(":tauri-plugin-deep-link"))
 }
-
-apply(from = "tauri.build.gradle.kts")

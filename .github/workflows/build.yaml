@@ -216,7 +216,34 @@ jobs:
           done
           ls -R dist/
 
+      # Linux: Upload each format separately
+      - name: Upload RPM
+        if: startsWith(matrix.os, 'ubuntu')
+        uses: actions/upload-artifact@v4
+        with:
+          name: moosync-${{ matrix.name }}-rpm
+          path: dist/*.rpm
+          if-no-files-found: warn
+
+      - name: Upload DEB
+        if: startsWith(matrix.os, 'ubuntu')
+        uses: actions/upload-artifact@v4
+        with:
+          name: moosync-${{ matrix.name }}-deb
+          path: dist/*.deb
+          if-no-files-found: warn
+
+      - name: Upload AppImage
+        if: startsWith(matrix.os, 'ubuntu')
+        uses: actions/upload-artifact@v4
+        with:
+          name: moosync-${{ matrix.name }}-appimage
+          path: dist/*.AppImage
+          if-no-files-found: warn
+
+      # Non-Linux: Upload all as single artifact
       - name: Upload Desktop Artifact
+        if: ${{ !startsWith(matrix.os, 'ubuntu') }}
         uses: actions/upload-artifact@v4
         with:
           name: moosync-package-${{ matrix.name }}

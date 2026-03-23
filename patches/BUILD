@@ -2,4 +2,8 @@ exports_files([
     "tauri_macros.patch",
     "0001-Fix-pkgconfig_build.bzl-for-Windows-build-with-Bzlmod.patch",
     "rules_rust_prost_rust_deps.patch",
+    "rules_cc_apple_force_load.patch",
+    "gzgz_rules_sass_bazel9.patch",
+    "rules_foreign_cc_darwin_cross.patch",
+    "rules_applecross_cc_wrapper.patch",
 ])

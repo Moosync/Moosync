@@ -292,11 +292,19 @@ crates.spec(
     version = "0.16.7+ffmpeg.8",
 )
 crates.annotation(
-    build_script_data = ["@@//external/ffmpeg:gen_dir"],
+    build_script_data = [
+        "@@//external/ffmpeg:gen_dir",
+        "@@//tools:apple_sdk_ref",
+        "@@//tools:bindgen_clang_wrapper.sh",
+    ],
     build_script_env = {
         "FFMPEG_INCLUDE_DIR": "$(execpath @@//external/ffmpeg:gen_dir)/include",
         "FFMPEG_LIBS_DIR": "$(execpath @@//external/ffmpeg:gen_dir)/lib",
         "FFMPEG_LINK_MODE": "static",
+        # For cross-compilation: set DEVELOPER_DIR so bindgen wrapper can find SDK
+        "DEVELOPER_DIR": "$(execpath @@//tools:apple_sdk_ref)/../Xcode.app/Contents/Developer",
+        # Use our wrapper that adds sysroot
+        "CLANG_PATH": "$(execpath @@//tools:bindgen_clang_wrapper.sh)",
     },
     build_script_rustc_env = {
         "FFMPEG_LINK_MODE": "static",

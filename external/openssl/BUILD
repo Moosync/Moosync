@@ -121,13 +121,40 @@ EOF
 
 configure_make(
     name = "openssl_default",
-    configure_command = "config",
+    build_data = select({
+        "//tools:target_macos": [
+            "@apple_cross_toolchain//:toolchain_files",
+            "@apple_cross_toolchain//:wrapped_clang",
+            "@apple_cross_toolchain//:wrapped_clang_pp",
+            "@apple_cross_toolchain//:cc_wrapper.sh",
+            "@apple_cross_toolchain//:xcrunwrapper.sh",
+            "//tools:darwin_ar_wrapper.sh",
+        ],
+        "//conditions:default": [],
+    }),
+    configure_command = select({
+        # OpenSSL requires Configure (not config) for cross-compilation
+        "//tools:target_macos": "Configure",
+        "//conditions:default": "config",
+    }),
     configure_in_place = True,
     configure_options = CONFIGURE_OPTIONS + [
         "--libdir=lib",
         "-fPIC",
-    ],
+    ] + select({
+        "//tools:target_macos": ["darwin64-x86_64-cc"],
+        "//conditions:default": [],
+    }),
     env = select({
+        "//tools:target_macos": {
+            "DEVELOPER_DIR": "$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer",
+            "SDKROOT": "$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+            "PERL": "$$EXT_BUILD_ROOT$$/$(PERL)",
+            # Cross-compile tool paths
+            "AR": "$$EXT_BUILD_ROOT$$/tools/darwin_ar_wrapper.sh",
+            "NM": "$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-nm",
+            "RANLIB": "$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-ranlib",
+        },
         "@platforms//os:macos": {
             "AR": "",
             "PERL": "$$EXT_BUILD_ROOT$$/$(PERL)",

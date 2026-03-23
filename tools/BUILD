@@ -27,6 +27,11 @@ config_setting(
     flag_values = {"//tools:target_os": "windows"},
 )
 
+config_setting(
+    name = "target_macos",
+    flag_values = {"//tools:target_os": "macos"},
+)
+
 # Tauri Android sources from external crate - needed for plugin build scripts
 # TAURI_CRATE is auto-discovered from @crates//:tauri alias
 copy_to_directory(
@@ -45,4 +50,17 @@ py_binary(
     name = "html_generator",
     srcs = ["gen_html.py"],
     main = "gen_html.py",
+)
+
+# Darwin cross-compile AR wrapper - translates GNU ar/libtool syntax to llvm-libtool-darwin
+exports_files([
+    "darwin_ar_wrapper.sh",
+    "bindgen_clang_wrapper.sh",
+])
+
+# Alias for Apple cross-toolchain wrapped_clang - allows deriving SDK path
+# We use wrapped_clang as a reference point since it's a single file at the toolchain root
+alias(
+    name = "apple_sdk_ref",
+    actual = "@apple_cross_toolchain//:wrapped_clang",
 )

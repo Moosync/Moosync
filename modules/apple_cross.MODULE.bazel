@@ -1,0 +1,19 @@
+# Apple cross-compilation toolchain (Linux -> macOS x86_64)
+# Requires SDK to be packaged first via .github/workflows/package-apple-sdk.yaml
+
+apple_cross_toolchain = use_extension(
+    "@rules_applecross//toolchain:extensions.bzl",
+    "apple_cross_toolchain",
+)
+apple_cross_toolchain.configure(
+    name = "apple_cross_toolchain",
+    # SDK is uploaded to GitHub pre-release by package-apple-sdk.yaml workflow
+    apple_sdk_urls = [
+        "https://github.com/MulverineX/Moosync/releases/download/apple-sdk-v1/apple-sdks-xcode-16.4.tar.zst",
+    ],
+    apple_sdk_sha256 = "5351a521110c6450d60d077ecd049a87dd2db33baed547cce9b9e093b02025fb",
+    apple_sdk_archive_type = "tar.zst",
+)
+use_repo(apple_cross_toolchain, "apple_cross_toolchain")
+
+register_toolchains("@apple_cross_toolchain//:all")

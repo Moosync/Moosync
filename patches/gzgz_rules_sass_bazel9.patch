@@ -1,0 +1,9 @@
+--- a/sass/private/resolved_toolchain.bzl
++++ b/sass/private/resolved_toolchain.bzl
+@@ -22,6 +22,5 @@ def _resolved_toolchain_impl(ctx):
+ resolved_toolchain = rule(
+     implementation = _resolved_toolchain_impl,
+     toolchains = ["//sass:toolchain_type"],
+-    incompatible_use_toolchain_transition = True,
+     doc = DOC,
+ )

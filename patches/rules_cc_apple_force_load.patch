@@ -1,0 +1,104 @@
+diff --git a/cc/toolchains/args/libraries_to_link/BUILD b/cc/toolchains/args/libraries_to_link/BUILD
+index 6271856..245929c 100644
+--- a/cc/toolchains/args/libraries_to_link/BUILD
++++ b/cc/toolchains/args/libraries_to_link/BUILD
+@@ -1,7 +1,7 @@
+ load("//cc/toolchains:args.bzl", "cc_args")
+ load("//cc/toolchains:feature.bzl", "cc_feature")
+ load("//cc/toolchains:nested_args.bzl", "cc_nested_args")
+-load("//cc/toolchains/args/libraries_to_link/private:library_link_args.bzl", "library_link_args")
++load("//cc/toolchains/args/libraries_to_link/private:library_link_args.bzl", "apple_force_load_select", "library_link_args")
+ 
+ package(default_visibility = ["//visibility:private"])
+ 
+@@ -73,25 +73,26 @@ cc_nested_args(
+     requires_false = "//cc/toolchains/variables:libraries_to_link.is_whole_archive",
+ )
+ 
++_APPLE_NO_WHOLE_ARCHIVE = {os: [] for os in apple_force_load_select() if os != "//conditions:default"}
++_APPLE_NO_WHOLE_ARCHIVE["//conditions:default"] = [":optional_whole_archive_start"]
++
++_APPLE_VERSIONED_DYLIB = {os: [":macos_optional_versioned_dynamic_library"] for os in apple_force_load_select() if os != "//conditions:default"}
++_APPLE_VERSIONED_DYLIB["//conditions:default"] = [":generic_optional_versioned_dynamic_library"]
++
++_APPLE_NO_WHOLE_ARCHIVE_END = {os: [] for os in apple_force_load_select() if os != "//conditions:default"}
++_APPLE_NO_WHOLE_ARCHIVE_END["//conditions:default"] = [":optional_whole_archive_end"]
++
+ cc_nested_args(
+     name = "single_library_args",
+-    nested = select({
+-        "@platforms//os:macos": [],
+-        "//conditions:default": [":optional_whole_archive_start"],
+-    }) + [
++    # Apple platforms use -force_load instead of -whole-archive (handled in library_link_args).
++    # GNU/Linux platforms use -whole-archive/-no-whole-archive wrappers.
++    nested = select(_APPLE_NO_WHOLE_ARCHIVE) + [
+         ":optional_object_file_group",
+         ":optional_object_file",
+         ":optional_interface_library",
+         ":optional_static_library",
+         ":optional_dynamic_library",
+-    ] + select({
+-        # maOS has a minor nuance where it uses the path to the library instead of `-l:{library_name}`.
+-        "@platforms//os:macos": [":macos_optional_versioned_dynamic_library"],
+-        "//conditions:default": [":generic_optional_versioned_dynamic_library"],
+-    }) + select({
+-        "@platforms//os:macos": [],
+-        "//conditions:default": [":optional_whole_archive_end"],
+-    }),
++    ] + select(_APPLE_VERSIONED_DYLIB) + select(_APPLE_NO_WHOLE_ARCHIVE_END),
+ )
+ 
+ cc_nested_args(
+diff --git a/cc/toolchains/args/libraries_to_link/private/library_link_args.bzl b/cc/toolchains/args/libraries_to_link/private/library_link_args.bzl
+index 8b0e409..9ae35af 100644
+--- a/cc/toolchains/args/libraries_to_link/private/library_link_args.bzl
++++ b/cc/toolchains/args/libraries_to_link/private/library_link_args.bzl
+@@ -15,6 +15,20 @@
+ 
+ load("//cc/toolchains:nested_args.bzl", "cc_nested_args")
+ 
++_APPLE_OSES = {
++    "@platforms//os:macos": "macos",
++    "@platforms//os:ios": "ios",
++    "@platforms//os:tvos": "tvos",
++    "@platforms//os:watchos": "watchos",
++    "@platforms//os:visionos": "visionos",
++}
++
++def apple_force_load_select():
++    """Returns a select dict mapping Apple OSes to True, default to False."""
++    d = {os: True for os in _APPLE_OSES}
++    d["//conditions:default"] = False
++    return d
++
+ def macos_force_load_library_args(name, variable):
+     """A helper for declaring -force_load argument expansion for a library.
+ 
+@@ -65,8 +79,8 @@ def library_link_args(name, library_type, from_variable, iterate_over_variable =
+             },
+         )
+ 
+-    For macos, this expands to a more complex cc_nested_args structure that
+-    handles the -force_load flag.
++    For Apple platforms (macOS, iOS, tvOS, watchOS, visionOS), this expands to
++    a more complex cc_nested_args structure that handles the -force_load flag.
+ 
+     Args:
+       name: The name of the rule.
+@@ -74,12 +88,11 @@ def library_link_args(name, library_type, from_variable, iterate_over_variable =
+       from_variable: The variable to expand.
+       iterate_over_variable: Whether to iterate over the variable.
+     """
++    apple_select = {os: ":macos_{}".format(name) for os in _APPLE_OSES}
++    apple_select["//conditions:default"] = ":generic_{}".format(name)
+     native.alias(
+         name = name,
+-        actual = select({
+-            "@platforms//os:macos": ":macos_{}".format(name),
+-            "//conditions:default": ":generic_{}".format(name),
+-        }),
++        actual = select(apple_select),
+     )
+     cc_nested_args(
+         name = "generic_{}".format(name),

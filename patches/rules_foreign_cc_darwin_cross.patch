@@ -1,0 +1,44 @@
+diff --git a/foreign_cc/private/framework.bzl b/foreign_cc/private/framework.bzl
+index 76192ef..a1b3c2d 100644
+--- a/foreign_cc/private/framework.bzl
++++ b/foreign_cc/private/framework.bzl
+@@ -336,24 +336,26 @@ def get_env_prelude(ctx, installdir, data_dependencies, tools_env):
+     cc_toolchain = find_cpp_toolchain(ctx)
+     cc_env = _correct_path_variable(cc_toolchain, get_env_vars(ctx))
+     env.update(cc_env)
+
++    # Process user vars early so we can check for DEVELOPER_DIR/SDKROOT
++    user_vars = expand_locations_and_make_variables(ctx, ctx.attr.env, "env", data_dependencies)
++    env.update(user_vars)
++
+     # This logic mirrors XcodeLocalEnvProvider#querySdkRoot in bazel itself
++    # For cross-compilation from Linux, DEVELOPER_DIR and SDKROOT should be set via env attr
+     if "APPLE_SDK_PLATFORM" in cc_env:
+         platform = cc_env["APPLE_SDK_PLATFORM"]
+         version = cc_env["APPLE_SDK_VERSION_OVERRIDE"]
+         sdk = "{}{}".format(platform.lower(), version)
+-        env_snippet.extend([
+-            # TODO: This path needs to take cc_env["XCODE_VERSION_OVERRIDE"] into account
+-            # Declare and export separately so bash doesn't ignore failures from the commands https://github.com/koalaman/shellcheck/wiki/SC2155
+-            "developer_dir_tmp=\"$(xcode-select --print-path)\"",
+-            "export DEVELOPER_DIR=\"$developer_dir_tmp\"",
+-            "sdkroot_tmp=\"$(xcrun --sdk {} --show-sdk-path)\"".format(sdk),
+-            "export SDKROOT=\"$sdkroot_tmp\"",
++        # Only query xcode-select/xcrun if DEVELOPER_DIR/SDKROOT not provided in env attr
++        if "DEVELOPER_DIR" not in user_vars:
++            env_snippet.append("developer_dir_tmp=\"$(xcode-select --print-path)\"")
++            env_snippet.append("export DEVELOPER_DIR=\"$developer_dir_tmp\"")
++        if "SDKROOT" not in user_vars:
++            env_snippet.append("sdkroot_tmp=\"$(xcrun --sdk {} --show-sdk-path)\"".format(sdk))
++            env_snippet.append("export SDKROOT=\"$sdkroot_tmp\"")
++        env_snippet.extend([
+             "export CMAKE_OSX_ARCHITECTURES={}".format(ctx.fragments.apple.single_arch_cpu),
+         ])
+
+-    # Add all user defined variables
+-    user_vars = expand_locations_and_make_variables(ctx, ctx.attr.env, "env", data_dependencies)
+-    env.update(user_vars)
+-
+     if cc_toolchain.compiler == "msvc-cl":
+         # Convert any $$EXT_BUILD_ROOT$$ or $EXT_BUILD_ROOT in PATH to
+         # /${EXT_BUILD_ROOT/$(printf '\072')/}. This is because PATH needs to be in unix

@@ -1,0 +1,26 @@
+diff --git a/toolchain/apple_cross_toolchain.bzl b/toolchain/apple_cross_toolchain.bzl
+--- a/toolchain/apple_cross_toolchain.bzl
++++ b/toolchain/apple_cross_toolchain.bzl
+@@ -150,7 +150,8 @@ def _apple_cross_toolchain_impl(rctx):
+
+     repo_path = str(rctx.path(""))
+     relative_path_prefix = "external/{}/".format(rctx.name)
+-    toolchain_path_prefix = relative_path_prefix
++    # Use absolute path so toolchain works from any working directory (e.g., cargo build scripts)
++    toolchain_path_prefix = repo_path + "/"
+     developer_dir = ""
+     tools_path_prefix = ""
+     xcode_toolchain_bindir = "Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/"
+diff --git a/toolchain/BUILD.template.bzl b/toolchain/BUILD.template.bzl
+--- a/toolchain/BUILD.template.bzl
++++ b/toolchain/BUILD.template.bzl
+@@ -152,7 +152,8 @@ cc_tool(
+
+ _TOOLCHAIN_PREFIX = "%{toolchain_path_prefix}"
+ _REPO_PATH = "%{cxx_builtin_include_directories}"
+-_DEVELOPER_DIR = _TOOLCHAIN_PREFIX + "Xcode.app/Contents/Developer"
++# Use absolute path for DEVELOPER_DIR so it works from any working directory (e.g., cargo build scripts)
++_DEVELOPER_DIR = _REPO_PATH + "/Xcode.app/Contents/Developer"
+
+ # =============================================================================
+ # Target flags (triple is injected by apple_cc_toolchain_config at analysis time)

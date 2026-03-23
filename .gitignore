@@ -11,6 +11,9 @@ src-tauri/gen/android/app/
 ffmpeg-android-maker/
 bazel-*
 rust-project.json
+_examples_applecross/
+_rules_foreign_cc/
 .ropeproject/
 **/.gradle
 **/.settings
+_examples_applecross/

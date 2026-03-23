@@ -1,0 +1,13 @@
+diff --git a/toolchain/cc_wrapper.template.sh b/toolchain/cc_wrapper.template.sh
+index 1234567..abcdefg 100644
+--- a/toolchain/cc_wrapper.template.sh
++++ b/toolchain/cc_wrapper.template.sh
+@@ -72,7 +72,7 @@ for i in "$@"; do
+ done
+
+ # Call the C++ compiler
+-%{cc} "$@"
++"${MY_LOCATION}/wrapped_clang" "$@"
+
+ function get_library_path() {
+     for libdir in ${LIB_DIRS}; do

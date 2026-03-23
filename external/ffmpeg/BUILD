@@ -6,7 +6,17 @@ configure_make(
     name = "ffmpeg",
     build_data = [
         "@nasm//:nasm",
-    ],
+    ] + select({
+        "//tools:target_macos": [
+            "@apple_cross_toolchain//:toolchain_files",
+            "@apple_cross_toolchain//:wrapped_clang",
+            "@apple_cross_toolchain//:wrapped_clang_pp",
+            "@apple_cross_toolchain//:cc_wrapper.sh",
+            "@apple_cross_toolchain//:xcrunwrapper.sh",
+            "//tools:darwin_ar_wrapper.sh",
+        ],
+        "//conditions:default": [],
+    }),
     configure_in_place = True,
     configure_options = [
         "--disable-everything",
@@ -71,6 +81,17 @@ configure_make(
             # NOTE: Only on github actions. Change it if you're building locally
             "--pkg-config=\"D:/a/_temp/msys64/usr/bin/pkg-config.exe $$BAZEL_PKG_FLAGS\"",
         ],
+        "//tools:target_macos": [
+            "--enable-cross-compile",
+            "--target-os=darwin",
+            "--arch=x86_64",
+            "--cc=$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/wrapped_clang",
+            "--cxx=$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/wrapped_clang_pp",
+            "--ar=$$EXT_BUILD_ROOT$$/tools/darwin_ar_wrapper.sh",
+            "--nm=$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-nm",
+            "--ranlib=$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-ranlib",
+            "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lm -lpthread\"",
+        ],
         "//conditions:default": [
             "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lm -lpthread\"",
         ],
@@ -85,6 +106,14 @@ configure_make(
                 "--with-path=$$(cygpath -u $${EXT_BUILD_DEPS}/vorbis/lib/pkgconfig)",
                 "--with-path=$$(cygpath -u $${EXT_BUILD_DEPS}/opus/lib/pkgconfig)",
             ]),
+        },
+        "//tools:target_macos": {
+            "DEVELOPER_DIR": "$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer",
+            "SDKROOT": "$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+            # Cross-compile tool paths
+            "AR": "$$EXT_BUILD_ROOT$$/tools/darwin_ar_wrapper.sh",
+            "NM": "$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-nm",
+            "RANLIB": "$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-ranlib",
         },
         "//conditions:default": {},
     }),
@@ -102,6 +131,8 @@ configure_make(
     tool_prefix = select({
         # Escape quotes for Bazel + powershell + bash: 2^4 quotes
         "@bazel_tools//src/conditions:windows": "sed -i 's|gsub(/\\\\\\\\/,|gsub(/\\\\\\\\\\\\\\\\/,|' ffbuild/config.mak &&",
+        # Fix closesocket detection: -undefined dynamic_lookup causes configure to wrongly detect closesocket
+        "//tools:target_macos": "sed -i 's/HAVE_CLOSESOCKET 1/HAVE_CLOSESOCKET 0/' config.h &&",
         "//conditions:default": "",
     }),
     visibility = ["//visibility:public"],

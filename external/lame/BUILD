@@ -33,13 +33,36 @@ make_variant(
 
 configure_make(
     name = "lame_nix",
+    build_data = select({
+        "//tools:target_macos": [
+            "@apple_cross_toolchain//:toolchain_files",
+            "@apple_cross_toolchain//:wrapped_clang",
+            "@apple_cross_toolchain//:wrapped_clang_pp",
+            "@apple_cross_toolchain//:cc_wrapper.sh",
+            "@apple_cross_toolchain//:xcrunwrapper.sh",
+            "//tools:darwin_ar_wrapper.sh",
+        ],
+        "//conditions:default": [],
+    }),
     configure_options = [
         "--disable-shared",
         "--enable-static",
         "--disable-frontend",
         "--with-pic",
-    ],
+    ] + select({
+        "//tools:target_macos": ["--host=x86_64-apple-darwin"],
+        "//conditions:default": [],
+    }),
     env = select({
+        "//tools:target_macos": {
+            "DEVELOPER_DIR": "$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer",
+            "SDKROOT": "$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.5.sdk",
+            # Cross-compile tool paths - use wrapper that translates GNU ar syntax to llvm-libtool-darwin
+            "AR": "$$EXT_BUILD_ROOT$$/tools/darwin_ar_wrapper.sh",
+            "NM": "$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-nm",
+            "RANLIB": "$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-ranlib",
+            "STRIP": "$$EXT_BUILD_ROOT$$/external/rules_applecross++apple_cross_toolchain+apple_cross_toolchain/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-strip",
+        },
         "@platforms//os:macos": {
             "AR": "",
         },

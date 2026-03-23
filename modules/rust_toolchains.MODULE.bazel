@@ -6,6 +6,7 @@ rust.toolchain(
         "aarch64-linux-android",
         "armv7-linux-androideabi",
         "x86_64-linux-android",
+        "x86_64-apple-darwin",
     ],
     versions = [
         # "1.86.0",

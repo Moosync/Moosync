@@ -32,3 +32,14 @@ build:android --action_env=TAURI_ANDROID_BUILD=true
 build --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
 build --output_groups=+clippy_checks
 build --@rules_rust//rust/settings:rustc_output_diagnostics=true --output_groups=+rust_lib_rustc_output,+rust_metadata_rustc_output
+
+# macOS x86_64 cross-compilation from Linux
+build:darwin_cross --platforms=//toolchains/darwin:x86_64
+build:darwin_cross --//tools:target_os=macos
+build:darwin_cross --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
+build:darwin_cross --@rules_rust//rust/settings:lto=fat
+# LLVM hermetic toolchain config - allow system libs for exec builds
+build:darwin_cross --@llvm//config:empty_sysroot=false
+build:darwin_cross --@llvm//config:experimental_stub_libgcc_s=true
+# Note: DEVELOPER_DIR/SDKROOT are computed by the toolchain's wrapped_clang binary
+# Do not set them here - relative paths break cmake's subdirectory test compiles

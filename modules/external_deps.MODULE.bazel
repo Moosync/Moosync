@@ -3,6 +3,7 @@ single_version_override(
     patch_strip = 1,
     patches = [
         "//patches:0001-Fix-pkgconfig_build.bzl-for-Windows-build-with-Bzlmod.patch",
+        "//patches:rules_foreign_cc_darwin_cross.patch",
     ],
 )
 

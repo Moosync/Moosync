@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       force_rebuild:
-        description: 'Force rebuild even if SDK already exists'
+        description: "Force rebuild even if SDK already exists"
         required: false
         default: false
         type: boolean

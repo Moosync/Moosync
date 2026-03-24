@@ -67,6 +67,7 @@ git_override(
     patches = [
         "//patches:rules_applecross_cc_wrapper.patch",
         "//patches:rules_applecross_absolute_paths.patch",
+        "//patches:rules_applecross_host_check.patch",
     ],
     patch_strip = 1,
 )

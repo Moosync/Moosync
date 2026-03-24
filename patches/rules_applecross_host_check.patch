@@ -1,0 +1,25 @@
+diff --git a/toolchain/apple_cross_toolchain.bzl b/toolchain/apple_cross_toolchain.bzl
+--- a/toolchain/apple_cross_toolchain.bzl
++++ b/toolchain/apple_cross_toolchain.bzl
+@@ -140,6 +140,21 @@ def _ensure_swift_compatibility_stub_archives(rctx, xcode_toolchain_bindir, xcod
+             rctx.delete(obj)
+
+ def _apple_cross_toolchain_impl(rctx):
++    # Only supported on x86_64 Linux hosts - on other platforms, create a stub
++    # This prevents ARM64 Linux runners from failing when the toolchain is registered
++    host_os = rctx.os.name.lower()
++    host_arch = rctx.os.arch
++    if "linux" not in host_os or host_arch not in ["amd64", "x86_64"]:
++        rctx.file("BUILD", content = """\
++# Apple cross-toolchain stub - not supported on this host platform ({os} {arch})
++# Cross-compilation to macOS is only supported from x86_64 Linux hosts.
++
++package(default_visibility = ["//visibility:public"])
++
++filegroup(name = "empty", srcs = [])
++""".format(os = host_os, arch = host_arch))
++        return
++
+     # Resolve label paths
+     libtool_cc = rctx.path(Label("@rules_applecross//toolchain:libtool.cc"))
+     build_tpl = rctx.path(Label("@rules_applecross//toolchain:BUILD.template.bzl"))

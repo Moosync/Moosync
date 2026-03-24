@@ -35,6 +35,12 @@ else
         fi
     fi
 
-    # Last resort: run without sysroot
+    # Last resort: on native macOS, use xcrun to find SDK; otherwise run without sysroot
+    if command -v xcrun &>/dev/null; then
+        NATIVE_SDK="$(xcrun --show-sdk-path 2>/dev/null)" || true
+        if [[ -n "${NATIVE_SDK}" && -d "${NATIVE_SDK}" ]]; then
+            exec "${CLANG}" -isysroot "${NATIVE_SDK}" "$@"
+        fi
+    fi
     exec "${CLANG}" "$@"
 fi

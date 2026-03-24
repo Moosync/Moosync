@@ -4,7 +4,12 @@
 
 set -eu
 
-# Construct SDKROOT from DEVELOPER_DIR
+# On native macOS, just use system clang directly - no wrapper needed
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    exec clang "$@"
+fi
+
+# Cross-compilation from Linux: construct SDKROOT from DEVELOPER_DIR
 if [[ -n "${DEVELOPER_DIR:-}" ]]; then
     # Normalize the path (remove /.. components)
     DEVELOPER_DIR_REAL="$(cd "${DEVELOPER_DIR}" 2>/dev/null && pwd)" || DEVELOPER_DIR_REAL="${DEVELOPER_DIR}"
@@ -35,19 +40,6 @@ else
         fi
     fi
 
-    # Last resort: on native macOS, use xcrun to find SDK; otherwise try known paths
-    if command -v xcrun &>/dev/null; then
-        NATIVE_SDK="$(xcrun --show-sdk-path 2>/dev/null)" || true
-        if [[ -n "${NATIVE_SDK}" && -d "${NATIVE_SDK}" ]]; then
-            exec "${CLANG}" -isysroot "${NATIVE_SDK}" "$@"
-        fi
-    fi
-
-    # Fallback: GitHub Actions macOS runners have Xcode at /Applications/Xcode.app
-    FALLBACK_SDK="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
-    if [[ -d "${FALLBACK_SDK}" ]]; then
-        exec "${CLANG}" -isysroot "${FALLBACK_SDK}" "$@"
-    fi
-
+    # Last resort: run without sysroot (will likely fail on cross-compile)
     exec "${CLANG}" "$@"
 fi

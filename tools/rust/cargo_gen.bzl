@@ -236,7 +236,7 @@ def _process_dependencies(context):
     if context.rule.kind == "rust_prost_library" and hasattr(context.rule.attr, "proto") and ProtoInfo in context.rule.attr.proto:
         pinfo = context.rule.attr.proto[ProtoInfo]
         direct_files = pinfo.direct_sources
-        for f in pinfo.transitive_imports.to_list():
+        for f in pinfo.transitive_sources.to_list():
             if f.owner and f.owner.workspace_name == "" and f not in direct_files:
                 name = f.basename
                 if name.endswith(".proto"):

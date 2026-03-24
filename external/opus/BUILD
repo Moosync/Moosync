@@ -18,6 +18,8 @@ cmake(
         "BUILD_SHARED_LIBS": "OFF",
         "BUILD_TESTING": "OFF",
         "OPUS_BUILD_PROGRAMS": "OFF",
+        # Newer CMake removed compatibility with cmake_minimum_required < 3.5
+        "CMAKE_POLICY_VERSION_MINIMUM": "3.5",
     } | select({
         "//tools:target_macos": {
             "CMAKE_SYSTEM_NAME": "Darwin",

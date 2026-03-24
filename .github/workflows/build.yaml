@@ -126,10 +126,10 @@ jobs:
       - uses: MulverineX/setup-bazel@replace-cache-after-change
         with:
           bazelisk-cache: false
-          disk-cache: true
+          disk-cache: ${{ matrix.os == 'ubuntu-22.04' || matrix.os == 'macos-latest' }}
           # Disable disk cache re-upload for Linux x64 (Android build causes non-deterministic outputs)
           disk-cache-reupload: ${{ matrix.os != 'ubuntu-22.04' }}
-          repository-cache: true
+          repository-cache: ${{ matrix.os == 'ubuntu-22.04' || matrix.os == 'macos-latest' }}
 
       - name: Install Common linux Dependencies
         if: startsWith(matrix.os, 'ubuntu-22.04')

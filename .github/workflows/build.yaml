@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: 'Platform to build'
+        description: "Platform to build"
         required: true
-        default: 'all'
+        default: "all"
         type: choice
         options:
           - all
@@ -14,7 +14,7 @@ on:
           - macos
           - windows
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
   APP_NAME: "Moosync"
@@ -94,7 +94,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
     continue-on-error: false
-    
+
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.configure.outputs.matrix) }}
@@ -111,11 +111,11 @@ jobs:
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
-          android: false  # Keep Android SDK for cross-compiling
+          android: false # Keep Android SDK for cross-compiling
           dotnet: true
           haskell: true
-          large-packages: false  # Slow, skip it - dotnet/haskell save ~7GB
-          docker-images: false   # Slow
+          large-packages: false # Slow, skip it - dotnet/haskell save ~7GB
+          docker-images: false # Slow
           swap-storage: true
 
       - name: Set up swap space
@@ -128,7 +128,7 @@ jobs:
 
       - uses: MulverineX/setup-bazel@replace-cache-after-change
         with:
-          bazelisk-cache: true
+          bazelisk-cache: false
           disk-cache: true
           # Disable disk cache re-upload for Linux x64 (Android build causes non-deterministic outputs)
           disk-cache-reupload: ${{ matrix.os != 'ubuntu-22.04' }}
@@ -136,33 +136,21 @@ jobs:
 
       - name: Install Common linux Dependencies
         if: startsWith(matrix.os, 'ubuntu-22.04')
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: >
-            libwebkit2gtk-4.1-dev gir1.2-javascriptcoregtk-4.1
-            libgtk-3-dev libunwind-dev librsvg2-dev patchelf 
-            alsa-tools libasound2-dev libudev-dev 
-            libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev 
-            gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad 
-            gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools 
-            gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl 
-            gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio libappindicator3-dev 
-            nasm yasm autoconf automake libtool pkg-config make build-essential binutils lld clang libenchant-2-2
-          version: 1.2
+        run: |
+          sudo apt install libwebkit2gtk-4.1-dev gir1.2-javascriptcoregtk-4.1
+          libgtk-3-dev libunwind-dev librsvg2-dev patchelf 
+          alsa-tools libasound2-dev libudev-dev 
+          libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev 
+          gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad 
+          gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools 
+          gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl 
+          gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio libappindicator3-dev 
+          nasm yasm autoconf automake libtool pkg-config make build-essential binutils lld clang libenchant-2-2
 
       - name: Install ARM-Only linux Dependencies
         if: matrix.os == 'ubuntu-22.04-arm'
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: >
-            curl file xdg-utils libfuse2 libayatana-appindicator3-dev
-          version: 1.0
-
-      - name: install dependencies (macos only)
-        if: matrix.os == 'macos-15-intel'
         run: |
-          brew update
-          brew install nasm
+          sudo apt install curl file xdg-utils libfuse2 libayatana-appindicator3-dev
 
       - uses: msys2/setup-msys2@v2
         id: msys2

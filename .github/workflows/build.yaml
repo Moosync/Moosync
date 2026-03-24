@@ -284,3 +284,15 @@ jobs:
           name: moosync-android-x86_64
           path: tauri/gen/android/app/build/outputs/apk/x86_64/debug/*.apk
           if-no-files-found: error
+
+      - name: Build macOS x64 (Cross-compile from Linux)
+        if: matrix.os == 'ubuntu-22.04'
+        run: bazel build //package/apple:apple_release --config=darwin_cross -c opt
+
+      - name: Upload macOS x64 Cross-compiled Package
+        if: matrix.os == 'ubuntu-22.04'
+        uses: actions/upload-artifact@v4
+        with:
+          name: moosync-macos-x64-cross
+          path: bazel-bin/package/apple/Moosync-*-*.darwin-x64.zip
+          if-no-files-found: error

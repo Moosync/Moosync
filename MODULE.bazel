@@ -57,6 +57,11 @@ git_override(
 # Android build rules
 bazel_dep(name = "rules_android", version = "0.7.1")
 bazel_dep(name = "rules_android_ndk", version = "0.1.3")
+git_override(
+    module_name = "rules_android_ndk",
+    commit = "ec85ec1645ecb3223e41b85f92032c7e75660394",
+    remote = "https://github.com/bazelbuild/rules_android_ndk.git",
+)
 
 # Apple cross-compilation (Linux -> macOS)
 bazel_dep(name = "rules_applecross", version = "0.0.3")

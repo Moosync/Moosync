@@ -303,8 +303,10 @@ crates.annotation(
         "FFMPEG_LINK_MODE": "static",
         # For cross-compilation: set DEVELOPER_DIR so bindgen wrapper can find SDK
         "DEVELOPER_DIR": "$(execpath @@//tools:apple_sdk_ref)/../Xcode.app/Contents/Developer",
-        # Use our wrapper that adds sysroot
+        # Use our wrapper that adds sysroot for cross-compilation
         "CLANG_PATH": "$(execpath @@//tools:bindgen_clang_wrapper.sh)",
+        # For native macOS in sandbox: add SDK include path as fallback (ignored if path doesn't exist)
+        "BINDGEN_EXTRA_CLANG_ARGS": "-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include",
     },
     build_script_rustc_env = {
         "FFMPEG_LINK_MODE": "static",

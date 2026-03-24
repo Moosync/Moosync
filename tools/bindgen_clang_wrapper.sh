@@ -35,12 +35,19 @@ else
         fi
     fi
 
-    # Last resort: on native macOS, use xcrun to find SDK; otherwise run without sysroot
+    # Last resort: on native macOS, use xcrun to find SDK; otherwise try known paths
     if command -v xcrun &>/dev/null; then
         NATIVE_SDK="$(xcrun --show-sdk-path 2>/dev/null)" || true
         if [[ -n "${NATIVE_SDK}" && -d "${NATIVE_SDK}" ]]; then
             exec "${CLANG}" -isysroot "${NATIVE_SDK}" "$@"
         fi
     fi
+
+    # Fallback: GitHub Actions macOS runners have Xcode at /Applications/Xcode.app
+    FALLBACK_SDK="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk"
+    if [[ -d "${FALLBACK_SDK}" ]]; then
+        exec "${CLANG}" -isysroot "${FALLBACK_SDK}" "$@"
+    fi
+
     exec "${CLANG}" "$@"
 fi

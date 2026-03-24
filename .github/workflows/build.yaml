@@ -10,9 +10,10 @@ on:
         type: choice
         options:
           - all
-          - linux
-          - macos
-          - windows
+          - linux-x64
+          - linux-arm64
+          - macos-arm64
+          - windows-x64
   pull_request:
     branches: ["main"]
 
@@ -49,14 +50,6 @@ jobs:
             "artifact_patterns": "Moosync-*-*.aarch64.rpm\nMoosync-*-*.arm64.deb\nMoosync-*-*.aarch64.AppImage"
           }'
 
-          MAC_X64='{
-            "name": "macOS x64",
-            "os": "macos-15-intel",
-            "target": "//package/apple:apple_release",
-            "artifact_path_base": "bazel-bin/package/apple",
-            "artifact_patterns": "Moosync-*-*.darwin-x64.zip"
-          }'
-
           MAC_ARM='{
             "name": "macOS ARM64",
             "os": "macos-latest",
@@ -75,15 +68,19 @@ jobs:
 
           INPUT="${{ inputs.platform || 'all' }}"
 
-          if [[ "$INPUT" == "all" || "$INPUT" == "linux" ]]; then
-             MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$LINUX_X64, $LINUX_ARM]")
+          if [[ "$INPUT" == "all" || "$INPUT" == "linux-x64" ]]; then
+             MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$LINUX_X64]")
           fi
 
-          if [[ "$INPUT" == "all" || "$INPUT" == "macos" ]]; then
-             MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$MAC_X64, $MAC_ARM]")
+          if [[ "$INPUT" == "all" || "$INPUT" == "linux-arm64" ]]; then
+             MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$LINUX_ARM]")
           fi
 
-          if [[ "$INPUT" == "all" || "$INPUT" == "windows" ]]; then
+          if [[ "$INPUT" == "all" || "$INPUT" == "macos-arm64" ]]; then
+             MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$MAC_ARM]")
+          fi
+
+          if [[ "$INPUT" == "all" || "$INPUT" == "windows-x64" ]]; then
              MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$WIN_X64]")
           fi
 
@@ -137,8 +134,8 @@ jobs:
       - name: Install Common linux Dependencies
         if: startsWith(matrix.os, 'ubuntu-22.04')
         run: |
-          sudo apt update
-          sudo apt install -y \
+          sudo apt-get update
+          sudo apt-get install -y \
             libwebkit2gtk-4.1-dev gir1.2-javascriptcoregtk-4.1 \
             libgtk-3-dev libunwind-dev librsvg2-dev patchelf \
             alsa-tools libasound2-dev libudev-dev \
@@ -152,8 +149,7 @@ jobs:
       - name: Install ARM-Only linux Dependencies
         if: matrix.os == 'ubuntu-22.04-arm'
         run: |
-          sudo apt update
-          sudo apt install -y curl file xdg-utils libfuse2 libayatana-appindicator3-dev
+          sudo apt-get install -y curl file xdg-utils libfuse2 libayatana-appindicator3-dev
 
       - uses: msys2/setup-msys2@v2
         id: msys2

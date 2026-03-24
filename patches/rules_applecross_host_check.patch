@@ -1,7 +1,7 @@
 diff --git a/toolchain/apple_cross_toolchain.bzl b/toolchain/apple_cross_toolchain.bzl
 --- a/toolchain/apple_cross_toolchain.bzl
 +++ b/toolchain/apple_cross_toolchain.bzl
-@@ -140,6 +140,24 @@ def _ensure_swift_compatibility_stub_archives(rctx, xcode_toolchain_bindir, xcod
+@@ -140,6 +140,28 @@ def _ensure_swift_compatibility_stub_archives(rctx, xcode_toolchain_bindir, xcod
              rctx.delete(obj)
 
  def _apple_cross_toolchain_impl(rctx):
@@ -10,6 +10,8 @@ diff --git a/toolchain/apple_cross_toolchain.bzl b/toolchain/apple_cross_toolcha
 +    host_os = rctx.os.name.lower()
 +    host_arch = rctx.os.arch
 +    if "linux" not in host_os or host_arch not in ["amd64", "x86_64"]:
++        # Create a dummy file so $(execpath) works for targets that reference wrapped_clang
++        rctx.file("stub_clang", content = "# Stub - Apple cross-compilation not supported on this platform\n")
 +        rctx.file("BUILD", content = """\
 +# Apple cross-toolchain stub - not supported on this host platform ({os} {arch})
 +# Cross-compilation to macOS is only supported from x86_64 Linux hosts.
@@ -19,7 +21,9 @@ diff --git a/toolchain/apple_cross_toolchain.bzl b/toolchain/apple_cross_toolcha
 +filegroup(name = "empty", srcs = [])
 +
 +# Stub targets to prevent analysis errors when referenced from select() or aliases
-+filegroup(name = "wrapped_clang", srcs = [])
++# These point to a dummy file so $(execpath) expansion works
++exports_files(["stub_clang"])
++alias(name = "wrapped_clang", actual = ":stub_clang")
 +""".format(os = host_os, arch = host_arch))
 +        return
 +

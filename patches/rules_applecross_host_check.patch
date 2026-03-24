@@ -1,7 +1,7 @@
 diff --git a/toolchain/apple_cross_toolchain.bzl b/toolchain/apple_cross_toolchain.bzl
 --- a/toolchain/apple_cross_toolchain.bzl
 +++ b/toolchain/apple_cross_toolchain.bzl
-@@ -140,6 +140,21 @@ def _ensure_swift_compatibility_stub_archives(rctx, xcode_toolchain_bindir, xcod
+@@ -140,6 +140,24 @@ def _ensure_swift_compatibility_stub_archives(rctx, xcode_toolchain_bindir, xcod
              rctx.delete(obj)
 
  def _apple_cross_toolchain_impl(rctx):
@@ -17,6 +17,9 @@ diff --git a/toolchain/apple_cross_toolchain.bzl b/toolchain/apple_cross_toolcha
 +package(default_visibility = ["//visibility:public"])
 +
 +filegroup(name = "empty", srcs = [])
++
++# Stub targets to prevent analysis errors when referenced from select() or aliases
++filegroup(name = "wrapped_clang", srcs = [])
 +""".format(os = host_os, arch = host_arch))
 +        return
 +

@@ -1,0 +1,15 @@
+# Android NDK toolchain (optional - provides stub when NDK not installed)
+android_ndk_optional = use_extension(
+    "//tools:android_ndk_optional.bzl",
+    "android_ndk_optional",
+)
+android_ndk_optional.configure(
+    api_level = 26,  # minSdk from build.gradle.kts
+)
+use_repo(android_ndk_optional, "androidndk")
+
+register_toolchains("@androidndk//:all")
+
+# Tauri crate discovery - resolves @crates//:tauri to get actual repo name
+tauri_ext = use_extension("//tools:tauri_crate.bzl", "tauri_extension")
+use_repo(tauri_ext, "tauri_crate")

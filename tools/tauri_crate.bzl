@@ -10,7 +10,7 @@ def _extract_tauri_version(lockfile):
                 continue
             remainder = line[idx + len(marker):]
             version_chars = []
-            for c in remainder.elems():
+            for c in remainder:
                 if c.isdigit() or c == ".":
                     version_chars.append(c)
                 else:

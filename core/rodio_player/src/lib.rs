@@ -25,8 +25,9 @@ use std::{
 };
 
 use rodio::cpal::traits::{DeviceTrait, HostTrait};
+use rodio::cpal::SupportedStreamConfig;
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, trace};
 use types::errors::MoosyncError;
 use types::errors::Result;
 
@@ -48,10 +49,10 @@ fn get_system_sample_rate() -> u32 {
     {
         // Try PulseAudio first (works with PipeWire too)
         if let Some(rate) = pulse_monitor::get_default_sample_rate() {
-            eprintln!(">>> PulseAudio: Detected sample rate: {} Hz", rate);
+            trace!("PulseAudio: Detected sample rate: {} Hz", rate);
             return rate;
         }
-        eprintln!(">>> PulseAudio: Not available, falling back to cpal");
+        trace!("PulseAudio: Not available, falling back to cpal");
     }
 
     // Fallback: use cpal's default config
@@ -60,15 +61,16 @@ fn get_system_sample_rate() -> u32 {
 
 /// Get sample rate from cpal's default output config.
 fn get_cpal_default_sample_rate() -> u32 {
-    let device = rodio::cpal::default_host()
-        .default_output_device()
-        .expect("No audio output device found");
+    let Some(device) = rodio::cpal::default_host().default_output_device() else {
+        trace!("cpal: No audio device found, using default 44100 Hz");
+        return 44100;
+    };
 
     let default_rate = device
         .default_output_config()
-        .map(|c: rodio::cpal::SupportedStreamConfig| c.sample_rate())
+        .map(|c: SupportedStreamConfig| c.sample_rate())
         .unwrap_or(44100);
-    eprintln!(">>> cpal: Using sample rate: {} Hz", default_rate);
+    trace!("cpal: Using sample rate: {} Hz", default_rate);
     default_rate
 }
 
@@ -89,7 +91,7 @@ enum RodioCommand {
 impl RodioPlayer {
     #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
-        eprintln!(">>> RODIO PLAYER BUILD TEST 1 <<<");
+        trace!("RODIO PLAYER BUILD TEST 1");
         let (events_tx, events_rx) = channel::<PlayerEvent>();
         let tx = Self::initialize(events_tx);
 
@@ -122,14 +124,19 @@ impl RodioPlayer {
             let system_sample_rate = get_system_sample_rate();
 
             // Open stream with the detected sample rate
-            let stream_handle = rodio::DeviceSinkBuilder::from_default_device()
-                .expect("No audio device found")
+            let Some(device_builder) = rodio::DeviceSinkBuilder::from_default_device() else {
+                Self::send_event(events_tx, PlayerEvent::Error("No audio device found".to_string()));
+                return;
+            };
+            let Ok(stream_handle) = device_builder
                 .with_sample_rate(NonZero::new(system_sample_rate).unwrap())
-                .open_stream()
-                .unwrap();
+                .open_stream() else {
+                Self::send_event(events_tx, PlayerEvent::Error("Failed to open audio stream".to_string()));
+                return;
+            };
             let cfg = stream_handle.config();
             let output_sample_rate = cfg.sample_rate().get();
-            eprintln!(">>> OUTPUT STREAM: channels={}, sample_rate={}, format={:?}",
+            trace!("OUTPUT STREAM: channels={}, sample_rate={}, format={:?}",
                 cfg.channel_count(), output_sample_rate, cfg.sample_format());
             let sink = Arc::new(rodio::Player::connect_new(stream_handle.mixer()));
 

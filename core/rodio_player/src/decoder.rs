@@ -8,7 +8,7 @@ use rodio::source::SeekError;
 use rodio::{ChannelCount, Sample, SampleRate, Source};
 use rsmpeg::avformat::AVFormatContextInput;
 use rsmpeg::error::RsmpegError;
-use tracing::error;
+use tracing::{error, trace};
 use types::errors::MoosyncError;
 
 use std::ffi::{CString, NulError, c_int};
@@ -64,7 +64,7 @@ pub struct FFMPEGDecoder {
 impl FFMPEGDecoder {
     fn initialize_swr_context(codec_ctx: &AVCodecContext, output_sample_rate: i32) -> Result<SwrContext, Error> {
         // Always use SwrContext to handle format AND sample rate conversion
-        eprintln!(">>> DECODER: sample_fmt={}, sample_rate={} -> {}, channels={}",
+        trace!("DECODER: sample_fmt={}, sample_rate={} -> {}, channels={}",
             codec_ctx.sample_fmt, codec_ctx.sample_rate, output_sample_rate,
             codec_ctx.ch_layout.nb_channels);
 
@@ -145,7 +145,10 @@ impl FFMPEGDecoder {
                     .unwrap();
 
 
-        // Create a slice referencing the buffer and copy into current_frame
+        // Copy converted samples to current_frame.
+        // SwrContext outputs to AV_SAMPLE_FMT_FLT (interleaved float), so all data
+        // is in audio_data[0] as a single contiguous buffer. This works regardless
+        // of whether the input was planar or interleaved - SwrContext handles both.
         let p = samples.audio_data[0] as *const u8;
         let slice = unsafe { std::slice::from_raw_parts(p, dst_bufsize as usize) };
         self.current_frame.clear();
@@ -206,7 +209,7 @@ impl FFMPEGDecoder {
     }
 
     fn resync_after_seek(&mut self) -> Result<(), Error> {
-        println!("Resyncing to {}", self.requested_seek_timestamp);
+        trace!("Resyncing to {}", self.requested_seek_timestamp);
 
         loop {
             match self.decode_next_packet() {
@@ -278,12 +281,7 @@ impl FFMPEGDecoder {
 impl Source for FFMPEGDecoder {
     #[inline]
     fn channels(&self) -> ChannelCount {
-        static CH_LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-        let ch = self.codec_ctx.ch_layout.nb_channels as u16;
-        if !CH_LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) {
-            eprintln!(">>> SOURCE: channels={}, sample_rate={}", ch, self.output_sample_rate);
-        }
-        NonZero::new(ch).unwrap()
+        NonZero::new(self.codec_ctx.ch_layout.nb_channels as u16).unwrap()
     }
 
     #[inline]

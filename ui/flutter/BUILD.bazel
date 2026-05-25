@@ -1,0 +1,221 @@
+load("@rules_rust//rust:defs.bzl", "rust_shared_library")
+load("@rules_flutter//flutter:defs.bzl", "flutter_app", "flutter_library")
+load("//:defs.bzl", "flutter_app_bundle", "platform_transition_rule")
+
+
+package(default_visibility = ["//visibility:public"])
+
+genrule(
+    name = "generate_frb_bindings",
+    srcs = [
+        "pubspec.yaml",
+        "rust/Cargo.toml",
+        "rust/src/api/mod.rs",
+        "rust/src/api/simple.rs",
+        "rust/src/lib.rs",
+        "@flutter_sdk//:flutter_sdk",
+        "@flutter_sdk//:flutter_binary_unix",
+        "@flutter_sdk//:dart_binary_unix",
+        "@rust_host_tools_nightly//:cargo",
+        "@rust_host_tools_nightly//:rustc",
+    ],
+    outs = [
+        "rust/src/frb_generated.rs",
+        "lib/src/rust/frb_generated.dart",
+        "lib/src/rust/frb_generated.io.dart",
+        "lib/src/rust/api/simple.dart",
+    ],
+    cmd = "\n".join([
+        "export HOME=$$PWD/gen_src/home",
+        "mkdir -p $$HOME",
+        "FLUTTER_ROOT_RO=$$(dirname $(location @flutter_sdk//:flutter_binary_unix))/..",
+        "WRITABLE_FLUTTER=$$PWD/gen_src/writable_flutter",
+        "mkdir -p $$WRITABLE_FLUTTER",
+        "cp -RL $$FLUTTER_ROOT_RO/. $$WRITABLE_FLUTTER/",
+        "chmod -R u+rwX $$WRITABLE_FLUTTER",
+        "CARGO_BIN_DIR=$$(dirname $(location @rust_host_tools_nightly//:cargo))",
+        "RUSTC_BIN_DIR=$$(dirname $(location @rust_host_tools_nightly//:rustc))",
+        "CARGO_EXPAND_BIN_DIR=$$(dirname $(location @crates//:cargo-expand__cargo-expand))",
+        "mkdir -p gen_src/bin",
+        "ln -sf $$PWD/$$CARGO_EXPAND_BIN_DIR/cargo-expand__bin gen_src/bin/cargo-expand",
+        "export PATH=$$PWD/gen_src/bin:$$WRITABLE_FLUTTER/bin:$$PWD/$$(dirname $(location @flutter_sdk//:dart_binary_unix)):$$PWD/$$CARGO_BIN_DIR:$$PWD/$$RUSTC_BIN_DIR:$$PATH",
+        "mkdir -p gen_src/rust/src/api",
+        "cp $(location pubspec.yaml) gen_src/pubspec.yaml",
+        "cp $(location rust/Cargo.toml) gen_src/rust/",
+        "cp $(location rust/src/lib.rs) gen_src/rust/src/",
+        "cp $(location rust/src/api/mod.rs) gen_src/rust/src/api/",
+        "cp $(location rust/src/api/simple.rs) gen_src/rust/src/api/",
+        "mkdir -p gen_src/lib/src/rust",
+        "$(location @crates//:flutter_rust_bridge_codegen__flutter_rust_bridge_codegen) generate \\",
+        "    --rust-input crate::api::simple \\",
+        "    --rust-output gen_src/rust/src/frb_generated.rs \\",
+        "    --dart-output gen_src/lib/src/rust \\",
+        "    --rust-root gen_src/rust \\",
+        "    --dart-root gen_src \\",
+        "    --no-deps-check \\",
+        "    --no-rust-format \\",
+        "    --no-dart-format \\",
+        "    --no-web",
+        "cp gen_src/rust/src/frb_generated.rs $(location rust/src/frb_generated.rs)",
+        "cp gen_src/lib/src/rust/frb_generated.dart $(location lib/src/rust/frb_generated.dart)",
+        "cp gen_src/lib/src/rust/frb_generated.io.dart $(location lib/src/rust/frb_generated.io.dart)",
+        "cp gen_src/lib/src/rust/api/simple.dart $(location lib/src/rust/api/simple.dart)",
+    ]),
+    tools = [
+        "@crates//:cargo-expand__cargo-expand",
+        "@crates//:flutter_rust_bridge_codegen__flutter_rust_bridge_codegen",
+    ],
+)
+
+# Rust FFI shared library built purely by Bazel
+rust_shared_library(
+    name = "moosync_rust",
+    srcs = [
+        "rust/src/api/mod.rs",
+        "rust/src/api/simple.rs",
+        "rust/src/lib.rs",
+        ":rust/src/frb_generated.rs",
+    ],
+    compile_data = [
+        ":generate_frb_bindings",
+    ],
+
+    deps = [
+        "@crates//:flutter_rust_bridge",
+    ],
+)
+
+# Flutter library compiling Dart sources
+flutter_library(
+    name = "lib",
+    srcs = glob(
+        ["lib/**/*.dart"],
+        exclude = [
+            "lib/src/rust/frb_generated.dart",
+            "lib/src/rust/frb_generated.io.dart",
+            "lib/src/rust/api/simple.dart",
+        ],
+    ) + [
+        ":lib/src/rust/frb_generated.dart",
+        ":lib/src/rust/frb_generated.io.dart",
+        ":lib/src/rust/api/simple.dart",
+    ],
+    pubspec = "pubspec.yaml",
+    deps = [
+        "@flutter_sdk//flutter/packages/flutter",
+        "@pub_ffi//:ffi",
+        "@pub_flutter_rust_bridge//:flutter_rust_bridge",
+        "@pub_vector_math//:vector_math",
+        "@pub_characters//:characters",
+        "@pub_material_color_utilities//:material_color_utilities",
+    ],
+)
+
+# Flutter application targets
+flutter_app(
+    name = "app",
+    embed = [":lib"],
+    linux = ":linux_files",
+    macos = ":macos_files",
+    windows = ":windows_files",
+    apk = ":android_files",
+    tags = ["no-sandbox"],
+)
+
+filegroup(
+    name = "linux_files",
+    srcs = glob(["linux/**"]),
+)
+
+filegroup(
+    name = "macos_files",
+    srcs = glob(["macos/**"]),
+)
+
+filegroup(
+    name = "windows_files",
+    srcs = glob(["windows/**"]),
+)
+
+# Transition moosync_rust to Android target platforms
+platform_transition_rule(
+    name = "moosync_rust_x86_64",
+    src = ":moosync_rust",
+    platform = "//:android_x86_64",
+)
+
+platform_transition_rule(
+    name = "moosync_rust_aarch64",
+    src = ":moosync_rust",
+    platform = "//:android_arm64",
+)
+
+# Copy the transitioned libraries into jniLibs
+genrule(
+    name = "copy_moosync_rust_x86_64",
+    srcs = [":moosync_rust_x86_64"],
+    outs = ["android/app/src/main/jniLibs/x86_64/libmoosync_rust.so"],
+    cmd = "cp $< $@",
+)
+
+genrule(
+    name = "copy_moosync_rust_aarch64",
+    srcs = [":moosync_rust_aarch64"],
+    outs = ["android/app/src/main/jniLibs/arm64-v8a/libmoosync_rust.so"],
+    cmd = "cp $< $@",
+)
+
+filegroup(
+    name = "android_files",
+    srcs = glob(
+        ["android/**"],
+        exclude = [
+            "android/app/src/main/jniLibs/x86_64/libmoosync_rust.so",
+            "android/app/src/main/jniLibs/arm64-v8a/libmoosync_rust.so",
+        ],
+    ) + [
+        ":copy_moosync_rust_x86_64",
+        ":copy_moosync_rust_aarch64",
+    ],
+)
+
+# Bundle the compiled C++ runner bundle and copy libmoosync_rust.so to lib/
+flutter_app_bundle(
+    name = "moosync_flutter",
+    app = ":app.linux",
+    moosync_rust = ":moosync_rust",
+    platform = "linux",
+)
+
+# Bundle the macOS app bundle and copy libmoosync_rust.dylib to Contents/Frameworks/
+flutter_app_bundle(
+    name = "moosync_flutter_macos",
+    app = ":app.macos",
+    moosync_rust = ":moosync_rust",
+    platform = "macos",
+)
+
+
+
+# Executable binary wrapper to execute the packaged bundle using bazel run
+sh_binary(
+    name = "moosync_flutter_run",
+    srcs = ["run_app.sh"],
+    data = [
+        ":moosync_flutter",
+    ],
+)
+
+# Unified target to compile the appropriate platform based on Bazel's platform config
+alias(
+    name = "moosync",
+    actual = select({
+        "@platforms//os:android": ":app.apk",
+        "@platforms//os:linux": ":moosync_flutter",
+        "@platforms//os:osx": ":moosync_flutter_macos",
+        "//conditions:default": ":moosync_flutter",
+    }),
+)
+
+
+

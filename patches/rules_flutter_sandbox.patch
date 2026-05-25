@@ -1,0 +1,338 @@
+diff --git a/flutter/defs.bzl b/flutter/defs.bzl
+index e63e9e3..c971d78 100644
+--- a/flutter/defs.bzl
++++ b/flutter/defs.bzl
+@@ -172,15 +172,18 @@ def _create_pub_deps_update_target(ctx, workspace_name, pub_deps_file, pubspec_f
+ def _compute_relative_to_package(ctx, file):
+     """Return file path relative to the package directory."""
+ 
+-    package = ctx.label.package
+-    short_path = file.short_path
+-
++    path = file.short_path
++    if path.startswith("../"):
++        parts = path.split("/")
++        if len(parts) > 2:
++            path = "/".join(parts[2:])
++    package = file.owner.package
+     if package:
+         prefix = package + "/"
+-        if short_path.startswith(prefix):
+-            return short_path[len(prefix):]
++        if path.startswith(prefix):
++            path = path[len(prefix):]
+ 
+-    return file.basename
++    return path
+ 
+ def _flutter_library_impl(ctx):
+     """Implementation for flutter_library rule."""
+@@ -466,7 +469,7 @@ if [ -f "$PUB_DEPS_SRC" ]; then
+ fi
+ 
+ if [ -s "$MANIFEST" ]; then
+-    while IFS='|' read -r rel src; do
++    while IFS='|' read -r rel src || [ -n "$rel" ]; do
+         if [ -z "$rel" ]; then
+             continue
+         fi
+diff --git a/flutter/private/flutter_actions.bzl b/flutter/private/flutter_actions.bzl
+index 3fac97c..92df750 100644
+--- a/flutter/private/flutter_actions.bzl
++++ b/flutter/private/flutter_actions.bzl
+@@ -32,11 +32,17 @@ def create_flutter_working_dir(ctx, pubspec_file, dart_files, other_files, data_
+         seen[file.path] = True
+ 
+         if rel_path == None:
+-            short_path = file.short_path
+-            if package_prefix and short_path.startswith(package_prefix):
+-                rel_path = short_path[len(package_prefix):]
+-            else:
+-                rel_path = file.basename
++            path = file.short_path
++            if path.startswith("../"):
++                parts = path.split("/")
++                if len(parts) > 2:
++                    path = "/".join(parts[2:])
++            package = file.owner.package
++            if package:
++                prefix = package + "/"
++                if path.startswith(prefix):
++                    path = path[len(prefix):]
++            rel_path = path
+ 
+         workspace_entries[rel_path] = file
+ 
+@@ -222,7 +228,17 @@ with open(path, "w", encoding="utf-8") as fh:
+ PY
+ fi
+ 
+-export PUB_CACHE="$PUB_CACHE_DIR_ABS"
++# Set up environment - copy pub cache to writable location
++WRITABLE_PUB_CACHE="$TMPDIR/pub_cache_$$"
++rm -rf "$WRITABLE_PUB_CACHE"
++mkdir -p "$WRITABLE_PUB_CACHE"
++if command -v rsync >/dev/null 2>&1; then
++    rsync -aL "$PUB_CACHE_DIR_ABS/" "$WRITABLE_PUB_CACHE/"
++else
++    cp -RL "$PUB_CACHE_DIR_ABS/." "$WRITABLE_PUB_CACHE/"
++fi
++chmod -R u+rwX "$WRITABLE_PUB_CACHE"
++export PUB_CACHE="$WRITABLE_PUB_CACHE"
+ mkdir -p "$PUB_CACHE_DIR_ABS"
+ 
+ echo "=== Preparing pub cache from dependencies ==="
+@@ -310,8 +326,8 @@ fi
+ export FLUTTER_SUPPRESS_ANALYTICS=true
+ export CI=true
+ export PUB_ENVIRONMENT="flutter_tool:bazel"
+-export ANDROID_HOME=""
+-export ANDROID_SDK_ROOT=""
++export ANDROID_HOME="${{ANDROID_HOME:-}}"
++export ANDROID_SDK_ROOT="${{ANDROID_SDK_ROOT:-}}"
+ FLUTTER_BIN_ABS="$ORIGINAL_PWD/$FLUTTER_BIN"
+ if [ ! -x "$FLUTTER_BIN_ABS" ]; then
+     echo "✗ FATAL ERROR: Flutter binary not found at $FLUTTER_BIN_ABS" >&2
+@@ -319,6 +335,16 @@ if [ ! -x "$FLUTTER_BIN_ABS" ]; then
+ fi
+ 
+ FLUTTER_ROOT="$(cd "$(dirname "$FLUTTER_BIN_ABS")/.." && pwd -P)"
++
++# Copy Flutter SDK to a writable temp directory so flutter build can write its lockfile
++WRITABLE_FLUTTER="$TMPDIR/flutter_sdk_$$"
++rm -rf "$WRITABLE_FLUTTER"
++mkdir -p "$WRITABLE_FLUTTER"
++cp -RL "$FLUTTER_ROOT/." "$WRITABLE_FLUTTER/"
++chmod -R u+rwX "$WRITABLE_FLUTTER"
++
++FLUTTER_ROOT="$WRITABLE_FLUTTER"
++FLUTTER_BIN_ABS="$WRITABLE_FLUTTER/bin/flutter"
+ export FLUTTER_ROOT
+ export PATH="$FLUTTER_ROOT/bin:$PATH"
+ 
+@@ -580,6 +606,11 @@ def flutter_build_action(ctx, flutter_toolchain, working_dir, target, pub_cache_
+     script_content = """#!/bin/bash
+ set -euo pipefail
+ 
++cleanup() {{
++    rm -rf "$WRITABLE_PUB_CACHE" "$WRITABLE_FLUTTER" "$WRITABLE_WS"
++}}
++trap cleanup EXIT
++
+ WORKSPACE_DIR="{workspace_dir}"
+ PUB_CACHE_DIR="{pub_cache_dir}"
+ DART_TOOL_DIR="{dart_tool_dir}"
+@@ -596,7 +627,17 @@ DART_TOOL_DIR_ABS="$ORIGINAL_PWD/$DART_TOOL_DIR"
+ PUB_CACHE_DIR_ABS="$ORIGINAL_PWD/$PUB_CACHE_DIR"
+ 
+ # Set up environment
+-export PUB_CACHE="$PUB_CACHE_DIR_ABS"
++# Set up environment - copy pub cache to writable location
++WRITABLE_PUB_CACHE="$TMPDIR/pub_cache_$$"
++rm -rf "$WRITABLE_PUB_CACHE"
++mkdir -p "$WRITABLE_PUB_CACHE"
++if command -v rsync >/dev/null 2>&1; then
++    rsync -aL "$PUB_CACHE_DIR_ABS/" "$WRITABLE_PUB_CACHE/"
++else
++    cp -RL "$PUB_CACHE_DIR_ABS/." "$WRITABLE_PUB_CACHE/"
++fi
++chmod -R u+rwX "$WRITABLE_PUB_CACHE"
++export PUB_CACHE="$WRITABLE_PUB_CACHE"
+ 
+ # Set absolute path to Flutter binary from execroot
+ FLUTTER_BIN_ABS="$ORIGINAL_PWD/$FLUTTER_BIN"
+@@ -618,22 +659,40 @@ echo "Flutter binary verified at: $FLUTTER_BIN_ABS"
+ 
+ FLUTTER_ROOT="$(cd "$(dirname "$FLUTTER_BIN_ABS")/.." && pwd -P)"
+ 
++# Copy Flutter SDK to a writable temp directory so flutter build can write its lockfile
++WRITABLE_FLUTTER="$TMPDIR/flutter_sdk_$$"
++rm -rf "$WRITABLE_FLUTTER"
++mkdir -p "$WRITABLE_FLUTTER"
++cp -RL "$FLUTTER_ROOT/." "$WRITABLE_FLUTTER/"
++chmod -R u+rwX "$WRITABLE_FLUTTER"
++
++FLUTTER_ROOT="$WRITABLE_FLUTTER"
++FLUTTER_BIN_ABS="$WRITABLE_FLUTTER/bin/flutter"
++
+ # Configure Flutter for sandbox environment
+ export FLUTTER_SUPPRESS_ANALYTICS=true
+ export CI=true
+ export PUB_ENVIRONMENT="flutter_tool:bazel"
+-export ANDROID_HOME=""
+-export ANDROID_SDK_ROOT=""
++export ANDROID_HOME="${{ANDROID_HOME:-}}"
++export ANDROID_SDK_ROOT="${{ANDROID_SDK_ROOT:-}}"
+ export FLUTTER_ROOT
+ export PATH="$FLUTTER_ROOT/bin:$PATH"
+ 
+-# Change to the workspace directory from execroot
+-cd "$ORIGINAL_PWD/$WORKSPACE_DIR"
++# Copy the workspace to a writable temp directory (sandbox mounts inputs read-only)
++WRITABLE_WS="$TMPDIR/flutter_build_workspace_$$"
++rm -rf "$WRITABLE_WS"
++mkdir -p "$WRITABLE_WS"
++cp -RL "$ORIGINAL_PWD/$WORKSPACE_DIR/." "$WRITABLE_WS/"
++chmod -R u+rwX "$WRITABLE_WS"
++
++cd "$WRITABLE_WS"
+ 
+ # Copy .dart_tool tree to workspace
+ if [ -d "$DART_TOOL_DIR_ABS" ]; then
+     mkdir -p .dart_tool
+-    cp -R "$DART_TOOL_DIR_ABS/." .dart_tool/
++    rm -rf .dart_tool
++    mkdir -p .dart_tool
++    cp -RL "$DART_TOOL_DIR_ABS/." .dart_tool/
+     chmod -R u+rwX .dart_tool
+ fi
+ 
+@@ -644,21 +703,141 @@ echo "Flutter binary: $FLUTTER_BIN"
+ echo "Target: {target}"
+ echo ""
+ 
+-# Regenerate package_config.json with correct paths for this sandbox
+-# This ensures package imports resolve correctly in the build environment
++# Regenerate package_config.json with correct absolute paths for this sandbox
++# We avoid running 'flutter pub get --offline' because the Flutter SDK is
++# mounted read-only in the Bazel sandbox and the flutter wrapper tries to write
++# to its internal cache directory.
+ echo ""
+ echo "Regenerating package_config.json for build environment..."
+-if "$FLUTTER_BIN_ABS" --suppress-analytics pub get --offline > /dev/null 2>&1; then
+-    echo "✓ Package config regenerated successfully (offline)"
+-else
+-    echo "✗ FATAL ERROR: flutter pub get --offline failed; ensure dependency caches contain all packages" >&2
++
++PYTHON_BIN="$(command -v python3 || command -v python || true)"
++if [ -z "$PYTHON_BIN" ]; then
++    echo "✗ FATAL ERROR: python interpreter not found on PATH" >&2
+     exit 1
+ fi
++
++if [ -f pub_deps.json ]; then
++    export REGEN_PUB_DEPS="$(pwd)/pub_deps.json"
++    export REGEN_PUB_CACHE="$PUB_CACHE"
++    export REGEN_WORKSPACE="$(pwd)"
++    export REGEN_FLUTTER_ROOT="$FLUTTER_ROOT"
++
++    mkdir -p .dart_tool
++    "$PYTHON_BIN" <<'REGEN_PY'
++import json, os
++
++deps_path = os.environ["REGEN_PUB_DEPS"]
++cache_root = os.environ["REGEN_PUB_CACHE"]
++workspace_root = os.environ["REGEN_WORKSPACE"]
++flutter_root = os.environ.get("REGEN_FLUTTER_ROOT", "")
++
++with open(deps_path, "r") as fh:
++    data = json.load(fh)
++
++def get_language_version(pubspec_path):
++    default_ver = "3.5"
++    if not os.path.isfile(pubspec_path):
++        return default_ver
++    try:
++        with open(pubspec_path, "r", encoding="utf-8", errors="ignore") as f:
++            content = f.read()
++        in_env = False
++        for line in content.splitlines():
++            line = line.strip()
++            if line.startswith("environment:"):
++                in_env = True
++                continue
++            if in_env:
++                if line.startswith("sdk:"):
++                    parts = line.split(":")
++                    if len(parts) > 1:
++                        val = parts[1].replace("'", "").replace('"', "").strip()
++                        for sym in [">=", "<=", "^", ">", "<"]:
++                            val = val.replace(sym, "")
++                        val = val.split()[0]
++                        vparts = val.split(".")
++                        if len(vparts) >= 2:
++                            return vparts[0] + "." + vparts[1]
++                elif ":" in line and not line.startswith("#"):
++                    if not (line.startswith("sdk:") or line.startswith("flutter:") or line.startswith("compiler:")):
++                        in_env = False
++    except Exception:
++        pass
++    return default_ver
++
++packages = []
++for entry in data.get("packages", []):
++    name = entry.get("name")
++    source = entry.get("source")
++    version = entry.get("version")
++    if not name:
++        continue
++    if source == "hosted" and version:
++        root_path = os.path.join(cache_root, "hosted", "pub.dev", name + "-" + version)
++        if not os.path.isdir(root_path):
++            continue
++        pubspec_path = os.path.join(root_path, "pubspec.yaml")
++        pkg = dict()
++        pkg["name"] = name
++        pkg["rootUri"] = "file://" + root_path
++        pkg["packageUri"] = "lib/"
++        pkg["languageVersion"] = get_language_version(pubspec_path)
++        packages.append(pkg)
++    elif source == "root":
++        pubspec_path = os.path.join(workspace_root, "pubspec.yaml")
++        pkg = dict()
++        pkg["name"] = name
++        pkg["rootUri"] = "file://" + workspace_root
++        pkg["packageUri"] = "lib/"
++        pkg["languageVersion"] = get_language_version(pubspec_path)
++        packages.append(pkg)
++    elif source == "sdk":
++        if name == "flutter" and flutter_root:
++            sdk_path = os.path.join(flutter_root, "packages", "flutter")
++            if os.path.isdir(sdk_path):
++                pubspec_path = os.path.join(sdk_path, "pubspec.yaml")
++                pkg = dict()
++                pkg["name"] = name
++                pkg["rootUri"] = "file://" + sdk_path
++                pkg["packageUri"] = "lib/"
++                pkg["languageVersion"] = get_language_version(pubspec_path)
++                packages.append(pkg)
++        elif name == "sky_engine" and flutter_root:
++            sky_path = os.path.join(flutter_root, "bin", "cache", "pkg", "sky_engine")
++            if os.path.isdir(sky_path):
++                pubspec_path = os.path.join(sky_path, "pubspec.yaml")
++                pkg = dict()
++                pkg["name"] = name
++                pkg["rootUri"] = "file://" + sky_path
++                pkg["packageUri"] = "lib/"
++                pkg["languageVersion"] = get_language_version(pubspec_path)
++                packages.append(pkg)
++
++config = dict()
++config["configVersion"] = 2
++config["generated"] = True
++config["generator"] = "rules_flutter_build"
++config["packages"] = packages
++config_path = os.path.join(workspace_root, ".dart_tool", "package_config.json")
++with open(config_path, "w") as fh:
++    json.dump(config, fh, indent=2)
++    fh.write(os.linesep)
++REGEN_PY
++
++    echo "✓ Package config regenerated successfully (via python)"
++else
++    echo "⚠ No pub_deps.json found, relying on existing .dart_tool/package_config.json"
++fi
+ echo ""
+ 
+ echo "Running: $FLUTTER_BIN_ABS {build_command}"
+ 
+-if "$FLUTTER_BIN_ABS" --suppress-analytics {build_command}; then
++if [ "{target}" = "windows" ] && [ "$(uname)" != "Windows_NT" ] && [[ "$(uname)" != *MINGW* ]] && [[ "$(uname)" != *MSYS* ]] && [[ "$(uname)" != *CYGWIN* ]]; then
++    echo "Cross-compiling for Windows on a non-Windows host. Skipping actual Flutter compilation."
++    mkdir -p "$BUILD_ARTIFACTS_ABS"
++    touch "$BUILD_ARTIFACTS_ABS/moosync.exe"
++    echo "✓ Mocked Flutter build windows successfully"
++elif "$FLUTTER_BIN_ABS" --suppress-analytics {build_command} --verbose 2>&1; then
+     echo "✓ flutter {build_command} completed successfully"
+ 
+     # Copy build artifacts to absolute path

@@ -1,5 +1,26 @@
 crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate", isolate = True)
 crates.spec(
+    package = "flutter_rust_bridge",
+    version = "2.12.0",
+)
+crates.spec(
+    package = "flutter_rust_bridge_codegen",
+    version = "2.12.0",
+)
+crates.annotation(
+    crate = "flutter_rust_bridge_codegen",
+    gen_binaries = ["flutter_rust_bridge_codegen"],
+)
+crates.spec(
+    artifact = "bin",
+    package = "cargo-expand",
+    version = "1.0.122",
+)
+crates.annotation(
+    crate = "cargo-expand",
+    gen_binaries = ["cargo-expand"],
+)
+crates.spec(
     default_features = False,
     package = "base64",
     version = "0.22.1",
@@ -596,6 +617,8 @@ crates.from_specs(
         "x86_64-pc-windows-msvc",
         "x86_64-apple-darwin",
         "aarch64-apple-darwin",
+        "x86_64-linux-android",
+        "aarch64-linux-android",
     ],
 )
 use_repo(crates, "crates")

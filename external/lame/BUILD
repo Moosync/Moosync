@@ -31,13 +31,37 @@ make_variant(
     toolchain = "@rules_foreign_cc//toolchains:preinstalled_nmake_toolchain",
 )
 
+config_setting(
+    name = "android_x86_64",
+    constraint_values = [
+        "@platforms//os:android",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+config_setting(
+    name = "android_arm64",
+    constraint_values = [
+        "@platforms//os:android",
+        "@platforms//cpu:aarch64",
+    ],
+)
+
 configure_make(
     name = "lame_nix",
     configure_options = [
         "--disable-shared",
         "--enable-static",
         "--disable-frontend",
-    ],
+    ] + select({
+        ":android_x86_64": [
+            "--host=x86_64-linux-android",
+        ],
+        ":android_arm64": [
+            "--host=aarch64-linux-android",
+        ],
+        "//conditions:default": [],
+    }),
     env = select({
         "@platforms//os:macos": {
             "AR": "",
@@ -53,7 +77,7 @@ configure_make(
 alias(
     name = "lame",
     actual = select({
-        "@platforms//os:windows": ":lame_msvc",
+        "//external/openssl:msvc_compiler": ":lame_msvc",
         "//conditions:default": ":lame_nix",
     }),
     visibility = ["//visibility:public"],

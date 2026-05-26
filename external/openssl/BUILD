@@ -35,7 +35,8 @@ config_setting(
 alias(
     name = "openssl",
     actual = select({
-        "@platforms//os:windows": ":openssl_msvc",
+        "//external/openssl:msvc_compiler": ":openssl_msvc",
+        "@platforms//os:windows": ":openssl_mingw",
         "//conditions:default": "openssl_default",
     }),
     visibility = ["//visibility:public"],
@@ -120,12 +121,58 @@ EOF
 )
 
 configure_make(
+    name = "openssl_mingw",
+    configure_command = "Configure",
+    configure_in_place = True,
+    configure_options = CONFIGURE_OPTIONS + [
+        "mingw64",
+        "no-asm",
+        "--libdir=lib",
+    ],
+    env = {
+        "PERL": "$$EXT_BUILD_ROOT$$/$$(echo '$(PERL)' | tr '\\\\' '/')",
+    },
+    lib_name = LIB_NAME,
+    lib_source = "@openssl//:all_srcs",
+    out_static_libs = [
+        "libssl.a",
+        "libcrypto.a",
+    ],
+    targets = MAKE_TARGETS,
+    toolchains = ["@rules_perl//:current_toolchain"],
+)
+
+config_setting(
+    name = "android_x86_64",
+    constraint_values = [
+        "@platforms//os:android",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+config_setting(
+    name = "android_arm64",
+    constraint_values = [
+        "@platforms//os:android",
+        "@platforms//cpu:aarch64",
+    ],
+)
+
+configure_make(
     name = "openssl_default",
-    configure_command = "config",
+    configure_command = select({
+        ":android_x86_64": "Configure",
+        ":android_arm64": "Configure",
+        "//conditions:default": "config",
+    }),
     configure_in_place = True,
     configure_options = CONFIGURE_OPTIONS + [
         "--libdir=lib",
-    ],
+    ] + select({
+        ":android_x86_64": ["linux-generic64"],
+        ":android_arm64": ["linux-generic64"],
+        "//conditions:default": [],
+    }),
     env = select({
         "@platforms//os:macos": {
             "AR": "",

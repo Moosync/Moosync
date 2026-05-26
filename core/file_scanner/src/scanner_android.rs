@@ -17,7 +17,7 @@
 use std::sync::{Mutex, mpsc::Sender};
 
 use types::errors::Result;
-use types::{entities::Playlist, songs::Song};
+use songs_proto::moosync::types::{Playlist, Song};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ScanState {

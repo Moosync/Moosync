@@ -1,0 +1,99 @@
+import { Button, LineEdit } from "std-widgets.slint";
+
+export component MainWindow inherits Window {
+    title: "Moosync Slint App";
+    preferred-width: 400px;
+    preferred-height: 300px;
+    background: @linear-gradient(135deg, #1e1e2e 0%, #11111b 100%);
+
+    callback search-clicked(string);
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        x: -2px;
+        y: -2px;
+        alignment: start;
+
+        // Header Banner
+        HorizontalLayout {
+            alignment: space-between;
+            Text {
+                text: "Moosync Slint UI";
+                font-size: 28px;
+                font-weight: 800;
+                color: #cdd6f4;
+            }
+
+            Text {
+                text: "v0.1.0";
+                font-size: 14px;
+                color: #a6adc8;
+                vertical-alignment: center;
+            }
+        }
+
+        // Card Container
+        Rectangle {
+            background: #181825;
+            border-radius: 12px;
+            border-width: 1px;
+            border-color: #313244;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
+                Text {
+                    text: "Cross-Platform Slint + Bazel Demo";
+                    font-size: 18px;
+                    font-weight: 700;
+                    color: #f5c2e7;
+                }
+
+                Text {
+                    text: "This application is fully bootstrapped inside Bazel and buildable for Linux, Windows, macOS, and Android.";
+                    font-size: 14px;
+                    color: #bac2de;
+                    wrap: word-wrap;
+                }
+            }
+        }
+
+        // Interactive Controls
+        Rectangle {
+            background: #181825;
+            border-radius: 12px;
+            border-width: 1px;
+            border-color: #313244;
+
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
+                Text {
+                    text: "Search Tracks";
+                    font-size: 16px;
+                    font-weight: 700;
+                    color: #89b4fa;
+                }
+
+                HorizontalLayout {
+                    spacing: 10px;
+                    search-input := LineEdit {
+                        placeholder-text: "Type to search...";
+                        accepted => {
+                            search-clicked(self.text);
+                        }
+                    }
+
+                    Button {
+                        text: "Search";
+                        primary: true;
+                        clicked => {
+                            search-clicked(search-input.text);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

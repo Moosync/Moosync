@@ -1,6 +1,20 @@
-# Per-library BUILD files live under subdirectories (lame, opus, ogg, vorbis, ffmpeg).
-# Aliases are defined inside each subpackage so there are no top-level targets here.
 load("@rules_foreign_cc//foreign_cc:configure.bzl", "configure_make")
+
+config_setting(
+    name = "android_x86_64",
+    constraint_values = [
+        "@platforms//os:android",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+config_setting(
+    name = "android_arm64",
+    constraint_values = [
+        "@platforms//os:android",
+        "@platforms//cpu:aarch64",
+    ],
+)
 
 configure_make(
     name = "ffmpeg",
@@ -59,7 +73,7 @@ configure_make(
         "--enable-static",
         # TODO: Figure out why -logg isn't added by pkg-config
     ] + select({
-        "@platforms//os:windows": [
+        "//external/openssl:msvc_compiler": [
             "--toolchain=msvc",
             "--target-os=win64",
             "--arch=x86_64",
@@ -70,12 +84,42 @@ configure_make(
             # NOTE: Only on github actions. Change it if you're building locally
             "--pkg-config=\"D:/a/_temp/msys64/usr/bin/pkg-config.exe $$BAZEL_PKG_FLAGS\"",
         ],
+        "//tools/toolchains/mingw:windows_mingw": [
+            "--target-os=mingw32",
+            "--arch=x86_64",
+            "--enable-cross-compile",
+            "--cc=$$EXT_BUILD_ROOT/$(CC)",
+            "--cxx=$$EXT_BUILD_ROOT/$(CC)",
+            "--ld=$$EXT_BUILD_ROOT/$(CC)",
+            "--ar=$$EXT_BUILD_ROOT/$(AR)",
+            "--extra-libs=\"-lssl -lcrypto -lvorbis -lvorbisenc -lvorbisfile -logg -lopus -lws2_32 -lbcrypt -lcrypt32 -lsecur32 -lshlwapi -luser32 -ladvapi32\"",
+        ],
+        ":android_x86_64": [
+            "--target-os=android",
+            "--arch=x86_64",
+            "--enable-cross-compile",
+            "--cc=$$EXT_BUILD_ROOT/$(CC)",
+            "--cxx=$$EXT_BUILD_ROOT/$(CC)++",
+            "--ld=$$EXT_BUILD_ROOT/$(CC)",
+            "--ar=$$EXT_BUILD_ROOT/$(AR)",
+            "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lopus -lssl -lcrypto -lm -lz -ldl\"",
+        ],
+        ":android_arm64": [
+            "--target-os=android",
+            "--arch=aarch64",
+            "--enable-cross-compile",
+            "--cc=$$EXT_BUILD_ROOT/$(CC)",
+            "--cxx=$$EXT_BUILD_ROOT/$(CC)++",
+            "--ld=$$EXT_BUILD_ROOT/$(CC)",
+            "--ar=$$EXT_BUILD_ROOT/$(AR)",
+            "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lopus -lssl -lcrypto -lm -lz -ldl\"",
+        ],
         "//conditions:default": [
             "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lm -lpthread\"",
         ],
     }),
     env = select({
-        "@platforms//os:windows": {
+        "//external/openssl:msvc_compiler": {
             "PATH": "$$(dirname $(execpath @nasm//:nasm))",
             # I have no idea why windows pkgconf doesn't respect PKG_CONFIG_PATH on github actions
             "BAZEL_PKG_FLAGS": " ".join([
@@ -88,7 +132,7 @@ configure_make(
         "//conditions:default": {},
     }),
     install_prefix = "build",
-    lib_source = "@ffmpeg_7_0//:all_srcs",
+    lib_source = "@ffmpeg_8_0//:all_srcs",
     out_static_libs = [
         "libavcodec.a",
         "libavdevice.a",

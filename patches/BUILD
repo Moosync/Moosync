@@ -3,4 +3,6 @@ exports_files([
     "tauri_macros.patch",
     "rules_rust_prost_rust_deps.patch",
     "rules_flutter_sandbox.patch",
+    "khronos_api.patch",
+    "rules_rust_gnu_windows.patch",
 ])

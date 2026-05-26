@@ -19,8 +19,13 @@ rust_library(
         "@crates//:serde",
         "@crates//:souvlaki",
         "@crates//:tracing",
-        "@crates//:windows",
-    ],
+    ] + select({
+        "@platforms//os:windows": [
+            "@crates//:is_wine",
+            "@crates//:windows",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 rust_test(

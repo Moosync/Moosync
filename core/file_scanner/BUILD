@@ -6,6 +6,7 @@ rust_library(
         "src/lib.rs",
         "src/playlist_scanner.rs",
         "src/scanner.rs",
+        "src/scanner_android.rs",
         "src/song_scanner.rs",
         "src/tests.rs",
         "src/types.rs",

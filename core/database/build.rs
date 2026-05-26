@@ -25,24 +25,27 @@ fn setup_x86_64_android_workaround() {
     let target_os = env::var("CARGO_CFG_TARGET_OS").expect("CARGO_CFG_TARGET_OS not set");
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").expect("CARGO_CFG_TARGET_ARCH not set");
     if target_arch == "x86_64" && target_os == "android" {
-        let android_ndk_home = env::var("NDK_HOME").expect("NDK_HOME not set");
-        let build_os = match env::consts::OS {
-            "linux" => "linux",
-            "macos" => "darwin",
-            "windows" => "windows",
-            _ => panic!(
-                "Unsupported OS. You must use either Linux, MacOS or Windows to build the crate."
-            ),
-        };
-        let linux_x86_64_lib_pattern = format!(
-            "{android_ndk_home}/toolchains/llvm/prebuilt/{build_os}-x86_64/lib*/clang/**/lib/linux/"
-        );
-        match glob(&linux_x86_64_lib_pattern).unwrap().last() {
-            Some(Ok(path)) => {
-                println!("cargo:rustc-link-search={}", path.to_string_lossy());
-                println!("cargo:rustc-link-lib=static=clang_rt.builtins-x86_64-android");
-            },
-            _ => panic!("Path not found: {linux_x86_64_lib_pattern}. Try setting a different ANDROID_NDK_HOME."),
+        if let Ok(android_ndk_home) = env::var("NDK_HOME") {
+            let build_os = match env::consts::OS {
+                "linux" => "linux",
+                "macos" => "darwin",
+                "windows" => "windows",
+                _ => panic!(
+                    "Unsupported OS. You must use either Linux, MacOS or Windows to build the crate."
+                ),
+            };
+            let linux_x86_64_lib_pattern = format!(
+                "{android_ndk_home}/toolchains/llvm/prebuilt/{build_os}-x86_64/lib*/clang/**/lib/linux/"
+            );
+            match glob(&linux_x86_64_lib_pattern).unwrap().last() {
+                Some(Ok(path)) => {
+                    println!("cargo:rustc-link-search={}", path.to_string_lossy());
+                    println!("cargo:rustc-link-lib=static=clang_rt.builtins-x86_64-android");
+                },
+                _ => println!("cargo:warning=Path not found: {linux_x86_64_lib_pattern}."),
+            }
+        } else {
+            println!("cargo:warning=NDK_HOME not set, skipping clang_rt.builtins-x86_64-android workaround (Bazel toolchain should handle this)");
         }
     }
 }

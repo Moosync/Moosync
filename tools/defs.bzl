@@ -65,14 +65,12 @@ def _html_page_impl(ctx):
 
     args.add_all("--css", ctx.files.css)
     args.add_all("--js", ctx.files.js)
-    args.add_all("--wasm", ctx.files.wasm)
     args.add_all("--fonts", ctx.files.fonts)
     args.add_all("--assets", ctx.files.assets)
 
     all_inputs = (
         ctx.files.css +
         ctx.files.js +
-        ctx.files.wasm +
         ctx.files.fonts +
         ctx.files.assets +
         ctx.files.data
@@ -95,7 +93,7 @@ html_page = rule(
     implementation = _html_page_impl,
     doc = """
 Generates a static HTML bundle directory with `index.html` and an `assets/` folder.
-Handles copying and linking CSS, JS, WASM (preload), and Fonts (preload).
+Handles copying and linking CSS, JS, and Fonts (preload).
 """,
     attrs = {
         "title": attr.string(
@@ -119,10 +117,6 @@ Handles copying and linking CSS, JS, WASM (preload), and Fonts (preload).
         "js": attr.label_list(
             allow_files = [".js", ".map"],
             doc = "JS files to include at the bottom of the <body>.",
-        ),
-        "wasm": attr.label_list(
-            allow_files = [".wasm"],
-            doc = "WASM binaries to be preloaded in <head>.",
         ),
         "fonts": attr.label_list(
             allow_files = [".woff", ".woff2", ".ttf", ".otf"],

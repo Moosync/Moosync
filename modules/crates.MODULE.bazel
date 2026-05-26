@@ -1,26 +1,5 @@
 crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate", isolate = True)
 crates.spec(
-    package = "flutter_rust_bridge",
-    version = "2.12.0",
-)
-crates.spec(
-    package = "flutter_rust_bridge_codegen",
-    version = "2.12.0",
-)
-crates.annotation(
-    crate = "flutter_rust_bridge_codegen",
-    gen_binaries = ["flutter_rust_bridge_codegen"],
-)
-crates.spec(
-    artifact = "bin",
-    package = "cargo-expand",
-    version = "1.0.122",
-)
-crates.annotation(
-    crate = "cargo-expand",
-    gen_binaries = ["cargo-expand"],
-)
-crates.spec(
     default_features = False,
     package = "base64",
     version = "0.22.1",
@@ -261,6 +240,10 @@ crates.spec(
     version = "5.12.0",
 )
 crates.spec(
+    package = "zbus_macros",
+    version = "=5.12.0",
+)
+crates.spec(
     default_features = False,
     features = [
         "apple-native",
@@ -306,7 +289,7 @@ crates.spec(
 )
 crates.spec(
     default_features = False,
-    features = ["ffmpeg7"],
+    features = ["ffmpeg8"],
     package = "rusty_ffmpeg",
     version = "0.16.7+ffmpeg.8",
 )
@@ -321,15 +304,25 @@ crates.annotation(
         "FFMPEG_LINK_MODE": "static",
     },
     crate = "rusty_ffmpeg",
+)
+crates.annotation_select(
+    crate = "rusty_ffmpeg",
     rustc_flags = [
         "-lz",
+    ],
+    triples = [
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-linux-android",
+        "aarch64-linux-android",
     ],
 )
 crates.spec(
     default_features = False,
-    features = ["ffmpeg7"],
+    features = ["ffmpeg8"],
+    git = "https://github.com/aegroto/rsmpeg",
     package = "rsmpeg",
-    version = "0.18.0",
+    rev = "a1f06d4c2c87e938bb6f84d66bb9c5afe4a006ed",
 )
 crates.spec(
     default_features = False,
@@ -609,16 +602,94 @@ crates.annotation(
     crate = "protoc-gen-prost",
     gen_binaries = ["protoc-gen-prost"],
 )
+crates.spec(
+    default_features = False,
+    features = [
+        "compat-1-2",
+        "backend-winit",
+        "renderer-femtovg",
+        "backend-android-activity-06",
+    ],
+    package = "slint",
+    version = "1.8.0",
+)
+crates.spec(
+    package = "slint-build",
+    version = "1.8.0",
+)
+crates.spec(
+    package = "platform-dirs",
+    version = "0.3.0",
+)
+crates.spec(
+    package = "tempdir",
+    version = "0.3.7",
+)
+crates.spec(
+    package = "is_wine",
+    version = "0.1.2",
+)
+crates.annotation(
+    compile_data_glob = [
+        "**/*.xml",
+        "**/*.idl",
+    ],
+    crate = "khronos_api",
+    patch_args = ["-p1"],
+    patches = ["//patches:khronos_api.patch"],
+)
+crates.annotation(
+    build_script_env = {
+        "CARGO_PKG_AUTHORS": "",
+        "CARGO_PKG_NAME": "",
+        "CARGO_PKG_DESCRIPTION": "",
+        "CARGO_PKG_REPOSITORY": "",
+        "CARGO_PKG_HOMEPAGE": "",
+        "CARGO_PKG_LICENSE": "",
+    },
+    crate = "rav1e",
+)
 crates.from_specs(
-    host_tools = "@rust_host_tools_nightly",
     supported_platform_triples = [
         "x86_64-unknown-linux-gnu",
         "aarch64-unknown-linux-gnu",
         "x86_64-pc-windows-msvc",
+        "x86_64-pc-windows-gnu",
         "x86_64-apple-darwin",
         "aarch64-apple-darwin",
         "x86_64-linux-android",
         "aarch64-linux-android",
     ],
 )
-use_repo(crates, "crates")
+crates.annotation_select(
+    crate = "windows_x86_64_gnu",
+    triples = ["x86_64-pc-windows-gnu"],
+    version = "0.42.2",
+    deps = ["@@//:libwindows_0_42_2"],
+)
+crates.annotation_select(
+    crate = "windows_x86_64_gnu",
+    triples = ["x86_64-pc-windows-gnu"],
+    version = "0.52.6",
+    deps = ["@@//:libwindows_0_52_0"],
+)
+crates.annotation_select(
+    crate = "windows_x86_64_gnu",
+    triples = ["x86_64-pc-windows-gnu"],
+    version = "0.53.1",
+    deps = ["@@//:libwindows_0_53_0"],
+)
+crates.annotation_select(
+    crate = "winapi-x86_64-pc-windows-gnu",
+    triples = ["x86_64-pc-windows-gnu"],
+    version = "0.4.0",
+    deps = ["@@//:libwinapi_all"],
+)
+use_repo(
+    crates,
+    "crates",
+    "crates__winapi-x86_64-pc-windows-gnu-0.4.0",
+    "crates__windows_x86_64_gnu-0.42.2",
+    "crates__windows_x86_64_gnu-0.52.6",
+    "crates__windows_x86_64_gnu-0.53.1",
+)

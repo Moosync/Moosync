@@ -21,7 +21,7 @@ http_file(
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
-    name = "ffmpeg_7_0",
+    name = "ffmpeg_8_0",
     build_file_content = """
 filegroup(
 name = "all_srcs",
@@ -29,9 +29,9 @@ srcs = glob(["**"]),
 visibility = ["//visibility:public"],
 )
 """,
-    sha256 = "4a48a15d8df93c2dbe537129dd810ee473af06308bdeb5bcdb1f2a82f5bf5fb6",
-    strip_prefix = "FFmpeg-release-7.0",
-    urls = ["https://github.com/FFmpeg/FFmpeg/archive/refs/heads/release/7.0.zip"],
+    sha256 = "9375ea815bff52a12eb908fe2e61bf9b0ff3b1485b048de0c306058b137731a4",
+    strip_prefix = "FFmpeg-bebde678bff50221abe9c63035328f07e6c50b38",
+    urls = ["https://github.com/FFmpeg/FFmpeg/archive/bebde678bff50221abe9c63035328f07e6c50b38.zip"],
 )
 
 http_archive(
@@ -102,4 +102,61 @@ visibility = ["//visibility:public"],
     sha256 = "65c1d2f78b9f2fb20082c38cbe47c951ad5839345876e46941612ee87f9a7ce1",
     strip_prefix = "opus-1.5.2",
     urls = ["https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz"],
+)
+
+http_archive(
+    name = "mingw_compiler_files",
+    build_file_content = """
+load("@rules_cc//cc:defs.bzl", "cc_toolchain")
+load("@moosync//tools/toolchains/mingw:cc_toolchain_config.bzl", "mingw_cc_toolchain_config")
+
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+)
+
+mingw_cc_toolchain_config(
+    name = "mingw_cc_toolchain_config",
+)
+
+cc_toolchain(
+    name = "mingw_cc",
+    all_files = ":all_files",
+    compiler_files = ":all_files",
+    dwp_files = ":all_files",
+    linker_files = ":all_files",
+    objcopy_files = ":all_files",
+    strip_files = ":all_files",
+    supports_param_files = 0,
+    toolchain_config = ":mingw_cc_toolchain_config",
+    toolchain_identifier = "mingw-toolchain",
+)
+
+toolchain(
+    name = "mingw_cc_toolchain",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    target_compatible_with = [
+        "@platforms//os:windows",
+        "@platforms//cpu:x86_64",
+    ],
+    toolchain = ":mingw_cc",
+    toolchain_type = "@bazel_tools//tools/cpp:toolchain_type",
+)
+""",
+    patch_cmds = ["rm -f usr"],
+    sha256 = "6130e6b463742bdabe1ea53f7267c1cfb0f2902f50774b6c766d19776c419488",
+    strip_prefix = "x86_64-w64-mingw32-cross",
+    urls = ["https://musl.cc/x86_64-w64-mingw32-cross.tgz"],
+)
+
+register_toolchains("@mingw_compiler_files//:mingw_cc_toolchain")
+
+register_toolchains(
+    "//tools/toolchains/mingw:custom_make_toolchain",
+    "//tools/toolchains/mingw:custom_m4_toolchain",
 )

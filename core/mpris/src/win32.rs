@@ -1,15 +1,15 @@
 use std::io::Error;
 use std::mem;
 
-use windows::core::PCWSTR;
-use windows::w;
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM};
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetAncestor,
-    IsDialogMessageW, PeekMessageW, RegisterClassExW, TranslateMessage, GA_ROOT, MSG, PM_REMOVE,
+    CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GA_ROOT, GetAncestor,
+    IsDialogMessageW, MSG, PM_REMOVE, PeekMessageW, RegisterClassExW, TranslateMessage,
     WINDOW_EX_STYLE, WINDOW_STYLE, WM_QUIT, WNDCLASSEXW,
 };
+use windows::core::PCWSTR;
+use windows::w;
 
 pub struct DummyWindow {
     pub handle: HWND,
@@ -21,8 +21,8 @@ impl DummyWindow {
         let class_name = w!("SimpleTray");
 
         let handle_result = unsafe {
-            let instance = GetModuleHandleW(None)
-                .map_err(|e| (format!("Getting module handle failed: {e}")))?;
+            let instance =
+                GetModuleHandleW(None).map_err(|e| format!("Getting module handle failed: {e}"))?;
 
             let wnd_class = WNDCLASSEXW {
                 cbSize: mem::size_of::<WNDCLASSEXW>() as u32,

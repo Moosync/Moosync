@@ -4,12 +4,15 @@ module(
 )
 
 bazel_dep(name = "rules_go", version = "0.59.0")
-bazel_dep(name = "rules_rust", version = "0.68.1")
-
+bazel_dep(name = "rules_rust", version = "0.70.0")
+single_version_override(
+    module_name = "rules_rust",
+    patches = ["//patches:rules_rust_gnu_windows.patch"],
+    patch_strip = 1,
+)
 bazel_dep(name = "rules_rust_prost", version = "0.68.1")
 bazel_dep(name = "protobuf", version = "33.2", repo_name = "com_google_protobuf")
 bazel_dep(name = "rules_proto", version = "7.1.0")
-bazel_dep(name = "rules_rust_wasm_bindgen", version = "0.68.1")
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_foreign_cc", version = "0.15.1")
 bazel_dep(name = "rules_perl", version = "0.5.0")
@@ -21,10 +24,12 @@ bazel_dep(name = "aspect_rules_rollup", version = "2.0.1")
 bazel_dep(name = "gzgz_rules_sass", version = "1.0.4")
 bazel_dep(name = "nasm", version = "2.16.03.bcr.2")
 bazel_dep(name = "rules_cc", version = "0.2.16")
+bazel_dep(name = "rules_android", version = "0.7.2")
 bazel_dep(name = "rules_pkg", version = "1.2.0")
 bazel_dep(name = "rules_appimage", version = "1.19.0")
 bazel_dep(name = "bazel_env.bzl", version = "0.5.0")
 bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
+bazel_dep(name = "rules_shell", version = "0.8.0")
 bazel_dep(name = "rpmpack", version = "0.6.0")
 git_override(
     module_name = "rpmpack",
@@ -36,7 +41,7 @@ include("//modules:external_deps.MODULE.bazel")
 include("//modules:rust_toolchains.MODULE.bazel")
 include("//modules:frontend_toolchains.MODULE.bazel")
 include("//modules:crates.MODULE.bazel")
-include("//modules:wasm_crates.MODULE.bazel")
+include("//modules:android_toolchains.MODULE.bazel")
 
 rules_ts_ext = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
 rules_ts_ext.deps(
@@ -51,41 +56,4 @@ npm.npm_translate_lock(
     verify_node_modules_ignored = "//:.bazelignore",
 )
 use_repo(npm, "proto_npm")
-
-bazel_dep(name = "rules_flutter", version = "0.0.0")
-git_override(
-    module_name = "rules_flutter",
-    remote = "https://github.com/SpencerC/rules_flutter.git",
-    commit = "ca70cb77c09d4522fea090c42d81beed597bdacf",
-    patch_strip = 1,
-    patches = ["//patches:rules_flutter_sandbox.patch"],
-)
-
-flutter = use_extension("@rules_flutter//flutter:extensions.bzl", "flutter")
-flutter.toolchain(flutter_version = "3.24.0")
-use_repo(
-    flutter,
-    "flutter_sdk",
-    "flutter_toolchains",
-)
-
-register_toolchains("@flutter_toolchains//:all")
-
-pub = use_extension("@rules_flutter//flutter:extensions.bzl", "pub")
-use_repo(
-    pub,
-    "pub_flutter_rust_bridge",
-    "pub_ffi",
-    "pub_vector_math",
-    "pub_characters",
-    "pub_material_color_utilities",
-)
-
-
-bazel_dep(name = "rules_android_ndk", version = "0.1.5")
-
-android_ndk_repository_extension = use_extension("@rules_android_ndk//:extension.bzl", "android_ndk_repository_extension")
-use_repo(android_ndk_repository_extension, "androidndk")
-register_toolchains("@androidndk//:all")
-
 

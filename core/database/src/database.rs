@@ -17,6 +17,7 @@
 use std::cmp::min;
 
 use std::fmt::Write;
+use std::fs;
 use std::str::FromStr;
 use std::{path::PathBuf, vec};
 
@@ -71,8 +72,13 @@ pub struct Database {
 impl Database {
     #[tracing::instrument(level = "debug", skip(path))]
     pub fn new(path: PathBuf) -> Self {
+        debug!("Creating database handler");
+        if !path.exists() {
+            fs::create_dir_all(&path).expect("Failed to create dir to store database");
+        }
+
         let db = Self {
-            pool: Self::connect(path),
+            pool: Self::connect(path.join("songs.db")),
         };
 
         run_migrations(&mut db.pool.get().expect("Failed to get connection to DB"));

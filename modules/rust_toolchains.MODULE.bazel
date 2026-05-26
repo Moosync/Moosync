@@ -2,13 +2,13 @@ rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
     edition = "2024",
     extra_target_triples = [
-        "wasm32-unknown-unknown",
         "x86_64-linux-android",
         "aarch64-linux-android",
+        "x86_64-pc-windows-gnu",
     ],
     versions = [
-        # "1.86.0",
-        "nightly/2025-12-16",
+        "1.95.0",
+        # "nightly/2025-12-16",
     ],
 )
 use_repo(
@@ -16,23 +16,9 @@ use_repo(
     "rust_toolchains",
 )
 
-rust_host_tools = use_extension("@rules_rust//rust:extensions.bzl", "rust_host_tools")
-rust_host_tools.host_tools(
-    name = "rust_host_tools_nightly",
-    version = "nightly",
-)
-use_repo(
-    rust_host_tools,
-    "rust_host_tools_nightly",
-)
-
+register_toolchains("@rust_toolchains//:rust_linux_x86_64__x86_64-pc-windows-gnu__stable")
 register_toolchains("@rust_toolchains//:all")
 
-register_toolchains("@rules_rust//rust/private/dummy_cc_toolchain:dummy_cc_wasm32_toolchain")
-
-register_toolchains("//:wasm_bindgen_toolchain")
-
 register_toolchains(
-    "//tools/rust/prost_toolchain:prost_toolchain_wasm",
-    "//tools/rust/prost_toolchain:prost_toolchain_default",  # Register this AFTER the specific ones if strictly needed, but here they are disjoint sets (wasm vs default)
+    "//tools/rust/prost_toolchain:prost_toolchain_default",
 )

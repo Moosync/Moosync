@@ -118,3 +118,18 @@ impl MprisContext for SouvlakiMprisContext {
         })
     }
 }
+
+pub struct DummyContext {}
+impl MprisContext for DummyContext {
+    fn attach(&mut self, _: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<()> {
+        Ok(())
+    }
+
+    fn set_metadata(&mut self, _: MprisPlayerDetails) -> Result<()> {
+        Ok(())
+    }
+
+    fn set_playback_state(&mut self, _: PlayerState, _: u64) -> Result<()> {
+        Ok(())
+    }
+}

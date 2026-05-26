@@ -1,0 +1,31 @@
+diff -urN a/rust/platform/platform.bzl b/rust/platform/platform.bzl
+--- a/rust/platform/platform.bzl	2026-05-25 17:07:34.848893087 -0700
++++ b/rust/platform/platform.bzl	2026-05-25 17:07:34.849893087 -0700
+@@ -61,9 +61,16 @@
+ 
+     all_supported_triples = ALL_PLATFORM_TRIPLES
+     for triple in all_supported_triples:
++        flag_values = {}
++        if "msvc" in triple:
++            flag_values["@bazel_tools//tools/cpp:compiler"] = "msvc-cl"
++        elif "windows" in triple and "gnu" in triple:
++            flag_values["@bazel_tools//tools/cpp:compiler"] = "mingw-gcc"
++
+         native.config_setting(
+             name = triple,
+             constraint_values = triple_to_constraint_set(triple),
++            flag_values = flag_values,
+         )
+ 
+     native.alias(
+diff -urN a/rust/platform/triple_mappings.bzl b/rust/platform/triple_mappings.bzl
+--- a/rust/platform/triple_mappings.bzl	2026-05-25 17:07:34.848893087 -0700
++++ b/rust/platform/triple_mappings.bzl	2026-05-25 17:07:34.849893087 -0700
+@@ -32,6 +32,7 @@
+     "x86_64-pc-windows-msvc": _support(std = True, host_tools = True),
+     "x86_64-unknown-linux-gnu": _support(std = True, host_tools = True),
+     "x86_64-unknown-nixos-gnu": _support(std = True, host_tools = True),  # Same as `x86_64-unknown-linux-gnu` but with `@platforms//os:nixos`.
++    "x86_64-pc-windows-gnu": _support(std = True, host_tools = True),
+     # N.B. These "alternative" envs are not supported, as bazel cannot distinguish between them
+     # and others using existing @platforms// config_values
+     #

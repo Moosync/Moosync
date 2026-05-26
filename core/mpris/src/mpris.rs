@@ -24,8 +24,8 @@ use std::sync::{
 use extensions_proto::moosync::types::PlayerState;
 use types::errors::Result;
 
-use crate::MprisPlayerDetails;
 use crate::context::{MprisContext, SouvlakiMprisContext};
+use crate::{MprisPlayerDetails, context::DummyContext};
 
 pub struct MprisHolder {
     context: Mutex<Box<dyn MprisContext>>,
@@ -39,6 +39,15 @@ pub struct MprisHolder {
 impl MprisHolder {
     #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Result<MprisHolder> {
+        #[cfg(target_os = "windows")]
+        {
+            let is_wine = is_wine::try_is_wine().unwrap_or(true);
+            if is_wine {
+                let context = Box::new(DummyContext {});
+                return Self::new_with_context(context);
+            }
+        }
+
         let context = Box::new(SouvlakiMprisContext::new()?);
         Self::new_with_context(context)
     }

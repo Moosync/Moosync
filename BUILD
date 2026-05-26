@@ -1,21 +1,9 @@
 load("@rules_python//python:defs.bzl", "py_library")
-load("@rules_rust_wasm_bindgen//:defs.bzl", "rust_wasm_bindgen_toolchain")
-
-rust_wasm_bindgen_toolchain(
-    name = "wasm_bindgen_toolchain_impl",
-    wasm_bindgen_cli = "@bindeps//:wasm-bindgen-cli__wasm-bindgen",
-)
 
 py_library(
     name = "moosync_python_root",
     imports = ["."],
     visibility = ["//visibility:public"],
-)
-
-toolchain(
-    name = "wasm_bindgen_toolchain",
-    toolchain = "wasm_bindgen_toolchain_impl",
-    toolchain_type = "@rules_rust_wasm_bindgen//:toolchain_type",
 )
 
 config_setting(
@@ -25,7 +13,7 @@ config_setting(
 )
 
 platform(
-    name = "android_x86_64",
+    name = "x86_64",
     constraint_values = [
         "@platforms//cpu:x86_64",
         "@platforms//os:android",
@@ -34,10 +22,58 @@ platform(
 )
 
 platform(
-    name = "android_arm64",
+    name = "arm64-v8a",
     constraint_values = [
         "@platforms//cpu:aarch64",
         "@platforms//os:android",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+platform(
+    name = "windows_x86_64_gnu",
+    constraint_values = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:windows",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "libwindows_0_42_2",
+    srcs = ["@crates__windows_x86_64_gnu-0.42.2//:lib/libwindows.a"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "libwindows_0_52_0",
+    srcs = ["@crates__windows_x86_64_gnu-0.52.6//:lib/libwindows.0.52.0.a"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "libwindows_0_53_0",
+    srcs = ["@crates__windows_x86_64_gnu-0.53.1//:lib/libwindows.0.53.0.a"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "libwinapi_all",
+    srcs = [
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_advapi32.a",
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_cfgmgr32.a",
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_credui.a",
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_gdi32.a",
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_kernel32.a",
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_msimg32.a",
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_ntdll.a",
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_ole32.a",
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_opengl32.a",
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_secur32.a",
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_shell32.a",
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_user32.a",
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_winspool.a",
+        "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_ws2_32.a",
     ],
     visibility = ["//visibility:public"],
 )

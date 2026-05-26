@@ -142,35 +142,19 @@ configure_make(
     toolchains = ["@rules_perl//:current_toolchain"],
 )
 
-config_setting(
-    name = "android_x86_64",
-    constraint_values = [
-        "@platforms//os:android",
-        "@platforms//cpu:x86_64",
-    ],
-)
-
-config_setting(
-    name = "android_arm64",
-    constraint_values = [
-        "@platforms//os:android",
-        "@platforms//cpu:aarch64",
-    ],
-)
-
 configure_make(
     name = "openssl_default",
     configure_command = select({
-        ":android_x86_64": "Configure",
-        ":android_arm64": "Configure",
+        "//:android_x86_64_config": "Configure",
+        "//:android_arm64_config": "Configure",
         "//conditions:default": "config",
     }),
     configure_in_place = True,
     configure_options = CONFIGURE_OPTIONS + [
         "--libdir=lib",
     ] + select({
-        ":android_x86_64": ["linux-generic64"],
-        ":android_arm64": ["linux-generic64"],
+        "//:android_x86_64_config": ["linux-generic64"],
+        "//:android_arm64_config": ["linux-generic64"],
         "//conditions:default": [],
     }),
     env = select({

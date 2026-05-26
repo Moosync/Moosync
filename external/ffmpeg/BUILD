@@ -1,20 +1,20 @@
 load("@rules_foreign_cc//foreign_cc:configure.bzl", "configure_make")
 
-config_setting(
-    name = "android_x86_64",
-    constraint_values = [
-        "@platforms//os:android",
-        "@platforms//cpu:x86_64",
-    ],
-)
+ANDROID_FFMPEG_ANDROID_COMMON = [
+    "--target-os=android",
+    "--enable-cross-compile",
+    "--cc=$$EXT_BUILD_ROOT/$(CC)",
+    "--cxx=$$EXT_BUILD_ROOT/$(CC)++",
+    "--ld=$$EXT_BUILD_ROOT/$(CC)",
+    "--ar=$$EXT_BUILD_ROOT/$(AR)",
+    "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lopus -lssl -lcrypto -lm -lz -ldl\"",
+]
 
-config_setting(
-    name = "android_arm64",
-    constraint_values = [
-        "@platforms//os:android",
-        "@platforms//cpu:aarch64",
-    ],
-)
+ANDROID_FFMPEG_ANDROID_OPTIONS = select({
+    "//:android_x86_64_config": ANDROID_FFMPEG_ANDROID_COMMON + ["--arch=x86_64"],
+    "//:android_arm64_config": ANDROID_FFMPEG_ANDROID_COMMON + ["--arch=aarch64"],
+    "//conditions:default": [],
+})
 
 configure_make(
     name = "ffmpeg",
@@ -94,26 +94,8 @@ configure_make(
             "--ar=$$EXT_BUILD_ROOT/$(AR)",
             "--extra-libs=\"-lssl -lcrypto -lvorbis -lvorbisenc -lvorbisfile -logg -lopus -lws2_32 -lbcrypt -lcrypt32 -lsecur32 -lshlwapi -luser32 -ladvapi32\"",
         ],
-        ":android_x86_64": [
-            "--target-os=android",
-            "--arch=x86_64",
-            "--enable-cross-compile",
-            "--cc=$$EXT_BUILD_ROOT/$(CC)",
-            "--cxx=$$EXT_BUILD_ROOT/$(CC)++",
-            "--ld=$$EXT_BUILD_ROOT/$(CC)",
-            "--ar=$$EXT_BUILD_ROOT/$(AR)",
-            "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lopus -lssl -lcrypto -lm -lz -ldl\"",
-        ],
-        ":android_arm64": [
-            "--target-os=android",
-            "--arch=aarch64",
-            "--enable-cross-compile",
-            "--cc=$$EXT_BUILD_ROOT/$(CC)",
-            "--cxx=$$EXT_BUILD_ROOT/$(CC)++",
-            "--ld=$$EXT_BUILD_ROOT/$(CC)",
-            "--ar=$$EXT_BUILD_ROOT/$(AR)",
-            "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lopus -lssl -lcrypto -lm -lz -ldl\"",
-        ],
+        "//:android_x86_64_config": ANDROID_FFMPEG_ANDROID_COMMON + ["--arch=x86_64"],
+        "//:android_arm64_config": ANDROID_FFMPEG_ANDROID_COMMON + ["--arch=aarch64"],
         "//conditions:default": [
             "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lm -lpthread\"",
         ],

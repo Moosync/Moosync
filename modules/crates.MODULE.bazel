@@ -355,11 +355,6 @@ crates.annotation(
         "debug-assertions=off",
     ],
 )
-crates.annotation(
-    crate = "tauri-macros",
-    patch_args = ["-p1"],
-    patches = ["//patches:tauri_macros.patch"],
-)
 crates.spec(
     features = ["build"],
     package = "tauri-plugin",
@@ -628,6 +623,12 @@ crates.spec(
 crates.spec(
     package = "is_wine",
     version = "0.1.2",
+)
+crates.spec(
+    default_features = False,
+    features = ["invocation"],
+    package = "jni",
+    version = "0.21",
 )
 crates.annotation(
     compile_data_glob = [

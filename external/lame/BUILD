@@ -31,22 +31,6 @@ make_variant(
     toolchain = "@rules_foreign_cc//toolchains:preinstalled_nmake_toolchain",
 )
 
-config_setting(
-    name = "android_x86_64",
-    constraint_values = [
-        "@platforms//os:android",
-        "@platforms//cpu:x86_64",
-    ],
-)
-
-config_setting(
-    name = "android_arm64",
-    constraint_values = [
-        "@platforms//os:android",
-        "@platforms//cpu:aarch64",
-    ],
-)
-
 configure_make(
     name = "lame_nix",
     configure_options = [
@@ -54,10 +38,10 @@ configure_make(
         "--enable-static",
         "--disable-frontend",
     ] + select({
-        ":android_x86_64": [
+        "//:android_x86_64_config": [
             "--host=x86_64-linux-android",
         ],
-        ":android_arm64": [
+        "//:android_arm64_config": [
             "--host=aarch64-linux-android",
         ],
         "//conditions:default": [],

@@ -3,17 +3,8 @@ def _cargo_generic_build_impl(ctx):
     out_name = ctx.attr.out_name
 
     binary_name = ctx.attr.binary_name
-    outputs = []
-
-    if ctx.attr.run_wasm_bindgen:
-        out_wasm = ctx.actions.declare_file(out_name + "_bg.wasm")
-        out_js = ctx.actions.declare_file(out_name + ".js")
-        outputs.extend([out_wasm, out_js])
-    else:
-        out_bin = ctx.actions.declare_file(out_name)
-        outputs.append(out_bin)
-        out_wasm = out_bin
-        out_js = None
+    out_bin = ctx.actions.declare_file(out_name)
+    outputs = [out_bin]
 
     expanded_env = {}
     for k, v in ctx.attr.env.items():
@@ -38,14 +29,6 @@ def _cargo_generic_build_impl(ctx):
     cargo_mode_flag = "--release" if is_release else ""
 
     profile_dir = "release" if is_release else "debug"
-
-    if ctx.attr.run_wasm_bindgen:
-        if ctx.attr.wasm_bindgen_path:
-            bindgen_bin_path = ctx.attr.wasm_bindgen_path
-        else:
-            bindgen_bin_path = ctx.executable._wasm_bindgen_hermetic.path
-    else:
-        bindgen_bin_path = ""
 
     script = """
     set -e
@@ -77,22 +60,9 @@ def _cargo_generic_build_impl(ctx):
     fi
 
     echo "Found binary: $EXPECTED_BIN"
-
-    if [ "{run_bindgen}" = "True" ]; then
-        BINDGEN_CMD="{bindgen_bin_path}"
-        if [[ ! "$BINDGEN_CMD" == /* ]] && [[ -f "$ROOT/$BINDGEN_CMD" ]]; then
-            BINDGEN_CMD="$ROOT/$BINDGEN_CMD"
-        fi
-
-        echo "--- Running Wasm-Bindgen using: $BINDGEN_CMD ---"
-        $BINDGEN_CMD "$EXPECTED_BIN" --target web --out-dir . --out-name "{out_name}" --no-typescript
-        cp "{out_name}_bg.wasm" "$ROOT/{out_wasm_path}"
-        cp "{out_name}.js" "$ROOT/{out_js_path}"
-    else
-        cp "$EXPECTED_BIN" "$ROOT/{out_wasm_path}"
-        echo "Copied binary to $ROOT/{out_wasm_path}"
-        ls -la "$ROOT/{out_wasm_path}"
-    fi
+    cp "$EXPECTED_BIN" "$ROOT/{out_bin_path}"
+    echo "Copied binary to $ROOT/{out_bin_path}"
+    ls -la "$ROOT/{out_bin_path}"
     """.format(
         source_path = source_dir.path,
         env_vars = env_script,
@@ -102,18 +72,12 @@ def _cargo_generic_build_impl(ctx):
         target_subdir = target_subdir,
         profile_dir = profile_dir,
         cargo_args = ctx.attr.cargo_args,
-        run_bindgen = ctx.attr.run_wasm_bindgen,
-        bindgen_bin_path = bindgen_bin_path,
-        out_name = out_name,
-        out_wasm_path = out_wasm.path,
-        out_js_path = out_js.path if out_js else "",
+        out_bin_path = out_bin.path,
         cargo_mode_flag = cargo_mode_flag,
         binary_name = binary_name,
     )
 
     all_inputs = ctx.files.srcs + ctx.files.data
-    if ctx.attr.run_wasm_bindgen and not ctx.attr.wasm_bindgen_path:
-        all_inputs.append(ctx.executable._wasm_bindgen_hermetic)
 
     ctx.actions.run_shell(
         inputs = all_inputs,
@@ -138,15 +102,7 @@ cargo_build_ = rule(
         "rustflags": attr.string_list(default = []),
         "env": attr.string_dict(default = {}),
         "cargo_args": attr.string(default = ""),
-        "run_wasm_bindgen": attr.bool(default = False),
         "out_name": attr.string(mandatory = True),
-        "binary_name": attr.string(mandatory = True, doc = "The exact name of the binary/wasm file (e.g. 'app.wasm')"),
-        "wasm_bindgen_path": attr.string(default = ""),
-        "_wasm_bindgen_hermetic": attr.label(
-            default = Label("@bindeps//:wasm-bindgen-cli__wasm-bindgen"),
-            cfg = "exec",
-            executable = True,
-            allow_files = True,
-        ),
+        "binary_name": attr.string(mandatory = True, doc = "The exact name of the output binary."),
     },
 )

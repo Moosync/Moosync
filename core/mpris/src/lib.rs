@@ -15,6 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct MprisPlayerDetails {
@@ -31,17 +32,67 @@ pub struct MprisPlayerDetails {
     pub thumbnail: Option<String>,
 }
 
+// ─────────────────────────────────────────────────────────────────────── //
+//  Platform-agnostic MediaControlEvent.                                   //
+//  On desktop, souvlaki re-exports the same type names so callers can     //
+//  use them interchangeably.                                               //
+// ─────────────────────────────────────────────────────────────────────── //
+
+/// Events sent by the OS media controls.
+///
+/// Defined here (not re-exported from souvlaki) so Android builds compile
+/// without the souvlaki dependency.
+#[derive(Clone, PartialEq, Debug)]
+pub enum MediaControlEvent {
+    Play,
+    Pause,
+    Toggle,
+    Next,
+    Previous,
+    Stop,
+
+    /// Seek forward or backward by an undetermined amount.
+    Seek(SeekDirection),
+    /// Seek forward or backward by a certain amount.
+    SeekBy(SeekDirection, Duration),
+    /// Set the position/progress of the currently playing media item.
+    SetPosition(MediaPosition),
+    /// Sets the volume. The value is intended to be from 0.0 to 1.0.
+    SetVolume(f64),
+    /// Open the URI in the media player.
+    OpenUri(String),
+    /// Bring the media player's user interface to the front.
+    Raise,
+    /// Shut down the media player.
+    Quit,
+}
+
+/// An instant in a media item.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct MediaPosition(pub Duration);
+
+/// The direction to seek in.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum SeekDirection {
+    Forward,
+    Backward,
+}
+
+// ─────────────────────────────────────────────────────────────────────── //
+//  Platform-specific modules.                                              //
+// ─────────────────────────────────────────────────────────────────────── //
+
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 mod mpris;
 
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
-pub use mpris::{MediaControlEvent, MprisHolder};
+pub use mpris::MprisHolder;
 
 #[cfg(target_os = "android")]
 pub mod mpris_android;
 
 #[cfg(target_os = "android")]
-pub use mpris_android::{MediaControlEvent, MprisHolder};
+pub use mpris_android::{AndroidMprisContext, MprisHolder};
 
 #[cfg(test)]
 mod tests;

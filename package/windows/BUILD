@@ -4,12 +4,12 @@ genrule(
     name = "moosync_installer_raw",
     srcs = [
         "moosync.nsi",
-        "//tauri:moosync",
+        "//ui/slint:slint_app",
     ],
     outs = ["MoosyncSetup.exe"],
     cmd = """
-    ls -la $$PWD/$(location //tauri:moosync)
-    BINARY_ABS_PATH=$$(cygpath -w "$$PWD/$(location //tauri:moosync)")
+    ls -la $$PWD/$(location //ui/slint:slint_app)
+    BINARY_ABS_PATH=$$(cygpath -w "$$PWD/$(location //ui/slint:slint_app)")
     OUT_PATH=$$(cygpath -w "$$PWD/$@")
     makensis \
       -V4 \
@@ -25,7 +25,7 @@ genrule(
 
 genrule(
     name = "moosync_portable_raw",
-    srcs = ["//tauri:moosync"],
+    srcs = ["//ui/slint:slint_app"],
     outs = ["Moosync.exe"],
     cmd = "cp $< $@",
     executable = True,

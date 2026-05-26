@@ -6,6 +6,7 @@ rust_library(
         "src/context/mod.rs",
         "src/lib.rs",
         "src/mpris.rs",
+        "src/mpris_android.rs",
         "src/tests.rs",
         "src/win32.rs",
     ],
@@ -17,14 +18,19 @@ rust_library(
         "//core/types/protos:songs_rs",
         "@crates//:mockall",
         "@crates//:serde",
-        "@crates//:souvlaki",
         "@crates//:tracing",
     ] + select({
+        "@platforms//os:android": [
+            "@crates//:jni",
+        ],
         "@platforms//os:windows": [
             "@crates//:is_wine",
+            "@crates//:souvlaki",
             "@crates//:windows",
         ],
-        "//conditions:default": [],
+        "//conditions:default": [
+            "@crates//:souvlaki",
+        ],
     }),
 )
 

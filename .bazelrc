@@ -41,3 +41,8 @@ build:release --@rules_rust//rust/settings:extra_rustc_flag=-Cincremental=false
 build:release --@rules_rust//rust/settings:toolchain_generated_sysroot=True
 build:release --@rules_rust//rust/settings:extra_rustc_flag=-Cembed-bitcode=yes
 build:release --@rules_rust//rust/settings:extra_rustc_flag=-Ctarget-cpu=native
+
+# Fix Bazel Android tools build by using Java 17 toolchain for host tools
+build --tool_java_language_version=17
+build --tool_java_runtime_version=remotejdk_17
+

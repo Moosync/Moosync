@@ -5,8 +5,9 @@ use extensions::ExtensionHandler;
 use extensions_proto::moosync::types::{MainCommand, MainCommandResponse};
 use file_scanner::ScannerHolder;
 use lyrics::LyricsFetcher;
-#[cfg(not(target_os = "android"))]
 use mpris::MprisHolder;
+#[cfg(target_os = "android")]
+use mpris::AndroidMprisContext;
 use platform_dirs;
 use preferences::preferences::PreferenceConfig;
 use rodio_player::RodioPlayer;
@@ -29,12 +30,15 @@ pub struct StateManager {
     extensions: ExtensionHandler,
     rodio_player: RodioPlayer,
     themes: ThemeHolder,
-    #[cfg(not(target_os = "android"))]
     mpris: MprisHolder,
 }
 
 impl StateManager {
-    pub fn new() -> Result<Self, StateManagerError> {
+    pub fn new(
+        #[cfg(target_os = "android")] jvm: Arc<jni::JavaVM>,
+        #[cfg(target_os = "android")] activity: jni::objects::GlobalRef,
+        #[cfg(target_os = "android")] service_class: jni::objects::GlobalRef,
+    ) -> Result<Self, StateManagerError> {
         #[cfg(not(target_os = "android"))]
         let (data_dir, cache_dir) = {
             let platform = platform_dirs::AppDirs::new(Some("moosync"), false)
@@ -51,6 +55,17 @@ impl StateManager {
             (data_dir, cache_dir)
         };
 
+        #[cfg(not(target_os = "android"))]
+        let mpris = MprisHolder::new()
+            .map_err(|e| StateManagerError::InitializeError(Box::new(e)))?;
+
+        #[cfg(target_os = "android")]
+        let mpris = {
+            let context = Box::new(AndroidMprisContext::new(jvm, activity, service_class));
+            MprisHolder::new_with_context(context)
+                .map_err(|e| StateManagerError::InitializeError(Box::new(e)))?
+        };
+
         let tmp = tempdir::TempDir::new("moosync")
             .expect("Failed to create tmp dir")
             .into_path();
@@ -59,7 +74,7 @@ impl StateManager {
         let extensions_dir = data_dir.join("extensions");
         let theme_dir = data_dir.join("themes");
 
-        let (themes_changed_tx, themes_changed_rx) = mpsc::channel();
+        let (themes_changed_tx, _themes_changed_rx) = mpsc::channel();
 
         Ok(Self {
             preferences: PreferenceConfig::new(data_dir.clone())
@@ -77,10 +92,12 @@ impl StateManager {
             ),
             rodio_player: RodioPlayer::new(),
             themes: ThemeHolder::new(theme_dir, tmp, themes_changed_tx),
-            #[cfg(not(target_os = "android"))]
-            mpris: MprisHolder::new()
-                .map_err(|e| StateManagerError::InitializeError(Box::new(e)))?,
+            mpris,
         })
+    }
+
+    pub fn mpris(&self) -> &MprisHolder {
+        &self.mpris
     }
 }
 

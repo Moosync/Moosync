@@ -9,12 +9,10 @@
 // This program is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Goueneral Public License for more details.
+// GNU General Public License for more details.
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-pub use souvlaki::MediaControlEvent;
 
 use std::sync::{
     Arc, Mutex,
@@ -24,12 +22,12 @@ use std::sync::{
 use extensions_proto::moosync::types::PlayerState;
 use types::errors::Result;
 
-use crate::context::{MprisContext, SouvlakiMprisContext};
-use crate::{MprisPlayerDetails, context::DummyContext};
+use crate::context::{DummyContext, MprisContext, SouvlakiMprisContext};
+use crate::MprisPlayerDetails;
 
 pub struct MprisHolder {
     context: Mutex<Box<dyn MprisContext>>,
-    pub event_rx: Arc<Mutex<Receiver<MediaControlEvent>>>,
+    pub event_rx: Arc<Mutex<Receiver<crate::MediaControlEvent>>>,
     last_duration: Mutex<u64>,
     last_state: Mutex<PlayerState>,
     #[cfg(target_os = "windows")]

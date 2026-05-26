@@ -58,6 +58,7 @@ rust_shared_library(
     deps = [
         ":build_script",
         "//core/state_manager",
+        "@crates//:jni",
         "@crates//:platform-dirs",
         "@crates//:slint",
         "@crates//:tokio",

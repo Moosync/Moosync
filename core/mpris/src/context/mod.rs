@@ -1,14 +1,43 @@
+// Moosync
+// Copyright (C) 2024, 2025  Moosync <support@moosync.app>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 #[cfg(test)]
 use mockall::mock;
+
+#[cfg(not(target_os = "android"))]
 use souvlaki::{
-    MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig,
+    MediaControls, MediaMetadata, MediaPlayback,
+    MediaPosition as SouvlakiMediaPosition, PlatformConfig,
 };
 
+#[cfg(not(target_os = "android"))]
 use std::time::Duration;
 
-use crate::MprisPlayerDetails;
+use crate::{MediaControlEvent, MprisPlayerDetails};
+#[cfg(not(target_os = "android"))]
+use crate::SeekDirection;
 use extensions_proto::moosync::types::PlayerState;
-use types::errors::{MoosyncError, Result};
+#[cfg(not(target_os = "android"))]
+use types::errors::MoosyncError;
+use types::errors::Result;
+
+// ─────────────────────────────────────────────────────────────────────── //
+//  MprisContext trait — platform-agnostic interface.                       //
+//  Uses crate-level MediaControlEvent (defined in lib.rs).                //
+// ─────────────────────────────────────────────────────────────────────── //
 
 pub trait MprisContext: Send + Sync {
     fn attach(&mut self, sender: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<()>;
@@ -26,10 +55,16 @@ mock! {
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────── //
+//  SouvlakiMprisContext — desktop implementation backed by souvlaki.     //
+// ─────────────────────────────────────────────────────────────────────── //
+
+#[cfg(not(target_os = "android"))]
 pub struct SouvlakiMprisContext {
     controls: MediaControls,
 }
 
+#[cfg(not(target_os = "android"))]
 impl SouvlakiMprisContext {
     pub fn new() -> Result<Self> {
         #[cfg(not(target_os = "windows"))]
@@ -64,11 +99,45 @@ impl SouvlakiMprisContext {
     }
 }
 
+/// Map our crate-level `MediaControlEvent` to souvlaki's event type for the closure.
+/// souvlaki calls back with *its own* `MediaControlEvent`; we convert to ours.
+#[cfg(not(target_os = "android"))]
+fn from_souvlaki_event(e: souvlaki::MediaControlEvent) -> MediaControlEvent {
+    match e {
+        souvlaki::MediaControlEvent::Play => MediaControlEvent::Play,
+        souvlaki::MediaControlEvent::Pause => MediaControlEvent::Pause,
+        souvlaki::MediaControlEvent::Toggle => MediaControlEvent::Toggle,
+        souvlaki::MediaControlEvent::Next => MediaControlEvent::Next,
+        souvlaki::MediaControlEvent::Previous => MediaControlEvent::Previous,
+        souvlaki::MediaControlEvent::Stop => MediaControlEvent::Stop,
+        souvlaki::MediaControlEvent::Seek(d) => MediaControlEvent::Seek(match d {
+            souvlaki::SeekDirection::Forward => SeekDirection::Forward,
+            souvlaki::SeekDirection::Backward => SeekDirection::Backward,
+        }),
+        souvlaki::MediaControlEvent::SeekBy(d, dur) => MediaControlEvent::SeekBy(
+            match d {
+                souvlaki::SeekDirection::Forward => SeekDirection::Forward,
+                souvlaki::SeekDirection::Backward => SeekDirection::Backward,
+            },
+            dur,
+        ),
+        souvlaki::MediaControlEvent::SetPosition(p) => {
+            MediaControlEvent::SetPosition(crate::MediaPosition(p.0))
+        }
+        souvlaki::MediaControlEvent::SetVolume(v) => MediaControlEvent::SetVolume(v),
+        souvlaki::MediaControlEvent::OpenUri(u) => MediaControlEvent::OpenUri(u),
+        souvlaki::MediaControlEvent::Raise => MediaControlEvent::Raise,
+        souvlaki::MediaControlEvent::Quit => MediaControlEvent::Quit,
+    }
+}
+
+#[cfg(not(target_os = "android"))]
 impl MprisContext for SouvlakiMprisContext {
     fn attach(&mut self, sender: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<()> {
         self.controls
             .attach(move |event| {
-                sender.send(event).unwrap();
+                let mapped = from_souvlaki_event(event);
+                sender.send(mapped).unwrap();
             })
             .map_err(|e| MoosyncError::String(format!("{:?}", e)))
     }
@@ -98,10 +167,10 @@ impl MprisContext for SouvlakiMprisContext {
     fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<()> {
         let parsed = match state {
             PlayerState::Playing => MediaPlayback::Playing {
-                progress: Some(MediaPosition(Duration::from_millis(duration))),
+                progress: Some(SouvlakiMediaPosition(Duration::from_millis(duration))),
             },
             PlayerState::Paused | PlayerState::Loading => MediaPlayback::Paused {
-                progress: Some(MediaPosition(Duration::from_millis(duration))),
+                progress: Some(SouvlakiMediaPosition(Duration::from_millis(duration))),
             },
             PlayerState::Stopped => MediaPlayback::Stopped,
         };
@@ -118,6 +187,10 @@ impl MprisContext for SouvlakiMprisContext {
         })
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────── //
+//  DummyContext — used on Wine / unsupported platforms.                   //
+// ─────────────────────────────────────────────────────────────────────── //
 
 pub struct DummyContext {}
 impl MprisContext for DummyContext {

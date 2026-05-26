@@ -23,7 +23,10 @@ rust_library(
         "@crates//:platform-dirs",
         "@crates//:tempdir",
     ] + select({
-        "@platforms//os:android": [],
+        "@platforms//os:android": [
+            "//core/mpris",
+            "@crates//:jni",
+        ],
         "//conditions:default": ["//core/mpris"],
     }),
 )

@@ -4,7 +4,6 @@ load("//tools:defs.bzl", "dirgroup")
 
 package(default_visibility = [
     "//package:__subpackages__",
-    "//tauri:__subpackages__",
 ])
 
 dirgroup(

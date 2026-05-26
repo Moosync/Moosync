@@ -12,6 +12,51 @@ config_setting(
     visibility = ["//visibility:public"],
 )
 
+config_setting(
+    name = "android_x86_64_config",
+    constraint_values = [
+        "@platforms//os:android",
+        "@platforms//cpu:x86_64",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "android_arm64_config",
+    constraint_values = [
+        "@platforms//os:android",
+        "@platforms//cpu:aarch64",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "linux_x86_64_config",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "windows_x86_64_config",
+    constraint_values = [
+        "@platforms//os:windows",
+        "@platforms//cpu:x86_64",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "macos_x86_64_config",
+    constraint_values = [
+        "@platforms//os:macos",
+        "@platforms//cpu:x86_64",
+    ],
+    visibility = ["//visibility:public"],
+)
+
 platform(
     name = "x86_64",
     constraint_values = [
@@ -30,11 +75,41 @@ platform(
     visibility = ["//visibility:public"],
 )
 
+alias(
+    name = "android_x86_64",
+    actual = ":x86_64",
+    visibility = ["//visibility:public"],
+)
+
+alias(
+    name = "android_arm64",
+    actual = ":arm64-v8a",
+    visibility = ["//visibility:public"],
+)
+
 platform(
     name = "windows_x86_64_gnu",
     constraint_values = [
         "@platforms//cpu:x86_64",
         "@platforms//os:windows",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+platform(
+    name = "linux_x86_64",
+    constraint_values = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+platform(
+    name = "macos_x86_64",
+    constraint_values = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:macos",
     ],
     visibility = ["//visibility:public"],
 )

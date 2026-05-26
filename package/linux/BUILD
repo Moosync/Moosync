@@ -1,177 +1,112 @@
-# load("@rpmpack//:def.bzl", "pkg_tar2rpm")
-# load("@rules_pkg//pkg:deb.bzl", "pkg_deb")
-# load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
-# load("//:version.bzl", "APP_NAME", "RELEASE", "VERSION")
+load("@rpmpack//:def.bzl", "pkg_tar2rpm")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_files")
+load("@rules_pkg//pkg:deb.bzl", "pkg_deb")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+load("//:version.bzl", "APP_NAME", "RELEASE", "VERSION")
 
-# alias(
-#     name = "linuxdeploy_tool",
-#     actual = select({
-#         "@platforms//cpu:x86_64": "@linuxdeploy_x86_64//file",
-#         "@platforms//cpu:arm64": "@linuxdeploy_arm64//file",
-#         "//conditions:default": "@linuxdeploy_x86_64//file",
-#     }),
-# )
+pkg_files(
+    name = "moosync_binary",
+    srcs = ["//ui/slint:slint_app"],
+    attributes = pkg_attributes(mode = "0755"),
+    prefix = "/usr/bin",
+    renames = {
+        "slint_app": "moosync",
+    },
+)
 
-# ARCH_DEB = select({
-#     "@platforms//cpu:arm64": "arm64",
-#     "@platforms//cpu:x86_64": "amd64",
-#     "//conditions:default": "amd64",
-# })
+pkg_files(
+    name = "moosync_desktop",
+    srcs = ["moosync.desktop"],
+    attributes = pkg_attributes(mode = "0644"),
+    prefix = "/usr/share/applications",
+)
 
-# ARCH_RPM = select({
-#     "@platforms//cpu:arm64": "aarch64",
-#     "@platforms//cpu:x86_64": "x86_64",
-#     "//conditions:default": "x86_64",
-# })
+pkg_tar(
+    name = "moosync_filesystem_tar",
+    srcs = [":moosync_binary", ":moosync_desktop"],
+    deps = ["//package:moosync_icons_tar"],
+)
 
-# pkg_tar(
-#     name = "moosync_bin_tar",
-#     srcs = ["//ui/flutter:moosync_flutter"],
-#     mode = "0755",
-#     package_dir = "/usr/bin/moosync",
-# )
+pkg_tar2rpm(
+    name = "moosync_rpm_raw",
+    arch = select({
+        "@platforms//cpu:arm64": "aarch64",
+        "@platforms//cpu:x86_64": "x86_64",
+        "//conditions:default": "x86_64",
+    }),
+    data = ":moosync_filesystem_tar",
+    pkg_name = "moosync",
+    release = RELEASE,
+    requires = [
+        "webkit2gtk3 openssl",
+    ],
+    version = VERSION,
+)
 
-# pkg_tar(
-#     name = "moosync_desktop_tar",
-#     srcs = ["moosync.desktop"],
-#     mode = "0644",
-#     package_dir = "/usr/share/applications",
-# )
+pkg_deb(
+    name = "moosync_deb_raw",
+    architecture = select({
+        "@platforms//cpu:arm64": "arm64",
+        "@platforms//cpu:x86_64": "amd64",
+        "//conditions:default": "amd64",
+    }),
+    built_using = "bazel",
+    data = ":moosync_filesystem_tar",
+    depends = [
+        "libwebkit2gtk-4.0-37",
+        "libssl3",
+    ],
+    description = "Moosync",
+    maintainer = "Sahil Gupte <ovenoboyo@gmail.com>",
+    package = "moosync",
+    version = VERSION,
+)
 
-# pkg_tar(
-#     name = "moosync_filesystem_tar",
-#     deps = [
-#         ":moosync_bin_tar",
-#         ":moosync_desktop_tar",
-#         "//package:moosync_icons_tar",
-#     ],
-# )
+genrule(
+    name = "rename_x64",
+    srcs = [
+        ":moosync_rpm_raw",
+        ":moosync_deb_raw",
+    ],
+    outs = [
+        "{}-{}-{}.x86_64.rpm".format(APP_NAME, VERSION, RELEASE),
+        "{}-{}-{}.amd64.deb".format(APP_NAME, VERSION, RELEASE),
+    ],
+    cmd = """
+    cp $(location :moosync_rpm_raw) $(location {name}-{ver}-{rel}.x86_64.rpm) && \
+    cp $(location :moosync_deb_raw) $(location {name}-{ver}-{rel}.amd64.deb)
+    """.format(
+        name = APP_NAME,
+        rel = RELEASE,
+        ver = VERSION,
+    ),
+)
 
-# genrule(
-#     name = "moosync_appimage_raw",
-#     srcs = [
-#         # "//ui/flutter:moosync_flutter",  # Flutter bundle directory
-#         "moosync.desktop",  # Your desktop entry
-#         "//package:default_icon",
-#     ],
-#     outs = ["Moosync.AppImage"],
-#     cmd = """
-#     cp $(location :linuxdeploy_tool) linuxdeploy
-#     chmod +x linuxdeploy
-    
-#     cp $(location @linuxdeploy_plugin_gtk//file) linuxdeploy-plugin-gtk.sh
-#     chmod +x linuxdeploy-plugin-gtk.sh
-    
-#     ./linuxdeploy --appimage-extract > /dev/null
-    
-#     LD_TOOL=./squashfs-root/AppRun
+genrule(
+    name = "rename_arm64",
+    srcs = [
+        ":moosync_rpm_raw",
+        ":moosync_deb_raw",
+    ],
+    outs = [
+        "{}-{}-{}.aarch64.rpm".format(APP_NAME, VERSION, RELEASE),
+        "{}-{}-{}.arm64.deb".format(APP_NAME, VERSION, RELEASE),
+    ],
+    cmd = """
+    cp $(location :moosync_rpm_raw) $(location {name}-{ver}-{rel}.aarch64.rpm) && \
+    cp $(location :moosync_deb_raw) $(location {name}-{ver}-{rel}.arm64.deb)
+    """.format(
+        name = APP_NAME,
+        rel = RELEASE,
+        ver = VERSION,
+    ),
+)
 
-#     export PATH=.:$$PATH
-#     export DEPLOY_GTK_VERSION=3
-#     export NO_STRIP=true
-
-#     cp $(location //package:default_icon) moosync.png
-    
-#     # The flutter bundle is a directory tree artifact; find the executable inside it.
-#     BUNDLE_DIR=$$(dirname $(locations //ui/flutter:moosync_flutter) | head -n1)
-#     EXECUTABLE=$$(find $$BUNDLE_DIR -maxdepth 1 -type f -name "moosync" | head -n1)
-
-#     mkdir -p AppDir/usr/bin/moosync
-#     cp -RL $$BUNDLE_DIR/. AppDir/usr/bin/moosync/
-
-#     $$LD_TOOL --appdir AppDir \\
-#         --executable $$EXECUTABLE \\
-#         --desktop-file $(location moosync.desktop) \\
-#         --icon-file moosync.png \\
-#         --plugin gtk \\
-#         --output appimage
-
-#     mv *.AppImage $@
-#     """,
-#     tools = [
-#         ":linuxdeploy_tool",
-#         "@linuxdeploy_plugin_gtk//file",
-#     ],
-# )
-
-# pkg_tar2rpm(
-#     name = "moosync_rpm_raw",
-#     arch = ARCH_RPM,
-#     data = ":moosync_filesystem_tar",
-#     pkg_name = "moosync",
-#     release = RELEASE,
-#     requires = [
-#         "webkit2gtk3 openssl",
-#     ],
-#     version = VERSION,
-# )
-
-# pkg_deb(
-#     name = "moosync_deb_raw",
-#     architecture = ARCH_DEB,
-#     built_using = "bazel",
-#     data = ":moosync_filesystem_tar",
-#     depends = [
-#         "libwebkit2gtk-4.0-37",
-#         "libssl3",
-#     ],
-#     description = "Moosync",
-#     maintainer = "Sahil Gupte <ovenoboyo@gmail.com>",
-#     package = "moosync",
-#     version = VERSION,
-# )
-
-# genrule(
-#     name = "rename_x64",
-#     srcs = [
-#         ":moosync_rpm_raw",
-#         ":moosync_deb_raw",
-#         ":moosync_appimage_raw",
-#     ],
-#     outs = [
-#         "{}-{}-{}.x86_64.rpm".format(APP_NAME, VERSION, RELEASE),
-#         "{}-{}-{}.amd64.deb".format(APP_NAME, VERSION, RELEASE),
-#         "{}-{}-{}.x86_64.AppImage".format(APP_NAME, VERSION, RELEASE),
-#     ],
-#     cmd = """
-#     cp $(location :moosync_rpm_raw) $(location {name}-{ver}-{rel}.x86_64.rpm) && \
-#     cp $(location :moosync_deb_raw) $(location {name}-{ver}-{rel}.amd64.deb) && \
-#     cp $(location :moosync_appimage_raw) $(location {name}-{ver}-{rel}.x86_64.AppImage)
-#     """.format(
-#         name = APP_NAME,
-#         rel = RELEASE,
-#         ver = VERSION,
-#     ),
-# )
-
-# genrule(
-#     name = "rename_arm64",
-#     srcs = [
-#         ":moosync_rpm_raw",
-#         ":moosync_deb_raw",
-#         ":moosync_appimage_raw",
-#     ],
-#     outs = [
-#         "{}-{}-{}.aarch64.rpm".format(APP_NAME, VERSION, RELEASE),
-#         "{}-{}-{}.arm64.deb".format(APP_NAME, VERSION, RELEASE),
-#         "{}-{}-{}.aarch64.AppImage".format(APP_NAME, VERSION, RELEASE),
-#     ],
-#     cmd = """
-#     cp $(location :moosync_rpm_raw) $(location {name}-{ver}-{rel}.aarch64.rpm) && \
-#     cp $(location :moosync_deb_raw) $(location {name}-{ver}-{rel}.arm64.deb) && \
-#     cp $(location :moosync_appimage_raw) $(location {name}-{ver}-{rel}.aarch64.AppImage)
-#     """.format(
-#         name = APP_NAME,
-#         rel = RELEASE,
-#         ver = VERSION,
-#     ),
-# )
-
-# filegroup(
-#     name = "linux_release",
-#     srcs = select({
-#         "@platforms//cpu:arm64": [":rename_arm64"],
-#         "//conditions:default": [":rename_x64"],
-#     }),
-#     visibility = ["//visibility:public"],
-# )
+filegroup(
+    name = "linux_release",
+    srcs = select({
+        "@platforms//cpu:arm64": [":rename_arm64"],
+        "//conditions:default": [":rename_x64"],
+    }),
+    visibility = ["//visibility:public"],
+)

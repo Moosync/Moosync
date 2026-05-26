@@ -15,7 +15,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    collections::HashMap,
     sync::{
         Arc, Mutex,
         mpsc::{self, Receiver, Sender},
@@ -23,152 +22,349 @@ use std::{
     time::Duration,
 };
 
-use crate::MprisPlayerDetails;
-use serde_json::Value;
-use tauri::{AppHandle, Listener};
-use tauri_plugin_audioplayer::AudioplayerExt;
-use types::{errors::Result, ui::player_details::PlayerState};
+use jni::{
+    AttachGuard, JavaVM,
+    objects::{GlobalRef, JClass, JObject, JString, JValue},
+};
+use tracing::{debug, warn};
+use types::errors::{MoosyncError, Result};
+
+use crate::{
+    MediaControlEvent, MediaPosition, MprisPlayerDetails,
+    context::MprisContext,
+};
+use extensions_proto::moosync::types::PlayerState;
+
+// ─────────────────────────────────────────────────────────────────────── //
+//  AndroidMprisContext                                                     //
+// ─────────────────────────────────────────────────────────────────────── //
+
+/// Rust-side bridge to the Kotlin `MoosyncService`.
+///
+/// Wraps a `JavaVM` obtained from `slint::android::AndroidApp` and calls
+/// `MoosyncService` static methods via JNI to update the notification and
+/// MediaSession. Media button events come back through the `nativeOnXxx`
+/// `#[no_mangle]` extern functions below.
+pub struct AndroidMprisContext {
+    jvm: Arc<JavaVM>,
+    activity: GlobalRef,
+    service_class: GlobalRef,
+}
+
+impl AndroidMprisContext {
+    /// Create a new context.
+    ///
+    /// * `jvm`           — the JVM.
+    /// * `activity`      — a `GlobalRef` to the Android `Activity` object.
+    /// * `service_class` — a `GlobalRef` to the `MoosyncService` JClass.
+    pub fn new(jvm: Arc<JavaVM>, activity: GlobalRef, service_class: GlobalRef) -> Self {
+        Self {
+            jvm,
+            activity,
+            service_class,
+        }
+    }
+
+    /// Attach the current Rust thread to the JVM.
+    fn jni_attach(&self) -> Result<AttachGuard<'_>> {
+        self.jvm
+            .attach_current_thread()
+            .map_err(|e| MoosyncError::String(format!("JNI attach failed: {e:?}")))
+    }
+
+    /// Start the foreground `MoosyncService` from the stored Activity context.
+    pub fn start_service(&self) -> Result<()> {
+        let mut guard = self.jni_attach()?;
+        let env = &mut *guard;
+
+        let activity = self.activity.as_obj();
+
+        let intent_class = env
+            .find_class("android/content/Intent")
+            .map_err(|e| MoosyncError::String(format!("{e:?}")))?;
+        let service_class = unsafe { JClass::from_raw(self.service_class.as_obj().as_raw()) };
+
+        let intent = env
+            .new_object(
+                &intent_class,
+                "(Landroid/content/Context;Ljava/lang/Class;)V",
+                &[
+                    JValue::Object(activity),
+                    JValue::Object(&service_class),
+                ],
+            )
+            .map_err(|e| MoosyncError::String(format!("new Intent: {e:?}")))?;
+
+        env.call_method(
+            activity,
+            "startForegroundService",
+            "(Landroid/content/Intent;)Landroid/content/ComponentName;",
+            &[JValue::Object(&intent)],
+        )
+        .map_err(|e| MoosyncError::String(format!("startForegroundService: {e:?}")))?;
+
+        debug!("MoosyncService started");
+        Ok(())
+    }
+}
+
+impl MprisContext for AndroidMprisContext {
+    /// Called by `MprisHolder::new_with_context`.
+    ///
+    /// Leaks a `Box<Sender<MediaControlEvent>>` to get a stable pointer that
+    /// Kotlin/Java stores as a `Long` and passes back into the native callbacks.
+    fn attach(&mut self, sender: Sender<MediaControlEvent>) -> Result<()> {
+        // Leak the sender — it lives for the app lifetime.
+        let ptr = Box::into_raw(Box::new(sender)) as i64;
+
+        let mut guard = self.jni_attach()?;
+        let env = &mut *guard;
+        let service_class = unsafe { JClass::from_raw(self.service_class.as_obj().as_raw()) };
+
+        env.call_static_method(
+            &service_class,
+            "registerNativeCallback",
+            "(J)V",
+            &[JValue::Long(ptr)],
+        )
+        .map_err(|e| MoosyncError::String(format!("registerNativeCallback: {e:?}")))?;
+
+        // Start the service (creates the notification).
+        drop(guard);
+        self.start_service()
+    }
+
+    fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<()> {
+        let mut guard = self.jni_attach()?;
+        let env = &mut *guard;
+        let service_class = unsafe { JClass::from_raw(self.service_class.as_obj().as_raw()) };
+
+        let title = new_nullable_jstring(env, metadata.title.as_deref())?;
+        let artist = new_nullable_jstring(env, metadata.artist_name.as_deref())?;
+        let album = new_nullable_jstring(env, metadata.album_name.as_deref())?;
+        let thumb = new_nullable_jstring(env, metadata.thumbnail.as_deref())?;
+        let duration_ms = metadata.duration.map(|d| (d * 1000.0) as i64).unwrap_or(0);
+
+        let null_obj = JObject::null();
+        let title_obj = title.as_ref().map(|s| s.as_ref()).unwrap_or(&null_obj);
+        let artist_obj = artist.as_ref().map(|s| s.as_ref()).unwrap_or(&null_obj);
+        let album_obj = album.as_ref().map(|s| s.as_ref()).unwrap_or(&null_obj);
+        let thumb_obj = thumb.as_ref().map(|s| s.as_ref()).unwrap_or(&null_obj);
+
+        env.call_static_method(
+            &service_class,
+            "updateMetadata",
+            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;JLjava/lang/String;)V",
+            &[
+                JValue::Object(title_obj),
+                JValue::Object(artist_obj),
+                JValue::Object(album_obj),
+                JValue::Long(duration_ms),
+                JValue::Object(thumb_obj),
+            ],
+        )
+        .map_err(|e| MoosyncError::String(format!("updateMetadata JNI: {e:?}")))?;
+
+        Ok(())
+    }
+
+    fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<()> {
+        let is_playing = state == PlayerState::Playing;
+
+        let mut guard = self.jni_attach()?;
+        let env = &mut *guard;
+        let service_class = unsafe { JClass::from_raw(self.service_class.as_obj().as_raw()) };
+
+        env.call_static_method(
+            &service_class,
+            "updatePlayerState",
+            "(ZJ)V",
+            &[
+                JValue::Bool(is_playing as u8),
+                JValue::Long(duration as i64),
+            ],
+        )
+        .map_err(|e| MoosyncError::String(format!("updatePlayerState JNI: {e:?}")))?;
+
+        Ok(())
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────── //
+//  MprisHolder — owns the AndroidMprisContext.                            //
+// ─────────────────────────────────────────────────────────────────────── //
 
 pub struct MprisHolder {
+    context: Mutex<Box<dyn MprisContext>>,
+    pub event_rx: Arc<Mutex<Receiver<MediaControlEvent>>>,
     last_duration: Mutex<u64>,
     last_state: Mutex<PlayerState>,
-    pub event_rx: Arc<Mutex<Receiver<MediaControlEvent>>>,
-    pub event_tx: Arc<Mutex<Sender<MediaControlEvent>>>,
-    pub app_handle: Mutex<Option<AppHandle>>,
 }
 
 impl MprisHolder {
-    #[tracing::instrument(level = "debug", skip())]
-    pub fn new() -> Result<MprisHolder> {
+    /// Construct with an `AndroidMprisContext` (the only option on Android).
+    pub fn new_with_context(mut context: Box<dyn MprisContext>) -> Result<MprisHolder> {
         let (event_tx, event_rx) = mpsc::channel();
+        context.attach(event_tx)?;
+
         Ok(MprisHolder {
+            context: Mutex::new(context),
+            event_rx: Arc::new(Mutex::new(event_rx)),
             last_duration: Mutex::new(0),
             last_state: Mutex::new(PlayerState::Stopped),
-            event_rx: Arc::new(Mutex::new(event_rx)),
-            event_tx: Arc::new(Mutex::new(event_tx)),
-            app_handle: Default::default(),
         })
     }
 
-    pub fn set_app_handle(&self, app: AppHandle) {
-        let ev_tx = self.event_tx.clone();
-        app.listen("MediaSessionCallback", move |event| {
-            let mut payload: HashMap<String, Value> =
-                serde_json::from_str(event.payload()).unwrap();
-            let event: String =
-                serde_json::from_value(payload.get_mut("event").unwrap().take()).unwrap();
-            let media_control_ev = match event.as_str() {
-                "onPlay" => Some(MediaControlEvent::Play),
-                "onPause" => Some(MediaControlEvent::Pause),
-                "onStop" => Some(MediaControlEvent::Stop),
-                "onSeekTo" => {
-                    let millis =
-                        serde_json::from_value(payload.get_mut("pos").unwrap().take()).unwrap();
-                    Some(MediaControlEvent::SetPosition(MediaPosition(
-                        Duration::from_millis(millis),
-                    )))
-                }
-                "onSkipToNext" => Some(MediaControlEvent::Next),
-                "onSkipToPrevious" => Some(MediaControlEvent::Previous),
-                _ => None,
-            };
-
-            if let Some(ev) = media_control_ev {
-                let ev_tx = ev_tx.lock().unwrap();
-                ev_tx.send(ev).unwrap();
-            }
-        });
-
-        let mut app_handle = self.app_handle.lock().unwrap();
-        *app_handle = Some(app)
-    }
-
     #[tracing::instrument(level = "debug", skip(self, metadata))]
-    pub fn set_metadata(&self, mut metadata: MprisPlayerDetails) -> Result<()> {
-        let app = self.app_handle.lock().unwrap();
-        if let Some(app) = app.as_ref() {
-            let player = app.audioplayer();
-
-            metadata.duration = metadata.duration.map(|d| d * 1000f64);
-            player.update_notification(metadata)?;
-        }
-        Ok(())
+    pub fn set_metadata(&self, metadata: MprisPlayerDetails) -> Result<()> {
+        let mut context = self.context.lock().unwrap();
+        context.set_metadata(metadata)
     }
 
     #[tracing::instrument(level = "debug", skip(self, state))]
     pub fn set_playback_state(&self, state: PlayerState) -> Result<()> {
-        let app = self.app_handle.lock().unwrap();
-        if let Some(app) = app.as_ref() {
-            {
-                let mut last_state = self.last_state.lock().unwrap();
-                *last_state = state;
-            }
-            let last_duration = self.last_duration.lock().unwrap();
-            let player = app.audioplayer();
-            player.update_notification_state(state == PlayerState::Playing, *last_duration)?;
-        }
+        let last_duration = self.last_duration.lock().unwrap();
+        let duration = *last_duration;
+        drop(last_duration);
+
+        let mut context = self.context.lock().unwrap();
+        context.set_playback_state(state, duration)?;
+
+        let mut last_state = self.last_state.lock().unwrap();
+        *last_state = state;
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self, duration))]
     pub fn set_position(&self, duration: f64) -> Result<()> {
-        let app = self.app_handle.lock().unwrap();
-        if let Some(app) = app.as_ref() {
-            {
-                let mut last_duration = self.last_duration.lock().unwrap();
-                *last_duration = (duration * 1000f64) as u64;
-            }
+        let mut last_duration = self.last_duration.lock().unwrap();
+        *last_duration = (duration * 1000.0) as u64;
+        drop(last_duration);
 
-            let last_state = self.last_state.lock().unwrap();
-            let player = app.audioplayer();
-            player.update_notification_state(
-                *last_state == PlayerState::Playing,
-                (duration * 1000f64) as u64,
-            )?;
-        }
-        Ok(())
+        #[allow(clippy::clone_on_copy)]
+        let last_state = self.last_state.lock().unwrap().clone();
+        self.set_playback_state(last_state)
     }
 }
 
-/// Events sent by the OS media controls.
-#[derive(Clone, PartialEq, Debug)]
-pub enum MediaControlEvent {
-    Play,
-    Pause,
-    Toggle,
-    Next,
-    Previous,
-    Stop,
+// ─────────────────────────────────────────────────────────────────────── //
+//  Helpers                                                                 //
+// ─────────────────────────────────────────────────────────────────────── //
 
-    /// Seek forward or backward by an undetermined amount.
-    Seek(SeekDirection),
-    /// Seek forward or backward by a certain amount.
-    SeekBy(SeekDirection, Duration),
-    /// Set the position/progress of the currently playing media item.
-    SetPosition(MediaPosition),
-    /// Sets the volume. The value is intended to be from 0.0 to 1.0.
-    /// But other values are also accepted. **It is up to the user to
-    /// set constraints on this value.**
-    /// **NOTE**: If the volume event was received and correctly handled,
-    /// the user must call [`MediaControls::set_volume`]. Note that
-    /// this must be done only with the MPRIS backend.
-    SetVolume(f64),
-    /// Open the URI in the media player.
-    OpenUri(String),
-
-    /// Bring the media player's user interface to the front using any appropriate mechanism available.
-    Raise,
-    /// Shut down the media player.
-    Quit,
+fn new_nullable_jstring<'a>(
+    env: &mut jni::JNIEnv<'a>,
+    s: Option<&str>,
+) -> Result<Option<JString<'a>>> {
+    match s {
+        Some(v) => env
+            .new_string(v)
+            .map(Some)
+            .map_err(|e| MoosyncError::String(format!("new_string: {e:?}"))),
+        None => Ok(None),
+    }
 }
 
-/// An instant in a media item.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct MediaPosition(pub Duration);
+// ─────────────────────────────────────────────────────────────────────── //
+//  Native callback functions called FROM Kotlin via JNI.                  //
+//                                                                         //
+//  Kotlin MoosyncService stores the pointer returned by                   //
+//  `registerNativeCallback` and passes it back on each media event.       //
+//  The pointer is a `*const Sender<MediaControlEvent>` leaked in `attach`. //
+// ─────────────────────────────────────────────────────────────────────── //
 
-/// The direction to seek in.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-pub enum SeekDirection {
-    Forward,
-    Backward,
+/// # Safety: `callback_ptr` must be the value stored by `registerNativeCallback` or 0.
+#[unsafe(no_mangle)]
+#[allow(non_snake_case)]
+pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_nativeOnPlay(
+    _env: jni::JNIEnv,
+    _obj: JObject,
+    callback_ptr: i64,
+) {
+    unsafe {
+        dispatch_event(callback_ptr, MediaControlEvent::Play);
+    }
+}
+
+/// # Safety
+#[unsafe(no_mangle)]
+#[allow(non_snake_case)]
+pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_nativeOnPause(
+    _env: jni::JNIEnv,
+    _obj: JObject,
+    callback_ptr: i64,
+) {
+    unsafe {
+        dispatch_event(callback_ptr, MediaControlEvent::Pause);
+    }
+}
+
+/// # Safety
+#[unsafe(no_mangle)]
+#[allow(non_snake_case)]
+pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_nativeOnStop(
+    _env: jni::JNIEnv,
+    _obj: JObject,
+    callback_ptr: i64,
+) {
+    unsafe {
+        dispatch_event(callback_ptr, MediaControlEvent::Stop);
+    }
+}
+
+/// # Safety
+#[unsafe(no_mangle)]
+#[allow(non_snake_case)]
+pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_nativeOnSeekTo(
+    _env: jni::JNIEnv,
+    _obj: JObject,
+    callback_ptr: i64,
+    pos_ms: i64,
+) {
+    unsafe {
+        dispatch_event(
+            callback_ptr,
+            MediaControlEvent::SetPosition(MediaPosition(Duration::from_millis(
+                pos_ms.max(0) as u64,
+            ))),
+        );
+    }
+}
+
+/// # Safety
+#[unsafe(no_mangle)]
+#[allow(non_snake_case)]
+pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_nativeOnSkipToNext(
+    _env: jni::JNIEnv,
+    _obj: JObject,
+    callback_ptr: i64,
+) {
+    unsafe {
+        dispatch_event(callback_ptr, MediaControlEvent::Next);
+    }
+}
+
+/// # Safety
+#[unsafe(no_mangle)]
+#[allow(non_snake_case)]
+pub unsafe extern "C" fn Java_app_moosync_android_services_MoosyncService_nativeOnSkipToPrevious(
+    _env: jni::JNIEnv,
+    _obj: JObject,
+    callback_ptr: i64,
+) {
+    unsafe {
+        dispatch_event(callback_ptr, MediaControlEvent::Previous);
+    }
+}
+
+/// # Safety: `ptr` must be a valid `*const Sender<MediaControlEvent>` or 0.
+unsafe fn dispatch_event(ptr: i64, event: MediaControlEvent) {
+    if ptr == 0 {
+        warn!("dispatch_event: null callback pointer, dropping {:?}", event);
+        return;
+    }
+    // SAFETY: created by Box::into_raw in `attach`, lives for app lifetime.
+    let sender = unsafe { &*(ptr as *const Sender<MediaControlEvent>) };
+    if let Err(e) = sender.send(event) {
+        warn!("dispatch_event: channel closed: {e}");
+    }
 }

@@ -7,9 +7,10 @@ bazel_dep(name = "rules_go", version = "0.59.0")
 bazel_dep(name = "rules_rust", version = "0.70.0")
 single_version_override(
     module_name = "rules_rust",
-    patches = ["//patches:rules_rust_gnu_windows.patch"],
     patch_strip = 1,
+    patches = ["//patches:rules_rust_gnu_windows.patch"],
 )
+
 bazel_dep(name = "rules_rust_prost", version = "0.68.1")
 bazel_dep(name = "protobuf", version = "33.2", repo_name = "com_google_protobuf")
 bazel_dep(name = "rules_proto", version = "7.1.0")
@@ -19,12 +20,10 @@ bazel_dep(name = "rules_perl", version = "0.5.0")
 bazel_dep(name = "rules_python", version = "1.7.0")
 bazel_dep(name = "aspect_rules_js", version = "3.0.0-rc4")
 bazel_dep(name = "aspect_rules_ts", version = "3.8.1")
-bazel_dep(name = "rules_nodejs", version = "6.7.3")
-bazel_dep(name = "aspect_rules_rollup", version = "2.0.1")
-bazel_dep(name = "gzgz_rules_sass", version = "1.0.4")
 bazel_dep(name = "nasm", version = "2.16.03.bcr.2")
 bazel_dep(name = "rules_cc", version = "0.2.16")
 bazel_dep(name = "rules_android", version = "0.7.2")
+bazel_dep(name = "rules_kotlin", version = "2.3.20")
 bazel_dep(name = "rules_pkg", version = "1.2.0")
 bazel_dep(name = "rules_appimage", version = "1.19.0")
 bazel_dep(name = "bazel_env.bzl", version = "0.5.0")
@@ -39,7 +38,6 @@ git_override(
 
 include("//modules:external_deps.MODULE.bazel")
 include("//modules:rust_toolchains.MODULE.bazel")
-include("//modules:frontend_toolchains.MODULE.bazel")
 include("//modules:crates.MODULE.bazel")
 include("//modules:android_toolchains.MODULE.bazel")
 
@@ -56,4 +54,3 @@ npm.npm_translate_lock(
     verify_node_modules_ignored = "//:.bazelignore",
 )
 use_repo(npm, "proto_npm")
-

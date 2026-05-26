@@ -4,7 +4,7 @@ load("//:version.bzl", "APP_NAME", "RELEASE", "VERSION")
 
 genrule(
     name = "rename_binary",
-    srcs = ["//tauri:moosync"],
+    srcs = ["//ui/slint:slint_app"],
     outs = ["Moosync"],
     cmd = "cp $< $@",
     executable = True,

@@ -44,7 +44,7 @@
 
         <!-- Receives hardware media button events and routes them to the MediaSession -->
         <receiver android:name="app.moosync.android.services.MediaButtonIntentReceiver"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>

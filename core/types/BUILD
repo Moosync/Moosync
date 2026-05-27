@@ -5,6 +5,7 @@ package(default_visibility = ["//visibility:public"])
 rust_library(
     name = "types",
     srcs = [
+        "src/android/mod.rs",
         "src/canvaz.rs",
         "src/errors/mod.rs",
         "src/lib.rs",
@@ -33,11 +34,14 @@ rust_library(
             "@crates//:serde_json",
             "@crates//:thiserror",
             "@crates//:tracing",
-        ],
+        ] + select({
+            "//:android_x86_64_config": ["@crates//:jni"],
+            "//:android_arm64_config": ["@crates//:jni"],
+            "//conditions:default": [],
+        }),
 )
 
 rust_test(
     name = "types_test",
     crate = ":types",
 )
-

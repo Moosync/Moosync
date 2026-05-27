@@ -6,14 +6,14 @@ use extensions_proto::moosync::types::{MainCommand, MainCommandResponse};
 use file_scanner::ScannerHolder;
 use lyrics::LyricsFetcher;
 use mpris::MprisHolder;
-#[cfg(target_os = "android")]
-use mpris::AndroidMprisContext;
 use platform_dirs;
 use preferences::preferences::PreferenceConfig;
 use rodio_player::RodioPlayer;
 use tempdir;
 use themes::themes::ThemeHolder;
 use tokio::runtime::Handle;
+#[cfg(target_os = "android")]
+use types::android::AndroidJNIContext;
 use types::errors::MoosyncError;
 
 #[derive(Debug, thiserror::Error)]
@@ -35,9 +35,7 @@ pub struct StateManager {
 
 impl StateManager {
     pub fn new(
-        #[cfg(target_os = "android")] jvm: Arc<jni::JavaVM>,
-        #[cfg(target_os = "android")] activity: jni::objects::GlobalRef,
-        #[cfg(target_os = "android")] service_class: jni::objects::GlobalRef,
+        #[cfg(target_os = "android")] android_context: AndroidJNIContext,
     ) -> Result<Self, StateManagerError> {
         #[cfg(not(target_os = "android"))]
         let (data_dir, cache_dir) = {
@@ -54,18 +52,6 @@ impl StateManager {
             std::fs::create_dir_all(&cache_dir).ok();
             (data_dir, cache_dir)
         };
-
-        #[cfg(not(target_os = "android"))]
-        let mpris = MprisHolder::new()
-            .map_err(|e| StateManagerError::InitializeError(Box::new(e)))?;
-
-        #[cfg(target_os = "android")]
-        let mpris = {
-            let context = Box::new(AndroidMprisContext::new(jvm, activity, service_class));
-            MprisHolder::new_with_context(context)
-                .map_err(|e| StateManagerError::InitializeError(Box::new(e)))?
-        };
-
         let tmp = tempdir::TempDir::new("moosync")
             .expect("Failed to create tmp dir")
             .into_path();
@@ -92,7 +78,11 @@ impl StateManager {
             ),
             rodio_player: RodioPlayer::new(),
             themes: ThemeHolder::new(theme_dir, tmp, themes_changed_tx),
-            mpris,
+            mpris: MprisHolder::new(
+                #[cfg(target_os = "android")]
+                android_context,
+            )
+            .map_err(|e| StateManagerError::InitializeError(Box::new(e)))?,
         })
     }
 

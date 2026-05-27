@@ -46,3 +46,16 @@ build:release --@rules_rust//rust/settings:extra_rustc_flag=-Ctarget-cpu=native
 build --tool_java_language_version=17
 build --tool_java_runtime_version=remotejdk_17
 
+# Configs for IDE rust-analyzer project generation targeting Android
+build:android_x86_64 --platforms=//:android_x86_64
+build:android_x86_64 --@rules_rust//rust/settings:extra_rustc_flag=-Clink-arg=-Lexternal/rules_android_ndk++android_ndk_repository_extension+androidndk/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/21/lib/linux
+build:android_x86_64 --@rules_rust//rust/settings:extra_rustc_flag=-Clink-arg=-lclang_rt.builtins-x86_64-android
+build:android_x86_64 --@rules_python//python/config_settings:precompile=force_disabled
+build:android_arm64 --platforms=//:android_arm64
+build:android_arm64 --@rules_python//python/config_settings:precompile=force_disabled
+build:linux_x86_64 --platforms=//:linux_x86_64
+build:windows_x86_64 --platforms=//:windows_x86_64_gnu
+
+
+
+

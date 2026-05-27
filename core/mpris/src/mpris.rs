@@ -20,10 +20,18 @@ use std::sync::{
 };
 
 use extensions_proto::moosync::types::PlayerState;
+#[cfg(target_os = "android")]
+use types::android::AndroidJNIContext;
 use types::errors::Result;
 
-use crate::context::{DummyContext, MprisContext, SouvlakiMprisContext};
 use crate::MprisPlayerDetails;
+#[cfg(target_os = "windows")]
+use crate::context::DummyContext;
+use crate::context::MprisContext;
+#[cfg(not(target_os = "android"))]
+use crate::context::SouvlakiMprisContext;
+#[cfg(target_os = "android")]
+use crate::mpris_android;
 
 pub struct MprisHolder {
     context: Mutex<Box<dyn MprisContext>>,
@@ -36,9 +44,18 @@ pub struct MprisHolder {
 
 impl MprisHolder {
     #[tracing::instrument(level = "debug", skip())]
+    #[cfg(target_os = "android")]
+    pub fn new(android_context: AndroidJNIContext) -> Result<MprisHolder> {
+        let context = Box::new(mpris_android::AndroidMprisContext::new(android_context));
+        Self::new_with_context(context)
+    }
+
+    #[cfg(not(target_os = "android"))]
+    #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Result<MprisHolder> {
         #[cfg(target_os = "windows")]
         {
+            // If we cannot determine wine support, just default to assuming it is wine
             let is_wine = is_wine::try_is_wine().unwrap_or(true);
             if is_wine {
                 let context = Box::new(DummyContext {});

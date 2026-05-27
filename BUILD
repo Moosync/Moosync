@@ -1,3 +1,4 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@rules_python//python:defs.bzl", "py_library")
 
 py_library(
@@ -63,6 +64,9 @@ platform(
         "@platforms//cpu:x86_64",
         "@platforms//os:android",
     ],
+    flags = [
+        "--android_platforms=//:x86_64",
+    ],
     visibility = ["//visibility:public"],
 )
 
@@ -71,6 +75,9 @@ platform(
     constraint_values = [
         "@platforms//cpu:aarch64",
         "@platforms//os:android",
+    ],
+    flags = [
+        "--android_platforms=//:arm64-v8a",
     ],
     visibility = ["//visibility:public"],
 )
@@ -151,5 +158,61 @@ cc_library(
         "@crates__winapi-x86_64-pc-windows-gnu-0.4.0//:lib/libwinapi_ws2_32.a",
     ],
     visibility = ["//visibility:public"],
+)
+
+toolchain(
+    name = "shell_android_x86_64_toolchain",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    target_compatible_with = [
+        "@platforms//os:android",
+        "@platforms//cpu:x86_64",
+    ],
+    toolchain = "@local_config_shell//:linux_sh",
+    toolchain_type = "@rules_shell//shell:toolchain_type",
+)
+
+toolchain(
+    name = "shell_android_arm64_toolchain",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    target_compatible_with = [
+        "@platforms//os:android",
+        "@platforms//cpu:aarch64",
+    ],
+    toolchain = "@local_config_shell//:linux_sh",
+    toolchain_type = "@rules_shell//shell:toolchain_type",
+)
+
+toolchain(
+    name = "nodejs_android_x86_64_runtime_toolchain",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    target_compatible_with = [
+        "@platforms//os:android",
+        "@platforms//cpu:x86_64",
+    ],
+    toolchain = "@nodejs_linux_amd64//:toolchain",
+    toolchain_type = "@rules_nodejs//nodejs:runtime_toolchain_type",
+)
+
+toolchain(
+    name = "nodejs_android_arm64_runtime_toolchain",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    target_compatible_with = [
+        "@platforms//os:android",
+        "@platforms//cpu:aarch64",
+    ],
+    toolchain = "@nodejs_linux_amd64//:toolchain",
+    toolchain_type = "@rules_nodejs//nodejs:runtime_toolchain_type",
 )
 

@@ -22,6 +22,9 @@ pub mod providers;
 pub mod ui;
 pub mod window;
 
+#[cfg(target_os = "android")]
+pub mod android;
+
 pub mod prelude {
     use songs_proto::moosync::types::{InnerSong, Song, SongType};
     use themes_proto::moosync::types::{ThemeDetails, ThemeItem};

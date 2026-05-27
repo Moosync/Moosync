@@ -2,10 +2,8 @@
 // slint::include_modules!();
 include!(concat!(env!("OUT_DIR"), "/app.rs"));
 
-use std::sync::Arc;
-
 use state_manager::StateManager;
-use tracing_subscriber::{fmt, layer::SubscriberExt};
+use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};
 
 #[cfg(target_os = "android")]
 static ANDROID_APP: std::sync::OnceLock<slint::android::AndroidApp> = std::sync::OnceLock::new();
@@ -23,18 +21,14 @@ fn android_main(app: slint::android::AndroidApp) {
 pub fn run() {
     setup_tracing();
 
-    #[cfg(not(target_os = "android"))]
-    let _state_manager = StateManager::new().expect("StateManager::new failed");
-
     #[cfg(target_os = "android")]
-    let _state_manager = {
+    let android_context = {
         let app = ANDROID_APP.get().expect("ANDROID_APP not initialized");
 
         // Safety: vm_as_ptr() returns the raw *mut JavaVM for this process.
-        let vm = Arc::new(
-            unsafe { jni::JavaVM::from_raw(app.vm_as_ptr().cast()) }
-                .expect("failed to get JavaVM"),
-        );
+        let vm =
+            unsafe { jni::JavaVM::from_raw(app.vm_as_ptr().cast()) }.expect("failed to get JavaVM");
+
         let (activity, service_class) = {
             let mut env = vm.attach_current_thread().expect("JNI attach");
 
@@ -43,36 +37,55 @@ pub fn run() {
             let activity_ref = env.new_global_ref(act_obj).expect("new_global_ref");
 
             // Load Class via Activity's ClassLoader to avoid ClassNotFoundException on native threads
-            let class_obj = env.call_method(&activity_ref, "getClass", "()Ljava/lang/Class;", &[])
+            let class_obj = env
+                .call_method(&activity_ref, "getClass", "()Ljava/lang/Class;", &[])
                 .expect("getClass failed")
                 .l()
                 .expect("getClass returned null/non-object");
 
-            let class_loader = env.call_method(&class_obj, "getClassLoader", "()Ljava/lang/ClassLoader;", &[])
+            let class_loader = env
+                .call_method(
+                    &class_obj,
+                    "getClassLoader",
+                    "()Ljava/lang/ClassLoader;",
+                    &[],
+                )
                 .expect("getClassLoader failed")
                 .l()
                 .expect("getClassLoader returned null/non-object");
 
-            let class_name_jstr = env.new_string("app.moosync.android.services.MoosyncService")
+            let class_name_jstr = env
+                .new_string("app.moosync.android.services.MoosyncService")
                 .expect("new_string failed");
 
-            let cls_obj = env.call_method(
-                &class_loader,
-                "loadClass",
-                "(Ljava/lang/String;)Ljava/lang/Class;",
-                &[jni::objects::JValue::Object(&class_name_jstr)],
-            )
-            .expect("loadClass MoosyncService failed")
-            .l()
-            .expect("loadClass returned null/non-class");
+            let cls_obj = env
+                .call_method(
+                    &class_loader,
+                    "loadClass",
+                    "(Ljava/lang/String;)Ljava/lang/Class;",
+                    &[jni::objects::JValue::Object(&class_name_jstr)],
+                )
+                .expect("loadClass MoosyncService failed")
+                .l()
+                .expect("loadClass returned null/non-class");
 
             let service_class_ref = env.new_global_ref(cls_obj).expect("new_global_ref");
 
             (activity_ref, service_class_ref)
         };
 
-        StateManager::new(vm, activity, service_class).expect("StateManager::new failed")
+        types::android::AndroidJNIContext {
+            jvm: std::sync::Arc::new(vm),
+            activity,
+            service_class,
+        }
     };
+
+    let _state_manager = StateManager::new(
+        #[cfg(target_os = "android")]
+        android_context,
+    )
+    .expect("StateManager::new failed");
 
     let main_window = MainWindow::new().unwrap();
 
@@ -84,6 +97,8 @@ pub fn run() {
 }
 
 fn setup_tracing() {
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+
     let layer = fmt::layer().pretty().with_target(true).with_ansi(true);
 
     #[cfg(not(target_os = "android"))]
@@ -104,11 +119,14 @@ fn setup_tracing() {
             .with_ansi(false)
             .with_target(true)
             .with_writer(file_appender);
-        tracing_subscriber::registry().with(layer).with(log_layer)
+        tracing_subscriber::registry()
+            .with(env_filter)
+            .with(layer)
+            .with(log_layer)
     };
 
     #[cfg(target_os = "android")]
-    let subscriber = tracing_subscriber::registry().with(layer);
+    let subscriber = tracing_subscriber::registry().with(env_filter).with(layer);
 
     tracing::subscriber::set_global_default(subscriber).unwrap();
 }

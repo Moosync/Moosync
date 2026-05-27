@@ -7,7 +7,7 @@ package(default_visibility = ["//visibility:public"])
 cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
-    data = ["src/app.slint"],
+    data = glob(["src/**/*.slint"]),
     deps = ["@crates//:slint-build"],  # Make sure slint-build is in your Cargo.toml/crates list
 )
 
@@ -50,14 +50,13 @@ rust_binary(
 rust_shared_library(
     name = "slint_app_android",
     srcs = ["src/lib.rs"],
-    compile_data = [
-        "src/app.slint",
-    ],
+    compile_data = glob(["src/**/*.slint"]),
     crate_name = "slint_app",
     edition = "2021",
     deps = [
         ":build_script",
         "//core/state_manager",
+        "//core/types",
         "@crates//:jni",
         "@crates//:platform-dirs",
         "@crates//:slint",

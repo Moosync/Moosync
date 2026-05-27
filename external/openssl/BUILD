@@ -122,6 +122,7 @@ EOF
 
 configure_make(
     name = "openssl_mingw",
+    args = ["-j"],
     configure_command = "Configure",
     configure_in_place = True,
     configure_options = CONFIGURE_OPTIONS + [
@@ -144,6 +145,7 @@ configure_make(
 
 configure_make(
     name = "openssl_default",
+    args = ["-j"],
     configure_command = select({
         "//:android_x86_64_config": "Configure",
         "//:android_arm64_config": "Configure",

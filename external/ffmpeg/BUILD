@@ -18,6 +18,7 @@ ANDROID_FFMPEG_ANDROID_OPTIONS = select({
 
 configure_make(
     name = "ffmpeg",
+    args = ["-j"],
     build_data = [
         "@nasm//:nasm",
     ],

@@ -19,30 +19,15 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use diesel::{
-    connection::SimpleConnection,
-    insert_into,
-    query_dsl::methods::FilterDsl,
-    r2d2::{self, ConnectionManager, Pool},
-    ExpressionMethods, RunQueryDsl, SqliteConnection,
-};
-
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 use types::errors::{error_helpers, Result};
 
 use super::migrations::run_migration_cache;
-use crate::{
-    cache_schema::{
-        self,
-        cache::{dsl::cache, url},
-    },
-    models::CacheModel,
-};
 
 #[derive(Debug)]
 pub struct CacheHolder {
-    pool: Pool<ConnectionManager<SqliteConnection>>,
+    pool: r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>,
 }
 
 impl CacheHolder {
@@ -52,8 +37,9 @@ impl CacheHolder {
             pool: Self::connect(path),
         };
 
-        run_migration_cache(&mut db.pool.get().expect("Failed to get connection to DB"));
-        db.pool.get().unwrap().batch_execute("
+        let mut conn = db.pool.get().expect("Failed to get connection to DB");
+        run_migration_cache(&mut conn);
+        conn.execute_batch("
             PRAGMA journal_mode = WAL;          -- better write-concurrency
             PRAGMA synchronous = NORMAL;        -- fsync only in critical moments
             PRAGMA wal_autocheckpoint = 1000;   -- write WAL changes back every 1000 pages, for an in average 1MB WAL file. May affect readers if number is increased
@@ -64,8 +50,19 @@ impl CacheHolder {
     }
 
     #[tracing::instrument(level = "debug", skip(path))]
-    fn connect(path: PathBuf) -> Pool<ConnectionManager<SqliteConnection>> {
-        let manager = ConnectionManager::<SqliteConnection>::new(path.to_str().unwrap());
+    fn connect(path: PathBuf) -> r2d2::Pool<r2d2_sqlite::SqliteConnectionManager> {
+        let manager = r2d2_sqlite::SqliteConnectionManager::file(path)
+            .with_init(|conn| {
+                conn.trace_v2(
+                    rusqlite::trace::TraceEventCodes::SQLITE_TRACE_STMT,
+                    Some(|event| {
+                        if let rusqlite::trace::TraceEvent::Stmt(_, sql) = event {
+                            tracing::trace!("Executing SQL: {}", sql);
+                        }
+                    }),
+                );
+                Ok(())
+            });
 
         r2d2::Pool::builder()
             .build(manager)
@@ -77,24 +74,22 @@ impl CacheHolder {
     where
         T: Serialize,
     {
-        let mut conn = self.pool.get().unwrap();
+        let conn = self.pool.get().unwrap();
 
         let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
         let new_expires = current_time + Duration::from_secs(expires.unsigned_abs() as u64);
 
-        let cache_model = CacheModel {
-            id: None,
-            url: _url.to_string(),
-            blob: serde_json::to_vec(blob)?,
-            expires: new_expires.as_secs() as i64,
-        };
-        insert_into(cache)
-            .values(&cache_model)
-            .on_conflict(cache_schema::cache::url)
-            .do_update()
-            .set(&cache_model)
-            .execute(&mut conn)
-            .map_err(error_helpers::to_database_error)?;
+        let blob_bytes = serde_json::to_vec(blob)?;
+        let expires_secs = new_expires.as_secs() as i64;
+
+        conn.execute(
+            "INSERT INTO cache (url, blob, expires) VALUES (?1, ?2, ?3)
+             ON CONFLICT(url) DO UPDATE SET
+                blob = excluded.blob,
+                expires = excluded.expires",
+            (_url, &blob_bytes, &expires_secs),
+        )
+        .map_err(error_helpers::to_database_error)?;
         Ok(())
     }
 
@@ -103,21 +98,24 @@ impl CacheHolder {
     where
         T: for<'a> Deserialize<'a>,
     {
-        let mut conn = self.pool.get().unwrap();
+        let conn = self.pool.get().unwrap();
 
-        let data: CacheModel = cache
-            .filter(url.eq(_url))
-            .first::<CacheModel>(&mut conn)
-            .map_err(error_helpers::to_database_error)?;
+        let (blob, expires): (Vec<u8>, i64) = conn.query_row(
+            "SELECT blob, expires FROM cache WHERE url = ?1",
+            [_url],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(error_helpers::to_database_error)?;
+        
         let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
 
-        let expires = Duration::from_secs(data.expires as u64);
-        if current_time > expires {
+        let expires_dur = Duration::from_secs(expires as u64);
+        if current_time > expires_dur {
             debug!("Cache expired for {}", _url);
             return Err("Cache expired".into());
         }
 
-        let parsed: T = serde_json::from_slice(&data.blob)?;
+        let parsed: T = serde_json::from_slice(&blob)?;
         Ok(parsed)
     }
 }

@@ -14,21 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
-mod playlist_scanner;
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
+pub mod context;
 mod scanner;
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
-pub use scanner::{ScanState, ScannerHolder};
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
-mod song_scanner;
 mod types;
-mod utils;
 
 #[cfg(test)]
 mod tests;
 
-#[cfg(target_os = "android")]
-mod scanner_android;
-#[cfg(target_os = "android")]
-pub use scanner_android::{ScanState, ScannerHolder};
+pub use scanner::ScannerHolder;
+pub use context::ScannerContext;
+pub use types::{
+    OnPlaylistScanned, OnProgressUpdated, OnSongScanned, ScanProgress, ScanProgressReceiver,
+};

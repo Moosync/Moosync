@@ -2,15 +2,14 @@ use std::{
     env,
     fs::{self, File},
     io::Write,
-    sync::mpsc,
+    sync::{Arc, Mutex},
 };
 
-use threadpool::ThreadPool;
+use crate::{ScanProgress, ScannerHolder};
+use songs_proto::moosync::types::{Playlist, Song};
 
-use crate::{playlist_scanner::PlaylistScanner, song_scanner::SongScanner};
-
-#[test]
-fn test_playlist_scan() {
+#[tokio::test]
+async fn test_playlist_scan() {
     let playlist_contents = r#"
 #EXTM3U
 #EXTINF:0,stream
@@ -29,46 +28,74 @@ https://chiru.no/stream.flac"#;
     fs::create_dir_all(test_out_dir.clone()).unwrap();
     fs::create_dir_all(test_in_dir.clone()).unwrap();
 
-    let mut pool = ThreadPool::new(1);
-
-    let song_scanner = SongScanner::new(
-        test_in_dir.clone(),
-        &mut pool,
-        test_out_dir.clone(),
-        "".to_string(),
-    );
-    let playlist_scanner =
-        PlaylistScanner::new(test_in_dir.clone(), test_out_dir.clone(), song_scanner);
-
     let mut input = File::create(test_in_dir.join("playlist.m3u")).unwrap();
     input.write_all(playlist_contents.as_bytes()).unwrap();
 
-    let (tx_song, rx_song) = mpsc::channel();
-    let (tx_playlist, rx_playlist) = mpsc::channel();
-    playlist_scanner.start(tx_song, tx_playlist).unwrap();
+    let song_count = Arc::new(Mutex::new(0));
+    let song_count_clone = song_count.clone();
+    let playlist_count = Arc::new(Mutex::new(0));
+    let playlist_count_clone = playlist_count.clone();
 
-    for (i, (_playlist, song)) in rx_song.into_iter().enumerate() {
-        match i {
-            0 => assert_eq!(song.unwrap().song.unwrap().title.unwrap(), "stream"),
-            1 => assert_eq!(song.unwrap().song.unwrap().title.unwrap(), "320"),
-            2 => assert_eq!(song.unwrap().song.unwrap().title.unwrap(), "stream.flac"),
-            _ => {
-                println!("{:?}", song);
-                unreachable!()
+    let mut scanner = ScannerHolder::new();
+    scanner.set_scan_dir(test_in_dir.clone());
+    scanner.set_thumbnail_dir(test_out_dir.clone());
+    scanner.set_artist_split("".to_string());
+
+    let song_count_clone_inner = song_count_clone.clone();
+    scanner.set_on_song(move |_playlist_id: Option<String>, songs: Vec<Song>| {
+        let song_count_clone_inner = song_count_clone_inner.clone();
+        async move {
+            let mut count = song_count_clone_inner.lock().unwrap();
+            for song in songs {
+                match *count {
+                    0 => assert_eq!(song.song.unwrap().title.unwrap(), "stream"),
+                    1 => assert_eq!(song.song.unwrap().title.unwrap(), "320"),
+                    2 => assert_eq!(song.song.unwrap().title.unwrap(), "stream.flac"),
+                    _ => unreachable!(),
+                }
+                *count += 1;
             }
         }
-    }
+    });
 
-    // Check that rx_playlist has exactly one value.
-    let _playlist_msg = rx_playlist.recv().unwrap();
-    assert!(rx_playlist.try_recv().is_err());
+    scanner.set_on_playlist(move |playlists: Vec<Playlist>| {
+        let playlist_count_clone = playlist_count_clone.clone();
+        async move {
+            let mut count = playlist_count_clone.lock().unwrap();
+            for _playlist in playlists {
+                *count += 1;
+            }
+        }
+    });
+
+    let mut progress_rx = scanner.add_subscriber();
+
+    scanner.start_scan().await.unwrap();
+
+    // Verify progress channel
+    let mut progress_events = Vec::new();
+    while let Ok(evt) = progress_rx.try_recv() {
+        progress_events.push(evt);
+    }
+    assert!(!progress_events.is_empty());
+    assert_eq!(*progress_events.last().unwrap(), ScanProgress::STOPPED);
+
+    // Verify assertions inside callbacks were called expected times
+    for _ in 0..100 {
+        if *song_count.lock().unwrap() == 3 && *playlist_count.lock().unwrap() == 1 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    }
+    assert_eq!(*song_count.lock().unwrap(), 3);
+    assert_eq!(*playlist_count.lock().unwrap(), 1);
 
     fs::remove_dir_all(test_in_dir).unwrap();
     fs::remove_dir_all(test_out_dir).unwrap();
 }
 
-#[test]
-fn test_playlist_scan_with_extra_comments() {
+#[tokio::test]
+async fn test_playlist_scan_with_extra_comments() {
     let playlist_contents = r#"
 #EXTM3U
 # This is an extra comment line
@@ -84,40 +111,73 @@ https://example.com/track2"#;
     fs::create_dir_all(test_out_dir.clone()).unwrap();
     fs::create_dir_all(test_in_dir.clone()).unwrap();
 
-    let mut pool = ThreadPool::new(1);
-
-    let song_scanner = SongScanner::new(
-        test_in_dir.clone(),
-        &mut pool,
-        test_out_dir.clone(),
-        "".to_string(),
-    );
-    let playlist_scanner =
-        PlaylistScanner::new(test_in_dir.clone(), test_out_dir.clone(), song_scanner);
-
     let mut input = File::create(test_in_dir.join("playlist.m3u")).unwrap();
     input.write_all(playlist_contents.as_bytes()).unwrap();
 
-    let (tx_song, rx_song) = mpsc::channel();
-    let (tx_playlist, rx_playlist) = mpsc::channel();
-    playlist_scanner.start(tx_song, tx_playlist).unwrap();
+    let song_count = Arc::new(Mutex::new(0));
+    let song_count_clone = song_count.clone();
+    let playlist_count = Arc::new(Mutex::new(0));
+    let playlist_count_clone = playlist_count.clone();
 
-    let mut titles = Vec::new();
-    for (_playlist, song) in rx_song.into_iter() {
-        titles.push(song.unwrap().song.unwrap().title.unwrap());
+    let mut scanner = ScannerHolder::new();
+    scanner.set_scan_dir(test_in_dir.clone());
+    scanner.set_thumbnail_dir(test_out_dir.clone());
+    scanner.set_artist_split("".to_string());
+
+    let song_count_clone_inner = song_count_clone.clone();
+    scanner.set_on_song(move |_playlist_id: Option<String>, songs: Vec<Song>| {
+        let song_count_clone_inner = song_count_clone_inner.clone();
+        async move {
+            let mut count = song_count_clone_inner.lock().unwrap();
+            for song in songs {
+                match *count {
+                    0 => assert_eq!(song.song.unwrap().title.unwrap(), "track1"),
+                    1 => assert_eq!(song.song.unwrap().title.unwrap(), "track2"),
+                    _ => unreachable!(),
+                }
+                *count += 1;
+            }
+        }
+    });
+
+    scanner.set_on_playlist(move |playlists: Vec<Playlist>| {
+        let playlist_count_clone = playlist_count_clone.clone();
+        async move {
+            let mut count = playlist_count_clone.lock().unwrap();
+            for _playlist in playlists {
+                *count += 1;
+            }
+        }
+    });
+
+    let mut progress_rx = scanner.add_subscriber();
+
+    scanner.start_scan().await.unwrap();
+
+    // Verify progress channel
+    let mut progress_events = Vec::new();
+    while let Ok(evt) = progress_rx.try_recv() {
+        progress_events.push(evt);
     }
-    assert_eq!(titles, vec!["track1", "track2"]);
+    assert!(!progress_events.is_empty());
+    assert_eq!(*progress_events.last().unwrap(), ScanProgress::STOPPED);
 
-    // Check that rx_playlist has exactly one value.
-    let _playlist_msg = rx_playlist.recv().unwrap();
-    assert!(rx_playlist.try_recv().is_err());
+    // Verify assertions inside callbacks were called expected times
+    for _ in 0..100 {
+        if *song_count.lock().unwrap() == 2 && *playlist_count.lock().unwrap() == 1 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    }
+    assert_eq!(*song_count.lock().unwrap(), 2);
+    assert_eq!(*playlist_count.lock().unwrap(), 1);
 
     fs::remove_dir_all(test_in_dir).unwrap();
     fs::remove_dir_all(test_out_dir).unwrap();
 }
 
-#[test]
-fn test_playlist_scan_single_entry() {
+#[tokio::test]
+async fn test_playlist_scan_single_entry() {
     let playlist_contents = r#"
 #EXTM3U
 #EXTINF:0,lonely_track
@@ -129,33 +189,65 @@ https://example.com/lonely_track"#;
     fs::create_dir_all(test_out_dir.clone()).unwrap();
     fs::create_dir_all(test_in_dir.clone()).unwrap();
 
-    let mut pool = ThreadPool::new(1);
-
-    let song_scanner = SongScanner::new(
-        test_in_dir.clone(),
-        &mut pool,
-        test_out_dir.clone(),
-        "".to_string(),
-    );
-    let playlist_scanner =
-        PlaylistScanner::new(test_in_dir.clone(), test_out_dir.clone(), song_scanner);
-
     let mut input = File::create(test_in_dir.join("playlist.m3u")).unwrap();
     input.write_all(playlist_contents.as_bytes()).unwrap();
 
-    let (tx_song, rx_song) = mpsc::channel();
-    let (tx_playlist, rx_playlist) = mpsc::channel();
-    playlist_scanner.start(tx_song, tx_playlist).unwrap();
+    let song_count = Arc::new(Mutex::new(0));
+    let song_count_clone = song_count.clone();
+    let playlist_count = Arc::new(Mutex::new(0));
+    let playlist_count_clone = playlist_count.clone();
 
-    let songs: Vec<_> = rx_song
-        .into_iter()
-        .map(|(_playlist, song)| song.unwrap().song.unwrap().title.unwrap())
-        .collect();
-    assert_eq!(songs, vec!["lonely_track"]);
+    let mut scanner = ScannerHolder::new();
+    scanner.set_scan_dir(test_in_dir.clone());
+    scanner.set_thumbnail_dir(test_out_dir.clone());
+    scanner.set_artist_split("".to_string());
 
-    // Check that rx_playlist has exactly one value.
-    let _playlist_msg = rx_playlist.recv().unwrap();
-    assert!(rx_playlist.try_recv().is_err());
+    let song_count_clone_inner = song_count_clone.clone();
+    scanner.set_on_song(move |_playlist_id: Option<String>, songs: Vec<Song>| {
+        let song_count_clone_inner = song_count_clone_inner.clone();
+        async move {
+            let mut count = song_count_clone_inner.lock().unwrap();
+            for song in songs {
+                match *count {
+                    0 => assert_eq!(song.song.unwrap().title.unwrap(), "lonely_track"),
+                    _ => unreachable!(),
+                }
+                *count += 1;
+            }
+        }
+    });
+
+    scanner.set_on_playlist(move |playlists: Vec<Playlist>| {
+        let playlist_count_clone = playlist_count_clone.clone();
+        async move {
+            let mut count = playlist_count_clone.lock().unwrap();
+            for _playlist in playlists {
+                *count += 1;
+            }
+        }
+    });
+
+    let mut progress_rx = scanner.add_subscriber();
+
+    scanner.start_scan().await.unwrap();
+
+    // Verify progress channel
+    let mut progress_events = Vec::new();
+    while let Ok(evt) = progress_rx.try_recv() {
+        progress_events.push(evt);
+    }
+    assert!(!progress_events.is_empty());
+    assert_eq!(*progress_events.last().unwrap(), ScanProgress::STOPPED);
+
+    // Verify assertions inside callbacks were called expected times
+    for _ in 0..100 {
+        if *song_count.lock().unwrap() == 1 && *playlist_count.lock().unwrap() == 1 {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    }
+    assert_eq!(*song_count.lock().unwrap(), 1);
+    assert_eq!(*playlist_count.lock().unwrap(), 1);
 
     fs::remove_dir_all(test_in_dir).unwrap();
     fs::remove_dir_all(test_out_dir).unwrap();

@@ -10,6 +10,8 @@ startup --windows_enable_symlinks
 build --enable_runfiles
 build:windows --spawn_strategy=local
 common --registry=https://raw.githubusercontent.com/bazelbuild/bazel-central-registry/main
+build:check --@rules_rust//rust/settings:pipelined_compilation=True
+build:check --output_groups=build_metadata
 
 coverage --experimental_fetch_all_coverage_outputs
 # build --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
@@ -23,8 +25,6 @@ common --repo_env=ANDROID_HOME
 common --action_env=ANDROID_HOME
 common --repo_env=ANDROID_SDK_ROOT
 common --action_env=ANDROID_SDK_ROOT
-# NDK_HOME is read by core/database/build.rs for the x86_64 Android workaround
-common --action_env=NDK_HOME
 
 # build --define=rust_nostd_alloc_profile=opt-0
 
@@ -42,7 +42,7 @@ build:release --@rules_rust//rust/settings:toolchain_generated_sysroot=True
 build:release --@rules_rust//rust/settings:extra_rustc_flag=-Cembed-bitcode=yes
 build:release --@rules_rust//rust/settings:extra_rustc_flag=-Ctarget-cpu=native
 
-# Fix Bazel Android tools build by using Java 17 toolchain for host tools
+# Fix Bazel Android tools build by using Java 24 toolchain for host tools
 build --tool_java_language_version=17
 build --tool_java_runtime_version=remotejdk_17
 

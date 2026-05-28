@@ -14,21 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use songs_proto::moosync::types::{Playlist, Song};
-use std::{future::Future, path::PathBuf, pin::Pin};
+use crate::types::{OnPlaylistScanned, OnProgressUpdated, OnSongScanned};
+use types::errors::Result;
 
-#[derive(Debug)]
-pub struct FileList {
-    pub file_list: Vec<(PathBuf, f64)>,
-    pub playlist_list: Vec<PathBuf>,
+#[allow(async_fn_in_trait)]
+pub trait ScannerContext: Send + Sync {
+    async fn start_scan(
+        &self,
+        on_song: &OnSongScanned,
+        on_playlist: &OnPlaylistScanned,
+        on_progress: &OnProgressUpdated,
+    ) -> Result<()>;
 }
 
-pub use types::ScanProgress;
-
-pub type ScanProgressReceiver = tokio::sync::mpsc::UnboundedReceiver<ScanProgress>;
-pub type OnSongScanned = Box<
-    dyn Fn(Option<String>, Vec<Song>) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync,
->;
-pub type OnPlaylistScanned =
-    Box<dyn Fn(Vec<Playlist>) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
-pub type OnProgressUpdated = Box<dyn Fn(ScanProgress) + Send + Sync>;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+#[cfg(target_os = "android")]
+pub mod android;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+pub mod desktop;

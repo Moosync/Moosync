@@ -14,138 +14,120 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{
-    path::PathBuf,
-    str::FromStr,
-    sync::{
-        mpsc::{self, Sender},
-        Mutex,
-    },
+use std::path::PathBuf;
+
+use types::errors::{MoosyncError, Result};
+
+use crate::context::ScannerContext;
+use crate::types::{
+    OnPlaylistScanned, OnProgressUpdated, OnSongScanned, ScanProgress, ScanProgressReceiver,
 };
-
 use songs_proto::moosync::types::{Playlist, Song};
-use threadpool::ThreadPool;
-use types::errors::Result;
 
-use crate::{playlist_scanner::PlaylistScanner, song_scanner::SongScanner};
+#[cfg(target_os = "android")]
+use crate::context::android::AndroidScannerContext;
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
+use crate::context::desktop::DesktopScannerContext;
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum ScanState {
-    UNDEFINED,
-    SCANNING,
-    QUEUED,
-}
-
-#[derive(Debug)]
 pub struct ScannerHolder {
-    state: Mutex<ScanState>,
-    progress: Mutex<u8>,
+    scan_dir: Option<PathBuf>,
+    thumbnail_dir: Option<PathBuf>,
+    artist_split: Option<String>,
+    on_song: Option<OnSongScanned>,
+    on_playlist: Option<OnPlaylistScanned>,
+    subscribers: std::sync::Mutex<Vec<tokio::sync::mpsc::UnboundedSender<ScanProgress>>>,
 }
 
 impl ScannerHolder {
     #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
         Self {
-            state: Mutex::new(ScanState::UNDEFINED),
-            progress: Mutex::new(0),
+            scan_dir: None,
+            thumbnail_dir: None,
+            artist_split: None,
+            on_song: None,
+            on_playlist: None,
+            subscribers: std::sync::Mutex::new(Vec::new()),
         }
+    }
+
+    pub fn set_scan_dir(&mut self, dir: PathBuf) {
+        self.scan_dir = Some(dir);
+    }
+
+    pub fn set_thumbnail_dir(&mut self, dir: PathBuf) {
+        self.thumbnail_dir = Some(dir);
+    }
+
+    pub fn set_artist_split(&mut self, split: String) {
+        self.artist_split = Some(split);
+    }
+
+    pub fn set_on_song<F, Fut>(&mut self, cb: F)
+    where
+        F: Fn(Option<String>, Vec<Song>) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = ()> + Send + 'static,
+    {
+        self.on_song = Some(Box::new(move |pl_id, songs| Box::pin(cb(pl_id, songs))));
+    }
+
+    pub fn set_on_playlist<F, Fut>(&mut self, cb: F)
+    where
+        F: Fn(Vec<Playlist>) -> Fut + Send + Sync + 'static,
+        Fut: std::future::Future<Output = ()> + Send + 'static,
+    {
+        self.on_playlist = Some(Box::new(move |playlists| Box::pin(cb(playlists))));
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn get_progress(&self) -> u8 {
-        *self.progress.lock().unwrap()
+    pub fn add_subscriber(&self) -> ScanProgressReceiver {
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+        if let Ok(mut subs) = self.subscribers.lock() {
+            subs.push(tx);
+        }
+        rx
     }
 
-    #[tracing::instrument(
-        level = "trace",
-        skip(
-            self,
-            dir,
-            thumbnail_dir,
-            artist_split,
-            scan_threads,
-            song_tx,
-            playlist_tx
-        )
-    )]
-    pub fn start_scan(
-        &self,
-        dir: String,
-        thumbnail_dir: String,
-        artist_split: String,
-        scan_threads: f64,
-        song_tx: Sender<(Option<String>, Vec<Song>)>,
-        playlist_tx: Sender<Vec<Playlist>>,
-    ) -> Result<()> {
-        let mut state = self.state.lock().unwrap();
-        if *state != ScanState::UNDEFINED {
-            *state = ScanState::QUEUED;
-            return Ok(());
-        }
+    #[tracing::instrument(level = "trace", skip(self))]
+    pub async fn start_scan(&self) -> Result<()> {
+        let scan_dir = self
+            .scan_dir
+            .clone()
+            .ok_or_else(|| MoosyncError::String("scan_dir not set".into()))?;
+        let thumbnail_dir = self
+            .thumbnail_dir
+            .clone()
+            .ok_or_else(|| MoosyncError::String("thumbnail_dir not set".into()))?;
+        let artist_split = self.artist_split.clone().unwrap_or_else(|| ";".to_string());
 
-        *state = ScanState::SCANNING;
-        let (_progress_tx, _progress_rx) = mpsc::channel::<u8>();
+        let on_song = self
+            .on_song
+            .as_ref()
+            .ok_or_else(|| MoosyncError::String("on_song callback not set".into()))?;
+        let on_playlist = self
+            .on_playlist
+            .as_ref()
+            .ok_or_else(|| MoosyncError::String("on_playlist callback not set".into()))?;
 
-        let threads = scan_threads;
-
-        let cpus = num_cpus::get();
-        let thread_count = if threads <= 0f64 || threads as usize > cpus {
-            cpus
+        let subscribers = if let Ok(subs) = self.subscribers.lock() {
+            subs.clone()
         } else {
-            threads as usize
+            Vec::new()
         };
 
-        let mut song_pool = ThreadPool::new(thread_count);
-
-        let thumbnail_dir = PathBuf::from_str(thumbnail_dir.as_str()).unwrap();
-        let dir = PathBuf::from_str(dir.as_str()).unwrap();
-
-        let song_scanner = SongScanner::new(
-            dir.clone(),
-            &mut song_pool,
-            thumbnail_dir.clone(),
-            artist_split,
-        );
-
-        let (tx_song, rx_song) = mpsc::channel::<(Option<String>, Result<Song>)>();
-        let (tx_playlist, rx_playlist) = mpsc::channel::<Result<Playlist>>();
-
-        song_scanner.start(tx_song.clone())?;
-        let playlist_scanner = PlaylistScanner::new(dir, thumbnail_dir, song_scanner);
-        playlist_scanner.start(tx_song, tx_playlist)?;
-
-        for item in rx_playlist {
-            match item {
-                Ok(playlist) => {
-                    // let _ = database.create_playlist(playlist);
-                    playlist_tx.send(vec![playlist]).unwrap();
-                }
-                Err(e) => tracing::error!("Scan playlist error: {:}", e),
+        let on_progress: OnProgressUpdated = Box::new(move |progress| {
+            for tx in &subscribers {
+                let _ = tx.send(progress);
             }
-        }
+        });
 
-        for item in rx_song {
-            match item.1 {
-                Ok(song) => {
-                    tracing::info!("Scanned song {:?}", song);
-                    song_tx.send((item.0, vec![song])).unwrap();
-                    // let res = database.insert_songs(vec![song]);
-                    // if item.0.is_some() {
-                    //     if let Ok(res) = res {
-                    //         let _ = database.add_to_playlist_bridge(
-                    //             item.0.unwrap(),
-                    //             res[0].song.id.clone().unwrap(),
-                    //         );
-                    //     }
-                    // }
-                }
-                Err(e) => tracing::error!("Scan error: {:}", e),
-            }
-        }
+        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        let context = DesktopScannerContext::new(scan_dir, thumbnail_dir, artist_split);
 
-        *state = ScanState::UNDEFINED;
+        #[cfg(target_os = "android")]
+        let context = AndroidScannerContext::new(scan_dir, thumbnail_dir, artist_split);
 
-        Ok(())
+        context.start_scan(on_song, on_playlist, &on_progress).await
     }
 }
 

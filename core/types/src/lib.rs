@@ -25,6 +25,13 @@ pub mod window;
 #[cfg(target_os = "android")]
 pub mod android;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(non_camel_case_types)]
+pub enum ScanProgress {
+    STOPPED,
+    PROGRESS(u8),
+}
+
 pub mod prelude {
     use songs_proto::moosync::types::{InnerSong, Song, SongType};
     use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
@@ -54,13 +61,26 @@ pub mod prelude {
         fn get_id(&self) -> Option<String>;
         fn get_title(&self) -> Option<String>;
         fn get_duration_or_default(&self) -> f64;
-        fn get_cover(&self) -> Option<String>;
+        fn get_cover_high(&self) -> Option<String>;
+        fn get_cover_low(&self) -> Option<String>;
         fn get_playback_url(&self) -> Option<String>;
         fn get_type_or_default(&self) -> SongType;
         fn get_path(&self) -> Option<String>;
         fn get_extension(&self) -> Option<String>;
         fn get_lyrics(&self) -> Option<String>;
         fn get_date(&self) -> Option<String>;
+        fn get_artist_string(&self) -> Option<String>;
+        fn get_album_string(&self) -> Option<String>;
+        fn format_duration(&self) -> String {
+            let duration = self.get_duration_or_default();
+            if duration < 0.0 {
+                return "Unknown".to_string();
+            }
+            let secs = (duration / 1000.0).round() as u64;
+            let minutes = secs / 60;
+            let seconds = secs % 60;
+            format!("{:02}:{:02}", minutes, seconds)
+        }
     }
 
     impl SongsExt for Song {
@@ -73,10 +93,20 @@ pub mod prelude {
         fn get_duration_or_default(&self) -> f64 {
             self.song.as_ref().and_then(|s| s.duration).unwrap_or(-1f64)
         }
-        fn get_cover(&self) -> Option<String> {
+        fn get_cover_high(&self) -> Option<String> {
             self.song
                 .as_ref()
                 .and_then(|s| s.song_cover_path_high.clone())
+        }
+        fn get_cover_low(&self) -> Option<String> {
+            let cover_low = self
+                .song
+                .as_ref()
+                .and_then(|s| s.song_cover_path_low.clone());
+            if cover_low.is_none() {
+                return self.get_cover_high();
+            }
+            cover_low
         }
         fn get_playback_url(&self) -> Option<String> {
             self.song.as_ref().and_then(|s| s.playback_url.clone())
@@ -110,6 +140,23 @@ pub mod prelude {
         }
         fn get_date(&self) -> Option<String> {
             self.song.as_ref().and_then(|s| s.date.clone())
+        }
+
+        fn get_artist_string(&self) -> Option<String> {
+            if self.artists.is_empty() {
+                return None;
+            }
+
+            Some(
+                self.artists
+                    .iter()
+                    .map(|a| a.artist_name())
+                    .collect::<Vec<&str>>()
+                    .join(","),
+            )
+        }
+        fn get_album_string(&self) -> Option<String> {
+            self.album.as_ref().and_then(|a| a.album_name.clone())
         }
     }
 

@@ -1,12 +1,26 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_test")
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
+    crate_root = "build.rs",
+    data = ["//external/ffmpeg:gen_dir"],
+    visibility = ["//visibility:public"],
+)
 
 rust_library(
-    name = "rodio_player",
+    name = "player",
     srcs = [
-        "src/decoder.rs",
+        "src/error.rs",
+        "src/generic.rs",
         "src/lib.rs",
-        "src/tests.rs",
+        "src/mux_player.rs",
+        "src/queue.rs",
+        "src/rodio/decoder.rs",
+        "src/rodio/mod.rs",
+        "src/source.rs",
+        "src/test.rs",
     ],
     crate_root = "src/lib.rs",
     data = ["//external/ffmpeg:gen_dir"],
@@ -17,6 +31,7 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         ":build_script",
+        "//core/spotify_player",
         "//core/types",
         "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",
@@ -30,20 +45,7 @@ rust_library(
     ],
 )
 
-cargo_build_script(
-    name = "build_script",
-    srcs = ["build.rs"],
-    crate_root = "build.rs",
-    data = ["//external/ffmpeg:gen_dir"],
-    visibility = ["//visibility:public"],
-)
-
 rust_test(
-    name = "rodio_player_test",
-    crate = ":rodio_player",
-)
-
-rust_binary(
-    name = "build",
-    srcs = ["build.rs"],
+    name = "player_test",
+    crate = ":player",
 )

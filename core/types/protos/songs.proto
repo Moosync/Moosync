@@ -130,3 +130,28 @@ message GetEntityOptions {
   optional Playlist playlist = 4;
   optional bool inclusive = 5;
 }
+
+message AlbumList {
+  repeated Album albums = 1;
+}
+
+message ArtistList {
+  repeated Artist artists = 1;
+}
+
+message GenreList {
+  repeated Genre genres = 1;
+}
+
+message PlaylistList {
+  repeated Playlist playlists = 1;
+}
+
+message EntityResult {
+  oneof result {
+    AlbumList albums = 1;
+    ArtistList artists = 2;
+    GenreList genres = 3;
+    PlaylistList playlists = 4;
+  }
+}

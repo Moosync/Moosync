@@ -20,6 +20,7 @@ use crate::cache::CacheHolder;
 use crate::database::Database;
 use songs_proto::moosync::types::{Album, Artist, Genre, GetEntityOptions, Playlist};
 use songs_proto::moosync::types::{GetSongOptions, InnerSong, SearchableSong, Song, SongType};
+use songs_proto::moosync::types::entity_result::Result as EntityResultVariant;
 use uuid::Uuid;
 
 
@@ -360,16 +361,16 @@ fn test_playlist_operations() {
         })
         .unwrap();
 
-    // The result is returned as an array of playlists
-    let playlists = result.as_array().unwrap();
-    assert_eq!(playlists.len(), 1);
-    let playlist = &playlists[0];
+    // The result is returned as a Playlists variant
+    let Some(EntityResultVariant::Playlists(playlists_list)) = result.result else {
+        panic!("Expected Playlists variant");
+    };
+    assert_eq!(playlists_list.playlists.len(), 1);
+    let playlist = &playlists_list.playlists[0];
 
     // Verify we can access the playlist's properties
     assert!(
-        playlist["playlistName"]
-            .as_str()
-            .unwrap()
+        playlist.playlist_name
             .contains("Test Playlist")
     );
 
@@ -390,8 +391,10 @@ fn test_playlist_operations() {
         })
         .unwrap();
 
-    let playlists = all_playlists.as_array().unwrap();
-    assert_eq!(playlists.len(), 0);
+    let Some(EntityResultVariant::Playlists(playlists_list)) = all_playlists.result else {
+        panic!("Expected Playlists variant");
+    };
+    assert_eq!(playlists_list.playlists.len(), 0);
 
     cleanup(&db_path);
 }
@@ -423,13 +426,15 @@ fn test_album_operations() {
         })
         .unwrap();
 
-    // The result is returned as an array of albums
-    let albums = result.as_array().unwrap();
-    assert_eq!(albums.len(), 1);
-    let album = &albums[0];
+    // The result is returned as an Albums variant
+    let Some(EntityResultVariant::Albums(albums_list)) = result.result else {
+        panic!("Expected Albums variant");
+    };
+    assert_eq!(albums_list.albums.len(), 1);
+    let album = &albums_list.albums[0];
 
     // Verify we can access the album's properties
-    assert!(album["albumName"].as_str().unwrap().contains("Test Album"));
+    assert!(album.album_name.as_deref().unwrap().contains("Test Album"));
 
     // Test updating album
     let mut album_to_update = Album {
@@ -447,14 +452,10 @@ fn test_album_operations() {
         })
         .unwrap();
 
-    let album_id = albums.as_array().unwrap()[0]
-        .as_object()
-        .unwrap()
-        .get("albumId")
-        .unwrap()
-        .as_str()
-        .unwrap()
-        .to_string();
+    let Some(EntityResultVariant::Albums(albums_list)) = albums.result else {
+        panic!("Expected Albums variant");
+    };
+    let album_id = albums_list.albums[0].album_id.clone().unwrap();
 
     album_to_update.album_id = Some(album_id.clone());
     db.update_album(album_to_update).unwrap();
@@ -471,13 +472,10 @@ fn test_album_operations() {
         })
         .unwrap();
 
-    let year = updated_album.as_array().unwrap()[0]
-        .as_object()
-        .unwrap()
-        .get("year")
-        .unwrap()
-        .as_str()
-        .unwrap();
+    let Some(EntityResultVariant::Albums(updated_albums_list)) = updated_album.result else {
+        panic!("Expected Albums variant");
+    };
+    let year = updated_albums_list.albums[0].year.as_deref().unwrap();
 
     assert_eq!(year, "2023");
 
@@ -511,15 +509,16 @@ fn test_artist_operations() {
         })
         .unwrap();
 
-    // The result is returned as an array of artists
-    let artists = result.as_array().unwrap();
-    assert!(!artists.is_empty(), "Should return at least one artist");
-    let artist = &artists[0];
+    // The result is returned as an Artists variant
+    let Some(EntityResultVariant::Artists(artists_list)) = result.result else {
+        panic!("Expected Artists variant");
+    };
+    assert!(!artists_list.artists.is_empty(), "Should return at least one artist");
+    let artist = &artists_list.artists[0];
 
     // Verify we can access the artist's properties
     assert!(
-        artist["artistName"]
-            .as_str()
+        artist.artist_name.as_deref()
             .unwrap()
             .contains("Test Artist")
     );
@@ -540,23 +539,15 @@ fn test_artist_operations() {
         })
         .unwrap();
 
-    // Debug check for array content
-    let artists_array = artists.as_array().unwrap();
+    let Some(EntityResultVariant::Artists(artists_list)) = artists.result else {
+        panic!("Expected Artists variant");
+    };
     assert!(
-        !artists_array.is_empty(),
+        !artists_list.artists.is_empty(),
         "Artists array should not be empty"
     );
 
-    // Safely access the artist_id
-    let artist_obj = &artists_array[0];
-    assert!(artist_obj.is_object(), "Artist should be an object");
-
-    let artist_id_value = artist_obj
-        .get("artistId")
-        .expect("artistId field should exist");
-    assert!(artist_id_value.is_string(), "artistId should be a string");
-
-    let artist_id = artist_id_value.as_str().unwrap().to_string();
+    let artist_id = artists_list.artists[0].artist_id.clone().unwrap();
     assert!(!artist_id.is_empty(), "artistId should not be empty");
 
     artist_to_update.artist_id = Some(artist_id.clone());
@@ -574,20 +565,17 @@ fn test_artist_operations() {
         })
         .unwrap();
 
-    let artists_array = updated_artist.as_array().unwrap();
+    let Some(EntityResultVariant::Artists(updated_artists_list)) = updated_artist.result else {
+        panic!("Expected Artists variant");
+    };
     assert!(
-        !artists_array.is_empty(),
+        !updated_artists_list.artists.is_empty(),
         "Updated artists array should not be empty"
     );
 
-    let artist_obj = &artists_array[0];
-
     // Check if the update was successful by verifying the artist_id matches
-    let retrieved_id = artist_obj
-        .get("artistId")
-        .expect("artistId field should exist")
-        .as_str()
-        .expect("artistId should be a string");
+    let retrieved_id = updated_artists_list.artists[0].artist_id.as_deref()
+        .expect("artistId should exist");
 
     assert_eq!(
         retrieved_id, artist_id,
@@ -763,9 +751,11 @@ fn test_db_creation_and_playlist() {
         inclusive: Some(false),
         ..Default::default()
     }).unwrap();
-    let playlists = entity_res.as_array().unwrap();
-    assert_eq!(playlists.len(), 1);
-    assert_eq!(playlists[0]["playlistName"].as_str().unwrap(), "New playlist");
+    let Some(EntityResultVariant::Playlists(playlists_list)) = entity_res.result else {
+        panic!("Expected Playlists variant");
+    };
+    assert_eq!(playlists_list.playlists.len(), 1);
+    assert_eq!(&playlists_list.playlists[0].playlist_name, "New playlist");
 
     // With Path (Duplicate check)
     let unique_path = "/path/to/unique_playlist".to_string();
@@ -1127,7 +1117,10 @@ fn test_updates() {
         }),
         ..Default::default()
     }).unwrap();
-    assert_eq!(entity_res.as_array().unwrap()[0]["playlistName"].as_str().unwrap(), "Updated PL");
+    let Some(EntityResultVariant::Playlists(playlists_list)) = entity_res.result else {
+        panic!("Expected Playlists variant");
+    };
+    assert_eq!(&playlists_list.playlists[0].playlist_name, "Updated PL");
 
     // update_songs
     let mut updated_song = inserted[0].clone();
@@ -1153,7 +1146,10 @@ fn test_updates() {
         }),
         ..Default::default()
     }).unwrap();
-    assert_eq!(fetched_albums.as_array().unwrap()[0]["albumName"].as_str().unwrap(), "Updated Album");
+    let Some(EntityResultVariant::Albums(albums_list)) = fetched_albums.result else {
+        panic!("Expected Albums variant");
+    };
+    assert_eq!(albums_list.albums[0].album_name.as_deref().unwrap(), "Updated Album");
 
     let fetched_artists = db.get_entity_by_options(GetEntityOptions {
         artist: Some(Artist {
@@ -1162,7 +1158,10 @@ fn test_updates() {
         }),
         ..Default::default()
     }).unwrap();
-    assert_eq!(fetched_artists.as_array().unwrap()[0]["artistName"].as_str().unwrap(), "Updated Artist");
+    let Some(EntityResultVariant::Artists(artists_list)) = fetched_artists.result else {
+        panic!("Expected Artists variant");
+    };
+    assert_eq!(artists_list.artists[0].artist_name.as_deref().unwrap(), "Updated Artist");
 
     // update_lyrics
     db.update_lyrics(song_id.clone(), "New Lyrics".to_string()).unwrap();
@@ -1186,7 +1185,7 @@ fn test_get_entity_by_options() {
 
     // Null case
     let null_res = db.get_entity_by_options(GetEntityOptions::default()).unwrap();
-    assert_eq!(null_res, serde_json::Value::Null);
+    assert!(null_res.result.is_none());
 
     // Insert data
     let song = Song {
@@ -1220,7 +1219,10 @@ fn test_get_entity_by_options() {
         inclusive: Some(false),
         ..Default::default()
     }).unwrap();
-    assert_eq!(alb_res_exact.as_array().unwrap().len(), 1);
+    let Some(EntityResultVariant::Albums(alb_exact)) = alb_res_exact.result else {
+        panic!("Expected Albums variant");
+    };
+    assert_eq!(alb_exact.albums.len(), 1);
 
     let alb_opt_partial = Album {
         album_name: Some("%Unique%".to_string()),
@@ -1231,7 +1233,10 @@ fn test_get_entity_by_options() {
         inclusive: Some(true),
         ..Default::default()
     }).unwrap();
-    assert_eq!(alb_res_partial.as_array().unwrap().len(), 1);
+    let Some(EntityResultVariant::Albums(alb_partial)) = alb_res_partial.result else {
+        panic!("Expected Albums variant");
+    };
+    assert_eq!(alb_partial.albums.len(), 1);
 
     // Query Artist
     let art_opt = Artist {
@@ -1243,7 +1248,10 @@ fn test_get_entity_by_options() {
         inclusive: Some(false),
         ..Default::default()
     }).unwrap();
-    assert_eq!(art_res.as_array().unwrap().len(), 1);
+    let Some(EntityResultVariant::Artists(art_list)) = art_res.result else {
+        panic!("Expected Artists variant");
+    };
+    assert_eq!(art_list.artists.len(), 1);
 
     // Query Genre
     let gen_opt = Genre {
@@ -1255,7 +1263,10 @@ fn test_get_entity_by_options() {
         inclusive: Some(false),
         ..Default::default()
     }).unwrap();
-    assert_eq!(gen_res.as_array().unwrap().len(), 1);
+    let Some(EntityResultVariant::Genres(gen_list)) = gen_res.result else {
+        panic!("Expected Genres variant");
+    };
+    assert_eq!(gen_list.genres.len(), 1);
 
     cleanup(&db_path);
 }

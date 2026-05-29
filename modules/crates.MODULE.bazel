@@ -1,34 +1,22 @@
 crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate", isolate = True)
-crates.spec(
-    default_features = False,
-    package = "base64",
-    version = "0.22.1",
-)
+
 crates.spec(
     package = "bitcode",
     version = "0.6.7",
 )
+
 crates.spec(
-    package = "command-group",
-    version = "5.0.1",
+    package = "r2d2",
+    version = "0.8.10",
 )
 crates.spec(
-    features = [
-        "sqlite",
-        "chrono",
-        "serde_json",
-    ],
-    package = "diesel",
-    version = "2.3.3",
+    package = "r2d2_sqlite",
+    version = "0.31.0",
 )
 crates.spec(
-    git = "https://github.com/Ovenoboyo/diesel-logger.git",
-    package = "diesel_logger",
-)
-crates.spec(
-    default_features = False,
-    package = "diesel_migrations",
-    version = "2.3.0",
+    features = ["trace"],
+    package = "rusqlite",
+    version = "0.37.0",
 )
 crates.spec(
     package = "extism",
@@ -38,10 +26,7 @@ crates.spec(
     package = "extism-convert",
     version = "1.12.0",
 )
-crates.spec(
-    package = "extism-pdk",
-    version = "1.3.0",
-)
+
 crates.spec(
     package = "fs_extra",
     version = "1.3.0",
@@ -81,10 +66,7 @@ crates.spec(
     package = "serde_json",
     version = "1.0.145",
 )
-crates.spec(
-    package = "serde_yaml",
-    version = "0.9.34",
-)
+
 crates.spec(
     package = "thiserror",
     version = "2.0.17",
@@ -109,10 +91,7 @@ crates.spec(
     package = "uuid",
     version = "1.18.1",
 )
-crates.spec(
-    package = "wasmtime",
-    version = "37",
-)
+
 crates.spec(
     default_features = False,
     package = "zip-extensions",
@@ -157,10 +136,7 @@ crates.spec(
     package = "regex",
     version = "1.12.2",
 )
-crates.spec(
-    package = "threadpool",
-    version = "1.8.1",
-)
+
 crates.spec(
     package = "num_cpus",
     version = "1.17.0",
@@ -226,23 +202,12 @@ crates.spec(
     package = "windows",
     version = "0.44",
 )
-crates.spec(
-    package = "raw-window-handle",
-    version = "0.5.2",
-)
+
 crates.spec(
     package = "souvlaki",
     version = "0.7.3",
 )
-crates.spec(
-    features = ["tokio"],
-    package = "zbus",
-    version = "5.12.0",
-)
-crates.spec(
-    package = "zbus_macros",
-    version = "=5.12.0",
-)
+
 crates.spec(
     default_features = False,
     features = [
@@ -274,15 +239,7 @@ crates.spec(
     package = "crossbeam-channel",
     version = "0.5.15",
 )
-crates.spec(
-    default_features = False,
-    package = "jsonschema",
-    version = "0.33.0",
-)
-crates.spec(
-    package = "generic-array",
-    version = "1.3.5",
-)
+
 crates.spec(
     package = "notify",
     version = "8.2.0",
@@ -333,33 +290,7 @@ crates.spec(
     package = "rodio",
     rev = "ffa1d8a2e5fc3efdec2c675eecca8f1f4be4e0f2",
 )
-crates.spec(
-    package = "tauri",
-    version = "2.9.1",
-)
-crates.annotation(
-    crate = "tauri",
-    rustc_flags = [
-        "-C",
-        "debug-assertions=off",
-    ],
-)
-crates.spec(
-    package = "tauri-utils",
-    version = "2.8.1",
-)
-crates.annotation(
-    crate = "tauri-utils",
-    rustc_flags = [
-        "-C",
-        "debug-assertions=off",
-    ],
-)
-crates.spec(
-    features = ["build"],
-    package = "tauri-plugin",
-    version = "2.5.1",
-)
+
 crates.spec(
     features = [
         "v4",
@@ -372,29 +303,13 @@ crates.spec(
     package = "async-trait",
     version = "0.1.89",
 )
-crates.spec(
-    default_features = False,
-    package = "chrono",
-    version = "=0.4.40",  # Exact version match
-)
+
 crates.spec(
     default_features = False,
     package = "futures",
     version = "0.3.31",
 )
-crates.spec(
-    default_features = False,
-    package = "iso8601",
-    version = "0.6.3",
-)
-crates.spec(
-    package = "open",
-    version = "5.3.2",
-)
-crates.spec(
-    package = "rspotify",
-    version = "0.15.3",
-)
+
 crates.spec(
     default_features = False,
     package = "serde_json",
@@ -408,12 +323,7 @@ crates.spec(
     package = "url",
     version = "2.5.7",
 )
-crates.spec(
-    default_features = False,
-    features = ["reqwest"],
-    package = "oauth2",
-    version = "5.0",
-)
+
 crates.spec(
     default_features = False,
     package = "regex",
@@ -433,46 +343,9 @@ crates.spec(
     package = "serde",
     version = "1.0",
 )
-crates.spec(
-    default_features = False,
-    features = [
-        "common-controls-v6",
-        "wry",
-        "protocol-asset",
-        "tray-icon",
-        "devtools",
-        "test",
-    ],
-    package = "tauri",
-    version = "2.9.1",
-)
 
 # Git Dependencies
-crates.spec(
-    branch = "v2",
-    git = "https://github.com/tauri-apps/plugins-workspace",
-    package = "tauri-plugin-deep-link",
-)
-crates.spec(
-    branch = "v2",
-    git = "https://github.com/tauri-apps/plugins-workspace",
-    package = "tauri-plugin-dialog",
-)
-crates.spec(
-    branch = "v2",
-    git = "https://github.com/tauri-apps/plugins-workspace",
-    package = "tauri-plugin-single-instance",
-)
-crates.spec(
-    branch = "v2",
-    git = "https://github.com/tauri-apps/plugins-workspace",
-    package = "tauri-plugin-autostart",
-)
-crates.spec(
-    branch = "v2",
-    git = "https://github.com/tauri-apps/plugins-workspace",
-    package = "tauri-plugin-opener",
-)
+
 crates.spec(
     default_features = False,
     package = "tracing",
@@ -487,99 +360,18 @@ crates.spec(
     package = "tracing-subscriber",
     version = "0.3.20",
 )
-crates.spec(
-    default_features = False,
-    features = [
-        "ring",
-        "std",
-        "logging",
-        "tls12",
-    ],
-    package = "rustls",
-    version = "0.23.34",
-)
-crates.spec(
-    package = "openssl",
-    version = "0.10.75",
-)
-crates.spec(
-    package = "openssl-sys",
-    version = "0.9.111",
-)
-crates.annotation(
-    build_script_data = [
-        "@@//external/openssl:gen_dir",
-    ],
-    build_script_env = {
-        "OPENSSL_NO_VENDOR": "1",
-        "OPENSSL_LIB_DIR": "$(execpath @@//external/openssl:gen_dir)/lib",
-        "OPENSSL_INCLUDE_DIR": "$(execpath @@//external/openssl:gen_dir)/include",
-        "OPENSSL_STATIC": "1",
-    },
-    crate = "openssl-sys",
-)
-crates.spec(
-    features = ["derive"],
-    package = "clap",
-    version = "4.5.50",
-)
+
 crates.spec(
     features = ["sync"],
     package = "tokio",
     version = "1.48.0",
 )
-crates.spec(
-    package = "semver",
-    version = "1.0.27",
-)
-crates.spec(
-    package = "rustix",
-    version = "=1.0.8",
-)
-crates.spec(
-    package = "libz-sys",
-    version = "1.1",
-)
-crates.spec(
-    package = "tauri-build",
-    version = "2.5.1",
-)
-crates.spec(
-    package = "tauri-plugin-updater",
-    version = "2.9.0",
-)
-crates.spec(
-    package = "webkit2gtk",
-    version = "2.0.1",
-)
-crates.spec(
-    package = "objc",
-    version = "0.2.7",
-)
-crates.spec(
-    package = "syn",
-    version = "2.0.108",
-)
-crates.spec(
-    package = "once_cell",
-    version = "1.21.3",
-)
-crates.spec(
-    package = "proc-macro2",
-    version = "1.0.103",
-)
-crates.spec(
-    package = "quote",
-    version = "1.0.41",
-)
+
 crates.spec(
     package = "mockall",
     version = "0.13.1",
 )
-crates.spec(
-    package = "mockall_double",
-    version = "0.3.1",
-)
+
 crates.spec(
     package = "prost",
     version = "0.14",

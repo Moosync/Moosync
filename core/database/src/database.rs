@@ -19,12 +19,12 @@ use std::fmt::Write;
 use std::fs;
 use std::{path::PathBuf, vec};
 
-use serde_json::Value;
+
 use tracing::{debug, info, trace, warn};
 use uuid::Uuid;
 
 use songs_proto::moosync::types::SearchResult;
-use songs_proto::moosync::types::{Album, Artist, Genre, GetEntityOptions, Playlist};
+use songs_proto::moosync::types::{Album, AlbumList, Artist, ArtistList, EntityResult, Genre, GenreList, GetEntityOptions, Playlist, PlaylistList};
 use songs_proto::moosync::types::{AllAnalytics, SearchableSong};
 use songs_proto::moosync::types::{
     GetSongOptions, InnerSong, Song, all_analytics::SongListenTime,
@@ -664,37 +664,45 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn get_entity_by_options(&self, options: GetEntityOptions) -> Result<Value> {
+    pub fn get_entity_by_options(&self, options: GetEntityOptions) -> Result<EntityResult> {
         let mut conn = self.pool.get().unwrap();
         let inclusive = options.inclusive.unwrap_or_default();
 
         trace!("Getting entity by options");
 
         if let Some(album) = options.album {
-            return Ok(
-                serde_json::to_value(self.get_albums(album, inclusive, &mut conn)?).unwrap(),
-            );
+            return Ok(EntityResult {
+                result: Some(songs_proto::moosync::types::entity_result::Result::Albums(AlbumList {
+                    albums: self.get_albums(album, inclusive, &mut conn)?,
+                })),
+            });
         }
 
         if let Some(artist) = options.artist {
-            return Ok(
-                serde_json::to_value(self.get_artists(artist, inclusive, &mut conn)?).unwrap(),
-            );
+            return Ok(EntityResult {
+                result: Some(songs_proto::moosync::types::entity_result::Result::Artists(ArtistList {
+                    artists: self.get_artists(artist, inclusive, &mut conn)?,
+                })),
+            });
         }
 
         if let Some(genre) = options.genre {
-            return Ok(
-                serde_json::to_value(self.get_genres(genre, inclusive, &mut conn)?).unwrap(),
-            );
+            return Ok(EntityResult {
+                result: Some(songs_proto::moosync::types::entity_result::Result::Genres(GenreList {
+                    genres: self.get_genres(genre, inclusive, &mut conn)?,
+                })),
+            });
         }
 
         if let Some(playlist) = options.playlist {
-            return Ok(
-                serde_json::to_value(self.get_playlists(playlist, inclusive, &mut conn)?).unwrap(),
-            );
+            return Ok(EntityResult {
+                result: Some(songs_proto::moosync::types::entity_result::Result::Playlists(PlaylistList {
+                    playlists: self.get_playlists(playlist, inclusive, &mut conn)?,
+                })),
+            });
         }
 
-        Ok(Value::Null)
+        Ok(EntityResult { result: None })
     }
 
     #[tracing::instrument(level = "debug", skip(self, conn))]

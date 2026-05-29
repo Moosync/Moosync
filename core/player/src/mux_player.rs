@@ -42,13 +42,14 @@ impl MuxPlayer {
             }
         }
 
-        Err(PlayerError::NoPlayerFound(song.to_string()))
+        Err(PlayerError::NoPlayerFound(song.clone()))
     }
 
     pub fn load(&mut self, song: &Song) -> Result<(), PlayerError> {
         let src = get_valid_src(song)?;
         self.find_best_player(song)?;
-        // SAFETY: find_best_player should throw an error if no player was found. At this point active player is not None.
+        // SAFETY: find_best_player should throw an error if no player was found.
+        // At this point active player is not None.
         self.active_player.set_src(src)?;
         Ok(())
     }

@@ -10,9 +10,9 @@ use file_scanner::ScannerHolder;
 use lyrics::LyricsFetcher;
 use mpris::MprisHolder;
 use platform_dirs;
+use player::PlayerHandler;
 use preferences::preferences::PreferenceConfig;
 use queue_manager::QueueManager;
-use rodio_player::RodioPlayer;
 use tempdir;
 use themes::themes::ThemeHolder;
 use tokio::{runtime::Handle, sync::RwLock, sync::RwLockReadGuard};
@@ -34,7 +34,7 @@ pub struct StateManager {
     file_scanner: Arc<RwLock<ScannerHolder>>,
     lyrics: Arc<RwLock<LyricsFetcher>>,
     extensions: Arc<RwLock<ExtensionHandler>>,
-    rodio_player: Arc<RwLock<RodioPlayer>>,
+    player: Arc<RwLock<PlayerHandler>>,
     themes: Arc<RwLock<ThemeHolder>>,
     mpris: Arc<RwLock<MprisHolder>>,
     queue_manager: Arc<RwLock<QueueManager>>,
@@ -85,7 +85,7 @@ impl StateManager {
                     runtime.block_on(handle_request(ext, command))
                 })),
             ))),
-            rodio_player: Arc::new(RwLock::new(RodioPlayer::new())),
+            player: Arc::new(RwLock::new(PlayerHandler::new(Box::new(|_| Ok("".into()))))),
             themes: Arc::new(RwLock::new(ThemeHolder::new(
                 theme_dir,
                 tmp,

@@ -5,7 +5,7 @@ use types::prelude::SongsExt;
 
 use crate::{error::PlayerError, source::ValidSrc};
 
-pub(crate) trait PlayerExt {
+pub(crate) trait PlayerExt: Send + Sync {
     fn play(&self) -> Result<(), PlayerError>;
     fn pause(&self) -> Result<(), PlayerError>;
     fn stop(&self) -> Result<(), PlayerError>;

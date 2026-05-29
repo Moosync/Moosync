@@ -24,6 +24,7 @@ use std::{
 };
 
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
+use rodio::{MixerDeviceSink, Player};
 use tracing::{debug, error, info};
 use types::errors::MoosyncError;
 
@@ -32,10 +33,11 @@ use crate::{
 };
 
 mod decoder;
+pub(crate) use decoder::DecoderError;
 
 pub struct RodioPlayer {
-    tx: Sender<RodioCommand>,
-    events_rx: Arc<Mutex<Receiver<PlayerEvent>>>,
+    sink: MixerDeviceSink,
+    player: Player,
 }
 
 enum RodioCommand {
@@ -50,140 +52,14 @@ enum RodioCommand {
 impl RodioPlayer {
     #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
-        let (events_tx, events_rx) = channel::<PlayerEvent>();
-        let tx = Self::initialize(events_tx);
+        let sink = rodio::DeviceSinkBuilder::open_default_sink().unwrap();
+        let player = rodio::Player::connect_new(sink.mixer());
 
-        Self {
-            tx,
-            events_rx: Arc::new(Mutex::new(events_rx)),
-        }
-    }
-
-    async fn set_src(src: String, sink: &Arc<rodio::Player>) -> Result<(), MoosyncError> {
-        sink.append(FFMPEGDecoder::open(&src).map_err(Into::<MoosyncError>::into)?);
-
-        Ok(())
-    }
-
-    pub fn get_events_rx(&self) -> Arc<Mutex<Receiver<PlayerEvent>>> {
-        self.events_rx.clone()
+        Self { sink, player }
     }
 
     fn send_event(events_tx: Sender<PlayerEvent>, event: PlayerEvent) {
         events_tx.send(event).unwrap();
-    }
-
-    fn initialize(events_tx: Sender<PlayerEvent>) -> Sender<RodioCommand> {
-        let (tx, rx) = channel::<RodioCommand>();
-        let ret = tx.clone();
-
-        thread::spawn(move || {
-            let stream_handle = rodio::DeviceSinkBuilder::open_default_sink().unwrap();
-            let sink = Arc::new(rodio::Player::connect_new(stream_handle.mixer()));
-
-            let runtime = tokio::runtime::Builder::new_multi_thread()
-                .enable_all()
-                .build()
-                .unwrap();
-
-            let events_tx = events_tx.clone();
-            runtime.block_on(async move {
-                let last_src = Arc::new(Mutex::new(None));
-                while let Ok(command) = rx.recv() {
-                    let sink = sink.clone();
-
-                    match command {
-                        RodioCommand::SetSrc(src) => {
-                            let last_src = last_src.clone();
-                            {
-                                let mut last_src = last_src.lock().unwrap();
-                                *last_src = Some(src.clone());
-                            }
-
-                            sink.clear();
-                            Self::send_event(events_tx.clone(), PlayerEvent::TimeUpdate(0f64));
-                            Self::send_event(events_tx.clone(), PlayerEvent::Loading(true));
-
-                            if let Err(err) = Self::set_src(src.clone(), &sink).await {
-                                error!("Failed to set src: {:?}", err);
-                                Self::send_event(
-                                    events_tx.clone(),
-                                    PlayerEvent::Error(err.to_string()),
-                                )
-                            } else {
-                                debug!("Set src");
-                                let src_clone = src.clone();
-
-                                let events_tx = events_tx.clone();
-                                let sink = sink.clone();
-
-                                // Send ended event only if song hasn't changed yet
-                                thread::spawn(move || {
-                                    sink.sleep_until_end();
-                                    let last_src = last_src.clone();
-                                    let last_src = last_src.lock().unwrap();
-                                    if let Some(last_src) = last_src.clone() {
-                                        info!("last src={}, current src={}", last_src, src_clone);
-                                        if last_src == src_clone {
-                                            Self::send_event(
-                                                events_tx.clone(),
-                                                PlayerEvent::Ended(true),
-                                            );
-                                        }
-                                    }
-                                });
-                            }
-                        }
-                        RodioCommand::Play => {
-                            if !sink.empty() {
-                                sink.play();
-                                Self::send_event(events_tx.clone(), PlayerEvent::Play(true))
-                            }
-                        }
-                        RodioCommand::Pause => {
-                            if !sink.empty() {
-                                sink.pause();
-                                Self::send_event(events_tx.clone(), PlayerEvent::Pause(true))
-                            }
-                        }
-                        RodioCommand::Stop => {
-                            if !sink.empty() {
-                                sink.stop();
-                                sink.clear();
-                                Self::send_event(events_tx.clone(), PlayerEvent::Pause(true))
-                            }
-                        }
-                        RodioCommand::SetVolume(volume) => {
-                            if !sink.empty() {
-                                sink.set_volume(volume);
-                            }
-                        }
-                        RodioCommand::Seek(pos) => {
-                            if !sink.empty() {
-                                if let Err(err) = sink.try_seek(Duration::from_secs(pos)) {
-                                    error!("Failed to seek: {:?}", err)
-                                } else {
-                                    Self::send_event(
-                                        events_tx.clone(),
-                                        PlayerEvent::TimeUpdate(pos as f64),
-                                    )
-                                }
-                            } else {
-                                let last_src = last_src.clone();
-                                let last_src = last_src.lock().unwrap();
-                                if let Some(last_src) = last_src.clone() {
-                                    tx.send(RodioCommand::SetSrc(last_src.clone())).unwrap();
-                                    tx.send(RodioCommand::Seek(pos)).unwrap();
-                                    tx.send(RodioCommand::Play).unwrap();
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        });
-
-        ret
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -195,40 +71,36 @@ impl RodioPlayer {
 impl PlayerExt for RodioPlayer {
     #[tracing::instrument(level = "debug", skip(self))]
     fn play(&self) -> Result<(), PlayerError> {
-        self.tx.send(RodioCommand::Play).unwrap();
+        self.player.play();
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn pause(&self) -> Result<(), PlayerError> {
-        self.tx.send(RodioCommand::Pause).unwrap();
+        self.player.pause();
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn stop(&self) -> Result<(), PlayerError> {
-        self.tx.send(RodioCommand::Stop).unwrap();
+        self.player.stop();
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn set_volume(&self, volume: f32) -> Result<(), PlayerError> {
-        self.tx.send(RodioCommand::SetVolume(volume)).unwrap();
+        self.player.set_volume(volume);
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn seek(&self, pos: f64) -> Result<(), PlayerError> {
-        self.tx
-            .send(RodioCommand::Seek(pos.abs().round() as u64))
-            .unwrap();
+        self.player.try_seek(Duration::from_secs_f64(pos))?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
     fn set_src(&self, src: ValidSrc) -> Result<(), PlayerError> {
-        info!("Loading src={}", src);
-        self.tx.send(RodioCommand::SetSrc(src.inner())).unwrap();
+        self.player.append(FFMPEGDecoder::open(&src.inner())?);
         Ok(())
     }
 

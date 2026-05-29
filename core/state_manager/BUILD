@@ -15,7 +15,7 @@ rust_library(
         "//core/lyrics",
         "//core/preferences",
         "//core/types/protos:extensions_rs",
-        "//core/rodio_player",
+        "//core/player",
         "//core/queue_manager",
         # "//core/spotify_player",
         "//core/themes",

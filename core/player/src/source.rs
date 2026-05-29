@@ -39,7 +39,8 @@ pub(crate) fn get_valid_src(song: &Song) -> Result<ValidSrc, PlayerError> {
     Err(PlayerError::NoSrcFound(song.clone()))
 }
 
-pub type SourceResolverFn = Box<dyn Fn(&Song) -> Result<String, Box<dyn Error + Send + Sync>>>;
+pub type SourceResolverFn =
+    Box<dyn Fn(&Song) -> Result<String, Box<dyn Error + Send + Sync>> + Send + Sync>;
 pub(crate) struct SourceResolver {
     resolver: SourceResolverFn,
 }

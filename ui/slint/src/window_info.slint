@@ -1,0 +1,18 @@
+import { Pages, Theme } from "./constants.slint";
+
+export global WindowInfo {
+    in-out property <length> window-width;
+    in-out property <length> window-height;
+    in-out property <int> window-size;
+
+    out property <int> sm: 0;
+    out property <int> md: 1;
+    out property <int> lg: 2;
+    out property <int> xl: 3;
+
+    in-out property <length> sidebar-width: Theme.sidebarWidth;
+}
+
+export global NavigationInfo {
+    in-out property <Pages> activePage: Pages.Albums;
+}

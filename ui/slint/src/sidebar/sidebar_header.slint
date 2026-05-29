@@ -1,0 +1,38 @@
+import { Theme } from "../constants.slint";
+
+export component HamburgerIcon inherits Image {
+    in property <color> current-color: Theme.textPrimary;
+    width: 19px;
+    height: 17px;
+    source: @image-url("../icons/sidebar_toggle.svg");
+    colorize: current-color;
+}
+ 
+export component SidebarHeader inherits Rectangle {
+    height: Theme.sidebarButtonHeight;
+
+    HorizontalLayout {
+        padding-right: Theme.spacingXl;
+        alignment: start;
+        padding-left: 25px;
+
+        VerticalLayout {
+            alignment: center;
+
+            Rectangle {
+                width: Theme.actionButtonSize;
+                height: Theme.actionButtonSize;
+                border-radius: Theme.borderRadiusMd;
+                background: hamburger-touch.has-hover ? Theme.textPrimary.with-alpha(0.06) : transparent;
+
+                hamburger-touch := TouchArea { }
+
+                HamburgerIcon {
+                    current-color: hamburger-touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
+                    width: Theme.playbackControlsIconSize;
+                    height: Theme.iconSizeMd;
+                }
+            }
+        }
+    }
+}

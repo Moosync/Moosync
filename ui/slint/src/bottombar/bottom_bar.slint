@@ -1,0 +1,54 @@
+import { TrackInfo } from "track_info.slint";
+import { PlaybackProgressBar } from "playback_progress.slint";
+import { PlaybackControls } from "playback_controls.slint";
+import { VolumeControl } from "volume_control.slint";
+import { Theme } from "../constants.slint";
+
+export component BottomBar inherits Rectangle {
+    height: Theme.bottombarHeight;
+    background: Theme.primary; // Sampled Bottombar Background
+    
+    // Top border line behind the progress bar
+    Rectangle {
+        y: 0px;
+        height: 1px;
+        background: Theme.divider; // Darker divider to match Leptos
+    }
+
+    VerticalLayout {
+        alignment: center;
+        padding-top: 0px;
+        padding-bottom: 0px;
+
+        // Full width progress bar at the very top edge
+        PlaybackProgressBar {
+            height: 14px;
+        }
+
+        // Row containing Track details, controls and volume slider
+        HorizontalLayout {
+            padding-left: 16px;
+            padding-right: 16px;
+
+            // Left: Track Details
+            TrackInfo {
+                width: 250px;
+            }
+
+            // Spacer
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+            // Center Layout: Duration text + Controls
+            HorizontalLayout {
+                PlaybackControls { }
+            }
+
+            // Right: Volume Slider Controls
+            VolumeControl {
+                width: 160px;
+            }
+        }
+    }
+}

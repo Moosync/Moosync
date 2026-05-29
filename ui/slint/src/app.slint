@@ -1,99 +1,179 @@
-import { Button, LineEdit } from "std-widgets.slint";
+import { Sidebar } from "sidebar/sidebar.slint";
+import { TopBar } from "topbar/top_bar.slint";
+import { BottomBar } from "bottombar/bottom_bar.slint";
+import { AllSongs } from "main_content/all_songs.slint";
+import { WindowInfo, NavigationInfo } from "window_info.slint";
+import {
+    SongModel,
+    CoverHelper,
+    AlbumModel,
+    PlaylistModel,
+    ArtistModel,
+    GenreModel,
+} from "types/song_view.slint";
+import { AlbumsPage } from "main_content/albums.slint";
+import { ArtistsPage } from "main_content/artists.slint";
+import { PlaylistsPage } from "main_content/playlists.slint";
+import { GenresPage } from "main_content/genres.slint";
+import { ExplorePage } from "main_content/explore.slint";
+import { Pages, Constants, Theme } from "constants.slint";
+
+export { CoverHelper, Constants, Theme }
+
+component PageWrapper inherits Rectangle {
+    in property <Pages> page-type;
+    in-out property active-page <=> NavigationInfo.activePage;
+
+    pure function page-index(p: Pages) -> int {
+        if (p == Pages.AllSongs) {
+            return 0;
+        }
+        if (p == Pages.Playlists) {
+            return 1;
+        }
+        if (p == Pages.Artists) {
+            return 2;
+        }
+        if (p == Pages.Albums) {
+            return 3;
+        }
+        if (p == Pages.Genres) {
+            return 4;
+        }
+        if (p == Pages.Explore) {
+            return 5;
+        }
+        return 0;
+    }
+
+    opacity: active-page == page-type ? 1 : 0;
+    visible: self.opacity > 0;
+    x: (active-page == page-type) ? 0px : (page-index(active-page) > page-index(page-type) ? -100px : 100px);
+    width: 100%;
+    height: 100%;
+
+    animate opacity {
+        duration: Constants.page-transition-duration;
+        easing: ease-in-out;
+    }
+    animate x {
+        duration: Constants.page-transition-duration;
+        easing: ease-in-out;
+    }
+
+    HorizontalLayout {
+        padding-left: Theme.paddingLg;
+        @children
+    }
+}
 
 export component MainWindow inherits Window {
-    title: "Moosync Slint App";
-    preferred-width: 400px;
-    preferred-height: 300px;
-    background: @linear-gradient(135deg, #1e1e2e 0%, #11111b 100%);
+    title: "moosync";
+    background: Theme.primary; // Sampled Topbar/Main background
+
+    changed width => {
+        WindowInfo.window-width = self.width;
+        if (self.width < 600px) {
+            WindowInfo.window-size = WindowInfo.sm;
+        } else if (self.width < 900px) {
+            WindowInfo.window-size = WindowInfo.md;
+        } else if (self.width < 1200px) {
+            WindowInfo.window-size = WindowInfo.lg;
+        } else {
+            WindowInfo.window-size = WindowInfo.xl;
+        }
+        self.resize();
+    }
+
+    changed height => {
+        WindowInfo.window-height = self.height;
+        self.resize();
+    }
 
     callback search-clicked(string);
+    callback resize();
+
+    in-out property <Pages> active-page <=> NavigationInfo.activePage;
+    changed active-page => {
+        self.active-page-changed(self.active-page);
+    }
+    callback active-page-changed(Pages);
+
+    in property <[SongModel]> songs: Constants.testSongs;
+    in property <[AlbumModel]> albums: Constants.testAlbums;
+    in property <[PlaylistModel]> playlists: Constants.testPlaylists;
+    in property <[ArtistModel]> artists: Constants.testArtists;
+    in property <[GenreModel]> genres: Constants.testGenres;
+
 
     VerticalLayout {
-        padding: 24px;
-        spacing: 16px;
-        x: -2px;
-        y: -2px;
-        alignment: start;
+        spacing: 0px;
+        padding: 0px;
+        height: 100%;
+        width: 100%;
 
-        // Header Banner
+        // Upper section containing Sidebar and main content area with TopBar
         HorizontalLayout {
-            alignment: space-between;
-            Text {
-                text: "Moosync Slint UI";
-                font-size: 28px;
-                font-weight: 800;
-                color: #cdd6f4;
-            }
+            spacing: 0px;
 
-            Text {
-                text: "v0.1.0";
-                font-size: 14px;
-                color: #a6adc8;
-                vertical-alignment: center;
+            Sidebar {
+                activePage <=> NavigationInfo.activePage;
             }
-        }
-
-        // Card Container
-        Rectangle {
-            background: #181825;
-            border-radius: 12px;
-            border-width: 1px;
-            border-color: #313244;
 
             VerticalLayout {
-                padding: 16px;
-                spacing: 12px;
-                Text {
-                    text: "Cross-Platform Slint + Bazel Demo";
-                    font-size: 18px;
-                    font-weight: 700;
-                    color: #f5c2e7;
-                }
+                spacing: 0px;
 
-                Text {
-                    text: "This application is fully bootstrapped inside Bazel and buildable for Linux, Windows, macOS, and Android.";
-                    font-size: 14px;
-                    color: #bac2de;
-                    wrap: word-wrap;
-                }
-            }
-        }
+                TopBar { }
 
-        // Interactive Controls
-        Rectangle {
-            background: #181825;
-            border-radius: 12px;
-            border-width: 1px;
-            border-color: #313244;
+                // Main Content Area
+                Rectangle {
+                    background: Theme.primary; // Primary
+                    clip: true;
 
-            VerticalLayout {
-                padding: 16px;
-                spacing: 12px;
-                Text {
-                    text: "Search Tracks";
-                    font-size: 16px;
-                    font-weight: 700;
-                    color: #89b4fa;
-                }
-
-                HorizontalLayout {
-                    spacing: 10px;
-                    search-input := LineEdit {
-                        placeholder-text: "Type to search...";
-                        accepted => {
-                            search-clicked(self.text);
+                    PageWrapper {
+                        page-type: Pages.AllSongs;
+                        AllSongs {
+                            songs <=> root.songs;
                         }
                     }
 
-                    Button {
-                        text: "Search";
-                        primary: true;
-                        clicked => {
-                            search-clicked(search-input.text);
+                    PageWrapper {
+                        page-type: Pages.Playlists;
+                        PlaylistsPage {
+                            playlists <=> root.playlists;
                         }
+                    }
+
+                    PageWrapper {
+                        page-type: Pages.Artists;
+                        ArtistsPage {
+                            artists <=> root.artists;
+                        }
+                    }
+
+                    PageWrapper {
+                        page-type: Pages.Albums;
+                        AlbumsPage {
+                            albums <=> root.albums;
+                        }
+                    }
+
+                    PageWrapper {
+                        page-type: Pages.Genres;
+                        GenresPage {
+                            genres <=> root.genres;
+                        }
+                    }
+
+                    PageWrapper {
+                        page-type: Pages.Explore;
+                        ExplorePage { }
                     }
                 }
             }
         }
+
+        // Bottom player controller section
+        BottomBar { }
     }
 }

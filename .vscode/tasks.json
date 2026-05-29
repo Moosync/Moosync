@@ -20,6 +20,17 @@
             "runOptions": {
                 "runOn": "folderOpen"
             }
+        },
+        {
+            "label": "Show test coverage from all tests",
+            "type": "bazel",
+            "command": "coverage",
+            "targets": [
+                "//:all"
+            ],
+            "options": [
+                "--instrumentation_filter=.*"
+            ],
         }
     ]
 }

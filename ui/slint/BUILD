@@ -7,18 +7,39 @@ package(default_visibility = ["//visibility:public"])
 cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
-    data = glob(["src/**/*.slint"]),
+    data = glob([
+        "src/**/*.slint",
+        "src/**/*.svg",
+    ]),
     deps = ["@crates//:slint-build"],  # Make sure slint-build is in your Cargo.toml/crates list
 )
 
 rust_library(
     name = "slint_app_lib",
-    srcs = ["src/lib.rs"],
+    srcs = [
+        "src/lib.rs",
+        "src/main_content/albums.rs",
+        "src/main_content/all_songs.rs",
+        "src/main_content/artists.rs",
+        "src/main_content/explore.rs",
+        "src/main_content/genres.rs",
+        "src/main_content/mod.rs",
+        "src/main_content/playlists.rs",
+        "src/pages.rs",
+        "src/utils.rs",
+        "src/window_info.rs",
+    ],
+    compile_data = glob([
+        "src/**/*.slint",
+        "src/**/*.svg",
+    ]),
     crate_name = "slint_app",
     edition = "2021",
     deps = [
         ":build_script",  # Exposes the generated code
         "//core/state_manager",
+        "//core/types",
+        "//core/types/protos:songs_rs",
         "@crates//:platform-dirs",
         "@crates//:slint",
         "@crates//:tokio",
@@ -49,14 +70,30 @@ rust_binary(
 # state_manager and tracing are present on Android.
 rust_shared_library(
     name = "slint_app_android",
-    srcs = ["src/lib.rs"],
-    compile_data = glob(["src/**/*.slint"]),
+    srcs = [
+        "src/lib.rs",
+        "src/main_content/albums.rs",
+        "src/main_content/all_songs.rs",
+        "src/main_content/artists.rs",
+        "src/main_content/explore.rs",
+        "src/main_content/genres.rs",
+        "src/main_content/mod.rs",
+        "src/main_content/playlists.rs",
+        "src/pages.rs",
+        "src/utils.rs",
+        "src/window_info.rs",
+    ],
+    compile_data = glob([
+        "src/**/*.slint",
+        "src/**/*.svg",
+    ]),
     crate_name = "slint_app",
     edition = "2021",
     deps = [
         ":build_script",
         "//core/state_manager",
         "//core/types",
+        "//core/types/protos:songs_rs",
         "@crates//:jni",
         "@crates//:platform-dirs",
         "@crates//:slint",

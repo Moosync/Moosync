@@ -1,0 +1,47 @@
+import { NavButtons } from "nav_buttons.slint";
+import { SearchBar } from "search_bar.slint";
+import { TopbarActions } from "topbar_actions.slint";
+import { Theme } from "../constants.slint";
+
+export component TopBar inherits Rectangle {
+    height: Theme.topbarHeight;
+    background: Theme.primary; // Sampleed Topbar Background
+
+    // Bottom border for the top bar
+    Rectangle {
+        y: parent.height - Theme.borderWidth;
+        height: Theme.borderWidth;
+        background: Theme.divider;
+    }
+
+    VerticalLayout {
+        alignment: center;
+        HorizontalLayout {
+            padding-left: Theme.paddingLg;
+            padding-right: Theme.paddingLg;
+
+            HorizontalLayout {
+                horizontal-stretch: 1;
+
+                NavButtons { }
+
+                HorizontalLayout {
+                    horizontal-stretch: 1;
+                    alignment: stretch;
+                    padding-right: Theme.paddingLg;
+                    padding-left: Theme.paddingLg;
+                    SearchBar {
+                        horizontal-stretch: 1;
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                horizontal-stretch: 0;
+                spacing: Theme.spacingLg;
+
+                TopbarActions { }
+            }
+        }
+    }
+}

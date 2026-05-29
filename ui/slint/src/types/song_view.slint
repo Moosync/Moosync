@@ -1,0 +1,48 @@
+export struct SongModel {
+    id: string,
+    title: string,
+    artist_name: string,
+    album_name: string,
+    duration: string,
+    coverPathHigh: image,
+    coverPathLow: image,
+    coverPathUrlHigh: string,
+    coverPathUrlLow: string,
+    extensionIcon: image,
+}
+
+export global CoverHelper {
+    pure callback fetch_cover_high(SongModel) -> image;
+}
+
+export struct AlbumModel {
+    id: string,
+    title: string,
+    songs_count: int,
+    coverPath: image,
+    coverPathUrl: string,
+}
+
+export struct PlaylistModel {
+    id: string,
+    title: string,
+    songs_count: int,
+    coverPath: image,
+    coverPathUrl: string,
+}
+
+export struct ArtistModel {
+    id: string,
+    title: string,
+    songs_count: int,
+    coverPath: image,
+    coverPathUrl: string,
+}
+
+export struct GenreModel {
+    id: string,
+    title: string,
+    songs_count: int,
+    coverPath: image,
+    coverPathUrl: string,
+}

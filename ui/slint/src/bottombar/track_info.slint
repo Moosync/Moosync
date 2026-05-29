@@ -1,0 +1,54 @@
+import { Theme } from "../constants.slint";
+
+export component TrackInfo inherits Rectangle {
+    width: 260px;
+    height: 48px;
+
+    HorizontalLayout {
+        spacing: 12px;
+        alignment: start;
+
+        Rectangle {
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            background: Theme.secondary;
+            border-width: 1px;
+            border-color: Theme.textPrimary.with-alpha(0.06);
+
+            Image {
+                width: 24px;
+                height: 24px;
+                source: @image-url("../icons/song_default.svg");
+                colorize: Theme.textSecondary;
+            }
+        }
+
+        // Song Details
+        VerticalLayout {
+            alignment: center;
+            spacing: 2px;
+
+            Text {
+                text: "";
+                color: Theme.textPrimary; // Text Primary
+                font-size: Theme.body;
+                font-weight: 600;
+                overflow: elide;
+            }
+
+            Text {
+                text: "";
+                color: Theme.textSecondary; // Text Secondary
+                font-size: Theme.caption;
+                overflow: elide;
+            }
+
+            Text {
+                text: "";
+                color: Theme.textSecondary; // Text Secondary
+                font-size: Theme.extraSmall;
+            }
+        }
+    }
+}

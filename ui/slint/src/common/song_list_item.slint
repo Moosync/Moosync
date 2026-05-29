@@ -1,0 +1,110 @@
+import { WindowInfo } from "../window_info.slint";
+import { SongModel } from "../types/song_view.slint";
+import { Constants, Theme } from "../constants.slint";
+
+export component SongListItem inherits TouchArea {
+    in property <SongModel> song: Constants.defaultSong;
+
+    in property <color> border-color;
+    in property <length> border-width: 0px;
+
+    Rectangle {
+        background: Theme.secondary;
+        border-radius: Theme.borderRadiusLg;
+        border-width: border-width;
+        border-color: border-color;
+        height: Theme.songListItemHeight;
+
+        HorizontalLayout {
+            padding: Theme.paddingXs;
+            padding-right: Theme.paddingLg;
+
+            Rectangle {
+                width: Theme.thumbnailSize;
+                height: Theme.thumbnailSize;
+                border-radius: Theme.borderRadiusMd;
+                background: Theme.secondary;
+                border-width: Theme.borderWidth;
+                border-color: Theme.textPrimary.with-alpha(0.06);
+                clip: true;
+
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: song.coverPathLow;
+                    image-fit: cover;
+                }
+            }
+
+            HorizontalLayout {
+                horizontal-stretch: 1;
+                alignment: start;
+
+                VerticalLayout {
+                    alignment: center;
+                    spacing: Theme.spacingTiny;
+                    padding-left: Theme.paddingLg;
+
+                    Text {
+                        text: song.title;
+                        color: Theme.textPrimary; // Text Primary
+                        font-size: Theme.body;
+                        font-weight: 600;
+                        overflow: elide;
+                    }
+
+                    Text {
+                        text: song.artist_name;
+                        color: Theme.textSecondary; // Text Secondary
+                        font-size: Theme.caption;
+                        overflow: elide;
+                    }
+                }
+
+                VerticalLayout {
+                    spacing: 2px;
+                    alignment: center;
+                    padding-left: 5px;
+                    padding-top: 5px;
+
+                    Image {
+                        width: Theme.iconSizeSm;
+                        height: Theme.iconSizeSm;
+                        source: song.extensionIcon;
+                    }
+
+                    Rectangle {
+                        height: 50%;
+                    }
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
+                HorizontalLayout {
+                    spacing: 45px;
+                    alignment: end;
+
+                    HorizontalLayout {
+                        spacing: Theme.spacingXxl;
+                        Text {
+                            text: song.duration;
+                            color: Theme.textSecondary; // Text Secondary
+                            font-size: Theme.caption;
+                        }
+
+                        if (WindowInfo.window-size > WindowInfo.sm): Image {
+                            width: Theme.iconSizeMd;
+                            source: @image-url("../icons/add_to_queue.svg");
+                        }
+                    }
+
+                    Image {
+                        width: Theme.iconSizeMd;
+                        source: @image-url("../icons/ellipsis.svg");
+                    }
+                }
+            }
+        }
+    }
+}

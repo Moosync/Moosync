@@ -1,6 +1,6 @@
 load("@rpmpack//:def.bzl", "pkg_tar2rpm")
-load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_files")
 load("@rules_pkg//pkg:deb.bzl", "pkg_deb")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_files")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("//:version.bzl", "APP_NAME", "RELEASE", "VERSION")
 
@@ -10,7 +10,7 @@ pkg_files(
     attributes = pkg_attributes(mode = "0755"),
     prefix = "/usr/bin",
     renames = {
-        "slint_app": "moosync",
+        "//ui/slint:slint_app": "//ui/slint:moosync",
     },
 )
 
@@ -23,7 +23,10 @@ pkg_files(
 
 pkg_tar(
     name = "moosync_filesystem_tar",
-    srcs = [":moosync_binary", ":moosync_desktop"],
+    srcs = [
+        ":moosync_binary",
+        ":moosync_desktop",
+    ],
     deps = ["//package:moosync_icons_tar"],
 )
 
@@ -38,7 +41,7 @@ pkg_tar2rpm(
     pkg_name = "moosync",
     release = RELEASE,
     requires = [
-        "webkit2gtk3 openssl",
+        "openssl",
     ],
     version = VERSION,
 )
@@ -53,7 +56,6 @@ pkg_deb(
     built_using = "bazel",
     data = ":moosync_filesystem_tar",
     depends = [
-        "libwebkit2gtk-4.0-37",
         "libssl3",
     ],
     description = "Moosync",

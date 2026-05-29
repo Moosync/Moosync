@@ -1,0 +1,36 @@
+import { Theme } from "../constants.slint";
+
+export component CardView inherits VerticalLayout {
+    in property <string> title: "Card Title";
+    in property <image> cover-img: @image-url("../icons/song_default.svg");
+
+    padding: Theme.paddingSm;
+    spacing: Theme.spacingXs;
+
+    Rectangle {
+        border-radius: Theme.borderRadiusLg;
+        height: self.width;
+        clip: true;
+
+        Image {
+            height: parent.height;
+            width: parent.width;
+            source: root.cover-img;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            image-fit: contain;
+            image-rendering: pixelated;
+        }
+    }
+
+    VerticalLayout {
+        padding-left: Theme.spacingXxs;
+        Text {
+            text: root.title;
+            font-size: Theme.modelTitle;
+            color: Theme.textPrimary;
+            horizontal-alignment: start;
+            overflow: elide;
+        }
+    }
+}

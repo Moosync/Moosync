@@ -1,0 +1,57 @@
+import { ListView } from "std-widgets.slint";
+import { CardView } from "card_view.slint";
+import { Theme } from "../constants.slint";
+
+export component GridListView inherits Rectangle {
+    in property <int> max-columns: 1;
+    in property <length> item-width: Theme.cardWidth;
+    in property <length> item-height: root.item-width + 36px;
+    in property <length> spacing-x: Theme.spacingLg;
+    in property <length> spacing-y: Theme.spacingLg;
+    in property <int> total-items: 0;
+
+    property <int> total-rows: root.total-items == 0 ? 0 : (root.total-items + root.max-columns - 1) / root.max-columns;
+    property <length> scroll-y: 0px;
+
+    pure callback item-title(int) -> string;
+    pure callback item-cover(int) -> image;
+    callback item-clicked(int);
+
+    HorizontalLayout {
+        spacing: root.spacing-x;
+        alignment: start;
+
+        for col-index in 20: Rectangle {
+            visible: col-index < root.max-columns;
+            width: self.visible ? (col-index == root.max-columns - 1 ? root.item-width + Theme.spacingLg : root.item-width) : 0px;
+
+            if (self.visible): ListView {
+                viewport-y <=> root.scroll-y;
+                vertical-scrollbar-policy: (col-index == root.max-columns - 1) ? always-on : always-off;
+                horizontal-scrollbar-policy: always-off;
+
+                for row-index in root.total-rows: cell := Rectangle {
+                    height: root.item-height + root.spacing-y;
+
+                    property <int> item-idx: row-index * root.max-columns + col-index;
+
+                    if (cell.item-idx < root.total-items): Rectangle {
+                        width: root.item-width;
+                        height: root.item-height;
+
+                        CardView {
+                            title: root.item-title(cell.item-idx);
+                            cover-img: root.item-cover(cell.item-idx);
+                        }
+
+                        TouchArea {
+                            clicked => {
+                                root.item-clicked(cell.item-idx);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

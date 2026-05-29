@@ -10,10 +10,11 @@ android_sdk_repository_extension = use_extension(
     "@rules_android//rules/android_sdk_repository:rule.bzl",
     "android_sdk_repository_extension",
 )
-android_sdk_repository_extension.configure(
-    api_level = 34,
-    build_tools_version = "36.1.0",
-)
+
+# android_sdk_repository_extension.configure(
+#     api_level = 34,
+#     build_tools_version = "36.1.0",
+# )
 use_repo(android_sdk_repository_extension, "androidsdk")
 
 register_toolchains("@androidsdk//:sdk-toolchain", "@androidsdk//:all")

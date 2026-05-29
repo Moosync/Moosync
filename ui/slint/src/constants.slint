@@ -1,0 +1,250 @@
+import {
+    SongModel,
+    AlbumModel,
+    PlaylistModel,
+    ArtistModel,
+    GenreModel,
+} from "./types/song_view.slint";
+
+export global Constants {
+    out property <duration> page-transition-duration: 250ms;
+
+    out property <SongModel> defaultSong: {
+        id: "",
+        title: "",
+        artist_name: "",
+        album_name: "",
+        duration: "",
+        coverPathHigh: @image-url("./icons/song_default.svg"),
+        coverPathLow: @image-url("./icons/song_default.svg"),
+        extensionIcon: @image-url("./icons/song_default.svg"),
+    };
+
+    out property <[SongModel]> testSongs: [
+        {
+            id: "1",
+            title: "Song Title 1",
+            artist_name: "Artist 1",
+            album_name: "Album 1",
+            duration: "5:45",
+            coverPathHigh: @image-url("./icons/song_default.svg"),
+            coverPathLow: @image-url("./icons/song_default.svg"),
+            extensionIcon: @image-url("./icons/song_default.svg"),
+        },
+        {
+            id: "2",
+            title: "Song Title 2",
+            artist_name: "Artist 2",
+            album_name: "Album 2",
+            duration: "3:35",
+            coverPathHigh: @image-url("./icons/song_default.svg"),
+            coverPathLow: @image-url("./icons/song_default.svg"),
+            extensionIcon: @image-url("./icons/song_default.svg"),
+        },
+    ];
+
+    out property <AlbumModel> defaultAlbum: {
+        id: "",
+        title: "",
+        songs_count: 0,
+        coverPath: @image-url("./icons/song_default.svg"),
+        coverPathUrl: "",
+    };
+
+    out property <[AlbumModel]> testAlbums: [
+        {
+            id: "1",
+            title: "Album Title 1",
+            songs_count: 10,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        },
+        {
+            id: "2",
+            title: "Album Title 2",
+            songs_count: 8,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        },
+        {
+            id: "3",
+            title: "super long title HSDjkahsdkjshdjkhdkjhsdjkHD",
+            songs_count: 8,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        },
+        {
+            id: "1",
+            title: "Album Title 1",
+            songs_count: 10,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        },
+        {
+            id: "2",
+            title: "Album Title 2",
+            songs_count: 8,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        },
+        {
+            id: "3",
+            title: "Album Title 3",
+            songs_count: 8,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        },
+        {
+            id: "1",
+            title: "Album Title 1",
+            songs_count: 10,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        },
+        {
+            id: "2",
+            title: "Album Title 2",
+            songs_count: 8,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        },
+        {
+            id: "3",
+            title: "Album Title 3",
+            songs_count: 8,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        },
+    ];
+
+    out property <[PlaylistModel]> testPlaylists: [
+        {
+            id: "1",
+            title: "Playlist 1",
+            songs_count: 15,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        },
+        {
+            id: "2",
+            title: "Playlist 2",
+            songs_count: 5,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        }
+    ];
+
+    out property <[ArtistModel]> testArtists: [
+        {
+            id: "1",
+            title: "Artist 1",
+            songs_count: 42,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        },
+        {
+            id: "2",
+            title: "Artist 2",
+            songs_count: 24,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        }
+    ];
+
+    out property <[GenreModel]> testGenres: [
+        {
+            id: "1",
+            title: "Genre 1",
+            songs_count: 100,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        },
+        {
+            id: "2",
+            title: "Genre 2",
+            songs_count: 50,
+            coverPath: @image-url("./icons/song_default.svg"),
+            coverPathUrl: "",
+        }
+    ];
+}
+
+export enum Pages {
+    AllSongs,
+    Albums,
+    Artists,
+    Playlists,
+    Genres,
+    Explore,
+}
+
+export global Theme {
+    // Colors
+    out property <color> primary: #212121;
+    out property <color> secondary: #282828;
+    out property <color> tertiary: #151515;
+    out property <color> textPrimary: #ffffff;
+    out property <color> textSecondary: #565656;
+    out property <color> textInverse: #000000;
+    out property <color> accent: #65cb88;
+    out property <color> divider: rgba(0, 0, 0, 0.0);
+
+    // Font Sizes
+    out property <length> pageHeader: 32px;
+    out property <length> modelTitle: 16px;
+    out property <length> subtitle: 14px;
+    out property <length> body: 13px;
+    out property <length> caption: 11px;
+    out property <length> extraSmall: 10px;
+
+    // Spacing
+    out property <length> spacingXxl: 30px;
+    out property <length> spacingXl: 20px;
+    out property <length> spacingLg: 16px;
+    out property <length> spacingMd: 12px;
+    out property <length> spacingSm: 10px;
+    out property <length> spacingXs: 8px;
+    out property <length> spacingXxs: 4px;
+    out property <length> spacingTiny: 2px;
+
+    // Paddings
+    out property <length> paddingLg: 16px;
+    out property <length> paddingMd: 14px;
+    out property <length> paddingSm: 10px;
+    out property <length> paddingXs: 8px;
+
+    // Border Radius
+    out property <length> borderRadiusLg: 8px;
+    out property <length> borderRadiusMd: 6px;
+    out property <length> borderRadiusSm: 1.5px;
+
+    // Border
+    out property <length> borderWidth: 1px;
+
+    // Icon Sizes
+    out property <length> iconSizeLg: 20px;
+    out property <length> iconSizeMd: 16px;
+    out property <length> iconSizeSm: 13px;
+
+    // Component Dimensions
+    out property <length> cardWidth: 200px;
+    out property <length> sidebarWidth: 261px;
+    out property <length> bottombarHeight: 72px;
+    out property <length> topbarHeight: 48px;
+    out property <length> sidebarButtonHeight: 48px;
+    out property <length> songListItemHeight: 60px;
+    out property <length> thumbnailSize: 44px;
+    out property <length> thumbnailSizeLg: 200px;
+    out property <length> playbackControlsIconSize: 18px;
+    out property <length> playbackButtonSize: 32px;
+    out property <length> navButtonSize: 28px;
+    out property <length> actionButtonSize: 32px;
+    out property <length> searchBarHeight: 36px;
+    out property <length> sliderTrackHeight: 3px;
+    out property <length> sliderThumbSize: 12px;
+    out property <length> sliderThumbHoverSize: 14px;
+    out property <length> progressBarHeight: 14px;
+    out property <length> trackInfoWidth: 260px;
+    out property <length> volumeSliderWidth: 80px;
+    out property <length> volumeControlWidth: 160px;
+}

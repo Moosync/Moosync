@@ -1,0 +1,39 @@
+import { GenreModel } from "../types/song_view.slint";
+import { GridListView } from "../common/grid_list_view.slint";
+import { Constants, Theme } from "../constants.slint";
+import { WindowInfo } from "../window_info.slint";
+
+export component GenresPage inherits Rectangle {
+    in property <[GenreModel]> genres: Constants.testGenres;
+
+    property <int> maxColumns: Math.max(1, Math.floor((WindowInfo.window-width - WindowInfo.sidebar-width) / 216px));
+    changed maxColumns => {
+        debug("maxColumns: ", maxColumns)
+    }
+
+    background: transparent;
+
+    VerticalLayout {
+        spacing: 30px;
+        alignment: start;
+
+        text := Text {
+            height: Theme.pageHeader + 15px;
+            text: "Genres";
+            font-size: Theme.pageHeader;
+            color: Theme.textPrimary;
+        }
+
+        GridListView {
+            height: root.height - text.height - 45px;
+            max-columns: root.maxColumns;
+            total-items: root.genres.length;
+            item-title(idx) => {
+                root.genres[idx].title
+            }
+            item-cover(idx) => {
+                root.genres[idx].coverPath
+            }
+        }
+    }
+}

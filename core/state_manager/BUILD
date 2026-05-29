@@ -16,12 +16,14 @@ rust_library(
         "//core/preferences",
         "//core/types/protos:extensions_rs",
         "//core/rodio_player",
+        "//core/queue_manager",
         # "//core/spotify_player",
         "//core/themes",
         "@crates//:tokio",
         "@crates//:thiserror",
         "@crates//:platform-dirs",
         "@crates//:tempdir",
+        "@crates//:tracing",
     ] + select({
         "@platforms//os:android": [
             "//core/mpris",

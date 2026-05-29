@@ -1,7 +1,9 @@
+use slint_app::run;
+
 #[cfg(not(target_os = "android"))]
 #[tokio::main]
 async fn main() {
-    slint_app::run();
+    run().await;
 }
 
 #[cfg(target_os = "android")]

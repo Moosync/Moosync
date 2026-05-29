@@ -4,9 +4,9 @@ export component PlaybackButton inherits Rectangle {
     in property <string> icon-name;
     in property <bool> active: false;
 
-    width: 32px;
-    height: 32px;
-    border-radius: 16px;
+    width: Theme.playbackButtonSize;
+    height: Theme.playbackButtonSize;
+    border-radius: Theme.playbackButtonSize / 2;
     background: touch.has-hover ? Theme.textPrimary.with-alpha(0.05) : transparent;
 
     animate background { duration: 150ms; }
@@ -184,12 +184,12 @@ export component PlayButton inherits Rectangle {
 }
 
 export component PlaybackControls inherits VerticalLayout {
-    spacing: 16px;
+    spacing: Theme.spacingLg;
     alignment: center;
 
     HorizontalLayout {
         HorizontalLayout {
-            padding-right: 16px;
+            padding-right: Theme.paddingLg;
             Text {
                 text: "3:32 / 6:10";
                 color: Theme.textSecondary; // Text Secondary

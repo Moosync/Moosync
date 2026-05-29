@@ -11,7 +11,7 @@ export component BottomBar inherits Rectangle {
     // Top border line behind the progress bar
     Rectangle {
         y: 0px;
-        height: 1px;
+        height: Theme.borderWidth;
         background: Theme.divider; // Darker divider to match Leptos
     }
 
@@ -22,17 +22,17 @@ export component BottomBar inherits Rectangle {
 
         // Full width progress bar at the very top edge
         PlaybackProgressBar {
-            height: 14px;
+            height: Theme.progressBarHeight;
         }
 
         // Row containing Track details, controls and volume slider
         HorizontalLayout {
-            padding-left: 16px;
-            padding-right: 16px;
+            padding-left: Theme.paddingLg;
+            padding-right: Theme.paddingLg;
 
             // Left: Track Details
             TrackInfo {
-                width: 250px;
+                width: Theme.trackInfoWidth;
             }
 
             // Spacer
@@ -47,7 +47,7 @@ export component BottomBar inherits Rectangle {
 
             // Right: Volume Slider Controls
             VolumeControl {
-                width: 160px;
+                width: Theme.volumeControlWidth;
             }
         }
     }

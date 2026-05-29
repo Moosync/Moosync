@@ -3,17 +3,17 @@ import { Theme } from "../constants.slint";
 export component VolumeControl inherits VerticalLayout {
     in-out property <float> volume: 0.70; // 0.0 to 1.0 representing current volume (approx 70%)
     
-    max-width: 160px;
+    max-width: Theme.volumeControlWidth;
     alignment: center;
 
     HorizontalLayout {
-        spacing: 10px;
+        spacing: Theme.spacingSm;
         alignment: end;
 
         // Speaker Icon
         speaker-icon := Rectangle {
-            width: 20px;
-            height: 20px;
+            width: Theme.iconSizeLg;
+            height: Theme.iconSizeLg;
 
             speaker-touch := TouchArea { }
 
@@ -24,8 +24,8 @@ export component VolumeControl inherits VerticalLayout {
                 height: 100%;
 
                 Path {
-                    width: 20px;
-                    height: 20px;
+                    width: Theme.iconSizeLg;
+                    height: Theme.iconSizeLg;
                     viewbox-x: 0;
                     viewbox-y: 0;
                     viewbox-width: 8;
@@ -35,8 +35,8 @@ export component VolumeControl inherits VerticalLayout {
                 }
 
                 Path {
-                    width: 20px;
-                    height: 20px;
+                    width: Theme.iconSizeLg;
+                    height: Theme.iconSizeLg;
                     viewbox-x: 0;
                     viewbox-y: 0;
                     viewbox-width: 8;
@@ -46,8 +46,8 @@ export component VolumeControl inherits VerticalLayout {
                 }
 
                 Path {
-                    width: 20px;
-                    height: 20px;
+                    width: Theme.iconSizeLg;
+                    height: Theme.iconSizeLg;
                     viewbox-x: 0;
                     viewbox-y: 0;
                     viewbox-width: 8;
@@ -57,8 +57,8 @@ export component VolumeControl inherits VerticalLayout {
                 }
 
                 if (volume == 0): Path {
-                    width: 20px;
-                    height: 20px;
+                    width: Theme.iconSizeLg;
+                    height: Theme.iconSizeLg;
                     viewbox-x: 0;
                     viewbox-y: 0;
                     viewbox-width: 8;
@@ -71,48 +71,48 @@ export component VolumeControl inherits VerticalLayout {
 
         // Volume Slider Bar
         Rectangle {
-            width: 80px;
-            height: 14px;
+            width: Theme.volumeSliderWidth;
+            height: Theme.progressBarHeight;
 
             slider-touch := TouchArea { }
 
             // Background track (gray)
             Rectangle {
-                y: (parent.height - 3px) / 2;
-                height: 3px;
+                y: (parent.height - Theme.sliderTrackHeight) / 2;
+                height: Theme.sliderTrackHeight;
                 background: Theme.textSecondary; // Text Secondary
-                border-radius: 1.5px;
+                border-radius: Theme.borderRadiusSm;
             }
 
             // Filled track (green)
             Rectangle {
                 x: 0px;
-                y: (parent.height - 3px) / 2;
+                y: (parent.height - Theme.sliderTrackHeight) / 2;
                 width: parent.width * volume;
-                height: 3px;
+                height: Theme.sliderTrackHeight;
                 background: Theme.accent; // Accent
-                border-radius: 1.5px;
+                border-radius: Theme.borderRadiusSm;
             }
 
             // Thumb dot (white/green)
             Rectangle {
-                x: (parent.width * volume) - 4px;
-                y: (parent.height - 8px) / 2;
-                width: 8px;
-                height: 8px;
-                border-radius: 4px;
+                x: (parent.width * volume) - Theme.spacingXs / 2;
+                y: (parent.height - Theme.spacingXs) / 2;
+                width: Theme.spacingXs;
+                height: Theme.spacingXs;
+                border-radius: Theme.spacingXs / 2;
                 background: Theme.textPrimary;
-                border-width: 1px;
+                border-width: Theme.borderWidth;
                 border-color: Theme.primary; // Matching player bar background
                 
                 animate width, height, x, y { duration: 100ms; }
 
                 states [
                     hover when slider-touch.has-hover: {
-                        width: 10px;
-                        height: 10px;
-                        x: (parent.width * volume) - 5px;
-                        y: (parent.height - 10px) / 2;
+                        width: Theme.spacingSm;
+                        height: Theme.spacingSm;
+                        x: (parent.width * volume) - Theme.spacingSm / 2;
+                        y: (parent.height - Theme.spacingSm) / 2;
                         background: Theme.accent; // Accent
                     }
                 ]
@@ -121,16 +121,16 @@ export component VolumeControl inherits VerticalLayout {
 
         // Queue/Playlist toggle icon
         queue-icon := Rectangle {
-            width: 20px;
-            height: 12px;
+            width: Theme.iconSizeLg;
+            height: Theme.spacingMd;
 
             queue-touch := TouchArea { }
 
             property <color> current-color: queue-touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
 
             Path {
-                width: 20px;
-                height: 12px;
+                width: Theme.iconSizeLg;
+                height: Theme.spacingMd;
                 viewbox-x: 0;
                 viewbox-y: 0;
                 viewbox-width: 22;

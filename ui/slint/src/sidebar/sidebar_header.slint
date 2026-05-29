@@ -2,8 +2,8 @@ import { Theme } from "../constants.slint";
 
 export component HamburgerIcon inherits Image {
     in property <color> current-color: Theme.textPrimary;
-    width: 19px;
-    height: 17px;
+    width: Theme.playbackControlsIconSize;
+    height: Theme.iconSizeMd;
     source: @image-url("../icons/sidebar_toggle.svg");
     colorize: current-color;
 }
@@ -14,7 +14,7 @@ export component SidebarHeader inherits Rectangle {
     HorizontalLayout {
         padding-right: Theme.spacingXl;
         alignment: start;
-        padding-left: 25px;
+        padding-left: Theme.iconSizeLg + Theme.spacingSm / 2;
 
         VerticalLayout {
             alignment: center;

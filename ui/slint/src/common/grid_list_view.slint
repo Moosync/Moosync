@@ -5,7 +5,7 @@ import { Theme } from "../constants.slint";
 export component GridListView inherits Rectangle {
     in property <int> max-columns: 1;
     in property <length> item-width: Theme.cardWidth;
-    in property <length> item-height: root.item-width + 36px;
+    in property <length> item-height: root.item-width + Theme.modelTitle + Theme.spacingXl;
     in property <length> spacing-x: Theme.spacingLg;
     in property <length> spacing-y: Theme.spacingLg;
     in property <int> total-items: 0;

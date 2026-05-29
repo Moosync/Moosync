@@ -1,24 +1,24 @@
 import { Theme } from "../constants.slint";
 
 export component TrackInfo inherits Rectangle {
-    width: 260px;
-    height: 48px;
+    width: Theme.trackInfoWidth;
+    height: Theme.topbarHeight;
 
     HorizontalLayout {
-        spacing: 12px;
+        spacing: Theme.spacingMd;
         alignment: start;
 
         Rectangle {
-            width: 44px;
-            height: 44px;
-            border-radius: 6px;
+            width: Theme.thumbnailSize;
+            height: Theme.thumbnailSize;
+            border-radius: Theme.borderRadiusMd;
             background: Theme.secondary;
-            border-width: 1px;
+            border-width: Theme.borderWidth;
             border-color: Theme.textPrimary.with-alpha(0.06);
 
             Image {
-                width: 24px;
-                height: 24px;
+                width: Theme.iconSizeXl;
+                height: Theme.iconSizeXl;
                 source: @image-url("../icons/song_default.svg");
                 colorize: Theme.textSecondary;
             }
@@ -27,7 +27,7 @@ export component TrackInfo inherits Rectangle {
         // Song Details
         VerticalLayout {
             alignment: center;
-            spacing: 2px;
+            spacing: Theme.spacingTiny;
 
             Text {
                 text: "";

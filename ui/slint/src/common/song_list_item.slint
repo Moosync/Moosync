@@ -62,10 +62,10 @@ export component SongListItem inherits TouchArea {
                 }
 
                 VerticalLayout {
-                    spacing: 2px;
+                    spacing: Theme.spacingTiny;
                     alignment: center;
-                    padding-left: 5px;
-                    padding-top: 5px;
+                    padding-left: Theme.spacingSm / 2;
+                    padding-top: Theme.spacingSm / 2;
 
                     Image {
                         width: Theme.iconSizeSm;
@@ -82,7 +82,7 @@ export component SongListItem inherits TouchArea {
             VerticalLayout {
                 alignment: center;
                 HorizontalLayout {
-                    spacing: 45px;
+                    spacing: Theme.spacingXxl + Theme.paddingLg;
                     alignment: end;
 
                     HorizontalLayout {

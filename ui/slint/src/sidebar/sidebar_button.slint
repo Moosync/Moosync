@@ -43,7 +43,7 @@ export component SidebarButton inherits Rectangle {
             font-size: Theme.subtitle;
             font-weight: active ? 600 : 500;
             vertical-alignment: center;
-            x: 59px;
+            x: Theme.iconSizeLg * 2 + Theme.spacingXl - Theme.borderWidth;
             y: Theme.paddingMd;
         }
     }
@@ -51,9 +51,9 @@ export component SidebarButton inherits Rectangle {
     // Left indicator bar
     Rectangle {
         x: 0px;
-        y: (parent.height - 24px) / 2;
-        width: 3px;
-        height: active ? 24px : 0px;
+        y: (parent.height - Theme.iconSizeXl) / 2;
+        width: Theme.sliderTrackHeight;
+        height: active ? Theme.iconSizeXl : 0px;
         background: Theme.accent;
         border-radius: Theme.borderRadiusSm;
 

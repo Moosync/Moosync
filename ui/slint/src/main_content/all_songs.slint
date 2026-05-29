@@ -32,18 +32,18 @@ export component AllSongs inherits Rectangle {
 
             ListView {
                 vertical-scrollbar-policy: always-on;
-                preferred-height: songs.length * 60px;
+                preferred-height: songs.length * Theme.songListItemHeight;
 
                 for song[index] in songs: VerticalLayout {
 
                     HorizontalLayout {
-                        padding-bottom: 10px;
-                        padding-right: 20px;
+                        padding-bottom: Theme.paddingSm;
+                        padding-right: Theme.spacingXl;
 
                         Rectangle {
                             SongListItem {
                                 song: song;
-                                border-width: (activeIdx == index || self.has-hover) ? 2px : 0px;
+                                border-width: (activeIdx == index || self.has-hover) ? Theme.borderWidth * 2 : 0px;
                                 border-color: activeIdx == index ? Theme.accent : Theme.accent.darker(0.2);
 
                                 changed pressed => {

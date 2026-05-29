@@ -6,7 +6,7 @@ import { WindowInfo } from "../window_info.slint";
 export component AlbumsPage inherits Rectangle {
     in property <[AlbumModel]> albums: Constants.testAlbums;
 
-    property <int> maxColumns: Math.max(1, Math.floor((WindowInfo.window-width - WindowInfo.sidebar-width) / 216px));
+    property <int> maxColumns: Math.max(1, Math.floor((WindowInfo.window-width - WindowInfo.sidebar-width) / (Theme.cardWidth + Theme.spacingLg)));
     changed maxColumns => {
         debug("maxColumns: ", maxColumns)
     }
@@ -14,18 +14,18 @@ export component AlbumsPage inherits Rectangle {
     background: transparent;
 
     VerticalLayout {
-        spacing: 30px;
+        spacing: Theme.spacingXxl;
         alignment: start;
 
         text := Text {
-            height: Theme.pageHeader + 15px;
+            height: Theme.pageHeader + Theme.paddingLg;
             text: "Albums";
             font-size: Theme.pageHeader;
             color: Theme.textPrimary;
         }
 
         GridListView {
-            height: root.height - text.height - 45px;
+            height: root.height - text.height - (Theme.spacingXxl + Theme.paddingLg);
             max-columns: root.maxColumns;
             total-items: root.albums.length;
             item-title(idx) => {

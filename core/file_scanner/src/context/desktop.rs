@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use fast_image_resize::{self as fr, ResizeOptions};
+use fast_image_resize::{self as fr, FilterType, ResizeAlg::Convolution, ResizeOptions};
 use image::ColorType;
 use lazy_static::lazy_static;
 use lofty::{
@@ -146,7 +146,8 @@ fn resize_image(
             src_image,
             &mut dst_image,
             Some(&ResizeOptions {
-                algorithm: fast_image_resize::ResizeAlg::Nearest,
+                algorithm: Convolution(FilterType::Hamming),
+                mul_div_alpha: false,
                 ..Default::default()
             }),
         )

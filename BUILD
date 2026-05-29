@@ -1,11 +1,5 @@
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
-load("@rules_python//python:defs.bzl", "py_library")
 
-py_library(
-    name = "moosync_python_root",
-    imports = ["."],
-    visibility = ["//visibility:public"],
-)
 
 config_setting(
     name = "release",
@@ -188,33 +182,7 @@ toolchain(
     toolchain_type = "@rules_shell//shell:toolchain_type",
 )
 
-toolchain(
-    name = "nodejs_android_x86_64_runtime_toolchain",
-    exec_compatible_with = [
-        "@platforms//os:linux",
-        "@platforms//cpu:x86_64",
-    ],
-    target_compatible_with = [
-        "@platforms//os:android",
-        "@platforms//cpu:x86_64",
-    ],
-    toolchain = "@nodejs_linux_amd64//:toolchain",
-    toolchain_type = "@rules_nodejs//nodejs:runtime_toolchain_type",
-)
 
-toolchain(
-    name = "nodejs_android_arm64_runtime_toolchain",
-    exec_compatible_with = [
-        "@platforms//os:linux",
-        "@platforms//cpu:x86_64",
-    ],
-    target_compatible_with = [
-        "@platforms//os:android",
-        "@platforms//cpu:aarch64",
-    ],
-    toolchain = "@nodejs_linux_amd64//:toolchain",
-    toolchain_type = "@rules_nodejs//nodejs:runtime_toolchain_type",
-)
 
 test_suite(
     name = "core_tests",

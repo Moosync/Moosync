@@ -3,7 +3,7 @@ module(
     version = "11.0.2",
 )
 
-bazel_dep(name = "rules_go", version = "0.59.0")
+
 bazel_dep(name = "rules_rust", version = "0.70.0")
 single_version_override(
     module_name = "rules_rust",
@@ -18,9 +18,6 @@ bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_foreign_cc", version = "0.15.1")
 bazel_dep(name = "rules_perl", version = "0.5.0")
 bazel_dep(name = "rules_python", version = "1.7.0")
-bazel_dep(name = "rules_nodejs", version = "6.7.3")
-bazel_dep(name = "aspect_rules_js", version = "3.0.0-rc4")
-bazel_dep(name = "aspect_rules_ts", version = "3.8.1")
 bazel_dep(name = "nasm", version = "2.16.03.bcr.2")
 bazel_dep(name = "rules_cc", version = "0.2.16")
 bazel_dep(name = "rules_android", version = "0.7.2")
@@ -42,29 +39,13 @@ include("//modules:rust_toolchains.MODULE.bazel")
 include("//modules:crates.MODULE.bazel")
 include("//modules:android_toolchains.MODULE.bazel")
 
-rules_ts_ext = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
-rules_ts_ext.deps(
-    ts_version_from = "//ui/gen_dist:package.json",
-)
-use_repo(rules_ts_ext, "npm_typescript")
 
-npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm")
-npm.npm_translate_lock(
-    name = "proto_npm",
-    pnpm_lock = "//core/types/protos:pnpm-lock.yaml",
-    verify_node_modules_ignored = "//:.bazelignore",
-)
-use_repo(npm, "proto_npm")
 
 register_toolchains(
     "//:shell_android_x86_64_toolchain",
     "//:shell_android_arm64_toolchain",
-    "//:nodejs_android_x86_64_runtime_toolchain",
-    "//:nodejs_android_arm64_runtime_toolchain",
 )
 
 sh_configure = use_extension("@rules_shell//shell/private/extensions:sh_configure.bzl", "sh_configure")
 use_repo(sh_configure, "local_config_shell")
 
-node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
-use_repo(node, "nodejs_linux_amd64")

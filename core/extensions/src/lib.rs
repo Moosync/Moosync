@@ -52,6 +52,7 @@ pub struct ExtensionHandler {
     inner: Arc<Mutex<ExtensionHandlerInner>>,
 }
 
+#[plugin_macro::generate]
 impl ExtensionHandler {
     #[tracing::instrument(level = "debug", skip(reply_handler))]
     pub fn new(
@@ -339,5 +340,25 @@ impl ExtensionHandler {
         }
 
         Ok(ret)
+    }
+}
+
+impl types::plugin::Plugin for ExtensionHandler {
+    fn init(context: &types::plugin::PluginContext) -> Self {
+        let reply_handler_fn = context
+            .reply_handler
+            .clone()
+            .expect("reply_handler is required for ExtensionHandler");
+        let reply_handler =
+            Arc::new(
+                Box::new(move |ext: &str, command| (reply_handler_fn)(ext, command))
+                    as Box<dyn Fn(&str, _) -> _ + Send + Sync>,
+            );
+        ExtensionHandler::new(
+            context.data_dir.join("extensions"),
+            context.tmp_dir.clone(),
+            context.cache_dir.clone(),
+            reply_handler,
+        )
     }
 }

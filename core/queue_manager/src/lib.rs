@@ -5,6 +5,7 @@ pub struct QueueManager {
     current_idx: usize,
 }
 
+#[plugin_macro::generate]
 impl QueueManager {
     pub fn new() -> Self {
         QueueManager {
@@ -19,5 +20,11 @@ impl QueueManager {
 
     pub fn get_current_song(&self) -> Option<&Song> {
         self.song_queue.get(self.current_idx)
+    }
+}
+
+impl types::plugin::Plugin for QueueManager {
+    fn init(_context: &types::plugin::PluginContext) -> Self {
+        QueueManager::new()
     }
 }

@@ -39,11 +39,14 @@ use crate::utils::{
 
 use super::migrations::run_migrations;
 
+use std::sync::Arc;
+
 #[derive(Debug, Clone)]
 pub struct Database {
     pool: r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>,
 }
 
+#[plugin_macro::generate]
 impl Database {
     #[tracing::instrument(level = "debug", skip(path))]
     pub fn new(path: PathBuf) -> Self {
@@ -1463,3 +1466,10 @@ impl Database {
         Ok(ret.replace("\n\n", "\n"))
     }
 }
+
+impl types::plugin::Plugin for Database {
+    fn init(context: &types::plugin::PluginContext) -> Self {
+        Database::new(context.data_dir.clone())
+    }
+}
+

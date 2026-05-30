@@ -55,6 +55,7 @@ pub struct PreferenceConfig {
     _keyring_context: Box<dyn Keyring>,
 }
 
+#[plugin_macro::generate]
 impl PreferenceConfig {
     #[tracing::instrument(level = "debug", skip(data_dir))]
     pub fn new(data_dir: PathBuf) -> Result<Self> {
@@ -305,5 +306,12 @@ impl PreferenceConfig {
         let prefs = self.memcache.lock().unwrap();
         let val: Option<Value> = prefs.dot_get(format!("prefs.{}", key).as_str()).unwrap();
         val.is_some()
+    }
+}
+
+impl types::plugin::Plugin for PreferenceConfig {
+    fn init(context: &types::plugin::PluginContext) -> Self {
+        PreferenceConfig::new(context.data_dir.clone())
+            .expect("Failed to initialize PreferenceConfig")
     }
 }

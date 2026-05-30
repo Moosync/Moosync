@@ -39,6 +39,7 @@ pub struct PlayerHandler {
     source_resolver: SourceResolver,
 }
 
+#[plugin_macro::generate]
 impl PlayerHandler {
     pub fn new(f: SourceResolverFn) -> Self {
         Self {
@@ -79,5 +80,15 @@ impl PlayerHandler {
 
     fn seek(&self, position: f64) -> Result<(), PlayerError> {
         self.mux.seek(position)
+    }
+}
+
+impl types::plugin::Plugin for PlayerHandler {
+    fn init(context: &types::plugin::PluginContext) -> Self {
+        let player_resolver = context
+            .player_resolver
+            .clone()
+            .expect("player_resolver is required for PlayerHandler");
+        PlayerHandler::new(Box::new(move |song| (player_resolver)(song)))
     }
 }

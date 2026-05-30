@@ -40,6 +40,7 @@ pub struct ThemeHolder {
     change_tx: Sender<String>,
 }
 
+#[plugin_macro::generate]
 impl ThemeHolder {
     #[tracing::instrument(level = "debug", skip(theme_dir, tmp_dir))]
     pub fn new(theme_dir: PathBuf, tmp_dir: PathBuf, change_tx: Sender<String>) -> Self {
@@ -378,4 +379,18 @@ pub fn transform_css(css_path: String, root: Option<PathBuf>) -> Result<(String,
     css = css.replace("%themeDir%", theme_dir.to_str().unwrap());
 
     Ok((css, imports))
+}
+
+impl types::plugin::Plugin for ThemeHolder {
+    fn init(context: &types::plugin::PluginContext) -> Self {
+        let themes_changed_tx = context
+            .themes_changed_tx
+            .clone()
+            .expect("themes_changed_tx is required for ThemeHolder");
+        ThemeHolder::new(
+            context.data_dir.join("themes"),
+            context.tmp_dir.clone(),
+            themes_changed_tx,
+        )
+    }
 }

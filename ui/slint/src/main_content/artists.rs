@@ -1,9 +1,7 @@
-use std::sync::{Arc, Mutex};
 use slint::{ComponentHandle, Image, ModelRc, Weak};
-use songs_proto::moosync::types::{
-    Artist, ArtistList, GetEntityOptions, entity_result,
-};
+use songs_proto::moosync::types::{Artist, ArtistList, GetEntityOptions, entity_result};
 use state_manager::StateManager;
+use std::sync::{Arc, Mutex};
 use tracing::debug;
 use types::ScanProgress;
 use types::errors::MoosyncError;
@@ -44,20 +42,23 @@ async fn run_scanner_loop(
     artists_cache: Arc<Mutex<Vec<Artist>>>,
 ) {
     let mut progress = {
-        let scanner = state_manager.get_scanner().await;
+        let scanner = state_manager.get_scanner_holder().await;
         scanner.add_subscriber()
     };
 
     while let Some(p) = progress.recv().await {
         if p == ScanProgress::STOPPED {
-            fetch_and_cache_artists(main_window_weak.clone(), state_manager.clone(), artists_cache.clone()).await;
+            fetch_and_cache_artists(
+                main_window_weak.clone(),
+                state_manager.clone(),
+                artists_cache.clone(),
+            )
+            .await;
         }
     }
 }
 
-async fn get_artists_from_db(
-    state_manager: &StateManager,
-) -> Result<Vec<Artist>, MoosyncError> {
+async fn get_artists_from_db(state_manager: &StateManager) -> Result<Vec<Artist>, MoosyncError> {
     let database = state_manager.get_database().await;
     let artists_res = database.get_entity_by_options(GetEntityOptions {
         artist: Some(Artist::default()),
@@ -66,7 +67,9 @@ async fn get_artists_from_db(
 
     match artists_res.result {
         Some(entity_result::Result::Artists(ArtistList { artists })) => Ok(artists),
-        _ => Err(MoosyncError::String("Failed to get artists from db".to_string())),
+        _ => Err(MoosyncError::String(
+            "Failed to get artists from db".to_string(),
+        )),
     }
 }
 
@@ -100,11 +103,7 @@ fn set_all_artists(main_window: &MainWindow, artists: Vec<Artist>) {
         })
         .collect::<Vec<_>>();
 
-    main_window.set_artists(ModelRc::new(LazySongVecModel::new(
-        artist_model,
-        230,
-        200,
-    )));
+    main_window.set_artists(ModelRc::new(LazySongVecModel::new(artist_model, 230, 200)));
 }
 
 impl<'a> PageHandler for ArtistsPageHandler<'a> {

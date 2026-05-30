@@ -32,7 +32,7 @@ use std::{
 use substring::Substring;
 use uuid::Uuid;
 
-use crate::types::{FileList, OnPlaylistScanned, OnProgressUpdated, OnSongScanned, ScanProgress};
+use crate::{FileList, OnPlaylistScanned, OnProgressUpdated, OnSongScanned, ScanProgress};
 use songs_proto::moosync::types::{Album, Artist, Genre, InnerSong, Playlist, Song, SongType};
 use types::errors::{MoosyncError, Result, error_helpers};
 

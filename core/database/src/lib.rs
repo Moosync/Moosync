@@ -21,3 +21,5 @@ pub mod utils;
 #[cfg(test)]
 mod test;
 
+pub use database::{Database, DatabaseInterceptor, InterceptedDatabase};
+

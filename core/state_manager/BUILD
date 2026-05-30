@@ -2,10 +2,11 @@ load("@rules_rust//rust:defs.bzl", "rust_library")
 
 rust_library(
     name = "state_manager",
-    srcs = [
-        "src/lib.rs",
-    ],
+    srcs = glob(["src/**/*.rs"]),
     crate_root = "src/lib.rs",
+    proc_macro_deps = [
+        "//core/plugin_macro",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",
@@ -15,6 +16,7 @@ rust_library(
         "//core/lyrics",
         "//core/preferences",
         "//core/types/protos:extensions_rs",
+        "//core/types/protos:songs_rs",
         "//core/player",
         "//core/queue_manager",
         # "//core/spotify_player",
@@ -24,11 +26,11 @@ rust_library(
         "@crates//:platform-dirs",
         "@crates//:tempdir",
         "@crates//:tracing",
+        "//core/mpris",
     ] + select({
         "@platforms//os:android": [
-            "//core/mpris",
             "@crates//:jni",
         ],
-        "//conditions:default": ["//core/mpris"],
+        "//conditions:default": [],
     }),
 )

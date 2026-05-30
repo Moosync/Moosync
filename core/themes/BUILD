@@ -8,6 +8,9 @@ rust_library(
         "src/themes.rs",
     ],
     crate_root = "src/lib.rs",
+    proc_macro_deps = [
+        "//core/plugin_macro",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",

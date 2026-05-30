@@ -33,6 +33,7 @@ impl Default for LyricsFetcher {
     }
 }
 
+#[plugin_macro::generate]
 impl LyricsFetcher {
     #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> LyricsFetcher {
@@ -265,3 +266,9 @@ impl LyricsFetcher {
 
 #[tracing::instrument(level = "debug", skip())]
 pub fn main() {}
+
+impl types::plugin::Plugin for LyricsFetcher {
+    fn init(_context: &types::plugin::PluginContext) -> Self {
+        LyricsFetcher::new()
+    }
+}

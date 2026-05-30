@@ -24,10 +24,14 @@ rust_library(
     ],
     crate_root = "src/lib.rs",
     data = ["//external/ffmpeg:gen_dir"],
+    proc_macro_deps = [
+        "//core/plugin_macro",
+    ],
     rustc_env = {
         "FFMPEG_INCLUDE_DIR": "$(execpath //external/ffmpeg:gen_dir)/include",
         "FFMPEG_LIB_DIR": "$(execpath //external/ffmpeg:gen_dir)/lib",
     },
+    rustc_flags = ["-lz"],
     visibility = ["//visibility:public"],
     deps = [
         ":build_script",

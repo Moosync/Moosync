@@ -10,6 +10,7 @@ rust_library(
         "src/errors/mod.rs",
         "src/lib.rs",
         "src/mpris/mod.rs",
+        "src/plugin.rs",
         "src/preferences.rs",
         "src/providers/generic.rs",
         "src/providers/mod.rs",
@@ -33,6 +34,7 @@ rust_library(
             "@crates//:serde",
             "@crates//:serde_json",
             "@crates//:thiserror",
+            "@crates//:tokio",
             "@crates//:tracing",
         ] + select({
             "//:android_x86_64_config": ["@crates//:jni"],

@@ -322,6 +322,19 @@ crates.spec(
     package = "serde",
     version = "1.0",
 )
+crates.spec(
+    features = ["full"],
+    package = "syn",
+    version = "2.0.96",
+)
+crates.spec(
+    package = "quote",
+    version = "1.0.38",
+)
+crates.spec(
+    package = "proc-macro2",
+    version = "1.0.92",
+)
 
 # Git Dependencies
 

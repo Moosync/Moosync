@@ -43,13 +43,18 @@ async fn run_scanner_loop(
     songs_cache: Arc<Mutex<Vec<Song>>>,
 ) {
     let mut progress = {
-        let scanner = state_manager.get_scanner().await;
+        let scanner = state_manager.get_scanner_holder().await;
         scanner.add_subscriber()
     };
 
     while let Some(p) = progress.recv().await {
         if p == ScanProgress::STOPPED {
-            fetch_and_cache_songs(main_window_weak.clone(), state_manager.clone(), songs_cache.clone()).await;
+            fetch_and_cache_songs(
+                main_window_weak.clone(),
+                state_manager.clone(),
+                songs_cache.clone(),
+            )
+            .await;
         }
     }
 }

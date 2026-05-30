@@ -23,6 +23,9 @@ rust_library(
         ":migrations",
     ],
     crate_root = "src/lib.rs",
+    proc_macro_deps = [
+        "//core/plugin_macro",
+    ],
     visibility = ["//visibility:public"],
     deps = [
         ":build_script",

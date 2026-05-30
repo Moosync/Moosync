@@ -41,11 +41,15 @@ pub struct PlayerHandler {
 
 #[plugin_macro::generate]
 impl PlayerHandler {
-    pub fn new(f: SourceResolverFn) -> Self {
+    pub fn new() -> Self {
         Self {
             mux: MuxPlayer::new(),
-            source_resolver: SourceResolver::new(f),
+            source_resolver: SourceResolver::new(),
         }
+    }
+
+    pub fn set_resolver(&self, f: SourceResolverFn) {
+        self.source_resolver.set_resolver(f);
     }
 
     pub fn load_song(&mut self, mut song: Song) -> Result<(), PlayerError> {
@@ -84,11 +88,7 @@ impl PlayerHandler {
 }
 
 impl types::plugin::Plugin for PlayerHandler {
-    fn init(context: &types::plugin::PluginContext) -> Self {
-        let player_resolver = context
-            .player_resolver
-            .clone()
-            .expect("player_resolver is required for PlayerHandler");
-        PlayerHandler::new(Box::new(move |song| (player_resolver)(song)))
+    fn init(_context: &types::plugin::PluginContext) -> Self {
+        PlayerHandler::new()
     }
 }

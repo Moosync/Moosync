@@ -67,7 +67,7 @@ async fn setup_extension() -> (ExtensionHandlerInner, Arc<Mutex<Vec<MainCommand>
         })
     }));
 
-    let extism_context = ExtismContext::new(cache_path, reply_handler);
+    let extism_context = ExtismContext::new(cache_path, Arc::new(Mutex::new(Some(reply_handler))));
     let mut handler =
         ExtensionHandlerInner::new_with_context(extensions_path.clone(), Box::new(extism_context));
 

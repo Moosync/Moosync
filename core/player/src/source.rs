@@ -42,18 +42,29 @@ pub(crate) fn get_valid_src(song: &Song) -> Result<ValidSrc, PlayerError> {
 pub type SourceResolverFn =
     Box<dyn Fn(&Song) -> Result<String, Box<dyn Error + Send + Sync>> + Send + Sync>;
 pub(crate) struct SourceResolver {
-    resolver: SourceResolverFn,
+    resolver: std::sync::Mutex<Option<SourceResolverFn>>,
 }
 
 impl SourceResolver {
-    pub fn new(resolver: SourceResolverFn) -> Self {
-        Self { resolver }
+    pub fn new() -> Self {
+        Self {
+            resolver: std::sync::Mutex::new(None),
+        }
+    }
+
+    pub fn set_resolver(&self, resolver: SourceResolverFn) {
+        let mut r = self.resolver.lock().unwrap();
+        *r = Some(resolver);
     }
 
     // This method will ignore any existing playback url and path and try to find a new one
     pub fn resolve_playback_url(&self, song: &mut Song) -> Result<(), PlayerError> {
-        let playback_url =
-            (self.resolver)(song).map_err(|e| PlayerError::PlaybackUrlResolutionFailed(e))?;
+        let resolver_lock = self.resolver.lock().unwrap();
+        let playback_url = if let Some(ref resolver) = *resolver_lock {
+            resolver(song).map_err(|e| PlayerError::PlaybackUrlResolutionFailed(e))?
+        } else {
+            return Err(PlayerError::PlaybackUrlResolutionFailed("Resolver not set".into()));
+        };
 
         if let Some(inner_song) = song.song.as_mut() {
             inner_song.playback_url = Some(playback_url);

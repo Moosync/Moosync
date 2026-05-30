@@ -26,6 +26,7 @@ rust_library(
         "@crates//:platform-dirs",
         "@crates//:tempdir",
         "@crates//:tracing",
+        "@crates//:lru",
         "//core/mpris",
     ] + select({
         "@platforms//os:android": [

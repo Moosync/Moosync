@@ -30,9 +30,6 @@ pub struct PluginContext {
     pub tmp_dir: PathBuf,
     #[cfg(target_os = "android")]
     pub android_context: crate::android::AndroidJNIContext,
-    pub reply_handler: Option<ReplyHandlerFn>,
-    pub themes_changed_tx: Option<std::sync::mpsc::Sender<String>>,
-    pub player_resolver: Option<PlayerResolverFn>,
 }
 
 // Every core plugin must implement this initialization trait

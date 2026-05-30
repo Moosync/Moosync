@@ -87,7 +87,7 @@ pub async fn run() {
 
 fn setup_resize(main_window: &MainWindow) {
     let main_window_weak = main_window.as_weak();
-    main_window.on_resize(move || {
+    main_window.global::<AppCallbacks>().on_resize(move || {
         if let Some(main_window) = main_window_weak.upgrade() {
             WINDOW_EVENTS.with(|we| we.trigger_resize(main_window.window()));
         }
@@ -125,6 +125,36 @@ fn get_page_handler<'b>(
     pages.get(idx).map(|p| p.as_ref())
 }
 
+fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager) {
+    main_window
+        .global::<AppCallbacks>()
+        .on_play_song(move |song_model| {
+            slint::spawn_local(async move {
+                let song = state_manager
+                    .get_song_from_cache(song_model.id.into())
+                    .await;
+                if let Some(song) = song {
+                    let mut queue = state_manager.get_queue_manager_mut().await;
+                    queue.play_now(song);
+                }
+            });
+        });
+
+    main_window
+        .global::<AppCallbacks>()
+        .on_add_song_to_queue(move |song_model| {
+            slint::spawn_local(async move {
+                let song = state_manager
+                    .get_song_from_cache(song_model.id.into())
+                    .await;
+                if let Some(song) = song {
+                    let mut queue = state_manager.get_queue_manager_mut().await;
+                    queue.add_song(song);
+                }
+            });
+        });
+}
+
 fn setup_page_navigation(main_window: &MainWindow, pages: Vec<Box<dyn PageHandler + 'static>>) {
     for page in &pages {
         page.initialize();
@@ -146,38 +176,42 @@ fn setup_page_navigation(main_window: &MainWindow, pages: Vec<Box<dyn PageHandle
     let pages_clone = pages_ref.clone();
     let pending_hide_clone = pending_hide.clone();
 
-    main_window.on_active_page_changed(move |new_page| {
-        let prev_page = current_page.replace(new_page);
+    main_window
+        .global::<AppCallbacks>()
+        .on_active_page_changed(move |new_page| {
+            let prev_page = current_page.replace(new_page);
 
-        if let Some((pending_page, timer)) = pending_hide_clone.borrow_mut().take() {
-            timer.stop();
-            if let Some(pending_handler) = get_page_handler(&pages_clone, pending_page) {
-                pending_handler.on_hide();
+            if let Some((pending_page, timer)) = pending_hide_clone.borrow_mut().take() {
+                timer.stop();
+                if let Some(pending_handler) = get_page_handler(&pages_clone, pending_page) {
+                    pending_handler.on_hide();
+                }
             }
-        }
 
-        if let Some(new_handler) = get_page_handler(&pages_clone, new_page) {
-            new_handler.on_show();
-        }
+            if let Some(new_handler) = get_page_handler(&pages_clone, new_page) {
+                new_handler.on_show();
+            }
 
-        if get_page_handler(&pages_clone, prev_page).is_some() {
-            let timer = slint::Timer::default();
-            let pages_clone_inner = pages_clone.clone();
-            let pending_hide_inner = pending_hide_clone.clone();
-            timer.start(
-                slint::TimerMode::SingleShot,
-                transition_duration,
-                move || {
-                    if let Some((pending_page, _)) = pending_hide_inner.borrow_mut().take() {
-                        if let Some(handler) = get_page_handler(&pages_clone_inner, pending_page) {
-                            handler.on_hide();
+            if get_page_handler(&pages_clone, prev_page).is_some() {
+                let timer = slint::Timer::default();
+                let pages_clone_inner = pages_clone.clone();
+                let pending_hide_inner = pending_hide_clone.clone();
+                timer.start(
+                    slint::TimerMode::SingleShot,
+                    transition_duration,
+                    move || {
+                        if let Some((pending_page, _)) = pending_hide_inner.borrow_mut().take() {
+                            if let Some(handler) =
+                                get_page_handler(&pages_clone_inner, pending_page)
+                            {
+                                handler.on_hide();
+                            }
                         }
-                    }
-                },
-            );
-            *pending_hide_clone.borrow_mut() = Some((prev_page, timer));
-        }
-    });
+                    },
+                );
+                *pending_hide_clone.borrow_mut() = Some((prev_page, timer));
+            }
+        });
 }
 
 fn setup_ui(main_window: &'static MainWindow, state_manager: &'static StateManager) {
@@ -185,6 +219,7 @@ fn setup_ui(main_window: &'static MainWindow, state_manager: &'static StateManag
     setup_cover_helper(main_window);
     let pages = get_all_pages(main_window, state_manager);
     setup_page_navigation(main_window, pages);
+    setup_song_cbs(main_window, state_manager);
 }
 
 fn setup_tracing() {

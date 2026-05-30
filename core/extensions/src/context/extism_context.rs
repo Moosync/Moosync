@@ -50,10 +50,13 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Pros
         }));
     }
 
-    let response = user_data.reply_handler
-    .clone()
-    .as_ref()(&user_data.package_name, command)
-    .map_err(|e| Error::msg(e.to_string()));
+    let reply_handler_lock = user_data.reply_handler.lock().unwrap();
+    let response = if let Some(ref reply_handler) = *reply_handler_lock {
+        reply_handler(&user_data.package_name, command)
+            .map_err(|e| Error::msg(e.to_string()))
+    } else {
+        Err(Error::msg("Reply handler not set"))
+    };
 
     match response {
         Ok(response) => {
@@ -206,7 +209,7 @@ host_fn!(hash(hash_type: String, data: Vec<u8>) -> Vec<u8> {
 
 pub struct ExtismContext {
     cache_path: PathBuf,
-    reply_handler: ReplyHandler,
+    reply_handler: Arc<Mutex<Option<ReplyHandler>>>,
 }
 
 impl Debug for ExtismContext {
@@ -218,7 +221,7 @@ impl Debug for ExtismContext {
 }
 
 impl ExtismContext {
-    pub fn new(cache_path: PathBuf, reply_handler: ReplyHandler) -> Self {
+    pub fn new(cache_path: PathBuf, reply_handler: Arc<Mutex<Option<ReplyHandler>>>) -> Self {
         Self {
             cache_path,
             reply_handler,
@@ -374,14 +377,17 @@ impl Extism for ExtismContext {
                     println!("Failed to called extension entry: {:?}", e);
                 }
             }
-            let _ = reply_handler.as_ref()(
-                &package_name,
-                MainCommand {
-                    command: Some(main_command::Command::ExtensionsUpdated(
-                        ExtensionsUpdatedRequest {},
-                    )),
-                },
-            );
+            let reply_handler_lock = reply_handler.lock().unwrap();
+            if let Some(ref handler) = *reply_handler_lock {
+                let _ = handler(
+                    &package_name,
+                    MainCommand {
+                        command: Some(main_command::Command::ExtensionsUpdated(
+                            ExtensionsUpdatedRequest {},
+                        )),
+                    },
+                );
+            }
         });
 
         plugin_clone

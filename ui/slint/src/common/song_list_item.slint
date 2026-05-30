@@ -1,6 +1,7 @@
 import { WindowInfo } from "../window_info.slint";
 import { SongModel } from "../types/song_view.slint";
 import { Constants, Theme } from "../constants.slint";
+import { AppCallbacks } from "../callbacks.slint";
 
 export component SongListItem inherits TouchArea {
     in property <SongModel> song: Constants.defaultSong;
@@ -33,6 +34,24 @@ export component SongListItem inherits TouchArea {
                     height: parent.height;
                     source: song.coverPathLow;
                     image-fit: cover;
+                }
+
+                touch := TouchArea {
+                    width: parent.width;
+                    height: parent.height;
+                    clicked => {
+                        AppCallbacks.play-song(song);
+                    }
+                }
+
+                Rectangle {
+                    visible: touch.has-hover;
+                    width: parent.width;
+                    height: parent.height;
+                    background: rgba(0, 0, 0, 0.6);
+                    Image {
+                        source: @image-url("../icons/play.svg");
+                    }
                 }
             }
 
@@ -93,9 +112,14 @@ export component SongListItem inherits TouchArea {
                             font-size: Theme.caption;
                         }
 
-                        if (WindowInfo.window-size > WindowInfo.sm): Image {
-                            width: Theme.iconSizeMd;
-                            source: @image-url("../icons/add_to_queue.svg");
+                        if (WindowInfo.window-size > WindowInfo.sm): TouchArea {
+                            clicked => {
+                                AppCallbacks.add-song-to-queue(song)
+                            }
+                            Image {
+                                width: Theme.iconSizeMd;
+                                source: @image-url("../icons/add_to_queue.svg");
+                            }
                         }
                     }
 

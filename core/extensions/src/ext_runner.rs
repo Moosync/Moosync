@@ -74,7 +74,11 @@ pub(crate) struct ExtensionHandlerInner {
 
 impl ExtensionHandlerInner {
     #[tracing::instrument(level = "debug", skip(reply_handler))]
-    pub fn new(extensions_path: PathBuf, cache_path: PathBuf, reply_handler: ReplyHandler) -> Self {
+    pub fn new(
+        extensions_path: PathBuf,
+        cache_path: PathBuf,
+        reply_handler: Arc<Mutex<Option<ReplyHandler>>>,
+    ) -> Self {
         Self::new_with_context(
             extensions_path,
             Box::new(ExtismContext::new(cache_path, reply_handler)),

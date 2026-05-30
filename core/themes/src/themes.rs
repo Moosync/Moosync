@@ -37,19 +37,24 @@ pub struct ThemeHolder {
     pub theme_dir: PathBuf,
     pub tmp_dir: PathBuf,
     watchers: Mutex<HashMap<PathBuf, Box<dyn Watcher + Send>>>,
-    change_tx: Sender<String>,
+    change_tx: Mutex<Option<Sender<String>>>,
 }
 
 #[plugin_macro::generate]
 impl ThemeHolder {
     #[tracing::instrument(level = "debug", skip(theme_dir, tmp_dir))]
-    pub fn new(theme_dir: PathBuf, tmp_dir: PathBuf, change_tx: Sender<String>) -> Self {
+    pub fn new(theme_dir: PathBuf, tmp_dir: PathBuf) -> Self {
         Self {
             theme_dir,
             tmp_dir,
             watchers: Default::default(),
-            change_tx,
+            change_tx: Mutex::new(None),
         }
+    }
+
+    pub fn set_change_tx(&self, change_tx: Sender<String>) {
+        let mut tx = self.change_tx.lock().unwrap();
+        *tx = Some(change_tx);
     }
 
     fn watch_theme_changes(&self, imports: Vec<PathBuf>) -> Result<()> {
@@ -61,7 +66,7 @@ impl ThemeHolder {
         let root_path = imports.first().unwrap().clone();
 
         for import in imports {
-            let tx = self.change_tx.clone();
+            let tx_option = self.change_tx.lock().unwrap().clone();
             let root_path = root_path.clone();
             let root = self.theme_dir.clone();
             if let Ok(mut watcher) =
@@ -74,8 +79,10 @@ impl ThemeHolder {
                             Some(root.clone()),
                         ) {
                             Ok((transformed, _)) => {
-                                if let Err(e) = tx.send(transformed) {
-                                    tracing::error!("Failed to notify of file changes: {:?}", e);
+                                if let Some(ref tx) = tx_option {
+                                    if let Err(e) = tx.send(transformed) {
+                                        tracing::error!("Failed to notify of file changes: {:?}", e);
+                                    }
                                 }
                             }
                             Err(e) => tracing::error!("Failed to transform css: {:?}", e),
@@ -383,14 +390,9 @@ pub fn transform_css(css_path: String, root: Option<PathBuf>) -> Result<(String,
 
 impl types::plugin::Plugin for ThemeHolder {
     fn init(context: &types::plugin::PluginContext) -> Self {
-        let themes_changed_tx = context
-            .themes_changed_tx
-            .clone()
-            .expect("themes_changed_tx is required for ThemeHolder");
         ThemeHolder::new(
             context.data_dir.join("themes"),
             context.tmp_dir.clone(),
-            themes_changed_tx,
         )
     }
 }

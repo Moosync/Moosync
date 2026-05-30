@@ -1,4 +1,5 @@
 use songs_proto::moosync::types::Song;
+use tracing::debug;
 
 pub struct QueueManager {
     song_queue: Vec<Song>,
@@ -16,6 +17,10 @@ impl QueueManager {
 
     pub fn add_song(&mut self, song: Song) {
         self.song_queue.push(song);
+    }
+
+    pub fn play_now(&mut self, song: Song) {
+        debug!("Playing song {:?}", song);
     }
 
     pub fn get_current_song(&self) -> Option<&Song> {

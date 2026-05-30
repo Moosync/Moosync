@@ -23,7 +23,7 @@ use std::{
     sync::Arc,
 };
 
-use crate::{context::ReplyHandler, errors::ExtensionError};
+use crate::errors::ExtensionError;
 use ext_runner::ExtensionHandlerInner;
 use extensions_proto::moosync::types::{
     ExtensionCommand, ExtensionCommandResponse, ExtensionDetail, ExtensionManifest,
@@ -37,6 +37,7 @@ use ui_proto::moosync::types::PreferenceUiData;
 use zip_extensions::zip_extract;
 
 mod context;
+pub use context::ReplyHandler;
 mod errors;
 mod ext_runner;
 pub mod models;
@@ -50,26 +51,33 @@ pub struct ExtensionHandler {
     pub extensions_dir: PathBuf,
     pub tmp_dir: PathBuf,
     inner: Arc<Mutex<ExtensionHandlerInner>>,
+    reply_handler: Arc<std::sync::Mutex<Option<ReplyHandler>>>,
 }
 
 #[plugin_macro::generate]
 impl ExtensionHandler {
-    #[tracing::instrument(level = "debug", skip(reply_handler))]
+    #[tracing::instrument(level = "debug")]
     pub fn new(
         extensions_dir: PathBuf,
         tmp_dir: PathBuf,
         cache_dir: PathBuf,
-        reply_handler: ReplyHandler,
     ) -> Self {
+        let reply_handler = Arc::new(std::sync::Mutex::new(None));
         Self {
             inner: Arc::new(Mutex::new(ExtensionHandlerInner::new(
                 extensions_dir.clone(),
                 cache_dir,
-                reply_handler,
+                reply_handler.clone(),
             ))),
             extensions_dir,
             tmp_dir,
+            reply_handler,
         }
+    }
+
+    pub fn set_reply_handler(&self, reply_handler: ReplyHandler) {
+        let mut handler = self.reply_handler.lock().unwrap();
+        *handler = Some(reply_handler);
     }
 
     #[tracing::instrument(level = "debug", skip(self, ext_path))]
@@ -345,20 +353,10 @@ impl ExtensionHandler {
 
 impl types::plugin::Plugin for ExtensionHandler {
     fn init(context: &types::plugin::PluginContext) -> Self {
-        let reply_handler_fn = context
-            .reply_handler
-            .clone()
-            .expect("reply_handler is required for ExtensionHandler");
-        let reply_handler =
-            Arc::new(
-                Box::new(move |ext: &str, command| (reply_handler_fn)(ext, command))
-                    as Box<dyn Fn(&str, _) -> _ + Send + Sync>,
-            );
         ExtensionHandler::new(
             context.data_dir.join("extensions"),
             context.tmp_dir.clone(),
             context.cache_dir.clone(),
-            reply_handler,
         )
     }
 }

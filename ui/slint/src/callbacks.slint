@@ -1,0 +1,10 @@
+import { Pages } from "constants.slint";
+import { SongModel } from "./types/song_view.slint";
+
+export global AppCallbacks {
+    callback search-clicked(string);
+    callback resize();
+    callback active-page-changed(Pages);
+    pure callback play-song(SongModel);
+    pure callback add-song-to-queue(SongModel);
+}

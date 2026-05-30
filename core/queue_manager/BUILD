@@ -14,6 +14,7 @@ rust_library(
     deps = [
         "//core/types",
         "//core/types/protos:songs_rs",
+        "@crates//:tracing",
     ],
 )
 

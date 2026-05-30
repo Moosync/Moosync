@@ -7,9 +7,6 @@ export component AlbumsPage inherits Rectangle {
     in property <[AlbumModel]> albums: Constants.testAlbums;
 
     property <int> maxColumns: Math.max(1, Math.floor((WindowInfo.window-width - WindowInfo.sidebar-width) / (Theme.cardWidth + Theme.spacingLg)));
-    changed maxColumns => {
-        debug("maxColumns: ", maxColumns)
-    }
 
     background: transparent;
 

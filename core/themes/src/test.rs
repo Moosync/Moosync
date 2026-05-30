@@ -187,7 +187,8 @@ fn test_theme_export_import_cycle() -> Result<()> {
     let (tx, _rx) = channel();
 
     // Create ThemeHolder instance
-    let theme_holder = ThemeHolder::new(temp_theme_dir.clone(), temp_tmp_dir.clone(), tx);
+    let theme_holder = ThemeHolder::new(temp_theme_dir.clone(), temp_tmp_dir.clone());
+    theme_holder.set_change_tx(tx);
 
     // Theme ID
     let theme_id = "export_test_theme";
@@ -254,7 +255,8 @@ fn test_get_css_functionality() -> Result<()> {
     let (tx, _rx) = channel();
 
     // Create ThemeHolder instance
-    let theme_holder = ThemeHolder::new(temp_theme_dir.clone(), temp_tmp_dir.clone(), tx);
+    let theme_holder = ThemeHolder::new(temp_theme_dir.clone(), temp_tmp_dir.clone());
+    theme_holder.set_change_tx(tx);
 
     // Create a test CSS file
     let css_content = "body { color: green; }";

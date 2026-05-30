@@ -23,7 +23,7 @@ pub type ReplyHandler =
 
 struct MainCommandUserData {
     package_name: String,
-    reply_handler: ReplyHandler,
+    reply_handler: Arc<Mutex<Option<ReplyHandler>>>,
 }
 
 struct SocketUserData {

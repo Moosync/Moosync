@@ -17,8 +17,9 @@ import { PlaylistsPage } from "main_content/playlists.slint";
 import { GenresPage } from "main_content/genres.slint";
 import { ExplorePage } from "main_content/explore.slint";
 import { Pages, Constants, Theme } from "constants.slint";
+import { AppCallbacks } from "callbacks.slint";
 
-export { CoverHelper, Constants, Theme }
+export { CoverHelper, Constants, Theme, AppCallbacks }
 
 component PageWrapper inherits Rectangle {
     in property <Pages> page-type;
@@ -82,22 +83,18 @@ export component MainWindow inherits Window {
         } else {
             WindowInfo.window-size = WindowInfo.xl;
         }
-        self.resize();
+        AppCallbacks.resize();
     }
 
     changed height => {
         WindowInfo.window-height = self.height;
-        self.resize();
+        AppCallbacks.resize();
     }
-
-    callback search-clicked(string);
-    callback resize();
 
     in-out property <Pages> active-page <=> NavigationInfo.activePage;
     changed active-page => {
-        self.active-page-changed(self.active-page);
+        AppCallbacks.active-page-changed(self.active-page);
     }
-    callback active-page-changed(Pages);
 
     in property <[SongModel]> songs: Constants.testSongs;
     in property <[AlbumModel]> albums: Constants.testAlbums;

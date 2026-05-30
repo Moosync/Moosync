@@ -18,7 +18,8 @@ pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
 
     let mut trait_methods = Vec::new();
     let mut vec_impl_methods = Vec::new();
-    let mut wrapper_methods = Vec::new();
+    let mut wrapper_methods_shared = Vec::new();
+    let mut wrapper_methods_mut = Vec::new();
 
     for item in &impl_block.items {
         if let ImplItem::Fn(method) = item {
@@ -26,11 +27,16 @@ pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
                 continue;
             }
 
-            let has_shared_self = method.sig.inputs.iter().any(|arg| match arg {
+            let is_shared_self = method.sig.inputs.iter().any(|arg| match arg {
                 FnArg::Receiver(r) => r.reference.is_some() && r.mutability.is_none(),
                 _ => false,
             });
-            if !has_shared_self {
+            let is_mut_self = method.sig.inputs.iter().any(|arg| match arg {
+                FnArg::Receiver(r) => r.reference.is_some() && r.mutability.is_some(),
+                _ => false,
+            });
+
+            if !is_shared_self && !is_mut_self {
                 continue;
             }
 
@@ -45,15 +51,20 @@ pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
             let has_generics = !method.sig.generics.params.is_empty();
 
             if has_generics {
-                wrapper_methods.push(generate_wrapper_method(
+                let generated = generate_wrapper_method(
                     method,
                     &before_name,
                     &after_name,
                     &wrapper_calls,
                     &inner_calls,
                     &mut_shadows,
-                    false,
-                ));
+                    false, // is_intercepted = false
+                );
+                if is_mut_self {
+                    wrapper_methods_mut.push(generated);
+                } else {
+                    wrapper_methods_shared.push(generated);
+                }
             } else {
                 trait_methods.push(generate_trait_methods(
                     &before_name,
@@ -68,15 +79,20 @@ pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
                     &vec_calls,
                     &return_type,
                 ));
-                wrapper_methods.push(generate_wrapper_method(
+                let generated = generate_wrapper_method(
                     method,
                     &before_name,
                     &after_name,
                     &wrapper_calls,
                     &inner_calls,
                     &mut_shadows,
-                    true,
-                ));
+                    true, // is_intercepted = true
+                );
+                if is_mut_self {
+                    wrapper_methods_mut.push(generated);
+                } else {
+                    wrapper_methods_shared.push(generated);
+                }
             }
         }
     }
@@ -101,7 +117,14 @@ pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
         where
             R: std::ops::Deref<Target = #struct_name>,
         {
-            #(#wrapper_methods)*
+            #(#wrapper_methods_shared)*
+        }
+
+        impl<R> #wrapper_name<R>
+        where
+            R: std::ops::DerefMut<Target = #struct_name>,
+        {
+            #(#wrapper_methods_mut)*
         }
     })
 }
@@ -132,21 +155,22 @@ fn extract_arguments(
         if let FnArg::Typed(pat_type) = arg {
             if let Pat::Ident(pat_ident) = &*pat_type.pat {
                 let ident = &pat_ident.ident;
+                let p_ident = format_ident!("_{}", ident); // The prefixed variable
                 let ty = &pat_type.ty;
 
                 match &**ty {
                     syn::Type::Reference(_) => {
-                        trait_sigs.push(quote! { #ident: #ty });
+                        trait_sigs.push(quote! { #p_ident: #ty });
                         wrapper_calls.push(quote! { #ident });
-                        vec_calls.push(quote! { #ident });
+                        vec_calls.push(quote! { #p_ident });
                         inner_calls.push(quote! { #ident });
                     }
                     _ => {
-                        trait_sigs.push(quote! { #ident: &mut #ty });
-                        wrapper_calls.push(quote! { &mut #ident });
-                        vec_calls.push(quote! { #ident });
-                        inner_calls.push(quote! { #ident });
-                        mut_shadows.push(quote! { let mut #ident = #ident; });
+                        trait_sigs.push(quote! { #p_ident: &mut #ty });
+                        wrapper_calls.push(quote! { &mut #p_ident });
+                        vec_calls.push(quote! { #p_ident });
+                        inner_calls.push(quote! { #p_ident });
+                        mut_shadows.push(quote! { let mut #p_ident = #ident; });
                     }
                 }
             }
@@ -175,8 +199,8 @@ fn generate_trait_methods(
     return_type: &TokenStream2,
 ) -> TokenStream2 {
     quote! {
-        fn #before_name(&self, ctx: &mut types::plugin::CallContext, #(#trait_sigs),*) -> Option<#return_type> { None }
-        fn #after_name(&self, ctx: &mut types::plugin::CallContext, _result: &mut #return_type) {}
+        fn #before_name(&self, _ctx: &mut types::plugin::CallContext, #(#trait_sigs),*) -> Option<#return_type> { None }
+        fn #after_name(&self, _ctx: &mut types::plugin::CallContext, _result: &mut #return_type) {}
     }
 }
 
@@ -188,17 +212,17 @@ fn generate_vec_impl_methods(
     return_type: &TokenStream2,
 ) -> TokenStream2 {
     quote! {
-        fn #before_name(&self, ctx: &mut types::plugin::CallContext, #(#trait_sigs),*) -> Option<#return_type> {
-            for interceptor in self {
-                if let Some(early_ret) = interceptor.#before_name(ctx, #(#vec_calls),*) {
-                    return Some(early_ret);
+        fn #before_name(&self, _ctx: &mut types::plugin::CallContext, #(#trait_sigs),*) -> Option<#return_type> {
+            for _interceptor in self {
+                if let Some(_early_ret) = _interceptor.#before_name(_ctx, #(#vec_calls),*) {
+                    return Some(_early_ret);
                 }
             }
             None
         }
-        fn #after_name(&self, ctx: &mut types::plugin::CallContext, _result: &mut #return_type) {
-            for interceptor in self {
-                interceptor.#after_name(ctx, _result);
+        fn #after_name(&self, _ctx: &mut types::plugin::CallContext, _result: &mut #return_type) {
+            for _interceptor in self {
+                _interceptor.#after_name(_ctx, _result);
             }
         }
     }
@@ -217,31 +241,54 @@ fn generate_wrapper_method(
     let vis = &method.vis;
     let sig = &method.sig;
 
-    let inner_call = if method.sig.asyncness.is_some() {
-        quote! { self.inner.#method_name(#(#inner_calls),*).await }
-    } else {
-        quote! { self.inner.#method_name(#(#inner_calls),*) }
-    };
-
     if is_intercepted {
+        let inner_call = if method.sig.asyncness.is_some() {
+            quote! { self.inner.#method_name(#(#inner_calls),*).await }
+        } else {
+            quote! { self.inner.#method_name(#(#inner_calls),*) }
+        };
+
         quote! {
             #vis #sig {
                 #(#mut_shadows)*
 
-                let mut ctx = types::plugin::CallContext::default();
+                let mut _ctx = types::plugin::CallContext::default();
 
-                if let Some(early_ret) = self.interceptor.#before_name(&mut ctx, #(#wrapper_calls),*) {
-                    return early_ret;
+                if let Some(_early_ret) = self.interceptor.#before_name(&mut _ctx, #(#wrapper_calls),*) {
+                    return _early_ret;
                 }
 
-                let mut ret = #inner_call;
+                let mut _ret = #inner_call;
 
-                self.interceptor.#after_name(&mut ctx, &mut ret);
+                self.interceptor.#after_name(&mut _ctx, &mut _ret);
 
-                ret
+                _ret
             }
         }
     } else {
+        // FIXED: For non-intercepted methods (like generics), grab the original
+        // argument names so we don't accidentally try to pass the missing `_` prefixed variables
+        let original_names: Vec<_> = method
+            .sig
+            .inputs
+            .iter()
+            .filter_map(|arg| {
+                if let FnArg::Typed(pat_type) = arg {
+                    if let Pat::Ident(pat_ident) = &*pat_type.pat {
+                        let ident = &pat_ident.ident;
+                        return Some(quote! { #ident });
+                    }
+                }
+                None
+            })
+            .collect();
+
+        let inner_call = if method.sig.asyncness.is_some() {
+            quote! { self.inner.#method_name(#(#original_names),*).await }
+        } else {
+            quote! { self.inner.#method_name(#(#original_names),*) }
+        };
+
         quote! {
             #vis #sig {
                 #inner_call
@@ -290,6 +337,7 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
         let trait_ident = format_ident!("{}Interceptor", struct_ident);
         let wrapper_ident = format_ident!("Intercepted{}", struct_ident);
         let getter_ident = format_ident!("get_{}", snake_case);
+        let getter_mut_ident = format_ident!("get_{}_mut", snake_case);
         let marker_ident = format_ident!("{}Marker", struct_ident);
 
         fields.push(quote! {
@@ -302,10 +350,19 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
 
         getters.push(quote! {
             pub async fn #getter_ident(&self) -> #mod_prefix #wrapper_ident<tokio::sync::OwnedRwLockReadGuard<#mod_prefix #struct_ident>> {
-                let db = self.plugins.get::<#mod_prefix #struct_ident>();
-                let guard = db.read_owned().await;
+                let _db = self.plugins.get::<#mod_prefix #struct_ident>();
+                let _guard = _db.read_owned().await;
                 #mod_prefix #wrapper_ident {
-                    inner: guard,
+                    inner: _guard,
+                    interceptor: self.interceptors.#field_ident.clone(),
+                }
+            }
+
+            pub async fn #getter_mut_ident(&self) -> #mod_prefix #wrapper_ident<tokio::sync::OwnedRwLockWriteGuard<#mod_prefix #struct_ident>> {
+                let _db = self.plugins.get::<#mod_prefix #struct_ident>();
+                let _guard = _db.write_owned().await;
+                #mod_prefix #wrapper_ident {
+                    inner: _guard,
                     interceptor: self.interceptors.#field_ident.clone(),
                 }
             }
@@ -319,14 +376,14 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
             where
                 T: #mod_prefix #trait_ident + 'static,
             {
-                fn register(self, registry: &mut Interceptors) {
-                    registry.#field_ident.push(std::sync::Arc::new(self) as std::sync::Arc<dyn #mod_prefix #trait_ident>);
+                fn register(self, _registry: &mut Interceptors) {
+                    _registry.#field_ident.push(std::sync::Arc::new(self) as std::sync::Arc<dyn #mod_prefix #trait_ident>);
                 }
             }
         });
 
         init_statements.push(quote! {
-            registry.register::<#path>(<#path as types::plugin::Plugin>::init(context));
+            _registry.register::<#path>(<#path as types::plugin::Plugin>::init(_context));
         });
     }
 
@@ -363,7 +420,7 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
 
         #(#builder_impls)*
 
-        pub fn init_all_plugins(registry: &mut types::plugin::PluginRegistry, context: &types::plugin::PluginContext) {
+        pub fn init_all_plugins(_registry: &mut types::plugin::PluginRegistry, _context: &types::plugin::PluginContext) {
             #(#init_statements)*
         }
     })

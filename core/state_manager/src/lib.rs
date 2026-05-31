@@ -205,11 +205,14 @@ impl StateManager {
     }
 
     pub async fn get_song_from_cache(&self, id: String) -> Option<Song> {
-        let mut cache = self.song_cache.lock().unwrap();
-        let song = cache.get(&id);
+        let song = {
+            let mut cache = self.song_cache.lock().unwrap();
+            cache.get(&id).cloned()
+        };
+
         if song.is_some() {
             trace!("Cache hit for {}", id);
-            return song.cloned();
+            return song;
         }
 
         let database = self.get_database().await;

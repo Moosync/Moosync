@@ -2,7 +2,7 @@
 // slint::include_modules!();
 include!(concat!(env!("OUT_DIR"), "/app.rs"));
 
-use std::path::Path;
+use std::{path::Path, time::Duration};
 
 use extensions_proto;
 use player;
@@ -132,7 +132,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
     main_window
         .global::<AppCallbacks>()
         .on_play_song(move |song_model| {
-            let _ = slint::spawn_local(async move {
+            tokio::spawn(async move {
                 let song = state_manager
                     .get_song_from_cache(song_model.id.into())
                     .await;
@@ -146,7 +146,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
     main_window
         .global::<AppCallbacks>()
         .on_add_song_to_queue(move |song_model| {
-            let _ = slint::spawn_local(async move {
+            tokio::spawn(async move {
                 let song = state_manager
                     .get_song_from_cache(song_model.id.into())
                     .await;
@@ -162,23 +162,23 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
         .global::<BottomBarCallbacks>()
         .on_play_pause_clicked(move || {
             let main_window_weak = main_window_weak.clone();
-            let _ = slint::spawn_local(async move {
-                if let Some(main_window) = main_window_weak.upgrade() {
+            tokio::spawn(async move {
+                let mut player_handler = state_manager.get_player_handler_mut().await;
+                main_window_weak.upgrade_in_event_loop(move |main_window| {
                     let currently_playing = main_window.get_playing();
-                    let mut player_handler = state_manager.get_player_handler_mut().await;
                     if currently_playing {
                         let _ = player_handler.pause();
                     } else {
                         let _ = player_handler.play();
                     }
-                }
+                })
             });
         });
 
     main_window
         .global::<BottomBarCallbacks>()
         .on_toggle_repeat(move || {
-            let _ = slint::spawn_local(async move {
+            tokio::spawn(async move {
                 let mut player_handler = state_manager.get_player_handler_mut().await;
                 let next_mode = match player_handler.get_repeat_mode() {
                     player::RepeatMode::None => player::RepeatMode::Once,
@@ -277,7 +277,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
     main_window
         .global::<BottomBarCallbacks>()
         .on_next_song(move || {
-            let _ = slint::spawn_local(async move {
+            tokio::spawn(async move {
                 let state_manager_clone = state_manager.clone();
                 let mut player_handler = state_manager_clone.get_player_handler_mut().await;
                 player_handler.next();
@@ -287,7 +287,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
     main_window
         .global::<BottomBarCallbacks>()
         .on_prev_song(move || {
-            let _ = slint::spawn_local(async move {
+            tokio::spawn(async move {
                 let state_manager_clone = state_manager.clone();
                 let mut player_handler = state_manager_clone.get_player_handler_mut().await;
                 player_handler.prev();
@@ -297,7 +297,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
     main_window
         .global::<BottomBarCallbacks>()
         .on_set_volume(move |volume| {
-            let _ = slint::spawn_local(async move {
+            tokio::spawn(async move {
                 let state_manager_clone = state_manager.clone();
                 let player_handler = state_manager_clone.get_player_handler().await;
                 player_handler.set_volume(volume as u8);
@@ -307,10 +307,24 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
     main_window
         .global::<BottomBarCallbacks>()
         .on_shuffle(move || {
-            let _ = slint::spawn_local(async move {
+            tokio::spawn(async move {
                 let state_manager_clone = state_manager.clone();
                 let mut player_handler = state_manager_clone.get_player_handler_mut().await;
                 player_handler.shuffle();
+            });
+        });
+
+    main_window
+        .global::<BottomBarCallbacks>()
+        .on_seek(move |pos| {
+            tokio::spawn(async move {
+                let safe_secs = pos.max(0) as u64;
+                let target_duration = Duration::from_secs(safe_secs);
+
+                let state_manager_clone = state_manager.clone();
+                let player_handler = state_manager_clone.get_player_handler().await;
+
+                player_handler.seek(target_duration);
             });
         });
 }

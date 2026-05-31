@@ -237,8 +237,6 @@ impl FFMPEGDecoder {
     }
 
     fn resync_after_seek(&mut self) -> Result<(), DecoderError> {
-        println!("Resyncing to {}", self.requested_seek_timestamp);
-
         loop {
             match self.decode_next_packet() {
                 Ok(Some(frame)) => {

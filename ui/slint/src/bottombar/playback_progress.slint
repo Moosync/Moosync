@@ -1,4 +1,5 @@
 import { Theme } from "../constants.slint";
+import { BottomBarCallbacks } from "../callbacks.slint";
 
 export component PlaybackProgressBar inherits Rectangle {
     in-out property <int> current_duration: 0;
@@ -9,13 +10,26 @@ export component PlaybackProgressBar inherits Rectangle {
     height: Theme.progressBarHeight;
     background: transparent;
 
-    touch := TouchArea { }
+    touch := TouchArea {
+        width: parent.width;
+        height: parent.height;
+
+        clicked => {
+            BottomBarCallbacks.seek(Math.max(0, Math.min(root.total_duration, Math.round((self.mouse-x / self.width) * root.total_duration))));
+        }
+
+        moved => {
+            if (self.pressed) {
+                BottomBarCallbacks.seek(Math.max(0, Math.min(root.total_duration, Math.round((self.mouse-x / self.width) * root.total_duration))));
+            }
+        }
+    }
 
     // Background rail (gray)
     Rectangle {
         y: (parent.height - Theme.sliderTrackHeight) / 2;
         height: Theme.sliderTrackHeight;
-        background: Theme.textSecondary; // Text Secondary
+        background: Theme.textSecondary;
         border-radius: Theme.borderRadiusSm;
     }
 
@@ -25,7 +39,7 @@ export component PlaybackProgressBar inherits Rectangle {
         y: (parent.height - Theme.sliderTrackHeight) / 2;
         width: parent.width * progress;
         height: Theme.sliderTrackHeight;
-        background: Theme.accent; // Accent
+        background: Theme.accent;
         border-radius: Theme.borderRadiusSm;
 
         animate width { duration: 100ms; }
@@ -40,9 +54,8 @@ export component PlaybackProgressBar inherits Rectangle {
         border-radius: Theme.sliderThumbSize / 2;
         background: Theme.textPrimary;
         border-width: 1.5px;
-        border-color: Theme.primary; // Matching player bar background
-        
-        // Slightly enlarge thumb on hover
+        border-color: Theme.primary;
+
         animate width, height, x, y { duration: 100ms; }
 
         states [

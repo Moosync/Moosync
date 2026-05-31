@@ -14,7 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::{Arc, Mutex},
+    thread,
+    time::Duration,
+};
 
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
 use rodio::{MixerDeviceSink, Player, source::EmptyCallback};
@@ -25,23 +29,23 @@ use crate::{
 };
 
 mod decoder;
+#[cfg(test)]
+mod test;
+
 pub(crate) use decoder::DecoderError;
 
 pub struct RodioPlayer {
-    _sink: MixerDeviceSink,
-    player: Arc<Player>,
+    _sink: Mutex<Option<MixerDeviceSink>>,
+    player: Arc<Mutex<Option<Player>>>,
     events_tx: UnboundedSender<PlayerEvent>,
 }
 
 impl RodioPlayer {
     #[tracing::instrument(level = "debug", skip())]
     pub fn new(events_tx: UnboundedSender<PlayerEvent>) -> Self {
-        let _sink = rodio::DeviceSinkBuilder::open_default_sink().unwrap();
-        let player = Arc::new(rodio::Player::connect_new(_sink.mixer()));
-
         Self {
-            _sink,
-            player,
+            _sink: Mutex::new(None),
+            player: Arc::new(Mutex::new(None)),
             events_tx,
         }
     }
@@ -61,44 +65,67 @@ impl RodioPlayer {
 impl PlayerExt for RodioPlayer {
     #[tracing::instrument(level = "debug", skip(self))]
     fn play(&self) -> Result<(), PlayerError> {
-        self.player.play();
+        if let Some(player) = self.player.lock().unwrap().as_ref() {
+            player.play();
+        }
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn pause(&self) -> Result<(), PlayerError> {
-        self.player.pause();
+        if let Some(player) = self.player.lock().unwrap().as_ref() {
+            player.pause();
+        }
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn stop(&self) -> Result<(), PlayerError> {
-        self.player.stop();
+        if let Some(player) = self.player.lock().unwrap().as_ref() {
+            player.stop();
+        }
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
-        self.player.set_volume(volume as f32 / 100f32);
+        if let Some(player) = self.player.lock().unwrap().as_ref() {
+            player.set_volume(volume as f32 / 100f32);
+        }
+
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
     fn seek(&self, pos: f64) -> Result<(), PlayerError> {
-        self.player.try_seek(Duration::from_secs_f64(pos))?;
+        if let Some(player) = self.player.lock().unwrap().as_ref() {
+            player.try_seek(Duration::from_secs_f64(pos))?;
+        }
         Ok(())
     }
 
     fn set_src(&self, src: ValidSrc) -> Result<(), PlayerError> {
         let events_tx = self.events_tx.clone();
 
-        self.player.clear();
-        self.player.append(FFMPEGDecoder::open(&src.inner())?);
-        self.player.append(EmptyCallback::new(Box::new(move || {
+        if let Some(player) = self.player.lock().unwrap().as_ref() {
+            player.clear();
+        }
+
+        let _sink = rodio::DeviceSinkBuilder::open_default_sink().unwrap();
+        let player = rodio::Player::connect_new(_sink.mixer());
+
+        tracing::trace!("Sink sample rate {}", _sink.config().sample_rate());
+
+        player.append(FFMPEGDecoder::open(&src.inner())?);
+        player.append(EmptyCallback::new(Box::new(move || {
             let events_tx = events_tx.clone();
             Self::send_event(events_tx, PlayerEvent::Ended(true));
         })));
 
+        tracing::trace!("sink sample rate: {}", _sink.config().sample_rate());
+
+        *self.player.lock().unwrap() = Some(player);
+        *self._sink.lock().unwrap() = Some(_sink);
         Ok(())
     }
 
@@ -110,6 +137,9 @@ impl PlayerExt for RodioPlayer {
     }
 
     fn get_current_pos(&self) -> Result<Duration, PlayerError> {
-        Ok(self.player.get_pos())
+        if let Some(player) = &self.player.lock().unwrap().as_ref() {
+            return Ok(player.get_pos());
+        }
+        Ok(Duration::default())
     }
 }

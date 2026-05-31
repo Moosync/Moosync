@@ -19,6 +19,7 @@ rust_library(
         "src/mux_player.rs",
         "src/rodio/decoder.rs",
         "src/rodio/mod.rs",
+        "src/rodio/test.rs",
         "src/source.rs",
         "src/test.rs",
     ],
@@ -40,8 +41,8 @@ rust_library(
         "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",
         "//external/ffmpeg",
-        "@crates//:rodio",
         "@crates//:rand",
+        "@crates//:rodio",
         "@crates//:rsmpeg",
         "@crates//:rusty_ffmpeg",
         "@crates//:thiserror",
@@ -53,5 +54,9 @@ rust_library(
 rust_test(
     name = "player_test",
     crate = ":player",
+    data = [
+        "src/rodio/test_data/LRMonoPhase4.mp3",
+        "src/rodio/test_data/ff-16b-2c-44100hz.mp3",
+    ],
     rustc_flags = ["-lz"],
 )

@@ -101,10 +101,19 @@ impl FFMPEGDecoder {
         if let Some((stream_idx, codec)) = stream {
             // Get the streams codec
             let mut codec_ctx = AVCodecContext::new(&codec);
-            codec_ctx.apply_codecpar(&format_ctx.streams().get(stream_idx).unwrap().codecpar())?;
             codec_ctx.open(None)?;
+            codec_ctx.apply_codecpar(&format_ctx.streams().get(stream_idx).unwrap().codecpar())?;
 
             let swr_ctx = Self::initialize_swr_context(&codec_ctx)?;
+            tracing::trace!(
+                "Stream details: bitrate: {}, channels: {}, codec: {:?}, samplerate: {}, needs conversion: {}",
+                codec_ctx.bit_rate,
+                codec_ctx.ch_layout.nb_channels,
+                codec_ctx.codec,
+                codec_ctx.sample_rate,
+                swr_ctx.is_some()
+            );
+
             return Ok(FFMPEGDecoder {
                 format_ctx,
                 stream_idx,
@@ -136,12 +145,21 @@ impl FFMPEGDecoder {
 
             let converted = unsafe {
                 // Call convert with allocated output buffers
-                swr_ctx.convert(
+                let initial = swr_ctx.convert(
                     samples.audio_data.as_mut_ptr(),
                     out_samples,
                     extended_data_ptr,
                     num_samples,
-                )?
+                )?;
+
+                let delayed = swr_ctx.convert(
+                    samples.audio_data.as_mut_ptr(),
+                    out_samples - initial,
+                    std::ptr::null(),
+                    0,
+                )?;
+
+                initial + delayed
             };
 
             // `converted` is number of samples output per channel
@@ -284,7 +302,9 @@ impl FFMPEGDecoder {
         let b2 = self.current_frame.remove(0);
         let b3 = self.current_frame.remove(0);
         let bytes = [b0, b1, b2, b3];
-        f32::from_le_bytes(bytes)
+        let sample = f32::from_le_bytes(bytes);
+
+        sample.clamp(-1.0, 1.0)
     }
 }
 
@@ -343,5 +363,12 @@ impl Source for FFMPEGDecoder {
         self.resync_after_seek().map_err(Into::<SeekError>::into)?;
 
         Ok(())
+    }
+}
+
+impl Drop for FFMPEGDecoder {
+    fn drop(&mut self) {
+        tracing::trace!("Dropping ffmpeg decoder");
+        let _ = self.codec_ctx.send_packet(None);
     }
 }

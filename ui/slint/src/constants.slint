@@ -178,6 +178,8 @@ export enum Pages {
     Explore,
 }
 
+export enum VolumeScale { Linear, Logarithmic }
+
 export global Theme {
     // Colors
     out property <color> primary: #212121;
@@ -247,5 +249,5 @@ export global Theme {
     out property <length> progressBarHeight: 14px;
     out property <length> trackInfoWidth: 260px;
     out property <length> volumeSliderWidth: 80px;
-    out property <length> volumeControlWidth: 160px;
+    out property <length> volumeControlWidth: 100px;
 }

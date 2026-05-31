@@ -1,12 +1,8 @@
-use std::{
-    io::Read,
-    sync::{Arc, Mutex, RwLock},
-};
+use std::sync::{Arc, Mutex};
 
-pub use database::{Database, DatabaseInterceptor, InterceptedDatabase};
+pub use database::DatabaseInterceptor;
 use lru::LruCache;
-use songs_proto::moosync::types::{GetSongOptions, Song};
-use tracing::trace;
+use songs_proto::moosync::types::Song;
 use types::{errors::Result, plugin::CallContext, prelude::SongsExt};
 
 pub struct CacheDatabaseInterceptor {

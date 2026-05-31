@@ -155,7 +155,7 @@ impl Default for ScannerHolder {
 }
 
 impl types::plugin::Plugin for ScannerHolder {
-    fn init(_context: &types::plugin::PluginContext) -> Self {
-        ScannerHolder::new()
+    fn init(_context: &types::plugin::PluginContext) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+        types::plugin::Arc::new(types::plugin::RwLock::new(ScannerHolder::new()))
     }
 }

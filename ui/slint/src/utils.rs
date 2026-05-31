@@ -9,6 +9,8 @@ use slint::{Image, Model, ModelNotify, ModelTracker, SharedString};
 use tracing::trace;
 
 use crate::{AlbumModel, ArtistModel, GenreModel, PlaylistModel, SongModel, WINDOW_EVENTS};
+use songs_proto::moosync::types::{Album, Artist, Genre, Playlist, Song};
+use types::prelude::SongsExt;
 
 pub static DEFAULT_SONG_SVG: &[u8] = include_bytes!("icons/song_default.svg");
 
@@ -40,18 +42,18 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
                 let scale = window.scale_factor();
                 let height = (window.size().height as f32 / scale) as usize;
                 let width = (window.size().width as f32 / scale) as usize;
-                
+
                 let mut new_max_items = height / item_height;
                 let columns = if item_width > 0 {
                     (width / item_width).max(1)
                 } else {
                     1
                 };
-                
+
                 if item_width > 0 {
                     new_max_items *= columns;
                 }
-                
+
                 trace!(
                     "Window resized {}x{}, item size {}x{}, new max items: {}, columns: {}",
                     width, height, item_width, item_height, new_max_items, columns
@@ -69,7 +71,6 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
             allocated_rows: RefCell::new(HashSet::new()),
         }
     }
-
 
     fn load_image(&self, row: usize, model: &mut T) {
         if !is_empty_image(&model.get_cover()) {
@@ -146,12 +147,12 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
     fn row_data(&self, row: usize) -> Option<Self::Data> {
         let song_model = {
             let mut array = self.array.borrow_mut();
-            
+
             // First load the requested item
             let song_model = array.get_mut(row)?;
             self.load_image(row, song_model);
             let cloned = song_model.clone();
-            
+
             // Prefetch adjacent items (2 rows up and down)
             let prefetch = self.prefetch_count.get();
             if prefetch > 0 {
@@ -165,7 +166,7 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
                     }
                 }
             }
-            
+
             cloned
         };
 
@@ -173,7 +174,6 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
 
         Some(song_model)
     }
-
 
     fn set_row_data(&self, row: usize, data: Self::Data) {
         if row < self.row_count() {
@@ -268,5 +268,96 @@ impl LazyModel for GenreModel {
 
     fn get_cover_url(&self) -> &SharedString {
         &self.coverPathUrl
+    }
+}
+
+pub fn to_song_model(song: Option<&Song>) -> SongModel {
+    match song {
+        Some(song) => {
+            let extension_icon =
+                if let Some(icon_path) = song.song.as_ref().and_then(|s| s.icon.clone()) {
+                    if let Ok(image) = Image::load_from_path(Path::new(&icon_path)) {
+                        image
+                    } else {
+                        Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap()
+                    }
+                } else {
+                    Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap()
+                };
+
+            let raw_duration = song.get_duration_or_default();
+            let duration_s = raw_duration.as_secs() as i32;
+
+            SongModel {
+                id: song.get_id().unwrap_or_default().into(),
+                title: song.get_title().unwrap_or_default().into(),
+                artist_name: song.get_artist_string().unwrap_or_default().into(),
+                album_name: song.get_album_string().unwrap_or_default().into(),
+                duration: song.format_duration().into(),
+                duration_s,
+                coverPathHigh: Image::default(),
+                coverPathLow: Image::default(),
+                extensionIcon: extension_icon,
+                coverPathUrlHigh: song.get_cover_high().unwrap_or_default().into(),
+                coverPathUrlLow: song.get_cover_low().unwrap_or_default().into(),
+            }
+        }
+        None => SongModel {
+            id: "".into(),
+            title: "".into(),
+            artist_name: "".into(),
+            album_name: "".into(),
+            duration: "".into(),
+            duration_s: 0,
+            coverPathHigh: Image::default(),
+            coverPathLow: Image::default(),
+            extensionIcon: Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap(),
+            coverPathUrlHigh: "".into(),
+            coverPathUrlLow: "".into(),
+        },
+    }
+}
+
+pub fn to_album_model(album: &Album) -> AlbumModel {
+    AlbumModel {
+        coverPath: Image::default(),
+        coverPathUrl: album.album_coverpath_high().into(),
+        id: album.album_id().into(),
+        songs_count: album.album_song_count as i32,
+        title: album.album_name().into(),
+    }
+}
+
+pub fn to_artist_model(artist: &Artist) -> ArtistModel {
+    ArtistModel {
+        coverPath: Image::default(),
+        coverPathUrl: artist.artist_coverpath.clone().unwrap_or_default().into(),
+        id: artist.artist_id.clone().unwrap_or_default().into(),
+        songs_count: artist.artist_song_count as i32,
+        title: artist.artist_name.clone().unwrap_or_default().into(),
+    }
+}
+
+pub fn to_playlist_model(playlist: &Playlist) -> PlaylistModel {
+    PlaylistModel {
+        coverPath: Image::default(),
+        coverPathUrl: playlist
+            .playlist_coverpath
+            .clone()
+            .unwrap_or_default()
+            .into(),
+        id: playlist.playlist_id.clone().unwrap_or_default().into(),
+        songs_count: playlist.playlist_song_count as i32,
+        title: playlist.playlist_name.clone().into(),
+    }
+}
+
+pub fn to_genre_model(genre: &Genre) -> GenreModel {
+    GenreModel {
+        coverPath: Image::default(),
+        coverPathUrl: "".into(),
+        id: genre.genre_id.clone().unwrap_or_default().into(),
+        songs_count: genre.genre_song_count as i32,
+        title: genre.genre_name.clone().unwrap_or_default().into(),
     }
 }

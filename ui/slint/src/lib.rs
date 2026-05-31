@@ -4,10 +4,13 @@ include!(concat!(env!("OUT_DIR"), "/app.rs"));
 
 use std::path::Path;
 
-use slint::Image;
+use extensions_proto;
+use player;
+use slint::{Image, ModelRc, VecModel};
 use state_manager::StateManager;
 use tracing::{debug, trace};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};
+use types::prelude::format_duration;
 
 use crate::pages::PageHandler;
 
@@ -129,12 +132,12 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
     main_window
         .global::<AppCallbacks>()
         .on_play_song(move |song_model| {
-            slint::spawn_local(async move {
+            let _ = slint::spawn_local(async move {
                 let song = state_manager
                     .get_song_from_cache(song_model.id.into())
                     .await;
                 if let Some(song) = song {
-                    let mut queue = state_manager.get_queue_manager_mut().await;
+                    let mut queue = state_manager.get_player_handler_mut().await;
                     queue.play_now(song);
                 }
             });
@@ -143,14 +146,171 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
     main_window
         .global::<AppCallbacks>()
         .on_add_song_to_queue(move |song_model| {
-            slint::spawn_local(async move {
+            let _ = slint::spawn_local(async move {
                 let song = state_manager
                     .get_song_from_cache(song_model.id.into())
                     .await;
                 if let Some(song) = song {
-                    let mut queue = state_manager.get_queue_manager_mut().await;
-                    queue.add_song(song);
+                    let mut queue = state_manager.get_player_handler_mut().await;
+                    queue.add_to_queue(song);
                 }
+            });
+        });
+
+    let main_window_weak = main_window.as_weak();
+    main_window
+        .global::<BottomBarCallbacks>()
+        .on_play_pause_clicked(move || {
+            let main_window_weak = main_window_weak.clone();
+            let _ = slint::spawn_local(async move {
+                if let Some(main_window) = main_window_weak.upgrade() {
+                    let currently_playing = main_window.get_playing();
+                    let mut player_handler = state_manager.get_player_handler_mut().await;
+                    if currently_playing {
+                        let _ = player_handler.pause();
+                    } else {
+                        let _ = player_handler.play();
+                    }
+                }
+            });
+        });
+
+    main_window
+        .global::<BottomBarCallbacks>()
+        .on_toggle_repeat(move || {
+            let _ = slint::spawn_local(async move {
+                let mut player_handler = state_manager.get_player_handler_mut().await;
+                let next_mode = match player_handler.get_repeat_mode() {
+                    player::RepeatMode::None => player::RepeatMode::Once,
+                    player::RepeatMode::Once => player::RepeatMode::Infinite,
+                    player::RepeatMode::Infinite => player::RepeatMode::None,
+                };
+                player_handler.repeat(next_mode);
+            });
+        });
+}
+
+fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+    // Clear default values on load
+    main_window.set_current_song(utils::to_song_model(None));
+    main_window.set_queue(ModelRc::new(VecModel::default()));
+
+    let main_window_weak = main_window.as_weak();
+    tokio::spawn(async move {
+        let mut player_handler = state_manager.get_player_handler_mut().await;
+
+        // Set initial repeat mode
+        let repeat_mode = player_handler.get_repeat_mode();
+        let mw_weak_init = main_window_weak.clone();
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Some(main_window) = mw_weak_init.upgrade() {
+                main_window.set_repeat_mode(repeat_mode as i32);
+            }
+        });
+
+        let mw_weak_song = main_window_weak.clone();
+        player_handler.on_song_changed(move |song| {
+            let song_cloned = song.cloned();
+            let mw_weak = mw_weak_song.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(main_window) = mw_weak.upgrade() {
+                    let song_model = utils::to_song_model(song_cloned.as_ref());
+                    main_window.set_current_song(song_model);
+                }
+            });
+        });
+
+        let mw_weak_queue = main_window_weak.clone();
+        player_handler.on_queue_updated(move |queue| {
+            let queue_cloned = queue.to_vec();
+            let mw_weak = mw_weak_queue.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(main_window) = mw_weak.upgrade() {
+                    let queue_models: Vec<SongModel> = queue_cloned
+                        .iter()
+                        .map(|s| utils::to_song_model(Some(s)))
+                        .collect();
+                    main_window.set_queue(ModelRc::new(VecModel::from(queue_models)));
+                }
+            });
+        });
+
+        let mw_weak_repeat = main_window_weak.clone();
+        player_handler.on_repeat_changed(move |mode| {
+            let mw_weak = mw_weak_repeat.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(main_window) = mw_weak.upgrade() {
+                    main_window.set_repeat_mode(mode as i32);
+                }
+            });
+        });
+
+        let mw_weak_event = main_window_weak.clone();
+        player_handler.on_player_event(move |event| {
+            let event_cloned = event.clone();
+            let mw_weak = mw_weak_event.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(main_window) = mw_weak.upgrade() {
+                    if let Some(ev) = &event_cloned.event {
+                        match ev {
+                            extensions_proto::moosync::types::player_event::Event::Play(_) => {
+                                main_window.set_playing(true);
+                            }
+                            extensions_proto::moosync::types::player_event::Event::Pause(_) => {
+                                main_window.set_playing(false);
+                            }
+                            extensions_proto::moosync::types::player_event::Event::TimeUpdate(
+                                pos,
+                            ) => {
+                                main_window.set_current_duration(pos.seconds as i32);
+                                main_window
+                                    .set_current_pos_str(format_duration(pos.seconds).into());
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+            });
+        });
+    });
+
+    main_window
+        .global::<BottomBarCallbacks>()
+        .on_next_song(move || {
+            let _ = slint::spawn_local(async move {
+                let state_manager_clone = state_manager.clone();
+                let mut player_handler = state_manager_clone.get_player_handler_mut().await;
+                player_handler.next();
+            });
+        });
+
+    main_window
+        .global::<BottomBarCallbacks>()
+        .on_prev_song(move || {
+            let _ = slint::spawn_local(async move {
+                let state_manager_clone = state_manager.clone();
+                let mut player_handler = state_manager_clone.get_player_handler_mut().await;
+                player_handler.prev();
+            });
+        });
+
+    main_window
+        .global::<BottomBarCallbacks>()
+        .on_set_volume(move |volume| {
+            let _ = slint::spawn_local(async move {
+                let state_manager_clone = state_manager.clone();
+                let player_handler = state_manager_clone.get_player_handler().await;
+                player_handler.set_volume(volume as u8);
+            });
+        });
+
+    main_window
+        .global::<BottomBarCallbacks>()
+        .on_shuffle(move || {
+            let _ = slint::spawn_local(async move {
+                let state_manager_clone = state_manager.clone();
+                let mut player_handler = state_manager_clone.get_player_handler_mut().await;
+                player_handler.shuffle();
             });
         });
 }
@@ -220,6 +380,7 @@ fn setup_ui(main_window: &'static MainWindow, state_manager: &'static StateManag
     let pages = get_all_pages(main_window, state_manager);
     setup_page_navigation(main_window, pages);
     setup_song_cbs(main_window, state_manager);
+    setup_player_events(main_window, state_manager);
 }
 
 fn setup_tracing() {

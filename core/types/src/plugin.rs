@@ -1,8 +1,8 @@
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::Arc;
-use tokio::sync::RwLock;
+pub use std::sync::Arc;
+pub use tokio::sync::RwLock;
 
 pub type ReplyHandlerFn = std::sync::Arc<
     dyn Fn(
@@ -34,7 +34,7 @@ pub struct PluginContext {
 
 // Every core plugin must implement this initialization trait
 pub trait Plugin: Send + Sync + 'static {
-    fn init(context: &PluginContext) -> Self;
+    fn init(context: &PluginContext) -> Arc<RwLock<Self>>;
 }
 
 // A generic Type-Map registry to store and retrieve plugin instances
@@ -51,9 +51,9 @@ impl PluginRegistry {
         }
     }
 
-    pub fn register<P: Plugin>(&mut self, plugin: P) {
+    pub fn register<P: Plugin>(&mut self, plugin: Arc<RwLock<P>>) {
         self.map
-            .insert(TypeId::of::<P>(), Arc::new(RwLock::new(plugin)));
+            .insert(TypeId::of::<P>(), plugin);
     }
 
     // Panics on failure to retrieve/downcast target plugin

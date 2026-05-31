@@ -33,8 +33,14 @@ use substring::Substring;
 use uuid::Uuid;
 
 use crate::{FileList, OnPlaylistScanned, OnProgressUpdated, OnSongScanned, ScanProgress};
-use songs_proto::moosync::types::{Album, Artist, Genre, InnerSong, Playlist, Song, SongType};
-use types::errors::{MoosyncError, Result, error_helpers};
+use songs_proto::{
+    duration_proto::google::protobuf::Duration,
+    moosync::types::{Album, Artist, Genre, InnerSong, Playlist, Song, SongType},
+};
+use types::{
+    errors::{MoosyncError, Result, error_helpers},
+    prelude::core_to_proto_duration,
+};
 
 // ==========================================
 // Directory Utilities
@@ -225,7 +231,7 @@ fn extract_audio_properties(file: &TaggedFile, inner_song: &mut InnerSong) {
     let properties = file.properties();
     inner_song.bitrate = Some((properties.audio_bitrate().unwrap_or_default() * 1000) as f64);
     inner_song.sample_rate = properties.sample_rate().map(|v| v as f64);
-    inner_song.duration = Some(properties.duration().as_secs() as f64);
+    inner_song.duration = Some(core_to_proto_duration(properties.duration()));
 }
 
 fn scan_directory_for_cover(path: &Path) -> Option<String> {
@@ -375,7 +381,7 @@ pub async fn scan_file(
                 .to_string(),
         ),
         size: Some(size),
-        duration: Some(0f64),
+        duration: Some(Duration::default()),
         r#type: SongType::Local.into(),
         ..Default::default()
     };
@@ -448,7 +454,7 @@ impl SongScanner {
 
 struct PlaylistParserState {
     song_type: Option<String>,
-    duration: Option<f64>,
+    duration: Option<std::time::Duration>,
     title: Option<String>,
     artists: Option<String>,
     playlist_title: String,
@@ -555,12 +561,11 @@ impl<'a> PlaylistScanner<'a> {
     fn parse_extinf(&self, line: &str, state: &mut PlaylistParserState) -> Result<()> {
         let metadata = line.substring(8, line.len());
         let split_index = metadata.find(',').unwrap_or_default();
-        state.duration = Some(
-            metadata
-                .substring(0, split_index)
-                .parse::<f64>()
-                .map_err(error_helpers::to_parse_error)?,
-        );
+        let secs = metadata
+            .substring(0, split_index)
+            .parse::<f64>()
+            .map_err(error_helpers::to_parse_error)?;
+        state.duration = Some(std::time::Duration::from_secs_f64(secs));
         let non_duration = metadata.substring(split_index + 1, metadata.len());
         let mut artists_str = "";
         let title_str;
@@ -604,7 +609,7 @@ impl<'a> PlaylistScanner<'a> {
         song.r#type = SongType::Local.into();
         song.size = Some(metadata.len() as f64);
         song.path = Some(path.to_string_lossy().to_string());
-        song.duration = state.duration;
+        song.duration = state.duration.map(core_to_proto_duration);
         song.title = state.title.clone();
         state.songs.push(Song {
             song: Some(song),
@@ -620,7 +625,7 @@ impl<'a> PlaylistScanner<'a> {
         song.id = Some(Uuid::new_v4().to_string());
         song.r#type = SongType::Url.into();
         song.playback_url = Some(url.to_string());
-        song.duration = state.duration;
+        song.duration = state.duration.map(core_to_proto_duration);
         song.title = state.title.clone();
         state.songs.push(Song {
             song: Some(song),

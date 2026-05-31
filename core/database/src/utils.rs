@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use songs_proto::moosync::types::{Album, Artist, Genre, Playlist, InnerSong, SongType};
+use songs_proto::moosync::types::{Album, Artist, Genre, InnerSong, Playlist, SongType};
 
 pub trait SearchByTerm {
     fn search_by_term(term: Option<String>) -> Self;
@@ -153,7 +153,7 @@ pub fn map_row_to_inner_song(row: &rusqlite::Row) -> rusqlite::Result<InnerSong>
         bitrate: row.get(10)?,
         codec: row.get(11)?,
         container: row.get(12)?,
-        duration: row.get(13)?,
+        duration: Some(db_ms_to_proto(row.get::<_, f64>(13)? as i64)),
         sample_rate: row.get(14)?,
         hash: row.get(15)?,
         r#type: song_type_from_str(&type_str),
@@ -168,4 +168,23 @@ pub fn map_row_to_inner_song(row: &rusqlite::Row) -> rusqlite::Result<InnerSong>
         track_no: row.get(25)?,
         library_item: row.get(26)?,
     })
+}
+
+pub(crate) fn proto_to_db_ms(
+    proto_dur: &Option<songs_proto::duration_proto::google::protobuf::Duration>,
+) -> i64 {
+    let proto_dur = proto_dur.clone().unwrap_or_default();
+    // seconds * 1000 + (nanos / 1,000,000)
+    (proto_dur.seconds * 1000) + (proto_dur.nanos as i64 / 1_000_000)
+}
+
+// Convert DB milliseconds back to Protobuf Duration
+pub(crate) fn db_ms_to_proto(
+    db_ms: i64,
+) -> songs_proto::duration_proto::google::protobuf::Duration {
+    songs_proto::duration_proto::google::protobuf::Duration {
+        seconds: db_ms / 1000,
+        // Remainder converted back to nanos
+        nanos: ((db_ms % 1000) * 1_000_000) as i32,
+    }
 }

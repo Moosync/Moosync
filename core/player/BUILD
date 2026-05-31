@@ -12,11 +12,11 @@ cargo_build_script(
 rust_library(
     name = "player",
     srcs = [
+        "src/audio_source.rs",
         "src/error.rs",
         "src/generic.rs",
         "src/lib.rs",
         "src/mux_player.rs",
-        "src/queue.rs",
         "src/rodio/decoder.rs",
         "src/rodio/mod.rs",
         "src/source.rs",
@@ -41,6 +41,7 @@ rust_library(
         "//core/types/protos:songs_rs",
         "//external/ffmpeg",
         "@crates//:rodio",
+        "@crates//:rand",
         "@crates//:rsmpeg",
         "@crates//:rusty_ffmpeg",
         "@crates//:thiserror",
@@ -52,4 +53,5 @@ rust_library(
 rust_test(
     name = "player_test",
     crate = ":player",
+    rustc_flags = ["-lz"],
 )

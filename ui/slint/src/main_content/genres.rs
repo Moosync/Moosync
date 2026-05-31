@@ -1,4 +1,4 @@
-use slint::{ComponentHandle, Image, ModelRc, Weak};
+use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{Genre, GenreList, GetEntityOptions, entity_result};
 use state_manager::StateManager;
 use std::sync::{Arc, Mutex};
@@ -6,7 +6,6 @@ use tracing::debug;
 use types::ScanProgress;
 use types::errors::MoosyncError;
 
-use crate::GenreModel;
 use crate::utils::LazySongVecModel;
 use crate::{MainWindow, Pages, pages::PageHandler};
 
@@ -94,13 +93,7 @@ fn set_all_genres(main_window: &MainWindow, genres: Vec<Genre>) {
     debug!("Setting genres");
     let genre_model = genres
         .into_iter()
-        .map(|genre| GenreModel {
-            coverPath: Image::default(),
-            coverPathUrl: "".into(),
-            id: genre.genre_id.clone().unwrap_or_default().into(),
-            songs_count: genre.genre_song_count as i32,
-            title: genre.genre_name.clone().unwrap_or_default().into(),
-        })
+        .map(|genre| crate::utils::to_genre_model(&genre))
         .collect::<Vec<_>>();
 
     main_window.set_genres(ModelRc::new(LazySongVecModel::new(genre_model, 230, 200)));

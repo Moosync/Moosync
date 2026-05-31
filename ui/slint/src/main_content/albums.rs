@@ -1,4 +1,4 @@
-use slint::{ComponentHandle, Image, ModelRc, Weak};
+use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{Album, AlbumList, GetEntityOptions, entity_result};
 use state_manager::StateManager;
 use std::sync::{Arc, Mutex};
@@ -6,7 +6,6 @@ use tracing::debug;
 use types::ScanProgress;
 use types::errors::MoosyncError;
 
-use crate::AlbumModel;
 use crate::utils::LazySongVecModel;
 use crate::{MainWindow, Pages, pages::PageHandler};
 
@@ -94,13 +93,7 @@ fn set_all_albums(main_window: &MainWindow, albums: Vec<Album>) {
     debug!("Setting albums");
     let album_model = albums
         .into_iter()
-        .map(|album| AlbumModel {
-            coverPath: Image::default(),
-            coverPathUrl: album.album_coverpath_high().into(),
-            id: album.album_id().into(),
-            songs_count: album.album_song_count as i32,
-            title: album.album_name().into(),
-        })
+        .map(|album| crate::utils::to_album_model(&album))
         .collect::<Vec<_>>();
 
     main_window.set_albums(ModelRc::new(LazySongVecModel::new(album_model, 230, 200)));

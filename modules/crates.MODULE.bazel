@@ -335,6 +335,10 @@ crates.spec(
     package = "proc-macro2",
     version = "1.0.92",
 )
+crates.spec(
+    package = "rand",
+    version = "0.8.5",
+)
 
 # Git Dependencies
 

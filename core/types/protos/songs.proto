@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package moosync.types;
 
+import "google/protobuf/duration.proto";
+
 message Album {
   optional string album_id = 1;
   optional string album_name = 2;
@@ -61,7 +63,7 @@ message InnerSong {
   optional double bitrate = 11;
   optional string codec = 12;
   optional string container = 13;
-  optional double duration = 14;
+  optional google.protobuf.Duration duration = 14;
   optional double sample_rate = 15;
   optional string hash = 16;
   SongType type = 17;

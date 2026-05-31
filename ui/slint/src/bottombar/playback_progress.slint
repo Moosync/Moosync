@@ -1,13 +1,16 @@
 import { Theme } from "../constants.slint";
 
 export component PlaybackProgressBar inherits Rectangle {
-    in-out property <float> progress: 0.58; // 0.0 to 1.0 representing 3:32 / 6:10 (approx 58%)
-    
+    in-out property <int> current_duration: 0;
+    in property <int> total_duration: 0;
+
+    property <float> progress: current_duration / Math.max(total_duration, 1);
+
     height: Theme.progressBarHeight;
     background: transparent;
-    
-    touch := TouchArea {}
-    
+
+    touch := TouchArea { }
+
     // Background rail (gray)
     Rectangle {
         y: (parent.height - Theme.sliderTrackHeight) / 2;
@@ -15,7 +18,7 @@ export component PlaybackProgressBar inherits Rectangle {
         background: Theme.textSecondary; // Text Secondary
         border-radius: Theme.borderRadiusSm;
     }
-    
+
     // Active rail (green)
     Rectangle {
         x: 0px;
@@ -24,8 +27,10 @@ export component PlaybackProgressBar inherits Rectangle {
         height: Theme.sliderTrackHeight;
         background: Theme.accent; // Accent
         border-radius: Theme.borderRadiusSm;
+
+        animate width { duration: 100ms; }
     }
-    
+
     // Slider thumb (white circle)
     Rectangle {
         x: (parent.width * progress) - Theme.sliderThumbSize / 2;
@@ -39,7 +44,7 @@ export component PlaybackProgressBar inherits Rectangle {
         
         // Slightly enlarge thumb on hover
         animate width, height, x, y { duration: 100ms; }
-        
+
         states [
             hover when touch.has-hover: {
                 width: Theme.sliderThumbHoverSize;

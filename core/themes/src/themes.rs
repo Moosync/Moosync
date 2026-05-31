@@ -389,10 +389,10 @@ pub fn transform_css(css_path: String, root: Option<PathBuf>) -> Result<(String,
 }
 
 impl types::plugin::Plugin for ThemeHolder {
-    fn init(context: &types::plugin::PluginContext) -> Self {
-        ThemeHolder::new(
+    fn init(context: &types::plugin::PluginContext) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+        types::plugin::Arc::new(types::plugin::RwLock::new(ThemeHolder::new(
             context.data_dir.join("themes"),
             context.tmp_dir.clone(),
-        )
+        )))
     }
 }

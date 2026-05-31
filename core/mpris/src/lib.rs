@@ -31,8 +31,6 @@ use crate::context::DummyContext;
 use crate::context::MprisContext;
 #[cfg(not(target_os = "android"))]
 use crate::context::SouvlakiMprisContext;
-#[cfg(target_os = "android")]
-use crate::mpris_android;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct MprisPlayerDetails {
@@ -193,11 +191,13 @@ impl MprisHolder {
 }
 
 impl types::plugin::Plugin for MprisHolder {
-    fn init(context: &types::plugin::PluginContext) -> Self {
-        MprisHolder::new(
-            #[cfg(target_os = "android")]
-            context.android_context.clone(),
-        )
-        .expect("Failed to initialize MprisHolder")
+    fn init(context: &types::plugin::PluginContext) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+        types::plugin::Arc::new(types::plugin::RwLock::new(
+            MprisHolder::new(
+                #[cfg(target_os = "android")]
+                context.android_context.clone(),
+            )
+            .expect("Failed to initialize MprisHolder"),
+        ))
     }
 }

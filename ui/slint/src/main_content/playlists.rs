@@ -1,4 +1,4 @@
-use slint::{ComponentHandle, Image, ModelRc, Weak};
+use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{GetEntityOptions, Playlist, PlaylistList, entity_result};
 use state_manager::StateManager;
 use std::sync::{Arc, Mutex};
@@ -6,7 +6,6 @@ use tracing::debug;
 use types::ScanProgress;
 use types::errors::MoosyncError;
 
-use crate::PlaylistModel;
 use crate::utils::LazySongVecModel;
 use crate::{MainWindow, Pages, pages::PageHandler};
 
@@ -96,17 +95,7 @@ fn set_all_playlists(main_window: &MainWindow, playlists: Vec<Playlist>) {
     debug!("Setting playlists");
     let playlist_model = playlists
         .into_iter()
-        .map(|playlist| PlaylistModel {
-            coverPath: Image::default(),
-            coverPathUrl: playlist
-                .playlist_coverpath
-                .clone()
-                .unwrap_or_default()
-                .into(),
-            id: playlist.playlist_id.clone().unwrap_or_default().into(),
-            songs_count: playlist.playlist_song_count as i32,
-            title: playlist.playlist_name.clone().into(),
-        })
+        .map(|playlist| crate::utils::to_playlist_model(&playlist))
         .collect::<Vec<_>>();
 
     main_window.set_playlists(ModelRc::new(LazySongVecModel::new(

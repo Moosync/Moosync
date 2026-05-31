@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
+use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
 use songs_proto::moosync::types::Song;
-use types::prelude::SongsExt;
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     error::PlayerError,
@@ -18,11 +19,12 @@ pub(crate) struct MuxPlayer {
 // Common holder for all players
 // Decides which player to use for a given song and abstracts calls on the active player
 impl MuxPlayer {
-    pub fn new() -> Self {
+    pub fn new(events_tx: UnboundedSender<PlayerEvent>) -> Self {
         let players: Vec<Arc<Box<dyn PlayerExt>>> = vec![
-            Arc::new(Box::new(RodioPlayer::new())),
+            Arc::new(Box::new(RodioPlayer::new(events_tx))),
             // Player::Spotify(LibrespotHolder::new()),
         ];
+
         Self {
             active_player: players[0].clone(),
             players,
@@ -68,7 +70,7 @@ impl PlayerExt for MuxPlayer {
         self.active_player.stop()
     }
 
-    fn set_volume(&self, volume: f32) -> Result<(), PlayerError> {
+    fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
         self.active_player.set_volume(volume)
     }
 
@@ -86,10 +88,8 @@ impl PlayerExt for MuxPlayer {
         tracing::warn!("Do not call can_play on the mux player, it will always return false");
         false
     }
-}
 
-impl Default for MuxPlayer {
-    fn default() -> Self {
-        Self::new()
+    fn get_current_pos(&self) -> Result<std::time::Duration, PlayerError> {
+        self.active_player.get_current_pos()
     }
 }

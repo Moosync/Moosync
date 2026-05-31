@@ -19,16 +19,16 @@ use mockall::mock;
 
 #[cfg(not(target_os = "android"))]
 use souvlaki::{
-    MediaControls, MediaMetadata, MediaPlayback,
-    MediaPosition as SouvlakiMediaPosition, PlatformConfig,
+    MediaControls, MediaMetadata, MediaPlayback, MediaPosition as SouvlakiMediaPosition,
+    PlatformConfig,
 };
 
 #[cfg(not(target_os = "android"))]
 use std::time::Duration;
 
-use crate::{MediaControlEvent, MprisPlayerDetails};
 #[cfg(not(target_os = "android"))]
 use crate::SeekDirection;
+use crate::{MediaControlEvent, MprisPlayerDetails};
 use extensions_proto::moosync::types::PlayerState;
 #[cfg(not(target_os = "android"))]
 use types::errors::MoosyncError;
@@ -192,7 +192,10 @@ impl MprisContext for SouvlakiMprisContext {
 //  DummyContext — used on Wine / unsupported platforms.                   //
 // ─────────────────────────────────────────────────────────────────────── //
 
+#[cfg(target_os = "windows")]
 pub struct DummyContext {}
+
+#[cfg(target_os = "windows")]
 impl MprisContext for DummyContext {
     fn attach(&mut self, _: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<()> {
         Ok(())

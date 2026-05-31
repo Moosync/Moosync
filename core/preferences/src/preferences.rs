@@ -310,8 +310,10 @@ impl PreferenceConfig {
 }
 
 impl types::plugin::Plugin for PreferenceConfig {
-    fn init(context: &types::plugin::PluginContext) -> Self {
-        PreferenceConfig::new(context.data_dir.clone())
-            .expect("Failed to initialize PreferenceConfig")
+    fn init(context: &types::plugin::PluginContext) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+        types::plugin::Arc::new(types::plugin::RwLock::new(
+            PreferenceConfig::new(context.data_dir.clone())
+                .expect("Failed to initialize PreferenceConfig"),
+        ))
     }
 }

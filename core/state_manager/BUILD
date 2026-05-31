@@ -18,7 +18,6 @@ rust_library(
         "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",
         "//core/player",
-        "//core/queue_manager",
         # "//core/spotify_player",
         "//core/themes",
         "@crates//:tokio",

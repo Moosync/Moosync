@@ -1,4 +1,5 @@
 import { Theme } from "../constants.slint";
+import { BottomBarCallbacks } from "../callbacks.slint";
 
 export component PlaybackButton inherits Rectangle {
     in property <string> icon-name;
@@ -14,7 +15,12 @@ export component PlaybackButton inherits Rectangle {
     property <color> current-color: active ? Theme.accent : (touch.has-hover ? Theme.textPrimary : Theme.textSecondary);
     animate current-color { duration: 150ms; }
 
-    touch := TouchArea { }
+    callback clicked;
+    touch := TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
 
     Rectangle {
         width: Theme.playbackControlsIconSize;
@@ -121,7 +127,12 @@ export component PlayButton inherits Rectangle {
 
     animate background { duration: 150ms; }
 
-    touch := TouchArea { }
+    callback clicked;
+    touch := TouchArea {
+        clicked => {
+            root.clicked();
+        }
+    }
 
     Rectangle {
         width: Theme.playbackControlsIconSize * 2;
@@ -184,6 +195,11 @@ export component PlayButton inherits Rectangle {
 }
 
 export component PlaybackControls inherits VerticalLayout {
+    in property <int> repeat-mode: 0;
+    in property <bool> playing: false;
+    in property <string> current-pos-str: "00:00";
+    in property <string> duration-str: "00:00";
+
     spacing: Theme.spacingLg;
     alignment: center;
 
@@ -191,7 +207,7 @@ export component PlaybackControls inherits VerticalLayout {
         HorizontalLayout {
             padding-right: Theme.paddingLg;
             Text {
-                text: "3:32 / 6:10";
+                text: root.current-pos-str + " / " + (root.duration-str != "" ? root.duration-str : "00:00");
                 color: Theme.textSecondary; // Text Secondary
                 font-size: Theme.caption;
                 vertical-alignment: center;
@@ -201,23 +217,38 @@ export component PlaybackControls inherits VerticalLayout {
         alignment: center;
         PlaybackButton {
             icon-name: "prev";
+            clicked => {
+                BottomBarCallbacks.prev-song()
+            }
         }
 
         PlaybackButton {
             icon-name: "loop";
-            active: true;
-        } // Green repeat active in screenshot
+            active: root.repeat-mode != 0;
+            clicked => {
+                BottomBarCallbacks.toggle-repeat();
+            }
+        }
 
         PlayButton {
-            playing: false;
+            playing: root.playing;
+            clicked => {
+                BottomBarCallbacks.play-pause-clicked();
+            }
         }
 
         PlaybackButton {
             icon-name: "next";
+            clicked => {
+                BottomBarCallbacks.next-song()
+            }
         }
 
         PlaybackButton {
             icon-name: "shuffle";
+            clicked => {
+                BottomBarCallbacks.shuffle()
+            }
         }
 
         PlaybackButton {

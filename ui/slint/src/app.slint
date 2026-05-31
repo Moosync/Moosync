@@ -17,9 +17,9 @@ import { PlaylistsPage } from "main_content/playlists.slint";
 import { GenresPage } from "main_content/genres.slint";
 import { ExplorePage } from "main_content/explore.slint";
 import { Pages, Constants, Theme } from "constants.slint";
-import { AppCallbacks } from "callbacks.slint";
+import { AppCallbacks, BottomBarCallbacks } from "callbacks.slint";
 
-export { CoverHelper, Constants, Theme, AppCallbacks }
+export { CoverHelper, Constants, Theme, AppCallbacks, BottomBarCallbacks }
 
 component PageWrapper inherits Rectangle {
     in property <Pages> page-type;
@@ -96,12 +96,18 @@ export component MainWindow inherits Window {
         AppCallbacks.active-page-changed(self.active-page);
     }
 
+    in property <SongModel> current_song: Constants.defaultSong;
+    in-out property <int> repeat_mode: 0;
+    in-out property <bool> playing: false;
+    in-out property <int> current_duration: 0;
+    in-out property <string> current_pos_str: "00:00";
+
+    in property <[SongModel]> queue: Constants.testSongs;
     in property <[SongModel]> songs: Constants.testSongs;
     in property <[AlbumModel]> albums: Constants.testAlbums;
     in property <[PlaylistModel]> playlists: Constants.testPlaylists;
     in property <[ArtistModel]> artists: Constants.testArtists;
     in property <[GenreModel]> genres: Constants.testGenres;
-
 
     VerticalLayout {
         spacing: 0px;
@@ -171,6 +177,12 @@ export component MainWindow inherits Window {
         }
 
         // Bottom player controller section
-        BottomBar { }
+        BottomBar {
+            current-song: root.current_song;
+            repeat-mode: root.repeat_mode;
+            playing: root.playing;
+            current_duration: root.current_duration;
+            current-pos-str: root.current_pos_str;
+        }
     }
 }

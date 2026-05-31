@@ -1,4 +1,4 @@
-use slint::{ComponentHandle, Image, ModelRc, Weak};
+use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{Artist, ArtistList, GetEntityOptions, entity_result};
 use state_manager::StateManager;
 use std::sync::{Arc, Mutex};
@@ -6,7 +6,6 @@ use tracing::debug;
 use types::ScanProgress;
 use types::errors::MoosyncError;
 
-use crate::ArtistModel;
 use crate::utils::LazySongVecModel;
 use crate::{MainWindow, Pages, pages::PageHandler};
 
@@ -94,13 +93,7 @@ fn set_all_artists(main_window: &MainWindow, artists: Vec<Artist>) {
     debug!("Setting artists");
     let artist_model = artists
         .into_iter()
-        .map(|artist| ArtistModel {
-            coverPath: Image::default(),
-            coverPathUrl: artist.artist_coverpath.clone().unwrap_or_default().into(),
-            id: artist.artist_id.clone().unwrap_or_default().into(),
-            songs_count: artist.artist_song_count as i32,
-            title: artist.artist_name.clone().unwrap_or_default().into(),
-        })
+        .map(|artist| crate::utils::to_artist_model(&artist))
         .collect::<Vec<_>>();
 
     main_window.set_artists(ModelRc::new(LazySongVecModel::new(artist_model, 230, 200)));

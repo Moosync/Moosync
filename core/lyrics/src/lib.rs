@@ -268,7 +268,7 @@ impl LyricsFetcher {
 pub fn main() {}
 
 impl types::plugin::Plugin for LyricsFetcher {
-    fn init(_context: &types::plugin::PluginContext) -> Self {
-        LyricsFetcher::new()
+    fn init(_context: &types::plugin::PluginContext) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+        types::plugin::Arc::new(types::plugin::RwLock::new(LyricsFetcher::new()))
     }
 }

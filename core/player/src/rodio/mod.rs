@@ -14,19 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{
-    sync::{
-        Arc, Mutex,
-        mpsc::{Receiver, Sender, channel},
-    },
-    thread,
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
-use rodio::{MixerDeviceSink, Player};
-use tracing::{debug, error, info};
-use types::errors::MoosyncError;
+use rodio::{MixerDeviceSink, Player, source::EmptyCallback};
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     error::PlayerError, generic::PlayerExt, rodio::decoder::FFMPEGDecoder, source::ValidSrc,
@@ -36,30 +28,28 @@ mod decoder;
 pub(crate) use decoder::DecoderError;
 
 pub struct RodioPlayer {
-    sink: MixerDeviceSink,
-    player: Player,
-}
-
-enum RodioCommand {
-    SetSrc(String),
-    Play,
-    Pause,
-    Stop,
-    SetVolume(f32),
-    Seek(u64),
+    _sink: MixerDeviceSink,
+    player: Arc<Player>,
+    events_tx: UnboundedSender<PlayerEvent>,
 }
 
 impl RodioPlayer {
     #[tracing::instrument(level = "debug", skip())]
-    pub fn new() -> Self {
-        let sink = rodio::DeviceSinkBuilder::open_default_sink().unwrap();
-        let player = rodio::Player::connect_new(sink.mixer());
+    pub fn new(events_tx: UnboundedSender<PlayerEvent>) -> Self {
+        let _sink = rodio::DeviceSinkBuilder::open_default_sink().unwrap();
+        let player = Arc::new(rodio::Player::connect_new(_sink.mixer()));
 
-        Self { sink, player }
+        Self {
+            _sink,
+            player,
+            events_tx,
+        }
     }
 
-    fn send_event(events_tx: Sender<PlayerEvent>, event: PlayerEvent) {
-        events_tx.send(event).unwrap();
+    fn send_event(events_tx: UnboundedSender<PlayerEvent>, event: PlayerEvent) {
+        if let Err(e) = events_tx.send(event) {
+            tracing::error!("Failed to send event: {:?}", e);
+        }
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -88,8 +78,8 @@ impl PlayerExt for RodioPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    fn set_volume(&self, volume: f32) -> Result<(), PlayerError> {
-        self.player.set_volume(volume);
+    fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
+        self.player.set_volume(volume as f32 / 100f32);
         Ok(())
     }
 
@@ -100,7 +90,15 @@ impl PlayerExt for RodioPlayer {
     }
 
     fn set_src(&self, src: ValidSrc) -> Result<(), PlayerError> {
+        let events_tx = self.events_tx.clone();
+
+        self.player.clear();
         self.player.append(FFMPEGDecoder::open(&src.inner())?);
+        self.player.append(EmptyCallback::new(Box::new(move || {
+            let events_tx = events_tx.clone();
+            Self::send_event(events_tx, PlayerEvent::Ended(true));
+        })));
+
         Ok(())
     }
 
@@ -110,10 +108,8 @@ impl PlayerExt for RodioPlayer {
             ValidSrc::Url(url) => url.starts_with("http://") || url.starts_with("https://"),
         }
     }
-}
 
-impl Default for RodioPlayer {
-    fn default() -> Self {
-        Self::new()
+    fn get_current_pos(&self) -> Result<Duration, PlayerError> {
+        Ok(self.player.get_pos())
     }
 }

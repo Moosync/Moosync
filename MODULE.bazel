@@ -3,7 +3,6 @@ module(
     version = "11.0.2",
 )
 
-
 bazel_dep(name = "rules_rust", version = "0.70.0")
 single_version_override(
     module_name = "rules_rust",
@@ -39,8 +38,6 @@ include("//modules:rust_toolchains.MODULE.bazel")
 include("//modules:crates.MODULE.bazel")
 include("//modules:android_toolchains.MODULE.bazel")
 
-
-
 register_toolchains(
     "//:shell_android_x86_64_toolchain",
     "//:shell_android_arm64_toolchain",
@@ -48,4 +45,3 @@ register_toolchains(
 
 sh_configure = use_extension("@rules_shell//shell/private/extensions:sh_configure.bzl", "sh_configure")
 use_repo(sh_configure, "local_config_shell")
-

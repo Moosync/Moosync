@@ -352,11 +352,11 @@ impl ExtensionHandler {
 }
 
 impl types::plugin::Plugin for ExtensionHandler {
-    fn init(context: &types::plugin::PluginContext) -> Self {
-        ExtensionHandler::new(
+    fn init(context: &types::plugin::PluginContext) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+        types::plugin::Arc::new(types::plugin::RwLock::new(ExtensionHandler::new(
             context.data_dir.join("extensions"),
             context.tmp_dir.clone(),
             context.cache_dir.clone(),
-        )
+        )))
     }
 }

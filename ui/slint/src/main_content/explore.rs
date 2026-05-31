@@ -1,5 +1,5 @@
-use state_manager::StateManager;
 use crate::{MainWindow, pages::PageHandler};
+use state_manager::StateManager;
 
 pub struct ExplorePageHandler<'a> {
     main_window: &'a MainWindow,

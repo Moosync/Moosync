@@ -37,9 +37,11 @@ rust_library(
     edition = "2021",
     deps = [
         ":build_script",  # Exposes the generated code
+        "//core/player",
         "//core/state_manager",
         "//core/types",
         "//core/types/protos:songs_rs",
+        "//core/types/protos:extensions_rs",
         "@crates//:platform-dirs",
         "@crates//:slint",
         "@crates//:tokio",
@@ -91,9 +93,11 @@ rust_shared_library(
     edition = "2021",
     deps = [
         ":build_script",
+        "//core/player",
         "//core/state_manager",
         "//core/types",
         "//core/types/protos:songs_rs",
+        "//core/types/protos:extensions_rs",
         "@crates//:jni",
         "@crates//:platform-dirs",
         "@crates//:slint",

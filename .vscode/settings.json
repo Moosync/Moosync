@@ -5,11 +5,30 @@
   "bazel.lsp.command": "bazel-lsp",
   "testing.coverageToolbarEnabled": true,
   "bazel.buildifierFixOnFormat": true,
-  // "rust-analyzer.check.overrideCommand": [
-  //   "${workspaceFolder}/tools/rust_analyzer.sh",
-  //   "$saved_file",
-  //   "${workspaceFolder}"
-  // ],
+  "rust-analyzer.check.extraEnv": {
+    "ANDROID_NDK_HOME": "/home/ovenoboyo/Android/Sdk/ndk/30.0.14904198",
+    "ANDROID_HOME": "/home/ovenoboyo/Android/Sdk",
+    "ANDROID_SDK_ROOT": "/home/ovenoboyo/Android/Sdk"
+  },
+  "rust-analyzer.check.overrideCommand": [
+    "bazel",
+    "--output_base=/tmp/bazel/ra_output",
+    "build",
+    "//core/database",
+    "//core/extensions",
+    "//core/lyrics",
+    "//core/mpris",
+    "//core/player",
+    "//core/plugin_macro",
+    "//core/preferences",
+    "//core/state_manager",
+    "//core/themes",
+    "//core/types",
+    "//ui/slint:slint_app_lib",
+    "--jobs",
+    "32",
+    "--@rules_rust//:error_format=json",
+  ],
   // "rust-analyzer.cargo.target": "x86_64-linux-android",
   "rust-analyzer.workspace.discoverConfig": {
     "command": [
@@ -23,8 +42,7 @@
       "MODULE.bazel"
     ]
   },
-  "rust-analyzer.trace.server": "verbose",
-  "rust-analyzer.check.command": "check",
+  "rust-analyzer.trace.server": "off",
   "rust-analyzer.server.extraEnv": {
     "RA_LOG": "info"
   },

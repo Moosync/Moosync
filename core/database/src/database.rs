@@ -19,22 +19,22 @@ use std::fmt::Write;
 use std::fs;
 use std::{path::PathBuf, vec};
 
-
 use tracing::{debug, info, trace, warn};
 use uuid::Uuid;
 
 use songs_proto::moosync::types::SearchResult;
-use songs_proto::moosync::types::{Album, AlbumList, Artist, ArtistList, EntityResult, Genre, GenreList, GetEntityOptions, Playlist, PlaylistList};
-use songs_proto::moosync::types::{AllAnalytics, SearchableSong};
 use songs_proto::moosync::types::{
-    GetSongOptions, InnerSong, Song, all_analytics::SongListenTime,
+    Album, AlbumList, Artist, ArtistList, EntityResult, Genre, GenreList, GetEntityOptions,
+    Playlist, PlaylistList,
 };
+use songs_proto::moosync::types::{AllAnalytics, SearchableSong};
+use songs_proto::moosync::types::{GetSongOptions, InnerSong, Song, all_analytics::SongListenTime};
 use types::errors::{Result, error_helpers};
 use types::prelude::SongsExt;
 
 use crate::utils::{
-    map_row_to_album, map_row_to_artist, map_row_to_genre, map_row_to_inner_song,
-    map_row_to_playlist, song_type_to_str, SearchByTerm,
+    SearchByTerm, map_row_to_album, map_row_to_artist, map_row_to_genre, map_row_to_inner_song,
+    map_row_to_playlist, proto_to_db_ms, song_type_to_str,
 };
 
 use super::migrations::run_migrations;
@@ -75,18 +75,17 @@ impl Database {
 
     #[tracing::instrument(level = "debug", skip(path))]
     fn connect(path: PathBuf) -> r2d2::Pool<r2d2_sqlite::SqliteConnectionManager> {
-        let manager = r2d2_sqlite::SqliteConnectionManager::file(path)
-            .with_init(|conn| {
-                conn.trace_v2(
-                    rusqlite::trace::TraceEventCodes::SQLITE_TRACE_STMT,
-                    Some(|event| {
-                        if let rusqlite::trace::TraceEvent::Stmt(_, sql) = event {
-                            tracing::trace!("Executing SQL: {}", sql);
-                        }
-                    }),
-                );
-                Ok(())
-            });
+        let manager = r2d2_sqlite::SqliteConnectionManager::file(path).with_init(|conn| {
+            conn.trace_v2(
+                rusqlite::trace::TraceEventCodes::SQLITE_TRACE_STMT,
+                Some(|event| {
+                    if let rusqlite::trace::TraceEvent::Stmt(_, sql) = event {
+                        tracing::trace!("Executing SQL: {}", sql);
+                    }
+                }),
+            );
+            Ok(())
+        });
 
         r2d2::Pool::builder()
             .build(manager)
@@ -110,7 +109,9 @@ impl Database {
              WHERE b.{} = ?1",
             bridge_table, id_column
         );
-        let mut stmt = conn.prepare(&query).map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn
+            .prepare(&query)
+            .map_err(error_helpers::to_database_error)?;
         let rows = stmt
             .query_map([entity_id], map_row_to_inner_song)
             .map_err(error_helpers::to_database_error)?;
@@ -123,11 +124,7 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self, conn))]
-    fn insert_album(
-        &self,
-        conn: &mut rusqlite::Connection,
-        album: Album,
-    ) -> Result<String> {
+    fn insert_album(&self, conn: &mut rusqlite::Connection, album: Album) -> Result<String> {
         let id = Uuid::new_v4().to_string();
         trace!("Inserting album");
         conn.execute(
@@ -150,11 +147,7 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self, conn))]
-    fn insert_artist(
-        &self,
-        conn: &mut rusqlite::Connection,
-        artist: Artist,
-    ) -> Result<String> {
+    fn insert_artist(&self, conn: &mut rusqlite::Connection, artist: Artist) -> Result<String> {
         let id = Uuid::new_v4().to_string();
         trace!("Inserting artist");
         conn.execute(
@@ -176,11 +169,7 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self, conn))]
-    fn insert_genre(
-        &self,
-        conn: &mut rusqlite::Connection,
-        genre: Genre,
-    ) -> Result<String> {
+    fn insert_genre(&self, conn: &mut rusqlite::Connection, genre: Genre) -> Result<String> {
         let id = Uuid::new_v4().to_string();
         trace!("Inserting genre");
         conn.execute(
@@ -300,7 +289,7 @@ impl Database {
                     &inner_song.bitrate,
                     &inner_song.codec,
                     &inner_song.container,
-                    &inner_song.duration,
+                    &proto_to_db_ms(&inner_song.duration),
                     &inner_song.sample_rate,
                     &inner_song.hash,
                     &song_type,
@@ -424,7 +413,9 @@ impl Database {
     pub fn remove_songs(&self, ids: Vec<String>) -> Result<()> {
         trace!("Removing song");
         let mut conn = self.pool.get().unwrap();
-        let tx = conn.transaction().map_err(error_helpers::to_database_error)?;
+        let tx = conn
+            .transaction()
+            .map_err(error_helpers::to_database_error)?;
         for id in ids {
             tx.execute("DELETE FROM analytics WHERE song_id = ?1", [&id])
                 .map_err(error_helpers::to_database_error)?;
@@ -463,7 +454,7 @@ impl Database {
                 &song.bitrate,
                 &song.codec,
                 &song.container,
-                &song.duration,
+                &proto_to_db_ms(&song.duration),
                 &song.sample_rate,
                 &song.hash,
                 &song_type,
@@ -524,8 +515,12 @@ impl Database {
         }
 
         trace!("Getting albums");
-        let mut stmt = conn.prepare(&query).map_err(error_helpers::to_database_error)?;
-        let rows = stmt.query_map(&*params, map_row_to_album).map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn
+            .prepare(&query)
+            .map_err(error_helpers::to_database_error)?;
+        let rows = stmt
+            .query_map(&*params, map_row_to_album)
+            .map_err(error_helpers::to_database_error)?;
 
         let mut fetched = Vec::new();
         for r in rows {
@@ -566,8 +561,12 @@ impl Database {
         }
 
         trace!("Fetching artists");
-        let mut stmt = conn.prepare(&query).map_err(error_helpers::to_database_error)?;
-        let rows = stmt.query_map(&*params, map_row_to_artist).map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn
+            .prepare(&query)
+            .map_err(error_helpers::to_database_error)?;
+        let rows = stmt
+            .query_map(&*params, map_row_to_artist)
+            .map_err(error_helpers::to_database_error)?;
 
         let mut fetched = Vec::new();
         for r in rows {
@@ -604,8 +603,12 @@ impl Database {
         }
 
         trace!("Fetching genres");
-        let mut stmt = conn.prepare(&query).map_err(error_helpers::to_database_error)?;
-        let rows = stmt.query_map(&*params, map_row_to_genre).map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn
+            .prepare(&query)
+            .map_err(error_helpers::to_database_error)?;
+        let rows = stmt
+            .query_map(&*params, map_row_to_genre)
+            .map_err(error_helpers::to_database_error)?;
 
         let mut fetched = Vec::new();
         for r in rows {
@@ -646,8 +649,12 @@ impl Database {
         }
 
         trace!("Fetching playlists");
-        let mut stmt = conn.prepare(&query).map_err(error_helpers::to_database_error)?;
-        let rows = stmt.query_map(&*params, map_row_to_playlist).map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn
+            .prepare(&query)
+            .map_err(error_helpers::to_database_error)?;
+        let rows = stmt
+            .query_map(&*params, map_row_to_playlist)
+            .map_err(error_helpers::to_database_error)?;
 
         let mut fetched = Vec::new();
         for r in rows {
@@ -658,11 +665,13 @@ impl Database {
 
     pub fn is_song_in_playlist(&self, playlist_id: String, song_id: String) -> Result<bool> {
         let conn = self.pool.get().unwrap();
-        let count: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM playlist_bridge WHERE playlist = ?1 AND song = ?2",
-            (playlist_id, song_id),
-            |row| row.get(0),
-        ).map_err(error_helpers::to_database_error)?;
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM playlist_bridge WHERE playlist = ?1 AND song = ?2",
+                (playlist_id, song_id),
+                |row| row.get(0),
+            )
+            .map_err(error_helpers::to_database_error)?;
         Ok(count > 0)
     }
 
@@ -675,33 +684,41 @@ impl Database {
 
         if let Some(album) = options.album {
             return Ok(EntityResult {
-                result: Some(songs_proto::moosync::types::entity_result::Result::Albums(AlbumList {
-                    albums: self.get_albums(album, inclusive, &mut conn)?,
-                })),
+                result: Some(songs_proto::moosync::types::entity_result::Result::Albums(
+                    AlbumList {
+                        albums: self.get_albums(album, inclusive, &mut conn)?,
+                    },
+                )),
             });
         }
 
         if let Some(artist) = options.artist {
             return Ok(EntityResult {
-                result: Some(songs_proto::moosync::types::entity_result::Result::Artists(ArtistList {
-                    artists: self.get_artists(artist, inclusive, &mut conn)?,
-                })),
+                result: Some(songs_proto::moosync::types::entity_result::Result::Artists(
+                    ArtistList {
+                        artists: self.get_artists(artist, inclusive, &mut conn)?,
+                    },
+                )),
             });
         }
 
         if let Some(genre) = options.genre {
             return Ok(EntityResult {
-                result: Some(songs_proto::moosync::types::entity_result::Result::Genres(GenreList {
-                    genres: self.get_genres(genre, inclusive, &mut conn)?,
-                })),
+                result: Some(songs_proto::moosync::types::entity_result::Result::Genres(
+                    GenreList {
+                        genres: self.get_genres(genre, inclusive, &mut conn)?,
+                    },
+                )),
             });
         }
 
         if let Some(playlist) = options.playlist {
             return Ok(EntityResult {
-                result: Some(songs_proto::moosync::types::entity_result::Result::Playlists(PlaylistList {
-                    playlists: self.get_playlists(playlist, inclusive, &mut conn)?,
-                })),
+                result: Some(
+                    songs_proto::moosync::types::entity_result::Result::Playlists(PlaylistList {
+                        playlists: self.get_playlists(playlist, inclusive, &mut conn)?,
+                    }),
+                ),
             });
         }
 
@@ -816,18 +833,24 @@ impl Database {
              JOIN artist_bridge b ON a.artist_id = b.artist
              WHERE b.song = ?1"
         ).map_err(error_helpers::to_database_error)?;
-        let artist_rows = stmt_artists.query_map([&s.id], map_row_to_artist).map_err(error_helpers::to_database_error)?;
+        let artist_rows = stmt_artists
+            .query_map([&s.id], map_row_to_artist)
+            .map_err(error_helpers::to_database_error)?;
         for r in artist_rows {
             artist.push(r.map_err(error_helpers::to_database_error)?);
         }
 
-        let mut stmt_genres = conn.prepare(
-            "SELECT a.genre_id, a.genre_name, a.genre_song_count
+        let mut stmt_genres = conn
+            .prepare(
+                "SELECT a.genre_id, a.genre_name, a.genre_song_count
              FROM genres a
              JOIN genre_bridge b ON a.genre_id = b.genre
-             WHERE b.song = ?1"
-        ).map_err(error_helpers::to_database_error)?;
-        let genre_rows = stmt_genres.query_map([&s.id], map_row_to_genre).map_err(error_helpers::to_database_error)?;
+             WHERE b.song = ?1",
+            )
+            .map_err(error_helpers::to_database_error)?;
+        let genre_rows = stmt_genres
+            .query_map([&s.id], map_row_to_genre)
+            .map_err(error_helpers::to_database_error)?;
         for r in genre_rows {
             genre.push(r.map_err(error_helpers::to_database_error)?);
         }
@@ -903,8 +926,12 @@ impl Database {
                 query.push_str(&clauses.join(joiner));
             }
 
-            let mut stmt = conn.prepare(&query).map_err(error_helpers::to_database_error)?;
-            let rows = stmt.query_map(&*params, map_row_to_inner_song).map_err(error_helpers::to_database_error)?;
+            let mut stmt = conn
+                .prepare(&query)
+                .map_err(error_helpers::to_database_error)?;
+            let rows = stmt
+                .query_map(&*params, map_row_to_inner_song)
+                .map_err(error_helpers::to_database_error)?;
 
             let mut fetched = Vec::new();
             for r in rows {
@@ -1055,12 +1082,16 @@ impl Database {
             query.push_str(" WHERE ");
             query.push_str(&clauses.join(" OR "));
 
-            let mut stmt = conn.prepare(&query).map_err(error_helpers::to_database_error)?;
-            let rows = stmt.query_map(&*params, |row| {
-                let p: Option<String> = row.get(0)?;
-                let s: Option<f64> = row.get(1)?;
-                Ok((p, s))
-            }).map_err(error_helpers::to_database_error)?;
+            let mut stmt = conn
+                .prepare(&query)
+                .map_err(error_helpers::to_database_error)?;
+            let rows = stmt
+                .query_map(&*params, |row| {
+                    let p: Option<String> = row.get(0)?;
+                    let s: Option<f64> = row.get(1)?;
+                    Ok((p, s))
+                })
+                .map_err(error_helpers::to_database_error)?;
 
             for r in rows {
                 let (path_opt, size_opt) = r.map_err(error_helpers::to_database_error)?;
@@ -1100,7 +1131,8 @@ impl Database {
             conn.execute(
                 "DELETE FROM playlist_bridge WHERE playlist = ?1 AND song = ?2",
                 (&id, &s),
-            ).map_err(error_helpers::to_database_error)?;
+            )
+            .map_err(error_helpers::to_database_error)?;
         }
         info!("Removed from playlist");
         Ok(())
@@ -1137,8 +1169,9 @@ impl Database {
                 &album.year,
                 &album.album_coverpath_low,
                 &album.album_id,
-            )
-        ).map_err(error_helpers::to_database_error)?;
+            ),
+        )
+        .map_err(error_helpers::to_database_error)?;
 
         info!("Updated album");
         Ok(())
@@ -1161,8 +1194,9 @@ impl Database {
                 &artist.artist_song_count,
                 &artist.sanitized_artist_name,
                 &artist.artist_id,
-            )
-        ).map_err(error_helpers::to_database_error)?;
+            ),
+        )
+        .map_err(error_helpers::to_database_error)?;
         info!("Updated artist");
         Ok(())
     }
@@ -1186,8 +1220,9 @@ impl Database {
                 &playlist.icon,
                 &playlist.library_item,
                 &playlist.playlist_id,
-            )
-        ).map_err(error_helpers::to_database_error)?;
+            ),
+        )
+        .map_err(error_helpers::to_database_error)?;
         info!("Updated playlist");
         Ok(())
     }
@@ -1221,7 +1256,7 @@ impl Database {
                     &inner_song.bitrate,
                     &inner_song.codec,
                     &inner_song.container,
-                    &inner_song.duration,
+                    &proto_to_db_ms(&inner_song.duration),
                     &inner_song.sample_rate,
                     &inner_song.hash,
                     &song_type,
@@ -1262,7 +1297,8 @@ impl Database {
         conn.execute(
             "UPDATE allsongs SET lyrics = ?1 WHERE _id = ?2",
             (&lyrics, &id),
-        ).map_err(error_helpers::to_database_error)?;
+        )
+        .map_err(error_helpers::to_database_error)?;
         info!("Updated lyrics");
         Ok(())
     }
@@ -1293,7 +1329,8 @@ impl Database {
         conn.execute(
             "UPDATE analytics SET play_count = COALESCE(play_count, 0) + 1 WHERE song_id = ?1",
             [&id],
-        ).map_err(error_helpers::to_database_error)?;
+        )
+        .map_err(error_helpers::to_database_error)?;
 
         info!("Incremented play count");
         Ok(())
@@ -1326,7 +1363,8 @@ impl Database {
         conn.execute(
             "UPDATE analytics SET play_time = COALESCE(play_time, 0.0) + ?1 WHERE song_id = ?2",
             (duration, &id),
-        ).map_err(error_helpers::to_database_error)?;
+        )
+        .map_err(error_helpers::to_database_error)?;
 
         info!("Incremented playtime");
 
@@ -1335,15 +1373,17 @@ impl Database {
 
     pub fn get_top_listened_songs(&self) -> Result<AllAnalytics> {
         let conn = self.pool.get().unwrap();
-        let mut stmt = conn.prepare(
-            "SELECT song_id, play_time FROM analytics ORDER BY play_time DESC LIMIT 10"
-        ).map_err(error_helpers::to_database_error)?;
-        
-        let song_rows = stmt.query_map([], |row| {
-            let song_id: Option<String> = row.get(0)?;
-            let play_time: Option<f64> = row.get(1)?;
-            Ok((song_id, play_time))
-        }).map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn
+            .prepare("SELECT song_id, play_time FROM analytics ORDER BY play_time DESC LIMIT 10")
+            .map_err(error_helpers::to_database_error)?;
+
+        let song_rows = stmt
+            .query_map([], |row| {
+                let song_id: Option<String> = row.get(0)?;
+                let play_time: Option<f64> = row.get(1)?;
+                Ok((song_id, play_time))
+            })
+            .map_err(error_helpers::to_database_error)?;
 
         let mut songs = Vec::new();
         for r in song_rows {
@@ -1356,11 +1396,9 @@ impl Database {
             }
         }
 
-        let total_listen_time: Option<f64> = conn.query_row(
-            "SELECT SUM(play_time) FROM analytics",
-            [],
-            |row| row.get(0),
-        ).unwrap_or(Some(0.0));
+        let total_listen_time: Option<f64> = conn
+            .query_row("SELECT SUM(play_time) FROM analytics", [], |row| row.get(0))
+            .unwrap_or(Some(0.0));
 
         Ok(AllAnalytics {
             total_listen_time: total_listen_time.unwrap_or_default(),
@@ -1401,7 +1439,7 @@ impl Database {
         for s in playlist_songs {
             if let Some(inner_song) = s.song {
                 if let Some(path) = &inner_song.path {
-                    let duration = inner_song.duration.unwrap_or(0f64);
+                    let duration = inner_song.duration.unwrap_or_default();
                     let title = inner_song.title.unwrap_or_default();
                     let album_info = s.album.as_ref().map_or(String::new(), |album| {
                         format!("#EXTALB:{}", album.album_name.clone().unwrap_or_default())
@@ -1428,10 +1466,16 @@ impl Database {
                     write!(
                         ret,
                         "#EXTINF:{},{}\n{}\n{}\n{}\n{}\n{}\n",
-                        duration, title, album_info, genre_info, cover_path, song_info, file_path
+                        proto_to_db_ms(&Some(duration)),
+                        title,
+                        album_info,
+                        genre_info,
+                        cover_path,
+                        song_info,
+                        file_path
                     )?;
                 } else if let Some(url) = &inner_song.url {
-                    let duration = inner_song.duration.unwrap_or(0f64);
+                    let duration = inner_song.duration.unwrap_or_default();
                     let title = inner_song.title.unwrap_or_default();
                     let album_info = s.album.as_ref().map_or(String::new(), |album| {
                         format!("#EXTALB:{}", album.album_name.clone().unwrap_or_default())
@@ -1457,7 +1501,13 @@ impl Database {
                     write!(
                         ret,
                         "#EXTINF:{},{}\n{}\n{}\n{}\n{}\n{}\n",
-                        duration, title, album_info, genre_info, cover_path, song_info, url
+                        proto_to_db_ms(&Some(duration)),
+                        title,
+                        album_info,
+                        genre_info,
+                        cover_path,
+                        song_info,
+                        url
                     )?;
                 }
             }
@@ -1468,8 +1518,11 @@ impl Database {
 }
 
 impl types::plugin::Plugin for Database {
-    fn init(context: &types::plugin::PluginContext) -> Self {
-        Database::new(context.data_dir.clone())
+    fn init(
+        context: &types::plugin::PluginContext,
+    ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+        types::plugin::Arc::new(types::plugin::RwLock::new(Database::new(
+            context.data_dir.clone(),
+        )))
     }
 }
-

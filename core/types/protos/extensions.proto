@@ -6,6 +6,7 @@ import "core/types/protos/songs.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/empty.proto";
 import "core/types/protos/ui.proto";
+import "google/protobuf/duration.proto";
 
 message RunnerCommand {
   oneof command {
@@ -482,7 +483,7 @@ message PlayerEvent {
     bool pause = 2;
     bool ended = 3;
     bool loading = 4;
-    double time_update = 5;
+    google.protobuf.Duration time_update = 5;
     string error = 6;
   }
 }

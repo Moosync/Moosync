@@ -1,8 +1,10 @@
 import { Theme } from "../constants.slint";
+import { SongModel, CoverHelper } from "../types/song_view.slint";
 
 export component TrackInfo inherits Rectangle {
     width: Theme.trackInfoWidth;
     height: Theme.topbarHeight;
+    in property <SongModel> current-song;
 
     HorizontalLayout {
         spacing: Theme.spacingMd;
@@ -15,12 +17,14 @@ export component TrackInfo inherits Rectangle {
             background: Theme.secondary;
             border-width: Theme.borderWidth;
             border-color: Theme.textPrimary.with-alpha(0.06);
+            clip: true;
 
             Image {
-                width: Theme.iconSizeXl;
-                height: Theme.iconSizeXl;
-                source: @image-url("../icons/song_default.svg");
-                colorize: Theme.textSecondary;
+                width: root.current-song.id == "" ? Theme.iconSizeXl : parent.width;
+                height: root.current-song.id == "" ? Theme.iconSizeXl : parent.height;
+                source: root.current-song.coverPathLow.width > 0 ? root.current-song.coverPathLow : (root.current-song.id != "" ? CoverHelper.fetch_cover_high(root.current-song) : @image-url("../icons/song_default.svg"));
+                image-fit: cover;
+                colorize: root.current-song.id == "" ? Theme.textSecondary : transparent;
             }
         }
 
@@ -30,7 +34,7 @@ export component TrackInfo inherits Rectangle {
             spacing: Theme.spacingTiny;
 
             Text {
-                text: "";
+                text: root.current-song.title;
                 color: Theme.textPrimary; // Text Primary
                 font-size: Theme.body;
                 font-weight: 600;
@@ -38,14 +42,14 @@ export component TrackInfo inherits Rectangle {
             }
 
             Text {
-                text: "";
+                text: root.current-song.artist_name;
                 color: Theme.textSecondary; // Text Secondary
                 font-size: Theme.caption;
                 overflow: elide;
             }
 
             Text {
-                text: "";
+                text: root.current-song.album_name;
                 color: Theme.textSecondary; // Text Secondary
                 font-size: Theme.extraSmall;
             }

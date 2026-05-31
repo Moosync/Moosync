@@ -34,8 +34,12 @@ pub enum ScanProgress {
 }
 
 pub mod prelude {
+    use std::time::Duration;
+
     use songs_proto::moosync::types::{InnerSong, Song, SongType};
     use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
+
+    use crate::errors::MoosyncError;
 
     pub trait ThemeExt {
         fn get_theme_item_or_default(&self) -> ThemeItem;
@@ -58,10 +62,16 @@ pub mod prelude {
         }
     }
 
+    pub fn format_duration(secs: i64) -> String {
+        let minutes = secs / 60;
+        let seconds = secs % 60;
+        format!("{:02}:{:02}", minutes, seconds)
+    }
+
     pub trait SongsExt {
         fn get_id(&self) -> Option<String>;
         fn get_title(&self) -> Option<String>;
-        fn get_duration_or_default(&self) -> f64;
+        fn get_duration_or_default(&self) -> std::time::Duration;
         fn get_cover_high(&self) -> Option<String>;
         fn get_cover_low(&self) -> Option<String>;
         fn get_playback_url(&self) -> Option<String>;
@@ -74,13 +84,10 @@ pub mod prelude {
         fn get_album_string(&self) -> Option<String>;
         fn format_duration(&self) -> String {
             let duration = self.get_duration_or_default();
-            if duration < 0.0 {
+            if duration == std::time::Duration::ZERO {
                 return "Unknown".to_string();
             }
-            let secs = (duration / 1000.0).round() as u64;
-            let minutes = secs / 60;
-            let seconds = secs % 60;
-            format!("{:02}:{:02}", minutes, seconds)
+            format_duration(duration.as_secs() as i64)
         }
     }
 
@@ -91,8 +98,15 @@ pub mod prelude {
         fn get_title(&self) -> Option<String> {
             self.song.as_ref().and_then(|s| s.title.clone())
         }
-        fn get_duration_or_default(&self) -> f64 {
-            self.song.as_ref().and_then(|s| s.duration).unwrap_or(-1f64)
+        fn get_duration_or_default(&self) -> std::time::Duration {
+            self.song
+                .as_ref()
+                .and_then(|s| {
+                    s.duration
+                        .as_ref()
+                        .map(|d| proto_duration_to_core(d.clone()).unwrap_or_default())
+                })
+                .unwrap_or(std::time::Duration::ZERO)
         }
         fn get_cover_high(&self) -> Option<String> {
             self.song
@@ -174,6 +188,37 @@ pub mod prelude {
                 divider: "rgba(79, 79, 79, 0.67)".into(),
                 custom_css: None,
             })
+        }
+    }
+
+    fn format_position(duration: Duration) -> String {
+        let secs = duration.as_secs();
+        let minutes = secs / 60;
+        let seconds = secs % 60;
+        format!("{:02}:{:02}", minutes, seconds)
+    }
+
+    // Assuming your generated module is `pb` and the struct is `pb::Duration`
+    fn proto_duration_to_core(
+        proto_dur: songs_proto::duration_proto::google::protobuf::Duration,
+    ) -> Result<std::time::Duration, MoosyncError> {
+        if proto_dur.seconds < 0 || proto_dur.nanos < 0 {
+            return Err("Cannot convert negative protobuf duration to core::time::Duration".into());
+        }
+
+        // 3. Safely cast to unsigned integers and create the standard Duration
+        Ok(std::time::Duration::new(
+            proto_dur.seconds as u64,
+            proto_dur.nanos as u32,
+        ))
+    }
+
+    pub fn core_to_proto_duration(
+        rust_dur: std::time::Duration,
+    ) -> songs_proto::duration_proto::google::protobuf::Duration {
+        songs_proto::duration_proto::google::protobuf::Duration {
+            seconds: rust_dur.as_secs() as i64,
+            nanos: rust_dur.subsec_nanos() as i32,
         }
     }
 }

@@ -1,8 +1,22 @@
 import { Theme } from "../constants.slint";
+import { BottomBarCallbacks } from "../callbacks.slint";
+
+export enum VolumeScale { Linear, Logarithmic }
 
 export component VolumeControl inherits VerticalLayout {
-    in-out property <float> volume: 0.70; // 0.0 to 1.0 representing current volume (approx 70%)
-    
+    in-out property <float> volume: 70; // 0 to 100 representing current volume
+    in property <VolumeScale> scale: VolumeScale.Logarithmic;
+
+    // Remembers the last volume before muting
+    property <float> previous-volume: 70;
+
+    // Calculates where the thumb/fill should visually sit based on the scale
+    property <float> visual-progress: root.scale == VolumeScale.Logarithmic ? Math.sqrt(root.volume / 100) : (root.volume / 100);
+
+    changed volume => {
+        BottomBarCallbacks.set-volume(volume)
+    }
+
     max-width: Theme.volumeControlWidth;
     alignment: center;
 
@@ -15,7 +29,20 @@ export component VolumeControl inherits VerticalLayout {
             width: Theme.iconSizeLg;
             height: Theme.iconSizeLg;
 
-            speaker-touch := TouchArea { }
+            speaker-touch := TouchArea {
+                clicked => {
+                    if (root.volume > 0) {
+                        // Save current volume and mute
+                        root.previous-volume = root.volume;
+                        root.volume = 0;
+                        debug("Muted");
+                    } else {
+                        // Restore previous volume (fallback to 1 if it was somehow 0)
+                        root.volume = root.previous-volume > 0 ? root.previous-volume : 1;
+                        debug("Unmuted: \{root.volume}");
+                    }
+                }
+            }
 
             property <color> current-color: speaker-touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
 
@@ -23,37 +50,11 @@ export component VolumeControl inherits VerticalLayout {
                 width: 100%;
                 height: 100%;
 
-                Path {
+                Image {
                     width: Theme.iconSizeLg;
                     height: Theme.iconSizeLg;
-                    viewbox-x: 0;
-                    viewbox-y: 0;
-                    viewbox-width: 8;
-                    viewbox-height: 8;
-                    fill: speaker-icon.current-color;
-                    commands: "M7.29195 1.5182L6.90933 1.84081C7.30241 2.30644 7.51195 2.89958 7.4986 3.50881C7.48525 4.11804 7.24991 4.70143 6.8368 5.14939L7.20442 5.49951C7.70049 4.96195 7.98315 4.26171 7.99927 3.53041C8.01539 2.79911 7.76386 2.0871 7.29195 1.5282V1.5182Z";
-                }
-
-                Path {
-                    width: Theme.iconSizeLg;
-                    height: Theme.iconSizeLg;
-                    viewbox-x: 0;
-                    viewbox-y: 0;
-                    viewbox-width: 8;
-                    viewbox-height: 8;
-                    fill: speaker-icon.current-color;
-                    commands: "M5.89652 2.49852C6.13231 2.77812 6.25785 3.13421 6.24957 3.49986C6.24128 3.86552 6.09972 4.21555 5.85151 4.48418L6.21912 4.82429C6.54995 4.46576 6.73838 3.99871 6.74897 3.51099C6.75956 3.02326 6.59159 2.54847 6.27664 2.17592L5.89652 2.49852Z";
-                }
-
-                Path {
-                    width: Theme.iconSizeLg;
-                    height: Theme.iconSizeLg;
-                    viewbox-x: 0;
-                    viewbox-y: 0;
-                    viewbox-width: 8;
-                    viewbox-height: 8;
-                    fill: speaker-icon.current-color;
-                    commands: "M5.00126 7C4.96818 6.99986 4.93545 6.99316 4.90497 6.98028C4.87449 6.9674 4.84687 6.94861 4.82371 6.92498L2.91811 4.99934H1.25008C1.18375 4.99934 1.12015 4.97299 1.07325 4.9261C1.02635 4.8792 1 4.81559 1 4.74926V2.24844C1 2.18211 1.02635 2.1185 1.07325 2.0716C1.12015 2.0247 1.18375 1.99836 1.25008 1.99836H2.91811L4.82371 0.0727221C4.87056 0.026144 4.93395 0 5.00001 0C5.06608 0 5.12946 0.026144 5.17632 0.0727221C5.22344 0.118895 5.2504 0.181816 5.25134 0.24778V6.74992C5.25134 6.81624 5.225 6.87985 5.1781 6.92675C5.1312 6.97365 5.06759 7 5.00126 7ZM1.50016 4.49918H3.02064C3.05373 4.49932 3.08646 4.50602 3.11693 4.5189C3.14741 4.53177 3.17503 4.55057 3.19819 4.5742L4.75119 6.14222V0.855479L3.19819 2.4235C3.17503 2.44712 3.14741 2.46592 3.11693 2.4788C3.08646 2.49168 3.05373 2.49838 3.02064 2.49852H1.50016V4.49918Z";
+                    source: @image-url("../icons/volume.svg");
+                    colorize: speaker-icon.current-color;
                 }
 
                 if (volume == 0): Path {
@@ -74,13 +75,31 @@ export component VolumeControl inherits VerticalLayout {
             width: Theme.volumeSliderWidth;
             height: Theme.progressBarHeight;
 
-            slider-touch := TouchArea { }
+            slider-touch := TouchArea {
+                moved => {
+                    if (self.pressed) {
+                        let pos = Math.max(0.0, Math.min(1.0, self.mouse-x / parent.width));
+                        let new-vol = root.scale == VolumeScale.Logarithmic ? Math.pow(pos, 2) * 100 : pos * 100;
+
+                        root.volume = Math.max(0, Math.min(100, Math.round(new-vol)));
+                    }
+                }
+
+                pointer-event(event) => {
+                    if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                        let pos = Math.max(0.0, Math.min(1.0, self.mouse-x / parent.width));
+                        let new-vol = root.scale == VolumeScale.Logarithmic ? Math.pow(pos, 2) * 100 : pos * 100;
+
+                        root.volume = Math.max(0, Math.min(100, Math.round(new-vol)));
+                    }
+                }
+            }
 
             // Background track (gray)
             Rectangle {
                 y: (parent.height - Theme.sliderTrackHeight) / 2;
                 height: Theme.sliderTrackHeight;
-                background: Theme.textSecondary; // Text Secondary
+                background: Theme.textSecondary;
                 border-radius: Theme.borderRadiusSm;
             }
 
@@ -88,56 +107,32 @@ export component VolumeControl inherits VerticalLayout {
             Rectangle {
                 x: 0px;
                 y: (parent.height - Theme.sliderTrackHeight) / 2;
-                width: parent.width * volume;
+                width: parent.width * root.visual-progress;
                 height: Theme.sliderTrackHeight;
-                background: Theme.accent; // Accent
+                background: Theme.accent;
                 border-radius: Theme.borderRadiusSm;
             }
 
             // Thumb dot (white/green)
             Rectangle {
-                x: (parent.width * volume) - Theme.spacingXs / 2;
+                x: (parent.width * root.visual-progress) - Theme.spacingXs / 2;
                 y: (parent.height - Theme.spacingXs) / 2;
                 width: Theme.spacingXs;
                 height: Theme.spacingXs;
                 border-radius: Theme.spacingXs / 2;
                 background: Theme.textPrimary;
                 border-width: Theme.borderWidth;
-                border-color: Theme.primary; // Matching player bar background
-                
-                animate width, height, x, y { duration: 100ms; }
+                border-color: Theme.primary;
 
                 states [
                     hover when slider-touch.has-hover: {
                         width: Theme.spacingSm;
                         height: Theme.spacingSm;
-                        x: (parent.width * volume) - Theme.spacingSm / 2;
+                        x: (parent.width * root.visual-progress) - Theme.spacingSm / 2;
                         y: (parent.height - Theme.spacingSm) / 2;
-                        background: Theme.accent; // Accent
+                        background: Theme.accent;
                     }
                 ]
-            }
-        }
-
-        // Queue/Playlist toggle icon
-        queue-icon := Rectangle {
-            width: Theme.iconSizeLg;
-            height: Theme.spacingMd;
-
-            queue-touch := TouchArea { }
-
-            property <color> current-color: queue-touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
-
-            Path {
-                width: Theme.iconSizeLg;
-                height: Theme.spacingMd;
-                viewbox-x: 0;
-                viewbox-y: 0;
-                viewbox-width: 22;
-                viewbox-height: 13;
-                stroke: queue-icon.current-color;
-                stroke-width: 2px;
-                commands: "M1.00049 12L11.0005 2L21.0005 12";
             }
         }
     }

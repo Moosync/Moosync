@@ -17,7 +17,6 @@ use mpris::MprisHolder;
 use platform_dirs;
 use player::PlayerHandler;
 use preferences::preferences::PreferenceConfig;
-use queue_manager::QueueManager;
 use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song};
 use tempdir;
 use themes::themes::ThemeHolder;
@@ -40,8 +39,7 @@ plugin_macro::generate_plugin_system!(
     extensions::ExtensionHandler,
     player::PlayerHandler,
     themes::themes::ThemeHolder,
-    mpris::MprisHolder,
-    queue_manager::QueueManager
+    mpris::MprisHolder
 );
 
 #[derive(Debug, thiserror::Error)]
@@ -160,9 +158,9 @@ impl StateManager {
     }
 
     async fn setup_player(&self) {
-        let player = self.plugins.get::<PlayerHandler>();
         // TODO: create source resolver for player
-        player
+        let player_handler = self.plugins.get::<PlayerHandler>();
+        player_handler
             .read()
             .await
             .set_resolver(Box::new(|_| Ok("".into())));
@@ -230,7 +228,7 @@ impl StateManager {
             return song.cloned();
         }
 
-        // TODO: Qery extensions for song by id
+        // TODO: Qeury extensions for song by id
 
         None
     }

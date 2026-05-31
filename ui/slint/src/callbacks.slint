@@ -8,3 +8,12 @@ export global AppCallbacks {
     pure callback play-song(SongModel);
     pure callback add-song-to-queue(SongModel);
 }
+
+export global BottomBarCallbacks {
+    callback play-pause-clicked();
+    callback toggle-repeat();
+    callback next-song();
+    callback prev-song();
+    callback shuffle();
+    callback set-volume(int);
+}

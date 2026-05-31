@@ -184,6 +184,17 @@ impl PlayerHandler {
         }
     }
 
+    pub fn seek(&self, pos: Duration) {
+        if let Err(e) = self.player.seek(pos) {
+            tracing::error!("Failed to seek: {:?}", e)
+        }
+        if let Ok(pos) = self.player.get_current_pos() {
+            self.trigger_player_event(PlayerEvent {
+                event: Some(Event::TimeUpdate(core_to_proto_duration(pos))),
+            });
+        }
+    }
+
     pub fn on_song_ended(&mut self) {
         self.trigger_player_event(PlayerEvent {
             event: Some(Event::Ended(true)),

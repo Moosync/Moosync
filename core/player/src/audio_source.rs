@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::time::Duration;
+
 use extensions_proto::moosync::types::player_event::Event::Ended;
 use songs_proto::moosync::types::Song;
 use tokio::sync::mpsc::unbounded_channel;
@@ -86,11 +88,11 @@ impl AudioSource {
         self.mux.set_volume(volume)
     }
 
-    pub fn seek(&self, position: f64) -> Result<(), PlayerError> {
+    pub fn seek(&self, position: Duration) -> Result<(), PlayerError> {
         self.mux.seek(position)
     }
 
-    pub fn get_current_pos(&self) -> Result<std::time::Duration, PlayerError> {
+    pub fn get_current_pos(&self) -> Result<Duration, PlayerError> {
         self.mux.get_current_pos()
     }
 }

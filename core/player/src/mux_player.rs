@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
 use songs_proto::moosync::types::Song;
@@ -74,7 +74,7 @@ impl PlayerExt for MuxPlayer {
         self.active_player.set_volume(volume)
     }
 
-    fn seek(&self, position: f64) -> Result<(), PlayerError> {
+    fn seek(&self, position: Duration) -> Result<(), PlayerError> {
         self.active_player.seek(position)
     }
 
@@ -89,7 +89,7 @@ impl PlayerExt for MuxPlayer {
         false
     }
 
-    fn get_current_pos(&self) -> Result<std::time::Duration, PlayerError> {
+    fn get_current_pos(&self) -> Result<Duration, PlayerError> {
         self.active_player.get_current_pos()
     }
 }

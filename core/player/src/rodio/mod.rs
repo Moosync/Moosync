@@ -97,9 +97,9 @@ impl PlayerExt for RodioPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    fn seek(&self, pos: f64) -> Result<(), PlayerError> {
+    fn seek(&self, pos: Duration) -> Result<(), PlayerError> {
         if let Some(player) = self.player.lock().unwrap().as_ref() {
-            player.try_seek(Duration::from_secs_f64(pos))?;
+            player.try_seek(pos)?;
         }
         Ok(())
     }

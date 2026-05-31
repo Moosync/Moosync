@@ -243,8 +243,12 @@ impl FFMPEGDecoder {
             match self.decode_next_packet() {
                 Ok(Some(frame)) => {
                     if frame.best_effort_timestamp >= self.requested_seek_timestamp {
+                        self.convert_and_store_frame(&frame)?;
                         break;
                     }
+                }
+                Err(DecoderError::WrongStream(_, _)) => {
+                    continue;
                 }
                 Err(e) => return Err(e),
                 _ => {

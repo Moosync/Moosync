@@ -3,10 +3,14 @@ import { SidebarButton } from "sidebar_button.slint";
 import { Pages, Theme } from "../constants.slint";
 import { WindowInfo } from "../window_info.slint";
 
+export struct SidebarItem { text: string, icon: image, page: Pages}
+
 export component Sidebar inherits Rectangle {
     in-out property <Pages> activePage;
+    in property <length> sidebarWidth;
+    in property <[SidebarItem]> items: [];
 
-    width: WindowInfo.sidebar-width;
+    width: sidebarWidth;
     background: @linear-gradient(180deg, Theme.secondary 0%, Theme.primary 100%);
 
     // Border line on the right side
@@ -28,57 +32,12 @@ export component Sidebar inherits Rectangle {
             padding-right: Theme.paddingSm;
             spacing: Theme.spacingXxs;
 
-            SidebarButton {
-                text: "Songs";
-                icon-name: "songs";
-                active: root.activePage == Pages.AllSongs;
+            for item in items: SidebarButton {
+                text: item.text;
+                icon: item.icon;
+                active: root.activePage == item.page;
                 clicked => {
-                    root.activePage = Pages.AllSongs;
-                }
-            }
-
-            SidebarButton {
-                text: "Playlists";
-                icon-name: "playlists";
-                active: root.activePage == Pages.Playlists;
-                clicked => {
-                    root.activePage = Pages.Playlists;
-                }
-            }
-
-            SidebarButton {
-                text: "Artists";
-                icon-name: "artists";
-                active: root.activePage == Pages.Artists;
-                clicked => {
-                    root.activePage = Pages.Artists;
-                }
-            }
-
-            SidebarButton {
-                text: "Albums";
-                icon-name: "albums";
-                active: root.activePage == Pages.Albums;
-                clicked => {
-                    root.activePage = Pages.Albums;
-                }
-            }
-
-            SidebarButton {
-                text: "Genres";
-                icon-name: "genres";
-                active: root.activePage == Pages.Genres;
-                clicked => {
-                    root.activePage = Pages.Genres;
-                }
-            }
-
-            SidebarButton {
-                text: "Explore";
-                icon-name: "explore";
-                active: root.activePage == Pages.Explore;
-                clicked => {
-                    root.activePage = Pages.Explore;
+                    root.activePage = item.page;
                 }
             }
         }

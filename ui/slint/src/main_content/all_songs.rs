@@ -32,7 +32,6 @@ impl<'a> AllSongsPageHandler<'a> {
         tokio::task::spawn(async move {
             run_scanner_loop(main_window_weak, state_manager, songs_cache).await;
         });
-        debug!("Scanner callback set");
     }
 }
 
@@ -73,7 +72,7 @@ async fn fetch_and_cache_songs(
 ) {
     match get_songs_from_db(&state_manager).await {
         Ok(songs) => {
-            tracing::info!("got songs {:?}", songs);
+            tracing::trace!("got songs {:?}", songs.len());
             *songs_cache.lock().unwrap() = songs.clone();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = main_window_weak.upgrade() {

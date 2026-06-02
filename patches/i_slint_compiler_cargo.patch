@@ -1,0 +1,9 @@
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -12,5 +12,5 @@
+ license.workspace = true
+ repository.workspace = true
+ rust-version.workspace = true
+-version.workspace = true
++version = "1.17.0"
+ build = "build.rs"

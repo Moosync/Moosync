@@ -383,19 +383,23 @@ crates.annotation(
     gen_binaries = ["protoc-gen-prost"],
 )
 crates.spec(
-    default_features = False,
+    branch = "master",
     features = [
-        "compat-1-2",
-        "backend-winit",
-        "renderer-femtovg",
         "backend-android-activity-06",
+        "mcp",
     ],
+    git = "https://github.com/slint-ui/slint",
     package = "slint",
-    version = "1.16.1",
 )
 crates.spec(
+    branch = "master",
+    git = "https://github.com/slint-ui/slint",
     package = "slint-build",
-    version = "1.16.1",
+)
+crates.spec(
+    features = ["xdg-portal"],
+    package = "rfd",
+    version = "0.17.2",
 )
 crates.spec(
     package = "platform-dirs",
@@ -454,6 +458,11 @@ crates.annotation(
         "CARGO_PKG_LICENSE": "",
     },
     crate = "rav1e",
+)
+crates.annotation(
+    crate = "i-slint-compiler",
+    patch_args = ["-p1"],
+    patches = ["//patches:i_slint_compiler_cargo.patch"],
 )
 crates.from_specs(
     supported_platform_triples = [

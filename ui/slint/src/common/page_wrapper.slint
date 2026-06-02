@@ -1,0 +1,68 @@
+import { Pages, Constants, Theme } from "../constants.slint";
+
+export component PageWrapper inherits Rectangle {
+    in property <Pages> page-type;
+    in-out property <Pages> active-page;
+
+    pure function page-index(p: Pages) -> int {
+        if (p == Pages.AllSongs) {
+            return 0;
+        }
+        if (p == Pages.Playlists) {
+            return 1;
+        }
+        if (p == Pages.Artists) {
+            return 2;
+        }
+        if (p == Pages.Albums) {
+            return 3;
+        }
+        if (p == Pages.Genres) {
+            return 4;
+        }
+        if (p == Pages.Explore) {
+            return 5;
+        }
+        if (p == Pages.Paths) {
+            return 6;
+        }
+        if (p == Pages.System) {
+            return 7;
+        }
+        if (p == Pages.Extensions) {
+            return 8;
+        }
+        if (p == Pages.Themes) {
+            return 9;
+        }
+        return 0;
+    }
+
+    opacity: active-page == page-type ? 1 : 0;
+    visible: true;
+
+    // Fill the available space passed down from the parent layout
+    width: 100%;
+    height: 100%;
+
+    property <length> slide-x: (active-page == page-type) ? 0px : (page-index(active-page) > page-index(page-type) ? -100px : 100px);
+
+    animate opacity {
+        duration: Constants.page-transition-duration;
+        easing: ease-in-out;
+    }
+
+    animate slide-x {
+        duration: Constants.page-transition-duration;
+        easing: ease-in-out;
+    }
+
+    HorizontalLayout {
+        // Absolute positioning for the slide animation
+        x: root.slide-x;
+        visible: active-page == page-type || root.opacity > 0;
+
+        padding-left: Theme.paddingLg;
+        @children
+    }
+}

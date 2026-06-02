@@ -34,8 +34,11 @@ git_override(
 )
 
 include("//modules:external_deps.MODULE.bazel")
+
 include("//modules:rust_toolchains.MODULE.bazel")
+
 include("//modules:crates.MODULE.bazel")
+
 include("//modules:android_toolchains.MODULE.bazel")
 
 register_toolchains(

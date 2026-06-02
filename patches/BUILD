@@ -3,4 +3,5 @@ exports_files([
     "rules_rust_prost_rust_deps.patch",
     "khronos_api.patch",
     "rules_rust_gnu_windows.patch",
+    "i_slint_compiler_cargo.patch",
 ])

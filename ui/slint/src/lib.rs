@@ -16,6 +16,7 @@ use crate::pages::PageHandler;
 
 mod main_content;
 mod pages;
+mod settings;
 mod utils;
 mod window_info;
 
@@ -124,6 +125,7 @@ fn get_page_handler<'b>(
         Pages::Playlists => 3,
         Pages::Genres => 4,
         Pages::Explore => 5,
+        _ => return None,
     };
     pages.get(idx).map(|p| p.as_ref())
 }
@@ -395,6 +397,7 @@ fn setup_ui(main_window: &'static MainWindow, state_manager: &'static StateManag
     setup_page_navigation(main_window, pages);
     setup_song_cbs(main_window, state_manager);
     setup_player_events(main_window, state_manager);
+    settings::setup_settings(main_window, state_manager);
 }
 
 fn setup_tracing() {

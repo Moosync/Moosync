@@ -1,0 +1,94 @@
+import { Modal, ModalSize } from "../common/modal.slint";
+import { Sidebar, SidebarItem } from "../sidebar/sidebar.slint";
+import { Pages, Theme, ThemeConfig } from "../constants.slint";
+import { PageWrapper } from "../common/page_wrapper.slint";
+import { PathSelector } from "path_selector.slint";
+import { PathsPage } from "paths.slint";
+import { SystemPage } from "system.slint";
+import { ExtensionsPage } from "extensions.slint";
+import { ThemesPage } from "themes.slint";
+
+export component Settings inherits Modal {
+    modalSize: ModalSize.Xl;
+    property <Pages> activePage: Pages.Paths;
+
+    in-out property <[ThemeConfig]> available-themes;
+    in-out property <string> active-theme-id;
+
+    property <[SidebarItem]> items: [
+        { text: "Paths", icon: @image-url("../icons/songs.svg"), page: Pages.Paths },
+        { text: "System", icon: @image-url("../icons/songs.svg"), page: Pages.System },
+        { text: "Extensions", icon: @image-url("../icons/songs.svg"), page: Pages.Extensions },
+        { text: "Themes", icon: @image-url("../icons/songs.svg"), page: Pages.Themes },
+    ];
+
+    HorizontalLayout {
+        Sidebar {
+            sidebarWidth: Theme.settingsSidebarWidth;
+            items: items;
+            activePage <=> root.activePage;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+            background: Theme.primary;
+
+            PageWrapper {
+                active-page <=> root.activePage;
+                page-type: Pages.Paths;
+
+                PathsPage { }
+            }
+
+            PageWrapper {
+                active-page <=> root.activePage;
+                page-type: Pages.System;
+
+                SystemPage { }
+            }
+
+            PageWrapper {
+                active-page <=> root.activePage;
+                page-type: Pages.Extensions;
+
+                ExtensionsPage { }
+            }
+
+            PageWrapper {
+                active-page <=> root.activePage;
+                page-type: Pages.Themes;
+
+                ThemesPage {
+                    available-themes <=> root.available-themes;
+                    active-theme-id <=> root.active-theme-id;
+                }
+            }
+
+            // Close button at top right
+            close_btn := TouchArea {
+                x: parent.width - self.width - 15px;
+                y: 15px;
+                width: 24px;
+                height: 24px;
+                clicked => {
+                    root.close();
+                }
+                
+                Rectangle {
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 12px;
+                    background: close_btn.has-hover ? Theme.secondary : transparent;
+                    Image {
+                        source: @image-url("../icons/cross.svg");
+                        colorize: Theme.textPrimary;
+                        width: 10px;
+                        height: 10px;
+                        x: (parent.width - self.width) / 2;
+                        y: (parent.height - self.height) / 2;
+                    }
+                }
+            }
+        }
+    }
+}

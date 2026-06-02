@@ -21,8 +21,8 @@ export component SongListItem inherits TouchArea {
             padding-right: Theme.paddingLg;
 
             Rectangle {
-                width: Theme.thumbnailSize;
-                height: Theme.thumbnailSize;
+                width: Theme.songListItemThumbnailSize;
+                height: Theme.songListItemThumbnailSize;
                 border-radius: Theme.borderRadiusMd;
                 background: Theme.secondary;
                 border-width: Theme.borderWidth;
@@ -88,7 +88,6 @@ export component SongListItem inherits TouchArea {
 
                     Image {
                         width: Theme.iconSizeSm;
-                        height: Theme.iconSizeSm;
                         source: song.extensionIcon;
                     }
 
@@ -108,8 +107,9 @@ export component SongListItem inherits TouchArea {
                         spacing: Theme.spacingXxl;
                         Text {
                             text: song.duration;
-                            color: Theme.textSecondary; // Text Secondary
+                            color: Theme.textSecondary;
                             font-size: Theme.caption;
+                            vertical-alignment: center;
                         }
 
                         if (WindowInfo.window-size > WindowInfo.sm): TouchArea {

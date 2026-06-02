@@ -1,0 +1,60 @@
+import { Theme } from "../constants.slint";
+import { LineEdit } from "std-widgets.slint";
+import { PreferenceItem } from "preferences.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export component TextInputGroup inherits VerticalLayout {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
+    in property <string> placeholder: root.preference.placeholder;
+    in property <InputType> inputType;
+
+    in-out property <string> value: root.preference.value_string;
+    callback edited(string);
+
+    VerticalLayout {
+        spacing: Theme.spacingMd;
+        alignment: start;
+        VerticalLayout {
+            Text {
+                text: root.title;
+                font-size: Theme.modelTitle;
+                color: Theme.textPrimary;
+            }
+
+            Text {
+                text: root.subtitle;
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+            }
+        }
+
+        TouchArea {
+            height: Theme.textInputHeight;
+            Rectangle {
+                border-radius: Theme.borderRadiusXl;
+                border-color: parent.has-hover || text_input.has-focus ? Theme.accent : Theme.textSecondary;
+                border-width: 1px;
+
+                HorizontalLayout {
+                    padding-left: Theme.paddingMd;
+                    padding-right: Theme.paddingMd;
+                    text_input := TextInput {
+                        text <=> root.value;
+                        input-type: root.inputType;
+                        vertical-alignment: center;
+                        single-line: true;
+                        wrap: word-wrap;
+                        edited => {
+                            if (root.preference.id != "") {
+                                AppCallbacks.preference_changed({ id: root.preference.id, value_string: self.text, value_bool: false, value_number: 0.0 });
+                            }
+                            root.edited(self.text);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

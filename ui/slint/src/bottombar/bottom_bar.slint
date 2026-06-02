@@ -29,7 +29,7 @@ export component BottomBar inherits Rectangle {
 
         // Full width progress bar at the very top edge
         PlaybackProgressBar {
-            height: Theme.progressBarHeight;
+            height: Theme.bottombarProgressBarHeight;
             current_duration: root.current_duration;
             total_duration: current-song.duration-s;
         }

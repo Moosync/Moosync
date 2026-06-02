@@ -1,12 +1,24 @@
 import { Pages } from "constants.slint";
 import { SongModel } from "./types/song_view.slint";
 
+export struct PreferenceChange {
+    id: string,
+    value_string: string,
+    value_bool: bool,
+    value_number: float,
+}
+
 export global AppCallbacks {
     callback search-clicked(string);
     callback resize();
     callback active-page-changed(Pages);
     pure callback play-song(SongModel);
     pure callback add-song-to-queue(SongModel);
+    callback preference_changed(PreferenceChange);
+    callback open_directory_picker() -> string;
+    callback theme_constant_changed(string, string);
+    callback save_custom_theme(string, string, string);
+    callback select_preset_theme(string);
 }
 
 export global BottomBarCallbacks {

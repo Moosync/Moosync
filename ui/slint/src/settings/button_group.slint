@@ -1,0 +1,180 @@
+import { Theme } from "../constants.slint";
+
+export struct ButtonItem {
+    id: string,
+    text: string,
+    is-destructive: bool,
+}
+
+export component ButtonGroup inherits VerticalLayout {
+    in property <string> title;
+    in property <string> subtitle;
+    in property <[ButtonItem]> buttons;
+
+    callback clicked(string);
+
+    property <string> pending-action-id;
+    property <string> pending-action-text;
+
+    spacing: Theme.spacingMd;
+    alignment: start;
+
+    VerticalLayout {
+        Text {
+            text: title;
+            font-size: Theme.modelTitle;
+            color: Theme.textPrimary;
+        }
+
+        Text {
+            text: subtitle;
+            font-size: Theme.caption;
+            wrap: word-wrap;
+            color: Theme.textSecondary;
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.spacingMd;
+        alignment: start;
+
+        for btn in buttons: touch := TouchArea {
+            width: max(100px, btn_text.preferred-width + 30px);
+            height: 35px;
+
+            clicked => {
+                if (btn.is-destructive) {
+                    root.pending-action-id = btn.id;
+                    root.pending-action-text = btn.text;
+                    modal_popup.show();
+                } else {
+                    root.clicked(btn.id);
+                }
+            }
+
+            Rectangle {
+                border-radius: Theme.borderRadiusXl;
+                border-width: 1px;
+
+                border-color: btn.is-destructive ? (touch.has-hover ? #ff4444 : Theme.textSecondary) : Theme.accent;
+                background: btn.is-destructive ? (touch.pressed ? #ff4444 : transparent) : Theme.accent;
+                opacity: touch.pressed ? 0.7 : (touch.has-hover ? 0.85 : 1.0);
+
+                animate border-color { duration: 150ms; }
+                animate background { duration: 150ms; }
+                animate opacity { duration: 100ms; }
+
+                btn_text := Text {
+                    text: btn.text;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+
+                    color: btn.is-destructive ? (touch.pressed ? Theme.textInverse : (touch.has-hover ? #ff4444 : Theme.textPrimary)) : Theme.textInverse;
+
+                    animate color { duration: 150ms; }
+                }
+            }
+        }
+    }
+
+    modal_popup := PopupWindow {
+        x: -2000px + root.width / 2;
+        y: -2000px + root.height / 2;
+        width: 4000px;
+        height: 4000px;
+
+        Rectangle {
+            background: rgba(0, 0, 0, 0.5);
+
+            TouchArea {
+                clicked => {
+                    modal_popup.close();
+                }
+            }
+
+            HorizontalLayout {
+                alignment: center;
+                VerticalLayout {
+                    alignment: center;
+
+                    Rectangle {
+                        width: 320px;
+                        height: 150px;
+                        border-radius: Theme.borderRadiusXl;
+                        background: Theme.secondary;
+                        border-width: 1px;
+                        border-color: Theme.textSecondary;
+
+                        TouchArea { }
+
+                        VerticalLayout {
+                            padding: Theme.paddingLg;
+                            spacing: Theme.spacingMd;
+                            alignment: space-between;
+
+                            VerticalLayout {
+                                spacing: Theme.spacingSm;
+                                Text {
+                                    text: "Confirm Action";
+                                    font-size: Theme.modelTitle;
+                                }
+
+                                Text {
+                                    text: "Are you sure you want to " + root.pending-action-text + "? This cannot be undone.";
+                                    font-size: Theme.caption;
+                                    wrap: word-wrap;
+                                }
+                            }
+
+                            HorizontalLayout {
+                                alignment: end;
+                                spacing: Theme.spacingMd;
+
+                                cancel_touch := TouchArea {
+                                    width: 80px;
+                                    height: 30px;
+                                    clicked => {
+                                        modal_popup.close();
+                                    }
+
+                                    Rectangle {
+                                        border-radius: Theme.borderRadiusLg;
+                                        border-width: 1px;
+                                        border-color: cancel_touch.has-hover ? Theme.accent : Theme.textSecondary;
+
+                                        Text {
+                                            text: "Cancel";
+                                            vertical-alignment: center;
+                                            horizontal-alignment: center;
+                                        }
+                                    }
+                                }
+
+                                confirm_touch := TouchArea {
+                                    width: 80px;
+                                    height: 30px;
+                                    clicked => {
+                                        root.clicked(root.pending-action-id);
+                                        modal_popup.close();
+                                    }
+
+                                    Rectangle {
+                                        border-radius: Theme.borderRadiusLg;
+                                        background: confirm_touch.has-hover ? #cc0000 : #ff4444;
+
+                                        Text {
+                                            text: "Confirm";
+                                            color: Theme.textInverse;
+                                            vertical-alignment: center;
+                                            horizontal-alignment: center;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -73,7 +73,7 @@ export component VolumeControl inherits VerticalLayout {
         // Volume Slider Bar
         Rectangle {
             width: Theme.volumeSliderWidth;
-            height: Theme.progressBarHeight;
+            height: Theme.volumeControlProgressBarHeight;
 
             slider-touch := TouchArea {
                 moved => {
@@ -97,8 +97,8 @@ export component VolumeControl inherits VerticalLayout {
 
             // Background track (gray)
             Rectangle {
-                y: (parent.height - Theme.sliderTrackHeight) / 2;
-                height: Theme.sliderTrackHeight;
+                y: (parent.height - Theme.volumeSliderTrackHeight) / 2;
+                height: Theme.volumeSliderTrackHeight;
                 background: Theme.textSecondary;
                 border-radius: Theme.borderRadiusSm;
             }
@@ -106,9 +106,9 @@ export component VolumeControl inherits VerticalLayout {
             // Filled track (green)
             Rectangle {
                 x: 0px;
-                y: (parent.height - Theme.sliderTrackHeight) / 2;
+                y: (parent.height - Theme.volumeSliderTrackHeight) / 2;
                 width: parent.width * root.visual-progress;
-                height: Theme.sliderTrackHeight;
+                height: Theme.volumeSliderTrackHeight;
                 background: Theme.accent;
                 border-radius: Theme.borderRadiusSm;
             }

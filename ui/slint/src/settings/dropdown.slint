@@ -1,0 +1,118 @@
+import { Theme } from "../constants.slint";
+import { PreferenceItem } from "preferences.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export component DropdownGroup inherits VerticalLayout {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
+    in property <[string]> options: root.preference.options_dropdown;
+    in-out property <string> current-value: root.preference.value_string;
+    callback changed(string);
+
+    spacing: Theme.spacingMd;
+    alignment: start;
+
+    VerticalLayout {
+        Text {
+            text: root.title;
+            font-size: Theme.modelTitle;
+            color: Theme.textPrimary;
+        }
+
+        Text {
+            text: root.subtitle;
+            font-size: Theme.caption;
+            wrap: word-wrap;
+            color: Theme.textSecondary;
+        }
+    }
+
+    touch := TouchArea {
+        height: Theme.dropdownHeight;
+        clicked => {
+            popup.show();
+        }
+
+        Rectangle {
+            border-radius: Theme.borderRadiusXl;
+            border-color: touch.has-hover ? Theme.accent : Theme.textSecondary;
+            border-width: 1px;
+
+            HorizontalLayout {
+                padding-left: Theme.paddingMd;
+                padding-right: Theme.paddingMd;
+
+                Text {
+                    text: root.current-value;
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                    color: Theme.textPrimary;
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: "▼";
+                        font-size: 10px;
+                        color: Theme.textPrimary;
+                    }
+                }
+            }
+        }
+
+        popup := PopupWindow {
+            x: 0px;
+            y: touch.height + 4px;
+            width: touch.width;
+
+            Rectangle {
+                border-radius: Theme.borderRadiusXl;
+                border-width: 1px;
+                border-color: Theme.textSecondary;
+                background: Theme.secondary;
+
+                VerticalLayout {
+                    padding: Theme.paddingMd;
+                    spacing: Theme.spacingSm;
+
+                    for option in root.options: option_touch := TouchArea {
+                        height: Theme.dropdownOptionHeight;
+                        clicked => {
+                            root.current-value = option;
+                            if (root.preference.id != "") {
+                                AppCallbacks.preference_changed({ id: root.preference.id, value_string: option, value_bool: false, value_number: 0.0 });
+                            }
+                            root.changed(option);
+                        }
+
+                        HorizontalLayout {
+                            spacing: Theme.spacingMd;
+                            alignment: start;
+
+                            VerticalLayout {
+                                alignment: center;
+                                Rectangle {
+                                    width: 3px;
+                                    height: 14px;
+                                    border-radius: 4px;
+                                    background: root.current-value == option ? Theme.accent : transparent;
+
+                                    animate background { duration: 150ms; }
+                                }
+                            }
+
+                            Text {
+                                text: option;
+                                vertical-alignment: center;
+                                color: option_touch.has-hover ? Theme.accent : Theme.textPrimary;
+
+                                animate color { duration: 150ms; }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

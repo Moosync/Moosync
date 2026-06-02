@@ -1,0 +1,31 @@
+title: "My Music"
+preferences:
+  - id: music_paths
+    component: PathSelector
+    title: "Song Folders"
+    subtitle: "Directories where all your local music is stored"
+  - id: exclude_music_paths
+    component: PathSelector
+    title: "Excluded Songs"
+    subtitle: "Songs in these folders will not be included in the library"
+  - id: scan_threads
+    component: NumberInputGroup
+    title: "Scan CPU threads"
+    subtitle: "Number of threads to use when scanning for local music"
+  - id: artist_splitter
+    component: TextInputGroup
+    title: "Artist name split pattern"
+    subtitle: "Regex to split artist names. Leave empty to disable splitting."
+    placeholder: ","
+  - id: scan_interval
+    component: NumberInputGroup
+    title: "Scan interval"
+    subtitle: "Interval in minutes to trigger a scan task. Set to -1 to disable automatic scanning"
+  - id: thumbnail_path
+    component: SingleFileInput
+    title: "Downloaded Thumbnail Path"
+    subtitle: "Directory where generated thumbnails are stored"
+  - id: artwork_path
+    component: SingleFileInput
+    title: "Downloaded Artwork Path"
+    subtitle: "Directory where downloaded artworks are stored"

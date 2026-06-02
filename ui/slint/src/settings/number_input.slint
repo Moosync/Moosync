@@ -1,0 +1,93 @@
+import { Theme } from "../constants.slint";
+import { PreferenceItem } from "preferences.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export component NumberInputGroup inherits HorizontalLayout {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
+    in property <string> unit: "";
+
+    in property <float> min: -99999999.0;
+    in property <float> max: 99999999.0;
+
+    in-out property <string> value: root.preference.value_string;
+    callback edited(string);
+
+    spacing: Theme.spacingMd;
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+
+        Text {
+            text: root.title;
+            font-size: Theme.modelTitle;
+            color: Theme.textPrimary;
+        }
+
+        Text {
+            text: root.subtitle;
+            font-size: Theme.caption;
+            color: Theme.textSecondary;
+            wrap: word-wrap;
+        }
+    }
+
+    VerticalLayout {
+        alignment: center;
+
+        touch := TouchArea {
+            height: Theme.numberInputHeight;
+            width: Theme.numberInputWidth;
+
+            Rectangle {
+                border-radius: Theme.borderRadiusXl;
+                border-color: touch.has-hover || text_input.has-focus ? Theme.accent : Theme.textSecondary;
+                border-width: 1px;
+                clip: true;
+
+                HorizontalLayout {
+                    padding-left: Theme.paddingMd;
+                    padding-right: Theme.paddingMd;
+                    spacing: 5px;
+
+                    text_input := TextInput {
+                        text <=> root.value;
+                        input-type: number;
+                        vertical-alignment: center;
+                        single-line: true;
+
+                        horizontal-stretch: 1;
+                        min-width: 10px;
+
+                        edited => {
+                            let num = self.text.to-float();
+                            if (num < root.min) {
+                                root.value = root.min;
+                            } else if (num > root.max) {
+                                root.value = root.max;
+                            }
+                            if (root.preference.id != "") {
+                                AppCallbacks.preference_changed({
+                                    id: root.preference.id,
+                                    value_string: root.value,
+                                    value_bool: false,
+                                    value_number: root.value.to-float()
+                                });
+                            }
+                            root.edited(root.value);
+                        }
+                    }
+
+                    if root.unit != "": Text {
+                        vertical-alignment: center;
+                        text: root.unit;
+                        color: Theme.textSecondary;
+                        horizontal-stretch: 0;
+                    }
+                }
+            }
+        }
+    }
+}

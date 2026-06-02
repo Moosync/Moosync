@@ -1,0 +1,1052 @@
+import { Theme, RgbaColor, ThemeConfig } from "../constants.slint";
+import { PreferenceGroup } from "preference_group.slint";
+import { TextInputGroup } from "text_input.slint";
+import { ScrollView, Slider } from "std-widgets.slint";
+import { NumberInputGroup } from "number_input.slint";
+import { ButtonGroup, ButtonItem } from "button_group.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+
+component FullColorPicker inherits VerticalLayout {
+    in property <RgbaColor> value;
+    callback changed(RgbaColor);
+
+    spacing: Theme.spacingLg;
+
+    // Helper functions for RGB <-> HSV conversion
+    pure function rgb_to_hsv(r: float, g: float, b: float) -> { h: float, s: float, v: float} {
+        let r_n = r / 255.0;
+        let g_n = g / 255.0;
+        let b_n = b / 255.0;
+
+        let max_val = Math.max(r_n, Math.max(g_n, b_n));
+        let min_val = Math.min(r_n, Math.min(g_n, b_n));
+        let delta = max_val - min_val;
+
+        let delta_safe = (delta > 0.0001) ? delta : 1.0;
+        let g_b = (g_n - b_n) / delta_safe;
+        let g_b_mod = g_b - 6.0 * Math.floor(g_b / 6.0);
+
+        let h = (delta <= 0.0001) ? 0.0 : (max_val == r_n) ? (60.0 * g_b_mod) : (max_val == g_n) ? (60.0 * (((b_n - r_n) / delta_safe) + 2.0)) : (60.0 * (((r_n - g_n) / delta_safe) + 4.0));
+
+        let s = (max_val > 0.0001) ? (delta / max_val) : 0.0;
+        let v = max_val;
+
+        return { h: h, s: s, v: v };
+    }
+
+    pure function hsv_to_rgb(h: float, s: float, v: float) -> RgbaColor {
+        let c = v * s;
+        let h_div = h / 60.0;
+        let h_mod = h_div - 2.0 * Math.floor(h_div / 2.0);
+        let x = c * (1.0 - Math.abs(h_mod - 1.0));
+        let m = v - c;
+
+        let r = (h < 60.0) ? c : (h < 120.0) ? x : (h < 180.0) ? 0.0 : (h < 240.0) ? 0.0 : (h < 300.0) ? x : c;
+
+        let g = (h < 60.0) ? x : (h < 120.0) ? c : (h < 180.0) ? c : (h < 240.0) ? x : (h < 300.0) ? 0.0 : 0.0;
+
+        let b = (h < 60.0) ? 0.0 : (h < 120.0) ? 0.0 : (h < 180.0) ? x : (h < 240.0) ? c : (h < 300.0) ? c : x;
+
+        return { r: (r + m) * 255.0, g: (g + m) * 255.0, b: (b + m) * 255.0, a: 1.0 };
+    }
+
+    // Local HSV state
+    property <float> hsv_h: root.rgb_to_hsv(root.value.r, root.value.g, root.value.b).h;
+    property <float> hsv_s: root.rgb_to_hsv(root.value.r, root.value.g, root.value.b).s;
+    property <float> hsv_v: root.rgb_to_hsv(root.value.r, root.value.g, root.value.b).v;
+    property <float> local_alpha: root.value.a;
+
+    property <bool> is_interacting: sv_touch.pressed || hue_touch.pressed || opacity_touch.pressed;
+
+    changed value => {
+        if (!root.is_interacting) {
+            let hsv = root.rgb_to_hsv(root.value.r, root.value.g, root.value.b);
+            if (hsv.s > 0.01 && hsv.v > 0.01) {
+                root.hsv_h = hsv.h;
+            }
+            root.hsv_s = hsv.s;
+            root.hsv_v = hsv.v;
+            root.local_alpha = root.value.a;
+        }
+    }
+
+    property <RgbaColor> hue_rgb: root.hsv_to_rgb(root.hsv_h, 1.0, 1.0);
+    property <RgbaColor> local_rgb: root.hsv_to_rgb(root.hsv_h, root.hsv_s, root.hsv_v);
+
+    HorizontalLayout {
+        spacing: Theme.spacingLg;
+        alignment: center;
+
+        // 2D Saturation-Value box
+        Rectangle {
+            width: 180px;
+            height: 180px;
+
+            // Base active Hue color
+            Rectangle {
+                width: 100%;
+                height: 100%;
+                background: rgba(root.hue_rgb.r, root.hue_rgb.g, root.hue_rgb.b, 1.0);
+                border-radius: Theme.borderRadiusLg;
+            }
+            // Saturation gradient (white -> transparent)
+            Rectangle {
+                width: 100%;
+                height: 100%;
+                background: @linear-gradient(90deg, #ffffff, transparent);
+                border-radius: Theme.borderRadiusLg;
+            }
+            // Value gradient (transparent -> black)
+            Rectangle {
+                width: 100%;
+                height: 100%;
+                background: @linear-gradient(180deg, transparent, #000000);
+                border-radius: Theme.borderRadiusLg;
+            }
+
+            // Interaction TouchArea
+            sv_touch := TouchArea {
+                width: 100%;
+                height: 100%;
+                clicked => {
+                    root.hsv_s = Math.max(0.0, Math.min(1.0, (self.mouse-x / 1px) / (self.width / 1px)));
+                    root.hsv_v = Math.max(0.0, Math.min(1.0, 1.0 - ((self.mouse-y / 1px) / (self.height / 1px))));
+                    let new_rgb = root.hsv_to_rgb(root.hsv_h, root.hsv_s, root.hsv_v);
+                    root.changed({ r: new_rgb.r, g: new_rgb.g, b: new_rgb.b, a: root.value.a });
+                }
+                moved => {
+                    if (self.pressed) {
+                        root.hsv_s = Math.max(0.0, Math.min(1.0, (self.mouse-x / 1px) / (self.width / 1px)));
+                        root.hsv_v = Math.max(0.0, Math.min(1.0, 1.0 - ((self.mouse-y / 1px) / (self.height / 1px))));
+                        let new_rgb = root.hsv_to_rgb(root.hsv_h, root.hsv_s, root.hsv_v);
+                        root.changed({ r: new_rgb.r, g: new_rgb.g, b: new_rgb.b, a: root.value.a });
+                    }
+                }
+            }
+
+            // Handle circle selector
+            Rectangle {
+                x: root.hsv_s * parent.width - 10px;
+                y: (1.0 - root.hsv_v) * parent.height - 10px;
+                width: 20px;
+                height: 20px;
+                border-radius: 10px;
+                border-width: 3px;
+                border-color: #ffffff;
+                background: transparent;
+
+                Rectangle {
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: #000000.transparentize(50%);
+                }
+            }
+        }
+
+        // Vertical Hue slider
+        Rectangle {
+            width: 24px;
+            height: 180px;
+
+            // Hue spectrum background
+            Rectangle {
+                width: 100%;
+                height: 100%;
+                border-radius: 12px;
+                background: @linear-gradient(180deg, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%);
+            }
+
+            // Interaction TouchArea
+            hue_touch := TouchArea {
+                width: 100%;
+                height: 100%;
+                clicked => {
+                    root.hsv_h = Math.max(0.0, Math.min(360.0, ((self.mouse-y / 1px) / (self.height / 1px)) * 360.0));
+                    let new_rgb = root.hsv_to_rgb(root.hsv_h, root.hsv_s, root.hsv_v);
+                    root.changed({ r: new_rgb.r, g: new_rgb.g, b: new_rgb.b, a: root.value.a });
+                }
+                moved => {
+                    if (self.pressed) {
+                        root.hsv_h = Math.max(0.0, Math.min(360.0, ((self.mouse-y / 1px) / (self.height / 1px)) * 360.0));
+                        let new_rgb = root.hsv_to_rgb(root.hsv_h, root.hsv_s, root.hsv_v);
+                        root.changed({ r: new_rgb.r, g: new_rgb.g, b: new_rgb.b, a: root.value.a });
+                    }
+                }
+            }
+
+            // Handle circle selector
+            Rectangle {
+                x: parent.width / 2 - 10px;
+                y: (root.hsv_h / 360.0) * parent.height - 10px;
+                width: 20px;
+                height: 20px;
+                border-radius: 10px;
+                border-width: 3px;
+                border-color: #ffffff;
+                background: transparent;
+
+                Rectangle {
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: #000000.transparentize(50%);
+                }
+            }
+        }
+    }
+
+    // Alpha Slider + Live RGB display
+    VerticalLayout {
+        spacing: Theme.spacingSm;
+
+        // Alpha Slider
+        HorizontalLayout {
+            spacing: Theme.spacingSm;
+            Text {
+                text: "Opacity";
+                color: Theme.textSecondary;
+                font-size: Theme.caption;
+                vertical-alignment: center;
+                width: 50px;
+            }
+
+            opacity_touch := TouchArea {
+                height: 20px;
+                horizontal-stretch: 1;
+
+                clicked => {
+                    root.local_alpha = Math.max(0.0, Math.min(1.0, (self.mouse-x / 1px) / (self.width / 1px)));
+                    root.changed({ r: root.value.r, g: root.value.g, b: root.value.b, a: root.local_alpha });
+                }
+                moved => {
+                    if (self.pressed) {
+                        root.local_alpha = Math.max(0.0, Math.min(1.0, (self.mouse-x / 1px) / (self.width / 1px)));
+                        root.changed({ r: root.value.r, g: root.value.g, b: root.value.b, a: root.local_alpha });
+                    }
+                }
+
+                // Custom slider track and handle
+                Rectangle {
+                    width: 100%;
+                    height: 6px;
+                    y: (parent.height - self.height) / 2;
+                    background: Theme.divider;
+                    border-radius: 3px;
+
+                    // Filled track
+                    Rectangle {
+                        x: 0;
+                        width: parent.width * root.local_alpha;
+                        height: 100%;
+                        background: Theme.accent;
+                        border-radius: 3px;
+                    }
+
+                    // Handle thumb
+                    Rectangle {
+                        x: root.local_alpha * parent.width - 8px;
+                        y: (parent.height - self.height) / 2;
+                        width: 16px;
+                        height: 16px;
+                        border-radius: 8px;
+                        background: Theme.textPrimary;
+                        border-width: 1px;
+                        border-color: Theme.textSecondary;
+                    }
+                }
+            }
+
+            Text {
+                text: "\{round(root.local_alpha * 100)}%";
+                color: Theme.textPrimary;
+                vertical-alignment: center;
+                width: 35px;
+                horizontal-alignment: right;
+                font-size: Theme.caption;
+            }
+        }
+    }
+}
+
+component ColorTabCard inherits Rectangle {
+    in property <string> title;
+    in property <string> desc;
+    in property <RgbaColor> active-val;
+    callback changed(RgbaColor);
+
+    in-out property <bool> expanded: false;
+
+    background: Theme.secondary;
+    border-radius: Theme.borderRadiusXl;
+    border-width: Theme.borderWidth;
+    border-color: Theme.divider;
+
+    TouchArea {
+        clicked => {
+            root.expanded = !root.expanded;
+        }
+        VerticalLayout {
+            padding: Theme.paddingLg;
+            spacing: Theme.spacingMd;
+
+            HorizontalLayout {
+                spacing: Theme.spacingMd;
+                alignment: space-between;
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    alignment: center;
+                    Text {
+                        text: root.title;
+                        font-size: Theme.modelTitle;
+                        color: Theme.textPrimary;
+                    }
+
+                    Text {
+                        text: root.desc;
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                        wrap: word-wrap;
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: Theme.spacingMd;
+                    alignment: center;
+
+                    Rectangle {
+                        width: 80px;
+                        height: 40px;
+                        border-radius: 12px;
+                        background: rgba(root.active-val.r, root.active-val.g, root.active-val.b, root.active-val.a);
+                        border-width: 1px;
+                        border-color: Theme.textSecondary.transparentize(50%);
+                    }
+                }
+            }
+
+            if root.expanded: VerticalLayout {
+                spacing: Theme.spacingMd;
+                Rectangle {
+                    height: 1px;
+                    background: Theme.textSecondary.transparentize(80%);
+                }
+
+                FullColorPicker {
+                    value: root.active-val;
+                    changed(val) => {
+                        root.changed(val);
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+export component ThemeCard inherits TouchArea {
+    in property <ThemeConfig> config;
+    in property <bool> is-active;
+
+    width: Theme.themeCardWidth;
+
+    Rectangle {
+        border-radius: Theme.borderRadiusXl;
+        background: Theme.secondary;
+        border-width: root.is-active ? 2px : 1px;
+        border-color: root.is-active ? rgba(config.accent_color.r, config.accent_color.g, config.accent_color.b, 1.0) : (root.has-hover ? Theme.textSecondary : Theme.textSecondary.transparentize(50%));
+
+        VerticalLayout {
+            padding: Theme.paddingMd;
+            spacing: Theme.spacingMd;
+
+            Rectangle {
+                height: Theme.themeCardPreviewHeight;
+                border-radius: Theme.borderRadiusLg;
+                background: rgba(config.preview_bg.r, config.preview_bg.g, config.preview_bg.b, config.preview_bg.a);
+                border-width: 1px;
+                border-color: Theme.textSecondary.transparentize(50%);
+                clip: true;
+
+                VerticalLayout {
+                    padding: 12px;
+                    alignment: space-between;
+                    Rectangle {
+                        width: 30%;
+                        height: 8px;
+                        border-radius: 4px;
+                        background: rgba(config.accent_color.r, config.accent_color.g, config.accent_color.b, config.accent_color.a);
+                    }
+
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Rectangle {
+                            width: 24px;
+                            height: 24px;
+                            border-radius: 6px;
+                            background: rgba(config.secondary_color.r, config.secondary_color.g, config.secondary_color.b, config.secondary_color.a);
+                        }
+
+                        VerticalLayout {
+                            spacing: 4px;
+                            alignment: center;
+                            Rectangle {
+                                width: 100%;
+                                height: 6px;
+                                border-radius: 3px;
+                                background: rgba(config.primary_color.r, config.primary_color.g, config.primary_color.b, config.primary_color.a);
+                            }
+                        }
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                alignment: space-between;
+                VerticalLayout {
+                    alignment: center;
+                    Text {
+                        text: config.name;
+                        font-size: Theme.modelTitle;
+                        color: Theme.textPrimary;
+                    }
+
+                    Text {
+                        text: config.author;
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component ThemesPage inherits VerticalLayout {
+    height: 100%;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    padding-right: 15px;
+    spacing: Theme.spacingLg;
+
+    in-out property <string> active-theme-id;
+    in-out property <[ThemeConfig]> available-themes;
+
+    // Helper function to map a color object to RgbaColor reactively
+    pure function color_to_rgba(c: color) -> RgbaColor {
+        return { r: c.red, g: c.green, b: c.blue, a: c.alpha / 255.0 };
+    }
+
+    // Reactively map Theme color properties to RgbaColor structs for the picker binding
+    property <RgbaColor> active-primary: root.color_to_rgba(Theme.primary);
+    property <RgbaColor> active-secondary: root.color_to_rgba(Theme.secondary);
+    property <RgbaColor> active-tertiary: root.color_to_rgba(Theme.tertiary);
+    property <RgbaColor> active-textPrimary: root.color_to_rgba(Theme.textPrimary);
+    property <RgbaColor> active-textSecondary: root.color_to_rgba(Theme.textSecondary);
+    property <RgbaColor> active-textInverse: root.color_to_rgba(Theme.textInverse);
+    property <RgbaColor> active-accent: root.color_to_rgba(Theme.accent);
+    property <RgbaColor> active-divider: root.color_to_rgba(Theme.divider);
+
+    property <[RgbaColor]> quick-accents: [
+        { r: 129, g: 232, b: 162, a: 1.0 }, // Green
+        { r: 96, g: 165, b: 250, a: 1.0 },  // Blue
+        { r: 192, g: 132, b: 252, a: 1.0 }, // Purple
+        { r: 251, g: 146, b: 60, a: 1.0 },  // Orange
+        { r: 251, g: 113, b: 133, a: 1.0 }  // Rose
+    ];
+
+    // Accordion Sections State
+    property <bool> advanced-expanded: false;
+
+    callback active-color-changed(int, RgbaColor);
+    active-color-changed(idx, val) => {
+        if (idx == 0) {
+            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
+            AppCallbacks.theme_constant_changed("primary", val-str);
+        }
+        if (idx == 1) {
+            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
+            AppCallbacks.theme_constant_changed("secondary", val-str);
+        }
+        if (idx == 2) {
+            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
+            AppCallbacks.theme_constant_changed("tertiary", val-str);
+        }
+        if (idx == 3) {
+            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
+            AppCallbacks.theme_constant_changed("accent", val-str);
+        }
+        if (idx == 4) {
+            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
+            AppCallbacks.theme_constant_changed("textPrimary", val-str);
+        }
+        if (idx == 5) {
+            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
+            AppCallbacks.theme_constant_changed("textSecondary", val-str);
+        }
+        if (idx == 6) {
+            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
+            AppCallbacks.theme_constant_changed("textInverse", val-str);
+        }
+        if (idx == 7) {
+            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
+            AppCallbacks.theme_constant_changed("divider", val-str);
+        }
+    }
+
+    // Save Modal State
+    property <string> new-theme-name: "";
+    property <string> new-theme-desc: "";
+    property <string> new-theme-author: "";
+
+    HorizontalLayout {
+        padding-bottom: Theme.paddingSm;
+        Text {
+            text: "Settings > Themes";
+            font-size: Theme.modelTitle;
+            color: Theme.accent;
+        }
+    }
+
+    ScrollView {
+        vertical-stretch: 1;
+
+        VerticalLayout {
+            spacing: Theme.spacingLg;
+            padding-right: Theme.paddingLg;
+
+            PreferenceGroup {
+                VerticalLayout {
+                    spacing: Theme.spacingMd;
+                    Text {
+                        text: "Preset Themes";
+                        font-size: Theme.modelTitle;
+                        color: Theme.textPrimary;
+                    }
+
+                    Text {
+                        text: "Selecting a theme will instantly override your advanced styling configurations.";
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                        wrap: word-wrap;
+                    }
+
+                    ScrollView {
+                        height: Theme.themeCardPreviewHeight + 100px;
+                        HorizontalLayout {
+                            spacing: Theme.spacingMd;
+                            padding-bottom: Theme.paddingLg;
+                            for theme in root.available-themes: ThemeCard {
+                                config: theme;
+                                is-active: root.active-theme-id == theme.id;
+                                clicked => {
+                                    AppCallbacks.select_preset_theme(theme.id);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            PreferenceGroup {
+                HorizontalLayout {
+                    spacing: Theme.spacingMd;
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        alignment: center;
+                        Text {
+                            text: "Quick Accent";
+                            font-size: Theme.modelTitle;
+                            color: Theme.textPrimary;
+                        }
+
+                        Text {
+                            text: "Instantly update the primary interactive color.";
+                            font-size: Theme.caption;
+                            color: Theme.textSecondary;
+                        }
+                    }
+
+                    VerticalLayout {
+                        alignment: center;
+                        HorizontalLayout {
+                            spacing: Theme.spacingMd;
+                            for swatch in quick-accents: TouchArea {
+                                width: Theme.quickAccentSwatchSize;
+                                height: Theme.quickAccentSwatchSize;
+                                clicked => {
+                                    let val-str = "rgba(" + round(swatch.r) + "," + round(swatch.g) + "," + round(swatch.b) + "," + swatch.a + ")";
+                                    AppCallbacks.theme_constant_changed("accent", val-str);
+                                }
+                                Rectangle {
+                                    border-radius: Theme.quickAccentSwatchSize / 2;
+                                    background: rgba(swatch.r, swatch.g, swatch.b, swatch.a);
+                                    border-width: root.active-accent.r == swatch.r && root.active-accent.g == swatch.g ? 2px : 0px;
+                                    border-color: Theme.textPrimary;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            PreferenceGroup {
+                VerticalLayout {
+                    spacing: root.advanced-expanded ? Theme.spacingLg : 0px;
+
+                    // Accordion Header
+                    accordion_touch := TouchArea {
+                        height: Theme.advancedAccordionHeaderHeight;
+                        clicked => {
+                            root.advanced-expanded = !root.advanced-expanded;
+                        }
+
+                        HorizontalLayout {
+                            alignment: space-between;
+
+                            VerticalLayout {
+                                alignment: center;
+                                spacing: Theme.spacingXs;
+                                Text {
+                                    text: "Advanced Styling";
+                                    font-size: Theme.modelTitle;
+                                    color: Theme.textPrimary;
+                                }
+
+                                Text {
+                                    text: "Fine-tune UI parameters. Modifying these clones/mutates the current active theme.";
+                                    font-size: Theme.caption;
+                                    color: Theme.textSecondary;
+                                }
+                            }
+
+                            VerticalLayout {
+                                alignment: center;
+                                Text {
+                                    text: root.advanced-expanded ? "▲" : "▼";
+                                    color: accordion_touch.has-hover ? Theme.accent : Theme.textSecondary;
+                                    font-size: 14px;
+                                    animate color { duration: 150ms; }
+                                }
+                            }
+                        }
+                    }
+
+                    // Accordion Content Body
+                    if root.advanced-expanded: VerticalLayout {
+                        spacing: Theme.spacingLg;
+                        padding-top: Theme.paddingMd;
+
+                        Rectangle {
+                            height: 1px;
+                            background: Theme.textSecondary.transparentize(80%);
+                        }
+
+                        // SUB-SECTION: COLORS
+                            Text {
+                            text: "Colors";
+                            font-size: Theme.subtitle;
+                            color: Theme.accent;
+                            font-weight: 600;
+                        }
+
+                        ColorTabCard {
+                            title: "Primary Color";
+                            desc: "The main background color of the application.";
+                            active-val: root.active-primary;
+                            changed(val) => {
+                                root.active-color-changed(0, val);
+                            }
+                        }
+
+                        ColorTabCard {
+                            title: "Secondary Color";
+                            desc: "The background color of elevated containers and cards.";
+                            active-val: root.active-secondary;
+                            changed(val) => {
+                                root.active-color-changed(1, val);
+                            }
+                        }
+
+                        ColorTabCard {
+                            title: "Tertiary Color";
+                            desc: "Contrast background color.";
+                            active-val: root.active-tertiary;
+                            changed(val) => {
+                                root.active-color-changed(2, val);
+                            }
+                        }
+
+                        ColorTabCard {
+                            title: "Accent Color";
+                            desc: "Highlight and active states color.";
+                            active-val: root.active-accent;
+                            changed(val) => {
+                                root.active-color-changed(3, val);
+                            }
+                        }
+
+                        ColorTabCard {
+                            title: "Text Primary";
+                            desc: "Main readable text color.";
+                            active-val: root.active-textPrimary;
+                            changed(val) => {
+                                root.active-color-changed(4, val);
+                            }
+                        }
+
+                        ColorTabCard {
+                            title: "Text Secondary";
+                            desc: "Subtitle and description text color.";
+                            active-val: root.active-textSecondary;
+                            changed(val) => {
+                                root.active-color-changed(5, val);
+                            }
+                        }
+
+                        ColorTabCard {
+                            title: "Text Inverse";
+                            desc: "Inverse color on highlighted surfaces.";
+                            active-val: root.active-textInverse;
+                            changed(val) => {
+                                root.active-color-changed(6, val);
+                            }
+                        }
+
+                        ColorTabCard {
+                            title: "Divider Color";
+                            desc: "Separators and borders.";
+                            active-val: root.active-divider;
+                            changed(val) => {
+                                root.active-color-changed(7, val);
+                            }
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: Theme.textSecondary.transparentize(80%);
+                        }
+
+                        // SUB-SECTION: FONT SIZES
+                            Text {
+                            text: "Typography (Font Sizes)";
+                            font-size: Theme.subtitle;
+                            color: Theme.accent;
+                            font-weight: 600;
+                        }
+
+                        NumberInputGroup {
+                            title: "Page Header Size";
+                            subtitle: "Large headers at the top of pages.";
+                            unit: "px";
+                            value: "\{Theme.pageHeader / 1px}";
+                            min: 10.0;
+                            max: 64.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("pageHeader", v);
+                            }
+                        }
+
+                        NumberInputGroup {
+                            title: "Title Size";
+                            subtitle: "Sub-headings and list items titles.";
+                            unit: "px";
+                            value: "\{Theme.modelTitle / 1px}";
+                            min: 8.0;
+                            max: 32.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("modelTitle", v);
+                            }
+                        }
+
+                        NumberInputGroup {
+                            title: "Subtitle Size";
+                            subtitle: "Regular body and action texts.";
+                            unit: "px";
+                            value: "\{Theme.subtitle / 1px}";
+                            min: 8.0;
+                            max: 24.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("subtitle", v);
+                            }
+                        }
+
+                        NumberInputGroup {
+                            title: "Body Size";
+                            subtitle: "Standard description text size.";
+                            unit: "px";
+                            value: "\{Theme.body / 1px}";
+                            min: 8.0;
+                            max: 20.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("body", v);
+                            }
+                        }
+
+                        NumberInputGroup {
+                            title: "Caption Size";
+                            subtitle: "Labels and smaller descriptions.";
+                            unit: "px";
+                            value: "\{Theme.caption / 1px}";
+                            min: 6.0;
+                            max: 16.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("caption", v);
+                            }
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: Theme.textSecondary.transparentize(80%);
+                        }
+
+                        // SUB-SECTION: BORDERS & RADIUS
+                            Text {
+                            text: "Borders and Corner Radii";
+                            font-size: Theme.subtitle;
+                            color: Theme.accent;
+                            font-weight: 600;
+                        }
+
+                        NumberInputGroup {
+                            title: "Global Border Width";
+                            subtitle: "Divider and layout borders.";
+                            unit: "px";
+                            value: "\{Theme.borderWidth / 1px}";
+                            min: 0.0;
+                            max: 10.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("borderWidth", v);
+                            }
+                        }
+
+                        NumberInputGroup {
+                            title: "Radius Xl";
+                            subtitle: "Corners of large dialogs, modals, and settings.";
+                            unit: "px";
+                            value: "\{Theme.borderRadiusXl / 1px}";
+                            min: 0.0;
+                            max: 40.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("borderRadiusXl", v);
+                            }
+                        }
+
+                        NumberInputGroup {
+                            title: "Radius Lg";
+                            subtitle: "Corners of cards and list items.";
+                            unit: "px";
+                            value: "\{Theme.borderRadiusLg / 1px}";
+                            min: 0.0;
+                            max: 30.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("borderRadiusLg", v);
+                            }
+                        }
+
+                        NumberInputGroup {
+                            title: "Radius Md";
+                            subtitle: "Corners of buttons, tags, and small items.";
+                            unit: "px";
+                            value: "\{Theme.borderRadiusMd / 1px}";
+                            min: 0.0;
+                            max: 20.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("borderRadiusMd", v);
+                            }
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: Theme.textSecondary.transparentize(80%);
+                        }
+
+                        // SUB-SECTION: COMPONENT DIMENSIONS
+                            Text {
+                            text: "Component Sizes";
+                            font-size: Theme.subtitle;
+                            color: Theme.accent;
+                            font-weight: 600;
+                        }
+
+                        NumberInputGroup {
+                            title: "Card Width";
+                            subtitle: "Standard album/playlist grid card width.";
+                            unit: "px";
+                            value: "\{Theme.cardWidth / 1px}";
+                            min: 80.0;
+                            max: 400.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("cardWidth", v);
+                            }
+                        }
+
+                        NumberInputGroup {
+                            title: "Sidebar Width";
+                            subtitle: "Main side navigation width.";
+                            unit: "px";
+                            value: "\{Theme.sidebarWidth / 1px}";
+                            min: 100.0;
+                            max: 400.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("sidebarWidth", v);
+                            }
+                        }
+
+                        NumberInputGroup {
+                            title: "Bottom Player Bar Height";
+                            subtitle: "Height of bottom playback bar.";
+                            unit: "px";
+                            value: "\{Theme.bottombarHeight / 1px}";
+                            min: 40.0;
+                            max: 120.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("bottombarHeight", v);
+                            }
+                        }
+
+                        NumberInputGroup {
+                            title: "Topbar Height";
+                            subtitle: "Height of top navigation and search bar.";
+                            unit: "px";
+                            value: "\{Theme.topbarHeight / 1px}";
+                            min: 30.0;
+                            max: 90.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("topbarHeight", v);
+                            }
+                        }
+
+                        NumberInputGroup {
+                            title: "Sidebar Button Height";
+                            subtitle: "Height of buttons inside sidebar.";
+                            unit: "px";
+                            value: "\{Theme.sidebarButtonHeight / 1px}";
+                            min: 20.0;
+                            max: 80.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("sidebarButtonHeight", v);
+                            }
+                        }
+
+                        NumberInputGroup {
+                            title: "Sidebar Header Height";
+                            subtitle: "Height of sidebar brand/toggle header.";
+                            unit: "px";
+                            value: "\{Theme.sidebarHeaderHeight / 1px}";
+                            min: 20.0;
+                            max: 100.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("sidebarHeaderHeight", v);
+                            }
+                        }
+
+                        NumberInputGroup {
+                            title: "Song Item Row Height";
+                            subtitle: "Row height in song tables.";
+                            unit: "px";
+                            value: "\{Theme.songListItemHeight / 1px}";
+                            min: 30.0;
+                            max: 100.0;
+                            edited(v) => {
+                                AppCallbacks.theme_constant_changed("songListItemHeight", v);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // SECTION 4: SAVE ACTION
+            PreferenceGroup {
+                ButtonGroup {
+                    title: "Export Theme";
+                    subtitle: "Save your current styling configuration as a new reusable preset.";
+                    buttons: [{ id: "save_modal", text: "Save as New Theme", is-destructive: false }];
+                    clicked(id) => {
+                        save_popup.show();
+                    }
+                }
+            }
+        }
+    }
+
+    save_popup := PopupWindow {
+        x: (root.width - Theme.themeSavePopupWidth) / 2;
+        y: (root.height - 400px) / 2;
+        width: Theme.themeSavePopupWidth;
+
+        Rectangle {
+            border-radius: Theme.borderRadiusXl;
+            background: Theme.secondary;
+            border-width: 1px;
+            border-color: Theme.textSecondary;
+
+            VerticalLayout {
+                padding: Theme.paddingLg;
+                spacing: Theme.spacingLg;
+
+                VerticalLayout {
+                    spacing: Theme.spacingXs;
+                    Text {
+                        text: "Save Custom Theme";
+                        font-size: Theme.modelTitle;
+                        color: Theme.textPrimary;
+                    }
+
+                    Text {
+                        text: "Your current accent and advanced styling variables will be saved.";
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                        wrap: word-wrap;
+                    }
+                }
+
+                TextInputGroup {
+                    title: "Theme Name";
+                    subtitle: "A short, distinct name";
+                    placeholder: "e.g., Midnight Blue";
+                    value <=> root.new-theme-name;
+                    inputType: InputType.text;
+                }
+
+                TextInputGroup {
+                    title: "Author";
+                    subtitle: "Who created this theme?";
+                    placeholder: "Your name";
+                    value <=> root.new-theme-author;
+                    inputType: InputType.text;
+                }
+
+                TextInputGroup {
+                    title: "Description";
+                    subtitle: "A brief summary of the aesthetics";
+                    placeholder: "High contrast dark theme...";
+                    value <=> root.new-theme-desc;
+                    inputType: InputType.text;
+                }
+
+                HorizontalLayout {
+                    alignment: end;
+                    ButtonGroup {
+                        title: "";
+                        subtitle: "";
+                        buttons: [
+                            { id: "cancel", text: "Cancel", is-destructive: false },
+                            { id: "confirm", text: "Save Theme", is-destructive: false }
+                        ];
+                        clicked(id) => {
+                            if (id == "confirm") {
+                                AppCallbacks.save_custom_theme(root.new-theme-name, root.new-theme-author, root.new-theme-desc);
+                            }
+                            save_popup.close();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -20,24 +20,22 @@ use std::{
     io::Write,
     path::PathBuf,
     str::FromStr,
-    sync::{Mutex, mpsc::Sender},
+    sync::Mutex,
 };
 
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
-use notify::{Event, Watcher};
-use regex::Regex;
 use themes_proto::moosync::types::ThemeDetails;
 use types::errors::error_helpers;
-use types::errors::{MoosyncError, Result};
-use types::prelude::ThemeExt;
+use types::errors::Result;
 use uuid::Uuid;
+
+pub type OnThemeChangedCallback = Box<dyn Fn(&ThemeDetails) -> () + Send + Sync + 'static>;
 
 pub struct ThemeHolder {
     pub theme_dir: PathBuf,
     pub tmp_dir: PathBuf,
-    watchers: Mutex<HashMap<PathBuf, Box<dyn Watcher + Send>>>,
-    change_tx: Mutex<Option<Sender<String>>>,
+    theme_changed_subs: Mutex<Vec<OnThemeChangedCallback>>,
 }
 
 #[plugin_macro::generate]
@@ -47,63 +45,28 @@ impl ThemeHolder {
         Self {
             theme_dir,
             tmp_dir,
-            watchers: Default::default(),
-            change_tx: Mutex::new(None),
+            theme_changed_subs: Mutex::new(Vec::new()),
         }
     }
 
-    pub fn set_change_tx(&self, change_tx: Sender<String>) {
-        let mut tx = self.change_tx.lock().unwrap();
-        *tx = Some(change_tx);
+    pub fn on_theme_changed<F>(&self, callback: F)
+    where
+        F: Fn(&ThemeDetails) -> () + Send + Sync + 'static,
+    {
+        let mut subs = self.theme_changed_subs.lock().unwrap();
+        subs.push(Box::new(callback));
     }
 
-    fn watch_theme_changes(&self, imports: Vec<PathBuf>) -> Result<()> {
-        tracing::info!("Got css immports {:?}", imports);
-
-        let mut watchers = self.watchers.lock().unwrap();
-        watchers.clear();
-
-        let root_path = imports.first().unwrap().clone();
-
-        for import in imports {
-            let tx_option = self.change_tx.lock().unwrap().clone();
-            let root_path = root_path.clone();
-            let root = self.theme_dir.clone();
-            if let Ok(mut watcher) =
-                notify::recommended_watcher(move |ev: notify::Result<Event>| {
-                    if let Ok(ev) = ev
-                        && ev.kind.is_modify()
-                    {
-                        match transform_css(
-                            root_path.clone().to_string_lossy().to_string(),
-                            Some(root.clone()),
-                        ) {
-                            Ok((transformed, _)) => {
-                                if let Some(ref tx) = tx_option {
-                                    if let Err(e) = tx.send(transformed) {
-                                        tracing::error!("Failed to notify of file changes: {:?}", e);
-                                    }
-                                }
-                            }
-                            Err(e) => tracing::error!("Failed to transform css: {:?}", e),
-                        }
-                    }
-                })
-            {
-                tracing::debug!("Watching path {:?} for changes", import);
-                if let Err(e) = watcher.watch(import.as_path(), notify::RecursiveMode::NonRecursive)
-                {
-                    tracing::error!("Failed to watch path {:?}: {:?}", import, e);
-                }
-                watchers.insert(import, Box::new(watcher));
-            }
+    pub fn trigger_theme_changed(&self, theme: &ThemeDetails) {
+        let subs = self.theme_changed_subs.lock().unwrap();
+        for sub in subs.iter() {
+            sub(theme);
         }
-
-        Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self, theme))]
-    pub fn save_theme(&self, mut theme: ThemeDetails) -> Result<()> {
+    pub fn save_theme(&self, theme: ThemeDetails) -> Result<()> {
+        let mut theme = theme;
         if theme.id.is_empty() {
             theme.id = Uuid::new_v4().to_string();
         }
@@ -117,6 +80,7 @@ impl ThemeHolder {
         fs::write(theme_config, serde_json::to_string(&theme)?)
             .map_err(error_helpers::to_file_system_error)?;
 
+        self.trigger_theme_changed(&theme);
         Ok(())
     }
 
@@ -130,25 +94,8 @@ impl ThemeHolder {
         Ok(())
     }
 
-    pub fn get_css(&self, id: String) -> Result<String> {
-        let root_dir = self.theme_dir.join(id.clone());
-        let ret = self.load_theme(id)?;
-        if let Some(custom_css) = &ret.theme.unwrap_or_default().custom_css {
-            let (transformed, imports) = transform_css(custom_css.clone(), Some(root_dir))?;
-            if let Err(e) = self.watch_theme_changes(imports) {
-                tracing::error!("Failed to watch css changes: {:?}", e);
-            }
-            return Ok(transformed);
-        }
-        Ok(String::new())
-    }
-
     #[tracing::instrument(level = "debug", skip(self, id))]
     pub fn load_theme(&self, id: String) -> Result<ThemeDetails> {
-        {
-            let mut watchers = self.watchers.lock().unwrap();
-            watchers.clear();
-        }
         if id == "default" {
             return Ok(ThemeDetails::default());
         }
@@ -160,12 +107,15 @@ impl ThemeHolder {
             return Ok(serde_json::from_str(&data)?);
         }
 
-        Err(MoosyncError::String("Theme not found".to_string()))
+        Err(types::errors::MoosyncError::String("Theme not found".to_string()))
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
     pub fn load_all_themes(&self) -> Result<HashMap<String, ThemeDetails>> {
         let theme_dir = self.theme_dir.clone();
+        if !theme_dir.exists() {
+            fs::create_dir_all(&theme_dir).map_err(error_helpers::to_file_system_error)?;
+        }
         let entries = fs::read_dir(theme_dir).map_err(error_helpers::to_file_system_error)?;
         let mut ret = HashMap::new();
         ret.insert("default".into(), ThemeDetails::default());
@@ -203,7 +153,7 @@ impl ThemeHolder {
             if item.is_file() && item.file_name().unwrap().to_string_lossy() == "config.json" {
                 let config = fs::read(item).map_err(error_helpers::to_file_system_error)?;
                 let parsed: ThemeDetails = serde_json::from_slice(config.as_slice())?;
-                let final_theme_path = self.theme_dir.join(parsed.id);
+                let final_theme_path = self.theme_dir.join(&parsed.id);
                 let options = CopyOptions::default().overwrite(true);
 
                 fs::create_dir_all(final_theme_path.clone())
@@ -223,7 +173,7 @@ impl ThemeHolder {
                 return Ok(());
             }
         }
-        Err(MoosyncError::String("Failed to parse theme".to_string()))
+        Err(types::errors::MoosyncError::String("Failed to parse theme".to_string()))
     }
 
     #[tracing::instrument(level = "debug", skip(self, id, export_path))]
@@ -231,33 +181,19 @@ impl ThemeHolder {
         let mut export_path = export_path.clone();
         export_path.set_extension("mstx");
 
-        let mut theme = self.load_theme(id.clone())?;
+        let theme = self.load_theme(id.clone())?;
         let theme_dir = self.tmp_dir.join(format!("theme-unpacked-{}", id));
         if !theme_dir.exists() {
             fs::create_dir_all(theme_dir.clone()).map_err(error_helpers::to_file_system_error)?;
         }
 
         let config_path = theme_dir.clone().join("config.json");
-
-        if let Some(theme) = theme.theme.as_mut()
-            && let Some(custom_css) = &theme.custom_css
-        {
-            let (transformed, _) = transform_css(custom_css.clone(), None)?;
-            let custom_css_path = theme_dir.join("custom.css");
-            fs::write(custom_css_path.clone(), transformed)
-                .map_err(error_helpers::to_file_system_error)?;
-            theme.custom_css = Some("custom.css".into());
-        }
-
         fs::write(config_path.clone(), serde_json::to_string_pretty(&theme)?)
             .map_err(error_helpers::to_file_system_error)?;
 
         zip_extensions::zip_create_from_directory(&export_path, &theme_dir)
             .map_err(error_helpers::to_file_system_error)?;
 
-        if let Some(custom_css_path) = theme.get_theme_item_or_default().custom_css {
-            fs::remove_file(custom_css_path).map_err(error_helpers::to_file_system_error)?;
-        }
         fs::remove_file(config_path).map_err(error_helpers::to_file_system_error)?;
         fs::remove_dir(theme_dir).map_err(error_helpers::to_file_system_error)?;
 
@@ -301,7 +237,7 @@ impl ThemeHolder {
         }
 
         #[derive(serde::Deserialize, Debug)]
-        struct ThemeItem {
+        struct ThemeItemHelper {
             data: ThemeDetails,
         }
 
@@ -328,7 +264,7 @@ impl ThemeHolder {
                         .map_err(error_helpers::to_network_error)?;
 
                 let bytes = res.bytes().await.map_err(error_helpers::to_network_error)?;
-                let manifests: HashMap<String, ThemeItem> = serde_json::from_slice(&bytes)?;
+                let manifests: HashMap<String, ThemeItemHelper> = serde_json::from_slice(&bytes)?;
                 for (theme_id, manifest) in manifests {
                     let asset = releases_resp.assets.iter().find(|asset| {
                         asset.name.starts_with(theme_id.as_str()) && asset.name.ends_with(".mstx")
@@ -343,49 +279,6 @@ impl ThemeHolder {
 
         Ok(ret)
     }
-}
-
-pub fn transform_css(css_path: String, root: Option<PathBuf>) -> Result<(String, Vec<PathBuf>)> {
-    let parsed_path = if let Some(root) = root {
-        root.join(css_path)
-    } else {
-        PathBuf::from(css_path)
-    };
-
-    if !parsed_path.exists() {
-        return Err(MoosyncError::String(format!(
-            "CSS path does not exist: {:?}",
-            parsed_path
-        )));
-    }
-
-    let mut imports = vec![parsed_path.clone()];
-    let mut css =
-        fs::read_to_string(parsed_path.clone()).map_err(error_helpers::to_file_system_error)?;
-    let import_regex = Regex::new(r"@import\s(.*)").unwrap();
-    let cloned_css = css.clone();
-    let matches = import_regex.captures_iter(cloned_css.as_str());
-    for mat in matches {
-        let path = mat.get(1);
-        if let Some(path) = path {
-            let path = path
-                .as_str()
-                .replace('"', "")
-                .strip_suffix(";")
-                .unwrap_or_default()
-                .to_string();
-            let (transformed_css, parsed_imports) =
-                transform_css(path, parsed_path.parent().map(|v| v.to_path_buf()))?;
-
-            imports.extend(parsed_imports.into_iter());
-            css = css.replace(mat.get(0).unwrap().as_str(), transformed_css.as_str());
-        }
-    }
-
-    let theme_dir = parsed_path.parent().unwrap();
-    css = css.replace("%themeDir%", theme_dir.to_str().unwrap());
-
-    Ok((css, imports))
 }
 
 impl types::plugin::Plugin for ThemeHolder {

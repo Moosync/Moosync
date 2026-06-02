@@ -176,78 +176,146 @@ export enum Pages {
     Playlists,
     Genres,
     Explore,
+
+    // Settings
+    Paths,
+    System,
+    Extensions,
+    Themes
 }
 
 export enum VolumeScale { Linear, Logarithmic }
 
+export struct RgbaColor {
+    r: float,
+    g: float,
+    b: float,
+    a: float,
+}
+
+export struct ThemeConfig {
+    id: string,
+    name: string,
+    description: string,
+    author: string,
+    preview_bg: RgbaColor,
+    accent_color: RgbaColor,
+    primary_color: RgbaColor,
+    secondary_color: RgbaColor,
+    border_radius: float,
+    border_width: float,
+}
+
 export global Theme {
     // Colors
-    out property <color> primary: #212121;
-    out property <color> secondary: #282828;
-    out property <color> tertiary: #151515;
-    out property <color> textPrimary: #ffffff;
-    out property <color> textSecondary: #565656;
-    out property <color> textInverse: #000000;
-    out property <color> accent: #65cb88;
-    out property <color> divider: rgba(0, 0, 0, 0.0);
+    in-out property <color> primary: #212121;
+    in-out property <color> secondary: #282828;
+    in-out property <color> tertiary: #151515;
+    in-out property <color> textPrimary: #ffffff;
+    in-out property <color> textSecondary: #565656;
+    in-out property <color> textInverse: #000000;
+    in-out property <color> accent: #65cb88;
+    in-out property <color> divider: rgba(0, 0, 0, 0.0);
 
     // Font Sizes
-    out property <length> pageHeader: 32px;
-    out property <length> modelTitle: 16px;
-    out property <length> subtitle: 14px;
-    out property <length> body: 13px;
-    out property <length> caption: 11px;
-    out property <length> extraSmall: 10px;
+    in-out property <length> pageHeader: 32px;
+    in-out property <length> modelTitle: 16px;
+    in-out property <length> subtitle: 14px;
+    in-out property <length> body: 13px;
+    in-out property <length> caption: 11px;
+    in-out property <length> extraSmall: 10px;
 
     // Spacing
-    out property <length> spacingXxl: 30px;
-    out property <length> spacingXl: 20px;
-    out property <length> spacingLg: 16px;
-    out property <length> spacingMd: 12px;
-    out property <length> spacingSm: 10px;
-    out property <length> spacingXs: 8px;
-    out property <length> spacingXxs: 4px;
-    out property <length> spacingTiny: 2px;
+    in-out property <length> spacingXxl: 30px;
+    in-out property <length> spacingXl: 20px;
+    in-out property <length> spacingLg: 16px;
+    in-out property <length> spacingMd: 12px;
+    in-out property <length> spacingSm: 10px;
+    in-out property <length> spacingXs: 8px;
+    in-out property <length> spacingXxs: 4px;
+    in-out property <length> spacingTiny: 2px;
 
     // Paddings
-    out property <length> paddingLg: 16px;
-    out property <length> paddingMd: 14px;
-    out property <length> paddingSm: 10px;
-    out property <length> paddingXs: 8px;
+    in-out property <length> paddingLg: 16px;
+    in-out property <length> paddingMd: 14px;
+    in-out property <length> paddingSm: 10px;
+    in-out property <length> paddingXs: 8px;
 
     // Border Radius
-    out property <length> borderRadiusLg: 8px;
-    out property <length> borderRadiusMd: 6px;
-    out property <length> borderRadiusSm: 1.5px;
+    in-out property <length> borderRadiusXl: 16px;
+    in-out property <length> borderRadiusLg: 8px;
+    in-out property <length> borderRadiusMd: 6px;
+    in-out property <length> borderRadiusSm: 1.5px;
 
     // Border
-    out property <length> borderWidth: 1px;
+    in-out property <length> borderWidth: 1px;
 
     // Icon Sizes
-    out property <length> iconSizeXl: 24px;
-    out property <length> iconSizeLg: 20px;
-    out property <length> iconSizeMd: 16px;
-    out property <length> iconSizeSm: 13px;
+    in-out property <length> iconSizeXl: 24px;
+    in-out property <length> iconSizeLg: 20px;
+    in-out property <length> iconSizeMd: 16px;
+    in-out property <length> iconSizeSm: 13px;
 
     // Component Dimensions
-    out property <length> cardWidth: 200px;
-    out property <length> sidebarWidth: 261px;
-    out property <length> bottombarHeight: 72px;
-    out property <length> topbarHeight: 48px;
-    out property <length> sidebarButtonHeight: 48px;
-    out property <length> songListItemHeight: 60px;
-    out property <length> thumbnailSize: 44px;
-    out property <length> thumbnailSizeLg: 200px;
-    out property <length> playbackControlsIconSize: 18px;
-    out property <length> playbackButtonSize: 32px;
-    out property <length> navButtonSize: 28px;
-    out property <length> actionButtonSize: 32px;
-    out property <length> searchBarHeight: 36px;
-    out property <length> sliderTrackHeight: 3px;
-    out property <length> sliderThumbSize: 12px;
-    out property <length> sliderThumbHoverSize: 14px;
-    out property <length> progressBarHeight: 14px;
-    out property <length> trackInfoWidth: 260px;
-    out property <length> volumeSliderWidth: 80px;
-    out property <length> volumeControlWidth: 100px;
+    in-out property <length> cardWidth: 200px;
+    in-out property <length> sidebarWidth: 261px;
+    in-out property <length> bottombarHeight: 72px;
+    in-out property <length> topbarHeight: 48px;
+    in-out property <length> sidebarButtonHeight: 48px;
+    in-out property <length> sidebarHeaderHeight: 48px;
+    in-out property <length> songListItemHeight: 60px;
+    in-out property <length> trackInfoThumbnailSize: 44px;
+    in-out property <length> songListItemThumbnailSize: 44px;
+    in-out property <length> songDetailsThumbnailSize: 300px;
+    in-out property <length> exploreThumbnailSize: 200px;
+    in-out property <length> playbackControlsIconSize: 18px;
+    in-out property <length> playbackButtonSize: 32px;
+    in-out property <length> navButtonSize: 28px;
+    in-out property <length> topbarIconSize: 32px;
+    in-out property <length> sidebarHeaderToggleSize: 32px;
+    in-out property <length> searchBarHeight: 36px;
+    in-out property <length> playbackSliderTrackHeight: 3px;
+    in-out property <length> volumeSliderTrackHeight: 3px;
+    in-out property <length> sliderThumbSize: 12px;
+    in-out property <length> sliderThumbHoverSize: 14px;
+    in-out property <length> bottombarProgressBarHeight: 14px;
+    in-out property <length> volumeControlProgressBarHeight: 14px;
+    in-out property <length> trackInfoWidth: 260px;
+    in-out property <length> volumeSliderWidth: 80px;
+    in-out property <length> volumeControlWidth: 100px;
+
+    // Settings
+    in-out property <length> settingsSidebarWidth: 200px;
+    in-out property <length> settingsCloseButtonSize: 24px;
+
+    // Settings Component Details
+    in-out property <length> dropdownHeight: 35px;
+    in-out property <length> dropdownOptionHeight: 25px;
+    in-out property <length> numberInputHeight: 35px;
+    in-out property <length> numberInputWidth: 150px;
+    in-out property <length> textInputHeight: 35px;
+    in-out property <length> fileInputHeight: 35px;
+    in-out property <length> rgbaSwatchWidth: 60px;
+    in-out property <length> rgbaSwatchHeight: 35px;
+    in-out property <length> rgbaPopupWidth: 260px;
+    in-out property <length> themeCardWidth: 220px;
+    in-out property <length> themeCardPreviewHeight: 110px;
+    in-out property <length> quickAccentSwatchSize: 32px;
+    in-out property <length> advancedAccordionHeaderHeight: 40px;
+    in-out property <length> themeSavePopupWidth: 450px;
+    in-out property <length> toggleWidth: 44px;
+    in-out property <length> toggleHeight: 24px;
+    in-out property <length> toggleThumbSize: 20px;
+    in-out property <length> radioOptionHeight: 30px;
+    in-out property <length> radioOptionCircleSize: 16px;
+
+    // Modal Sizes
+    in-out property <length> modalWidthXl: 800px;
+    in-out property <length> modalHeightXl: 800px;
+    in-out property <length> modalWidthLg: 600px;
+    in-out property <length> modalHeightLg: 600px;
+    in-out property <length> modalWidthMd: 400px;
+    in-out property <length> modalHeightMd: 400px;
+    in-out property <length> modalWidthSm: 200px;
+    in-out property <length> modalHeightSm: 200px;
 }

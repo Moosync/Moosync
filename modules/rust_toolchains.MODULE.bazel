@@ -17,6 +17,7 @@ use_repo(
 )
 
 register_toolchains("@rust_toolchains//:rust_linux_x86_64__x86_64-pc-windows-gnu__stable")
+
 register_toolchains("@rust_toolchains//:all")
 
 register_toolchains(

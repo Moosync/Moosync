@@ -1,0 +1,38 @@
+title: "System"
+preferences:
+  - id: auto_startup
+    component: ToggleGroup
+    title: "Start app on system startup"
+    subtitle: "Automatically launch Moosync when your system boots up"
+  - id: minimize_to_tray
+    component: ToggleGroup
+    title: "Minimize to tray on close"
+    subtitle: "Keep the application running in background tray when closed"
+  - id: jukebox_mode
+    component: ToggleGroup
+    title: "Enable toggle for Jukebox mode"
+    subtitle: "Enable toggle button for Jukebox mode in the UI"
+  - id: clear_queue
+    component: ToggleGroup
+    title: "Clear queue"
+    subtitle: "Clear playback queue on application start"
+  - id: volume_persist_mode
+    component: RadioGroup
+    title: "Volume Persist Mode"
+    subtitle: "How volume should be persisted across sessions"
+    options:
+      - id: no_persist
+        label: "Don't persist volume"
+      - id: persist_separate
+        label: "Persist separate volumes for each provider"
+      - id: persist_clamp
+        label: "Persist volume and clamp to max volume"
+  - id: i18n_language
+    component: DropdownGroup
+    title: "Language"
+    subtitle: "Change application language"
+    options:
+      - "English"
+      - "Spanish"
+      - "French"
+      - "German"

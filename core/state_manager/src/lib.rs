@@ -52,7 +52,6 @@ pub enum StateManagerError {
 pub struct StateManager {
     pub plugins: Arc<PluginRegistry>,
     pub interceptors: Arc<Interceptors>,
-    themes_changed_tx: mpsc::Sender<String>,
 
     song_cache: Arc<Mutex<LruCache<String, Song>>>,
 }
@@ -108,7 +107,6 @@ impl StateManager {
         #[cfg(target_os = "android")] android_context: AndroidJNIContext,
     ) -> Result<Self, StateManagerError> {
         let (data_dir, cache_dir, tmp_dir) = Self::get_dirs();
-        let (themes_changed_tx, _themes_changed_rx) = mpsc::channel();
 
         let context = Self::generate_context(
             data_dir,
@@ -127,7 +125,6 @@ impl StateManager {
         Ok(Self {
             plugins: Arc::new(plugins),
             interceptors: Arc::new(interceptors),
-            themes_changed_tx,
             song_cache: cache,
         })
     }
@@ -149,13 +146,7 @@ impl StateManager {
         extensions.read().await.set_reply_handler(reply_handler);
     }
 
-    async fn setup_themes(&self) {
-        let themes = self.plugins.get::<ThemeHolder>();
-        themes
-            .read()
-            .await
-            .set_change_tx(self.themes_changed_tx.clone());
-    }
+    async fn setup_themes(&self) {}
 
     async fn setup_player(&self) {
         // TODO: create source resolver for player

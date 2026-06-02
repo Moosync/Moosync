@@ -9,7 +9,7 @@ export component HamburgerIcon inherits Image {
 }
  
 export component SidebarHeader inherits Rectangle {
-    height: Theme.sidebarButtonHeight;
+    height: Theme.sidebarHeaderHeight;
 
     HorizontalLayout {
         padding-right: Theme.spacingXl;
@@ -20,8 +20,8 @@ export component SidebarHeader inherits Rectangle {
             alignment: center;
 
             Rectangle {
-                width: Theme.actionButtonSize;
-                height: Theme.actionButtonSize;
+                width: Theme.sidebarHeaderToggleSize;
+                height: Theme.sidebarHeaderToggleSize;
                 border-radius: Theme.borderRadiusMd;
                 background: hamburger-touch.has-hover ? Theme.textPrimary.with-alpha(0.06) : transparent;
 

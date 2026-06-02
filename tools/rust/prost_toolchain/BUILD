@@ -3,6 +3,8 @@ load("@rules_rust_prost//:defs.bzl", "rust_prost_toolchain")
 
 PROST_OPTS = [
     "type_attribute=.=#[derive(serde::Serialize\\,serde::Deserialize)]",
+    "type_attribute=.moosync.types.ThemeItem=#[serde(default)]",
+    "type_attribute=.moosync.types.ThemeDetails=#[serde(default)]",
     "type_attribute=.=#[serde(rename_all=\"camelCase\")]",
 ]
 

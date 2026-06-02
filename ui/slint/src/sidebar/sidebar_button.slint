@@ -2,7 +2,7 @@ import { Theme } from "../constants.slint";
 
 export component SidebarButton inherits Rectangle {
     in property <string> text;
-    in property <string> icon-name;
+    in property <image> icon;
     in property <bool> active: false;
     callback clicked();
 
@@ -33,7 +33,7 @@ export component SidebarButton inherits Rectangle {
             x: Theme.iconSizeLg;
             y: Theme.paddingMd;
             height: Theme.iconSizeLg;
-            source: icon-name == "queue" ? @image-url("../icons/queue.svg") : icon-name == "songs" ? @image-url("../icons/songs.svg") : icon-name == "playlists" ? @image-url("../icons/playlists.svg") : icon-name == "artists" ? @image-url("../icons/artists.svg") : icon-name == "albums" ? @image-url("../icons/albums.svg") : icon-name == "genres" ? @image-url("../icons/genres.svg") : @image-url("../icons/explore.svg");
+            source: icon;
             colorize: current-color;
         }
 
@@ -52,7 +52,7 @@ export component SidebarButton inherits Rectangle {
     Rectangle {
         x: 0px;
         y: (parent.height - Theme.iconSizeXl) / 2;
-        width: Theme.sliderTrackHeight;
+        width: Theme.borderWidth * 3;
         height: active ? Theme.iconSizeXl : 0px;
         background: Theme.accent;
         border-radius: Theme.borderRadiusSm;

@@ -1,8 +1,8 @@
-import { Sidebar } from "sidebar/sidebar.slint";
+import { Sidebar, SidebarItem } from "sidebar/sidebar.slint";
 import { TopBar } from "topbar/top_bar.slint";
 import { BottomBar } from "bottombar/bottom_bar.slint";
 import { AllSongs } from "main_content/all_songs.slint";
-import { WindowInfo, NavigationInfo } from "window_info.slint";
+import { WindowInfo } from "window_info.slint";
 import {
     SongModel,
     CoverHelper,
@@ -16,57 +16,25 @@ import { ArtistsPage } from "main_content/artists.slint";
 import { PlaylistsPage } from "main_content/playlists.slint";
 import { GenresPage } from "main_content/genres.slint";
 import { ExplorePage } from "main_content/explore.slint";
-import { Pages, Constants, Theme } from "constants.slint";
+import {
+    Pages,
+    Constants,
+    Theme,
+    ThemeConfig,
+    RgbaColor,
+} from "constants.slint";
 import { AppCallbacks, BottomBarCallbacks } from "callbacks.slint";
+import { Settings } from "settings/settings.slint";
+import { PageWrapper } from "common/page_wrapper.slint";
+import {
+    Preferences,
+    AppPreferences,
+    PreferenceItem,
+    RadioItem,
+} from "settings/preferences.slint";
+import { PreferenceChange } from "callbacks.slint";
 
-export { CoverHelper, Constants, Theme, AppCallbacks, BottomBarCallbacks }
-
-component PageWrapper inherits Rectangle {
-    in property <Pages> page-type;
-    in-out property active-page <=> NavigationInfo.activePage;
-
-    pure function page-index(p: Pages) -> int {
-        if (p == Pages.AllSongs) {
-            return 0;
-        }
-        if (p == Pages.Playlists) {
-            return 1;
-        }
-        if (p == Pages.Artists) {
-            return 2;
-        }
-        if (p == Pages.Albums) {
-            return 3;
-        }
-        if (p == Pages.Genres) {
-            return 4;
-        }
-        if (p == Pages.Explore) {
-            return 5;
-        }
-        return 0;
-    }
-
-    opacity: active-page == page-type ? 1 : 0;
-    visible: self.opacity > 0;
-    x: (active-page == page-type) ? 0px : (page-index(active-page) > page-index(page-type) ? -100px : 100px);
-    width: 100%;
-    height: 100%;
-
-    animate opacity {
-        duration: Constants.page-transition-duration;
-        easing: ease-in-out;
-    }
-    animate x {
-        duration: Constants.page-transition-duration;
-        easing: ease-in-out;
-    }
-
-    HorizontalLayout {
-        padding-left: Theme.paddingLg;
-        @children
-    }
-}
+export { CoverHelper, Constants, Theme, AppCallbacks, BottomBarCallbacks, Preferences, AppPreferences, PreferenceChange, PreferenceItem, RadioItem, ThemeConfig, RgbaColor }
 
 export component MainWindow inherits Window {
     title: "moosync";
@@ -91,11 +59,17 @@ export component MainWindow inherits Window {
         AppCallbacks.resize();
     }
 
-    in-out property <Pages> active-page <=> NavigationInfo.activePage;
+    in-out property <Pages> active-page;
     changed active-page => {
         AppCallbacks.active-page-changed(self.active-page);
     }
+    
+    // Settings
+    in-out property <bool> show_settings: false;
+    in-out property <[ThemeConfig]> available-themes;
+    in-out property <string> active-theme-id;
 
+    // Main page
     in property <SongModel> current_song: Constants.defaultSong;
     in-out property <int> repeat_mode: 0;
     in-out property <bool> playing: false;
@@ -109,6 +83,15 @@ export component MainWindow inherits Window {
     in property <[ArtistModel]> artists: Constants.testArtists;
     in property <[GenreModel]> genres: Constants.testGenres;
 
+    property <[SidebarItem]> sidebar_items: [
+        { text: "Songs", icon: @image-url("./icons/songs.svg"), page: Pages.AllSongs },
+        { text: "Playlists", icon: @image-url("./icons/playlists.svg"), page: Pages.Playlists },
+        { text: "Artists", icon: @image-url("./icons/artists.svg"), page: Pages.Artists },
+        { text: "Albums", icon: @image-url("./icons/albums.svg"), page: Pages.Albums },
+        { text: "Genres", icon: @image-url("./icons/genres.svg"), page: Pages.Genres },
+        { text: "Explore", icon: @image-url("./icons/explore.svg"), page: Pages.Explore },
+    ];
+
     VerticalLayout {
         spacing: 0px;
         padding: 0px;
@@ -120,13 +103,19 @@ export component MainWindow inherits Window {
             spacing: 0px;
 
             Sidebar {
-                activePage <=> NavigationInfo.activePage;
+                items: sidebar_items;
+                activePage <=> active-page;
+                width: Theme.sidebarWidth;
             }
 
             VerticalLayout {
                 spacing: 0px;
 
-                TopBar { }
+                TopBar {
+                    settings_clicked => {
+                        root.show_settings = true;
+                    }
+                }
 
                 // Main Content Area
                 Rectangle {
@@ -135,6 +124,7 @@ export component MainWindow inherits Window {
 
                     PageWrapper {
                         page-type: Pages.AllSongs;
+                        active-page <=> root.active-page;
                         AllSongs {
                             songs <=> root.songs;
                         }
@@ -142,6 +132,7 @@ export component MainWindow inherits Window {
 
                     PageWrapper {
                         page-type: Pages.Playlists;
+                        active-page <=> root.active-page;
                         PlaylistsPage {
                             playlists <=> root.playlists;
                         }
@@ -149,6 +140,7 @@ export component MainWindow inherits Window {
 
                     PageWrapper {
                         page-type: Pages.Artists;
+                        active-page <=> root.active-page;
                         ArtistsPage {
                             artists <=> root.artists;
                         }
@@ -156,6 +148,7 @@ export component MainWindow inherits Window {
 
                     PageWrapper {
                         page-type: Pages.Albums;
+                        active-page <=> root.active-page;
                         AlbumsPage {
                             albums <=> root.albums;
                         }
@@ -163,6 +156,7 @@ export component MainWindow inherits Window {
 
                     PageWrapper {
                         page-type: Pages.Genres;
+                        active-page <=> root.active-page;
                         GenresPage {
                             genres <=> root.genres;
                         }
@@ -170,6 +164,7 @@ export component MainWindow inherits Window {
 
                     PageWrapper {
                         page-type: Pages.Explore;
+                        active-page <=> root.active-page;
                         ExplorePage { }
                     }
                 }
@@ -183,6 +178,14 @@ export component MainWindow inherits Window {
             playing: root.playing;
             current_duration: root.current_duration;
             current-pos-str: root.current_pos_str;
+        }
+    }
+
+    if show_settings: Settings {
+        available-themes <=> root.available-themes;
+        active-theme-id <=> root.active-theme-id;
+        close => {
+            show_settings = false;
         }
     }
 }

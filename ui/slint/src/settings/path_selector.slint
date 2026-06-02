@@ -1,0 +1,135 @@
+import { Theme } from "../constants.slint";
+import { ScrollView } from "std-widgets.slint";
+import { PreferenceItem } from "preferences.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export component PathSelector {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
+    in property <[string]> items: root.preference.value_list;
+
+    callback add_clicked();
+    callback remove_clicked(string);
+
+    VerticalLayout {
+        HorizontalLayout {
+            padding-bottom: Theme.paddingMd;
+            spacing: Theme.spacingLg;
+            VerticalLayout {
+                alignment: start;
+                horizontal-stretch: 1;
+                Text {
+                    text: root.title;
+                    font-size: Theme.modelTitle;
+                    color: Theme.textPrimary;
+                }
+
+                Text {
+                    text: root.subtitle;
+                    font-size: Theme.caption;
+                    wrap: word-wrap;
+                    color: Theme.textSecondary;
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
+                horizontal-stretch: 0;
+                TouchArea {
+                    clicked => {
+                        let chosen = AppCallbacks.open_directory_picker();
+                        if (chosen != "") {
+                            if (root.preference.id != "") {
+                                AppCallbacks.preference_changed({ id: root.preference.id, value_string: chosen, value_bool: false, value_number: 0.0 });
+                            }
+                            root.add_clicked();
+                        }
+                    }
+                    Rectangle {
+                        background: Theme.accent;
+                        border-radius: 13px;
+                        height: Theme.modelTitle + 10px;
+                        width: 90px;
+
+                        HorizontalLayout {
+                            alignment: center;
+                            padding-right: 10px;
+                            padding-left: 10px;
+                            spacing: 5px;
+
+                            VerticalLayout {
+                                alignment: center;
+                                Image {
+                                    source: @image-url("../icons/cross.svg");
+                                    colorize: Theme.textInverse;
+                                    width: 8px;
+                                    height: 8px;
+                                }
+                            }
+
+                            Text {
+                                vertical-alignment: center;
+                                text: "Add folder";
+                                color: Theme.textInverse;
+                                font-size: Theme.caption;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        ScrollView {
+            height: 150px;
+            VerticalLayout {
+                spacing: Theme.spacingXxs;
+
+                for item in root.items: Rectangle {
+                    border-radius: Theme.borderRadiusLg;
+                    border-width: 1px;
+                    border-color: Theme.textSecondary;
+                    HorizontalLayout {
+                        padding-top: 12px;
+                        padding-bottom: 12px;
+                        padding-left: 10px;
+                        padding-right: 10px;
+                        spacing: Theme.spacingLg;
+                        Image {
+                            width: Theme.iconSizeMd;
+                            source: @image-url("../icons/folder_hollow.svg");
+                            colorize: Theme.textPrimary;
+                        }
+
+                        Text {
+                            text: item;
+                            horizontal-stretch: 1;
+                            vertical-alignment: center;
+                            color: Theme.textPrimary;
+                        }
+
+                        TouchArea {
+                            width: Theme.iconSizeMd;
+                            height: Theme.iconSizeMd;
+                            clicked => {
+                                if (root.preference.id != "") {
+                                    AppCallbacks.preference_changed({ id: root.preference.id, value_string: item, value_bool: false, value_number: 0.0 });
+                                }
+                                root.remove_clicked(item);
+                            }
+                            VerticalLayout {
+                                alignment: center;
+                                Image {
+                                    source: @image-url("../icons/cross.svg");
+                                    colorize: Theme.textPrimary;
+                                    width: 8px;
+                                    height: 8px;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

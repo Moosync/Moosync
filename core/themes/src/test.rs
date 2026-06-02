@@ -14,167 +14,103 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{fs, sync::mpsc::channel};
+use std::{fs, sync::{Arc, Mutex}};
 
 use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
 use types::errors::Result;
 
-use crate::themes::{transform_css, ThemeHolder};
+use crate::themes::ThemeHolder;
 
 #[test]
-fn test_transformcss() -> Result<()> {
-    // Use system temp directory
+fn test_theme_save_load() -> Result<()> {
     let temp_dir = std::env::temp_dir();
-    let root_theme = temp_dir.join("test.css");
-    let subroot_theme = temp_dir.join("test1.css");
+    let temp_theme_dir = temp_dir.join("temp_themes_save_load");
+    let temp_tmp_dir = temp_dir.join("temp_tmp_save_load");
 
-    fs::write(
-        root_theme.clone(),
-        "@import \"./test1.css;\"\n\n@import \"./test1.css;\"",
-    )
-    .unwrap();
-    fs::write(subroot_theme.clone(), "hello1").unwrap();
+    fs::create_dir_all(&temp_theme_dir).unwrap();
+    fs::create_dir_all(&temp_tmp_dir).unwrap();
 
-    let (res, _) = transform_css(root_theme.to_string_lossy().to_string(), Some(temp_dir)).unwrap();
+    let theme_holder = ThemeHolder::new(temp_theme_dir.clone(), temp_tmp_dir.clone());
+    let theme_id = "test_theme_id";
 
-    fs::remove_file(root_theme).unwrap();
-    fs::remove_file(subroot_theme).unwrap();
+    let mut constants = std::collections::HashMap::new();
+    constants.insert("primary".to_string(), "#ff0000".to_string());
+    constants.insert("cardWidth".to_string(), "220px".to_string());
 
-    if res == "hello1\n\nhello1" {
-        return Ok(());
-    }
-    panic!("Invalid css transformation");
-}
+    let theme_details = ThemeDetails {
+        id: theme_id.to_string(),
+        name: "Test Theme".to_string(),
+        author: Some("Test Author".to_string()),
+        description: Some("Test Description".to_string()),
+        theme: Some(ThemeItem { constants, ..Default::default() }),
+    };
 
-#[test]
-fn test_transformcss_with_nested_imports() -> Result<()> {
-    // Use system temp directory
-    let temp_dir = std::env::temp_dir();
-    let root_theme = temp_dir.join("root.css");
-    let level1_theme = temp_dir.join("level1.css");
-    let level2_theme = temp_dir.join("level2.css");
+    theme_holder.save_theme(theme_details.clone())?;
 
-    fs::write(
-        root_theme.clone(),
-        "@import \"./level1.css;\"\n\nbody { color: red; }",
-    )
-    .unwrap();
+    let loaded = theme_holder.load_theme(theme_id.to_string())?;
+    assert_eq!(loaded.id, theme_details.id);
+    assert_eq!(loaded.name, theme_details.name);
+    assert_eq!(loaded.author, theme_details.author);
+    assert_eq!(loaded.description, theme_details.description);
+    
+    let loaded_item = loaded.theme.unwrap();
+    use types::prelude::ThemeItemExt;
+    assert_eq!(loaded_item.get_constant("primary").unwrap(), "#ff0000");
+    assert_eq!(loaded_item.get_constant("cardWidth").unwrap(), "220px");
 
-    fs::write(
-        level1_theme.clone(),
-        "@import \"./level2.css;\"\n\nh1 { font-size: 20px; }",
-    )
-    .unwrap();
-
-    fs::write(level2_theme.clone(), "p { margin: 10px; }").unwrap();
-
-    // Test the transformation
-    let (res, imports) = transform_css(root_theme.to_string_lossy().to_string(), Some(temp_dir))?;
-
-    // Clean up files
-    fs::remove_file(root_theme).unwrap();
-    fs::remove_file(level1_theme).unwrap();
-    fs::remove_file(level2_theme).unwrap();
-
-    // Verify results
-    assert_eq!(
-        imports.len(),
-        3,
-        "Should have 3 imports: root, level1, and level2"
-    );
-    assert_eq!(
-        res,
-        "p { margin: 10px; }\n\nh1 { font-size: 20px; }\n\nbody { color: red; }"
-    );
-
+    fs::remove_dir_all(&temp_theme_dir).unwrap();
+    fs::remove_dir_all(&temp_tmp_dir).unwrap();
     Ok(())
 }
 
 #[test]
-fn test_transformcss_with_theme_dir_replacement() -> Result<()> {
-    // Use system temp directory
+fn test_theme_subscribers() -> Result<()> {
     let temp_dir = std::env::temp_dir();
-    let theme_file = temp_dir.join("theme_dir_test.css");
+    let temp_theme_dir = temp_dir.join("temp_themes_subs");
+    let temp_tmp_dir = temp_dir.join("temp_tmp_subs");
 
-    fs::write(
-        theme_file.clone(),
-        "body { background-image: url('%themeDir%/assets/bg.png'); }",
-    )
-    .unwrap();
+    fs::create_dir_all(&temp_theme_dir).unwrap();
+    fs::create_dir_all(&temp_tmp_dir).unwrap();
 
-    // Test the transformation
-    let (res, _) = transform_css(theme_file.to_string_lossy().to_string(), Some(temp_dir))?;
+    let theme_holder = ThemeHolder::new(temp_theme_dir.clone(), temp_tmp_dir.clone());
 
-    // Clean up
-    fs::remove_file(theme_file.clone()).unwrap();
+    let call_count1 = Arc::new(Mutex::new(0));
+    let call_count2 = Arc::new(Mutex::new(0));
 
-    // Get the expected parent directory
-    let expected_dir = theme_file.parent().unwrap().to_str().unwrap();
-    let expected_result = format!(
-        "body {{ background-image: url('{}/assets/bg.png'); }}",
-        expected_dir
-    );
+    let c1 = call_count1.clone();
+    theme_holder.on_theme_changed(move |theme| {
+        let mut count = c1.lock().unwrap();
+        *count += 1;
+        assert_eq!(theme.name, "Notify Test Theme");
+    });
 
-    // Verify results
-    assert_eq!(
-        res, expected_result,
-        "Should replace %themeDir% with the actual theme directory"
-    );
+    let c2 = call_count2.clone();
+    theme_holder.on_theme_changed(move |theme| {
+        let mut count = c2.lock().unwrap();
+        *count += 1;
+        assert_eq!(theme.name, "Notify Test Theme");
+    });
 
-    Ok(())
-}
+    let theme_details = ThemeDetails {
+        id: "notify_test".to_string(),
+        name: "Notify Test Theme".to_string(),
+        author: Some("Author".to_string()),
+        description: Some("Desc".to_string()),
+        theme: Some(ThemeItem { constants: std::collections::HashMap::new(), ..Default::default() }),
+    };
 
-#[test]
-fn test_transformcss_nonexistent_file() {
-    // Use system temp directory
-    let temp_dir = std::env::temp_dir();
-    let nonexistent_file = temp_dir.join("non_existent_file.css");
+    theme_holder.save_theme(theme_details)?;
 
-    // Test with non-existent file
-    let result = transform_css(
-        nonexistent_file.to_string_lossy().to_string(),
-        Some(temp_dir),
-    );
+    assert_eq!(*call_count1.lock().unwrap(), 1);
+    assert_eq!(*call_count2.lock().unwrap(), 1);
 
-    // Verify it returns an error
-    assert!(result.is_err(), "Should return error for non-existent file");
-
-    if let Err(e) = result {
-        let error_message = format!("{:?}", e);
-        assert!(
-            error_message.contains("CSS path does not exist"),
-            "Error message should indicate file doesn't exist"
-        );
-    }
-}
-
-#[test]
-fn test_transformcss_with_invalid_imports() -> Result<()> {
-    // Use system temp directory
-    let temp_dir = std::env::temp_dir();
-    let theme_file = temp_dir.join("invalid_import.css");
-
-    fs::write(
-        theme_file.clone(),
-        "@import \"./non_existent_file.css;\"\nbody { color: blue; }",
-    )
-    .unwrap();
-
-    // Test the transformation (should fail due to invalid import)
-    let result = transform_css(theme_file.to_string_lossy().to_string(), Some(temp_dir));
-
-    // Clean up
-    fs::remove_file(theme_file).unwrap();
-
-    // Verify it returns an error
-    assert!(result.is_err(), "Should return error for invalid import");
-
+    fs::remove_dir_all(&temp_theme_dir).unwrap();
+    fs::remove_dir_all(&temp_tmp_dir).unwrap();
     Ok(())
 }
 
 #[test]
 fn test_theme_export_import_cycle() -> Result<()> {
-    // Use system temp directory
     let temp_dir = std::env::temp_dir();
     let temp_theme_dir = temp_dir.join("temp_themes_export");
     let temp_tmp_dir = temp_dir.join("temp_tmp_export");
@@ -183,57 +119,35 @@ fn test_theme_export_import_cycle() -> Result<()> {
     fs::create_dir_all(&temp_theme_dir).unwrap();
     fs::create_dir_all(&temp_tmp_dir).unwrap();
 
-    // Setup channel for theme change notifications
-    let (tx, _rx) = channel();
-
-    // Create ThemeHolder instance
     let theme_holder = ThemeHolder::new(temp_theme_dir.clone(), temp_tmp_dir.clone());
-    theme_holder.set_change_tx(tx);
-
-    // Theme ID
     let theme_id = "export_test_theme";
 
-    // Create a test theme without CSS for simplicity
+    let mut constants = std::collections::HashMap::new();
+    constants.insert("primary".to_string(), "#aabbcc".to_string());
+
     let theme_details = ThemeDetails {
         id: theme_id.to_string(),
         name: "Export Test Theme".to_string(),
         author: Some("Export Author".to_string()),
-        theme: Some(ThemeItem {
-            primary: "#aabbcc".to_string(),
-            secondary: "#ddeeff".to_string(),
-            tertiary: "#112233".to_string(),
-            text_primary: "#445566".to_string(),
-            text_secondary: "#778899".to_string(),
-            text_inverse: "#aabbcc".to_string(),
-            accent: "#ddeeff".to_string(),
-            divider: "#112233".to_string(),
-            custom_css: None, // No CSS for simplicity
-        }),
+        description: Some("Export Desc".to_string()),
+        theme: Some(ThemeItem { constants, ..Default::default() }),
     };
 
-    // Save the theme
     theme_holder.save_theme(theme_details.clone())?;
 
-    // Export the theme
     theme_holder.export_theme(theme_id.to_string(), export_path.clone())?;
-
-    // Verify export file exists
     assert!(export_path.exists(), "Export file should exist");
 
-    // Remove the original theme
     theme_holder.remove_theme(theme_id.to_string())?;
 
-    // Import the theme back
     theme_holder.import_theme(export_path.to_string_lossy().to_string())?;
 
-    // Load all themes and verify the imported theme exists
     let all_themes = theme_holder.load_all_themes()?;
     assert!(
         all_themes.values().any(|t| t.name == "Export Test Theme"),
         "Imported theme should be in all themes"
     );
 
-    // Clean up
     fs::remove_file(&export_path).unwrap();
     fs::remove_dir_all(&temp_theme_dir).unwrap();
     fs::remove_dir_all(&temp_tmp_dir).unwrap();
@@ -242,58 +156,72 @@ fn test_theme_export_import_cycle() -> Result<()> {
 }
 
 #[test]
-fn test_get_css_functionality() -> Result<()> {
-    // Use system temp directory
-    let temp_dir = std::env::temp_dir();
-    let temp_theme_dir = temp_dir.join("temp_themes_css");
-    let temp_tmp_dir = temp_dir.join("temp_tmp_css");
+fn test_theme_backwards_compatibility() -> Result<()> {
+    use types::prelude::ThemeItemExt;
 
-    fs::create_dir_all(&temp_theme_dir).unwrap();
-    fs::create_dir_all(&temp_tmp_dir).unwrap();
+    // 1. Old theme format (colors and customCss at the root level)
+    let old_json = r##"{
+        "id": "old_theme",
+        "name": "Old Theme",
+        "author": "Old Author",
+        "description": "Old Description",
+        "theme": {
+            "primary": "#111111",
+            "secondary": "#222222",
+            "tertiary": "#333333",
+            "textPrimary": "#444444",
+            "textSecondary": "#555555",
+            "textInverse": "#666666",
+            "accent": "#777777",
+            "divider": "#888888",
+            "customCss": "body { background: red; }"
+        }
+    }"##;
 
-    // Setup channel for theme change notifications
-    let (tx, _rx) = channel();
+    let loaded_old: ThemeDetails = serde_json::from_str(old_json).unwrap();
+    assert_eq!(loaded_old.id, "old_theme");
+    assert_eq!(loaded_old.name, "Old Theme");
+    assert_eq!(loaded_old.author.as_deref(), Some("Old Author"));
+    assert_eq!(loaded_old.description.as_deref(), Some("Old Description"));
 
-    // Create ThemeHolder instance
-    let theme_holder = ThemeHolder::new(temp_theme_dir.clone(), temp_tmp_dir.clone());
-    theme_holder.set_change_tx(tx);
+    let theme_item = loaded_old.theme.unwrap();
+    assert_eq!(theme_item.get_constant("primary").unwrap(), "#111111");
+    assert_eq!(theme_item.get_constant("secondary").unwrap(), "#222222");
+    assert_eq!(theme_item.get_constant("tertiary").unwrap(), "#333333");
+    assert_eq!(theme_item.get_constant("textPrimary").unwrap(), "#444444");
+    assert_eq!(theme_item.get_constant("textSecondary").unwrap(), "#555555");
+    assert_eq!(theme_item.get_constant("textInverse").unwrap(), "#666666");
+    assert_eq!(theme_item.get_constant("accent").unwrap(), "#777777");
+    assert_eq!(theme_item.get_constant("divider").unwrap(), "#888888");
+    assert_eq!(theme_item.custom_css.as_deref(), Some("body { background: red; }"));
 
-    // Create a test CSS file
-    let css_content = "body { color: green; }";
-    let css_path = temp_theme_dir.join("css_test_theme").join("style.css");
-    fs::create_dir_all(css_path.parent().unwrap()).unwrap();
-    fs::write(&css_path, css_content).unwrap();
+    // 2. Transitional theme format (colors in constants map)
+    let transitional_json = r##"{
+        "id": "transitional_theme",
+        "name": "Transitional Theme",
+        "theme": {
+            "constants": {
+                "primary": "#123456",
+                "accent": "#654321",
+                "cardWidth": "240px"
+            }
+        }
+    }"##;
 
-    // Create a test theme
-    let theme_details = ThemeDetails {
-        id: "css_test_theme".to_string(),
-        name: "CSS Test Theme".to_string(),
-        author: Some("CSS Author".to_string()),
-        theme: Some(ThemeItem {
-            primary: "#123456".to_string(),
-            secondary: "#234567".to_string(),
-            tertiary: "#345678".to_string(),
-            text_primary: "#456789".to_string(),
-            text_secondary: "#56789a".to_string(),
-            text_inverse: "#6789ab".to_string(),
-            accent: "#789abc".to_string(),
-            divider: "#89abcd".to_string(),
-            custom_css: Some("style.css".to_string()),
-        }),
-    };
+    let loaded_transitional: ThemeDetails = serde_json::from_str(transitional_json).unwrap();
+    let trans_item = loaded_transitional.theme.unwrap();
+    assert_eq!(trans_item.get_constant("primary").unwrap(), "#123456");
+    assert_eq!(trans_item.get_constant("accent").unwrap(), "#654321");
+    assert_eq!(trans_item.get_constant("cardWidth").unwrap(), "240px");
 
-    // Save the theme
-    theme_holder.save_theme(theme_details.clone())?;
+    // 3. Modifying and saving a theme puts colors at root, others in map
+    let mut item_to_save = trans_item;
+    item_to_save.set_constant("primary", "#abcdef".to_string());
+    item_to_save.set_constant("cardWidth", "250px".to_string());
 
-    // Get CSS
-    let css = theme_holder.get_css("css_test_theme".to_string())?;
-
-    // Verify CSS content
-    assert_eq!(css, css_content, "CSS content should match");
-
-    // Clean up
-    fs::remove_dir_all(temp_theme_dir).unwrap();
-    fs::remove_dir_all(temp_tmp_dir).unwrap();
+    assert_eq!(item_to_save.primary, "#abcdef");
+    assert_eq!(item_to_save.get_constant("cardWidth").unwrap(), "250px");
 
     Ok(())
 }
+

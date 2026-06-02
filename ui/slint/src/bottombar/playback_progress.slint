@@ -7,7 +7,7 @@ export component PlaybackProgressBar inherits Rectangle {
 
     property <float> progress: current_duration / Math.max(total_duration, 1);
 
-    height: Theme.progressBarHeight;
+    height: Theme.bottombarProgressBarHeight;
     background: transparent;
 
     touch := TouchArea {
@@ -27,8 +27,8 @@ export component PlaybackProgressBar inherits Rectangle {
 
     // Background rail (gray)
     Rectangle {
-        y: (parent.height - Theme.sliderTrackHeight) / 2;
-        height: Theme.sliderTrackHeight;
+        y: (parent.height - Theme.playbackSliderTrackHeight) / 2;
+        height: Theme.playbackSliderTrackHeight;
         background: Theme.textSecondary;
         border-radius: Theme.borderRadiusSm;
     }
@@ -36,9 +36,9 @@ export component PlaybackProgressBar inherits Rectangle {
     // Active rail (green)
     Rectangle {
         x: 0px;
-        y: (parent.height - Theme.sliderTrackHeight) / 2;
+        y: (parent.height - Theme.playbackSliderTrackHeight) / 2;
         width: parent.width * progress;
-        height: Theme.sliderTrackHeight;
+        height: Theme.playbackSliderTrackHeight;
         background: Theme.accent;
         border-radius: Theme.borderRadiusSm;
 

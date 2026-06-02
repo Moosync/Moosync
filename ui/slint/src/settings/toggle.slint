@@ -1,0 +1,75 @@
+import { Theme } from "../constants.slint";
+import { PreferenceItem } from "preferences.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export component ToggleGroup inherits HorizontalLayout {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
+    in-out property <bool> checked: root.preference.value_bool;
+    callback toggled(bool);
+
+    spacing: Theme.spacingMd;
+
+    // The Left Side: Text
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+
+        Text {
+            text: root.title;
+            font-size: Theme.modelTitle;
+            color: Theme.textPrimary;
+        }
+
+        Text {
+            text: root.subtitle;
+            font-size: Theme.caption;
+            wrap: word-wrap;
+            color: Theme.textSecondary;
+        }
+    }
+
+    VerticalLayout {
+        alignment: center;
+
+        touch := TouchArea {
+            width: Theme.toggleWidth;
+            height: Theme.toggleHeight;
+
+            clicked => {
+                root.checked = !root.checked;
+                if (root.preference.id != "") {
+                    AppCallbacks.preference_changed({ id: root.preference.id, value_string: "", value_bool: root.checked, value_number: 0.0 });
+                }
+                root.toggled(root.checked);
+            }
+
+            Rectangle {
+                width: 100%;
+                height: 100%;
+                border-radius: self.height / 2;
+                background: root.checked 
+                    ? (touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent)
+                    : (touch.has-hover ? Theme.textSecondary.brighter(0.1) : Theme.textSecondary);
+
+                animate background { duration: 150ms; }
+
+                thumb := Rectangle {
+                    width: Theme.toggleThumbSize;
+                    height: Theme.toggleThumbSize;
+                    border-radius: self.width / 2;
+                    background: Theme.textPrimary;
+                    y: (parent.height - self.height) / 2;
+
+                    x: root.checked ? (Theme.toggleWidth - self.width - 2px) : 2px;
+
+                    animate x {
+                        duration: 150ms;
+                        easing: cubic-bezier(0.25, 0.8, 0.25, 1);
+                    }
+                }
+            }
+        }
+    }
+}

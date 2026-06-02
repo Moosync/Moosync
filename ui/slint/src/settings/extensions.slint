@@ -1,0 +1,47 @@
+import { Theme } from "../constants.slint";
+import { PreferenceGroup } from "preference_group.slint";
+import { ScrollView } from "std-widgets.slint";
+
+export component ExtensionsPage inherits VerticalLayout {
+    height: 100%;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    padding-right: 15px;
+    spacing: Theme.spacingLg;
+
+    HorizontalLayout {
+        padding-bottom: Theme.paddingSm;
+        Text {
+            text: "Settings > Extensions";
+            font-size: Theme.modelTitle;
+            color: Theme.accent;
+        }
+    }
+
+    ScrollView {
+        vertical-stretch: 1;
+        VerticalLayout {
+            spacing: Theme.spacingLg;
+            padding-right: Theme.paddingLg;
+
+            PreferenceGroup {
+                VerticalLayout {
+                    spacing: Theme.spacingMd;
+                    Text {
+                        text: "Extensions";
+                        font-size: Theme.modelTitle;
+                    }
+                    Text {
+                        text: "List of all installed extensions";
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                    }
+                    Text {
+                        text: "No extensions installed.";
+                        font-size: Theme.body;
+                    }
+                }
+            }
+        }
+    }
+}

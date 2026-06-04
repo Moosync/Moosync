@@ -24,7 +24,7 @@ mod source;
 #[cfg(test)]
 mod test;
 
-use std::{default, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use crate::audio_source::AudioSource;
 use extensions_proto::moosync::types::{PlayerEvent, player_event::Event};
@@ -79,6 +79,26 @@ impl PlayerHandler {
             on_repeat_changed_subs: vec![],
             on_player_event_subs: vec![],
         }
+    }
+
+    pub fn get_player_state(&self) -> i32 {
+        self.player.get_player_state() as i32
+    }
+
+    pub fn get_volume(&self) -> u8 {
+        self.player.get_volume()
+    }
+
+    pub fn get_queue(&self) -> &[Song] {
+        &self.song_queue
+    }
+
+    pub fn get_current_idx(&self) -> usize {
+        self.current_idx
+    }
+
+    pub fn get_current_pos(&self) -> Result<Duration, crate::error::PlayerError> {
+        self.player.get_current_pos()
     }
 
     pub fn current_song(&self) -> Option<&Song> {
@@ -154,14 +174,17 @@ impl PlayerHandler {
 
     pub fn next(&mut self) {
         if self.song_queue.is_empty() {
+            let _ = self.player.stop();
             return;
         }
         if self.current_idx + 1 < self.song_queue.len() {
             self.current_idx += 1;
-            self.trigger_song_changed();
-            if let Err(e) = self.play() {
-                tracing::error!("Failed to play song: {:?}", e);
-            }
+        } else {
+            self.current_idx = 0;
+        }
+        self.trigger_song_changed();
+        if let Err(e) = self.play() {
+            tracing::error!("Failed to play song: {:?}", e);
         }
     }
 

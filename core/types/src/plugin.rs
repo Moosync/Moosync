@@ -4,16 +4,7 @@ use std::path::PathBuf;
 pub use std::sync::Arc;
 pub use tokio::sync::RwLock;
 
-pub type ReplyHandlerFn = std::sync::Arc<
-    dyn Fn(
-            &str,
-            extensions_proto::moosync::types::MainCommand,
-        ) -> Result<
-            extensions_proto::moosync::types::MainCommandResponse,
-            crate::errors::MoosyncError,
-        > + Send
-        + Sync,
->;
+
 
 pub type PlayerResolverFn = std::sync::Arc<
     dyn Fn(

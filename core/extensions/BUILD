@@ -35,7 +35,6 @@ rust_library(
         "@crates//:fs_extra",
         "@crates//:futures",
         "@crates//:interprocess",
-        "@crates//:mockall",
         "@crates//:regex",
         "@crates//:reqwest",
         "@crates//:rust_crypto",

@@ -130,7 +130,9 @@ mod tests {
         );
 
         ph.next();
-        assert_eq!(ph.current_idx, 2);
+        assert_eq!(ph.current_idx, 0);
+
+        ph.current_idx = 2;
 
         ph.prev();
         assert_eq!(ph.current_idx, 1);

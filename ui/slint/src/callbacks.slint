@@ -16,9 +16,12 @@ export global AppCallbacks {
     pure callback add-song-to-queue(SongModel);
     callback preference_changed(PreferenceChange);
     callback open_directory_picker() -> string;
+    callback open_file_picker(string) -> string;
     callback theme_constant_changed(string, string);
     callback save_custom_theme(string, string, string);
     callback select_preset_theme(string);
+    callback install_extension(string);
+    callback toggle_extension(string);
 }
 
 export global BottomBarCallbacks {

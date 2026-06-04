@@ -8,7 +8,10 @@ use std::{
 use slint::{Image, Model, ModelNotify, ModelTracker, SharedString};
 use tracing::trace;
 
-use crate::{AlbumModel, ArtistModel, GenreModel, PlaylistModel, SongModel, WINDOW_EVENTS};
+use crate::{
+    AlbumModel, ArtistModel, ExtensionItem, GenreModel, PlaylistModel, SongModel, WINDOW_EVENTS,
+};
+use extensions_proto::moosync::types::{ExtensionDetail, FetchedExtensionManifest};
 use songs_proto::moosync::types::{Album, Artist, Genre, Playlist, Song};
 use types::prelude::SongsExt;
 
@@ -20,25 +23,85 @@ pub trait LazyModel: Clone {
     fn get_cover_url(&self) -> &SharedString;
 }
 
+async fn download_and_cache_image(
+    cover_url: &str,
+    cache_dir: &std::path::Path,
+) -> Option<std::path::PathBuf> {
+    if cover_url.starts_with("http://") || cover_url.starts_with("https://") {
+        // Remote URL. Check if already in cache.
+        let safe_name: String = cover_url
+            .chars()
+            .map(|c| if c.is_alphanumeric() { c } else { '_' })
+            .collect();
+        let img_cache_dir = cache_dir.join("image_cache");
+        if !img_cache_dir.exists() {
+            let _ = std::fs::create_dir_all(&img_cache_dir);
+        }
+        let ext = if cover_url.contains(".svg") {
+            "svg"
+        } else {
+            "png"
+        };
+        let cached_path = img_cache_dir.join(format!("{}.{}", safe_name, ext));
+
+        if cached_path.exists() {
+            Some(cached_path)
+        } else {
+            let client = reqwest::Client::new();
+            if let Ok(resp) = client.get(cover_url).send().await {
+                if let Ok(bytes) = resp.bytes().await {
+                    if std::fs::write(&cached_path, bytes).is_ok() {
+                        Some(cached_path)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
+    } else {
+        // Local file path
+        Some(std::path::PathBuf::from(cover_url))
+    }
+}
+
 pub struct LazySongVecModel<T: LazyModel> {
-    array: RefCell<Vec<T>>,
+    array: Rc<RefCell<Vec<T>>>,
     notify: Rc<ModelNotify>,
     max_items: Rc<Cell<usize>>,
     prefetch_count: Rc<Cell<usize>>,
-    allocated_rows: RefCell<HashSet<usize>>,
+    allocated_rows: Rc<RefCell<HashSet<usize>>>,
+    cache_dir: std::path::PathBuf,
 }
 
 impl<T: LazyModel + 'static> LazySongVecModel<T> {
     #[tracing::instrument(level = "trace", skip(array))]
-    pub fn new(array: Vec<T>, item_height: usize, item_width: usize) -> Self {
+    pub fn new(
+        array: Vec<T>,
+        item_height: usize,
+        item_width: usize,
+        cache_dir: std::path::PathBuf,
+    ) -> Self {
         let notify = Rc::new(ModelNotify::default());
         let max_items = Rc::new(Cell::new(1));
-        let max_items_clone = max_items.clone();
+        let max_items_clone = Rc::downgrade(&max_items);
         let prefetch_count = Rc::new(Cell::new(0));
-        let prefetch_count_clone = prefetch_count.clone();
+        let prefetch_count_clone = Rc::downgrade(&prefetch_count);
 
         WINDOW_EVENTS.with(move |window_events| {
             window_events.on_resize(Box::new(move |window| {
+                let max_items = match max_items_clone.upgrade() {
+                    Some(m) => m,
+                    None => return,
+                };
+                let prefetch_count = match prefetch_count_clone.upgrade() {
+                    Some(p) => p,
+                    None => return,
+                };
+
                 let scale = window.scale_factor();
                 let height = (window.size().height as f32 / scale) as usize;
                 let width = (window.size().width as f32 / scale) as usize;
@@ -58,41 +121,58 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
                     "Window resized {}x{}, item size {}x{}, new max items: {}, columns: {}",
                     width, height, item_width, item_height, new_max_items, columns
                 );
-                max_items_clone.set(new_max_items);
-                prefetch_count_clone.set(2 * columns);
+                max_items.set(new_max_items);
+                prefetch_count.set(2 * columns);
             }));
         });
 
         Self {
-            array: RefCell::new(array),
+            array: Rc::new(RefCell::new(array)),
             notify,
             max_items,
             prefetch_count,
-            allocated_rows: RefCell::new(HashSet::new()),
+            allocated_rows: Rc::new(RefCell::new(HashSet::new())),
+            cache_dir,
         }
     }
 
-    fn load_image(&self, row: usize, model: &mut T) {
-        if !is_empty_image(&model.get_cover()) {
-            return;
-        }
-
-        if model.get_cover_url().is_empty() {
+    fn load_image(&self, row: usize, cover_url: &str) {
+        if cover_url.is_empty() {
             return;
         }
 
         trace!("Fetching image for row {}", row);
-        if !model.get_cover_url().is_empty() {
-            let image = Image::load_from_path(Path::new(&model.get_cover_url()))
-                .unwrap_or(Image::load_from_svg_data(DEFAULT_SONG_SVG).unwrap());
-            model.set_cover(image);
-            self.allocated_rows.borrow_mut().insert(row);
-            return;
-        }
 
-        let image = Image::load_from_svg_data(DEFAULT_SONG_SVG).unwrap();
-        model.set_cover(image);
         self.allocated_rows.borrow_mut().insert(row);
+
+        let array = self.array.clone();
+        let notify = self.notify.clone();
+        let allocated_rows = self.allocated_rows.clone();
+        let cover_url_str = cover_url.to_string();
+        let cache_dir = self.cache_dir.clone();
+
+        slint::spawn_local(async move {
+            let local_path = download_and_cache_image(&cover_url_str, &cache_dir).await;
+
+            if let Some(path) = local_path {
+                if let Ok(img) = Image::load_from_path(&path) {
+                    let mut changed = false;
+                    {
+                        let mut array = array.borrow_mut();
+                        if let Some(item) = array.get_mut(row) {
+                            item.set_cover(img);
+                            tracing::info!("Loaded image for row {} from {}", row, path.display());
+                            allocated_rows.borrow_mut().insert(row);
+                            changed = true;
+                        }
+                    }
+                    if changed {
+                        notify.row_changed(row);
+                    }
+                }
+            }
+        })
+        .unwrap();
     }
 
     fn release_image(&self, row: usize, model: &mut T) {
@@ -137,6 +217,7 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
         }
     }
 }
+
 impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
     type Data = T;
 
@@ -145,30 +226,51 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
     }
 
     fn row_data(&self, row: usize) -> Option<Self::Data> {
-        let song_model = {
-            let mut array = self.array.borrow_mut();
+        let (song_model, is_loaded) = {
+            let array = self.array.borrow();
+            let song_model = array.get(row)?;
+            let is_loaded = !is_empty_image(&song_model.get_cover());
+            (song_model.clone(), is_loaded)
+        };
 
-            // First load the requested item
-            let song_model = array.get_mut(row)?;
-            self.load_image(row, song_model);
-            let cloned = song_model.clone();
+        if is_loaded {
+            return Some(song_model);
+        }
 
-            // Prefetch adjacent items (2 rows up and down)
-            let prefetch = self.prefetch_count.get();
-            if prefetch > 0 {
-                let min_idx = row.saturating_sub(prefetch);
-                let max_idx = (row + prefetch).min(array.len() - 1);
-                for i in min_idx..=max_idx {
-                    if i != row {
-                        if let Some(item) = array.get_mut(i) {
-                            self.load_image(i, item);
+        let cover_url = song_model.get_cover_url().to_string();
+        if cover_url.is_empty() {
+            return Some(song_model);
+        }
+
+        self.load_image(row, &cover_url);
+
+        // Prefetch adjacent items (2 rows up and down)
+        let prefetch = self.prefetch_count.get();
+        tracing::info!("Prefetching {} items around row {}", prefetch, row);
+        if prefetch > 0 {
+            let min_idx = row.saturating_sub(prefetch);
+            let max_idx = (row + prefetch).min(self.row_count() - 1);
+            for i in min_idx..=max_idx {
+                if i != row {
+                    let prefetch_url = {
+                        let array = self.array.borrow();
+                        if let Some(item) = array.get(i) {
+                            let url = item.get_cover_url().to_string();
+                            if is_empty_image(&item.get_cover()) {
+                                Some(url)
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
                         }
+                    };
+                    if let Some(url) = prefetch_url {
+                        self.load_image(i, &url);
                     }
                 }
             }
-
-            cloned
-        };
+        }
 
         self.evict_furthest(row);
 
@@ -193,6 +295,20 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
 
     fn as_any(&self) -> &dyn core::any::Any {
         self
+    }
+}
+
+impl LazyModel for ExtensionItem {
+    fn set_cover(&mut self, image: Image) {
+        self.icon = image;
+    }
+
+    fn get_cover(&self) -> &Image {
+        &self.icon
+    }
+
+    fn get_cover_url(&self) -> &SharedString {
+        &self.icon_url
     }
 }
 
@@ -359,5 +475,35 @@ pub fn to_genre_model(genre: &Genre) -> GenreModel {
         id: genre.genre_id.clone().unwrap_or_default().into(),
         songs_count: genre.genre_song_count as i32,
         title: genre.genre_name.clone().unwrap_or_default().into(),
+    }
+}
+
+pub fn to_extension_item(ext: &ExtensionDetail) -> ExtensionItem {
+    ExtensionItem {
+        name: ext.name.clone().into(),
+        package_name: ext.package_name.clone().into(),
+        version: ext.version.clone().into(),
+        active: ext.active,
+        is_installed: true,
+        loading: ext.active && !ext.has_started,
+        description: ext.desc.clone().unwrap_or_default().into(),
+        icon: slint::Image::default(),
+        has_started: ext.has_started,
+        icon_url: ext.extension_icon.clone().unwrap_or_default().into(),
+    }
+}
+
+pub fn to_fetched_extension_item(ext: &FetchedExtensionManifest) -> ExtensionItem {
+    ExtensionItem {
+        name: ext.name.clone().into(),
+        package_name: ext.package_name.clone().into(),
+        version: ext.version.clone().into(),
+        active: false,
+        is_installed: false,
+        loading: false,
+        description: ext.description.clone().unwrap_or_default().into(),
+        icon: slint::Image::default(),
+        has_started: false,
+        icon_url: ext.logo.clone().unwrap_or_default().into(),
     }
 }

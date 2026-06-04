@@ -79,24 +79,25 @@ async fn fetch_and_cache_genres(
 ) {
     if let Ok(genres) = get_genres_from_db(&state_manager).await {
         *genres_cache.lock().unwrap() = genres.clone();
+        let cache_dir = state_manager.get_cache_dir();
         let _ = slint::invoke_from_event_loop(move || {
             if let Some(main_window) = main_window_weak.upgrade() {
                 if main_window.get_active_page() == Pages::Genres {
-                    set_all_genres(&main_window, genres);
+                    set_all_genres(&main_window, genres, cache_dir);
                 }
             }
         });
     }
 }
 
-fn set_all_genres(main_window: &MainWindow, genres: Vec<Genre>) {
+fn set_all_genres(main_window: &MainWindow, genres: Vec<Genre>, cache_dir: std::path::PathBuf) {
     debug!("Setting genres");
     let genre_model = genres
         .into_iter()
         .map(|genre| crate::utils::to_genre_model(&genre))
         .collect::<Vec<_>>();
 
-    main_window.set_genres(ModelRc::new(LazySongVecModel::new(genre_model, 230, 200)));
+    main_window.set_genres(ModelRc::new(LazySongVecModel::new(genre_model, 230, 200, cache_dir)));
 }
 
 impl<'a> PageHandler for GenresPageHandler<'a> {
@@ -112,7 +113,8 @@ impl<'a> PageHandler for GenresPageHandler<'a> {
 
     fn on_show(&self) {
         let genres = self.genres.lock().unwrap().clone();
-        set_all_genres(self.main_window, genres);
+        let cache_dir = self.state_manager.get_cache_dir();
+        set_all_genres(self.main_window, genres, cache_dir);
     }
 
     fn on_hide(&self) {

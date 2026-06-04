@@ -1,35 +1,27 @@
 use std::{
     env::temp_dir,
     num::NonZeroUsize,
-    ops::Mul,
-    sync::{Arc, Mutex, RwLock, mpsc},
+    sync::{Arc, Mutex},
 };
 
 use database::Database;
 use extensions::ExtensionHandler;
-use extensions_proto::moosync::types::{
-    ExtensionCommand, MainCommand, MainCommandResponse, extension_command::Event,
-};
 use file_scanner::ScannerHolder;
 use lru::LruCache;
-use lyrics::LyricsFetcher;
-use mpris::MprisHolder;
-use platform_dirs;
 use player::PlayerHandler;
-use preferences::preferences::PreferenceConfig;
 use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song};
 use tempdir;
-use themes::themes::ThemeHolder;
-use tokio::{runtime::Handle, sync::OwnedRwLockReadGuard};
-use tracing::{debug, info, trace};
+use tokio::runtime::Handle;
+use tracing::trace;
 #[cfg(target_os = "android")]
 use types::android::AndroidJNIContext;
-use types::errors::MoosyncError;
-use types::plugin::{Plugin, PluginContext, PluginRegistry};
+use types::plugin::{PluginContext, PluginRegistry};
 
 use crate::interceptors::database::CacheDatabaseInterceptor;
 
 pub mod interceptors;
+mod reply_handler;
+use crate::reply_handler::StateReplyHandler;
 
 plugin_macro::generate_plugin_system!(
     preferences::preferences::PreferenceConfig,
@@ -52,11 +44,18 @@ pub enum StateManagerError {
 pub struct StateManager {
     pub plugins: Arc<PluginRegistry>,
     pub interceptors: Arc<Interceptors>,
+    pub cache_dir: std::path::PathBuf,
 
     song_cache: Arc<Mutex<LruCache<String, Song>>>,
+    runtime: Handle,
+    pub on_extensions_updated: Arc<std::sync::Mutex<Vec<Box<dyn Fn() + Send + Sync + 'static>>>>,
 }
 
 impl StateManager {
+    pub fn get_cache_dir(&self) -> std::path::PathBuf {
+        self.cache_dir.clone()
+    }
+
     fn get_dirs() -> (std::path::PathBuf, std::path::PathBuf, std::path::PathBuf) {
         #[cfg(not(target_os = "android"))]
         let (data_dir, cache_dir) = {
@@ -110,7 +109,7 @@ impl StateManager {
 
         let context = Self::generate_context(
             data_dir,
-            cache_dir,
+            cache_dir.clone(),
             tmp_dir,
             #[cfg(target_os = "android")]
             android_context,
@@ -121,12 +120,23 @@ impl StateManager {
 
         let cache = Self::create_song_cache();
         let interceptors = Interceptors::default().with(CacheDatabaseInterceptor::new(&cache));
+        let runtime = Handle::current();
 
         Ok(Self {
             plugins: Arc::new(plugins),
             interceptors: Arc::new(interceptors),
+            cache_dir,
             song_cache: cache,
+            runtime,
+            on_extensions_updated: Arc::new(std::sync::Mutex::new(Vec::new())),
         })
+    }
+
+    pub fn on_extensions_updated<F>(&self, callback: F)
+    where
+        F: Fn() + Send + Sync + 'static,
+    {
+        self.on_extensions_updated.lock().unwrap().push(Box::new(callback));
     }
 
     pub async fn setup(&self) {
@@ -139,11 +149,18 @@ impl StateManager {
     async fn setup_extensions(&self) {
         // Set reply_handler in ExtensionHandler
         let extensions = self.plugins.get::<ExtensionHandler>();
-        let runtime = Handle::current();
-        let reply_handler: extensions::ReplyHandler = Arc::new(Box::new(move |ext, command| {
-            runtime.block_on(handle_request(ext, command))
-        }));
-        extensions.read().await.set_reply_handler(reply_handler);
+        let extensions_cl = extensions.clone();
+
+        let reply_handler = Arc::new(StateReplyHandler::new(self.clone()));
+        let mut ext_handle = extensions.write().await;
+        ext_handle.set_reply_handler(reply_handler);
+
+        tokio::spawn(async move {
+            let ext_handle = extensions_cl.read().await;
+            if let Err(e) = ext_handle.find_new_extensions() {
+                tracing::error!("Failed to find new extensions: {:?}", e);
+            }
+        });
     }
 
     async fn setup_themes(&self) {}
@@ -226,11 +243,4 @@ impl StateManager {
 
         None
     }
-}
-
-pub async fn handle_request(
-    _ext: &str,
-    _command: MainCommand,
-) -> Result<MainCommandResponse, MoosyncError> {
-    todo!("Not implemented yet");
 }

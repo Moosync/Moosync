@@ -1,14 +1,153 @@
 import { Theme } from "../constants.slint";
+import { ListView } from "std-widgets.slint";
+import { AppCallbacks } from "../callbacks.slint";
 import { PreferenceGroup } from "preference_group.slint";
-import { ScrollView } from "std-widgets.slint";
+import { ExtensionItem } from "../types/extension_view.slint";
+import { Button } from "../common/button.slint";
+
+component Spinner inherits Rectangle {
+    in property <bool> active: true;
+    width: Theme.iconSizeMd;
+    height: Theme.iconSizeMd;
+
+    Image {
+        width: 100%;
+        height: 100%;
+        source: @image-url("../icons/spinner.svg");
+        colorize: Theme.accent;
+        transform-rotation: root.active ? (animation-tick() * 360deg / 1s) : 0deg;
+    }
+}
+
+component ExtensionsManifest inherits VerticalLayout {
+    in property <[ExtensionItem]> extensions;
+
+    ListView {
+        height: 230px;
+        for item in root.extensions: VerticalLayout {
+            padding-bottom: Theme.spacingLg;
+            padding-right: Theme.paddingLg;
+
+            Rectangle {
+                border-radius: Theme.borderRadiusLg;
+                border-width: 1px;
+                border-color: Theme.textSecondary;
+
+                HorizontalLayout {
+                    padding-top: 12px;
+                    padding-bottom: 12px;
+                    padding-left: 15px;
+                    padding-right: 15px;
+                    spacing: Theme.spacingLg;
+
+                    VerticalLayout {
+                        alignment: center;
+                        Rectangle {
+                            width: 36px;
+                            height: 36px;
+                            border-radius: Theme.borderRadiusMd;
+                            clip: true;
+
+                            Image {
+                                width: 100%;
+                                height: 100%;
+                                source: item.icon.width > 0 ? item.icon : @image-url("../icons/song_default.svg");
+                                image-fit: contain;
+                            }
+                        }
+                    }
+
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        alignment: center;
+                        spacing: 2px;
+
+                        HorizontalLayout {
+                            alignment: start;
+                            spacing: Theme.spacingMd;
+                            Text {
+                                text: item.name;
+                                font-size: Theme.body;
+                                font-weight: 700;
+                                color: Theme.textPrimary;
+                            }
+
+                            Text {
+                                text: "v" + item.version;
+                                font-size: Theme.caption;
+                                color: Theme.textSecondary;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        if item.description != "": Text {
+                            text: item.description;
+                            font-size: Theme.caption;
+                            color: Theme.textSecondary;
+                            overflow: elide;
+                        }
+                    }
+
+                    VerticalLayout {
+                        alignment: center;
+                        HorizontalLayout {
+                            spacing: Theme.spacingMd;
+
+                            if item.loading: Spinner {
+                                active: true;
+                            }
+
+                            toggle_touch := TouchArea {
+                                width: Theme.toggleWidth;
+                                height: Theme.toggleHeight;
+                                enabled: !item.loading;
+
+                                clicked => {
+                                    AppCallbacks.toggle_extension(item.package_name);
+                                }
+
+                                Rectangle {
+                                    width: 100%;
+                                    height: 100%;
+                                    border-radius: self.height / 2;
+                                    background: item.active ? (toggle_touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent) : (toggle_touch.has-hover ? Theme.textSecondary.brighter(0.1) : Theme.textSecondary);
+
+                                    animate background { duration: 150ms; }
+
+                                    thumb := Rectangle {
+                                        width: Theme.toggleThumbSize;
+                                        height: Theme.toggleThumbSize;
+                                        border-radius: self.width / 2;
+                                        background: Theme.textPrimary;
+                                        y: (parent.height - self.height) / 2;
+
+                                        x: item.active ? (Theme.toggleWidth - self.width - 2px) : 2px;
+
+                                        animate x {
+                                            duration: 150ms;
+                                            easing: cubic-bezier(0.25, 0.8, 0.25, 1);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 export component ExtensionsPage inherits VerticalLayout {
+    in-out property <[ExtensionItem]> extensions;
+
     height: 100%;
     padding-top: 15px;
     padding-bottom: 15px;
     padding-right: 15px;
-    spacing: Theme.spacingLg;
+    spacing: Theme.spacingMd;
 
+    alignment: start;
     HorizontalLayout {
         padding-bottom: Theme.paddingSm;
         Text {
@@ -18,30 +157,47 @@ export component ExtensionsPage inherits VerticalLayout {
         }
     }
 
-    ScrollView {
-        vertical-stretch: 1;
-        VerticalLayout {
+    PreferenceGroup {
+        HorizontalLayout {
             spacing: Theme.spacingLg;
-            padding-right: Theme.paddingLg;
+            VerticalLayout {
+                alignment: start;
+                horizontal-stretch: 1;
+                Text {
+                    text: "Extensions";
+                    font-size: Theme.modelTitle;
+                    color: Theme.textPrimary;
+                }
 
-            PreferenceGroup {
-                VerticalLayout {
-                    spacing: Theme.spacingMd;
-                    Text {
-                        text: "Extensions";
-                        font-size: Theme.modelTitle;
-                    }
-                    Text {
-                        text: "List of all installed extensions";
-                        font-size: Theme.caption;
-                        color: Theme.textSecondary;
-                    }
-                    Text {
-                        text: "No extensions installed.";
-                        font-size: Theme.body;
+                Text {
+                    text: "Manage your extensions";
+                    font-size: Theme.caption;
+                    wrap: word-wrap;
+                    color: Theme.textSecondary;
+                }
+            }
+
+            Button {
+                text: "Add Extension";
+                icon: @image-url("../icons/plus.svg");
+                clicked => {
+                    let chosen = AppCallbacks.open_file_picker("msxt");
+                    if (chosen != "") {
+                        AppCallbacks.install_extension(chosen);
                     }
                 }
             }
+        }
+
+        if (root.extensions.length == 0): Text {
+            text: "No extensions available.";
+            font-size: Theme.body;
+            color: Theme.textSecondary;
+            horizontal-alignment: left;
+        }
+
+        ExtensionsManifest {
+            extensions <=> root.extensions;
         }
     }
 }

@@ -159,7 +159,7 @@ fn test_theme_export_import_cycle() -> Result<()> {
 fn test_theme_backwards_compatibility() -> Result<()> {
     use types::prelude::ThemeItemExt;
 
-    // 1. Old theme format (colors and customCss at the root level)
+
     let old_json = r##"{
         "id": "old_theme",
         "name": "Old Theme",
@@ -195,7 +195,7 @@ fn test_theme_backwards_compatibility() -> Result<()> {
     assert_eq!(theme_item.get_constant("divider").unwrap(), "#888888");
     assert_eq!(theme_item.custom_css.as_deref(), Some("body { background: red; }"));
 
-    // 2. Transitional theme format (colors in constants map)
+
     let transitional_json = r##"{
         "id": "transitional_theme",
         "name": "Transitional Theme",
@@ -214,7 +214,7 @@ fn test_theme_backwards_compatibility() -> Result<()> {
     assert_eq!(trans_item.get_constant("accent").unwrap(), "#654321");
     assert_eq!(trans_item.get_constant("cardWidth").unwrap(), "240px");
 
-    // 3. Modifying and saving a theme puts colors at root, others in map
+
     let mut item_to_save = trans_item;
     item_to_save.set_constant("primary", "#abcdef".to_string());
     item_to_save.set_constant("cardWidth", "250px".to_string());

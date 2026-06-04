@@ -81,17 +81,18 @@ async fn fetch_and_cache_playlists(
 ) {
     if let Ok(playlists) = get_playlists_from_db(&state_manager).await {
         *playlists_cache.lock().unwrap() = playlists.clone();
+        let cache_dir = state_manager.get_cache_dir();
         let _ = slint::invoke_from_event_loop(move || {
             if let Some(main_window) = main_window_weak.upgrade() {
                 if main_window.get_active_page() == Pages::Playlists {
-                    set_all_playlists(&main_window, playlists);
+                    set_all_playlists(&main_window, playlists, cache_dir);
                 }
             }
         });
     }
 }
 
-fn set_all_playlists(main_window: &MainWindow, playlists: Vec<Playlist>) {
+fn set_all_playlists(main_window: &MainWindow, playlists: Vec<Playlist>, cache_dir: std::path::PathBuf) {
     debug!("Setting playlists");
     let playlist_model = playlists
         .into_iter()
@@ -102,6 +103,7 @@ fn set_all_playlists(main_window: &MainWindow, playlists: Vec<Playlist>) {
         playlist_model,
         230,
         200,
+        cache_dir,
     )));
 }
 
@@ -118,7 +120,8 @@ impl<'a> PageHandler for PlaylistsPageHandler<'a> {
 
     fn on_show(&self) {
         let playlists = self.playlists.lock().unwrap().clone();
-        set_all_playlists(self.main_window, playlists);
+        let cache_dir = self.state_manager.get_cache_dir();
+        set_all_playlists(self.main_window, playlists, cache_dir);
     }
 
     fn on_hide(&self) {

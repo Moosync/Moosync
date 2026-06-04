@@ -79,24 +79,25 @@ async fn fetch_and_cache_albums(
 ) {
     if let Ok(albums) = get_albums_from_db(&state_manager).await {
         *albums_cache.lock().unwrap() = albums.clone();
+        let cache_dir = state_manager.get_cache_dir();
         let _ = slint::invoke_from_event_loop(move || {
             if let Some(main_window) = main_window_weak.upgrade() {
                 if main_window.get_active_page() == Pages::Albums {
-                    set_all_albums(&main_window, albums);
+                    set_all_albums(&main_window, albums, cache_dir);
                 }
             }
         });
     }
 }
 
-fn set_all_albums(main_window: &MainWindow, albums: Vec<Album>) {
+fn set_all_albums(main_window: &MainWindow, albums: Vec<Album>, cache_dir: std::path::PathBuf) {
     debug!("Setting albums");
     let album_model = albums
         .into_iter()
         .map(|album| crate::utils::to_album_model(&album))
         .collect::<Vec<_>>();
 
-    main_window.set_albums(ModelRc::new(LazySongVecModel::new(album_model, 230, 200)));
+    main_window.set_albums(ModelRc::new(LazySongVecModel::new(album_model, 230, 200, cache_dir)));
 }
 
 impl<'a> PageHandler for AlbumsPageHandler<'a> {
@@ -112,7 +113,8 @@ impl<'a> PageHandler for AlbumsPageHandler<'a> {
 
     fn on_show(&self) {
         let albums = self.albums.lock().unwrap().clone();
-        set_all_albums(self.main_window, albums);
+        let cache_dir = self.state_manager.get_cache_dir();
+        set_all_albums(self.main_window, albums, cache_dir);
     }
 
     fn on_hide(&self) {

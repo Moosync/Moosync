@@ -84,6 +84,10 @@ impl AudioSource {
         self.mux.pause()
     }
 
+    pub fn stop(&self) -> Result<(), PlayerError> {
+        self.mux.stop()
+    }
+
     pub fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
         self.mux.set_volume(volume)
     }
@@ -94,5 +98,13 @@ impl AudioSource {
 
     pub fn get_current_pos(&self) -> Result<Duration, PlayerError> {
         self.mux.get_current_pos()
+    }
+
+    pub fn get_player_state(&self) -> extensions_proto::moosync::types::PlayerState {
+        self.mux.get_player_state()
+    }
+
+    pub fn get_volume(&self) -> u8 {
+        self.mux.get_volume()
     }
 }

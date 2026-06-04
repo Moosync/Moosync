@@ -79,24 +79,25 @@ async fn fetch_and_cache_artists(
 ) {
     if let Ok(artists) = get_artists_from_db(&state_manager).await {
         *artists_cache.lock().unwrap() = artists.clone();
+        let cache_dir = state_manager.get_cache_dir();
         let _ = slint::invoke_from_event_loop(move || {
             if let Some(main_window) = main_window_weak.upgrade() {
                 if main_window.get_active_page() == Pages::Artists {
-                    set_all_artists(&main_window, artists);
+                    set_all_artists(&main_window, artists, cache_dir);
                 }
             }
         });
     }
 }
 
-fn set_all_artists(main_window: &MainWindow, artists: Vec<Artist>) {
+fn set_all_artists(main_window: &MainWindow, artists: Vec<Artist>, cache_dir: std::path::PathBuf) {
     debug!("Setting artists");
     let artist_model = artists
         .into_iter()
         .map(|artist| crate::utils::to_artist_model(&artist))
         .collect::<Vec<_>>();
 
-    main_window.set_artists(ModelRc::new(LazySongVecModel::new(artist_model, 230, 200)));
+    main_window.set_artists(ModelRc::new(LazySongVecModel::new(artist_model, 230, 200, cache_dir)));
 }
 
 impl<'a> PageHandler for ArtistsPageHandler<'a> {
@@ -112,7 +113,8 @@ impl<'a> PageHandler for ArtistsPageHandler<'a> {
 
     fn on_show(&self) {
         let artists = self.artists.lock().unwrap().clone();
-        set_all_artists(self.main_window, artists);
+        let cache_dir = self.state_manager.get_cache_dir();
+        set_all_artists(self.main_window, artists, cache_dir);
     }
 
     fn on_hide(&self) {

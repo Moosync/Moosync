@@ -2,15 +2,13 @@ import { Theme } from "../constants.slint";
 import { ScrollView } from "std-widgets.slint";
 import { PreferenceItem } from "preferences.slint";
 import { AppCallbacks } from "../callbacks.slint";
+import { Button } from "../common/button.slint";
 
 export component PathSelector {
     in property <PreferenceItem> preference;
     in property <string> title: root.preference.title;
     in property <string> subtitle: root.preference.subtitle;
     in property <[string]> items: root.preference.value_list;
-
-    callback add_clicked();
-    callback remove_clicked(string);
 
     VerticalLayout {
         HorizontalLayout {
@@ -33,47 +31,14 @@ export component PathSelector {
                 }
             }
 
-            VerticalLayout {
-                alignment: center;
-                horizontal-stretch: 0;
-                TouchArea {
-                    clicked => {
-                        let chosen = AppCallbacks.open_directory_picker();
-                        if (chosen != "") {
-                            if (root.preference.id != "") {
-                                AppCallbacks.preference_changed({ id: root.preference.id, value_string: chosen, value_bool: false, value_number: 0.0 });
-                            }
-                            root.add_clicked();
-                        }
-                    }
-                    Rectangle {
-                        background: Theme.accent;
-                        border-radius: 13px;
-                        height: Theme.modelTitle + 10px;
-                        width: 90px;
-
-                        HorizontalLayout {
-                            alignment: center;
-                            padding-right: 10px;
-                            padding-left: 10px;
-                            spacing: 5px;
-
-                            VerticalLayout {
-                                alignment: center;
-                                Image {
-                                    source: @image-url("../icons/cross.svg");
-                                    colorize: Theme.textInverse;
-                                    width: 8px;
-                                    height: 8px;
-                                }
-                            }
-
-                            Text {
-                                vertical-alignment: center;
-                                text: "Add folder";
-                                color: Theme.textInverse;
-                                font-size: Theme.caption;
-                            }
+            Button {
+                text: "Add folder";
+                icon: @image-url("../icons/plus.svg");
+                clicked => {
+                    let chosen = AppCallbacks.open_directory_picker();
+                    if (chosen != "") {
+                        if (root.preference.id != "") {
+                            AppCallbacks.preference_changed({ id: root.preference.id, value_string: chosen, value_bool: false, value_number: 0.0 });
                         }
                     }
                 }
@@ -115,7 +80,6 @@ export component PathSelector {
                                 if (root.preference.id != "") {
                                     AppCallbacks.preference_changed({ id: root.preference.id, value_string: item, value_bool: false, value_number: 0.0 });
                                 }
-                                root.remove_clicked(item);
                             }
                             VerticalLayout {
                                 alignment: center;

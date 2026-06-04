@@ -17,6 +17,7 @@ rust_library(
         "//core/preferences",
         "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",
+        "//core/types/protos:ui_rs",
         "//core/player",
         # "//core/spotify_player",
         "//core/themes",
@@ -26,6 +27,9 @@ rust_library(
         "@crates//:tempdir",
         "@crates//:tracing",
         "@crates//:lru",
+        "@crates//:serde",
+        "@crates//:serde_json",
+        "@crates//:prost-types",
         "//core/mpris",
     ] + select({
         "@platforms//os:android": [

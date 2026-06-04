@@ -1,10 +1,12 @@
-use crate::context::{ExtismContext, ReplyHandler};
+use crate::context::ReplyHandler;
 use crate::ext_runner::ExtensionHandlerInner;
 use extensions_proto::moosync::types::{
-    ExtensionCommand, ExtensionsUpdatedResponse, GetProviderScopesRequest, MainCommand,
-    MainCommandResponse, RunnerCommand, extension_command, extension_command_response,
-    main_command, main_command_response, runner_command, runner_command_response,
+    ExtensionCommand, GetProviderScopesRequest, MainCommand,
+    extension_command, extension_command_response,
+    main_command,
 };
+use songs_proto::moosync::types::{Song, Playlist, GetSongOptions, GetEntityOptions, EntityResult};
+use ui_proto::moosync::types::PreferenceUiData;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -28,6 +30,350 @@ impl TempDir {
 impl Drop for TempDir {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.path);
+    }
+}
+
+struct TestReplyHandler {
+    captured_commands: Arc<Mutex<Vec<MainCommand>>>,
+}
+
+impl ReplyHandler for TestReplyHandler {
+    fn get_song(
+        &self,
+        _package_name: &str,
+        options: GetSongOptions,
+    ) -> Result<Vec<Song>, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::GetSong(
+                extensions_proto::moosync::types::GetSongRequest { options: Some(options) },
+            )),
+        });
+        Ok(vec![])
+    }
+
+    fn get_entity(
+        &self,
+        _package_name: &str,
+        options: GetEntityOptions,
+    ) -> Result<EntityResult, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::GetEntity(
+                extensions_proto::moosync::types::GetEntityRequest { options: Some(options) },
+            )),
+        });
+        Ok(EntityResult::default())
+    }
+
+    fn get_current_song(
+        &self,
+        _package_name: &str,
+    ) -> Result<Option<Song>, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::GetCurrentSong(
+                extensions_proto::moosync::types::GetCurrentSongRequest {},
+            )),
+        });
+        Ok(None)
+    }
+
+    fn get_player_state(
+        &self,
+        _package_name: &str,
+    ) -> Result<i32, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::GetPlayerState(
+                extensions_proto::moosync::types::GetPlayerStateRequest {},
+            )),
+        });
+        Ok(0)
+    }
+
+    fn get_volume(
+        &self,
+        _package_name: &str,
+    ) -> Result<f64, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::GetVolume(
+                extensions_proto::moosync::types::GetVolumeRequest {},
+            )),
+        });
+        Ok(1.0)
+    }
+
+    fn get_time(
+        &self,
+        _package_name: &str,
+    ) -> Result<f64, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::GetTime(
+                extensions_proto::moosync::types::GetTimeRequest {},
+            )),
+        });
+        Ok(0.0)
+    }
+
+    fn get_queue(
+        &self,
+        _package_name: &str,
+    ) -> Result<(Vec<Song>, usize), types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::GetQueue(
+                extensions_proto::moosync::types::GetQueueRequest {},
+            )),
+        });
+        Ok((vec![], 0))
+    }
+
+    fn get_preference(
+        &self,
+        _package_name: &str,
+        key: &str,
+    ) -> Result<Option<serde_json::Value>, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::GetPreference(
+                extensions_proto::moosync::types::GetPreferenceRequest {
+                    data: Some(extensions_proto::moosync::types::PreferenceData {
+                        key: key.to_string(),
+                        value: None,
+                    })
+                },
+            )),
+        });
+        Ok(None)
+    }
+
+    fn set_preference(
+        &self,
+        _package_name: &str,
+        key: &str,
+        value: serde_json::Value,
+    ) -> Result<bool, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::SetPreference(
+                extensions_proto::moosync::types::SetPreferenceRequest {
+                    data: Some(extensions_proto::moosync::types::PreferenceData {
+                        key: key.to_string(),
+                        value: Some(serde_json::from_value(value).unwrap()),
+                    })
+                },
+            )),
+        });
+        Ok(true)
+    }
+
+    fn get_secure(
+        &self,
+        _package_name: &str,
+        key: &str,
+    ) -> Result<Option<serde_json::Value>, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::GetSecure(
+                extensions_proto::moosync::types::GetSecureRequest {
+                    data: Some(extensions_proto::moosync::types::PreferenceData {
+                        key: key.to_string(),
+                        value: None,
+                    })
+                },
+            )),
+        });
+        Ok(None)
+    }
+
+    fn set_secure(
+        &self,
+        _package_name: &str,
+        key: &str,
+        value: serde_json::Value,
+    ) -> Result<bool, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::SetSecure(
+                extensions_proto::moosync::types::SetSecureRequest {
+                    data: Some(extensions_proto::moosync::types::PreferenceData {
+                        key: key.to_string(),
+                        value: Some(serde_json::from_value(value).unwrap()),
+                    })
+                },
+            )),
+        });
+        Ok(true)
+    }
+
+    fn add_songs(
+        &self,
+        _package_name: &str,
+        songs: Vec<Song>,
+    ) -> Result<Vec<Song>, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::AddSongs(
+                extensions_proto::moosync::types::AddSongsRequest { songs },
+            )),
+        });
+        Ok(vec![])
+    }
+
+    fn remove_song(
+        &self,
+        _package_name: &str,
+        song: Song,
+    ) -> Result<bool, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::RemoveSong(
+                extensions_proto::moosync::types::RemoveSongRequest { song: Some(song) },
+            )),
+        });
+        Ok(true)
+    }
+
+    fn update_song(
+        &self,
+        _package_name: &str,
+        song: Song,
+    ) -> Result<Song, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::UpdateSong(
+                extensions_proto::moosync::types::UpdateSongRequest { song: Some(song.clone()) },
+            )),
+        });
+        Ok(song)
+    }
+
+    fn add_playlist(
+        &self,
+        _package_name: &str,
+        playlist: Playlist,
+    ) -> Result<String, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::AddPlaylist(
+                extensions_proto::moosync::types::AddPlaylistRequest { playlist: Some(playlist) },
+            )),
+        });
+        Ok("test".to_string())
+    }
+
+    fn add_to_playlist(
+        &self,
+        _package_name: &str,
+        playlist_id: String,
+        songs: Vec<Song>,
+    ) -> Result<bool, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::AddToPlaylist(
+                extensions_proto::moosync::types::AddToPlaylistRequest { playlist_id, songs },
+            )),
+        });
+        Ok(true)
+    }
+
+    fn register_oauth(
+        &self,
+        _package_name: &str,
+        url: String,
+    ) -> Result<bool, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::RegisterOauth(
+                extensions_proto::moosync::types::RegisterOauthRequest { url },
+            )),
+        });
+        Ok(true)
+    }
+
+    fn open_external_url(
+        &self,
+        _package_name: &str,
+        url: String,
+    ) -> Result<bool, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::OpenExternalUrl(
+                extensions_proto::moosync::types::OpenExternalUrlRequest { url },
+            )),
+        });
+        Ok(true)
+    }
+
+    fn update_accounts(
+        &self,
+        _package_name: &str,
+        account: Option<String>,
+    ) -> Result<bool, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::UpdateAccounts(
+                extensions_proto::moosync::types::UpdateAccountsRequest { account },
+            )),
+        });
+        Ok(true)
+    }
+
+    fn register_user_preference(
+        &self,
+        _package_name: &str,
+        prefs: Vec<PreferenceUiData>,
+    ) -> Result<bool, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::RegisterUserPreference(
+                extensions_proto::moosync::types::RegisterUserPreferenceRequest { prefs },
+            )),
+        });
+        Ok(true)
+    }
+
+    fn unregister_user_preference(
+        &self,
+        _package_name: &str,
+        keys: Vec<String>,
+    ) -> Result<bool, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::UnregisterUserPreference(
+                extensions_proto::moosync::types::UnregisterUserPreferenceRequest { keys },
+            )),
+        });
+        Ok(true)
+    }
+
+    fn extensions_updated(
+        &self,
+        _package_name: &str,
+    ) -> Result<(), types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::ExtensionsUpdated(
+                extensions_proto::moosync::types::ExtensionsUpdatedRequest {},
+            )),
+        });
+        Ok(())
+    }
+
+    fn get_app_version(
+        &self,
+        _package_name: &str,
+    ) -> Result<String, types::errors::MoosyncError> {
+        let mut cmds = self.captured_commands.lock().unwrap();
+        cmds.push(MainCommand {
+            command: Some(main_command::Command::GetAppVersion(
+                extensions_proto::moosync::types::GetAppVersionRequest {},
+            )),
+        });
+        Ok("1.17.0".to_string())
     }
 }
 
@@ -55,53 +401,33 @@ async fn setup_extension() -> (ExtensionHandlerInner, Arc<Mutex<Vec<MainCommand>
     });
 
     let captured_commands = Arc::new(Mutex::new(Vec::<MainCommand>::new()));
-    let captured_commands_clone = captured_commands.clone();
+    let reply_handler = Arc::new(TestReplyHandler {
+        captured_commands: captured_commands.clone(),
+    });
 
-    let reply_handler: ReplyHandler = Arc::new(Box::new(move |_, cmd| {
-        let mut cmds = captured_commands_clone.lock().unwrap();
-        cmds.push(cmd);
-        Ok(MainCommandResponse {
-            response: Some(main_command_response::Response::ExtensionsUpdated(
-                ExtensionsUpdatedResponse {},
-            )),
-        })
-    }));
+    let mut handler = ExtensionHandlerInner::new(
+        extensions_path.clone(),
+        cache_path,
+    );
 
-    let extism_context = ExtismContext::new(cache_path, Arc::new(Mutex::new(Some(reply_handler))));
-    let mut handler =
-        ExtensionHandlerInner::new_with_context(extensions_path.clone(), Box::new(extism_context));
-
-    let req_find = RunnerCommand {
-        command: Some(runner_command::Command::FindNewExtensions(
-            Default::default(),
-        )),
-    };
-    handler.handle_runner_command(req_find).unwrap();
+    handler.spawn_extensions(reply_handler);
 
     // Verify extension is loaded
-    let req_list = RunnerCommand {
-        command: Some(runner_command::Command::GetInstalledExtensions(
-            Default::default(),
-        )),
-    };
-    let resp = handler.handle_runner_command(req_list).unwrap();
-    if let Some(runner_command_response::Response::GetInstalledExtensions(list)) = resp.response {
-        if list.extensions.is_empty() {
-            panic!(
-                "Setup failed: No extensions loaded from {:?}",
-                extensions_path
-            );
-        }
-        if !list
-            .extensions
-            .iter()
-            .any(|e| e.package_name == "sample.pkg")
-        {
-            panic!(
-                "Setup failed: sample.pkg not found in {:?}",
-                list.extensions
-            );
-        }
+    let list = handler.get_installed_extensions();
+    if list.is_empty() {
+        panic!(
+            "Setup failed: No extensions loaded from {:?}",
+            extensions_path
+        );
+    }
+    if !list
+        .iter()
+        .any(|e| e.package_name == "sample.pkg")
+    {
+        panic!(
+            "Setup failed: sample.pkg not found in {:?}",
+            list
+        );
     }
 
     // Wait for ExtensionsUpdated command to settle

@@ -1,3 +1,19 @@
+// Moosync
+// Copyright (C) 2024, 2025  Moosync <support@moosync.app>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 use std::{
     collections::{BTreeMap, HashMap},
     env,
@@ -19,10 +35,9 @@ use crypto::{
 };
 use extensions_proto::moosync::types::{
     Error as MainCommandError, ExtensionCommand, ExtensionCommandResponse, ExtensionManifest,
-    ExtensionsUpdatedRequest, MainCommand, MainCommandResponse, ManifestPermissions, main_command,
-    main_command_response,
+    MainCommand, MainCommandResponse, ManifestPermissions, main_command_response,
 };
-use extism::{Error, ValType::I64};
+use extism::ValType::I64;
 use extism::{Manifest, PTR, Plugin, PluginBuilder, UserData, Wasm, host_fn};
 use extism_convert::Prost;
 use interprocess::local_socket::{
@@ -32,17 +47,30 @@ use interprocess::local_socket::{
 use regex::{Captures, Regex};
 
 use crate::{
-    context::{Extism, MainCommandUserData, ReplyHandler, SocketUserData},
+    context::{DispatchCommand, ExtensionContext, ReplyHandler},
     errors::ExtensionError,
     models::SanitizeCommand,
 };
 
+struct MainCommandUserData {
+    package_name: String,
+    reply_handler: Arc<dyn ReplyHandler>,
+}
+
+struct SocketUserData {
+    socks: Vec<LocalSocketStream>,
+    allowed_paths: Option<BTreeMap<String, PathBuf>>,
+}
+
 host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Prost<MainCommand>) {
-    let user_data = user_data.get()?;
-    let user_data = user_data.lock().unwrap();
+    let user_data_arc = user_data.get()?;
+    let (package_name, reply_handler) = {
+        let data = user_data_arc.lock().unwrap();
+        (data.package_name.clone(), data.reply_handler.clone())
+    };
 
     let mut command = command_wrapper.0;
-    if let Err(e) = command.sanitize(&user_data.package_name) {
+    if let Err(e) = command.sanitize(&package_name) {
         return Ok(Prost(MainCommandResponse {
             response: Some(main_command_response::Response::Error(MainCommandError {
                 message: e.to_string()
@@ -50,15 +78,16 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Pros
         }));
     }
 
-    let reply_handler_lock = user_data.reply_handler.lock().unwrap();
-    let response = if let Some(ref reply_handler) = *reply_handler_lock {
-        reply_handler(&user_data.package_name, command)
-            .map_err(|e| Error::msg(e.to_string()))
-    } else {
-        Err(Error::msg("Reply handler not set"))
+    let response = match command.command {
+        Some(cmd) => cmd.dispatch(reply_handler.as_ref(), &package_name),
+        None => Err(types::errors::MoosyncError::String("Missing command".to_string())),
     };
 
-    match response {
+    let result = response.map(|resp| MainCommandResponse {
+        response: Some(resp),
+    });
+
+    match result {
         Ok(response) => {
             Ok(Prost(response))
         }
@@ -208,34 +237,30 @@ host_fn!(hash(hash_type: String, data: Vec<u8>) -> Vec<u8> {
 });
 
 pub struct ExtismContext {
-    cache_path: PathBuf,
-    reply_handler: Arc<Mutex<Option<ReplyHandler>>>,
+    plugin: Arc<Mutex<Plugin>>,
+    package_name: String,
 }
 
 impl Debug for ExtismContext {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ExtismContext")
-            .field("cache_path", &self.cache_path)
+            .field("package_name", &self.package_name)
             .finish()
     }
 }
 
 impl ExtismContext {
-    pub fn new(cache_path: PathBuf, reply_handler: Arc<Mutex<Option<ReplyHandler>>>) -> Self {
-        Self {
-            cache_path,
-            reply_handler,
-        }
-    }
+    pub fn new(
+        manifest: &ExtensionManifest,
+        has_started: Arc<std::sync::atomic::AtomicBool>,
+        cache_path: PathBuf,
+        reply_handler: Arc<dyn ReplyHandler>,
+    ) -> Self {
+        let url = Wasm::file(manifest.extension_entry.clone());
+        let mut plugin_manifest = Manifest::new([url]);
 
-    fn get_allowed_paths(
-        &self,
-        permissions: &ManifestPermissions,
-        package_name: &str,
-    ) -> HashMap<String, PathBuf> {
-        let re = Regex::new(r"\{([A-Z_][A-Z0-9_]*)\}").unwrap();
-        let mut allowed_paths = HashMap::new();
-        let ext_cache_dir = self.cache_path.join("extensions").join(package_name);
+        let package_name = manifest.name.clone();
+        let ext_cache_dir = cache_path.join("extensions").join(&package_name);
 
         if let Err(e) = fs::create_dir_all(&ext_cache_dir) {
             tracing::error!(
@@ -244,6 +269,54 @@ impl ExtismContext {
                 e
             );
         }
+
+        if let Some(permissions) = &manifest.permissions {
+            let allowed_paths = Self::get_allowed_paths(permissions, &ext_cache_dir);
+            plugin_manifest = plugin_manifest
+                .with_allowed_hosts(permissions.hosts.clone().into_iter())
+                .with_allowed_paths(allowed_paths.into_iter())
+                .with_config_key("pid", format!("{}", process::id()));
+        }
+
+        let (user_data, sock_data) = Self::get_user_data(
+            package_name.clone(),
+            reply_handler.clone(),
+            plugin_manifest.allowed_paths.clone(),
+        );
+
+        let plugin = Self::build_plugin(&cache_path, plugin_manifest, user_data, sock_data);
+        let plugin_clone = plugin.clone();
+        let package_name_clone = package_name.clone();
+        let reply_handler_clone = reply_handler.clone();
+        let extension_entry = manifest.extension_entry.clone();
+        thread::spawn(move || {
+            {
+                let mut plugin = plugin_clone.lock().unwrap();
+                println!("Calling entry");
+                if let Err(e) = plugin.call::<(), ()>("entry", ()) {
+                    println!("Failed to called extension entry: {:?}", e);
+                    if let Some(parent) = PathBuf::from(&extension_entry).parent() {
+                        let disabled_file = parent.join(".disabled");
+                        let _ = fs::write(disabled_file, "");
+                    }
+                }
+            }
+            has_started.store(true, std::sync::atomic::Ordering::SeqCst);
+            let _ = reply_handler_clone.extensions_updated(&package_name_clone);
+        });
+
+        Self {
+            plugin,
+            package_name,
+        }
+    }
+
+    fn get_allowed_paths(
+        permissions: &ManifestPermissions,
+        ext_cache_dir: &PathBuf,
+    ) -> HashMap<String, PathBuf> {
+        let re = Regex::new(r"\{([A-Z_][A-Z0-9_]*)\}").unwrap();
+        let mut allowed_paths = HashMap::new();
 
         for (key, value) in &permissions.paths {
             // Replace all matches with corresponding env variable values
@@ -272,13 +345,13 @@ impl ExtismContext {
     }
 
     fn get_user_data(
-        &self,
         package_name: String,
+        reply_handler: Arc<dyn ReplyHandler>,
         allowed_paths: Option<BTreeMap<String, PathBuf>>,
     ) -> (UserData<MainCommandUserData>, UserData<SocketUserData>) {
         let user_data = UserData::new(MainCommandUserData {
             package_name,
-            reply_handler: self.reply_handler.clone(),
+            reply_handler,
         });
 
         let sock_data = UserData::new(SocketUserData {
@@ -290,17 +363,17 @@ impl ExtismContext {
     }
 
     fn build_plugin(
-        &self,
+        cache_path: &PathBuf,
         plugin_manifest: Manifest,
         user_data: UserData<MainCommandUserData>,
         sock_data: UserData<SocketUserData>,
     ) -> Arc<Mutex<Plugin>> {
-        let cache_path = self.cache_path.join("wasmtime").join("config.toml");
-        if !cache_path.exists() {
-            fs::create_dir_all(cache_path.parent().unwrap()).unwrap();
+        let config_path = cache_path.join("wasmtime").join("config.toml");
+        if !config_path.exists() {
+            fs::create_dir_all(config_path.parent().unwrap()).unwrap();
         }
         fs::write(
-            &cache_path,
+            &config_path,
             format!(
                 r#"
             [cache]
@@ -308,7 +381,11 @@ impl ExtismContext {
             cleanup-interval = "30m"
             files-total-size-soft-limit = "1Gi"
             "#,
-                cache_path.parent().unwrap().join("cache").to_string_lossy()
+                config_path
+                    .parent()
+                    .unwrap()
+                    .join("cache")
+                    .to_string_lossy()
             ),
         )
         .unwrap();
@@ -316,7 +393,7 @@ impl ExtismContext {
         #[allow(unused_mut)]
         let mut plugin_builder = PluginBuilder::new(plugin_manifest)
             .with_wasi(true)
-            .with_cache_config(cache_path)
+            .with_cache_config(config_path)
             .with_function(
                 "send_main_command",
                 [PTR],
@@ -349,56 +426,13 @@ impl ExtismContext {
 }
 
 #[async_trait::async_trait]
-impl Extism for ExtismContext {
-    fn spawn_extension(&self, manifest: &ExtensionManifest) -> Arc<Mutex<Plugin>> {
-        let url = Wasm::file(manifest.extension_entry.clone());
-        let mut plugin_manifest = Manifest::new([url]);
-
-        if let Some(permissions) = &manifest.permissions {
-            let allowed_paths = self.get_allowed_paths(permissions, &manifest.name);
-            plugin_manifest = plugin_manifest
-                .with_allowed_hosts(permissions.hosts.clone().into_iter())
-                .with_allowed_paths(allowed_paths.into_iter())
-                .with_config_key("pid", format!("{}", process::id()));
-        }
-
-        let (user_data, sock_data) =
-            self.get_user_data(manifest.name.clone(), plugin_manifest.allowed_paths.clone());
-
-        let plugin = self.build_plugin(plugin_manifest, user_data, sock_data);
-        let plugin_clone = plugin.clone();
-        let package_name = manifest.name.clone();
-        let reply_handler = self.reply_handler.clone();
-        thread::spawn(move || {
-            {
-                let mut plugin = plugin.lock().unwrap();
-                println!("Calling entry");
-                if let Err(e) = plugin.call::<(), ()>("entry", ()) {
-                    println!("Failed to called extension entry: {:?}", e);
-                }
-            }
-            let reply_handler_lock = reply_handler.lock().unwrap();
-            if let Some(ref handler) = *reply_handler_lock {
-                let _ = handler(
-                    &package_name,
-                    MainCommand {
-                        command: Some(main_command::Command::ExtensionsUpdated(
-                            ExtensionsUpdatedRequest {},
-                        )),
-                    },
-                );
-            }
-        });
-
-        plugin_clone
-    }
-
+impl ExtensionContext for ExtismContext {
     async fn execute_command(
         &self,
-        package_name: String,
-        plugin: Arc<Mutex<Plugin>>,
         command: ExtensionCommand,
     ) -> Result<ExtensionCommandResponse, ExtensionError> {
+        let plugin = self.plugin.clone();
+        let package_name = self.package_name.clone();
         tokio::task::spawn_blocking(move || {
             let mut plugin = plugin.lock().unwrap();
             tracing::debug!("Calling {:?} on {:?}", command, plugin.id);

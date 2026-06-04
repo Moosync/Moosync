@@ -20,8 +20,12 @@ rust_library(
         "src/ui/updater.rs",
         "src/window.rs",
     ],
+    compile_data = [
+        "//ui/slint:src/constants.slint",
+    ],
     proc_macro_deps = [
         "@crates//:async-trait",
+        "//core/theme_macro",
     ],
     visibility = ["//visibility:public"],
     deps =

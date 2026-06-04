@@ -8,25 +8,7 @@ import "google/protobuf/empty.proto";
 import "core/types/protos/ui.proto";
 import "google/protobuf/duration.proto";
 
-message RunnerCommand {
-  oneof command {
-    google.protobuf.Empty find_new_extensions = 1;
-    google.protobuf.Empty get_installed_extensions = 2;
-    PackageName get_extension_icon = 3;
-    PackageName remove_extension = 4;
-    PackageName get_display_name = 5;
-  }
-}
 
-message RunnerCommandResponse {
-  oneof response {
-    google.protobuf.Empty find_new_extensions = 1;
-    InstalledExtensions get_installed_extensions = 2;
-    string get_extension_icon = 3;
-    google.protobuf.Empty remove_extension = 4;
-    string get_display_name = 5;
-  }
-}
 
 message ExtensionCommand {
   string package_name = 1;
@@ -303,7 +285,7 @@ message GetSongRequest { GetSongOptions options = 1; }
 message GetSongResponse { repeated Song songs = 1; }
 
 message GetEntityRequest { GetEntityOptions options = 1; }
-message GetEntityResponse { google.protobuf.Struct entity = 1; }
+message GetEntityResponse { EntityResult entity = 1; }
 
 message GetCurrentSongRequest {}
 message GetCurrentSongResponse { Song song = 1; }

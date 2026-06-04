@@ -27,8 +27,7 @@ use crate::errors::ExtensionError;
 use ext_runner::ExtensionHandlerInner;
 use extensions_proto::moosync::types::{
     ExtensionCommand, ExtensionCommandResponse, ExtensionDetail, ExtensionManifest,
-    FetchedExtensionManifest, PackageName, RunnerCommand, RunnerCommandResponse, runner_command,
-    runner_command_response,
+    FetchedExtensionManifest, PackageName,
 };
 use fs_extra::dir::CopyOptions;
 use futures::{StreamExt, lock::Mutex};
@@ -50,34 +49,35 @@ mod tests;
 pub struct ExtensionHandler {
     pub extensions_dir: PathBuf,
     pub tmp_dir: PathBuf,
-    inner: Arc<Mutex<ExtensionHandlerInner>>,
-    reply_handler: Arc<std::sync::Mutex<Option<ReplyHandler>>>,
+    pub cache_dir: PathBuf,
+    inner: Arc<ExtensionHandlerInner>,
+    reply_handler: Option<Arc<dyn ReplyHandler>>,
 }
 
 #[plugin_macro::generate]
 impl ExtensionHandler {
     #[tracing::instrument(level = "debug")]
-    pub fn new(
-        extensions_dir: PathBuf,
-        tmp_dir: PathBuf,
-        cache_dir: PathBuf,
-    ) -> Self {
-        let reply_handler = Arc::new(std::sync::Mutex::new(None));
+    pub fn new(extensions_dir: PathBuf, tmp_dir: PathBuf, cache_dir: PathBuf) -> Self {
         Self {
-            inner: Arc::new(Mutex::new(ExtensionHandlerInner::new(
+            inner: Arc::new(ExtensionHandlerInner::new(
                 extensions_dir.clone(),
-                cache_dir,
-                reply_handler.clone(),
-            ))),
+                cache_dir.clone(),
+            )),
             extensions_dir,
             tmp_dir,
-            reply_handler,
+            cache_dir,
+            reply_handler: None,
         }
     }
 
-    pub fn set_reply_handler(&self, reply_handler: ReplyHandler) {
-        let mut handler = self.reply_handler.lock().unwrap();
-        *handler = Some(reply_handler);
+    pub fn set_reply_handler(&mut self, reply_handler: Arc<dyn ReplyHandler>) {
+        self.reply_handler = Some(reply_handler);
+    }
+
+    pub fn trigger_extensions_updated(&self) {
+        if let Some(ref reply_handler) = self.reply_handler {
+            let _ = reply_handler.extensions_updated("");
+        }
     }
 
     #[tracing::instrument(level = "debug", skip(self, ext_path))]
@@ -101,7 +101,7 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip(self, ext_path))]
-    pub async fn install_extension(&self, ext_path: String) -> Result<(), ExtensionError> {
+    pub fn install_extension(&self, ext_path: String) -> Result<(), ExtensionError> {
         tracing::debug!("ext path {}", ext_path);
         let ext_path = PathBuf::from_str(&ext_path).unwrap();
 
@@ -159,19 +159,18 @@ impl ExtensionHandler {
             parent_dir.join(package_manifest.name),
         )?;
 
-        self.find_new_extensions().await?;
+        self.find_new_extensions()?;
 
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self, package_name))]
-    pub async fn remove_extension(&self, package_name: String) -> Result<(), ExtensionError> {
+    pub fn remove_extension(&self, package_name: String) -> Result<(), ExtensionError> {
         let ext_path = self.extensions_dir.join(package_name.clone());
         if ext_path.exists() {
             fs::remove_dir_all(ext_path)?;
-            self.send_remove_extension(PackageName { package_name })
-                .await?;
-            self.find_new_extensions().await?;
+            self.send_remove_extension(PackageName { package_name })?;
+            self.find_new_extensions()?;
             Ok(())
         } else {
             Err(ExtensionError::NoExtensionFound)
@@ -202,74 +201,48 @@ impl ExtensionHandler {
 
         tracing::info!("Wrote file");
 
-        self.install_extension(file_path.to_string_lossy().to_string())
-            .await?;
+        self.install_extension(file_path.to_string_lossy().to_string())?;
 
         Ok(())
     }
 
-    async fn send_remove_extension(&self, package_name: PackageName) -> Result<(), ExtensionError> {
-        let mut inner = self.inner.lock().await;
-        inner.handle_runner_command(RunnerCommand {
-            command: Some(runner_command::Command::RemoveExtension(package_name)),
-        })?;
+    fn send_remove_extension(&self, package_name: PackageName) -> Result<(), ExtensionError> {
+        self.inner.remove_extension(&package_name.package_name);
         Ok(())
     }
 
-    pub async fn find_new_extensions(&self) -> Result<(), ExtensionError> {
-        let mut inner = self.inner.lock().await;
-        inner.handle_runner_command(RunnerCommand {
-            command: Some(runner_command::Command::FindNewExtensions(
-                Default::default(),
-            )),
-        })?;
+    pub fn find_new_extensions(&self) -> Result<(), ExtensionError> {
+        let reply_handler = self.reply_handler.clone().expect("Reply handler not set");
+        self.inner.spawn_extensions(reply_handler);
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn get_installed_extensions(&self) -> Result<Vec<ExtensionDetail>, ExtensionError> {
-        let mut inner = self.inner.lock().await;
-        let RunnerCommandResponse { response } = inner.handle_runner_command(RunnerCommand {
-            command: Some(runner_command::Command::GetInstalledExtensions(
-                Default::default(),
-            )),
-        })?;
-        if let Some(runner_command_response::Response::GetInstalledExtensions(list)) = response {
-            return Ok(list.extensions);
-        }
-
-        Err(ExtensionError::InvalidResponse)
+    pub fn get_installed_extensions(&self) -> Result<Vec<ExtensionDetail>, ExtensionError> {
+        Ok(self.inner.get_installed_extensions())
     }
 
-    pub async fn get_extension_icon(&self, package_name: String) -> Result<String, ExtensionError> {
-        let mut inner = self.inner.lock().await;
-        let RunnerCommandResponse { response } = inner.handle_runner_command(RunnerCommand {
-            command: Some(runner_command::Command::GetExtensionIcon(PackageName {
-                package_name: package_name.clone(),
-            })),
-        })?;
-        if let Some(runner_command_response::Response::GetExtensionIcon(icon)) = response {
-            return Ok(icon);
-        }
-        Err(ExtensionError::NoExtensionIconFound(package_name))
+    pub fn get_extension_icon(&self, package_name: String) -> Result<String, ExtensionError> {
+        self.inner
+            .get_extension_icon(&package_name)
+            .ok_or_else(|| ExtensionError::NoExtensionIconFound(package_name))
     }
 
-    pub async fn register_ui_preferences(
+    pub fn register_ui_preferences(
         &self,
         package_name: String,
         prefs: Vec<PreferenceUiData>,
     ) -> Result<(), ExtensionError> {
-        let inner = self.inner.lock().await;
-        inner.register_ui_preferences(package_name, prefs)
+        self.inner.register_ui_preferences(package_name, prefs)
     }
 
-    pub async fn unregister_ui_preferences(
+    pub fn unregister_ui_preferences(
         &self,
         package_name: String,
         pref_keys: Vec<String>,
     ) -> Result<(), ExtensionError> {
-        let inner = self.inner.lock().await;
-        inner.unregister_ui_preferences(package_name, pref_keys)
+        self.inner
+            .unregister_ui_preferences(package_name, pref_keys)
     }
 
     pub async fn send_extension_command(
@@ -278,8 +251,30 @@ impl ExtensionHandler {
     ) -> Result<Option<ExtensionCommandResponse>, ExtensionError> {
         tracing::trace!("Sending extension command {:?}", command);
 
-        let mut inner = self.inner.lock().await;
-        inner.handle_extension_command(command).await
+        self.inner.handle_extension_command(command).await
+    }
+
+    pub fn set_extension_active(
+        &self,
+        package_name: String,
+        active: bool,
+    ) -> Result<(), ExtensionError> {
+        let reply_handler = self.reply_handler.clone().expect("Reply handler not set");
+        self.inner
+            .set_extension_active(&package_name, active, reply_handler)?;
+        Ok(())
+    }
+
+    pub fn get_cached_remote_manifests(&self) -> Vec<FetchedExtensionManifest> {
+        let path = self.extensions_dir.join("remote_manifest_cache.json");
+        if path.exists() {
+            if let Ok(contents) = fs::read(path) {
+                if let Ok(manifests) = serde_json::from_slice(&contents) {
+                    return manifests;
+                }
+            }
+        }
+        vec![]
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -333,10 +328,11 @@ impl ExtensionHandler {
                             && asset.name.ends_with(".msox")
                     });
                     if let Some(asset) = asset {
+                        let logo_url = manifest.icon.map(|icon| format!("https://raw.githubusercontent.com/Moosync/moosync-exts/refs/heads/v2/{}", icon));
                         ret.push(FetchedExtensionManifest {
                             name: manifest.display_name,
                             package_name,
-                            logo: manifest.icon.map(|icon| format!("https://raw.githubusercontent.com/Moosync/moosync-exts/refs/heads/v2/{}", icon)),
+                            logo: logo_url,
                             description: None,
                             url: asset.browser_download_url.clone(),
                             version: manifest.version,
@@ -347,16 +343,24 @@ impl ExtensionHandler {
             }
         }
 
+        let path = self.extensions_dir.join("remote_manifest_cache.json");
+        if let Ok(contents) = serde_json::to_vec(&ret) {
+            let _ = fs::write(path, contents);
+        }
+
         Ok(ret)
     }
 }
 
 impl types::plugin::Plugin for ExtensionHandler {
-    fn init(context: &types::plugin::PluginContext) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
-        types::plugin::Arc::new(types::plugin::RwLock::new(ExtensionHandler::new(
+    fn init(
+        context: &types::plugin::PluginContext,
+    ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+        let handler = ExtensionHandler::new(
             context.data_dir.join("extensions"),
             context.tmp_dir.clone(),
             context.cache_dir.clone(),
-        )))
+        );
+        types::plugin::Arc::new(types::plugin::RwLock::new(handler))
     }
 }

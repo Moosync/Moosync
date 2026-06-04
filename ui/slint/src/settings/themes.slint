@@ -1,4 +1,4 @@
-import { Theme, RgbaColor, ThemeConfig } from "../constants.slint";
+import { Theme, RgbaColor, ThemeConfig, ThemeConstant } from "../constants.slint";
 import { PreferenceGroup } from "preference_group.slint";
 import { TextInputGroup } from "text_input.slint";
 import { ScrollView, Slider } from "std-widgets.slint";
@@ -435,21 +435,14 @@ export component ThemesPage inherits VerticalLayout {
 
     in-out property <string> active-theme-id;
     in-out property <[ThemeConfig]> available-themes;
+    in-out property <[ThemeConstant]> theme-constants;
 
     // Helper function to map a color object to RgbaColor reactively
     pure function color_to_rgba(c: color) -> RgbaColor {
         return { r: c.red, g: c.green, b: c.blue, a: c.alpha / 255.0 };
     }
 
-    // Reactively map Theme color properties to RgbaColor structs for the picker binding
-    property <RgbaColor> active-primary: root.color_to_rgba(Theme.primary);
-    property <RgbaColor> active-secondary: root.color_to_rgba(Theme.secondary);
-    property <RgbaColor> active-tertiary: root.color_to_rgba(Theme.tertiary);
-    property <RgbaColor> active-textPrimary: root.color_to_rgba(Theme.textPrimary);
-    property <RgbaColor> active-textSecondary: root.color_to_rgba(Theme.textSecondary);
-    property <RgbaColor> active-textInverse: root.color_to_rgba(Theme.textInverse);
     property <RgbaColor> active-accent: root.color_to_rgba(Theme.accent);
-    property <RgbaColor> active-divider: root.color_to_rgba(Theme.divider);
 
     property <[RgbaColor]> quick-accents: [
         { r: 129, g: 232, b: 162, a: 1.0 }, // Green
@@ -461,42 +454,6 @@ export component ThemesPage inherits VerticalLayout {
 
     // Accordion Sections State
     property <bool> advanced-expanded: false;
-
-    callback active-color-changed(int, RgbaColor);
-    active-color-changed(idx, val) => {
-        if (idx == 0) {
-            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
-            AppCallbacks.theme_constant_changed("primary", val-str);
-        }
-        if (idx == 1) {
-            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
-            AppCallbacks.theme_constant_changed("secondary", val-str);
-        }
-        if (idx == 2) {
-            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
-            AppCallbacks.theme_constant_changed("tertiary", val-str);
-        }
-        if (idx == 3) {
-            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
-            AppCallbacks.theme_constant_changed("accent", val-str);
-        }
-        if (idx == 4) {
-            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
-            AppCallbacks.theme_constant_changed("textPrimary", val-str);
-        }
-        if (idx == 5) {
-            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
-            AppCallbacks.theme_constant_changed("textSecondary", val-str);
-        }
-        if (idx == 6) {
-            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
-            AppCallbacks.theme_constant_changed("textInverse", val-str);
-        }
-        if (idx == 7) {
-            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
-            AppCallbacks.theme_constant_changed("divider", val-str);
-        }
-    }
 
     // Save Modal State
     property <string> new-theme-name: "";
@@ -641,319 +598,25 @@ export component ThemesPage inherits VerticalLayout {
                         spacing: Theme.spacingLg;
                         padding-top: Theme.paddingMd;
 
-                        Rectangle {
-                            height: 1px;
-                            background: Theme.textSecondary.transparentize(80%);
-                        }
-
-                        // SUB-SECTION: COLORS
-                            Text {
-                            text: "Colors";
-                            font-size: Theme.subtitle;
-                            color: Theme.accent;
-                            font-weight: 600;
-                        }
-
-                        ColorTabCard {
-                            title: "Primary Color";
-                            desc: "The main background color of the application.";
-                            active-val: root.active-primary;
-                            changed(val) => {
-                                root.active-color-changed(0, val);
+                        for item in root.theme-constants: VerticalLayout {
+                            spacing: Theme.spacingMd;
+                            if item.is-color: ColorTabCard {
+                                title: item.name;
+                                desc: "Adjust the color for " + item.name;
+                                active-val: item.color-value;
+                                changed(val) => {
+                                    let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
+                                    AppCallbacks.theme_constant_changed(item.name, val-str);
+                                }
                             }
-                        }
-
-                        ColorTabCard {
-                            title: "Secondary Color";
-                            desc: "The background color of elevated containers and cards.";
-                            active-val: root.active-secondary;
-                            changed(val) => {
-                                root.active-color-changed(1, val);
-                            }
-                        }
-
-                        ColorTabCard {
-                            title: "Tertiary Color";
-                            desc: "Contrast background color.";
-                            active-val: root.active-tertiary;
-                            changed(val) => {
-                                root.active-color-changed(2, val);
-                            }
-                        }
-
-                        ColorTabCard {
-                            title: "Accent Color";
-                            desc: "Highlight and active states color.";
-                            active-val: root.active-accent;
-                            changed(val) => {
-                                root.active-color-changed(3, val);
-                            }
-                        }
-
-                        ColorTabCard {
-                            title: "Text Primary";
-                            desc: "Main readable text color.";
-                            active-val: root.active-textPrimary;
-                            changed(val) => {
-                                root.active-color-changed(4, val);
-                            }
-                        }
-
-                        ColorTabCard {
-                            title: "Text Secondary";
-                            desc: "Subtitle and description text color.";
-                            active-val: root.active-textSecondary;
-                            changed(val) => {
-                                root.active-color-changed(5, val);
-                            }
-                        }
-
-                        ColorTabCard {
-                            title: "Text Inverse";
-                            desc: "Inverse color on highlighted surfaces.";
-                            active-val: root.active-textInverse;
-                            changed(val) => {
-                                root.active-color-changed(6, val);
-                            }
-                        }
-
-                        ColorTabCard {
-                            title: "Divider Color";
-                            desc: "Separators and borders.";
-                            active-val: root.active-divider;
-                            changed(val) => {
-                                root.active-color-changed(7, val);
-                            }
-                        }
-
-                        Rectangle {
-                            height: 1px;
-                            background: Theme.textSecondary.transparentize(80%);
-                        }
-
-                        // SUB-SECTION: FONT SIZES
-                            Text {
-                            text: "Typography (Font Sizes)";
-                            font-size: Theme.subtitle;
-                            color: Theme.accent;
-                            font-weight: 600;
-                        }
-
-                        NumberInputGroup {
-                            title: "Page Header Size";
-                            subtitle: "Large headers at the top of pages.";
-                            unit: "px";
-                            value: "\{Theme.pageHeader / 1px}";
-                            min: 10.0;
-                            max: 64.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("pageHeader", v);
-                            }
-                        }
-
-                        NumberInputGroup {
-                            title: "Title Size";
-                            subtitle: "Sub-headings and list items titles.";
-                            unit: "px";
-                            value: "\{Theme.modelTitle / 1px}";
-                            min: 8.0;
-                            max: 32.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("modelTitle", v);
-                            }
-                        }
-
-                        NumberInputGroup {
-                            title: "Subtitle Size";
-                            subtitle: "Regular body and action texts.";
-                            unit: "px";
-                            value: "\{Theme.subtitle / 1px}";
-                            min: 8.0;
-                            max: 24.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("subtitle", v);
-                            }
-                        }
-
-                        NumberInputGroup {
-                            title: "Body Size";
-                            subtitle: "Standard description text size.";
-                            unit: "px";
-                            value: "\{Theme.body / 1px}";
-                            min: 8.0;
-                            max: 20.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("body", v);
-                            }
-                        }
-
-                        NumberInputGroup {
-                            title: "Caption Size";
-                            subtitle: "Labels and smaller descriptions.";
-                            unit: "px";
-                            value: "\{Theme.caption / 1px}";
-                            min: 6.0;
-                            max: 16.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("caption", v);
-                            }
-                        }
-
-                        Rectangle {
-                            height: 1px;
-                            background: Theme.textSecondary.transparentize(80%);
-                        }
-
-                        // SUB-SECTION: BORDERS & RADIUS
-                            Text {
-                            text: "Borders and Corner Radii";
-                            font-size: Theme.subtitle;
-                            color: Theme.accent;
-                            font-weight: 600;
-                        }
-
-                        NumberInputGroup {
-                            title: "Global Border Width";
-                            subtitle: "Divider and layout borders.";
-                            unit: "px";
-                            value: "\{Theme.borderWidth / 1px}";
-                            min: 0.0;
-                            max: 10.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("borderWidth", v);
-                            }
-                        }
-
-                        NumberInputGroup {
-                            title: "Radius Xl";
-                            subtitle: "Corners of large dialogs, modals, and settings.";
-                            unit: "px";
-                            value: "\{Theme.borderRadiusXl / 1px}";
-                            min: 0.0;
-                            max: 40.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("borderRadiusXl", v);
-                            }
-                        }
-
-                        NumberInputGroup {
-                            title: "Radius Lg";
-                            subtitle: "Corners of cards and list items.";
-                            unit: "px";
-                            value: "\{Theme.borderRadiusLg / 1px}";
-                            min: 0.0;
-                            max: 30.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("borderRadiusLg", v);
-                            }
-                        }
-
-                        NumberInputGroup {
-                            title: "Radius Md";
-                            subtitle: "Corners of buttons, tags, and small items.";
-                            unit: "px";
-                            value: "\{Theme.borderRadiusMd / 1px}";
-                            min: 0.0;
-                            max: 20.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("borderRadiusMd", v);
-                            }
-                        }
-
-                        Rectangle {
-                            height: 1px;
-                            background: Theme.textSecondary.transparentize(80%);
-                        }
-
-                        // SUB-SECTION: COMPONENT DIMENSIONS
-                            Text {
-                            text: "Component Sizes";
-                            font-size: Theme.subtitle;
-                            color: Theme.accent;
-                            font-weight: 600;
-                        }
-
-                        NumberInputGroup {
-                            title: "Card Width";
-                            subtitle: "Standard album/playlist grid card width.";
-                            unit: "px";
-                            value: "\{Theme.cardWidth / 1px}";
-                            min: 80.0;
-                            max: 400.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("cardWidth", v);
-                            }
-                        }
-
-                        NumberInputGroup {
-                            title: "Sidebar Width";
-                            subtitle: "Main side navigation width.";
-                            unit: "px";
-                            value: "\{Theme.sidebarWidth / 1px}";
-                            min: 100.0;
-                            max: 400.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("sidebarWidth", v);
-                            }
-                        }
-
-                        NumberInputGroup {
-                            title: "Bottom Player Bar Height";
-                            subtitle: "Height of bottom playback bar.";
-                            unit: "px";
-                            value: "\{Theme.bottombarHeight / 1px}";
-                            min: 40.0;
-                            max: 120.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("bottombarHeight", v);
-                            }
-                        }
-
-                        NumberInputGroup {
-                            title: "Topbar Height";
-                            subtitle: "Height of top navigation and search bar.";
-                            unit: "px";
-                            value: "\{Theme.topbarHeight / 1px}";
-                            min: 30.0;
-                            max: 90.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("topbarHeight", v);
-                            }
-                        }
-
-                        NumberInputGroup {
-                            title: "Sidebar Button Height";
-                            subtitle: "Height of buttons inside sidebar.";
-                            unit: "px";
-                            value: "\{Theme.sidebarButtonHeight / 1px}";
-                            min: 20.0;
-                            max: 80.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("sidebarButtonHeight", v);
-                            }
-                        }
-
-                        NumberInputGroup {
-                            title: "Sidebar Header Height";
-                            subtitle: "Height of sidebar brand/toggle header.";
-                            unit: "px";
-                            value: "\{Theme.sidebarHeaderHeight / 1px}";
-                            min: 20.0;
-                            max: 100.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("sidebarHeaderHeight", v);
-                            }
-                        }
-
-                        NumberInputGroup {
-                            title: "Song Item Row Height";
-                            subtitle: "Row height in song tables.";
-                            unit: "px";
-                            value: "\{Theme.songListItemHeight / 1px}";
-                            min: 30.0;
-                            max: 100.0;
-                            edited(v) => {
-                                AppCallbacks.theme_constant_changed("songListItemHeight", v);
+                            if !item.is-color: NumberInputGroup {
+                                title: item.name;
+                                subtitle: "Adjust the size for " + item.name;
+                                unit: "px";
+                                value: item.value;
+                                edited(v) => {
+                                    AppCallbacks.theme_constant_changed(item.name, v);
+                                }
                             }
                         }
                     }

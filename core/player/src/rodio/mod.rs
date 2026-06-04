@@ -16,7 +16,6 @@
 
 use std::{
     sync::{Arc, Mutex},
-    thread,
     time::Duration,
 };
 
@@ -56,10 +55,6 @@ impl RodioPlayer {
         }
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub async fn get_volume(&self) -> Result<f32, PlayerError> {
-        Ok(0f32)
-    }
 }
 
 impl PlayerExt for RodioPlayer {
@@ -141,5 +136,27 @@ impl PlayerExt for RodioPlayer {
             return Ok(player.get_pos());
         }
         Ok(Duration::default())
+    }
+
+    fn get_volume(&self) -> Result<u8, PlayerError> {
+        if let Some(player) = self.player.lock().unwrap().as_ref() {
+            Ok((player.volume() * 100.0).round() as u8)
+        } else {
+            Ok(100)
+        }
+    }
+
+    fn get_player_state(&self) -> Result<extensions_proto::moosync::types::PlayerState, PlayerError> {
+        if let Some(player) = self.player.lock().unwrap().as_ref() {
+            if player.empty() {
+                Ok(extensions_proto::moosync::types::PlayerState::Stopped)
+            } else if player.is_paused() {
+                Ok(extensions_proto::moosync::types::PlayerState::Paused)
+            } else {
+                Ok(extensions_proto::moosync::types::PlayerState::Playing)
+            }
+        } else {
+            Ok(extensions_proto::moosync::types::PlayerState::Stopped)
+        }
     }
 }

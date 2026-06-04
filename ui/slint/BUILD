@@ -49,6 +49,7 @@ rust_library(
     edition = "2021",
     proc_macro_deps = [
         "//ui/pref_macro",
+        "//core/theme_macro",
     ],
     deps = [
         ":build_script",  # Exposes the generated code
@@ -61,6 +62,7 @@ rust_library(
         "//core/types/protos:songs_rs",
         "//core/types/protos:themes_rs",
         "@crates//:platform-dirs",
+        "@crates//:reqwest",
         "@crates//:rfd",
         "@crates//:slint",
         "@crates//:tokio",
@@ -119,6 +121,7 @@ rust_shared_library(
     edition = "2021",
     proc_macro_deps = [
         "//ui/pref_macro",
+        "//core/theme_macro",
     ],
     deps = [
         ":build_script",
@@ -132,6 +135,7 @@ rust_shared_library(
         "//core/types/protos:themes_rs",
         "@crates//:jni",
         "@crates//:platform-dirs",
+        "@crates//:reqwest",
         "@crates//:rfd",
         "@crates//:slint",
         "@crates//:tokio",

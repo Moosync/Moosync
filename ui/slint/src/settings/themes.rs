@@ -14,6 +14,8 @@ use state_manager::StateManager;
 use themes_proto::moosync::types::ThemeDetails;
 use types::prelude::{ThemeExt, ThemeItemExt};
 
+theme_macro::generate_theme_ui_helpers!("ui/slint/src/constants.slint");
+
 pub struct ThemesPageHandler<'a> {
     main_window: &'a MainWindow,
     state_manager: &'a StateManager,
@@ -409,6 +411,8 @@ fn apply_theme(main_window: &MainWindow, theme: &ThemeDetails) {
             .unwrap_or_default();
         apply_single_constant(&theme_global, &key, &val);
     }
+
+    update_theme_constants_ui(main_window, theme);
 }
 
 fn apply_single_constant(theme_global: &crate::Theme, name: &str, value: &str) {
@@ -424,109 +428,13 @@ fn apply_single_constant(theme_global: &crate::Theme, name: &str, value: &str) {
         }
     };
 
-    match name {
-        "primary" => set_color(&|c| theme_global.set_primary(c)),
-        "secondary" => set_color(&|c| theme_global.set_secondary(c)),
-        "tertiary" => set_color(&|c| theme_global.set_tertiary(c)),
-        "textPrimary" => set_color(&|c| theme_global.set_textPrimary(c)),
-        "textSecondary" => set_color(&|c| theme_global.set_textSecondary(c)),
-        "textInverse" => set_color(&|c| theme_global.set_textInverse(c)),
-        "accent" => set_color(&|c| theme_global.set_accent(c)),
-        "divider" => set_color(&|c| theme_global.set_divider(c)),
-        "pageHeader" => set_length(&|l| theme_global.set_pageHeader(l)),
-        "modelTitle" => set_length(&|l| theme_global.set_modelTitle(l)),
-        "subtitle" => set_length(&|l| theme_global.set_subtitle(l)),
-        "body" => set_length(&|l| theme_global.set_body(l)),
-        "caption" => set_length(&|l| theme_global.set_caption(l)),
-        "extraSmall" => set_length(&|l| theme_global.set_extraSmall(l)),
-        "spacingXxl" => set_length(&|l| theme_global.set_spacingXxl(l)),
-        "spacingXl" => set_length(&|l| theme_global.set_spacingXl(l)),
-        "spacingLg" => set_length(&|l| theme_global.set_spacingLg(l)),
-        "spacingMd" => set_length(&|l| theme_global.set_spacingMd(l)),
-        "spacingSm" => set_length(&|l| theme_global.set_spacingSm(l)),
-        "spacingXs" => set_length(&|l| theme_global.set_spacingXs(l)),
-        "spacingXxs" => set_length(&|l| theme_global.set_spacingXxs(l)),
-        "spacingTiny" => set_length(&|l| theme_global.set_spacingTiny(l)),
-        "paddingLg" => set_length(&|l| theme_global.set_paddingLg(l)),
-        "paddingMd" => set_length(&|l| theme_global.set_paddingMd(l)),
-        "paddingSm" => set_length(&|l| theme_global.set_paddingSm(l)),
-        "paddingXs" => set_length(&|l| theme_global.set_paddingXs(l)),
-        "borderRadiusXl" => set_length(&|l| theme_global.set_borderRadiusXl(l)),
-        "borderRadiusLg" => set_length(&|l| theme_global.set_borderRadiusLg(l)),
-        "borderRadiusMd" => set_length(&|l| theme_global.set_borderRadiusMd(l)),
-        "borderRadiusSm" => set_length(&|l| theme_global.set_borderRadiusSm(l)),
-        "borderWidth" => set_length(&|l| theme_global.set_borderWidth(l)),
-        "iconSizeXl" => set_length(&|l| theme_global.set_iconSizeXl(l)),
-        "iconSizeLg" => set_length(&|l| theme_global.set_iconSizeLg(l)),
-        "iconSizeMd" => set_length(&|l| theme_global.set_iconSizeMd(l)),
-        "iconSizeSm" => set_length(&|l| theme_global.set_iconSizeSm(l)),
-        "cardWidth" => set_length(&|l| theme_global.set_cardWidth(l)),
-        "sidebarWidth" => set_length(&|l| theme_global.set_sidebarWidth(l)),
-        "bottombarHeight" => set_length(&|l| theme_global.set_bottombarHeight(l)),
-        "topbarHeight" => set_length(&|l| theme_global.set_topbarHeight(l)),
-        "sidebarButtonHeight" => set_length(&|l| theme_global.set_sidebarButtonHeight(l)),
-        "sidebarHeaderHeight" => set_length(&|l| theme_global.set_sidebarHeaderHeight(l)),
-        "songListItemHeight" => set_length(&|l| theme_global.set_songListItemHeight(l)),
-        "trackInfoThumbnailSize" => set_length(&|l| theme_global.set_trackInfoThumbnailSize(l)),
-        "songListItemThumbnailSize" => {
-            set_length(&|l| theme_global.set_songListItemThumbnailSize(l))
-        }
-        "songDetailsThumbnailSize" => set_length(&|l| theme_global.set_songDetailsThumbnailSize(l)),
-        "exploreThumbnailSize" => set_length(&|l| theme_global.set_exploreThumbnailSize(l)),
-        "playbackControlsIconSize" => set_length(&|l| theme_global.set_playbackControlsIconSize(l)),
-        "playbackButtonSize" => set_length(&|l| theme_global.set_playbackButtonSize(l)),
-        "navButtonSize" => set_length(&|l| theme_global.set_navButtonSize(l)),
-        "topbarIconSize" => set_length(&|l| theme_global.set_topbarIconSize(l)),
-        "sidebarHeaderToggleSize" => set_length(&|l| theme_global.set_sidebarHeaderToggleSize(l)),
-        "searchBarHeight" => set_length(&|l| theme_global.set_searchBarHeight(l)),
-        "playbackSliderTrackHeight" => {
-            set_length(&|l| theme_global.set_playbackSliderTrackHeight(l))
-        }
-        "volumeSliderTrackHeight" => set_length(&|l| theme_global.set_volumeSliderTrackHeight(l)),
-        "sliderThumbSize" => set_length(&|l| theme_global.set_sliderThumbSize(l)),
-        "sliderThumbHoverSize" => set_length(&|l| theme_global.set_sliderThumbHoverSize(l)),
-        "bottombarProgressBarHeight" => {
-            set_length(&|l| theme_global.set_bottombarProgressBarHeight(l))
-        }
-        "volumeControlProgressBarHeight" => {
-            set_length(&|l| theme_global.set_volumeControlProgressBarHeight(l))
-        }
-        "trackInfoWidth" => set_length(&|l| theme_global.set_trackInfoWidth(l)),
-        "volumeSliderWidth" => set_length(&|l| theme_global.set_volumeSliderWidth(l)),
-        "volumeControlWidth" => set_length(&|l| theme_global.set_volumeControlWidth(l)),
-        "settingsSidebarWidth" => set_length(&|l| theme_global.set_settingsSidebarWidth(l)),
-        "settingsCloseButtonSize" => set_length(&|l| theme_global.set_settingsCloseButtonSize(l)),
-        "dropdownHeight" => set_length(&|l| theme_global.set_dropdownHeight(l)),
-        "dropdownOptionHeight" => set_length(&|l| theme_global.set_dropdownOptionHeight(l)),
-        "numberInputHeight" => set_length(&|l| theme_global.set_numberInputHeight(l)),
-        "numberInputWidth" => set_length(&|l| theme_global.set_numberInputWidth(l)),
-        "textInputHeight" => set_length(&|l| theme_global.set_textInputHeight(l)),
-        "fileInputHeight" => set_length(&|l| theme_global.set_fileInputHeight(l)),
-        "rgbaSwatchWidth" => set_length(&|l| theme_global.set_rgbaSwatchWidth(l)),
-        "rgbaSwatchHeight" => set_length(&|l| theme_global.set_rgbaSwatchHeight(l)),
-        "rgbaPopupWidth" => set_length(&|l| theme_global.set_rgbaPopupWidth(l)),
-        "themeCardWidth" => set_length(&|l| theme_global.set_themeCardWidth(l)),
-        "themeCardPreviewHeight" => set_length(&|l| theme_global.set_themeCardPreviewHeight(l)),
-        "quickAccentSwatchSize" => set_length(&|l| theme_global.set_quickAccentSwatchSize(l)),
-        "advancedAccordionHeaderHeight" => {
-            set_length(&|l| theme_global.set_advancedAccordionHeaderHeight(l))
-        }
-        "themeSavePopupWidth" => set_length(&|l| theme_global.set_themeSavePopupWidth(l)),
-        "toggleWidth" => set_length(&|l| theme_global.set_toggleWidth(l)),
-        "toggleHeight" => set_length(&|l| theme_global.set_toggleHeight(l)),
-        "toggleThumbSize" => set_length(&|l| theme_global.set_toggleThumbSize(l)),
-        "radioOptionHeight" => set_length(&|l| theme_global.set_radioOptionHeight(l)),
-        "radioOptionCircleSize" => set_length(&|l| theme_global.set_radioOptionCircleSize(l)),
-        "modalWidthXl" => set_length(&|l| theme_global.set_modalWidthXl(l)),
-        "modalHeightXl" => set_length(&|l| theme_global.set_modalHeightXl(l)),
-        "modalWidthLg" => set_length(&|l| theme_global.set_modalWidthLg(l)),
-        "modalHeightLg" => set_length(&|l| theme_global.set_modalHeightLg(l)),
-        "modalWidthMd" => set_length(&|l| theme_global.set_modalWidthMd(l)),
-        "modalHeightMd" => set_length(&|l| theme_global.set_modalHeightMd(l)),
-        "modalWidthSm" => set_length(&|l| theme_global.set_modalWidthSm(l)),
-        "modalHeightSm" => set_length(&|l| theme_global.set_modalHeightSm(l)),
-        _ => {}
-    }
+    theme_macro::generate_theme_apply!(
+        "ui/slint/src/constants.slint",
+        theme_global,
+        name,
+        set_color,
+        set_length
+    );
 }
 
 async fn flush_changes(

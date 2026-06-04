@@ -53,7 +53,10 @@ fn create_test_song(title: &str, path: &str) -> Song {
             size: Some(0.0),
             bitrate: Some(0.0),
             codec: None,
-            duration: Some(300.0),
+            duration: Some(songs_proto::duration_proto::google::protobuf::Duration {
+                seconds: 300,
+                nanos: 0,
+            }),
             sample_rate: Some(0.0),
             lyrics: None,
             r#type: SongType::Local.into(),
@@ -684,7 +687,7 @@ fn test_analytics() {
     cleanup(&db_path);
 }
 
-// 1. CacheHolder Tests
+
 #[test]
 fn test_cache_holder() {
     let db_path = get_test_db_path();
@@ -716,7 +719,7 @@ fn test_cache_holder() {
     cleanup(&db_path);
 }
 
-// 2. Database Instance and Playlist Creation Edge Cases
+
 #[test]
 fn test_db_creation_and_playlist() {
     let base_dir = temp_dir().join(format!("moosync_test_dir_{}", Uuid::new_v4()));
@@ -778,7 +781,7 @@ fn test_db_creation_and_playlist() {
     let _ = fs::remove_dir_all(base_dir);
 }
 
-// 3. is_song_in_playlist and Helper Queries
+
 #[test]
 fn test_is_song_in_playlist() {
     let db_path = get_test_db_path();
@@ -807,7 +810,7 @@ fn test_is_song_in_playlist() {
     cleanup(&db_path);
 }
 
-// 4. insert_songs_by_ref and Bridge Logic Edge Cases
+
 #[test]
 fn test_insert_songs_edge_cases() {
     let db_path = get_test_db_path();
@@ -903,7 +906,7 @@ fn test_insert_songs_edge_cases() {
     cleanup(&db_path);
 }
 
-// 5. files_not_in_db Chunking and matching
+
 #[test]
 fn test_files_not_in_db() {
     let db_path = get_test_db_path();
@@ -951,7 +954,7 @@ fn test_files_not_in_db() {
     cleanup(&db_path);
 }
 
-// 6. export_playlist formats
+
 #[test]
 fn test_export_playlist() {
     let db_path = get_test_db_path();
@@ -974,7 +977,10 @@ fn test_export_playlist() {
         song: Some(InnerSong {
             title: Some("Local Song".to_string()),
             path: Some("/local/track.mp3".to_string()),
-            duration: Some(180.0),
+            duration: Some(songs_proto::duration_proto::google::protobuf::Duration {
+                seconds: 180,
+                nanos: 0,
+            }),
             song_cover_path_high: Some("/cover/high.jpg".to_string()),
             r#type: SongType::Local.into(),
             ..Default::default()
@@ -995,7 +1001,10 @@ fn test_export_playlist() {
         song: Some(InnerSong {
             title: Some("Remote Song".to_string()),
             url: Some("https://example.com/stream.mp3".to_string()),
-            duration: Some(240.0),
+            duration: Some(songs_proto::duration_proto::google::protobuf::Duration {
+                seconds: 240,
+                nanos: 0,
+            }),
             r#type: SongType::Url.into(),
             ..Default::default()
         }),
@@ -1025,7 +1034,7 @@ fn test_export_playlist() {
     cleanup(&db_path);
 }
 
-// 7. Playlist Operations Edge Cases
+
 #[test]
 fn test_playlist_ops_edge_cases() {
     let db_path = get_test_db_path();
@@ -1063,7 +1072,7 @@ fn test_playlist_ops_edge_cases() {
     cleanup(&db_path);
 }
 
-// 8. Updates
+
 #[test]
 fn test_updates() {
     let db_path = get_test_db_path();
@@ -1177,7 +1186,7 @@ fn test_updates() {
     cleanup(&db_path);
 }
 
-// 9. Entity Querying Options
+
 #[test]
 fn test_get_entity_by_options() {
     let db_path = get_test_db_path();
@@ -1271,7 +1280,7 @@ fn test_get_entity_by_options() {
     cleanup(&db_path);
 }
 
-// 10. Analytics Edge Cases
+
 #[test]
 fn test_analytics_edge_cases() {
     let db_path = get_test_db_path();
@@ -1308,7 +1317,7 @@ fn test_analytics_edge_cases() {
     cleanup(&db_path);
 }
 
-// 11. Get Songs by Entities and direct bridge operations
+
 #[test]
 fn test_get_songs_by_entities() {
     let db_path = get_test_db_path();

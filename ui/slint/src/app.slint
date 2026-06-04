@@ -22,6 +22,7 @@ import {
     Theme,
     ThemeConfig,
     RgbaColor,
+    ThemeConstant,
 } from "constants.slint";
 import { AppCallbacks, BottomBarCallbacks } from "callbacks.slint";
 import { Settings } from "settings/settings.slint";
@@ -33,9 +34,24 @@ import {
     RadioItem,
 } from "settings/preferences.slint";
 import { PreferenceChange } from "callbacks.slint";
+import { ExtensionItem } from "./types/extension_view.slint";
 
-export { CoverHelper, Constants, Theme, AppCallbacks, BottomBarCallbacks, Preferences, AppPreferences, PreferenceChange, PreferenceItem, RadioItem, ThemeConfig, RgbaColor }
-
+export {
+    CoverHelper,
+    Constants,
+    Theme,
+    AppCallbacks,
+    BottomBarCallbacks,
+    Preferences,
+    AppPreferences,
+    PreferenceChange,
+    PreferenceItem,
+    RadioItem,
+    ThemeConfig,
+    RgbaColor,
+    ExtensionItem,
+    ThemeConstant,
+}
 export component MainWindow inherits Window {
     title: "moosync";
     background: Theme.primary; // Sampled Topbar/Main background
@@ -68,6 +84,8 @@ export component MainWindow inherits Window {
     in-out property <bool> show_settings: false;
     in-out property <[ThemeConfig]> available-themes;
     in-out property <string> active-theme-id;
+    in-out property <[ThemeConstant]> theme-constants;
+    in-out property <[ExtensionItem]> extensions: Constants.testExtensions;
 
     // Main page
     in property <SongModel> current_song: Constants.defaultSong;
@@ -184,6 +202,8 @@ export component MainWindow inherits Window {
     if show_settings: Settings {
         available-themes <=> root.available-themes;
         active-theme-id <=> root.active-theme-id;
+        theme-constants <=> root.theme-constants;
+        extensions <=> root.extensions;
         close => {
             show_settings = false;
         }

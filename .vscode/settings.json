@@ -20,6 +20,7 @@
     "//core/mpris",
     "//core/player",
     "//core/plugin_macro",
+    "//core/theme_macro",
     "//core/preferences",
     "//core/state_manager",
     "//core/themes",

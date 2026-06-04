@@ -31,6 +31,14 @@ impl MuxPlayer {
         }
     }
 
+    pub fn get_player_state(&self) -> extensions_proto::moosync::types::PlayerState {
+        self.active_player.get_player_state().unwrap_or(extensions_proto::moosync::types::PlayerState::Stopped)
+    }
+
+    pub fn get_volume(&self) -> u8 {
+        self.active_player.get_volume().unwrap_or(100)
+    }
+
     fn set_active_player(&mut self, player: Arc<Box<dyn PlayerExt>>) {
         self.active_player = player;
     }
@@ -91,5 +99,13 @@ impl PlayerExt for MuxPlayer {
 
     fn get_current_pos(&self) -> Result<Duration, PlayerError> {
         self.active_player.get_current_pos()
+    }
+
+    fn get_volume(&self) -> Result<u8, PlayerError> {
+        self.active_player.get_volume()
+    }
+
+    fn get_player_state(&self) -> Result<extensions_proto::moosync::types::PlayerState, PlayerError> {
+        self.active_player.get_player_state()
     }
 }

@@ -74,10 +74,11 @@ async fn fetch_and_cache_songs(
         Ok(songs) => {
             tracing::trace!("got songs {:?}", songs.len());
             *songs_cache.lock().unwrap() = songs.clone();
+            let cache_dir = state_manager.get_cache_dir();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = main_window_weak.upgrade() {
                     if main_window.get_active_page() == Pages::AllSongs {
-                        set_all_songs(&main_window, songs);
+                        set_all_songs(&main_window, songs, cache_dir);
                     }
                 }
             });
@@ -86,14 +87,14 @@ async fn fetch_and_cache_songs(
     }
 }
 
-fn set_all_songs(main_window: &MainWindow, songs: Vec<Song>) {
+fn set_all_songs(main_window: &MainWindow, songs: Vec<Song>, cache_dir: std::path::PathBuf) {
     debug!("Setting songs");
     let songs_view = songs
         .into_iter()
         .map(|song| crate::utils::to_song_model(Some(&song)))
         .collect::<Vec<_>>();
 
-    main_window.set_songs(ModelRc::new(LazySongVecModel::new(songs_view, 60, 0)));
+    main_window.set_songs(ModelRc::new(LazySongVecModel::new(songs_view, 60, 0, cache_dir)));
 }
 
 impl<'a> PageHandler for AllSongsPageHandler<'a> {
@@ -109,7 +110,8 @@ impl<'a> PageHandler for AllSongsPageHandler<'a> {
 
     fn on_show(&self) {
         let songs = self.songs.lock().unwrap().clone();
-        set_all_songs(self.main_window, songs);
+        let cache_dir = self.state_manager.get_cache_dir();
+        set_all_songs(self.main_window, songs, cache_dir);
     }
 
     fn on_hide(&self) {

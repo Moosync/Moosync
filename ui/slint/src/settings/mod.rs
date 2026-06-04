@@ -19,8 +19,26 @@ fn select_directory() -> String {
     }
 }
 
+#[cfg(not(target_os = "android"))]
+fn select_file(filter: String) -> String {
+    if let Some(path) = rfd::FileDialog::new()
+        .add_filter("Custom files", &filter.split(",").collect::<Vec<&str>>())
+        .pick_file()
+    {
+        tracing::info!("Selected file: {:?}", path);
+        path.to_string_lossy().to_string()
+    } else {
+        String::new()
+    }
+}
+
 #[cfg(target_os = "android")]
 fn select_directory() -> String {
+    String::new()
+}
+
+#[cfg(target_os = "android")]
+fn select_file(filter: String) -> String {
     String::new()
 }
 
@@ -47,6 +65,10 @@ pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static 
     main_window
         .global::<crate::AppCallbacks>()
         .on_open_directory_picker(move || select_directory().into());
+
+    main_window
+        .global::<crate::AppCallbacks>()
+        .on_open_file_picker(move |filter| select_file(filter.into()).into());
 }
 
 pub fn handle_preference_change(

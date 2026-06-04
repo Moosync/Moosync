@@ -5,6 +5,7 @@ import {
     ArtistModel,
     GenreModel,
 } from "./types/song_view.slint";
+import { ExtensionItem } from "./types/extension_view.slint";
 
 export global Constants {
     out property <duration> page-transition-duration: 250ms;
@@ -167,22 +168,48 @@ export global Constants {
             coverPathUrl: "",
         }
     ];
+
+    out property <[ExtensionItem]> testExtensions: [
+        {
+            name: "Spotify Integration",
+            package_name: "app.moosync.spotify",
+            version: "1.0.0",
+            active: true,
+            is_installed: true,
+            loading: false,
+            description: "Play tracks directly from Spotify.",
+            icon: @image-url("icons/songs.svg"),
+            has_started: true,
+        },
+        {
+            name: "YouTube Music",
+            package_name: "app.moosync.youtube",
+            version: "1.2.0",
+            active: false,
+            is_installed: true,
+            loading: false,
+            description: "Stream songs and playlists from YouTube Music.",
+            icon: @image-url("icons/explore.svg"),
+            has_started: false,
+        },
+        {
+            name: "SoundCloud Integration",
+            package_name: "app.moosync.soundcloud",
+            version: "1.0.5",
+            active: false,
+            is_installed: false,
+            loading: false,
+            description: "Access and play SoundCloud tracks in Moosync.",
+            icon: @image-url("icons/song_default.svg"),
+            has_started: false,
+        }
+    ];
 }
 
-export enum Pages {
-    AllSongs,
-    Albums,
-    Artists,
-    Playlists,
-    Genres,
-    Explore,
+export enum Pages { AllSongs, Albums, Artists, Playlists, Genres, Explore,
 
     // Settings
-    Paths,
-    System,
-    Extensions,
-    Themes
-}
+    Paths, System, Extensions, Themes }
 
 export enum VolumeScale { Linear, Logarithmic }
 
@@ -204,6 +231,13 @@ export struct ThemeConfig {
     secondary_color: RgbaColor,
     border_radius: float,
     border_width: float,
+}
+
+export struct ThemeConstant {
+    name: string,
+    value: string,
+    is_color: bool,
+    color_value: RgbaColor,
 }
 
 export global Theme {

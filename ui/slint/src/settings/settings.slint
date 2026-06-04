@@ -1,25 +1,32 @@
 import { Modal, ModalSize } from "../common/modal.slint";
 import { Sidebar, SidebarItem } from "../sidebar/sidebar.slint";
-import { Pages, Theme, ThemeConfig } from "../constants.slint";
+import { Pages, Theme, ThemeConfig, ThemeConstant } from "../constants.slint";
 import { PageWrapper } from "../common/page_wrapper.slint";
 import { PathSelector } from "path_selector.slint";
 import { PathsPage } from "paths.slint";
 import { SystemPage } from "system.slint";
 import { ExtensionsPage } from "extensions.slint";
+import { ExtensionItem } from "../types/extension_view.slint";
 import { ThemesPage } from "themes.slint";
 
 export component Settings inherits Modal {
     modalSize: ModalSize.Xl;
-    property <Pages> activePage: Pages.Paths;
+    property <Pages> activePage: Pages.Extensions;
 
     in-out property <[ThemeConfig]> available-themes;
     in-out property <string> active-theme-id;
+    in-out property <[ThemeConstant]> theme-constants;
+    in-out property <[ExtensionItem]> extensions;
 
     property <[SidebarItem]> items: [
-        { text: "Paths", icon: @image-url("../icons/songs.svg"), page: Pages.Paths },
-        { text: "System", icon: @image-url("../icons/songs.svg"), page: Pages.System },
-        { text: "Extensions", icon: @image-url("../icons/songs.svg"), page: Pages.Extensions },
-        { text: "Themes", icon: @image-url("../icons/songs.svg"), page: Pages.Themes },
+        { text: "Paths", icon: @image-url("../icons/paths.svg"), page: Pages.Paths },
+        { text: "System", icon: @image-url("../icons/system.svg"), page: Pages.System },
+        {
+            text: "Extensions",
+            icon: @image-url("../icons/extensions.svg"),
+            page: Pages.Extensions
+        },
+        { text: "Themes", icon: @image-url("../icons/themes.svg"), page: Pages.Themes },
     ];
 
     HorizontalLayout {
@@ -51,7 +58,9 @@ export component Settings inherits Modal {
                 active-page <=> root.activePage;
                 page-type: Pages.Extensions;
 
-                ExtensionsPage { }
+                ExtensionsPage {
+                    extensions <=> root.extensions;
+                }
             }
 
             PageWrapper {
@@ -61,6 +70,7 @@ export component Settings inherits Modal {
                 ThemesPage {
                     available-themes <=> root.available-themes;
                     active-theme-id <=> root.active-theme-id;
+                    theme-constants <=> root.theme-constants;
                 }
             }
 
@@ -73,7 +83,7 @@ export component Settings inherits Modal {
                 clicked => {
                     root.close();
                 }
-                
+
                 Rectangle {
                     width: 100%;
                     height: 100%;

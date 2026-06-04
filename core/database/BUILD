@@ -1,5 +1,6 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+load("//:defs.bzl", "rust_benchmark")
 
 filegroup(
     name = "migrations",
@@ -53,4 +54,17 @@ cargo_build_script(
 rust_test(
     name = "database_test",
     crate = ":database",
+)
+
+rust_benchmark(
+    name = "db_bench",
+    srcs = ["benches/db_bench.rs"],
+    crate_root = "benches/db_bench.rs",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":database",
+        "//core/types/protos:songs_rs",
+        "@crates//:uuid",
+        "@crates//:criterion",
+    ],
 )

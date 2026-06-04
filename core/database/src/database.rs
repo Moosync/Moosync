@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{cmp::min, fmt::Write, fs, path::PathBuf, sync::Arc, vec};
+use std::{cmp::min, fmt::Write, fs, path::PathBuf, vec};
 
 use songs_proto::moosync::types::{
     Album, AlbumList, AllAnalytics, Artist, ArtistList, EntityResult, Genre, GenreList,
@@ -30,13 +30,13 @@ use uuid::Uuid;
 
 use super::migrations::run_migrations;
 use crate::utils::{
-    SearchByTerm, map_row_to_album, map_row_to_artist, map_row_to_genre, map_row_to_inner_song,
+    map_row_to_album, map_row_to_artist, map_row_to_genre, map_row_to_inner_song,
     map_row_to_playlist, proto_to_db_ms, song_type_to_str,
 };
 
 #[derive(Debug, Clone)]
 pub struct Database {
-    pool: r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>,
+    pub pool: r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>,
 }
 
 #[plugin_macro::generate]
@@ -83,99 +83,6 @@ impl Database {
         r2d2::Pool::builder()
             .build(manager)
             .expect("Failed to create pool.")
-    }
-
-    fn get_bridge_songs(
-        &self,
-        bridge_table: &str,
-        id_column: &str,
-        entity_id: &str,
-        conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<InnerSong>> {
-        let query = format!(
-            "SELECT a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype,
-                    a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url,
-                    a.song_coverpath_high, a.playbackurl, a.song_coverpath_low, a.date_added,
-                    a.provider_extension, a.icon, a.show_in_library, a.track_no, a.library_item
-             FROM allsongs a
-             JOIN {} b ON a._id = b.song
-             WHERE b.{} = ?1",
-            bridge_table, id_column
-        );
-        let mut stmt = conn
-            .prepare(&query)
-            .map_err(error_helpers::to_database_error)?;
-        let rows = stmt
-            .query_map([entity_id], map_row_to_inner_song)
-            .map_err(error_helpers::to_database_error)?;
-
-        let mut fetched = Vec::new();
-        for r in rows {
-            fetched.push(r.map_err(error_helpers::to_database_error)?);
-        }
-        Ok(fetched)
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, conn))]
-    fn insert_album(&self, conn: &mut rusqlite::Connection, album: Album) -> Result<String> {
-        let id = Uuid::new_v4().to_string();
-        trace!("Inserting album");
-        conn.execute(
-            "INSERT INTO albums (album_id, album_name, album_artist, album_coverpath_high, album_song_count, year, album_coverpath_low, album_extra_info)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            (
-                &Some(id.clone()),
-                &album.album_name,
-                &album.album_artist,
-                &album.album_coverpath_high,
-                &album.album_song_count,
-                &album.year,
-                &album.album_coverpath_low,
-                &None::<String>,
-            ),
-        )
-        .map_err(error_helpers::to_database_error)?;
-        info!("Inserted album");
-        Ok(id)
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, conn))]
-    fn insert_artist(&self, conn: &mut rusqlite::Connection, artist: Artist) -> Result<String> {
-        let id = Uuid::new_v4().to_string();
-        trace!("Inserting artist");
-        conn.execute(
-            "INSERT INTO artists (artist_id, artist_mbid, artist_name, artist_coverpath, artist_song_count, artist_extra_info, sanitized_artist_name)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            (
-                &Some(id.clone()),
-                &artist.artist_mbid,
-                &artist.artist_name,
-                &artist.artist_coverpath,
-                &artist.artist_song_count,
-                &None::<String>,
-                &artist.sanitized_artist_name,
-            ),
-        )
-        .map_err(error_helpers::to_database_error)?;
-        info!("Inserted artist");
-        Ok(id)
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, conn))]
-    fn insert_genre(&self, conn: &mut rusqlite::Connection, genre: Genre) -> Result<String> {
-        let id = Uuid::new_v4().to_string();
-        trace!("Inserting genre");
-        conn.execute(
-            "INSERT INTO genres (genre_id, genre_name, genre_song_count) VALUES (?1, ?2, ?3)",
-            (
-                &Some(id.clone()),
-                &genre.genre_name,
-                &genre.genre_song_count,
-            ),
-        )
-        .map_err(error_helpers::to_database_error)?;
-        info!("Inserted genre");
-        Ok(id)
     }
 
     #[tracing::instrument(level = "debug", skip(self, conn))]
@@ -261,143 +168,564 @@ impl Database {
     pub fn insert_songs_by_ref(&self, songs: &mut [Song]) -> Result<()> {
         let mut conn = self.pool.get().unwrap();
         trace!("Inserting songs");
-        for song in songs {
-            if let Some(inner_song) = song.song.as_mut() {
-                if inner_song.id.is_none() {
-                    inner_song.id = Some(Uuid::new_v4().to_string());
+
+        struct DbSongRow {
+            id: Option<String>,
+            path: Option<String>,
+            size: Option<f64>,
+            inode: Option<String>,
+            deviceno: Option<String>,
+            title: Option<String>,
+            date: Option<String>,
+            year: Option<String>,
+            lyrics: Option<String>,
+            release_type: Option<String>,
+            bitrate: Option<f64>,
+            codec: Option<String>,
+            container: Option<String>,
+            duration: Option<i64>,
+            sample_rate: Option<f64>,
+            hash: Option<String>,
+            r#type: String,
+            url: Option<String>,
+            song_cover_path_high: Option<String>,
+            playback_url: Option<String>,
+            song_cover_path_low: Option<String>,
+            date_added: Option<i64>,
+            provider_extension: Option<String>,
+            icon: Option<String>,
+            show_in_library: Option<bool>,
+            track_no: Option<f64>,
+            library_item: Option<bool>,
+        }
+
+        // 1. Gather all unique albums, artists, genres from the songs
+        let mut unique_albums = std::collections::HashMap::new();
+        let mut unique_artists = std::collections::HashMap::new();
+        let mut unique_genres = std::collections::HashMap::new();
+
+        for song in songs.iter() {
+            if let Some(album) = &song.album {
+                if let Some(ref name) = album.album_name {
+                    if !name.is_empty() {
+                        unique_albums
+                            .entry(name.clone())
+                            .or_insert_with(|| album.clone());
+                    }
                 }
-
-                let song_type = song_type_to_str(inner_song.r#type);
-                let params: &[&dyn rusqlite::ToSql] = &[
-                    &inner_song.id,
-                    &inner_song.path,
-                    &inner_song.size,
-                    &inner_song.inode,
-                    &inner_song.deviceno,
-                    &inner_song.title,
-                    &inner_song.date,
-                    &inner_song.year,
-                    &inner_song.lyrics,
-                    &inner_song.release_type,
-                    &inner_song.bitrate,
-                    &inner_song.codec,
-                    &inner_song.container,
-                    &proto_to_db_ms(&inner_song.duration),
-                    &inner_song.sample_rate,
-                    &inner_song.hash,
-                    &song_type,
-                    &inner_song.url,
-                    &inner_song.song_cover_path_high,
-                    &inner_song.playback_url,
-                    &inner_song.song_cover_path_low,
-                    &inner_song.date_added,
-                    &inner_song.provider_extension,
-                    &inner_song.icon,
-                    &inner_song.show_in_library,
-                    &inner_song.track_no,
-                    &inner_song.library_item,
-                ];
-
-                let changed = conn.execute(
-                    "INSERT INTO allsongs (
-                        _id, path, size, inode, deviceno, title, date, year, lyrics, releasetype,
-                        bitrate, codec, container, duration, samplerate, hash, type, url,
-                        song_coverpath_high, playbackurl, song_coverpath_low, date_added,
-                        provider_extension, icon, show_in_library, track_no, library_item
-                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27)
-                     ON CONFLICT(path) DO UPDATE SET
-                        size = excluded.size,
-                        inode = excluded.inode,
-                        deviceno = excluded.deviceno,
-                        title = excluded.title,
-                        date = excluded.date,
-                        year = excluded.year,
-                        lyrics = excluded.lyrics,
-                        releasetype = excluded.releasetype,
-                        bitrate = excluded.bitrate,
-                        codec = excluded.codec,
-                        container = excluded.container,
-                        duration = excluded.duration,
-                        samplerate = excluded.samplerate,
-                        hash = excluded.hash,
-                        type = excluded.type,
-                        url = excluded.url,
-                        song_coverpath_high = excluded.song_coverpath_high,
-                        playbackurl = excluded.playbackurl,
-                        song_coverpath_low = excluded.song_coverpath_low,
-                        date_added = excluded.date_added,
-                        provider_extension = excluded.provider_extension,
-                        icon = excluded.icon,
-                        show_in_library = excluded.show_in_library,
-                        track_no = excluded.track_no,
-                        library_item = excluded.library_item",
-                    params,
-                ).map_err(error_helpers::to_database_error)?;
-
-                if changed == 0 {
-                    continue;
+            }
+            for artist in &song.artists {
+                if let Some(ref name) = artist.artist_name {
+                    if !name.is_empty() {
+                        unique_artists
+                            .entry(name.clone())
+                            .or_insert_with(|| artist.clone());
+                    }
                 }
-
-                if let Some(_album) = &mut song.album {
-                    let album_id_ = self
-                        .get_albums(
-                            Album::search_by_term(_album.album_name.clone()),
-                            false,
-                            &mut conn,
-                        )?
-                        .first()
-                        .map(|v| v.album_id.clone().unwrap())
-                        .unwrap_or_else(|| self.insert_album(&mut conn, _album.clone()).unwrap());
-
-                    conn.execute(
-                        "INSERT INTO album_bridge (song, album) VALUES (?1, ?2) ON CONFLICT DO NOTHING",
-                        (&inner_song.id.clone().unwrap(), &album_id_),
-                    ).map_err(error_helpers::to_database_error)?;
-
-                    _album.album_id = Some(album_id_);
+            }
+            for genre in &song.genre {
+                if let Some(ref name) = genre.genre_name {
+                    if !name.is_empty() {
+                        unique_genres
+                            .entry(name.clone())
+                            .or_insert_with(|| genre.clone());
+                    }
                 }
-
-                for mut _artist in song.artists.iter_mut() {
-                    let artist_id_ = self
-                        .get_artists(
-                            Artist::search_by_term(_artist.artist_name.clone()),
-                            false,
-                            &mut conn,
-                        )?
-                        .first()
-                        .map(|v| v.artist_id.clone().unwrap())
-                        .unwrap_or_else(|| self.insert_artist(&mut conn, _artist.clone()).unwrap());
-
-                    conn.execute(
-                        "INSERT INTO artist_bridge (song, artist) VALUES (?1, ?2) ON CONFLICT DO NOTHING",
-                        (&inner_song.id.clone().unwrap(), &artist_id_),
-                    ).map_err(error_helpers::to_database_error)?;
-
-                    _artist.artist_id = Some(artist_id_);
-                }
-
-                for mut _genre in song.genre.iter_mut() {
-                    let genre_id_ = self
-                        .get_genres(
-                            Genre::search_by_term(_genre.genre_name.clone()),
-                            false,
-                            &mut conn,
-                        )?
-                        .first()
-                        .map(|v| v.genre_id.clone().unwrap())
-                        .unwrap_or_else(|| self.insert_genre(&mut conn, _genre.clone()).unwrap());
-
-                    conn.execute(
-                        "INSERT INTO genre_bridge (song, genre) VALUES (?1, ?2) ON CONFLICT DO NOTHING",
-                        (&inner_song.id.clone().unwrap(), &genre_id_),
-                    ).map_err(error_helpers::to_database_error)?;
-
-                    _genre.genre_id = Some(genre_id_);
-                }
-
-                trace!("Inserted song, {:?}", song);
             }
         }
+
+        // 2. Fetch existing albums, artists, genres from the DB
+        let mut album_ids = std::collections::HashMap::new();
+        if !unique_albums.is_empty() {
+            let names: Vec<String> = unique_albums.keys().cloned().collect();
+            for chunk in names.chunks(500) {
+                let placeholders = vec!["?"; chunk.len()].join(",");
+                let query = format!(
+                    "SELECT album_id, album_name FROM albums WHERE album_name IN ({})",
+                    placeholders
+                );
+                let mut stmt = conn
+                    .prepare(&query)
+                    .map_err(error_helpers::to_database_error)?;
+                let params = chunk
+                    .iter()
+                    .map(|n| n as &dyn rusqlite::ToSql)
+                    .collect::<Vec<_>>();
+                let rows = stmt
+                    .query_map(&*params, |row| {
+                        let id: String = row.get(0)?;
+                        let name: String = row.get(1)?;
+                        Ok((name, id))
+                    })
+                    .map_err(error_helpers::to_database_error)?;
+                for r in rows {
+                    let (name, id) = r.map_err(error_helpers::to_database_error)?;
+                    album_ids.insert(name, id);
+                }
+            }
+        }
+
+        let mut artist_ids = std::collections::HashMap::new();
+        if !unique_artists.is_empty() {
+            let names: Vec<String> = unique_artists.keys().cloned().collect();
+            for chunk in names.chunks(500) {
+                let placeholders = vec!["?"; chunk.len()].join(",");
+                let query = format!(
+                    "SELECT artist_id, artist_name FROM artists WHERE artist_name IN ({})",
+                    placeholders
+                );
+                let mut stmt = conn
+                    .prepare(&query)
+                    .map_err(error_helpers::to_database_error)?;
+                let params = chunk
+                    .iter()
+                    .map(|n| n as &dyn rusqlite::ToSql)
+                    .collect::<Vec<_>>();
+                let rows = stmt
+                    .query_map(&*params, |row| {
+                        let id: String = row.get(0)?;
+                        let name: String = row.get(1)?;
+                        Ok((name, id))
+                    })
+                    .map_err(error_helpers::to_database_error)?;
+                for r in rows {
+                    let (name, id) = r.map_err(error_helpers::to_database_error)?;
+                    artist_ids.insert(name, id);
+                }
+            }
+        }
+
+        let mut genre_ids = std::collections::HashMap::new();
+        if !unique_genres.is_empty() {
+            let names: Vec<String> = unique_genres.keys().cloned().collect();
+            for chunk in names.chunks(500) {
+                let placeholders = vec!["?"; chunk.len()].join(",");
+                let query = format!(
+                    "SELECT genre_id, genre_name FROM genres WHERE genre_name IN ({})",
+                    placeholders
+                );
+                let mut stmt = conn
+                    .prepare(&query)
+                    .map_err(error_helpers::to_database_error)?;
+                let params = chunk
+                    .iter()
+                    .map(|n| n as &dyn rusqlite::ToSql)
+                    .collect::<Vec<_>>();
+                let rows = stmt
+                    .query_map(&*params, |row| {
+                        let id: String = row.get(0)?;
+                        let name: String = row.get(1)?;
+                        Ok((name, id))
+                    })
+                    .map_err(error_helpers::to_database_error)?;
+                for r in rows {
+                    let (name, id) = r.map_err(error_helpers::to_database_error)?;
+                    genre_ids.insert(name, id);
+                }
+            }
+        }
+
+        // 3. Collect new albums, artists, genres and insert them
+        let mut new_albums = Vec::new();
+        for (name, album) in unique_albums.iter() {
+            if !album_ids.contains_key(name) {
+                let id = Uuid::new_v4().to_string();
+                album_ids.insert(name.clone(), id.clone());
+                let mut alb = album.clone();
+                alb.album_id = Some(id);
+                new_albums.push(alb);
+            }
+        }
+        if !new_albums.is_empty() {
+            for chunk in new_albums.chunks(100) {
+                let mut query = "INSERT INTO albums (album_id, album_name, album_artist, album_coverpath_high, album_song_count, year, album_coverpath_low) VALUES ".to_string();
+                let mut placeholders = Vec::new();
+                let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+                for (i, alb) in chunk.iter().enumerate() {
+                    let offset = i * 7;
+                    placeholders.push(format!(
+                        "(?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{})",
+                        offset + 1,
+                        offset + 2,
+                        offset + 3,
+                        offset + 4,
+                        offset + 5,
+                        offset + 6,
+                        offset + 7
+                    ));
+                    params.push(alb.album_id.as_ref().unwrap());
+                    params.push(&alb.album_name);
+                    params.push(&alb.album_artist);
+                    params.push(&alb.album_coverpath_high);
+                    params.push(&alb.album_song_count);
+                    params.push(&alb.year);
+                    params.push(&alb.album_coverpath_low);
+                }
+                query.push_str(&placeholders.join(", "));
+                conn.execute(&query, &*params)
+                    .map_err(error_helpers::to_database_error)?;
+            }
+        }
+
+        let mut new_artists = Vec::new();
+        for (name, artist) in unique_artists.iter() {
+            if !artist_ids.contains_key(name) {
+                let id = Uuid::new_v4().to_string();
+                artist_ids.insert(name.clone(), id.clone());
+                let mut art = artist.clone();
+                art.artist_id = Some(id);
+                new_artists.push(art);
+            }
+        }
+        if !new_artists.is_empty() {
+            for chunk in new_artists.chunks(100) {
+                let mut query = "INSERT INTO artists (artist_id, artist_mbid, artist_name, artist_coverpath, artist_song_count, artist_extra_info, sanitized_artist_name) VALUES ".to_string();
+                let mut placeholders = Vec::new();
+                let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+                for (i, art) in chunk.iter().enumerate() {
+                    let offset = i * 7;
+                    placeholders.push(format!(
+                        "(?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{})",
+                        offset + 1,
+                        offset + 2,
+                        offset + 3,
+                        offset + 4,
+                        offset + 5,
+                        offset + 6,
+                        offset + 7
+                    ));
+                    params.push(art.artist_id.as_ref().unwrap());
+                    params.push(&art.artist_mbid);
+                    params.push(&art.artist_name);
+                    params.push(&art.artist_coverpath);
+                    params.push(&art.artist_song_count);
+                    params.push(&None::<String>);
+                    params.push(&art.sanitized_artist_name);
+                }
+                query.push_str(&placeholders.join(", "));
+                conn.execute(&query, &*params)
+                    .map_err(error_helpers::to_database_error)?;
+            }
+        }
+
+        let mut new_genres = Vec::new();
+        for (name, genre) in unique_genres.iter() {
+            if !genre_ids.contains_key(name) {
+                let id = Uuid::new_v4().to_string();
+                genre_ids.insert(name.clone(), id.clone());
+                let mut genre_obj = genre.clone();
+                genre_obj.genre_id = Some(id);
+                new_genres.push(genre_obj);
+            }
+        }
+        if !new_genres.is_empty() {
+            for chunk in new_genres.chunks(100) {
+                let mut query =
+                    "INSERT INTO genres (genre_id, genre_name, genre_song_count) VALUES "
+                        .to_string();
+                let mut placeholders = Vec::new();
+                let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+                for (i, genre_obj) in chunk.iter().enumerate() {
+                    let offset = i * 3;
+                    placeholders.push(format!(
+                        "(?{}, ?{}, ?{})",
+                        offset + 1,
+                        offset + 2,
+                        offset + 3
+                    ));
+                    params.push(genre_obj.genre_id.as_ref().unwrap());
+                    params.push(&genre_obj.genre_name);
+                    params.push(&genre_obj.genre_song_count);
+                }
+                query.push_str(&placeholders.join(", "));
+                conn.execute(&query, &*params)
+                    .map_err(error_helpers::to_database_error)?;
+            }
+        }
+
+        // 4. Fetch existing song IDs for paths that already exist in the database
+        let mut paths_to_query = Vec::new();
+        for song in songs.iter() {
+            if let Some(inner_song) = &song.song {
+                if let Some(ref path) = inner_song.path {
+                    if !path.is_empty() {
+                        paths_to_query.push(path.clone());
+                    }
+                }
+            }
+        }
+
+        let mut existing_song_ids = std::collections::HashMap::new();
+        if !paths_to_query.is_empty() {
+            for chunk in paths_to_query.chunks(500) {
+                let placeholders = vec!["?"; chunk.len()].join(",");
+                let query = format!(
+                    "SELECT _id, path FROM allsongs WHERE path IN ({})",
+                    placeholders
+                );
+                let mut stmt = conn
+                    .prepare(&query)
+                    .map_err(error_helpers::to_database_error)?;
+                let params = chunk
+                    .iter()
+                    .map(|n| n as &dyn rusqlite::ToSql)
+                    .collect::<Vec<_>>();
+                let rows = stmt
+                    .query_map(&*params, |row| {
+                        let id: String = row.get(0)?;
+                        let path: String = row.get(1)?;
+                        Ok((path, id))
+                    })
+                    .map_err(error_helpers::to_database_error)?;
+                for r in rows {
+                    let (path, id) = r.map_err(error_helpers::to_database_error)?;
+                    existing_song_ids.insert(path, id);
+                }
+            }
+        }
+
+        // 5. Update the incoming songs slice with matched or new IDs
+        for song in songs.iter_mut() {
+            if let Some(inner_song) = song.song.as_mut() {
+                let mut resolved_id = None;
+                if let Some(ref path) = inner_song.path {
+                    if !path.is_empty() {
+                        if let Some(id) = existing_song_ids.get(path) {
+                            resolved_id = Some(id.clone());
+                        }
+                    }
+                }
+                if resolved_id.is_none() {
+                    resolved_id = Some(
+                        inner_song
+                            .id
+                            .clone()
+                            .unwrap_or_else(|| Uuid::new_v4().to_string()),
+                    );
+                }
+                inner_song.id = resolved_id;
+            }
+            if let Some(album) = song.album.as_mut() {
+                if let Some(ref name) = album.album_name {
+                    if let Some(id) = album_ids.get(name) {
+                        album.album_id = Some(id.clone());
+                    }
+                }
+            }
+            for artist in song.artists.iter_mut() {
+                if let Some(ref name) = artist.artist_name {
+                    if let Some(id) = artist_ids.get(name) {
+                        artist.artist_id = Some(id.clone());
+                    }
+                }
+            }
+            for genre in song.genre.iter_mut() {
+                if let Some(ref name) = genre.genre_name {
+                    if let Some(id) = genre_ids.get(name) {
+                        genre.genre_id = Some(id.clone());
+                    }
+                }
+            }
+        }
+
+        // 5. Map songs to DbSongRow and prepare bridge entries
+        let mut db_song_rows = Vec::new();
+        let mut album_bridges = Vec::new();
+        let mut artist_bridges = Vec::new();
+        let mut genre_bridges = Vec::new();
+
+        for song in songs.iter() {
+            if let Some(inner_song) = &song.song {
+                let song_id = inner_song.id.clone().unwrap_or_default();
+                let song_type = song_type_to_str(inner_song.r#type).to_string();
+
+                db_song_rows.push(DbSongRow {
+                    id: inner_song.id.clone(),
+                    path: inner_song.path.clone(),
+                    size: inner_song.size,
+                    inode: inner_song.inode.clone(),
+                    deviceno: inner_song.deviceno.clone(),
+                    title: inner_song.title.clone(),
+                    date: inner_song.date.clone(),
+                    year: inner_song.year.clone(),
+                    lyrics: inner_song.lyrics.clone(),
+                    release_type: inner_song.release_type.clone(),
+                    bitrate: inner_song.bitrate,
+                    codec: inner_song.codec.clone(),
+                    container: inner_song.container.clone(),
+                    duration: Some(proto_to_db_ms(&inner_song.duration)),
+                    sample_rate: inner_song.sample_rate,
+                    hash: inner_song.hash.clone(),
+                    r#type: song_type,
+                    url: inner_song.url.clone(),
+                    song_cover_path_high: inner_song.song_cover_path_high.clone(),
+                    playback_url: inner_song.playback_url.clone(),
+                    song_cover_path_low: inner_song.song_cover_path_low.clone(),
+                    date_added: inner_song.date_added,
+                    provider_extension: inner_song.provider_extension.clone(),
+                    icon: inner_song.icon.clone(),
+                    show_in_library: inner_song.show_in_library,
+                    track_no: inner_song.track_no,
+                    library_item: inner_song.library_item,
+                });
+
+                if let Some(album) = &song.album {
+                    if let Some(ref album_id) = album.album_id {
+                        album_bridges.push((song_id.clone(), album_id.clone()));
+                    }
+                }
+
+                for artist in &song.artists {
+                    if let Some(ref artist_id) = artist.artist_id {
+                        artist_bridges.push((song_id.clone(), artist_id.clone()));
+                    }
+                }
+
+                for genre in &song.genre {
+                    if let Some(ref genre_id) = genre.genre_id {
+                        genre_bridges.push((song_id.clone(), genre_id.clone()));
+                    }
+                }
+            }
+        }
+
+        // 6. Execute bulk insertions within a transaction
+        let tx = conn
+            .transaction()
+            .map_err(error_helpers::to_database_error)?;
+
+        for chunk in db_song_rows.chunks(30) {
+            let mut query = "INSERT INTO allsongs (
+                _id, path, size, inode, deviceno, title, date, year, lyrics, releasetype,
+                bitrate, codec, container, duration, samplerate, hash, type, url,
+                song_coverpath_high, playbackurl, song_coverpath_low, date_added,
+                provider_extension, icon, show_in_library, track_no, library_item
+            ) VALUES "
+                .to_string();
+            let mut placeholders = Vec::new();
+            let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+
+            for (i, row) in chunk.iter().enumerate() {
+                let offset = i * 27;
+                placeholders.push(format!(
+                    "(?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{}, ?{})",
+                    offset + 1, offset + 2, offset + 3, offset + 4, offset + 5, offset + 6, offset + 7, offset + 8, offset + 9, offset + 10,
+                    offset + 11, offset + 12, offset + 13, offset + 14, offset + 15, offset + 16, offset + 17, offset + 18, offset + 19, offset + 20,
+                    offset + 21, offset + 22, offset + 23, offset + 24, offset + 25, offset + 26, offset + 27
+                ));
+
+                params.push(&row.id);
+                params.push(&row.path);
+                params.push(&row.size);
+                params.push(&row.inode);
+                params.push(&row.deviceno);
+                params.push(&row.title);
+                params.push(&row.date);
+                params.push(&row.year);
+                params.push(&row.lyrics);
+                params.push(&row.release_type);
+                params.push(&row.bitrate);
+                params.push(&row.codec);
+                params.push(&row.container);
+                params.push(&row.duration);
+                params.push(&row.sample_rate);
+                params.push(&row.hash);
+                params.push(&row.r#type);
+                params.push(&row.url);
+                params.push(&row.song_cover_path_high);
+                params.push(&row.playback_url);
+                params.push(&row.song_cover_path_low);
+                params.push(&row.date_added);
+                params.push(&row.provider_extension);
+                params.push(&row.icon);
+                params.push(&row.show_in_library);
+                params.push(&row.track_no);
+                params.push(&row.library_item);
+            }
+
+            query.push_str(&placeholders.join(", "));
+            query.push_str(
+                " ON CONFLICT(path) DO UPDATE SET
+                size = excluded.size,
+                inode = excluded.inode,
+                deviceno = excluded.deviceno,
+                title = excluded.title,
+                date = excluded.date,
+                year = excluded.year,
+                lyrics = excluded.lyrics,
+                releasetype = excluded.releasetype,
+                bitrate = excluded.bitrate,
+                codec = excluded.codec,
+                container = excluded.container,
+                duration = excluded.duration,
+                samplerate = excluded.samplerate,
+                hash = excluded.hash,
+                type = excluded.type,
+                url = excluded.url,
+                song_coverpath_high = excluded.song_coverpath_high,
+                playbackurl = excluded.playbackurl,
+                song_coverpath_low = excluded.song_coverpath_low,
+                date_added = excluded.date_added,
+                provider_extension = excluded.provider_extension,
+                icon = excluded.icon,
+                show_in_library = excluded.show_in_library,
+                track_no = excluded.track_no,
+                library_item = excluded.library_item",
+            );
+
+            tx.execute(&query, &*params)
+                .map_err(error_helpers::to_database_error)?;
+        }
+
+        for chunk in album_bridges.chunks(400) {
+            let mut query = "INSERT INTO album_bridge (song, album) VALUES ".to_string();
+            let mut placeholders = Vec::new();
+            let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+            for (i, (song_id, album_id)) in chunk.iter().enumerate() {
+                let offset = i * 2;
+                placeholders.push(format!("(?{}, ?{})", offset + 1, offset + 2));
+                params.push(song_id);
+                params.push(album_id);
+            }
+            query.push_str(&placeholders.join(", "));
+            query.push_str(" ON CONFLICT DO NOTHING");
+            tx.execute(&query, &*params)
+                .map_err(error_helpers::to_database_error)?;
+        }
+
+        for chunk in artist_bridges.chunks(400) {
+            let mut query = "INSERT INTO artist_bridge (song, artist) VALUES ".to_string();
+            let mut placeholders = Vec::new();
+            let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+            for (i, (song_id, artist_id)) in chunk.iter().enumerate() {
+                let offset = i * 2;
+                placeholders.push(format!("(?{}, ?{})", offset + 1, offset + 2));
+                params.push(song_id);
+                params.push(artist_id);
+            }
+            query.push_str(&placeholders.join(", "));
+            query.push_str(" ON CONFLICT DO NOTHING");
+            tx.execute(&query, &*params)
+                .map_err(error_helpers::to_database_error)?;
+        }
+
+        for chunk in genre_bridges.chunks(400) {
+            let mut query = "INSERT INTO genre_bridge (song, genre) VALUES ".to_string();
+            let mut placeholders = Vec::new();
+            let mut params: Vec<&dyn rusqlite::ToSql> = Vec::new();
+            for (i, (song_id, genre_id)) in chunk.iter().enumerate() {
+                let offset = i * 2;
+                placeholders.push(format!("(?{}, ?{})", offset + 1, offset + 2));
+                params.push(song_id);
+                params.push(genre_id);
+            }
+            query.push_str(&placeholders.join(", "));
+            query.push_str(" ON CONFLICT DO NOTHING");
+            tx.execute(&query, &*params)
+                .map_err(error_helpers::to_database_error)?;
+        }
+
+        tx.commit().map_err(error_helpers::to_database_error)?;
         info!("Inserted all songs");
         Ok(())
     }
@@ -726,14 +1054,42 @@ impl Database {
         conn: &mut rusqlite::Connection,
     ) -> Result<Vec<InnerSong>> {
         trace!("Fetching album songs");
-        let binding = self.get_albums(options, inclusive, conn)?;
-        let album = binding.first();
-        if album.is_none() {
-            return Ok(vec![]);
+        let mut query = "SELECT a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype,
+                                a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url,
+                                a.song_coverpath_high, a.playbackurl, a.song_coverpath_low, a.date_added,
+                                a.provider_extension, a.icon, a.show_in_library, a.track_no, a.library_item
+                         FROM allsongs a
+                         JOIN album_bridge b ON a._id = b.song
+                         JOIN albums al ON b.album = al.album_id".to_string();
+        let mut clauses = Vec::new();
+        let mut params = Vec::new();
+
+        if let Some(ref v) = options.album_id {
+            clauses.push("al.album_id = ?".to_string());
+            params.push(v as &dyn rusqlite::ToSql);
         }
-        let album = album.unwrap();
-        let album_id = album.album_id.as_deref().unwrap_or_default();
-        let fetched = self.get_bridge_songs("album_bridge", "album", album_id, conn)?;
+        if let Some(ref v) = options.album_name {
+            clauses.push("al.album_name LIKE ?".to_string());
+            params.push(v as &dyn rusqlite::ToSql);
+        }
+
+        if !clauses.is_empty() {
+            let joiner = if inclusive { " AND " } else { " OR " };
+            query.push_str(" WHERE ");
+            query.push_str(&clauses.join(joiner));
+        }
+
+        let mut stmt = conn
+            .prepare(&query)
+            .map_err(error_helpers::to_database_error)?;
+        let rows = stmt
+            .query_map(&*params, map_row_to_inner_song)
+            .map_err(error_helpers::to_database_error)?;
+
+        let mut fetched = Vec::new();
+        for r in rows {
+            fetched.push(r.map_err(error_helpers::to_database_error)?);
+        }
         info!("Fetched album songs");
         Ok(fetched)
     }
@@ -746,14 +1102,46 @@ impl Database {
         conn: &mut rusqlite::Connection,
     ) -> Result<Vec<InnerSong>> {
         trace!("Fetching artist songs");
-        let binding = self.get_artists(options, inclusive, conn)?;
-        let artist = binding.first();
-        if artist.is_none() {
-            return Ok(vec![]);
+        let mut query = "SELECT a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype,
+                                a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url,
+                                a.song_coverpath_high, a.playbackurl, a.song_coverpath_low, a.date_added,
+                                a.provider_extension, a.icon, a.show_in_library, a.track_no, a.library_item
+                         FROM allsongs a
+                         JOIN artist_bridge b ON a._id = b.song
+                         JOIN artists ar ON b.artist = ar.artist_id".to_string();
+        let mut clauses = Vec::new();
+        let mut params = Vec::new();
+
+        if let Some(ref v) = options.artist_id {
+            clauses.push("ar.artist_id = ?".to_string());
+            params.push(v as &dyn rusqlite::ToSql);
         }
-        let artist = artist.unwrap();
-        let artist_id = artist.artist_id.as_deref().unwrap_or_default();
-        let fetched = self.get_bridge_songs("artist_bridge", "artist", artist_id, conn)?;
+        if let Some(ref v) = options.artist_name {
+            clauses.push("ar.artist_name LIKE ?".to_string());
+            params.push(v as &dyn rusqlite::ToSql);
+        }
+        if let Some(ref v) = options.artist_mbid {
+            clauses.push("ar.artist_mbid = ?".to_string());
+            params.push(v as &dyn rusqlite::ToSql);
+        }
+
+        if !clauses.is_empty() {
+            let joiner = if inclusive { " AND " } else { " OR " };
+            query.push_str(" WHERE ");
+            query.push_str(&clauses.join(joiner));
+        }
+
+        let mut stmt = conn
+            .prepare(&query)
+            .map_err(error_helpers::to_database_error)?;
+        let rows = stmt
+            .query_map(&*params, map_row_to_inner_song)
+            .map_err(error_helpers::to_database_error)?;
+
+        let mut fetched = Vec::new();
+        for r in rows {
+            fetched.push(r.map_err(error_helpers::to_database_error)?);
+        }
         info!("Fetched artist songs");
         Ok(fetched)
     }
@@ -766,14 +1154,42 @@ impl Database {
         conn: &mut rusqlite::Connection,
     ) -> Result<Vec<InnerSong>> {
         trace!("Fetching genre songs");
-        let binding = self.get_genres(options, inclusive, conn)?;
-        let genre = binding.first();
-        if genre.is_none() {
-            return Ok(vec![]);
+        let mut query = "SELECT a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype,
+                                a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url,
+                                a.song_coverpath_high, a.playbackurl, a.song_coverpath_low, a.date_added,
+                                a.provider_extension, a.icon, a.show_in_library, a.track_no, a.library_item
+                         FROM allsongs a
+                         JOIN genre_bridge b ON a._id = b.song
+                         JOIN genres g ON b.genre = g.genre_id".to_string();
+        let mut clauses = Vec::new();
+        let mut params = Vec::new();
+
+        if let Some(ref v) = options.genre_id {
+            clauses.push("g.genre_id = ?".to_string());
+            params.push(v as &dyn rusqlite::ToSql);
         }
-        let genre = genre.unwrap();
-        let genre_id = genre.genre_id.as_deref().unwrap_or_default();
-        let fetched = self.get_bridge_songs("genre_bridge", "genre", genre_id, conn)?;
+        if let Some(ref v) = options.genre_name {
+            clauses.push("g.genre_name LIKE ?".to_string());
+            params.push(v as &dyn rusqlite::ToSql);
+        }
+
+        if !clauses.is_empty() {
+            let joiner = if inclusive { " AND " } else { " OR " };
+            query.push_str(" WHERE ");
+            query.push_str(&clauses.join(joiner));
+        }
+
+        let mut stmt = conn
+            .prepare(&query)
+            .map_err(error_helpers::to_database_error)?;
+        let rows = stmt
+            .query_map(&*params, map_row_to_inner_song)
+            .map_err(error_helpers::to_database_error)?;
+
+        let mut fetched = Vec::new();
+        for r in rows {
+            fetched.push(r.map_err(error_helpers::to_database_error)?);
+        }
         info!("Fetched genre songs");
         Ok(fetched)
     }
@@ -785,75 +1201,49 @@ impl Database {
         inclusive: bool,
         conn: &mut rusqlite::Connection,
     ) -> Result<Vec<InnerSong>> {
-        let binding = self.get_playlists(options, inclusive, conn)?;
         trace!("Fetching playlist songs");
-        let playlist = binding.first();
-        if playlist.is_none() {
-            return Ok(vec![]);
+        let mut query = "SELECT a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype,
+                                a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url,
+                                a.song_coverpath_high, a.playbackurl, a.song_coverpath_low, a.date_added,
+                                a.provider_extension, a.icon, a.show_in_library, a.track_no, a.library_item
+                         FROM allsongs a
+                         JOIN playlist_bridge b ON a._id = b.song
+                         JOIN playlists p ON b.playlist = p.playlist_id".to_string();
+        let mut clauses = Vec::new();
+        let mut params = Vec::new();
+
+        if let Some(ref v) = options.playlist_id {
+            clauses.push("p.playlist_id = ?".to_string());
+            params.push(v as &dyn rusqlite::ToSql);
         }
-        let playlist = playlist.unwrap();
-        let playlist_id = playlist.playlist_id.as_deref().unwrap_or_default();
-        let fetched = self.get_bridge_songs("playlist_bridge", "playlist", playlist_id, conn)?;
+        if !options.playlist_name.is_empty() {
+            clauses.push("p.playlist_name LIKE ?".to_string());
+            params.push(&options.playlist_name as &dyn rusqlite::ToSql);
+        }
+        if let Some(ref v) = options.playlist_path {
+            clauses.push("p.playlist_path LIKE ?".to_string());
+            params.push(v as &dyn rusqlite::ToSql);
+        }
+
+        if !clauses.is_empty() {
+            let joiner = if inclusive { " AND " } else { " OR " };
+            query.push_str(" WHERE ");
+            query.push_str(&clauses.join(joiner));
+        }
+
+        let mut stmt = conn
+            .prepare(&query)
+            .map_err(error_helpers::to_database_error)?;
+        let rows = stmt
+            .query_map(&*params, map_row_to_inner_song)
+            .map_err(error_helpers::to_database_error)?;
+
+        let mut fetched = Vec::new();
+        for r in rows {
+            fetched.push(r.map_err(error_helpers::to_database_error)?);
+        }
         info!("Fetched playlist songs");
         Ok(fetched)
-    }
-
-    fn get_song_from_queryable(
-        &self,
-        conn: &mut rusqlite::Connection,
-        s: InnerSong,
-    ) -> Result<Song> {
-        let mut album: Option<Album> = None;
-        let mut artist: Vec<Artist> = vec![];
-        let mut genre: Vec<Genre> = vec![];
-
-        let album_row = conn.query_row(
-            "SELECT a.album_id, a.album_name, a.album_artist, a.album_coverpath_high, a.album_song_count, a.year, a.album_coverpath_low
-             FROM albums a
-             JOIN album_bridge b ON a.album_id = b.album
-             WHERE b.song = ?1",
-            [&s.id],
-            map_row_to_album,
-        );
-
-        if let Ok(alb) = album_row {
-            album = Some(alb);
-        }
-
-        let mut stmt_artists = conn.prepare(
-            "SELECT a.artist_id, a.artist_mbid, a.artist_name, a.artist_coverpath, a.artist_song_count, a.sanitized_artist_name
-             FROM artists a
-             JOIN artist_bridge b ON a.artist_id = b.artist
-             WHERE b.song = ?1"
-        ).map_err(error_helpers::to_database_error)?;
-        let artist_rows = stmt_artists
-            .query_map([&s.id], map_row_to_artist)
-            .map_err(error_helpers::to_database_error)?;
-        for r in artist_rows {
-            artist.push(r.map_err(error_helpers::to_database_error)?);
-        }
-
-        let mut stmt_genres = conn
-            .prepare(
-                "SELECT a.genre_id, a.genre_name, a.genre_song_count
-             FROM genres a
-             JOIN genre_bridge b ON a.genre_id = b.genre
-             WHERE b.song = ?1",
-            )
-            .map_err(error_helpers::to_database_error)?;
-        let genre_rows = stmt_genres
-            .query_map([&s.id], map_row_to_genre)
-            .map_err(error_helpers::to_database_error)?;
-        for r in genre_rows {
-            genre.push(r.map_err(error_helpers::to_database_error)?);
-        }
-
-        Ok(Song {
-            song: Some(s),
-            album,
-            artists: artist,
-            genre,
-        })
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -941,8 +1331,119 @@ impl Database {
             fetched_songs = self.get_playlist_songs(playlist, inclusive, &mut conn)?;
         }
 
+        if fetched_songs.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let song_ids: Vec<String> = fetched_songs.iter().filter_map(|s| s.id.clone()).collect();
+
+        // 1. Fetch albums for all these songs in chunks of 500
+        let mut albums_map: std::collections::HashMap<String, Album> =
+            std::collections::HashMap::new();
+        for chunk in song_ids.chunks(500) {
+            let placeholders = vec!["?"; chunk.len()].join(",");
+            let query = format!(
+                "SELECT a.album_id, a.album_name, a.album_artist, a.album_coverpath_high, a.album_song_count, a.year, a.album_coverpath_low, b.song
+                 FROM albums a
+                 JOIN album_bridge b ON a.album_id = b.album
+                 WHERE b.song IN ({})",
+                placeholders
+            );
+            let mut stmt = conn
+                .prepare(&query)
+                .map_err(error_helpers::to_database_error)?;
+            let params = chunk
+                .iter()
+                .map(|s| s as &dyn rusqlite::ToSql)
+                .collect::<Vec<_>>();
+            let rows = stmt
+                .query_map(&*params, |row| {
+                    let album = map_row_to_album(row)?;
+                    let song_id: String = row.get(7)?;
+                    Ok((song_id, album))
+                })
+                .map_err(error_helpers::to_database_error)?;
+            for r in rows {
+                let (song_id, album) = r.map_err(error_helpers::to_database_error)?;
+                albums_map.insert(song_id, album);
+            }
+        }
+
+        // 2. Fetch artists for all these songs in chunks of 500
+        let mut artists_map: std::collections::HashMap<String, Vec<Artist>> =
+            std::collections::HashMap::new();
+        for chunk in song_ids.chunks(500) {
+            let placeholders = vec!["?"; chunk.len()].join(",");
+            let query = format!(
+                "SELECT a.artist_id, a.artist_mbid, a.artist_name, a.artist_coverpath, a.artist_song_count, a.sanitized_artist_name, b.song
+                 FROM artists a
+                 JOIN artist_bridge b ON a.artist_id = b.artist
+                 WHERE b.song IN ({})",
+                placeholders
+            );
+            let mut stmt = conn
+                .prepare(&query)
+                .map_err(error_helpers::to_database_error)?;
+            let params = chunk
+                .iter()
+                .map(|s| s as &dyn rusqlite::ToSql)
+                .collect::<Vec<_>>();
+            let rows = stmt
+                .query_map(&*params, |row| {
+                    let artist = map_row_to_artist(row)?;
+                    let song_id: String = row.get(6)?;
+                    Ok((song_id, artist))
+                })
+                .map_err(error_helpers::to_database_error)?;
+            for r in rows {
+                let (song_id, artist) = r.map_err(error_helpers::to_database_error)?;
+                artists_map.entry(song_id).or_default().push(artist);
+            }
+        }
+
+        // 3. Fetch genres for all these songs in chunks of 500
+        let mut genres_map: std::collections::HashMap<String, Vec<Genre>> =
+            std::collections::HashMap::new();
+        for chunk in song_ids.chunks(500) {
+            let placeholders = vec!["?"; chunk.len()].join(",");
+            let query = format!(
+                "SELECT a.genre_id, a.genre_name, a.genre_song_count, b.song
+                 FROM genres a
+                 JOIN genre_bridge b ON a.genre_id = b.genre
+                 WHERE b.song IN ({})",
+                placeholders
+            );
+            let mut stmt = conn
+                .prepare(&query)
+                .map_err(error_helpers::to_database_error)?;
+            let params = chunk
+                .iter()
+                .map(|s| s as &dyn rusqlite::ToSql)
+                .collect::<Vec<_>>();
+            let rows = stmt
+                .query_map(&*params, |row| {
+                    let genre = map_row_to_genre(row)?;
+                    let song_id: String = row.get(3)?;
+                    Ok((song_id, genre))
+                })
+                .map_err(error_helpers::to_database_error)?;
+            for r in rows {
+                let (song_id, genre) = r.map_err(error_helpers::to_database_error)?;
+                genres_map.entry(song_id).or_default().push(genre);
+            }
+        }
+
         for s in fetched_songs {
-            ret.push(self.get_song_from_queryable(&mut conn, s)?);
+            let id = s.id.clone().unwrap_or_default();
+            let album = albums_map.remove(&id);
+            let artists = artists_map.remove(&id).unwrap_or_default();
+            let genre = genres_map.remove(&id).unwrap_or_default();
+            ret.push(Song {
+                song: Some(s),
+                album,
+                artists,
+                genre,
+            });
         }
         Ok(ret)
     }
@@ -1459,7 +1960,7 @@ impl Database {
                     write!(
                         ret,
                         "#EXTINF:{},{}\n{}\n{}\n{}\n{}\n{}\n",
-                        proto_to_db_ms(&Some(duration)),
+                        duration.seconds,
                         title,
                         album_info,
                         genre_info,
@@ -1494,13 +1995,7 @@ impl Database {
                     write!(
                         ret,
                         "#EXTINF:{},{}\n{}\n{}\n{}\n{}\n{}\n",
-                        proto_to_db_ms(&Some(duration)),
-                        title,
-                        album_info,
-                        genre_info,
-                        cover_path,
-                        song_info,
-                        url
+                        duration.seconds, title, album_info, genre_info, cover_path, song_info, url
                     )?;
                 }
             }

@@ -1,6 +1,7 @@
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 load("@rules_cc//cc/toolchains:cc_toolchain_config_info.bzl", "CcToolchainConfigInfo")
 load("@rules_cc//cc:cc_toolchain_config_lib.bzl", "tool_path")
+load("@rules_rust//rust:defs.bzl", "rust_binary")
 
 def _flutter_app_bundle_impl(ctx):
     out_dir = ctx.actions.declare_directory(ctx.attr.name)
@@ -104,5 +105,12 @@ platform_transition_rule = rule(
     },
     cfg = platform_transition,
 )
+
+def rust_benchmark(name, **kwargs):
+    rust_binary(
+        name = name,
+        **kwargs
+    )
+
 
 

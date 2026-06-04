@@ -480,6 +480,10 @@ crates.annotation(
     patch_args = ["-p1"],
     patches = ["//patches:i_slint_compiler_cargo.patch"],
 )
+crates.spec(
+    package = "criterion",
+    version = "0.5.1",
+)
 crates.from_specs(
     supported_platform_triples = [
         "x86_64-unknown-linux-gnu",

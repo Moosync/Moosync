@@ -47,7 +47,7 @@ export component TopBar inherits Rectangle {
                     height: Theme.topbarIconSize;
                     border-radius: Theme.borderRadiusMd;
                     background: profile_touch.has-hover ? Theme.textPrimary.with-alpha(0.05) : transparent;
-                    
+
                     profile_touch := TouchArea { }
 
                     Image {
@@ -64,7 +64,7 @@ export component TopBar inherits Rectangle {
                     height: Theme.topbarIconSize;
                     border-radius: Theme.borderRadiusMd;
                     background: settings_touch.has-hover ? Theme.textPrimary.with-alpha(0.05) : transparent;
-                    
+
                     settings_touch := TouchArea {
                         clicked => {
                             root.settings_clicked();

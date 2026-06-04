@@ -5,15 +5,15 @@ use std::{
     rc::Rc,
 };
 
+use extensions_proto::moosync::types::{ExtensionDetail, FetchedExtensionManifest};
 use slint::{Image, Model, ModelNotify, ModelTracker, SharedString};
+use songs_proto::moosync::types::{Album, Artist, Genre, Playlist, Song};
 use tracing::trace;
+use types::prelude::SongsExt;
 
 use crate::{
     AlbumModel, ArtistModel, ExtensionItem, GenreModel, PlaylistModel, SongModel, WINDOW_EVENTS,
 };
-use extensions_proto::moosync::types::{ExtensionDetail, FetchedExtensionManifest};
-use songs_proto::moosync::types::{Album, Artist, Genre, Playlist, Song};
-use types::prelude::SongsExt;
 
 pub static DEFAULT_SONG_SVG: &[u8] = include_bytes!("icons/song_default.svg");
 
@@ -221,9 +221,7 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
 impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
     type Data = T;
 
-    fn row_count(&self) -> usize {
-        self.array.borrow().len()
-    }
+    fn row_count(&self) -> usize { self.array.borrow().len() }
 
     fn row_data(&self, row: usize) -> Option<Self::Data> {
         let (song_model, is_loaded) = {
@@ -289,27 +287,17 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
         }
     }
 
-    fn model_tracker(&self) -> &dyn ModelTracker {
-        &*self.notify
-    }
+    fn model_tracker(&self) -> &dyn ModelTracker { &*self.notify }
 
-    fn as_any(&self) -> &dyn core::any::Any {
-        self
-    }
+    fn as_any(&self) -> &dyn core::any::Any { self }
 }
 
 impl LazyModel for ExtensionItem {
-    fn set_cover(&mut self, image: Image) {
-        self.icon = image;
-    }
+    fn set_cover(&mut self, image: Image) { self.icon = image; }
 
-    fn get_cover(&self) -> &Image {
-        &self.icon
-    }
+    fn get_cover(&self) -> &Image { &self.icon }
 
-    fn get_cover_url(&self) -> &SharedString {
-        &self.icon_url
-    }
+    fn get_cover_url(&self) -> &SharedString { &self.icon_url }
 }
 
 fn is_empty_image(image: &Image) -> bool {
@@ -318,73 +306,43 @@ fn is_empty_image(image: &Image) -> bool {
 }
 
 impl LazyModel for SongModel {
-    fn set_cover(&mut self, image: Image) {
-        self.coverPathLow = image
-    }
+    fn set_cover(&mut self, image: Image) { self.coverPathLow = image }
 
-    fn get_cover(&self) -> &Image {
-        &self.coverPathLow
-    }
+    fn get_cover(&self) -> &Image { &self.coverPathLow }
 
-    fn get_cover_url(&self) -> &SharedString {
-        &self.coverPathUrlLow
-    }
+    fn get_cover_url(&self) -> &SharedString { &self.coverPathUrlLow }
 }
 
 impl LazyModel for AlbumModel {
-    fn set_cover(&mut self, image: Image) {
-        self.coverPath = image;
-    }
+    fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
-    fn get_cover(&self) -> &Image {
-        &self.coverPath
-    }
+    fn get_cover(&self) -> &Image { &self.coverPath }
 
-    fn get_cover_url(&self) -> &SharedString {
-        &self.coverPathUrl
-    }
+    fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 }
 
 impl LazyModel for PlaylistModel {
-    fn set_cover(&mut self, image: Image) {
-        self.coverPath = image;
-    }
+    fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
-    fn get_cover(&self) -> &Image {
-        &self.coverPath
-    }
+    fn get_cover(&self) -> &Image { &self.coverPath }
 
-    fn get_cover_url(&self) -> &SharedString {
-        &self.coverPathUrl
-    }
+    fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 }
 
 impl LazyModel for ArtistModel {
-    fn set_cover(&mut self, image: Image) {
-        self.coverPath = image;
-    }
+    fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
-    fn get_cover(&self) -> &Image {
-        &self.coverPath
-    }
+    fn get_cover(&self) -> &Image { &self.coverPath }
 
-    fn get_cover_url(&self) -> &SharedString {
-        &self.coverPathUrl
-    }
+    fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 }
 
 impl LazyModel for GenreModel {
-    fn set_cover(&mut self, image: Image) {
-        self.coverPath = image;
-    }
+    fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
-    fn get_cover(&self) -> &Image {
-        &self.coverPath
-    }
+    fn get_cover(&self) -> &Image { &self.coverPath }
 
-    fn get_cover_url(&self) -> &SharedString {
-        &self.coverPathUrl
-    }
+    fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 }
 
 pub fn to_song_model(song: Option<&Song>) -> SongModel {

@@ -1,5 +1,6 @@
-use jni;
 use std::sync::Arc;
+
+use jni;
 
 #[derive(Debug, Clone)]
 pub struct AndroidJNIContext {

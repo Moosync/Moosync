@@ -14,7 +14,10 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{fs, sync::{Arc, Mutex}};
+use std::{
+    fs,
+    sync::{Arc, Mutex},
+};
 
 use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
 use types::errors::Result;
@@ -42,7 +45,10 @@ fn test_theme_save_load() -> Result<()> {
         name: "Test Theme".to_string(),
         author: Some("Test Author".to_string()),
         description: Some("Test Description".to_string()),
-        theme: Some(ThemeItem { constants, ..Default::default() }),
+        theme: Some(ThemeItem {
+            constants,
+            ..Default::default()
+        }),
     };
 
     theme_holder.save_theme(theme_details.clone())?;
@@ -52,7 +58,7 @@ fn test_theme_save_load() -> Result<()> {
     assert_eq!(loaded.name, theme_details.name);
     assert_eq!(loaded.author, theme_details.author);
     assert_eq!(loaded.description, theme_details.description);
-    
+
     let loaded_item = loaded.theme.unwrap();
     use types::prelude::ThemeItemExt;
     assert_eq!(loaded_item.get_constant("primary").unwrap(), "#ff0000");
@@ -96,7 +102,10 @@ fn test_theme_subscribers() -> Result<()> {
         name: "Notify Test Theme".to_string(),
         author: Some("Author".to_string()),
         description: Some("Desc".to_string()),
-        theme: Some(ThemeItem { constants: std::collections::HashMap::new(), ..Default::default() }),
+        theme: Some(ThemeItem {
+            constants: std::collections::HashMap::new(),
+            ..Default::default()
+        }),
     };
 
     theme_holder.save_theme(theme_details)?;
@@ -130,7 +139,10 @@ fn test_theme_export_import_cycle() -> Result<()> {
         name: "Export Test Theme".to_string(),
         author: Some("Export Author".to_string()),
         description: Some("Export Desc".to_string()),
-        theme: Some(ThemeItem { constants, ..Default::default() }),
+        theme: Some(ThemeItem {
+            constants,
+            ..Default::default()
+        }),
     };
 
     theme_holder.save_theme(theme_details.clone())?;
@@ -158,7 +170,6 @@ fn test_theme_export_import_cycle() -> Result<()> {
 #[test]
 fn test_theme_backwards_compatibility() -> Result<()> {
     use types::prelude::ThemeItemExt;
-
 
     let old_json = r##"{
         "id": "old_theme",
@@ -193,8 +204,10 @@ fn test_theme_backwards_compatibility() -> Result<()> {
     assert_eq!(theme_item.get_constant("textInverse").unwrap(), "#666666");
     assert_eq!(theme_item.get_constant("accent").unwrap(), "#777777");
     assert_eq!(theme_item.get_constant("divider").unwrap(), "#888888");
-    assert_eq!(theme_item.custom_css.as_deref(), Some("body { background: red; }"));
-
+    assert_eq!(
+        theme_item.custom_css.as_deref(),
+        Some("body { background: red; }")
+    );
 
     let transitional_json = r##"{
         "id": "transitional_theme",
@@ -214,7 +227,6 @@ fn test_theme_backwards_compatibility() -> Result<()> {
     assert_eq!(trans_item.get_constant("accent").unwrap(), "#654321");
     assert_eq!(trans_item.get_constant("cardWidth").unwrap(), "240px");
 
-
     let mut item_to_save = trans_item;
     item_to_save.set_constant("primary", "#abcdef".to_string());
     item_to_save.set_constant("cardWidth", "250px".to_string());
@@ -224,4 +236,3 @@ fn test_theme_backwards_compatibility() -> Result<()> {
 
     Ok(())
 }
-

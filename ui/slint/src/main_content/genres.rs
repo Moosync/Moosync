@@ -1,13 +1,12 @@
+use std::sync::{Arc, Mutex};
+
 use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{Genre, GenreList, GetEntityOptions, entity_result};
 use state_manager::StateManager;
-use std::sync::{Arc, Mutex};
 use tracing::debug;
-use types::ScanProgress;
-use types::errors::MoosyncError;
+use types::{ScanProgress, errors::MoosyncError};
 
-use crate::utils::LazySongVecModel;
-use crate::{MainWindow, Pages, pages::PageHandler};
+use crate::{MainWindow, Pages, pages::PageHandler, utils::LazySongVecModel};
 
 pub struct GenresPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -97,7 +96,12 @@ fn set_all_genres(main_window: &MainWindow, genres: Vec<Genre>, cache_dir: std::
         .map(|genre| crate::utils::to_genre_model(&genre))
         .collect::<Vec<_>>();
 
-    main_window.set_genres(ModelRc::new(LazySongVecModel::new(genre_model, 230, 200, cache_dir)));
+    main_window.set_genres(ModelRc::new(LazySongVecModel::new(
+        genre_model,
+        230,
+        200,
+        cache_dir,
+    )));
 }
 
 impl<'a> PageHandler for GenresPageHandler<'a> {
@@ -117,7 +121,5 @@ impl<'a> PageHandler for GenresPageHandler<'a> {
         set_all_genres(self.main_window, genres, cache_dir);
     }
 
-    fn on_hide(&self) {
-        self.main_window.set_genres(ModelRc::default());
-    }
+    fn on_hide(&self) { self.main_window.set_genres(ModelRc::default()); }
 }

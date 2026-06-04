@@ -57,13 +57,16 @@ impl SourceResolver {
         *r = Some(resolver);
     }
 
-    // This method will ignore any existing playback url and path and try to find a new one
+    // This method will ignore any existing playback url and path and try to find a
+    // new one
     pub fn resolve_playback_url(&self, song: &mut Song) -> Result<(), PlayerError> {
         let resolver_lock = self.resolver.lock().unwrap();
         let playback_url = if let Some(ref resolver) = *resolver_lock {
             resolver(song).map_err(|e| PlayerError::PlaybackUrlResolutionFailed(e))?
         } else {
-            return Err(PlayerError::PlaybackUrlResolutionFailed("Resolver not set".into()));
+            return Err(PlayerError::PlaybackUrlResolutionFailed(
+                "Resolver not set".into(),
+            ));
         };
 
         if let Some(inner_song) = song.song.as_mut() {

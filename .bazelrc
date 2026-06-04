@@ -13,6 +13,10 @@ common --registry=https://raw.githubusercontent.com/bazelbuild/bazel-central-reg
 build:check --@rules_rust//rust/settings:pipelined_compilation=True
 build:check --output_groups=build_metadata
 
+# Use root rustfmt.toml for hermetic rustfmt configuration
+build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
+
+
 coverage --experimental_fetch_all_coverage_outputs
 # build --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
 # build --output_groups=+clippy_checks

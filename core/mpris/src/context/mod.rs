@@ -14,25 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#[cfg(not(target_os = "android"))]
+use std::time::Duration;
+
+use extensions_proto::moosync::types::PlayerState;
 #[cfg(test)]
 use mockall::mock;
-
 #[cfg(not(target_os = "android"))]
 use souvlaki::{
     MediaControls, MediaMetadata, MediaPlayback, MediaPosition as SouvlakiMediaPosition,
     PlatformConfig,
 };
-
 #[cfg(not(target_os = "android"))]
-use std::time::Duration;
+use types::errors::MoosyncError;
+use types::errors::Result;
 
 #[cfg(not(target_os = "android"))]
 use crate::SeekDirection;
 use crate::{MediaControlEvent, MprisPlayerDetails};
-use extensions_proto::moosync::types::PlayerState;
-#[cfg(not(target_os = "android"))]
-use types::errors::MoosyncError;
-use types::errors::Result;
 
 // ─────────────────────────────────────────────────────────────────────── //
 //  MprisContext trait — platform-agnostic interface.                       //
@@ -99,8 +98,9 @@ impl SouvlakiMprisContext {
     }
 }
 
-/// Map our crate-level `MediaControlEvent` to souvlaki's event type for the closure.
-/// souvlaki calls back with *its own* `MediaControlEvent`; we convert to ours.
+/// Map our crate-level `MediaControlEvent` to souvlaki's event type for the
+/// closure. souvlaki calls back with *its own* `MediaControlEvent`; we convert
+/// to ours.
 #[cfg(not(target_os = "android"))]
 fn from_souvlaki_event(e: souvlaki::MediaControlEvent) -> MediaControlEvent {
     match e {
@@ -197,15 +197,9 @@ pub struct DummyContext {}
 
 #[cfg(target_os = "windows")]
 impl MprisContext for DummyContext {
-    fn attach(&mut self, _: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<()> {
-        Ok(())
-    }
+    fn attach(&mut self, _: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<()> { Ok(()) }
 
-    fn set_metadata(&mut self, _: MprisPlayerDetails) -> Result<()> {
-        Ok(())
-    }
+    fn set_metadata(&mut self, _: MprisPlayerDetails) -> Result<()> { Ok(()) }
 
-    fn set_playback_state(&mut self, _: PlayerState, _: u64) -> Result<()> {
-        Ok(())
-    }
+    fn set_playback_state(&mut self, _: PlayerState, _: u64) -> Result<()> { Ok(()) }
 }

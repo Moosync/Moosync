@@ -37,8 +37,7 @@ use extensions_proto::moosync::types::{
     Error as MainCommandError, ExtensionCommand, ExtensionCommandResponse, ExtensionManifest,
     MainCommand, MainCommandResponse, ManifestPermissions, main_command_response,
 };
-use extism::ValType::I64;
-use extism::{Manifest, PTR, Plugin, PluginBuilder, UserData, Wasm, host_fn};
+use extism::{Manifest, PTR, Plugin, PluginBuilder, UserData, ValType::I64, Wasm, host_fn};
 use extism_convert::Prost;
 use interprocess::local_socket::{
     GenericFilePath, GenericNamespaced, NameType, Stream as LocalSocketStream, ToFsName, ToNsName,

@@ -14,19 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::path::PathBuf;
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
-use crate::context::ReplyHandler;
-use crate::ext_runner::ExtensionHandlerInner;
-use crate::models::SanitizeCommand;
 use extensions_proto::moosync::types::{
-    AddSongsRequest, ExtensionCommand,
-    GetProviderScopesRequest, MainCommand,
-    extension_command, extension_command_response, main_command,
+    AddSongsRequest, ExtensionCommand, GetProviderScopesRequest, MainCommand, extension_command,
+    extension_command_response, main_command,
 };
 use songs_proto::moosync::types::{InnerSong, Song};
 use ui_proto::moosync::types::{PreferenceTypes, PreferenceUiData};
+
+use crate::{context::ReplyHandler, ext_runner::ExtensionHandlerInner, models::SanitizeCommand};
 
 static INIT: std::sync::Once = std::sync::Once::new();
 
@@ -38,7 +35,8 @@ fn init_env() {
 
 fn get_sample_wasm_path() -> PathBuf {
     if let Ok(runfiles_dir) = std::env::var("TEST_SRCDIR") {
-        let workspace_name = std::env::var("TEST_WORKSPACE").unwrap_or_else(|_| "moosync".to_string());
+        let workspace_name =
+            std::env::var("TEST_WORKSPACE").unwrap_or_else(|_| "moosync".to_string());
         PathBuf::from(runfiles_dir)
             .join(workspace_name)
             .join("core/extensions/tests/fixtures/sample_extension.wasm")
@@ -62,24 +60,17 @@ impl TempDir {
         Self { path }
     }
 
-    fn path(&self) -> &PathBuf {
-        &self.path
-    }
+    fn path(&self) -> &PathBuf { &self.path }
 }
 
 impl Drop for TempDir {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.path);
-    }
+    fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.path); }
 }
 
 struct TestReplyHandler;
 
 impl ReplyHandler for TestReplyHandler {
-    fn extensions_updated(
-        &self,
-        _package_name: &str,
-    ) -> Result<(), types::errors::MoosyncError> {
+    fn extensions_updated(&self, _package_name: &str) -> Result<(), types::errors::MoosyncError> {
         Ok(())
     }
 }
@@ -134,24 +125,18 @@ fn test_find_and_spawn_extensions() {
         "author": "Author"
     }"#;
     std::fs::write(ext_path.join("package.json"), manifest).unwrap();
-    
+
     // Copy valid sample WASM fixture to temporary directory
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
     let reply_handler = Arc::new(TestReplyHandler);
 
-    let mut handler = ExtensionHandlerInner::new(
-        extensions_path,
-        tmp_dir.path().join("cache"),
-    );
-
+    let mut handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
 
     let installed = handler.get_installed_extensions();
     assert_eq!(installed.len(), 0);
 
-
     handler.spawn_extensions(reply_handler);
-
 
     let installed = handler.get_installed_extensions();
     assert_eq!(installed.len(), 1);
@@ -178,19 +163,17 @@ async fn test_handle_extension_command() {
         "icon": "icon.png"
     }"#;
     std::fs::write(ext_path.join("package.json"), manifest).unwrap();
-    
+
     // Copy valid sample WASM fixture to temporary directory
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
-    let mut handler = ExtensionHandlerInner::new(
-        extensions_path,
-        tmp_dir.path().join("cache"),
-    );
+    let mut handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
 
     let reply_handler = Arc::new(TestReplyHandler);
     handler.spawn_extensions(reply_handler);
 
-    // Since the spawn_extension runs in a background thread, we wait/sleep a bit for it to start
+    // Since the spawn_extension runs in a background thread, we wait/sleep a bit
+    // for it to start
     std::thread::sleep(std::time::Duration::from_millis(500));
 
     let cmd = ExtensionCommand {
@@ -227,14 +210,11 @@ fn test_register_unregister_ui_preferences() {
         "icon": "icon.png"
     }"#;
     std::fs::write(ext_path.join("package.json"), manifest).unwrap();
-    
+
     // Copy valid sample WASM fixture to temporary directory
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
-    let mut handler = ExtensionHandlerInner::new(
-        extensions_path,
-        tmp_dir.path().join("cache"),
-    );
+    let mut handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
 
     let reply_handler = Arc::new(TestReplyHandler);
     handler.spawn_extensions(reply_handler);
@@ -266,8 +246,6 @@ fn test_register_unregister_ui_preferences() {
     assert_eq!(installed[0].preferences.len(), 0);
 }
 
-
-
 #[test]
 fn test_extension_failed_to_start_disables_extension() {
     init_env();
@@ -293,15 +271,14 @@ fn test_extension_failed_to_start_disables_extension() {
 
     let reply_handler = Arc::new(TestReplyHandler);
 
-    let mut handler = ExtensionHandlerInner::new(
-        extensions_path.clone(),
-        tmp_dir.path().join("cache"),
-    );
+    let mut handler =
+        ExtensionHandlerInner::new(extensions_path.clone(), tmp_dir.path().join("cache"));
 
     // Find and spawn extensions
     handler.spawn_extensions(reply_handler);
 
-    // Since the spawn_extension runs in a background thread, we wait/sleep a bit for it to run and fail
+    // Since the spawn_extension runs in a background thread, we wait/sleep a bit
+    // for it to run and fail
     std::thread::sleep(std::time::Duration::from_millis(500));
 
     // Verify that the .disabled file has been created in the extension's folder
@@ -344,11 +321,8 @@ fn test_extension_activation_deactivation() {
 
     let reply_handler = Arc::new(TestReplyHandler);
 
-    let mut handler = ExtensionHandlerInner::new(
-        extensions_path.clone(),
-        tmp_dir.path().join("cache"),
-    );
-
+    let mut handler =
+        ExtensionHandlerInner::new(extensions_path.clone(), tmp_dir.path().join("cache"));
 
     handler.spawn_extensions(reply_handler.clone());
 
@@ -360,8 +334,9 @@ fn test_extension_activation_deactivation() {
     }
     assert!(disabled_file.exists());
 
-
-    handler.set_extension_active("test_pkg", true, reply_handler.clone()).unwrap();
+    handler
+        .set_extension_active("test_pkg", true, reply_handler.clone())
+        .unwrap();
 
     {
         let extensions_map = handler.extensions_map.lock().unwrap();
@@ -371,8 +346,9 @@ fn test_extension_activation_deactivation() {
     }
     assert!(!disabled_file.exists());
 
-
-    handler.set_extension_active("test_pkg", false, reply_handler.clone()).unwrap();
+    handler
+        .set_extension_active("test_pkg", false, reply_handler.clone())
+        .unwrap();
 
     {
         let extensions_map = handler.extensions_map.lock().unwrap();

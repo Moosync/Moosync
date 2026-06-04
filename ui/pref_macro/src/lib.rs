@@ -2,8 +2,11 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, LitStr, Token, Ident};
-use syn::parse::{Parse, ParseStream};
+use syn::{
+    Ident, LitStr, Token,
+    parse::{Parse, ParseStream},
+    parse_macro_input,
+};
 
 struct MacroInput {
     yaml_path: LitStr,
@@ -55,7 +58,11 @@ fn parse_yaml(content: &str) -> Vec<Preference> {
             if let Some(p) = current_pref.take() {
                 prefs.push(p);
             }
-            let val = trimmed["- id:".len()..].trim().trim_matches('"').trim_matches('\'').to_string();
+            let val = trimmed["- id:".len()..]
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\'')
+                .to_string();
             current_pref = Some(Preference {
                 id: val,
                 component: String::new(),
@@ -74,13 +81,21 @@ fn parse_yaml(content: &str) -> Vec<Preference> {
                     p.options_radio.push(r_opt);
                 }
             }
-            let val = trimmed["- id:".len()..].trim().trim_matches('"').trim_matches('\'').to_string();
+            let val = trimmed["- id:".len()..]
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\'')
+                .to_string();
             current_radio_option = Some((val, String::new()));
             continue;
         }
 
         if indent == 8 && trimmed.starts_with("label:") {
-            let val = trimmed["label:".len()..].trim().trim_matches('"').trim_matches('\'').to_string();
+            let val = trimmed["label:".len()..]
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\'')
+                .to_string();
             if let Some(ref mut r_opt) = current_radio_option {
                 r_opt.1 = val;
             }
@@ -88,7 +103,11 @@ fn parse_yaml(content: &str) -> Vec<Preference> {
         }
 
         if indent == 6 && trimmed.starts_with("-") {
-            let val = trimmed["-".len()..].trim().trim_matches('"').trim_matches('\'').to_string();
+            let val = trimmed["-".len()..]
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\'')
+                .to_string();
             if let Some(ref mut p) = current_pref {
                 p.options_dropdown.push(val);
             }
@@ -97,7 +116,10 @@ fn parse_yaml(content: &str) -> Vec<Preference> {
 
         if let Some(colon_idx) = trimmed.find(':') {
             let key = trimmed[..colon_idx].trim();
-            let val = trimmed[colon_idx + 1..].trim().trim_matches('"').trim_matches('\'');
+            let val = trimmed[colon_idx + 1..]
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\'');
 
             if let Some(ref mut p) = current_pref {
                 if key == "component" {
@@ -142,11 +164,15 @@ pub fn generate_preferences(input: TokenStream) -> TokenStream {
         path = std::path::PathBuf::from("ui/slint").join(&yaml_path);
     }
     if !path.exists() {
-        path = std::path::PathBuf::from("ui/slint/src/settings").join(std::path::Path::new(&yaml_path).file_name().unwrap());
+        path = std::path::PathBuf::from("ui/slint/src/settings")
+            .join(std::path::Path::new(&yaml_path).file_name().unwrap());
     }
 
     if !path.exists() {
-        panic!("Could not find YAML preference file: {} (resolved path: {:?}, manifest_dir: {:?})", yaml_path, path, manifest_dir);
+        panic!(
+            "Could not find YAML preference file: {} (resolved path: {:?}, manifest_dir: {:?})",
+            yaml_path, path, manifest_dir
+        );
     }
 
     let content = std::fs::read_to_string(&path)

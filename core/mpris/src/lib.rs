@@ -14,14 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use serde::{Deserialize, Serialize};
-use std::sync::{
-    Arc, Mutex,
-    mpsc::{self, Receiver},
+use std::{
+    sync::{
+        Arc, Mutex,
+        mpsc::{self, Receiver},
+    },
+    time::Duration,
 };
-use std::time::Duration;
 
 use extensions_proto::moosync::types::PlayerState;
+use serde::{Deserialize, Serialize};
 #[cfg(target_os = "android")]
 use types::android::AndroidJNIContext;
 use types::errors::Result;
@@ -191,7 +193,9 @@ impl MprisHolder {
 }
 
 impl types::plugin::Plugin for MprisHolder {
-    fn init(context: &types::plugin::PluginContext) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+    fn init(
+        context: &types::plugin::PluginContext,
+    ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
         types::plugin::Arc::new(types::plugin::RwLock::new(
             MprisHolder::new(
                 #[cfg(target_os = "android")]

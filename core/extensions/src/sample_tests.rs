@@ -1,14 +1,16 @@
-use crate::context::ReplyHandler;
-use crate::ext_runner::ExtensionHandlerInner;
-use extensions_proto::moosync::types::{
-    ExtensionCommand, GetProviderScopesRequest, MainCommand,
-    extension_command, extension_command_response,
-    main_command,
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
 };
-use songs_proto::moosync::types::{Song, Playlist, GetSongOptions, GetEntityOptions, EntityResult};
+
+use extensions_proto::moosync::types::{
+    ExtensionCommand, GetProviderScopesRequest, MainCommand, extension_command,
+    extension_command_response, main_command,
+};
+use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use ui_proto::moosync::types::PreferenceUiData;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+
+use crate::{context::ReplyHandler, ext_runner::ExtensionHandlerInner};
 
 struct TempDir {
     path: PathBuf,
@@ -22,15 +24,11 @@ impl TempDir {
         Self { path }
     }
 
-    fn path(&self) -> &PathBuf {
-        &self.path
-    }
+    fn path(&self) -> &PathBuf { &self.path }
 }
 
 impl Drop for TempDir {
-    fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.path);
-    }
+    fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.path); }
 }
 
 struct TestReplyHandler {
@@ -46,7 +44,9 @@ impl ReplyHandler for TestReplyHandler {
         let mut cmds = self.captured_commands.lock().unwrap();
         cmds.push(MainCommand {
             command: Some(main_command::Command::GetSong(
-                extensions_proto::moosync::types::GetSongRequest { options: Some(options) },
+                extensions_proto::moosync::types::GetSongRequest {
+                    options: Some(options),
+                },
             )),
         });
         Ok(vec![])
@@ -60,7 +60,9 @@ impl ReplyHandler for TestReplyHandler {
         let mut cmds = self.captured_commands.lock().unwrap();
         cmds.push(MainCommand {
             command: Some(main_command::Command::GetEntity(
-                extensions_proto::moosync::types::GetEntityRequest { options: Some(options) },
+                extensions_proto::moosync::types::GetEntityRequest {
+                    options: Some(options),
+                },
             )),
         });
         Ok(EntityResult::default())
@@ -79,10 +81,7 @@ impl ReplyHandler for TestReplyHandler {
         Ok(None)
     }
 
-    fn get_player_state(
-        &self,
-        _package_name: &str,
-    ) -> Result<i32, types::errors::MoosyncError> {
+    fn get_player_state(&self, _package_name: &str) -> Result<i32, types::errors::MoosyncError> {
         let mut cmds = self.captured_commands.lock().unwrap();
         cmds.push(MainCommand {
             command: Some(main_command::Command::GetPlayerState(
@@ -92,10 +91,7 @@ impl ReplyHandler for TestReplyHandler {
         Ok(0)
     }
 
-    fn get_volume(
-        &self,
-        _package_name: &str,
-    ) -> Result<f64, types::errors::MoosyncError> {
+    fn get_volume(&self, _package_name: &str) -> Result<f64, types::errors::MoosyncError> {
         let mut cmds = self.captured_commands.lock().unwrap();
         cmds.push(MainCommand {
             command: Some(main_command::Command::GetVolume(
@@ -105,10 +101,7 @@ impl ReplyHandler for TestReplyHandler {
         Ok(1.0)
     }
 
-    fn get_time(
-        &self,
-        _package_name: &str,
-    ) -> Result<f64, types::errors::MoosyncError> {
+    fn get_time(&self, _package_name: &str) -> Result<f64, types::errors::MoosyncError> {
         let mut cmds = self.captured_commands.lock().unwrap();
         cmds.push(MainCommand {
             command: Some(main_command::Command::GetTime(
@@ -143,7 +136,7 @@ impl ReplyHandler for TestReplyHandler {
                     data: Some(extensions_proto::moosync::types::PreferenceData {
                         key: key.to_string(),
                         value: None,
-                    })
+                    }),
                 },
             )),
         });
@@ -163,7 +156,7 @@ impl ReplyHandler for TestReplyHandler {
                     data: Some(extensions_proto::moosync::types::PreferenceData {
                         key: key.to_string(),
                         value: Some(serde_json::from_value(value).unwrap()),
-                    })
+                    }),
                 },
             )),
         });
@@ -182,7 +175,7 @@ impl ReplyHandler for TestReplyHandler {
                     data: Some(extensions_proto::moosync::types::PreferenceData {
                         key: key.to_string(),
                         value: None,
-                    })
+                    }),
                 },
             )),
         });
@@ -202,7 +195,7 @@ impl ReplyHandler for TestReplyHandler {
                     data: Some(extensions_proto::moosync::types::PreferenceData {
                         key: key.to_string(),
                         value: Some(serde_json::from_value(value).unwrap()),
-                    })
+                    }),
                 },
             )),
         });
@@ -245,7 +238,9 @@ impl ReplyHandler for TestReplyHandler {
         let mut cmds = self.captured_commands.lock().unwrap();
         cmds.push(MainCommand {
             command: Some(main_command::Command::UpdateSong(
-                extensions_proto::moosync::types::UpdateSongRequest { song: Some(song.clone()) },
+                extensions_proto::moosync::types::UpdateSongRequest {
+                    song: Some(song.clone()),
+                },
             )),
         });
         Ok(song)
@@ -259,7 +254,9 @@ impl ReplyHandler for TestReplyHandler {
         let mut cmds = self.captured_commands.lock().unwrap();
         cmds.push(MainCommand {
             command: Some(main_command::Command::AddPlaylist(
-                extensions_proto::moosync::types::AddPlaylistRequest { playlist: Some(playlist) },
+                extensions_proto::moosync::types::AddPlaylistRequest {
+                    playlist: Some(playlist),
+                },
             )),
         });
         Ok("test".to_string())
@@ -350,10 +347,7 @@ impl ReplyHandler for TestReplyHandler {
         Ok(true)
     }
 
-    fn extensions_updated(
-        &self,
-        _package_name: &str,
-    ) -> Result<(), types::errors::MoosyncError> {
+    fn extensions_updated(&self, _package_name: &str) -> Result<(), types::errors::MoosyncError> {
         let mut cmds = self.captured_commands.lock().unwrap();
         cmds.push(MainCommand {
             command: Some(main_command::Command::ExtensionsUpdated(
@@ -363,10 +357,7 @@ impl ReplyHandler for TestReplyHandler {
         Ok(())
     }
 
-    fn get_app_version(
-        &self,
-        _package_name: &str,
-    ) -> Result<String, types::errors::MoosyncError> {
+    fn get_app_version(&self, _package_name: &str) -> Result<String, types::errors::MoosyncError> {
         let mut cmds = self.captured_commands.lock().unwrap();
         cmds.push(MainCommand {
             command: Some(main_command::Command::GetAppVersion(
@@ -405,10 +396,7 @@ async fn setup_extension() -> (ExtensionHandlerInner, Arc<Mutex<Vec<MainCommand>
         captured_commands: captured_commands.clone(),
     });
 
-    let mut handler = ExtensionHandlerInner::new(
-        extensions_path.clone(),
-        cache_path,
-    );
+    let mut handler = ExtensionHandlerInner::new(extensions_path.clone(), cache_path);
 
     handler.spawn_extensions(reply_handler);
 
@@ -420,14 +408,8 @@ async fn setup_extension() -> (ExtensionHandlerInner, Arc<Mutex<Vec<MainCommand>
             extensions_path
         );
     }
-    if !list
-        .iter()
-        .any(|e| e.package_name == "sample.pkg")
-    {
-        panic!(
-            "Setup failed: sample.pkg not found in {:?}",
-            list
-        );
+    if !list.iter().any(|e| e.package_name == "sample.pkg") {
+        panic!("Setup failed: sample.pkg not found in {:?}", list);
     }
 
     // Wait for ExtensionsUpdated command to settle

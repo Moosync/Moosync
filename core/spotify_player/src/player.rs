@@ -17,26 +17,30 @@
 use std::sync::Arc;
 
 use futures_util::StreamExt;
-
-use librespot::core::SpotifyUri;
-use librespot::core::cache::Cache;
-use librespot::core::{authentication::Credentials, config::SessionConfig, session::Session};
-use librespot::discovery::DeviceType;
-
-use librespot::playback::config::{PlayerConfig, VolumeCtrl};
-use librespot::playback::mixer::{Mixer, MixerConfig};
-use librespot::playback::player::Player;
-use librespot::playback::{audio_backend, mixer};
+use librespot::{
+    core::{
+        SpotifyUri, authentication::Credentials, cache::Cache, config::SessionConfig,
+        session::Session,
+    },
+    discovery::DeviceType,
+    playback::{
+        audio_backend,
+        config::{PlayerConfig, VolumeCtrl},
+        mixer,
+        mixer::{Mixer, MixerConfig},
+        player::Player,
+    },
+};
 use protobuf::Message;
 use regex::Regex;
 use reqwest::header::{CONTENT_LENGTH, CONTENT_TYPE};
-
-use types::canvaz::{Canvaz, CanvazArtist, CanvazResponse, Type};
-use types::errors::{Result, error_helpers};
+use types::{
+    canvaz::{Canvaz, CanvazArtist, CanvazResponse, Type},
+    errors::{Result, error_helpers},
+};
 use url::Url;
 
-use crate::canvaz::entity_canvaz_request::Entity;
-use crate::canvaz::{EntityCanvazRequest, EntityCanvazResponse};
+use crate::canvaz::{EntityCanvazRequest, EntityCanvazResponse, entity_canvaz_request::Entity};
 
 #[tracing::instrument(
     level = "trace",

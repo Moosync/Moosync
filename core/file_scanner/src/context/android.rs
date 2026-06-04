@@ -16,8 +16,9 @@
 
 use std::path::PathBuf;
 
-use crate::{OnPlaylistScanned, OnProgressUpdated, OnSongScanned};
 use types::errors::Result;
+
+use crate::{OnPlaylistScanned, OnProgressUpdated, OnSongScanned};
 
 pub struct AndroidScannerContext {
     #[allow(dead_code)]

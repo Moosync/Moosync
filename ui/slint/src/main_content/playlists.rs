@@ -1,13 +1,12 @@
+use std::sync::{Arc, Mutex};
+
 use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{GetEntityOptions, Playlist, PlaylistList, entity_result};
 use state_manager::StateManager;
-use std::sync::{Arc, Mutex};
 use tracing::debug;
-use types::ScanProgress;
-use types::errors::MoosyncError;
+use types::{ScanProgress, errors::MoosyncError};
 
-use crate::utils::LazySongVecModel;
-use crate::{MainWindow, Pages, pages::PageHandler};
+use crate::{MainWindow, Pages, pages::PageHandler, utils::LazySongVecModel};
 
 pub struct PlaylistsPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -92,7 +91,11 @@ async fn fetch_and_cache_playlists(
     }
 }
 
-fn set_all_playlists(main_window: &MainWindow, playlists: Vec<Playlist>, cache_dir: std::path::PathBuf) {
+fn set_all_playlists(
+    main_window: &MainWindow,
+    playlists: Vec<Playlist>,
+    cache_dir: std::path::PathBuf,
+) {
     debug!("Setting playlists");
     let playlist_model = playlists
         .into_iter()
@@ -124,7 +127,5 @@ impl<'a> PageHandler for PlaylistsPageHandler<'a> {
         set_all_playlists(self.main_window, playlists, cache_dir);
     }
 
-    fn on_hide(&self) {
-        self.main_window.set_playlists(ModelRc::default());
-    }
+    fn on_hide(&self) { self.main_window.set_playlists(ModelRc::default()); }
 }

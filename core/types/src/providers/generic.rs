@@ -69,7 +69,5 @@ impl Pagination {
         }
     }
 
-    pub fn invalidate(&mut self) {
-        self.is_valid = false;
-    }
+    pub fn invalidate(&mut self) { self.is_valid = false; }
 }

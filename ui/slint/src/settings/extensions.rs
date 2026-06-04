@@ -1,7 +1,7 @@
-use crate::MainWindow;
-use crate::pages::PageHandler;
 use slint::{ComponentHandle, Model, ModelRc};
 use state_manager::StateManager;
+
+use crate::{MainWindow, pages::PageHandler};
 
 pub struct ExtensionsPageHandler<'a> {
     main_window: &'a MainWindow,

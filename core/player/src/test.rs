@@ -1,8 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use crate::{PlayerHandler, RepeatMode};
-    use songs_proto::moosync::types::{InnerSong, Song};
     use std::sync::{Arc, Mutex};
+
+    use songs_proto::moosync::types::{InnerSong, Song};
+
+    use crate::{PlayerHandler, RepeatMode};
 
     fn create_mock_song(id: &str, title: &str) -> Song {
         Song {

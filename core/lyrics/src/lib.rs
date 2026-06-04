@@ -15,9 +15,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use regex::Regex;
-use spotify_player::LibrespotHolder;
-
 use serde_json::Value;
+use spotify_player::LibrespotHolder;
 use types::errors::{Result, error_helpers};
 
 #[cfg(test)]
@@ -28,17 +27,13 @@ pub struct LyricsFetcher {}
 
 impl Default for LyricsFetcher {
     #[tracing::instrument(level = "debug", skip())]
-    fn default() -> Self {
-        Self::new()
-    }
+    fn default() -> Self { Self::new() }
 }
 
 #[plugin_macro::generate]
 impl LyricsFetcher {
     #[tracing::instrument(level = "debug", skip())]
-    pub fn new() -> LyricsFetcher {
-        LyricsFetcher {}
-    }
+    pub fn new() -> LyricsFetcher { LyricsFetcher {} }
 
     #[tracing::instrument(level = "debug", skip(self, title))]
     fn sanitize_title(&self, title: &str) -> String {
@@ -268,7 +263,9 @@ impl LyricsFetcher {
 pub fn main() {}
 
 impl types::plugin::Plugin for LyricsFetcher {
-    fn init(_context: &types::plugin::PluginContext) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+    fn init(
+        _context: &types::plugin::PluginContext,
+    ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
         types::plugin::Arc::new(types::plugin::RwLock::new(LyricsFetcher::new()))
     }
 }

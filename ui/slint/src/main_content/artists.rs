@@ -1,13 +1,12 @@
+use std::sync::{Arc, Mutex};
+
 use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{Artist, ArtistList, GetEntityOptions, entity_result};
 use state_manager::StateManager;
-use std::sync::{Arc, Mutex};
 use tracing::debug;
-use types::ScanProgress;
-use types::errors::MoosyncError;
+use types::{ScanProgress, errors::MoosyncError};
 
-use crate::utils::LazySongVecModel;
-use crate::{MainWindow, Pages, pages::PageHandler};
+use crate::{MainWindow, Pages, pages::PageHandler, utils::LazySongVecModel};
 
 pub struct ArtistsPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -97,7 +96,12 @@ fn set_all_artists(main_window: &MainWindow, artists: Vec<Artist>, cache_dir: st
         .map(|artist| crate::utils::to_artist_model(&artist))
         .collect::<Vec<_>>();
 
-    main_window.set_artists(ModelRc::new(LazySongVecModel::new(artist_model, 230, 200, cache_dir)));
+    main_window.set_artists(ModelRc::new(LazySongVecModel::new(
+        artist_model,
+        230,
+        200,
+        cache_dir,
+    )));
 }
 
 impl<'a> PageHandler for ArtistsPageHandler<'a> {
@@ -117,7 +121,5 @@ impl<'a> PageHandler for ArtistsPageHandler<'a> {
         set_all_artists(self.main_window, artists, cache_dir);
     }
 
-    fn on_hide(&self) {
-        self.main_window.set_artists(ModelRc::default());
-    }
+    fn on_hide(&self) { self.main_window.set_artists(ModelRc::default()); }
 }

@@ -32,27 +32,27 @@ export component SystemPage inherits VerticalLayout {
         VerticalLayout {
             spacing: Theme.spacingLg;
             padding-right: Theme.paddingLg;
-            
-            for item in AppPreferences.system_items : PreferenceGroup {
-                if item.kind == "PathSelector" : PathSelector {
+
+            for item in AppPreferences.system_items: PreferenceGroup {
+                if item.kind == "PathSelector": PathSelector {
                     preference: item;
                 }
-                if item.kind == "SingleFileInput" : SingleFileInput {
+                if item.kind == "SingleFileInput": SingleFileInput {
                     preference: item;
                 }
-                if item.kind == "NumberInputGroup" : NumberInputGroup {
+                if item.kind == "NumberInputGroup": NumberInputGroup {
                     preference: item;
                 }
-                if item.kind == "TextInputGroup" : TextInputGroup {
+                if item.kind == "TextInputGroup": TextInputGroup {
                     preference: item;
                 }
-                if item.kind == "ToggleGroup" : ToggleGroup {
+                if item.kind == "ToggleGroup": ToggleGroup {
                     preference: item;
                 }
-                if item.kind == "RadioGroup" : RadioGroup {
+                if item.kind == "RadioGroup": RadioGroup {
                     preference: item;
                 }
-                if item.kind == "DropdownGroup" : DropdownGroup {
+                if item.kind == "DropdownGroup": DropdownGroup {
                     preference: item;
                 }
             }

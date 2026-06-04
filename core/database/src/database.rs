@@ -14,32 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::cmp::min;
-use std::fmt::Write;
-use std::fs;
-use std::{path::PathBuf, vec};
+use std::{cmp::min, fmt::Write, fs, path::PathBuf, sync::Arc, vec};
 
+use songs_proto::moosync::types::{
+    Album, AlbumList, AllAnalytics, Artist, ArtistList, EntityResult, Genre, GenreList,
+    GetEntityOptions, GetSongOptions, InnerSong, Playlist, PlaylistList, SearchResult,
+    SearchableSong, Song, all_analytics::SongListenTime,
+};
 use tracing::{debug, info, trace, warn};
+use types::{
+    errors::{Result, error_helpers},
+    prelude::SongsExt,
+};
 use uuid::Uuid;
 
-use songs_proto::moosync::types::SearchResult;
-use songs_proto::moosync::types::{
-    Album, AlbumList, Artist, ArtistList, EntityResult, Genre, GenreList, GetEntityOptions,
-    Playlist, PlaylistList,
-};
-use songs_proto::moosync::types::{AllAnalytics, SearchableSong};
-use songs_proto::moosync::types::{GetSongOptions, InnerSong, Song, all_analytics::SongListenTime};
-use types::errors::{Result, error_helpers};
-use types::prelude::SongsExt;
-
+use super::migrations::run_migrations;
 use crate::utils::{
     SearchByTerm, map_row_to_album, map_row_to_artist, map_row_to_genre, map_row_to_inner_song,
     map_row_to_playlist, proto_to_db_ms, song_type_to_str,
 };
-
-use super::migrations::run_migrations;
-
-use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct Database {

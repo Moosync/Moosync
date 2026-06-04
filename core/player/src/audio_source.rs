@@ -50,13 +50,9 @@ impl AudioSource {
         }
     }
 
-    pub fn set_resolver(&self, f: SourceResolverFn) {
-        self.source_resolver.set_resolver(f);
-    }
+    pub fn set_resolver(&self, f: SourceResolverFn) { self.source_resolver.set_resolver(f); }
 
-    pub fn set_src(&mut self, song: Song) -> Result<(), PlayerError> {
-        self.load_song(song)
-    }
+    pub fn set_src(&mut self, song: Song) -> Result<(), PlayerError> { self.load_song(song) }
 
     pub fn load_song(&mut self, mut song: Song) -> Result<(), PlayerError> {
         let res = self.mux.load(&song);
@@ -76,35 +72,21 @@ impl AudioSource {
         Ok(())
     }
 
-    pub fn play(&self) -> Result<(), PlayerError> {
-        self.mux.play()
-    }
+    pub fn play(&self) -> Result<(), PlayerError> { self.mux.play() }
 
-    pub fn pause(&self) -> Result<(), PlayerError> {
-        self.mux.pause()
-    }
+    pub fn pause(&self) -> Result<(), PlayerError> { self.mux.pause() }
 
-    pub fn stop(&self) -> Result<(), PlayerError> {
-        self.mux.stop()
-    }
+    pub fn stop(&self) -> Result<(), PlayerError> { self.mux.stop() }
 
-    pub fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
-        self.mux.set_volume(volume)
-    }
+    pub fn set_volume(&self, volume: u8) -> Result<(), PlayerError> { self.mux.set_volume(volume) }
 
-    pub fn seek(&self, position: Duration) -> Result<(), PlayerError> {
-        self.mux.seek(position)
-    }
+    pub fn seek(&self, position: Duration) -> Result<(), PlayerError> { self.mux.seek(position) }
 
-    pub fn get_current_pos(&self) -> Result<Duration, PlayerError> {
-        self.mux.get_current_pos()
-    }
+    pub fn get_current_pos(&self) -> Result<Duration, PlayerError> { self.mux.get_current_pos() }
 
     pub fn get_player_state(&self) -> extensions_proto::moosync::types::PlayerState {
         self.mux.get_player_state()
     }
 
-    pub fn get_volume(&self) -> u8 {
-        self.mux.get_volume()
-    }
+    pub fn get_volume(&self) -> u8 { self.mux.get_volume() }
 }

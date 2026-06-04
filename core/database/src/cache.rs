@@ -21,7 +21,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use tracing::debug;
-use types::errors::{error_helpers, Result};
+use types::errors::{Result, error_helpers};
 
 use super::migrations::run_migration_cache;
 
@@ -51,18 +51,17 @@ impl CacheHolder {
 
     #[tracing::instrument(level = "debug", skip(path))]
     fn connect(path: PathBuf) -> r2d2::Pool<r2d2_sqlite::SqliteConnectionManager> {
-        let manager = r2d2_sqlite::SqliteConnectionManager::file(path)
-            .with_init(|conn| {
-                conn.trace_v2(
-                    rusqlite::trace::TraceEventCodes::SQLITE_TRACE_STMT,
-                    Some(|event| {
-                        if let rusqlite::trace::TraceEvent::Stmt(_, sql) = event {
-                            tracing::trace!("Executing SQL: {}", sql);
-                        }
-                    }),
-                );
-                Ok(())
-            });
+        let manager = r2d2_sqlite::SqliteConnectionManager::file(path).with_init(|conn| {
+            conn.trace_v2(
+                rusqlite::trace::TraceEventCodes::SQLITE_TRACE_STMT,
+                Some(|event| {
+                    if let rusqlite::trace::TraceEvent::Stmt(_, sql) = event {
+                        tracing::trace!("Executing SQL: {}", sql);
+                    }
+                }),
+            );
+            Ok(())
+        });
 
         r2d2::Pool::builder()
             .build(manager)
@@ -100,13 +99,14 @@ impl CacheHolder {
     {
         let conn = self.pool.get().unwrap();
 
-        let (blob, expires): (Vec<u8>, i64) = conn.query_row(
-            "SELECT blob, expires FROM cache WHERE url = ?1",
-            [_url],
-            |row| Ok((row.get(0)?, row.get(1)?)),
-        )
-        .map_err(error_helpers::to_database_error)?;
-        
+        let (blob, expires): (Vec<u8>, i64) = conn
+            .query_row(
+                "SELECT blob, expires FROM cache WHERE url = ?1",
+                [_url],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .map_err(error_helpers::to_database_error)?;
+
         let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
 
         let expires_dur = Duration::from_secs(expires as u64);

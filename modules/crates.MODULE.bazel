@@ -397,6 +397,22 @@ crates.spec(
     package = "slint-build",
 )
 crates.spec(
+    branch = "master",
+    default_features = False,
+    git = "https://github.com/slint-ui/slint",
+    package = "slint-lsp",
+)
+crates.annotation(
+    crate = "slint-lsp",
+    compile_data_glob = [
+        "ui/**/*",
+    ],
+    build_script_data_glob = [
+        "ui/**/*",
+    ],
+    gen_binaries = ["slint-lsp"],
+)
+crates.spec(
     features = ["xdg-portal"],
     package = "rfd",
     version = "0.17.2",

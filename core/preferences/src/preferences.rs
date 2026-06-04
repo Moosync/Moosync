@@ -19,27 +19,23 @@ use std::{
     fs::{self, File},
     io::{Read, Write},
     path::PathBuf,
+    sync::Mutex,
     thread,
 };
-
-use std::sync::Mutex;
-
-use crossbeam_channel::{Receiver, Sender, bounded};
 
 use chacha20poly1305::{
     AeadCore, ChaCha20Poly1305, Key, KeyInit, KeySizeUser,
     aead::{Aead, OsRng, generic_array::GenericArray},
 };
+use crossbeam_channel::{Receiver, Sender, bounded};
 use json_dotpath::DotPaths;
-
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
-use whoami;
-
 use types::errors::{
     MoosyncError, Result,
     error_helpers::{self, to_file_system_error},
 };
+use whoami;
 
 use crate::context::{Keyring, KeyringContext};
 
@@ -297,9 +293,7 @@ impl PreferenceConfig {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn get_receiver(&self) -> Receiver<(String, Value)> {
-        self.receiver.clone()
-    }
+    pub fn get_receiver(&self) -> Receiver<(String, Value)> { self.receiver.clone() }
 
     #[tracing::instrument(level = "debug", skip(self, key))]
     pub fn has_key(&self, key: &str) -> bool {
@@ -310,7 +304,9 @@ impl PreferenceConfig {
 }
 
 impl types::plugin::Plugin for PreferenceConfig {
-    fn init(context: &types::plugin::PluginContext) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+    fn init(
+        context: &types::plugin::PluginContext,
+    ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
         types::plugin::Arc::new(types::plugin::RwLock::new(
             PreferenceConfig::new(context.data_dir.clone())
                 .expect("Failed to initialize PreferenceConfig"),

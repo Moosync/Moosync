@@ -1,4 +1,5 @@
 use std::fs;
+
 use quote::quote;
 
 #[derive(Debug)]
@@ -34,7 +35,11 @@ fn parse_yaml(content: &str) -> Vec<Preference> {
             if let Some(p) = current_pref.take() {
                 prefs.push(p);
             }
-            let val = trimmed["- id:".len()..].trim().trim_matches('"').trim_matches('\'').to_string();
+            let val = trimmed["- id:".len()..]
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\'')
+                .to_string();
             current_pref = Some(Preference {
                 id: val,
                 component: String::new(),
@@ -53,13 +58,21 @@ fn parse_yaml(content: &str) -> Vec<Preference> {
                     p.options_radio.push(r_opt);
                 }
             }
-            let val = trimmed["- id:".len()..].trim().trim_matches('"').trim_matches('\'').to_string();
+            let val = trimmed["- id:".len()..]
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\'')
+                .to_string();
             current_radio_option = Some((val, String::new()));
             continue;
         }
 
         if indent == 8 && trimmed.starts_with("label:") {
-            let val = trimmed["label:".len()..].trim().trim_matches('"').trim_matches('\'').to_string();
+            let val = trimmed["label:".len()..]
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\'')
+                .to_string();
             if let Some(ref mut r_opt) = current_radio_option {
                 r_opt.1 = val;
             }
@@ -67,7 +80,11 @@ fn parse_yaml(content: &str) -> Vec<Preference> {
         }
 
         if indent == 6 && trimmed.starts_with("-") {
-            let val = trimmed["-".len()..].trim().trim_matches('"').trim_matches('\'').to_string();
+            let val = trimmed["-".len()..]
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\'')
+                .to_string();
             if let Some(ref mut p) = current_pref {
                 p.options_dropdown.push(val);
             }
@@ -76,7 +93,10 @@ fn parse_yaml(content: &str) -> Vec<Preference> {
 
         if let Some(colon_idx) = trimmed.find(':') {
             let key = trimmed[..colon_idx].trim();
-            let val = trimmed[colon_idx + 1..].trim().trim_matches('"').trim_matches('\'');
+            let val = trimmed[colon_idx + 1..]
+                .trim()
+                .trim_matches('"')
+                .trim_matches('\'');
 
             if let Some(ref mut p) = current_pref {
                 if key == "component" {
@@ -375,5 +395,7 @@ fn main() {
     let system_expanded_path = scratch_dir.join("system_items_expanded.rs");
     fs::write(&system_expanded_path, system_expanded).unwrap();
 
-    println!("Expanded code successfully written to scratch/paths_items_expanded.rs and scratch/system_items_expanded.rs");
+    println!(
+        "Expanded code successfully written to scratch/paths_items_expanded.rs and scratch/system_items_expanded.rs"
+    );
 }

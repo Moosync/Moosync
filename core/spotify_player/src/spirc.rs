@@ -35,13 +35,12 @@ use librespot::{
 };
 use serde::{Deserialize, Serialize};
 use tokio::{runtime::Builder, sync::Mutex as AsyncMutex};
-
-use crate::player::{create_session, get_canvas, get_lyrics, new_player};
-use types::errors::error_helpers;
 use types::{
     canvaz::CanvazResponse,
-    errors::{MoosyncError, Result},
+    errors::{MoosyncError, Result, error_helpers},
 };
+
+use crate::player::{create_session, get_canvas, get_lyrics, new_player};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ParsedToken {
@@ -419,7 +418,5 @@ impl SpircWrapper {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn get_device_id(&self) -> Arc<AsyncMutex<Option<String>>> {
-        self.device_id.clone()
-    }
+    pub fn get_device_id(&self) -> Arc<AsyncMutex<Option<String>>> { self.device_id.clone() }
 }

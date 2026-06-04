@@ -7,12 +7,12 @@
 // (at your option) any later version.
 //
 
-use crate::MainWindow;
-use crate::pages::PageHandler;
 use slint::ComponentHandle;
 use state_manager::StateManager;
 use themes_proto::moosync::types::ThemeDetails;
 use types::prelude::{ThemeExt, ThemeItemExt};
+
+use crate::{MainWindow, pages::PageHandler};
 
 theme_macro::generate_theme_ui_helpers!("ui/slint/src/constants.slint");
 

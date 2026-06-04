@@ -3,7 +3,7 @@ import { SidebarButton } from "sidebar_button.slint";
 import { Pages, Theme } from "../constants.slint";
 import { WindowInfo } from "../window_info.slint";
 
-export struct SidebarItem { text: string, icon: image, page: Pages}
+export struct SidebarItem { text: string, icon: image, page: Pages }
 
 export component Sidebar inherits Rectangle {
     in-out property <Pages> activePage;

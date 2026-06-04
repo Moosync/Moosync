@@ -1,4 +1,9 @@
-import { Theme, RgbaColor, ThemeConfig, ThemeConstant } from "../constants.slint";
+import {
+    Theme,
+    RgbaColor,
+    ThemeConfig,
+    ThemeConstant,
+} from "../constants.slint";
 import { PreferenceGroup } from "preference_group.slint";
 import { TextInputGroup } from "text_input.slint";
 import { ScrollView, Slider } from "std-widgets.slint";
@@ -14,7 +19,7 @@ component FullColorPicker inherits VerticalLayout {
     spacing: Theme.spacingLg;
 
     // Helper functions for RGB <-> HSV conversion
-    pure function rgb_to_hsv(r: float, g: float, b: float) -> { h: float, s: float, v: float} {
+    pure function rgb_to_hsv(r: float, g: float, b: float) -> { h: float, s: float, v: float } {
         let r_n = r / 255.0;
         let g_n = g / 255.0;
         let b_n = b / 255.0;

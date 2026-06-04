@@ -17,7 +17,8 @@ pub(crate) struct MuxPlayer {
 }
 
 // Common holder for all players
-// Decides which player to use for a given song and abstracts calls on the active player
+// Decides which player to use for a given song and abstracts calls on the
+// active player
 impl MuxPlayer {
     pub fn new(events_tx: UnboundedSender<PlayerEvent>) -> Self {
         let players: Vec<Arc<Box<dyn PlayerExt>>> = vec![
@@ -32,12 +33,12 @@ impl MuxPlayer {
     }
 
     pub fn get_player_state(&self) -> extensions_proto::moosync::types::PlayerState {
-        self.active_player.get_player_state().unwrap_or(extensions_proto::moosync::types::PlayerState::Stopped)
+        self.active_player
+            .get_player_state()
+            .unwrap_or(extensions_proto::moosync::types::PlayerState::Stopped)
     }
 
-    pub fn get_volume(&self) -> u8 {
-        self.active_player.get_volume().unwrap_or(100)
-    }
+    pub fn get_volume(&self) -> u8 { self.active_player.get_volume().unwrap_or(100) }
 
     fn set_active_player(&mut self, player: Arc<Box<dyn PlayerExt>>) {
         self.active_player = player;
@@ -66,17 +67,11 @@ impl MuxPlayer {
 }
 
 impl PlayerExt for MuxPlayer {
-    fn play(&self) -> Result<(), PlayerError> {
-        self.active_player.play()
-    }
+    fn play(&self) -> Result<(), PlayerError> { self.active_player.play() }
 
-    fn pause(&self) -> Result<(), PlayerError> {
-        self.active_player.pause()
-    }
+    fn pause(&self) -> Result<(), PlayerError> { self.active_player.pause() }
 
-    fn stop(&self) -> Result<(), PlayerError> {
-        self.active_player.stop()
-    }
+    fn stop(&self) -> Result<(), PlayerError> { self.active_player.stop() }
 
     fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
         self.active_player.set_volume(volume)
@@ -86,9 +81,7 @@ impl PlayerExt for MuxPlayer {
         self.active_player.seek(position)
     }
 
-    fn set_src(&self, src: ValidSrc) -> Result<(), PlayerError> {
-        self.active_player.set_src(src)
-    }
+    fn set_src(&self, src: ValidSrc) -> Result<(), PlayerError> { self.active_player.set_src(src) }
 
     // WARN: Do not call can_play on the mux player, it will always return false
     // can_play should only be called on the individual players
@@ -101,11 +94,11 @@ impl PlayerExt for MuxPlayer {
         self.active_player.get_current_pos()
     }
 
-    fn get_volume(&self) -> Result<u8, PlayerError> {
-        self.active_player.get_volume()
-    }
+    fn get_volume(&self) -> Result<u8, PlayerError> { self.active_player.get_volume() }
 
-    fn get_player_state(&self) -> Result<extensions_proto::moosync::types::PlayerState, PlayerError> {
+    fn get_player_state(
+        &self,
+    ) -> Result<extensions_proto::moosync::types::PlayerState, PlayerError> {
         self.active_player.get_player_state()
     }
 }

@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::rodio::FFMPEGDecoder;
 
     const CAPTURE_DURATION_SECS: u64 = 5;

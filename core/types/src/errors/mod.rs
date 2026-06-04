@@ -67,51 +67,37 @@ pub enum MoosyncError {
 
 impl From<&'static str> for MoosyncError {
     #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: &'static str) -> Self {
-        Self::String(value.to_string())
-    }
+    fn from(value: &'static str) -> Self { Self::String(value.to_string()) }
 }
 
 impl From<String> for MoosyncError {
     #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: String) -> Self {
-        Self::String(value)
-    }
+    fn from(value: String) -> Self { Self::String(value) }
 }
 
 impl From<FmtError> for MoosyncError {
     #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: FmtError) -> Self {
-        Self::String(value.to_string())
-    }
+    fn from(value: FmtError) -> Self { Self::String(value.to_string()) }
 }
 
 impl From<ParseFloatError> for MoosyncError {
     #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: ParseFloatError) -> Self {
-        Self::ParseError(Box::new(value))
-    }
+    fn from(value: ParseFloatError) -> Self { Self::ParseError(Box::new(value)) }
 }
 
 impl From<ParseIntError> for MoosyncError {
     #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: ParseIntError) -> Self {
-        Self::ParseError(Box::new(value))
-    }
+    fn from(value: ParseIntError) -> Self { Self::ParseError(Box::new(value)) }
 }
 
 impl From<FromUtf8Error> for MoosyncError {
     #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: FromUtf8Error) -> Self {
-        Self::ParseError(Box::new(value))
-    }
+    fn from(value: FromUtf8Error) -> Self { Self::ParseError(Box::new(value)) }
 }
 
 impl From<SystemTimeError> for MoosyncError {
     #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: SystemTimeError) -> Self {
-        Self::FileSystemError(Box::new(value))
-    }
+    fn from(value: SystemTimeError) -> Self { Self::FileSystemError(Box::new(value)) }
 }
 
 impl serde::Serialize for MoosyncError {

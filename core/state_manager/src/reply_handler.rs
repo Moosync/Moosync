@@ -1,9 +1,10 @@
-use crate::StateManager;
 use extensions::ReplyHandler;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use tokio::runtime::Handle;
 use types::prelude::SongsExt;
 use ui_proto::moosync::types::PreferenceUiData;
+
+use crate::StateManager;
 
 pub struct StateReplyHandler {
     state_manager: StateManager,
@@ -45,25 +46,33 @@ impl ReplyHandler for StateReplyHandler {
         &self,
         _package_name: &str,
     ) -> Result<Option<Song>, types::errors::MoosyncError> {
-        let player = self.runtime.block_on(self.state_manager.get_player_handler());
+        let player = self
+            .runtime
+            .block_on(self.state_manager.get_player_handler());
         let song = player.get_current_song().cloned();
         Ok(song)
     }
 
     fn get_player_state(&self, _package_name: &str) -> Result<i32, types::errors::MoosyncError> {
-        let player = self.runtime.block_on(self.state_manager.get_player_handler());
+        let player = self
+            .runtime
+            .block_on(self.state_manager.get_player_handler());
         let state = player.get_player_state();
         Ok(state)
     }
 
     fn get_volume(&self, _package_name: &str) -> Result<f64, types::errors::MoosyncError> {
-        let player = self.runtime.block_on(self.state_manager.get_player_handler());
+        let player = self
+            .runtime
+            .block_on(self.state_manager.get_player_handler());
         let volume = player.get_volume() as f64;
         Ok(volume)
     }
 
     fn get_time(&self, _package_name: &str) -> Result<f64, types::errors::MoosyncError> {
-        let player = self.runtime.block_on(self.state_manager.get_player_handler());
+        let player = self
+            .runtime
+            .block_on(self.state_manager.get_player_handler());
         let pos = player
             .get_current_pos()
             .unwrap_or(std::time::Duration::ZERO);
@@ -74,7 +83,9 @@ impl ReplyHandler for StateReplyHandler {
         &self,
         _package_name: &str,
     ) -> Result<(Vec<Song>, usize), types::errors::MoosyncError> {
-        let player = self.runtime.block_on(self.state_manager.get_player_handler());
+        let player = self
+            .runtime
+            .block_on(self.state_manager.get_player_handler());
         Ok((player.get_queue().to_vec(), player.get_current_idx()))
     }
 
@@ -83,7 +94,9 @@ impl ReplyHandler for StateReplyHandler {
         package_name: &str,
         key: &str,
     ) -> Result<Option<serde_json::Value>, types::errors::MoosyncError> {
-        let prefs = self.runtime.block_on(self.state_manager.get_preference_config());
+        let prefs = self
+            .runtime
+            .block_on(self.state_manager.get_preference_config());
         let scoped_key = format!("{}.{}", package_name, key);
         let val: serde_json::Value = prefs
             .load_selective(scoped_key)
@@ -101,7 +114,9 @@ impl ReplyHandler for StateReplyHandler {
         key: &str,
         value: serde_json::Value,
     ) -> Result<bool, types::errors::MoosyncError> {
-        let prefs = self.runtime.block_on(self.state_manager.get_preference_config());
+        let prefs = self
+            .runtime
+            .block_on(self.state_manager.get_preference_config());
         let scoped_key = format!("{}.{}", package_name, key);
         prefs.save_selective(scoped_key, Some(value))?;
         Ok(true)
@@ -112,7 +127,9 @@ impl ReplyHandler for StateReplyHandler {
         package_name: &str,
         key: &str,
     ) -> Result<Option<serde_json::Value>, types::errors::MoosyncError> {
-        let prefs = self.runtime.block_on(self.state_manager.get_preference_config());
+        let prefs = self
+            .runtime
+            .block_on(self.state_manager.get_preference_config());
         let scoped_key = format!("{}.{}", package_name, key);
         let val: serde_json::Value = prefs
             .get_secure(scoped_key)
@@ -130,7 +147,9 @@ impl ReplyHandler for StateReplyHandler {
         key: &str,
         value: serde_json::Value,
     ) -> Result<bool, types::errors::MoosyncError> {
-        let prefs = self.runtime.block_on(self.state_manager.get_preference_config());
+        let prefs = self
+            .runtime
+            .block_on(self.state_manager.get_preference_config());
         let scoped_key = format!("{}.{}", package_name, key);
         prefs.set_secure(scoped_key, Some(value))?;
         Ok(true)
@@ -230,7 +249,9 @@ impl ReplyHandler for StateReplyHandler {
         package_name: &str,
         prefs: Vec<PreferenceUiData>,
     ) -> Result<bool, types::errors::MoosyncError> {
-        let extensions = self.runtime.block_on(self.state_manager.get_extension_handler());
+        let extensions = self
+            .runtime
+            .block_on(self.state_manager.get_extension_handler());
         extensions.register_ui_preferences(package_name.to_string(), prefs)?;
         Ok(true)
     }
@@ -240,7 +261,9 @@ impl ReplyHandler for StateReplyHandler {
         package_name: &str,
         keys: Vec<String>,
     ) -> Result<bool, types::errors::MoosyncError> {
-        let extensions = self.runtime.block_on(self.state_manager.get_extension_handler());
+        let extensions = self
+            .runtime
+            .block_on(self.state_manager.get_extension_handler());
         extensions.unregister_ui_preferences(package_name.to_string(), keys)?;
         Ok(true)
     }

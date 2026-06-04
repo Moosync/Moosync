@@ -19,24 +19,28 @@ mod player;
 pub mod spirc;
 pub mod utils;
 
-use std::fmt::Debug;
-use std::sync::{Arc, Mutex, mpsc};
+use std::{
+    fmt::Debug,
+    sync::{Arc, Mutex, mpsc},
+};
 
 use futures::executor::block_on;
-pub use librespot::connect::ConnectConfig;
-pub use librespot::core::authentication::Credentials;
-pub use librespot::core::cache::Cache;
-pub use librespot::core::config::DeviceType;
-pub use librespot::playback::player::PlayerEvent;
-
-pub use librespot::playback::config::PlayerConfig;
-pub use librespot::playback::config::{
-    AudioFormat, Bitrate, NormalisationMethod, NormalisationType, VolumeCtrl,
+pub use librespot::{
+    connect::ConnectConfig,
+    core::{authentication::Credentials, cache::Cache, config::DeviceType},
+    playback::{
+        config::{
+            AudioFormat, Bitrate, NormalisationMethod, NormalisationType, PlayerConfig, VolumeCtrl,
+        },
+        player::PlayerEvent,
+    },
+    protocol::authentication::AuthenticationType,
 };
-pub use librespot::protocol::authentication::AuthenticationType;
 use spirc::{ParsedToken, SpircWrapper};
-use types::canvaz::CanvazResponse;
-use types::errors::{MoosyncError, Result};
+use types::{
+    canvaz::CanvazResponse,
+    errors::{MoosyncError, Result},
+};
 
 #[cfg(test)]
 mod tests;
@@ -213,9 +217,7 @@ impl LibrespotHolder {
         Ok(())
     }
 
-    pub fn is_initialized(&self) -> Result<bool> {
-        Ok(self.check_initialized().is_ok())
-    }
+    pub fn is_initialized(&self) -> Result<bool> { Ok(self.check_initialized().is_ok()) }
 }
 
 generate_methods!(LibrespotHolder,

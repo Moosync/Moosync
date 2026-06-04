@@ -22,6 +22,7 @@ use std::{
     time::Duration,
 };
 
+use extensions_proto::moosync::types::PlayerState;
 use jni::{
     AttachGuard, JavaVM,
     objects::{GlobalRef, JClass, JObject, JString, JValue},
@@ -33,7 +34,6 @@ use types::{
 };
 
 use crate::{MediaControlEvent, MediaPosition, MprisPlayerDetails, context::MprisContext};
-use extensions_proto::moosync::types::PlayerState;
 
 // ─────────────────────────────────────────────────────────────────────── //
 //  AndroidMprisContext                                                     //
@@ -102,7 +102,8 @@ impl MprisContext for AndroidMprisContext {
     /// Called by `MprisHolder::new_with_context`.
     ///
     /// Leaks a `Box<Sender<MediaControlEvent>>` to get a stable pointer that
-    /// Kotlin/Java stores as a `Long` and passes back into the native callbacks.
+    /// Kotlin/Java stores as a `Long` and passes back into the native
+    /// callbacks.
     fn attach(&mut self, sender: Sender<MediaControlEvent>) -> Result<()> {
         // Leak the sender — it lives for the app lifetime.
         let ptr = Box::into_raw(Box::new(sender)) as i64;

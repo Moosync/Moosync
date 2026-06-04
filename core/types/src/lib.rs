@@ -92,12 +92,8 @@ pub mod prelude {
     }
 
     impl SongsExt for Song {
-        fn get_id(&self) -> Option<String> {
-            self.song.as_ref().and_then(|s| s.id.clone())
-        }
-        fn get_title(&self) -> Option<String> {
-            self.song.as_ref().and_then(|s| s.title.clone())
-        }
+        fn get_id(&self) -> Option<String> { self.song.as_ref().and_then(|s| s.id.clone()) }
+        fn get_title(&self) -> Option<String> { self.song.as_ref().and_then(|s| s.title.clone()) }
         fn get_duration_or_default(&self) -> std::time::Duration {
             self.song
                 .as_ref()
@@ -142,20 +138,14 @@ pub mod prelude {
                 })
                 .unwrap_or(SongType::Local)
         }
-        fn get_path(&self) -> Option<String> {
-            self.song.as_ref().and_then(|s| s.path.clone())
-        }
+        fn get_path(&self) -> Option<String> { self.song.as_ref().and_then(|s| s.path.clone()) }
         fn get_extension(&self) -> Option<String> {
             self.song
                 .as_ref()
                 .and_then(|s| s.provider_extension.clone())
         }
-        fn get_lyrics(&self) -> Option<String> {
-            self.song.as_ref().and_then(|s| s.lyrics.clone())
-        }
-        fn get_date(&self) -> Option<String> {
-            self.song.as_ref().and_then(|s| s.date.clone())
-        }
+        fn get_lyrics(&self) -> Option<String> { self.song.as_ref().and_then(|s| s.lyrics.clone()) }
+        fn get_date(&self) -> Option<String> { self.song.as_ref().and_then(|s| s.date.clone()) }
 
         fn get_artist_string(&self) -> Option<String> {
             if self.artists.is_empty() {
@@ -197,7 +187,6 @@ pub mod prelude {
         if proto_dur.seconds < 0 || proto_dur.nanos < 0 {
             return Err("Cannot convert negative protobuf duration to core::time::Duration".into());
         }
-
 
         Ok(std::time::Duration::new(
             proto_dur.seconds as u64,

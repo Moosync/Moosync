@@ -52,9 +52,7 @@ pub struct StateManager {
 }
 
 impl StateManager {
-    pub fn get_cache_dir(&self) -> std::path::PathBuf {
-        self.cache_dir.clone()
-    }
+    pub fn get_cache_dir(&self) -> std::path::PathBuf { self.cache_dir.clone() }
 
     fn get_dirs() -> (std::path::PathBuf, std::path::PathBuf, std::path::PathBuf) {
         #[cfg(not(target_os = "android"))]
@@ -136,7 +134,10 @@ impl StateManager {
     where
         F: Fn() + Send + Sync + 'static,
     {
-        self.on_extensions_updated.lock().unwrap().push(Box::new(callback));
+        self.on_extensions_updated
+            .lock()
+            .unwrap()
+            .push(Box::new(callback));
     }
 
     pub async fn setup(&self) {

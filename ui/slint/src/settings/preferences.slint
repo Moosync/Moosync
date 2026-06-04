@@ -124,9 +124,7 @@ export global AppPreferences {
         }
     ];
     in-out property <[PreferenceItem]> system_items: [];
-    
+
     // Keep a dummy property for compile compatibility
-    in-out property <Preferences> preferences: {
-        dummy: false
-    };
+    in-out property <Preferences> preferences: { dummy: false };
 }

@@ -14,13 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::{future::Future, path::PathBuf, pin::Pin};
+
+use songs_proto::moosync::types::{Playlist, Song};
+pub use types::ScanProgress;
 use types::errors::{MoosyncError, Result};
 
 use crate::context::ScannerContext;
-use songs_proto::moosync::types::{Playlist, Song};
-use std::{future::Future, path::PathBuf, pin::Pin};
-pub use types::ScanProgress;
-
 #[cfg(target_os = "android")]
 use crate::context::android::AndroidScannerContext;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -68,17 +68,11 @@ impl ScannerHolder {
         }
     }
 
-    pub fn set_scan_dir(&mut self, dir: PathBuf) {
-        self.scan_dir = Some(dir);
-    }
+    pub fn set_scan_dir(&mut self, dir: PathBuf) { self.scan_dir = Some(dir); }
 
-    pub fn set_thumbnail_dir(&mut self, dir: PathBuf) {
-        self.thumbnail_dir = Some(dir);
-    }
+    pub fn set_thumbnail_dir(&mut self, dir: PathBuf) { self.thumbnail_dir = Some(dir); }
 
-    pub fn set_artist_split(&mut self, split: String) {
-        self.artist_split = Some(split);
-    }
+    pub fn set_artist_split(&mut self, split: String) { self.artist_split = Some(split); }
 
     pub fn set_on_song<F, Fut>(&mut self, cb: F)
     where
@@ -149,13 +143,13 @@ impl ScannerHolder {
 }
 
 impl Default for ScannerHolder {
-    fn default() -> Self {
-        Self::new()
-    }
+    fn default() -> Self { Self::new() }
 }
 
 impl types::plugin::Plugin for ScannerHolder {
-    fn init(_context: &types::plugin::PluginContext) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+    fn init(
+        _context: &types::plugin::PluginContext,
+    ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
         types::plugin::Arc::new(types::plugin::RwLock::new(ScannerHolder::new()))
     }
 }

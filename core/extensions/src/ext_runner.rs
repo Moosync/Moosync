@@ -65,7 +65,9 @@ impl From<&Extension> for ExtensionDetail {
 }
 
 impl Extension {
-    pub fn read_manifest(manifest_path: &std::path::Path) -> Result<ExtensionManifest, ExtensionError> {
+    pub fn read_manifest(
+        manifest_path: &std::path::Path,
+    ) -> Result<ExtensionManifest, ExtensionError> {
         let contents = std::fs::read(manifest_path)?;
         let mut manifest = serde_json::from_slice::<ExtensionManifest>(&contents)?;
 
@@ -122,10 +124,7 @@ pub(crate) struct ExtensionHandlerInner {
 
 impl ExtensionHandlerInner {
     #[tracing::instrument(level = "debug")]
-    pub fn new(
-        extensions_path: PathBuf,
-        cache_path: PathBuf,
-    ) -> Self {
+    pub fn new(extensions_path: PathBuf, cache_path: PathBuf) -> Self {
         Self {
             extensions_path: extensions_path.to_string_lossy().to_string(),
             extensions_map: Default::default(),
@@ -171,7 +170,10 @@ impl ExtensionHandlerInner {
                 Ok(manifest) => {
                     let extension_entry_path = PathBuf::from(&manifest.extension_entry);
                     if !extensions_map.contains_key(&manifest.name)
-                        && extension_entry_path.extension().and_then(|ext| ext.to_str()) == Some("wasm")
+                        && extension_entry_path
+                            .extension()
+                            .and_then(|ext| ext.to_str())
+                            == Some("wasm")
                         && extension_entry_path.exists()
                     {
                         parsed_manifests.push((manifest_path, manifest));
@@ -243,7 +245,8 @@ impl ExtensionHandlerInner {
             ext.active = active;
             self.set_extension_disabled_file(package_name, !active)?;
             if active {
-                ext.has_started.store(false, std::sync::atomic::Ordering::SeqCst);
+                ext.has_started
+                    .store(false, std::sync::atomic::Ordering::SeqCst);
                 let context = Arc::new(ExtismContext::new(
                     &ext.manifest,
                     ext.has_started.clone(),

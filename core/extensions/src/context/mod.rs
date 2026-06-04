@@ -16,7 +16,6 @@
 
 use std::fmt::Debug;
 
-use crate::errors::ExtensionError;
 use extensions_proto::moosync::types::{
     AddPlaylistResponse, AddSongsResponse, AddToPlaylistResponse, ExtensionCommand,
     ExtensionCommandResponse, ExtensionsUpdatedResponse, GetAppVersionResponse,
@@ -26,10 +25,11 @@ use extensions_proto::moosync::types::{
     RemoveSongResponse, SetPreferenceResponse, SetSecureResponse, UnregisterUserPreferenceResponse,
     UpdateAccountsResponse, UpdateSongResponse, main_command, main_command_response,
 };
+pub use extism_context::ExtismContext;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use ui_proto::moosync::types::PreferenceUiData;
 
-pub use extism_context::ExtismContext;
+use crate::errors::ExtensionError;
 
 pub trait ReplyHandler: Send + Sync + 'static {
     fn get_song(

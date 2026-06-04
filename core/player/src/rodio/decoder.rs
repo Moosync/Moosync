@@ -1,24 +1,24 @@
 // Adapted from https://github.com/tarkah/ffmpeg-decoder-rs
 
-use std::num::NonZero;
-use std::str::FromStr;
-use std::sync::Arc;
+use std::{
+    ffi::{CString, NulError, c_int},
+    num::NonZero,
+    str::FromStr,
+    sync::Arc,
+    time::Duration,
+};
 
-use rodio::source::SeekError;
-use rodio::{ChannelCount, Sample, SampleRate, Source};
-use rsmpeg::avformat::AVFormatContextInput;
-use rsmpeg::error::RsmpegError;
+use rodio::{ChannelCount, Sample, SampleRate, Source, source::SeekError};
+use rsmpeg::{
+    avcodec::AVCodecContext,
+    avformat::AVFormatContextInput,
+    avutil::{AVFrame, AVSamples, err2str, sample_fmt_is_planar},
+    error::RsmpegError,
+    ffi::{AV_SAMPLE_FMT_FLT, AVMEDIA_TYPE_AUDIO, AVSampleFormat},
+    swresample::SwrContext,
+};
 use tracing::error;
 use types::errors::MoosyncError;
-
-use std::ffi::{CString, NulError, c_int};
-use std::time::Duration;
-
-use rsmpeg::ffi::{AV_SAMPLE_FMT_FLT, AVMEDIA_TYPE_AUDIO, AVSampleFormat};
-
-use rsmpeg::avcodec::AVCodecContext;
-use rsmpeg::avutil::{AVFrame, AVSamples, err2str, sample_fmt_is_planar};
-use rsmpeg::swresample::SwrContext;
 
 // Rodio needs f32 samples in non planar format
 const DEFAULT_CONVERSION_FORMAT: AVSampleFormat = AV_SAMPLE_FMT_FLT;
@@ -40,15 +40,11 @@ pub enum DecoderError {
 }
 
 impl From<DecoderError> for SeekError {
-    fn from(e: DecoderError) -> SeekError {
-        SeekError::Other(Arc::new(e))
-    }
+    fn from(e: DecoderError) -> SeekError { SeekError::Other(Arc::new(e)) }
 }
 
 impl From<DecoderError> for MoosyncError {
-    fn from(e: DecoderError) -> Self {
-        MoosyncError::PlaybackError(Box::new(e))
-    }
+    fn from(e: DecoderError) -> Self { MoosyncError::PlaybackError(Box::new(e)) }
 }
 
 pub struct FFMPEGDecoder {
@@ -64,8 +60,9 @@ impl FFMPEGDecoder {
     fn initialize_swr_context(
         codec_ctx: &AVCodecContext,
     ) -> Result<Option<SwrContext>, DecoderError> {
-        // Initialize swr context if conversion is needed OR if the decoded format is planar.
-        // (Planar -> interleaved needs SwrContext even if sample formats are both float)
+        // Initialize swr context if conversion is needed OR if the decoded format is
+        // planar. (Planar -> interleaved needs SwrContext even if sample
+        // formats are both float)
         let need_swr = codec_ctx.sample_fmt != DEFAULT_CONVERSION_FORMAT
             || sample_fmt_is_planar(codec_ctx.sample_fmt);
 
@@ -138,7 +135,8 @@ impl FFMPEGDecoder {
             let out_samples = swr_ctx.get_out_samples(num_samples);
 
             // Many rsmpeg/swresample wrappers expect you to provide buffers.
-            // Use AVSamples to allocate the output buffer and call convert with its pointer(s).
+            // Use AVSamples to allocate the output buffer and call convert with its
+            // pointer(s).
             let mut samples =
                 AVSamples::new(num_channels, out_samples, DEFAULT_CONVERSION_FORMAT, 0)
                     .expect("AVSamples allocation failed");
@@ -191,14 +189,16 @@ impl FFMPEGDecoder {
 
         let packet = match packet_opt {
             Some(p) => p,
-            None => return Ok(None), // EOF
+            None => {
+                return Ok(None);
+            } // EOF
         };
 
         // Only handle our chosen stream
         if (packet.stream_index as usize) != self.stream_idx {
             return Err(DecoderError::WrongStream(
-                /*expected=*/ self.stream_idx,
-                /*got=*/ packet.stream_index,
+                /* expected= */ self.stream_idx,
+                /* got= */ packet.stream_index,
             ));
         }
 
@@ -208,7 +208,8 @@ impl FFMPEGDecoder {
         // Attempt to receive one decoded frame
         match self.codec_ctx.receive_frame() {
             Ok(frame) => Ok(Some(frame)),
-            Err(RsmpegError::DecoderDrainError) => Ok(None), // We sent what we had, probably can't decode anymore
+            Err(RsmpegError::DecoderDrainError) => Ok(None), /* We sent what we had, probably */
+            // can't decode anymore
             Err(e) => Err(DecoderError::Rsmpeg(e)),
         }
     }
@@ -232,9 +233,7 @@ impl FFMPEGDecoder {
         }
     }
 
-    fn flush_buffers(&mut self) {
-        self.current_frame.clear();
-    }
+    fn flush_buffers(&mut self) { self.current_frame.clear(); }
 
     fn resync_after_seek(&mut self) -> Result<(), DecoderError> {
         loop {
@@ -317,9 +316,7 @@ impl Source for FFMPEGDecoder {
     }
 
     #[inline]
-    fn sample_rate(&self) -> SampleRate {
-        NonZero::new(self.codec_ctx.sample_rate as u32).unwrap()
-    }
+    fn sample_rate(&self) -> SampleRate { NonZero::new(self.codec_ctx.sample_rate as u32).unwrap() }
 
     #[inline]
     fn total_duration(&self) -> Option<Duration> {
@@ -339,9 +336,7 @@ impl Source for FFMPEGDecoder {
         Some(Duration::from_micros(micros))
     }
 
-    fn current_span_len(&self) -> Option<usize> {
-        None
-    }
+    fn current_span_len(&self) -> Option<usize> { None }
 
     fn try_seek(&mut self, pos: Duration) -> Result<(), SeekError> {
         let stream = &self.format_ctx.streams()[self.stream_idx];

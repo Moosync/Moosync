@@ -1,8 +1,7 @@
-use crate::MainWindow;
-use crate::PreferenceChange;
-use crate::pages::PageHandler;
 use slint::ComponentHandle;
 use state_manager::StateManager;
+
+use crate::{MainWindow, PreferenceChange, pages::PageHandler};
 
 pub mod extensions;
 pub mod paths;
@@ -33,14 +32,10 @@ fn select_file(filter: String) -> String {
 }
 
 #[cfg(target_os = "android")]
-fn select_directory() -> String {
-    String::new()
-}
+fn select_directory() -> String { String::new() }
 
 #[cfg(target_os = "android")]
-fn select_file(filter: String) -> String {
-    String::new()
-}
+fn select_file(filter: String) -> String { String::new() }
 
 pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     let paths_handler = paths::PathsPageHandler::new(main_window, state_manager);

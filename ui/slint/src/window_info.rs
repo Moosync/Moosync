@@ -1,5 +1,6 @@
-use slint::Window;
 use std::sync::Mutex;
+
+use slint::Window;
 
 pub struct WindowEvents {
     pub on_resize: Mutex<Vec<Box<dyn Fn(&Window)>>>,

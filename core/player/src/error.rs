@@ -23,13 +23,9 @@ pub enum PlayerError {
 }
 
 impl From<DecoderError> for PlayerError {
-    fn from(value: DecoderError) -> Self {
-        Self::DecoderError(value)
-    }
+    fn from(value: DecoderError) -> Self { Self::DecoderError(value) }
 }
 
 impl From<SeekError> for PlayerError {
-    fn from(value: SeekError) -> Self {
-        Self::SeekError(value)
-    }
+    fn from(value: SeekError) -> Self { Self::SeekError(value) }
 }

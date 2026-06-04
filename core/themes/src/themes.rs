@@ -26,8 +26,7 @@ use std::{
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
 use themes_proto::moosync::types::ThemeDetails;
-use types::errors::error_helpers;
-use types::errors::Result;
+use types::errors::{Result, error_helpers};
 use uuid::Uuid;
 
 pub type OnThemeChangedCallback = Box<dyn Fn(&ThemeDetails) -> () + Send + Sync + 'static>;
@@ -107,7 +106,9 @@ impl ThemeHolder {
             return Ok(serde_json::from_str(&data)?);
         }
 
-        Err(types::errors::MoosyncError::String("Theme not found".to_string()))
+        Err(types::errors::MoosyncError::String(
+            "Theme not found".to_string(),
+        ))
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
@@ -173,7 +174,9 @@ impl ThemeHolder {
                 return Ok(());
             }
         }
-        Err(types::errors::MoosyncError::String("Failed to parse theme".to_string()))
+        Err(types::errors::MoosyncError::String(
+            "Failed to parse theme".to_string(),
+        ))
     }
 
     #[tracing::instrument(level = "debug", skip(self, id, export_path))]
@@ -282,7 +285,9 @@ impl ThemeHolder {
 }
 
 impl types::plugin::Plugin for ThemeHolder {
-    fn init(context: &types::plugin::PluginContext) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+    fn init(
+        context: &types::plugin::PluginContext,
+    ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
         types::plugin::Arc::new(types::plugin::RwLock::new(ThemeHolder::new(
             context.data_dir.join("themes"),
             context.tmp_dir.clone(),

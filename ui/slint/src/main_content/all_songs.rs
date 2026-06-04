@@ -4,11 +4,9 @@ use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song};
 use state_manager::StateManager;
 use tracing::debug;
-use types::ScanProgress;
-use types::errors::MoosyncError;
+use types::{ScanProgress, errors::MoosyncError};
 
-use crate::utils::LazySongVecModel;
-use crate::{MainWindow, Pages, pages::PageHandler};
+use crate::{MainWindow, Pages, pages::PageHandler, utils::LazySongVecModel};
 
 pub struct AllSongsPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -83,7 +81,9 @@ async fn fetch_and_cache_songs(
                 }
             });
         }
-        Err(e) => tracing::error!("Failed to fetch songs: {:?}", e),
+        Err(e) => {
+            tracing::error!("Failed to fetch songs: {:?}", e)
+        }
     }
 }
 
@@ -94,7 +94,9 @@ fn set_all_songs(main_window: &MainWindow, songs: Vec<Song>, cache_dir: std::pat
         .map(|song| crate::utils::to_song_model(Some(&song)))
         .collect::<Vec<_>>();
 
-    main_window.set_songs(ModelRc::new(LazySongVecModel::new(songs_view, 60, 0, cache_dir)));
+    main_window.set_songs(ModelRc::new(LazySongVecModel::new(
+        songs_view, 60, 0, cache_dir,
+    )));
 }
 
 impl<'a> PageHandler for AllSongsPageHandler<'a> {
@@ -114,7 +116,5 @@ impl<'a> PageHandler for AllSongsPageHandler<'a> {
         set_all_songs(self.main_window, songs, cache_dir);
     }
 
-    fn on_hide(&self) {
-        self.main_window.set_songs(ModelRc::default());
-    }
+    fn on_hide(&self) { self.main_window.set_songs(ModelRc::default()); }
 }

@@ -3,9 +3,12 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::{format_ident, quote};
-use syn::parse::{Parse, ParseStream};
-use syn::punctuated::Punctuated;
-use syn::{FnArg, Ident, ImplItem, ImplItemFn, ItemImpl, Pat, Token, parse_macro_input};
+use syn::{
+    FnArg, Ident, ImplItem, ImplItemFn, ItemImpl, Pat, Token,
+    parse::{Parse, ParseStream},
+    parse_macro_input,
+    punctuated::Punctuated,
+};
 
 #[proc_macro_attribute]
 pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
@@ -267,7 +270,8 @@ fn generate_wrapper_method(
         }
     } else {
         // FIXED: For non-intercepted methods (like generics), grab the original
-        // argument names so we don't accidentally try to pass the missing `_` prefixed variables
+        // argument names so we don't accidentally try to pass the missing `_` prefixed
+        // variables
         let original_names: Vec<_> = method
             .sig
             .inputs

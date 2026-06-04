@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::{env, result::Result::Ok};
+
 use glob::glob;
-use std::env;
-use std::result::Result::Ok;
 
 /// Adds a temporary workaround for an issue with the Rust compiler and Android
 /// in x86_64 devices: https://github.com/rust-lang/rust/issues/109717.
@@ -52,6 +52,4 @@ fn setup_x86_64_android_workaround() {
     }
 }
 
-fn main() {
-    setup_x86_64_android_workaround();
-}
+fn main() { setup_x86_64_android_workaround(); }

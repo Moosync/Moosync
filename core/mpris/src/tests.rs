@@ -1,12 +1,14 @@
+use extensions_proto::moosync::types::PlayerState;
+
 use super::{MprisHolder, context::MockMprisContext};
 use crate::MprisPlayerDetails;
-use extensions_proto::moosync::types::PlayerState;
 
 #[test]
 fn test_mpris_holder_new() {
     // This tests the real constructor (with real context), might fail if no dbus
-    // But since we installed dbus-dev and run in environment, it might pass or fail depending on session bus.
-    // However, we should focus on testing logic via mock.
+    // But since we installed dbus-dev and run in environment, it might pass or fail
+    // depending on session bus. However, we should focus on testing logic via
+    // mock.
     let mut mock = Box::new(MockMprisContext::new());
     mock.expect_attach().returning(|_| Ok(()));
 

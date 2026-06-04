@@ -6,7 +6,10 @@ pub struct SystemPageHandler<'a> {
 }
 
 impl<'a> SystemPageHandler<'a> {
-    pub fn new(main_window: &'a crate::MainWindow, state_manager: &'a state_manager::StateManager) -> Self {
+    pub fn new(
+        main_window: &'a crate::MainWindow,
+        state_manager: &'a state_manager::StateManager,
+    ) -> Self {
         Self {
             main_window,
             state_manager,
@@ -23,9 +26,7 @@ impl<'a> SystemPageHandler<'a> {
 }
 
 impl<'a> crate::pages::PageHandler for SystemPageHandler<'a> {
-    fn initialize(&self) {
-        init(self.main_window, self.state_manager);
-    }
+    fn initialize(&self) { init(self.main_window, self.state_manager); }
 
     fn on_show(&self) {}
     fn on_hide(&self) {}

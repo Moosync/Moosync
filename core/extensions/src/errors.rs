@@ -45,49 +45,33 @@ impl std::error::Error for ExtensionError {}
 
 impl From<std::io::Error> for ExtensionError {
     #[tracing::instrument(level = "debug", skip(value))]
-    fn from(value: std::io::Error) -> Self {
-        Self::IoError(Box::new(value))
-    }
+    fn from(value: std::io::Error) -> Self { Self::IoError(Box::new(value)) }
 }
 
 impl From<fs_extra::error::Error> for ExtensionError {
-    fn from(value: fs_extra::error::Error) -> Self {
-        Self::IoError(Box::new(value))
-    }
+    fn from(value: fs_extra::error::Error) -> Self { Self::IoError(Box::new(value)) }
 }
 
 impl From<serde_json::Error> for ExtensionError {
-    fn from(value: serde_json::Error) -> Self {
-        Self::SerdeError(Box::new(value))
-    }
+    fn from(value: serde_json::Error) -> Self { Self::SerdeError(Box::new(value)) }
 }
 
 impl From<reqwest::Error> for ExtensionError {
-    fn from(value: reqwest::Error) -> Self {
-        Self::ReqwestError(Box::new(value))
-    }
+    fn from(value: reqwest::Error) -> Self { Self::ReqwestError(Box::new(value)) }
 }
 
 impl From<extism::Error> for ExtensionError {
-    fn from(value: extism::Error) -> Self {
-        Self::ExtismError(value)
-    }
+    fn from(value: extism::Error) -> Self { Self::ExtismError(value) }
 }
 
 impl From<ParseIntError> for ExtensionError {
-    fn from(value: ParseIntError) -> Self {
-        Self::ExtVersionError(Box::new(value))
-    }
+    fn from(value: ParseIntError) -> Self { Self::ExtVersionError(Box::new(value)) }
 }
 
 impl From<MoosyncError> for ExtensionError {
-    fn from(value: MoosyncError) -> Self {
-        Self::ParseError(Box::new(value))
-    }
+    fn from(value: MoosyncError) -> Self { Self::ParseError(Box::new(value)) }
 }
 
 impl From<ExtensionError> for MoosyncError {
-    fn from(value: ExtensionError) -> MoosyncError {
-        MoosyncError::ExtensionError(Box::new(value))
-    }
+    fn from(value: ExtensionError) -> MoosyncError { MoosyncError::ExtensionError(Box::new(value)) }
 }

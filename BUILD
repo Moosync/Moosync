@@ -1,5 +1,7 @@
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 
+exports_files(["rustfmt.toml"])
+
 config_setting(
     name = "release",
     values = {"compilation_mode": "opt"},

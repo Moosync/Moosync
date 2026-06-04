@@ -16,13 +16,13 @@
 
 use std::{env::temp_dir, fs, path::PathBuf};
 
-use crate::cache::CacheHolder;
-use crate::database::Database;
-use songs_proto::moosync::types::{Album, Artist, Genre, GetEntityOptions, Playlist};
-use songs_proto::moosync::types::{GetSongOptions, InnerSong, SearchableSong, Song, SongType};
-use songs_proto::moosync::types::entity_result::Result as EntityResultVariant;
+use songs_proto::moosync::types::{
+    Album, Artist, Genre, GetEntityOptions, GetSongOptions, InnerSong, Playlist, SearchableSong,
+    Song, SongType, entity_result::Result as EntityResultVariant,
+};
 use uuid::Uuid;
 
+use crate::{cache::CacheHolder, database::Database};
 
 // Helper function to create a unique test DB path
 fn get_test_db_path() -> PathBuf {
@@ -245,7 +245,8 @@ fn test_remove_songs() {
     let initial_songs = db
         .get_songs_by_options(GetSongOptions {
             song: Some(SearchableSong {
-                r#type: Some(SongType::Local.into()), // Filter by song type to ensure we get all test songs
+                r#type: Some(SongType::Local.into()), /* Filter by song type to ensure we get all
+                                                       * test songs */
                 ..Default::default()
             }),
             inclusive: Some(true),
@@ -267,7 +268,8 @@ fn test_remove_songs() {
     let all_songs = db
         .get_songs_by_options(GetSongOptions {
             song: Some(SearchableSong {
-                r#type: Some(SongType::Local.into()), // Filter by song type to ensure we get all remaining songs
+                r#type: Some(SongType::Local.into()), /* Filter by song type to ensure we get all
+                                                       * remaining songs */
                 ..Default::default()
             }),
             inclusive: Some(true),
@@ -372,10 +374,7 @@ fn test_playlist_operations() {
     let playlist = &playlists_list.playlists[0];
 
     // Verify we can access the playlist's properties
-    assert!(
-        playlist.playlist_name
-            .contains("Test Playlist")
-    );
+    assert!(playlist.playlist_name.contains("Test Playlist"));
 
     // Remove one song from playlist
     let song_id_to_remove = songs[0].song.clone().unwrap().id.clone().unwrap();
@@ -516,12 +515,17 @@ fn test_artist_operations() {
     let Some(EntityResultVariant::Artists(artists_list)) = result.result else {
         panic!("Expected Artists variant");
     };
-    assert!(!artists_list.artists.is_empty(), "Should return at least one artist");
+    assert!(
+        !artists_list.artists.is_empty(),
+        "Should return at least one artist"
+    );
     let artist = &artists_list.artists[0];
 
     // Verify we can access the artist's properties
     assert!(
-        artist.artist_name.as_deref()
+        artist
+            .artist_name
+            .as_deref()
             .unwrap()
             .contains("Test Artist")
     );
@@ -577,7 +581,9 @@ fn test_artist_operations() {
     );
 
     // Check if the update was successful by verifying the artist_id matches
-    let retrieved_id = updated_artists_list.artists[0].artist_id.as_deref()
+    let retrieved_id = updated_artists_list.artists[0]
+        .artist_id
+        .as_deref()
         .expect("artistId should exist");
 
     assert_eq!(
@@ -687,7 +693,6 @@ fn test_analytics() {
     cleanup(&db_path);
 }
 
-
 #[test]
 fn test_cache_holder() {
     let db_path = get_test_db_path();
@@ -719,7 +724,6 @@ fn test_cache_holder() {
     cleanup(&db_path);
 }
 
-
 #[test]
 fn test_db_creation_and_playlist() {
     let base_dir = temp_dir().join(format!("moosync_test_dir_{}", Uuid::new_v4()));
@@ -746,14 +750,16 @@ fn test_db_creation_and_playlist() {
     let id_2 = db.create_playlist(pl_no_name).unwrap();
 
     // Fetch and verify name
-    let entity_res = db.get_entity_by_options(GetEntityOptions {
-        playlist: Some(Playlist {
-            playlist_id: Some(id_2),
+    let entity_res = db
+        .get_entity_by_options(GetEntityOptions {
+            playlist: Some(Playlist {
+                playlist_id: Some(id_2),
+                ..Default::default()
+            }),
+            inclusive: Some(false),
             ..Default::default()
-        }),
-        inclusive: Some(false),
-        ..Default::default()
-    }).unwrap();
+        })
+        .unwrap();
     let Some(EntityResultVariant::Playlists(playlists_list)) = entity_res.result else {
         panic!("Expected Playlists variant");
     };
@@ -781,35 +787,47 @@ fn test_db_creation_and_playlist() {
     let _ = fs::remove_dir_all(base_dir);
 }
 
-
 #[test]
 fn test_is_song_in_playlist() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
 
-    let playlist_id = db.create_playlist(Playlist {
-        playlist_name: "PL".to_string(),
-        ..Default::default()
-    }).unwrap();
+    let playlist_id = db
+        .create_playlist(Playlist {
+            playlist_name: "PL".to_string(),
+            ..Default::default()
+        })
+        .unwrap();
 
     let song = create_test_song("Song", "/path/song.mp3");
     let inserted = db.insert_songs(vec![song]).unwrap();
     let song_id = inserted[0].song.clone().unwrap().id.unwrap();
 
     // False when not in playlist
-    assert!(!db.is_song_in_playlist(playlist_id.clone(), song_id.clone()).unwrap());
+    assert!(
+        !db.is_song_in_playlist(playlist_id.clone(), song_id.clone())
+            .unwrap()
+    );
 
     // True when in playlist
     db.add_to_playlist(playlist_id.clone(), inserted).unwrap();
-    assert!(db.is_song_in_playlist(playlist_id.clone(), song_id.clone()).unwrap());
+    assert!(
+        db.is_song_in_playlist(playlist_id.clone(), song_id.clone())
+            .unwrap()
+    );
 
     // False for non-existent IDs
-    assert!(!db.is_song_in_playlist("non_existent_pl".to_string(), song_id.clone()).unwrap());
-    assert!(!db.is_song_in_playlist(playlist_id, "non_existent_song".to_string()).unwrap());
+    assert!(
+        !db.is_song_in_playlist("non_existent_pl".to_string(), song_id.clone())
+            .unwrap()
+    );
+    assert!(
+        !db.is_song_in_playlist(playlist_id, "non_existent_song".to_string())
+            .unwrap()
+    );
 
     cleanup(&db_path);
 }
-
 
 #[test]
 fn test_insert_songs_edge_cases() {
@@ -846,7 +864,13 @@ fn test_insert_songs_edge_cases() {
     };
 
     let inserted_1 = db.insert_songs(vec![song_1]).unwrap();
-    let album_id = inserted_1[0].album.as_ref().unwrap().album_id.clone().unwrap();
+    let album_id = inserted_1[0]
+        .album
+        .as_ref()
+        .unwrap()
+        .album_id
+        .clone()
+        .unwrap();
     let artist_id = inserted_1[0].artists[0].artist_id.clone().unwrap();
     let genre_id = inserted_1[0].genre[0].genre_id.clone().unwrap();
 
@@ -872,7 +896,13 @@ fn test_insert_songs_edge_cases() {
     };
 
     let inserted_2 = db.insert_songs(vec![song_2]).unwrap();
-    let album_id_2 = inserted_2[0].album.as_ref().unwrap().album_id.clone().unwrap();
+    let album_id_2 = inserted_2[0]
+        .album
+        .as_ref()
+        .unwrap()
+        .album_id
+        .clone()
+        .unwrap();
     let artist_id_2 = inserted_2[0].artists[0].artist_id.clone().unwrap();
     let genre_id_2 = inserted_2[0].genre[0].genre_id.clone().unwrap();
 
@@ -891,21 +921,25 @@ fn test_insert_songs_edge_cases() {
     };
     let _ = db.insert_songs(vec![song_update]).unwrap();
 
-    let fetched = db.get_songs_by_options(GetSongOptions {
-        song: Some(SearchableSong {
-            path: Some("/path/2".to_string()),
+    let fetched = db
+        .get_songs_by_options(GetSongOptions {
+            song: Some(SearchableSong {
+                path: Some("/path/2".to_string()),
+                ..Default::default()
+            }),
+            inclusive: Some(false),
             ..Default::default()
-        }),
-        inclusive: Some(false),
-        ..Default::default()
-    }).unwrap();
+        })
+        .unwrap();
 
     assert_eq!(fetched.len(), 1);
-    assert_eq!(fetched[0].song.as_ref().unwrap().title.as_ref().unwrap(), "Updated Song 2");
+    assert_eq!(
+        fetched[0].song.as_ref().unwrap().title.as_ref().unwrap(),
+        "Updated Song 2"
+    );
 
     cleanup(&db_path);
 }
-
 
 #[test]
 fn test_files_not_in_db() {
@@ -920,20 +954,17 @@ fn test_files_not_in_db() {
     db.insert_songs(vec![
         create_test_song("Song 1", "/path/to/song1.mp3"),
         create_test_song("Song 2", "/path/to/song2.mp3"),
-    ]).unwrap();
+    ])
+    .unwrap();
 
     // Matching path and size
-    let files = vec![
-        (PathBuf::from("/path/to/song1.mp3"), 0.0),
-    ];
+    let files = vec![(PathBuf::from("/path/to/song1.mp3"), 0.0)];
     let res = db.files_not_in_db(files).unwrap();
     assert_eq!(res.len(), 1);
     assert_eq!(res[0].0.to_str().unwrap(), "/path/to/song1.mp3");
 
     // Path matches but size differs -> should NOT return it
-    let files_mismatch = vec![
-        (PathBuf::from("/path/to/song1.mp3"), 100.0),
-    ];
+    let files_mismatch = vec![(PathBuf::from("/path/to/song1.mp3"), 100.0)];
     let res_mismatch = db.files_not_in_db(files_mismatch).unwrap();
     assert!(res_mismatch.is_empty());
 
@@ -946,14 +977,17 @@ fn test_files_not_in_db() {
     assert!(res_big.is_empty());
 
     // Insert one of the big list files and check
-    db.insert_songs(vec![create_test_song("Song 999", "/path/to/song_999.mp3")]).unwrap();
+    db.insert_songs(vec![create_test_song("Song 999", "/path/to/song_999.mp3")])
+        .unwrap();
     let res_big_with_match = db.files_not_in_db(big_list).unwrap();
     assert_eq!(res_big_with_match.len(), 1);
-    assert_eq!(res_big_with_match[0].0.to_str().unwrap(), "/path/to/song_999.mp3");
+    assert_eq!(
+        res_big_with_match[0].0.to_str().unwrap(),
+        "/path/to/song_999.mp3"
+    );
 
     cleanup(&db_path);
 }
-
 
 #[test]
 fn test_export_playlist() {
@@ -963,7 +997,12 @@ fn test_export_playlist() {
     // Non-existent playlist
     let err_res = db.export_playlist("non_existent".to_string());
     assert!(err_res.is_err());
-    assert!(err_res.unwrap_err().to_string().contains("Playlist not found"));
+    assert!(
+        err_res
+            .unwrap_err()
+            .to_string()
+            .contains("Playlist not found")
+    );
 
     // Create a playlist
     let playlist = Playlist {
@@ -1034,36 +1073,43 @@ fn test_export_playlist() {
     cleanup(&db_path);
 }
 
-
 #[test]
 fn test_playlist_ops_edge_cases() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
 
-    let playlist_id = db.create_playlist(Playlist {
-        playlist_name: "Ops PL".to_string(),
-        ..Default::default()
-    }).unwrap();
+    let playlist_id = db
+        .create_playlist(Playlist {
+            playlist_name: "Ops PL".to_string(),
+            ..Default::default()
+        })
+        .unwrap();
 
     // add_to_playlist with None song field
     let empty_song = Song {
         song: None,
         ..Default::default()
     };
-    db.add_to_playlist(playlist_id.clone(), vec![empty_song]).unwrap();
+    db.add_to_playlist(playlist_id.clone(), vec![empty_song])
+        .unwrap();
 
     // add_to_playlist duplicate songs
     let song = create_test_song("Song", "/path.mp3");
     let inserted = db.insert_songs(vec![song]).unwrap();
     let song_id = inserted[0].song.clone().unwrap().id.unwrap();
 
-    db.add_to_playlist(playlist_id.clone(), inserted.clone()).unwrap();
+    db.add_to_playlist(playlist_id.clone(), inserted.clone())
+        .unwrap();
     db.add_to_playlist(playlist_id.clone(), inserted).unwrap();
 
-    assert!(db.is_song_in_playlist(playlist_id.clone(), song_id.clone()).unwrap());
+    assert!(
+        db.is_song_in_playlist(playlist_id.clone(), song_id.clone())
+            .unwrap()
+    );
 
     // remove_from_playlist for song not in playlist
-    db.remove_from_playlist(playlist_id.clone(), vec!["non_existent_song".to_string()]).unwrap();
+    db.remove_from_playlist(playlist_id.clone(), vec!["non_existent_song".to_string()])
+        .unwrap();
 
     // remove_playlist
     db.remove_playlist(playlist_id.clone()).unwrap();
@@ -1071,7 +1117,6 @@ fn test_playlist_ops_edge_cases() {
 
     cleanup(&db_path);
 }
-
 
 #[test]
 fn test_updates() {
@@ -1104,28 +1149,39 @@ fn test_updates() {
     };
     let inserted = db.insert_songs(vec![song]).unwrap();
     let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
-    let album_id = inserted[0].album.as_ref().unwrap().album_id.clone().unwrap();
+    let album_id = inserted[0]
+        .album
+        .as_ref()
+        .unwrap()
+        .album_id
+        .clone()
+        .unwrap();
     let artist_id = inserted[0].artists[0].artist_id.clone().unwrap();
 
     // update_playlist
-    let playlist_id = db.create_playlist(Playlist {
-        playlist_name: "Initial PL".to_string(),
-        ..Default::default()
-    }).unwrap();
+    let playlist_id = db
+        .create_playlist(Playlist {
+            playlist_name: "Initial PL".to_string(),
+            ..Default::default()
+        })
+        .unwrap();
 
     db.update_playlist(Playlist {
         playlist_id: Some(playlist_id.clone()),
         playlist_name: "Updated PL".to_string(),
         ..Default::default()
-    }).unwrap();
+    })
+    .unwrap();
 
-    let entity_res = db.get_entity_by_options(GetEntityOptions {
-        playlist: Some(Playlist {
-            playlist_id: Some(playlist_id),
+    let entity_res = db
+        .get_entity_by_options(GetEntityOptions {
+            playlist: Some(Playlist {
+                playlist_id: Some(playlist_id),
+                ..Default::default()
+            }),
             ..Default::default()
-        }),
-        ..Default::default()
-    }).unwrap();
+        })
+        .unwrap();
     let Some(EntityResultVariant::Playlists(playlists_list)) = entity_res.result else {
         panic!("Expected Playlists variant");
     };
@@ -1139,53 +1195,85 @@ fn test_updates() {
 
     db.update_songs(vec![updated_song]).unwrap();
 
-    let fetched_songs = db.get_songs_by_options(GetSongOptions {
-        song: Some(SearchableSong {
-            id: Some(song_id.clone()),
+    let fetched_songs = db
+        .get_songs_by_options(GetSongOptions {
+            song: Some(SearchableSong {
+                id: Some(song_id.clone()),
+                ..Default::default()
+            }),
             ..Default::default()
-        }),
-        ..Default::default()
-    }).unwrap();
-    assert_eq!(fetched_songs[0].song.as_ref().unwrap().title.as_ref().unwrap(), "Updated Title");
+        })
+        .unwrap();
+    assert_eq!(
+        fetched_songs[0]
+            .song
+            .as_ref()
+            .unwrap()
+            .title
+            .as_ref()
+            .unwrap(),
+        "Updated Title"
+    );
 
-    let fetched_albums = db.get_entity_by_options(GetEntityOptions {
-        album: Some(Album {
-            album_id: Some(album_id),
+    let fetched_albums = db
+        .get_entity_by_options(GetEntityOptions {
+            album: Some(Album {
+                album_id: Some(album_id),
+                ..Default::default()
+            }),
             ..Default::default()
-        }),
-        ..Default::default()
-    }).unwrap();
+        })
+        .unwrap();
     let Some(EntityResultVariant::Albums(albums_list)) = fetched_albums.result else {
         panic!("Expected Albums variant");
     };
-    assert_eq!(albums_list.albums[0].album_name.as_deref().unwrap(), "Updated Album");
+    assert_eq!(
+        albums_list.albums[0].album_name.as_deref().unwrap(),
+        "Updated Album"
+    );
 
-    let fetched_artists = db.get_entity_by_options(GetEntityOptions {
-        artist: Some(Artist {
-            artist_id: Some(artist_id),
+    let fetched_artists = db
+        .get_entity_by_options(GetEntityOptions {
+            artist: Some(Artist {
+                artist_id: Some(artist_id),
+                ..Default::default()
+            }),
             ..Default::default()
-        }),
-        ..Default::default()
-    }).unwrap();
+        })
+        .unwrap();
     let Some(EntityResultVariant::Artists(artists_list)) = fetched_artists.result else {
         panic!("Expected Artists variant");
     };
-    assert_eq!(artists_list.artists[0].artist_name.as_deref().unwrap(), "Updated Artist");
+    assert_eq!(
+        artists_list.artists[0].artist_name.as_deref().unwrap(),
+        "Updated Artist"
+    );
 
     // update_lyrics
-    db.update_lyrics(song_id.clone(), "New Lyrics".to_string()).unwrap();
-    let fetched_songs2 = db.get_songs_by_options(GetSongOptions {
-        song: Some(SearchableSong {
-            id: Some(song_id),
+    db.update_lyrics(song_id.clone(), "New Lyrics".to_string())
+        .unwrap();
+    let fetched_songs2 = db
+        .get_songs_by_options(GetSongOptions {
+            song: Some(SearchableSong {
+                id: Some(song_id),
+                ..Default::default()
+            }),
             ..Default::default()
-        }),
-        ..Default::default()
-    }).unwrap();
-    assert_eq!(fetched_songs2[0].song.as_ref().unwrap().lyrics.as_ref().unwrap(), "New Lyrics");
+        })
+        .unwrap();
+    assert_eq!(
+        fetched_songs2[0]
+            .song
+            .as_ref()
+            .unwrap()
+            .lyrics
+            .as_ref()
+            .unwrap(),
+        "New Lyrics"
+    );
 
     cleanup(&db_path);
 }
-
 
 #[test]
 fn test_get_entity_by_options() {
@@ -1193,7 +1281,9 @@ fn test_get_entity_by_options() {
     let db = Database::new(db_path.clone());
 
     // Null case
-    let null_res = db.get_entity_by_options(GetEntityOptions::default()).unwrap();
+    let null_res = db
+        .get_entity_by_options(GetEntityOptions::default())
+        .unwrap();
     assert!(null_res.result.is_none());
 
     // Insert data
@@ -1223,11 +1313,13 @@ fn test_get_entity_by_options() {
         album_name: Some("UniqueAlbumName".to_string()),
         ..Default::default()
     };
-    let alb_res_exact = db.get_entity_by_options(GetEntityOptions {
-        album: Some(alb_opt_exact),
-        inclusive: Some(false),
-        ..Default::default()
-    }).unwrap();
+    let alb_res_exact = db
+        .get_entity_by_options(GetEntityOptions {
+            album: Some(alb_opt_exact),
+            inclusive: Some(false),
+            ..Default::default()
+        })
+        .unwrap();
     let Some(EntityResultVariant::Albums(alb_exact)) = alb_res_exact.result else {
         panic!("Expected Albums variant");
     };
@@ -1237,11 +1329,13 @@ fn test_get_entity_by_options() {
         album_name: Some("%Unique%".to_string()),
         ..Default::default()
     };
-    let alb_res_partial = db.get_entity_by_options(GetEntityOptions {
-        album: Some(alb_opt_partial),
-        inclusive: Some(true),
-        ..Default::default()
-    }).unwrap();
+    let alb_res_partial = db
+        .get_entity_by_options(GetEntityOptions {
+            album: Some(alb_opt_partial),
+            inclusive: Some(true),
+            ..Default::default()
+        })
+        .unwrap();
     let Some(EntityResultVariant::Albums(alb_partial)) = alb_res_partial.result else {
         panic!("Expected Albums variant");
     };
@@ -1252,11 +1346,13 @@ fn test_get_entity_by_options() {
         artist_name: Some("UniqueArtistName".to_string()),
         ..Default::default()
     };
-    let art_res = db.get_entity_by_options(GetEntityOptions {
-        artist: Some(art_opt),
-        inclusive: Some(false),
-        ..Default::default()
-    }).unwrap();
+    let art_res = db
+        .get_entity_by_options(GetEntityOptions {
+            artist: Some(art_opt),
+            inclusive: Some(false),
+            ..Default::default()
+        })
+        .unwrap();
     let Some(EntityResultVariant::Artists(art_list)) = art_res.result else {
         panic!("Expected Artists variant");
     };
@@ -1267,11 +1363,13 @@ fn test_get_entity_by_options() {
         genre_name: Some("UniqueGenreName".to_string()),
         ..Default::default()
     };
-    let gen_res = db.get_entity_by_options(GetEntityOptions {
-        genre: Some(gen_opt),
-        inclusive: Some(false),
-        ..Default::default()
-    }).unwrap();
+    let gen_res = db
+        .get_entity_by_options(GetEntityOptions {
+            genre: Some(gen_opt),
+            inclusive: Some(false),
+            ..Default::default()
+        })
+        .unwrap();
     let Some(EntityResultVariant::Genres(gen_list)) = gen_res.result else {
         panic!("Expected Genres variant");
     };
@@ -1279,7 +1377,6 @@ fn test_get_entity_by_options() {
 
     cleanup(&db_path);
 }
-
 
 #[test]
 fn test_analytics_edge_cases() {
@@ -1317,7 +1414,6 @@ fn test_analytics_edge_cases() {
     cleanup(&db_path);
 }
 
-
 #[test]
 fn test_get_songs_by_entities() {
     let db_path = get_test_db_path();
@@ -1348,48 +1444,82 @@ fn test_get_songs_by_entities() {
     let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
 
     // Test get_songs_by_options with Album
-    let songs_by_album = db.get_songs_by_options(GetSongOptions {
-        album: Some(Album {
-            album_name: Some("Target Album".to_string()),
+    let songs_by_album = db
+        .get_songs_by_options(GetSongOptions {
+            album: Some(Album {
+                album_name: Some("Target Album".to_string()),
+                ..Default::default()
+            }),
             ..Default::default()
-        }),
-        ..Default::default()
-    }).unwrap();
+        })
+        .unwrap();
     assert_eq!(songs_by_album.len(), 1);
-    assert_eq!(songs_by_album[0].song.as_ref().unwrap().id.as_ref().unwrap(), &song_id);
+    assert_eq!(
+        songs_by_album[0]
+            .song
+            .as_ref()
+            .unwrap()
+            .id
+            .as_ref()
+            .unwrap(),
+        &song_id
+    );
 
     // Test get_songs_by_options with Artist
-    let songs_by_artist = db.get_songs_by_options(GetSongOptions {
-        artist: Some(Artist {
-            artist_name: Some("Target Artist".to_string()),
+    let songs_by_artist = db
+        .get_songs_by_options(GetSongOptions {
+            artist: Some(Artist {
+                artist_name: Some("Target Artist".to_string()),
+                ..Default::default()
+            }),
             ..Default::default()
-        }),
-        ..Default::default()
-    }).unwrap();
+        })
+        .unwrap();
     assert_eq!(songs_by_artist.len(), 1);
-    assert_eq!(songs_by_artist[0].song.as_ref().unwrap().id.as_ref().unwrap(), &song_id);
+    assert_eq!(
+        songs_by_artist[0]
+            .song
+            .as_ref()
+            .unwrap()
+            .id
+            .as_ref()
+            .unwrap(),
+        &song_id
+    );
 
     // Test get_songs_by_options with Genre
-    let songs_by_genre = db.get_songs_by_options(GetSongOptions {
-        genre: Some(Genre {
-            genre_name: Some("Target Genre".to_string()),
+    let songs_by_genre = db
+        .get_songs_by_options(GetSongOptions {
+            genre: Some(Genre {
+                genre_name: Some("Target Genre".to_string()),
+                ..Default::default()
+            }),
             ..Default::default()
-        }),
-        ..Default::default()
-    }).unwrap();
+        })
+        .unwrap();
     assert_eq!(songs_by_genre.len(), 1);
-    assert_eq!(songs_by_genre[0].song.as_ref().unwrap().id.as_ref().unwrap(), &song_id);
+    assert_eq!(
+        songs_by_genre[0]
+            .song
+            .as_ref()
+            .unwrap()
+            .id
+            .as_ref()
+            .unwrap(),
+        &song_id
+    );
 
     // Test add_to_playlist_bridge directly
-    let playlist_id = db.create_playlist(Playlist {
-        playlist_name: "Bridge PL".to_string(),
-        ..Default::default()
-    }).unwrap();
+    let playlist_id = db
+        .create_playlist(Playlist {
+            playlist_name: "Bridge PL".to_string(),
+            ..Default::default()
+        })
+        .unwrap();
 
-    db.add_to_playlist_bridge(playlist_id.clone(), song_id.clone()).unwrap();
+    db.add_to_playlist_bridge(playlist_id.clone(), song_id.clone())
+        .unwrap();
     assert!(db.is_song_in_playlist(playlist_id, song_id).unwrap());
 
     cleanup(&db_path);
 }
-
-

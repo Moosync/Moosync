@@ -8,7 +8,10 @@ pub fn generate_theme_impl(input: TokenStream) -> TokenStream {
     let path_str = syn::parse_macro_input!(input as syn::LitStr).value();
     let content = match read_file(&path_str) {
         Ok(c) => c,
-        Err(e) => panic!("Failed to read slint constants file '{}': {:?}", path_str, e),
+        Err(e) => panic!(
+            "Failed to read slint constants file '{}': {:?}",
+            path_str, e
+        ),
     };
     let properties = parse_slint_theme(&content);
 
@@ -18,10 +21,11 @@ pub fn generate_theme_impl(input: TokenStream) -> TokenStream {
     let mut default_setters = Vec::new();
 
     // The 8 proto fields of ThemeItem:
-    // primary, secondary, tertiary, text_primary, text_secondary, text_inverse, accent, divider
+    // primary, secondary, tertiary, text_primary, text_secondary, text_inverse,
+    // accent, divider
     for (name, _prop_type, default_val) in properties {
         let name_str = name.as_str();
-        
+
         // Add to keys
         key_inserts.push(quote! {
             keys.insert(#name_str.to_string());
@@ -208,7 +212,10 @@ pub fn generate_theme_apply(input: TokenStream) -> TokenStream {
     let path_str = input.path.value();
     let content = match read_file(&path_str) {
         Ok(c) => c,
-        Err(e) => panic!("Failed to read slint constants file '{}': {:?}", path_str, e),
+        Err(e) => panic!(
+            "Failed to read slint constants file '{}': {:?}",
+            path_str, e
+        ),
     };
     let properties = parse_slint_theme(&content);
 
@@ -247,7 +254,10 @@ pub fn generate_theme_ui_helpers(input: TokenStream) -> TokenStream {
     let path_str = syn::parse_macro_input!(input as syn::LitStr).value();
     let content = match read_file(&path_str) {
         Ok(c) => c,
-        Err(e) => panic!("Failed to read slint constants file '{}': {:?}", path_str, e),
+        Err(e) => panic!(
+            "Failed to read slint constants file '{}': {:?}",
+            path_str, e
+        ),
     };
     let properties = parse_slint_theme(&content);
 
@@ -315,7 +325,7 @@ pub fn generate_theme_ui_helpers(input: TokenStream) -> TokenStream {
 
 fn read_file(path_str: &str) -> std::io::Result<String> {
     use std::path::PathBuf;
-    
+
     // 1. Try manifest dir
     if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
         let path = PathBuf::from(manifest_dir).join(path_str);
@@ -323,14 +333,14 @@ fn read_file(path_str: &str) -> std::io::Result<String> {
             return std::fs::read_to_string(path);
         }
     }
-    
+
     // 2. Try current dir
     if let Ok(current_dir) = std::env::current_dir() {
         let path = current_dir.join(path_str);
         if path.exists() {
             return std::fs::read_to_string(path);
         }
-        
+
         // 3. Try walking up to find WORKSPACE or Cargo.toml
         let mut dir = current_dir;
         loop {
@@ -350,7 +360,7 @@ fn read_file(path_str: &str) -> std::io::Result<String> {
             }
         }
     }
-    
+
     // 4. Just try path directly
     std::fs::read_to_string(path_str)
 }
@@ -358,7 +368,7 @@ fn read_file(path_str: &str) -> std::io::Result<String> {
 fn parse_slint_theme(content: &str) -> Vec<(String, String, String)> {
     let mut properties = Vec::new();
     let content = strip_comments(content);
-    
+
     if let Some(theme_start) = content.find("global Theme") {
         if let Some(brace_start) = content[theme_start..].find('{') {
             let start_idx = theme_start + brace_start + 1;
@@ -376,7 +386,7 @@ fn parse_slint_theme(content: &str) -> Vec<(String, String, String)> {
                     }
                 }
             }
-            
+
             let theme_block = &content[start_idx..end_idx];
             for statement in theme_block.split(';') {
                 let statement = statement.trim();
@@ -419,15 +429,15 @@ fn strip_comments(content: &str) -> String {
                 result.push('\n');
             }
         } else if in_block_comment {
-            if i + 1 < chars.len() && chars[i] == '*' && chars[i+1] == '/' {
+            if i + 1 < chars.len() && chars[i] == '*' && chars[i + 1] == '/' {
                 in_block_comment = false;
                 i += 1;
             }
         } else {
-            if i + 1 < chars.len() && chars[i] == '/' && chars[i+1] == '/' {
+            if i + 1 < chars.len() && chars[i] == '/' && chars[i + 1] == '/' {
                 in_line_comment = true;
                 i += 1;
-            } else if i + 1 < chars.len() && chars[i] == '/' && chars[i+1] == '*' {
+            } else if i + 1 < chars.len() && chars[i] == '/' && chars[i + 1] == '*' {
                 in_block_comment = true;
                 i += 1;
             } else {

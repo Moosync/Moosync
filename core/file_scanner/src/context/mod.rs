@@ -14,8 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use crate::{OnPlaylistScanned, OnProgressUpdated, OnSongScanned};
 use types::errors::Result;
+
+use crate::{OnPlaylistScanned, OnProgressUpdated, OnSongScanned};
 
 #[allow(async_fn_in_trait)]
 pub trait ScannerContext: Send + Sync {

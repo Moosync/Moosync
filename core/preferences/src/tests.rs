@@ -1,6 +1,8 @@
-use super::{context::MockKeyring, preferences::PreferenceConfig};
 use std::env::temp_dir;
+
 use uuid::Uuid;
+
+use super::{context::MockKeyring, preferences::PreferenceConfig};
 
 fn get_test_db_path() -> std::path::PathBuf {
     let file_name = format!("moosync_test_prefs_{}", Uuid::new_v4());

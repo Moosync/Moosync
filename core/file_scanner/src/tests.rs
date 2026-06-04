@@ -5,8 +5,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{ScanProgress, ScannerHolder};
 use songs_proto::moosync::types::{Playlist, Song};
+
+use crate::{ScanProgress, ScannerHolder};
 
 #[tokio::test]
 async fn test_playlist_scan() {

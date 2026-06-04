@@ -14,14 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use fast_image_resize::{self as fr, FilterType, ResizeAlg::Convolution, ResizeOptions};
-use image::ColorType;
-use lazy_static::lazy_static;
-use lofty::{
-    file::TaggedFile, picture::Picture, prelude::Accessor, prelude::AudioFile,
-    prelude::TaggedFileExt, probe::Probe, read_from_path, tag::Tag,
-};
-use regex::Regex;
 use std::{
     fs::{self, File},
     io::{self, BufRead},
@@ -29,18 +21,31 @@ use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
-use substring::Substring;
-use uuid::Uuid;
 
-use crate::{FileList, OnPlaylistScanned, OnProgressUpdated, OnSongScanned, ScanProgress};
+use fast_image_resize::{self as fr, FilterType, ResizeAlg::Convolution, ResizeOptions};
+use image::ColorType;
+use lazy_static::lazy_static;
+use lofty::{
+    file::TaggedFile,
+    picture::Picture,
+    prelude::{Accessor, AudioFile, TaggedFileExt},
+    probe::Probe,
+    read_from_path,
+    tag::Tag,
+};
+use regex::Regex;
 use songs_proto::{
     duration_proto::google::protobuf::Duration,
     moosync::types::{Album, Artist, Genre, InnerSong, Playlist, Song, SongType},
 };
+use substring::Substring;
 use types::{
     errors::{MoosyncError, Result, error_helpers},
     prelude::core_to_proto_duration,
 };
+use uuid::Uuid;
+
+use crate::{FileList, OnPlaylistScanned, OnProgressUpdated, OnSongScanned, ScanProgress};
 
 // ==========================================
 // Directory Utilities
@@ -393,7 +398,9 @@ pub async fn scan_file(
     };
     let file = match read_tagged_file(path, guess) {
         Ok(f) => f,
-        Err(_) => return Ok(song),
+        Err(_) => {
+            return Ok(song);
+        }
     };
     extract_audio_properties(&file, &mut inner_song);
     let mut tags = file.primary_tag();

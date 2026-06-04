@@ -26,7 +26,6 @@ mod test;
 
 use std::{sync::Arc, time::Duration};
 
-use crate::audio_source::AudioSource;
 use extensions_proto::moosync::types::{PlayerEvent, player_event::Event};
 use songs_proto::moosync::types::Song;
 use tokio::{
@@ -38,6 +37,8 @@ use types::{
     plugin::{Plugin, PluginContext, RwLock},
     prelude::core_to_proto_duration,
 };
+
+use crate::audio_source::AudioSource;
 
 pub type OnEndedCallback = Box<dyn Fn() -> () + Send + Sync + 'static>;
 
@@ -81,37 +82,23 @@ impl PlayerHandler {
         }
     }
 
-    pub fn get_player_state(&self) -> i32 {
-        self.player.get_player_state() as i32
-    }
+    pub fn get_player_state(&self) -> i32 { self.player.get_player_state() as i32 }
 
-    pub fn get_volume(&self) -> u8 {
-        self.player.get_volume()
-    }
+    pub fn get_volume(&self) -> u8 { self.player.get_volume() }
 
-    pub fn get_queue(&self) -> &[Song] {
-        &self.song_queue
-    }
+    pub fn get_queue(&self) -> &[Song] { &self.song_queue }
 
-    pub fn get_current_idx(&self) -> usize {
-        self.current_idx
-    }
+    pub fn get_current_idx(&self) -> usize { self.current_idx }
 
     pub fn get_current_pos(&self) -> Result<Duration, crate::error::PlayerError> {
         self.player.get_current_pos()
     }
 
-    pub fn current_song(&self) -> Option<&Song> {
-        self.song_queue.get(self.current_idx)
-    }
+    pub fn current_song(&self) -> Option<&Song> { self.song_queue.get(self.current_idx) }
 
-    pub fn get_current_song(&self) -> Option<&Song> {
-        self.current_song()
-    }
+    pub fn get_current_song(&self) -> Option<&Song> { self.current_song() }
 
-    pub fn get_repeat_mode(&self) -> RepeatMode {
-        self.repeat_mode
-    }
+    pub fn get_repeat_mode(&self) -> RepeatMode { self.repeat_mode }
 
     pub fn add_to_queue(&mut self, song: Song) {
         self.song_queue.push(song);
@@ -247,9 +234,7 @@ impl PlayerHandler {
         }
     }
 
-    pub fn set_resolver(&self, f: crate::source::SourceResolverFn) {
-        self.player.set_resolver(f);
-    }
+    pub fn set_resolver(&self, f: crate::source::SourceResolverFn) { self.player.set_resolver(f); }
 
     pub fn on_song_changed<F>(&mut self, callback: F)
     where

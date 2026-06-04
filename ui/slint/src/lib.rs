@@ -408,6 +408,7 @@ fn setup_tracing() {
     #[cfg(not(target_os = "android"))]
     let subscriber = {
         use std::fs;
+
         use tracing_appender::rolling::{RollingFileAppender, Rotation};
 
         let log_path = platform_dirs::AppDirs::new(Some("moosync"), false)
@@ -450,7 +451,8 @@ fn setup_android() -> types::android::AndroidJNIContext {
         let act_obj = unsafe { jni::objects::JObject::from_raw(act_ptr) };
         let activity_ref = env.new_global_ref(act_obj).expect("new_global_ref");
 
-        // Load Class via Activity's ClassLoader to avoid ClassNotFoundException on native threads
+        // Load Class via Activity's ClassLoader to avoid ClassNotFoundException on
+        // native threads
         let class_obj = env
             .call_method(&activity_ref, "getClass", "()Ljava/lang/Class;", &[])
             .expect("getClass failed")

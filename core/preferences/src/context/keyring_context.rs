@@ -21,7 +21,5 @@ impl Keyring for KeyringContext {
         self.entry.set_secret(secret)
     }
 
-    fn get_secret(&self) -> Result<Vec<u8>, keyring::Error> {
-        self.entry.get_secret()
-    }
+    fn get_secret(&self) -> Result<Vec<u8>, keyring::Error> { self.entry.get_secret() }
 }

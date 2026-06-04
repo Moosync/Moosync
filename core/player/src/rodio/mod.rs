@@ -54,7 +54,6 @@ impl RodioPlayer {
             tracing::error!("Failed to send event: {:?}", e);
         }
     }
-
 }
 
 impl PlayerExt for RodioPlayer {
@@ -146,7 +145,9 @@ impl PlayerExt for RodioPlayer {
         }
     }
 
-    fn get_player_state(&self) -> Result<extensions_proto::moosync::types::PlayerState, PlayerError> {
+    fn get_player_state(
+        &self,
+    ) -> Result<extensions_proto::moosync::types::PlayerState, PlayerError> {
         if let Some(player) = self.player.lock().unwrap().as_ref() {
             if player.empty() {
                 Ok(extensions_proto::moosync::types::PlayerState::Stopped)

@@ -17,9 +17,8 @@
 pub mod cache;
 pub mod database;
 pub mod migrations;
-pub mod utils;
 #[cfg(test)]
 mod test;
+pub mod utils;
 
 pub use database::{Database, DatabaseInterceptor, InterceptedDatabase};
-

@@ -23,7 +23,6 @@ use std::{
     sync::Arc,
 };
 
-use crate::errors::ExtensionError;
 use ext_runner::ExtensionHandlerInner;
 use extensions_proto::moosync::types::{
     ExtensionCommand, ExtensionCommandResponse, ExtensionDetail, ExtensionManifest,
@@ -34,6 +33,8 @@ use futures::{StreamExt, lock::Mutex};
 use serde_json::Value;
 use ui_proto::moosync::types::PreferenceUiData;
 use zip_extensions::zip_extract;
+
+use crate::errors::ExtensionError;
 
 mod context;
 pub use context::ReplyHandler;

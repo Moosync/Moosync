@@ -12,7 +12,7 @@ use tracing::{debug, trace};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};
 use types::prelude::format_duration;
 
-use crate::pages::PageHandler;
+use crate::pages::{AppPage, PageHandler};
 
 mod main_content;
 mod pages;
@@ -35,44 +35,100 @@ fn android_main(app: slint::android::AndroidApp) {
     run();
 }
 
-fn get_all_pages<'a>(
-    main_window: &'a MainWindow,
-    state_manager: &'a StateManager,
-) -> Vec<Box<dyn PageHandler + 'a>> {
-    vec![
+fn get_all_pages(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) -> std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>> {
+    let mut map: std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>> =
+        std::collections::HashMap::new();
+
+    map.insert(
+        AppPage::AllSongs,
         Box::new(main_content::all_songs::AllSongsPageHandler::new(
             main_window,
             state_manager,
         )),
+    );
+    map.insert(
+        AppPage::Albums,
         Box::new(main_content::albums::AlbumsPageHandler::new(
             main_window,
             state_manager,
         )),
+    );
+    map.insert(
+        AppPage::Artists,
         Box::new(main_content::artists::ArtistsPageHandler::new(
             main_window,
             state_manager,
         )),
+    );
+    map.insert(
+        AppPage::Playlists,
         Box::new(main_content::playlists::PlaylistsPageHandler::new(
             main_window,
             state_manager,
         )),
+    );
+    map.insert(
+        AppPage::Genres,
         Box::new(main_content::genres::GenresPageHandler::new(
             main_window,
             state_manager,
         )),
+    );
+    map.insert(
+        AppPage::Explore,
         Box::new(main_content::explore::ExplorePageHandler::new(
             main_window,
             state_manager,
         )),
+    );
+    map.insert(
+        AppPage::Search,
         Box::new(main_content::search::SearchPageHandler::new(
             main_window,
             state_manager,
         )),
+    );
+    map.insert(
+        AppPage::Queue,
         Box::new(main_content::queue::QueuePageHandler::new(
             main_window,
             state_manager,
         )),
-    ]
+    );
+
+    map.insert(
+        AppPage::Paths,
+        Box::new(settings::paths::PathsPageHandler::new(
+            main_window,
+            state_manager,
+        )),
+    );
+    map.insert(
+        AppPage::System,
+        Box::new(settings::system::SystemPageHandler::new(
+            main_window,
+            state_manager,
+        )),
+    );
+    map.insert(
+        AppPage::Extensions,
+        Box::new(settings::extensions::ExtensionsPageHandler::new(
+            main_window,
+            state_manager,
+        )),
+    );
+    map.insert(
+        AppPage::Themes,
+        Box::new(settings::themes::ThemesPageHandler::new(
+            main_window,
+            state_manager,
+        )),
+    );
+
+    map
 }
 
 pub async fn run() {
@@ -120,23 +176,6 @@ fn setup_cover_helper(main_window: &MainWindow) {
             }
             Image::load_from_svg_data(utils::DEFAULT_SONG_SVG).unwrap()
         });
-}
-
-fn get_page_handler<'b>(
-    pages: &'b [Box<dyn PageHandler + '_>],
-    page: Pages,
-) -> Option<&'b dyn PageHandler> {
-    let idx = match page {
-        Pages::AllSongs => 0,
-        Pages::Albums => 1,
-        Pages::Artists => 2,
-        Pages::Playlists => 3,
-        Pages::Genres => 4,
-        Pages::Explore => 5,
-        Pages::Search => 6,
-        _ => return None,
-    };
-    pages.get(idx).map(|p| p.as_ref())
 }
 
 fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager) {
@@ -210,7 +249,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
 
     let main_window_weak = main_window.as_weak();
     tokio::spawn(async move {
-        let mut player_handler = state_manager.get_player_handler_mut().await;
+        let player_handler = state_manager.get_player_handler().await;
 
         // Set initial repeat mode
         let repeat_mode = player_handler.get_repeat_mode();
@@ -330,62 +369,169 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
         });
 }
 
-fn setup_page_navigation(main_window: &MainWindow, pages: Vec<Box<dyn PageHandler + 'static>>) {
-    for page in &pages {
+struct PageLifecycleManager {
+    pages: std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>>,
+    visible_states: std::collections::HashMap<AppPage, bool>,
+    active_main_page: AppPage,
+    active_settings_page: AppPage,
+    settings_open: bool,
+    queue_open: bool,
+}
+
+impl PageLifecycleManager {
+    fn new(
+        pages: std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>>,
+        initial_main_page: AppPage,
+    ) -> Self {
+        let mut visible_states = std::collections::HashMap::new();
+        for &page_type in pages.keys() {
+            visible_states.insert(page_type, false);
+        }
+
+        Self {
+            pages,
+            visible_states,
+            active_main_page: initial_main_page,
+            active_settings_page: AppPage::Extensions, // Default tab in Settings is Extensions
+            settings_open: false,
+            queue_open: false,
+        }
+    }
+
+    fn update_visibility(&mut self) {
+        for (&page_type, handler) in &self.pages {
+            let was_visible = *self.visible_states.get(&page_type).unwrap_or(&false);
+            let is_visible = match page_type {
+                AppPage::Queue => self.queue_open,
+
+                AppPage::Paths => {
+                    self.settings_open
+                        && !self.queue_open
+                        && (self.active_settings_page == AppPage::Paths)
+                }
+                AppPage::System => {
+                    self.settings_open
+                        && !self.queue_open
+                        && (self.active_settings_page == AppPage::System)
+                }
+                AppPage::Extensions => {
+                    self.settings_open
+                        && !self.queue_open
+                        && (self.active_settings_page == AppPage::Extensions)
+                }
+                AppPage::Themes => {
+                    self.settings_open
+                        && !self.queue_open
+                        && (self.active_settings_page == AppPage::Themes)
+                }
+
+                AppPage::AllSongs => {
+                    !self.settings_open
+                        && !self.queue_open
+                        && (self.active_main_page == AppPage::AllSongs)
+                }
+                AppPage::Albums => {
+                    !self.settings_open
+                        && !self.queue_open
+                        && (self.active_main_page == AppPage::Albums)
+                }
+                AppPage::Artists => {
+                    !self.settings_open
+                        && !self.queue_open
+                        && (self.active_main_page == AppPage::Artists)
+                }
+                AppPage::Playlists => {
+                    !self.settings_open
+                        && !self.queue_open
+                        && (self.active_main_page == AppPage::Playlists)
+                }
+                AppPage::Genres => {
+                    !self.settings_open
+                        && !self.queue_open
+                        && (self.active_main_page == AppPage::Genres)
+                }
+                AppPage::Explore => {
+                    !self.settings_open
+                        && !self.queue_open
+                        && (self.active_main_page == AppPage::Explore)
+                }
+                AppPage::Search => {
+                    !self.settings_open
+                        && !self.queue_open
+                        && (self.active_main_page == AppPage::Search)
+                }
+            };
+
+            if is_visible != was_visible {
+                self.visible_states.insert(page_type, is_visible);
+                if is_visible {
+                    handler.on_show();
+                } else {
+                    handler.on_hide();
+                }
+            }
+        }
+    }
+}
+
+fn setup_page_navigation(
+    main_window: &MainWindow,
+    pages: std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>>,
+) {
+    for page in pages.values() {
         page.initialize();
     }
 
-    let current_page = std::cell::Cell::new(main_window.get_active_page());
-    if let Some(handler) = get_page_handler(&pages, current_page.get()) {
-        handler.on_show();
-    }
+    let initial_main_page = AppPage::from(main_window.get_active_page());
 
-    let duration_ms = main_window
-        .global::<Constants>()
-        .get_page_transition_duration();
-    let transition_duration = std::time::Duration::from_millis(duration_ms as u64);
+    // Create the manager inside Rc<RefCell<...>> to allow sharing in main thread
+    // callbacks
+    let manager = std::rc::Rc::new(std::cell::RefCell::new(PageLifecycleManager::new(
+        pages,
+        initial_main_page,
+    )));
 
-    let pending_hide = std::rc::Rc::new(std::cell::RefCell::new(None::<(Pages, slint::Timer)>));
+    // Trigger initial on_show
+    manager.borrow_mut().update_visibility();
 
-    let pages_ref = std::rc::Rc::new(pages);
-    let pages_clone = pages_ref.clone();
-    let pending_hide_clone = pending_hide.clone();
-
+    // 1. Listen to active page change
+    let manager_main = manager.clone();
     main_window
         .global::<AppCallbacks>()
         .on_active_page_changed(move |new_page| {
-            let prev_page = current_page.replace(new_page);
+            let mut mgr = manager_main.borrow_mut();
+            mgr.active_main_page = AppPage::from(new_page);
+            mgr.update_visibility();
+        });
 
-            if let Some((pending_page, timer)) = pending_hide_clone.borrow_mut().take() {
-                timer.stop();
-                if let Some(pending_handler) = get_page_handler(&pages_clone, pending_page) {
-                    pending_handler.on_hide();
-                }
-            }
+    // 2. Listen to settings page change
+    let manager_settings = manager.clone();
+    main_window
+        .global::<AppCallbacks>()
+        .on_settings_active_page_changed(move |new_page| {
+            let mut mgr = manager_settings.borrow_mut();
+            mgr.active_settings_page = AppPage::from(new_page);
+            mgr.update_visibility();
+        });
 
-            if let Some(new_handler) = get_page_handler(&pages_clone, new_page) {
-                new_handler.on_show();
-            }
+    // 3. Listen to settings toggle
+    let manager_settings_toggle = manager.clone();
+    main_window
+        .global::<AppCallbacks>()
+        .on_settings_toggled(move |open| {
+            let mut mgr = manager_settings_toggle.borrow_mut();
+            mgr.settings_open = open;
+            mgr.update_visibility();
+        });
 
-            if get_page_handler(&pages_clone, prev_page).is_some() {
-                let timer = slint::Timer::default();
-                let pages_clone_inner = pages_clone.clone();
-                let pending_hide_inner = pending_hide_clone.clone();
-                timer.start(
-                    slint::TimerMode::SingleShot,
-                    transition_duration,
-                    move || {
-                        if let Some((pending_page, _)) = pending_hide_inner.borrow_mut().take() {
-                            if let Some(handler) =
-                                get_page_handler(&pages_clone_inner, pending_page)
-                            {
-                                handler.on_hide();
-                            }
-                        }
-                    },
-                );
-                *pending_hide_clone.borrow_mut() = Some((prev_page, timer));
-            }
+    // 4. Listen to queue toggle
+    let manager_queue_toggle = manager.clone();
+    main_window
+        .global::<AppCallbacks>()
+        .on_queue_toggled(move |open| {
+            let mut mgr = manager_queue_toggle.borrow_mut();
+            mgr.queue_open = open;
+            mgr.update_visibility();
         });
 }
 

@@ -447,3 +447,41 @@ pub fn to_fetched_extension_item(ext: &FetchedExtensionManifest) -> ExtensionIte
         icon_url: ext.logo.clone().unwrap_or_default().into(),
     }
 }
+
+pub fn generate_blurred_cover_disk_cache(
+    song_id: &str,
+    cover_path_high: &str,
+    cache_dir: &Path,
+) -> Option<std::path::PathBuf> {
+    if song_id.is_empty() {
+        return None;
+    }
+
+    let img_cache_dir = cache_dir.join("image_cache");
+    if !img_cache_dir.exists() {
+        let _ = std::fs::create_dir_all(&img_cache_dir);
+    }
+    let blurred_path = img_cache_dir.join(format!("blurred_{}.png", song_id));
+
+    if blurred_path.exists() {
+        return Some(blurred_path);
+    }
+
+    if !cover_path_high.is_empty() {
+        let path = Path::new(cover_path_high);
+        if path.exists() {
+            if blur_and_save(path, &blurred_path).is_some() {
+                return Some(blurred_path);
+            }
+        }
+    }
+
+    None
+}
+
+fn blur_and_save(path: &Path, blurred_path: &Path) -> Option<()> {
+    let img = image::open(path).ok()?;
+    let blurred = img.fast_blur(5.0);
+    let _ = blurred.save(blurred_path);
+    Some(())
+}

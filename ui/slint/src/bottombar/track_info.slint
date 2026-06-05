@@ -22,7 +22,7 @@ export component TrackInfo inherits Rectangle {
             Image {
                 width: root.current-song.id == "" ? Theme.iconSizeXl : parent.width;
                 height: root.current-song.id == "" ? Theme.iconSizeXl : parent.height;
-                source: root.current-song.coverPathLow.width > 0 ? root.current-song.coverPathLow : (root.current-song.id != "" ? CoverHelper.fetch_cover_high(root.current-song) : @image-url("../icons/song_default.svg"));
+                source: root.current-song.coverPathLow.width > 0 ? root.current-song.coverPathLow : @image-url("../icons/song_default.svg");
                 image-fit: cover;
                 colorize: root.current-song.id == "" ? Theme.textSecondary : transparent;
             }

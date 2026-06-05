@@ -68,6 +68,10 @@ fn get_all_pages<'a>(
             main_window,
             state_manager,
         )),
+        Box::new(main_content::queue::QueuePageHandler::new(
+            main_window,
+            state_manager,
+        )),
     ]
 }
 
@@ -223,24 +227,11 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
             let song = song.cloned();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = mw_weak.upgrade() {
-                    let song_model = match song {
-                        Some(s) => utils::to_song_model(&s),
+                    let song_model = match &song {
+                        Some(s) => utils::to_song_model(s),
                         None => utils::to_song_model(&songs_proto::moosync::types::Song::default()),
                     };
                     main_window.set_current_song(song_model);
-                }
-            });
-        });
-
-        let mw_weak_queue = main_window_weak.clone();
-        player_handler.on_queue_updated(move |queue| {
-            let queue_cloned = queue.to_vec();
-            let mw_weak = mw_weak_queue.clone();
-            let _ = slint::invoke_from_event_loop(move || {
-                if let Some(main_window) = mw_weak.upgrade() {
-                    let queue_models: Vec<SongModel> =
-                        queue_cloned.iter().map(utils::to_song_model).collect();
-                    main_window.set_queue(ModelRc::new(VecModel::from(queue_models)));
                 }
             });
         });

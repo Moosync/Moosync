@@ -22,6 +22,14 @@ export global AppCallbacks {
     callback select_preset_theme(string);
     callback install_extension(string);
     callback toggle_extension(string);
+
+    // Queue & Drag-and-Drop Callbacks
+    callback play-queue-index(int);
+    callback remove-from-queue(int);
+    callback clear-queue();
+    callback move-queue-item(string, int);
+    pure callback string-to-transfer(string) -> data-transfer;
+    pure callback transfer-to-string(data-transfer) -> string;
 }
 
 export global BottomBarCallbacks {

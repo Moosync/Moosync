@@ -19,6 +19,7 @@ import { GenresPage } from "main_content/genres.slint";
 import { ExplorePage } from "main_content/explore.slint";
 import { SearchPage } from "main_content/search.slint";
 import { SongListView } from "common/song_list_view.slint";
+import { QueuePage } from "main_content/queue_page.slint";
 import {
     Pages,
     Constants,
@@ -87,6 +88,7 @@ export component MainWindow inherits Window {
 
     // Settings
     in-out property <bool> show_settings: false;
+    in-out property <bool> show_queue: false;
     in-out property <[ThemeConfig]> available-themes;
     in-out property <string> active-theme-id;
     in-out property <[ThemeConstant]> theme-constants;
@@ -94,6 +96,7 @@ export component MainWindow inherits Window {
 
     // Main page
     in property <SongModel> current_song: Constants.defaultSong;
+    in property <image> blurred_cover;
     in-out property <int> repeat_mode: 0;
     in-out property <bool> playing: false;
     in-out property <int> current_duration: 0;
@@ -125,88 +128,111 @@ export component MainWindow inherits Window {
         height: 100%;
         width: 100%;
 
-        // Upper section containing Sidebar and main content area with TopBar
-        HorizontalLayout {
-            spacing: 0px;
+        // Container for upper section and sliding queue overlay
+        Rectangle {
+            vertical-stretch: 1;
+            clip: true;
 
-            Sidebar {
-                items: sidebar_items;
-                activePage <=> active-page;
-                width: Theme.sidebarWidth;
-            }
-
-            VerticalLayout {
+            // Upper section containing Sidebar and main content area with TopBar
+            HorizontalLayout {
                 spacing: 0px;
+                width: 100%;
+                height: 100%;
 
-                TopBar {
-                    settings_clicked => {
-                        root.show_settings = true;
-                    }
-                    search-submitted(txt) => {
-                        root.search_query = txt;
-                        root.active-page = Pages.Search;
-                    }
+                Sidebar {
+                    items: sidebar_items;
+                    activePage <=> active-page;
+                    width: Theme.sidebarWidth;
                 }
 
-                // Main Content Area
-                Rectangle {
-                    background: Theme.primary; // Primary
-                    clip: true;
+                VerticalLayout {
+                    spacing: 0px;
 
-                    PageWrapper {
-                        page-type: Pages.Search;
-                        active-page <=> root.active-page;
-                        SearchPage {
-                            search-query: root.search_query;
-                            results: search_results;
+                    TopBar {
+                        settings_clicked => {
+                            root.show_settings = true;
+                        }
+                        search-submitted(txt) => {
+                            root.search_query = txt;
+                            root.active-page = Pages.Search;
                         }
                     }
 
-                    PageWrapper {
-                        page-type: Pages.AllSongs;
-                        active-page <=> root.active-page;
-                        AllSongs {
-                            songs <=> root.songs;
+                    // Main Content Area
+                    Rectangle {
+                        background: Theme.primary; // Primary
+                        clip: true;
+
+                        PageWrapper {
+                            page-type: Pages.Search;
+                            active-page <=> root.active-page;
+                            SearchPage {
+                                search-query: root.search_query;
+                                results: search_results;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.AllSongs;
+                            active-page <=> root.active-page;
+                            AllSongs {
+                                songs <=> root.songs;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.Playlists;
+                            active-page <=> root.active-page;
+                            PlaylistsPage {
+                                playlists <=> root.playlists;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.Artists;
+                            active-page <=> root.active-page;
+                            ArtistsPage {
+                                artists <=> root.artists;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.Albums;
+                            active-page <=> root.active-page;
+                            AlbumsPage {
+                                albums <=> root.albums;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.Genres;
+                            active-page <=> root.active-page;
+                            GenresPage {
+                                genres <=> root.genres;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.Explore;
+                            active-page <=> root.active-page;
+                            ExplorePage { }
                         }
                     }
+                }
+            }
 
-                    PageWrapper {
-                        page-type: Pages.Playlists;
-                        active-page <=> root.active-page;
-                        PlaylistsPage {
-                            playlists <=> root.playlists;
-                        }
-                    }
+            // Slide-up queue page overlay
+            QueuePage {
+                y: root.show_queue ? 0px : parent.height;
+                width: 100%;
+                height: 100%;
+                queue: root.queue;
+                current-song: root.current_song;
+                blurred-cover: root.blurred_cover;
 
-                    PageWrapper {
-                        page-type: Pages.Artists;
-                        active-page <=> root.active-page;
-                        ArtistsPage {
-                            artists <=> root.artists;
-                        }
-                    }
-
-                    PageWrapper {
-                        page-type: Pages.Albums;
-                        active-page <=> root.active-page;
-                        AlbumsPage {
-                            albums <=> root.albums;
-                        }
-                    }
-
-                    PageWrapper {
-                        page-type: Pages.Genres;
-                        active-page <=> root.active-page;
-                        GenresPage {
-                            genres <=> root.genres;
-                        }
-                    }
-
-                    PageWrapper {
-                        page-type: Pages.Explore;
-                        active-page <=> root.active-page;
-                        ExplorePage { }
-                    }
+                animate y {
+                    duration: 250ms;
+                    easing: ease-in-out;
                 }
             }
         }
@@ -218,6 +244,7 @@ export component MainWindow inherits Window {
             playing: root.playing;
             current_duration: root.current_duration;
             current-pos-str: root.current_pos_str;
+            show-queue <=> root.show_queue;
         }
     }
 

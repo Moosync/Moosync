@@ -205,6 +205,49 @@ impl PlayerHandler {
         }
     }
 
+    pub fn play_index(&mut self, idx: usize) {
+        if idx < self.song_queue.len() {
+            self.current_idx = idx;
+            self.trigger_song_changed();
+            if let Err(e) = self.play() {
+                tracing::error!("Failed to play song at index {}: {:?}", idx, e);
+            }
+        }
+    }
+
+    pub fn remove_from_queue(&mut self, idx: usize) {
+        if idx < self.song_queue.len() {
+            self.song_queue.remove(idx);
+            if self.current_idx >= self.song_queue.len() && !self.song_queue.is_empty() {
+                self.current_idx = self.song_queue.len() - 1;
+            }
+            self.trigger_queue_updated();
+        }
+    }
+
+    pub fn clear_queue(&mut self) {
+        self.song_queue.clear();
+        self.current_idx = 0;
+        self.trigger_queue_updated();
+        let _ = self.player.stop();
+        self.trigger_song_changed();
+    }
+
+    pub fn move_queue_item(&mut self, from_idx: usize, to_idx: usize) {
+        if from_idx < self.song_queue.len() && to_idx < self.song_queue.len() {
+            let song = self.song_queue.remove(from_idx);
+            self.song_queue.insert(to_idx, song);
+            if self.current_idx == from_idx {
+                self.current_idx = to_idx;
+            } else if from_idx < self.current_idx && to_idx >= self.current_idx {
+                self.current_idx -= 1;
+            } else if from_idx > self.current_idx && to_idx <= self.current_idx {
+                self.current_idx += 1;
+            }
+            self.trigger_queue_updated();
+        }
+    }
+
     pub fn on_song_ended(&mut self) {
         self.trigger_player_event(PlayerEvent {
             event: Some(Event::Ended(true)),

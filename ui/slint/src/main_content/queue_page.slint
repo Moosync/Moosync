@@ -1,0 +1,234 @@
+import { SongModel, CoverHelper } from "../types/song_view.slint";
+import { Theme, Constants } from "../constants.slint";
+import { ListView } from "std-widgets.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { Button } from "../common/button.slint";
+import { SongDetails } from "../common/song_details.slint";
+
+component QueueListItem inherits Rectangle {
+    in property <SongModel> song;
+    in property <int> item-idx;
+    in property <string> index-str;
+    in property <bool> is-active: false;
+    callback clicked();
+    callback remove-clicked();
+
+    background: touch.has-hover ? rgba(255, 255, 255, 0.05) : transparent;
+    border-radius: Theme.borderRadiusMd;
+    height: 60px;
+
+    DragArea {
+        width: 100%;
+        height: 100%;
+        allow-move: true;
+        preferred-action: DragAction.move;
+        data: AppCallbacks.string-to-transfer(root.index-str);
+
+        DropArea {
+            width: 100%;
+            height: 100%;
+
+            can-drop(event) => {
+                event.allow-move ? DragAction.move : DragAction.none
+            }
+
+            dropped(event) => {
+                AppCallbacks.move-queue-item(AppCallbacks.transfer-to-string(event.data), root.item-idx);
+                return event.proposed-action;
+            }
+
+            touch := TouchArea {
+                clicked => { root.clicked(); }
+            }
+
+            HorizontalLayout {
+                padding-left: Theme.paddingXs;
+                padding-right: Theme.paddingXs;
+                padding-top: Theme.paddingXs;
+                padding-bottom: Theme.paddingXs;
+                spacing: Theme.spacingMd;
+
+                // Thumbnail
+                Rectangle {
+                    width: Theme.songListItemThumbnailSize;
+                    height: Theme.songListItemThumbnailSize;
+                    border-radius: Theme.borderRadiusMd;
+                    clip: true;
+
+                    Image {
+                        width: 100%;
+                        height: 100%;
+                        source: song.coverPathLow.width > 0 ? song.coverPathLow : (song.id != "" ? CoverHelper.fetch_cover_high(song) : @image-url("../icons/song_default.svg"));
+                        image-fit: cover;
+                    }
+                }
+
+                // Details
+                VerticalLayout {
+                    alignment: center;
+                    spacing: Theme.spacingTiny;
+                    horizontal-stretch: 1;
+
+                    HorizontalLayout {
+                        spacing: Theme.spacingSm;
+                        alignment: start;
+
+                        Text {
+                            text: song.title;
+                            color: root.is-active ? Theme.accent : Theme.textPrimary;
+                            font-size: Theme.body;
+                            font-weight: 600;
+                            overflow: elide;
+                        }
+
+                        if song.extensionIcon.height > 0 || song.extensionIcon.width > 0: Image {
+                            width: Theme.iconSizeSm;
+                            source: song.extensionIcon;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    Text {
+                        text: song.artist_name;
+                        color: Theme.textSecondary;
+                        font-size: Theme.caption;
+                        overflow: elide;
+                    }
+                }
+
+                // Delete button
+                if touch.has-hover || root.is-active: VerticalLayout {
+                    alignment: center;
+
+                    TouchArea {
+                        width: Theme.iconSizeLg;
+                        height: Theme.iconSizeLg;
+                        clicked => { root.remove-clicked(); }
+
+                        Image {
+                            width: Theme.iconSizeMd;
+                            height: Theme.iconSizeMd;
+                            source: @image-url("../icons/cross.svg");
+                            colorize: #ff5555; // Red color for delete
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component QueuePage inherits Rectangle {
+    in property <[SongModel]> queue: Constants.testSongs;
+    in property <SongModel> current-song: Constants.defaultSong;
+    in-out property <int> active-idx: -1;
+
+    // Blurred cover image passed from MainWindow
+    in property <image> blurred-cover;
+
+    background: Theme.primary;
+
+    // Background blurred artwork effect
+    Image {
+        width: 100%;
+        height: 100%;
+        source: root.blurred-cover;
+        image-fit: cover;
+        opacity: 0.85;
+    }
+
+    // Semi-transparent overlay to make text highly readable and premium
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 15, 15, 0.65);
+    }
+
+    HorizontalLayout {
+        padding: Theme.paddingLg * 2;
+        spacing: Theme.spacingXl * 2;
+
+        // Left section: Stretched cover and song info reusing SongDetails
+        SongDetails {
+            song: root.current-song;
+
+            // Show lyrics button placed below duration via the @children slot
+            HorizontalLayout {
+                alignment: end;
+                padding-top: Theme.spacingSm;
+                TouchArea {
+                    Text {
+                        text: "Show Lyrics";
+                        color: Theme.accent;
+                        font-size: Theme.subtitle;
+                        font-weight: 600;
+                    }
+                }
+            }
+        }
+
+        // Right section: Queue controls & list
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: Theme.spacingXl;
+
+            // Header Controls: Buttons
+            HorizontalLayout {
+                height: Theme.searchBarHeight;
+                spacing: Theme.spacingMd;
+
+                // Save as playlist button
+                Button {
+                    text: "Save as playlist";
+                    clicked => {
+                        // Not implemented but visually clickable
+                    }
+                }
+
+                // Clear button
+                Button {
+                    text: "Clear";
+                    clicked => {
+                        AppCallbacks.clear-queue();
+                    }
+                }
+
+                // Spacer
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+            }
+
+            // Queue List View
+            Rectangle {
+                vertical-stretch: 1;
+                border-radius: Theme.borderRadiusLg;
+                clip: true;
+
+                ListView {
+                    width: 100%;
+                    height: 100%;
+
+                    for song[idx] in root.queue: VerticalLayout {
+                        padding-bottom: Theme.paddingSm;
+                        padding-right: Theme.paddingSm;
+
+                        QueueListItem {
+                            song: song;
+                            item-idx: idx;
+                            index-str: "" + idx;
+                            is-active: root.current-song.id == song.id;
+
+                            clicked => {
+                                AppCallbacks.play-queue-index(idx);
+                            }
+                            remove-clicked => {
+                                AppCallbacks.remove-from-queue(idx);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

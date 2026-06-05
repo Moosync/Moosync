@@ -1,4 +1,4 @@
-import { Pages } from "constants.slint";
+import { Pages, SettingsPages } from "constants.slint";
 import { SongModel, SearchResult } from "./types/song_view.slint";
 
 export struct PreferenceChange {
@@ -30,6 +30,11 @@ export global AppCallbacks {
     callback move-queue-item(string, int);
     pure callback string-to-transfer(string) -> data-transfer;
     pure callback transfer-to-string(data-transfer) -> string;
+
+    // Page Lifecycle Decoupling Callbacks
+    callback settings-active-page-changed(SettingsPages);
+    callback settings-toggled(bool);
+    callback queue-toggled(bool);
 }
 
 export global BottomBarCallbacks {

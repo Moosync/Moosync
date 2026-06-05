@@ -38,18 +38,6 @@ fn select_directory() -> String { String::new() }
 fn select_file(filter: String) -> String { String::new() }
 
 pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static StateManager) {
-    let paths_handler = paths::PathsPageHandler::new(main_window, state_manager);
-    paths_handler.initialize();
-
-    let system_handler = system::SystemPageHandler::new(main_window, state_manager);
-    system_handler.initialize();
-
-    let extensions_handler = extensions::ExtensionsPageHandler::new(main_window, state_manager);
-    extensions_handler.initialize();
-
-    let themes_handler = themes::ThemesPageHandler::new(main_window, state_manager);
-    themes_handler.initialize();
-
     let main_window_weak = main_window.as_weak();
     main_window
         .global::<crate::AppCallbacks>()

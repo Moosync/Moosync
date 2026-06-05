@@ -1,36 +1,46 @@
 import { Modal, ModalSize } from "../common/modal.slint";
-import { Sidebar, SidebarItem } from "../sidebar/sidebar.slint";
-import { Pages, Theme, ThemeConfig, ThemeConstant } from "../constants.slint";
-import { PageWrapper } from "../common/page_wrapper.slint";
+import { SettingsSidebar, SettingsSidebarItem } from "../sidebar/sidebar.slint";
+import {
+    Pages,
+    SettingsPages,
+    Theme,
+    ThemeConfig,
+    ThemeConstant,
+} from "../constants.slint";
+import { SettingsPageWrapper } from "../common/page_wrapper.slint";
 import { PathSelector } from "path_selector.slint";
 import { PathsPage } from "paths.slint";
 import { SystemPage } from "system.slint";
 import { ExtensionsPage } from "extensions.slint";
 import { ExtensionItem } from "../types/extension_view.slint";
 import { ThemesPage } from "themes.slint";
+import { AppCallbacks } from "../callbacks.slint";
 
 export component Settings inherits Modal {
     modalSize: ModalSize.Xl;
-    property <Pages> activePage: Pages.Extensions;
+    property <SettingsPages> activePage: SettingsPages.Extensions;
+    changed activePage => {
+        AppCallbacks.settings-active-page-changed(self.activePage);
+    }
 
     in-out property <[ThemeConfig]> available-themes;
     in-out property <string> active-theme-id;
     in-out property <[ThemeConstant]> theme-constants;
     in-out property <[ExtensionItem]> extensions;
 
-    property <[SidebarItem]> items: [
-        { text: "Paths", icon: @image-url("../icons/paths.svg"), page: Pages.Paths },
-        { text: "System", icon: @image-url("../icons/system.svg"), page: Pages.System },
+    property <[SettingsSidebarItem]> items: [
+        { text: "Paths", icon: @image-url("../icons/paths.svg"), page: SettingsPages.Paths },
+        { text: "System", icon: @image-url("../icons/system.svg"), page: SettingsPages.System },
         {
             text: "Extensions",
             icon: @image-url("../icons/extensions.svg"),
-            page: Pages.Extensions
+            page: SettingsPages.Extensions
         },
-        { text: "Themes", icon: @image-url("../icons/themes.svg"), page: Pages.Themes },
+        { text: "Themes", icon: @image-url("../icons/themes.svg"), page: SettingsPages.Themes },
     ];
 
     HorizontalLayout {
-        Sidebar {
+        SettingsSidebar {
             sidebarWidth: Theme.settingsSidebarWidth;
             items: items;
             activePage <=> root.activePage;
@@ -40,32 +50,32 @@ export component Settings inherits Modal {
             horizontal-stretch: 1;
             background: Theme.primary;
 
-            PageWrapper {
+            SettingsPageWrapper {
                 active-page <=> root.activePage;
-                page-type: Pages.Paths;
+                page-type: SettingsPages.Paths;
 
                 PathsPage { }
             }
 
-            PageWrapper {
+            SettingsPageWrapper {
                 active-page <=> root.activePage;
-                page-type: Pages.System;
+                page-type: SettingsPages.System;
 
                 SystemPage { }
             }
 
-            PageWrapper {
+            SettingsPageWrapper {
                 active-page <=> root.activePage;
-                page-type: Pages.Extensions;
+                page-type: SettingsPages.Extensions;
 
                 ExtensionsPage {
                     extensions <=> root.extensions;
                 }
             }
 
-            PageWrapper {
+            SettingsPageWrapper {
                 active-page <=> root.activePage;
-                page-type: Pages.Themes;
+                page-type: SettingsPages.Themes;
 
                 ThemesPage {
                     available-themes <=> root.available-themes;

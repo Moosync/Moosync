@@ -22,6 +22,8 @@ import { SongListView } from "common/song_list_view.slint";
 import { QueuePage } from "main_content/queue_page.slint";
 import {
     Pages,
+    SettingsPages,
+    QueuePages,
     Constants,
     Theme,
     ThemeConfig,
@@ -55,6 +57,8 @@ export {
     RgbaColor,
     ExtensionItem,
     ThemeConstant,
+    SettingsPages,
+    QueuePages,
 }
 export component MainWindow inherits Window {
     title: "moosync";
@@ -88,7 +92,13 @@ export component MainWindow inherits Window {
 
     // Settings
     in-out property <bool> show_settings: false;
+    changed show_settings => {
+        AppCallbacks.settings-toggled(self.show_settings);
+    }
     in-out property <bool> show_queue: false;
+    changed show_queue => {
+        AppCallbacks.queue-toggled(self.show_queue);
+    }
     in-out property <[ThemeConfig]> available-themes;
     in-out property <string> active-theme-id;
     in-out property <[ThemeConstant]> theme-constants;

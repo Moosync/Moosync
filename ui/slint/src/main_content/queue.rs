@@ -82,7 +82,7 @@ impl<'a> QueuePageHandler<'a> {
 
         self.main_window
             .global::<AppCallbacks>()
-            .on_transfer_to_string(move |transfer| transfer.fetch_plaintext().unwrap_or_default());
+            .on_transfer_to_string(move |transfer| transfer.plain_text().unwrap_or_default());
     }
 
     fn fetch_initial_state(&self) {
@@ -160,7 +160,6 @@ impl<'a> QueuePageHandler<'a> {
             });
             handles.push(ch_song);
 
-            // Queue updated listener to update queue list
             let mw_weak_queue = main_window_weak.clone();
             let ch_queue = player_handler.on_queue_updated(move |queue| {
                 let queue_cloned = queue.to_vec();
@@ -204,13 +203,11 @@ impl<'a> PageHandler for QueuePageHandler<'a> {
     }
 
     fn on_hide(&self) {
-        // Cancel player subscription handles
         let mut handles = self.cancel_handles.lock().unwrap();
         for handle in handles.drain(..) {
             handle.cancel();
         }
 
-        // Free up UI stored data
         self.main_window.set_queue(slint::ModelRc::default());
         self.main_window.set_blurred_cover(
             slint::Image::load_from_svg_data(crate::utils::DEFAULT_SONG_SVG).unwrap(),

@@ -1,5 +1,5 @@
 import { SongModel, CoverHelper } from "../types/song_view.slint";
-import { Theme, Constants } from "../constants.slint";
+import { Theme, Constants, QueuePages } from "../constants.slint";
 import { ListView } from "std-widgets.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button.slint";
@@ -119,6 +119,7 @@ component QueueListItem inherits Rectangle {
 }
 
 export component QueuePage inherits Rectangle {
+    in property <QueuePages> page-type: QueuePages.Queue;
     in property <[SongModel]> queue: Constants.testSongs;
     in property <SongModel> current-song: Constants.defaultSong;
     in-out property <int> active-idx: -1;

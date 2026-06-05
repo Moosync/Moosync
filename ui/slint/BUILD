@@ -90,7 +90,13 @@ rust_binary(
     deps = [
         ":slint_app_lib",
         "@crates//:tokio",
-    ],
+    ] + select({
+        "@platforms//os:windows": [],
+        "@platforms//os:android": [],
+        "//conditions:default": [
+            "@crates//:tikv-jemallocator",
+        ],
+    }),
 )
 
 # Android Shared Library target — compiled as cdylib for NativeActivity.
@@ -98,6 +104,7 @@ rust_binary(
 # state_manager and tracing are present on Android.
 rust_shared_library(
     name = "slint_app_android",
+    target_compatible_with = ["@platforms//os:android"],
     srcs = [
         "src/lib.rs",
         "src/main_content/albums.rs",

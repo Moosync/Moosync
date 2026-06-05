@@ -362,6 +362,10 @@ crates.spec(
     version = "1.48.0",
 )
 crates.spec(
+    package = "tikv-jemallocator",
+    version = "0.6.0",
+)
+crates.spec(
     package = "mockall",
     version = "0.13.1",
 )

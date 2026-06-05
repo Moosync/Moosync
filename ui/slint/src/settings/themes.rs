@@ -123,7 +123,7 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                         let _ = preference_config
                             .inner
                             .save_selective("active_theme_id".to_string(), Some(theme_id.clone()));
-                        theme_holder.inner.trigger_theme_changed(&theme);
+                        theme_holder.inner.on_theme_changed.run_all(|cb| cb(&theme));
 
                         let theme_id_clone = theme_id.clone();
                         let _ = slint::invoke_from_event_loop(move || {
@@ -216,7 +216,7 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
             let main_window_weak_inner = main_window_weak_cb.clone();
             let state_manager_inner = state_manager_cb.clone();
 
-            theme_holder.inner.on_theme_changed(move |changed_theme| {
+            theme_holder.on_theme_changed(move |changed_theme| {
                 let changed_theme = changed_theme.clone();
                 let main_window_weak_inner_clone = main_window_weak_inner.clone();
                 let state_manager_inner_clone = state_manager_inner.clone();

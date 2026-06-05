@@ -84,18 +84,20 @@ fn test_theme_subscribers() -> Result<()> {
     let call_count2 = Arc::new(Mutex::new(0));
 
     let c1 = call_count1.clone();
-    theme_holder.on_theme_changed(move |theme| {
+    let handle1 = theme_holder.on_theme_changed(move |theme| {
         let mut count = c1.lock().unwrap();
         *count += 1;
         assert_eq!(theme.name, "Notify Test Theme");
     });
 
     let c2 = call_count2.clone();
-    theme_holder.on_theme_changed(move |theme| {
+    let _handle2 = theme_holder.on_theme_changed(move |theme| {
         let mut count = c2.lock().unwrap();
         *count += 1;
         assert_eq!(theme.name, "Notify Test Theme");
     });
+
+    handle1.cancel();
 
     let theme_details = ThemeDetails {
         id: "notify_test".to_string(),
@@ -110,7 +112,7 @@ fn test_theme_subscribers() -> Result<()> {
 
     theme_holder.save_theme(theme_details)?;
 
-    assert_eq!(*call_count1.lock().unwrap(), 1);
+    assert_eq!(*call_count1.lock().unwrap(), 0);
     assert_eq!(*call_count2.lock().unwrap(), 1);
 
     fs::remove_dir_all(&temp_theme_dir).unwrap();

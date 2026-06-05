@@ -269,10 +269,9 @@ impl ReplyHandler for StateReplyHandler {
     }
 
     fn extensions_updated(&self, _package_name: &str) -> Result<(), types::errors::MoosyncError> {
-        let callbacks = self.state_manager.on_extensions_updated.lock().unwrap();
-        for cb in callbacks.iter() {
-            cb();
-        }
+        self.state_manager.on_extensions_updated.run_all(|cb| {
+            cb(());
+        });
         Ok(())
     }
 

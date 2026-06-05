@@ -53,7 +53,7 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
 
         let main_window_weak = self.main_window.as_weak();
         let state_manager_clone = self.state_manager.clone();
-        self.state_manager.on_extensions_updated(move || {
+        self.state_manager.on_extensions_updated(move |_| {
             let main_window_weak = main_window_weak.clone();
             let state_manager = state_manager_clone.clone();
             refresh_extensions_list(main_window_weak, state_manager);

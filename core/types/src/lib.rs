@@ -20,6 +20,7 @@ pub mod mpris;
 pub mod plugin;
 pub mod preferences;
 pub mod providers;
+pub mod subscription;
 pub mod ui;
 pub mod window;
 

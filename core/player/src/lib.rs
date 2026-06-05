@@ -36,6 +36,7 @@ use tracing::debug;
 use types::{
     plugin::{Plugin, PluginContext, RwLock},
     prelude::core_to_proto_duration,
+    subscription::SubscriberList,
 };
 
 use crate::audio_source::AudioSource;
@@ -59,10 +60,10 @@ pub struct PlayerHandler {
     pub(crate) current_idx: usize,
     pub(crate) repeat_mode: RepeatMode,
     pub(crate) player: AudioSource,
-    on_song_changed_subs: Vec<OnSongChangedCallback>,
-    on_queue_updated_subs: Vec<OnQueueUpdatedCallback>,
-    on_repeat_changed_subs: Vec<OnRepeatChangedCallback>,
-    on_player_event_subs: Vec<OnPlayerEventCallback>,
+    pub(crate) on_song_changed: SubscriberList<OnSongChangedCallback>,
+    pub(crate) on_queue_updated: SubscriberList<OnQueueUpdatedCallback>,
+    pub(crate) on_repeat_changed: SubscriberList<OnRepeatChangedCallback>,
+    pub(crate) on_player_event: SubscriberList<OnPlayerEventCallback>,
 }
 
 #[plugin_macro::generate]
@@ -75,10 +76,10 @@ impl PlayerHandler {
             player: AudioSource::new(Box::new(move || {
                 let _ = ended_tx.send(());
             })),
-            on_song_changed_subs: vec![],
-            on_queue_updated_subs: vec![],
-            on_repeat_changed_subs: vec![],
-            on_player_event_subs: vec![],
+            on_song_changed: SubscriberList::new(),
+            on_queue_updated: SubscriberList::new(),
+            on_repeat_changed: SubscriberList::new(),
+            on_player_event: SubscriberList::new(),
         }
     }
 
@@ -102,7 +103,7 @@ impl PlayerHandler {
 
     pub fn add_to_queue(&mut self, song: Song) {
         self.song_queue.push(song);
-        self.trigger_queue_updated();
+        self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
     }
 
     pub fn play_now(&mut self, song: Song) {
@@ -115,7 +116,7 @@ impl PlayerHandler {
             self.song_queue.insert(insert_pos, song.clone());
             self.current_idx = insert_pos;
         }
-        self.trigger_queue_updated();
+        self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
         self.trigger_song_changed();
 
         if let Err(e) = self.play() {
@@ -135,26 +136,30 @@ impl PlayerHandler {
         self.song_queue.shuffle(&mut rng);
 
         self.song_queue.insert(self.current_idx, current_song);
-        self.trigger_queue_updated();
+        self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
     }
 
     pub fn repeat(&mut self, mode: RepeatMode) {
         self.repeat_mode = mode;
-        self.trigger_repeat_changed();
+        self.on_repeat_changed.run_all(|cb| cb(self.repeat_mode));
     }
 
     pub fn play(&mut self) -> Result<(), crate::error::PlayerError> {
         self.player.play()?;
-        self.trigger_player_event(PlayerEvent {
-            event: Some(Event::Play(true)),
+        self.on_player_event.run_all(|cb| {
+            cb(&PlayerEvent {
+                event: Some(Event::Play(true)),
+            });
         });
         Ok(())
     }
 
     pub fn pause(&mut self) -> Result<(), crate::error::PlayerError> {
         self.player.pause()?;
-        self.trigger_player_event(PlayerEvent {
-            event: Some(Event::Pause(true)),
+        self.on_player_event.run_all(|cb| {
+            cb(&PlayerEvent {
+                event: Some(Event::Pause(true)),
+            });
         });
         Ok(())
     }
@@ -199,8 +204,10 @@ impl PlayerHandler {
             tracing::error!("Failed to seek: {:?}", e)
         }
         if let Ok(pos) = self.player.get_current_pos() {
-            self.trigger_player_event(PlayerEvent {
-                event: Some(Event::TimeUpdate(core_to_proto_duration(pos))),
+            self.on_player_event.run_all(|cb| {
+                cb(&PlayerEvent {
+                    event: Some(Event::TimeUpdate(core_to_proto_duration(pos))),
+                });
             });
         }
     }
@@ -221,14 +228,14 @@ impl PlayerHandler {
             if self.current_idx >= self.song_queue.len() && !self.song_queue.is_empty() {
                 self.current_idx = self.song_queue.len() - 1;
             }
-            self.trigger_queue_updated();
+            self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
         }
     }
 
     pub fn clear_queue(&mut self) {
         self.song_queue.clear();
         self.current_idx = 0;
-        self.trigger_queue_updated();
+        self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
         let _ = self.player.stop();
         self.trigger_song_changed();
     }
@@ -244,13 +251,15 @@ impl PlayerHandler {
             } else if from_idx > self.current_idx && to_idx <= self.current_idx {
                 self.current_idx += 1;
             }
-            self.trigger_queue_updated();
+            self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
         }
     }
 
     pub fn on_song_ended(&mut self) {
-        self.trigger_player_event(PlayerEvent {
-            event: Some(Event::Ended(true)),
+        self.on_player_event.run_all(|cb| {
+            cb(&PlayerEvent {
+                event: Some(Event::Ended(true)),
+            });
         });
 
         match self.repeat_mode {
@@ -279,34 +288,6 @@ impl PlayerHandler {
 
     pub fn set_resolver(&self, f: crate::source::SourceResolverFn) { self.player.set_resolver(f); }
 
-    pub fn on_song_changed<F>(&mut self, callback: F)
-    where
-        F: Fn(Option<&Song>) -> () + Send + Sync + 'static,
-    {
-        self.on_song_changed_subs.push(Box::new(callback));
-    }
-
-    pub fn on_queue_updated<F>(&mut self, callback: F)
-    where
-        F: Fn(&[Song]) -> () + Send + Sync + 'static,
-    {
-        self.on_queue_updated_subs.push(Box::new(callback));
-    }
-
-    pub fn on_repeat_changed<F>(&mut self, callback: F)
-    where
-        F: Fn(RepeatMode) -> () + Send + Sync + 'static,
-    {
-        self.on_repeat_changed_subs.push(Box::new(callback));
-    }
-
-    pub fn on_player_event<F>(&mut self, callback: F)
-    where
-        F: Fn(&PlayerEvent) -> () + Send + Sync + 'static,
-    {
-        self.on_player_event_subs.push(Box::new(callback));
-    }
-
     fn trigger_song_changed(&mut self) {
         let current = self.current_song().cloned();
         if let Some(song) = &current {
@@ -315,34 +296,26 @@ impl PlayerHandler {
                 return;
             }
         }
-        for cb in &self.on_song_changed_subs {
+        self.on_song_changed.run_all(|cb| {
             cb(current.as_ref());
-        }
-        self.trigger_player_event(PlayerEvent {
-            event: Some(Event::TimeUpdate(
-                extensions_proto::duration_proto::google::protobuf::Duration::default(),
-            )),
+        });
+        self.on_player_event.run_all(|cb| {
+            cb(&PlayerEvent {
+                event: Some(Event::TimeUpdate(
+                    extensions_proto::duration_proto::google::protobuf::Duration::default(),
+                )),
+            });
         });
     }
-
-    fn trigger_queue_updated(&self) {
-        for cb in &self.on_queue_updated_subs {
-            cb(&self.song_queue);
-        }
-    }
-
-    fn trigger_repeat_changed(&self) {
-        for cb in &self.on_repeat_changed_subs {
-            cb(self.repeat_mode);
-        }
-    }
-
-    fn trigger_player_event(&self, event: PlayerEvent) {
-        for cb in &self.on_player_event_subs {
-            cb(&event);
-        }
-    }
 }
+
+types::generate_on_event_impl!(
+    PlayerHandler, InterceptedPlayerHandler;
+    on_song_changed, Option<&Song>;
+    on_queue_updated, &[Song];
+    on_repeat_changed, RepeatMode;
+    on_player_event, &PlayerEvent;
+);
 
 impl Plugin for PlayerHandler {
     fn init(_context: &PluginContext) -> Arc<RwLock<Self>> {
@@ -364,8 +337,10 @@ impl Plugin for PlayerHandler {
                 interval.tick().await;
                 let ph = ph_clone_timer.read().await;
                 if let Ok(pos) = ph.player.get_current_pos() {
-                    ph.trigger_player_event(PlayerEvent {
-                        event: Some(Event::TimeUpdate(core_to_proto_duration(pos))),
+                    ph.on_player_event.run_all(|cb| {
+                        cb(&PlayerEvent {
+                            event: Some(Event::TimeUpdate(core_to_proto_duration(pos))),
+                        });
                     });
                 }
             }

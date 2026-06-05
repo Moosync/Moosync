@@ -19,6 +19,7 @@ rust_library(
         "src/ui/player_details.rs",
         "src/ui/updater.rs",
         "src/window.rs",
+        "src/subscription.rs",
     ],
     compile_data = [
         "//ui/slint:src/constants.slint",

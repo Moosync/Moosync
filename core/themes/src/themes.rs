@@ -20,13 +20,15 @@ use std::{
     io::Write,
     path::PathBuf,
     str::FromStr,
-    sync::Mutex,
 };
 
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
 use themes_proto::moosync::types::ThemeDetails;
-use types::errors::{Result, error_helpers};
+use types::{
+    errors::{Result, error_helpers},
+    subscription::SubscriberList,
+};
 use uuid::Uuid;
 
 pub type OnThemeChangedCallback = Box<dyn Fn(&ThemeDetails) -> () + Send + Sync + 'static>;
@@ -34,7 +36,7 @@ pub type OnThemeChangedCallback = Box<dyn Fn(&ThemeDetails) -> () + Send + Sync 
 pub struct ThemeHolder {
     pub theme_dir: PathBuf,
     pub tmp_dir: PathBuf,
-    theme_changed_subs: Mutex<Vec<OnThemeChangedCallback>>,
+    pub on_theme_changed: SubscriberList<OnThemeChangedCallback>,
 }
 
 #[plugin_macro::generate]
@@ -44,22 +46,7 @@ impl ThemeHolder {
         Self {
             theme_dir,
             tmp_dir,
-            theme_changed_subs: Mutex::new(Vec::new()),
-        }
-    }
-
-    pub fn on_theme_changed<F>(&self, callback: F)
-    where
-        F: Fn(&ThemeDetails) -> () + Send + Sync + 'static,
-    {
-        let mut subs = self.theme_changed_subs.lock().unwrap();
-        subs.push(Box::new(callback));
-    }
-
-    pub fn trigger_theme_changed(&self, theme: &ThemeDetails) {
-        let subs = self.theme_changed_subs.lock().unwrap();
-        for sub in subs.iter() {
-            sub(theme);
+            on_theme_changed: SubscriberList::new(),
         }
     }
 
@@ -79,7 +66,9 @@ impl ThemeHolder {
         fs::write(theme_config, serde_json::to_string(&theme)?)
             .map_err(error_helpers::to_file_system_error)?;
 
-        self.trigger_theme_changed(&theme);
+        self.on_theme_changed.run_all(|sub| {
+            sub(&theme);
+        });
         Ok(())
     }
 
@@ -283,6 +272,11 @@ impl ThemeHolder {
         Ok(ret)
     }
 }
+
+types::generate_on_event_impl!(
+    ThemeHolder, InterceptedThemeHolder;
+    on_theme_changed, &ThemeDetails;
+);
 
 impl types::plugin::Plugin for ThemeHolder {
     fn init(

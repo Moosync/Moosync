@@ -15,7 +15,10 @@ use tokio::runtime::Handle;
 use tracing::trace;
 #[cfg(target_os = "android")]
 use types::android::AndroidJNIContext;
-use types::plugin::{PluginContext, PluginRegistry};
+use types::{
+    plugin::{PluginContext, PluginRegistry},
+    subscription::SubscriberList,
+};
 
 use crate::interceptors::database::CacheDatabaseInterceptor;
 
@@ -48,7 +51,7 @@ pub struct StateManager {
 
     song_cache: Arc<Mutex<LruCache<String, Song>>>,
     runtime: Handle,
-    pub on_extensions_updated: Arc<std::sync::Mutex<Vec<Box<dyn Fn() + Send + Sync + 'static>>>>,
+    pub on_extensions_updated: SubscriberList<Box<dyn Fn(()) + Send + Sync + 'static>>,
 }
 
 impl StateManager {
@@ -126,18 +129,8 @@ impl StateManager {
             cache_dir,
             song_cache: cache,
             runtime,
-            on_extensions_updated: Arc::new(std::sync::Mutex::new(Vec::new())),
+            on_extensions_updated: SubscriberList::new(),
         })
-    }
-
-    pub fn on_extensions_updated<F>(&self, callback: F)
-    where
-        F: Fn() + Send + Sync + 'static,
-    {
-        self.on_extensions_updated
-            .lock()
-            .unwrap()
-            .push(Box::new(callback));
     }
 
     pub async fn setup(&self) {
@@ -245,3 +238,8 @@ impl StateManager {
         None
     }
 }
+
+types::generate_on_event_impl!(
+    StateManager;
+    on_extensions_updated, ();
+);

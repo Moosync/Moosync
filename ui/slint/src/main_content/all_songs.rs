@@ -90,8 +90,8 @@ async fn fetch_and_cache_songs(
 fn set_all_songs(main_window: &MainWindow, songs: Vec<Song>, cache_dir: std::path::PathBuf) {
     debug!("Setting songs");
     let songs_view = songs
-        .into_iter()
-        .map(|song| crate::utils::to_song_model(Some(&song)))
+        .iter()
+        .map(crate::utils::to_song_model)
         .collect::<Vec<_>>();
 
     main_window.set_songs(ModelRc::new(LazySongVecModel::new(

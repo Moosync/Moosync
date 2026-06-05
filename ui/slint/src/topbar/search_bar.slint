@@ -2,6 +2,7 @@ import { Theme } from "../constants.slint";
 
 export component SearchBar inherits Rectangle {
     in-out property <string> text;
+    callback accepted(string);
 
     height: Theme.searchBarHeight;
     background: Theme.secondary; // Secondary
@@ -45,6 +46,9 @@ export component SearchBar inherits Rectangle {
                 font-size: Theme.subtitle;
                 vertical-alignment: center;
                 single-line: true;
+                accepted => {
+                    root.accepted(self.text);
+                }
             }
         }
     }

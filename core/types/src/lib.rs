@@ -36,10 +36,19 @@ pub enum ScanProgress {
 pub mod prelude {
     use std::time::Duration;
 
-    use songs_proto::moosync::types::{InnerSong, Song, SongType};
+    use songs_proto::moosync::types::{
+        Album, Artist, EntityResult, Genre, InnerSong, Playlist, Song, SongType, entity_result,
+    };
     use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
 
     use crate::errors::MoosyncError;
+
+    pub trait EntityResultExt {
+        fn get_albums(&self) -> Option<Vec<Album>>;
+        fn get_artists(&self) -> Option<Vec<Artist>>;
+        fn get_genres(&self) -> Option<Vec<Genre>>;
+        fn get_playlists(&self) -> Option<Vec<Playlist>>;
+    }
 
     pub trait ThemeExt {
         fn get_theme_item_or_default(&self) -> ThemeItem;
@@ -170,6 +179,40 @@ pub mod prelude {
     impl ThemeExt for ThemeDetails {
         fn get_theme_item_or_default(&self) -> ThemeItem {
             self.theme.clone().unwrap_or_else(get_default_theme_item)
+        }
+    }
+
+    impl EntityResultExt for EntityResult {
+        fn get_albums(&self) -> Option<Vec<Album>> {
+            match &self.result {
+                Some(entity_result::Result::Albums(album_list)) => Some(album_list.albums.clone()),
+                _ => None,
+            }
+        }
+
+        fn get_artists(&self) -> Option<Vec<Artist>> {
+            match &self.result {
+                Some(entity_result::Result::Artists(artist_list)) => {
+                    Some(artist_list.artists.clone())
+                }
+                _ => None,
+            }
+        }
+
+        fn get_genres(&self) -> Option<Vec<Genre>> {
+            match &self.result {
+                Some(entity_result::Result::Genres(genre_list)) => Some(genre_list.genres.clone()),
+                _ => None,
+            }
+        }
+
+        fn get_playlists(&self) -> Option<Vec<Playlist>> {
+            match &self.result {
+                Some(entity_result::Result::Playlists(playlist_list)) => {
+                    Some(playlist_list.playlists.clone())
+                }
+                _ => None,
+            }
         }
     }
 

@@ -10,12 +10,15 @@ import {
     PlaylistModel,
     ArtistModel,
     GenreModel,
+    SearchResult,
 } from "types/song_view.slint";
 import { AlbumsPage } from "main_content/albums.slint";
 import { ArtistsPage } from "main_content/artists.slint";
 import { PlaylistsPage } from "main_content/playlists.slint";
 import { GenresPage } from "main_content/genres.slint";
 import { ExplorePage } from "main_content/explore.slint";
+import { SearchPage } from "main_content/search.slint";
+import { SongListView } from "common/song_list_view.slint";
 import {
     Pages,
     Constants,
@@ -79,7 +82,9 @@ export component MainWindow inherits Window {
     changed active-page => {
         AppCallbacks.active-page-changed(self.active-page);
     }
-    
+
+    in-out property <string> search_query: "";
+
     // Settings
     in-out property <bool> show_settings: false;
     in-out property <[ThemeConfig]> available-themes;
@@ -100,6 +105,10 @@ export component MainWindow inherits Window {
     in property <[PlaylistModel]> playlists: Constants.testPlaylists;
     in property <[ArtistModel]> artists: Constants.testArtists;
     in property <[GenreModel]> genres: Constants.testGenres;
+    in property <SearchResult> search_results: {
+        songs: Constants.testSongs,
+        albums: Constants.testAlbums,
+    };
 
     property <[SidebarItem]> sidebar_items: [
         { text: "Songs", icon: @image-url("./icons/songs.svg"), page: Pages.AllSongs },
@@ -133,12 +142,25 @@ export component MainWindow inherits Window {
                     settings_clicked => {
                         root.show_settings = true;
                     }
+                    search-submitted(txt) => {
+                        root.search_query = txt;
+                        root.active-page = Pages.Search;
+                    }
                 }
 
                 // Main Content Area
                 Rectangle {
                     background: Theme.primary; // Primary
                     clip: true;
+
+                    PageWrapper {
+                        page-type: Pages.Search;
+                        active-page <=> root.active-page;
+                        SearchPage {
+                            search-query: root.search_query;
+                            results: search_results;
+                        }
+                    }
 
                     PageWrapper {
                         page-type: Pages.AllSongs;

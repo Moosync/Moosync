@@ -161,7 +161,7 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
                         let mut array = array.borrow_mut();
                         if let Some(item) = array.get_mut(row) {
                             item.set_cover(img);
-                            tracing::info!("Loaded image for row {} from {}", row, path.display());
+                            tracing::trace!("Loaded image for row {} from {}", row, path.display());
                             allocated_rows.borrow_mut().insert(row);
                             changed = true;
                         }
@@ -345,50 +345,32 @@ impl LazyModel for GenreModel {
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 }
 
-pub fn to_song_model(song: Option<&Song>) -> SongModel {
-    match song {
-        Some(song) => {
-            let extension_icon =
-                if let Some(icon_path) = song.song.as_ref().and_then(|s| s.icon.clone()) {
-                    if let Ok(image) = Image::load_from_path(Path::new(&icon_path)) {
-                        image
-                    } else {
-                        Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap()
-                    }
-                } else {
-                    Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap()
-                };
-
-            let raw_duration = song.get_duration_or_default();
-            let duration_s = raw_duration.as_secs() as i32;
-
-            SongModel {
-                id: song.get_id().unwrap_or_default().into(),
-                title: song.get_title().unwrap_or_default().into(),
-                artist_name: song.get_artist_string().unwrap_or_default().into(),
-                album_name: song.get_album_string().unwrap_or_default().into(),
-                duration: song.format_duration().into(),
-                duration_s,
-                coverPathHigh: Image::default(),
-                coverPathLow: Image::default(),
-                extensionIcon: extension_icon,
-                coverPathUrlHigh: song.get_cover_high().unwrap_or_default().into(),
-                coverPathUrlLow: song.get_cover_low().unwrap_or_default().into(),
-            }
+pub fn to_song_model(song: &Song) -> SongModel {
+    let extension_icon = if let Some(icon_path) = song.song.as_ref().and_then(|s| s.icon.clone()) {
+        if let Ok(image) = Image::load_from_path(Path::new(&icon_path)) {
+            image
+        } else {
+            Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap()
         }
-        None => SongModel {
-            id: "".into(),
-            title: "".into(),
-            artist_name: "".into(),
-            album_name: "".into(),
-            duration: "".into(),
-            duration_s: 0,
-            coverPathHigh: Image::default(),
-            coverPathLow: Image::default(),
-            extensionIcon: Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap(),
-            coverPathUrlHigh: "".into(),
-            coverPathUrlLow: "".into(),
-        },
+    } else {
+        Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap()
+    };
+
+    let raw_duration = song.get_duration_or_default();
+    let duration_s = raw_duration.as_secs() as i32;
+
+    SongModel {
+        id: song.get_id().unwrap_or_default().into(),
+        title: song.get_title().unwrap_or_default().into(),
+        artist_name: song.get_artist_string().unwrap_or_default().into(),
+        album_name: song.get_album_string().unwrap_or_default().into(),
+        duration: song.format_duration().into(),
+        duration_s,
+        coverPathHigh: Image::default(),
+        coverPathLow: Image::default(),
+        extensionIcon: extension_icon,
+        coverPathUrlHigh: song.get_cover_high().unwrap_or_default().into(),
+        coverPathUrlLow: song.get_cover_low().unwrap_or_default().into(),
     }
 }
 

@@ -47,3 +47,11 @@ export struct GenreModel {
     coverPath: image,
     coverPathUrl: string,
 }
+
+export struct SearchResult {
+    songs: [SongModel],
+    albums: [AlbumModel],
+    artists: [ArtistModel],
+    playlists: [PlaylistModel],
+    genres: [GenreModel],
+}

@@ -1,9 +1,13 @@
 import { ListView } from "std-widgets.slint";
 import { CardView } from "card_view.slint";
 import { Theme } from "../constants.slint";
+import { WindowInfo } from "../window_info.slint";
 
 export component GridListView inherits Rectangle {
-    in property <int> max-columns: 1;
+    clip: true;
+    width: 100%;
+    in property <length> padding-offset: 0px;
+    property <int> max-columns: Math.max(1, Math.floor((WindowInfo.window-width - WindowInfo.sidebar-width - Theme.paddingLg - root.padding-offset) / (root.item-width + root.spacing-x)));
     in property <length> item-width: Theme.cardWidth;
     in property <length> item-height: root.item-width + Theme.modelTitle + Theme.spacingXl;
     in property <length> spacing-x: Theme.spacingLg;
@@ -18,12 +22,11 @@ export component GridListView inherits Rectangle {
     callback item-clicked(int);
 
     HorizontalLayout {
-        spacing: root.spacing-x;
         alignment: start;
 
         for col-index in 20: Rectangle {
             visible: col-index < root.max-columns;
-            width: self.visible ? (col-index == root.max-columns - 1 ? root.item-width + Theme.spacingLg : root.item-width) : 0px;
+            width: self.visible ? root.item-width : 0px;
 
             if (self.visible): ListView {
                 viewport-y <=> root.scroll-y;

@@ -64,6 +64,10 @@ fn get_all_pages<'a>(
             main_window,
             state_manager,
         )),
+        Box::new(main_content::search::SearchPageHandler::new(
+            main_window,
+            state_manager,
+        )),
     ]
 }
 
@@ -125,6 +129,7 @@ fn get_page_handler<'b>(
         Pages::Playlists => 3,
         Pages::Genres => 4,
         Pages::Explore => 5,
+        Pages::Search => 6,
         _ => return None,
     };
     pages.get(idx).map(|p| p.as_ref())
@@ -194,7 +199,9 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
 
 fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     // Clear default values on load
-    main_window.set_current_song(utils::to_song_model(None));
+    main_window.set_current_song(utils::to_song_model(
+        &songs_proto::moosync::types::Song::default(),
+    ));
     main_window.set_queue(ModelRc::new(VecModel::default()));
 
     let main_window_weak = main_window.as_weak();
@@ -212,11 +219,14 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
 
         let mw_weak_song = main_window_weak.clone();
         player_handler.on_song_changed(move |song| {
-            let song_cloned = song.cloned();
             let mw_weak = mw_weak_song.clone();
+            let song = song.cloned();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = mw_weak.upgrade() {
-                    let song_model = utils::to_song_model(song_cloned.as_ref());
+                    let song_model = match song {
+                        Some(s) => utils::to_song_model(&s),
+                        None => utils::to_song_model(&songs_proto::moosync::types::Song::default()),
+                    };
                     main_window.set_current_song(song_model);
                 }
             });
@@ -228,10 +238,8 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
             let mw_weak = mw_weak_queue.clone();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = mw_weak.upgrade() {
-                    let queue_models: Vec<SongModel> = queue_cloned
-                        .iter()
-                        .map(|s| utils::to_song_model(Some(s)))
-                        .collect();
+                    let queue_models: Vec<SongModel> =
+                        queue_cloned.iter().map(utils::to_song_model).collect();
                     main_window.set_queue(ModelRc::new(VecModel::from(queue_models)));
                 }
             });

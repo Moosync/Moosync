@@ -4,6 +4,7 @@ import { Theme } from "../constants.slint";
 
 export component TopBar inherits Rectangle {
     callback settings_clicked();
+    callback search-submitted(string);
 
     height: Theme.topbarHeight;
     background: Theme.primary; // Sampleed Topbar Background
@@ -33,6 +34,9 @@ export component TopBar inherits Rectangle {
                     padding-left: Theme.paddingLg;
                     SearchBar {
                         horizontal-stretch: 1;
+                        accepted(txt) => {
+                            root.search-submitted(txt);
+                        }
                     }
                 }
             }

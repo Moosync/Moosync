@@ -1,6 +1,9 @@
 use std::{env, fs, path::PathBuf};
 
 fn main() {
+    unsafe {
+        std::env::set_var("SLINT_ENABLE_EXPERIMENTAL_FEATURES", "1");
+    }
     slint_build::compile("src/app.slint").unwrap();
 
     let out_dir = env::var("OUT_DIR").unwrap();

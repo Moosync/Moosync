@@ -17,6 +17,7 @@ cargo_build_script(
         "CARGO_PKG_VERSION_MAJOR": "1",
         "CARGO_PKG_VERSION_MINOR": "17",
         "CARGO_PKG_VERSION_PATCH": "0",
+        "SLINT_ENABLE_EXPERIMENTAL_FEATURES": "1",
     },
 )
 
@@ -31,6 +32,7 @@ rust_library(
         "src/main_content/genres.rs",
         "src/main_content/mod.rs",
         "src/main_content/playlists.rs",
+        "src/main_content/search.rs",
         "src/pages.rs",
         "src/settings/extensions.rs",
         "src/settings/mod.rs",
@@ -103,6 +105,7 @@ rust_shared_library(
         "src/main_content/genres.rs",
         "src/main_content/mod.rs",
         "src/main_content/playlists.rs",
+        "src/main_content/search.rs",
         "src/pages.rs",
         "src/settings/extensions.rs",
         "src/settings/mod.rs",

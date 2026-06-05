@@ -1,12 +1,9 @@
 import { AlbumModel } from "../types/song_view.slint";
 import { GridListView } from "../common/grid_list_view.slint";
 import { Constants, Theme } from "../constants.slint";
-import { WindowInfo } from "../window_info.slint";
 
 export component AlbumsPage inherits Rectangle {
     in property <[AlbumModel]> albums: Constants.testAlbums;
-
-    property <int> maxColumns: Math.max(1, Math.floor((WindowInfo.window-width - WindowInfo.sidebar-width) / (Theme.cardWidth + Theme.spacingLg)));
 
     background: transparent;
 
@@ -23,7 +20,7 @@ export component AlbumsPage inherits Rectangle {
 
         GridListView {
             height: root.height - text.height - (Theme.spacingXxl + Theme.paddingLg);
-            max-columns: root.maxColumns;
+            item-width: Theme.cardWidth;
             total-items: root.albums.length;
             item-title(idx) => {
                 root.albums[idx].title

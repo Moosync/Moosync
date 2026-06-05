@@ -99,6 +99,10 @@ impl PlayerExt for RodioPlayer {
     }
 
     fn set_src(&self, src: ValidSrc) -> Result<(), PlayerError> {
+        let old_volume = self.get_volume().unwrap_or_else(|e| {
+            tracing::error!("Failed to retrieve old volume. Defaulting to 50");
+            50
+        });
         let events_tx = self.events_tx.clone();
 
         if let Some(player) = self.player.lock().unwrap().as_ref() {
@@ -115,8 +119,7 @@ impl PlayerExt for RodioPlayer {
             let events_tx = events_tx.clone();
             Self::send_event(events_tx, PlayerEvent::Ended(true));
         })));
-
-        tracing::trace!("sink sample rate: {}", _sink.config().sample_rate());
+        player.set_volume(old_volume as f32 / 100f32);
 
         *self.player.lock().unwrap() = Some(player);
         *self._sink.lock().unwrap() = Some(_sink);

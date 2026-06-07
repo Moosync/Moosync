@@ -14,7 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{cmp::min, fmt::Write, fs, path::PathBuf, vec};
+use std::{
+    cmp::min,
+    fmt::{Debug, Write},
+    fs,
+    path::PathBuf,
+    vec,
+};
 
 use songs_proto::moosync::types::{
     Album, AlbumList, AllAnalytics, Artist, ArtistList, EntityResult, Genre, GenreList,
@@ -590,6 +596,7 @@ impl Database {
         }
 
         // 6. Execute bulk insertions within a transaction
+        let mut conn = self.pool.get().unwrap();
         let tx = conn
             .transaction()
             .map_err(error_helpers::to_database_error)?;
@@ -731,14 +738,18 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn remove_songs(&self, ids: Vec<String>) -> Result<()> {
+    pub fn remove_songs<T>(&self, ids: &[T]) -> Result<()>
+    where
+        T: AsRef<str> + rusqlite::ToSql + Debug,
+    {
         trace!("Removing song");
         let mut conn = self.pool.get().unwrap();
         let tx = conn
             .transaction()
             .map_err(error_helpers::to_database_error)?;
         for id in ids {
-            tx.execute("DELETE FROM analytics WHERE song_id = ?1", [&id])
+            let s: &str = id.as_ref();
+            tx.execute("DELETE FROM analytics WHERE song_id = ?1", [&s])
                 .map_err(error_helpers::to_database_error)?;
             tx.execute("DELETE FROM album_bridge WHERE song = ?1", [&id])
                 .map_err(error_helpers::to_database_error)?;
@@ -757,7 +768,7 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self, song))]
-    pub fn update_song(&self, song: InnerSong) -> Result<()> {
+    pub fn update_song(&self, song: &InnerSong) -> Result<()> {
         trace!("Updating song");
         if let Some(id) = song.id.as_ref() {
             let conn = self.pool.get().unwrap();
@@ -984,7 +995,7 @@ impl Database {
         Ok(fetched)
     }
 
-    pub fn is_song_in_playlist(&self, playlist_id: String, song_id: String) -> Result<bool> {
+    pub fn is_song_in_playlist(&self, playlist_id: &str, song_id: &str) -> Result<bool> {
         let conn = self.pool.get().unwrap();
         let count: i64 = conn
             .query_row(
@@ -1449,7 +1460,7 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn search_all(&self, term: String) -> Result<SearchResult> {
+    pub fn search_all(&self, term: &str) -> Result<SearchResult> {
         trace!("Searching all by term");
 
         let term = format!("%{}%", term);
@@ -1598,7 +1609,7 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn add_to_playlist(&self, id: String, songs: Vec<Song>) -> Result<()> {
+    pub fn add_to_playlist(&self, id: &str, songs: &[Song]) -> Result<()> {
         trace!("Adding to playlist");
         let conn = self.pool.get().unwrap();
         for s in songs {
@@ -1606,9 +1617,11 @@ impl Database {
                 continue;
             }
 
+            let sid = s.get_id().unwrap_or_default();
+
             if let Err(e) = conn.execute(
                 "INSERT INTO playlist_bridge (playlist, song) VALUES (?1, ?2)",
-                (&id, &s.get_id().unwrap_or_default()),
+                (&id, &sid),
             ) {
                 warn!("Failed to add {:?} to playlist: {:?}", s, e);
             }
@@ -1618,13 +1631,16 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn remove_from_playlist(&self, id: String, songs: Vec<String>) -> Result<()> {
+    pub fn remove_from_playlist<T>(&self, id: &str, songs: &[T]) -> Result<()>
+    where
+        T: AsRef<str> + rusqlite::ToSql + Debug,
+    {
         trace!("Removing from playlist");
         let conn = self.pool.get().unwrap();
-        for s in songs {
+        for sid in songs {
             conn.execute(
                 "DELETE FROM playlist_bridge WHERE playlist = ?1 AND song = ?2",
-                (&id, &s),
+                (&id, sid),
             )
             .map_err(error_helpers::to_database_error)?;
         }
@@ -1633,7 +1649,7 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn remove_playlist(&self, id: String) -> Result<()> {
+    pub fn remove_playlist(&self, id: &str) -> Result<()> {
         trace!("Removing playlist");
         let conn = self.pool.get().unwrap();
         conn.execute("DELETE FROM playlist_bridge WHERE playlist = ?1", [&id])
@@ -1798,7 +1814,7 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn increment_play_count(&self, id: String) -> Result<()> {
+    pub fn increment_play_count(&self, id: &str) -> Result<()> {
         trace!("Incrementing play count");
         let conn = self.pool.get().unwrap();
         let play_count_res: std::result::Result<Option<i32>, rusqlite::Error> = conn.query_row(
@@ -1831,7 +1847,7 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn increment_play_time(&self, id: String, duration: f64) -> Result<()> {
+    pub fn increment_play_time(&self, id: &str, duration: f64) -> Result<()> {
         trace!("Incrementing play time");
         let conn = self.pool.get().unwrap();
         let play_time_res: std::result::Result<Option<f64>, rusqlite::Error> = conn.query_row(
@@ -1901,12 +1917,12 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn export_playlist(&self, playlist_id: String) -> Result<String> {
+    pub fn export_playlist(&self, playlist_id: &str) -> Result<String> {
         let mut conn = self.pool.get().unwrap();
 
         let binding = self.get_playlists(
             Playlist {
-                playlist_id: Some(playlist_id.clone()),
+                playlist_id: Some(playlist_id.to_string()),
                 ..Default::default()
             },
             true,
@@ -1922,7 +1938,7 @@ impl Database {
 
         let playlist_songs = self.get_songs_by_options(GetSongOptions {
             playlist: Some(Playlist {
-                playlist_id: Some(playlist_id),
+                playlist_id: Some(playlist_id.to_string()),
                 ..Default::default()
             }),
             ..Default::default()

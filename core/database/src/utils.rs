@@ -173,9 +173,10 @@ pub fn map_row_to_inner_song(row: &rusqlite::Row) -> rusqlite::Result<InnerSong>
 pub(crate) fn proto_to_db_ms(
     proto_dur: &Option<songs_proto::duration_proto::google::protobuf::Duration>,
 ) -> i64 {
-    let proto_dur = proto_dur.clone().unwrap_or_default();
-    // seconds * 1000 + (nanos / 1,000,000)
-    (proto_dur.seconds * 1000) + (proto_dur.nanos as i64 / 1_000_000)
+    match proto_dur.as_ref() {
+        Some(dur) => (dur.seconds * 1000) + (dur.nanos as i64 / 1_000_000),
+        None => 0,
+    }
 }
 
 // Convert DB milliseconds back to Protobuf Duration

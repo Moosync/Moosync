@@ -22,7 +22,7 @@ impl DatabaseInterceptor for CacheDatabaseInterceptor {
         if let Ok(songs) = result {
             let mut cache = self.cache.lock().unwrap();
             for song in songs {
-                cache.put(song.get_id().unwrap(), song.clone());
+                cache.put(song.get_id().unwrap().to_string(), song.clone());
             }
         }
     }

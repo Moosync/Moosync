@@ -35,7 +35,7 @@ pub enum ScanProgress {
 }
 
 pub mod prelude {
-    use std::time::Duration;
+    use std::{borrow::Cow, time::Duration};
 
     use songs_proto::moosync::types::{
         Album, Artist, EntityResult, Genre, InnerSong, Playlist, Song, SongType, entity_result,
@@ -45,10 +45,10 @@ pub mod prelude {
     use crate::errors::MoosyncError;
 
     pub trait EntityResultExt {
-        fn get_albums(&self) -> Option<Vec<Album>>;
-        fn get_artists(&self) -> Option<Vec<Artist>>;
-        fn get_genres(&self) -> Option<Vec<Genre>>;
-        fn get_playlists(&self) -> Option<Vec<Playlist>>;
+        fn get_albums(self) -> Option<Vec<Album>>;
+        fn get_artists(self) -> Option<Vec<Artist>>;
+        fn get_genres(self) -> Option<Vec<Genre>>;
+        fn get_playlists(self) -> Option<Vec<Playlist>>;
     }
 
     pub trait ThemeExt {
@@ -79,19 +79,19 @@ pub mod prelude {
     }
 
     pub trait SongsExt {
-        fn get_id(&self) -> Option<String>;
-        fn get_title(&self) -> Option<String>;
+        fn get_id(&self) -> Option<Cow<'_, str>>;
+        fn get_title(&self) -> Option<Cow<'_, str>>;
         fn get_duration_or_default(&self) -> std::time::Duration;
-        fn get_cover_high(&self) -> Option<String>;
-        fn get_cover_low(&self) -> Option<String>;
-        fn get_playback_url(&self) -> Option<String>;
+        fn get_cover_high(&self) -> Option<Cow<'_, str>>;
+        fn get_cover_low(&self) -> Option<Cow<'_, str>>;
+        fn get_playback_url(&self) -> Option<Cow<'_, str>>;
         fn get_type_or_default(&self) -> SongType;
-        fn get_path(&self) -> Option<String>;
-        fn get_extension(&self) -> Option<String>;
-        fn get_lyrics(&self) -> Option<String>;
-        fn get_date(&self) -> Option<String>;
+        fn get_path(&self) -> Option<Cow<'_, str>>;
+        fn get_extension(&self) -> Option<Cow<'_, str>>;
+        fn get_lyrics(&self) -> Option<Cow<'_, str>>;
+        fn get_date(&self) -> Option<Cow<'_, str>>;
         fn get_artist_string(&self) -> Option<String>;
-        fn get_album_string(&self) -> Option<String>;
+        fn get_album_string(&self) -> Option<Cow<'_, str>>;
         fn format_duration(&self) -> String {
             let duration = self.get_duration_or_default();
             if duration == std::time::Duration::ZERO {
@@ -102,35 +102,45 @@ pub mod prelude {
     }
 
     impl SongsExt for Song {
-        fn get_id(&self) -> Option<String> { self.song.as_ref().and_then(|s| s.id.clone()) }
-        fn get_title(&self) -> Option<String> { self.song.as_ref().and_then(|s| s.title.clone()) }
+        fn get_id(&self) -> Option<Cow<'_, str>> {
+            self.song
+                .as_ref()
+                .and_then(|s| s.id.as_deref().map(Cow::Borrowed))
+        }
+        fn get_title(&self) -> Option<Cow<'_, str>> {
+            self.song
+                .as_ref()
+                .and_then(|s| s.title.as_deref().map(Cow::Borrowed))
+        }
         fn get_duration_or_default(&self) -> std::time::Duration {
             self.song
                 .as_ref()
                 .and_then(|s| {
                     s.duration
                         .as_ref()
-                        .map(|d| proto_duration_to_core(d.clone()).unwrap_or_default())
+                        .map(|d| proto_duration_to_core(d).unwrap_or_default())
                 })
                 .unwrap_or(std::time::Duration::ZERO)
         }
-        fn get_cover_high(&self) -> Option<String> {
+        fn get_cover_high(&self) -> Option<Cow<'_, str>> {
             self.song
                 .as_ref()
-                .and_then(|s| s.song_cover_path_high.clone())
+                .and_then(|s| s.song_cover_path_high.as_deref().map(Cow::Borrowed))
         }
-        fn get_cover_low(&self) -> Option<String> {
+        fn get_cover_low(&self) -> Option<Cow<'_, str>> {
             let cover_low = self
                 .song
                 .as_ref()
-                .and_then(|s| s.song_cover_path_low.clone());
+                .and_then(|s| s.song_cover_path_low.as_deref().map(Cow::Borrowed));
             if cover_low.is_none() {
                 return self.get_cover_high();
             }
             cover_low
         }
-        fn get_playback_url(&self) -> Option<String> {
-            self.song.as_ref().and_then(|s| s.playback_url.clone())
+        fn get_playback_url(&self) -> Option<Cow<'_, str>> {
+            self.song
+                .as_ref()
+                .and_then(|s| s.playback_url.as_deref().map(Cow::Borrowed))
         }
         fn get_type_or_default(&self) -> SongType {
             self.song
@@ -148,14 +158,26 @@ pub mod prelude {
                 })
                 .unwrap_or(SongType::Local)
         }
-        fn get_path(&self) -> Option<String> { self.song.as_ref().and_then(|s| s.path.clone()) }
-        fn get_extension(&self) -> Option<String> {
+        fn get_path(&self) -> Option<Cow<'_, str>> {
             self.song
                 .as_ref()
-                .and_then(|s| s.provider_extension.clone())
+                .and_then(|s| s.path.as_deref().map(Cow::Borrowed))
         }
-        fn get_lyrics(&self) -> Option<String> { self.song.as_ref().and_then(|s| s.lyrics.clone()) }
-        fn get_date(&self) -> Option<String> { self.song.as_ref().and_then(|s| s.date.clone()) }
+        fn get_extension(&self) -> Option<Cow<'_, str>> {
+            self.song
+                .as_ref()
+                .and_then(|s| s.provider_extension.as_deref().map(Cow::Borrowed))
+        }
+        fn get_lyrics(&self) -> Option<Cow<'_, str>> {
+            self.song
+                .as_ref()
+                .and_then(|s| s.lyrics.as_deref().map(Cow::Borrowed))
+        }
+        fn get_date(&self) -> Option<Cow<'_, str>> {
+            self.song
+                .as_ref()
+                .and_then(|s| s.date.as_deref().map(Cow::Borrowed))
+        }
 
         fn get_artist_string(&self) -> Option<String> {
             if self.artists.is_empty() {
@@ -170,8 +192,10 @@ pub mod prelude {
                     .join(","),
             )
         }
-        fn get_album_string(&self) -> Option<String> {
-            self.album.as_ref().and_then(|a| a.album_name.clone())
+        fn get_album_string(&self) -> Option<Cow<'_, str>> {
+            self.album
+                .as_ref()
+                .and_then(|a| a.album_name.as_deref().map(Cow::Borrowed))
         }
     }
 
@@ -184,33 +208,31 @@ pub mod prelude {
     }
 
     impl EntityResultExt for EntityResult {
-        fn get_albums(&self) -> Option<Vec<Album>> {
-            match &self.result {
-                Some(entity_result::Result::Albums(album_list)) => Some(album_list.albums.clone()),
+        fn get_albums(self) -> Option<Vec<Album>> {
+            match self.result {
+                Some(entity_result::Result::Albums(album_list)) => Some(album_list.albums),
                 _ => None,
             }
         }
 
-        fn get_artists(&self) -> Option<Vec<Artist>> {
-            match &self.result {
-                Some(entity_result::Result::Artists(artist_list)) => {
-                    Some(artist_list.artists.clone())
-                }
+        fn get_artists(self) -> Option<Vec<Artist>> {
+            match self.result {
+                Some(entity_result::Result::Artists(artist_list)) => Some(artist_list.artists),
                 _ => None,
             }
         }
 
-        fn get_genres(&self) -> Option<Vec<Genre>> {
-            match &self.result {
-                Some(entity_result::Result::Genres(genre_list)) => Some(genre_list.genres.clone()),
+        fn get_genres(self) -> Option<Vec<Genre>> {
+            match self.result {
+                Some(entity_result::Result::Genres(genre_list)) => Some(genre_list.genres),
                 _ => None,
             }
         }
 
-        fn get_playlists(&self) -> Option<Vec<Playlist>> {
-            match &self.result {
+        fn get_playlists(self) -> Option<Vec<Playlist>> {
+            match self.result {
                 Some(entity_result::Result::Playlists(playlist_list)) => {
-                    Some(playlist_list.playlists.clone())
+                    Some(playlist_list.playlists)
                 }
                 _ => None,
             }
@@ -226,7 +248,7 @@ pub mod prelude {
 
     // Assuming your generated module is `pb` and the struct is `pb::Duration`
     fn proto_duration_to_core(
-        proto_dur: songs_proto::duration_proto::google::protobuf::Duration,
+        proto_dur: &songs_proto::duration_proto::google::protobuf::Duration,
     ) -> Result<std::time::Duration, MoosyncError> {
         if proto_dur.seconds < 0 || proto_dur.nanos < 0 {
             return Err("Cannot convert negative protobuf duration to core::time::Duration".into());

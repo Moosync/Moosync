@@ -244,7 +244,7 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
 
         // Prefetch adjacent items (2 rows up and down)
         let prefetch = self.prefetch_count.get();
-        tracing::info!("Prefetching {} items around row {}", prefetch, row);
+        tracing::trace!("Prefetching {} items around row {}", prefetch, row);
         if prefetch > 0 {
             let min_idx = row.saturating_sub(prefetch);
             let max_idx = (row + prefetch).min(self.row_count() - 1);
@@ -360,17 +360,37 @@ pub fn to_song_model(song: &Song) -> SongModel {
     let duration_s = raw_duration.as_secs() as i32;
 
     SongModel {
-        id: song.get_id().unwrap_or_default().into(),
-        title: song.get_title().unwrap_or_default().into(),
+        id: song
+            .get_id()
+            .map(|c| c.to_string())
+            .unwrap_or_default()
+            .into(),
+        title: song
+            .get_title()
+            .map(|c| c.to_string())
+            .unwrap_or_default()
+            .into(),
         artist_name: song.get_artist_string().unwrap_or_default().into(),
-        album_name: song.get_album_string().unwrap_or_default().into(),
+        album_name: song
+            .get_album_string()
+            .map(|c| c.to_string())
+            .unwrap_or_default()
+            .into(),
         duration: song.format_duration().into(),
         duration_s,
         coverPathHigh: Image::default(),
         coverPathLow: Image::default(),
         extensionIcon: extension_icon,
-        coverPathUrlHigh: song.get_cover_high().unwrap_or_default().into(),
-        coverPathUrlLow: song.get_cover_low().unwrap_or_default().into(),
+        coverPathUrlHigh: song
+            .get_cover_high()
+            .map(|c| c.to_string())
+            .unwrap_or_default()
+            .into(),
+        coverPathUrlLow: song
+            .get_cover_low()
+            .map(|c| c.to_string())
+            .unwrap_or_default()
+            .into(),
     }
 }
 

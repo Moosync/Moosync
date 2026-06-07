@@ -1,4 +1,4 @@
-use std::{error::Error, fmt::Display, path::PathBuf};
+use std::{borrow::Cow, error::Error, fmt::Display, path::PathBuf};
 
 use songs_proto::moosync::types::Song;
 use types::prelude::SongsExt;
@@ -6,29 +6,29 @@ use types::prelude::SongsExt;
 use crate::error::PlayerError;
 
 #[derive(Clone, Debug)]
-pub(crate) enum ValidSrc {
+pub(crate) enum ValidSrc<'a> {
     Path(PathBuf),
-    Url(String),
+    Url(Cow<'a, str>),
 }
 
-impl Display for ValidSrc {
+impl Display for ValidSrc<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.clone().inner())
     }
 }
 
-impl ValidSrc {
-    pub(crate) fn inner(self) -> String {
+impl ValidSrc<'_> {
+    pub(crate) fn inner(&self) -> Cow<'_, str> {
         match self {
-            ValidSrc::Path(path) => path.to_str().unwrap().to_string(),
-            ValidSrc::Url(url) => url,
+            ValidSrc::Path(path) => path.to_string_lossy(),
+            ValidSrc::Url(url) => url.clone(),
         }
     }
 }
 
-pub(crate) fn get_valid_src(song: &Song) -> Result<ValidSrc, PlayerError> {
+pub(crate) fn get_valid_src(song: &'_ Song) -> Result<ValidSrc<'_>, PlayerError> {
     if let Some(path) = song.get_path() {
-        let path = PathBuf::from(&path);
+        let path = PathBuf::from(path.as_ref());
         if path.exists() {
             return Ok(ValidSrc::Path(path));
         }

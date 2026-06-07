@@ -195,7 +195,7 @@ fn test_update_song() {
         ..Default::default()
     };
 
-    db.update_song(updatable_song).unwrap();
+    db.update_song(&updatable_song).unwrap();
 
     // Fetch the updated song
     let options = GetSongOptions {
@@ -256,13 +256,13 @@ fn test_remove_songs() {
     assert_eq!(initial_songs.len(), 2);
 
     // Add analytics data to both songs
-    db.increment_play_count(keep_id.clone()).unwrap();
-    db.increment_play_count(remove_id.clone()).unwrap();
-    db.increment_play_time(keep_id.clone(), 60.0).unwrap();
-    db.increment_play_time(remove_id.clone(), 120.0).unwrap();
+    db.increment_play_count(&keep_id).unwrap();
+    db.increment_play_count(&remove_id).unwrap();
+    db.increment_play_time(&keep_id, 60.0).unwrap();
+    db.increment_play_time(&remove_id, 120.0).unwrap();
 
     // Remove one song
-    db.remove_songs(vec![remove_id.clone()]).unwrap();
+    db.remove_songs(&vec![&remove_id]).unwrap();
 
     // Verify only one song remains
     let all_songs = db
@@ -287,7 +287,7 @@ fn test_remove_songs() {
     let removed_song_analytics = analytics
         .songs
         .iter()
-        .find(|(song)| song.song_id == remove_id);
+        .find(|(song)| &song.song_id == &remove_id);
     assert!(
         removed_song_analytics.is_none(),
         "Analytics for removed song should be deleted"
@@ -349,8 +349,7 @@ fn test_playlist_operations() {
         .unwrap();
 
     // Add songs to playlist
-    db.add_to_playlist(playlist_id.clone(), songs.clone())
-        .unwrap();
+    db.add_to_playlist(&playlist_id, &songs).unwrap();
 
     // Get playlist songs
     let playlist_options = Playlist {
@@ -378,11 +377,11 @@ fn test_playlist_operations() {
 
     // Remove one song from playlist
     let song_id_to_remove = songs[0].song.clone().unwrap().id.clone().unwrap();
-    db.remove_from_playlist(playlist_id.clone(), vec![song_id_to_remove])
+    db.remove_from_playlist(&playlist_id, &vec![song_id_to_remove])
         .unwrap();
 
     // Delete the playlist
-    db.remove_playlist(playlist_id).unwrap();
+    db.remove_playlist(&playlist_id).unwrap();
 
     // Verify playlist is gone
     let all_playlists = db
@@ -619,7 +618,7 @@ fn test_search() {
     db.create_playlist(playlist).unwrap();
 
     // Search for "Search"
-    let search_results = db.search_all("Search".to_string()).unwrap();
+    let search_results = db.search_all("Search").unwrap();
 
     assert!(!search_results.songs.is_empty());
     assert!(!search_results.playlists.is_empty());
@@ -662,12 +661,12 @@ fn test_analytics() {
 
     // Increment play count multiple times
     for _ in 0..5 {
-        db.increment_play_count(song_id.clone()).unwrap();
+        db.increment_play_count(&song_id).unwrap();
     }
 
     // Add some play time
-    db.increment_play_time(song_id.clone(), 120.0).unwrap();
-    db.increment_play_time(song_id.clone(), 180.0).unwrap();
+    db.increment_play_time(&song_id, 120.0).unwrap();
+    db.increment_play_time(&song_id, 180.0).unwrap();
 
     // Get top listened songs
     let analytics = db.get_top_listened_songs().unwrap();
@@ -804,25 +803,16 @@ fn test_is_song_in_playlist() {
     let song_id = inserted[0].song.clone().unwrap().id.unwrap();
 
     // False when not in playlist
-    assert!(
-        !db.is_song_in_playlist(playlist_id.clone(), song_id.clone())
-            .unwrap()
-    );
+    assert!(!db.is_song_in_playlist(&playlist_id, &song_id).unwrap());
 
     // True when in playlist
-    db.add_to_playlist(playlist_id.clone(), inserted).unwrap();
-    assert!(
-        db.is_song_in_playlist(playlist_id.clone(), song_id.clone())
-            .unwrap()
-    );
+    db.add_to_playlist(&playlist_id, &inserted).unwrap();
+    assert!(db.is_song_in_playlist(&playlist_id, &song_id).unwrap());
 
     // False for non-existent IDs
+    assert!(!db.is_song_in_playlist("non_existent_pl", &song_id).unwrap());
     assert!(
-        !db.is_song_in_playlist("non_existent_pl".to_string(), song_id.clone())
-            .unwrap()
-    );
-    assert!(
-        !db.is_song_in_playlist(playlist_id, "non_existent_song".to_string())
+        !db.is_song_in_playlist(&playlist_id, "non_existent_song")
             .unwrap()
     );
 
@@ -995,7 +985,7 @@ fn test_export_playlist() {
     let db = Database::new(db_path.clone());
 
     // Non-existent playlist
-    let err_res = db.export_playlist("non_existent".to_string());
+    let err_res = db.export_playlist("non_existent");
     assert!(err_res.is_err());
     assert!(
         err_res
@@ -1051,9 +1041,9 @@ fn test_export_playlist() {
     };
 
     let inserted = db.insert_songs(vec![local_song, remote_song]).unwrap();
-    db.add_to_playlist(playlist_id.clone(), inserted).unwrap();
+    db.add_to_playlist(&playlist_id, &inserted).unwrap();
 
-    let export = db.export_playlist(playlist_id).unwrap();
+    let export = db.export_playlist(&playlist_id).unwrap();
 
     // Verify format
     assert!(export.starts_with("#EXTM3U"));
@@ -1090,30 +1080,25 @@ fn test_playlist_ops_edge_cases() {
         song: None,
         ..Default::default()
     };
-    db.add_to_playlist(playlist_id.clone(), vec![empty_song])
-        .unwrap();
+    db.add_to_playlist(&playlist_id, &vec![empty_song]).unwrap();
 
     // add_to_playlist duplicate songs
     let song = create_test_song("Song", "/path.mp3");
     let inserted = db.insert_songs(vec![song]).unwrap();
     let song_id = inserted[0].song.clone().unwrap().id.unwrap();
 
-    db.add_to_playlist(playlist_id.clone(), inserted.clone())
-        .unwrap();
-    db.add_to_playlist(playlist_id.clone(), inserted).unwrap();
+    db.add_to_playlist(&playlist_id, &inserted).unwrap();
+    db.add_to_playlist(&playlist_id, &inserted).unwrap();
 
-    assert!(
-        db.is_song_in_playlist(playlist_id.clone(), song_id.clone())
-            .unwrap()
-    );
+    assert!(db.is_song_in_playlist(&playlist_id, &song_id).unwrap());
 
     // remove_from_playlist for song not in playlist
-    db.remove_from_playlist(playlist_id.clone(), vec!["non_existent_song".to_string()])
+    db.remove_from_playlist(&playlist_id, &vec!["non_existent_song"])
         .unwrap();
 
     // remove_playlist
-    db.remove_playlist(playlist_id.clone()).unwrap();
-    assert!(!db.is_song_in_playlist(playlist_id, song_id).unwrap());
+    db.remove_playlist(&playlist_id).unwrap();
+    assert!(!db.is_song_in_playlist(&playlist_id, &song_id).unwrap());
 
     cleanup(&db_path);
 }
@@ -1128,7 +1113,7 @@ fn test_updates() {
         title: Some("No ID".to_string()),
         ..Default::default()
     };
-    db.update_song(song_no_id).unwrap();
+    db.update_song(&song_no_id).unwrap();
 
     // Insert song to update
     let song = Song {
@@ -1388,10 +1373,10 @@ fn test_analytics_edge_cases() {
     let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
 
     // Increment count when it does not exist
-    db.increment_play_count(song_id.clone()).unwrap();
+    db.increment_play_count(&song_id).unwrap();
 
     // Increment time when it exists
-    db.increment_play_time(song_id.clone(), 50.0).unwrap();
+    db.increment_play_time(&song_id, 50.0).unwrap();
 
     // Fetch and check
     let analytics1 = db.get_top_listened_songs().unwrap();
@@ -1404,7 +1389,7 @@ fn test_analytics_edge_cases() {
     let inserted2 = db.insert_songs(vec![song2]).unwrap();
     let song_id2 = inserted2[0].song.as_ref().unwrap().id.clone().unwrap();
 
-    db.increment_play_time(song_id2, 120.0).unwrap();
+    db.increment_play_time(&song_id2, 120.0).unwrap();
 
     let analytics2 = db.get_top_listened_songs().unwrap();
     assert_eq!(analytics2.songs.len(), 2);
@@ -1519,7 +1504,7 @@ fn test_get_songs_by_entities() {
 
     db.add_to_playlist_bridge(playlist_id.clone(), song_id.clone())
         .unwrap();
-    assert!(db.is_song_in_playlist(playlist_id, song_id).unwrap());
+    assert!(db.is_song_in_playlist(&playlist_id, &song_id).unwrap());
 
     cleanup(&db_path);
 }

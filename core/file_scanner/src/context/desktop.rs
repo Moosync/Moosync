@@ -617,11 +617,11 @@ impl<'a> PlaylistScanner<'a> {
         song.size = Some(metadata.len() as f64);
         song.path = Some(path.to_string_lossy().to_string());
         song.duration = state.duration.map(core_to_proto_duration);
-        song.title = state.title.clone();
+        song.title = Some(state.title.take().unwrap_or_default());
         state.songs.push(Song {
             song: Some(song),
             album: None,
-            artists: self.parse_artists(state.artists.clone()),
+            artists: self.parse_artists(Some(state.artists.take().unwrap_or_default())),
             genre: vec![],
         });
         Ok(())
@@ -633,11 +633,11 @@ impl<'a> PlaylistScanner<'a> {
         song.r#type = SongType::Url.into();
         song.playback_url = Some(url.to_string());
         song.duration = state.duration.map(core_to_proto_duration);
-        song.title = state.title.clone();
+        song.title = Some(state.title.take().unwrap_or_default());
         state.songs.push(Song {
             song: Some(song),
             album: None,
-            artists: self.parse_artists(state.artists.clone()),
+            artists: self.parse_artists(Some(state.artists.take().unwrap_or_default())),
             genre: vec![],
         });
     }

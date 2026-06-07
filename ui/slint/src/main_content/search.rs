@@ -1,9 +1,5 @@
 use slint::{ComponentHandle, ModelRc};
-use songs_proto::moosync::types::{
-    Album, Artist, Genre, GetEntityOptions, GetSongOptions, Playlist, SearchableSong,
-};
 use state_manager::StateManager;
-use types::prelude::EntityResultExt;
 
 use crate::{
     AppCallbacks, MainWindow, SearchResult,
@@ -39,98 +35,61 @@ impl<'a> PageHandler for SearchPageHandler<'a> {
                 let main_window_weak = main_window_weak.clone();
                 tokio::spawn(async move {
                     let database = state_manager.get_database().await;
-                    let songs = database
-                        .get_songs_by_options(GetSongOptions {
-                            song: Some(SearchableSong {
-                                title: Some(format!("%{}%", term)),
-                                ..Default::default()
-                            }),
-                            ..Default::default()
-                        })
-                        .unwrap_or_default();
-
-                    let albums = database
-                        .get_entity_by_options(GetEntityOptions {
-                            album: Some(Album {
-                                album_name: Some(format!("%{}%", term)),
-                                ..Default::default()
-                            }),
-                            ..Default::default()
-                        })
-                        .unwrap_or_default()
-                        .get_albums()
-                        .unwrap_or_default();
-
-                    let artists = database
-                        .get_entity_by_options(GetEntityOptions {
-                            artist: Some(Artist {
-                                artist_name: Some(format!("%{}%", term)),
-                                ..Default::default()
-                            }),
-                            ..Default::default()
-                        })
-                        .unwrap_or_default()
-                        .get_artists()
-                        .unwrap_or_default();
-
-                    let playlists = database
-                        .get_entity_by_options(GetEntityOptions {
-                            playlist: Some(Playlist {
-                                playlist_name: format!("%{}%", term),
-                                ..Default::default()
-                            }),
-                            ..Default::default()
-                        })
-                        .unwrap_or_default()
-                        .get_playlists()
-                        .unwrap_or_default();
-
-                    let genres = database
-                        .get_entity_by_options(GetEntityOptions {
-                            genre: Some(Genre {
-                                genre_name: Some(format!("%{}%", term)),
-                                ..Default::default()
-                            }),
-                            ..Default::default()
-                        })
-                        .unwrap_or_default()
-                        .get_genres()
-                        .unwrap_or_default();
-
-                    main_window_weak.upgrade_in_event_loop(move |main_window| {
-                        main_window.set_search_results(SearchResult {
-                            albums: ModelRc::new(LazySongVecModel::new(
-                                albums.iter().map(|a| to_album_model(a)).collect(),
-                                230,
-                                200,
-                                state_manager.get_cache_dir(),
-                            )),
-                            artists: ModelRc::new(LazySongVecModel::new(
-                                artists.iter().map(|a| to_artist_model(a)).collect(),
-                                230,
-                                200,
-                                state_manager.get_cache_dir(),
-                            )),
-                            genres: ModelRc::new(LazySongVecModel::new(
-                                genres.iter().map(|g| to_genre_model(g)).collect(),
-                                230,
-                                200,
-                                state_manager.get_cache_dir(),
-                            )),
-                            playlists: ModelRc::new(LazySongVecModel::new(
-                                playlists.iter().map(|p| to_playlist_model(p)).collect(),
-                                230,
-                                200,
-                                state_manager.get_cache_dir(),
-                            )),
-                            songs: ModelRc::new(LazySongVecModel::new(
-                                songs.iter().map(|s| to_song_model(s)).collect(),
-                                60,
-                                0,
-                                state_manager.get_cache_dir(),
-                            )),
-                        });
-                    });
+                    match database.search_all(&term) {
+                        Ok(search_res) => {
+                            let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
+                                main_window.set_search_results(SearchResult {
+                                    albums: ModelRc::new(LazySongVecModel::new(
+                                        search_res
+                                            .albums
+                                            .iter()
+                                            .map(|a| to_album_model(a))
+                                            .collect(),
+                                        230,
+                                        200,
+                                        state_manager.get_cache_dir(),
+                                    )),
+                                    artists: ModelRc::new(LazySongVecModel::new(
+                                        search_res
+                                            .artists
+                                            .iter()
+                                            .map(|a| to_artist_model(a))
+                                            .collect(),
+                                        230,
+                                        200,
+                                        state_manager.get_cache_dir(),
+                                    )),
+                                    genres: ModelRc::new(LazySongVecModel::new(
+                                        search_res
+                                            .genres
+                                            .iter()
+                                            .map(|g| to_genre_model(g))
+                                            .collect(),
+                                        230,
+                                        200,
+                                        state_manager.get_cache_dir(),
+                                    )),
+                                    playlists: ModelRc::new(LazySongVecModel::new(
+                                        search_res
+                                            .playlists
+                                            .iter()
+                                            .map(|p| to_playlist_model(p))
+                                            .collect(),
+                                        230,
+                                        200,
+                                        state_manager.get_cache_dir(),
+                                    )),
+                                    songs: ModelRc::new(LazySongVecModel::new(
+                                        search_res.songs.iter().map(|s| to_song_model(s)).collect(),
+                                        60,
+                                        0,
+                                        state_manager.get_cache_dir(),
+                                    )),
+                                });
+                            });
+                        }
+                        Err(e) => tracing::error!("Search failed for term '{}': {:?}", term, e),
+                    }
                 });
             });
     }

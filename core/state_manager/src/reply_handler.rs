@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use extensions::ReplyHandler;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use tokio::runtime::Handle;
@@ -172,11 +174,11 @@ impl ReplyHandler for StateReplyHandler {
     ) -> Result<bool, types::errors::MoosyncError> {
         let db = self.runtime.block_on(self.state_manager.get_database());
         if let Some(id) = song.get_id() {
-            db.remove_songs(vec![id])?;
-            Ok(true)
-        } else {
-            Ok(false)
+            let ids: &[_] = &[id.as_ref().to_string()];
+            db.remove_songs(ids)?;
+            return Ok(true);
         }
+        Ok(false)
     }
 
     fn update_song(
@@ -185,7 +187,9 @@ impl ReplyHandler for StateReplyHandler {
         song: Song,
     ) -> Result<Song, types::errors::MoosyncError> {
         let db = self.runtime.block_on(self.state_manager.get_database());
-        db.update_songs(vec![song.clone()])?;
+        if let Some(inner) = &song.song {
+            db.update_song(inner)?;
+        }
         Ok(song)
     }
 
@@ -206,7 +210,7 @@ impl ReplyHandler for StateReplyHandler {
         songs: Vec<Song>,
     ) -> Result<bool, types::errors::MoosyncError> {
         let db = self.runtime.block_on(self.state_manager.get_database());
-        db.add_to_playlist(playlist_id, songs)?;
+        db.add_to_playlist(&playlist_id, &songs)?;
         Ok(true)
     }
 

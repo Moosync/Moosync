@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     env::temp_dir,
     num::NonZeroUsize,
     sync::{Arc, Mutex},
@@ -193,7 +194,7 @@ impl StateManager {
                 async move {
                     if let Ok(songs) = db.read().await.insert_songs(songs) {
                         if let Some(pl_id) = pl_id {
-                            let _ = db.read().await.add_to_playlist(pl_id, songs);
+                            let _ = db.read().await.add_to_playlist(&pl_id, &songs);
                         }
                     }
                 }

@@ -1,8 +1,12 @@
+pub(crate) mod album_content;
 pub(crate) mod albums;
 pub(crate) mod all_songs;
+pub(crate) mod artist_content;
 pub(crate) mod artists;
 pub(crate) mod explore;
+pub(crate) mod genre_content;
 pub(crate) mod genres;
+pub(crate) mod playlist_content;
 pub(crate) mod playlists;
 pub(crate) mod queue;
 pub(crate) mod search;

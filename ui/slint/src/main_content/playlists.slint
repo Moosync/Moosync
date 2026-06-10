@@ -1,9 +1,11 @@
 import { PlaylistModel } from "../types/song_view.slint";
 import { GridListView } from "../common/grid_list_view.slint";
-import { Constants, Theme } from "../constants.slint";
+import { Constants, Theme, Pages, SelectedEntity } from "../constants.slint";
 
 export component PlaylistsPage inherits Rectangle {
     in property <[PlaylistModel]> playlists: Constants.testPlaylists;
+    in-out property <Pages> active-page;
+    in-out property <SelectedEntity> selected-entity;
 
     background: transparent;
 
@@ -27,6 +29,14 @@ export component PlaylistsPage inherits Rectangle {
             }
             item-cover(idx) => {
                 root.playlists[idx].coverPath
+            }
+            item-clicked(idx) => {
+                root.selected-entity = {
+                    id: root.playlists[idx].id,
+                    title: root.playlists[idx].title,
+                    cover-path: root.playlists[idx].coverPath,
+                };
+                root.active-page = Pages.PlaylistContent;
             }
         }
     }

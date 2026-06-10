@@ -115,7 +115,7 @@ impl<'a> QueuePageHandler<'a> {
 
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = main_window_weak.upgrade() {
-                    update_ui_queue(&main_window, &queue);
+                    update_ui_queue(&main_window, &queue, cache_dir);
                     update_ui_blurred_cover(&main_window, &blurred_path);
                 }
             });
@@ -165,12 +165,14 @@ impl<'a> QueuePageHandler<'a> {
             handles.push(ch_song);
 
             let mw_weak_queue = main_window_weak.clone();
+            let cache_dir_queue = cache_dir.clone();
             let ch_queue = player_handler.on_queue_updated(move |queue| {
                 let queue_cloned = queue.to_vec();
                 let mw_weak = mw_weak_queue.clone();
+                let cache_dir = cache_dir_queue.clone();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = mw_weak.upgrade() {
-                        update_ui_queue(&main_window, &queue_cloned);
+                        update_ui_queue(&main_window, &queue_cloned, cache_dir);
                     }
                 });
             });
@@ -181,10 +183,19 @@ impl<'a> QueuePageHandler<'a> {
     }
 }
 
-fn update_ui_queue(main_window: &MainWindow, queue: &[songs_proto::moosync::types::Song]) {
+fn update_ui_queue(
+    main_window: &MainWindow,
+    queue: &[songs_proto::moosync::types::Song],
+    cache_dir: std::path::PathBuf,
+) {
     let queue_models: Vec<crate::SongModel> =
         queue.iter().map(crate::utils::to_song_model).collect();
-    main_window.set_queue(slint::ModelRc::new(slint::VecModel::from(queue_models)));
+    main_window.set_queue(slint::ModelRc::new(crate::utils::LazySongVecModel::new(
+        queue_models,
+        60,
+        0,
+        cache_dir,
+    )));
 }
 
 fn update_ui_blurred_cover(main_window: &MainWindow, blurred_path: &Option<std::path::PathBuf>) {

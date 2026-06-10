@@ -93,6 +93,36 @@ fn get_all_pages(
         )),
     );
     map.insert(
+        AppPage::PlaylistContent,
+        Box::new(
+            main_content::playlist_content::PlaylistContentPageHandler::new(
+                main_window,
+                state_manager,
+            ),
+        ),
+    );
+    map.insert(
+        AppPage::AlbumContent,
+        Box::new(main_content::album_content::AlbumContentPageHandler::new(
+            main_window,
+            state_manager,
+        )),
+    );
+    map.insert(
+        AppPage::ArtistContent,
+        Box::new(main_content::artist_content::ArtistContentPageHandler::new(
+            main_window,
+            state_manager,
+        )),
+    );
+    map.insert(
+        AppPage::GenreContent,
+        Box::new(main_content::genre_content::GenreContentPageHandler::new(
+            main_window,
+            state_manager,
+        )),
+    );
+    map.insert(
         AppPage::Queue,
         Box::new(main_content::queue::QueuePageHandler::new(
             main_window,
@@ -171,6 +201,20 @@ fn setup_cover_helper(main_window: &MainWindow) {
             if !song_model.coverPathUrlHigh.is_empty() {
                 if let Ok(image) =
                     Image::load_from_path(Path::new(song_model.coverPathUrlHigh.as_str()))
+                {
+                    return image;
+                }
+            }
+            Image::load_from_svg_data(utils::DEFAULT_SONG_SVG).unwrap()
+        });
+
+    main_window
+        .global::<CoverHelper>()
+        .on_fetch_cover_low(move |song_model| {
+            trace!("Fetching low-res cover for song {}", song_model.title);
+            if !song_model.coverPathUrlLow.is_empty() {
+                if let Ok(image) =
+                    Image::load_from_path(Path::new(song_model.coverPathUrlLow.as_str()))
                 {
                     return image;
                 }
@@ -452,6 +496,26 @@ impl PageLifecycleManager {
                     !self.settings_open
                         && !self.queue_open
                         && (self.active_main_page == AppPage::Search)
+                }
+                AppPage::PlaylistContent => {
+                    !self.settings_open
+                        && !self.queue_open
+                        && (self.active_main_page == AppPage::PlaylistContent)
+                }
+                AppPage::AlbumContent => {
+                    !self.settings_open
+                        && !self.queue_open
+                        && (self.active_main_page == AppPage::AlbumContent)
+                }
+                AppPage::ArtistContent => {
+                    !self.settings_open
+                        && !self.queue_open
+                        && (self.active_main_page == AppPage::ArtistContent)
+                }
+                AppPage::GenreContent => {
+                    !self.settings_open
+                        && !self.queue_open
+                        && (self.active_main_page == AppPage::GenreContent)
                 }
             };
 

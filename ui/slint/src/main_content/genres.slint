@@ -1,9 +1,11 @@
 import { GenreModel } from "../types/song_view.slint";
 import { GridListView } from "../common/grid_list_view.slint";
-import { Constants, Theme } from "../constants.slint";
+import { Constants, Theme, Pages, SelectedEntity } from "../constants.slint";
 
 export component GenresPage inherits Rectangle {
     in property <[GenreModel]> genres: Constants.testGenres;
+    in-out property <Pages> active-page;
+    in-out property <SelectedEntity> selected-entity;
 
     background: transparent;
 
@@ -27,6 +29,14 @@ export component GenresPage inherits Rectangle {
             }
             item-cover(idx) => {
                 root.genres[idx].coverPath
+            }
+            item-clicked(idx) => {
+                root.selected-entity = {
+                    id: root.genres[idx].id,
+                    title: root.genres[idx].title,
+                    cover-path: root.genres[idx].coverPath,
+                };
+                root.active-page = Pages.GenreContent;
             }
         }
     }

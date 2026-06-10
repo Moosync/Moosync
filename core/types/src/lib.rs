@@ -94,8 +94,8 @@ pub mod prelude {
         fn get_album_string(&self) -> Option<Cow<'_, str>>;
         fn format_duration(&self) -> String {
             let duration = self.get_duration_or_default();
-            if duration == std::time::Duration::ZERO {
-                return "Unknown".to_string();
+            if duration.as_secs() == u64::MAX {
+                return "Live".into();
             }
             format_duration(duration.as_secs() as i64)
         }

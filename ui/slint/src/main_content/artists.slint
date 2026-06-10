@@ -1,9 +1,11 @@
 import { ArtistModel } from "../types/song_view.slint";
 import { GridListView } from "../common/grid_list_view.slint";
-import { Constants, Theme } from "../constants.slint";
+import { Constants, Theme, Pages, SelectedEntity } from "../constants.slint";
 
 export component ArtistsPage inherits Rectangle {
     in property <[ArtistModel]> artists: Constants.testArtists;
+    in-out property <Pages> active-page;
+    in-out property <SelectedEntity> selected-entity;
 
     background: transparent;
 
@@ -27,6 +29,14 @@ export component ArtistsPage inherits Rectangle {
             }
             item-cover(idx) => {
                 root.artists[idx].coverPath
+            }
+            item-clicked(idx) => {
+                root.selected-entity = {
+                    id: root.artists[idx].id,
+                    title: root.artists[idx].title,
+                    cover-path: root.artists[idx].coverPath,
+                };
+                root.active-page = Pages.ArtistContent;
             }
         }
     }

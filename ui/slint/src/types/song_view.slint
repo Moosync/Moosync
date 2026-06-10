@@ -81,6 +81,7 @@ export struct SongModel {
 
 export global CoverHelper {
     pure callback fetch_cover_high(SongModel) -> image;
+    pure callback fetch_cover_low(SongModel) -> image;
 }
 
 export struct SearchResult {

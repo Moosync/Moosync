@@ -20,6 +20,10 @@ pub enum AppPage {
     Extensions,
     Themes,
     Queue,
+    PlaylistContent,
+    AlbumContent,
+    ArtistContent,
+    GenreContent,
 }
 
 impl From<Pages> for AppPage {
@@ -32,6 +36,10 @@ impl From<Pages> for AppPage {
             Pages::Genres => AppPage::Genres,
             Pages::Explore => AppPage::Explore,
             Pages::Search => AppPage::Search,
+            Pages::PlaylistContent => AppPage::PlaylistContent,
+            Pages::AlbumContent => AppPage::AlbumContent,
+            Pages::ArtistContent => AppPage::ArtistContent,
+            Pages::GenreContent => AppPage::GenreContent,
         }
     }
 }

@@ -20,6 +20,10 @@ import { ExplorePage } from "main_content/explore.slint";
 import { SearchPage } from "main_content/search.slint";
 import { SongListView } from "common/song_list_view.slint";
 import { QueuePage } from "main_content/queue_page.slint";
+import { PlaylistContent } from "main_content/playlist_content.slint";
+import { AlbumContent } from "main_content/album_content.slint";
+import { ArtistContent } from "main_content/artist_content.slint";
+import { GenreContent } from "main_content/genre_content.slint";
 import {
     Pages,
     SettingsPages,
@@ -29,6 +33,7 @@ import {
     ThemeConfig,
     RgbaColor,
     ThemeConstant,
+    SelectedEntity,
 } from "constants.slint";
 import { AppCallbacks, BottomBarCallbacks } from "callbacks.slint";
 import { Settings } from "settings/settings.slint";
@@ -59,6 +64,7 @@ export {
     ThemeConstant,
     SettingsPages,
     QueuePages,
+    SelectedEntity,
 }
 export component MainWindow inherits Window {
     title: "moosync";
@@ -122,6 +128,9 @@ export component MainWindow inherits Window {
         songs: Constants.testSongs,
         albums: Constants.testAlbums,
     };
+
+    in-out property <SelectedEntity> selected_entity: Constants.defaultSelectedEntity;
+    in property <[SongModel]> content_songs: Constants.testSongs;
 
     property <[SidebarItem]> sidebar_items: [
         { text: "Songs", icon: @image-url("./icons/songs.svg"), page: Pages.AllSongs },
@@ -195,6 +204,17 @@ export component MainWindow inherits Window {
                             active-page <=> root.active-page;
                             PlaylistsPage {
                                 playlists <=> root.playlists;
+                                active-page <=> root.active-page;
+                                selected-entity <=> root.selected_entity;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.PlaylistContent;
+                            active-page <=> root.active-page;
+                            PlaylistContent {
+                                entity <=> root.selected_entity;
+                                songs <=> root.content_songs;
                             }
                         }
 
@@ -203,6 +223,17 @@ export component MainWindow inherits Window {
                             active-page <=> root.active-page;
                             ArtistsPage {
                                 artists <=> root.artists;
+                                active-page <=> root.active-page;
+                                selected-entity <=> root.selected_entity;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.ArtistContent;
+                            active-page <=> root.active-page;
+                            ArtistContent {
+                                entity <=> root.selected_entity;
+                                songs <=> root.content_songs;
                             }
                         }
 
@@ -211,6 +242,17 @@ export component MainWindow inherits Window {
                             active-page <=> root.active-page;
                             AlbumsPage {
                                 albums <=> root.albums;
+                                active-page <=> root.active-page;
+                                selected-entity <=> root.selected_entity;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.AlbumContent;
+                            active-page <=> root.active-page;
+                            AlbumContent {
+                                entity <=> root.selected_entity;
+                                songs <=> root.content_songs;
                             }
                         }
 
@@ -219,6 +261,17 @@ export component MainWindow inherits Window {
                             active-page <=> root.active-page;
                             GenresPage {
                                 genres <=> root.genres;
+                                active-page <=> root.active-page;
+                                selected-entity <=> root.selected_entity;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.GenreContent;
+                            active-page <=> root.active-page;
+                            GenreContent {
+                                entity <=> root.selected_entity;
+                                songs <=> root.content_songs;
                             }
                         }
 

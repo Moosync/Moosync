@@ -171,17 +171,15 @@ jobs:
         id: cache-ndk
         uses: actions/cache@v4
         with:
-          path: /usr/local/lib/android/sdk/ndk/29.0.13599879
+          path: ${{ env.ANDROID_HOME }}/ndk/29.0.13599879
           key: ndk-${{ runner.os }}-29.0.13599879
 
       - name: Setup Android SDK and NDK
-        if: contains(matrix.name, 'Android')
         uses: android-actions/setup-android@v4
         with:
           cmdline-tools-version: 12266719 # v16
 
       - name: Install NDK (Android)
-        if: contains(matrix.name, 'Android')
         run: yes | sdkmanager "ndk;29.0.13599879"
 
       - uses: bazel-contrib/setup-bazel@0.16.0
@@ -193,8 +191,8 @@ jobs:
       - name: Bazel Build Package
         run: bazel build ${{ matrix.target }} ${{ matrix.extra_flags }} -c opt
         env:
-          ANDROID_HOME: /usr/local/lib/android/sdk
-          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/29.0.13599879
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/29.0.13599879
 
       - name: Prepare Artifacts for Upload
         shell: bash

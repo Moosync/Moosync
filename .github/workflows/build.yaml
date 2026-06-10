@@ -48,7 +48,7 @@ jobs:
           LINUX_ARM='{
             "name": "Linux ARM64",
             "os": "ubuntu-22.04-arm",
-            "target": "//package/linux:linux_release",
+            "targetlibdbus-1-dev": "//package/linux:linux_release",
             "artifact_path_base": "bazel-bin/package/linux",
             "artifact_patterns": "Moosync-*-*.aarch64.rpm\nMoosync-*-*.arm64.deb\nMoosync-*-*.aarch64.AppImage"
           }'
@@ -65,6 +65,7 @@ jobs:
             "name": "macOS ARM64",
             "os": "macos-latest",
             "target": "//package/apple:apple_release",
+            "extra_flags": "--experimental_ui_max_stdouterr_bytes=2000000",
             "artifact_path_base": "bazel-bin/package/apple",
             "artifact_patterns": "Moosync-*-*.darwin-arm64.zip"
           }'
@@ -138,7 +139,7 @@ jobs:
           packages: >
             nasm yasm autoconf automake libtool pkg-config make build-essential clang
             libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libfontconfig1-dev
-            nsis
+            nsis lld libdbus-1-dev
           version: 1.0
 
       - name: Install Dependencies (macOS)

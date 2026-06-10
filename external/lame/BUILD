@@ -44,6 +44,9 @@ configure_make(
         "//:android_arm64_config": [
             "--host=aarch64-linux-android",
         ],
+        "//tools/toolchains/mingw:windows_mingw": [
+            "--host=x86_64-w64-mingw32",
+        ],
         "//conditions:default": [],
     }),
     env = select({

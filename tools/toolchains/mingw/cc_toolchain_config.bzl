@@ -15,6 +15,7 @@ def _impl(ctx):
         tool_path(name = "objdump", path = "bin/x86_64-w64-mingw32-objdump"),
         tool_path(name = "strip", path = "bin/x86_64-w64-mingw32-strip"),
         tool_path(name = "dwp", path = "bin/llvm-dwp"),
+        tool_path(name = "dlltool", path = "bin/x86_64-w64-mingw32-dlltool"),
     ]
 
     default_linker_flags = feature(

@@ -42,7 +42,7 @@ jobs:
             "os": "ubuntu-22.04",
             "target": "//package/linux:linux_release",
             "artifact_path_base": "bazel-bin/package/linux",
-            "artifact_patterns": "Moosync-*-*.x86_64.rpm\nMoosync-*-*.amd64.deb\nMoosync-*-*.x86_64.AppImage"
+            "artifact_patterns": "Moosync-*-*.x86_64.rpm\nMoosync-*-*.amd64.deb"
           }'
 
           LINUX_ARM='{
@@ -50,7 +50,7 @@ jobs:
             "os": "ubuntu-22.04-arm",
             "targetlibdbus-1-dev": "//package/linux:linux_release",
             "artifact_path_base": "bazel-bin/package/linux",
-            "artifact_patterns": "Moosync-*-*.aarch64.rpm\nMoosync-*-*.arm64.deb\nMoosync-*-*.aarch64.AppImage"
+            "artifact_patterns": "Moosync-*-*.aarch64.rpm\nMoosync-*-*.arm64.deb"
           }'
 
           MAC_X64='{
@@ -79,25 +79,25 @@ jobs:
             "artifact_patterns": "Moosync-*-*.x86_64-setup.exe\nMoosync-*-*.x86_64.exe"
           }'
 
-          ANDROID_ARM64='{
-            "name": "Android ARM64",
-            "os": "ubuntu-22.04",
-            "target": "//android:moosync_apk",
-            "extra_flags": "--config=android_arm64",
-            "artifact_path_base": "bazel-bin/android",
-            "artifact_patterns": "moosync_apk.apk",
-            "rename_to": "Moosync-android-arm64.apk"
-          }'
+          # ANDROID_ARM64='{
+          #   "name": "Android ARM64",
+          #   "os": "ubuntu-22.04",
+          #   "target": "//android:moosync_apk",
+          #   "extra_flags": "--config=android_arm64",
+          #   "artifact_path_base": "bazel-bin/android",
+          #   "artifact_patterns": "moosync_apk.apk",
+          #   "rename_to": "Moosync-android-arm64.apk"
+          # }'
 
-          ANDROID_X64='{
-            "name": "Android x86_64",
-            "os": "ubuntu-22.04",
-            "target": "//android:moosync_apk",
-            "extra_flags": "--config=android_x86_64",
-            "artifact_path_base": "bazel-bin/android",
-            "artifact_patterns": "moosync_apk.apk",
-            "rename_to": "Moosync-android-x86_64.apk"
-          }'
+          # ANDROID_X64='{
+          #   "name": "Android x86_64",
+          #   "os": "ubuntu-22.04",
+          #   "target": "//android:moosync_apk",
+          #   "extra_flags": "--config=android_x86_64",
+          #   "artifact_path_base": "bazel-bin/android",
+          #   "artifact_patterns": "moosync_apk.apk",
+          #   "rename_to": "Moosync-android-x86_64.apk"
+          # }'
 
           INPUT="${{ inputs.platform || 'all' }}"
 
@@ -113,9 +113,9 @@ jobs:
              MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$WIN_X64]")
           fi
 
-          if [[ "$INPUT" == "all" || "$INPUT" == "android" ]]; then
-             MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$ANDROID_ARM64, $ANDROID_X64]")
-          fi
+          # if [[ "$INPUT" == "all" || "$INPUT" == "android" ]]; then
+          #    MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$ANDROID_ARM64, $ANDROID_X64]")
+          # fi
 
           echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
 
@@ -131,6 +131,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Increase Process Limits (macOS Only)
+        if: runner.os == 'macOS'
+        run: |
+          sudo sysctl -w kern.maxproc=2048
+          sudo sysctl -w kern.maxprocperuid=1024
+          ulimit -u 2048
 
       - name: Install Common Linux Dependencies
         if: runner.os == 'Linux'
@@ -165,6 +172,7 @@ jobs:
         uses: android-actions/setup-android@v4
         with:
           cmdline-tools-version: 12266719 # v16
+          packages: ""
 
       - name: Install NDK (Android)
         run: yes | sdkmanager "ndk;29.0.13599879"
@@ -172,7 +180,7 @@ jobs:
       - uses: bazel-contrib/setup-bazel@0.16.0
         with:
           bazelisk-cache: true
-          disk-cache: true
+          disk-cache: ${{ matrix.name }}
           repository-cache: true
 
       - name: Bazel Build Package

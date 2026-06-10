@@ -8,17 +8,21 @@ genrule(
     ],
     outs = ["MoosyncSetup.exe"],
     cmd = """
-    ls -la $$PWD/$(location //ui/slint:slint_app)
-    BINARY_ABS_PATH=$$(cygpath -w "$$PWD/$(location //ui/slint:slint_app)")
-    OUT_PATH=$$(cygpath -w "$$PWD/$@")
-    makensis \
-      -V4 \
-      -DBINARY_PATH="$$BINARY_ABS_PATH" \
-      -DOUTFILE="$$OUT_PATH" \
-      "$(location moosync.nsi)"
-
-    mv package/windows/MoosyncSetup.exe "$$(cygpath -u "$$OUT_PATH")"
-    ls -la "$$(cygpath -u "$$OUT_PATH")"
+    if command -v cygpath >/dev/null 2>&1; then
+      BINARY_ABS_PATH=$$(cygpath -w "$$PWD/$(location //ui/slint:slint_app)")
+      OUT_PATH=$$(cygpath -w "$$PWD/$@")
+      makensis \
+        -V4 \
+        -DBINARY_PATH="$$BINARY_ABS_PATH" \
+        "$(location moosync.nsi)"
+      mv package/windows/MoosyncSetup.exe "$$(cygpath -u "$$OUT_PATH")"
+    else
+      makensis \
+        -V4 \
+        -DBINARY_PATH="$$PWD/$(location //ui/slint:slint_app)" \
+        "$(location moosync.nsi)"
+      mv package/windows/MoosyncSetup.exe "$@"
+    fi
     """,
     target_compatible_with = ["@platforms//os:windows"],
 )

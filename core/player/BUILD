@@ -32,7 +32,10 @@ rust_library(
         "FFMPEG_INCLUDE_DIR": "$(execpath //external/ffmpeg:gen_dir)/include",
         "FFMPEG_LIB_DIR": "$(execpath //external/ffmpeg:gen_dir)/lib",
     },
-    rustc_flags = ["-lz"],
+    rustc_flags = select({
+        "@platforms//os:windows": [],
+        "//conditions:default": ["-lz"],
+    }),
     visibility = ["//visibility:public"],
     deps = [
         ":build_script",
@@ -58,5 +61,8 @@ rust_test(
         "src/rodio/test_data/LRMonoPhase4.mp3",
         "src/rodio/test_data/ff-16b-2c-44100hz.mp3",
     ],
-    rustc_flags = ["-lz"],
+    rustc_flags = select({
+        "@platforms//os:windows": [],
+        "//conditions:default": ["-lz"],
+    }),
 )

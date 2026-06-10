@@ -1,6 +1,6 @@
 use slint_app::run;
 
-#[cfg(not(any(target_env = "msvc", target_os = "android")))]
+#[cfg(not(any(target_os = "windows", target_os = "android")))]
 #[global_allocator]
 static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 

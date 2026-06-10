@@ -41,11 +41,17 @@ export component TrackInfo inherits Rectangle {
                 overflow: elide;
             }
 
-            Text {
-                text: root.current-song.artist_name;
-                color: Theme.textSecondary; // Text Secondary
-                font-size: Theme.caption;
-                overflow: elide;
+            HorizontalLayout {
+                spacing: 0px;
+                for artist[i] in root.current-song.artists: HorizontalLayout {
+                    spacing: 0px;
+                    Text {
+                        text: (i > 0 ? ", " : "") + artist.title;
+                        color: Theme.textSecondary;
+                        font-size: Theme.caption;
+                        overflow: elide;
+                    }
+                }
             }
 
             Text {

@@ -72,11 +72,17 @@ export component SongListItem inherits TouchArea {
                         overflow: elide;
                     }
 
-                    Text {
-                        text: song.artist_name;
-                        color: Theme.textSecondary; // Text Secondary
-                        font-size: Theme.caption;
-                        overflow: elide;
+                    HorizontalLayout {
+                        spacing: 0px;
+                        for artist[i] in song.artists: HorizontalLayout {
+                            spacing: 0px;
+                            Text {
+                                text: (i > 0 ? ", " : "") + artist.title;
+                                color: Theme.textSecondary;
+                                font-size: Theme.caption;
+                                overflow: elide;
+                            }
+                        }
                     }
                 }
 
@@ -106,7 +112,7 @@ export component SongListItem inherits TouchArea {
                     HorizontalLayout {
                         spacing: Theme.spacingXl;
                         Text {
-                            text: song.duration;
+                            text: song.duration_str;
                             color: Theme.textSecondary;
                             font-size: Theme.caption;
                             vertical-alignment: center;

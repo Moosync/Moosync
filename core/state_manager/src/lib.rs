@@ -1,14 +1,12 @@
 use std::{
     borrow::Cow,
     env::temp_dir,
-    num::NonZeroUsize,
     sync::{Arc, Mutex},
 };
 
 use database::Database;
 use extensions::ExtensionHandler;
 use file_scanner::ScannerHolder;
-use lru::LruCache;
 use player::PlayerHandler;
 use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song};
 use tempdir;
@@ -20,8 +18,6 @@ use types::{
     plugin::{PluginContext, PluginRegistry},
     subscription::SubscriberList,
 };
-
-use crate::interceptors::database::CacheDatabaseInterceptor;
 
 pub mod interceptors;
 mod reply_handler;
@@ -50,7 +46,6 @@ pub struct StateManager {
     pub interceptors: Arc<Interceptors>,
     pub cache_dir: std::path::PathBuf,
 
-    song_cache: Arc<Mutex<LruCache<String, Song>>>,
     runtime: Handle,
     pub on_extensions_updated: SubscriberList<Box<dyn Fn(()) + Send + Sync + 'static>>,
 }
@@ -97,13 +92,6 @@ impl StateManager {
         }
     }
 
-    fn create_song_cache() -> Arc<Mutex<LruCache<String, Song>>> {
-        let cache_size: usize = (5usize * 1024usize * 1024usize).saturating_div(size_of::<Song>());
-        Arc::new(Mutex::new(LruCache::new(
-            NonZeroUsize::new(cache_size).unwrap(),
-        )))
-    }
-
     pub fn new(
         #[cfg(target_os = "android")] android_context: AndroidJNIContext,
     ) -> Result<Self, StateManagerError> {
@@ -120,15 +108,13 @@ impl StateManager {
         let mut plugins = PluginRegistry::new();
         init_all_plugins(&mut plugins, &context);
 
-        let cache = Self::create_song_cache();
-        let interceptors = Interceptors::default().with(CacheDatabaseInterceptor::new(&cache));
+        let interceptors = Interceptors::default();
         let runtime = Handle::current();
 
         Ok(Self {
             plugins: Arc::new(plugins),
             interceptors: Arc::new(interceptors),
             cache_dir,
-            song_cache: cache,
             runtime,
             on_extensions_updated: SubscriberList::new(),
         })
@@ -205,38 +191,6 @@ impl StateManager {
             let scanner = scanner.read().await;
             scanner.start_scan().await.unwrap();
         });
-    }
-
-    pub async fn get_song_from_cache(&self, id: String) -> Option<Song> {
-        let song = {
-            let mut cache = self.song_cache.lock().unwrap();
-            cache.get(&id).cloned()
-        };
-
-        if song.is_some() {
-            trace!("Cache hit for {}", id);
-            return song;
-        }
-
-        let database = self.get_database().await;
-        let song = database
-            .get_songs_by_options(GetSongOptions {
-                song: Some(SearchableSong {
-                    id: Some(id.clone()),
-                    ..Default::default()
-                }),
-                ..Default::default()
-            })
-            .unwrap_or_default();
-        let song = song.get(0);
-        if song.is_some() {
-            trace!("Cache miss. Got {} from database", id);
-            return song.cloned();
-        }
-
-        // TODO: Qeury extensions for song by id
-
-        None
     }
 }
 

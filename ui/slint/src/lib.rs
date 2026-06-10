@@ -7,6 +7,7 @@ use std::{path::Path, time::Duration};
 use extensions_proto;
 use player;
 use slint::{Image, ModelRc, VecModel};
+use songs_proto;
 use state_manager::StateManager;
 use tracing::{debug, trace};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};
@@ -182,28 +183,20 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
     main_window
         .global::<AppCallbacks>()
         .on_play_song(move |song_model| {
+            let song = utils::song_model_to_song(&song_model);
             tokio::spawn(async move {
-                let song = state_manager
-                    .get_song_from_cache(song_model.id.into())
-                    .await;
-                if let Some(song) = song {
-                    let mut queue = state_manager.get_player_handler_mut().await;
-                    queue.play_now(song);
-                }
+                let mut queue = state_manager.get_player_handler_mut().await;
+                queue.play_now(song);
             });
         });
 
     main_window
         .global::<AppCallbacks>()
         .on_add_song_to_queue(move |song_model| {
+            let song = utils::song_model_to_song(&song_model);
             tokio::spawn(async move {
-                let song = state_manager
-                    .get_song_from_cache(song_model.id.into())
-                    .await;
-                if let Some(song) = song {
-                    let mut queue = state_manager.get_player_handler_mut().await;
-                    queue.add_to_queue(song);
-                }
+                let mut queue = state_manager.get_player_handler_mut().await;
+                queue.add_to_queue(song);
             });
         });
 

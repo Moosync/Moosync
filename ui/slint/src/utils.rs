@@ -359,25 +359,130 @@ pub fn to_song_model(song: &Song) -> SongModel {
     let raw_duration = song.get_duration_or_default();
     let duration_s = raw_duration.as_secs() as i32;
 
+    let inner = song.song.as_ref();
+
+    let album = song.album.as_ref();
+
+    let artists: Vec<ArtistModel> = song.artists.iter().map(to_artist_model).collect();
+    let genres: Vec<GenreModel> = song.genre.iter().map(to_genre_model).collect();
+
     SongModel {
-        id: song
-            .get_id()
-            .map(|c| c.to_string())
+        // InnerSong fields
+        id: inner
+            .and_then(|s| s.id.as_deref())
             .unwrap_or_default()
             .into(),
-        title: song
-            .get_title()
-            .map(|c| c.to_string())
+        path: inner
+            .and_then(|s| s.path.as_deref())
             .unwrap_or_default()
             .into(),
-        artist_name: song.get_artist_string().unwrap_or_default().into(),
-        album_name: song
-            .get_album_string()
-            .map(|c| c.to_string())
+        size: inner.and_then(|s| s.size).unwrap_or_default() as f32,
+        inode: inner
+            .and_then(|s| s.inode.as_deref())
             .unwrap_or_default()
             .into(),
-        duration: song.format_duration().into(),
+        deviceno: inner
+            .and_then(|s| s.deviceno.as_deref())
+            .unwrap_or_default()
+            .into(),
+        title: inner
+            .and_then(|s| s.title.as_deref())
+            .unwrap_or_default()
+            .into(),
+        date: inner
+            .and_then(|s| s.date.as_deref())
+            .unwrap_or_default()
+            .into(),
+        year: inner
+            .and_then(|s| s.year.as_deref())
+            .unwrap_or_default()
+            .into(),
+        lyrics: inner
+            .and_then(|s| s.lyrics.as_deref())
+            .unwrap_or_default()
+            .into(),
+        release_type: inner
+            .and_then(|s| s.release_type.as_deref())
+            .unwrap_or_default()
+            .into(),
+        bitrate: inner.and_then(|s| s.bitrate).unwrap_or_default() as f32,
+        codec: inner
+            .and_then(|s| s.codec.as_deref())
+            .unwrap_or_default()
+            .into(),
+        container: inner
+            .and_then(|s| s.container.as_deref())
+            .unwrap_or_default()
+            .into(),
         duration_s,
+        duration_str: song.format_duration().into(),
+        sample_rate: inner.and_then(|s| s.sample_rate).unwrap_or_default() as f32,
+        hash: inner
+            .and_then(|s| s.hash.as_deref())
+            .unwrap_or_default()
+            .into(),
+        r#type: inner.map(|s| s.r#type).unwrap_or_default(),
+        url: inner
+            .and_then(|s| s.url.as_deref())
+            .unwrap_or_default()
+            .into(),
+        song_cover_path_high: inner
+            .and_then(|s| s.song_cover_path_high.as_deref())
+            .unwrap_or_default()
+            .into(),
+        playback_url: inner
+            .and_then(|s| s.playback_url.as_deref())
+            .unwrap_or_default()
+            .into(),
+        song_cover_path_low: inner
+            .and_then(|s| s.song_cover_path_low.as_deref())
+            .unwrap_or_default()
+            .into(),
+        date_added: inner.and_then(|s| s.date_added).unwrap_or_default() as i32,
+        provider_extension: inner
+            .and_then(|s| s.provider_extension.as_deref())
+            .unwrap_or_default()
+            .into(),
+        icon: inner
+            .and_then(|s| s.icon.as_deref())
+            .unwrap_or_default()
+            .into(),
+        show_in_library: inner.and_then(|s| s.show_in_library).unwrap_or_default(),
+        track_no: inner.and_then(|s| s.track_no).unwrap_or_default() as f32,
+        library_item: inner.and_then(|s| s.library_item).unwrap_or_default(),
+
+        // Album fields
+        album_id: album
+            .and_then(|a| a.album_id.as_deref())
+            .unwrap_or_default()
+            .into(),
+        album_name: album
+            .and_then(|a| a.album_name.as_deref())
+            .unwrap_or_default()
+            .into(),
+        album_artist: album
+            .and_then(|a| a.album_artist.as_deref())
+            .unwrap_or_default()
+            .into(),
+        album_coverpath_high: album
+            .and_then(|a| a.album_coverpath_high.as_deref())
+            .unwrap_or_default()
+            .into(),
+        album_coverpath_low: album
+            .and_then(|a| a.album_coverpath_low.as_deref())
+            .unwrap_or_default()
+            .into(),
+        album_song_count: album.map(|a| a.album_song_count).unwrap_or_default() as f32,
+        album_year: album
+            .and_then(|a| a.year.as_deref())
+            .unwrap_or_default()
+            .into(),
+
+        // Repeated fields as Slint arrays
+        artists: slint::ModelRc::new(slint::VecModel::from(artists)),
+        genre: slint::ModelRc::new(slint::VecModel::from(genres)),
+
+        // UI-only display fields
         coverPathHigh: Image::default(),
         coverPathLow: Image::default(),
         extensionIcon: extension_icon,
@@ -391,6 +496,240 @@ pub fn to_song_model(song: &Song) -> SongModel {
             .map(|c| c.to_string())
             .unwrap_or_default()
             .into(),
+    }
+}
+
+/// Convert a `SongModel` back to the proto `Song` type.
+/// This is used in place of `get_song_from_cache` since `SongModel` now carries
+/// all fields needed to reconstruct the full `Song`.
+pub fn song_model_to_song(model: &SongModel) -> songs_proto::moosync::types::Song {
+    use songs_proto::moosync::types::{Album, Artist, Genre, InnerSong, Song};
+    use types::prelude::core_to_proto_duration;
+
+    let duration = core_to_proto_duration(std::time::Duration::from_secs(model.duration_s as u64));
+
+    let inner_song = InnerSong {
+        id: if model.id.is_empty() {
+            None
+        } else {
+            Some(model.id.to_string())
+        },
+        path: if model.path.is_empty() {
+            None
+        } else {
+            Some(model.path.to_string())
+        },
+        size: if model.size == 0.0 {
+            None
+        } else {
+            Some(model.size as f64)
+        },
+        inode: if model.inode.is_empty() {
+            None
+        } else {
+            Some(model.inode.to_string())
+        },
+        deviceno: if model.deviceno.is_empty() {
+            None
+        } else {
+            Some(model.deviceno.to_string())
+        },
+        title: if model.title.is_empty() {
+            None
+        } else {
+            Some(model.title.to_string())
+        },
+        date: if model.date.is_empty() {
+            None
+        } else {
+            Some(model.date.to_string())
+        },
+        year: if model.year.is_empty() {
+            None
+        } else {
+            Some(model.year.to_string())
+        },
+        lyrics: if model.lyrics.is_empty() {
+            None
+        } else {
+            Some(model.lyrics.to_string())
+        },
+        release_type: if model.release_type.is_empty() {
+            None
+        } else {
+            Some(model.release_type.to_string())
+        },
+        bitrate: if model.bitrate == 0.0 {
+            None
+        } else {
+            Some(model.bitrate as f64)
+        },
+        codec: if model.codec.is_empty() {
+            None
+        } else {
+            Some(model.codec.to_string())
+        },
+        container: if model.container.is_empty() {
+            None
+        } else {
+            Some(model.container.to_string())
+        },
+        duration: if model.duration_s == 0 {
+            None
+        } else {
+            Some(duration)
+        },
+        sample_rate: if model.sample_rate == 0.0 {
+            None
+        } else {
+            Some(model.sample_rate as f64)
+        },
+        hash: if model.hash.is_empty() {
+            None
+        } else {
+            Some(model.hash.to_string())
+        },
+        r#type: model.r#type,
+        url: if model.url.is_empty() {
+            None
+        } else {
+            Some(model.url.to_string())
+        },
+        song_cover_path_high: if model.song_cover_path_high.is_empty() {
+            None
+        } else {
+            Some(model.song_cover_path_high.to_string())
+        },
+        playback_url: if model.playback_url.is_empty() {
+            None
+        } else {
+            Some(model.playback_url.to_string())
+        },
+        song_cover_path_low: if model.song_cover_path_low.is_empty() {
+            None
+        } else {
+            Some(model.song_cover_path_low.to_string())
+        },
+        date_added: if model.date_added == 0 {
+            None
+        } else {
+            Some(model.date_added as i64)
+        },
+        provider_extension: if model.provider_extension.is_empty() {
+            None
+        } else {
+            Some(model.provider_extension.to_string())
+        },
+        icon: if model.icon.is_empty() {
+            None
+        } else {
+            Some(model.icon.to_string())
+        },
+        show_in_library: if model.show_in_library {
+            Some(true)
+        } else {
+            None
+        },
+        track_no: if model.track_no == 0.0 {
+            None
+        } else {
+            Some(model.track_no as f64)
+        },
+        library_item: if model.library_item { Some(true) } else { None },
+    };
+
+    let album = if model.album_id.is_empty() && model.album_name.is_empty() {
+        None
+    } else {
+        Some(Album {
+            album_id: if model.album_id.is_empty() {
+                None
+            } else {
+                Some(model.album_id.to_string())
+            },
+            album_name: if model.album_name.is_empty() {
+                None
+            } else {
+                Some(model.album_name.to_string())
+            },
+            album_artist: if model.album_artist.is_empty() {
+                None
+            } else {
+                Some(model.album_artist.to_string())
+            },
+            album_coverpath_high: if model.album_coverpath_high.is_empty() {
+                None
+            } else {
+                Some(model.album_coverpath_high.to_string())
+            },
+            album_coverpath_low: if model.album_coverpath_low.is_empty() {
+                None
+            } else {
+                Some(model.album_coverpath_low.to_string())
+            },
+            album_song_count: model.album_song_count as f64,
+            year: if model.album_year.is_empty() {
+                None
+            } else {
+                Some(model.album_year.to_string())
+            },
+        })
+    };
+
+    let artists: Vec<Artist> = (0..model.artists.row_count())
+        .filter_map(|i| model.artists.row_data(i))
+        .map(|a| Artist {
+            artist_id: if a.id.is_empty() {
+                None
+            } else {
+                Some(a.id.to_string())
+            },
+            artist_mbid: if a.mbid.is_empty() {
+                None
+            } else {
+                Some(a.mbid.to_string())
+            },
+            artist_name: if a.title.is_empty() {
+                None
+            } else {
+                Some(a.title.to_string())
+            },
+            artist_coverpath: if a.coverPathUrl.is_empty() {
+                None
+            } else {
+                Some(a.coverPathUrl.to_string())
+            },
+            artist_song_count: a.songs_count as f64,
+            sanitized_artist_name: if a.sanitized_name.is_empty() {
+                None
+            } else {
+                Some(a.sanitized_name.to_string())
+            },
+        })
+        .collect();
+
+    let genres: Vec<Genre> = (0..model.genre.row_count())
+        .filter_map(|i| model.genre.row_data(i))
+        .map(|g| Genre {
+            genre_id: if g.id.is_empty() {
+                None
+            } else {
+                Some(g.id.to_string())
+            },
+            genre_name: if g.title.is_empty() {
+                None
+            } else {
+                Some(g.title.to_string())
+            },
+            genre_song_count: g.songs_count as f64,
+        })
+        .collect();
+
+    Song {
+        song: Some(inner_song),
+        album,
+        artists,
+        genre: genres,
     }
 }
 
@@ -411,6 +750,12 @@ pub fn to_artist_model(artist: &Artist) -> ArtistModel {
         id: artist.artist_id.clone().unwrap_or_default().into(),
         songs_count: artist.artist_song_count as i32,
         title: artist.artist_name.clone().unwrap_or_default().into(),
+        mbid: artist.artist_mbid.clone().unwrap_or_default().into(),
+        sanitized_name: artist
+            .sanitized_artist_name
+            .clone()
+            .unwrap_or_default()
+            .into(),
     }
 }
 

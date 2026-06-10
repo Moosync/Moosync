@@ -8,9 +8,6 @@ export component SongDetails inherits HorizontalLayout {
     in property <SongModel> song: {
         id: "",
         title: "",
-        artist_name: "",
-        album_name: "",
-        duration: "",
         coverPathHigh: @image-url("../icons/song_default.svg"),
         coverPathLow: @image-url("../icons/song_default.svg"),
         extensionIcon: @image-url("../icons/song_default.svg"),
@@ -53,15 +50,21 @@ export component SongDetails inherits HorizontalLayout {
                     overflow: elide;
                 }
 
-                Text {
-                    text: song.artist_name;
-                    color: Theme.textSecondary;
-                    font-size: Theme.subtitle;
-                    overflow: elide;
+                HorizontalLayout {
+                    spacing: 0px;
+                    for artist[i] in song.artists: HorizontalLayout {
+                        spacing: 0px;
+                        Text {
+                            text: (i > 0 ? ", " : "") + artist.title;
+                            color: Theme.textSecondary;
+                            font-size: Theme.subtitle;
+                            overflow: elide;
+                        }
+                    }
                 }
 
                 Text {
-                    text: song.duration;
+                    text: song.duration_str;
                     color: Theme.textSecondary;
                     font-size: Theme.subtitle;
                     overflow: elide;

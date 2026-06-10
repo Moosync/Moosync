@@ -1,21 +1,3 @@
-export struct SongModel {
-    id: string,
-    title: string,
-    artist_name: string,
-    album_name: string,
-    duration: string,
-    duration_s: int,
-    coverPathHigh: image,
-    coverPathLow: image,
-    coverPathUrlHigh: string,
-    coverPathUrlLow: string,
-    extensionIcon: image,
-}
-
-export global CoverHelper {
-    pure callback fetch_cover_high(SongModel) -> image;
-}
-
 export struct AlbumModel {
     id: string,
     title: string,
@@ -34,10 +16,12 @@ export struct PlaylistModel {
 
 export struct ArtistModel {
     id: string,
+    mbid: string,
     title: string,
     songs_count: int,
     coverPath: image,
     coverPathUrl: string,
+    sanitized_name: string,
 }
 
 export struct GenreModel {
@@ -46,6 +30,57 @@ export struct GenreModel {
     songs_count: int,
     coverPath: image,
     coverPathUrl: string,
+}
+
+
+export struct SongModel {
+    // InnerSong fields
+    id: string,
+    path: string,
+    size: float,
+    inode: string,
+    deviceno: string,
+    title: string,
+    date: string,
+    year: string,
+    lyrics: string,
+    release_type: string,
+    bitrate: float,
+    codec: string,
+    container: string,
+    duration_s: int,
+    sample_rate: float,
+    hash: string,
+    type: int,
+    url: string,
+    song_cover_path_high: string,
+    playback_url: string,
+    song_cover_path_low: string,
+    date_added: int,
+    provider_extension: string,
+    icon: string,
+    show_in_library: bool,
+    track_no: float,
+    library_item: bool,
+    album_id: string,
+    album_name: string,
+    album_artist: string,
+    album_coverpath_high: string,
+    album_coverpath_low: string,
+    album_song_count: float,
+    album_year: string,
+    artists: [ArtistModel],
+    genre: [GenreModel],
+    coverPathHigh: image,
+    coverPathLow: image,
+    coverPathUrlHigh: string,
+    coverPathUrlLow: string,
+    extensionIcon: image,
+    duration_str: string,
+}
+
+export global CoverHelper {
+    pure callback fetch_cover_high(SongModel) -> image;
 }
 
 export struct SearchResult {

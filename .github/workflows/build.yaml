@@ -48,7 +48,7 @@ jobs:
           LINUX_ARM='{
             "name": "Linux ARM64",
             "os": "ubuntu-22.04-arm",
-            "targetlibdbus-1-dev": "//package/linux:linux_release",
+            "target": "//package/linux:linux_release",
             "artifact_path_base": "bazel-bin/package/linux",
             "artifact_patterns": "Moosync-*-*.aarch64.rpm\nMoosync-*-*.arm64.deb"
           }'
@@ -135,9 +135,10 @@ jobs:
       - name: Increase Process Limits (macOS Only)
         if: runner.os == 'macOS'
         run: |
-          sudo sysctl -w kern.maxproc=2048
-          sudo sysctl -w kern.maxprocperuid=1024
+          sudo sysctl -w kern.maxprocperuid=1024 || true
           ulimit -u 2048
+          sysctl kern.maxprocperuid
+          ulimit -u
 
       - name: Install Common Linux Dependencies
         if: runner.os == 'Linux'

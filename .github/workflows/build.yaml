@@ -129,18 +129,6 @@ jobs:
       matrix: ${{ fromJson(needs.configure.outputs.matrix) }}
 
     steps:
-      - name: Free Disk Space (Linux)
-        if: runner.os == 'Linux'
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: false
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
       - uses: actions/checkout@v4
 
       - name: Install Common Linux Dependencies

@@ -102,13 +102,17 @@ impl PlayerHandler {
     pub fn get_repeat_mode(&self) -> RepeatMode { self.repeat_mode }
 
     pub fn add_to_queue(&mut self, song: Song) {
-        self.song_queue.push(song);
-        self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
+        if self.current_song().is_none() {
+            self.play_now(song);
+        } else {
+            self.song_queue.push(song);
+            self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
+        }
     }
 
     pub fn play_now(&mut self, song: Song) {
         debug!("Playing song now: {:?}", song);
-        if self.song_queue.is_empty() {
+        if self.current_song().is_none() {
             self.song_queue.push(song.clone());
             self.current_idx = 0;
         } else {

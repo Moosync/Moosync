@@ -160,14 +160,12 @@ jobs:
           brew install nasm
 
       - name: Setup Java (Android)
-        if: contains(matrix.name, 'Android')
         uses: actions/setup-java@v4
         with:
           distribution: "zulu"
           java-version: "17"
 
       - name: Cache NDK (Android)
-        if: contains(matrix.name, 'Android')
         id: cache-ndk
         uses: actions/cache@v4
         with:

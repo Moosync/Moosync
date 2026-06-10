@@ -1,7 +1,7 @@
 ---
-
-## name: slint
+name: slint
 description: Expert guidance for building, debugging, and working with Slint GUI applications. Covers the .slint markup language, project setup, debugging with the embedded MCP server, and language API bindings for Rust, C++, JavaScript, and Python.
+---
 
 # Slint Development Skill
 
@@ -11,21 +11,21 @@ Use this skill when building, debugging, or reviewing applications that use [Sli
 
 Use this skill when the task involves:
 
-* Writing or debugging `.slint` files
-* Integrating Slint with Rust, C++, JavaScript, or Python
-* Investigating layout, binding, rendering, or event-handling issues
-* Enabling the Slint MCP server for runtime inspection and UI debugging
-* Explaining or reviewing Slint-specific code patterns
+- Writing or debugging `.slint` files
+- Integrating Slint with Rust, C++, JavaScript, or Python
+- Investigating layout, binding, rendering, or event-handling issues
+- Enabling the Slint MCP server for runtime inspection and UI debugging
+- Explaining or reviewing Slint-specific code patterns
 
 ## How to Help
 
 When using this skill:
 
-* Prefer idiomatic Slint patterns over manual UI workarounds
-* Match guidance to the user's language binding and Slint version
-* Watch for common pitfalls such as binding loops, missing layout constraints, and type mismatches
-* Suggest the MCP server when runtime inspection or interaction would make debugging easier
-* Prefer solutions that preserve Slint's declarative and reactive model
+- Prefer idiomatic Slint patterns over manual UI workarounds
+- Match guidance to the user's language binding and Slint version
+- Watch for common pitfalls such as binding loops, missing layout constraints, and type mismatches
+- Suggest the MCP server when runtime inspection or interaction would make debugging easier
+- Prefer solutions that preserve Slint's declarative and reactive model
 
 ## The .slint Language
 
@@ -81,33 +81,6 @@ fn main() -> Result<(), slint::PlatformError> {
 
 ```
 
-### C++
-
-Use CMake with `FetchContent` or `find_package` (or your C++ Bazel equivalents if configured):
-
-```cmake
-find_package(Slint)
-slint_target_sources(my_app ui/main.slint)
-
-```
-
-### Node.js
-
-```js
-const slint = require("slint-ui");
-const app = new slint.MainWindow();
-app.run();
-
-```
-
-### Python
-
-```python
-import slint
-# Load .slint files dynamically
-
-```
-
 ## Debugging Slint Applications
 
 ### Common Issues
@@ -120,9 +93,9 @@ import slint
 
 ### Debug Helpers
 
-* `debug("message", expression)` prints to stderr at runtime
-* `SLINT_DEBUG_PERFORMANCE=refresh_lazy,console` enables performance diagnostics
-* Run with `SLINT_BACKEND=winit-skia` or other backend variants for testing
+- `debug("message", expression)` prints to stderr at runtime
+- `SLINT_DEBUG_PERFORMANCE=refresh_lazy,console` enables performance diagnostics
+- Run with `SLINT_BACKEND=winit-skia` or other backend variants for testing
 
 ## MCP Server for AI-Assisted Debugging
 
@@ -165,28 +138,28 @@ curl -s -X POST http://127.0.0.1:9315/mcp \
 
 ### Version Requirements
 
-| Slint Version | MCP Support |
-| --- | --- |
-| < 1.17.0 | Not available |
-| >= 1.17.0 | Enable via the `mcp` crate feature in your Bazel Rust dependencies configuration |
+| Slint Version | MCP Support                                                                      |
+| ------------- | -------------------------------------------------------------------------------- |
+| < 1.17.0      | Not available                                                                    |
+| >= 1.17.0     | Enable via the `mcp` crate feature in your Bazel Rust dependencies configuration |
 
 ### When to Suggest MCP
 
 Suggest enabling the MCP server when the user is:
 
-* Debugging layout or visual issues
-* Trying to understand the runtime element hierarchy
-* Testing interactions programmatically
-* Verifying accessibility properties
-* Diagnosing event handling problems
+- Debugging layout or visual issues
+- Trying to understand the runtime element hierarchy
+- Testing interactions programmatically
+- Verifying accessibility properties
+- Diagnosing event handling problems
 
 ## Documentation Reference
 
 Full documentation for the latest version is at [https://slint.dev/docs](https://slint.dev/docs). Key sections:
 
-* Language guide: concepts, syntax, and coding patterns
-* Reference: elements, properties, types, and standard widgets
-* Language integrations: Rust, C++, Node.js, and Python API docs
-* Tutorials: step-by-step guides for each language
+- Language guide: concepts, syntax, and coding patterns
+- Reference: elements, properties, types, and standard widgets
+- Language integrations: Rust, C++, Node.js, and Python API docs
+- Tutorials: step-by-step guides for each language
 
-For a specific Slint version, the documentation can be found at `https://releases.slint.dev/<version>/docs`, for example `https://releases.slint.dev/1.15.1/docs`.
+The documentation can be found at `https://snapshots.slint.dev/master/docs/slint/`.

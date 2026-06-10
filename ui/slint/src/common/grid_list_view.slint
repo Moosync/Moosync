@@ -9,7 +9,7 @@ export component GridListView inherits Rectangle {
     in property <length> padding-offset: 0px;
     property <int> max-columns: Math.max(1, Math.floor((WindowInfo.window-width - WindowInfo.sidebar-width - Theme.paddingLg - root.padding-offset) / (root.item-width + root.spacing-x)));
     in property <length> item-width: Theme.cardWidth;
-    in property <length> item-height: root.item-width + Theme.modelTitle + Theme.spacingXl;
+    in property <length> item-height: Theme.cardHeight;
     in property <length> spacing-x: Theme.spacingLg;
     in property <length> spacing-y: Theme.spacingLg;
     in property <int> total-items: 0;

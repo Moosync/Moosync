@@ -38,6 +38,7 @@ impl<'a> PageHandler for SearchPageHandler<'a> {
                     match database.search_all(&term) {
                         Ok(search_res) => {
                             let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
+                                let theme = main_window.global::<crate::Theme>();
                                 main_window.set_search_results(SearchResult {
                                     albums: ModelRc::new(LazySongVecModel::new(
                                         search_res
@@ -45,8 +46,8 @@ impl<'a> PageHandler for SearchPageHandler<'a> {
                                             .iter()
                                             .map(|a| to_album_model(a))
                                             .collect(),
-                                        230,
-                                        200,
+                                        theme.get_cardHeight() as usize,
+                                        theme.get_cardWidth() as usize,
                                         state_manager.get_cache_dir(),
                                     )),
                                     artists: ModelRc::new(LazySongVecModel::new(
@@ -55,8 +56,8 @@ impl<'a> PageHandler for SearchPageHandler<'a> {
                                             .iter()
                                             .map(|a| to_artist_model(a))
                                             .collect(),
-                                        230,
-                                        200,
+                                        theme.get_cardHeight() as usize,
+                                        theme.get_cardWidth() as usize,
                                         state_manager.get_cache_dir(),
                                     )),
                                     genres: ModelRc::new(LazySongVecModel::new(
@@ -65,8 +66,8 @@ impl<'a> PageHandler for SearchPageHandler<'a> {
                                             .iter()
                                             .map(|g| to_genre_model(g))
                                             .collect(),
-                                        230,
-                                        200,
+                                        theme.get_cardHeight() as usize,
+                                        theme.get_cardWidth() as usize,
                                         state_manager.get_cache_dir(),
                                     )),
                                     playlists: ModelRc::new(LazySongVecModel::new(
@@ -75,14 +76,14 @@ impl<'a> PageHandler for SearchPageHandler<'a> {
                                             .iter()
                                             .map(|p| to_playlist_model(p))
                                             .collect(),
-                                        230,
-                                        200,
+                                        theme.get_cardHeight() as usize,
+                                        theme.get_cardWidth() as usize,
                                         state_manager.get_cache_dir(),
                                     )),
                                     songs: ModelRc::new(LazySongVecModel::new(
                                         search_res.songs.iter().map(|s| to_song_model(s)).collect(),
-                                        60,
-                                        0,
+                                        theme.get_songListItemHeight() as usize,
+                                        theme.get_songListItemWidth() as usize,
                                         state_manager.get_cache_dir(),
                                     )),
                                 });

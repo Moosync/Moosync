@@ -96,10 +96,11 @@ fn set_all_artists(main_window: &MainWindow, artists: Vec<Artist>, cache_dir: st
         .map(|artist| crate::utils::to_artist_model(&artist))
         .collect::<Vec<_>>();
 
+    let theme = main_window.global::<crate::Theme>();
     main_window.set_artists(ModelRc::new(LazySongVecModel::new(
         artist_model,
-        230,
-        200,
+        theme.get_cardHeight() as usize,
+        theme.get_cardWidth() as usize,
         cache_dir,
     )));
 }

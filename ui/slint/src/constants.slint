@@ -500,12 +500,20 @@ export global Theme {
 
         // Component Dimensions
     in-out property <length> cardWidth: 200px;
+        in-out property <length> cardHeight: Theme.cardWidth + Theme.modelTitle + Theme.spacingXl;
         in-out property <length> sidebarWidth: 261px;
         in-out property <length> bottombarHeight: 72px;
         in-out property <length> topbarHeight: 48px;
         in-out property <length> sidebarButtonHeight: 48px;
         in-out property <length> sidebarHeaderHeight: 48px;
         in-out property <length> songListItemHeight: 60px;
+        in-out property <length> songListItemWidth: 0px;
+        in-out property <length> extensionListItemHeight: 80px;
+        in-out property <length> extensionListItemWidth: 0px;
+        in-out property <length> extensionsListHeight: 230px;
+        in-out property <length> extensionIconSize: 36px;
+        in-out property <length> extensionItemPaddingX: 15px;
+        in-out property <length> extensionItemPaddingY: 12px;
         in-out property <length> trackInfoThumbnailSize: 44px;
         in-out property <length> songListItemThumbnailSize: 44px;
         in-out property <length> songDetailsThumbnailSize: 300px;

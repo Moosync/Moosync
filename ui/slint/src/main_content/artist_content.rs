@@ -44,8 +44,12 @@ async fn fetch_and_set_songs(
                             .iter()
                             .map(crate::utils::to_song_model)
                             .collect::<Vec<_>>();
+                        let theme = main_window.global::<crate::Theme>();
                         main_window.set_content_songs(ModelRc::new(LazySongVecModel::new(
-                            songs_view, 60, 0, cache_dir,
+                            songs_view,
+                            theme.get_songListItemHeight() as usize,
+                            theme.get_songListItemWidth() as usize,
+                            cache_dir,
                         )));
                     }
                 }

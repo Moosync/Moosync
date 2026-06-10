@@ -246,10 +246,11 @@ fn render_extensions_ui(
                 }
             }
             sort_extension_items(&mut extensions_vector);
+            let theme = main_window.global::<crate::Theme>();
             let model = ModelRc::new(crate::utils::LazySongVecModel::new(
                 extensions_vector,
-                80,
-                0,
+                theme.get_extensionListItemHeight() as usize,
+                theme.get_extensionListItemWidth() as usize,
                 cache_dir,
             ));
             main_window.set_extensions(model);

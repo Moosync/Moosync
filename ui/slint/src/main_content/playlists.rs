@@ -102,10 +102,11 @@ fn set_all_playlists(
         .map(|playlist| crate::utils::to_playlist_model(&playlist))
         .collect::<Vec<_>>();
 
+    let theme = main_window.global::<crate::Theme>();
     main_window.set_playlists(ModelRc::new(LazySongVecModel::new(
         playlist_model,
-        230,
-        200,
+        theme.get_cardHeight() as usize,
+        theme.get_cardWidth() as usize,
         cache_dir,
     )));
 }

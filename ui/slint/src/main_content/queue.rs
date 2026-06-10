@@ -190,10 +190,11 @@ fn update_ui_queue(
 ) {
     let queue_models: Vec<crate::SongModel> =
         queue.iter().map(crate::utils::to_song_model).collect();
+    let theme = main_window.global::<crate::Theme>();
     main_window.set_queue(slint::ModelRc::new(crate::utils::LazySongVecModel::new(
         queue_models,
-        60,
-        0,
+        theme.get_songListItemHeight() as usize,
+        theme.get_songListItemWidth() as usize,
         cache_dir,
     )));
 }

@@ -96,10 +96,11 @@ fn set_all_albums(main_window: &MainWindow, albums: Vec<Album>, cache_dir: std::
         .map(|album| crate::utils::to_album_model(&album))
         .collect::<Vec<_>>();
 
+    let theme = main_window.global::<crate::Theme>();
     main_window.set_albums(ModelRc::new(LazySongVecModel::new(
         album_model,
-        230,
-        200,
+        theme.get_cardHeight() as usize,
+        theme.get_cardWidth() as usize,
         cache_dir,
     )));
 }

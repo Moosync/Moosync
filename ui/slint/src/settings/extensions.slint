@@ -23,28 +23,28 @@ component ExtensionsManifest inherits VerticalLayout {
     in property <[ExtensionItem]> extensions;
 
     ListView {
-        height: 230px;
+        height: Theme.extensionsListHeight;
         for item in root.extensions: VerticalLayout {
             padding-bottom: Theme.spacingLg;
             padding-right: Theme.paddingLg;
 
             Rectangle {
                 border-radius: Theme.borderRadiusLg;
-                border-width: 1px;
+                border-width: Theme.borderWidth;
                 border-color: Theme.textSecondary;
 
                 HorizontalLayout {
-                    padding-top: 12px;
-                    padding-bottom: 12px;
-                    padding-left: 15px;
-                    padding-right: 15px;
+                    padding-top: Theme.extensionItemPaddingY;
+                    padding-bottom: Theme.extensionItemPaddingY;
+                    padding-left: Theme.extensionItemPaddingX;
+                    padding-right: Theme.extensionItemPaddingX;
                     spacing: Theme.spacingLg;
 
                     VerticalLayout {
                         alignment: center;
                         Rectangle {
-                            width: 36px;
-                            height: 36px;
+                            width: Theme.extensionIconSize;
+                            height: Theme.extensionIconSize;
                             border-radius: Theme.borderRadiusMd;
                             clip: true;
 
@@ -60,7 +60,7 @@ component ExtensionsManifest inherits VerticalLayout {
                     VerticalLayout {
                         horizontal-stretch: 1;
                         alignment: center;
-                        spacing: 2px;
+                        spacing: Theme.spacingTiny;
 
                         HorizontalLayout {
                             alignment: start;
@@ -121,7 +121,7 @@ component ExtensionsManifest inherits VerticalLayout {
                                         background: Theme.textPrimary;
                                         y: (parent.height - self.height) / 2;
 
-                                        x: item.active ? (Theme.toggleWidth - self.width - 2px) : 2px;
+                                        x: item.active ? (Theme.toggleWidth - self.width - Theme.spacingTiny) : Theme.spacingTiny;
 
                                         animate x {
                                             duration: 150ms;
@@ -142,9 +142,9 @@ export component ExtensionsPage inherits VerticalLayout {
     in-out property <[ExtensionItem]> extensions;
 
     height: 100%;
-    padding-top: 15px;
-    padding-bottom: 15px;
-    padding-right: 15px;
+    padding-top: Theme.extensionItemPaddingX;
+    padding-bottom: Theme.extensionItemPaddingX;
+    padding-right: Theme.extensionItemPaddingX;
     spacing: Theme.spacingMd;
 
     alignment: start;

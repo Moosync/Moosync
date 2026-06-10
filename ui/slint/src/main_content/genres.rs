@@ -96,10 +96,11 @@ fn set_all_genres(main_window: &MainWindow, genres: Vec<Genre>, cache_dir: std::
         .map(|genre| crate::utils::to_genre_model(&genre))
         .collect::<Vec<_>>();
 
+    let theme = main_window.global::<crate::Theme>();
     main_window.set_genres(ModelRc::new(LazySongVecModel::new(
         genre_model,
-        230,
-        200,
+        theme.get_cardHeight() as usize,
+        theme.get_cardWidth() as usize,
         cache_dir,
     )));
 }

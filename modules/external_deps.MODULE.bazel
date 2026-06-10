@@ -148,6 +148,10 @@ toolchain(
     toolchain_type = "@bazel_tools//tools/cpp:toolchain_type",
 )
 """,
+    patch_cmds = [
+        "cp x86_64-w64-mingw32/lib/libunwind.a x86_64-w64-mingw32/lib/libgcc.a",
+        "cp x86_64-w64-mingw32/lib/libunwind.a x86_64-w64-mingw32/lib/libgcc_eh.a",
+    ],
     sha256 = "9d191203f9768ead60662d3ae53cdf28e0a28b1e6d44b7f329b9202cb2add337",
     strip_prefix = "llvm-mingw-20260602-ucrt-ubuntu-22.04-x86_64",
     urls = ["https://github.com/mstorsjo/llvm-mingw/releases/download/20260602/llvm-mingw-20260602-ucrt-ubuntu-22.04-x86_64.tar.xz"],

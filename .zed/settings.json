@@ -1,0 +1,59 @@
+{
+  "format_on_save": "on",
+  "languages": {
+    "Starlark": {
+      "formatter": {
+        "external": {
+          "arguments": ["-lint=fix", "-mode=fix", "-path", "{buffer_path}"],
+          "command": "buildifier",
+        },
+      },
+      "language_servers": ["bazel-lsp"],
+    },
+  },
+  "lsp": {
+    "rust-analyzer": {
+      "initialization_options": {
+        "check": {
+          "extraEnv": {},
+          "overrideCommand": [
+            "bazel",
+            "--output_base=/tmp/bazel/ra_output",
+            "build",
+            "//core/database",
+            "//core/extensions",
+            "//core/lyrics",
+            "//core/mpris",
+            "//core/player",
+            "//core/plugin_macro",
+            "//core/theme_macro",
+            "//core/preferences",
+            "//core/state_manager",
+            "//core/themes",
+            "//core/types",
+            "//ui/slint:slint_app_lib",
+            "--jobs",
+            "32",
+            "--@rules_rust//:error_format=json",
+          ],
+        },
+        "checkOnSave": true,
+        "linkedProjects": ["rust-project.json"],
+        "showUnlinkedFileNotification": true,
+        "workspace": {
+          "discoverConfig": {
+            "command": ["discover_bazel_rust_project.sh", "{arg}"],
+            "filesToWatch": ["BUILD", "BUILD.bazel", "MODULE.bazel"],
+            "progressLabel": "rust_analyzer",
+          },
+        },
+      },
+    },
+  },
+  "file_scan_exclusions": [
+    "bazel-out",
+    "bazel-bin",
+    "bazel-testlogs",
+    "bazel-Moosync",
+  ],
+}

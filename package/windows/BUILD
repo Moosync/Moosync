@@ -13,15 +13,17 @@ genrule(
       OUT_PATH=$$(cygpath -w "$$PWD/$@")
       makensis \
         -V4 \
+        -NOCD \
         -DBINARY_PATH="$$BINARY_ABS_PATH" \
         "$(location moosync.nsi)"
-      mv package/windows/MoosyncSetup.exe "$$(cygpath -u "$$OUT_PATH")"
+      mv MoosyncSetup.exe "$$(cygpath -u "$$OUT_PATH")"
     else
       makensis \
         -V4 \
+        -NOCD \
         -DBINARY_PATH="$$PWD/$(location //ui/slint:slint_app)" \
         "$(location moosync.nsi)"
-      mv package/windows/MoosyncSetup.exe "$@"
+      mv MoosyncSetup.exe "$@"
     fi
     """,
     target_compatible_with = ["@platforms//os:windows"],

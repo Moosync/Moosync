@@ -255,6 +255,20 @@ crates.annotation(
 )
 crates.annotation_select(
     crate = "rusty_ffmpeg",
+    triples = ["aarch64-linux-android"],
+    build_script_env = {
+        "BINDGEN_EXTRA_CLANG_ARGS": "--target=aarch64-linux-android -D__float128=double -D__ssize_t=long -D__intptr_t=long",
+    },
+)
+crates.annotation_select(
+    crate = "rusty_ffmpeg",
+    triples = ["x86_64-linux-android"],
+    build_script_env = {
+        "BINDGEN_EXTRA_CLANG_ARGS": "--target=x86_64-linux-android -D__float128=double -D__ssize_t=long -D__intptr_t=long",
+    },
+)
+crates.annotation_select(
+    crate = "rusty_ffmpeg",
     triples = [
         "x86_64-unknown-linux-gnu",
         "aarch64-unknown-linux-gnu",

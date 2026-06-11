@@ -20,6 +20,6 @@ android_binary(
     resource_files = glob(["res/**"]),
     deps = [
         ":moosync_kt",
-        "//ui/slint:slint_app_android",
+        "//ui/slint:slint_app",
     ],
 )

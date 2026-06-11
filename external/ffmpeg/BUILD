@@ -18,7 +18,10 @@ ANDROID_FFMPEG_ANDROID_OPTIONS = select({
 
 configure_make(
     name = "ffmpeg",
-    args = ["-j"],
+    args = select({
+        "@platforms//os:macos": [],
+        "//conditions:default": ["-j"],
+    }),
     build_data = [
         "@nasm//:nasm",
     ],

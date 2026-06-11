@@ -183,6 +183,18 @@ toolchain(
     toolchain_type = "@rules_shell//shell:toolchain_type",
 )
 
+filegroup(
+    name = "ndk_sysroot",
+    srcs = ["@androidndk//toolchains/llvm/prebuilt/linux-x86_64/sysroot:all_files"],
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "mingw_sysroot",
+    srcs = ["@mingw_compiler_files//:all_files"],
+    visibility = ["//visibility:public"],
+)
+
 test_suite(
     name = "core_tests",
     tests = [

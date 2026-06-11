@@ -99,7 +99,7 @@ diff --git a/rules.bzl b/rules.bzl
 index 53b9f7c..bc1597c 100644
 --- a/rules.bzl
 +++ b/rules.bzl
-@@ -23,10 +23,47 @@ def _android_ndk_repository_impl(ctx):
+@@ -23,10 +23,52 @@ def _android_ndk_repository_impl(ctx):
      Returns:
          A final dict of configuration attributes and values.
      """
@@ -146,6 +146,11 @@ index 53b9f7c..bc1597c 100644
 +            {},
 +            executable = False,
 +        )
++        ctx.file(
++            "toolchains/llvm/prebuilt/linux-x86_64/sysroot/BUILD.bazel",
++            content = "filegroup(name = 'all_files', srcs = [])\n",
++            executable = False,
++        )
 +        return
      if ndk_path.startswith("$WORKSPACE_ROOT"):
          ndk_path = str(ctx.workspace_root) + ndk_path.removeprefix("$WORKSPACE_ROOT")
@@ -174,3 +179,17 @@ index 53b9f7c..bc1597c 100644
      },
      local = True,
      implementation = _android_ndk_repository_impl,
+@@ -152,3 +183,12 @@ def _create_symlinks(ctx, ndk_path, clang_directory, sysroot_directory):
+     for p in ctx.path(ndk_path + sysroot_directory).readdir():
+         repo_relative_path = str(p).replace(ndk_path, "")
+-        ctx.symlink(p, repo_relative_path)
++        if repo_relative_path.endswith("/usr"):
++            ctx.execute(["mkdir", "-p", repo_relative_path])
++            for sub_p in p.readdir():
++                sub_name = str(sub_p).split("/")[-1]
++                if sub_name == "include":
++                    ctx.execute(["cp", "-R", str(sub_p), repo_relative_path + "/include"])
++                else:
++                    ctx.symlink(sub_p, repo_relative_path + "/" + sub_name)
++        else:
++            ctx.symlink(p, repo_relative_path)

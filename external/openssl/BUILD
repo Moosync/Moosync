@@ -145,7 +145,10 @@ configure_make(
 
 configure_make(
     name = "openssl_default",
-    args = ["-j"],
+    args = select({
+        "@platforms//os:macos": [],
+        "//conditions:default": ["-j"],
+    }),
     configure_command = select({
         "//:android_x86_64_config": "Configure",
         "//:android_arm64_config": "Configure",

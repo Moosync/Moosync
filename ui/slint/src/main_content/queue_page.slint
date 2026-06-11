@@ -5,13 +5,12 @@ import { AppCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button.slint";
 import { SongDetails } from "../common/song_details.slint";
 
-// QueueListItem displays one song item within the list and processes drag and drop events.
 component QueueListItem inherits Rectangle {
     in property <SongModel> song;
-    in property <int> item-idx; // Visual index of the item slot
-    in property <int> model-idx; // Source index of the song in the queue model
+    in property <int> item-idx;
+    in property <int> model-idx;
     in property <bool> is-active: false;
-    in property <bool> is-ghost: false; // Displays the card as a semi-transparent placeholder card
+    in property <bool> is-ghost: false;
     in-out property <int> drag-source-idx: -1;
     in-out property <int> drag-target-idx: -1;
     in-out property <length> drag-mouse-y: -1px;
@@ -20,20 +19,19 @@ component QueueListItem inherits Rectangle {
     callback remove-clicked();
 
     background: transparent;
-    height: 60px + Theme.paddingSm; // Item height including spacing offset
+    height: 60px + Theme.paddingSm;
 
     DragArea {
         width: 100%;
         height: 100%;
         allow-move: true;
-        preferred-action: DragAction.move;
-        data: AppCallbacks.string-to-transfer(root.model-idx); // Passes model-idx to string serializer
+        // preferred-action: DragAction.move;
+        data: AppCallbacks.string-to-transfer(root.model-idx);
 
         DropArea {
             width: 100%;
             height: 100%;
 
-            // Updates drag source, target, and mouse Y coordinate when the cursor drags over this area.
             can-drop(event) => {
                 if (event.allow-move) {
                     root.drag-source-idx = AppCallbacks.transfer-to-string(event.data).to-float();
@@ -45,7 +43,6 @@ component QueueListItem inherits Rectangle {
                 return DragAction.none;
             }
 
-            // Calls AppCallbacks.move-queue-item and resets indices on drop completion.
             dropped(event) => {
                 AppCallbacks.move-queue-item(AppCallbacks.transfer-to-string(event.data), root.item-idx);
                 root.drag-source-idx = -1;
@@ -58,7 +55,6 @@ component QueueListItem inherits Rectangle {
                 width: 100%;
                 height: 100%;
 
-                // Card container rendering backgrounds, borders, and hover states.
                 Rectangle {
                     height: 60px;
                     background: root.is-ghost ? Theme.accent.transparentize(0.9) : (touch.has-hover ? rgba(255, 255, 255, 0.05) : transparent);
@@ -68,7 +64,6 @@ component QueueListItem inherits Rectangle {
                     opacity: root.is-ghost ? 0.4 : 1.0;
 
                     touch := TouchArea {
-                        // Resets drag indices and mouse Y coordinates on release or cancel.
                         pointer-event(event) => {
                             if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
                                 root.drag-source-idx = -1;
@@ -86,7 +81,6 @@ component QueueListItem inherits Rectangle {
                         padding-bottom: Theme.paddingXs;
                         spacing: Theme.spacingMd;
 
-                        // Thumbnail
                         Rectangle {
                             width: Theme.songListItemThumbnailSize;
                             height: Theme.songListItemThumbnailSize;
@@ -101,7 +95,6 @@ component QueueListItem inherits Rectangle {
                             }
                         }
 
-                        // Details
                         VerticalLayout {
                             alignment: center;
                             spacing: Theme.spacingTiny;
@@ -140,7 +133,6 @@ component QueueListItem inherits Rectangle {
                             }
                         }
 
-                        // Delete button
                         if touch.has-hover || root.is-active: VerticalLayout {
                             alignment: center;
 
@@ -160,7 +152,6 @@ component QueueListItem inherits Rectangle {
                     }
                 }
 
-                // Transparent bottom gap (vertical spacer)
                 Rectangle {
                     height: Theme.paddingSm;
                 }
@@ -222,12 +213,10 @@ export component QueuePage inherits Rectangle {
         return visual-idx;
     }
 
-    // Blurred cover image passed from MainWindow
     in property <image> blurred-cover;
 
     background: Theme.primary;
 
-    // Background blurred artwork effect
     Image {
         width: 100%;
         height: 100%;
@@ -236,7 +225,6 @@ export component QueuePage inherits Rectangle {
         opacity: 0.85;
     }
 
-    // Semi-transparent overlay to make text highly readable and premium
     Rectangle {
         width: 100%;
         height: 100%;
@@ -247,11 +235,9 @@ export component QueuePage inherits Rectangle {
         padding: Theme.paddingLg * 2;
         spacing: Theme.spacingXl * 2;
 
-        // Left section: Stretched cover and song info reusing SongDetails
         SongDetails {
             song: root.current-song;
 
-            // Show lyrics button placed below duration via the @children slot
             HorizontalLayout {
                 alignment: end;
                 padding-top: Theme.spacingSm;
@@ -266,25 +252,20 @@ export component QueuePage inherits Rectangle {
             }
         }
 
-        // Right section: Queue controls & list
         VerticalLayout {
             horizontal-stretch: 1;
             spacing: Theme.spacingXl;
 
-            // Header Controls: Buttons
             HorizontalLayout {
                 height: Theme.searchBarHeight;
                 spacing: Theme.spacingMd;
 
-                // Save as playlist button
                 Button {
                     text: "Save as playlist";
                     clicked => {
-                        // Not implemented but visually clickable
                     }
                 }
 
-                // Clear button
                 Button {
                     text: "Clear";
                     clicked => {
@@ -292,13 +273,11 @@ export component QueuePage inherits Rectangle {
                     }
                 }
 
-                // Spacer
                 Rectangle {
                     horizontal-stretch: 1;
                 }
             }
 
-            // Queue List View
             Rectangle {
                 vertical-stretch: 1;
                 border-radius: Theme.borderRadiusLg;

@@ -150,12 +150,14 @@ jobs:
           brew install nasm
 
       - name: Setup Java (Android)
+        if: contains(matrix.target, 'android')
         uses: actions/setup-java@v4
         with:
           distribution: "zulu"
           java-version: "17"
 
       - name: Cache NDK (Android)
+        if: contains(matrix.target, 'android')
         id: cache-ndk
         uses: actions/cache@v4
         with:
@@ -163,12 +165,14 @@ jobs:
           key: ndk-${{ runner.os }}-29.0.13599879
 
       - name: Setup Android SDK and NDK
+        if: contains(matrix.target, 'android')
         uses: android-actions/setup-android@v4
         with:
           cmdline-tools-version: 12266719 # v16
           packages: ""
 
       - name: Install NDK (Android)
+        if: contains(matrix.target, 'android')
         run: yes | sdkmanager "ndk;29.0.13599879"
 
       - uses: bazel-contrib/setup-bazel@0.16.0

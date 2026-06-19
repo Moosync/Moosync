@@ -101,6 +101,8 @@ configure_make(
         "//:android_x86_64_config": ANDROID_FFMPEG_ANDROID_COMMON + ["--arch=x86_64"],
         "//:android_arm64_config": ANDROID_FFMPEG_ANDROID_COMMON + ["--arch=aarch64"],
         "//conditions:default": [
+            # Required so static archives can be linked into PIE executables (modern gcc default).
+            "--enable-pic",
             "--extra-libs=\"-lvorbis -lvorbisenc -lvorbisfile -logg -lm -lpthread\"",
         ],
     }),

@@ -5,11 +5,8 @@
   "bazel.lsp.command": "bazel-lsp",
   "testing.coverageToolbarEnabled": true,
   "bazel.buildifierFixOnFormat": true,
-  "rust-analyzer.check.extraEnv": {
-    "ANDROID_NDK_HOME": "/home/ovenoboyo/Android/Sdk/ndk/30.0.14904198",
-    "ANDROID_HOME": "/home/ovenoboyo/Android/Sdk",
-    "ANDROID_SDK_ROOT": "/home/ovenoboyo/Android/Sdk"
-  },
+  // Android SDK/NDK env vars are inherited from the user's shell via .bazelrc
+  // (--repo_env=ANDROID_HOME, --repo_env=ANDROID_NDK_HOME). Do not override here.
   "rust-analyzer.check.overrideCommand": [
     "bazel",
     "--output_base=/tmp/bazel/ra_output",

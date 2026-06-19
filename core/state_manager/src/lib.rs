@@ -161,8 +161,13 @@ impl StateManager {
             let mut file_scanner = scanner.write().await;
             file_scanner.set_artist_split(",".into());
             file_scanner.set_thumbnail_dir(temp_dir());
-            file_scanner
-                .set_scan_dir("/home/ovenoboyo/Nextcloud/Sahil/Music/Music that heals".into());
+            let scan_dir = std::env::var("TEMP_MOOSYNC_MUSIC_DIR")
+                .ok()
+                .map(std::path::PathBuf::from)
+                .or_else(|| platform_dirs::UserDirs::new().map(|d| d.music_dir));
+            if let Some(scan_dir) = scan_dir {
+                file_scanner.set_scan_dir(scan_dir);
+            }
 
             let database = self.plugins.get::<Database>();
             file_scanner.set_on_playlist(move |p| {

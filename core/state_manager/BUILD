@@ -6,6 +6,7 @@ rust_library(
     crate_root = "src/lib.rs",
     proc_macro_deps = [
         "//core/plugin_macro",
+        "@crates//:async-trait",
     ],
     visibility = ["//visibility:public"],
     deps = [

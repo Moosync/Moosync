@@ -181,7 +181,10 @@ pub async fn run() {
     setup_ui(main_window, state_manager);
 
     state_manager.setup().await;
-    main_window.run().unwrap();
+    main_window.show().unwrap();
+    state_manager.delayed_setup().await;
+    slint::run_event_loop().unwrap();
+    state_manager.shutdown().await;
 }
 
 fn setup_resize(main_window: &MainWindow) {

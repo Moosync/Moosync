@@ -4,7 +4,11 @@ rust_test(
     name = "extensions_test",
     timeout = "long",
     crate = ":extensions",
-    data = glob(["tests/fixtures/**"]),
+    data = glob(["tests/fixtures/**"]) + [
+        "@moosync_ext//sample_extensions/go:sample_extension",
+        "@moosync_ext//sample_extensions/rs:sample_extension",
+        "@moosync_ext//sample_extensions/py:sample_extension",
+    ],
 )
 
 rust_library(

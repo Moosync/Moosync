@@ -234,6 +234,29 @@ impl ExtensionHandlerInner {
         }
     }
 
+    #[cfg(test)]
+    #[tracing::instrument(level = "debug", skip(self, reply_handler))]
+    pub fn spawn_single_extension(
+        &self,
+        manifest_path: &std::path::Path,
+        reply_handler: Arc<dyn ReplyHandler>,
+    ) -> Result<(), ExtensionError> {
+        let manifest = Extension::read_manifest(manifest_path)?;
+        let package_name = manifest.name.clone();
+        let has_started = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let active = !self.is_extension_disabled(&package_name);
+        let extension = Extension::new(
+            manifest_path,
+            reply_handler,
+            active,
+            self.cache_path.clone(),
+            has_started,
+        )?;
+        let mut extension_map = self.extensions_map.lock().unwrap();
+        extension_map.insert(package_name, extension);
+        Ok(())
+    }
+
     pub fn set_extension_active(
         &self,
         package_name: &str,

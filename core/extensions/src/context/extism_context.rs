@@ -235,6 +235,10 @@ host_fn!(hash(hash_type: String, data: Vec<u8>) -> Vec<u8> {
     return Ok(buf);
 });
 
+static COMPILE_LIMIT: Mutex<usize> = Mutex::new(0);
+static COMPILE_CONDVAR: std::sync::Condvar = std::sync::Condvar::new();
+const MAX_CONCURRENT_COMPILATIONS: usize = 5;
+
 pub struct ExtismContext {
     plugin: Arc<Mutex<Plugin>>,
     package_name: String,
@@ -368,57 +372,86 @@ impl ExtismContext {
         sock_data: UserData<SocketUserData>,
     ) -> Arc<Mutex<Plugin>> {
         let config_path = cache_path.join("wasmtime").join("config.toml");
-        if !config_path.exists() {
-            fs::create_dir_all(config_path.parent().unwrap()).unwrap();
+        static WRITTEN_PATHS: std::sync::OnceLock<
+            std::sync::Mutex<std::collections::HashSet<PathBuf>>,
+        > = std::sync::OnceLock::new();
+        let mutex =
+            WRITTEN_PATHS.get_or_init(|| std::sync::Mutex::new(std::collections::HashSet::new()));
+        {
+            let mut paths = mutex.lock().unwrap();
+            if !paths.contains(&config_path) {
+                if !config_path.exists() {
+                    fs::create_dir_all(config_path.parent().unwrap()).unwrap();
+                }
+                fs::write(
+                    &config_path,
+                    format!(
+                        r#"[cache]
+directory = "{}"
+cleanup-interval = "30m"
+files-total-size-soft-limit = "1Gi"
+"#,
+                        config_path
+                            .parent()
+                            .unwrap()
+                            .join("cache")
+                            .to_string_lossy()
+                    ),
+                )
+                .unwrap();
+                paths.insert(config_path.clone());
+            }
         }
-        fs::write(
-            &config_path,
-            format!(
-                r#"
-            [cache]
-            directory = "{}"
-            cleanup-interval = "30m"
-            files-total-size-soft-limit = "1Gi"
-            "#,
-                config_path
-                    .parent()
-                    .unwrap()
-                    .join("cache")
-                    .to_string_lossy()
-            ),
-        )
-        .unwrap();
 
-        #[allow(unused_mut)]
-        let mut plugin_builder = PluginBuilder::new(plugin_manifest)
-            .with_wasi(true)
-            .with_cache_config(config_path)
-            .with_function(
-                "send_main_command",
-                [PTR],
-                [PTR],
-                user_data,
-                send_main_command,
-            )
-            .with_function("system_time", [], [PTR], UserData::default(), system_time)
-            .with_function(
-                "open_clientfd",
-                [PTR],
-                [I64],
-                sock_data.clone(),
-                open_clientfd,
-            )
-            .with_function(
-                "write_sock",
-                [I64, PTR],
-                [I64],
-                sock_data.clone(),
-                write_sock,
-            )
-            .with_function("read_sock", [I64, I64], [PTR], sock_data, read_sock)
-            .with_function("hash", [PTR, PTR], [PTR], UserData::default(), hash);
+        let mut count = COMPILE_LIMIT.lock().unwrap();
+        while *count >= MAX_CONCURRENT_COMPILATIONS {
+            count = COMPILE_CONDVAR.wait(count).unwrap();
+        }
+        *count += 1;
+        drop(count);
 
-        let plugin = plugin_builder.build().unwrap();
+        let plugin_result = std::panic::catch_unwind(|| {
+            #[allow(unused_mut)]
+            let mut plugin_builder = PluginBuilder::new(plugin_manifest)
+                .with_wasi(true)
+                .with_cache_config(config_path)
+                .with_function(
+                    "send_main_command",
+                    [PTR],
+                    [PTR],
+                    user_data,
+                    send_main_command,
+                )
+                .with_function("system_time", [], [PTR], UserData::default(), system_time)
+                .with_function(
+                    "open_clientfd",
+                    [PTR],
+                    [I64],
+                    sock_data.clone(),
+                    open_clientfd,
+                )
+                .with_function(
+                    "write_sock",
+                    [I64, PTR],
+                    [I64],
+                    sock_data.clone(),
+                    write_sock,
+                )
+                .with_function("read_sock", [I64, I64], [PTR], sock_data, read_sock)
+                .with_function("hash", [PTR, PTR], [PTR], UserData::default(), hash);
+
+            plugin_builder.build().unwrap()
+        });
+
+        let mut count = COMPILE_LIMIT.lock().unwrap();
+        *count -= 1;
+        COMPILE_CONDVAR.notify_one();
+        drop(count);
+
+        let plugin = match plugin_result {
+            Ok(p) => p,
+            Err(err) => std::panic::resume_unwind(err),
+        };
 
         Arc::new(Mutex::new(plugin))
     }

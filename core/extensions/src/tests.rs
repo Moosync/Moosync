@@ -35,16 +35,20 @@ fn init_env() {
 
 fn get_sample_wasm_path() -> PathBuf {
     if let Ok(runfiles_dir) = std::env::var("TEST_SRCDIR") {
-        let workspace_name =
-            std::env::var("TEST_WORKSPACE").unwrap_or_else(|_| "moosync".to_string());
-        PathBuf::from(runfiles_dir)
-            .join(workspace_name)
-            .join("core/extensions/tests/fixtures/sample_extension.wasm")
+        let candidates = [
+            PathBuf::from(&runfiles_dir)
+                .join("moosync_ext+/sample_extensions/rs/sample_extension.wasm"),
+            PathBuf::from(&runfiles_dir)
+                .join("moosync_ext/sample_extensions/rs/sample_extension.wasm"),
+            PathBuf::from(&runfiles_dir).join("_main/sample_extensions/rs/sample_extension.wasm"),
+        ];
+        candidates
+            .iter()
+            .find(|p| p.exists())
+            .cloned()
+            .unwrap_or_else(|| candidates[0].clone())
     } else {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("tests")
-            .join("fixtures")
-            .join("sample_extension.wasm")
+        panic!("TEST_SRCDIR not set or sample_extension.wasm not found in runfiles")
     }
 }
 

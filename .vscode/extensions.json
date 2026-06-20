@@ -1,9 +1,8 @@
 {
-    "recommendations": [
-        "bazelbuild.vscode-bazel",
-        "mattstark.bazel-rust-analyzer",
-        "tragisch.bazel-testexplorer",
-        "rust-lang.rust-analyzer",
-        "slint.slint"
-    ]
+  "recommendations": [
+    "bazelbuild.vscode-bazel",
+    "mattstark.bazel-rust-analyzer",
+    "rust-lang.rust-analyzer",
+    "slint.slint",
+  ],
 }

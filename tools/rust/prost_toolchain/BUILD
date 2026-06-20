@@ -31,4 +31,5 @@ toolchain(
     name = "prost_toolchain_default",
     toolchain = ":prost_toolchain_impl_default",
     toolchain_type = "@rules_rust_prost//:toolchain_type",
+    visibility = ["//visibility:public"],
 )

@@ -5,6 +5,7 @@ rust.toolchain(
         "x86_64-linux-android",
         "aarch64-linux-android",
         "x86_64-pc-windows-gnu",
+        "wasm32-wasip1",
     ],
     versions = [
         "1.95.0",
@@ -21,5 +22,6 @@ register_toolchains("@rust_toolchains//:rust_linux_x86_64__x86_64-pc-windows-gnu
 register_toolchains("@rust_toolchains//:all")
 
 register_toolchains(
+    "@extensions_sdk//prost_toolchain:prost_toolchain_wasi",
     "//tools/rust/prost_toolchain:prost_toolchain_default",
 )

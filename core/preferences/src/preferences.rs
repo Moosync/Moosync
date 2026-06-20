@@ -31,9 +31,12 @@ use crossbeam_channel::{Receiver, Sender, bounded};
 use json_dotpath::DotPaths;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
-use types::errors::{
-    MoosyncError, Result,
-    error_helpers::{self, to_file_system_error},
+use types::{
+    errors::{
+        MoosyncError, Result,
+        error_helpers::{self, to_file_system_error},
+    },
+    subscription::SubscriberList,
 };
 use whoami;
 
@@ -41,7 +44,8 @@ use crate::context::{Keyring, KeyringContext};
 
 // const SCHEMA: &str = include_str!("./schema.json");
 
-#[derive(Debug)]
+pub type OnPreferenceChangedCallback = Box<dyn Fn(String) + Send + Sync + 'static>;
+
 pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,
     pub secret: Mutex<Key>,
@@ -49,6 +53,19 @@ pub struct PreferenceConfig {
     sender: Sender<(String, Value)>,
     receiver: Receiver<(String, Value)>,
     _keyring_context: Box<dyn Keyring>,
+    pub on_preference_changed: SubscriberList<OnPreferenceChangedCallback>,
+}
+
+impl std::fmt::Debug for PreferenceConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PreferenceConfig")
+            .field("config_file", &self.config_file)
+            .field("secret", &self.secret)
+            .field("memcache", &self.memcache)
+            .field("sender", &self.sender)
+            .field("receiver", &self.receiver)
+            .finish()
+    }
 }
 
 #[plugin_macro::generate]
@@ -119,6 +136,7 @@ impl PreferenceConfig {
             sender,
             receiver,
             _keyring_context: context,
+            on_preference_changed: SubscriberList::new(),
         })
     }
 
@@ -152,6 +170,7 @@ impl PreferenceConfig {
     where
         T: Serialize + Clone + Debug,
     {
+        let clean_key = key.clone();
         let key = format!("prefs.{}", key);
         tracing::debug!("saving {} - {:?}", key, value);
 
@@ -198,6 +217,11 @@ impl PreferenceConfig {
         thread::spawn(move || {
             sender.send((key, parsed)).unwrap();
         });
+
+        self.on_preference_changed.run_all(|sub| {
+            sub(clean_key.clone());
+        });
+
         Ok(())
     }
 
@@ -313,3 +337,8 @@ impl types::plugin::Plugin for PreferenceConfig {
         ))
     }
 }
+
+types::generate_on_event_impl!(
+    PreferenceConfig, InterceptedPreferenceConfig;
+    on_preference_changed, String;
+);

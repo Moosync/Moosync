@@ -786,6 +786,51 @@ impl Database {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip(self, scan_dirs))]
+    pub fn remove_songs_outside_directories(&self, scan_dirs: &[PathBuf]) -> Result<()> {
+        if scan_dirs.is_empty() {
+            return Ok(());
+        }
+
+        let conn = self.pool.get().unwrap();
+        let mut stmt = conn
+            .prepare("SELECT _id, path FROM allsongs WHERE path IS NOT NULL AND path != ''")
+            .map_err(error_helpers::to_database_error)?;
+
+        let rows = stmt
+            .query_map([], |row| {
+                let id: String = row.get(0)?;
+                let path: String = row.get(1)?;
+                Ok((id, path))
+            })
+            .map_err(error_helpers::to_database_error)?;
+
+        let mut ids_to_remove = Vec::new();
+        for row in rows {
+            let (id, path_str) = row.map_err(error_helpers::to_database_error)?;
+            let song_path = std::path::Path::new(&path_str);
+            let mut matches = false;
+            for dir in scan_dirs {
+                if song_path.starts_with(dir) {
+                    matches = true;
+                    break;
+                }
+            }
+            if !matches {
+                ids_to_remove.push(id);
+            }
+        }
+
+        if !ids_to_remove.is_empty() {
+            info!(
+                "Removing {} songs outside scan directories",
+                ids_to_remove.len()
+            );
+            self.remove_songs(&ids_to_remove)?;
+        }
+        Ok(())
+    }
+
     #[tracing::instrument(level = "debug", skip(self, song))]
     pub fn update_song(&self, song: &InnerSong) -> Result<()> {
         trace!("Updating song");

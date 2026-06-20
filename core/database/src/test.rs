@@ -1508,3 +1508,53 @@ fn test_get_songs_by_entities() {
 
     cleanup(&db_path);
 }
+
+#[test]
+fn test_remove_songs_outside_directories() {
+    let db_path = get_test_db_path();
+    let db = Database::new(db_path.clone());
+
+    // Insert 1 song inside the directory we will scan
+    let song_inside = create_test_song("Inside", "/music/folders/pop/song1.mp3");
+    // Insert 1 song outside the directory we will scan
+    let song_outside = create_test_song("Outside", "/downloads/song2.mp3");
+    // Insert 1 song with no path (e.g. YouTube stream)
+    let mut song_no_path = create_test_song("Stream", "");
+    if let Some(ref mut inner) = song_no_path.song {
+        inner.path = None; // Explicitly set to None
+        inner.playback_url = Some("https://youtube.com/watch?v=123".to_string());
+    }
+
+    db.insert_songs(vec![song_inside, song_outside, song_no_path])
+        .unwrap();
+
+    // Verify all 3 songs are initially inserted
+    let query_options = GetSongOptions {
+        song: Some(SearchableSong::default()),
+        ..Default::default()
+    };
+    let songs = db.get_songs_by_options(query_options.clone()).unwrap();
+    assert_eq!(songs.len(), 3);
+
+    // Call remove_songs_outside_directories with /music/folders as scan_dir
+    let scan_dirs = vec![PathBuf::from("/music/folders")];
+    db.remove_songs_outside_directories(&scan_dirs).unwrap();
+
+    // Verify:
+    // - "Inside" is preserved
+    // - "Stream" is preserved (because it has no path)
+    // - "Outside" is removed
+    let remaining = db.get_songs_by_options(query_options).unwrap();
+    assert_eq!(remaining.len(), 2);
+
+    let titles: Vec<String> = remaining
+        .iter()
+        .map(|s| s.song.as_ref().unwrap().title.clone().unwrap())
+        .collect();
+
+    assert!(titles.contains(&"Inside".to_string()));
+    assert!(titles.contains(&"Stream".to_string()));
+    assert!(!titles.contains(&"Outside".to_string()));
+
+    cleanup(&db_path);
+}

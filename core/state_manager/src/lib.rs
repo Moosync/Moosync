@@ -175,12 +175,13 @@ impl StateManager {
             }
 
             if !scan_dirs.is_empty() {
-                file_scanner.set_scan_dirs(scan_dirs);
+                file_scanner.set_scan_dirs(scan_dirs.clone());
             }
 
             let database = self.plugins.get::<Database>();
+            let db_playlist = database.clone();
             file_scanner.set_on_playlist(move |playlists_with_songs| {
-                let db = database.clone();
+                let db = db_playlist.clone();
                 async move {
                     let db_read = db.read().await;
                     for (playlist, song_identifiers) in playlists_with_songs {
@@ -201,15 +202,60 @@ impl StateManager {
                 }
             });
 
-            let database = self.plugins.get::<Database>();
+            let db_song = database.clone();
             file_scanner.set_on_song(move |pl_id: Option<String>, songs| {
-                let db = database.clone();
+                let db = db_song.clone();
                 async move {
                     if let Ok(songs) = db.read().await.insert_songs(songs) {
                         if let Some(pl_id) = pl_id {
                             let _ = db.read().await.add_to_playlist(&pl_id, &songs);
                         }
                     }
+                }
+            });
+
+            if !scan_dirs.is_empty() {
+                let db = database.clone();
+                let scan_dirs_startup = scan_dirs.clone();
+                tokio::spawn(async move {
+                    let db_read = db.read().await;
+                    if let Err(e) = db_read.remove_songs_outside_directories(&scan_dirs_startup) {
+                        tracing::error!(
+                            "Failed to clean up songs outside scan directories on startup: {:?}",
+                            e
+                        );
+                    }
+                });
+            }
+
+            let db = database.clone();
+            let preferences_cb = preferences.clone();
+            let _handle = prefs_read.on_preference_changed(move |key| {
+                if key == "music_paths" {
+                    let db = db.clone();
+                    let preferences_inner = preferences_cb.clone();
+                    tokio::spawn(async move {
+                        let prefs = preferences_inner.read().await;
+                        let mut scan_dirs = prefs
+                            .load_selective::<Vec<String>>("music_paths".to_string())
+                            .unwrap_or_default()
+                            .into_iter()
+                            .map(std::path::PathBuf::from)
+                            .collect::<Vec<_>>();
+
+                        if scan_dirs.is_empty() {
+                            if let Some(user_dirs) = platform_dirs::UserDirs::new() {
+                                scan_dirs.push(user_dirs.music_dir);
+                            }
+                        }
+
+                        if !scan_dirs.is_empty() {
+                            let db_read = db.read().await;
+                            if let Err(e) = db_read.remove_songs_outside_directories(&scan_dirs) {
+                                tracing::error!("Failed to clean up songs outside scan directories on preference change: {:?}", e);
+                            }
+                        }
+                    });
                 }
             });
         }

@@ -1,17 +1,12 @@
-use std::{
-    borrow::Cow,
-    env::temp_dir,
-    sync::{Arc, Mutex},
-};
+use std::{env::temp_dir, sync::Arc};
 
 use database::Database;
 use extensions::ExtensionHandler;
-use file_scanner::ScannerHolder;
+use file_scanner::{PlaylistSongId, ScannerHolder};
 use player::PlayerHandler;
-use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song};
+use songs_proto::moosync::types::Song;
 use tempdir;
 use tokio::runtime::Handle;
-use tracing::trace;
 #[cfg(target_os = "android")]
 use types::android::AndroidJNIContext;
 use types::{
@@ -157,24 +152,51 @@ impl StateManager {
 
     async fn setup_scanner(&self) {
         let scanner = self.plugins.get::<ScannerHolder>();
+        let preferences = self
+            .plugins
+            .get::<preferences::preferences::PreferenceConfig>();
         {
             let mut file_scanner = scanner.write().await;
             file_scanner.set_artist_split(",".into());
             file_scanner.set_thumbnail_dir(temp_dir());
-            let scan_dir = std::env::var("TEMP_MOOSYNC_MUSIC_DIR")
-                .ok()
+
+            let prefs_read = preferences.read().await;
+            let mut scan_dirs = prefs_read
+                .load_selective::<Vec<String>>("music_paths".to_string())
+                .unwrap_or_default()
+                .into_iter()
                 .map(std::path::PathBuf::from)
-                .or_else(|| platform_dirs::UserDirs::new().map(|d| d.music_dir));
-            if let Some(scan_dir) = scan_dir {
-                file_scanner.set_scan_dir(scan_dir);
+                .collect::<Vec<_>>();
+
+            if scan_dirs.is_empty() {
+                if let Some(user_dirs) = platform_dirs::UserDirs::new() {
+                    scan_dirs.push(user_dirs.music_dir);
+                }
+            }
+
+            if !scan_dirs.is_empty() {
+                file_scanner.set_scan_dirs(scan_dirs);
             }
 
             let database = self.plugins.get::<Database>();
-            file_scanner.set_on_playlist(move |p| {
+            file_scanner.set_on_playlist(move |playlists_with_songs| {
                 let db = database.clone();
                 async move {
-                    for playlist in p {
-                        let _ = db.read().await.create_playlist(playlist);
+                    let db_read = db.read().await;
+                    for (playlist, song_identifiers) in playlists_with_songs {
+                        let mut playlist_songs = Vec::new();
+                        for identifier in song_identifiers {
+                            if let Some(song) =
+                                resolve_or_create_playlist_song(&db_read, identifier)
+                            {
+                                playlist_songs.push(song);
+                            }
+                        }
+                        if let Err(e) =
+                            db_read.create_playlist_with_songs(playlist, &playlist_songs)
+                        {
+                            tracing::error!("Failed to create playlist with songs: {:?}", e);
+                        }
                     }
                 }
             });
@@ -194,7 +216,9 @@ impl StateManager {
 
         tokio::task::spawn(async move {
             let scanner = scanner.read().await;
-            scanner.start_scan().await.unwrap();
+            if let Err(e) = scanner.start_scan().await {
+                tracing::error!("Failed to start scan: {:?}", e);
+            }
         });
     }
 }
@@ -203,3 +227,54 @@ types::generate_on_event_impl!(
     StateManager;
     on_extensions_updated, ();
 );
+
+fn resolve_or_create_playlist_song(db: &Database, identifier: PlaylistSongId) -> Option<Song> {
+    let opt = match &identifier {
+        PlaylistSongId::Url(url) => songs_proto::moosync::types::GetSongOptions {
+            song: Some(songs_proto::moosync::types::SearchableSong {
+                playback_url: Some(url.clone()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+        PlaylistSongId::Path(path) => songs_proto::moosync::types::GetSongOptions {
+            song: Some(songs_proto::moosync::types::SearchableSong {
+                path: Some(path.to_string_lossy().to_string()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        },
+    };
+
+    let songs = db.get_songs_by_options(opt).ok()?;
+    if let Some(song) = songs.into_iter().next() {
+        return Some(song);
+    }
+
+    let mut inner_song = songs_proto::moosync::types::InnerSong::default();
+    inner_song.id = Some(uuid::Uuid::new_v4().to_string());
+    match identifier {
+        PlaylistSongId::Url(url) => {
+            inner_song.r#type = songs_proto::moosync::types::SongType::Url.into();
+            inner_song.playback_url = Some(url);
+        }
+        PlaylistSongId::Path(path) => {
+            inner_song.r#type = songs_proto::moosync::types::SongType::Local.into();
+            let path_str = path.to_string_lossy().to_string();
+            inner_song.path = Some(path_str.clone());
+            let title = path
+                .file_stem()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or(path_str);
+            inner_song.title = Some(title);
+        }
+    }
+
+    let proto_song = Song {
+        song: Some(inner_song),
+        ..Default::default()
+    };
+
+    let inserted = db.insert_songs(vec![proto_song]).ok()?;
+    inserted.into_iter().next()
+}

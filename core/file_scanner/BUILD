@@ -4,7 +4,11 @@ rust_library(
     name = "file_scanner",
     srcs = [
         "src/context/android.rs",
-        "src/context/desktop.rs",
+        "src/context/desktop/mod.rs",
+        "src/context/desktop/image_processor.rs",
+        "src/context/desktop/lyrics_scanner.rs",
+        "src/context/desktop/playlist_scanner.rs",
+        "src/context/desktop/song_scanner.rs",
         "src/context/mod.rs",
         "src/lib.rs",
         "src/tests.rs",

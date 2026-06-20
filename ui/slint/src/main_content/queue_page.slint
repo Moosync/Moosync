@@ -33,7 +33,7 @@ component QueueListItem inherits Rectangle {
             height: 100%;
 
             can-drop(event) => {
-                if (event.allow-move) {
+                if (event.proposed-action == DragAction.move) {
                     root.drag-source-idx = AppCallbacks.transfer-to-string(event.data).to-float();
                     root.drag-target-idx = root.item-idx;
                     // Computes y coordinate of mouse relative to visible list viewport

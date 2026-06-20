@@ -30,7 +30,7 @@
   // "rust-analyzer.cargo.target": "x86_64-linux-android",
   "rust-analyzer.workspace.discoverConfig": {
     "command": [
-      "discover_bazel_rust_project.sh",
+      "./discover_bazel_rust_project.sh",
       "{arg}"
     ],
     "progressLabel": "rust_analyzer",

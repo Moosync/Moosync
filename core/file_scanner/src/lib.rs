@@ -41,12 +41,21 @@ pub type ScanProgressReceiver = tokio::sync::mpsc::UnboundedReceiver<ScanProgres
 pub type OnSongScanned = Box<
     dyn Fn(Option<String>, Vec<Song>) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync,
 >;
-pub type OnPlaylistScanned =
-    Box<dyn Fn(Vec<Playlist>) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + Sync>;
+#[derive(Debug, Clone, PartialEq)]
+pub enum PlaylistSongId {
+    Path(std::path::PathBuf),
+    Url(String),
+}
+
+pub type OnPlaylistScanned = Box<
+    dyn Fn(Vec<(Playlist, Vec<PlaylistSongId>)>) -> Pin<Box<dyn Future<Output = ()> + Send>>
+        + Send
+        + Sync,
+>;
 pub type OnProgressUpdated = Box<dyn Fn(ScanProgress) + Send + Sync>;
 
 pub struct ScannerHolder {
-    scan_dir: Option<PathBuf>,
+    scan_dirs: Vec<PathBuf>,
     thumbnail_dir: Option<PathBuf>,
     artist_split: Option<String>,
     on_song: Option<OnSongScanned>,
@@ -59,7 +68,7 @@ impl ScannerHolder {
     #[tracing::instrument(level = "debug", skip())]
     pub fn new() -> Self {
         Self {
-            scan_dir: None,
+            scan_dirs: Vec::new(),
             thumbnail_dir: None,
             artist_split: None,
             on_song: None,
@@ -68,7 +77,7 @@ impl ScannerHolder {
         }
     }
 
-    pub fn set_scan_dir(&mut self, dir: PathBuf) { self.scan_dir = Some(dir); }
+    pub fn set_scan_dirs(&mut self, dirs: Vec<PathBuf>) { self.scan_dirs = dirs; }
 
     pub fn set_thumbnail_dir(&mut self, dir: PathBuf) { self.thumbnail_dir = Some(dir); }
 
@@ -84,7 +93,7 @@ impl ScannerHolder {
 
     pub fn set_on_playlist<F, Fut>(&mut self, cb: F)
     where
-        F: Fn(Vec<Playlist>) -> Fut + Send + Sync + 'static,
+        F: Fn(Vec<(Playlist, Vec<PlaylistSongId>)>) -> Fut + Send + Sync + 'static,
         Fut: std::future::Future<Output = ()> + Send + 'static,
     {
         self.on_playlist = Some(Box::new(move |playlists| Box::pin(cb(playlists))));
@@ -101,10 +110,10 @@ impl ScannerHolder {
 
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn start_scan(&self) -> Result<()> {
-        let scan_dir = self
-            .scan_dir
-            .clone()
-            .ok_or_else(|| MoosyncError::String("scan_dir not set".into()))?;
+        if self.scan_dirs.is_empty() {
+            return Err(MoosyncError::String("scan_dirs not set".into()));
+        }
+        let scan_dirs = self.scan_dirs.clone();
         let thumbnail_dir = self
             .thumbnail_dir
             .clone()
@@ -132,12 +141,14 @@ impl ScannerHolder {
             }
         });
 
+        tracing::trace!("here 2");
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        let context = DesktopScannerContext::new(scan_dir, thumbnail_dir, artist_split);
+        let context = DesktopScannerContext::new(scan_dirs, thumbnail_dir, artist_split);
 
         #[cfg(target_os = "android")]
-        let context = AndroidScannerContext::new(scan_dir, thumbnail_dir, artist_split);
+        let context = AndroidScannerContext::new(scan_dirs, thumbnail_dir, artist_split);
 
+        tracing::trace!("here 3");
         context.start_scan(on_song, on_playlist, &on_progress).await
     }
 }

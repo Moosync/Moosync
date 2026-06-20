@@ -151,6 +151,25 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
+    pub fn create_playlist_with_songs(&self, playlist: Playlist, songs: &[Song]) -> Result<()> {
+        let playlist_id = match self.create_playlist(playlist.clone()) {
+            Ok(id) => id,
+            Err(e) => {
+                if let Some(ref id) = playlist.playlist_id {
+                    id.clone()
+                } else {
+                    return Err(e);
+                }
+            }
+        };
+        if songs.is_empty() {
+            return Ok(());
+        }
+        self.add_to_playlist(&playlist_id, songs)?;
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
     pub fn add_to_playlist_bridge(&self, playlist_id: String, song_id: String) -> Result<()> {
         let conn = self.pool.get().unwrap();
         trace!("Inserting song in playlist bridge");

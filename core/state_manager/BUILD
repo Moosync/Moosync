@@ -30,6 +30,7 @@ rust_library(
         "@crates//:serde",
         "@crates//:serde_json",
         "@crates//:prost-types",
+        "@crates//:uuid",
         "//core/mpris",
     ] + select({
         "@platforms//os:android": [

@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use extensions::ReplyHandler;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use tokio::runtime::Handle;

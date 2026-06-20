@@ -22,7 +22,7 @@ use crate::{OnPlaylistScanned, OnProgressUpdated, OnSongScanned};
 
 pub struct AndroidScannerContext {
     #[allow(dead_code)]
-    scan_dir: PathBuf,
+    scan_dirs: Vec<PathBuf>,
     #[allow(dead_code)]
     thumbnail_dir: PathBuf,
     #[allow(dead_code)]
@@ -30,9 +30,9 @@ pub struct AndroidScannerContext {
 }
 
 impl AndroidScannerContext {
-    pub fn new(scan_dir: PathBuf, thumbnail_dir: PathBuf, artist_split: String) -> Self {
+    pub fn new(scan_dirs: Vec<PathBuf>, thumbnail_dir: PathBuf, artist_split: String) -> Self {
         Self {
-            scan_dir,
+            scan_dirs,
             thumbnail_dir,
             artist_split,
         }

@@ -29,11 +29,17 @@ pub mod song_scanner;
 
 use self::{playlist_scanner::PlaylistScanner, song_scanner::SongScanner};
 
-#[tracing::instrument(level = "debug", skip(dir))]
-pub fn get_files_recursively(dir: PathBuf) -> Result<FileList> {
+#[tracing::instrument(level = "debug", skip(dir, exclude_dirs))]
+pub fn get_files_recursively(dir: PathBuf, exclude_dirs: &[PathBuf]) -> Result<FileList> {
     tracing::trace!("Scanning dir {:?}", dir);
     let mut file_list = vec![];
     let mut playlist_list = vec![];
+    if exclude_dirs.iter().any(|ex| dir.starts_with(ex)) {
+        return Ok(FileList {
+            file_list,
+            playlist_list,
+        });
+    }
     if !dir.exists() {
         return Ok(FileList {
             file_list,
@@ -43,7 +49,7 @@ pub fn get_files_recursively(dir: PathBuf) -> Result<FileList> {
     if dir.is_file() {
         process_single_file(dir, &mut file_list, &mut playlist_list)?;
     } else if dir.is_dir() {
-        process_directory(dir, &mut file_list, &mut playlist_list)?;
+        process_directory(dir, exclude_dirs, &mut file_list, &mut playlist_list)?;
     }
     Ok(FileList {
         file_list,
@@ -80,13 +86,14 @@ fn process_single_file(
 
 fn process_directory(
     path: PathBuf,
+    exclude_dirs: &[PathBuf],
     files: &mut Vec<(PathBuf, f64)>,
     playlists: &mut Vec<PathBuf>,
 ) -> Result<()> {
     let dir_entries = fs::read_dir(path).map_err(error_helpers::to_file_system_error)?;
     for entry in dir_entries {
         if let Ok(entry) = entry {
-            let res = get_files_recursively(entry.path())?;
+            let res = get_files_recursively(entry.path(), exclude_dirs)?;
             files.extend(res.file_list);
             playlists.extend(res.playlist_list);
         }
@@ -98,14 +105,24 @@ pub struct DesktopScannerContext {
     scan_dirs: Vec<PathBuf>,
     thumbnail_dir: PathBuf,
     artist_split: String,
+    exclude_dirs: Vec<PathBuf>,
+    scan_threads: Option<i32>,
 }
 
 impl DesktopScannerContext {
-    pub fn new(scan_dirs: Vec<PathBuf>, thumbnail_dir: PathBuf, artist_split: String) -> Self {
+    pub fn new(
+        scan_dirs: Vec<PathBuf>,
+        thumbnail_dir: PathBuf,
+        artist_split: String,
+        exclude_dirs: Vec<PathBuf>,
+        scan_threads: Option<i32>,
+    ) -> Self {
         Self {
             scan_dirs,
             thumbnail_dir,
             artist_split,
+            exclude_dirs,
+            scan_threads,
         }
     }
 }
@@ -122,7 +139,7 @@ impl super::ScannerContext for DesktopScannerContext {
             playlist_list: Vec::new(),
         };
         for dir in &self.scan_dirs {
-            let res = get_files_recursively(dir.clone())?;
+            let res = get_files_recursively(dir.clone(), &self.exclude_dirs)?;
             file_list.file_list.extend(res.file_list);
             file_list.playlist_list.extend(res.playlist_list);
         }
@@ -131,6 +148,7 @@ impl super::ScannerContext for DesktopScannerContext {
             &file_list,
             self.thumbnail_dir.clone(),
             self.artist_split.clone(),
+            self.scan_threads,
         );
         let playlist_scanner = PlaylistScanner::new(&file_list);
 

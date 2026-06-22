@@ -93,18 +93,20 @@ impl ReplyHandler for StateReplyHandler {
         &self,
         package_name: &str,
         key: &str,
-    ) -> Result<Option<serde_json::Value>, types::errors::MoosyncError> {
+    ) -> Result<
+        Option<extensions_proto::struct_proto::google::protobuf::Value>,
+        types::errors::MoosyncError,
+    > {
         let prefs = self
             .runtime
             .block_on(self.state_manager.get_preference_config());
-        let scoped_key = format!("{}.{}", package_name, key);
-        let val: serde_json::Value = prefs
-            .load_selective(scoped_key)
-            .unwrap_or(serde_json::Value::Null);
-        if val.is_null() {
-            Ok(None)
-        } else {
-            Ok(Some(val))
+        let ext_key = preferences::keys::ExtensionKey {
+            package_name: package_name.to_string(),
+            key: key.to_string(),
+        };
+        match prefs.inner.load(ext_key) {
+            Ok(val) => Ok(Some(val)),
+            Err(_) => Ok(None),
         }
     }
 
@@ -112,13 +114,16 @@ impl ReplyHandler for StateReplyHandler {
         &self,
         package_name: &str,
         key: &str,
-        value: serde_json::Value,
+        value: extensions_proto::struct_proto::google::protobuf::Value,
     ) -> Result<bool, types::errors::MoosyncError> {
         let prefs = self
             .runtime
             .block_on(self.state_manager.get_preference_config());
-        let scoped_key = format!("{}.{}", package_name, key);
-        prefs.save_selective(scoped_key, Some(value))?;
+        let ext_key = preferences::keys::ExtensionKey {
+            package_name: package_name.to_string(),
+            key: key.to_string(),
+        };
+        prefs.inner.save(ext_key, value)?;
         Ok(true)
     }
 
@@ -126,7 +131,10 @@ impl ReplyHandler for StateReplyHandler {
         &self,
         package_name: &str,
         key: &str,
-    ) -> Result<Option<serde_json::Value>, types::errors::MoosyncError> {
+    ) -> Result<
+        Option<extensions_proto::struct_proto::google::protobuf::Value>,
+        types::errors::MoosyncError,
+    > {
         let prefs = self
             .runtime
             .block_on(self.state_manager.get_preference_config());
@@ -137,7 +145,12 @@ impl ReplyHandler for StateReplyHandler {
         if val.is_null() {
             Ok(None)
         } else {
-            Ok(Some(val))
+            let serialized = serde_json::to_string(&val)
+                .map_err(|e| types::errors::MoosyncError::String(e.to_string()))?;
+            let proto_val: extensions_proto::struct_proto::google::protobuf::Value =
+                serde_json::from_str(&serialized)
+                    .map_err(|e| types::errors::MoosyncError::String(e.to_string()))?;
+            Ok(Some(proto_val))
         }
     }
 
@@ -145,13 +158,17 @@ impl ReplyHandler for StateReplyHandler {
         &self,
         package_name: &str,
         key: &str,
-        value: serde_json::Value,
+        value: extensions_proto::struct_proto::google::protobuf::Value,
     ) -> Result<bool, types::errors::MoosyncError> {
         let prefs = self
             .runtime
             .block_on(self.state_manager.get_preference_config());
         let scoped_key = format!("{}.{}", package_name, key);
-        prefs.set_secure(scoped_key, Some(value))?;
+        let serialized = serde_json::to_string(&value)
+            .map_err(|e| types::errors::MoosyncError::String(e.to_string()))?;
+        let val: serde_json::Value = serde_json::from_str(&serialized)
+            .map_err(|e| types::errors::MoosyncError::String(e.to_string()))?;
+        prefs.set_secure(scoped_key, Some(val))?;
         Ok(true)
     }
 

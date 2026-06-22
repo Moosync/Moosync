@@ -86,6 +86,14 @@ impl<F: Send + Sync + 'static> SubscriberList<F> {
             f(&sub);
         }
     }
+
+    pub fn watch_immediate<A>(&self, subscriber: F, init_val: A) -> CancelHandle
+    where
+        F: std::ops::Fn(A),
+    {
+        subscriber(init_val);
+        self.insert(subscriber)
+    }
 }
 
 impl<F: Send + Sync + 'static> Default for SubscriberList<F> {
@@ -101,9 +109,56 @@ impl<F: Send + Sync + 'static> Clone for SubscriberList<F> {
     }
 }
 
+pub trait ToFilterKeys<T> {
+    fn to_filter_keys(self) -> Vec<T>;
+}
+
+impl<T> ToFilterKeys<T> for T {
+    fn to_filter_keys(self) -> Vec<T> { vec![self] }
+}
+
+impl<T> ToFilterKeys<T> for Vec<T> {
+    fn to_filter_keys(self) -> Vec<T> { self }
+}
+
 #[macro_export]
 macro_rules! generate_on_event_impl {
-    ($struct_name:ident, $wrapper_name:ident; $($name:ident, $arg:ty);* $(;)?) => {
+    ($struct_name:ident; $($name:ident, $watch_name:ident, $arg:ty, $trait_name:path);* $(;)?) => {
+        impl $struct_name {
+            $(
+                pub fn $name<F, K>(&self, callback: F, keys: K) -> $crate::subscription::CancelHandle
+                where
+                    F: Fn($arg) + Send + Sync + 'static,
+                    K: $trait_name,
+                {
+                    let keys = keys.to_filter_keys();
+                    self.$name.insert(Box::new(move |val| {
+                        if keys.contains(&val) {
+                            callback(val);
+                        }
+                    }))
+                }
+
+                pub fn $watch_name<F, K>(&self, callback: F, keys: K) -> $crate::subscription::CancelHandle
+                where
+                    F: Fn($arg) + Send + Sync + 'static,
+                    K: $trait_name,
+                {
+                    let keys = keys.to_filter_keys();
+                    for key in &keys {
+                        callback(key.clone());
+                    }
+                    self.$name.insert(Box::new(move |val| {
+                        if keys.contains(&val) {
+                            callback(val);
+                        }
+                    }))
+                }
+            )*
+        }
+    };
+
+    ($struct_name:ident; $($name:ident, $watch_name:ident, $arg:ty);* $(;)?) => {
         impl $struct_name {
             $(
                 pub fn $name<F>(&self, callback: F) -> $crate::subscription::CancelHandle
@@ -112,19 +167,12 @@ macro_rules! generate_on_event_impl {
                 {
                     self.$name.insert(Box::new(callback))
                 }
-            )*
-        }
 
-        impl<R> $wrapper_name<R>
-        where
-            R: std::ops::Deref<Target = $struct_name>,
-        {
-            $(
-                pub fn $name<F>(&self, callback: F) -> $crate::subscription::CancelHandle
+                pub fn $watch_name<F>(&self, callback: F, init_val: $arg) -> $crate::subscription::CancelHandle
                 where
                     F: Fn($arg) + Send + Sync + 'static,
                 {
-                    self.inner.$name(callback)
+                    self.$name.watch_immediate(Box::new(callback), init_val)
                 }
             )*
         }

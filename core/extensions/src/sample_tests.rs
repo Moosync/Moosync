@@ -165,7 +165,10 @@ impl ReplyHandler for TestReplyRouter {
         &self,
         package_name: &str,
         key: &str,
-    ) -> Result<Option<serde_json::Value>, types::errors::MoosyncError> {
+    ) -> Result<
+        Option<extensions_proto::struct_proto::google::protobuf::Value>,
+        types::errors::MoosyncError,
+    > {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -186,7 +189,7 @@ impl ReplyHandler for TestReplyRouter {
         &self,
         package_name: &str,
         key: &str,
-        value: serde_json::Value,
+        value: extensions_proto::struct_proto::google::protobuf::Value,
     ) -> Result<bool, types::errors::MoosyncError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
@@ -195,7 +198,7 @@ impl ReplyHandler for TestReplyRouter {
                     extensions_proto::moosync::types::SetPreferenceRequest {
                         data: Some(extensions_proto::moosync::types::PreferenceData {
                             key: key.to_string(),
-                            value: Some(serde_json::from_value(value).unwrap()),
+                            value: Some(value),
                         }),
                     },
                 )),
@@ -208,7 +211,10 @@ impl ReplyHandler for TestReplyRouter {
         &self,
         package_name: &str,
         key: &str,
-    ) -> Result<Option<serde_json::Value>, types::errors::MoosyncError> {
+    ) -> Result<
+        Option<extensions_proto::struct_proto::google::protobuf::Value>,
+        types::errors::MoosyncError,
+    > {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -229,7 +235,7 @@ impl ReplyHandler for TestReplyRouter {
         &self,
         package_name: &str,
         key: &str,
-        value: serde_json::Value,
+        value: extensions_proto::struct_proto::google::protobuf::Value,
     ) -> Result<bool, types::errors::MoosyncError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
@@ -238,7 +244,7 @@ impl ReplyHandler for TestReplyRouter {
                     extensions_proto::moosync::types::SetSecureRequest {
                         data: Some(extensions_proto::moosync::types::PreferenceData {
                             key: key.to_string(),
-                            value: Some(serde_json::from_value(value).unwrap()),
+                            value: Some(value),
                         }),
                     },
                 )),

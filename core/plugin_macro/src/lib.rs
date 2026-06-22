@@ -116,6 +116,25 @@ pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
             pub interceptor: std::vec::Vec<std::sync::Arc<dyn #trait_name>>,
         }
 
+        impl<R> std::ops::Deref for #wrapper_name<R>
+        where
+            R: std::ops::Deref<Target = #struct_name>,
+        {
+            type Target = #struct_name;
+            fn deref(&self) -> &Self::Target {
+                &*self.inner
+            }
+        }
+
+        impl<R> std::ops::DerefMut for #wrapper_name<R>
+        where
+            R: std::ops::DerefMut<Target = #struct_name>,
+        {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut *self.inner
+            }
+        }
+
         impl<R> #wrapper_name<R>
         where
             R: std::ops::Deref<Target = #struct_name>,

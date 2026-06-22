@@ -314,7 +314,7 @@ impl PlayerHandler {
 }
 
 types::generate_on_event_impl!(
-    PlayerHandler, InterceptedPlayerHandler;
+    PlayerHandler;
     on_song_changed, Option<&Song>;
     on_queue_updated, &[Song];
     on_repeat_changed, RepeatMode;

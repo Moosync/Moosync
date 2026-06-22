@@ -85,7 +85,10 @@ pub trait ReplyHandler: Send + Sync + 'static {
         &self,
         _package_name: &str,
         _key: &str,
-    ) -> Result<Option<serde_json::Value>, types::errors::MoosyncError> {
+    ) -> Result<
+        Option<extensions_proto::struct_proto::google::protobuf::Value>,
+        types::errors::MoosyncError,
+    > {
         Err(types::errors::MoosyncError::String(
             "Not implemented".to_string(),
         ))
@@ -94,7 +97,7 @@ pub trait ReplyHandler: Send + Sync + 'static {
         &self,
         _package_name: &str,
         _key: &str,
-        _value: serde_json::Value,
+        _value: extensions_proto::struct_proto::google::protobuf::Value,
     ) -> Result<bool, types::errors::MoosyncError> {
         Err(types::errors::MoosyncError::String(
             "Not implemented".to_string(),
@@ -104,7 +107,10 @@ pub trait ReplyHandler: Send + Sync + 'static {
         &self,
         _package_name: &str,
         _key: &str,
-    ) -> Result<Option<serde_json::Value>, types::errors::MoosyncError> {
+    ) -> Result<
+        Option<extensions_proto::struct_proto::google::protobuf::Value>,
+        types::errors::MoosyncError,
+    > {
         Err(types::errors::MoosyncError::String(
             "Not implemented".to_string(),
         ))
@@ -113,7 +119,7 @@ pub trait ReplyHandler: Send + Sync + 'static {
         &self,
         _package_name: &str,
         _key: &str,
-        _value: serde_json::Value,
+        _value: extensions_proto::struct_proto::google::protobuf::Value,
     ) -> Result<bool, types::errors::MoosyncError> {
         Err(types::errors::MoosyncError::String(
             "Not implemented".to_string(),
@@ -295,19 +301,13 @@ impl DispatchCommand for main_command::Command {
                     .get_preference(package_name, &key)
                     .map(|value| {
                         main_command_response::Response::GetPreference(GetPreferenceResponse {
-                            data: Some(PreferenceData {
-                                key,
-                                value: value.and_then(|v| serde_json::from_value(v).ok()),
-                            }),
+                            data: Some(PreferenceData { key, value }),
                         })
                     })
             }
             main_command::Command::SetPreference(req) => {
                 if let Some(data) = req.data {
-                    let val = data
-                        .value
-                        .and_then(|v| serde_json::to_value(v).ok())
-                        .unwrap_or(serde_json::Value::Null);
+                    let val = data.value.unwrap_or_default();
                     reply_handler
                         .set_preference(package_name, &data.key, val)
                         .map(|success| {
@@ -325,19 +325,13 @@ impl DispatchCommand for main_command::Command {
                 let key = req.data.as_ref().map(|d| d.key.clone()).unwrap_or_default();
                 reply_handler.get_secure(package_name, &key).map(|value| {
                     main_command_response::Response::GetSecure(GetSecureResponse {
-                        data: Some(PreferenceData {
-                            key,
-                            value: value.and_then(|v| serde_json::from_value(v).ok()),
-                        }),
+                        data: Some(PreferenceData { key, value }),
                     })
                 })
             }
             main_command::Command::SetSecure(req) => {
                 if let Some(data) = req.data {
-                    let val = data
-                        .value
-                        .and_then(|v| serde_json::to_value(v).ok())
-                        .unwrap_or(serde_json::Value::Null);
+                    let val = data.value.unwrap_or_default();
                     reply_handler
                         .set_secure(package_name, &data.key, val)
                         .map(|success| {

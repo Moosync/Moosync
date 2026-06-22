@@ -17,31 +17,35 @@ impl<'a> ExtensionsPageHandler<'a> {
     }
 
     fn setup_callbacks(&self) {
-        let sm = self.state_manager.clone();
-        let mw = self.main_window.as_weak();
-
-        let sm_cl = sm.clone();
-        let mw_cl = mw.clone();
         self.main_window
             .global::<crate::AppCallbacks>()
-            .on_toggle_extension(move |package_name| {
-                let package_name = package_name.to_string();
-                let main_window_weak = mw_cl.clone();
-                let state_manager = sm_cl.clone();
-                tokio::spawn(async move {
-                    handle_toggle_extension(package_name, main_window_weak, state_manager).await;
-                });
+            .on_toggle_extension({
+                let state_manager = self.state_manager.clone();
+                let main_window_weak = self.main_window.as_weak();
+                move |package_name| {
+                    let package_name = package_name.to_string();
+                    let main_window_weak = main_window_weak.clone();
+                    let state_manager = state_manager.clone();
+                    tokio::spawn(async move {
+                        handle_toggle_extension(package_name, main_window_weak, state_manager)
+                            .await;
+                    });
+                }
             });
 
         self.main_window
             .global::<crate::AppCallbacks>()
-            .on_install_extension(move |file_path| {
-                let file_path = file_path.to_string();
-                let main_window_weak = mw.clone();
-                let state_manager = sm.clone();
-                tokio::spawn(async move {
-                    install_local_extension(file_path, main_window_weak, state_manager).await;
-                });
+            .on_install_extension({
+                let state_manager = self.state_manager.clone();
+                let main_window_weak = self.main_window.as_weak();
+                move |file_path| {
+                    let file_path = file_path.to_string();
+                    let main_window_weak = main_window_weak.clone();
+                    let state_manager = state_manager.clone();
+                    tokio::spawn(async move {
+                        install_local_extension(file_path, main_window_weak, state_manager).await;
+                    });
+                }
             });
     }
 }
@@ -51,12 +55,14 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
         tracing::info!("ExtensionsPageHandler: Initializing settings page handler");
         self.setup_callbacks();
 
-        let main_window_weak = self.main_window.as_weak();
-        let state_manager_clone = self.state_manager.clone();
-        self.state_manager.on_extensions_updated(move |_| {
-            let main_window_weak = main_window_weak.clone();
-            let state_manager = state_manager_clone.clone();
-            refresh_extensions_list(main_window_weak, state_manager);
+        self.state_manager.on_extensions_updated({
+            let main_window_weak = self.main_window.as_weak();
+            let state_manager = self.state_manager.clone();
+            move |_| {
+                let main_window_weak = main_window_weak.clone();
+                let state_manager = state_manager.clone();
+                refresh_extensions_list(main_window_weak, state_manager);
+            }
         });
 
         refresh_extensions_list(self.main_window.as_weak(), self.state_manager.clone());

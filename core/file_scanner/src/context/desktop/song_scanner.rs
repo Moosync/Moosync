@@ -255,15 +255,22 @@ pub struct SongScanner<'a> {
     file_list: &'a FileList,
     thumbnail_dir: PathBuf,
     artist_split: String,
+    scan_threads: Option<i32>,
 }
 
 impl<'a> SongScanner<'a> {
     #[tracing::instrument(level = "debug", skip(file_list, thumbnail_dir, artist_split))]
-    pub fn new(file_list: &'a FileList, thumbnail_dir: PathBuf, artist_split: String) -> Self {
+    pub fn new(
+        file_list: &'a FileList,
+        thumbnail_dir: PathBuf,
+        artist_split: String,
+        scan_threads: Option<i32>,
+    ) -> Self {
         Self {
             file_list,
             thumbnail_dir,
             artist_split,
+            scan_threads,
         }
     }
 
@@ -292,7 +299,7 @@ impl<'a> SongScanner<'a> {
         on_song: &OnSongScanned,
         on_progress: &OnProgressUpdated,
     ) -> Result<()> {
-        let batch_size = 100;
+        let batch_size = self.scan_threads.unwrap_or(4) as usize;
         let mut scan_futures = Vec::new();
         for (file_path, size) in &self.file_list.file_list {
             scan_futures.push(self.scan_song(*size, file_path.clone()));

@@ -58,6 +58,8 @@ pub struct ScannerHolder {
     scan_dirs: Vec<PathBuf>,
     thumbnail_dir: Option<PathBuf>,
     artist_split: Option<String>,
+    exclude_dirs: Vec<PathBuf>,
+    scan_threads: Option<i32>,
     on_song: Option<OnSongScanned>,
     on_playlist: Option<OnPlaylistScanned>,
     subscribers: std::sync::Mutex<Vec<tokio::sync::mpsc::UnboundedSender<ScanProgress>>>,
@@ -71,6 +73,8 @@ impl ScannerHolder {
             scan_dirs: Vec::new(),
             thumbnail_dir: None,
             artist_split: None,
+            exclude_dirs: Vec::new(),
+            scan_threads: None,
             on_song: None,
             on_playlist: None,
             subscribers: std::sync::Mutex::new(Vec::new()),
@@ -78,6 +82,10 @@ impl ScannerHolder {
     }
 
     pub fn set_scan_dirs(&mut self, dirs: Vec<PathBuf>) { self.scan_dirs = dirs; }
+
+    pub fn set_exclude_dirs(&mut self, dirs: Vec<PathBuf>) { self.exclude_dirs = dirs; }
+
+    pub fn set_scan_threads(&mut self, threads: i32) { self.scan_threads = Some(threads); }
 
     pub fn set_thumbnail_dir(&mut self, dir: PathBuf) { self.thumbnail_dir = Some(dir); }
 
@@ -143,7 +151,13 @@ impl ScannerHolder {
 
         tracing::trace!("here 2");
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
-        let context = DesktopScannerContext::new(scan_dirs, thumbnail_dir, artist_split);
+        let context = DesktopScannerContext::new(
+            scan_dirs,
+            thumbnail_dir,
+            artist_split,
+            self.exclude_dirs.clone(),
+            self.scan_threads,
+        );
 
         #[cfg(target_os = "android")]
         let context = AndroidScannerContext::new(scan_dirs, thumbnail_dir, artist_split);

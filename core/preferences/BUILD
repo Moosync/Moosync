@@ -5,6 +5,7 @@ rust_library(
     srcs = [
         "src/context/keyring_context.rs",
         "src/context/mod.rs",
+        "src/keys.rs",
         "src/lib.rs",
         "src/preferences.rs",
         "src/tests.rs",
@@ -16,6 +17,7 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         "//core/types",
+        "//core/types/protos:extensions_rs",
         "@crates//:chacha20poly1305",
         "@crates//:crossbeam-channel",
         "@crates//:hex",

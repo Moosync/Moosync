@@ -274,8 +274,8 @@ impl ThemeHolder {
 }
 
 types::generate_on_event_impl!(
-    ThemeHolder, InterceptedThemeHolder;
-    on_theme_changed, &ThemeDetails;
+    ThemeHolder;
+    on_theme_changed, on_theme_changed_immediate, &ThemeDetails;
 );
 
 impl types::plugin::Plugin for ThemeHolder {

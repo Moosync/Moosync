@@ -20,16 +20,13 @@ use std::{
     io::{Read, Write},
     path::PathBuf,
     sync::Mutex,
-    thread,
 };
 
 use chacha20poly1305::{
     AeadCore, ChaCha20Poly1305, Key, KeyInit, KeySizeUser,
     aead::{Aead, OsRng, generic_array::GenericArray},
 };
-use crossbeam_channel::{Receiver, Sender, bounded};
-use json_dotpath::DotPaths;
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use types::{
     errors::{
@@ -42,16 +39,19 @@ use whoami;
 
 use crate::context::{Keyring, KeyringContext};
 
-// const SCHEMA: &str = include_str!("./schema.json");
-
 pub type OnPreferenceChangedCallback = Box<dyn Fn(String) + Send + Sync + 'static>;
+
+use crate::keys::PreferenceKey;
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub struct PreferenceConfigData {
+    pub prefs: std::collections::HashMap<String, Value>,
+}
 
 pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,
     pub secret: Mutex<Key>,
-    pub memcache: Mutex<Value>,
-    sender: Sender<(String, Value)>,
-    receiver: Receiver<(String, Value)>,
+    pub memcache: std::sync::RwLock<PreferenceConfigData>,
     _keyring_context: Box<dyn Keyring>,
     pub on_preference_changed: SubscriberList<OnPreferenceChangedCallback>,
 }
@@ -62,8 +62,6 @@ impl std::fmt::Debug for PreferenceConfig {
             .field("config_file", &self.config_file)
             .field("secret", &self.secret)
             .field("memcache", &self.memcache)
-            .field("sender", &self.sender)
-            .field("receiver", &self.receiver)
             .finish()
     }
 }
@@ -120,133 +118,20 @@ impl PreferenceConfig {
         let secret = ChaCha20Poly1305::generate_key(&mut OsRng);
 
         let mut config_file = File::open(config_file_path.clone()).map_err(to_file_system_error)?;
-        let mut prefs = String::new();
+        let mut prefs_str = String::new();
         config_file
-            .read_to_string(&mut prefs)
+            .read_to_string(&mut prefs_str)
             .map_err(to_file_system_error)?;
 
-        let prefs = serde_json::from_str(&prefs).unwrap_or_default();
-
-        let (sender, receiver) = bounded(1);
+        let prefs: PreferenceConfigData = serde_json::from_str(&prefs_str).unwrap_or_default();
 
         Ok(PreferenceConfig {
             config_file: Mutex::new(config_file_path),
             secret: Mutex::new(secret),
-            memcache: Mutex::new(prefs),
-            sender,
-            receiver,
+            memcache: std::sync::RwLock::new(prefs),
             _keyring_context: context,
             on_preference_changed: SubscriberList::new(),
         })
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, key))]
-    pub fn load_selective<T>(&self, key: String) -> Result<T>
-    where
-        T: DeserializeOwned,
-    {
-        let prefs = self.memcache.lock().unwrap();
-
-        let key = format!("prefs.{}", key);
-        tracing::debug!("Loading selective {}", key);
-
-        let val: Option<T> = prefs
-            .dot_get(key.as_str())
-            .map_err(error_helpers::to_parse_error)?;
-        drop(prefs);
-        if val.is_none() {
-            return Err(format!(
-                "No value found for {}. This is just a warning and shouldn't lead to any failure",
-                key
-            )
-            .into());
-        }
-
-        Ok(val.unwrap())
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, key, value))]
-    pub fn save_selective<T>(&self, key: String, value: Option<T>) -> Result<()>
-    where
-        T: Serialize + Clone + Debug,
-    {
-        let clean_key = key.clone();
-        let key = format!("prefs.{}", key);
-        tracing::debug!("saving {} - {:?}", key, value);
-
-        let mut prefs = self.memcache.lock().unwrap();
-
-        if value.is_none() {
-            prefs.dot_remove(key.as_str()).unwrap();
-        } else {
-            let old_value: Option<Value> = prefs.dot_get(key.as_str()).unwrap();
-
-            if let Some(old_value) = old_value
-                && old_value == serde_json::to_value(&value).unwrap()
-            {
-                return Ok(());
-            }
-
-            {
-                let mut prefs_clone = prefs.clone();
-                prefs_clone.dot_set(key.as_str(), &value).unwrap();
-                // let schema = serde_json::from_str(SCHEMA).unwrap();
-                // let schema = match jsonschema::validator_for(&schema) {
-                //     Ok(s) => s,
-                //     Err(e) => panic!("{}: {}", e, e.instance_path),
-                // };
-                // schema.validate(&prefs_clone)?;
-            }
-            prefs.dot_set(key.as_str(), &value).unwrap();
-        }
-
-        let writable = prefs.clone();
-        drop(prefs);
-
-        let config_file_path = self.config_file.lock().expect("poisoned");
-        let mut config_file =
-            File::create(config_file_path.as_os_str()).map_err(to_file_system_error)?;
-        config_file
-            .write_all(&serde_json::to_vec(&writable)?)
-            .map_err(to_file_system_error)?;
-        config_file.flush().map_err(to_file_system_error)?;
-
-        let parsed = serde_json::to_value(value).unwrap();
-
-        let sender = self.sender.clone();
-        thread::spawn(move || {
-            sender.send((key, parsed)).unwrap();
-        });
-
-        self.on_preference_changed.run_all(|sub| {
-            sub(clean_key.clone());
-        });
-
-        Ok(())
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, key))]
-    pub fn load_selective_array<T>(&self, key: String) -> Result<T>
-    where
-        T: DeserializeOwned,
-    {
-        tracing::debug!("Loading selective array {}", key);
-        let mut split: Vec<&str> = key.split('.').collect();
-        let child = split.pop().unwrap();
-        let parent = split.join(".");
-
-        let mut preference: Value = self.load_selective(parent.to_string())?;
-        if preference.is_array() {
-            for item in preference.as_array_mut().unwrap() {
-                if let Some(key) = item.get("key")
-                    && key == child
-                {
-                    return Ok(serde_json::from_value((*item).take())?);
-                }
-            }
-        }
-
-        Err(MoosyncError::String("Value is not an array".into()))
     }
 
     #[tracing::instrument(level = "debug", skip(self, key))]
@@ -288,8 +173,7 @@ impl PreferenceConfig {
         T: Serialize + Clone + Debug,
     {
         if value.is_none() {
-            tracing::debug!("Clearing {}", key);
-            return self.save_selective(key, value);
+            return self.remove_selective(key);
         }
 
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -305,25 +189,97 @@ impl PreferenceConfig {
 
             let parsed = format!("{}:{}", hex::encode(nonce), hex::encode(encrypted));
 
-            self.save_selective(key, Some(parsed))?;
+            self.save_selective(key, parsed)?;
         }
 
         #[cfg(any(target_os = "android", target_os = "ios"))]
         {
-            self.save_selective(key, value)?;
+            self.save_selective(key, value.unwrap())?;
         }
 
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn get_receiver(&self) -> Receiver<(String, Value)> { self.receiver.clone() }
-
     #[tracing::instrument(level = "debug", skip(self, key))]
     pub fn has_key(&self, key: &str) -> bool {
-        let prefs = self.memcache.lock().unwrap();
-        let val: Option<Value> = prefs.dot_get(format!("prefs.{}", key).as_str()).unwrap();
-        val.is_some()
+        let prefs = self.memcache.read().unwrap();
+        prefs.prefs.contains_key(key)
+    }
+}
+
+impl PreferenceConfig {
+    pub fn load<K: PreferenceKey>(&self, key: K) -> Result<K::Value> {
+        self.load_selective::<K::Value>(key.key())
+    }
+
+    pub fn save<K: PreferenceKey>(&self, key: K, value: K::Value) -> Result<()> {
+        self.save_selective::<K::Value>(key.key(), value)
+    }
+
+    pub fn remove_key<K: PreferenceKey>(&self, key: K) -> Result<()> {
+        self.remove_selective(key.key())
+    }
+}
+
+impl PreferenceConfig {
+    fn load_selective<T>(&self, key: String) -> Result<T>
+    where
+        T: DeserializeOwned,
+    {
+        let prefs = self.memcache.read().unwrap();
+        if let Some(val) = prefs.prefs.get(&key) {
+            let t: T = serde_json::from_value(val.clone())?;
+            return Ok(t);
+        }
+        Err(format!("No value found for {}", key).into())
+    }
+
+    fn save_selective<T>(&self, key: String, value: T) -> Result<()>
+    where
+        T: Serialize,
+    {
+        let clean_key = key.clone();
+        let mut prefs = self.memcache.write().unwrap();
+        let json_val = serde_json::to_value(value)?;
+        prefs.prefs.insert(key, json_val);
+        let writable = prefs.clone();
+        drop(prefs);
+
+        let config_file_path = self.config_file.lock().expect("poisoned");
+        let mut config_file =
+            File::create(config_file_path.as_os_str()).map_err(to_file_system_error)?;
+        config_file
+            .write_all(&serde_json::to_vec(&writable)?)
+            .map_err(to_file_system_error)?;
+        config_file.flush().map_err(to_file_system_error)?;
+
+        self.on_preference_changed.run_all(|sub| {
+            sub(clean_key.clone());
+        });
+
+        Ok(())
+    }
+
+    fn remove_selective(&self, key: String) -> Result<()> {
+        let clean_key = key.clone();
+        let mut prefs = self.memcache.write().unwrap();
+        prefs.prefs.remove(&key);
+        let writable = prefs.clone();
+        drop(prefs);
+
+        let config_file_path = self.config_file.lock().expect("poisoned");
+        let mut config_file =
+            File::create(config_file_path.as_os_str()).map_err(to_file_system_error)?;
+        config_file
+            .write_all(&serde_json::to_vec(&writable)?)
+            .map_err(to_file_system_error)?;
+        config_file.flush().map_err(to_file_system_error)?;
+
+        self.on_preference_changed.run_all(|sub| {
+            sub(clean_key.clone());
+        });
+
+        Ok(())
     }
 }
 
@@ -339,6 +295,6 @@ impl types::plugin::Plugin for PreferenceConfig {
 }
 
 types::generate_on_event_impl!(
-    PreferenceConfig, InterceptedPreferenceConfig;
-    on_preference_changed, String;
+    PreferenceConfig;
+    on_preference_changed, on_preference_changed_immediate, String, ::types::subscription::ToFilterKeys<String>;
 );

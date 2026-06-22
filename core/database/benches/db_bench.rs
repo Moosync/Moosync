@@ -150,7 +150,7 @@ fn bench_db_ops(c: &mut Criterion) {
     // Associate 500 songs to a playlist in the shared DB
     let playlist_id = "playlist-id-5".to_string();
     shared_db
-        .add_to_playlist(playlist_id.clone(), inserted_huge[0..500].to_vec())
+        .add_to_playlist(&playlist_id, &inserted_huge[0..500])
         .unwrap();
 
     // Group for Database Reads
@@ -329,7 +329,7 @@ fn bench_db_ops(c: &mut Criterion) {
 
     read_group.bench_function("search_all", |b| {
         b.iter(|| {
-            let _ = shared_db.search_all("Complex".to_string()).unwrap();
+            let _ = shared_db.search_all("Complex").unwrap();
         });
     });
 
@@ -349,9 +349,7 @@ fn bench_db_ops(c: &mut Criterion) {
 
     read_group.bench_function("export_playlist", |b| {
         b.iter(|| {
-            let _ = shared_db
-                .export_playlist("playlist-id-5".to_string())
-                .unwrap();
+            let _ = shared_db.export_playlist("playlist-id-5").unwrap();
         });
     });
 
@@ -366,7 +364,7 @@ fn bench_db_ops(c: &mut Criterion) {
         let mut song_to_update = inserted_huge[0].song.clone().unwrap();
         song_to_update.title = Some("Updated Title for Bench".to_string());
         b.iter(|| {
-            let _ = shared_db.update_song(song_to_update.clone()).unwrap();
+            let _ = shared_db.update_song(&song_to_update).unwrap();
         });
     });
 
@@ -405,16 +403,14 @@ fn bench_db_ops(c: &mut Criterion) {
     update_group.bench_function("increment_play_count", |b| {
         let target_id = inserted_huge[0].song.as_ref().unwrap().id.clone().unwrap();
         b.iter(|| {
-            let _ = shared_db.increment_play_count(target_id.clone()).unwrap();
+            let _ = shared_db.increment_play_count(&target_id).unwrap();
         });
     });
 
     update_group.bench_function("increment_play_time", |b| {
         let target_id = inserted_huge[0].song.as_ref().unwrap().id.clone().unwrap();
         b.iter(|| {
-            let _ = shared_db
-                .increment_play_time(target_id.clone(), 245.5)
-                .unwrap();
+            let _ = shared_db.increment_play_time(&target_id, 245.5).unwrap();
         });
     });
 
@@ -511,7 +507,7 @@ fn bench_db_ops(c: &mut Criterion) {
                 (db, ids, db_path)
             },
             |(db, ids, db_path)| {
-                let _ = db.remove_songs(ids).unwrap();
+                let _ = db.remove_songs(&ids).unwrap();
                 cleanup(&db_path);
             },
             BatchSize::SmallInput,

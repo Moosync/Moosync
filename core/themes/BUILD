@@ -3,6 +3,7 @@ load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 rust_library(
     name = "themes",
     srcs = [
+        "src/error.rs",
         "src/lib.rs",
         "src/test.rs",
         "src/themes.rs",
@@ -15,6 +16,7 @@ rust_library(
     deps = [
         "//core/types",
         "//core/types/protos:themes_rs",
+        "@crates//:thiserror",
         "@crates//:fs_extra",
         "@crates//:futures",
         "@crates//:notify",

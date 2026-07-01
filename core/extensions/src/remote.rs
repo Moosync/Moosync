@@ -33,6 +33,7 @@ pub struct RemoteExtensions {
 }
 
 impl RemoteExtensions {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(extensions_dir: PathBuf, tmp_dir: PathBuf) -> Self {
         Self {
             extensions_dir,
@@ -40,7 +41,7 @@ impl RemoteExtensions {
         }
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn get_extension_manifest(
         &self,
     ) -> Result<Vec<FetchedExtensionManifest>, ExtensionError> {
@@ -114,6 +115,7 @@ impl RemoteExtensions {
         Ok(ret)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn download_extension(
         &self,
         fetched_ext: FetchedExtensionManifest,

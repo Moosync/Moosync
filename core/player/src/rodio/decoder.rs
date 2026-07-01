@@ -17,13 +17,11 @@ use rsmpeg::{
     ffi::{AV_SAMPLE_FMT_FLT, AVMEDIA_TYPE_AUDIO, AVSampleFormat},
     swresample::SwrContext,
 };
-use tracing::error;
-use types::errors::MoosyncError;
-
 // Rodio needs f32 samples in non planar format
 const DEFAULT_CONVERSION_FORMAT: AVSampleFormat = AV_SAMPLE_FMT_FLT;
 
 use thiserror::Error;
+use tracing::error;
 
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum DecoderError {
@@ -43,10 +41,6 @@ impl From<DecoderError> for SeekError {
     fn from(e: DecoderError) -> SeekError { SeekError::Other(Arc::new(e)) }
 }
 
-impl From<DecoderError> for MoosyncError {
-    fn from(e: DecoderError) -> Self { MoosyncError::PlaybackError(Box::new(e)) }
-}
-
 pub struct FFMPEGDecoder {
     format_ctx: AVFormatContextInput,
     stream_idx: usize,
@@ -57,6 +51,7 @@ pub struct FFMPEGDecoder {
 }
 
 impl FFMPEGDecoder {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn initialize_swr_context(
         codec_ctx: &AVCodecContext,
     ) -> Result<Option<SwrContext>, DecoderError> {
@@ -82,6 +77,7 @@ impl FFMPEGDecoder {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn open(path: &str) -> Result<FFMPEGDecoder, DecoderError> {
         let input_path = if path.starts_with("http") {
             CString::from_str(&format!("cache:{}", path))?
@@ -123,6 +119,7 @@ impl FFMPEGDecoder {
         Err(DecoderError::NoAudioStream)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn convert_and_store_frame(&mut self, frame: &AVFrame) -> Result<(), DecoderError> {
         let num_samples = frame.nb_samples;
         let num_channels = self.codec_ctx.ch_layout.nb_channels;
@@ -183,6 +180,7 @@ impl FFMPEGDecoder {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn decode_next_packet(&mut self) -> Result<Option<AVFrame>, DecoderError> {
         // Read the next packet
         let packet_opt = self.format_ctx.read_packet()?;
@@ -214,6 +212,7 @@ impl FFMPEGDecoder {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn process_next_packet(&mut self) -> Result<(), DecoderError> {
         if !self.current_frame.is_empty() {
             return Ok(());
@@ -233,8 +232,10 @@ impl FFMPEGDecoder {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn flush_buffers(&mut self) { self.current_frame.clear(); }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn resync_after_seek(&mut self) -> Result<(), DecoderError> {
         loop {
             match self.decode_next_packet() {
@@ -264,6 +265,7 @@ impl Iterator for FFMPEGDecoder {
     type Item = Sample;
 
     #[inline]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn next(&mut self) -> Option<Self::Item> {
         if !self.current_frame.is_empty() {
             return Some(self.next_sample());
@@ -293,6 +295,7 @@ impl Iterator for FFMPEGDecoder {
 impl FFMPEGDecoder {
     // Helper to read next sample as f32 from current_frame bytes.
     // We assume output format is interleaved f32 (AV_SAMPLE_FMT_FLT).
+    #[tracing::instrument(level = "debug", skip_all)]
     fn next_sample(&mut self) -> Sample {
         if self.current_frame.is_empty() {
             return 0f32;
@@ -311,14 +314,17 @@ impl FFMPEGDecoder {
 
 impl Source for FFMPEGDecoder {
     #[inline]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn channels(&self) -> ChannelCount {
         NonZero::new(self.codec_ctx.ch_layout.nb_channels as u16).unwrap()
     }
 
     #[inline]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn sample_rate(&self) -> SampleRate { NonZero::new(self.codec_ctx.sample_rate as u32).unwrap() }
 
     #[inline]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn total_duration(&self) -> Option<Duration> {
         let stream = &self.format_ctx.streams()[self.stream_idx];
 
@@ -336,8 +342,10 @@ impl Source for FFMPEGDecoder {
         Some(Duration::from_micros(micros))
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn current_span_len(&self) -> Option<usize> { None }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn try_seek(&mut self, pos: Duration) -> Result<(), SeekError> {
         let stream = &self.format_ctx.streams()[self.stream_idx];
         let time_base = stream.time_base;

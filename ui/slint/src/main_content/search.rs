@@ -16,6 +16,7 @@ pub struct SearchPageHandler<'a> {
 }
 
 impl<'a> SearchPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
         Self {
             main_window,
@@ -25,6 +26,7 @@ impl<'a> SearchPageHandler<'a> {
 }
 
 impl<'a> PageHandler for SearchPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
         let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
@@ -94,6 +96,8 @@ impl<'a> PageHandler for SearchPageHandler<'a> {
                 });
             });
     }
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {}
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) {}
 }

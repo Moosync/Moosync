@@ -12,8 +12,8 @@ pub enum PlayerError {
     NoPlayerFound(Song),
     #[error("Could not find a src for song: {0:?}")]
     NoSrcFound(Song),
-    #[error("Could not resolve playback url for song: {0:?}")]
-    PlaybackUrlResolutionFailed(Box<dyn std::error::Error + Send + Sync>),
+    #[error("Could not resolve playback url for song: {0}")]
+    PlaybackUrlResolutionFailed(String),
     #[error("Invalid song")]
     InvalidSong,
     #[error("Failed to seek: {0:?}")]

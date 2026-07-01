@@ -9,11 +9,13 @@ use crate::{StateManager, reply_handler::StateReplyHandler};
 pub struct ExtensionsHook;
 
 impl ExtensionsHook {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new() -> Self { Self }
 }
 
 #[async_trait]
 impl Hook for ExtensionsHook {
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn on_startup(
         &self,
         state_manager: &StateManager,

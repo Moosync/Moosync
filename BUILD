@@ -205,7 +205,6 @@ test_suite(
         "//core/mpris:mpris_test",
         "//core/preferences:preferences_test",
         # "//core/rodio_player:rodio_player_test",
-        "//core/spotify_player:spotify_player_test",
         "//core/themes:themes_test",
         "//core/types:types_test",
     ],

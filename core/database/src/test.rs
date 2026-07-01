@@ -25,12 +25,14 @@ use uuid::Uuid;
 use crate::{cache::CacheHolder, database::Database};
 
 // Helper function to create a unique test DB path
+#[tracing::instrument(level = "debug", skip_all)]
 fn get_test_db_path() -> PathBuf {
     let file_name = format!("moosync_test_{}.db", Uuid::new_v4());
     temp_dir().join(file_name)
 }
 
 // Helper function to clean up DB files
+#[tracing::instrument(level = "debug", skip_all)]
 fn cleanup(db_path: &PathBuf) {
     let base_path = db_path.to_string_lossy().to_string();
 
@@ -41,6 +43,7 @@ fn cleanup(db_path: &PathBuf) {
 }
 
 // Test utility function to create a test song
+#[tracing::instrument(level = "debug", skip_all)]
 fn create_test_song(title: &str, path: &str) -> Song {
     Song {
         song: Some(InnerSong {
@@ -82,6 +85,7 @@ fn create_test_song(title: &str, path: &str) -> Song {
 
 // Test song insertion
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_insert_song() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -118,6 +122,7 @@ fn test_insert_song() {
 
 // Test fetching songs by options
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_get_songs_by_options() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -175,6 +180,7 @@ fn test_get_songs_by_options() {
 
 // Test updating a song
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_update_song() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -225,6 +231,7 @@ fn test_update_song() {
 
 // Test removing songs
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_remove_songs() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -321,6 +328,7 @@ fn test_remove_songs() {
 
 // Test playlist CRUD operations
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_playlist_operations() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -402,6 +410,7 @@ fn test_playlist_operations() {
 
 // Test album operations
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_album_operations() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -485,6 +494,7 @@ fn test_album_operations() {
 
 // Test artist operations
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_artist_operations() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -595,6 +605,7 @@ fn test_artist_operations() {
 
 // Test searching
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_search() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -645,6 +656,7 @@ fn test_search() {
 
 // Test analytics operations
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_analytics() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -693,6 +705,7 @@ fn test_analytics() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_cache_holder() {
     let db_path = get_test_db_path();
     let cache_holder = CacheHolder::new(db_path.clone());
@@ -724,6 +737,7 @@ fn test_cache_holder() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_db_creation_and_playlist() {
     let base_dir = temp_dir().join(format!("moosync_test_dir_{}", Uuid::new_v4()));
     assert!(!base_dir.exists());
@@ -787,6 +801,7 @@ fn test_db_creation_and_playlist() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_is_song_in_playlist() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -820,6 +835,7 @@ fn test_is_song_in_playlist() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_insert_songs_edge_cases() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -932,6 +948,7 @@ fn test_insert_songs_edge_cases() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_files_not_in_db() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -980,6 +997,7 @@ fn test_files_not_in_db() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_export_playlist() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -1064,6 +1082,7 @@ fn test_export_playlist() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_playlist_ops_edge_cases() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -1104,6 +1123,7 @@ fn test_playlist_ops_edge_cases() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_updates() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -1261,6 +1281,7 @@ fn test_updates() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_get_entity_by_options() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -1364,6 +1385,7 @@ fn test_get_entity_by_options() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_analytics_edge_cases() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -1400,6 +1422,7 @@ fn test_analytics_edge_cases() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_get_songs_by_entities() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
@@ -1510,6 +1533,7 @@ fn test_get_songs_by_entities() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_remove_songs_outside_directories() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());

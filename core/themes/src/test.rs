@@ -20,12 +20,12 @@ use std::{
 };
 
 use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
-use types::errors::Result;
 
-use crate::themes::ThemeHolder;
+use crate::{error::ThemesError, themes::ThemeHolder};
 
 #[test]
-fn test_theme_save_load() -> Result<()> {
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_theme_save_load() -> Result<(), ThemesError> {
     let temp_dir = std::env::temp_dir();
     let temp_theme_dir = temp_dir.join("temp_themes_save_load");
     let temp_tmp_dir = temp_dir.join("temp_tmp_save_load");
@@ -70,7 +70,8 @@ fn test_theme_save_load() -> Result<()> {
 }
 
 #[test]
-fn test_theme_subscribers() -> Result<()> {
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_theme_subscribers() -> Result<(), ThemesError> {
     let temp_dir = std::env::temp_dir();
     let temp_theme_dir = temp_dir.join("temp_themes_subs");
     let temp_tmp_dir = temp_dir.join("temp_tmp_subs");
@@ -121,7 +122,8 @@ fn test_theme_subscribers() -> Result<()> {
 }
 
 #[test]
-fn test_theme_export_import_cycle() -> Result<()> {
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_theme_export_import_cycle() -> Result<(), ThemesError> {
     let temp_dir = std::env::temp_dir();
     let temp_theme_dir = temp_dir.join("temp_themes_export");
     let temp_tmp_dir = temp_dir.join("temp_tmp_export");
@@ -170,7 +172,8 @@ fn test_theme_export_import_cycle() -> Result<()> {
 }
 
 #[test]
-fn test_theme_backwards_compatibility() -> Result<()> {
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_theme_backwards_compatibility() -> Result<(), ThemesError> {
     use types::prelude::ThemeItemExt;
 
     let old_json = r##"{

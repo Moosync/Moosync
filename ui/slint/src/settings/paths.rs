@@ -6,6 +6,7 @@ pub struct PathsPageHandler<'a> {
 }
 
 impl<'a> PathsPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(
         main_window: &'a crate::MainWindow,
         state_manager: &'a state_manager::StateManager,
@@ -16,6 +17,7 @@ impl<'a> PathsPageHandler<'a> {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn handle_change(
         change: &crate::PreferenceChange,
         main_window_weak: &slint::Weak<crate::MainWindow>,
@@ -26,8 +28,11 @@ impl<'a> PathsPageHandler<'a> {
 }
 
 impl<'a> crate::pages::PageHandler for PathsPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) { init(self.main_window, self.state_manager); }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {}
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) {}
 }

@@ -18,9 +18,11 @@ use std::{fs, path::PathBuf};
 
 use lazy_static::lazy_static;
 use regex::Regex;
-use types::errors::{Result, error_helpers};
 
-use crate::{FileList, OnPlaylistScanned, OnProgressUpdated, OnSongScanned, ScanProgress};
+use crate::{
+    FileList, OnPlaylistScanned, OnProgressUpdated, OnSongScanned, ScanProgress,
+    error::ScannerError,
+};
 
 pub mod image_processor;
 pub mod lyrics_scanner;
@@ -29,8 +31,11 @@ pub mod song_scanner;
 
 use self::{playlist_scanner::PlaylistScanner, song_scanner::SongScanner};
 
-#[tracing::instrument(level = "debug", skip(dir, exclude_dirs))]
-pub fn get_files_recursively(dir: PathBuf, exclude_dirs: &[PathBuf]) -> Result<FileList> {
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn get_files_recursively(
+    dir: PathBuf,
+    exclude_dirs: &[PathBuf],
+) -> Result<FileList, ScannerError> {
     tracing::trace!("Scanning dir {:?}", dir);
     let mut file_list = vec![];
     let mut playlist_list = vec![];
@@ -57,11 +62,12 @@ pub fn get_files_recursively(dir: PathBuf, exclude_dirs: &[PathBuf]) -> Result<F
     })
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn process_single_file(
     path: PathBuf,
     files: &mut Vec<(PathBuf, f64)>,
     playlists: &mut Vec<PathBuf>,
-) -> Result<()> {
+) -> Result<(), ScannerError> {
     lazy_static! {
         static ref SONG_RE: Regex = Regex::new("flac|mp3|ogg|m4a|webm|wav|wv|aac|opus").unwrap();
         static ref PLAYLIST_RE: Regex = Regex::new("m3u|m3u8").unwrap();
@@ -84,13 +90,14 @@ fn process_single_file(
     Ok(())
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn process_directory(
     path: PathBuf,
     exclude_dirs: &[PathBuf],
     files: &mut Vec<(PathBuf, f64)>,
     playlists: &mut Vec<PathBuf>,
-) -> Result<()> {
-    let dir_entries = fs::read_dir(path).map_err(error_helpers::to_file_system_error)?;
+) -> Result<(), ScannerError> {
+    let dir_entries = fs::read_dir(path).map_err(ScannerError::Io)?;
     for entry in dir_entries {
         if let Ok(entry) = entry {
             let res = get_files_recursively(entry.path(), exclude_dirs)?;
@@ -110,6 +117,7 @@ pub struct DesktopScannerContext {
 }
 
 impl DesktopScannerContext {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(
         scan_dirs: Vec<PathBuf>,
         thumbnail_dir: PathBuf,
@@ -128,12 +136,13 @@ impl DesktopScannerContext {
 }
 
 impl super::ScannerContext for DesktopScannerContext {
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn start_scan(
         &self,
         on_song: &OnSongScanned,
         on_playlist: &OnPlaylistScanned,
         on_progress: &OnProgressUpdated,
-    ) -> Result<()> {
+    ) -> Result<(), ScannerError> {
         let mut file_list = FileList {
             file_list: Vec::new(),
             playlist_list: Vec::new(),

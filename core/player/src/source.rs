@@ -46,12 +46,14 @@ pub(crate) struct SourceResolver {
 }
 
 impl SourceResolver {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new() -> Self {
         Self {
             resolver: std::sync::Mutex::new(None),
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_resolver(&self, resolver: SourceResolverFn) {
         let mut r = self.resolver.lock().unwrap();
         *r = Some(resolver);
@@ -59,13 +61,14 @@ impl SourceResolver {
 
     // This method will ignore any existing playback url and path and try to find a
     // new one
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn resolve_playback_url(&self, song: &mut Song) -> Result<(), PlayerError> {
         let resolver_lock = self.resolver.lock().unwrap();
         let playback_url = if let Some(ref resolver) = *resolver_lock {
-            resolver(song).map_err(|e| PlayerError::PlaybackUrlResolutionFailed(e))?
+            resolver(song).map_err(|e| PlayerError::PlaybackUrlResolutionFailed(e.to_string()))?
         } else {
             return Err(PlayerError::PlaybackUrlResolutionFailed(
-                "Resolver not set".into(),
+                "Resolver not set".to_string(),
             ));
         };
 

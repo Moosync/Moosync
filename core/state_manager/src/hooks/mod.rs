@@ -10,6 +10,7 @@ pub mod scanner;
 
 #[async_trait]
 pub trait Hook: Send + Sync {
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn on_startup(
         &self,
         _state_manager: &StateManager,
@@ -17,6 +18,7 @@ pub trait Hook: Send + Sync {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn on_delayed_startup(
         &self,
         _state_manager: &StateManager,
@@ -24,6 +26,7 @@ pub trait Hook: Send + Sync {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn on_exit(
         &self,
         _state_manager: &StateManager,

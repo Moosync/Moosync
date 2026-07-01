@@ -20,19 +20,26 @@ use extensions_proto::moosync::types::{
     AddSongsRequest, ExtensionCommand, GetProviderScopesRequest, MainCommand, extension_command,
     extension_command_response, main_command,
 };
-use songs_proto::moosync::types::{InnerSong, Song};
+use songs_proto::moosync::types::{
+    EntityResult, GetEntityOptions, GetSongOptions, InnerSong, Playlist, Song,
+};
 use ui_proto::moosync::types::{PreferenceTypes, PreferenceUiData};
 
-use crate::{context::ReplyHandler, ext_runner::ExtensionHandlerInner, models::SanitizeCommand};
+use crate::{
+    ExtensionError, context::ReplyHandler, ext_runner::ExtensionHandlerInner,
+    models::SanitizeCommand,
+};
 
 static INIT: std::sync::Once = std::sync::Once::new();
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn init_env() {
     INIT.call_once(|| unsafe {
         std::env::set_var("XDG_CACHE_HOME", std::env::temp_dir());
     });
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn get_sample_wasm_path() -> PathBuf {
     if let Ok(runfiles_dir) = std::env::var("TEST_SRCDIR") {
         let candidates = [
@@ -57,6 +64,7 @@ struct TempDir {
 }
 
 impl TempDir {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn new() -> Self {
         let mut path = std::env::temp_dir();
         path.push(uuid::Uuid::new_v4().to_string());
@@ -64,6 +72,7 @@ impl TempDir {
         Self { path }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn path(&self) -> &PathBuf { &self.path }
 }
 
@@ -74,12 +83,147 @@ impl Drop for TempDir {
 struct TestReplyHandler;
 
 impl ReplyHandler for TestReplyHandler {
-    fn extensions_updated(&self, _package_name: &str) -> Result<(), types::errors::MoosyncError> {
-        Ok(())
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_song(
+        &self,
+        _package_name: &str,
+        _options: GetSongOptions,
+    ) -> Result<Vec<Song>, ExtensionError> {
+        Ok(vec![])
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_entity(
+        &self,
+        _package_name: &str,
+        _options: GetEntityOptions,
+    ) -> Result<EntityResult, ExtensionError> {
+        Ok(EntityResult::default())
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_current_song(&self, _package_name: &str) -> Result<Option<Song>, ExtensionError> {
+        Ok(None)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_player_state(&self, _package_name: &str) -> Result<i32, ExtensionError> { Ok(0) }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_volume(&self, _package_name: &str) -> Result<f64, ExtensionError> { Ok(0.0) }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_time(&self, _package_name: &str) -> Result<f64, ExtensionError> { Ok(0.0) }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_queue(&self, _package_name: &str) -> Result<(Vec<Song>, usize), ExtensionError> {
+        Ok((vec![], 0))
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_preference(
+        &self,
+        _package_name: &str,
+        _key: &str,
+    ) -> Result<Option<extensions_proto::struct_proto::google::protobuf::Value>, ExtensionError>
+    {
+        Ok(None)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_preference(
+        &self,
+        _package_name: &str,
+        _key: &str,
+        _value: extensions_proto::struct_proto::google::protobuf::Value,
+    ) -> Result<bool, ExtensionError> {
+        Ok(true)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_secure(
+        &self,
+        _package_name: &str,
+        _key: &str,
+    ) -> Result<Option<extensions_proto::struct_proto::google::protobuf::Value>, ExtensionError>
+    {
+        Ok(None)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_secure(
+        &self,
+        _package_name: &str,
+        _key: &str,
+        _value: extensions_proto::struct_proto::google::protobuf::Value,
+    ) -> Result<bool, ExtensionError> {
+        Ok(true)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn add_songs(
+        &self,
+        _package_name: &str,
+        _songs: Vec<Song>,
+    ) -> Result<Vec<Song>, ExtensionError> {
+        Ok(vec![])
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn remove_song(&self, _package_name: &str, _song: Song) -> Result<bool, ExtensionError> {
+        Ok(true)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_song(&self, _package_name: &str, _song: Song) -> Result<Song, ExtensionError> {
+        Ok(Song::default())
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn add_playlist(
+        &self,
+        _package_name: &str,
+        _playlist: Playlist,
+    ) -> Result<String, ExtensionError> {
+        Ok("".to_string())
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn add_to_playlist(
+        &self,
+        _package_name: &str,
+        _playlist_id: String,
+        _songs: Vec<Song>,
+    ) -> Result<bool, ExtensionError> {
+        Ok(true)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn register_oauth(&self, _package_name: &str, _url: String) -> Result<bool, ExtensionError> {
+        Ok(true)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn open_external_url(&self, _package_name: &str, _url: String) -> Result<bool, ExtensionError> {
+        Ok(true)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_accounts(
+        &self,
+        _package_name: &str,
+        _account: Option<String>,
+    ) -> Result<bool, ExtensionError> {
+        Ok(true)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn register_user_preference(
+        &self,
+        _package_name: &str,
+        _prefs: Vec<PreferenceUiData>,
+    ) -> Result<bool, ExtensionError> {
+        Ok(true)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn unregister_user_preference(
+        &self,
+        _package_name: &str,
+        _keys: Vec<String>,
+    ) -> Result<bool, ExtensionError> {
+        Ok(true)
+    }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn extensions_updated(&self, _package_name: &str) -> Result<(), ExtensionError> { Ok(()) }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_app_version(&self, _package_name: &str) -> Result<String, ExtensionError> {
+        Ok("".to_string())
     }
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_main_command_sanitize() {
     let song = Song {
         song: Some(InnerSong {
@@ -109,6 +253,7 @@ fn test_main_command_sanitize() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_find_and_spawn_extensions() {
     init_env();
     let tmp_dir = TempDir::new();
@@ -149,6 +294,7 @@ fn test_find_and_spawn_extensions() {
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_handle_extension_command() {
     init_env();
     let tmp_dir = TempDir::new();
@@ -194,6 +340,7 @@ async fn test_handle_extension_command() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_register_unregister_ui_preferences() {
     init_env();
     let tmp_dir = TempDir::new();
@@ -246,6 +393,7 @@ fn test_register_unregister_ui_preferences() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_extension_failed_to_start_disables_extension() {
     init_env();
     let tmp_dir = TempDir::new();
@@ -291,6 +439,7 @@ fn test_extension_failed_to_start_disables_extension() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_extension_activation_deactivation() {
     let tmp_dir = TempDir::new();
     let extensions_path = tmp_dir.path().join("extensions");

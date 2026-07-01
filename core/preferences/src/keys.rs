@@ -25,6 +25,7 @@ pub struct ExtensionKey {
 
 impl PreferenceKey for ExtensionKey {
     type Value = extensions_proto::struct_proto::google::protobuf::Value;
+    #[tracing::instrument(level = "debug", skip_all)]
     fn key(&self) -> String { format!("extensions.{}.{}", self.package_name, self.key) }
 }
 
@@ -34,6 +35,7 @@ macro_rules! define_keys {
             pub struct $name;
             impl PreferenceKey for $name {
                 type Value = $val;
+                #[tracing::instrument(level = "debug", skip_all)]
                 fn key(&self) -> String {
                     $key.to_string()
                 }
@@ -44,26 +46,31 @@ macro_rules! define_keys {
                 }
             }
             impl ::types::subscription::ToFilterKeys<String> for $name {
+                #[tracing::instrument(level = "debug", skip_all)]
                 fn to_filter_keys(self) -> Vec<String> {
                     vec![$key.to_string()]
                 }
             }
             impl PartialEq<String> for $name {
+                #[tracing::instrument(level = "debug", skip_all)]
                 fn eq(&self, other: &String) -> bool {
                     $key == other
                 }
             }
             impl PartialEq<str> for $name {
+                #[tracing::instrument(level = "debug", skip_all)]
                 fn eq(&self, _other: &str) -> bool {
                     $key == _other
                 }
             }
             impl PartialEq<$name> for String {
+                #[tracing::instrument(level = "debug", skip_all)]
                 fn eq(&self, _other: &$name) -> bool {
                     self == $key
                 }
             }
             impl PartialEq<$name> for str {
+                #[tracing::instrument(level = "debug", skip_all)]
                 fn eq(&self, _other: &$name) -> bool {
                     self == $key
                 }

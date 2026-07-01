@@ -10,6 +10,7 @@ rust_library(
         "src/context/desktop/playlist_scanner.rs",
         "src/context/desktop/song_scanner.rs",
         "src/context/mod.rs",
+        "src/error.rs",
         "src/lib.rs",
         "src/tests.rs",
     ],
@@ -21,6 +22,7 @@ rust_library(
     deps = [
         "//core/types",
         "//core/types/protos:songs_rs",
+        "@crates//:thiserror",
         "@crates//:blake3",
         "@crates//:dunce",
         "@crates//:fast_image_resize",

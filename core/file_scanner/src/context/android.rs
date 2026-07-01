@@ -16,9 +16,7 @@
 
 use std::path::PathBuf;
 
-use types::errors::Result;
-
-use crate::{OnPlaylistScanned, OnProgressUpdated, OnSongScanned};
+use crate::{OnPlaylistScanned, OnProgressUpdated, OnSongScanned, error::ScannerError};
 
 pub struct AndroidScannerContext {
     #[allow(dead_code)]
@@ -30,6 +28,7 @@ pub struct AndroidScannerContext {
 }
 
 impl AndroidScannerContext {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(scan_dirs: Vec<PathBuf>, thumbnail_dir: PathBuf, artist_split: String) -> Self {
         Self {
             scan_dirs,
@@ -40,12 +39,13 @@ impl AndroidScannerContext {
 }
 
 impl super::ScannerContext for AndroidScannerContext {
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn start_scan(
         &self,
         _on_song: &OnSongScanned,
         _on_playlist: &OnPlaylistScanned,
         _on_progress: &OnProgressUpdated,
-    ) -> Result<()> {
+    ) -> Result<(), ScannerError> {
         Ok(())
     }
 }

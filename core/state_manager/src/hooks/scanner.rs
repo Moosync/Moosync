@@ -11,11 +11,13 @@ use crate::StateManager;
 pub struct ScannerHook;
 
 impl ScannerHook {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new() -> Self { Self }
 }
 
 #[async_trait]
 impl Hook for ScannerHook {
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn on_startup(
         &self,
         state_manager: &StateManager,
@@ -185,6 +187,7 @@ impl Hook for ScannerHook {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn resolve_or_create_playlist_song(db: &Database, identifier: PlaylistSongId) -> Option<Song> {
     let opt = match &identifier {
         PlaylistSongId::Url(url) => songs_proto::moosync::types::GetSongOptions {

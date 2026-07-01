@@ -4,9 +4,9 @@ use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{Artist, ArtistList, GetEntityOptions, entity_result};
 use state_manager::StateManager;
 use tracing::debug;
-use types::{ScanProgress, errors::MoosyncError};
+use types::ScanProgress;
 
-use crate::{MainWindow, Pages, pages::PageHandler, utils::LazySongVecModel};
+use crate::{MainWindow, Pages, error::UiError, pages::PageHandler, utils::LazySongVecModel};
 
 pub struct ArtistsPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -15,6 +15,7 @@ pub struct ArtistsPageHandler<'a> {
 }
 
 impl<'a> ArtistsPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
         Self {
             main_window,
@@ -23,6 +24,7 @@ impl<'a> ArtistsPageHandler<'a> {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_scanner_cb(&self) {
         let main_window_weak = self.main_window.as_weak();
         let state_manager = self.state_manager.clone();
@@ -34,6 +36,7 @@ impl<'a> ArtistsPageHandler<'a> {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 async fn run_scanner_loop(
     main_window_weak: Weak<MainWindow>,
     state_manager: StateManager,
@@ -56,7 +59,8 @@ async fn run_scanner_loop(
     }
 }
 
-async fn get_artists_from_db(state_manager: &StateManager) -> Result<Vec<Artist>, MoosyncError> {
+#[tracing::instrument(level = "debug", skip_all)]
+async fn get_artists_from_db(state_manager: &StateManager) -> Result<Vec<Artist>, UiError> {
     let database = state_manager.get_database().await;
     let artists_res = database.get_entity_by_options(GetEntityOptions {
         artist: Some(Artist::default()),
@@ -65,12 +69,11 @@ async fn get_artists_from_db(state_manager: &StateManager) -> Result<Vec<Artist>
 
     match artists_res.result {
         Some(entity_result::Result::Artists(ArtistList { artists })) => Ok(artists),
-        _ => Err(MoosyncError::String(
-            "Failed to get artists from db".to_string(),
-        )),
+        _ => Err(UiError::EntityParseFailed),
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 async fn fetch_and_cache_artists(
     main_window_weak: Weak<MainWindow>,
     state_manager: StateManager,
@@ -89,6 +92,7 @@ async fn fetch_and_cache_artists(
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn set_all_artists(main_window: &MainWindow, artists: Vec<Artist>, cache_dir: std::path::PathBuf) {
     debug!("Setting artists");
     let artist_model = artists
@@ -106,6 +110,7 @@ fn set_all_artists(main_window: &MainWindow, artists: Vec<Artist>, cache_dir: st
 }
 
 impl<'a> PageHandler for ArtistsPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
         self.set_scanner_cb();
         let state_manager = self.state_manager.clone();
@@ -116,11 +121,13 @@ impl<'a> PageHandler for ArtistsPageHandler<'a> {
         });
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         let artists = self.artists.lock().unwrap().clone();
         let cache_dir = self.state_manager.get_cache_dir();
         set_all_artists(self.main_window, artists, cache_dir);
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) { self.main_window.set_artists(ModelRc::default()); }
 }

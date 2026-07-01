@@ -4,9 +4,9 @@ use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{Genre, GenreList, GetEntityOptions, entity_result};
 use state_manager::StateManager;
 use tracing::debug;
-use types::{ScanProgress, errors::MoosyncError};
+use types::ScanProgress;
 
-use crate::{MainWindow, Pages, pages::PageHandler, utils::LazySongVecModel};
+use crate::{MainWindow, Pages, error::UiError, pages::PageHandler, utils::LazySongVecModel};
 
 pub struct GenresPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -15,6 +15,7 @@ pub struct GenresPageHandler<'a> {
 }
 
 impl<'a> GenresPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
         Self {
             main_window,
@@ -23,6 +24,7 @@ impl<'a> GenresPageHandler<'a> {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_scanner_cb(&self) {
         let main_window_weak = self.main_window.as_weak();
         let state_manager = self.state_manager.clone();
@@ -34,6 +36,7 @@ impl<'a> GenresPageHandler<'a> {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 async fn run_scanner_loop(
     main_window_weak: Weak<MainWindow>,
     state_manager: StateManager,
@@ -56,7 +59,8 @@ async fn run_scanner_loop(
     }
 }
 
-async fn get_genres_from_db(state_manager: &StateManager) -> Result<Vec<Genre>, MoosyncError> {
+#[tracing::instrument(level = "debug", skip_all)]
+async fn get_genres_from_db(state_manager: &StateManager) -> Result<Vec<Genre>, UiError> {
     let database = state_manager.get_database().await;
     let genres_res = database.get_entity_by_options(GetEntityOptions {
         genre: Some(Genre::default()),
@@ -65,12 +69,11 @@ async fn get_genres_from_db(state_manager: &StateManager) -> Result<Vec<Genre>, 
 
     match genres_res.result {
         Some(entity_result::Result::Genres(GenreList { genres })) => Ok(genres),
-        _ => Err(MoosyncError::String(
-            "Failed to get genres from db".to_string(),
-        )),
+        _ => Err(UiError::EntityParseFailed),
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 async fn fetch_and_cache_genres(
     main_window_weak: Weak<MainWindow>,
     state_manager: StateManager,
@@ -89,6 +92,7 @@ async fn fetch_and_cache_genres(
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn set_all_genres(main_window: &MainWindow, genres: Vec<Genre>, cache_dir: std::path::PathBuf) {
     debug!("Setting genres");
     let genre_model = genres
@@ -106,6 +110,7 @@ fn set_all_genres(main_window: &MainWindow, genres: Vec<Genre>, cache_dir: std::
 }
 
 impl<'a> PageHandler for GenresPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
         self.set_scanner_cb();
         let state_manager = self.state_manager.clone();
@@ -116,11 +121,13 @@ impl<'a> PageHandler for GenresPageHandler<'a> {
         });
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         let genres = self.genres.lock().unwrap().clone();
         let cache_dir = self.state_manager.get_cache_dir();
         set_all_genres(self.main_window, genres, cache_dir);
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) { self.main_window.set_genres(ModelRc::default()); }
 }

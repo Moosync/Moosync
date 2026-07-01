@@ -22,6 +22,7 @@ pub struct ThemesPageHandler<'a> {
 }
 
 impl<'a> ThemesPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
         Self {
             main_window,
@@ -31,6 +32,7 @@ impl<'a> ThemesPageHandler<'a> {
 }
 
 impl<'a> PageHandler for ThemesPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
         let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
@@ -276,10 +278,13 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
         });
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {}
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) {}
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn get_all_themes_list(theme_holder: &themes::themes::ThemeHolder) -> Vec<ThemeDetails> {
     let mut list = Vec::new();
     if let Ok(themes) = theme_holder.load_all_themes() {
@@ -309,6 +314,7 @@ fn get_all_themes_list(theme_holder: &themes::themes::ThemeHolder) -> Vec<ThemeD
     list
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn parse_color(val: &str) -> Option<slint::Color> {
     let val = val.trim();
     if val.starts_with('#') {
@@ -356,6 +362,7 @@ fn parse_color(val: &str) -> Option<slint::Color> {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn parse_length(val: &str) -> Option<f32> {
     let val = val.trim();
     if val.ends_with("px") {
@@ -365,6 +372,7 @@ fn parse_length(val: &str) -> Option<f32> {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn map_theme_to_config(theme: &ThemeDetails) -> crate::ThemeConfig {
     let theme_item = theme.get_theme_item_or_default();
     let default_item = types::prelude::get_default_theme_item();
@@ -413,6 +421,7 @@ fn map_theme_to_config(theme: &ThemeDetails) -> crate::ThemeConfig {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn apply_theme(main_window: &MainWindow, theme: &ThemeDetails) {
     let theme_global = main_window.global::<crate::Theme>();
     let theme_item = theme.get_theme_item_or_default();
@@ -433,6 +442,7 @@ fn apply_theme(main_window: &MainWindow, theme: &ThemeDetails) {
     update_theme_constants_ui(main_window, theme);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn apply_single_constant(theme_global: &crate::Theme, name: &str, value: &str) {
     let set_color = |setter: &dyn Fn(slint::Color)| {
         if let Some(c) = parse_color(value) {
@@ -455,6 +465,7 @@ fn apply_single_constant(theme_global: &crate::Theme, name: &str, value: &str) {
     );
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 async fn flush_changes(
     state_manager: &StateManager,
     main_window_weak: &slint::Weak<MainWindow>,

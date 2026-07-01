@@ -8,6 +8,7 @@ pub trait SanitizeCommand {
 }
 
 impl SanitizeCommand for MainCommand {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn sanitize(&mut self, package_name: &str) -> Result<(), ExtensionError> {
         match &mut self.command {
             Some(main_command::Command::GetPreference(req)) => {
@@ -80,6 +81,7 @@ impl SanitizeCommand for MainCommand {
 }
 
 impl SanitizeCommand for ExtensionCommandResponse {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn sanitize(&mut self, package_name: &str) -> Result<(), ExtensionError> {
         let prefix = format!("{}:", package_name);
 
@@ -153,6 +155,7 @@ impl SanitizeCommand for ExtensionCommandResponse {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn sanitize_album(prefix: &str, album: &mut Album) {
     if let Some(id) = album.album_id.as_mut()
         && !id.starts_with(prefix)
@@ -161,6 +164,7 @@ pub fn sanitize_album(prefix: &str, album: &mut Album) {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn sanitize_artist(prefix: &str, artist: &mut Artist) {
     if let Some(id) = artist.artist_id.as_mut()
         && !id.starts_with(prefix)
@@ -169,6 +173,7 @@ pub fn sanitize_artist(prefix: &str, artist: &mut Artist) {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn sanitize_genre(prefix: &str, genre: &mut Genre) {
     if let Some(id) = genre.genre_id.as_mut()
         && !id.starts_with(prefix)
@@ -177,6 +182,7 @@ pub fn sanitize_genre(prefix: &str, genre: &mut Genre) {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn sanitize_song(prefix: &str, song: &mut Song) -> Result<(), ExtensionError> {
     if let Some(song) = song.song.as_mut() {
         if let Some(id) = song.id.as_mut()
@@ -185,7 +191,7 @@ pub fn sanitize_song(prefix: &str, song: &mut Song) -> Result<(), ExtensionError
             *id = format!("{}{}", prefix, id);
         }
     } else {
-        return Err(ExtensionError::SanitizeError("Song cannot be empty".into()));
+        return Err(ExtensionError::Sanitize("Song cannot be empty".to_string()));
     }
 
     if let Some(album) = song.album.as_mut() {
@@ -203,6 +209,7 @@ pub fn sanitize_song(prefix: &str, song: &mut Song) -> Result<(), ExtensionError
     Ok(())
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn sanitize_playlist(prefix: &str, playlist: &mut Playlist) {
     if let Some(playlist_id) = playlist.playlist_id.as_mut()
         && !playlist_id.starts_with(prefix)

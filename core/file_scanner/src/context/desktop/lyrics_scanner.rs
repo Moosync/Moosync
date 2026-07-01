@@ -23,7 +23,7 @@ use regex::Regex;
 pub struct LyricsScanner;
 
 impl LyricsScanner {
-    #[tracing::instrument(level = "debug", skip(path))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn scan_lrc(mut path: PathBuf) -> Option<String> {
         path.set_extension("lrc");
         if path.exists() {
@@ -44,6 +44,7 @@ impl LyricsScanner {
         None
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn extract_lyrics(metadata: &Tag, path: &PathBuf) -> Option<String> {
         metadata
             .get_string(&lofty::prelude::ItemKey::Lyrics)

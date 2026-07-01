@@ -28,16 +28,16 @@ use songs_proto::moosync::types::{
     SearchableSong, Song, all_analytics::SongListenTime,
 };
 use tracing::{debug, info, trace, warn};
-use types::{
-    errors::{Result, error_helpers},
-    prelude::SongsExt,
-};
+use types::prelude::SongsExt;
 use uuid::Uuid;
 
 use super::migrations::run_migrations;
-use crate::utils::{
-    map_row_to_album, map_row_to_artist, map_row_to_genre, map_row_to_inner_song,
-    map_row_to_playlist, proto_to_db_ms, song_type_to_str,
+use crate::{
+    error::DatabaseError,
+    utils::{
+        map_row_to_album, map_row_to_artist, map_row_to_genre, map_row_to_inner_song,
+        map_row_to_playlist, proto_to_db_ms, song_type_to_str,
+    },
 };
 
 #[derive(Debug, Clone)]
@@ -47,7 +47,7 @@ pub struct Database {
 
 #[plugin_macro::generate]
 impl Database {
-    #[tracing::instrument(level = "debug", skip(path))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(path: PathBuf) -> Self {
         debug!("Creating database handler");
         if !path.exists() {
@@ -72,7 +72,7 @@ impl Database {
         db
     }
 
-    #[tracing::instrument(level = "debug", skip(path))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn connect(path: PathBuf) -> r2d2::Pool<r2d2_sqlite::SqliteConnectionManager> {
         let manager = r2d2_sqlite::SqliteConnectionManager::file(path).with_init(|conn| {
             conn.trace_v2(
@@ -91,12 +91,12 @@ impl Database {
             .expect("Failed to create pool.")
     }
 
-    #[tracing::instrument(level = "debug", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn insert_playlist(
         &self,
         conn: &mut rusqlite::Connection,
         playlist: Playlist,
-    ) -> Result<String> {
+    ) -> Result<String, DatabaseError> {
         let id = playlist.playlist_id.as_ref().unwrap().clone();
         trace!("Inserting playlist");
         conn.execute(
@@ -114,13 +114,13 @@ impl Database {
                 &playlist.library_item,
             ),
         )
-        .map_err(error_helpers::to_database_error)?;
+        .map_err(DatabaseError::Query)?;
         info!("Inserted playlist");
         Ok(id)
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn create_playlist(&self, mut playlist: Playlist) -> Result<String> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn create_playlist(&self, mut playlist: Playlist) -> Result<String, DatabaseError> {
         let mut conn = self.pool.get().unwrap();
 
         trace!("Sanitizing playlist");
@@ -150,8 +150,12 @@ impl Database {
         self.insert_playlist(&mut conn, playlist)
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn create_playlist_with_songs(&self, playlist: Playlist, songs: &[Song]) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn create_playlist_with_songs(
+        &self,
+        playlist: Playlist,
+        songs: &[Song],
+    ) -> Result<(), DatabaseError> {
         let playlist_id = match self.create_playlist(playlist.clone()) {
             Ok(id) => id,
             Err(e) => {
@@ -169,29 +173,34 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn add_to_playlist_bridge(&self, playlist_id: String, song_id: String) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn add_to_playlist_bridge(
+        &self,
+        playlist_id: String,
+        song_id: String,
+    ) -> Result<(), DatabaseError> {
         let conn = self.pool.get().unwrap();
         trace!("Inserting song in playlist bridge");
         conn.execute(
             "INSERT INTO playlist_bridge (playlist, song) VALUES (?1, ?2)",
             (&playlist_id, &song_id),
         )
-        .map_err(error_helpers::to_database_error)?;
+        .map_err(DatabaseError::Query)?;
 
         trace!("Inserted song in playlist bridge");
 
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn insert_songs(&self, mut songs: Vec<Song>) -> Result<Vec<Song>> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn insert_songs(&self, mut songs: Vec<Song>) -> Result<Vec<Song>, DatabaseError> {
         self.insert_songs_by_ref(&mut songs)?;
         Ok(songs)
     }
 
-    pub fn insert_songs_by_ref(&self, songs: &mut [Song]) -> Result<()> {
-        let mut conn = self.pool.get().unwrap();
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn insert_songs_by_ref(&self, songs: &mut [Song]) -> Result<(), DatabaseError> {
+        let conn = self.pool.get().unwrap();
         trace!("Inserting songs");
 
         struct DbSongRow {
@@ -269,9 +278,7 @@ impl Database {
                     "SELECT album_id, album_name FROM albums WHERE album_name IN ({})",
                     placeholders
                 );
-                let mut stmt = conn
-                    .prepare(&query)
-                    .map_err(error_helpers::to_database_error)?;
+                let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
                 let params = chunk
                     .iter()
                     .map(|n| n as &dyn rusqlite::ToSql)
@@ -282,9 +289,9 @@ impl Database {
                         let name: String = row.get(1)?;
                         Ok((name, id))
                     })
-                    .map_err(error_helpers::to_database_error)?;
+                    .map_err(DatabaseError::Query)?;
                 for r in rows {
-                    let (name, id) = r.map_err(error_helpers::to_database_error)?;
+                    let (name, id) = r.map_err(DatabaseError::Query)?;
                     album_ids.insert(name, id);
                 }
             }
@@ -299,9 +306,7 @@ impl Database {
                     "SELECT artist_id, artist_name FROM artists WHERE artist_name IN ({})",
                     placeholders
                 );
-                let mut stmt = conn
-                    .prepare(&query)
-                    .map_err(error_helpers::to_database_error)?;
+                let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
                 let params = chunk
                     .iter()
                     .map(|n| n as &dyn rusqlite::ToSql)
@@ -312,9 +317,9 @@ impl Database {
                         let name: String = row.get(1)?;
                         Ok((name, id))
                     })
-                    .map_err(error_helpers::to_database_error)?;
+                    .map_err(DatabaseError::Query)?;
                 for r in rows {
-                    let (name, id) = r.map_err(error_helpers::to_database_error)?;
+                    let (name, id) = r.map_err(DatabaseError::Query)?;
                     artist_ids.insert(name, id);
                 }
             }
@@ -329,9 +334,7 @@ impl Database {
                     "SELECT genre_id, genre_name FROM genres WHERE genre_name IN ({})",
                     placeholders
                 );
-                let mut stmt = conn
-                    .prepare(&query)
-                    .map_err(error_helpers::to_database_error)?;
+                let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
                 let params = chunk
                     .iter()
                     .map(|n| n as &dyn rusqlite::ToSql)
@@ -342,9 +345,9 @@ impl Database {
                         let name: String = row.get(1)?;
                         Ok((name, id))
                     })
-                    .map_err(error_helpers::to_database_error)?;
+                    .map_err(DatabaseError::Query)?;
                 for r in rows {
-                    let (name, id) = r.map_err(error_helpers::to_database_error)?;
+                    let (name, id) = r.map_err(DatabaseError::Query)?;
                     genre_ids.insert(name, id);
                 }
             }
@@ -388,7 +391,7 @@ impl Database {
                 }
                 query.push_str(&placeholders.join(", "));
                 conn.execute(&query, &*params)
-                    .map_err(error_helpers::to_database_error)?;
+                    .map_err(DatabaseError::Query)?;
             }
         }
 
@@ -429,7 +432,7 @@ impl Database {
                 }
                 query.push_str(&placeholders.join(", "));
                 conn.execute(&query, &*params)
-                    .map_err(error_helpers::to_database_error)?;
+                    .map_err(DatabaseError::Query)?;
             }
         }
 
@@ -464,7 +467,7 @@ impl Database {
                 }
                 query.push_str(&placeholders.join(", "));
                 conn.execute(&query, &*params)
-                    .map_err(error_helpers::to_database_error)?;
+                    .map_err(DatabaseError::Query)?;
             }
         }
 
@@ -488,9 +491,7 @@ impl Database {
                     "SELECT _id, path FROM allsongs WHERE path IN ({})",
                     placeholders
                 );
-                let mut stmt = conn
-                    .prepare(&query)
-                    .map_err(error_helpers::to_database_error)?;
+                let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
                 let params = chunk
                     .iter()
                     .map(|n| n as &dyn rusqlite::ToSql)
@@ -501,9 +502,9 @@ impl Database {
                         let path: String = row.get(1)?;
                         Ok((path, id))
                     })
-                    .map_err(error_helpers::to_database_error)?;
+                    .map_err(DatabaseError::Query)?;
                 for r in rows {
-                    let (path, id) = r.map_err(error_helpers::to_database_error)?;
+                    let (path, id) = r.map_err(DatabaseError::Query)?;
                     existing_song_ids.insert(path, id);
                 }
             }
@@ -616,9 +617,7 @@ impl Database {
 
         // 6. Execute bulk insertions within a transaction
         let mut conn = self.pool.get().unwrap();
-        let tx = conn
-            .transaction()
-            .map_err(error_helpers::to_database_error)?;
+        let tx = conn.transaction().map_err(DatabaseError::Query)?;
 
         for chunk in db_song_rows.chunks(30) {
             let mut query = "INSERT INTO allsongs (
@@ -699,8 +698,7 @@ impl Database {
                 library_item = excluded.library_item",
             );
 
-            tx.execute(&query, &*params)
-                .map_err(error_helpers::to_database_error)?;
+            tx.execute(&query, &*params).map_err(DatabaseError::Query)?;
         }
 
         for chunk in album_bridges.chunks(400) {
@@ -715,8 +713,7 @@ impl Database {
             }
             query.push_str(&placeholders.join(", "));
             query.push_str(" ON CONFLICT DO NOTHING");
-            tx.execute(&query, &*params)
-                .map_err(error_helpers::to_database_error)?;
+            tx.execute(&query, &*params).map_err(DatabaseError::Query)?;
         }
 
         for chunk in artist_bridges.chunks(400) {
@@ -731,8 +728,7 @@ impl Database {
             }
             query.push_str(&placeholders.join(", "));
             query.push_str(" ON CONFLICT DO NOTHING");
-            tx.execute(&query, &*params)
-                .map_err(error_helpers::to_database_error)?;
+            tx.execute(&query, &*params).map_err(DatabaseError::Query)?;
         }
 
         for chunk in genre_bridges.chunks(400) {
@@ -747,47 +743,47 @@ impl Database {
             }
             query.push_str(&placeholders.join(", "));
             query.push_str(" ON CONFLICT DO NOTHING");
-            tx.execute(&query, &*params)
-                .map_err(error_helpers::to_database_error)?;
+            tx.execute(&query, &*params).map_err(DatabaseError::Query)?;
         }
 
-        tx.commit().map_err(error_helpers::to_database_error)?;
+        tx.commit().map_err(DatabaseError::Transaction)?;
         info!("Inserted all songs");
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn remove_songs<T>(&self, ids: &[T]) -> Result<()>
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn remove_songs<T>(&self, ids: &[T]) -> Result<(), DatabaseError>
     where
         T: AsRef<str> + rusqlite::ToSql + Debug,
     {
         trace!("Removing song");
         let mut conn = self.pool.get().unwrap();
-        let tx = conn
-            .transaction()
-            .map_err(error_helpers::to_database_error)?;
+        let tx = conn.transaction().map_err(DatabaseError::Query)?;
         for id in ids {
             let s: &str = id.as_ref();
             tx.execute("DELETE FROM analytics WHERE song_id = ?1", [&s])
-                .map_err(error_helpers::to_database_error)?;
+                .map_err(DatabaseError::Query)?;
             tx.execute("DELETE FROM album_bridge WHERE song = ?1", [&id])
-                .map_err(error_helpers::to_database_error)?;
+                .map_err(DatabaseError::Query)?;
             tx.execute("DELETE FROM artist_bridge WHERE song = ?1", [&id])
-                .map_err(error_helpers::to_database_error)?;
+                .map_err(DatabaseError::Query)?;
             tx.execute("DELETE FROM genre_bridge WHERE song = ?1", [&id])
-                .map_err(error_helpers::to_database_error)?;
+                .map_err(DatabaseError::Query)?;
             tx.execute("DELETE FROM playlist_bridge WHERE song = ?1", [&id])
-                .map_err(error_helpers::to_database_error)?;
+                .map_err(DatabaseError::Query)?;
             tx.execute("DELETE FROM allsongs WHERE _id = ?1", [&id])
-                .map_err(error_helpers::to_database_error)?;
+                .map_err(DatabaseError::Query)?;
         }
-        tx.commit().map_err(error_helpers::to_database_error)?;
+        tx.commit().map_err(DatabaseError::Transaction)?;
         info!("Removed song");
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self, scan_dirs))]
-    pub fn remove_songs_outside_directories(&self, scan_dirs: &[PathBuf]) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn remove_songs_outside_directories(
+        &self,
+        scan_dirs: &[PathBuf],
+    ) -> Result<(), DatabaseError> {
         if scan_dirs.is_empty() {
             return Ok(());
         }
@@ -795,7 +791,7 @@ impl Database {
         let conn = self.pool.get().unwrap();
         let mut stmt = conn
             .prepare("SELECT _id, path FROM allsongs WHERE path IS NOT NULL AND path != ''")
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         let rows = stmt
             .query_map([], |row| {
@@ -803,11 +799,11 @@ impl Database {
                 let path: String = row.get(1)?;
                 Ok((id, path))
             })
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         let mut ids_to_remove = Vec::new();
         for row in rows {
-            let (id, path_str) = row.map_err(error_helpers::to_database_error)?;
+            let (id, path_str) = row.map_err(DatabaseError::Query)?;
             let song_path = std::path::Path::new(&path_str);
             let mut matches = false;
             for dir in scan_dirs {
@@ -831,8 +827,8 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self, song))]
-    pub fn update_song(&self, song: &InnerSong) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn update_song(&self, song: &InnerSong) -> Result<(), DatabaseError> {
         trace!("Updating song");
         if let Some(id) = song.id.as_ref() {
             let conn = self.pool.get().unwrap();
@@ -876,7 +872,7 @@ impl Database {
                     track_no = ?25, library_item = ?26
                  WHERE _id = ?27",
                 params,
-            ).map_err(error_helpers::to_database_error)?;
+            ).map_err(DatabaseError::Query)?;
             debug!("Updated song");
         } else {
             debug!("Song does not have an ID");
@@ -884,13 +880,13 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_albums(
         &self,
         options: Album,
         inclusive: bool,
         conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<Album>> {
+    ) -> Result<Vec<Album>, DatabaseError> {
         let mut query = "SELECT album_id, album_name, album_artist, album_coverpath_high, album_song_count, year, album_coverpath_low FROM albums".to_string();
         let mut clauses = Vec::new();
         let mut params = Vec::new();
@@ -911,28 +907,26 @@ impl Database {
         }
 
         trace!("Getting albums");
-        let mut stmt = conn
-            .prepare(&query)
-            .map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
         let rows = stmt
             .query_map(&*params, map_row_to_album)
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         let mut fetched = Vec::new();
         for r in rows {
-            fetched.push(r.map_err(error_helpers::to_database_error)?);
+            fetched.push(r.map_err(DatabaseError::Query)?);
         }
         info!("Fetched albums");
         Ok(fetched)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_artists(
         &self,
         options: Artist,
         inclusive: bool,
         conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<Artist>> {
+    ) -> Result<Vec<Artist>, DatabaseError> {
         let mut query = "SELECT artist_id, artist_mbid, artist_name, artist_coverpath, artist_song_count, sanitized_artist_name FROM artists".to_string();
         let mut clauses = Vec::new();
         let mut params = Vec::new();
@@ -957,28 +951,26 @@ impl Database {
         }
 
         trace!("Fetching artists");
-        let mut stmt = conn
-            .prepare(&query)
-            .map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
         let rows = stmt
             .query_map(&*params, map_row_to_artist)
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         let mut fetched = Vec::new();
         for r in rows {
-            fetched.push(r.map_err(error_helpers::to_database_error)?);
+            fetched.push(r.map_err(DatabaseError::Query)?);
         }
         info!("Fetched artists");
         Ok(fetched)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_genres(
         &self,
         options: Genre,
         inclusive: bool,
         conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<Genre>> {
+    ) -> Result<Vec<Genre>, DatabaseError> {
         let mut query = "SELECT genre_id, genre_name, genre_song_count FROM genres".to_string();
         let mut clauses = Vec::new();
         let mut params = Vec::new();
@@ -999,28 +991,26 @@ impl Database {
         }
 
         trace!("Fetching genres");
-        let mut stmt = conn
-            .prepare(&query)
-            .map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
         let rows = stmt
             .query_map(&*params, map_row_to_genre)
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         let mut fetched = Vec::new();
         for r in rows {
-            fetched.push(r.map_err(error_helpers::to_database_error)?);
+            fetched.push(r.map_err(DatabaseError::Query)?);
         }
         info!("Fetched genres");
         Ok(fetched)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_playlists(
         &self,
         options: Playlist,
         inclusive: bool,
         conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<Playlist>> {
+    ) -> Result<Vec<Playlist>, DatabaseError> {
         let mut query = "SELECT playlist_id, playlist_name, playlist_coverpath, playlist_song_count, playlist_desc, playlist_path, extension, icon, library_item FROM playlists".to_string();
         let mut clauses = Vec::new();
         let mut params = Vec::new();
@@ -1045,21 +1035,24 @@ impl Database {
         }
 
         trace!("Fetching playlists");
-        let mut stmt = conn
-            .prepare(&query)
-            .map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
         let rows = stmt
             .query_map(&*params, map_row_to_playlist)
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         let mut fetched = Vec::new();
         for r in rows {
-            fetched.push(r.map_err(error_helpers::to_database_error)?);
+            fetched.push(r.map_err(DatabaseError::Query)?);
         }
         Ok(fetched)
     }
 
-    pub fn is_song_in_playlist(&self, playlist_id: &str, song_id: &str) -> Result<bool> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn is_song_in_playlist(
+        &self,
+        playlist_id: &str,
+        song_id: &str,
+    ) -> Result<bool, DatabaseError> {
         let conn = self.pool.get().unwrap();
         let count: i64 = conn
             .query_row(
@@ -1067,12 +1060,15 @@ impl Database {
                 (playlist_id, song_id),
                 |row| row.get(0),
             )
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
         Ok(count > 0)
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn get_entity_by_options(&self, options: GetEntityOptions) -> Result<EntityResult> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_entity_by_options(
+        &self,
+        options: GetEntityOptions,
+    ) -> Result<EntityResult, DatabaseError> {
         let mut conn = self.pool.get().unwrap();
         let inclusive = options.inclusive.unwrap_or_default();
 
@@ -1121,13 +1117,13 @@ impl Database {
         Ok(EntityResult { result: None })
     }
 
-    #[tracing::instrument(level = "debug", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_album_songs(
         &self,
         options: Album,
         inclusive: bool,
         conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<InnerSong>> {
+    ) -> Result<Vec<InnerSong>, DatabaseError> {
         trace!("Fetching album songs");
         let mut query = "SELECT a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype,
                                 a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url,
@@ -1154,28 +1150,26 @@ impl Database {
             query.push_str(&clauses.join(joiner));
         }
 
-        let mut stmt = conn
-            .prepare(&query)
-            .map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
         let rows = stmt
             .query_map(&*params, map_row_to_inner_song)
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         let mut fetched = Vec::new();
         for r in rows {
-            fetched.push(r.map_err(error_helpers::to_database_error)?);
+            fetched.push(r.map_err(DatabaseError::Query)?);
         }
         info!("Fetched album songs");
         Ok(fetched)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_artist_songs(
         &self,
         options: Artist,
         inclusive: bool,
         conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<InnerSong>> {
+    ) -> Result<Vec<InnerSong>, DatabaseError> {
         trace!("Fetching artist songs");
         let mut query = "SELECT a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype,
                                 a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url,
@@ -1206,28 +1200,26 @@ impl Database {
             query.push_str(&clauses.join(joiner));
         }
 
-        let mut stmt = conn
-            .prepare(&query)
-            .map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
         let rows = stmt
             .query_map(&*params, map_row_to_inner_song)
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         let mut fetched = Vec::new();
         for r in rows {
-            fetched.push(r.map_err(error_helpers::to_database_error)?);
+            fetched.push(r.map_err(DatabaseError::Query)?);
         }
         info!("Fetched artist songs");
         Ok(fetched)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_genre_songs(
         &self,
         options: Genre,
         inclusive: bool,
         conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<InnerSong>> {
+    ) -> Result<Vec<InnerSong>, DatabaseError> {
         trace!("Fetching genre songs");
         let mut query = "SELECT a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype,
                                 a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url,
@@ -1254,28 +1246,26 @@ impl Database {
             query.push_str(&clauses.join(joiner));
         }
 
-        let mut stmt = conn
-            .prepare(&query)
-            .map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
         let rows = stmt
             .query_map(&*params, map_row_to_inner_song)
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         let mut fetched = Vec::new();
         for r in rows {
-            fetched.push(r.map_err(error_helpers::to_database_error)?);
+            fetched.push(r.map_err(DatabaseError::Query)?);
         }
         info!("Fetched genre songs");
         Ok(fetched)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, conn))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_playlist_songs(
         &self,
         options: Playlist,
         inclusive: bool,
         conn: &mut rusqlite::Connection,
-    ) -> Result<Vec<InnerSong>> {
+    ) -> Result<Vec<InnerSong>, DatabaseError> {
         trace!("Fetching playlist songs");
         let mut query = "SELECT a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype,
                                 a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url,
@@ -1306,23 +1296,24 @@ impl Database {
             query.push_str(&clauses.join(joiner));
         }
 
-        let mut stmt = conn
-            .prepare(&query)
-            .map_err(error_helpers::to_database_error)?;
+        let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
         let rows = stmt
             .query_map(&*params, map_row_to_inner_song)
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         let mut fetched = Vec::new();
         for r in rows {
-            fetched.push(r.map_err(error_helpers::to_database_error)?);
+            fetched.push(r.map_err(DatabaseError::Query)?);
         }
         info!("Fetched playlist songs");
         Ok(fetched)
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn get_songs_by_options(&self, options: GetSongOptions) -> Result<Vec<Song>> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_songs_by_options(
+        &self,
+        options: GetSongOptions,
+    ) -> Result<Vec<Song>, DatabaseError> {
         let mut ret = vec![];
         trace!("Getting songs by options");
         let inclusive = options.inclusive.unwrap_or_default();
@@ -1384,16 +1375,14 @@ impl Database {
                 query.push_str(&clauses.join(joiner));
             }
 
-            let mut stmt = conn
-                .prepare(&query)
-                .map_err(error_helpers::to_database_error)?;
+            let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
             let rows = stmt
                 .query_map(&*params, map_row_to_inner_song)
-                .map_err(error_helpers::to_database_error)?;
+                .map_err(DatabaseError::Query)?;
 
             let mut fetched = Vec::new();
             for r in rows {
-                fetched.push(r.map_err(error_helpers::to_database_error)?);
+                fetched.push(r.map_err(DatabaseError::Query)?);
             }
             fetched_songs = fetched;
         } else if let Some(album) = options.album {
@@ -1424,9 +1413,7 @@ impl Database {
                  WHERE b.song IN ({})",
                 placeholders
             );
-            let mut stmt = conn
-                .prepare(&query)
-                .map_err(error_helpers::to_database_error)?;
+            let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
             let params = chunk
                 .iter()
                 .map(|s| s as &dyn rusqlite::ToSql)
@@ -1437,9 +1424,9 @@ impl Database {
                     let song_id: String = row.get(7)?;
                     Ok((song_id, album))
                 })
-                .map_err(error_helpers::to_database_error)?;
+                .map_err(DatabaseError::Query)?;
             for r in rows {
-                let (song_id, album) = r.map_err(error_helpers::to_database_error)?;
+                let (song_id, album) = r.map_err(DatabaseError::Query)?;
                 albums_map.insert(song_id, album);
             }
         }
@@ -1456,9 +1443,7 @@ impl Database {
                  WHERE b.song IN ({})",
                 placeholders
             );
-            let mut stmt = conn
-                .prepare(&query)
-                .map_err(error_helpers::to_database_error)?;
+            let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
             let params = chunk
                 .iter()
                 .map(|s| s as &dyn rusqlite::ToSql)
@@ -1469,9 +1454,9 @@ impl Database {
                     let song_id: String = row.get(6)?;
                     Ok((song_id, artist))
                 })
-                .map_err(error_helpers::to_database_error)?;
+                .map_err(DatabaseError::Query)?;
             for r in rows {
-                let (song_id, artist) = r.map_err(error_helpers::to_database_error)?;
+                let (song_id, artist) = r.map_err(DatabaseError::Query)?;
                 artists_map.entry(song_id).or_default().push(artist);
             }
         }
@@ -1488,9 +1473,7 @@ impl Database {
                  WHERE b.song IN ({})",
                 placeholders
             );
-            let mut stmt = conn
-                .prepare(&query)
-                .map_err(error_helpers::to_database_error)?;
+            let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
             let params = chunk
                 .iter()
                 .map(|s| s as &dyn rusqlite::ToSql)
@@ -1501,9 +1484,9 @@ impl Database {
                     let song_id: String = row.get(3)?;
                     Ok((song_id, genre))
                 })
-                .map_err(error_helpers::to_database_error)?;
+                .map_err(DatabaseError::Query)?;
             for r in rows {
-                let (song_id, genre) = r.map_err(error_helpers::to_database_error)?;
+                let (song_id, genre) = r.map_err(DatabaseError::Query)?;
                 genres_map.entry(song_id).or_default().push(genre);
             }
         }
@@ -1523,8 +1506,8 @@ impl Database {
         Ok(ret)
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn search_all(&self, term: &str) -> Result<SearchResult> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn search_all(&self, term: &str) -> Result<SearchResult, DatabaseError> {
         trace!("Searching all by term");
 
         let term = format!("%{}%", term);
@@ -1614,11 +1597,11 @@ impl Database {
         })
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn files_not_in_db(
         &self,
         mut file_list: Vec<(PathBuf, f64)>,
-    ) -> Result<Vec<(PathBuf, f64)>> {
+    ) -> Result<Vec<(PathBuf, f64)>, DatabaseError> {
         let conn = self.pool.get().unwrap();
 
         let len = file_list.len();
@@ -1651,19 +1634,17 @@ impl Database {
             query.push_str(" WHERE ");
             query.push_str(&clauses.join(" OR "));
 
-            let mut stmt = conn
-                .prepare(&query)
-                .map_err(error_helpers::to_database_error)?;
+            let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
             let rows = stmt
                 .query_map(&*params, |row| {
                     let p: Option<String> = row.get(0)?;
                     let s: Option<f64> = row.get(1)?;
                     Ok((p, s))
                 })
-                .map_err(error_helpers::to_database_error)?;
+                .map_err(DatabaseError::Query)?;
 
             for r in rows {
-                let (path_opt, size_opt) = r.map_err(error_helpers::to_database_error)?;
+                let (path_opt, size_opt) = r.map_err(DatabaseError::Query)?;
                 if let (Some(p), Some(s)) = (path_opt, size_opt) {
                     ret.push((PathBuf::from(p), s));
                 }
@@ -1672,8 +1653,8 @@ impl Database {
         Ok(ret)
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn add_to_playlist(&self, id: &str, songs: &[Song]) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn add_to_playlist(&self, id: &str, songs: &[Song]) -> Result<(), DatabaseError> {
         trace!("Adding to playlist");
         let conn = self.pool.get().unwrap();
         for s in songs {
@@ -1694,8 +1675,8 @@ impl Database {
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn remove_from_playlist<T>(&self, id: &str, songs: &[T]) -> Result<()>
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn remove_from_playlist<T>(&self, id: &str, songs: &[T]) -> Result<(), DatabaseError>
     where
         T: AsRef<str> + rusqlite::ToSql + Debug,
     {
@@ -1706,27 +1687,27 @@ impl Database {
                 "DELETE FROM playlist_bridge WHERE playlist = ?1 AND song = ?2",
                 (&id, sid),
             )
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
         }
         info!("Removed from playlist");
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn remove_playlist(&self, id: &str) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn remove_playlist(&self, id: &str) -> Result<(), DatabaseError> {
         trace!("Removing playlist");
         let conn = self.pool.get().unwrap();
         conn.execute("DELETE FROM playlist_bridge WHERE playlist = ?1", [&id])
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
         conn.execute("DELETE FROM playlists WHERE playlist_id = ?1", [&id])
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         info!("Removed playlist");
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn update_album(&self, album: Album) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn update_album(&self, album: Album) -> Result<(), DatabaseError> {
         trace!("Updating album");
         let conn = self.pool.get().unwrap();
 
@@ -1745,14 +1726,14 @@ impl Database {
                 &album.album_id,
             ),
         )
-        .map_err(error_helpers::to_database_error)?;
+        .map_err(DatabaseError::Query)?;
 
         info!("Updated album");
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn update_artist(&self, artist: Artist) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn update_artist(&self, artist: Artist) -> Result<(), DatabaseError> {
         trace!("Updating artist");
         let conn = self.pool.get().unwrap();
 
@@ -1770,13 +1751,13 @@ impl Database {
                 &artist.artist_id,
             ),
         )
-        .map_err(error_helpers::to_database_error)?;
+        .map_err(DatabaseError::Query)?;
         info!("Updated artist");
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn update_playlist(&self, playlist: Playlist) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn update_playlist(&self, playlist: Playlist) -> Result<(), DatabaseError> {
         trace!("Updating playlist");
         let conn = self.pool.get().unwrap();
         conn.execute(
@@ -1796,13 +1777,13 @@ impl Database {
                 &playlist.playlist_id,
             ),
         )
-        .map_err(error_helpers::to_database_error)?;
+        .map_err(DatabaseError::Query)?;
         info!("Updated playlist");
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn update_songs(&self, songs: Vec<Song>) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn update_songs(&self, songs: Vec<Song>) -> Result<(), DatabaseError> {
         trace!("Updating songs");
         let conn = self.pool.get().unwrap();
 
@@ -1857,28 +1838,28 @@ impl Database {
                         track_no = ?25, library_item = ?26
                      WHERE _id = ?27",
                     params,
-                ).map_err(error_helpers::to_database_error)?;
+                ).map_err(DatabaseError::Query)?;
             }
         }
         info!("Updated songs");
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn update_lyrics(&self, id: String, lyrics: String) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn update_lyrics(&self, id: String, lyrics: String) -> Result<(), DatabaseError> {
         trace!("Updating lyrics");
         let conn = self.pool.get().unwrap();
         conn.execute(
             "UPDATE allsongs SET lyrics = ?1 WHERE _id = ?2",
             (&lyrics, &id),
         )
-        .map_err(error_helpers::to_database_error)?;
+        .map_err(DatabaseError::Query)?;
         info!("Updated lyrics");
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn increment_play_count(&self, id: &str) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn increment_play_count(&self, id: &str) -> Result<(), DatabaseError> {
         trace!("Incrementing play count");
         let conn = self.pool.get().unwrap();
         let play_count_res: std::result::Result<Option<i32>, rusqlite::Error> = conn.query_row(
@@ -1896,7 +1877,7 @@ impl Database {
                     &Some(1),
                     &Some(0f64),
                 ),
-            ).map_err(error_helpers::to_database_error)?;
+            ).map_err(DatabaseError::Query)?;
             return Ok(());
         }
 
@@ -1904,14 +1885,14 @@ impl Database {
             "UPDATE analytics SET play_count = COALESCE(play_count, 0) + 1 WHERE song_id = ?1",
             [&id],
         )
-        .map_err(error_helpers::to_database_error)?;
+        .map_err(DatabaseError::Query)?;
 
         info!("Incremented play count");
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn increment_play_time(&self, id: &str, duration: f64) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn increment_play_time(&self, id: &str, duration: f64) -> Result<(), DatabaseError> {
         trace!("Incrementing play time");
         let conn = self.pool.get().unwrap();
         let play_time_res: std::result::Result<Option<f64>, rusqlite::Error> = conn.query_row(
@@ -1929,7 +1910,7 @@ impl Database {
                     &Some(0),
                     &duration,
                 ),
-            ).map_err(error_helpers::to_database_error)?;
+            ).map_err(DatabaseError::Query)?;
             info!("Added new play time");
             return Ok(());
         }
@@ -1938,18 +1919,19 @@ impl Database {
             "UPDATE analytics SET play_time = COALESCE(play_time, 0.0) + ?1 WHERE song_id = ?2",
             (duration, &id),
         )
-        .map_err(error_helpers::to_database_error)?;
+        .map_err(DatabaseError::Query)?;
 
         info!("Incremented playtime");
 
         Ok(())
     }
 
-    pub fn get_top_listened_songs(&self) -> Result<AllAnalytics> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_top_listened_songs(&self) -> Result<AllAnalytics, DatabaseError> {
         let conn = self.pool.get().unwrap();
         let mut stmt = conn
             .prepare("SELECT song_id, play_time FROM analytics ORDER BY play_time DESC LIMIT 10")
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         let song_rows = stmt
             .query_map([], |row| {
@@ -1957,11 +1939,11 @@ impl Database {
                 let play_time: Option<f64> = row.get(1)?;
                 Ok((song_id, play_time))
             })
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         let mut songs = Vec::new();
         for r in song_rows {
-            let (s_id, time) = r.map_err(error_helpers::to_database_error)?;
+            let (s_id, time) = r.map_err(DatabaseError::Query)?;
             if let Some(s) = s_id {
                 songs.push(SongListenTime {
                     song_id: s,
@@ -1980,8 +1962,8 @@ impl Database {
         })
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    pub fn export_playlist(&self, playlist_id: &str) -> Result<String> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn export_playlist(&self, playlist_id: &str) -> Result<String, DatabaseError> {
         let mut conn = self.pool.get().unwrap();
 
         let binding = self.get_playlists(
@@ -1995,7 +1977,7 @@ impl Database {
         let playlist = binding.first();
 
         if playlist.is_none() {
-            return Err("Playlist not found".into());
+            return Err(DatabaseError::PlaylistNotFound);
         }
 
         let playlist = playlist.unwrap();
@@ -2086,6 +2068,7 @@ impl Database {
 }
 
 impl types::plugin::Plugin for Database {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn init(
         context: &types::plugin::PluginContext,
     ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {

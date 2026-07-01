@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#[tracing::instrument(level = "debug", skip(conn))]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn run_migrations(conn: &mut rusqlite::Connection) {
     let tx = conn
         .transaction()
@@ -75,7 +75,7 @@ pub fn run_migrations(conn: &mut rusqlite::Connection) {
     tx.commit().expect("Failed to commit migrations");
 }
 
-#[tracing::instrument(level = "debug", skip(conn))]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn run_migration_cache(conn: &mut rusqlite::Connection) {
     let tx = conn
         .transaction()

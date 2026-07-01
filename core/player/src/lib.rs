@@ -15,7 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pub(crate) mod audio_source;
-mod error;
+pub mod error;
 mod generic;
 mod mux_player;
 mod rodio;
@@ -68,6 +68,7 @@ pub struct PlayerHandler {
 
 #[plugin_macro::generate]
 impl PlayerHandler {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(ended_tx: UnboundedSender<()>) -> Self {
         PlayerHandler {
             song_queue: vec![],
@@ -83,24 +84,33 @@ impl PlayerHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_player_state(&self) -> i32 { self.player.get_player_state() as i32 }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_volume(&self) -> u8 { self.player.get_volume() }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_queue(&self) -> &[Song] { &self.song_queue }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_current_idx(&self) -> usize { self.current_idx }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_current_pos(&self) -> Result<Duration, crate::error::PlayerError> {
         self.player.get_current_pos()
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn current_song(&self) -> Option<&Song> { self.song_queue.get(self.current_idx) }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_current_song(&self) -> Option<&Song> { self.current_song() }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_repeat_mode(&self) -> RepeatMode { self.repeat_mode }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn add_to_queue(&mut self, song: Song) {
         if self.current_song().is_none() {
             self.play_now(song);
@@ -110,6 +120,7 @@ impl PlayerHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn play_now(&mut self, song: Song) {
         debug!("Playing song now: {:?}", song);
         if self.current_song().is_none() {
@@ -128,6 +139,7 @@ impl PlayerHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn shuffle(&mut self) {
         if self.song_queue.len() <= 1 {
             return;
@@ -143,11 +155,13 @@ impl PlayerHandler {
         self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn repeat(&mut self, mode: RepeatMode) {
         self.repeat_mode = mode;
         self.on_repeat_changed.run_all(|cb| cb(self.repeat_mode));
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn play(&mut self) -> Result<(), crate::error::PlayerError> {
         self.player.play()?;
         self.on_player_event.run_all(|cb| {
@@ -158,6 +172,7 @@ impl PlayerHandler {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn pause(&mut self) -> Result<(), crate::error::PlayerError> {
         self.player.pause()?;
         self.on_player_event.run_all(|cb| {
@@ -168,6 +183,7 @@ impl PlayerHandler {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn next(&mut self) {
         if self.song_queue.is_empty() {
             let _ = self.player.stop();
@@ -184,6 +200,7 @@ impl PlayerHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn prev(&mut self) {
         if self.song_queue.is_empty() {
             return;
@@ -197,12 +214,14 @@ impl PlayerHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_volume(&self, volume: u8) {
         if let Err(e) = self.player.set_volume(volume) {
             tracing::error!("Failed to set volume: {:?}", e)
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn seek(&self, pos: Duration) {
         if let Err(e) = self.player.seek(pos) {
             tracing::error!("Failed to seek: {:?}", e)
@@ -216,6 +235,7 @@ impl PlayerHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn play_index(&mut self, idx: usize) {
         if idx < self.song_queue.len() {
             self.current_idx = idx;
@@ -226,6 +246,7 @@ impl PlayerHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn remove_from_queue(&mut self, idx: usize) {
         if idx < self.song_queue.len() {
             self.song_queue.remove(idx);
@@ -236,6 +257,7 @@ impl PlayerHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn clear_queue(&mut self) {
         self.song_queue.clear();
         self.current_idx = 0;
@@ -244,6 +266,7 @@ impl PlayerHandler {
         self.trigger_song_changed();
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn move_queue_item(&mut self, from_idx: usize, to_idx: usize) {
         if from_idx < self.song_queue.len() && to_idx < self.song_queue.len() {
             let song = self.song_queue.remove(from_idx);
@@ -259,6 +282,7 @@ impl PlayerHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn on_song_ended(&mut self) {
         self.on_player_event.run_all(|cb| {
             cb(&PlayerEvent {
@@ -290,8 +314,10 @@ impl PlayerHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_resolver(&self, f: crate::source::SourceResolverFn) { self.player.set_resolver(f); }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn trigger_song_changed(&mut self) {
         let current = self.current_song().cloned();
         if let Some(song) = &current {
@@ -322,6 +348,7 @@ types::generate_on_event_impl!(
 );
 
 impl Plugin for PlayerHandler {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn init(_context: &PluginContext) -> Arc<RwLock<Self>> {
         let (ended_tx, mut ended_rx) = unbounded_channel();
         let ph = Arc::new(RwLock::new(PlayerHandler::new(ended_tx)));

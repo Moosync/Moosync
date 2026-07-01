@@ -15,6 +15,7 @@ use types::prelude::format_duration;
 
 use crate::pages::{AppPage, PageHandler};
 
+pub mod error;
 mod main_content;
 mod pages;
 mod settings;
@@ -28,6 +29,7 @@ static ANDROID_APP: std::sync::OnceLock<slint::android::AndroidApp> = std::sync:
 
 #[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
+#[tracing::instrument(level = "debug", skip_all)]
 fn android_main(app: slint::android::AndroidApp) {
     slint::android::init(app.clone()).unwrap();
     ANDROID_APP.set(app).expect("failed to set ANDROID_APP");
@@ -36,6 +38,7 @@ fn android_main(app: slint::android::AndroidApp) {
     run();
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn get_all_pages(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
@@ -162,6 +165,7 @@ fn get_all_pages(
     map
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn run() {
     setup_tracing();
     debug!("Starting Moosync...");
@@ -187,6 +191,7 @@ pub async fn run() {
     state_manager.shutdown().await;
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_resize(main_window: &MainWindow) {
     let main_window_weak = main_window.as_weak();
     main_window.global::<AppCallbacks>().on_resize(move || {
@@ -196,6 +201,7 @@ fn setup_resize(main_window: &MainWindow) {
     });
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_cover_helper(main_window: &MainWindow) {
     main_window
         .global::<CoverHelper>()
@@ -226,6 +232,7 @@ fn setup_cover_helper(main_window: &MainWindow) {
         });
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager) {
     main_window
         .global::<AppCallbacks>()
@@ -280,6 +287,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
         });
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     // Clear default values on load
     main_window.set_current_song(utils::to_song_model(
@@ -419,6 +427,7 @@ struct PageLifecycleManager {
 }
 
 impl PageLifecycleManager {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn new(
         pages: std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>>,
         initial_main_page: AppPage,
@@ -438,6 +447,7 @@ impl PageLifecycleManager {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn update_visibility(&mut self) {
         for (&page_type, handler) in &self.pages {
             let was_visible = *self.visible_states.get(&page_type).unwrap_or(&false);
@@ -534,6 +544,7 @@ impl PageLifecycleManager {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_page_navigation(
     main_window: &MainWindow,
     pages: std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>>,
@@ -595,6 +606,7 @@ fn setup_page_navigation(
         });
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_ui(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     setup_resize(main_window);
     setup_cover_helper(main_window);
@@ -605,6 +617,7 @@ fn setup_ui(main_window: &'static MainWindow, state_manager: &'static StateManag
     settings::setup_settings(main_window, state_manager);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_tracing() {
     let env_filter = EnvFilter::try_from_env("MOOSYNC_LOG").unwrap_or(EnvFilter::new("info"));
 
@@ -642,6 +655,7 @@ fn setup_tracing() {
 }
 
 #[cfg(target_os = "android")]
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_android() -> types::android::AndroidJNIContext {
     let app = ANDROID_APP.get().expect("ANDROID_APP not initialized");
 

@@ -25,12 +25,11 @@ use souvlaki::{
     MediaControls, MediaMetadata, MediaPlayback, MediaPosition as SouvlakiMediaPosition,
     PlatformConfig,
 };
-#[cfg(not(target_os = "android"))]
-use types::errors::MoosyncError;
-use types::errors::Result;
 
 #[cfg(not(target_os = "android"))]
 use crate::SeekDirection;
+#[cfg(not(target_os = "android"))]
+use crate::error::MprisError;
 use crate::{MediaControlEvent, MprisPlayerDetails};
 
 // ─────────────────────────────────────────────────────────────────────── //
@@ -39,18 +38,21 @@ use crate::{MediaControlEvent, MprisPlayerDetails};
 // ─────────────────────────────────────────────────────────────────────── //
 
 pub trait MprisContext: Send + Sync {
-    fn attach(&mut self, sender: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<()>;
-    fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<()>;
-    fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<()>;
+    fn attach(
+        &mut self,
+        sender: std::sync::mpsc::Sender<MediaControlEvent>,
+    ) -> Result<(), MprisError>;
+    fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<(), MprisError>;
+    fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<(), MprisError>;
 }
 
 #[cfg(test)]
 mock! {
     pub MprisContext {}
     impl MprisContext for MprisContext {
-        fn attach(&mut self, sender: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<()>;
-        fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<()>;
-        fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<()>;
+        fn attach(&mut self, sender: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<(), MprisError>;
+        fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<(), MprisError>;
+        fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<(), MprisError>;
     }
 }
 
@@ -65,7 +67,8 @@ pub struct SouvlakiMprisContext {
 
 #[cfg(not(target_os = "android"))]
 impl SouvlakiMprisContext {
-    pub fn new() -> Result<Self> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new() -> Result<Self, MprisError> {
         #[cfg(not(target_os = "windows"))]
         let hwnd = None;
 
@@ -83,7 +86,7 @@ impl SouvlakiMprisContext {
         };
 
         let controls =
-            MediaControls::new(config).map_err(|e| MoosyncError::String(format!("{:?}", e)))?;
+            MediaControls::new(config).map_err(|e| MprisError::InitFailed(format!("{:?}", e)))?;
 
         #[cfg(target_os = "windows")]
         std::thread::spawn(move || {
@@ -102,6 +105,7 @@ impl SouvlakiMprisContext {
 /// closure. souvlaki calls back with *its own* `MediaControlEvent`; we convert
 /// to ours.
 #[cfg(not(target_os = "android"))]
+#[tracing::instrument(level = "debug", skip_all)]
 fn from_souvlaki_event(e: souvlaki::MediaControlEvent) -> MediaControlEvent {
     match e {
         souvlaki::MediaControlEvent::Play => MediaControlEvent::Play,
@@ -133,16 +137,21 @@ fn from_souvlaki_event(e: souvlaki::MediaControlEvent) -> MediaControlEvent {
 
 #[cfg(not(target_os = "android"))]
 impl MprisContext for SouvlakiMprisContext {
-    fn attach(&mut self, sender: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn attach(
+        &mut self,
+        sender: std::sync::mpsc::Sender<MediaControlEvent>,
+    ) -> Result<(), MprisError> {
         self.controls
             .attach(move |event| {
                 let mapped = from_souvlaki_event(event);
                 sender.send(mapped).unwrap();
             })
-            .map_err(|e| MoosyncError::String(format!("{:?}", e)))
+            .map_err(|e| MprisError::AttachFailed(format!("{:?}", e)))
     }
 
-    fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<(), MprisError> {
         let duration = metadata.duration.map(|d| (d * 1000.0) as u64);
         self.controls
             .set_metadata(MediaMetadata {
@@ -152,19 +161,11 @@ impl MprisContext for SouvlakiMprisContext {
                 cover_url: metadata.thumbnail.as_deref(),
                 duration: duration.map(Duration::from_millis),
             })
-            .map_err(|e| {
-                #[cfg(any(target_os = "macos", target_os = "windows"))]
-                {
-                    MoosyncError::String("Failed to set metadata".into())
-                }
-                #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
-                {
-                    MoosyncError::MprisError(Box::new(e))
-                }
-            })
+            .map_err(MprisError::Souvlaki)
     }
 
-    fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<(), MprisError> {
         let parsed = match state {
             PlayerState::Playing => MediaPlayback::Playing {
                 progress: Some(SouvlakiMediaPosition(Duration::from_millis(duration))),
@@ -175,16 +176,9 @@ impl MprisContext for SouvlakiMprisContext {
             PlayerState::Stopped => MediaPlayback::Stopped,
         };
 
-        self.controls.set_playback(parsed).map_err(|e| {
-            #[cfg(any(target_os = "macos", target_os = "windows"))]
-            {
-                MoosyncError::String("Failed to set playback state".into())
-            }
-            #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
-            {
-                MoosyncError::MprisError(Box::new(e))
-            }
-        })
+        self.controls
+            .set_playback(parsed)
+            .map_err(MprisError::Souvlaki)
     }
 }
 
@@ -197,9 +191,14 @@ pub struct DummyContext {}
 
 #[cfg(target_os = "windows")]
 impl MprisContext for DummyContext {
-    fn attach(&mut self, _: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<()> { Ok(()) }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn attach(&mut self, _: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<(), MprisError> {
+        Ok(())
+    }
 
-    fn set_metadata(&mut self, _: MprisPlayerDetails) -> Result<()> { Ok(()) }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_metadata(&mut self, _: MprisPlayerDetails) -> Result<(), MprisError> { Ok(()) }
 
-    fn set_playback_state(&mut self, _: PlayerState, _: u64) -> Result<()> { Ok(()) }
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_playback_state(&mut self, _: PlayerState, _: u64) -> Result<(), MprisError> { Ok(()) }
 }

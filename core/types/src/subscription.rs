@@ -24,6 +24,7 @@ pub struct CancelHandle {
 }
 
 impl CancelHandle {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new<F>(cancel_fn: F) -> Self
     where
         F: FnOnce() + Send + Sync + 'static,
@@ -33,6 +34,7 @@ impl CancelHandle {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn cancel(&self) {
         let mut guard = self.cancel_fn.lock().unwrap();
         if let Some(f) = guard.take() {
@@ -47,6 +49,7 @@ pub struct SubscriberList<F> {
 }
 
 impl<F: Send + Sync + 'static> SubscriberList<F> {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new() -> Self {
         Self {
             subscribers: Arc::new(Mutex::new(HashMap::new())),
@@ -54,6 +57,7 @@ impl<F: Send + Sync + 'static> SubscriberList<F> {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn insert(&self, subscriber: F) -> CancelHandle {
         let mut id_guard = self.next_id.lock().unwrap();
         let id = *id_guard;
@@ -74,6 +78,7 @@ impl<F: Send + Sync + 'static> SubscriberList<F> {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn run_all<G>(&self, mut f: G)
     where
         G: FnMut(&F),
@@ -87,6 +92,7 @@ impl<F: Send + Sync + 'static> SubscriberList<F> {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn watch_immediate<A>(&self, subscriber: F, init_val: A) -> CancelHandle
     where
         F: std::ops::Fn(A),
@@ -114,10 +120,12 @@ pub trait ToFilterKeys<T> {
 }
 
 impl<T> ToFilterKeys<T> for T {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn to_filter_keys(self) -> Vec<T> { vec![self] }
 }
 
 impl<T> ToFilterKeys<T> for Vec<T> {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn to_filter_keys(self) -> Vec<T> { self }
 }
 

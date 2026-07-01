@@ -4,6 +4,7 @@ rust_library(
     name = "mpris",
     srcs = [
         "src/context/mod.rs",
+        "src/error.rs",
         "src/lib.rs",
         "src/mpris_android.rs",
         "src/tests.rs",
@@ -18,6 +19,7 @@ rust_library(
         "//core/types",
         "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",
+        "@crates//:thiserror",
         "@crates//:mockall",
         "@crates//:serde",
         "@crates//:tracing",

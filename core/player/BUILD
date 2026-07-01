@@ -39,7 +39,6 @@ rust_library(
     visibility = ["//visibility:public"],
     deps = [
         ":build_script",
-        "//core/spotify_player",
         "//core/types",
         "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",

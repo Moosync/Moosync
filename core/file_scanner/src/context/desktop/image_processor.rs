@@ -18,17 +18,19 @@ use std::{num::NonZeroU32, path::Path};
 
 use fast_image_resize::{self as fr, FilterType, ResizeAlg::Convolution, ResizeOptions};
 use image::ColorType;
-use types::errors::{MoosyncError, Result, error_helpers};
+
+use crate::error::ScannerError;
 
 pub struct ImageProcessor {
-    raw_image: Result<image::DynamicImage>,
+    raw_image: Result<image::DynamicImage, ScannerError>,
     dimensions: Option<u32>,
     compressed: bool,
 }
 
 impl ImageProcessor {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(data: &[u8]) -> Self {
-        let raw_image = image::load_from_memory(data).map_err(error_helpers::to_media_error);
+        let raw_image = image::load_from_memory(data).map_err(ScannerError::Image);
         Self {
             raw_image,
             dimensions: None,
@@ -37,6 +39,7 @@ impl ImageProcessor {
     }
 
     #[allow(dead_code)]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn from_image(raw_image: image::DynamicImage) -> Self {
         Self {
             raw_image: Ok(raw_image),
@@ -45,17 +48,20 @@ impl ImageProcessor {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn resize(mut self, size: u32) -> Self {
         self.dimensions = Some(size);
         self
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn compress(mut self) -> Self {
         self.compressed = true;
         self
     }
 
-    pub fn save(self, path: &Path) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn save(self, path: &Path) -> Result<(), ScannerError> {
         let raw_image = self.raw_image?;
         let dimensions = self.dimensions.unwrap_or(400);
         let src_image = Self::to_src_image(&raw_image)?;
@@ -63,61 +69,62 @@ impl ImageProcessor {
         Self::save_image_buffer(path, &dst_image, dimensions)
     }
 
-    fn to_src_image(img: &image::DynamicImage) -> Result<fr::images::Image<'static>> {
-        let width = NonZeroU32::new(img.width())
-            .ok_or_else(|| MoosyncError::String("Zero width".into()))?;
-        let height = NonZeroU32::new(img.height())
-            .ok_or_else(|| MoosyncError::String("Zero height".into()))?;
-        fr::images::Image::from_vec_u8(
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn to_src_image(img: &image::DynamicImage) -> Result<fr::images::Image<'static>, ScannerError> {
+        let width =
+            NonZeroU32::new(img.width()).ok_or_else(|| ScannerError::InvalidImageDimensions)?;
+        let height =
+            NonZeroU32::new(img.height()).ok_or_else(|| ScannerError::InvalidImageDimensions)?;
+        let img = fr::images::Image::from_vec_u8(
             width.into(),
             height.into(),
             img.to_rgba8().into_vec(),
             fr::PixelType::U8x4,
-        )
-        .map_err(error_helpers::to_media_error)
+        )?;
+        Ok(img)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn resize_image(
         src_image: &fr::images::Image,
         dimensions: u32,
-    ) -> Result<fr::images::Image<'static>> {
+    ) -> Result<fr::images::Image<'static>, ScannerError> {
         let dst_width =
-            NonZeroU32::new(dimensions).ok_or_else(|| MoosyncError::String("Zero width".into()))?;
-        let dst_height = NonZeroU32::new(dimensions)
-            .ok_or_else(|| MoosyncError::String("Zero height".into()))?;
+            NonZeroU32::new(dimensions).ok_or_else(|| ScannerError::InvalidImageDimensions)?;
+        let dst_height =
+            NonZeroU32::new(dimensions).ok_or_else(|| ScannerError::InvalidImageDimensions)?;
         let mut dst_image =
             fr::images::Image::new(dst_width.into(), dst_height.into(), src_image.pixel_type());
         let mut resizer = fr::Resizer::new();
-        resizer
-            .resize(
-                src_image,
-                &mut dst_image,
-                Some(&ResizeOptions {
-                    algorithm: Convolution(FilterType::Hamming),
-                    mul_div_alpha: false,
-                    ..Default::default()
-                }),
-            )
-            .map_err(error_helpers::to_media_error)?;
+        resizer.resize(
+            src_image,
+            &mut dst_image,
+            Some(&ResizeOptions {
+                algorithm: Convolution(FilterType::Hamming),
+                mul_div_alpha: false,
+                ..Default::default()
+            }),
+        )?;
         Ok(dst_image)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn save_image_buffer(
         path: &Path,
         dst_image: &fr::images::Image,
         dimensions: u32,
-    ) -> Result<()> {
-        let dst_width = NonZeroU32::new(dimensions)
-            .ok_or_else(|| MoosyncError::String("Zero dimensions".into()))?;
-        let dst_height = NonZeroU32::new(dimensions)
-            .ok_or_else(|| MoosyncError::String("Zero dimensions".into()))?;
+    ) -> Result<(), ScannerError> {
+        let dst_width =
+            NonZeroU32::new(dimensions).ok_or_else(|| ScannerError::InvalidImageDimensions)?;
+        let dst_height =
+            NonZeroU32::new(dimensions).ok_or_else(|| ScannerError::InvalidImageDimensions)?;
         image::save_buffer(
             path,
             dst_image.buffer(),
             dst_width.get(),
             dst_height.get(),
             ColorType::Rgba8,
-        )
-        .map_err(error_helpers::to_media_error)
+        )?;
+        Ok(())
     }
 }

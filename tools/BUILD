@@ -13,3 +13,10 @@ sh_binary(
     ],
     deps = ["@bazel_tools//tools/bash/runfiles"],
 )
+
+py_binary(
+    name = "check_instrument",
+    srcs = ["check_instrument.py"],
+    main = "check_instrument.py",
+)
+

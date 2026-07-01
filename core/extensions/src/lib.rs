@@ -75,7 +75,7 @@ types::generate_on_event_impl!(
 
 #[plugin_macro::generate]
 impl ExtensionHandler {
-    #[tracing::instrument(level = "debug")]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(extensions_dir: PathBuf, tmp_dir: PathBuf, cache_dir: PathBuf) -> Self {
         Self {
             inner: ExtensionHandlerInner::new(extensions_dir.clone(), cache_dir.clone()),
@@ -88,13 +88,15 @@ impl ExtensionHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_reply_handler(&mut self, reply_handler: Arc<dyn ReplyHandler>) {
         self.reply_handler = Some(reply_handler);
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn trigger_extensions_updated(&self) { self.on_extensions_updated.run_all(|cb| cb(())); }
 
-    #[tracing::instrument(level = "debug", skip(self, ext_path))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_extension_version(&self, ext_path: PathBuf) -> Result<String, ExtensionError> {
         let manifest_path = ext_path.join("package.json");
         if manifest_path.exists() {
@@ -107,22 +109,24 @@ impl ExtensionHandler {
         Err(ExtensionError::NoExtensionFound)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, version))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_ext_version(&self, version: String) -> Result<u64, ExtensionError> {
         Ok(u64::from_str(
             &version.split('.').collect::<Vec<&str>>().join(""),
         )?)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_extension(&self, package_name: &str) -> Result<Arc<Extension>, ExtensionError> {
         Ok(self.inner.get_extension(package_name)?)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_extension_mut(&self, package_name: &str) -> Result<Arc<Extension>, ExtensionError> {
         Ok(self.inner.get_extension(package_name)?)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, info))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn install_extension(&self, info: ExtensionInfo) -> Result<(), ExtensionError> {
         let ext_path = match info {
             ExtensionInfo::Local(_) => {
@@ -138,7 +142,7 @@ impl ExtensionHandler {
             .tmp_dir
             .join(format!("moosync_ext_{}", uuid::Uuid::new_v4()));
 
-        zip_extract(&ext_path, &tmp_dir).map_err(|e| ExtensionError::ZipError(Box::new(e)))?;
+        zip_extract(&ext_path, &tmp_dir).map_err(|e| ExtensionError::Zip(e.to_string()))?;
 
         let package_manifest: ExtensionManifest =
             serde_json::from_slice(&fs::read(tmp_dir.join("package.json"))?)?;
@@ -194,7 +198,7 @@ impl ExtensionHandler {
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self, package_name))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn remove_extension(&mut self, package_name: String) -> Result<(), ExtensionError> {
         let ext_path = self.extensions_dir.join(package_name.clone());
         if ext_path.exists() {
@@ -208,6 +212,7 @@ impl ExtensionHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn toggle_extension(&self, info: ExtensionInfo) -> Result<(), ExtensionError> {
         if let ExtensionInfo::Local(detail) = info {
             let extension = self.get_extension(&detail.package_name)?;
@@ -220,6 +225,7 @@ impl ExtensionHandler {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_all_extensions(&self) -> Vec<ExtensionInfo> {
         let installed = self.get_installed_extensions();
         let remote = self.get_cached_remote_manifests();
@@ -241,22 +247,25 @@ impl ExtensionHandler {
         ret
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn send_remove_extension(&self, package_name: PackageName) -> Result<(), ExtensionError> {
         self.inner.remove_extension(&package_name.package_name);
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn find_new_extensions(&self) -> Result<(), ExtensionError> {
         let reply_handler = self.reply_handler.clone().expect("Reply handler not set");
         self.inner.spawn_extensions(reply_handler);
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_installed_extensions(&self) -> Vec<ExtensionDetail> {
         self.inner.get_installed_extensions()
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_cached_remote_manifests(&self) -> Vec<FetchedExtensionManifest> {
         let path = self.extensions_dir.join("remote_manifest_cache.json");
         if path.exists() {
@@ -269,7 +278,7 @@ impl ExtensionHandler {
         vec![]
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn get_extension_manifest(
         &self,
     ) -> Result<Vec<FetchedExtensionManifest>, ExtensionError> {
@@ -278,6 +287,7 @@ impl ExtensionHandler {
 }
 
 impl types::plugin::Plugin for ExtensionHandler {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn init(
         context: &types::plugin::PluginContext,
     ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {

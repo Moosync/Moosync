@@ -14,9 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use types::errors::Result;
-
-use crate::{OnPlaylistScanned, OnProgressUpdated, OnSongScanned};
+use crate::{OnPlaylistScanned, OnProgressUpdated, OnSongScanned, error::ScannerError};
 
 #[allow(async_fn_in_trait)]
 pub trait ScannerContext: Send + Sync {
@@ -25,7 +23,7 @@ pub trait ScannerContext: Send + Sync {
         on_song: &OnSongScanned,
         on_playlist: &OnPlaylistScanned,
         on_progress: &OnProgressUpdated,
-    ) -> Result<()>;
+    ) -> Result<(), ScannerError>;
 }
 
 #[cfg(target_os = "android")]

@@ -34,6 +34,7 @@ pub struct AudioSource {
 }
 
 impl AudioSource {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(on_ended_callback: OnEndedCallback) -> Self {
         let (events_tx, mut events_rx) = unbounded_channel();
         tokio::spawn(async move {
@@ -50,10 +51,13 @@ impl AudioSource {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_resolver(&self, f: SourceResolverFn) { self.source_resolver.set_resolver(f); }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_src(&mut self, song: Song) -> Result<(), PlayerError> { self.load_song(song) }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn load_song(&mut self, mut song: Song) -> Result<(), PlayerError> {
         let res = self.mux.load(&song);
 
@@ -72,21 +76,29 @@ impl AudioSource {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn play(&self) -> Result<(), PlayerError> { self.mux.play() }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn pause(&self) -> Result<(), PlayerError> { self.mux.pause() }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn stop(&self) -> Result<(), PlayerError> { self.mux.stop() }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_volume(&self, volume: u8) -> Result<(), PlayerError> { self.mux.set_volume(volume) }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn seek(&self, position: Duration) -> Result<(), PlayerError> { self.mux.seek(position) }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_current_pos(&self) -> Result<Duration, PlayerError> { self.mux.get_current_pos() }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_player_state(&self) -> extensions_proto::moosync::types::PlayerState {
         self.mux.get_player_state()
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_volume(&self) -> u8 { self.mux.get_volume() }
 }

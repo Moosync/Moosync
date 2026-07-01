@@ -26,6 +26,7 @@ pub struct ExtensionsPageHandler<'a> {
 }
 
 impl<'a> ExtensionsPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
         Self {
             main_window,
@@ -33,6 +34,7 @@ impl<'a> ExtensionsPageHandler<'a> {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn render_extensions(
         main_window: &MainWindow,
         extensions: Vec<ExtensionInfo>,
@@ -71,6 +73,7 @@ impl<'a> ExtensionsPageHandler<'a> {
         )));
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn setup_callbacks(&self) {
         self.main_window
             .global::<crate::AppCallbacks>()
@@ -99,6 +102,7 @@ impl<'a> ExtensionsPageHandler<'a> {
             });
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn handle_toggle_extension(package_name: String, state_manager: StateManager) {
         tracing::info!("handle_toggle_extension: {}", package_name);
         let handler = state_manager.get_extension_handler().await;
@@ -129,6 +133,7 @@ impl<'a> ExtensionsPageHandler<'a> {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn install_local_extension(file_path: String, state_manager: StateManager) {
         tracing::info!("install_local_extension: {}", file_path);
         let handler = state_manager.get_extension_handler().await;
@@ -141,6 +146,7 @@ impl<'a> ExtensionsPageHandler<'a> {
 }
 
 impl<'a> PageHandler for ExtensionsPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
         tracing::info!("ExtensionsPageHandler: Initializing");
         self.setup_callbacks();
@@ -176,6 +182,7 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
         });
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         tracing::info!("ExtensionsPageHandler: on_show");
         let state_manager = self.state_manager.clone();
@@ -192,6 +199,7 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
         });
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) {
         tracing::info!("ExtensionsPageHandler: on_hide");
         self.main_window.set_extensions(ModelRc::default());

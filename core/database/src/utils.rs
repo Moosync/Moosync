@@ -21,7 +21,7 @@ pub trait SearchByTerm {
 }
 
 impl SearchByTerm for InnerSong {
-    #[tracing::instrument(level = "debug", skip(term))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn search_by_term(term: Option<String>) -> Self {
         let mut data = Self::default();
         data.title.clone_from(&term);
@@ -31,7 +31,7 @@ impl SearchByTerm for InnerSong {
 }
 
 impl SearchByTerm for Album {
-    #[tracing::instrument(level = "debug", skip(term))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn search_by_term(term: Option<String>) -> Self {
         Self {
             album_name: term,
@@ -41,7 +41,7 @@ impl SearchByTerm for Album {
 }
 
 impl SearchByTerm for Artist {
-    #[tracing::instrument(level = "debug", skip(term))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn search_by_term(term: Option<String>) -> Self {
         Self {
             artist_name: term,
@@ -51,7 +51,7 @@ impl SearchByTerm for Artist {
 }
 
 impl SearchByTerm for Genre {
-    #[tracing::instrument(level = "debug", skip(term))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn search_by_term(term: Option<String>) -> Self {
         Self {
             genre_name: term,
@@ -61,7 +61,7 @@ impl SearchByTerm for Genre {
 }
 
 impl SearchByTerm for Playlist {
-    #[tracing::instrument(level = "debug", skip(term))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn search_by_term(term: Option<String>) -> Self {
         Self {
             playlist_name: term.unwrap_or_default(),
@@ -70,6 +70,7 @@ impl SearchByTerm for Playlist {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn song_type_from_str(s: &str) -> i32 {
     let t = match s {
         "LOCAL" => SongType::Local,
@@ -82,6 +83,7 @@ pub fn song_type_from_str(s: &str) -> i32 {
     t as i32
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn song_type_to_str(t: i32) -> &'static str {
     match SongType::try_from(t).unwrap_or(SongType::Local) {
         SongType::Local => "LOCAL",
@@ -92,6 +94,7 @@ pub fn song_type_to_str(t: i32) -> &'static str {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn map_row_to_album(row: &rusqlite::Row) -> rusqlite::Result<Album> {
     Ok(Album {
         album_id: row.get(0)?,
@@ -104,6 +107,7 @@ pub fn map_row_to_album(row: &rusqlite::Row) -> rusqlite::Result<Album> {
     })
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn map_row_to_artist(row: &rusqlite::Row) -> rusqlite::Result<Artist> {
     Ok(Artist {
         artist_id: row.get(0)?,
@@ -115,6 +119,7 @@ pub fn map_row_to_artist(row: &rusqlite::Row) -> rusqlite::Result<Artist> {
     })
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn map_row_to_genre(row: &rusqlite::Row) -> rusqlite::Result<Genre> {
     Ok(Genre {
         genre_id: row.get(0)?,
@@ -123,6 +128,7 @@ pub fn map_row_to_genre(row: &rusqlite::Row) -> rusqlite::Result<Genre> {
     })
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn map_row_to_playlist(row: &rusqlite::Row) -> rusqlite::Result<Playlist> {
     Ok(Playlist {
         playlist_id: row.get(0)?,
@@ -137,6 +143,7 @@ pub fn map_row_to_playlist(row: &rusqlite::Row) -> rusqlite::Result<Playlist> {
     })
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn map_row_to_inner_song(row: &rusqlite::Row) -> rusqlite::Result<InnerSong> {
     let type_str: String = row.get(16)?;
     Ok(InnerSong {

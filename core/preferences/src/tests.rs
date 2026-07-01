@@ -4,12 +4,14 @@ use uuid::Uuid;
 
 use super::{context::MockKeyring, preferences::PreferenceConfig};
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn get_test_db_path() -> std::path::PathBuf {
     let file_name = format!("moosync_test_prefs_{}", Uuid::new_v4());
     temp_dir().join(file_name)
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_preferences_new() {
     let mut mock_context = Box::new(MockKeyring::new());
     mock_context
@@ -22,6 +24,7 @@ fn test_preferences_new() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_exhaustive_keys() {
     let mut mock_context = Box::new(MockKeyring::new());
     mock_context

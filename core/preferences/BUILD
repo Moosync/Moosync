@@ -5,6 +5,7 @@ rust_library(
     srcs = [
         "src/context/keyring_context.rs",
         "src/context/mod.rs",
+        "src/error.rs",
         "src/keys.rs",
         "src/lib.rs",
         "src/preferences.rs",
@@ -18,6 +19,7 @@ rust_library(
     deps = [
         "//core/types",
         "//core/types/protos:extensions_rs",
+        "@crates//:thiserror",
         "@crates//:chacha20poly1305",
         "@crates//:crossbeam-channel",
         "@crates//:hex",

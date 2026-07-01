@@ -3,6 +3,7 @@ load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 rust_library(
     name = "lyrics",
     srcs = [
+        "src/error.rs",
         "src/lib.rs",
         "src/test.rs",
     ],
@@ -12,9 +13,9 @@ rust_library(
     ],
     visibility = ["//visibility:public"],
     deps = [
-        "//core/spotify_player",
         "//core/types",
         "//core/types/protos:songs_rs",
+        "@crates//:thiserror",
         "@crates//:regex",
         "@crates//:reqwest",
         "@crates//:serde_json",

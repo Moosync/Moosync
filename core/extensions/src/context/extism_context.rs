@@ -79,7 +79,7 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Pros
 
     let response = match command.command {
         Some(cmd) => cmd.dispatch(reply_handler.as_ref(), &package_name),
-        None => Err(types::errors::MoosyncError::String("Missing command".to_string())),
+        None => Err(ExtensionError::MissingCommand),
     };
 
     let result = response.map(|resp| MainCommandResponse {
@@ -253,6 +253,7 @@ impl Debug for ExtismContext {
 }
 
 impl ExtismContext {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(
         manifest: &ExtensionManifest,
         has_started: Arc<std::sync::atomic::AtomicBool>,
@@ -314,6 +315,7 @@ impl ExtismContext {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_allowed_paths(
         permissions: &ManifestPermissions,
         ext_cache_dir: &PathBuf,
@@ -347,6 +349,7 @@ impl ExtismContext {
         allowed_paths
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_user_data(
         package_name: String,
         reply_handler: Arc<dyn ReplyHandler>,
@@ -365,6 +368,7 @@ impl ExtismContext {
         (user_data, sock_data)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn build_plugin(
         cache_path: &Path,
         plugin_manifest: Manifest,
@@ -459,6 +463,7 @@ files-total-size-soft-limit = "1Gi"
 
 #[async_trait::async_trait]
 impl ExtensionContext for ExtismContext {
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn execute_command(
         &self,
         command: ExtensionCommand,
@@ -482,6 +487,7 @@ impl ExtensionContext for ExtismContext {
         .unwrap()
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn kill(&self) -> Result<(), ExtensionError> {
         let plugin = self.plugin.lock().unwrap();
         plugin.cancel_handle().cancel()?;

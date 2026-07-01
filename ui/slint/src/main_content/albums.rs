@@ -4,9 +4,9 @@ use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{Album, AlbumList, GetEntityOptions, entity_result};
 use state_manager::StateManager;
 use tracing::debug;
-use types::{ScanProgress, errors::MoosyncError};
+use types::ScanProgress;
 
-use crate::{MainWindow, Pages, pages::PageHandler, utils::LazySongVecModel};
+use crate::{MainWindow, Pages, error::UiError, pages::PageHandler, utils::LazySongVecModel};
 
 pub struct AlbumsPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -15,6 +15,7 @@ pub struct AlbumsPageHandler<'a> {
 }
 
 impl<'a> AlbumsPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
         Self {
             main_window,
@@ -23,6 +24,7 @@ impl<'a> AlbumsPageHandler<'a> {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_scanner_cb(&self) {
         let main_window_weak = self.main_window.as_weak();
         let state_manager = self.state_manager.clone();
@@ -34,6 +36,7 @@ impl<'a> AlbumsPageHandler<'a> {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 async fn run_scanner_loop(
     main_window_weak: Weak<MainWindow>,
     state_manager: StateManager,
@@ -56,7 +59,8 @@ async fn run_scanner_loop(
     }
 }
 
-async fn get_albums_from_db(state_manager: &StateManager) -> Result<Vec<Album>, MoosyncError> {
+#[tracing::instrument(level = "debug", skip_all)]
+async fn get_albums_from_db(state_manager: &StateManager) -> Result<Vec<Album>, UiError> {
     let database = state_manager.get_database().await;
     let albums_res = database.get_entity_by_options(GetEntityOptions {
         album: Some(Album::default()),
@@ -65,12 +69,11 @@ async fn get_albums_from_db(state_manager: &StateManager) -> Result<Vec<Album>, 
 
     match albums_res.result {
         Some(entity_result::Result::Albums(AlbumList { albums })) => Ok(albums),
-        _ => Err(MoosyncError::String(
-            "Failed to get albums from db".to_string(),
-        )),
+        _ => Err(UiError::EntityParseFailed),
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 async fn fetch_and_cache_albums(
     main_window_weak: Weak<MainWindow>,
     state_manager: StateManager,
@@ -89,6 +92,7 @@ async fn fetch_and_cache_albums(
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn set_all_albums(main_window: &MainWindow, albums: Vec<Album>, cache_dir: std::path::PathBuf) {
     debug!("Setting albums");
     let album_model = albums
@@ -106,6 +110,7 @@ fn set_all_albums(main_window: &MainWindow, albums: Vec<Album>, cache_dir: std::
 }
 
 impl<'a> PageHandler for AlbumsPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
         self.set_scanner_cb();
         let state_manager = self.state_manager.clone();
@@ -116,11 +121,13 @@ impl<'a> PageHandler for AlbumsPageHandler<'a> {
         });
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         let albums = self.albums.lock().unwrap().clone();
         let cache_dir = self.state_manager.get_cache_dir();
         set_all_albums(self.main_window, albums, cache_dir);
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) { self.main_window.set_albums(ModelRc::default()); }
 }

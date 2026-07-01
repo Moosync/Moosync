@@ -37,17 +37,20 @@ pub struct PluginRegistry {
 }
 
 impl PluginRegistry {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new() -> Self {
         Self {
             map: HashMap::new(),
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn register<P: Plugin>(&mut self, plugin: Arc<RwLock<P>>) {
         self.map.insert(TypeId::of::<P>(), plugin);
     }
 
     // Panics on failure to retrieve/downcast target plugin
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get<P: Plugin>(&self) -> Arc<RwLock<P>> {
         self.map
             .get(&TypeId::of::<P>())
@@ -63,11 +66,13 @@ pub struct CallContext {
 
 impl CallContext {
     // Insert any custom state into the context
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn insert<T: Send + Sync + 'static>(&mut self, val: T) {
         self.map.insert(TypeId::of::<T>(), Box::new(val));
     }
 
     // Retrieve that state later
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_mut<T: 'static>(&mut self) -> Option<&mut T> {
         self.map
             .get_mut(&TypeId::of::<T>())
@@ -75,6 +80,7 @@ impl CallContext {
     }
 
     // Remove it to take ownership
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn remove<T: 'static>(&mut self) -> Option<T> {
         self.map
             .remove(&TypeId::of::<T>())

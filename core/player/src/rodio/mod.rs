@@ -40,7 +40,7 @@ pub struct RodioPlayer {
 }
 
 impl RodioPlayer {
-    #[tracing::instrument(level = "debug", skip())]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(events_tx: UnboundedSender<PlayerEvent>) -> Self {
         Self {
             _sink: Mutex::new(None),
@@ -49,6 +49,7 @@ impl RodioPlayer {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn send_event(events_tx: UnboundedSender<PlayerEvent>, event: PlayerEvent) {
         if let Err(e) = events_tx.send(event) {
             tracing::error!("Failed to send event: {:?}", e);
@@ -57,7 +58,7 @@ impl RodioPlayer {
 }
 
 impl PlayerExt for RodioPlayer {
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn play(&self) -> Result<(), PlayerError> {
         if let Some(player) = self.player.lock().unwrap().as_ref() {
             player.play();
@@ -65,7 +66,7 @@ impl PlayerExt for RodioPlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn pause(&self) -> Result<(), PlayerError> {
         if let Some(player) = self.player.lock().unwrap().as_ref() {
             player.pause();
@@ -73,7 +74,7 @@ impl PlayerExt for RodioPlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn stop(&self) -> Result<(), PlayerError> {
         if let Some(player) = self.player.lock().unwrap().as_ref() {
             player.stop();
@@ -81,7 +82,7 @@ impl PlayerExt for RodioPlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
         if let Some(player) = self.player.lock().unwrap().as_ref() {
             player.set_volume(volume as f32 / 100f32);
@@ -90,7 +91,7 @@ impl PlayerExt for RodioPlayer {
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn seek(&self, pos: Duration) -> Result<(), PlayerError> {
         if let Some(player) = self.player.lock().unwrap().as_ref() {
             player.try_seek(pos)?;
@@ -98,6 +99,7 @@ impl PlayerExt for RodioPlayer {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_src(&self, src: ValidSrc) -> Result<(), PlayerError> {
         let old_volume = self.get_volume().unwrap_or_else(|e| {
             tracing::error!("Failed to retrieve old volume. Defaulting to 50");
@@ -126,6 +128,7 @@ impl PlayerExt for RodioPlayer {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn can_play(&self, src: ValidSrc) -> bool {
         match src {
             ValidSrc::Path(path) => path.exists(),
@@ -133,6 +136,7 @@ impl PlayerExt for RodioPlayer {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_current_pos(&self) -> Result<Duration, PlayerError> {
         if let Some(player) = &self.player.lock().unwrap().as_ref() {
             return Ok(player.get_pos());
@@ -140,6 +144,7 @@ impl PlayerExt for RodioPlayer {
         Ok(Duration::default())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_volume(&self) -> Result<u8, PlayerError> {
         if let Some(player) = self.player.lock().unwrap().as_ref() {
             Ok((player.volume() * 100.0).round() as u8)
@@ -148,6 +153,7 @@ impl PlayerExt for RodioPlayer {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_player_state(
         &self,
     ) -> Result<extensions_proto::moosync::types::PlayerState, PlayerError> {

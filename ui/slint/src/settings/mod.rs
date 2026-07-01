@@ -9,6 +9,7 @@ pub mod system;
 pub mod themes;
 
 #[cfg(not(target_os = "android"))]
+#[tracing::instrument(level = "debug", skip_all)]
 fn select_directory() -> String {
     if let Some(path) = rfd::FileDialog::new().pick_folder() {
         tracing::info!("Selected directory: {:?}", path);
@@ -19,6 +20,7 @@ fn select_directory() -> String {
 }
 
 #[cfg(not(target_os = "android"))]
+#[tracing::instrument(level = "debug", skip_all)]
 fn select_file(filter: String) -> String {
     if let Some(path) = rfd::FileDialog::new()
         .add_filter("Custom files", &filter.split(",").collect::<Vec<&str>>())
@@ -32,11 +34,14 @@ fn select_file(filter: String) -> String {
 }
 
 #[cfg(target_os = "android")]
+#[tracing::instrument(level = "debug", skip_all)]
 fn select_directory() -> String { String::new() }
 
 #[cfg(target_os = "android")]
+#[tracing::instrument(level = "debug", skip_all)]
 fn select_file(filter: String) -> String { String::new() }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     let main_window_weak = main_window.as_weak();
     main_window
@@ -54,6 +59,7 @@ pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static 
         .on_open_file_picker(move |filter| select_file(filter.into()).into());
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn handle_preference_change(
     change: PreferenceChange,
     main_window_weak: &slint::Weak<MainWindow>,

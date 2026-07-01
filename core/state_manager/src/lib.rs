@@ -4,10 +4,10 @@ use tempdir;
 use tokio::runtime::Handle;
 #[cfg(target_os = "android")]
 use types::android::AndroidJNIContext;
-use types::{
-    plugin::{PluginContext, PluginRegistry},
-    subscription::SubscriberList,
-};
+use types::plugin::{PluginContext, PluginRegistry};
+
+pub mod error;
+pub use crate::error::StateManagerError;
 
 pub mod hooks;
 pub mod interceptors;
@@ -24,12 +24,6 @@ plugin_macro::generate_plugin_system!(
     mpris::MprisHolder
 );
 
-#[derive(Debug, thiserror::Error)]
-pub enum StateManagerError {
-    #[error("State initialization error: {0}")]
-    InitializeError(Box<dyn std::error::Error + Send + Sync>),
-}
-
 #[derive(Clone)]
 pub struct StateManager {
     pub plugins: Arc<PluginRegistry>,
@@ -41,8 +35,10 @@ pub struct StateManager {
 }
 
 impl StateManager {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_cache_dir(&self) -> std::path::PathBuf { self.cache_dir.clone() }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_dirs() -> (std::path::PathBuf, std::path::PathBuf, std::path::PathBuf) {
         #[cfg(not(target_os = "android"))]
         let (data_dir, cache_dir) = {
@@ -67,6 +63,7 @@ impl StateManager {
         (data_dir, cache_dir, tmp)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn generate_context(
         data_dir: std::path::PathBuf,
         cache_dir: std::path::PathBuf,
@@ -82,6 +79,7 @@ impl StateManager {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(
         #[cfg(target_os = "android")] android_context: AndroidJNIContext,
     ) -> Result<Self, StateManagerError> {
@@ -117,10 +115,12 @@ impl StateManager {
         })
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn register_hook(&self, hook: Arc<dyn hooks::Hook>) {
         self.hooks.blocking_lock().push(hook);
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn setup(&self) {
         for hook in self.hooks.lock().await.clone() {
             if let Err(e) = hook.on_startup(self).await {
@@ -129,6 +129,7 @@ impl StateManager {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn delayed_setup(&self) {
         for hook in self.hooks.lock().await.clone() {
             if let Err(e) = hook.on_delayed_startup(self).await {
@@ -137,6 +138,7 @@ impl StateManager {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn shutdown(&self) {
         for hook in self.hooks.lock().await.clone() {
             if let Err(e) = hook.on_exit(self).await {

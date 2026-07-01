@@ -19,7 +19,7 @@ pub struct DummyWindow {
 }
 
 impl DummyWindow {
-    #[tracing::instrument(level = "debug", skip())]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new() -> Result<DummyWindow, String> {
         let class_name = w!("SimpleTray");
 
@@ -76,7 +76,7 @@ impl DummyWindow {
 }
 
 impl Drop for DummyWindow {
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn drop(&mut self) {
         unsafe {
             DestroyWindow(self.handle);
@@ -84,7 +84,7 @@ impl Drop for DummyWindow {
     }
 }
 
-#[tracing::instrument(level = "debug", skip())]
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn pump_event_queue() -> bool {
     unsafe {
         let mut msg: MSG = std::mem::zeroed();

@@ -26,6 +26,7 @@ use songs_proto::moosync::types::{Playlist, Song};
 use crate::{PlaylistSongId, ScanProgress, ScannerHolder};
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_playlist_scan() {
     let playlist_contents = r#"
 #EXTM3U
@@ -106,6 +107,7 @@ https://chiru.no/stream.flac"#;
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_playlist_scan_with_extra_comments() {
     let playlist_contents = r#"
 #EXTM3U
@@ -179,6 +181,7 @@ https://example.com/track2"#;
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_playlist_scan_single_entry() {
     let playlist_contents = r#"
 #EXTM3U

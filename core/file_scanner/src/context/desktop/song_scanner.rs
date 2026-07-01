@@ -30,38 +30,37 @@ use songs_proto::{
     duration_proto::google::protobuf::Duration,
     moosync::types::{Album, Artist, Genre, InnerSong, Song, SongType},
 };
-use types::{
-    errors::{MoosyncError, Result, error_helpers},
-    prelude::core_to_proto_duration,
-};
+use types::prelude::core_to_proto_duration;
 use uuid::Uuid;
 
 use crate::{
     FileList, OnProgressUpdated, OnSongScanned, ScanProgress,
     context::desktop::{image_processor::ImageProcessor, lyrics_scanner::LyricsScanner},
+    error::ScannerError,
 };
 
-#[tracing::instrument(level = "debug", skip(dir))]
-pub fn check_directory(dir: PathBuf) -> Result<()> {
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn check_directory(dir: PathBuf) -> Result<(), ScannerError> {
     if !dir.is_dir() {
-        fs::create_dir_all(dir).map_err(error_helpers::to_file_system_error)?;
+        fs::create_dir_all(dir).map_err(ScannerError::Io)?;
     }
     Ok(())
 }
 
-fn read_tagged_file(path: &PathBuf, guess: bool) -> Result<TaggedFile> {
+#[tracing::instrument(level = "debug", skip_all)]
+fn read_tagged_file(path: &PathBuf, guess: bool) -> Result<TaggedFile, ScannerError> {
     if guess {
-        read_from_path(path.clone()).map_err(error_helpers::to_media_error)
+        Ok(read_from_path(path.clone())?)
     } else {
-        Probe::open(path.clone())
-            .map_err(error_helpers::to_media_error)?
+        Ok(Probe::open(path.clone())
+            .map_err(ScannerError::AudioMeta)?
             .guess_file_type()
-            .map_err(error_helpers::to_media_error)?
-            .read()
-            .map_err(error_helpers::to_media_error)
+            .map_err(ScannerError::Io)?
+            .read()?)
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn extract_audio_properties(file: &TaggedFile, inner_song: &mut InnerSong) {
     let properties = file.properties();
     inner_song.bitrate = Some((properties.audio_bitrate().unwrap_or_default() * 1000) as f64);
@@ -69,6 +68,7 @@ fn extract_audio_properties(file: &TaggedFile, inner_song: &mut InnerSong) {
     inner_song.duration = Some(core_to_proto_duration(properties.duration()));
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn scan_directory_for_cover(path: &Path) -> Option<String> {
     let mut base_path = path.to_path_buf();
     base_path.pop();
@@ -90,10 +90,11 @@ fn scan_directory_for_cover(path: &Path) -> Option<String> {
     None
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 async fn store_picture(
     thumbnail_dir: &Path,
     picture: &lofty::picture::Picture,
-) -> Result<(PathBuf, PathBuf)> {
+) -> Result<(PathBuf, PathBuf), ScannerError> {
     let data = picture.data().to_vec();
     let hash = blake3::hash(&data).to_hex();
     let hash_str = hash.as_str();
@@ -107,7 +108,7 @@ async fn store_picture(
             ImageProcessor::new(&d).resize(400).compress().save(&hp)
         })
         .await
-        .map_err(|e| MoosyncError::String(e.to_string()))??;
+        .map_err(|e| ScannerError::Join(e))??;
     }
     if !low_path.exists() {
         let lp = low_path.clone();
@@ -115,14 +116,15 @@ async fn store_picture(
             ImageProcessor::new(&data).resize(80).compress().save(&lp)
         })
         .await
-        .map_err(|e| MoosyncError::String(e.to_string()))??;
+        .map_err(|e| ScannerError::Join(e))??;
     }
     Ok((
-        dunce::canonicalize(high_path).map_err(error_helpers::to_file_system_error)?,
-        dunce::canonicalize(low_path).map_err(error_helpers::to_file_system_error)?,
+        dunce::canonicalize(high_path).map_err(ScannerError::Io)?,
+        dunce::canonicalize(low_path).map_err(ScannerError::Io)?,
     ))
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 async fn extract_cover_art(
     metadata: &Tag,
     path: &Path,
@@ -145,6 +147,7 @@ async fn extract_cover_art(
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn parse_artists_string(artist_str: &str, artist_split: &str) -> Vec<Artist> {
     artist_str
         .split(artist_split)
@@ -156,6 +159,7 @@ fn parse_artists_string(artist_str: &str, artist_split: &str) -> Vec<Artist> {
         .collect()
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn extract_album(metadata: &Tag, inner_song: &InnerSong) -> Option<Album> {
     let album = metadata.album()?;
     Some(Album {
@@ -170,6 +174,7 @@ fn extract_album(metadata: &Tag, inner_song: &InnerSong) -> Option<Album> {
     })
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn extract_metadata(
     metadata: &Tag,
     path: &PathBuf,
@@ -204,20 +209,20 @@ fn extract_metadata(
         .unwrap_or_default();
 }
 
-#[tracing::instrument(level = "debug", skip(path, thumbnail_dir, size, guess, artist_split))]
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn scan_file(
     path: &PathBuf,
     thumbnail_dir: &Path,
     size: f64,
     guess: bool,
     artist_split: &str,
-) -> Result<Song> {
+) -> Result<Song, ScannerError> {
     let mut inner_song = InnerSong {
         id: Some(Uuid::new_v4().to_string()),
         title: Some(path.file_name().unwrap().to_string_lossy().to_string()),
         path: Some(
             dunce::canonicalize(path)
-                .map_err(error_helpers::to_file_system_error)?
+                .map_err(ScannerError::Io)?
                 .to_string_lossy()
                 .to_string(),
         ),
@@ -259,7 +264,7 @@ pub struct SongScanner<'a> {
 }
 
 impl<'a> SongScanner<'a> {
-    #[tracing::instrument(level = "debug", skip(file_list, thumbnail_dir, artist_split))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(
         file_list: &'a FileList,
         thumbnail_dir: PathBuf,
@@ -274,14 +279,14 @@ impl<'a> SongScanner<'a> {
         }
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
-    fn check_dirs(&self) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn check_dirs(&self) -> Result<(), ScannerError> {
         check_directory(self.thumbnail_dir.clone())?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self, size, path))]
-    pub async fn scan_song(&self, size: f64, path: PathBuf) -> Result<Song> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn scan_song(&self, size: f64, path: PathBuf) -> Result<Song, ScannerError> {
         self.check_dirs()?;
         let thumbnail_dir = self.thumbnail_dir.clone();
         let artist_split = self.artist_split.clone();
@@ -292,13 +297,14 @@ impl<'a> SongScanner<'a> {
         metadata
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn scan(
         &self,
         scanned_count: &mut usize,
         total_songs: usize,
         on_song: &OnSongScanned,
         on_progress: &OnProgressUpdated,
-    ) -> Result<()> {
+    ) -> Result<(), ScannerError> {
         let batch_size = self.scan_threads.unwrap_or(4) as usize;
         let mut scan_futures = Vec::new();
         for (file_path, size) in &self.file_list.file_list {
@@ -324,9 +330,10 @@ impl<'a> SongScanner<'a> {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn process_scan_results(
         &self,
-        results: Vec<Result<Song>>,
+        results: Vec<Result<Song, ScannerError>>,
         total_songs: usize,
         scanned_count: &mut usize,
         on_song: &OnSongScanned,
@@ -345,6 +352,7 @@ impl<'a> SongScanner<'a> {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn update_scan_progress(total: usize, current: usize, on_progress: &OnProgressUpdated) {
     if total > 0 {
         let progress = ((current * 100) / total) as u8;

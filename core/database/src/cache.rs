@@ -21,9 +21,9 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use tracing::debug;
-use types::errors::{Result, error_helpers};
 
 use super::migrations::run_migration_cache;
+use crate::error::DatabaseError;
 
 #[derive(Debug)]
 pub struct CacheHolder {
@@ -31,7 +31,7 @@ pub struct CacheHolder {
 }
 
 impl CacheHolder {
-    #[tracing::instrument(level = "debug", skip(path))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(path: PathBuf) -> Self {
         let db = Self {
             pool: Self::connect(path),
@@ -49,7 +49,7 @@ impl CacheHolder {
         db
     }
 
-    #[tracing::instrument(level = "debug", skip(path))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn connect(path: PathBuf) -> r2d2::Pool<r2d2_sqlite::SqliteConnectionManager> {
         let manager = r2d2_sqlite::SqliteConnectionManager::file(path).with_init(|conn| {
             conn.trace_v2(
@@ -68,8 +68,8 @@ impl CacheHolder {
             .expect("Failed to create pool.")
     }
 
-    #[tracing::instrument(level = "debug", skip(self, _url, blob, expires))]
-    pub fn set<T>(&self, _url: &str, blob: &T, expires: i32) -> Result<()>
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn set<T>(&self, _url: &str, blob: &T, expires: i32) -> Result<(), DatabaseError>
     where
         T: Serialize,
     {
@@ -88,12 +88,12 @@ impl CacheHolder {
                 expires = excluded.expires",
             (_url, &blob_bytes, &expires_secs),
         )
-        .map_err(error_helpers::to_database_error)?;
+        .map_err(DatabaseError::Query)?;
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self, _url))]
-    pub fn get<T>(&self, _url: &str) -> Result<T>
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get<T>(&self, _url: &str) -> Result<T, DatabaseError>
     where
         T: for<'a> Deserialize<'a>,
     {
@@ -105,14 +105,14 @@ impl CacheHolder {
                 [_url],
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
-            .map_err(error_helpers::to_database_error)?;
+            .map_err(DatabaseError::Query)?;
 
         let current_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH)?;
 
         let expires_dur = Duration::from_secs(expires as u64);
         if current_time > expires_dur {
             debug!("Cache expired for {}", _url);
-            return Err("Cache expired".into());
+            return Err(DatabaseError::CacheExpired);
         }
 
         let parsed: T = serde_json::from_slice(&blob)?;

@@ -15,6 +15,7 @@ pub struct QueuePageHandler<'a> {
 }
 
 impl<'a> QueuePageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
         Self {
             main_window,
@@ -25,6 +26,7 @@ impl<'a> QueuePageHandler<'a> {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn register_ui_callbacks(&self) {
         let state_manager = self.state_manager.clone();
 
@@ -89,6 +91,7 @@ impl<'a> QueuePageHandler<'a> {
             .on_transfer_to_string(move |transfer| transfer.plain_text().unwrap_or_default());
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn fetch_initial_state(&self) {
         let main_window_weak = self.main_window.as_weak();
         let state_manager = self.state_manager.clone();
@@ -122,6 +125,7 @@ impl<'a> QueuePageHandler<'a> {
         });
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn register_player_callbacks(&self) {
         let main_window_weak = self.main_window.as_weak();
         let state_manager = self.state_manager.clone();
@@ -183,6 +187,7 @@ impl<'a> QueuePageHandler<'a> {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn update_ui_queue(
     main_window: &MainWindow,
     queue: &[songs_proto::moosync::types::Song],
@@ -199,6 +204,7 @@ fn update_ui_queue(
     )));
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn update_ui_blurred_cover(main_window: &MainWindow, blurred_path: &Option<std::path::PathBuf>) {
     let blurred_cover = if let Some(path) = blurred_path {
         slint::Image::load_from_path(path).unwrap_or_else(|_| {
@@ -211,8 +217,10 @@ fn update_ui_blurred_cover(main_window: &MainWindow, blurred_path: &Option<std::
 }
 
 impl<'a> PageHandler for QueuePageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) { self.register_ui_callbacks(); }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         *self.is_visible.lock().unwrap() = true;
         self.hide_timer.lock().unwrap().stop();
@@ -221,6 +229,7 @@ impl<'a> PageHandler for QueuePageHandler<'a> {
         self.register_player_callbacks();
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) {
         *self.is_visible.lock().unwrap() = false;
 

@@ -42,7 +42,7 @@ pub mod prelude {
     };
     use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
 
-    use crate::errors::MoosyncError;
+    use crate::errors::TypesError;
 
     pub trait EntityResultExt {
         fn get_albums(self) -> Option<Vec<Album>>;
@@ -246,12 +246,11 @@ pub mod prelude {
         format!("{:02}:{:02}", minutes, seconds)
     }
 
-    // Assuming your generated module is `pb` and the struct is `pb::Duration`
     fn proto_duration_to_core(
         proto_dur: &songs_proto::duration_proto::google::protobuf::Duration,
-    ) -> Result<std::time::Duration, MoosyncError> {
+    ) -> Result<std::time::Duration, TypesError> {
         if proto_dur.seconds < 0 || proto_dur.nanos < 0 {
-            return Err("Cannot convert negative protobuf duration to core::time::Duration".into());
+            return Err(TypesError::NegativeDuration);
         }
 
         Ok(std::time::Duration::new(

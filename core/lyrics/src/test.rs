@@ -18,6 +18,7 @@ use crate::LyricsFetcher;
 
 // Test the sanitize_title method
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_sanitize_title() {
     let lyrics_fetcher = LyricsFetcher::new();
 
@@ -43,6 +44,7 @@ fn test_sanitize_title() {
 
 // Test the get_url method
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_get_url() {
     let lyrics_fetcher = LyricsFetcher::new();
 
@@ -79,6 +81,7 @@ fn test_get_url() {
 
 // Test for error handling
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_lyrics_error_handling() {
     let lyrics_fetcher = LyricsFetcher::new();
 

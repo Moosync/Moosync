@@ -15,6 +15,7 @@ rust_library(
     srcs = [
         "src/cache.rs",
         "src/database.rs",
+        "src/error.rs",
         "src/lib.rs",
         "src/migrations.rs",
         "src/test.rs",
@@ -38,6 +39,7 @@ rust_library(
         "@crates//:libsqlite3-sys",
         "@crates//:serde",
         "@crates//:serde_json",
+        "@crates//:thiserror",
         "@crates//:tracing",
         "@crates//:uuid",
     ],

@@ -4,6 +4,7 @@ use super::{MprisHolder, context::MockMprisContext};
 use crate::MprisPlayerDetails;
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_mpris_holder_new() {
     // This tests the real constructor (with real context), might fail if no dbus
     // But since we installed dbus-dev and run in environment, it might pass or fail
@@ -17,6 +18,7 @@ fn test_mpris_holder_new() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_set_metadata() {
     let mut mock = Box::new(MockMprisContext::new());
     mock.expect_attach().returning(|_| Ok(()));
@@ -37,6 +39,7 @@ fn test_set_metadata() {
 }
 
 #[test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_set_playback_state() {
     let mut mock = Box::new(MockMprisContext::new());
     mock.expect_attach().returning(|_| Ok(()));

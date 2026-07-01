@@ -23,10 +23,9 @@ use std::{
 
 use songs_proto::moosync::types::Playlist;
 use substring::Substring;
-use types::errors::{Result, error_helpers};
 use uuid::Uuid;
 
-use crate::{FileList, PlaylistSongId};
+use crate::{FileList, PlaylistSongId, error::ScannerError};
 
 struct PlaylistParserState {
     song_type: Option<String>,
@@ -39,6 +38,7 @@ struct PlaylistParserState {
 }
 
 impl PlaylistParserState {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn new() -> Self {
         Self {
             song_type: None,
@@ -51,6 +51,7 @@ impl PlaylistParserState {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn clear_metadata(&mut self) {
         self.song_type = None;
         self.duration = None;
@@ -58,6 +59,7 @@ impl PlaylistParserState {
         self.artists = None;
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn into_playlist_and_songs(self, path: &Path) -> (Playlist, Vec<PlaylistSongId>) {
         (
             Playlist {
@@ -76,10 +78,11 @@ pub struct PlaylistScanner<'a> {
 }
 
 impl<'a> PlaylistScanner<'a> {
-    #[tracing::instrument(level = "debug", skip(file_list))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(file_list: &'a FileList) -> Self { Self { file_list } }
 
-    pub fn scan(&self) -> Result<Vec<(Playlist, Vec<PlaylistSongId>)>> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn scan(&self) -> Result<Vec<(Playlist, Vec<PlaylistSongId>)>, ScannerError> {
         let mut parsed_playlists = Vec::new();
         for playlist_path in &self.file_list.playlist_list {
             match self.scan_playlist(playlist_path) {
@@ -92,25 +95,29 @@ impl<'a> PlaylistScanner<'a> {
         Ok(parsed_playlists)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, path))]
-    fn scan_playlist(&self, path: &PathBuf) -> Result<(Playlist, Vec<PlaylistSongId>)> {
-        let file = File::open(path).map_err(error_helpers::to_file_system_error)?;
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn scan_playlist(
+        &self,
+        path: &PathBuf,
+    ) -> Result<(Playlist, Vec<PlaylistSongId>), ScannerError> {
+        let file = File::open(path).map_err(ScannerError::Io)?;
         let lines = io::BufReader::new(file).lines();
         let mut state = PlaylistParserState::new();
 
         for line_res in lines {
-            let line = line_res.map_err(error_helpers::to_file_system_error)?;
+            let line = line_res.map_err(ScannerError::Io)?;
             self.parse_playlist_line(path, &line, &mut state)?;
         }
         Ok(state.into_playlist_and_songs(path))
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn parse_playlist_line(
         &self,
         path: &Path,
         line: &str,
         state: &mut PlaylistParserState,
-    ) -> Result<()> {
+    ) -> Result<(), ScannerError> {
         if line.starts_with("#EXTINF:") {
             self.parse_extinf(line, state)?;
         } else if line.starts_with("#MOOSINF:") {
@@ -123,13 +130,18 @@ impl<'a> PlaylistScanner<'a> {
         Ok(())
     }
 
-    fn parse_extinf(&self, line: &str, state: &mut PlaylistParserState) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn parse_extinf(
+        &self,
+        line: &str,
+        state: &mut PlaylistParserState,
+    ) -> Result<(), ScannerError> {
         let metadata = line.substring(8, line.len());
         let split_index = metadata.find(',').unwrap_or_default();
         let secs = metadata
             .substring(0, split_index)
             .parse::<f64>()
-            .map_err(error_helpers::to_parse_error)?;
+            .map_err(ScannerError::ParseFloat)?;
         state.duration = Some(std::time::Duration::from_secs_f64(secs));
         let non_duration = metadata.substring(split_index + 1, metadata.len());
         let mut artists_str = "";
@@ -146,12 +158,13 @@ impl<'a> PlaylistScanner<'a> {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn parse_song_entry(
         &self,
         path: &Path,
         line: &str,
         state: &mut PlaylistParserState,
-    ) -> Result<()> {
+    ) -> Result<(), ScannerError> {
         let (parsed_line, is_url) = parse_line_url_or_file(line);
         if !is_url {
             let local_path = resolve_playlist_song_path(path, &parsed_line)?;
@@ -168,6 +181,7 @@ impl<'a> PlaylistScanner<'a> {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn parse_line_url_or_file(line: &str) -> (String, bool) {
     if line.starts_with("file://") {
         (line[8..].to_string(), false)
@@ -178,16 +192,19 @@ fn parse_line_url_or_file(line: &str) -> (String, bool) {
     }
 }
 
-fn resolve_playlist_song_path(playlist_path: &Path, song_path: &str) -> Result<PathBuf> {
-    let mut parsed_path =
-        PathBuf::from_str(song_path).map_err(error_helpers::to_file_system_error)?;
+#[tracing::instrument(level = "debug", skip_all)]
+fn resolve_playlist_song_path(
+    playlist_path: &Path,
+    song_path: &str,
+) -> Result<PathBuf, ScannerError> {
+    let mut parsed_path = PathBuf::from_str(song_path).unwrap();
     if parsed_path.is_relative() {
         parsed_path = playlist_path
             .parent()
             .unwrap_or(playlist_path)
             .join(parsed_path)
             .canonicalize()
-            .map_err(error_helpers::to_file_system_error)?;
+            .map_err(ScannerError::Io)?;
     }
     Ok(parsed_path)
 }

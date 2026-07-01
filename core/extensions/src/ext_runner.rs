@@ -34,7 +34,7 @@ pub(crate) struct ExtensionHandlerInner {
 }
 
 impl ExtensionHandlerInner {
-    #[tracing::instrument(level = "debug")]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(extensions_path: PathBuf, cache_path: PathBuf) -> Self {
         Self {
             extensions_path: extensions_path.to_string_lossy().to_string(),
@@ -43,7 +43,7 @@ impl ExtensionHandlerInner {
         }
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip_all)]
     fn find_extension_manifests(&self) -> Vec<PathBuf> {
         let mut package_json_paths = Vec::new();
 
@@ -70,7 +70,7 @@ impl ExtensionHandlerInner {
         package_json_paths
     }
 
-    #[tracing::instrument(level = "debug", skip(self, reply_handler))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn spawn_extensions(&self, reply_handler: Arc<dyn ReplyHandler>) {
         let manifests = self.find_extension_manifests();
         for manifest_path in manifests {
@@ -94,7 +94,7 @@ impl ExtensionHandlerInner {
 
     /*
     #[cfg(test)]
-    #[tracing::instrument(level = "debug", skip(self, reply_handler))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn spawn_single_extension(
         &self,
         manifest_path: &std::path::Path,
@@ -116,6 +116,7 @@ impl ExtensionHandlerInner {
     }
     */
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_installed_extensions(&self) -> Vec<ExtensionDetail> {
         let extensions_map = self.extensions_map.lock().unwrap();
         extensions_map
@@ -124,11 +125,13 @@ impl ExtensionHandlerInner {
             .collect::<Vec<ExtensionDetail>>()
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn remove_extension(&self, package_name: &str) {
         let mut extensions_map = self.extensions_map.lock().unwrap();
         extensions_map.remove(package_name);
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_extension(&self, package_name: &str) -> Result<Arc<Extension>, ExtensionError> {
         let extensions_map = self.extensions_map.lock().unwrap();
         extensions_map

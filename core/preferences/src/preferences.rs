@@ -28,16 +28,13 @@ use chacha20poly1305::{
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::Value;
-use types::{
-    errors::{
-        MoosyncError, Result,
-        error_helpers::{self, to_file_system_error},
-    },
-    subscription::SubscriberList,
-};
+use types::subscription::SubscriberList;
 use whoami;
 
-use crate::context::{Keyring, KeyringContext};
+use crate::{
+    context::{Keyring, KeyringContext},
+    error::PreferencesError,
+};
 
 pub type OnPreferenceChangedCallback = Box<dyn Fn(String) + Send + Sync + 'static>;
 
@@ -68,24 +65,28 @@ impl std::fmt::Debug for PreferenceConfig {
 
 #[plugin_macro::generate]
 impl PreferenceConfig {
-    #[tracing::instrument(level = "debug", skip(data_dir))]
-    pub fn new(data_dir: PathBuf) -> Result<Self> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new(data_dir: PathBuf) -> Result<Self, PreferencesError> {
         let context = KeyringContext::new("moosync", whoami::username().as_str())
-            .map_err(error_helpers::to_config_error)?;
+            .map_err(PreferencesError::Keyring)?;
         Self::new_with_context(data_dir, Box::new(context))
     }
 
-    pub fn new_with_context(data_dir: PathBuf, context: Box<dyn Keyring>) -> Result<Self> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new_with_context(
+        data_dir: PathBuf,
+        context: Box<dyn Keyring>,
+    ) -> Result<Self, PreferencesError> {
         let config_file_path = data_dir.join("config.json");
 
         if !data_dir.exists() {
-            fs::create_dir_all(data_dir).map_err(to_file_system_error)?;
+            fs::create_dir_all(data_dir).map_err(PreferencesError::Io)?;
         }
 
         if !config_file_path.exists() {
-            let mut file = File::create(config_file_path.clone()).map_err(to_file_system_error)?;
+            let mut file = File::create(config_file_path.clone()).map_err(PreferencesError::Io)?;
             file.write_all(b"{\"prefs\": {}}")
-                .map_err(to_file_system_error)?;
+                .map_err(PreferencesError::Io)?;
         }
 
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
@@ -104,7 +105,7 @@ impl PreferenceConfig {
                 let key = ChaCha20Poly1305::generate_key(&mut OsRng);
                 context
                     .set_secret(key.as_slice())
-                    .map_err(error_helpers::to_config_error)?;
+                    .map_err(PreferencesError::Keyring)?;
 
                 match context.get_secret() {
                     Ok(_) => {}
@@ -117,11 +118,11 @@ impl PreferenceConfig {
         #[cfg(target_os = "android")]
         let secret = ChaCha20Poly1305::generate_key(&mut OsRng);
 
-        let mut config_file = File::open(config_file_path.clone()).map_err(to_file_system_error)?;
+        let mut config_file = File::open(config_file_path.clone()).map_err(PreferencesError::Io)?;
         let mut prefs_str = String::new();
         config_file
             .read_to_string(&mut prefs_str)
-            .map_err(to_file_system_error)?;
+            .map_err(PreferencesError::Io)?;
 
         let prefs: PreferenceConfigData = serde_json::from_str(&prefs_str).unwrap_or_default();
 
@@ -134,20 +135,19 @@ impl PreferenceConfig {
         })
     }
 
-    #[tracing::instrument(level = "debug", skip(self, key))]
-    pub fn get_secure<T>(&self, key: String) -> Result<T>
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_secure<T>(&self, key: String) -> Result<T, PreferencesError>
     where
         T: DeserializeOwned,
     {
         #[cfg(not(any(target_os = "android", target_os = "ios")))]
         {
-            use types::errors::error_helpers::to_auth_error;
-
             let data: String = self.load_selective(key.clone())?;
             let mut split = data.split(':');
             let nonce = split.next().unwrap();
-            let nonce =
-                GenericArray::clone_from_slice(&hex::decode(nonce).map_err(to_auth_error)?[0..12]);
+            let nonce = GenericArray::clone_from_slice(
+                &hex::decode(nonce).map_err(PreferencesError::HexDecode)?[0..12],
+            );
             let ciphertext = hex::decode(split.next().unwrap()).unwrap();
 
             let secret = self.secret.lock().unwrap();
@@ -155,7 +155,7 @@ impl PreferenceConfig {
             let plaintext = String::from_utf8(
                 cipher
                     .decrypt(&nonce, ciphertext.as_slice())
-                    .map_err(|e| MoosyncError::String(e.to_string()))?,
+                    .map_err(PreferencesError::Decryption)?,
             )?;
 
             Ok(serde_json::from_str(&plaintext)?)
@@ -167,8 +167,8 @@ impl PreferenceConfig {
         }
     }
 
-    #[tracing::instrument(level = "debug", skip(self, key, value))]
-    pub fn set_secure<T>(&self, key: String, value: Option<T>) -> Result<()>
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn set_secure<T>(&self, key: String, value: Option<T>) -> Result<(), PreferencesError>
     where
         T: Serialize + Clone + Debug,
     {
@@ -200,7 +200,7 @@ impl PreferenceConfig {
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self, key))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn has_key(&self, key: &str) -> bool {
         let prefs = self.memcache.read().unwrap();
         prefs.prefs.contains_key(key)
@@ -208,21 +208,25 @@ impl PreferenceConfig {
 }
 
 impl PreferenceConfig {
-    pub fn load<K: PreferenceKey>(&self, key: K) -> Result<K::Value> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn load<K: PreferenceKey>(&self, key: K) -> Result<K::Value, PreferencesError> {
         self.load_selective::<K::Value>(key.key())
     }
 
-    pub fn save<K: PreferenceKey>(&self, key: K, value: K::Value) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn save<K: PreferenceKey>(&self, key: K, value: K::Value) -> Result<(), PreferencesError> {
         self.save_selective::<K::Value>(key.key(), value)
     }
 
-    pub fn remove_key<K: PreferenceKey>(&self, key: K) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn remove_key<K: PreferenceKey>(&self, key: K) -> Result<(), PreferencesError> {
         self.remove_selective(key.key())
     }
 }
 
 impl PreferenceConfig {
-    fn load_selective<T>(&self, key: String) -> Result<T>
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn load_selective<T>(&self, key: String) -> Result<T, PreferencesError>
     where
         T: DeserializeOwned,
     {
@@ -231,10 +235,11 @@ impl PreferenceConfig {
             let t: T = serde_json::from_value(val.clone())?;
             return Ok(t);
         }
-        Err(format!("No value found for {}", key).into())
+        Err(PreferencesError::KeyNotFound(key))
     }
 
-    fn save_selective<T>(&self, key: String, value: T) -> Result<()>
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn save_selective<T>(&self, key: String, value: T) -> Result<(), PreferencesError>
     where
         T: Serialize,
     {
@@ -247,11 +252,11 @@ impl PreferenceConfig {
 
         let config_file_path = self.config_file.lock().expect("poisoned");
         let mut config_file =
-            File::create(config_file_path.as_os_str()).map_err(to_file_system_error)?;
+            File::create(config_file_path.as_os_str()).map_err(PreferencesError::Io)?;
         config_file
             .write_all(&serde_json::to_vec(&writable)?)
-            .map_err(to_file_system_error)?;
-        config_file.flush().map_err(to_file_system_error)?;
+            .map_err(PreferencesError::Io)?;
+        config_file.flush().map_err(PreferencesError::Io)?;
 
         self.on_preference_changed.run_all(|sub| {
             sub(clean_key.clone());
@@ -260,7 +265,8 @@ impl PreferenceConfig {
         Ok(())
     }
 
-    fn remove_selective(&self, key: String) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn remove_selective(&self, key: String) -> Result<(), PreferencesError> {
         let clean_key = key.clone();
         let mut prefs = self.memcache.write().unwrap();
         prefs.prefs.remove(&key);
@@ -269,11 +275,11 @@ impl PreferenceConfig {
 
         let config_file_path = self.config_file.lock().expect("poisoned");
         let mut config_file =
-            File::create(config_file_path.as_os_str()).map_err(to_file_system_error)?;
+            File::create(config_file_path.as_os_str()).map_err(PreferencesError::Io)?;
         config_file
             .write_all(&serde_json::to_vec(&writable)?)
-            .map_err(to_file_system_error)?;
-        config_file.flush().map_err(to_file_system_error)?;
+            .map_err(PreferencesError::Io)?;
+        config_file.flush().map_err(PreferencesError::Io)?;
 
         self.on_preference_changed.run_all(|sub| {
             sub(clean_key.clone());
@@ -284,6 +290,7 @@ impl PreferenceConfig {
 }
 
 impl types::plugin::Plugin for PreferenceConfig {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn init(
         context: &types::plugin::PluginContext,
     ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {

@@ -28,12 +28,11 @@ use jni::{
     objects::{GlobalRef, JClass, JObject, JString, JValue},
 };
 use tracing::{debug, info, warn};
-use types::{
-    android::AndroidJNIContext,
-    errors::{MoosyncError, Result},
-};
+use types::android::AndroidJNIContext;
 
-use crate::{MediaControlEvent, MediaPosition, MprisPlayerDetails, context::MprisContext};
+use crate::{
+    MediaControlEvent, MediaPosition, MprisPlayerDetails, context::MprisContext, error::MprisError,
+};
 
 // ─────────────────────────────────────────────────────────────────────── //
 //  AndroidMprisContext                                                     //
@@ -50,6 +49,7 @@ pub struct AndroidMprisContext {
 }
 
 impl AndroidMprisContext {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(android_context: AndroidJNIContext) -> Self {
         Self {
             context: android_context,
@@ -57,15 +57,17 @@ impl AndroidMprisContext {
     }
 
     /// Attach the current Rust thread to the JVM.
-    fn jni_attach(&self) -> Result<AttachGuard<'_>> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn jni_attach(&self) -> Result<AttachGuard<'_>, MprisError> {
         self.context
             .jvm
             .attach_current_thread()
-            .map_err(|e| MoosyncError::String(format!("JNI attach failed: {e:?}")))
+            .map_err(|e| MprisError::InitFailed(format!("JNI attach failed: {e:?}")))
     }
 
     /// Start the foreground `MoosyncService` from the stored Activity context.
-    pub fn start_service(&self) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn start_service(&self) -> Result<(), MprisError> {
         let mut guard = self.jni_attach()?;
         let env = &mut *guard;
 
@@ -73,7 +75,7 @@ impl AndroidMprisContext {
 
         let intent_class = env
             .find_class("android/content/Intent")
-            .map_err(|e| MoosyncError::String(format!("{e:?}")))?;
+            .map_err(|e| MprisError::InitFailed(format!("find_class: {e:?}")))?;
         let service_class =
             unsafe { JClass::from_raw(self.context.service_class.as_obj().as_raw()) };
 
@@ -83,7 +85,7 @@ impl AndroidMprisContext {
                 "(Landroid/content/Context;Ljava/lang/Class;)V",
                 &[JValue::Object(activity), JValue::Object(&service_class)],
             )
-            .map_err(|e| MoosyncError::String(format!("new Intent: {e:?}")))?;
+            .map_err(|e| MprisError::InitFailed(format!("new Intent: {e:?}")))?;
 
         env.call_method(
             activity,
@@ -91,7 +93,7 @@ impl AndroidMprisContext {
             "(Landroid/content/Intent;)Landroid/content/ComponentName;",
             &[JValue::Object(&intent)],
         )
-        .map_err(|e| MoosyncError::String(format!("startForegroundService: {e:?}")))?;
+        .map_err(|e| MprisError::InitFailed(format!("startForegroundService: {e:?}")))?;
 
         debug!("MoosyncService started");
         Ok(())
@@ -104,7 +106,8 @@ impl MprisContext for AndroidMprisContext {
     /// Leaks a `Box<Sender<MediaControlEvent>>` to get a stable pointer that
     /// Kotlin/Java stores as a `Long` and passes back into the native
     /// callbacks.
-    fn attach(&mut self, sender: Sender<MediaControlEvent>) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn attach(&mut self, sender: Sender<MediaControlEvent>) -> Result<(), MprisError> {
         // Leak the sender — it lives for the app lifetime.
         let ptr = Box::into_raw(Box::new(sender)) as i64;
 
@@ -119,14 +122,15 @@ impl MprisContext for AndroidMprisContext {
             "(J)V",
             &[JValue::Long(ptr)],
         )
-        .map_err(|e| MoosyncError::String(format!("registerNativeCallback: {e:?}")))?;
+        .map_err(|e| MprisError::AttachFailed(format!("registerNativeCallback: {e:?}")))?;
 
         // Start the service (creates the notification).
         drop(guard);
         self.start_service()
     }
 
-    fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<(), MprisError> {
         let mut guard = self.jni_attach()?;
         let env = &mut *guard;
         let service_class =
@@ -156,12 +160,13 @@ impl MprisContext for AndroidMprisContext {
                 JValue::Object(thumb_obj),
             ],
         )
-        .map_err(|e| MoosyncError::String(format!("updateMetadata JNI: {e:?}")))?;
+        .map_err(|e| MprisError::SetMetadataFailed(format!("updateMetadata JNI: {e:?}")))?;
 
         Ok(())
     }
 
-    fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_playback_state(&mut self, state: PlayerState, duration: u64) -> Result<(), MprisError> {
         let is_playing = state == PlayerState::Playing;
 
         let mut guard = self.jni_attach()?;
@@ -178,7 +183,7 @@ impl MprisContext for AndroidMprisContext {
                 JValue::Long(duration as i64),
             ],
         )
-        .map_err(|e| MoosyncError::String(format!("updatePlayerState JNI: {e:?}")))?;
+        .map_err(|e| MprisError::SetPlaybackFailed(format!("updatePlayerState JNI: {e:?}")))?;
 
         Ok(())
     }
@@ -188,15 +193,16 @@ impl MprisContext for AndroidMprisContext {
 //  Helpers                                                                 //
 // ─────────────────────────────────────────────────────────────────────── //
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn new_nullable_jstring<'a>(
     env: &mut jni::JNIEnv<'a>,
     s: Option<&str>,
-) -> Result<Option<JString<'a>>> {
+) -> Result<Option<JString<'a>>, MprisError> {
     match s {
         Some(v) => env
             .new_string(v)
             .map(Some)
-            .map_err(|e| MoosyncError::String(format!("new_string: {e:?}"))),
+            .map_err(|e| MprisError::SetMetadataFailed(format!("new_string: {e:?}"))),
         None => Ok(None),
     }
 }
@@ -215,6 +221,7 @@ unsafe extern "C" {
     ) -> std::os::raw::c_int;
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn log_to_android(msg: &str) {
     use std::ffi::CString;
     if let Ok(tag) = CString::new("MoosyncAndroidRust") {

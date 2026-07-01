@@ -31,6 +31,7 @@ cargo_build_script(
 rust_library(
     name = "slint_app_lib",
     srcs = [
+        "src/error.rs",
         "src/lib.rs",
         "src/main_content/album_content.rs",
         "src/main_content/albums.rs",
@@ -73,9 +74,11 @@ rust_library(
         "//core/extensions",
         "//core/themes",
         "//core/types",
+        "//core/database",
         "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",
         "//core/types/protos:themes_rs",
+        "@crates//:thiserror",
         "@crates//:image",
         "@crates//:platform-dirs",
         "@crates//:reqwest",
@@ -118,6 +121,7 @@ rust_binary(
 rust_shared_library(
     name = "slint_app_android",
     srcs = [
+        "src/error.rs",
         "src/lib.rs",
         "src/main_content/album_content.rs",
         "src/main_content/albums.rs",
@@ -161,9 +165,11 @@ rust_shared_library(
         "//core/extensions",
         "//core/themes",
         "//core/types",
+        "//core/database",
         "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",
         "//core/types/protos:themes_rs",
+        "@crates//:thiserror",
         "@crates//:image",
         "@crates//:jni",
         "@crates//:platform-dirs",

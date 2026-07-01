@@ -46,6 +46,7 @@ rust_library(
         "@crates//:rust_crypto",
         "@crates//:serde",
         "@crates//:serde_json",
+        "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",
         "@crates//:tracing-subscriber",

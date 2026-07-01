@@ -23,6 +23,7 @@ pub trait LazyModel: Clone {
     fn get_cover_url(&self) -> &SharedString;
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 async fn download_and_cache_image(
     cover_url: &str,
     cache_dir: &std::path::Path,
@@ -78,7 +79,7 @@ pub struct LazySongVecModel<T: LazyModel> {
 }
 
 impl<T: LazyModel + 'static> LazySongVecModel<T> {
-    #[tracing::instrument(level = "trace", skip(array))]
+    #[tracing::instrument(level = "trace", skip_all)]
     pub fn new(
         array: Vec<T>,
         item_height: usize,
@@ -136,6 +137,7 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn load_image(&self, row: usize, cover_url: &str) {
         if cover_url.is_empty() {
             return;
@@ -175,6 +177,7 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
         .unwrap();
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn release_image(&self, row: usize, model: &mut T) {
         trace!("Releasing image for row {}", row);
         if !is_empty_image(&model.get_cover()) {
@@ -183,6 +186,7 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
         self.allocated_rows.borrow_mut().remove(&row);
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn evict_furthest(&self, current_row: usize) {
         let max = self.max_items.get();
         let capacity = (max * 2).max(64);
@@ -221,8 +225,10 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
 impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
     type Data = T;
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn row_count(&self) -> usize { self.array.borrow().len() }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn row_data(&self, row: usize) -> Option<Self::Data> {
         let (song_model, is_loaded) = {
             let array = self.array.borrow();
@@ -275,6 +281,7 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
         Some(song_model)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_row_data(&self, row: usize, data: Self::Data) {
         if row < self.row_count() {
             if is_empty_image(&data.get_cover()) {
@@ -287,64 +294,86 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn model_tracker(&self) -> &dyn ModelTracker { &*self.notify }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn as_any(&self) -> &dyn core::any::Any { self }
 }
 
 impl LazyModel for ExtensionItem {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.icon = image; }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover(&self) -> &Image { &self.icon }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.icon_url }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn is_empty_image(image: &Image) -> bool {
     let size = image.size();
     size.width == 0 && size.height == 0
 }
 
 impl LazyModel for SongModel {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPathLow = image }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover(&self) -> &Image { &self.coverPathLow }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrlLow }
 }
 
 impl LazyModel for AlbumModel {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover(&self) -> &Image { &self.coverPath }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 }
 
 impl LazyModel for PlaylistModel {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover(&self) -> &Image { &self.coverPath }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 }
 
 impl LazyModel for ArtistModel {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover(&self) -> &Image { &self.coverPath }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 }
 
 impl LazyModel for GenreModel {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover(&self) -> &Image { &self.coverPath }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn to_song_model(song: &Song) -> SongModel {
     let extension_icon = if let Some(icon_path) = song.song.as_ref().and_then(|s| s.icon.clone()) {
         if let Ok(image) = Image::load_from_path(Path::new(&icon_path)) {
@@ -502,6 +531,7 @@ pub fn to_song_model(song: &Song) -> SongModel {
 /// Convert a `SongModel` back to the proto `Song` type.
 /// This is used in place of `get_song_from_cache` since `SongModel` now carries
 /// all fields needed to reconstruct the full `Song`.
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn song_model_to_song(model: &SongModel) -> songs_proto::moosync::types::Song {
     use songs_proto::moosync::types::{Album, Artist, Genre, InnerSong, Song};
     use types::prelude::core_to_proto_duration;
@@ -733,6 +763,7 @@ pub fn song_model_to_song(model: &SongModel) -> songs_proto::moosync::types::Son
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn to_album_model(album: &Album) -> AlbumModel {
     AlbumModel {
         coverPath: Image::default(),
@@ -743,6 +774,7 @@ pub fn to_album_model(album: &Album) -> AlbumModel {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn to_artist_model(artist: &Artist) -> ArtistModel {
     ArtistModel {
         coverPath: Image::default(),
@@ -759,6 +791,7 @@ pub fn to_artist_model(artist: &Artist) -> ArtistModel {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn to_playlist_model(playlist: &Playlist) -> PlaylistModel {
     PlaylistModel {
         coverPath: Image::default(),
@@ -773,6 +806,7 @@ pub fn to_playlist_model(playlist: &Playlist) -> PlaylistModel {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn to_genre_model(genre: &Genre) -> GenreModel {
     GenreModel {
         coverPath: Image::default(),
@@ -783,6 +817,7 @@ pub fn to_genre_model(genre: &Genre) -> GenreModel {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn to_extension_item(ext: &ExtensionDetail) -> ExtensionItem {
     ExtensionItem {
         name: ext.name.clone().into(),
@@ -798,6 +833,7 @@ pub fn to_extension_item(ext: &ExtensionDetail) -> ExtensionItem {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn to_fetched_extension_item(ext: &FetchedExtensionManifest) -> ExtensionItem {
     ExtensionItem {
         name: ext.name.clone().into(),
@@ -813,6 +849,7 @@ pub fn to_fetched_extension_item(ext: &FetchedExtensionManifest) -> ExtensionIte
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 pub fn generate_blurred_cover_disk_cache(
     song_id: &str,
     cover_path_high: &str,
@@ -844,6 +881,7 @@ pub fn generate_blurred_cover_disk_cache(
     None
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn blur_and_save(path: &Path, blurred_path: &Path) -> Option<()> {
     let img = image::open(path).ok()?;
     let blurred = img.fast_blur(5.0);

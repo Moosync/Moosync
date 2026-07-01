@@ -17,13 +17,14 @@ use extensions_proto::moosync::types::{
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use ui_proto::moosync::types::PreferenceUiData;
 
-use crate::{context::ReplyHandler, ext_runner::ExtensionHandlerInner};
+use crate::{context::ReplyHandler, errors::ExtensionError, ext_runner::ExtensionHandlerInner};
 
 struct TempDir {
     path: PathBuf,
 }
 
 impl TempDir {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn new() -> Self {
         let mut path = std::env::temp_dir();
         path.push(uuid::Uuid::new_v4().to_string());
@@ -31,6 +32,7 @@ impl TempDir {
         Self { path }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn path(&self) -> &PathBuf { &self.path }
 }
 
@@ -42,6 +44,7 @@ struct TestReplyRouter {
     handlers: Mutex<std::collections::HashMap<String, Arc<Mutex<Vec<MainCommand>>>>>,
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn get_global_router() -> Arc<TestReplyRouter> {
     static ROUTER: std::sync::OnceLock<Arc<TestReplyRouter>> = std::sync::OnceLock::new();
     ROUTER
@@ -54,23 +57,27 @@ fn get_global_router() -> Arc<TestReplyRouter> {
 }
 
 impl TestReplyRouter {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn register(&self, pkg: String, captured_commands: Arc<Mutex<Vec<MainCommand>>>) {
         self.handlers.lock().unwrap().insert(pkg, captured_commands);
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn remove(&self, pkg: &str) { self.handlers.lock().unwrap().remove(pkg); }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_captured_commands(&self, package_name: &str) -> Option<Arc<Mutex<Vec<MainCommand>>>> {
         self.handlers.lock().unwrap().get(package_name).cloned()
     }
 }
 
 impl ReplyHandler for TestReplyRouter {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_song(
         &self,
         package_name: &str,
         options: GetSongOptions,
-    ) -> Result<Vec<Song>, types::errors::MoosyncError> {
+    ) -> Result<Vec<Song>, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -84,11 +91,12 @@ impl ReplyHandler for TestReplyRouter {
         Ok(vec![])
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_entity(
         &self,
         package_name: &str,
         options: GetEntityOptions,
-    ) -> Result<EntityResult, types::errors::MoosyncError> {
+    ) -> Result<EntityResult, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -102,10 +110,8 @@ impl ReplyHandler for TestReplyRouter {
         Ok(EntityResult::default())
     }
 
-    fn get_current_song(
-        &self,
-        package_name: &str,
-    ) -> Result<Option<Song>, types::errors::MoosyncError> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_current_song(&self, package_name: &str) -> Result<Option<Song>, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -117,7 +123,8 @@ impl ReplyHandler for TestReplyRouter {
         Ok(None)
     }
 
-    fn get_player_state(&self, package_name: &str) -> Result<i32, types::errors::MoosyncError> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_player_state(&self, package_name: &str) -> Result<i32, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -129,7 +136,8 @@ impl ReplyHandler for TestReplyRouter {
         Ok(0)
     }
 
-    fn get_volume(&self, package_name: &str) -> Result<f64, types::errors::MoosyncError> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_volume(&self, package_name: &str) -> Result<f64, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -141,7 +149,8 @@ impl ReplyHandler for TestReplyRouter {
         Ok(1.0)
     }
 
-    fn get_time(&self, package_name: &str) -> Result<f64, types::errors::MoosyncError> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_time(&self, package_name: &str) -> Result<f64, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -153,10 +162,8 @@ impl ReplyHandler for TestReplyRouter {
         Ok(0.0)
     }
 
-    fn get_queue(
-        &self,
-        package_name: &str,
-    ) -> Result<(Vec<Song>, usize), types::errors::MoosyncError> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_queue(&self, package_name: &str) -> Result<(Vec<Song>, usize), ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -168,14 +175,13 @@ impl ReplyHandler for TestReplyRouter {
         Ok((vec![], 0))
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_preference(
         &self,
         package_name: &str,
         key: &str,
-    ) -> Result<
-        Option<extensions_proto::struct_proto::google::protobuf::Value>,
-        types::errors::MoosyncError,
-    > {
+    ) -> Result<Option<extensions_proto::struct_proto::google::protobuf::Value>, ExtensionError>
+    {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -192,12 +198,13 @@ impl ReplyHandler for TestReplyRouter {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_preference(
         &self,
         package_name: &str,
         key: &str,
         value: extensions_proto::struct_proto::google::protobuf::Value,
-    ) -> Result<bool, types::errors::MoosyncError> {
+    ) -> Result<bool, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -214,14 +221,13 @@ impl ReplyHandler for TestReplyRouter {
         Ok(true)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn get_secure(
         &self,
         package_name: &str,
         key: &str,
-    ) -> Result<
-        Option<extensions_proto::struct_proto::google::protobuf::Value>,
-        types::errors::MoosyncError,
-    > {
+    ) -> Result<Option<extensions_proto::struct_proto::google::protobuf::Value>, ExtensionError>
+    {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -238,12 +244,13 @@ impl ReplyHandler for TestReplyRouter {
         Ok(None)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_secure(
         &self,
         package_name: &str,
         key: &str,
         value: extensions_proto::struct_proto::google::protobuf::Value,
-    ) -> Result<bool, types::errors::MoosyncError> {
+    ) -> Result<bool, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -260,11 +267,8 @@ impl ReplyHandler for TestReplyRouter {
         Ok(true)
     }
 
-    fn add_songs(
-        &self,
-        package_name: &str,
-        songs: Vec<Song>,
-    ) -> Result<Vec<Song>, types::errors::MoosyncError> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn add_songs(&self, package_name: &str, songs: Vec<Song>) -> Result<Vec<Song>, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -276,11 +280,8 @@ impl ReplyHandler for TestReplyRouter {
         Ok(vec![])
     }
 
-    fn remove_song(
-        &self,
-        package_name: &str,
-        song: Song,
-    ) -> Result<bool, types::errors::MoosyncError> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn remove_song(&self, package_name: &str, song: Song) -> Result<bool, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -292,11 +293,8 @@ impl ReplyHandler for TestReplyRouter {
         Ok(true)
     }
 
-    fn update_song(
-        &self,
-        package_name: &str,
-        song: Song,
-    ) -> Result<Song, types::errors::MoosyncError> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_song(&self, package_name: &str, song: Song) -> Result<Song, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -310,11 +308,12 @@ impl ReplyHandler for TestReplyRouter {
         Ok(song)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn add_playlist(
         &self,
         package_name: &str,
         playlist: Playlist,
-    ) -> Result<String, types::errors::MoosyncError> {
+    ) -> Result<String, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -328,12 +327,13 @@ impl ReplyHandler for TestReplyRouter {
         Ok("test".to_string())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn add_to_playlist(
         &self,
         package_name: &str,
         playlist_id: String,
         songs: Vec<Song>,
-    ) -> Result<bool, types::errors::MoosyncError> {
+    ) -> Result<bool, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -345,11 +345,8 @@ impl ReplyHandler for TestReplyRouter {
         Ok(true)
     }
 
-    fn register_oauth(
-        &self,
-        package_name: &str,
-        url: String,
-    ) -> Result<bool, types::errors::MoosyncError> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn register_oauth(&self, package_name: &str, url: String) -> Result<bool, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -361,11 +358,8 @@ impl ReplyHandler for TestReplyRouter {
         Ok(true)
     }
 
-    fn open_external_url(
-        &self,
-        package_name: &str,
-        url: String,
-    ) -> Result<bool, types::errors::MoosyncError> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn open_external_url(&self, package_name: &str, url: String) -> Result<bool, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -377,11 +371,12 @@ impl ReplyHandler for TestReplyRouter {
         Ok(true)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn update_accounts(
         &self,
         package_name: &str,
         account: Option<String>,
-    ) -> Result<bool, types::errors::MoosyncError> {
+    ) -> Result<bool, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -393,11 +388,12 @@ impl ReplyHandler for TestReplyRouter {
         Ok(true)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn register_user_preference(
         &self,
         package_name: &str,
         prefs: Vec<PreferenceUiData>,
-    ) -> Result<bool, types::errors::MoosyncError> {
+    ) -> Result<bool, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -409,11 +405,12 @@ impl ReplyHandler for TestReplyRouter {
         Ok(true)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn unregister_user_preference(
         &self,
         package_name: &str,
         keys: Vec<String>,
-    ) -> Result<bool, types::errors::MoosyncError> {
+    ) -> Result<bool, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -425,7 +422,8 @@ impl ReplyHandler for TestReplyRouter {
         Ok(true)
     }
 
-    fn extensions_updated(&self, package_name: &str) -> Result<(), types::errors::MoosyncError> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn extensions_updated(&self, package_name: &str) -> Result<(), ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -437,7 +435,8 @@ impl ReplyHandler for TestReplyRouter {
         Ok(())
     }
 
-    fn get_app_version(&self, package_name: &str) -> Result<String, types::errors::MoosyncError> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_app_version(&self, package_name: &str) -> Result<String, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();
             cmds.push(MainCommand {
@@ -604,6 +603,7 @@ async fn setup_extension() -> (
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_get_provider_scopes() {
     let (handler, pkg, _, _guard) = setup_extension().await;
     let ext = {
@@ -619,6 +619,7 @@ async fn test_get_provider_scopes() {
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_get_accounts() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
     let ext = {
@@ -642,6 +643,7 @@ async fn test_get_accounts() {
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_perform_account_login() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
     let ext = {
@@ -667,6 +669,7 @@ async fn test_perform_account_login() {
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_custom_request_hash() {
     let (handler, pkg, _, _guard) = setup_extension().await;
     let ext = {
@@ -685,6 +688,7 @@ async fn test_custom_request_hash() {
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_custom_request_preferences() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
     let ext = {
@@ -714,6 +718,7 @@ async fn test_custom_request_preferences() {
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_search() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
     let ext = {
@@ -737,6 +742,7 @@ async fn test_search() {
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_context_menu_action() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
     let ext = {
@@ -768,6 +774,7 @@ async fn test_context_menu_action() {
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_preference_changed() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
     let ext = {
@@ -798,6 +805,7 @@ async fn test_preference_changed() {
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_queue_changed() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
     let ext = {
@@ -820,6 +828,7 @@ async fn test_queue_changed() {
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_volume_changed() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
     let ext = {
@@ -840,6 +849,7 @@ async fn test_volume_changed() {
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_player_state_changed() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
     let ext = {
@@ -862,6 +872,7 @@ async fn test_player_state_changed() {
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_song_changed() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
     let ext = {
@@ -882,6 +893,7 @@ async fn test_song_changed() {
 }
 
 #[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_seeked() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
     let ext = {
@@ -926,6 +938,7 @@ macro_rules! generate_sample_tests {
             }
 
             #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_get_provider_scopes() {
                 let (handler, pkg, _, _guard) = setup().await;
                 let ext = {
@@ -940,6 +953,7 @@ macro_rules! generate_sample_tests {
             }
 
             #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_get_accounts() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
@@ -962,6 +976,7 @@ macro_rules! generate_sample_tests {
             }
 
             #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_perform_account_login() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
@@ -986,6 +1001,7 @@ macro_rules! generate_sample_tests {
             }
 
             #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_custom_request_hash() {
                 let (handler, pkg, _, _guard) = setup().await;
                 let ext = {
@@ -1003,6 +1019,7 @@ macro_rules! generate_sample_tests {
             }
 
             #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_custom_request_preferences() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
@@ -1031,6 +1048,7 @@ macro_rules! generate_sample_tests {
             }
 
             #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_search() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
@@ -1053,6 +1071,7 @@ macro_rules! generate_sample_tests {
             }
 
             #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_context_menu_action() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
@@ -1083,6 +1102,7 @@ macro_rules! generate_sample_tests {
             }
 
             #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_preference_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
@@ -1112,6 +1132,7 @@ macro_rules! generate_sample_tests {
             }
 
             #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_queue_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
@@ -1133,6 +1154,7 @@ macro_rules! generate_sample_tests {
             }
 
             #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_volume_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
@@ -1152,6 +1174,7 @@ macro_rules! generate_sample_tests {
             }
 
             #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_player_state_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
@@ -1173,6 +1196,7 @@ macro_rules! generate_sample_tests {
             }
 
             #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_song_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
@@ -1192,6 +1216,7 @@ macro_rules! generate_sample_tests {
             }
 
             #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_seeked() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {

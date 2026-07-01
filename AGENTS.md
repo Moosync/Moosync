@@ -15,6 +15,7 @@ Don't try to explore the entire project. Understand the context of the task and 
 | **rust**    | Hermetic Rust crate building, testing, and formatting via Bazel targets.                          | Any Rust code changes — build, test, format. See `.agents/skills/rust/SKILL.md`.                          |
 | **bazel**   | Hermetic build/test/package commands; dependency management with bzlmod. Patching external rules. | Cross-project builds, packaging (`@pkg//:all`), adding dependencies. See `.agents/skills/bazel/SKILL.md`. |
 | **moosync** | Project structure — crate boundaries, UI layout, plugin system, platform-specific code patterns.  | Adding new features; understanding where to put new code. See `.agents/skills/moosync/SKILL.md`.          |
+| **instrumentation** | Tracing instrumentation rules and validation tools. | Any function changes or additions requiring observability. See `.agents/skills/instrumentation/SKILL.md`. |
 
 ---
 
@@ -36,13 +37,18 @@ Donot
 5. Use `bazel run //tools:format -- <files>` to format Rust (`.rs`) and Slint (`.slint`) files. This is wired as the git pre-commit hook via `.git/hooks/pre-commit`. Do not invoke rustfmt or slint-lsp directly — they are resolved through Bazel runfiles.
 6. No Clippy lints exist in this project. Use `bazel query` to discover available targets for a crate; test suites are defined under the root `BUILD` (e.g., `core_tests`).
 
+### Tracing Instrumentation
+
+7. Every Rust function definition must be decorated with `#[tracing::instrument(level = "...", skip_all)]` to ensure stack traces are preserved. All parameters must be skipped using `skip_all` to avoid compiler failures with non-`Debug` types.
+8. Validate instrumentation by running `bazel run //tools:check_instrument`. This check runs automatically in the Git pre-commit hook.
+
 ### Plugin System
 
-7. New plugins are registered by adding types to the `generate_plugin_system!()` macro call in `core/state_manager/src/lib.rs`. The macro generates all registry code — do not create plugin registration boilerplate manually.
-8. **Context pattern** for platform-specific code: each major crate has a `context/` submodule (`preferences/context/keyring_context.rs`, `mpris/context/mod.rs`). New platform implementations should follow this pattern.
+9. New plugins are registered by adding types to the `generate_plugin_system!()` macro call in `core/state_manager/src/lib.rs`. The macro generates all registry code — do not create plugin registration boilerplate manually.
+10. **Context pattern** for platform-specific code: each major crate has a `context/` submodule (`preferences/context/keyring_context.rs`, `mpris/context/mod.rs`). New platform implementations should follow this pattern.
 
 ### Git & Version Control
 
-9. Never use destructive git commands (`git reset`, `git checkout`). Only use `git diff` and `git status`.
+11. Never use destructive git commands (`git reset`, `git checkout`). Only use `git diff` and `git status`.
 
 ---

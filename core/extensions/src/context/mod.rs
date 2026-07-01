@@ -36,196 +36,76 @@ pub trait ReplyHandler: Send + Sync + 'static {
         &self,
         _package_name: &str,
         _options: GetSongOptions,
-    ) -> Result<Vec<Song>, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
+    ) -> Result<Vec<Song>, ExtensionError>;
     fn get_entity(
         &self,
         _package_name: &str,
         _options: GetEntityOptions,
-    ) -> Result<EntityResult, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
-    fn get_current_song(
-        &self,
-        _package_name: &str,
-    ) -> Result<Option<Song>, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
-    fn get_player_state(&self, _package_name: &str) -> Result<i32, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
-    fn get_volume(&self, _package_name: &str) -> Result<f64, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
-    fn get_time(&self, _package_name: &str) -> Result<f64, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
-    fn get_queue(
-        &self,
-        _package_name: &str,
-    ) -> Result<(Vec<Song>, usize), types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
+    ) -> Result<EntityResult, ExtensionError>;
+    fn get_current_song(&self, _package_name: &str) -> Result<Option<Song>, ExtensionError>;
+    fn get_player_state(&self, _package_name: &str) -> Result<i32, ExtensionError>;
+    fn get_volume(&self, _package_name: &str) -> Result<f64, ExtensionError>;
+    fn get_time(&self, _package_name: &str) -> Result<f64, ExtensionError>;
+    fn get_queue(&self, _package_name: &str) -> Result<(Vec<Song>, usize), ExtensionError>;
     fn get_preference(
         &self,
         _package_name: &str,
         _key: &str,
-    ) -> Result<
-        Option<extensions_proto::struct_proto::google::protobuf::Value>,
-        types::errors::MoosyncError,
-    > {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
+    ) -> Result<Option<extensions_proto::struct_proto::google::protobuf::Value>, ExtensionError>;
     fn set_preference(
         &self,
         _package_name: &str,
         _key: &str,
         _value: extensions_proto::struct_proto::google::protobuf::Value,
-    ) -> Result<bool, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
+    ) -> Result<bool, ExtensionError>;
     fn get_secure(
         &self,
         _package_name: &str,
         _key: &str,
-    ) -> Result<
-        Option<extensions_proto::struct_proto::google::protobuf::Value>,
-        types::errors::MoosyncError,
-    > {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
+    ) -> Result<Option<extensions_proto::struct_proto::google::protobuf::Value>, ExtensionError>;
     fn set_secure(
         &self,
         _package_name: &str,
         _key: &str,
         _value: extensions_proto::struct_proto::google::protobuf::Value,
-    ) -> Result<bool, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
+    ) -> Result<bool, ExtensionError>;
     fn add_songs(
         &self,
         _package_name: &str,
         _songs: Vec<Song>,
-    ) -> Result<Vec<Song>, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
-    fn remove_song(
-        &self,
-        _package_name: &str,
-        _song: Song,
-    ) -> Result<bool, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
-    fn update_song(
-        &self,
-        _package_name: &str,
-        _song: Song,
-    ) -> Result<Song, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
+    ) -> Result<Vec<Song>, ExtensionError>;
+    fn remove_song(&self, _package_name: &str, _song: Song) -> Result<bool, ExtensionError>;
+    fn update_song(&self, _package_name: &str, _song: Song) -> Result<Song, ExtensionError>;
     fn add_playlist(
         &self,
         _package_name: &str,
         _playlist: Playlist,
-    ) -> Result<String, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
+    ) -> Result<String, ExtensionError>;
     fn add_to_playlist(
         &self,
         _package_name: &str,
         _playlist_id: String,
         _songs: Vec<Song>,
-    ) -> Result<bool, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
-    fn register_oauth(
-        &self,
-        _package_name: &str,
-        _url: String,
-    ) -> Result<bool, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
-    fn open_external_url(
-        &self,
-        _package_name: &str,
-        _url: String,
-    ) -> Result<bool, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
+    ) -> Result<bool, ExtensionError>;
+    fn register_oauth(&self, _package_name: &str, _url: String) -> Result<bool, ExtensionError>;
+    fn open_external_url(&self, _package_name: &str, _url: String) -> Result<bool, ExtensionError>;
     fn update_accounts(
         &self,
         _package_name: &str,
         _account: Option<String>,
-    ) -> Result<bool, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
+    ) -> Result<bool, ExtensionError>;
     fn register_user_preference(
         &self,
         _package_name: &str,
         _prefs: Vec<PreferenceUiData>,
-    ) -> Result<bool, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
+    ) -> Result<bool, ExtensionError>;
     fn unregister_user_preference(
         &self,
         _package_name: &str,
         _keys: Vec<String>,
-    ) -> Result<bool, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
-    fn extensions_updated(&self, _package_name: &str) -> Result<(), types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
-    fn get_app_version(&self, _package_name: &str) -> Result<String, types::errors::MoosyncError> {
-        Err(types::errors::MoosyncError::String(
-            "Not implemented".to_string(),
-        ))
-    }
+    ) -> Result<bool, ExtensionError>;
+    fn extensions_updated(&self, _package_name: &str) -> Result<(), ExtensionError>;
+    fn get_app_version(&self, _package_name: &str) -> Result<String, ExtensionError>;
 }
 
 pub(crate) trait DispatchCommand {
@@ -233,15 +113,16 @@ pub(crate) trait DispatchCommand {
         self,
         reply_handler: &dyn ReplyHandler,
         package_name: &str,
-    ) -> Result<main_command_response::Response, types::errors::MoosyncError>;
+    ) -> Result<main_command_response::Response, ExtensionError>;
 }
 
 impl DispatchCommand for main_command::Command {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn dispatch(
         self,
         reply_handler: &dyn ReplyHandler,
         package_name: &str,
-    ) -> Result<main_command_response::Response, types::errors::MoosyncError> {
+    ) -> Result<main_command_response::Response, ExtensionError> {
         match self {
             main_command::Command::GetSong(req) => reply_handler
                 .get_song(package_name, req.options.unwrap_or_default())
@@ -284,10 +165,9 @@ impl DispatchCommand for main_command::Command {
                         }
                         let state = QueueState { songs, index };
                         let struct_val = serde_json::from_value(
-                            serde_json::to_value(&state)
-                                .map_err(|e| types::errors::MoosyncError::String(e.to_string()))?,
+                            serde_json::to_value(&state).map_err(ExtensionError::Serde)?,
                         )
-                        .map_err(|e| types::errors::MoosyncError::String(e.to_string()))?;
+                        .map_err(ExtensionError::Serde)?;
                         Ok(main_command_response::Response::GetQueue(
                             GetQueueResponse {
                                 queue: Some(struct_val),
@@ -371,9 +251,7 @@ impl DispatchCommand for main_command::Command {
                         })
                     })
                 } else {
-                    Err(types::errors::MoosyncError::String(
-                        "Missing song in update request".to_string(),
-                    ))
+                    Err(ExtensionError::MissingSong)
                 }
             }
             main_command::Command::AddPlaylist(req) => {
@@ -386,9 +264,7 @@ impl DispatchCommand for main_command::Command {
                             })
                         })
                 } else {
-                    Err(types::errors::MoosyncError::String(
-                        "Missing playlist in add playlist request".to_string(),
-                    ))
+                    Err(ExtensionError::MissingPlaylist)
                 }
             }
             main_command::Command::AddToPlaylist(req) => reply_handler

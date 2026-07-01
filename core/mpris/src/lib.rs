@@ -26,13 +26,12 @@ use extensions_proto::moosync::types::PlayerState;
 use serde::{Deserialize, Serialize};
 #[cfg(target_os = "android")]
 use types::android::AndroidJNIContext;
-use types::errors::Result;
-
+pub mod error;
 #[cfg(target_os = "windows")]
 use crate::context::DummyContext;
-use crate::context::MprisContext;
 #[cfg(not(target_os = "android"))]
 use crate::context::SouvlakiMprisContext;
+use crate::{context::MprisContext, error::MprisError};
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct MprisPlayerDetails {
@@ -121,16 +120,16 @@ pub struct MprisHolder {
 
 #[plugin_macro::generate]
 impl MprisHolder {
-    #[tracing::instrument(level = "debug", skip())]
+    #[tracing::instrument(level = "debug", skip_all)]
     #[cfg(target_os = "android")]
-    pub fn new(android_context: AndroidJNIContext) -> Result<MprisHolder> {
+    pub fn new(android_context: AndroidJNIContext) -> Result<MprisHolder, MprisError> {
         let context = Box::new(mpris_android::AndroidMprisContext::new(android_context));
         Self::new_with_context(context)
     }
 
     #[cfg(not(target_os = "android"))]
-    #[tracing::instrument(level = "debug", skip())]
-    pub fn new() -> Result<MprisHolder> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new() -> Result<MprisHolder, MprisError> {
         #[cfg(target_os = "windows")]
         {
             // If we cannot determine wine support, just default to assuming it is wine
@@ -145,7 +144,8 @@ impl MprisHolder {
         Self::new_with_context(context)
     }
 
-    pub fn new_with_context(mut context: Box<dyn MprisContext>) -> Result<MprisHolder> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new_with_context(mut context: Box<dyn MprisContext>) -> Result<MprisHolder, MprisError> {
         let (event_tx, event_rx) = mpsc::channel();
         context.attach(event_tx)?;
 
@@ -159,14 +159,14 @@ impl MprisHolder {
         })
     }
 
-    #[tracing::instrument(level = "debug", skip(self, metadata))]
-    pub fn set_metadata(&self, metadata: MprisPlayerDetails) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn set_metadata(&self, metadata: MprisPlayerDetails) -> Result<(), MprisError> {
         let mut context = self.context.lock().unwrap();
         context.set_metadata(metadata)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, state))]
-    pub fn set_playback_state(&self, state: PlayerState) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn set_playback_state(&self, state: PlayerState) -> Result<(), MprisError> {
         let last_duration = self.last_duration.lock().unwrap();
         let duration = *last_duration;
         drop(last_duration);
@@ -179,8 +179,8 @@ impl MprisHolder {
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self, duration))]
-    pub fn set_position(&self, duration: f64) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn set_position(&self, duration: f64) -> Result<(), MprisError> {
         let mut last_duration = self.last_duration.lock().unwrap();
         *last_duration = (duration * 1000.0) as u64;
         drop(last_duration);
@@ -193,8 +193,9 @@ impl MprisHolder {
 }
 
 impl types::plugin::Plugin for MprisHolder {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn init(
-        context: &types::plugin::PluginContext,
+        _context: &types::plugin::PluginContext,
     ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
         types::plugin::Arc::new(types::plugin::RwLock::new(
             MprisHolder::new(

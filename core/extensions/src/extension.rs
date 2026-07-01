@@ -50,6 +50,7 @@ pub struct Extension {
 }
 
 impl Extension {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn read_manifest(manifest_path: &std::path::Path) -> Result<ExtensionManifest, ExtensionError> {
         let contents = std::fs::read(manifest_path)?;
         let mut manifest = serde_json::from_slice::<ExtensionManifest>(&contents)?;
@@ -64,6 +65,7 @@ impl Extension {
         Ok(manifest)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(
         manifest_path: &std::path::Path,
         reply_handler: Arc<dyn ReplyHandler>,
@@ -94,6 +96,7 @@ impl Extension {
         Ok(ext)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn spawn_extension(&self) {
         let mut context = self.context.lock().unwrap();
         *context = Some(Arc::new(ExtismContext::new(
@@ -104,6 +107,7 @@ impl Extension {
         )));
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn kill_extension(&self) {
         if let Some(context) = self.context.lock().unwrap().take() {
             if let Err(e) = context.kill() {
@@ -115,8 +119,10 @@ impl Extension {
         *self.provider_scopes.lock().unwrap() = None;
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn is_active(&self) -> bool { !self.extension_path.join(".disabled").exists() }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_active(&self, active: bool) -> Result<(), ExtensionError> {
         self.kill_extension();
         if active {
@@ -126,6 +132,7 @@ impl Extension {
         Ok(())
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_extension_disabled_file(&self, disabled: bool) -> Result<(), ExtensionError> {
         if !self.extension_path.exists() {
             tracing::error!("Extension path does not exist: {:?}", self.extension_path);
@@ -163,8 +170,10 @@ macro_rules! delegate_command {
 }
 
 impl Extension {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_package_name(&self) -> &str { &self.manifest.name }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn register_ui_preferences(&self, preferences: Vec<PreferenceUiData>) {
         let mut preferences_map = self.preferences.write().unwrap();
         for preference in preferences {
@@ -172,6 +181,7 @@ impl Extension {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn unregister_ui_preferences(&self, keys: Vec<String>) {
         let mut preferences_map = self.preferences.write().unwrap();
         for key in keys {
@@ -179,6 +189,7 @@ impl Extension {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     async fn execute_command(
         &self,
         cmd: ExtensionCommand,
@@ -191,6 +202,7 @@ impl Extension {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn get_provider_scopes(
         &self,
         req: GetProviderScopesRequest,

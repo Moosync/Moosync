@@ -4,9 +4,9 @@ use slint::{ComponentHandle, ModelRc, Weak};
 use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song};
 use state_manager::StateManager;
 use tracing::debug;
-use types::{ScanProgress, errors::MoosyncError};
+use types::ScanProgress;
 
-use crate::{MainWindow, Pages, pages::PageHandler, utils::LazySongVecModel};
+use crate::{MainWindow, Pages, error::UiError, pages::PageHandler, utils::LazySongVecModel};
 
 pub struct AllSongsPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -15,6 +15,7 @@ pub struct AllSongsPageHandler<'a> {
 }
 
 impl<'a> AllSongsPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
         Self {
             main_window,
@@ -23,6 +24,7 @@ impl<'a> AllSongsPageHandler<'a> {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_scanner_cb(&self) {
         let main_window_weak = self.main_window.as_weak();
         let state_manager = self.state_manager.clone();
@@ -33,6 +35,7 @@ impl<'a> AllSongsPageHandler<'a> {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 async fn run_scanner_loop(
     main_window_weak: Weak<MainWindow>,
     state_manager: StateManager,
@@ -55,14 +58,17 @@ async fn run_scanner_loop(
     }
 }
 
-async fn get_songs_from_db(state_manager: &StateManager) -> Result<Vec<Song>, MoosyncError> {
+#[tracing::instrument(level = "debug", skip_all)]
+async fn get_songs_from_db(state_manager: &StateManager) -> Result<Vec<Song>, UiError> {
     let database = state_manager.get_database().await;
-    database.get_songs_by_options(GetSongOptions {
+    let songs = database.get_songs_by_options(GetSongOptions {
         song: Some(SearchableSong::default()),
         ..Default::default()
-    })
+    })?;
+    Ok(songs)
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 async fn fetch_and_cache_songs(
     main_window_weak: Weak<MainWindow>,
     state_manager: StateManager,
@@ -87,6 +93,7 @@ async fn fetch_and_cache_songs(
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn set_all_songs(main_window: &MainWindow, songs: Vec<Song>, cache_dir: std::path::PathBuf) {
     debug!("Setting songs");
     let songs_view = songs
@@ -104,6 +111,7 @@ fn set_all_songs(main_window: &MainWindow, songs: Vec<Song>, cache_dir: std::pat
 }
 
 impl<'a> PageHandler for AllSongsPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
         self.set_scanner_cb();
         let state_manager = self.state_manager.clone();
@@ -114,11 +122,13 @@ impl<'a> PageHandler for AllSongsPageHandler<'a> {
         });
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         let songs = self.songs.lock().unwrap().clone();
         let cache_dir = self.state_manager.get_cache_dir();
         set_all_songs(self.main_window, songs, cache_dir);
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) { self.main_window.set_songs(ModelRc::default()); }
 }

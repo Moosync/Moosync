@@ -11,6 +11,7 @@ pub struct ArtistContentPageHandler<'a> {
 }
 
 impl<'a> ArtistContentPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
         Self {
             main_window,
@@ -19,6 +20,7 @@ impl<'a> ArtistContentPageHandler<'a> {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
 async fn fetch_and_set_songs(
     main_window_weak: Weak<MainWindow>,
     state_manager: StateManager,
@@ -62,8 +64,10 @@ async fn fetch_and_set_songs(
 }
 
 impl<'a> PageHandler for ArtistContentPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {}
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         let selected = self.main_window.get_selected_entity();
         let artist_id = selected.id.to_string();
@@ -74,5 +78,6 @@ impl<'a> PageHandler for ArtistContentPageHandler<'a> {
         });
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) { self.main_window.set_content_songs(ModelRc::default()); }
 }

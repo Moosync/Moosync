@@ -18,13 +18,13 @@ use std::{future::Future, path::PathBuf, pin::Pin};
 
 use songs_proto::moosync::types::{Playlist, Song};
 pub use types::ScanProgress;
-use types::errors::{MoosyncError, Result};
 
-use crate::context::ScannerContext;
+pub mod error;
 #[cfg(target_os = "android")]
 use crate::context::android::AndroidScannerContext;
 #[cfg(not(any(target_os = "android", target_os = "ios")))]
 use crate::context::desktop::DesktopScannerContext;
+use crate::{context::ScannerContext, error::ScannerError};
 
 mod context;
 
@@ -67,7 +67,7 @@ pub struct ScannerHolder {
 
 #[plugin_macro::generate]
 impl ScannerHolder {
-    #[tracing::instrument(level = "debug", skip())]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new() -> Self {
         Self {
             scan_dirs: Vec::new(),
@@ -81,16 +81,22 @@ impl ScannerHolder {
         }
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_scan_dirs(&mut self, dirs: Vec<PathBuf>) { self.scan_dirs = dirs; }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_exclude_dirs(&mut self, dirs: Vec<PathBuf>) { self.exclude_dirs = dirs; }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_scan_threads(&mut self, threads: i32) { self.scan_threads = Some(threads); }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_thumbnail_dir(&mut self, dir: PathBuf) { self.thumbnail_dir = Some(dir); }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_artist_split(&mut self, split: String) { self.artist_split = Some(split); }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_on_song<F, Fut>(&mut self, cb: F)
     where
         F: Fn(Option<String>, Vec<Song>) -> Fut + Send + Sync + 'static,
@@ -99,6 +105,7 @@ impl ScannerHolder {
         self.on_song = Some(Box::new(move |pl_id, songs| Box::pin(cb(pl_id, songs))));
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_on_playlist<F, Fut>(&mut self, cb: F)
     where
         F: Fn(Vec<(Playlist, Vec<PlaylistSongId>)>) -> Fut + Send + Sync + 'static,
@@ -107,7 +114,7 @@ impl ScannerHolder {
         self.on_playlist = Some(Box::new(move |playlists| Box::pin(cb(playlists))));
     }
 
-    #[tracing::instrument(level = "debug", skip(self))]
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn add_subscriber(&self) -> ScanProgressReceiver {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
         if let Ok(mut subs) = self.subscribers.lock() {
@@ -116,26 +123,26 @@ impl ScannerHolder {
         rx
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
-    pub async fn start_scan(&self) -> Result<()> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn start_scan(&self) -> Result<(), ScannerError> {
         if self.scan_dirs.is_empty() {
-            return Err(MoosyncError::String("scan_dirs not set".into()));
+            return Err(ScannerError::ScanDirsNotConfigured);
         }
         let scan_dirs = self.scan_dirs.clone();
         let thumbnail_dir = self
             .thumbnail_dir
             .clone()
-            .ok_or_else(|| MoosyncError::String("thumbnail_dir not set".into()))?;
+            .ok_or(ScannerError::ThumbnailDirNotConfigured)?;
         let artist_split = self.artist_split.clone().unwrap_or_else(|| ";".to_string());
 
         let on_song = self
             .on_song
             .as_ref()
-            .ok_or_else(|| MoosyncError::String("on_song callback not set".into()))?;
+            .ok_or(ScannerError::SongCallbackNotConfigured)?;
         let on_playlist = self
             .on_playlist
             .as_ref()
-            .ok_or_else(|| MoosyncError::String("on_playlist callback not set".into()))?;
+            .ok_or(ScannerError::PlaylistCallbackNotConfigured)?;
 
         let subscribers = if let Ok(subs) = self.subscribers.lock() {
             subs.clone()
@@ -172,6 +179,7 @@ impl Default for ScannerHolder {
 }
 
 impl types::plugin::Plugin for ScannerHolder {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn init(
         _context: &types::plugin::PluginContext,
     ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {

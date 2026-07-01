@@ -40,13 +40,13 @@
         "checkOnSave": true,
         "linkedProjects": ["rust-project.json"],
         "showUnlinkedFileNotification": true,
-        "workspace": {
-          "discoverConfig": {
-            "command": ["discover_bazel_rust_project.sh", "{arg}"],
-            "filesToWatch": ["BUILD", "BUILD.bazel", "MODULE.bazel"],
-            "progressLabel": "rust_analyzer",
-          },
-        },
+        // "workspace": {
+        //   "discoverConfig": {
+        //     "command": ["./discover_bazel_rust_project.sh", "{arg}"],
+        //     "filesToWatch": ["BUILD", "BUILD.bazel", "MODULE.bazel"],
+        //     "progressLabel": "rust_analyzer",
+        //   },
+        // },
       },
     },
   },

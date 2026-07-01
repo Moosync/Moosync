@@ -88,7 +88,6 @@ crates.spec(
     version = "1.18.1",
 )
 crates.spec(
-    default_features = False,
     package = "zip-extensions",
     version = "0.8",
 )
@@ -254,34 +253,34 @@ crates.annotation(
     crate = "rusty_ffmpeg",
 )
 crates.annotation_select(
-    crate = "rusty_ffmpeg",
-    triples = ["aarch64-linux-android"],
     build_script_data = [
         "@@//:ndk_sysroot",
     ],
     build_script_env = {
         "BINDGEN_EXTRA_CLANG_ARGS": "--target=aarch64-linux-android --sysroot=$${pwd}/external/rules_android_ndk++android_ndk_repository_extension+androidndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot -D__float128=double -D__ssize_t=long -D__intptr_t=long",
     },
+    crate = "rusty_ffmpeg",
+    triples = ["aarch64-linux-android"],
 )
 crates.annotation_select(
-    crate = "rusty_ffmpeg",
-    triples = ["x86_64-linux-android"],
     build_script_data = [
         "@@//:ndk_sysroot",
     ],
     build_script_env = {
         "BINDGEN_EXTRA_CLANG_ARGS": "--target=x86_64-linux-android --sysroot=$${pwd}/external/rules_android_ndk++android_ndk_repository_extension+androidndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot -D__float128=double -D__ssize_t=long -D__intptr_t=long",
     },
+    crate = "rusty_ffmpeg",
+    triples = ["x86_64-linux-android"],
 )
 crates.annotation_select(
-    crate = "rusty_ffmpeg",
-    triples = ["x86_64-pc-windows-gnu"],
     build_script_data = [
         "@@//:mingw_sysroot",
     ],
     build_script_env = {
         "BINDGEN_EXTRA_CLANG_ARGS": "--target=x86_64-pc-windows-gnu --sysroot=$${pwd}/external/+_repo_rules2+mingw_compiler_files/x86_64-w64-mingw32 -D__float128=double -D__ssize_t=long -D__intptr_t=long",
     },
+    crate = "rusty_ffmpeg",
+    triples = ["x86_64-pc-windows-gnu"],
 )
 crates.annotation_select(
     crate = "rusty_ffmpeg",
@@ -437,13 +436,13 @@ crates.spec(
     package = "slint-lsp",
 )
 crates.annotation(
-    crate = "slint-lsp",
-    compile_data_glob = [
-        "ui/**/*",
-    ],
     build_script_data_glob = [
         "ui/**/*",
     ],
+    compile_data_glob = [
+        "ui/**/*",
+    ],
+    crate = "slint-lsp",
     gen_binaries = ["slint-lsp"],
 )
 crates.spec(

@@ -12,22 +12,22 @@ impl SanitizeCommand for MainCommand {
         match &mut self.command {
             Some(main_command::Command::GetPreference(req)) => {
                 if let Some(ref mut data) = req.data {
-                    data.key = format!("extensions.{}.{}", package_name, data.key);
+                    data.key = format!("{}.{}", package_name, data.key);
                 }
             }
             Some(main_command::Command::SetPreference(req)) => {
                 if let Some(ref mut data) = req.data {
-                    data.key = format!("extensions.{}.{}", package_name, data.key);
+                    data.key = format!("{}.{}", package_name, data.key);
                 }
             }
             Some(main_command::Command::GetSecure(req)) => {
                 if let Some(ref mut data) = req.data {
-                    data.key = format!("extensions.{}.{}", package_name, data.key);
+                    data.key = format!("{}.{}", package_name, data.key);
                 }
             }
             Some(main_command::Command::SetSecure(req)) => {
                 if let Some(ref mut data) = req.data {
-                    data.key = format!("extensions.{}.{}", package_name, data.key);
+                    data.key = format!("{}.{}", package_name, data.key);
                 }
             }
             Some(main_command::Command::AddSongs(req)) => {

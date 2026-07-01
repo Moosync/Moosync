@@ -20,7 +20,7 @@ use std::{
     fmt::Debug,
     fs,
     io::{Read, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
     process,
     str::FromStr,
     sync::{Arc, Mutex},
@@ -256,7 +256,7 @@ impl ExtismContext {
     pub fn new(
         manifest: &ExtensionManifest,
         has_started: Arc<std::sync::atomic::AtomicBool>,
-        cache_path: PathBuf,
+        cache_path: &Path,
         reply_handler: Arc<dyn ReplyHandler>,
     ) -> Self {
         let url = Wasm::file(manifest.extension_entry.clone());
@@ -366,7 +366,7 @@ impl ExtismContext {
     }
 
     fn build_plugin(
-        cache_path: &PathBuf,
+        cache_path: &Path,
         plugin_manifest: Manifest,
         user_data: UserData<MainCommandUserData>,
         sock_data: UserData<SocketUserData>,
@@ -480,5 +480,11 @@ impl ExtensionContext for ExtismContext {
         })
         .await
         .unwrap()
+    }
+
+    fn kill(&self) -> Result<(), ExtensionError> {
+        let plugin = self.plugin.lock().unwrap();
+        plugin.cancel_handle().cancel()?;
+        Ok(())
     }
 }

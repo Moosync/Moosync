@@ -458,4 +458,6 @@ pub(crate) trait ExtensionContext: Debug + Send + Sync {
         &self,
         command: ExtensionCommand,
     ) -> Result<ExtensionCommandResponse, ExtensionError>;
+
+    fn kill(&self) -> Result<(), ExtensionError>;
 }

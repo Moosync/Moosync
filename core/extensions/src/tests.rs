@@ -180,19 +180,17 @@ async fn test_handle_extension_command() {
     // for it to start
     std::thread::sleep(std::time::Duration::from_millis(500));
 
-    let cmd = ExtensionCommand {
-        package_name: "sample.pkg".to_string(),
-        event: Some(extension_command::Event::GetProviderScopes(
-            GetProviderScopesRequest {},
-        )),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get("sample.pkg").unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
+    let res = ext
+        .get_provider_scopes(GetProviderScopesRequest {})
+        .await
+        .unwrap();
 
-    assert!(matches!(
-        resp.unwrap().response,
-        Some(extension_command_response::Response::GetProviderScopes(_))
-    ));
+    assert_eq!(res.scopes, vec![13]); // Accounts = 13
 }
 
 #[test]
@@ -218,7 +216,7 @@ fn test_register_unregister_ui_preferences() {
     // Copy valid sample WASM fixture to temporary directory
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
-    let mut handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
+    let handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
 
     let reply_handler = Arc::new(TestReplyHandler);
     handler.spawn_extensions(reply_handler);
@@ -231,9 +229,8 @@ fn test_register_unregister_ui_preferences() {
         ..Default::default()
     }];
 
-    handler
-        .register_ui_preferences("sample.pkg".to_string(), prefs)
-        .unwrap();
+    let ext = handler.get_extension("sample.pkg").unwrap();
+    ext.register_ui_preferences(prefs);
 
     // Verify stored
     let installed = handler.get_installed_extensions();
@@ -241,9 +238,7 @@ fn test_register_unregister_ui_preferences() {
     assert_eq!(installed[0].preferences[0].key, "pref1");
 
     // Test unregister
-    handler
-        .unregister_ui_preferences("sample.pkg".to_string(), vec!["pref1".to_string()])
-        .unwrap();
+    ext.unregister_ui_preferences(vec!["pref1".to_string()]);
 
     // Verify removed
     let installed = handler.get_installed_extensions();
@@ -275,8 +270,7 @@ fn test_extension_failed_to_start_disables_extension() {
 
     let reply_handler = Arc::new(TestReplyHandler);
 
-    let mut handler =
-        ExtensionHandlerInner::new(extensions_path.clone(), tmp_dir.path().join("cache"));
+    let handler = ExtensionHandlerInner::new(extensions_path.clone(), tmp_dir.path().join("cache"));
 
     // Find and spawn extensions
     handler.spawn_extensions(reply_handler);
@@ -315,9 +309,8 @@ fn test_extension_activation_deactivation() {
     }"#;
     std::fs::write(ext_path.join("package.json"), manifest).unwrap();
 
-    // Write valid empty WASM module header
-    let empty_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
-    std::fs::write(ext_path.join("main.wasm"), empty_wasm).unwrap();
+    // Copy valid sample WASM fixture to temporary directory
+    std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
     // Create a disabled file initially
     let disabled_file = ext_path.join(".disabled");
@@ -325,40 +318,47 @@ fn test_extension_activation_deactivation() {
 
     let reply_handler = Arc::new(TestReplyHandler);
 
-    let mut handler =
-        ExtensionHandlerInner::new(extensions_path.clone(), tmp_dir.path().join("cache"));
+    let handler = ExtensionHandlerInner::new(extensions_path.clone(), tmp_dir.path().join("cache"));
 
     handler.spawn_extensions(reply_handler.clone());
 
     {
         let extensions_map = handler.extensions_map.lock().unwrap();
         let ext = extensions_map.get("test_pkg").unwrap();
-        assert!(!ext.active);
-        assert!(ext.context.is_none());
+        assert!(!ext.is_active());
+        assert!(!ext.get_extension_detail().has_started);
     }
     assert!(disabled_file.exists());
 
-    handler
-        .set_extension_active("test_pkg", true, reply_handler.clone())
-        .unwrap();
+    {
+        let extensions_map = handler.extensions_map.lock().unwrap();
+        let ext = extensions_map.get("test_pkg").unwrap();
+        ext.set_active(true).unwrap();
+    }
+
+    // Since spawning runs on a background thread/task, we sleep briefly to let it
+    // start
+    std::thread::sleep(std::time::Duration::from_millis(500));
 
     {
         let extensions_map = handler.extensions_map.lock().unwrap();
         let ext = extensions_map.get("test_pkg").unwrap();
-        assert!(ext.active);
-        assert!(ext.context.is_some());
+        assert!(ext.is_active());
+        assert!(ext.get_extension_detail().has_started);
     }
     assert!(!disabled_file.exists());
 
-    handler
-        .set_extension_active("test_pkg", false, reply_handler.clone())
-        .unwrap();
+    {
+        let extensions_map = handler.extensions_map.lock().unwrap();
+        let ext = extensions_map.get("test_pkg").unwrap();
+        ext.set_active(false).unwrap();
+    }
 
     {
         let extensions_map = handler.extensions_map.lock().unwrap();
         let ext = extensions_map.get("test_pkg").unwrap();
-        assert!(!ext.active);
-        assert!(ext.context.is_none());
+        assert!(!ext.is_active());
+        assert!(!ext.get_extension_detail().has_started);
     }
     assert!(disabled_file.exists());
 }

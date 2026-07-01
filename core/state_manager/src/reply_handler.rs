@@ -270,8 +270,9 @@ impl ReplyHandler for StateReplyHandler {
     ) -> Result<bool, types::errors::MoosyncError> {
         let extensions = self
             .runtime
-            .block_on(self.state_manager.get_extension_handler());
-        extensions.register_ui_preferences(package_name.to_string(), prefs)?;
+            .block_on(self.state_manager.get_extension_handler_mut());
+        let extension = extensions.get_extension(package_name)?;
+        extension.register_ui_preferences(prefs);
         Ok(true)
     }
 
@@ -282,22 +283,24 @@ impl ReplyHandler for StateReplyHandler {
     ) -> Result<bool, types::errors::MoosyncError> {
         let extensions = self
             .runtime
-            .block_on(self.state_manager.get_extension_handler());
-        extensions.unregister_ui_preferences(package_name.to_string(), keys)?;
+            .block_on(self.state_manager.get_extension_handler_mut());
+        let extension = extensions.get_extension(package_name)?;
+        extension.unregister_ui_preferences(keys);
         Ok(true)
     }
 
     fn extensions_updated(&self, _package_name: &str) -> Result<(), types::errors::MoosyncError> {
-        self.state_manager.on_extensions_updated.run_all(|cb| {
-            cb(());
+        let state_manager = self.state_manager.clone();
+        let runtime = self.runtime.clone();
+        tokio::spawn(async move {
+            let extensions = state_manager.get_extension_handler().await;
+            extensions.trigger_extensions_updated();
         });
         Ok(())
     }
 
     fn get_app_version(&self, _package_name: &str) -> Result<String, types::errors::MoosyncError> {
-        let version = option_env!("CARGO_PKG_VERSION")
-            .unwrap_or("1.17.0")
-            .to_string();
+        let version = option_env!("CARGO_PKG_VERSION").unwrap_or("").to_string();
         Ok(version)
     }
 }

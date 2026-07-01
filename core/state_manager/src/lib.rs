@@ -37,7 +37,6 @@ pub struct StateManager {
     pub cache_dir: std::path::PathBuf,
 
     runtime: Handle,
-    pub on_extensions_updated: SubscriberList<Box<dyn Fn(()) + Send + Sync + 'static>>,
     pub hooks: Arc<tokio::sync::Mutex<Vec<Arc<dyn hooks::Hook>>>>,
 }
 
@@ -114,7 +113,6 @@ impl StateManager {
             interceptors: Arc::new(interceptors),
             cache_dir,
             runtime,
-            on_extensions_updated: SubscriberList::new(),
             hooks,
         })
     }
@@ -147,8 +145,3 @@ impl StateManager {
         }
     }
 }
-
-types::generate_on_event_impl!(
-    StateManager;
-    on_extensions_updated, ();
-);

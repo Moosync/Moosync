@@ -6,8 +6,8 @@ rust_test(
     crate = ":extensions",
     data = glob(["tests/fixtures/**"]) + [
         "@moosync_ext//sample_extensions/go:sample_extension",
-        "@moosync_ext//sample_extensions/rs:sample_extension",
         "@moosync_ext//sample_extensions/py:sample_extension",
+        "@moosync_ext//sample_extensions/rs:sample_extension",
     ],
 )
 
@@ -18,7 +18,9 @@ rust_library(
         "src/context/mod.rs",
         "src/errors.rs",
         "src/ext_runner.rs",
+        "src/extension.rs",
         "src/lib.rs",
+        "src/remote.rs",
         "src/models.rs",
         "src/sample_tests.rs",
         "src/tests.rs",

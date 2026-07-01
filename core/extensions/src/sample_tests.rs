@@ -4,8 +4,15 @@ use std::{
 };
 
 use extensions_proto::moosync::types::{
-    ExtensionCommand, GetProviderScopesRequest, MainCommand, extension_command,
-    extension_command_response, main_command,
+    ContextMenuActionRequest, ContextMenuActionResponse, CustomRequest, CustomRequestResponse,
+    ExtensionCommand, GetAccountsRequest, GetAccountsResponse, GetProviderScopesRequest,
+    GetProviderScopesResponse, MainCommand, PerformAccountLoginRequest,
+    PerformAccountLoginResponse, PlayerState, PlayerStateChangedRequest,
+    PlayerStateChangedResponse, PreferenceArgs, PreferenceChangedRequest,
+    PreferenceChangedResponse, RequestedSearchResultRequest, RequestedSearchResultResponse,
+    SeekedRequest, SeekedResponse, SongChangedRequest, SongChangedResponse,
+    SongQueueChangedRequest, SongQueueChangedResponse, VolumeChangedRequest, VolumeChangedResponse,
+    extension_command, extension_command_response, main_command,
 };
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use ui_proto::moosync::types::PreferenceUiData;
@@ -447,6 +454,7 @@ struct TestCleanupGuard {
     package_name: String,
     dest_ext_path: PathBuf,
     handler: Arc<ExtensionHandlerInner>,
+    _temp_dir: TempDir,
 }
 
 impl Drop for TestCleanupGuard {
@@ -455,22 +463,6 @@ impl Drop for TestCleanupGuard {
         let _ = std::fs::remove_dir_all(&self.dest_ext_path);
         get_global_router().remove(&self.package_name);
     }
-}
-
-fn get_global_handler() -> (Arc<ExtensionHandlerInner>, &'static TempDir) {
-    static GLOBAL_TEMP: std::sync::OnceLock<TempDir> = std::sync::OnceLock::new();
-    static GLOBAL_INNER: std::sync::OnceLock<Arc<ExtensionHandlerInner>> =
-        std::sync::OnceLock::new();
-
-    let temp_dir = GLOBAL_TEMP.get_or_init(|| TempDir::new());
-    let inner = GLOBAL_INNER.get_or_init(|| {
-        let cache_path = temp_dir.path().join("cache");
-        let extensions_path = temp_dir.path().join("extensions");
-        std::fs::create_dir_all(&extensions_path).unwrap();
-        Arc::new(ExtensionHandlerInner::new(extensions_path, cache_path))
-    });
-
-    (inner.clone(), temp_dir)
 }
 
 async fn setup_extension_at(
@@ -482,7 +474,11 @@ async fn setup_extension_at(
     Arc<Mutex<Vec<MainCommand>>>,
     TestCleanupGuard,
 ) {
-    let (handler, temp_dir) = get_global_handler();
+    let temp_dir = TempDir::new();
+    let cache_path = temp_dir.path().join("cache");
+    let extensions_path = temp_dir.path().join("extensions");
+    std::fs::create_dir_all(&extensions_path).unwrap();
+    let handler = Arc::new(ExtensionHandlerInner::new(extensions_path, cache_path));
 
     let runfiles_dir = std::env::var("TEST_SRCDIR").unwrap_or_else(|_| ".".to_string());
 
@@ -562,9 +558,7 @@ async fn setup_extension_at(
     get_global_router().register(actual_pkg.clone(), captured_commands.clone());
 
     let reply_handler = get_global_router() as Arc<dyn ReplyHandler>;
-    handler
-        .spawn_single_extension(&package_json_path, reply_handler)
-        .unwrap();
+    handler.spawn_extensions(reply_handler);
 
     let list = handler.get_installed_extensions();
     if !list.iter().any(|e| e.package_name == actual_pkg) {
@@ -594,6 +588,7 @@ async fn setup_extension_at(
         package_name: actual_pkg.clone(),
         dest_ext_path,
         handler: handler.clone(),
+        _temp_dir: temp_dir,
     };
 
     (handler, actual_pkg, captured_commands, cleanup_guard)
@@ -611,74 +606,57 @@ async fn setup_extension() -> (
 #[tokio::test]
 async fn test_get_provider_scopes() {
     let (handler, pkg, _, _guard) = setup_extension().await;
-
-    let cmd = ExtensionCommand {
-        package_name: pkg.clone(),
-        event: Some(extension_command::Event::GetProviderScopes(
-            GetProviderScopesRequest {},
-        )),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get(&pkg).unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
-    if let Some(extension_command_response::Response::GetProviderScopes(res)) =
-        resp.unwrap().response
-    {
-        assert_eq!(res.scopes, vec![13]); // Accounts = 13
-    } else {
-        panic!("Wrong response for GetProviderScopes");
-    }
+    let res = ext
+        .get_provider_scopes(GetProviderScopesRequest {})
+        .await
+        .unwrap();
+    assert_eq!(res.scopes, vec![13]); // Accounts = 13
 }
 
 #[tokio::test]
 async fn test_get_accounts() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
-
-    let cmd = ExtensionCommand {
-        package_name: pkg.clone(),
-        event: Some(extension_command::Event::GetAccounts(Default::default())),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get(&pkg).unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
-    if let Some(extension_command_response::Response::GetAccounts(res)) = resp.unwrap().response {
-        assert_eq!(res.accounts.len(), 1);
-        assert_eq!(res.accounts[0].id, "test_account");
-        assert_eq!(res.accounts[0].name, "Test Account");
-        assert!(res.accounts[0].logged_in);
-    } else {
-        panic!("Wrong response for GetAccounts");
-    }
+    let res = ext.get_accounts(Default::default()).await.unwrap();
+    assert_eq!(res.accounts.len(), 1);
+    assert_eq!(res.accounts[0].id, "test_account");
+    assert_eq!(res.accounts[0].name, "Test Account");
+    assert!(res.accounts[0].logged_in);
 
     let cmds = captured_commands.lock().unwrap();
     assert_eq!(cmds.len(), 1);
     if let Some(main_command::Command::UpdateAccounts(req)) = &cmds[0].command {
         assert_eq!(req.account, Some(pkg.clone()));
     } else {
-        panic!("Expected UpdateAccounts");
+        panic!("Wrong command update accounts");
     }
 }
 
 #[tokio::test]
 async fn test_perform_account_login() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
-
-    let cmd = ExtensionCommand {
-        package_name: pkg.clone(),
-        event: Some(extension_command::Event::PerformAccountLogin(
-            extensions_proto::moosync::types::PerformAccountLoginRequest {
-                account_id: "id".to_string(),
-                login_status: true,
-            },
-        )),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get(&pkg).unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
-    if let Some(extension_command_response::Response::PerformAccountLogin(res)) =
-        resp.unwrap().response
-    {
-        assert_eq!(res.status, "success");
-    } else {
-        panic!("Wrong response for PerformAccountLogin");
-    }
+    let res = ext
+        .perform_account_login(PerformAccountLoginRequest {
+            account_id: "id".to_string(),
+            login_status: true,
+        })
+        .await
+        .unwrap();
+    assert_eq!(res.status, "success");
 
     let cmds = captured_commands.lock().unwrap();
     if let Some(main_command::Command::RegisterOauth(req)) = &cmds[0].command {
@@ -691,45 +669,37 @@ async fn test_perform_account_login() {
 #[tokio::test]
 async fn test_custom_request_hash() {
     let (handler, pkg, _, _guard) = setup_extension().await;
-
-    let cmd = ExtensionCommand {
-        package_name: pkg.clone(),
-        event: Some(extension_command::Event::CustomRequest(
-            extensions_proto::moosync::types::CustomRequest {
-                request_id: "hash_test".to_string(),
-                payload: None,
-            },
-        )),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get(&pkg).unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
-    if let Some(extension_command_response::Response::CustomRequest(res)) = resp.unwrap().response {
-        assert!(res.data.is_none());
-    } else {
-        panic!("Wrong response for CustomRequest (hash_test)");
-    }
+    let res = ext
+        .custom_request(CustomRequest {
+            request_id: "hash_test".to_string(),
+            payload: None,
+        })
+        .await
+        .unwrap();
+    assert!(res.data.is_none());
 }
 
 #[tokio::test]
 async fn test_custom_request_preferences() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
-
-    let cmd = ExtensionCommand {
-        package_name: pkg.clone(),
-        event: Some(extension_command::Event::CustomRequest(
-            extensions_proto::moosync::types::CustomRequest {
-                request_id: "preferences_test".to_string(),
-                payload: None,
-            },
-        )),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get(&pkg).unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
-    if let Some(extension_command_response::Response::CustomRequest(res)) = resp.unwrap().response {
-        assert!(res.data.is_none());
-    } else {
-        panic!("Wrong response for CustomRequest (preferences)");
-    }
+    let res = ext
+        .custom_request(CustomRequest {
+            request_id: "preferences_test".to_string(),
+            payload: None,
+        })
+        .await
+        .unwrap();
+    assert!(res.data.is_none());
 
     let cmds = captured_commands.lock().unwrap();
     assert_eq!(cmds.len(), 2);
@@ -746,24 +716,18 @@ async fn test_custom_request_preferences() {
 #[tokio::test]
 async fn test_search() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
-
-    let cmd = ExtensionCommand {
-        package_name: pkg.clone(),
-        event: Some(extension_command::Event::RequestedSearchResult(
-            extensions_proto::moosync::types::RequestedSearchResultRequest {
-                query: "test".to_string(),
-            },
-        )),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get(&pkg).unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
-    if let Some(extension_command_response::Response::RequestedSearchResult(res)) =
-        resp.unwrap().response
-    {
-        assert!(res.songs.is_empty());
-    } else {
-        panic!("Wrong response for RequestedSearchResult");
-    }
+    let res = ext
+        .get_search_result(RequestedSearchResultRequest {
+            query: "test".to_string(),
+        })
+        .await
+        .unwrap();
+    assert!(res.songs.is_empty());
 
     let cmds = captured_commands.lock().unwrap();
     assert!(matches!(
@@ -775,21 +739,17 @@ async fn test_search() {
 #[tokio::test]
 async fn test_context_menu_action() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
-
-    let cmd = ExtensionCommand {
-        package_name: pkg.clone(),
-        event: Some(extension_command::Event::ContextMenuAction(
-            extensions_proto::moosync::types::ContextMenuActionRequest {
-                action_id: "add_test".to_string(),
-            },
-        )),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get(&pkg).unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
-    assert!(matches!(
-        resp.unwrap().response,
-        Some(extension_command_response::Response::ContextMenuAction(_))
-    ));
+    let _res = ext
+        .context_menu_action(ContextMenuActionRequest {
+            action_id: "add_test".to_string(),
+        })
+        .await
+        .unwrap();
 
     let cmds = captured_commands.lock().unwrap();
     assert_eq!(cmds.len(), 3);
@@ -810,24 +770,20 @@ async fn test_context_menu_action() {
 #[tokio::test]
 async fn test_preference_changed() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
-
-    let cmd = ExtensionCommand {
-        package_name: pkg.clone(),
-        event: Some(extension_command::Event::PreferenceChanged(
-            extensions_proto::moosync::types::PreferenceChangedRequest {
-                preference: Some(extensions_proto::moosync::types::PreferenceArgs {
-                    key: "test_key".to_string(),
-                    value: Default::default(),
-                }),
-            },
-        )),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get(&pkg).unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
-    assert!(matches!(
-        resp.unwrap().response,
-        Some(extension_command_response::Response::PreferenceChanged(_))
-    ));
+    let _res = ext
+        .preference_changed(PreferenceChangedRequest {
+            preference: Some(PreferenceArgs {
+                key: "test_key".to_string(),
+                value: Default::default(),
+            }),
+        })
+        .await
+        .unwrap();
 
     let cmds = captured_commands.lock().unwrap();
     assert_eq!(cmds.len(), 2);
@@ -844,21 +800,17 @@ async fn test_preference_changed() {
 #[tokio::test]
 async fn test_queue_changed() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
-
-    let cmd = ExtensionCommand {
-        package_name: pkg.clone(),
-        event: Some(extension_command::Event::SongQueueChanged(
-            extensions_proto::moosync::types::SongQueueChangedRequest {
-                queue_state: Some(Default::default()),
-            },
-        )),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get(&pkg).unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
-    assert!(matches!(
-        resp.unwrap().response,
-        Some(extension_command_response::Response::SongQueueChanged(_))
-    ));
+    let _res = ext
+        .song_queue_changed(SongQueueChangedRequest {
+            queue_state: Some(Default::default()),
+        })
+        .await
+        .unwrap();
 
     let cmds = captured_commands.lock().unwrap();
     assert!(matches!(
@@ -870,19 +822,15 @@ async fn test_queue_changed() {
 #[tokio::test]
 async fn test_volume_changed() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
-
-    let cmd = ExtensionCommand {
-        package_name: pkg.clone(),
-        event: Some(extension_command::Event::VolumeChanged(
-            extensions_proto::moosync::types::VolumeChangedRequest { volume: 1.0 },
-        )),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get(&pkg).unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
-    assert!(matches!(
-        resp.unwrap().response,
-        Some(extension_command_response::Response::VolumeChanged(_))
-    ));
+    let _res = ext
+        .volume_changed(VolumeChangedRequest { volume: 1.0 })
+        .await
+        .unwrap();
 
     let cmds = captured_commands.lock().unwrap();
     assert!(matches!(
@@ -894,21 +842,17 @@ async fn test_volume_changed() {
 #[tokio::test]
 async fn test_player_state_changed() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
-
-    let cmd = ExtensionCommand {
-        package_name: pkg.clone(),
-        event: Some(extension_command::Event::PlayerStateChanged(
-            extensions_proto::moosync::types::PlayerStateChangedRequest {
-                state: extensions_proto::moosync::types::PlayerState::Playing.into(),
-            },
-        )),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get(&pkg).unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
-    assert!(matches!(
-        resp.unwrap().response,
-        Some(extension_command_response::Response::PlayerStateChanged(_))
-    ));
+    let _res = ext
+        .player_state_changed(PlayerStateChangedRequest {
+            state: PlayerState::Playing.into(),
+        })
+        .await
+        .unwrap();
 
     let cmds = captured_commands.lock().unwrap();
     assert!(matches!(
@@ -920,19 +864,15 @@ async fn test_player_state_changed() {
 #[tokio::test]
 async fn test_song_changed() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
-
-    let cmd = ExtensionCommand {
-        package_name: pkg.clone(),
-        event: Some(extension_command::Event::SongChanged(
-            extensions_proto::moosync::types::SongChangedRequest { song: None },
-        )),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get(&pkg).unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
-    assert!(matches!(
-        resp.unwrap().response,
-        Some(extension_command_response::Response::SongChanged(_))
-    ));
+    let _res = ext
+        .song_changed(SongChangedRequest { song: None })
+        .await
+        .unwrap();
 
     let cmds = captured_commands.lock().unwrap();
     assert!(matches!(
@@ -944,19 +884,12 @@ async fn test_song_changed() {
 #[tokio::test]
 async fn test_seeked() {
     let (handler, pkg, captured_commands, _guard) = setup_extension().await;
-
-    let cmd = ExtensionCommand {
-        package_name: pkg.clone(),
-        event: Some(extension_command::Event::Seeked(
-            extensions_proto::moosync::types::SeekedRequest { position: 10.0 },
-        )),
+    let ext = {
+        let map = handler.extensions_map.lock().unwrap();
+        map.get(&pkg).unwrap().clone()
     };
 
-    let resp = handler.handle_extension_command(cmd).await.unwrap();
-    assert!(matches!(
-        resp.unwrap().response,
-        Some(extension_command_response::Response::Seeked(_))
-    ));
+    let _res = ext.seeked(SeekedRequest { position: 10.0 }).await.unwrap();
 
     let cmds = captured_commands.lock().unwrap();
     assert!(matches!(
@@ -968,9 +901,6 @@ async fn test_seeked() {
 // ---------------------------------------------------------------------------
 // Parameterized setup — takes a fixture subdirectory and expected package name
 // ---------------------------------------------------------------------------
-
-// The original setup_extension() already delegates to setup_extension_at.
-// (It was updated above in the file.)
 
 // ---------------------------------------------------------------------------
 // Macro: generate the full test suite for any fixture subdirectory + package
@@ -998,40 +928,30 @@ macro_rules! generate_sample_tests {
             #[tokio::test]
             async fn test_get_provider_scopes() {
                 let (handler, pkg, _, _guard) = setup().await;
-                let cmd = ExtensionCommand {
-                    package_name: pkg.clone(),
-                    event: Some(extension_command::Event::GetProviderScopes(
-                        GetProviderScopesRequest {},
-                    )),
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
                 };
-                let resp = handler.handle_extension_command(cmd).await.unwrap();
-                if let Some(extension_command_response::Response::GetProviderScopes(res)) =
-                    resp.unwrap().response
-                {
-                    assert_eq!(res.scopes, vec![13]);
-                } else {
-                    panic!("Wrong response for GetProviderScopes");
-                }
+                let res = ext
+                    .get_provider_scopes(GetProviderScopesRequest {})
+                    .await
+                    .unwrap();
+                assert_eq!(res.scopes, vec![13]);
             }
 
             #[tokio::test]
             async fn test_get_accounts() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
-                let cmd = ExtensionCommand {
-                    package_name: pkg.clone(),
-                    event: Some(extension_command::Event::GetAccounts(Default::default())),
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
                 };
-                let resp = handler.handle_extension_command(cmd).await.unwrap();
-                if let Some(extension_command_response::Response::GetAccounts(res)) =
-                    resp.unwrap().response
-                {
-                    assert_eq!(res.accounts.len(), 1);
-                    assert_eq!(res.accounts[0].id, "test_account");
-                    assert_eq!(res.accounts[0].name, "Test Account");
-                    assert!(res.accounts[0].logged_in);
-                } else {
-                    panic!("Wrong response for GetAccounts");
-                }
+                let res = ext.get_accounts(Default::default()).await.unwrap();
+                assert_eq!(res.accounts.len(), 1);
+                assert_eq!(res.accounts[0].id, "test_account");
+                assert_eq!(res.accounts[0].name, "Test Account");
+                assert!(res.accounts[0].logged_in);
+
                 let cmds = captured_commands.lock().unwrap();
                 assert_eq!(cmds.len(), 1);
                 if let Some(main_command::Command::UpdateAccounts(req)) = &cmds[0].command {
@@ -1044,23 +964,19 @@ macro_rules! generate_sample_tests {
             #[tokio::test]
             async fn test_perform_account_login() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
-                let cmd = ExtensionCommand {
-                    package_name: pkg.clone(),
-                    event: Some(extension_command::Event::PerformAccountLogin(
-                        extensions_proto::moosync::types::PerformAccountLoginRequest {
-                            account_id: "id".to_string(),
-                            login_status: true,
-                        },
-                    )),
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
                 };
-                let resp = handler.handle_extension_command(cmd).await.unwrap();
-                if let Some(extension_command_response::Response::PerformAccountLogin(res)) =
-                    resp.unwrap().response
-                {
-                    assert_eq!(res.status, "success");
-                } else {
-                    panic!("Wrong response for PerformAccountLogin");
-                }
+                let res = ext
+                    .perform_account_login(PerformAccountLoginRequest {
+                        account_id: "id".to_string(),
+                        login_status: true,
+                    })
+                    .await
+                    .unwrap();
+                assert_eq!(res.status, "success");
+
                 let cmds = captured_commands.lock().unwrap();
                 if let Some(main_command::Command::RegisterOauth(req)) = &cmds[0].command {
                     assert_eq!(req.url, "https://example.com/callback");
@@ -1072,45 +988,36 @@ macro_rules! generate_sample_tests {
             #[tokio::test]
             async fn test_custom_request_hash() {
                 let (handler, pkg, _, _guard) = setup().await;
-                let cmd = ExtensionCommand {
-                    package_name: pkg.clone(),
-                    event: Some(extension_command::Event::CustomRequest(
-                        extensions_proto::moosync::types::CustomRequest {
-                            request_id: "hash_test".to_string(),
-                            payload: None,
-                        },
-                    )),
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
                 };
-                let resp = handler.handle_extension_command(cmd).await.unwrap();
-                if let Some(extension_command_response::Response::CustomRequest(res)) =
-                    resp.unwrap().response
-                {
-                    assert!(res.data.is_none());
-                } else {
-                    panic!("Wrong response for CustomRequest (hash_test)");
-                }
+                let res = ext
+                    .custom_request(CustomRequest {
+                        request_id: "hash_test".to_string(),
+                        payload: None,
+                    })
+                    .await
+                    .unwrap();
+                assert!(res.data.is_none());
             }
 
             #[tokio::test]
             async fn test_custom_request_preferences() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
-                let cmd = ExtensionCommand {
-                    package_name: pkg.clone(),
-                    event: Some(extension_command::Event::CustomRequest(
-                        extensions_proto::moosync::types::CustomRequest {
-                            request_id: "preferences_test".to_string(),
-                            payload: None,
-                        },
-                    )),
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
                 };
-                let resp = handler.handle_extension_command(cmd).await.unwrap();
-                if let Some(extension_command_response::Response::CustomRequest(res)) =
-                    resp.unwrap().response
-                {
-                    assert!(res.data.is_none());
-                } else {
-                    panic!("Wrong response for CustomRequest (preferences)");
-                }
+                let res = ext
+                    .custom_request(CustomRequest {
+                        request_id: "preferences_test".to_string(),
+                        payload: None,
+                    })
+                    .await
+                    .unwrap();
+                assert!(res.data.is_none());
+
                 let cmds = captured_commands.lock().unwrap();
                 assert_eq!(cmds.len(), 2);
                 assert!(matches!(
@@ -1126,22 +1033,18 @@ macro_rules! generate_sample_tests {
             #[tokio::test]
             async fn test_search() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
-                let cmd = ExtensionCommand {
-                    package_name: pkg.clone(),
-                    event: Some(extension_command::Event::RequestedSearchResult(
-                        extensions_proto::moosync::types::RequestedSearchResultRequest {
-                            query: "test".to_string(),
-                        },
-                    )),
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
                 };
-                let resp = handler.handle_extension_command(cmd).await.unwrap();
-                if let Some(extension_command_response::Response::RequestedSearchResult(res)) =
-                    resp.unwrap().response
-                {
-                    assert!(res.songs.is_empty());
-                } else {
-                    panic!("Wrong response for RequestedSearchResult");
-                }
+                let res = ext
+                    .get_search_result(RequestedSearchResultRequest {
+                        query: "test".to_string(),
+                    })
+                    .await
+                    .unwrap();
+                assert!(res.songs.is_empty());
+
                 let cmds = captured_commands.lock().unwrap();
                 assert!(matches!(
                     cmds[0].command,
@@ -1152,19 +1055,17 @@ macro_rules! generate_sample_tests {
             #[tokio::test]
             async fn test_context_menu_action() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
-                let cmd = ExtensionCommand {
-                    package_name: pkg.clone(),
-                    event: Some(extension_command::Event::ContextMenuAction(
-                        extensions_proto::moosync::types::ContextMenuActionRequest {
-                            action_id: "add_test".to_string(),
-                        },
-                    )),
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
                 };
-                let resp = handler.handle_extension_command(cmd).await.unwrap();
-                assert!(matches!(
-                    resp.unwrap().response,
-                    Some(extension_command_response::Response::ContextMenuAction(_))
-                ));
+                let _res = ext
+                    .context_menu_action(ContextMenuActionRequest {
+                        action_id: "add_test".to_string(),
+                    })
+                    .await
+                    .unwrap();
+
                 let cmds = captured_commands.lock().unwrap();
                 assert_eq!(cmds.len(), 3);
                 assert!(matches!(
@@ -1184,22 +1085,20 @@ macro_rules! generate_sample_tests {
             #[tokio::test]
             async fn test_preference_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
-                let cmd = ExtensionCommand {
-                    package_name: pkg.clone(),
-                    event: Some(extension_command::Event::PreferenceChanged(
-                        extensions_proto::moosync::types::PreferenceChangedRequest {
-                            preference: Some(extensions_proto::moosync::types::PreferenceArgs {
-                                key: "test_key".to_string(),
-                                value: Default::default(),
-                            }),
-                        },
-                    )),
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
                 };
-                let resp = handler.handle_extension_command(cmd).await.unwrap();
-                assert!(matches!(
-                    resp.unwrap().response,
-                    Some(extension_command_response::Response::PreferenceChanged(_))
-                ));
+                let _res = ext
+                    .preference_changed(PreferenceChangedRequest {
+                        preference: Some(PreferenceArgs {
+                            key: "test_key".to_string(),
+                            value: Default::default(),
+                        }),
+                    })
+                    .await
+                    .unwrap();
+
                 let cmds = captured_commands.lock().unwrap();
                 assert_eq!(cmds.len(), 2);
                 assert!(matches!(
@@ -1215,19 +1114,17 @@ macro_rules! generate_sample_tests {
             #[tokio::test]
             async fn test_queue_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
-                let cmd = ExtensionCommand {
-                    package_name: pkg.clone(),
-                    event: Some(extension_command::Event::SongQueueChanged(
-                        extensions_proto::moosync::types::SongQueueChangedRequest {
-                            queue_state: Some(Default::default()),
-                        },
-                    )),
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
                 };
-                let resp = handler.handle_extension_command(cmd).await.unwrap();
-                assert!(matches!(
-                    resp.unwrap().response,
-                    Some(extension_command_response::Response::SongQueueChanged(_))
-                ));
+                let _res = ext
+                    .song_queue_changed(SongQueueChangedRequest {
+                        queue_state: Some(Default::default()),
+                    })
+                    .await
+                    .unwrap();
+
                 let cmds = captured_commands.lock().unwrap();
                 assert!(matches!(
                     cmds[0].command,
@@ -1238,17 +1135,15 @@ macro_rules! generate_sample_tests {
             #[tokio::test]
             async fn test_volume_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
-                let cmd = ExtensionCommand {
-                    package_name: pkg.clone(),
-                    event: Some(extension_command::Event::VolumeChanged(
-                        extensions_proto::moosync::types::VolumeChangedRequest { volume: 1.0 },
-                    )),
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
                 };
-                let resp = handler.handle_extension_command(cmd).await.unwrap();
-                assert!(matches!(
-                    resp.unwrap().response,
-                    Some(extension_command_response::Response::VolumeChanged(_))
-                ));
+                let _res = ext
+                    .volume_changed(VolumeChangedRequest { volume: 1.0 })
+                    .await
+                    .unwrap();
+
                 let cmds = captured_commands.lock().unwrap();
                 assert!(matches!(
                     cmds[0].command,
@@ -1259,19 +1154,17 @@ macro_rules! generate_sample_tests {
             #[tokio::test]
             async fn test_player_state_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
-                let cmd = ExtensionCommand {
-                    package_name: pkg.clone(),
-                    event: Some(extension_command::Event::PlayerStateChanged(
-                        extensions_proto::moosync::types::PlayerStateChangedRequest {
-                            state: extensions_proto::moosync::types::PlayerState::Playing.into(),
-                        },
-                    )),
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
                 };
-                let resp = handler.handle_extension_command(cmd).await.unwrap();
-                assert!(matches!(
-                    resp.unwrap().response,
-                    Some(extension_command_response::Response::PlayerStateChanged(_))
-                ));
+                let _res = ext
+                    .player_state_changed(PlayerStateChangedRequest {
+                        state: PlayerState::Playing.into(),
+                    })
+                    .await
+                    .unwrap();
+
                 let cmds = captured_commands.lock().unwrap();
                 assert!(matches!(
                     cmds[0].command,
@@ -1282,17 +1175,15 @@ macro_rules! generate_sample_tests {
             #[tokio::test]
             async fn test_song_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
-                let cmd = ExtensionCommand {
-                    package_name: pkg.clone(),
-                    event: Some(extension_command::Event::SongChanged(
-                        extensions_proto::moosync::types::SongChangedRequest { song: None },
-                    )),
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
                 };
-                let resp = handler.handle_extension_command(cmd).await.unwrap();
-                assert!(matches!(
-                    resp.unwrap().response,
-                    Some(extension_command_response::Response::SongChanged(_))
-                ));
+                let _res = ext
+                    .song_changed(SongChangedRequest { song: None })
+                    .await
+                    .unwrap();
+
                 let cmds = captured_commands.lock().unwrap();
                 assert!(matches!(
                     cmds[0].command,
@@ -1303,17 +1194,12 @@ macro_rules! generate_sample_tests {
             #[tokio::test]
             async fn test_seeked() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
-                let cmd = ExtensionCommand {
-                    package_name: pkg.clone(),
-                    event: Some(extension_command::Event::Seeked(
-                        extensions_proto::moosync::types::SeekedRequest { position: 10.0 },
-                    )),
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
                 };
-                let resp = handler.handle_extension_command(cmd).await.unwrap();
-                assert!(matches!(
-                    resp.unwrap().response,
-                    Some(extension_command_response::Response::Seeked(_))
-                ));
+                let _res = ext.seeked(SeekedRequest { position: 10.0 }).await.unwrap();
+
                 let cmds = captured_commands.lock().unwrap();
                 assert!(matches!(
                     cmds[0].command,

@@ -1,4 +1,21 @@
-use slint::{ComponentHandle, Model, ModelRc};
+// Moosync
+// Copyright (C) 2024, 2025  Moosync <support@moosync.app>
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+use extensions::ExtensionInfo;
+use slint::{ComponentHandle, ModelRc};
 use state_manager::StateManager;
 
 use crate::{MainWindow, pages::PageHandler};
@@ -16,19 +33,54 @@ impl<'a> ExtensionsPageHandler<'a> {
         }
     }
 
+    fn render_extensions(
+        main_window: &MainWindow,
+        extensions: Vec<ExtensionInfo>,
+        cache_dir: std::path::PathBuf,
+    ) {
+        let mut items: Vec<crate::ExtensionItem> = extensions
+            .into_iter()
+            .map(|ext| match ext {
+                ExtensionInfo::Local(detail) => crate::utils::to_extension_item(&detail),
+                ExtensionInfo::Remote(manifest) => {
+                    crate::utils::to_fetched_extension_item(&manifest)
+                }
+                ExtensionInfo::LocalPath(_) => unreachable!(),
+            })
+            .collect();
+
+        items.sort_by(|a, b| {
+            let rank = |item: &crate::ExtensionItem| {
+                if item.is_installed && item.active && !item.has_started {
+                    0 // Installing / spawning
+                } else if item.active {
+                    1 // Active and started
+                } else {
+                    2 // Inactive / disabled / remote
+                }
+            };
+            rank(a).cmp(&rank(b)).then_with(|| a.name.cmp(&b.name))
+        });
+
+        let theme = main_window.global::<crate::Theme>();
+        main_window.set_extensions(ModelRc::new(crate::utils::LazySongVecModel::new(
+            items,
+            theme.get_extensionListItemHeight() as usize,
+            theme.get_extensionListItemWidth() as usize,
+            cache_dir,
+        )));
+    }
+
     fn setup_callbacks(&self) {
         self.main_window
             .global::<crate::AppCallbacks>()
             .on_toggle_extension({
                 let state_manager = self.state_manager.clone();
-                let main_window_weak = self.main_window.as_weak();
                 move |package_name| {
                     let package_name = package_name.to_string();
-                    let main_window_weak = main_window_weak.clone();
                     let state_manager = state_manager.clone();
                     tokio::spawn(async move {
-                        handle_toggle_extension(package_name, main_window_weak, state_manager)
-                            .await;
+                        Self::handle_toggle_extension(package_name, state_manager).await;
                     });
                 }
             });
@@ -37,281 +89,111 @@ impl<'a> ExtensionsPageHandler<'a> {
             .global::<crate::AppCallbacks>()
             .on_install_extension({
                 let state_manager = self.state_manager.clone();
-                let main_window_weak = self.main_window.as_weak();
                 move |file_path| {
                     let file_path = file_path.to_string();
-                    let main_window_weak = main_window_weak.clone();
                     let state_manager = state_manager.clone();
                     tokio::spawn(async move {
-                        install_local_extension(file_path, main_window_weak, state_manager).await;
+                        Self::install_local_extension(file_path, state_manager).await;
                     });
                 }
             });
+    }
+
+    async fn handle_toggle_extension(package_name: String, state_manager: StateManager) {
+        tracing::info!("handle_toggle_extension: {}", package_name);
+        let handler = state_manager.get_extension_handler().await;
+        let extensions = handler.get_all_extensions();
+        let ext_info = extensions.into_iter().find(|ext| match ext {
+            ExtensionInfo::Local(detail) => detail.package_name == package_name,
+            ExtensionInfo::Remote(manifest) => manifest.package_name == package_name,
+            _ => false,
+        });
+
+        if let Some(info) = ext_info {
+            match info {
+                ExtensionInfo::Local(_) => {
+                    if let Err(e) = handler.toggle_extension(info) {
+                        tracing::error!("handle_toggle_extension: Failed to toggle: {:?}", e);
+                    }
+                }
+                ExtensionInfo::Remote(_) => {
+                    if let Err(e) = handler.install_extension(info).await {
+                        tracing::error!(
+                            "handle_toggle_extension: Failed to install remote extension: {:?}",
+                            e
+                        );
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    async fn install_local_extension(file_path: String, state_manager: StateManager) {
+        tracing::info!("install_local_extension: {}", file_path);
+        let handler = state_manager.get_extension_handler().await;
+        let info = ExtensionInfo::LocalPath(std::path::PathBuf::from(file_path));
+        match handler.install_extension(info).await {
+            Ok(_) => tracing::info!("install_local_extension: Installed successfully"),
+            Err(e) => tracing::error!("install_local_extension: Failed: {:?}", e),
+        }
     }
 }
 
 impl<'a> PageHandler for ExtensionsPageHandler<'a> {
     fn initialize(&self) {
-        tracing::info!("ExtensionsPageHandler: Initializing settings page handler");
+        tracing::info!("ExtensionsPageHandler: Initializing");
         self.setup_callbacks();
 
-        self.state_manager.on_extensions_updated({
-            let main_window_weak = self.main_window.as_weak();
-            let state_manager = self.state_manager.clone();
-            move |_| {
-                let main_window_weak = main_window_weak.clone();
+        let state_manager = self.state_manager.clone();
+        let main_window_weak = self.main_window.as_weak();
+        tokio::spawn(async move {
+            let handler = state_manager.get_extension_handler().await;
+            let _cancel = handler.on_extensions_updated({
                 let state_manager = state_manager.clone();
-                refresh_extensions_list(main_window_weak, state_manager);
-            }
+                let main_window_weak = main_window_weak.clone();
+                move |_| {
+                    let state_manager = state_manager.clone();
+                    let main_window_weak = main_window_weak.clone();
+                    tokio::spawn(async move {
+                        let handler = state_manager.get_extension_handler().await;
+                        if let Err(e) = handler.get_extension_manifest().await {
+                            tracing::error!(
+                                "on_extensions_updated: failed to refresh remote manifests: {:?}",
+                                e
+                            );
+                        }
+                        let extensions = handler.get_all_extensions();
+                        let cache_dir = state_manager.get_cache_dir();
+                        let _ = slint::invoke_from_event_loop(move || {
+                            if let Some(main_window) = main_window_weak.upgrade() {
+                                Self::render_extensions(&main_window, extensions, cache_dir);
+                            }
+                        });
+                    });
+                }
+            });
         });
-
-        refresh_extensions_list(self.main_window.as_weak(), self.state_manager.clone());
     }
 
     fn on_show(&self) {
-        tracing::info!("ExtensionsPageHandler: on_show triggered");
-        refresh_extensions_list(self.main_window.as_weak(), self.state_manager.clone());
+        tracing::info!("ExtensionsPageHandler: on_show");
+        let state_manager = self.state_manager.clone();
+        let main_window_weak = self.main_window.as_weak();
+        tokio::spawn(async move {
+            let cache_dir = state_manager.get_cache_dir();
+            let handler = state_manager.get_extension_handler().await;
+            let extensions = handler.get_all_extensions();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(main_window) = main_window_weak.upgrade() {
+                    Self::render_extensions(&main_window, extensions, cache_dir);
+                }
+            });
+        });
     }
 
     fn on_hide(&self) {
-        tracing::info!("ExtensionsPageHandler: on_hide triggered");
+        tracing::info!("ExtensionsPageHandler: on_hide");
+        self.main_window.set_extensions(ModelRc::default());
     }
-}
-
-async fn install_local_extension(
-    file_path: String,
-    main_window_weak: slint::Weak<crate::MainWindow>,
-    state_manager: StateManager,
-) {
-    tracing::info!("install_local_extension: Installing from {}", file_path);
-    let handler = state_manager.get_extension_handler().await;
-    match handler.inner.install_extension(file_path) {
-        Ok(_) => {
-            tracing::info!("install_local_extension: Successfully installed");
-            refresh_extensions_list(main_window_weak, state_manager);
-        }
-        Err(e) => {
-            tracing::error!("install_local_extension: Failed to install: {:?}", e);
-        }
-    }
-}
-
-async fn get_extension_ui_details(
-    package_name: &str,
-    main_window_weak: &slint::Weak<crate::MainWindow>,
-) -> Option<(bool, bool)> {
-    let (tx, rx) = tokio::sync::oneshot::channel::<(bool, bool)>();
-    let package_name = package_name.to_string();
-    let main_window_weak = main_window_weak.clone();
-    let _ = slint::invoke_from_event_loop(move || {
-        if let Some(main_window) = main_window_weak.upgrade() {
-            let model = main_window.get_extensions();
-            for item in model.iter() {
-                if item.package_name.as_str() == package_name {
-                    let _ = tx.send((item.is_installed, item.active));
-                    return;
-                }
-            }
-        }
-    });
-    rx.await.ok()
-}
-
-fn set_extension_loading_in_ui(
-    package_name: String,
-    main_window_weak: slint::Weak<crate::MainWindow>,
-) {
-    let _ = slint::invoke_from_event_loop(move || {
-        if let Some(main_window) = main_window_weak.upgrade() {
-            let model = main_window.get_extensions();
-            for (row, item) in model.iter().enumerate() {
-                if item.package_name.as_str() == package_name {
-                    let mut new_item = item.clone();
-                    new_item.loading = true;
-                    model.set_row_data(row, new_item);
-                    break;
-                }
-            }
-        }
-    });
-}
-
-async fn download_and_install_remote(
-    package_name: String,
-    main_window_weak: slint::Weak<crate::MainWindow>,
-    state_manager: StateManager,
-) {
-    tracing::info!("download_and_install_remote: Downloading {}", package_name);
-    set_extension_loading_in_ui(package_name.clone(), main_window_weak.clone());
-
-    let handler = state_manager.get_extension_handler().await;
-    let manifest = handler
-        .inner
-        .get_cached_remote_manifests()
-        .into_iter()
-        .find(|m| m.package_name == package_name);
-
-    if let Some(manifest) = manifest {
-        match handler.inner.download_extension(manifest).await {
-            Ok(_) => {
-                let _ = handler
-                    .inner
-                    .set_extension_active(package_name.clone(), true);
-            }
-            Err(e) => {
-                tracing::error!("Failed to download and install extension: {:?}", e);
-            }
-        }
-    } else {
-        tracing::error!("No manifest found in cache for {}", package_name);
-    }
-    refresh_extensions_list(main_window_weak, state_manager);
-}
-
-async fn toggle_installed_active(
-    package_name: String,
-    active: bool,
-    main_window_weak: slint::Weak<crate::MainWindow>,
-    state_manager: StateManager,
-) {
-    let new_active = !active;
-    tracing::info!(
-        "Setting active = {} for extension {}",
-        new_active,
-        package_name
-    );
-    let handler = state_manager.get_extension_handler().await;
-    match handler
-        .inner
-        .set_extension_active(package_name.clone(), new_active)
-    {
-        Ok(_) => {
-            refresh_extensions_list(main_window_weak, state_manager);
-        }
-        Err(e) => {
-            tracing::error!("Failed to toggle extension active state: {:?}", e);
-        }
-    }
-}
-
-async fn handle_toggle_extension(
-    package_name: String,
-    main_window_weak: slint::Weak<crate::MainWindow>,
-    state_manager: StateManager,
-) {
-    tracing::info!(
-        "handle_toggle_extension: Requested toggle for {}",
-        package_name
-    );
-    let (is_installed, active) =
-        match get_extension_ui_details(&package_name, &main_window_weak).await {
-            Some(res) => res,
-            None => {
-                tracing::error!("Failed to get extension details from event loop");
-                return;
-            }
-        };
-
-    if is_installed {
-        toggle_installed_active(package_name, active, main_window_weak, state_manager).await;
-    } else {
-        download_and_install_remote(package_name, main_window_weak, state_manager).await;
-    }
-}
-
-fn sort_extension_items(vector: &mut Vec<crate::ExtensionItem>) {
-    vector.sort_by(|a, b| {
-        let rank = |item: &crate::ExtensionItem| {
-            if item.is_installed && item.active && !item.has_started {
-                0 // Installing / Spawning
-            } else if item.active {
-                1 // Active & started
-            } else {
-                2 // Inactive / disabled / remote
-            }
-        };
-        rank(a).cmp(&rank(b)).then_with(|| a.name.cmp(&b.name))
-    });
-}
-
-fn render_extensions_ui(
-    main_window_weak: slint::Weak<crate::MainWindow>,
-    installed: Vec<extensions_proto::moosync::types::ExtensionDetail>,
-    remote: Vec<extensions_proto::moosync::types::FetchedExtensionManifest>,
-    cache_dir: std::path::PathBuf,
-) {
-    let _ = slint::invoke_from_event_loop(move || {
-        if let Some(main_window) = main_window_weak.upgrade() {
-            let mut extensions_vector = Vec::new();
-            for ext in &installed {
-                extensions_vector.push(crate::utils::to_extension_item(ext));
-            }
-            for ext in &remote {
-                if !installed.iter().any(|i| i.package_name == ext.package_name) {
-                    extensions_vector.push(crate::utils::to_fetched_extension_item(ext));
-                }
-            }
-            sort_extension_items(&mut extensions_vector);
-            let theme = main_window.global::<crate::Theme>();
-            let model = ModelRc::new(crate::utils::LazySongVecModel::new(
-                extensions_vector,
-                theme.get_extensionListItemHeight() as usize,
-                theme.get_extensionListItemWidth() as usize,
-                cache_dir,
-            ));
-            main_window.set_extensions(model);
-        }
-    });
-}
-
-async fn load_and_render_initial_list(
-    main_window_weak: slint::Weak<crate::MainWindow>,
-    state_manager: StateManager,
-) {
-    let handler = state_manager.get_extension_handler().await;
-    let installed = handler
-        .inner
-        .get_installed_extensions()
-        .unwrap_or_else(|e| {
-            tracing::error!("Failed to get installed extensions: {:?}", e);
-            vec![]
-        });
-    let cached_remote = handler.inner.get_cached_remote_manifests();
-    let cache_dir = state_manager.get_cache_dir();
-
-    render_extensions_ui(main_window_weak, installed, cached_remote, cache_dir);
-}
-
-async fn fetch_and_render_network_list(
-    main_window_weak: slint::Weak<crate::MainWindow>,
-    state_manager: StateManager,
-) {
-    let handler = state_manager.get_extension_handler().await;
-    let remote = match handler.inner.get_extension_manifest().await {
-        Ok(exts) => exts,
-        Err(e) => {
-            tracing::error!("Failed to fetch remote extensions from network: {:?}", e);
-            return;
-        }
-    };
-    let installed = handler
-        .inner
-        .get_installed_extensions()
-        .unwrap_or_else(|e| {
-            tracing::error!("Failed to get installed extensions post-fetch: {:?}", e);
-            vec![]
-        });
-    let cache_dir = state_manager.get_cache_dir();
-    render_extensions_ui(main_window_weak, installed, remote, cache_dir);
-}
-
-fn refresh_extensions_list(
-    main_window_weak: slint::Weak<crate::MainWindow>,
-    state_manager: StateManager,
-) {
-    tracing::info!("refresh_extensions_list: Starting reload");
-    tokio::spawn(async move {
-        load_and_render_initial_list(main_window_weak.clone(), state_manager.clone()).await;
-        fetch_and_render_network_list(main_window_weak, state_manager).await;
-    });
 }

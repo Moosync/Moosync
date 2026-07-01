@@ -20,7 +20,7 @@ use std::{
     io::Write,
     path::PathBuf,
     str::FromStr,
-    sync::Arc,
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
 
 use ext_runner::ExtensionHandlerInner;
@@ -29,17 +29,20 @@ use extensions_proto::moosync::types::{
     FetchedExtensionManifest, PackageName,
 };
 use fs_extra::dir::CopyOptions;
-use futures::{StreamExt, lock::Mutex};
+use futures::StreamExt;
 use serde_json::Value;
 use ui_proto::moosync::types::PreferenceUiData;
 use zip_extensions::zip_extract;
 
-use crate::errors::ExtensionError;
+pub use crate::{errors::ExtensionError, extension::Extension};
 
 mod context;
 pub use context::ReplyHandler;
 mod errors;
 mod ext_runner;
+mod extension;
+mod remote;
+pub use remote::RemoteExtensions;
 pub mod models;
 
 #[cfg(test)]
@@ -47,27 +50,41 @@ mod sample_tests;
 #[cfg(test)]
 mod tests;
 
+#[derive(Debug, Clone)]
+pub enum ExtensionInfo {
+    Local(ExtensionDetail),
+    Remote(FetchedExtensionManifest),
+    LocalPath(std::path::PathBuf),
+}
+
 pub struct ExtensionHandler {
     pub extensions_dir: PathBuf,
     pub tmp_dir: PathBuf,
     pub cache_dir: PathBuf,
-    inner: Arc<ExtensionHandlerInner>,
+    inner: ExtensionHandlerInner,
     reply_handler: Option<Arc<dyn ReplyHandler>>,
+    pub on_extensions_updated:
+        types::subscription::SubscriberList<Box<dyn Fn(()) + Send + Sync + 'static>>,
+    remote: RemoteExtensions,
 }
+
+types::generate_on_event_impl!(
+    ExtensionHandler;
+    on_extensions_updated, ();
+);
 
 #[plugin_macro::generate]
 impl ExtensionHandler {
     #[tracing::instrument(level = "debug")]
     pub fn new(extensions_dir: PathBuf, tmp_dir: PathBuf, cache_dir: PathBuf) -> Self {
         Self {
-            inner: Arc::new(ExtensionHandlerInner::new(
-                extensions_dir.clone(),
-                cache_dir.clone(),
-            )),
-            extensions_dir,
-            tmp_dir,
+            inner: ExtensionHandlerInner::new(extensions_dir.clone(), cache_dir.clone()),
+            extensions_dir: extensions_dir.clone(),
+            tmp_dir: tmp_dir.clone(),
             cache_dir,
             reply_handler: None,
+            on_extensions_updated: types::subscription::SubscriberList::new(),
+            remote: RemoteExtensions::new(extensions_dir, tmp_dir),
         }
     }
 
@@ -75,11 +92,7 @@ impl ExtensionHandler {
         self.reply_handler = Some(reply_handler);
     }
 
-    pub fn trigger_extensions_updated(&self) {
-        if let Some(ref reply_handler) = self.reply_handler {
-            let _ = reply_handler.extensions_updated("");
-        }
-    }
+    pub fn trigger_extensions_updated(&self) { self.on_extensions_updated.run_all(|cb| cb(())); }
 
     #[tracing::instrument(level = "debug", skip(self, ext_path))]
     fn get_extension_version(&self, ext_path: PathBuf) -> Result<String, ExtensionError> {
@@ -101,10 +114,25 @@ impl ExtensionHandler {
         )?)
     }
 
-    #[tracing::instrument(level = "debug", skip(self, ext_path))]
-    pub fn install_extension(&self, ext_path: String) -> Result<(), ExtensionError> {
-        tracing::debug!("ext path {}", ext_path);
-        let ext_path = PathBuf::from_str(&ext_path).unwrap();
+    pub fn get_extension(&self, package_name: &str) -> Result<Arc<Extension>, ExtensionError> {
+        Ok(self.inner.get_extension(package_name)?)
+    }
+
+    pub fn get_extension_mut(&self, package_name: &str) -> Result<Arc<Extension>, ExtensionError> {
+        Ok(self.inner.get_extension(package_name)?)
+    }
+
+    #[tracing::instrument(level = "debug", skip(self, info))]
+    pub async fn install_extension(&self, info: ExtensionInfo) -> Result<(), ExtensionError> {
+        let ext_path = match info {
+            ExtensionInfo::Local(_) => {
+                return Ok(());
+            }
+            ExtensionInfo::Remote(manifest) => self.remote.download_extension(manifest).await?,
+            ExtensionInfo::LocalPath(path) => path,
+        };
+
+        tracing::debug!("ext path {:?}", ext_path);
 
         let tmp_dir = self
             .tmp_dir
@@ -161,50 +189,56 @@ impl ExtensionHandler {
         )?;
 
         self.find_new_extensions()?;
+        self.trigger_extensions_updated();
 
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip(self, package_name))]
-    pub fn remove_extension(&self, package_name: String) -> Result<(), ExtensionError> {
+    pub fn remove_extension(&mut self, package_name: String) -> Result<(), ExtensionError> {
         let ext_path = self.extensions_dir.join(package_name.clone());
         if ext_path.exists() {
             fs::remove_dir_all(ext_path)?;
             self.send_remove_extension(PackageName { package_name })?;
             self.find_new_extensions()?;
+            self.trigger_extensions_updated();
             Ok(())
         } else {
             Err(ExtensionError::NoExtensionFound)
         }
     }
 
-    #[tracing::instrument(level = "debug", skip(self, fetched_ext))]
-    pub async fn download_extension(
-        &self,
-        fetched_ext: FetchedExtensionManifest,
-    ) -> Result<(), ExtensionError> {
-        let parsed_url = fetched_ext.url;
-        let file_path = self.tmp_dir.join(format!(
-            "{}-{}.msox",
-            fetched_ext.package_name,
-            uuid::Uuid::new_v4()
-        ));
+    pub fn toggle_extension(&self, info: ExtensionInfo) -> Result<(), ExtensionError> {
+        if let ExtensionInfo::Local(detail) = info {
+            let extension = self.get_extension(&detail.package_name)?;
+            let new_active = !extension.is_active();
+            extension.set_active(new_active)?;
+            self.trigger_extensions_updated();
+            Ok(())
+        } else {
+            Err(ExtensionError::NoExtensionFound)
+        }
+    }
 
-        tracing::info!("parsed url {}. Saving at {:?}", parsed_url, file_path);
+    pub fn get_all_extensions(&self) -> Vec<ExtensionInfo> {
+        let installed = self.get_installed_extensions();
+        let remote = self.get_cached_remote_manifests();
 
-        let mut stream = reqwest::get(parsed_url).await?.bytes_stream();
-        let mut file = File::create(file_path.clone())?;
-
-        while let Some(chunk_result) = stream.next().await {
-            let chunk = chunk_result?;
-            file.write_all(&chunk)?;
+        let mut ret = vec![];
+        for inst in installed {
+            ret.push(ExtensionInfo::Local(inst));
         }
 
-        tracing::info!("Wrote file");
+        for rem in remote {
+            if !ret.iter().any(|item| match item {
+                ExtensionInfo::Local(detail) => detail.package_name == rem.package_name,
+                _ => false,
+            }) {
+                ret.push(ExtensionInfo::Remote(rem));
+            }
+        }
 
-        self.install_extension(file_path.to_string_lossy().to_string())?;
-
-        Ok(())
+        ret
     }
 
     fn send_remove_extension(&self, package_name: PackageName) -> Result<(), ExtensionError> {
@@ -219,51 +253,8 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    pub fn get_installed_extensions(&self) -> Result<Vec<ExtensionDetail>, ExtensionError> {
-        Ok(self.inner.get_installed_extensions())
-    }
-
-    pub fn get_extension_icon(&self, package_name: String) -> Result<String, ExtensionError> {
-        self.inner
-            .get_extension_icon(&package_name)
-            .ok_or_else(|| ExtensionError::NoExtensionIconFound(package_name))
-    }
-
-    pub fn register_ui_preferences(
-        &self,
-        package_name: String,
-        prefs: Vec<PreferenceUiData>,
-    ) -> Result<(), ExtensionError> {
-        self.inner.register_ui_preferences(package_name, prefs)
-    }
-
-    pub fn unregister_ui_preferences(
-        &self,
-        package_name: String,
-        pref_keys: Vec<String>,
-    ) -> Result<(), ExtensionError> {
-        self.inner
-            .unregister_ui_preferences(package_name, pref_keys)
-    }
-
-    pub async fn send_extension_command(
-        &self,
-        command: ExtensionCommand,
-    ) -> Result<Option<ExtensionCommandResponse>, ExtensionError> {
-        tracing::trace!("Sending extension command {:?}", command);
-
-        self.inner.handle_extension_command(command).await
-    }
-
-    pub fn set_extension_active(
-        &self,
-        package_name: String,
-        active: bool,
-    ) -> Result<(), ExtensionError> {
-        let reply_handler = self.reply_handler.clone().expect("Reply handler not set");
-        self.inner
-            .set_extension_active(&package_name, active, reply_handler)?;
-        Ok(())
+    pub fn get_installed_extensions(&self) -> Vec<ExtensionDetail> {
+        self.inner.get_installed_extensions()
     }
 
     pub fn get_cached_remote_manifests(&self) -> Vec<FetchedExtensionManifest> {
@@ -282,74 +273,7 @@ impl ExtensionHandler {
     pub async fn get_extension_manifest(
         &self,
     ) -> Result<Vec<FetchedExtensionManifest>, ExtensionError> {
-        #[derive(serde::Deserialize, Debug, Clone)]
-        struct GithubReleaseAsset {
-            browser_download_url: String,
-            name: String,
-        }
-
-        #[derive(serde::Deserialize, Debug)]
-        struct GithubReleasesResp {
-            assets: Vec<GithubReleaseAsset>,
-        }
-
-        #[derive(serde::Deserialize, Debug)]
-        #[serde(rename_all = "camelCase")]
-        struct ExtensionManifestItem {
-            display_name: String,
-            version: String,
-            icon: Option<String>,
-            _permissions: HashMap<String, Value>,
-        }
-
-        tracing::info!("Getting extension manifest");
-        let client = reqwest::Client::new();
-        let res = client.get(
-            "https://api.github.com/repos/Moosync/moosync-exts/releases/latest",
-        )
-        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
-        .header("Accept", "application/json")
-        .send()
-        .await?;
-        let releases_resp = res.json::<GithubReleasesResp>().await?;
-
-        let mut ret = vec![];
-        for item in releases_resp.assets.clone() {
-            if item.name == "manifest.json" {
-                let res = client.get(&item.browser_download_url).header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
-                        .header("Accept", "application/json")
-                        .send().await?;
-
-                let bytes = res.bytes().await?;
-                let manifests: HashMap<String, ExtensionManifestItem> =
-                    serde_json::from_slice(&bytes)?;
-                for (package_name, manifest) in manifests {
-                    let asset = releases_resp.assets.iter().find(|asset| {
-                        asset.name.starts_with(package_name.as_str())
-                            && asset.name.ends_with(".msox")
-                    });
-                    if let Some(asset) = asset {
-                        let logo_url = manifest.icon.map(|icon| format!("https://raw.githubusercontent.com/Moosync/moosync-exts/refs/heads/v2/{}", icon));
-                        ret.push(FetchedExtensionManifest {
-                            name: manifest.display_name,
-                            package_name,
-                            logo: logo_url,
-                            description: None,
-                            url: asset.browser_download_url.clone(),
-                            version: manifest.version,
-                        })
-                    }
-                }
-                break;
-            }
-        }
-
-        let path = self.extensions_dir.join("remote_manifest_cache.json");
-        if let Ok(contents) = serde_json::to_vec(&ret) {
-            let _ = fs::write(path, contents);
-        }
-
-        Ok(ret)
+        self.remote.get_extension_manifest().await
     }
 }
 

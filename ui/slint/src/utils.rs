@@ -888,3 +888,61 @@ fn blur_and_save(path: &Path, blurred_path: &Path) -> Option<()> {
     let _ = blurred.save(blurred_path);
     Some(())
 }
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn parse_color(val: &str) -> Option<slint::Color> {
+    let val = val.trim();
+    if val.starts_with('#') {
+        let hex = &val[1..];
+        match hex.len() {
+            6 => {
+                let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+                let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+                let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+                Some(slint::Color::from_rgb_u8(r, g, b))
+            }
+            8 => {
+                let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
+                let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
+                let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
+                let a = u8::from_str_radix(&hex[6..8], 16).ok()?;
+                Some(slint::Color::from_argb_u8(a, r, g, b))
+            }
+            _ => None,
+        }
+    } else if val.starts_with("rgb") {
+        let start = val.find('(')? + 1;
+        let end = val.rfind(')')?;
+        let parts: Vec<&str> = val[start..end].split(',').map(|s| s.trim()).collect();
+        if parts.len() >= 3 {
+            let r = parts[0].parse::<f32>().ok()? as u8;
+            let g = parts[1].parse::<f32>().ok()? as u8;
+            let b = parts[2].parse::<f32>().ok()? as u8;
+            if parts.len() == 4 {
+                let a = parts[3].parse::<f32>().ok()?;
+                Some(slint::Color::from_argb_f32(
+                    a,
+                    r as f32 / 255.0,
+                    g as f32 / 255.0,
+                    b as f32 / 255.0,
+                ))
+            } else {
+                Some(slint::Color::from_rgb_u8(r, g, b))
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn parse_length(val: &str) -> Option<f32> {
+    let val = val.trim();
+    if val.ends_with("px") {
+        val[..val.len() - 2].parse::<f32>().ok()
+    } else {
+        val.parse::<f32>().ok()
+    }
+}

@@ -118,8 +118,8 @@ impl<'a> QueuePageHandler<'a> {
 
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = main_window_weak.upgrade() {
-                    update_ui_queue(&main_window, &queue, cache_dir);
-                    update_ui_blurred_cover(&main_window, &blurred_path);
+                    Self::update_ui_queue(&main_window, &queue, cache_dir);
+                    Self::update_ui_blurred_cover(&main_window, &blurred_path);
                 }
             });
         });
@@ -161,7 +161,7 @@ impl<'a> QueuePageHandler<'a> {
 
                     let _ = slint::invoke_from_event_loop(move || {
                         if let Some(main_window) = mw_weak.upgrade() {
-                            update_ui_blurred_cover(&main_window, &blurred_path);
+                            Self::update_ui_blurred_cover(&main_window, &blurred_path);
                         }
                     });
                 });
@@ -176,7 +176,7 @@ impl<'a> QueuePageHandler<'a> {
                 let cache_dir = cache_dir_queue.clone();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = mw_weak.upgrade() {
-                        update_ui_queue(&main_window, &queue_cloned, cache_dir);
+                        Self::update_ui_queue(&main_window, &queue_cloned, cache_dir);
                     }
                 });
             });
@@ -185,35 +185,38 @@ impl<'a> QueuePageHandler<'a> {
             *cancel_handles.lock().unwrap() = handles;
         });
     }
-}
 
-#[tracing::instrument(level = "debug", skip_all)]
-fn update_ui_queue(
-    main_window: &MainWindow,
-    queue: &[songs_proto::moosync::types::Song],
-    cache_dir: std::path::PathBuf,
-) {
-    let queue_models: Vec<crate::SongModel> =
-        queue.iter().map(crate::utils::to_song_model).collect();
-    let theme = main_window.global::<crate::Theme>();
-    main_window.set_queue(slint::ModelRc::new(crate::utils::LazySongVecModel::new(
-        queue_models,
-        theme.get_songListItemHeight() as usize,
-        theme.get_songListItemWidth() as usize,
-        cache_dir,
-    )));
-}
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_ui_queue(
+        main_window: &MainWindow,
+        queue: &[songs_proto::moosync::types::Song],
+        cache_dir: std::path::PathBuf,
+    ) {
+        let queue_models: Vec<crate::SongModel> =
+            queue.iter().map(crate::utils::to_song_model).collect();
+        let theme = main_window.global::<crate::Theme>();
+        main_window.set_queue(slint::ModelRc::new(crate::utils::LazySongVecModel::new(
+            queue_models,
+            theme.get_songListItemHeight() as usize,
+            theme.get_songListItemWidth() as usize,
+            cache_dir,
+        )));
+    }
 
-#[tracing::instrument(level = "debug", skip_all)]
-fn update_ui_blurred_cover(main_window: &MainWindow, blurred_path: &Option<std::path::PathBuf>) {
-    let blurred_cover = if let Some(path) = blurred_path {
-        slint::Image::load_from_path(path).unwrap_or_else(|_| {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_ui_blurred_cover(
+        main_window: &MainWindow,
+        blurred_path: &Option<std::path::PathBuf>,
+    ) {
+        let blurred_cover = if let Some(path) = blurred_path {
+            slint::Image::load_from_path(path).unwrap_or_else(|_| {
+                slint::Image::load_from_svg_data(crate::utils::DEFAULT_SONG_SVG).unwrap()
+            })
+        } else {
             slint::Image::load_from_svg_data(crate::utils::DEFAULT_SONG_SVG).unwrap()
-        })
-    } else {
-        slint::Image::load_from_svg_data(crate::utils::DEFAULT_SONG_SVG).unwrap()
-    };
-    main_window.set_blurred_cover(blurred_cover);
+        };
+        main_window.set_blurred_cover(blurred_cover);
+    }
 }
 
 impl<'a> PageHandler for QueuePageHandler<'a> {

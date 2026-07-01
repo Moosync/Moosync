@@ -1,7 +1,7 @@
 use slint::ComponentHandle;
 use state_manager::StateManager;
 
-use crate::{MainWindow, PreferenceChange, pages::PageHandler};
+use crate::{MainWindow, PreferenceChange};
 
 pub mod extensions;
 pub mod paths;

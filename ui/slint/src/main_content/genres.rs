@@ -1,17 +1,13 @@
-use std::sync::{Arc, Mutex};
-
-use slint::{ComponentHandle, ModelRc, Weak};
+use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{Genre, GenreList, GetEntityOptions, entity_result};
 use state_manager::StateManager;
 use tracing::debug;
-use types::ScanProgress;
 
 use crate::{MainWindow, Pages, error::UiError, pages::PageHandler, utils::LazySongVecModel};
 
 pub struct GenresPageHandler<'a> {
     main_window: &'a MainWindow,
     state_manager: &'a StateManager,
-    genres: Arc<Mutex<Vec<Genre>>>,
 }
 
 impl<'a> GenresPageHandler<'a> {
@@ -20,112 +16,66 @@ impl<'a> GenresPageHandler<'a> {
         Self {
             main_window,
             state_manager,
-            genres: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_scanner_cb(&self) {
-        let main_window_weak = self.main_window.as_weak();
-        let state_manager = self.state_manager.clone();
-        let genres_cache = Arc::clone(&self.genres);
-        tokio::task::spawn(async move {
-            run_scanner_loop(main_window_weak, state_manager, genres_cache).await;
-        });
-        debug!("Scanner callback set");
-    }
-}
+    async fn get_genres_from_db(state_manager: &StateManager) -> Result<Vec<Genre>, UiError> {
+        let database = state_manager.get_database().await;
+        let genres_res = database.get_entity_by_options(GetEntityOptions {
+            genre: Some(Genre::default()),
+            ..Default::default()
+        })?;
 
-#[tracing::instrument(level = "debug", skip_all)]
-async fn run_scanner_loop(
-    main_window_weak: Weak<MainWindow>,
-    state_manager: StateManager,
-    genres_cache: Arc<Mutex<Vec<Genre>>>,
-) {
-    let mut progress = {
-        let scanner = state_manager.get_scanner_holder().await;
-        scanner.add_subscriber()
-    };
-
-    while let Some(p) = progress.recv().await {
-        if p == ScanProgress::STOPPED {
-            fetch_and_cache_genres(
-                main_window_weak.clone(),
-                state_manager.clone(),
-                genres_cache.clone(),
-            )
-            .await;
+        match genres_res.result {
+            Some(entity_result::Result::Genres(GenreList { genres })) => Ok(genres),
+            _ => Err(UiError::EntityParseFailed),
         }
     }
-}
 
-#[tracing::instrument(level = "debug", skip_all)]
-async fn get_genres_from_db(state_manager: &StateManager) -> Result<Vec<Genre>, UiError> {
-    let database = state_manager.get_database().await;
-    let genres_res = database.get_entity_by_options(GetEntityOptions {
-        genre: Some(Genre::default()),
-        ..Default::default()
-    })?;
-
-    match genres_res.result {
-        Some(entity_result::Result::Genres(GenreList { genres })) => Ok(genres),
-        _ => Err(UiError::EntityParseFailed),
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn fetch_genres(state_manager: &StateManager) -> Result<Vec<Genre>, UiError> {
+        Self::get_genres_from_db(state_manager).await
     }
-}
 
-#[tracing::instrument(level = "debug", skip_all)]
-async fn fetch_and_cache_genres(
-    main_window_weak: Weak<MainWindow>,
-    state_manager: StateManager,
-    genres_cache: Arc<Mutex<Vec<Genre>>>,
-) {
-    if let Ok(genres) = get_genres_from_db(&state_manager).await {
-        *genres_cache.lock().unwrap() = genres.clone();
-        let cache_dir = state_manager.get_cache_dir();
-        let _ = slint::invoke_from_event_loop(move || {
-            if let Some(main_window) = main_window_weak.upgrade() {
-                if main_window.get_active_page() == Pages::Genres {
-                    set_all_genres(&main_window, genres, cache_dir);
-                }
-            }
-        });
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_genres(main_window: &MainWindow, genres: Vec<Genre>, cache_dir: std::path::PathBuf) {
+        debug!("Setting genres");
+        let genre_model = genres
+            .into_iter()
+            .map(|genre| crate::utils::to_genre_model(&genre))
+            .collect::<Vec<_>>();
+
+        let theme = main_window.global::<crate::Theme>();
+        main_window.set_genres(ModelRc::new(LazySongVecModel::new(
+            genre_model,
+            theme.get_cardHeight() as usize,
+            theme.get_cardWidth() as usize,
+            cache_dir,
+        )));
     }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn set_all_genres(main_window: &MainWindow, genres: Vec<Genre>, cache_dir: std::path::PathBuf) {
-    debug!("Setting genres");
-    let genre_model = genres
-        .into_iter()
-        .map(|genre| crate::utils::to_genre_model(&genre))
-        .collect::<Vec<_>>();
-
-    let theme = main_window.global::<crate::Theme>();
-    main_window.set_genres(ModelRc::new(LazySongVecModel::new(
-        genre_model,
-        theme.get_cardHeight() as usize,
-        theme.get_cardWidth() as usize,
-        cache_dir,
-    )));
 }
 
 impl<'a> PageHandler for GenresPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn initialize(&self) {
-        self.set_scanner_cb();
-        let state_manager = self.state_manager.clone();
-        let main_window_weak = self.main_window.as_weak();
-        let genres_cache = Arc::clone(&self.genres);
-        tokio::spawn(async move {
-            fetch_and_cache_genres(main_window_weak, state_manager, genres_cache).await;
-        });
-    }
+    fn initialize(&self) {}
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
-        let genres = self.genres.lock().unwrap().clone();
-        let cache_dir = self.state_manager.get_cache_dir();
-        set_all_genres(self.main_window, genres, cache_dir);
+        let state_manager = self.state_manager.clone();
+        let main_window_weak = self.main_window.as_weak();
+        tokio::spawn(async move {
+            if let Ok(genres) = Self::fetch_genres(&state_manager).await {
+                let cache_dir = state_manager.get_cache_dir();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(main_window) = main_window_weak.upgrade() {
+                        if main_window.get_active_page() == Pages::Genres {
+                            Self::set_genres(&main_window, genres, cache_dir);
+                        }
+                    }
+                });
+            }
+        });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

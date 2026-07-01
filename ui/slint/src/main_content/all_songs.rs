@@ -1,17 +1,13 @@
-use std::sync::{Arc, Mutex};
-
-use slint::{ComponentHandle, ModelRc, Weak};
+use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song};
 use state_manager::StateManager;
 use tracing::debug;
-use types::ScanProgress;
 
 use crate::{MainWindow, Pages, error::UiError, pages::PageHandler, utils::LazySongVecModel};
 
 pub struct AllSongsPageHandler<'a> {
     main_window: &'a MainWindow,
     state_manager: &'a StateManager,
-    songs: Arc<Mutex<Vec<Song>>>,
 }
 
 impl<'a> AllSongsPageHandler<'a> {
@@ -20,113 +16,62 @@ impl<'a> AllSongsPageHandler<'a> {
         Self {
             main_window,
             state_manager,
-            songs: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_scanner_cb(&self) {
-        let main_window_weak = self.main_window.as_weak();
-        let state_manager = self.state_manager.clone();
-        let songs_cache = Arc::clone(&self.songs);
-        tokio::task::spawn(async move {
-            run_scanner_loop(main_window_weak, state_manager, songs_cache).await;
-        });
+    async fn get_songs_from_db(state_manager: &StateManager) -> Result<Vec<Song>, UiError> {
+        let database = state_manager.get_database().await;
+        let songs = database.get_songs_by_options(GetSongOptions {
+            song: Some(SearchableSong::default()),
+            ..Default::default()
+        })?;
+        Ok(songs)
     }
-}
 
-#[tracing::instrument(level = "debug", skip_all)]
-async fn run_scanner_loop(
-    main_window_weak: Weak<MainWindow>,
-    state_manager: StateManager,
-    songs_cache: Arc<Mutex<Vec<Song>>>,
-) {
-    let mut progress = {
-        let scanner = state_manager.get_scanner_holder().await;
-        scanner.add_subscriber()
-    };
-
-    while let Some(p) = progress.recv().await {
-        if p == ScanProgress::STOPPED {
-            fetch_and_cache_songs(
-                main_window_weak.clone(),
-                state_manager.clone(),
-                songs_cache.clone(),
-            )
-            .await;
-        }
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn fetch_songs(state_manager: &StateManager) -> Result<Vec<Song>, UiError> {
+        Self::get_songs_from_db(state_manager).await
     }
-}
 
-#[tracing::instrument(level = "debug", skip_all)]
-async fn get_songs_from_db(state_manager: &StateManager) -> Result<Vec<Song>, UiError> {
-    let database = state_manager.get_database().await;
-    let songs = database.get_songs_by_options(GetSongOptions {
-        song: Some(SearchableSong::default()),
-        ..Default::default()
-    })?;
-    Ok(songs)
-}
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_songs(main_window: &MainWindow, songs: Vec<Song>, cache_dir: std::path::PathBuf) {
+        debug!("Setting songs");
+        let songs_view = songs
+            .iter()
+            .map(crate::utils::to_song_model)
+            .collect::<Vec<_>>();
 
-#[tracing::instrument(level = "debug", skip_all)]
-async fn fetch_and_cache_songs(
-    main_window_weak: Weak<MainWindow>,
-    state_manager: StateManager,
-    songs_cache: Arc<Mutex<Vec<Song>>>,
-) {
-    match get_songs_from_db(&state_manager).await {
-        Ok(songs) => {
-            tracing::trace!("got songs {:?}", songs.len());
-            *songs_cache.lock().unwrap() = songs.clone();
-            let cache_dir = state_manager.get_cache_dir();
-            let _ = slint::invoke_from_event_loop(move || {
-                if let Some(main_window) = main_window_weak.upgrade() {
-                    if main_window.get_active_page() == Pages::AllSongs {
-                        set_all_songs(&main_window, songs, cache_dir);
-                    }
-                }
-            });
-        }
-        Err(e) => {
-            tracing::error!("Failed to fetch songs: {:?}", e)
-        }
+        let theme = main_window.global::<crate::Theme>();
+        main_window.set_songs(ModelRc::new(LazySongVecModel::new(
+            songs_view,
+            theme.get_songListItemHeight() as usize,
+            theme.get_songListItemWidth() as usize,
+            cache_dir,
+        )));
     }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn set_all_songs(main_window: &MainWindow, songs: Vec<Song>, cache_dir: std::path::PathBuf) {
-    debug!("Setting songs");
-    let songs_view = songs
-        .iter()
-        .map(crate::utils::to_song_model)
-        .collect::<Vec<_>>();
-
-    let theme = main_window.global::<crate::Theme>();
-    main_window.set_songs(ModelRc::new(LazySongVecModel::new(
-        songs_view,
-        theme.get_songListItemHeight() as usize,
-        theme.get_songListItemWidth() as usize,
-        cache_dir,
-    )));
 }
 
 impl<'a> PageHandler for AllSongsPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn initialize(&self) {
-        self.set_scanner_cb();
-        let state_manager = self.state_manager.clone();
-        let main_window_weak = self.main_window.as_weak();
-        let songs_cache = Arc::clone(&self.songs);
-        tokio::spawn(async move {
-            fetch_and_cache_songs(main_window_weak, state_manager, songs_cache).await;
-        });
-    }
+    fn initialize(&self) {}
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
-        let songs = self.songs.lock().unwrap().clone();
-        let cache_dir = self.state_manager.get_cache_dir();
-        set_all_songs(self.main_window, songs, cache_dir);
+        let state_manager = self.state_manager.clone();
+        let main_window_weak = self.main_window.as_weak();
+        tokio::spawn(async move {
+            if let Ok(songs) = Self::fetch_songs(&state_manager).await {
+                let cache_dir = state_manager.get_cache_dir();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(main_window) = main_window_weak.upgrade() {
+                        if main_window.get_active_page() == Pages::AllSongs {
+                            Self::set_songs(&main_window, songs, cache_dir);
+                        }
+                    }
+                });
+            }
+        });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

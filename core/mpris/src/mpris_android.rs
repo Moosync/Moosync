@@ -224,14 +224,17 @@ unsafe extern "C" {
 #[tracing::instrument(level = "debug", skip_all)]
 fn log_to_android(msg: &str) {
     use std::ffi::CString;
-    if let Ok(tag) = CString::new("MoosyncAndroidRust") {
-        if let Ok(fmt) = CString::new("%s") {
-            if let Ok(message) = CString::new(msg) {
-                unsafe {
-                    __android_log_print(4, tag.as_ptr(), fmt.as_ptr(), message.as_ptr());
-                }
-            }
-        }
+    let Ok(tag) = CString::new("MoosyncAndroidRust") else {
+        return;
+    };
+    let Ok(fmt) = CString::new("%s") else {
+        return;
+    };
+    let Ok(message) = CString::new(msg) else {
+        return;
+    };
+    unsafe {
+        __android_log_print(4, tag.as_ptr(), fmt.as_ptr(), message.as_ptr());
     }
 }
 

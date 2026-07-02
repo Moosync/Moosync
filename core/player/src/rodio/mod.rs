@@ -157,16 +157,17 @@ impl PlayerExt for RodioPlayer {
     fn get_player_state(
         &self,
     ) -> Result<extensions_proto::moosync::types::PlayerState, PlayerError> {
-        if let Some(player) = self.player.lock().unwrap().as_ref() {
-            if player.empty() {
-                Ok(extensions_proto::moosync::types::PlayerState::Stopped)
-            } else if player.is_paused() {
-                Ok(extensions_proto::moosync::types::PlayerState::Paused)
-            } else {
-                Ok(extensions_proto::moosync::types::PlayerState::Playing)
-            }
-        } else {
-            Ok(extensions_proto::moosync::types::PlayerState::Stopped)
+        let guard = self.player.lock().unwrap();
+        let Some(player) = guard.as_ref() else {
+            return Ok(extensions_proto::moosync::types::PlayerState::Stopped);
+        };
+
+        if player.empty() {
+            return Ok(extensions_proto::moosync::types::PlayerState::Stopped);
         }
+        if player.is_paused() {
+            return Ok(extensions_proto::moosync::types::PlayerState::Paused);
+        }
+        Ok(extensions_proto::moosync::types::PlayerState::Playing)
     }
 }

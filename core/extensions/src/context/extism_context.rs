@@ -119,43 +119,41 @@ host_fn!(open_clientfd(user_data: SocketUserData; sock_path: String) -> i64 {
 
 
     // Check if path is allowed
-    if user_data.allowed_paths.is_none() {
+    let Some(allowed_paths) = user_data.allowed_paths.as_ref() else {
         tracing::error!("Not enough permissions to access {}", sock_path);
-        return Ok(-1)
-    }
+        return Ok(-1);
+    };
 
     let sock_path_parsed = PathBuf::from_str(sock_path.as_str())?;
-    if let Some(allowed_paths) = user_data.allowed_paths.as_ref() {
-        for (key, value) in allowed_paths {
-            if let Some(sock_path) = sock_path_parsed.to_str() {
-                if let Some(allowed_path) = value.to_str() {
-                    tracing::debug!("Checking {:?}, {:?}", sock_path, key);
-                    if sock_path.starts_with(allowed_path) {
-                        // Resultant path is the mapped_path + (passed path - prefix)
-                        let mapped_path = PathBuf::from_str(format!("{}/{}", key, sock_path.replacen(allowed_path, "", 1)).as_str())?;
-                        if !mapped_path.exists() {
-                            tracing::debug!("Path {:?} does not exist", mapped_path);
-                            continue;
-                        }
+    let Some(sock_path_str) = sock_path_parsed.to_str() else {
+        tracing::error!("Failed to convert passed path to string");
+        return Ok(-1);
+    };
 
-                        let mapped_path_name = if GenericNamespaced::is_supported() && key.starts_with("\\\\.\\pipe\\") {
-                            mapped_path.file_name().unwrap()
-                                .to_ns_name::<GenericNamespaced>()
-                        } else {
-                            mapped_path.to_fs_name::<GenericFilePath>()
-                        }?;
+    for (key, value) in allowed_paths {
+        let allowed_path = value.to_str();
+        if allowed_path.is_none() {
+            tracing::error!("Failed to convert mapped path: {:?} to string", value);
+        }
 
-                        if let Ok(sock) = LocalSocketStream::connect(mapped_path_name) {
-                            user_data.socks.push(sock);
-                            return Ok((user_data.socks.len() - 1) as i64);
-                        }
-                    }
+        let is_match = allowed_path.map(|path| sock_path_str.starts_with(path)).unwrap_or(false);
+        if is_match {
+            let path_val = allowed_path.unwrap();
+            let mapped_path = PathBuf::from_str(format!("{}/{}", key, sock_path_str.replacen(path_val, "", 1)).as_str())?;
+            if mapped_path.exists() {
+                let mapped_path_name = if GenericNamespaced::is_supported() && key.starts_with("\\\\.\\pipe\\") {
+                    mapped_path.file_name().unwrap()
+                        .to_ns_name::<GenericNamespaced>()
                 } else {
-                   tracing::error!("Failed to convert mapped path: {:?} to string", value);
+                    mapped_path.to_fs_name::<GenericFilePath>()
+                }?;
+
+                if let Ok(sock) = LocalSocketStream::connect(mapped_path_name) {
+                    user_data.socks.push(sock);
+                    return Ok((user_data.socks.len() - 1) as i64);
                 }
             } else {
-                tracing::error!("Failed to convert passed path to string");
-                return Ok(-1);
+                tracing::debug!("Path {:?} does not exist", mapped_path);
             }
         }
     }
@@ -169,50 +167,46 @@ host_fn!(write_sock(user_data: SocketUserData; sock_id: i64, buf: Vec<u8>) -> i6
     let user_data = user_data.get()?;
     let mut user_data = user_data.lock().unwrap();
 
-    let sock = user_data.socks.get_mut(sock_id as usize);
-    if let Some(sock) = sock {
-        tracing::info!("Writing {:?}", buf);
-        let res = sock.write_all(&buf);
-        if let Err(e) = res {
-            tracing::error!("Failed to write data to sock {}", e);
-            return Ok(-1);
-        } else {
-            tracing::info!("Wrote all");
-            return Ok(-1);
-        }
-    }
+    let Some(sock) = user_data.socks.get_mut(sock_id as usize) else {
+        tracing::error!("Invalid sock id");
+        return Ok(-1);
+    };
 
-    tracing::error!("Invalid sock id");
-    return Ok(-1);
+    tracing::info!("Writing {:?}", buf);
+    if let Err(e) = sock.write_all(&buf) {
+        tracing::error!("Failed to write data to sock {}", e);
+        return Ok(-1);
+    }
+    tracing::info!("Wrote all");
+    Ok(-1)
 });
 
 host_fn!(read_sock(user_data: SocketUserData; sock_id: i64, read_len: u64) -> Vec<u8> {
     let user_data = user_data.get()?;
     let mut user_data = user_data.lock().unwrap();
 
-    let sock = user_data.socks.get_mut(sock_id as usize);
-    if let Some(sock) = sock {
-        let mut read_len = read_len;
-        if read_len == 0 || read_len > 1024 {
-            read_len = 1024
-        }
+    let Some(sock) = user_data.socks.get_mut(sock_id as usize) else {
+        tracing::error!("Invalid sock id");
+        return Ok(vec![]);
+    };
 
-        tracing::info!("Reading {}", read_len);
-        let mut ret = vec![0; read_len as usize];
-        let read = sock.read(&mut ret);
-        if let Ok(read) = read {
-            if read >= 1024 {
-                tracing::error!("Read out of bounds");
-                return Ok(vec![]);
-            }
-            let mut ret = ret.to_vec();
-            ret.truncate(read);
-            return Ok(ret);
-        }
+    let mut read_len = read_len;
+    if read_len == 0 || read_len > 1024 {
+        read_len = 1024;
     }
 
-    tracing::error!("Invalid sock id");
-    return Ok(vec![]);
+    tracing::info!("Reading {}", read_len);
+    let mut ret = vec![0; read_len as usize];
+    let Ok(read) = sock.read(&mut ret) else {
+        return Ok(vec![]);
+    };
+
+    if read >= 1024 {
+        tracing::error!("Read out of bounds");
+        return Ok(vec![]);
+    }
+    ret.truncate(read);
+    Ok(ret)
 });
 
 host_fn!(hash(hash_type: String, data: Vec<u8>) -> Vec<u8> {

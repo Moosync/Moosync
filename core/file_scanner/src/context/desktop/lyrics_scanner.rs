@@ -26,22 +26,23 @@ impl LyricsScanner {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn scan_lrc(mut path: PathBuf) -> Option<String> {
         path.set_extension("lrc");
-        if path.exists() {
-            lazy_static! {
-                static ref LRC_REGEX: Regex = Regex::new(r"\[\d{2}:\d{2}.\d{2}\]").unwrap();
-            }
-            let data = fs::read(path).ok()?;
-            let mut parsed_lyrics = "".to_string();
-            let parsed = String::from_utf8_lossy(&data).to_string();
-            for line in parsed.split('\n') {
-                if LRC_REGEX.is_match(line) {
-                    parsed_lyrics.push_str(&LRC_REGEX.replace_all(line, ""));
-                    parsed_lyrics.push('\n');
-                }
-            }
-            return Some(parsed_lyrics);
+        if !path.exists() {
+            return None;
         }
-        None
+
+        lazy_static! {
+            static ref LRC_REGEX: Regex = Regex::new(r"\[\d{2}:\d{2}.\d{2}\]").unwrap();
+        }
+        let data = fs::read(path).ok()?;
+        let mut parsed_lyrics = "".to_string();
+        let parsed = String::from_utf8_lossy(&data).to_string();
+        for line in parsed.split('\n') {
+            if LRC_REGEX.is_match(line) {
+                parsed_lyrics.push_str(&LRC_REGEX.replace_all(line, ""));
+                parsed_lyrics.push('\n');
+            }
+        }
+        Some(parsed_lyrics)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

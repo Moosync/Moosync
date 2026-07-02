@@ -72,19 +72,18 @@ fn extract_audio_properties(file: &TaggedFile, inner_song: &mut InnerSong) {
 fn scan_directory_for_cover(path: &Path) -> Option<String> {
     let mut base_path = path.to_path_buf();
     base_path.pop();
-    if let Ok(files) = base_path.read_dir() {
-        for e in files {
-            if let Ok(dir_entry) = e {
-                let file_name = dir_entry
-                    .path()
-                    .file_stem()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_lowercase();
-                if file_name.starts_with("cover") {
-                    return Some(dir_entry.path().to_string_lossy().to_string());
-                }
-            }
+    let Ok(files) = base_path.read_dir() else {
+        return None;
+    };
+    for dir_entry in files.flatten() {
+        let file_name = dir_entry
+            .path()
+            .file_stem()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_lowercase();
+        if file_name.starts_with("cover") {
+            return Some(dir_entry.path().to_string_lossy().to_string());
         }
     }
     None

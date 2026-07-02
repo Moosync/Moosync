@@ -77,33 +77,43 @@ impl RemoteExtensions {
         let releases_resp = res.json::<GithubReleasesResp>().await?;
 
         let mut ret = vec![];
-        for item in releases_resp.assets.clone() {
-            if item.name == "manifest.json" {
-                let res = client.get(&item.browser_download_url).header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
-                        .header("Accept", "application/json")
-                        .send().await?;
+        let manifest_item = releases_resp
+            .assets
+            .iter()
+            .find(|item| item.name == "manifest.json");
+        let Some(item) = manifest_item else {
+            let path = self.extensions_dir.join("remote_manifest_cache.json");
+            if let Ok(contents) = serde_json::to_vec(&ret) {
+                let _ = fs::write(path, contents);
+            }
+            return Ok(ret);
+        };
 
-                let bytes = res.bytes().await?;
-                let manifests: HashMap<String, ExtensionManifestItem> =
-                    serde_json::from_slice(&bytes)?;
-                for (package_name, manifest) in manifests {
-                    let asset = releases_resp.assets.iter().find(|asset| {
-                        asset.name.starts_with(package_name.as_str())
-                            && asset.name.ends_with(".msox")
-                    });
-                    if let Some(asset) = asset {
-                        let logo_url = manifest.icon.map(|icon| format!("https://raw.githubusercontent.com/Moosync/moosync-exts/refs/heads/v2/{}", icon));
-                        ret.push(FetchedExtensionManifest {
-                            name: manifest.display_name,
-                            package_name,
-                            logo: logo_url,
-                            description: None,
-                            url: asset.browser_download_url.clone(),
-                            version: manifest.version,
-                        })
-                    }
-                }
-                break;
+        let res = client.get(&item.browser_download_url).header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
+                .header("Accept", "application/json")
+                .send().await?;
+
+        let bytes = res.bytes().await?;
+        let manifests: HashMap<String, ExtensionManifestItem> = serde_json::from_slice(&bytes)?;
+        for (package_name, manifest) in manifests {
+            let asset = releases_resp.assets.iter().find(|asset| {
+                asset.name.starts_with(package_name.as_str()) && asset.name.ends_with(".msox")
+            });
+            if let Some(asset) = asset {
+                let logo_url = manifest.icon.map(|icon| {
+                    format!(
+                        "https://raw.githubusercontent.com/Moosync/moosync-exts/refs/heads/v2/{}",
+                        icon
+                    )
+                });
+                ret.push(FetchedExtensionManifest {
+                    name: manifest.display_name,
+                    package_name,
+                    logo: logo_url,
+                    description: None,
+                    url: asset.browser_download_url.clone(),
+                    version: manifest.version,
+                })
             }
         }
 

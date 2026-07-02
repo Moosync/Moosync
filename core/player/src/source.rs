@@ -27,11 +27,12 @@ impl ValidSrc<'_> {
 }
 
 pub(crate) fn get_valid_src(song: &'_ Song) -> Result<ValidSrc<'_>, PlayerError> {
-    if let Some(path) = song.get_path() {
-        let path = PathBuf::from(path.as_ref());
-        if path.exists() {
-            return Ok(ValidSrc::Path(path));
-        }
+    let path_opt = song
+        .get_path()
+        .map(|p| PathBuf::from(p.as_ref()))
+        .filter(|p| p.exists());
+    if let Some(path) = path_opt {
+        return Ok(ValidSrc::Path(path));
     }
     if let Some(src) = song.get_playback_url() {
         return Ok(ValidSrc::Url(src));

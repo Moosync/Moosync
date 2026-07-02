@@ -94,48 +94,53 @@ impl LyricsFetcher {
 
         // tracing::info!("{}", resp);
 
-        if let Some(resp) = json.get("response")
-            && let Some(result) = resp.get("sections")
-            && let Some(result) = result.get(0)
-            && let Some(result) = result.get("hits")
-            && let Some(result) = result.get(0)
-            && let Some(result) = result.get("result")
-            && let Some(result) = result.get("url")
-        {
-            let url = result.as_str().unwrap();
-            let lyrics_resp = client.get(url).send().await?.text().await?;
+        let url = json
+            .get("response")
+            .and_then(|resp| resp.get("sections"))
+            .and_then(|sections| sections.get(0))
+            .and_then(|sec| sec.get("hits"))
+            .and_then(|hits| hits.get(0))
+            .and_then(|hit| hit.get("result"))
+            .and_then(|res| res.get("url"))
+            .and_then(|url| url.as_str());
 
-            let split = lyrics_resp.split("window.__PRELOADED_STATE__ = ").nth(1);
+        let Some(url) = url else {
+            return Ok(String::new());
+        };
 
-            if let Some(split) = split {
-                let split = split.split("');").next();
-                if let Some(split) = split {
-                    let parsed = split.replace("JSON.parse(", "");
-                    let split = parsed.split("\"lyricsData").nth(1);
+        let lyrics_resp = client.get(url).send().await?.text().await?;
 
-                    if let Some(split) = split {
-                        let split = split.split("html\\\"").nth(1);
-                        if let Some(split) = split {
-                            let split = split.split("\",").nth(0);
-                            if let Some(split) = split {
-                                let res = split
-                                    .replace("<br>", "\n")
-                                    .replace("\\\\n", "")
-                                    .replace('\\', "");
+        let Some(split) = lyrics_resp.split("window.__PRELOADED_STATE__ = ").nth(1) else {
+            return Ok(String::new());
+        };
 
-                                // Remove HTML tags using regex
-                                let re = Regex::new(r#"<([^>]+)>"#).unwrap();
-                                let data = re.replace_all(&res, "").to_string();
+        let Some(split) = split.split("');").next() else {
+            return Ok(String::new());
+        };
 
-                                return Ok(data);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        let parsed = split.replace("JSON.parse(", "");
+        let Some(split) = parsed.split("\"lyricsData").nth(1) else {
+            return Ok(String::new());
+        };
 
-        Ok(String::new())
+        let Some(split) = split.split("html\\\"").nth(1) else {
+            return Ok(String::new());
+        };
+
+        let Some(split) = split.split("\",").next() else {
+            return Ok(String::new());
+        };
+
+        let res = split
+            .replace("<br>", "\n")
+            .replace("\\\\n", "")
+            .replace('\\', "");
+
+        // Remove HTML tags using regex
+        let re = Regex::new(r#"<([^>]+)>"#).unwrap();
+        let data = re.replace_all(&res, "").to_string();
+
+        Ok(data)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

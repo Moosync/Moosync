@@ -3,6 +3,7 @@ use state_manager::StateManager;
 
 use crate::{
     AppCallbacks, MainWindow, SearchResult,
+    error::UiError,
     pages::PageHandler,
     utils::{
         LazySongVecModel, to_album_model, to_artist_model, to_genre_model, to_playlist_model,

@@ -60,11 +60,13 @@ impl Hook for ScannerHook {
             file_scanner.set_on_song(move |pl_id: Option<String>, songs| {
                 let db = db_song.clone();
                 async move {
-                    if let Ok(songs) = db.read().await.insert_songs(songs) {
-                        if let Some(pl_id) = pl_id {
-                            let _ = db.read().await.add_to_playlist(&pl_id, &songs);
-                        }
-                    }
+                    let Ok(songs) = db.read().await.insert_songs(songs) else {
+                        return;
+                    };
+                    let Some(pl_id) = pl_id else {
+                        return;
+                    };
+                    let _ = db.read().await.add_to_playlist(&pl_id, &songs);
                 }
             });
         }

@@ -72,20 +72,22 @@ fn process_single_file(
         static ref SONG_RE: Regex = Regex::new("flac|mp3|ogg|m4a|webm|wav|wv|aac|opus").unwrap();
         static ref PLAYLIST_RE: Regex = Regex::new("m3u|m3u8").unwrap();
     }
-    if let Ok(metadata) = fs::metadata(&path) {
-        let extension = path
-            .extension()
-            .unwrap_or_default()
-            .to_str()
-            .unwrap_or_default();
-        if !extension.is_empty() {
-            if SONG_RE.is_match(extension) {
-                files.push((path.clone(), metadata.len() as f64));
-            }
-            if PLAYLIST_RE.is_match(extension) {
-                playlists.push(path);
-            }
-        }
+    let Ok(metadata) = fs::metadata(&path) else {
+        return Ok(());
+    };
+    let extension = path
+        .extension()
+        .unwrap_or_default()
+        .to_str()
+        .unwrap_or_default();
+    if extension.is_empty() {
+        return Ok(());
+    }
+    if SONG_RE.is_match(extension) {
+        files.push((path.clone(), metadata.len() as f64));
+    }
+    if PLAYLIST_RE.is_match(extension) {
+        playlists.push(path);
     }
     Ok(())
 }
@@ -98,12 +100,10 @@ fn process_directory(
     playlists: &mut Vec<PathBuf>,
 ) -> Result<(), ScannerError> {
     let dir_entries = fs::read_dir(path).map_err(ScannerError::Io)?;
-    for entry in dir_entries {
-        if let Ok(entry) = entry {
-            let res = get_files_recursively(entry.path(), exclude_dirs)?;
-            files.extend(res.file_list);
-            playlists.extend(res.playlist_list);
-        }
+    for entry in dir_entries.flatten() {
+        let res = get_files_recursively(entry.path(), exclude_dirs)?;
+        files.extend(res.file_list);
+        playlists.extend(res.playlist_list);
     }
     Ok(())
 }

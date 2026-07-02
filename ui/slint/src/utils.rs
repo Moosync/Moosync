@@ -28,45 +28,35 @@ async fn download_and_cache_image(
     cover_url: &str,
     cache_dir: &std::path::Path,
 ) -> Option<std::path::PathBuf> {
-    if cover_url.starts_with("http://") || cover_url.starts_with("https://") {
-        // Remote URL. Check if already in cache.
-        let safe_name: String = cover_url
-            .chars()
-            .map(|c| if c.is_alphanumeric() { c } else { '_' })
-            .collect();
-        let img_cache_dir = cache_dir.join("image_cache");
-        if !img_cache_dir.exists() {
-            let _ = std::fs::create_dir_all(&img_cache_dir);
-        }
-        let ext = if cover_url.contains(".svg") {
-            "svg"
-        } else {
-            "png"
-        };
-        let cached_path = img_cache_dir.join(format!("{}.{}", safe_name, ext));
-
-        if cached_path.exists() {
-            Some(cached_path)
-        } else {
-            let client = reqwest::Client::new();
-            if let Ok(resp) = client.get(cover_url).send().await {
-                if let Ok(bytes) = resp.bytes().await {
-                    if std::fs::write(&cached_path, bytes).is_ok() {
-                        Some(cached_path)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        }
-    } else {
-        // Local file path
-        Some(std::path::PathBuf::from(cover_url))
+    if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
+        return Some(std::path::PathBuf::from(cover_url));
     }
+
+    // Remote URL. Check if already in cache.
+    let safe_name: String = cover_url
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .collect();
+    let img_cache_dir = cache_dir.join("image_cache");
+    if !img_cache_dir.exists() {
+        let _ = std::fs::create_dir_all(&img_cache_dir);
+    }
+    let ext = if cover_url.contains(".svg") {
+        "svg"
+    } else {
+        "png"
+    };
+    let cached_path = img_cache_dir.join(format!("{}.{}", safe_name, ext));
+
+    if cached_path.exists() {
+        return Some(cached_path);
+    }
+
+    let client = reqwest::Client::new();
+    let resp = client.get(cover_url).send().await.ok()?;
+    let bytes = resp.bytes().await.ok()?;
+    std::fs::write(&cached_path, bytes).ok()?;
+    Some(cached_path)
 }
 
 pub struct LazySongVecModel<T: LazyModel> {
@@ -258,16 +248,10 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
                 if i != row {
                     let prefetch_url = {
                         let array = self.array.borrow();
-                        if let Some(item) = array.get(i) {
-                            let url = item.get_cover_url().to_string();
-                            if is_empty_image(&item.get_cover()) {
-                                Some(url)
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        }
+                        array.get(i).and_then(|item| {
+                            is_empty_image(&item.get_cover())
+                                .then(|| item.get_cover_url().to_string())
+                        })
                     };
                     if let Some(url) = prefetch_url {
                         self.load_image(i, &url);
@@ -869,13 +853,10 @@ pub fn generate_blurred_cover_disk_cache(
         return Some(blurred_path);
     }
 
-    if !cover_path_high.is_empty() {
-        let path = Path::new(cover_path_high);
-        if path.exists() {
-            if blur_and_save(path, &blurred_path).is_some() {
-                return Some(blurred_path);
-            }
-        }
+    let path = Path::new(cover_path_high);
+    if !cover_path_high.is_empty() && path.exists() && blur_and_save(path, &blurred_path).is_some()
+    {
+        return Some(blurred_path);
     }
 
     None
@@ -914,24 +895,22 @@ pub fn parse_color(val: &str) -> Option<slint::Color> {
         let start = val.find('(')? + 1;
         let end = val.rfind(')')?;
         let parts: Vec<&str> = val[start..end].split(',').map(|s| s.trim()).collect();
-        if parts.len() >= 3 {
-            let r = parts[0].parse::<f32>().ok()? as u8;
-            let g = parts[1].parse::<f32>().ok()? as u8;
-            let b = parts[2].parse::<f32>().ok()? as u8;
-            if parts.len() == 4 {
-                let a = parts[3].parse::<f32>().ok()?;
-                Some(slint::Color::from_argb_f32(
-                    a,
-                    r as f32 / 255.0,
-                    g as f32 / 255.0,
-                    b as f32 / 255.0,
-                ))
-            } else {
-                Some(slint::Color::from_rgb_u8(r, g, b))
-            }
-        } else {
-            None
+        if parts.len() < 3 {
+            return None;
         }
+        let r = parts[0].parse::<f32>().ok()? as u8;
+        let g = parts[1].parse::<f32>().ok()? as u8;
+        let b = parts[2].parse::<f32>().ok()? as u8;
+        if parts.len() == 4 {
+            let a = parts[3].parse::<f32>().ok()?;
+            return Some(slint::Color::from_argb_f32(
+                a,
+                r as f32 / 255.0,
+                g as f32 / 255.0,
+                b as f32 / 255.0,
+            ));
+        }
+        Some(slint::Color::from_rgb_u8(r, g, b))
     } else {
         None
     }

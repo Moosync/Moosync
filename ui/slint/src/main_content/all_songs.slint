@@ -2,10 +2,12 @@ import { SongsPageLayout } from "../common/songs_page_layout.slint";
 import { SongModel } from "../types/song_view.slint";
 import { Constants } from "../constants.slint";
 
-export component AllSongs inherits Rectangle {
-    in property <[SongModel]> songs: Constants.testSongs;
+export global AllSongsPageProps {
+    in-out property <[SongModel]> songs: Constants.testSongs;
+}
 
+export component AllSongs inherits Rectangle {
     SongsPageLayout {
-        songs <=> root.songs;
+        songs <=> AllSongsPageProps.songs;
     }
 }

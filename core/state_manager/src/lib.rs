@@ -26,7 +26,7 @@ plugin_macro::generate_plugin_system!(
 
 #[derive(Clone)]
 pub struct StateManager {
-    pub plugins: Arc<PluginRegistry>,
+    pub(crate) plugins: Arc<PluginRegistry>,
     pub interceptors: Arc<Interceptors>,
     pub cache_dir: std::path::PathBuf,
 

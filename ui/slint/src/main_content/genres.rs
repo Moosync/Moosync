@@ -3,7 +3,9 @@ use songs_proto::moosync::types::{Genre, GenreList, GetEntityOptions, entity_res
 use state_manager::StateManager;
 use tracing::debug;
 
-use crate::{MainWindow, Pages, error::UiError, pages::PageHandler, utils::LazySongVecModel};
+use crate::{
+    GenresPageProps, MainWindow, error::UiError, pages::PageHandler, utils::LazySongVecModel,
+};
 
 pub struct GenresPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -39,7 +41,7 @@ impl<'a> GenresPageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_genres(main_window: &MainWindow, genres: Vec<Genre>, cache_dir: std::path::PathBuf) {
+    fn set_genres(main_window: &MainWindow, state_manager: &StateManager, genres: Vec<Genre>) {
         debug!("Setting genres");
         let genre_model = genres
             .into_iter()
@@ -47,12 +49,15 @@ impl<'a> GenresPageHandler<'a> {
             .collect::<Vec<_>>();
 
         let theme = main_window.global::<crate::Theme>();
-        main_window.set_genres(ModelRc::new(LazySongVecModel::new(
-            genre_model,
-            theme.get_cardHeight() as usize,
-            theme.get_cardWidth() as usize,
-            cache_dir,
-        )));
+        let cache_dir = state_manager.get_cache_dir();
+        main_window
+            .global::<GenresPageProps>()
+            .set_genres(ModelRc::new(LazySongVecModel::new(
+                genre_model,
+                theme.get_cardHeight() as usize,
+                theme.get_cardWidth() as usize,
+                cache_dir,
+            )));
     }
 }
 
@@ -62,22 +67,23 @@ impl<'a> PageHandler for GenresPageHandler<'a> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
-        let state_manager = self.state_manager.clone();
-        let main_window_weak = self.main_window.as_weak();
-        tokio::spawn(async move {
-            if let Ok(genres) = Self::fetch_genres(&state_manager).await {
-                let cache_dir = state_manager.get_cache_dir();
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(main_window) = main_window_weak.upgrade() {
-                        if main_window.get_active_page() == Pages::Genres {
-                            Self::set_genres(&main_window, genres, cache_dir);
-                        }
-                    }
-                });
+        tokio::spawn({
+            let state_manager = self.state_manager.clone();
+            let main_window_weak = self.main_window.as_weak();
+            async move {
+                if let Ok(genres) = Self::fetch_genres(&state_manager).await {
+                    let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
+                        Self::set_genres(&main_window, &state_manager, genres);
+                    });
+                }
             }
         });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_hide(&self) { self.main_window.set_genres(ModelRc::default()); }
+    fn on_hide(&self) {
+        self.main_window
+            .global::<GenresPageProps>()
+            .set_genres(ModelRc::default());
+    }
 }

@@ -6,13 +6,14 @@ use std::{
 };
 
 use extensions_proto::moosync::types::{ExtensionDetail, FetchedExtensionManifest};
-use slint::{Image, Model, ModelNotify, ModelTracker, SharedString};
+use slint::{Image, Model, ModelNotify, ModelRc, ModelTracker, SharedString};
 use songs_proto::moosync::types::{Album, Artist, Genre, Playlist, Song};
 use tracing::trace;
 use types::prelude::SongsExt;
 
 use crate::{
-    AlbumModel, ArtistModel, ExtensionItem, GenreModel, PlaylistModel, SongModel, WINDOW_EVENTS,
+    AlbumModel, ArtistModel, ExtensionItem, GenreModel, PlaylistModel, SearchResult, SongModel,
+    WINDOW_EVENTS,
 };
 
 pub static DEFAULT_SONG_SVG: &[u8] = include_bytes!("icons/song_default.svg");
@@ -24,7 +25,7 @@ pub trait LazyModel: Clone {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn download_and_cache_image(
+pub async fn cache_image(
     cover_url: &str,
     cache_dir: &std::path::Path,
 ) -> Option<std::path::PathBuf> {
@@ -57,6 +58,39 @@ async fn download_and_cache_image(
     let bytes = resp.bytes().await.ok()?;
     std::fs::write(&cached_path, bytes).ok()?;
     Some(cached_path)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn load_icon(path: &str) -> Image {
+    if path.is_empty() {
+        return Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap();
+    }
+    Image::load_from_path(std::path::Path::new(path))
+        .unwrap_or_else(|_| Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn load_local_icon(path: &str) -> Image { load_icon(path) }
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn get_extension_icon(detail: Option<&ExtensionDetail>) -> Image {
+    detail
+        .and_then(|d| d.extension_icon.as_ref())
+        .filter(|p| !p.is_empty())
+        .map(|p| load_icon(p))
+        .unwrap_or_else(|| load_icon(""))
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub async fn load_image_from_path_or_url(
+    path_or_url: &str,
+    cache_dir: &std::path::Path,
+) -> Option<Image> {
+    if path_or_url.is_empty() {
+        return None;
+    }
+    let local_path = cache_image(path_or_url, cache_dir).await?;
+    Image::load_from_path(&local_path).ok()
 }
 
 pub struct LazySongVecModel<T: LazyModel> {
@@ -144,23 +178,19 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
         let cache_dir = self.cache_dir.clone();
 
         slint::spawn_local(async move {
-            let local_path = download_and_cache_image(&cover_url_str, &cache_dir).await;
-
-            if let Some(path) = local_path {
-                if let Ok(img) = Image::load_from_path(&path) {
-                    let mut changed = false;
-                    {
-                        let mut array = array.borrow_mut();
-                        if let Some(item) = array.get_mut(row) {
-                            item.set_cover(img);
-                            tracing::trace!("Loaded image for row {} from {}", row, path.display());
-                            allocated_rows.borrow_mut().insert(row);
-                            changed = true;
-                        }
+            if let Some(img) = load_image_from_path_or_url(&cover_url_str, &cache_dir).await {
+                let mut changed = false;
+                {
+                    let mut array = array.borrow_mut();
+                    if let Some(item) = array.get_mut(row) {
+                        item.set_cover(img);
+                        tracing::trace!("Loaded image for row {}", row);
+                        allocated_rows.borrow_mut().insert(row);
+                        changed = true;
                     }
-                    if changed {
-                        notify.row_changed(row);
-                    }
+                }
+                if changed {
+                    notify.row_changed(row);
                 }
             }
         })
@@ -358,16 +388,9 @@ impl LazyModel for GenreModel {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn to_song_model(song: &Song) -> SongModel {
-    let extension_icon = if let Some(icon_path) = song.song.as_ref().and_then(|s| s.icon.clone()) {
-        if let Ok(image) = Image::load_from_path(Path::new(&icon_path)) {
-            image
-        } else {
-            Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap()
-        }
-    } else {
-        Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap()
-    };
+pub fn to_song_model(song: &Song, detail: Option<&ExtensionDetail>) -> SongModel {
+    let extension = detail.map(|d| d.package_name.clone()).unwrap_or_default();
+    let extension_icon = get_extension_icon(detail);
 
     let raw_duration = song.get_duration_or_default();
     let duration_s = raw_duration.as_secs() as i32;
@@ -376,7 +399,11 @@ pub fn to_song_model(song: &Song) -> SongModel {
 
     let album = song.album.as_ref();
 
-    let artists: Vec<ArtistModel> = song.artists.iter().map(to_artist_model).collect();
+    let artists: Vec<ArtistModel> = song
+        .artists
+        .iter()
+        .map(|a| to_artist_model(a, detail))
+        .collect();
     let genres: Vec<GenreModel> = song.genre.iter().map(to_genre_model).collect();
 
     SongModel {
@@ -390,14 +417,6 @@ pub fn to_song_model(song: &Song) -> SongModel {
             .unwrap_or_default()
             .into(),
         size: inner.and_then(|s| s.size).unwrap_or_default() as f32,
-        inode: inner
-            .and_then(|s| s.inode.as_deref())
-            .unwrap_or_default()
-            .into(),
-        deviceno: inner
-            .and_then(|s| s.deviceno.as_deref())
-            .unwrap_or_default()
-            .into(),
         title: inner
             .and_then(|s| s.title.as_deref())
             .unwrap_or_default()
@@ -452,17 +471,7 @@ pub fn to_song_model(song: &Song) -> SongModel {
             .unwrap_or_default()
             .into(),
         date_added: inner.and_then(|s| s.date_added).unwrap_or_default() as i32,
-        provider_extension: inner
-            .and_then(|s| s.provider_extension.as_deref())
-            .unwrap_or_default()
-            .into(),
-        icon: inner
-            .and_then(|s| s.icon.as_deref())
-            .unwrap_or_default()
-            .into(),
-        show_in_library: inner.and_then(|s| s.show_in_library).unwrap_or_default(),
         track_no: inner.and_then(|s| s.track_no).unwrap_or_default() as f32,
-        library_item: inner.and_then(|s| s.library_item).unwrap_or_default(),
 
         // Album fields
         album_id: album
@@ -498,7 +507,6 @@ pub fn to_song_model(song: &Song) -> SongModel {
         // UI-only display fields
         coverPathHigh: Image::default(),
         coverPathLow: Image::default(),
-        extensionIcon: extension_icon,
         coverPathUrlHigh: song
             .get_cover_high()
             .map(|c| c.to_string())
@@ -509,6 +517,8 @@ pub fn to_song_model(song: &Song) -> SongModel {
             .map(|c| c.to_string())
             .unwrap_or_default()
             .into(),
+        extension: extension.into(),
+        extension_icon,
     }
 }
 
@@ -537,16 +547,6 @@ pub fn song_model_to_song(model: &SongModel) -> songs_proto::moosync::types::Son
             None
         } else {
             Some(model.size as f64)
-        },
-        inode: if model.inode.is_empty() {
-            None
-        } else {
-            Some(model.inode.to_string())
-        },
-        deviceno: if model.deviceno.is_empty() {
-            None
-        } else {
-            Some(model.deviceno.to_string())
         },
         title: if model.title.is_empty() {
             None
@@ -629,27 +629,11 @@ pub fn song_model_to_song(model: &SongModel) -> songs_proto::moosync::types::Son
         } else {
             Some(model.date_added as i64)
         },
-        provider_extension: if model.provider_extension.is_empty() {
-            None
-        } else {
-            Some(model.provider_extension.to_string())
-        },
-        icon: if model.icon.is_empty() {
-            None
-        } else {
-            Some(model.icon.to_string())
-        },
-        show_in_library: if model.show_in_library {
-            Some(true)
-        } else {
-            None
-        },
         track_no: if model.track_no == 0.0 {
             None
         } else {
             Some(model.track_no as f64)
         },
-        library_item: if model.library_item { Some(true) } else { None },
     };
 
     let album = if model.album_id.is_empty() && model.album_name.is_empty() {
@@ -748,18 +732,24 @@ pub fn song_model_to_song(model: &SongModel) -> songs_proto::moosync::types::Son
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn to_album_model(album: &Album) -> AlbumModel {
+pub fn to_album_model(album: &Album, detail: Option<&ExtensionDetail>) -> AlbumModel {
+    let extension = detail.map(|d| d.package_name.clone()).unwrap_or_default();
+    let extension_icon = get_extension_icon(detail);
     AlbumModel {
         coverPath: Image::default(),
         coverPathUrl: album.album_coverpath_high().into(),
         id: album.album_id().into(),
         songs_count: album.album_song_count as i32,
         title: album.album_name().into(),
+        extension: extension.into(),
+        extension_icon,
     }
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn to_artist_model(artist: &Artist) -> ArtistModel {
+pub fn to_artist_model(artist: &Artist, detail: Option<&ExtensionDetail>) -> ArtistModel {
+    let extension = detail.map(|d| d.package_name.clone()).unwrap_or_default();
+    let extension_icon = get_extension_icon(detail);
     ArtistModel {
         coverPath: Image::default(),
         coverPathUrl: artist.artist_coverpath.clone().unwrap_or_default().into(),
@@ -772,11 +762,27 @@ pub fn to_artist_model(artist: &Artist) -> ArtistModel {
             .clone()
             .unwrap_or_default()
             .into(),
+        extension: extension.into(),
+        extension_icon,
     }
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn to_playlist_model(playlist: &Playlist) -> PlaylistModel {
+pub fn to_playlist_model(playlist: &Playlist, detail: Option<&ExtensionDetail>) -> PlaylistModel {
+    let extension = detail
+        .map(|d| d.package_name.clone())
+        .unwrap_or_else(|| playlist.extension.clone().unwrap_or_default());
+    let extension_icon = detail
+        .map(|d| get_extension_icon(Some(d)))
+        .unwrap_or_else(|| {
+            playlist
+                .icon
+                .as_ref()
+                .filter(|p| !p.is_empty())
+                .map(|p| load_icon(p))
+                .unwrap_or_else(|| load_icon(""))
+        });
+
     PlaylistModel {
         coverPath: Image::default(),
         coverPathUrl: playlist
@@ -787,6 +793,62 @@ pub fn to_playlist_model(playlist: &Playlist) -> PlaylistModel {
         id: playlist.playlist_id.clone().unwrap_or_default().into(),
         songs_count: playlist.playlist_song_count as i32,
         title: playlist.playlist_name.clone().into(),
+        extension: extension.into(),
+        extension_icon,
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn to_search_result(
+    res: songs_proto::moosync::types::SearchResult,
+    detail: Option<&ExtensionDetail>,
+    icon: Image,
+    theme: &crate::Theme,
+    cache_dir: &std::path::Path,
+) -> SearchResult {
+    let extension = detail.map(|d| d.package_name.clone()).unwrap_or_default();
+    SearchResult {
+        albums: ModelRc::new(LazySongVecModel::new(
+            res.albums
+                .iter()
+                .map(|a| to_album_model(a, detail))
+                .collect(),
+            theme.get_cardHeight() as usize,
+            theme.get_cardWidth() as usize,
+            cache_dir.to_path_buf(),
+        )),
+        artists: ModelRc::new(LazySongVecModel::new(
+            res.artists
+                .iter()
+                .map(|a| to_artist_model(a, detail))
+                .collect(),
+            theme.get_cardHeight() as usize,
+            theme.get_cardWidth() as usize,
+            cache_dir.to_path_buf(),
+        )),
+        genres: ModelRc::new(LazySongVecModel::new(
+            res.genres.iter().map(|g| to_genre_model(g)).collect(),
+            theme.get_cardHeight() as usize,
+            theme.get_cardWidth() as usize,
+            cache_dir.to_path_buf(),
+        )),
+        playlists: ModelRc::new(LazySongVecModel::new(
+            res.playlists
+                .iter()
+                .map(|p| to_playlist_model(p, detail))
+                .collect(),
+            theme.get_cardHeight() as usize,
+            theme.get_cardWidth() as usize,
+            cache_dir.to_path_buf(),
+        )),
+        songs: ModelRc::new(LazySongVecModel::new(
+            res.songs.iter().map(|s| to_song_model(s, detail)).collect(),
+            theme.get_songListItemHeight() as usize,
+            theme.get_songListItemWidth() as usize,
+            cache_dir.to_path_buf(),
+        )),
+        extension: extension.into(),
+        extension_icon: icon,
     }
 }
 

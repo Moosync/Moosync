@@ -147,7 +147,8 @@ impl Extension {
         Ok(())
     }
 
-    pub(crate) fn get_extension_detail(&self) -> ExtensionDetail { self.into() }
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_extension_detail(&self) -> ExtensionDetail { self.into() }
 }
 
 macro_rules! delegate_command {

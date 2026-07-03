@@ -1,19 +1,21 @@
 import { SongsPageLayout } from "../common/songs_page_layout.slint";
-import { SongModel } from "../types/song_view.slint";
-import { Constants, SelectedEntity } from "../constants.slint";
+import { SongModel, PlaylistModel } from "../types/song_view.slint";
+import { Constants } from "../constants.slint";
+import { PlaylistsPageProps } from "./playlists.slint";
+
+export global PlaylistContentPageProps {
+    in-out property <[SongModel]> songs: Constants.testSongs;
+}
 
 export component PlaylistContent inherits Rectangle {
-    in property <SelectedEntity> entity;
-    in property <[SongModel]> songs;
-
     SongsPageLayout {
-        songs <=> root.songs;
+        songs <=> PlaylistContentPageProps.songs;
         default-song: {
             id: "",
-            title: entity.title,
-            coverPathHigh: entity.cover-path,
-            coverPathLow: entity.cover-path,
-            extensionIcon: @image-url("../icons/song_default.svg"),
+            title: PlaylistsPageProps.selected-playlist.title,
+            coverPathHigh: PlaylistsPageProps.selected-playlist.coverPath,
+            coverPathLow: PlaylistsPageProps.selected-playlist.coverPath,
+            extension-icon: @image-url("../icons/song_default.svg"),
         };
     }
 }

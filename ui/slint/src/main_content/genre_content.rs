@@ -3,7 +3,10 @@ use songs_proto::moosync::types::{Genre, GetSongOptions, Song};
 use state_manager::StateManager;
 use tracing::debug;
 
-use crate::{MainWindow, Pages, error::UiError, pages::PageHandler, utils::LazySongVecModel};
+use crate::{
+    GenreContentPageProps, GenresPageProps, MainWindow, error::UiError, pages::PageHandler,
+    utils::LazySongVecModel,
+};
 
 pub struct GenreContentPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -37,19 +40,22 @@ impl<'a> GenreContentPageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_songs(main_window: &MainWindow, songs: Vec<Song>, cache_dir: std::path::PathBuf) {
+    fn set_songs(main_window: &MainWindow, state_manager: &StateManager, songs: Vec<Song>) {
         debug!("Fetched {} songs for genre", songs.len());
         let songs_view = songs
             .iter()
-            .map(crate::utils::to_song_model)
+            .map(|s| crate::utils::to_song_model(s, None))
             .collect::<Vec<_>>();
         let theme = main_window.global::<crate::Theme>();
-        main_window.set_content_songs(ModelRc::new(LazySongVecModel::new(
-            songs_view,
-            theme.get_songListItemHeight() as usize,
-            theme.get_songListItemWidth() as usize,
-            cache_dir,
-        )));
+        let cache_dir = state_manager.get_cache_dir();
+        main_window
+            .global::<GenreContentPageProps>()
+            .set_songs(ModelRc::new(LazySongVecModel::new(
+                songs_view,
+                theme.get_songListItemHeight() as usize,
+                theme.get_songListItemWidth() as usize,
+                cache_dir,
+            )));
     }
 }
 
@@ -59,29 +65,34 @@ impl<'a> PageHandler for GenreContentPageHandler<'a> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
-        let selected = self.main_window.get_selected_entity();
+        let selected = self
+            .main_window
+            .global::<GenresPageProps>()
+            .get_selected_genre();
         let genre_id = selected.id.to_string();
-        let state_manager = self.state_manager.clone();
-        let main_window_weak = self.main_window.as_weak();
-        tokio::spawn(async move {
-            match Self::fetch_songs(&state_manager, genre_id).await {
-                Ok(songs) => {
-                    let cache_dir = state_manager.get_cache_dir();
-                    let _ = slint::invoke_from_event_loop(move || {
-                        if let Some(main_window) = main_window_weak.upgrade() {
-                            if main_window.get_active_page() == Pages::GenreContent {
-                                Self::set_songs(&main_window, songs, cache_dir);
-                            }
-                        }
-                    });
-                }
-                Err(e) => {
-                    tracing::error!("Failed to fetch genre songs: {:?}", e)
+
+        tokio::spawn({
+            let state_manager = self.state_manager.clone();
+            let main_window_weak = self.main_window.as_weak();
+            async move {
+                match Self::fetch_songs(&state_manager, genre_id).await {
+                    Ok(songs) => {
+                        let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
+                            Self::set_songs(&main_window, &state_manager, songs);
+                        });
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to fetch genre songs: {:?}", e)
+                    }
                 }
             }
         });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_hide(&self) { self.main_window.set_content_songs(ModelRc::default()); }
+    fn on_hide(&self) {
+        self.main_window
+            .global::<GenreContentPageProps>()
+            .set_songs(ModelRc::default());
+    }
 }

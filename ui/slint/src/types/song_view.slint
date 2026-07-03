@@ -4,6 +4,8 @@ export struct AlbumModel {
     songs_count: int,
     coverPath: image,
     coverPathUrl: string,
+    extension: string,
+    extension-icon: image,
 }
 
 export struct PlaylistModel {
@@ -12,6 +14,8 @@ export struct PlaylistModel {
     songs_count: int,
     coverPath: image,
     coverPathUrl: string,
+    extension: string,
+    extension-icon: image,
 }
 
 export struct ArtistModel {
@@ -22,6 +26,8 @@ export struct ArtistModel {
     coverPath: image,
     coverPathUrl: string,
     sanitized_name: string,
+    extension: string,
+    extension-icon: image,
 }
 
 export struct GenreModel {
@@ -38,8 +44,6 @@ export struct SongModel {
     id: string,
     path: string,
     size: float,
-    inode: string,
-    deviceno: string,
     title: string,
     date: string,
     year: string,
@@ -57,11 +61,7 @@ export struct SongModel {
     playback_url: string,
     song_cover_path_low: string,
     date_added: int,
-    provider_extension: string,
-    icon: string,
-    show_in_library: bool,
     track_no: float,
-    library_item: bool,
     album_id: string,
     album_name: string,
     album_artist: string,
@@ -75,8 +75,9 @@ export struct SongModel {
     coverPathLow: image,
     coverPathUrlHigh: string,
     coverPathUrlLow: string,
-    extensionIcon: image,
     duration_str: string,
+    extension: string,
+    extension-icon: image,
 }
 
 export global CoverHelper {
@@ -90,4 +91,12 @@ export struct SearchResult {
     artists: [ArtistModel],
     playlists: [PlaylistModel],
     genres: [GenreModel],
+    extension: string,
+    extension-icon: image,
+}
+
+export struct ProviderRecommendations {
+    provider-name: string,
+    provider-icon: image,
+    songs: [SongModel],
 }

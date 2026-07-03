@@ -92,10 +92,7 @@ fn generate_complex_songs(count: usize) -> Vec<Song> {
                 sample_rate: Some(48000.0),
                 lyrics: Some(format!("These are lyrics for song {}", i)),
                 r#type: song_type.into(),
-                provider_extension: Some("local_extension".to_string()),
-                show_in_library: Some(true),
                 track_no: Some(i as f64),
-                library_item: Some(true),
                 ..Default::default()
             }),
             album: Some(Album {

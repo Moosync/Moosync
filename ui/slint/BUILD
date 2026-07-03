@@ -88,6 +88,7 @@ rust_library(
         "@crates//:tracing-appender",
         "@crates//:tracing-subscriber",
         "@crates//:uuid",
+        "@crates//:futures",
     ] + select({
         "@platforms//os:android": [],
         "//conditions:default": [

@@ -1,11 +1,14 @@
 import { ArtistModel } from "../types/song_view.slint";
 import { GridListView } from "../common/grid_list_view.slint";
-import { Constants, Theme, Pages, SelectedEntity } from "../constants.slint";
+import { Constants, Theme, Pages } from "../constants.slint";
+
+export global ArtistsPageProps {
+    in-out property <[ArtistModel]> artists: Constants.testArtists;
+    in-out property <ArtistModel> selected-artist;
+}
 
 export component ArtistsPage inherits Rectangle {
-    in property <[ArtistModel]> artists: Constants.testArtists;
     in-out property <Pages> active-page;
-    in-out property <SelectedEntity> selected-entity;
 
     background: transparent;
 
@@ -23,19 +26,15 @@ export component ArtistsPage inherits Rectangle {
         GridListView {
             height: root.height - text.height - (Theme.spacingXxl + Theme.paddingLg);
             item-width: Theme.cardWidth;
-            total-items: root.artists.length;
+            total-items: ArtistsPageProps.artists.length;
             item-title(idx) => {
-                root.artists[idx].title
+                ArtistsPageProps.artists[idx].title
             }
             item-cover(idx) => {
-                root.artists[idx].coverPath
+                ArtistsPageProps.artists[idx].coverPath
             }
             item-clicked(idx) => {
-                root.selected-entity = {
-                    id: root.artists[idx].id,
-                    title: root.artists[idx].title,
-                    cover-path: root.artists[idx].coverPath,
-                };
+                ArtistsPageProps.selected-artist = ArtistsPageProps.artists[idx];
                 root.active-page = Pages.ArtistContent;
             }
         }

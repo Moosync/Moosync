@@ -266,6 +266,35 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_active_extensions(&self) -> Vec<std::sync::Arc<Extension>> {
+        self.get_installed_extensions()
+            .into_iter()
+            .filter(|d| d.active)
+            .filter_map(|d| self.get_extension(&d.package_name).ok())
+            .collect()
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn get_extensions_with_scope(
+        &self,
+        scope: extensions_proto::moosync::types::ExtensionProviderScope,
+    ) -> Vec<std::sync::Arc<Extension>> {
+        let mut extensions = Vec::new();
+        let scope_val = scope as i32;
+        for ext in self.get_active_extensions() {
+            let has_scope = ext
+                .get_provider_scopes(extensions_proto::moosync::types::GetProviderScopesRequest {})
+                .await
+                .map(|s| s.scopes.contains(&scope_val))
+                .unwrap_or(false);
+            if has_scope {
+                extensions.push(ext);
+            }
+        }
+        extensions
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_cached_remote_manifests(&self) -> Vec<FetchedExtensionManifest> {
         let path = self.extensions_dir.join("remote_manifest_cache.json");
         if path.exists() {

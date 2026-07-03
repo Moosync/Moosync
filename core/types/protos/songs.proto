@@ -53,8 +53,6 @@ message InnerSong {
   optional string id = 1; // _id
   optional string path = 2;
   optional double size = 3;
-  optional string inode = 4;
-  optional string deviceno = 5;
   optional string title = 6;
   optional string date = 7;
   optional string year = 8;
@@ -72,11 +70,7 @@ message InnerSong {
   optional string playback_url = 20;
   optional string song_cover_path_low = 21;
   optional int64 date_added = 22;
-  optional string provider_extension = 23;
-  optional string icon = 24;
-  optional bool show_in_library = 25;
   optional double track_no = 26;
-  optional bool library_item = 27;
 }
 
 message SearchableSong {
@@ -88,8 +82,6 @@ message SearchableSong {
   optional SongType type = 6;
   optional string url = 7;
   optional string playback_url = 8;
-  optional string provider_extension = 9;
-  optional bool show_in_library = 10;
 }
 
 message GetSongOptions {

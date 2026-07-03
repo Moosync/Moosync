@@ -300,7 +300,7 @@ impl ReplyHandler for StateReplyHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn extensions_updated(&self, _package_name: &str) -> Result<(), ExtensionError> {
         let state_manager = self.state_manager.clone();
-        tokio::spawn(async move {
+        self.runtime.spawn(async move {
             let extensions = state_manager.get_extension_handler().await;
             extensions.trigger_extensions_updated();
         });

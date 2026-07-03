@@ -4,7 +4,7 @@ use slint::ComponentHandle;
 use state_manager::StateManager;
 use types::prelude::SongsExt;
 
-use crate::{AppCallbacks, MainWindow, pages::PageHandler};
+use crate::{AppCallbacks, MainWindow, QueuePageProps, pages::PageHandler};
 
 pub struct QueuePageHandler<'a> {
     main_window: &'a MainWindow,
@@ -92,10 +92,7 @@ impl<'a> QueuePageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn fetch_initial_state(&self) {
-        let main_window_weak = self.main_window.as_weak();
-        let state_manager = self.state_manager.clone();
-
+    fn fetch_initial_state(state_manager: StateManager, main_window_weak: slint::Weak<MainWindow>) {
         tokio::spawn(async move {
             let player_handler = state_manager.get_player_handler().await;
             let queue = player_handler.get_queue().to_vec();
@@ -118,7 +115,7 @@ impl<'a> QueuePageHandler<'a> {
 
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = main_window_weak.upgrade() {
-                    Self::update_ui_queue(&main_window, &queue, cache_dir);
+                    Self::update_ui_queue(&main_window, &state_manager, &queue);
                     Self::update_ui_blurred_cover(&main_window, &blurred_path);
                 }
             });
@@ -126,11 +123,11 @@ impl<'a> QueuePageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn register_player_callbacks(&self) {
-        let main_window_weak = self.main_window.as_weak();
-        let state_manager = self.state_manager.clone();
-        let cancel_handles = self.cancel_handles.clone();
-
+    fn register_player_callbacks(
+        state_manager: StateManager,
+        main_window_weak: slint::Weak<MainWindow>,
+        cancel_handles: Arc<Mutex<Vec<types::subscription::CancelHandle>>>,
+    ) {
         tokio::spawn(async move {
             let player_handler = state_manager.get_player_handler().await;
             let cache_dir = state_manager.get_cache_dir();
@@ -169,14 +166,14 @@ impl<'a> QueuePageHandler<'a> {
             handles.push(ch_song);
 
             let mw_weak_queue = main_window_weak.clone();
-            let cache_dir_queue = cache_dir.clone();
+            let state_manager_queue = state_manager.clone();
             let ch_queue = player_handler.on_queue_updated(move |queue| {
                 let queue_cloned = queue.to_vec();
                 let mw_weak = mw_weak_queue.clone();
-                let cache_dir = cache_dir_queue.clone();
+                let state_manager = state_manager_queue.clone();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = mw_weak.upgrade() {
-                        Self::update_ui_queue(&main_window, &queue_cloned, cache_dir);
+                        Self::update_ui_queue(&main_window, &state_manager, &queue_cloned);
                     }
                 });
             });
@@ -189,18 +186,23 @@ impl<'a> QueuePageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn update_ui_queue(
         main_window: &MainWindow,
+        state_manager: &StateManager,
         queue: &[songs_proto::moosync::types::Song],
-        cache_dir: std::path::PathBuf,
     ) {
-        let queue_models: Vec<crate::SongModel> =
-            queue.iter().map(crate::utils::to_song_model).collect();
+        let queue_models: Vec<crate::SongModel> = queue
+            .iter()
+            .map(|s| crate::utils::to_song_model(s, None))
+            .collect();
         let theme = main_window.global::<crate::Theme>();
-        main_window.set_queue(slint::ModelRc::new(crate::utils::LazySongVecModel::new(
-            queue_models,
-            theme.get_songListItemHeight() as usize,
-            theme.get_songListItemWidth() as usize,
-            cache_dir,
-        )));
+        let cache_dir = state_manager.get_cache_dir();
+        main_window
+            .global::<QueuePageProps>()
+            .set_queue(slint::ModelRc::new(crate::utils::LazySongVecModel::new(
+                queue_models,
+                theme.get_songListItemHeight() as usize,
+                theme.get_songListItemWidth() as usize,
+                cache_dir,
+            )));
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -215,7 +217,9 @@ impl<'a> QueuePageHandler<'a> {
         } else {
             slint::Image::load_from_svg_data(crate::utils::DEFAULT_SONG_SVG).unwrap()
         };
-        main_window.set_blurred_cover(blurred_cover);
+        main_window
+            .global::<QueuePageProps>()
+            .set_blurred_cover(blurred_cover);
     }
 }
 
@@ -228,8 +232,12 @@ impl<'a> PageHandler for QueuePageHandler<'a> {
         *self.is_visible.lock().unwrap() = true;
         self.hide_timer.lock().unwrap().stop();
 
-        self.fetch_initial_state();
-        self.register_player_callbacks();
+        Self::fetch_initial_state(self.state_manager.clone(), self.main_window.as_weak());
+        Self::register_player_callbacks(
+            self.state_manager.clone(),
+            self.main_window.as_weak(),
+            self.cancel_handles.clone(),
+        );
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -251,8 +259,10 @@ impl<'a> PageHandler for QueuePageHandler<'a> {
                     }
 
                     if let Some(main_window) = main_window_weak.upgrade() {
-                        main_window.set_queue(slint::ModelRc::default());
-                        main_window.set_blurred_cover(
+                        main_window
+                            .global::<QueuePageProps>()
+                            .set_queue(slint::ModelRc::default());
+                        main_window.global::<QueuePageProps>().set_blurred_cover(
                             slint::Image::load_from_svg_data(crate::utils::DEFAULT_SONG_SVG)
                                 .unwrap(),
                         );

@@ -112,9 +112,9 @@ component QueueListItem inherits Rectangle {
                                     overflow: elide;
                                 }
 
-                                if song.extensionIcon.height > 0 || song.extensionIcon.width > 0: Image {
+                                if song.extension-icon.height > 0 || song.extension-icon.width > 0: Image {
                                     width: Theme.iconSizeSm;
-                                    source: song.extensionIcon;
+                                    source: song.extension-icon;
                                     vertical-alignment: center;
                                 }
                             }
@@ -160,9 +160,13 @@ component QueueListItem inherits Rectangle {
     }
 }
 
+export global QueuePageProps {
+    in-out property <[SongModel]> queue: Constants.testSongs;
+    in-out property <image> blurred-cover;
+}
+
 export component QueuePage inherits Rectangle {
     in property <QueuePages> page-type: QueuePages.Queue;
-    in property <[SongModel]> queue: Constants.testSongs;
     in property <SongModel> current-song: Constants.defaultSong;
     in-out property <int> active-idx: -1;
 
@@ -170,8 +174,10 @@ export component QueuePage inherits Rectangle {
     in-out property <int> drag-target-idx: -1;
     in-out property <length> drag-mouse-y: -1px;
 
+    property <[SongModel]> queue-alias <=> QueuePageProps.queue;
+
     // Resets drag source, target, and mouse Y coordinates when the queue list changes.
-    changed queue => {
+    changed queue-alias => {
         root.drag-source-idx = -1;
         root.drag-target-idx = -1;
         root.drag-mouse-y = -1px;
@@ -183,12 +189,12 @@ export component QueuePage inherits Rectangle {
             // Scroll up near the top boundary (top 50px)
             if (root.drag-mouse-y < 50px) {
                 list-view.viewport-y = Math.min(0px, list-view.viewport-y + (50px - root.drag-mouse-y) * 0.5);
-                root.drag-target-idx = Math.max(0, Math.min(root.queue.length - 1, (root.drag-mouse-y - list-view.viewport-y) / (60px + Theme.paddingSm)));
+                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - list-view.viewport-y) / (60px + Theme.paddingSm)));
             }
             // Scroll down near the bottom boundary (bottom 50px)
             if (root.drag-mouse-y > list-view.height - 50px) {
                 list-view.viewport-y = Math.max(-(list-view.viewport-height - list-view.height), list-view.viewport-y - (root.drag-mouse-y - (list-view.height - 50px)) * 0.5);
-                root.drag-target-idx = Math.max(0, Math.min(root.queue.length - 1, (root.drag-mouse-y - list-view.viewport-y) / (60px + Theme.paddingSm)));
+                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - list-view.viewport-y) / (60px + Theme.paddingSm)));
             }
         }
     }
@@ -213,14 +219,12 @@ export component QueuePage inherits Rectangle {
         return visual-idx;
     }
 
-    in property <image> blurred-cover;
-
     background: Theme.primary;
 
     Image {
         width: 100%;
         height: 100%;
-        source: root.blurred-cover;
+        source: QueuePageProps.blurred-cover;
         image-fit: cover;
         opacity: 0.85;
     }
@@ -287,11 +291,11 @@ export component QueuePage inherits Rectangle {
                     width: 100%;
                     height: 100%;
 
-                    for song[idx] in root.queue: VerticalLayout {
+                    for song[idx] in QueuePageProps.queue: VerticalLayout {
                         padding-right: Theme.paddingSm;
 
                         property <int> mapped-idx: root.get-mapped-idx(idx, root.drag-source-idx, root.drag-target-idx);
-                        property <SongModel> mapped-song: root.queue[mapped-idx];
+                        property <SongModel> mapped-song: QueuePageProps.queue[mapped-idx];
 
                         QueueListItem {
                             song: mapped-song;

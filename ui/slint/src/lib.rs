@@ -292,8 +292,11 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
     // Clear default values on load
     main_window.set_current_song(utils::to_song_model(
         &songs_proto::moosync::types::Song::default(),
+        None,
     ));
-    main_window.set_queue(ModelRc::new(VecModel::default()));
+    main_window
+        .global::<QueuePageProps>()
+        .set_queue(ModelRc::new(VecModel::default()));
 
     let main_window_weak = main_window.as_weak();
     tokio::spawn(async move {
@@ -315,8 +318,11 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = mw_weak.upgrade() {
                     let song_model = match &song {
-                        Some(s) => utils::to_song_model(s),
-                        None => utils::to_song_model(&songs_proto::moosync::types::Song::default()),
+                        Some(s) => utils::to_song_model(s, None),
+                        None => utils::to_song_model(
+                            &songs_proto::moosync::types::Song::default(),
+                            None,
+                        ),
                     };
                     main_window.set_current_song(song_model);
                 }

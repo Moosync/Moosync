@@ -87,7 +87,6 @@ pub mod prelude {
         fn get_playback_url(&self) -> Option<Cow<'_, str>>;
         fn get_type_or_default(&self) -> SongType;
         fn get_path(&self) -> Option<Cow<'_, str>>;
-        fn get_extension(&self) -> Option<Cow<'_, str>>;
         fn get_lyrics(&self) -> Option<Cow<'_, str>>;
         fn get_date(&self) -> Option<Cow<'_, str>>;
         fn get_artist_string(&self) -> Option<String>;
@@ -163,11 +162,6 @@ pub mod prelude {
                 .as_ref()
                 .and_then(|s| s.path.as_deref().map(Cow::Borrowed))
         }
-        fn get_extension(&self) -> Option<Cow<'_, str>> {
-            self.song
-                .as_ref()
-                .and_then(|s| s.provider_extension.as_deref().map(Cow::Borrowed))
-        }
         fn get_lyrics(&self) -> Option<Cow<'_, str>> {
             self.song
                 .as_ref()
@@ -239,11 +233,20 @@ pub mod prelude {
         }
     }
 
-    fn format_position(duration: Duration) -> String {
-        let secs = duration.as_secs();
-        let minutes = secs / 60;
-        let seconds = secs % 60;
-        format!("{:02}:{:02}", minutes, seconds)
+    pub trait SearchResultExt {
+        fn to_songs_proto(self) -> songs_proto::moosync::types::SearchResult;
+    }
+
+    impl SearchResultExt for extensions_proto::moosync::types::RequestedSearchResultResponse {
+        fn to_songs_proto(self) -> songs_proto::moosync::types::SearchResult {
+            songs_proto::moosync::types::SearchResult {
+                songs: self.songs,
+                albums: self.albums,
+                artists: self.artists,
+                playlists: self.playlists,
+                genres: vec![],
+            }
+        }
     }
 
     fn proto_duration_to_core(

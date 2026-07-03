@@ -150,8 +150,6 @@ pub fn map_row_to_inner_song(row: &rusqlite::Row) -> rusqlite::Result<InnerSong>
         id: row.get(0)?,
         path: row.get(1)?,
         size: row.get(2)?,
-        inode: row.get(3)?,
-        deviceno: row.get(4)?,
         title: row.get(5)?,
         date: row.get(6)?,
         year: row.get(7)?,
@@ -169,11 +167,7 @@ pub fn map_row_to_inner_song(row: &rusqlite::Row) -> rusqlite::Result<InnerSong>
         playback_url: row.get(19)?,
         song_cover_path_low: row.get(20)?,
         date_added: row.get(21)?,
-        provider_extension: row.get(22)?,
-        icon: row.get(23)?,
-        show_in_library: row.get(24)?,
         track_no: row.get(25)?,
-        library_item: row.get(26)?,
     })
 }
 

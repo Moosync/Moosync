@@ -569,8 +569,8 @@ impl Database {
                     id: inner_song.id.clone(),
                     path: inner_song.path.clone(),
                     size: inner_song.size,
-                    inode: inner_song.inode.clone(),
-                    deviceno: inner_song.deviceno.clone(),
+                    inode: None,
+                    deviceno: None,
                     title: inner_song.title.clone(),
                     date: inner_song.date.clone(),
                     year: inner_song.year.clone(),
@@ -588,11 +588,11 @@ impl Database {
                     playback_url: inner_song.playback_url.clone(),
                     song_cover_path_low: inner_song.song_cover_path_low.clone(),
                     date_added: inner_song.date_added,
-                    provider_extension: inner_song.provider_extension.clone(),
-                    icon: inner_song.icon.clone(),
-                    show_in_library: inner_song.show_in_library,
+                    provider_extension: None,
+                    icon: None,
+                    show_in_library: None,
                     track_no: inner_song.track_no,
-                    library_item: inner_song.library_item,
+                    library_item: None,
                 });
 
                 if let Some(album) = &song.album {
@@ -836,8 +836,8 @@ impl Database {
             let params: &[&dyn rusqlite::ToSql] = &[
                 &song.path,
                 &song.size,
-                &song.inode,
-                &song.deviceno,
+                &None::<String>,
+                &None::<String>,
                 &song.title,
                 &song.date,
                 &song.year,
@@ -855,11 +855,11 @@ impl Database {
                 &song.playback_url,
                 &song.song_cover_path_low,
                 &song.date_added,
-                &song.provider_extension,
-                &song.icon,
-                &song.show_in_library,
+                &None::<String>,
+                &None::<String>,
+                &None::<bool>,
                 &song.track_no,
-                &song.library_item,
+                &None::<bool>,
                 id,
             ];
             conn.execute(
@@ -1360,14 +1360,6 @@ impl Database {
                 clauses.push("playbackurl LIKE ?".to_string());
                 params.push(v as &dyn rusqlite::ToSql);
             }
-            if let Some(ref v) = song.provider_extension {
-                clauses.push("provider_extension = ?".to_string());
-                params.push(v as &dyn rusqlite::ToSql);
-            }
-            if let Some(ref v) = song.show_in_library {
-                clauses.push("show_in_library = ?".to_string());
-                params.push(v as &dyn rusqlite::ToSql);
-            }
 
             if !clauses.is_empty() {
                 let joiner = if inclusive { " AND " } else { " OR " };
@@ -1521,8 +1513,6 @@ impl Database {
                 r#type: None,
                 url: None,
                 playback_url: None,
-                provider_extension: None,
-                show_in_library: None,
             }),
             artist: None,
             album: None,
@@ -1801,8 +1791,8 @@ impl Database {
                 let params: &[&dyn rusqlite::ToSql] = &[
                     &inner_song.path,
                     &inner_song.size,
-                    &inner_song.inode,
-                    &inner_song.deviceno,
+                    &None::<String>,
+                    &None::<String>,
                     &inner_song.title,
                     &inner_song.date,
                     &inner_song.year,
@@ -1820,11 +1810,11 @@ impl Database {
                     &inner_song.playback_url,
                     &inner_song.song_cover_path_low,
                     &inner_song.date_added,
-                    &inner_song.provider_extension,
-                    &inner_song.icon,
-                    &inner_song.show_in_library,
+                    &None::<String>,
+                    &None::<String>,
+                    &None::<bool>,
                     &inner_song.track_no,
-                    &inner_song.library_item,
+                    &None::<bool>,
                     &inner_song.id,
                 ];
 

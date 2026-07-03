@@ -472,6 +472,7 @@ impl ExtensionContext for ExtismContext {
                 Prost(command),
             )?;
             tracing::trace!("Finished calling on {:?}", plugin.id);
+            tracing::trace!("Response: {:?}", res);
 
             let mut parsed_resp = res.0;
             parsed_resp.sanitize(&package_name)?;

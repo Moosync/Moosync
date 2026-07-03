@@ -3,7 +3,9 @@ use songs_proto::moosync::types::{Artist, ArtistList, GetEntityOptions, entity_r
 use state_manager::StateManager;
 use tracing::debug;
 
-use crate::{MainWindow, Pages, error::UiError, pages::PageHandler, utils::LazySongVecModel};
+use crate::{
+    ArtistsPageProps, MainWindow, error::UiError, pages::PageHandler, utils::LazySongVecModel,
+};
 
 pub struct ArtistsPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -39,20 +41,23 @@ impl<'a> ArtistsPageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_artists(main_window: &MainWindow, artists: Vec<Artist>, cache_dir: std::path::PathBuf) {
+    fn set_artists(main_window: &MainWindow, state_manager: &StateManager, artists: Vec<Artist>) {
         debug!("Setting artists");
         let artist_model = artists
             .into_iter()
-            .map(|artist| crate::utils::to_artist_model(&artist))
+            .map(|artist| crate::utils::to_artist_model(&artist, None))
             .collect::<Vec<_>>();
 
         let theme = main_window.global::<crate::Theme>();
-        main_window.set_artists(ModelRc::new(LazySongVecModel::new(
-            artist_model,
-            theme.get_cardHeight() as usize,
-            theme.get_cardWidth() as usize,
-            cache_dir,
-        )));
+        let cache_dir = state_manager.get_cache_dir();
+        main_window
+            .global::<ArtistsPageProps>()
+            .set_artists(ModelRc::new(LazySongVecModel::new(
+                artist_model,
+                theme.get_cardHeight() as usize,
+                theme.get_cardWidth() as usize,
+                cache_dir,
+            )));
     }
 }
 
@@ -62,22 +67,23 @@ impl<'a> PageHandler for ArtistsPageHandler<'a> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
-        let state_manager = self.state_manager.clone();
-        let main_window_weak = self.main_window.as_weak();
-        tokio::spawn(async move {
-            if let Ok(artists) = Self::fetch_artists(&state_manager).await {
-                let cache_dir = state_manager.get_cache_dir();
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(main_window) = main_window_weak.upgrade() {
-                        if main_window.get_active_page() == Pages::Artists {
-                            Self::set_artists(&main_window, artists, cache_dir);
-                        }
-                    }
-                });
+        tokio::spawn({
+            let state_manager = self.state_manager.clone();
+            let main_window_weak = self.main_window.as_weak();
+            async move {
+                if let Ok(artists) = Self::fetch_artists(&state_manager).await {
+                    let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
+                        Self::set_artists(&main_window, &state_manager, artists);
+                    });
+                }
             }
         });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_hide(&self) { self.main_window.set_artists(ModelRc::default()); }
+    fn on_hide(&self) {
+        self.main_window
+            .global::<ArtistsPageProps>()
+            .set_artists(ModelRc::default());
+    }
 }

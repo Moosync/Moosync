@@ -3,7 +3,9 @@ use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song};
 use state_manager::StateManager;
 use tracing::debug;
 
-use crate::{MainWindow, Pages, error::UiError, pages::PageHandler, utils::LazySongVecModel};
+use crate::{
+    AllSongsPageProps, MainWindow, error::UiError, pages::PageHandler, utils::LazySongVecModel,
+};
 
 pub struct AllSongsPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -35,20 +37,23 @@ impl<'a> AllSongsPageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_songs(main_window: &MainWindow, songs: Vec<Song>, cache_dir: std::path::PathBuf) {
+    fn set_songs(main_window: &MainWindow, state_manager: &StateManager, songs: Vec<Song>) {
         debug!("Setting songs");
         let songs_view = songs
             .iter()
-            .map(crate::utils::to_song_model)
+            .map(|s| crate::utils::to_song_model(s, None))
             .collect::<Vec<_>>();
 
         let theme = main_window.global::<crate::Theme>();
-        main_window.set_songs(ModelRc::new(LazySongVecModel::new(
-            songs_view,
-            theme.get_songListItemHeight() as usize,
-            theme.get_songListItemWidth() as usize,
-            cache_dir,
-        )));
+        let cache_dir = state_manager.get_cache_dir();
+        main_window
+            .global::<AllSongsPageProps>()
+            .set_songs(ModelRc::new(LazySongVecModel::new(
+                songs_view,
+                theme.get_songListItemHeight() as usize,
+                theme.get_songListItemWidth() as usize,
+                cache_dir,
+            )));
     }
 }
 
@@ -58,22 +63,23 @@ impl<'a> PageHandler for AllSongsPageHandler<'a> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
-        let state_manager = self.state_manager.clone();
-        let main_window_weak = self.main_window.as_weak();
-        tokio::spawn(async move {
-            if let Ok(songs) = Self::fetch_songs(&state_manager).await {
-                let cache_dir = state_manager.get_cache_dir();
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(main_window) = main_window_weak.upgrade() {
-                        if main_window.get_active_page() == Pages::AllSongs {
-                            Self::set_songs(&main_window, songs, cache_dir);
-                        }
-                    }
-                });
+        tokio::spawn({
+            let state_manager = self.state_manager.clone();
+            let main_window_weak = self.main_window.as_weak();
+            async move {
+                if let Ok(songs) = Self::fetch_songs(&state_manager).await {
+                    let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
+                        Self::set_songs(&main_window, &state_manager, songs);
+                    });
+                }
             }
         });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_hide(&self) { self.main_window.set_songs(ModelRc::default()); }
+    fn on_hide(&self) {
+        self.main_window
+            .global::<AllSongsPageProps>()
+            .set_songs(ModelRc::default());
+    }
 }

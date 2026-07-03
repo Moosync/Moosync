@@ -11,12 +11,12 @@ import { SongListView } from "../common/song_list_view.slint";
 import { GridListView } from "../common/grid_list_view.slint";
 import { AppCallbacks } from "../callbacks.slint";
 
-struct Provider {
+export struct Provider {
     name: string,
     icon: image,
 }
 
-component ProviderItem inherits TouchArea {
+export component ProviderItem inherits TouchArea {
     in property <Provider> provider;
     in property <bool> active: false;
 
@@ -53,8 +53,11 @@ component ProviderItem inherits TouchArea {
     }
 }
 
+export global SearchPageProps {
+    in-out property <[SearchResult]> provider-results;
+}
+
 export component SearchPage inherits Rectangle {
-    in property <SearchResult> results;
     in property <string> search-query: "";
     changed search-query => {
         AppCallbacks.search_term_changed(self.search-query);
@@ -63,22 +66,12 @@ export component SearchPage inherits Rectangle {
     property <int> active-tab: 0;
     property <int> selected-provider: 0;
 
-    property <[Provider]> providers: [
-        { name: "Local", icon: @image-url("../icons/folder.svg") },
-        { name: "Spotify", icon: @image-url("../icons/songs.svg") },
-        { name: "YouTube", icon: @image-url("../icons/play.svg") },
-        { name: "SoundCloud", icon: @image-url("../icons/song_default.svg") },
-        { name: "Drive", icon: @image-url("../icons/folder_hollow.svg") },
-        { name: "Web Radio", icon: @image-url("../icons/explore.svg") },
-        { name: "Extensions", icon: @image-url("../icons/extensions.svg") }
-    ];
-
     background: transparent;
 
     VerticalLayout {
         width: 100%;
         height: 100%;
-        spacing: Theme.spacingXl;
+        spacing: Theme.spacingXxl;
         padding: Theme.paddingMd;
 
         // Title
@@ -92,8 +85,8 @@ export component SearchPage inherits Rectangle {
 
         // Provider Wrapping Grid Rows using FlexboxLayout
         FlexboxLayout {
-            for provider[idx] in root.providers: ProviderItem {
-                provider: provider;
+            for prov[idx] in SearchPageProps.provider-results: ProviderItem {
+                provider: { name: prov.extension == "" ? "Local" : prov.extension, icon: prov.extension-icon };
                 active: root.selected-provider == idx;
                 clicked => { root.selected-provider = idx; }
             }
@@ -133,11 +126,12 @@ export component SearchPage inherits Rectangle {
             }
         }
 
-        Rectangle {
+        res-container := Rectangle {
             vertical-stretch: 1;
+            property <SearchResult> current-res: SearchPageProps.provider-results[root.selected-provider];
 
             SongListView {
-                songs: root.results.songs;
+                songs: res-container.current-res.songs;
                 opacity: root.active-tab == 0 ? 1.0 : 0.0;
                 visible: self.opacity > 0.01;
                 animate opacity {
@@ -148,9 +142,9 @@ export component SearchPage inherits Rectangle {
 
             GridListView {
                 item-width: Theme.cardWidth;
-                total-items: root.results.albums.length;
-                item-title(idx) => { root.results.albums[idx].title }
-                item-cover(idx) => { root.results.albums[idx].coverPath }
+                total-items: res-container.current-res.albums.length;
+                item-title(idx) => { res-container.current-res.albums[idx].title }
+                item-cover(idx) => { res-container.current-res.albums[idx].coverPath }
                 opacity: root.active-tab == 1 ? 1.0 : 0.0;
                 visible: self.opacity > 0.01;
                 animate opacity {
@@ -161,9 +155,9 @@ export component SearchPage inherits Rectangle {
 
             GridListView {
                 item-width: Theme.cardWidth;
-                total-items: root.results.artists.length;
-                item-title(idx) => { root.results.artists[idx].title }
-                item-cover(idx) => { root.results.artists[idx].coverPath }
+                total-items: res-container.current-res.artists.length;
+                item-title(idx) => { res-container.current-res.artists[idx].title }
+                item-cover(idx) => { res-container.current-res.artists[idx].coverPath }
                 opacity: root.active-tab == 2 ? 1.0 : 0.0;
                 visible: self.opacity > 0.01;
                 animate opacity {
@@ -174,9 +168,9 @@ export component SearchPage inherits Rectangle {
 
             GridListView {
                 item-width: Theme.cardWidth;
-                total-items: root.results.playlists.length;
-                item-title(idx) => { root.results.playlists[idx].title }
-                item-cover(idx) => { root.results.playlists[idx].coverPath }
+                total-items: res-container.current-res.playlists.length;
+                item-title(idx) => { res-container.current-res.playlists[idx].title }
+                item-cover(idx) => { res-container.current-res.playlists[idx].coverPath }
                 opacity: root.active-tab == 3 ? 1.0 : 0.0;
                 visible: self.opacity > 0.01;
                 animate opacity {
@@ -187,9 +181,9 @@ export component SearchPage inherits Rectangle {
 
             GridListView {
                 item-width: Theme.cardWidth;
-                total-items: root.results.genres.length;
-                item-title(idx) => { root.results.genres[idx].title }
-                item-cover(idx) => { root.results.genres[idx].coverPath }
+                total-items: res-container.current-res.genres.length;
+                item-title(idx) => { res-container.current-res.genres[idx].title }
+                item-cover(idx) => { res-container.current-res.genres[idx].coverPath }
                 opacity: root.active-tab == 4 ? 1.0 : 0.0;
                 visible: self.opacity > 0.01;
                 animate opacity {

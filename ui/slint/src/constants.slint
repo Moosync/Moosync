@@ -7,11 +7,6 @@ import {
 } from "./types/song_view.slint";
 import { ExtensionItem } from "./types/extension_view.slint";
 
-export struct SelectedEntity {
-    id: string,
-    title: string,
-    cover-path: image,
-}
 
 export global Constants {
     out property <duration> page-transition-duration: 250ms;
@@ -21,13 +16,8 @@ export global Constants {
         title: "",
         coverPathHigh: @image-url("./icons/song_default.svg"),
         coverPathLow: @image-url("./icons/song_default.svg"),
-        extensionIcon: @image-url("./icons/song_default.svg"),
-    };
-
-    out property <SelectedEntity> defaultSelectedEntity: {
-        id: "",
-        title: "",
-        cover-path: @image-url("./icons/song_default.svg"),
+        extension: "",
+        extension-icon: @image-url("./icons/empty.svg"),
     };
 
     out property <[SongModel]> testSongs: [
@@ -86,7 +76,7 @@ export global Constants {
             duration_str: "05:45",
             coverPathHigh: @image-url("./icons/song_default.svg"),
             coverPathLow: @image-url("./icons/song_default.svg"),
-            extensionIcon: @image-url("./icons/song_default.svg"),
+            extension-icon: @image-url("./icons/song_default.svg"),
         },
         {
             id: "2",
@@ -106,7 +96,7 @@ export global Constants {
             duration_s: 215,
             coverPathHigh: @image-url("./icons/song_default.svg"),
             coverPathLow: @image-url("./icons/song_default.svg"),
-            extensionIcon: @image-url("./icons/song_default.svg"),
+            extension-icon: @image-url("./icons/song_default.svg"),
         },
         {
             id: "3",
@@ -127,7 +117,7 @@ export global Constants {
             duration_str: "03:35",
             coverPathHigh: @image-url("./icons/song_default.svg"),
             coverPathLow: @image-url("./icons/song_default.svg"),
-            extensionIcon: @image-url("./icons/song_default.svg"),
+            extension-icon: @image-url("./icons/song_default.svg"),
         },
         {
             id: "4",
@@ -148,7 +138,7 @@ export global Constants {
             duration_str: "03:35",
             coverPathHigh: @image-url("./icons/song_default.svg"),
             coverPathLow: @image-url("./icons/song_default.svg"),
-            extensionIcon: @image-url("./icons/song_default.svg"),
+            extension-icon: @image-url("./icons/song_default.svg"),
         },
         {
             id: "5",
@@ -169,7 +159,7 @@ export global Constants {
             duration_str: "03:35",
             coverPathHigh: @image-url("./icons/song_default.svg"),
             coverPathLow: @image-url("./icons/song_default.svg"),
-            extensionIcon: @image-url("./icons/song_default.svg"),
+            extension-icon: @image-url("./icons/song_default.svg"),
         },
         {
             id: "6",
@@ -190,7 +180,7 @@ export global Constants {
             duration_str: "03:35",
             coverPathHigh: @image-url("./icons/song_default.svg"),
             coverPathLow: @image-url("./icons/song_default.svg"),
-            extensionIcon: @image-url("./icons/song_default.svg"),
+            extension-icon: @image-url("./icons/song_default.svg"),
         },
         {
             id: "7",
@@ -211,7 +201,7 @@ export global Constants {
             duration_str: "03:35",
             coverPathHigh: @image-url("./icons/song_default.svg"),
             coverPathLow: @image-url("./icons/song_default.svg"),
-            extensionIcon: @image-url("./icons/song_default.svg"),
+            extension-icon: @image-url("./icons/song_default.svg"),
         },
         {
             id: "8",
@@ -232,7 +222,7 @@ export global Constants {
             duration_str: "03:35",
             coverPathHigh: @image-url("./icons/song_default.svg"),
             coverPathLow: @image-url("./icons/song_default.svg"),
-            extensionIcon: @image-url("./icons/song_default.svg"),
+            extension-icon: @image-url("./icons/song_default.svg"),
         },
     ];
 

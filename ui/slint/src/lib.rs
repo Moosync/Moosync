@@ -463,78 +463,46 @@ impl PageLifecycleManager {
                 AppPage::Paths => {
                     self.settings_open
                         && !self.queue_open
-                        && (self.active_settings_page == AppPage::Paths)
+                        && (was_visible || self.active_settings_page == AppPage::Paths)
                 }
                 AppPage::System => {
                     self.settings_open
                         && !self.queue_open
-                        && (self.active_settings_page == AppPage::System)
+                        && (was_visible || self.active_settings_page == AppPage::System)
                 }
                 AppPage::Extensions => {
                     self.settings_open
                         && !self.queue_open
-                        && (self.active_settings_page == AppPage::Extensions)
+                        && (was_visible || self.active_settings_page == AppPage::Extensions)
                 }
                 AppPage::Themes => {
                     self.settings_open
                         && !self.queue_open
-                        && (self.active_settings_page == AppPage::Themes)
+                        && (was_visible || self.active_settings_page == AppPage::Themes)
                 }
 
                 AppPage::AllSongs => {
-                    !self.settings_open
-                        && !self.queue_open
-                        && (self.active_main_page == AppPage::AllSongs)
+                    !self.queue_open && (self.active_main_page == AppPage::AllSongs)
                 }
-                AppPage::Albums => {
-                    !self.settings_open
-                        && !self.queue_open
-                        && (self.active_main_page == AppPage::Albums)
-                }
-                AppPage::Artists => {
-                    !self.settings_open
-                        && !self.queue_open
-                        && (self.active_main_page == AppPage::Artists)
-                }
+                AppPage::Albums => !self.queue_open && (self.active_main_page == AppPage::Albums),
+                AppPage::Artists => !self.queue_open && (self.active_main_page == AppPage::Artists),
                 AppPage::Playlists => {
-                    !self.settings_open
-                        && !self.queue_open
-                        && (self.active_main_page == AppPage::Playlists)
+                    !self.queue_open && (self.active_main_page == AppPage::Playlists)
                 }
-                AppPage::Genres => {
-                    !self.settings_open
-                        && !self.queue_open
-                        && (self.active_main_page == AppPage::Genres)
-                }
-                AppPage::Explore => {
-                    !self.settings_open
-                        && !self.queue_open
-                        && (self.active_main_page == AppPage::Explore)
-                }
-                AppPage::Search => {
-                    !self.settings_open
-                        && !self.queue_open
-                        && (self.active_main_page == AppPage::Search)
-                }
+                AppPage::Genres => !self.queue_open && (self.active_main_page == AppPage::Genres),
+                AppPage::Explore => !self.queue_open && (self.active_main_page == AppPage::Explore),
+                AppPage::Search => !self.queue_open && (self.active_main_page == AppPage::Search),
                 AppPage::PlaylistContent => {
-                    !self.settings_open
-                        && !self.queue_open
-                        && (self.active_main_page == AppPage::PlaylistContent)
+                    !self.queue_open && (self.active_main_page == AppPage::PlaylistContent)
                 }
                 AppPage::AlbumContent => {
-                    !self.settings_open
-                        && !self.queue_open
-                        && (self.active_main_page == AppPage::AlbumContent)
+                    !self.queue_open && (self.active_main_page == AppPage::AlbumContent)
                 }
                 AppPage::ArtistContent => {
-                    !self.settings_open
-                        && !self.queue_open
-                        && (self.active_main_page == AppPage::ArtistContent)
+                    !self.queue_open && (self.active_main_page == AppPage::ArtistContent)
                 }
                 AppPage::GenreContent => {
-                    !self.settings_open
-                        && !self.queue_open
-                        && (self.active_main_page == AppPage::GenreContent)
+                    !self.queue_open && (self.active_main_page == AppPage::GenreContent)
                 }
             };
 
@@ -542,7 +510,8 @@ impl PageLifecycleManager {
                 self.visible_states.insert(page_type, is_visible);
                 if is_visible {
                     handler.on_show();
-                } else {
+                }
+                if !is_visible {
                     handler.on_hide();
                 }
             }

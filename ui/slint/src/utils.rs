@@ -48,6 +48,14 @@ fn detect_image_extension(bytes: &[u8], url: &str) -> &'static str {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+pub fn get_safe_name(cover_url: &str) -> String {
+    cover_url
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '_' })
+        .collect()
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 fn is_matching_cache_entry(entry: &std::fs::DirEntry, safe_name: &str) -> bool {
     let file_name = entry.file_name();
     let name_str = file_name.to_string_lossy();
@@ -55,7 +63,10 @@ fn is_matching_cache_entry(entry: &std::fs::DirEntry, safe_name: &str) -> bool {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn find_existing_cache_file(img_cache_dir: &Path, safe_name: &str) -> Option<std::path::PathBuf> {
+fn find_existing_cache_file(
+    img_cache_dir: &std::path::Path,
+    safe_name: &str,
+) -> Option<std::path::PathBuf> {
     let entries = std::fs::read_dir(img_cache_dir).ok()?;
     entries
         .flatten()
@@ -69,21 +80,22 @@ pub async fn cache_image(
     cache_dir: &std::path::Path,
 ) -> Option<std::path::PathBuf> {
     if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
-        return Some(std::path::PathBuf::from(cover_url));
+        let path = std::path::PathBuf::from(cover_url);
+        if path.exists() {
+            return Some(path);
+        }
+        return None;
     }
 
-    let safe_name: String = cover_url
-        .chars()
-        .map(|c| if c.is_alphanumeric() { c } else { '_' })
-        .collect();
-
+    let safe_name = get_safe_name(cover_url);
     let img_cache_dir = cache_dir.join("image_cache");
-    if !img_cache_dir.exists() {
-        let _ = std::fs::create_dir_all(&img_cache_dir);
-    }
 
     if let Some(existing_path) = find_existing_cache_file(&img_cache_dir, &safe_name) {
         return Some(existing_path);
+    }
+
+    if !img_cache_dir.exists() {
+        let _ = std::fs::create_dir_all(&img_cache_dir);
     }
 
     let client = reqwest::Client::new();
@@ -200,12 +212,40 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    fn update_image_in_row(&self, row: usize, img: Image) {
+        let mut array = self.array.borrow_mut();
+        let Some(item) = array.get_mut(row) else {
+            return;
+        };
+        item.set_cover(img);
+        self.allocated_rows.borrow_mut().insert(row);
+        self.notify.row_changed(row);
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn load_image(&self, row: usize, cover_url: &str) {
         if cover_url.is_empty() {
             return;
         }
 
         trace!("Fetching image for row {}", row);
+
+        if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
+            let path = std::path::PathBuf::from(cover_url);
+            if let Ok(img) = Image::load_from_path(&path) {
+                self.update_image_in_row(row, img);
+            }
+            return;
+        }
+
+        let safe_name = get_safe_name(cover_url);
+        let img_cache_dir = self.cache_dir.join("image_cache");
+        if let Some(existing_path) = find_existing_cache_file(&img_cache_dir, &safe_name) {
+            if let Ok(img) = Image::load_from_path(&existing_path) {
+                self.update_image_in_row(row, img);
+            }
+            return;
+        }
 
         self.allocated_rows.borrow_mut().insert(row);
 
@@ -216,21 +256,17 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
         let cache_dir = self.cache_dir.clone();
 
         slint::spawn_local(async move {
-            if let Some(img) = load_image_from_path_or_url(&cover_url_str, &cache_dir).await {
-                let mut changed = false;
-                {
-                    let mut array = array.borrow_mut();
-                    if let Some(item) = array.get_mut(row) {
-                        item.set_cover(img);
-                        tracing::trace!("Loaded image for row {}", row);
-                        allocated_rows.borrow_mut().insert(row);
-                        changed = true;
-                    }
-                }
-                if changed {
-                    notify.row_changed(row);
-                }
-            }
+            let Some(img) = load_image_from_path_or_url(&cover_url_str, &cache_dir).await else {
+                return;
+            };
+            let mut array = array.borrow_mut();
+            let Some(item) = array.get_mut(row) else {
+                return;
+            };
+            item.set_cover(img);
+            tracing::trace!("Loaded image for row {}", row);
+            allocated_rows.borrow_mut().insert(row);
+            notify.row_changed(row);
         })
         .unwrap();
     }

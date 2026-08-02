@@ -25,6 +25,45 @@ pub trait LazyModel: Clone {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+fn detect_image_extension(bytes: &[u8], url: &str) -> &'static str {
+    if url.contains(".svg") || bytes.starts_with(b"<svg") || bytes.starts_with(b"<?xml") {
+        return "svg";
+    }
+
+    let Ok(fmt) = image::guess_format(bytes) else {
+        return "png";
+    };
+
+    match fmt {
+        image::ImageFormat::Jpeg => "jpg",
+        image::ImageFormat::Png => "png",
+        image::ImageFormat::Gif => "gif",
+        image::ImageFormat::WebP => "webp",
+        image::ImageFormat::Bmp => "bmp",
+        image::ImageFormat::Ico => "ico",
+        image::ImageFormat::Tiff => "tiff",
+        image::ImageFormat::Qoi => "qoi",
+        _ => "png",
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn is_matching_cache_entry(entry: &std::fs::DirEntry, safe_name: &str) -> bool {
+    let file_name = entry.file_name();
+    let name_str = file_name.to_string_lossy();
+    name_str.starts_with(&format!("{safe_name}.")) || name_str == safe_name
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn find_existing_cache_file(img_cache_dir: &Path, safe_name: &str) -> Option<std::path::PathBuf> {
+    let entries = std::fs::read_dir(img_cache_dir).ok()?;
+    entries
+        .flatten()
+        .find(|entry| is_matching_cache_entry(entry, safe_name))
+        .map(|entry| entry.path())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 pub async fn cache_image(
     cover_url: &str,
     cache_dir: &std::path::Path,
@@ -33,29 +72,28 @@ pub async fn cache_image(
         return Some(std::path::PathBuf::from(cover_url));
     }
 
-    // Remote URL. Check if already in cache.
     let safe_name: String = cover_url
         .chars()
         .map(|c| if c.is_alphanumeric() { c } else { '_' })
         .collect();
+
     let img_cache_dir = cache_dir.join("image_cache");
     if !img_cache_dir.exists() {
         let _ = std::fs::create_dir_all(&img_cache_dir);
     }
-    let ext = if cover_url.contains(".svg") {
-        "svg"
-    } else {
-        "png"
-    };
-    let cached_path = img_cache_dir.join(format!("{}.{}", safe_name, ext));
 
-    if cached_path.exists() {
-        return Some(cached_path);
+    if let Some(existing_path) = find_existing_cache_file(&img_cache_dir, &safe_name) {
+        return Some(existing_path);
     }
 
     let client = reqwest::Client::new();
     let resp = client.get(cover_url).send().await.ok()?;
+    if resp.status() != reqwest::StatusCode::OK {
+        return None;
+    }
     let bytes = resp.bytes().await.ok()?;
+    let ext = detect_image_extension(&bytes, cover_url);
+    let cached_path = img_cache_dir.join(format!("{safe_name}.{ext}"));
     std::fs::write(&cached_path, bytes).ok()?;
     Some(cached_path)
 }

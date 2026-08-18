@@ -15,3 +15,4 @@ rust-project.json
 **/.gradle
 **/.settings
 .tokensave
+.bazelrc.local

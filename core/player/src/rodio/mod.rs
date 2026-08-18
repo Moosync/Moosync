@@ -15,12 +15,13 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
+    num::NonZero,
     sync::{Arc, Mutex},
     time::Duration,
 };
 
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
-use rodio::{MixerDeviceSink, Player, source::EmptyCallback};
+use rodio::{MixerDeviceSink, Player, cpal::traits::DeviceTrait, cpal::traits::HostTrait, cpal::SupportedStreamConfig, source::EmptyCallback};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
@@ -30,6 +31,40 @@ use crate::{
 mod decoder;
 #[cfg(test)]
 mod test;
+
+#[cfg(target_os = "linux")]
+mod pulse_monitor;
+
+/// Get the system's preferred sample rate for audio output.
+///
+/// On Linux, queries PulseAudio/PipeWire directly because cpal's
+/// `default_output_config()` is known to return incorrect rates on
+/// PipeWire/Snapcast sinks. On other platforms or as a fallback,
+/// uses cpal's reported default.
+pub fn get_system_sample_rate() -> u32 {
+    #[cfg(target_os = "linux")]
+    {
+        if let Some(rate) = pulse_monitor::get_default_sample_rate() {
+            tracing::trace!("PulseAudio: Detected sample rate: {} Hz", rate);
+            return rate;
+        }
+        tracing::trace!("PulseAudio: Not available, falling back to cpal");
+    }
+    get_cpal_default_sample_rate()
+}
+
+fn get_cpal_default_sample_rate() -> u32 {
+    let Some(device) = rodio::cpal::default_host().default_output_device() else {
+        tracing::trace!("cpal: No audio device found, using default 44100 Hz");
+        return 44100;
+    };
+    let default_rate = device
+        .default_output_config()
+        .map(|c: SupportedStreamConfig| c.sample_rate())
+        .unwrap_or(44100);
+    tracing::trace!("cpal: Using sample rate: {} Hz", default_rate);
+    default_rate
+}
 
 pub(crate) use decoder::DecoderError;
 
@@ -111,12 +146,74 @@ impl PlayerExt for RodioPlayer {
             player.clear();
         }
 
-        let _sink = rodio::DeviceSinkBuilder::open_default_sink().unwrap();
+        // Prefer PulseAudio's native sample rate over cpal's default,
+        // since cpal's default_output_config() can lie on PipeWire sinks.
+        let system_rate = get_system_sample_rate().max(1);
+        let safe_rate =
+            NonZero::new(system_rate).unwrap_or_else(|| NonZero::new(44100).unwrap());
+
+        // Request the rate from the OS so cpal/PipeWire negotiate it explicitly
+        // rather than picking whatever happens to be default. The actual
+        // negotiated rate may differ; we use that for decoder output.
+        let device_builder = match rodio::DeviceSinkBuilder::from_default_device() {
+            Ok(b) => b,
+            Err(e) => {
+                tracing::error!(
+                    "No audio device found ({e}), falling back to open_default_sink"
+                );
+                let _sink = rodio::DeviceSinkBuilder::open_default_sink()
+                    .map_err(|e| PlayerError::AudioDevice(e.to_string()))?;
+                let cfg = _sink.config();
+                let output_sample_rate = cfg.sample_rate().get();
+                let player = rodio::Player::connect_new(_sink.mixer());
+                player.append(FFMPEGDecoder::open(&src.inner(), output_sample_rate)?);
+                player.append(EmptyCallback::new(Box::new(move || {
+                    let events_tx = events_tx.clone();
+                    Self::send_event(events_tx, PlayerEvent::Ended(true));
+                })));
+                player.set_volume(old_volume as f32 / 100f32);
+                *self.player.lock().unwrap() = Some(player);
+                *self._sink.lock().unwrap() = Some(_sink);
+                return Ok(());
+            }
+        };
+
+        let _sink = match device_builder.with_sample_rate(safe_rate).open_stream() {
+            Ok(s) => s,
+            Err(e) => {
+                tracing::error!(
+                    "Failed to open audio stream at {} Hz, falling back to open_default_sink: {}",
+                    safe_rate,
+                    e
+                );
+                let _sink = rodio::DeviceSinkBuilder::open_default_sink()
+                    .map_err(|e| PlayerError::AudioDevice(e.to_string()))?;
+                let cfg = _sink.config();
+                let output_sample_rate = cfg.sample_rate().get();
+                let player = rodio::Player::connect_new(_sink.mixer());
+                player.append(FFMPEGDecoder::open(&src.inner(), output_sample_rate)?);
+                player.append(EmptyCallback::new(Box::new(move || {
+                    let events_tx = events_tx.clone();
+                    Self::send_event(events_tx, PlayerEvent::Ended(true));
+                })));
+                player.set_volume(old_volume as f32 / 100f32);
+                *self.player.lock().unwrap() = Some(player);
+                *self._sink.lock().unwrap() = Some(_sink);
+                return Ok(());
+            }
+        };
+        let cfg = _sink.config();
+        let output_sample_rate = cfg.sample_rate().get();
+        tracing::trace!(
+            "Sink requested rate={}, actual channels={}, sample_rate={}, format={:?}",
+            system_rate,
+            cfg.channel_count(),
+            output_sample_rate,
+            cfg.sample_format()
+        );
+
         let player = rodio::Player::connect_new(_sink.mixer());
-
-        tracing::trace!("Sink sample rate {}", _sink.config().sample_rate());
-
-        player.append(FFMPEGDecoder::open(&src.inner())?);
+        player.append(FFMPEGDecoder::open(&src.inner(), output_sample_rate)?);
         player.append(EmptyCallback::new(Box::new(move || {
             let events_tx = events_tx.clone();
             Self::send_event(events_tx, PlayerEvent::Ended(true));

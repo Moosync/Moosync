@@ -20,6 +20,8 @@ pub enum PlayerError {
     SeekError(SeekError),
     #[error("Failed to create ffmpeg decoder: {0:?}")]
     DecoderError(DecoderError),
+    #[error("Audio device error: {0}")]
+    AudioDevice(String),
 }
 
 impl From<DecoderError> for PlayerError {

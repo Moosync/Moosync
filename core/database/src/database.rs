@@ -1513,6 +1513,7 @@ impl Database {
                 r#type: None,
                 url: None,
                 playback_url: None,
+                ..Default::default()
             }),
             artist: None,
             album: None,

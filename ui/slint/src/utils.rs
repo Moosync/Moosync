@@ -708,6 +708,7 @@ pub fn song_model_to_song(model: &SongModel) -> songs_proto::moosync::types::Son
         } else {
             Some(model.track_no as f64)
         },
+        ..Default::default()
     };
 
     let album = if model.album_id.is_empty() && model.album_name.is_empty() {

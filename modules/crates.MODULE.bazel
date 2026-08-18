@@ -308,6 +308,10 @@ crates.spec(
     rev = "ffa1d8a2e5fc3efdec2c675eecca8f1f4be4e0f2",
 )
 crates.spec(
+    package = "libpulse-binding",
+    version = "2.30.1",
+)
+crates.spec(
     features = [
         "v4",
         "js",
@@ -416,24 +420,21 @@ crates.annotation(
     gen_binaries = ["protoc-gen-prost"],
 )
 crates.spec(
-    branch = "master",
     features = [
         "backend-android-activity-06",
         "mcp",
     ],
-    git = "https://github.com/slint-ui/slint",
     package = "slint",
+    version = "1.17.1",
 )
 crates.spec(
-    branch = "master",
-    git = "https://github.com/slint-ui/slint",
     package = "slint-build",
+    version = "1.17.1",
 )
 crates.spec(
-    branch = "master",
     default_features = False,
-    git = "https://github.com/slint-ui/slint",
     package = "slint-lsp",
+    version = "1.17.1",
 )
 crates.annotation(
     build_script_data_glob = [
@@ -510,8 +511,6 @@ crates.annotation(
 )
 crates.annotation(
     crate = "i-slint-compiler",
-    patch_args = ["-p1"],
-    patches = ["//patches:i_slint_compiler_cargo.patch"],
 )
 crates.spec(
     package = "criterion",

@@ -10,6 +10,9 @@ startup --windows_enable_symlinks
 build --enable_runfiles
 build:windows --spawn_strategy=local
 common --registry=https://raw.githubusercontent.com/bazelbuild/bazel-central-registry/main
+
+# Per-contributor overrides (gitignored). See .bazelrc.local.example.
+try-import %workspace%/.bazelrc.local
 build:check --@rules_rust//rust/settings:pipelined_compilation=True
 build:check --output_groups=build_metadata
 

@@ -45,40 +45,44 @@ pub struct FFMPEGDecoder {
     format_ctx: AVFormatContextInput,
     stream_idx: usize,
     codec_ctx: AVCodecContext,
-    swr_ctx: Option<SwrContext>,
+    swr_ctx: SwrContext,
     current_frame: Vec<u8>, // holds interleaved f32 bytes ready to be consumed
     requested_seek_timestamp: i64,
+    output_sample_rate: u32, // Target sample rate (matches audio device)
 }
 
 impl FFMPEGDecoder {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize_swr_context(
         codec_ctx: &AVCodecContext,
-    ) -> Result<Option<SwrContext>, DecoderError> {
-        // Initialize swr context if conversion is needed OR if the decoded format is
-        // planar. (Planar -> interleaved needs SwrContext even if sample
-        // formats are both float)
-        let need_swr = codec_ctx.sample_fmt != DEFAULT_CONVERSION_FORMAT
-            || sample_fmt_is_planar(codec_ctx.sample_fmt);
+        output_sample_rate: i32,
+    ) -> Result<SwrContext, DecoderError> {
+        // Always use SwrContext to handle format AND sample rate conversion.
+        // Without this, decoder reports source rate to rodio instead of the
+        // output rate, causing stale buffer reports and audible drift on
+        // outputs where source rate != device rate.
+        tracing::trace!(
+            "DECODER: sample_fmt={}, sample_rate={} -> {}, channels={}",
+            codec_ctx.sample_fmt,
+            codec_ctx.sample_rate,
+            output_sample_rate,
+            codec_ctx.ch_layout.nb_channels
+        );
 
-        if need_swr {
-            let mut ctx = SwrContext::new(
-                &codec_ctx.ch_layout,
-                DEFAULT_CONVERSION_FORMAT,
-                codec_ctx.sample_rate,
-                &codec_ctx.ch_layout,
-                codec_ctx.sample_fmt,
-                codec_ctx.sample_rate,
-            )?;
-            ctx.init()?;
-            Ok(Some(ctx))
-        } else {
-            Ok(None)
-        }
+        let mut ctx = SwrContext::new(
+            &codec_ctx.ch_layout,
+            DEFAULT_CONVERSION_FORMAT,
+            output_sample_rate, // Output at device's native rate
+            &codec_ctx.ch_layout,
+            codec_ctx.sample_fmt,
+            codec_ctx.sample_rate, // Input at source rate
+        )?;
+        ctx.init()?;
+        Ok(ctx)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn open(path: &str) -> Result<FFMPEGDecoder, DecoderError> {
+    pub fn open(path: &str, output_sample_rate: u32) -> Result<FFMPEGDecoder, DecoderError> {
         let input_path = if path.starts_with("http") {
             CString::from_str(&format!("cache:{}", path))?
         } else {
@@ -97,14 +101,15 @@ impl FFMPEGDecoder {
             codec_ctx.open(None)?;
             codec_ctx.apply_codecpar(&format_ctx.streams().get(stream_idx).unwrap().codecpar())?;
 
-            let swr_ctx = Self::initialize_swr_context(&codec_ctx)?;
+            let swr_ctx =
+                Self::initialize_swr_context(&codec_ctx, output_sample_rate as i32)?;
             tracing::trace!(
-                "Stream details: bitrate: {}, channels: {}, codec: {:?}, samplerate: {}, needs conversion: {}",
+                "Stream details: bitrate: {}, channels: {}, codec: {:?}, source_rate: {}, output_rate: {}",
                 codec_ctx.bit_rate,
                 codec_ctx.ch_layout.nb_channels,
                 codec_ctx.codec,
                 codec_ctx.sample_rate,
-                swr_ctx.is_some()
+                output_sample_rate
             );
 
             return Ok(FFMPEGDecoder {
@@ -114,6 +119,7 @@ impl FFMPEGDecoder {
                 swr_ctx,
                 current_frame: Vec::new(),
                 requested_seek_timestamp: 0,
+                output_sample_rate,
             });
         }
         Err(DecoderError::NoAudioStream)
@@ -127,55 +133,33 @@ impl FFMPEGDecoder {
         // Get pointer to extended_data (frame plane pointers)
         let extended_data_ptr = frame.extended_data.cast();
 
-        if let Some(swr_ctx) = &mut self.swr_ctx {
-            // Convert (this will handle planar -> interleaved and type conversion)
-            let out_samples = swr_ctx.get_out_samples(num_samples);
+        // Convert using SwrContext (handles format + sample rate conversion).
+        let out_samples = self.swr_ctx.get_out_samples(num_samples);
 
-            // Many rsmpeg/swresample wrappers expect you to provide buffers.
-            // Use AVSamples to allocate the output buffer and call convert with its
-            // pointer(s).
-            let mut samples =
-                AVSamples::new(num_channels, out_samples, DEFAULT_CONVERSION_FORMAT, 0)
-                    .expect("AVSamples allocation failed");
+        let mut samples = AVSamples::new(num_channels, out_samples, DEFAULT_CONVERSION_FORMAT, 0)
+            .expect("AVSamples allocation failed");
 
-            let converted = unsafe {
-                // Call convert with allocated output buffers
-                let initial = swr_ctx.convert(
-                    samples.audio_data.as_mut_ptr(),
-                    out_samples,
-                    extended_data_ptr,
-                    num_samples,
-                )?;
+        let converted = unsafe {
+            self.swr_ctx.convert(
+                samples.audio_data.as_mut_ptr(),
+                out_samples,
+                extended_data_ptr,
+                num_samples,
+            )?
+        };
 
-                let delayed = swr_ctx.convert(
-                    samples.audio_data.as_mut_ptr(),
-                    out_samples - initial,
-                    std::ptr::null(),
-                    0,
-                )?;
+        let (_, dst_bufsize) =
+            AVSamples::get_buffer_size(num_channels, converted, DEFAULT_CONVERSION_FORMAT, 0)
+                .unwrap();
 
-                initial + delayed
-            };
-
-            // `converted` is number of samples output per channel
-            let (_, dst_bufsize) =
-                AVSamples::get_buffer_size(num_channels, converted, DEFAULT_CONVERSION_FORMAT, 0)
-                    .unwrap();
-
-            // Create a slice referencing the buffer and copy into current_frame
-            let p = samples.audio_data[0] as *const u8;
-            let slice = unsafe { std::slice::from_raw_parts(p, dst_bufsize as usize) };
-            self.current_frame.clear();
-            self.current_frame.extend_from_slice(slice);
-        } else {
-            // Assume interleaved and already in desired format - take contiguous buffer
-            // frame.linesize[0] holds the size in bytes of the first buffer
-            let size = frame.linesize[0] as usize;
-            let p: *const u8 = frame.extended_data.cast::<u8>();
-            let slice = unsafe { std::slice::from_raw_parts(p, size) };
-            self.current_frame.clear();
-            self.current_frame.extend_from_slice(slice);
-        }
+        // Copy converted samples to current_frame.
+        // SwrContext outputs to AV_SAMPLE_FMT_FLT (interleaved float), so all data
+        // is in audio_data[0] as a single contiguous buffer. This works regardless
+        // of whether the input was planar or interleaved.
+        let p = samples.audio_data[0] as *const u8;
+        let slice = unsafe { std::slice::from_raw_parts(p, dst_bufsize as usize) };
+        self.current_frame.clear();
+        self.current_frame.extend_from_slice(slice);
 
         Ok(())
     }
@@ -321,7 +305,12 @@ impl Source for FFMPEGDecoder {
 
     #[inline]
     #[tracing::instrument(level = "debug", skip_all)]
-    fn sample_rate(&self) -> SampleRate { NonZero::new(self.codec_ctx.sample_rate as u32).unwrap() }
+    fn sample_rate(&self) -> SampleRate {
+        // Report the output rate (what rodio will consume), not the source rate.
+        // Otherwise rodio computes stale buffer/pos data when source rate != device rate.
+        NonZero::new(self.output_sample_rate)
+            .unwrap_or_else(|| NonZero::new(44100).expect("44100 is non-zero"))
+    }
 
     #[inline]
     #[tracing::instrument(level = "debug", skip_all)]

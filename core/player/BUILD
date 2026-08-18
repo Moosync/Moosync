@@ -22,7 +22,10 @@ rust_library(
         "src/rodio/test.rs",
         "src/source.rs",
         "src/test.rs",
-    ],
+    ] + select({
+        "@platforms//os:linux": ["src/rodio/pulse_monitor.rs"],
+        "//conditions:default": [],
+    }),
     crate_root = "src/lib.rs",
     data = ["//external/ffmpeg:gen_dir"],
     proc_macro_deps = [
@@ -50,7 +53,10 @@ rust_library(
         "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",
-    ],
+    ] + select({
+        "@platforms//os:linux": ["@crates//:libpulse-binding"],
+        "//conditions:default": [],
+    }),
 )
 
 rust_test(

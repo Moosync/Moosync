@@ -23,6 +23,7 @@ single_version_override(
     module_name = "protobuf",
     version = "33.2",
 )
+
 bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_foreign_cc", version = "0.15.1")
@@ -64,28 +65,19 @@ bazel_dep(name = "gazelle", version = "0.40.0")
 go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
 go_sdk.download(version = "1.25.0")
 use_repo(go_sdk, "go_toolchains")
+
 register_toolchains("@go_toolchains//:all")
-
-
-
 
 bazel_dep(name = "moosync_ext", version = "0.0.1")
 git_override(
     module_name = "moosync_ext",
-    remote = "/home/ovenoboyo/projects/moosync-exts",
     branch = "bazel",
+    remote = "https://github.com/Moosync/moosync-exts",
 )
 
 bazel_dep(name = "extensions_sdk")
 git_override(
     module_name = "extensions_sdk",
-    remote = "/home/ovenoboyo/projects/extensions-sdk",
     branch = "main",
+    remote = "https://github.com/Moosync/extensions-sdk",
 )
-
-
-
-
-
-
-

@@ -70,8 +70,6 @@ message InnerSong {
   optional string playback_url = 20;
   optional string song_cover_path_low = 21;
   optional int64 date_added = 22;
-  optional string provider_extension = 23;
-  optional bool show_in_library = 25;
   optional double track_no = 26;
 }
 

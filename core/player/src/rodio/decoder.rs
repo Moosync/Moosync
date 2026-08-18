@@ -101,8 +101,7 @@ impl FFMPEGDecoder {
             codec_ctx.open(None)?;
             codec_ctx.apply_codecpar(&format_ctx.streams().get(stream_idx).unwrap().codecpar())?;
 
-            let swr_ctx =
-                Self::initialize_swr_context(&codec_ctx, output_sample_rate as i32)?;
+            let swr_ctx = Self::initialize_swr_context(&codec_ctx, output_sample_rate as i32)?;
             tracing::trace!(
                 "Stream details: bitrate: {}, channels: {}, codec: {:?}, source_rate: {}, output_rate: {}",
                 codec_ctx.bit_rate,
@@ -307,7 +306,8 @@ impl Source for FFMPEGDecoder {
     #[tracing::instrument(level = "debug", skip_all)]
     fn sample_rate(&self) -> SampleRate {
         // Report the output rate (what rodio will consume), not the source rate.
-        // Otherwise rodio computes stale buffer/pos data when source rate != device rate.
+        // Otherwise rodio computes stale buffer/pos data when source rate != device
+        // rate.
         NonZero::new(self.output_sample_rate)
             .unwrap_or_else(|| NonZero::new(44100).expect("44100 is non-zero"))
     }

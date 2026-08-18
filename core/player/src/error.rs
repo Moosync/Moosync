@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use rodio::source::SeekError;
+use rodio::{DeviceSinkError, source::SeekError};
 use songs_proto::moosync::types::Song;
 use thiserror::Error;
 
@@ -17,17 +17,9 @@ pub enum PlayerError {
     #[error("Invalid song")]
     InvalidSong,
     #[error("Failed to seek: {0:?}")]
-    SeekError(SeekError),
+    SeekError(#[from] SeekError),
     #[error("Failed to create ffmpeg decoder: {0:?}")]
-    DecoderError(DecoderError),
+    DecoderError(#[from] DecoderError),
     #[error("Audio device error: {0}")]
-    AudioDevice(String),
-}
-
-impl From<DecoderError> for PlayerError {
-    fn from(value: DecoderError) -> Self { Self::DecoderError(value) }
-}
-
-impl From<SeekError> for PlayerError {
-    fn from(value: SeekError) -> Self { Self::SeekError(value) }
+    AudioDevice(#[from] DeviceSinkError),
 }

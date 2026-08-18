@@ -424,7 +424,6 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
 }
 
 struct PageLifecycleManager {
-    pages: std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>>,
     visible_states: std::collections::HashMap<AppPage, bool>,
     active_main_page: AppPage,
     active_settings_page: AppPage,
@@ -434,17 +433,13 @@ struct PageLifecycleManager {
 
 impl PageLifecycleManager {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn new(
-        pages: std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>>,
-        initial_main_page: AppPage,
-    ) -> Self {
+    fn new(page_types: &[AppPage], initial_main_page: AppPage) -> Self {
         let mut visible_states = std::collections::HashMap::new();
-        for &page_type in pages.keys() {
+        for &page_type in page_types {
             visible_states.insert(page_type, false);
         }
 
         Self {
-            pages,
             visible_states,
             active_main_page: initial_main_page,
             active_settings_page: AppPage::Extensions, // Default tab in Settings is Extensions
@@ -454,8 +449,9 @@ impl PageLifecycleManager {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn update_visibility(&mut self) {
-        for (&page_type, handler) in &self.pages {
+    fn compute_visibility_changes(&mut self, page_types: &[AppPage]) -> Vec<(AppPage, bool)> {
+        let mut actions = Vec::new();
+        for &page_type in page_types {
             let was_visible = *self.visible_states.get(&page_type).unwrap_or(&false);
             let is_visible = match page_type {
                 AppPage::Queue => self.queue_open,
@@ -508,13 +504,30 @@ impl PageLifecycleManager {
 
             if is_visible != was_visible {
                 self.visible_states.insert(page_type, is_visible);
-                if is_visible {
-                    handler.on_show();
-                }
-                if !is_visible {
-                    handler.on_hide();
-                }
+                actions.push((page_type, is_visible));
             }
+        }
+        actions
+    }
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn update_manager_visibility(
+    manager: &std::rc::Rc<std::cell::RefCell<PageLifecycleManager>>,
+    pages: &std::rc::Rc<std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>>>,
+) {
+    let page_types: Vec<AppPage> = pages.keys().copied().collect();
+    let actions = manager.borrow_mut().compute_visibility_changes(&page_types);
+
+    for (page_type, is_visible) in actions {
+        let Some(handler) = pages.get(&page_type) else {
+            continue;
+        };
+        if is_visible {
+            handler.on_show();
+        }
+        if !is_visible {
+            handler.on_hide();
         }
     }
 }
@@ -529,55 +542,55 @@ fn setup_page_navigation(
     }
 
     let initial_main_page = AppPage::from(main_window.get_active_page());
+    let page_types: Vec<AppPage> = pages.keys().copied().collect();
+    let pages = std::rc::Rc::new(pages);
 
-    // Create the manager inside Rc<RefCell<...>> to allow sharing in main thread
-    // callbacks
     let manager = std::rc::Rc::new(std::cell::RefCell::new(PageLifecycleManager::new(
-        pages,
+        &page_types,
         initial_main_page,
     )));
 
     // Trigger initial on_show
-    manager.borrow_mut().update_visibility();
+    update_manager_visibility(&manager, &pages);
 
     // 1. Listen to active page change
     let manager_main = manager.clone();
+    let pages_main = pages.clone();
     main_window
         .global::<AppCallbacks>()
         .on_active_page_changed(move |new_page| {
-            let mut mgr = manager_main.borrow_mut();
-            mgr.active_main_page = AppPage::from(new_page);
-            mgr.update_visibility();
+            manager_main.borrow_mut().active_main_page = AppPage::from(new_page);
+            update_manager_visibility(&manager_main, &pages_main);
         });
 
     // 2. Listen to settings page change
     let manager_settings = manager.clone();
+    let pages_settings = pages.clone();
     main_window
         .global::<AppCallbacks>()
         .on_settings_active_page_changed(move |new_page| {
-            let mut mgr = manager_settings.borrow_mut();
-            mgr.active_settings_page = AppPage::from(new_page);
-            mgr.update_visibility();
+            manager_settings.borrow_mut().active_settings_page = AppPage::from(new_page);
+            update_manager_visibility(&manager_settings, &pages_settings);
         });
 
     // 3. Listen to settings toggle
     let manager_settings_toggle = manager.clone();
+    let pages_settings_toggle = pages.clone();
     main_window
         .global::<AppCallbacks>()
         .on_settings_toggled(move |open| {
-            let mut mgr = manager_settings_toggle.borrow_mut();
-            mgr.settings_open = open;
-            mgr.update_visibility();
+            manager_settings_toggle.borrow_mut().settings_open = open;
+            update_manager_visibility(&manager_settings_toggle, &pages_settings_toggle);
         });
 
     // 4. Listen to queue toggle
     let manager_queue_toggle = manager.clone();
+    let pages_queue_toggle = pages.clone();
     main_window
         .global::<AppCallbacks>()
         .on_queue_toggled(move |open| {
-            let mut mgr = manager_queue_toggle.borrow_mut();
-            mgr.queue_open = open;
-            mgr.update_visibility();
+            manager_queue_toggle.borrow_mut().queue_open = open;
+            update_manager_visibility(&manager_queue_toggle, &pages_queue_toggle);
         });
 }
 

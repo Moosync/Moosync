@@ -437,12 +437,6 @@ crates.spec(
     version = "1.17.1",
 )
 crates.annotation(
-    build_script_data_glob = [
-        "ui/**/*",
-    ],
-    compile_data_glob = [
-        "ui/**/*",
-    ],
     crate = "slint-lsp",
     gen_binaries = ["slint-lsp"],
 )
@@ -508,9 +502,6 @@ crates.annotation(
         "CARGO_PKG_LICENSE": "",
     },
     crate = "rav1e",
-)
-crates.annotation(
-    crate = "i-slint-compiler",
 )
 crates.spec(
     package = "criterion",

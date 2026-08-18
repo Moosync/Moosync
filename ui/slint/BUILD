@@ -15,9 +15,9 @@ cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
     build_script_env = {
-        "CARGO_PKG_VERSION": "1.17.0",
+        "CARGO_PKG_VERSION": "1.18.0",
         "CARGO_PKG_VERSION_MAJOR": "1",
-        "CARGO_PKG_VERSION_MINOR": "17",
+        "CARGO_PKG_VERSION_MINOR": "18",
         "CARGO_PKG_VERSION_PATCH": "0",
         "SLINT_ENABLE_EXPERIMENTAL_FEATURES": "1",
     },

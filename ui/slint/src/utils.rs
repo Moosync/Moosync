@@ -212,40 +212,12 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn update_image_in_row(&self, row: usize, img: Image) {
-        let mut array = self.array.borrow_mut();
-        let Some(item) = array.get_mut(row) else {
-            return;
-        };
-        item.set_cover(img);
-        self.allocated_rows.borrow_mut().insert(row);
-        self.notify.row_changed(row);
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
     fn load_image(&self, row: usize, cover_url: &str) {
         if cover_url.is_empty() {
             return;
         }
 
         trace!("Fetching image for row {}", row);
-
-        if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
-            let path = std::path::PathBuf::from(cover_url);
-            if let Ok(img) = Image::load_from_path(&path) {
-                self.update_image_in_row(row, img);
-            }
-            return;
-        }
-
-        let safe_name = get_safe_name(cover_url);
-        let img_cache_dir = self.cache_dir.join("image_cache");
-        if let Some(existing_path) = find_existing_cache_file(&img_cache_dir, &safe_name) {
-            if let Ok(img) = Image::load_from_path(&existing_path) {
-                self.update_image_in_row(row, img);
-            }
-            return;
-        }
 
         self.allocated_rows.borrow_mut().insert(row);
 
@@ -259,11 +231,13 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
             let Some(img) = load_image_from_path_or_url(&cover_url_str, &cache_dir).await else {
                 return;
             };
-            let mut array = array.borrow_mut();
-            let Some(item) = array.get_mut(row) else {
-                return;
-            };
-            item.set_cover(img);
+            {
+                let mut array = array.borrow_mut();
+                let Some(item) = array.get_mut(row) else {
+                    return;
+                };
+                item.set_cover(img);
+            }
             tracing::trace!("Loaded image for row {}", row);
             allocated_rows.borrow_mut().insert(row);
             notify.row_changed(row);
@@ -288,29 +262,28 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
         loop {
             let to_release = {
                 let allocated = self.allocated_rows.borrow();
-                if allocated.len() > capacity {
-                    let mut furthest_row = None;
-                    let mut max_dist = 0;
-                    for &r in allocated.iter() {
-                        let dist = r.abs_diff(current_row);
-                        if dist > max_dist {
-                            max_dist = dist;
-                            furthest_row = Some(r);
-                        }
-                    }
-                    furthest_row
-                } else {
-                    None
+                if allocated.len() <= capacity {
+                    break;
                 }
+                let mut furthest_row = None;
+                let mut max_dist = 0;
+                for &r in allocated.iter() {
+                    let dist = r.abs_diff(current_row);
+                    if dist > max_dist {
+                        max_dist = dist;
+                        furthest_row = Some(r);
+                    }
+                }
+                furthest_row
             };
 
-            if let Some(r) = to_release {
-                let mut array = self.array.borrow_mut();
-                if let Some(s) = array.get_mut(r) {
-                    self.release_image(r, s);
-                }
-            } else {
+            let Some(r) = to_release else {
                 break;
+            };
+
+            let mut array = self.array.borrow_mut();
+            if let Some(s) = array.get_mut(r) {
+                self.release_image(r, s);
             }
         }
     }
@@ -371,15 +344,18 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_row_data(&self, row: usize, data: Self::Data) {
-        if row < self.row_count() {
-            if is_empty_image(&data.get_cover()) {
-                self.allocated_rows.borrow_mut().remove(&row);
-            } else {
-                self.allocated_rows.borrow_mut().insert(row);
-            }
-            self.array.borrow_mut()[row] = data;
-            self.notify.row_changed(row);
+        if row >= self.row_count() {
+            return;
         }
+
+        if is_empty_image(&data.get_cover()) {
+            self.allocated_rows.borrow_mut().remove(&row);
+        }
+        if !is_empty_image(&data.get_cover()) {
+            self.allocated_rows.borrow_mut().insert(row);
+        }
+        self.array.borrow_mut()[row] = data;
+        self.notify.row_changed(row);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

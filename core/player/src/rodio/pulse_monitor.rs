@@ -74,13 +74,14 @@ fn check_context_state(context: &Context) -> Result<bool, PulseError> {
 
 #[tracing::instrument(level = "debug", skip_all)]
 fn wait_for_ready(mainloop: &mut Mainloop, context: &mut Context) -> Result<(), PulseError> {
-    loop {
+    for _ in 0..20 {
         step_mainloop(mainloop)?;
         let is_ready = check_context_state(context)?;
         if is_ready {
             return Ok(());
         }
     }
+    Err(PulseError::Timeout)
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -146,4 +147,6 @@ pub enum PulseError {
     ContextConnection,
     #[error("Failed to get sample rate")]
     SampleRateQuery,
+    #[error("PulseAudio connection timed out")]
+    Timeout,
 }

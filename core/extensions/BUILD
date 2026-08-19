@@ -2,9 +2,22 @@ load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 
 rust_test(
     name = "extensions_test",
+    crate = ":extensions",
+    data = [
+        "tests/fixtures/package.json",
+        "@moosync_ext//sample_extensions/go:sample_extension",
+        "@moosync_ext//sample_extensions/py:sample_extension",
+        "@moosync_ext//sample_extensions/rs:sample_extension",
+    ],
+)
+
+rust_test(
+    name = "extensions_integration_test",
     timeout = "long",
     crate = ":extensions",
-    data = glob(["tests/fixtures/**"]) + [
+    crate_features = ["wasm_integration_tests"],
+    data = [
+        "tests/fixtures/package.json",
         "@moosync_ext//sample_extensions/go:sample_extension",
         "@moosync_ext//sample_extensions/py:sample_extension",
         "@moosync_ext//sample_extensions/rs:sample_extension",
@@ -16,12 +29,19 @@ rust_library(
     srcs = [
         "src/context/extism_context.rs",
         "src/context/mod.rs",
+        "src/context/mod_test.rs",
         "src/errors.rs",
         "src/ext_runner.rs",
+        "src/ext_runner_test.rs",
         "src/extension.rs",
+        "src/extension_test.rs",
         "src/lib.rs",
-        "src/remote.rs",
+        "src/lib_test.rs",
+        "src/lib_test_smoke.rs",
         "src/models.rs",
+        "src/models_test.rs",
+        "src/remote.rs",
+        "src/remote_test_smoke.rs",
         "src/sample_tests.rs",
         "src/tests.rs",
     ],
@@ -46,6 +66,7 @@ rust_library(
         "@crates//:rust_crypto",
         "@crates//:serde",
         "@crates//:serde_json",
+        "@crates//:tempdir",
         "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",

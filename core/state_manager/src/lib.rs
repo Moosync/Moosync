@@ -13,6 +13,11 @@ pub mod hooks;
 pub mod interceptors;
 mod reply_handler;
 
+#[cfg(test)]
+mod lib_test;
+#[cfg(test)]
+mod reply_handler_test;
+
 plugin_macro::generate_plugin_system!(
     preferences::preferences::PreferenceConfig,
     database::Database,
@@ -87,12 +92,17 @@ impl StateManager {
 
         let context = Self::generate_context(
             data_dir,
-            cache_dir.clone(),
+            cache_dir,
             tmp_dir,
             #[cfg(target_os = "android")]
             android_context,
         );
 
+        Self::new_with_context(context)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new_with_context(context: PluginContext) -> Result<Self, StateManagerError> {
         let mut plugins = PluginRegistry::new();
         init_all_plugins(&mut plugins, &context);
 
@@ -109,7 +119,7 @@ impl StateManager {
         Ok(Self {
             plugins: Arc::new(plugins),
             interceptors: Arc::new(interceptors),
-            cache_dir,
+            cache_dir: context.cache_dir,
             runtime,
             hooks,
         })

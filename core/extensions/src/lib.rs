@@ -46,8 +46,21 @@ pub use remote::RemoteExtensions;
 pub mod models;
 
 #[cfg(test)]
-mod sample_tests;
+mod ext_runner_test;
 #[cfg(test)]
+mod extension_test;
+#[cfg(test)]
+mod lib_test;
+#[cfg(test)]
+mod lib_test_smoke;
+#[cfg(test)]
+mod models_test;
+#[cfg(test)]
+mod remote_test_smoke;
+
+#[cfg(feature = "wasm_integration_tests")]
+mod sample_tests;
+#[cfg(feature = "wasm_integration_tests")]
 mod tests;
 
 #[derive(Debug, Clone)]

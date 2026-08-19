@@ -25,9 +25,19 @@ use crate::{
 };
 
 pub mod image_processor;
+#[cfg(test)]
+mod image_processor_test;
 pub mod lyrics_scanner;
+#[cfg(test)]
+mod lyrics_scanner_test;
+#[cfg(test)]
+mod mod_test;
 pub mod playlist_scanner;
+#[cfg(test)]
+mod playlist_scanner_test;
 pub mod song_scanner;
+#[cfg(test)]
+mod song_scanner_test;
 
 use self::{playlist_scanner::PlaylistScanner, song_scanner::SongScanner};
 

@@ -8,6 +8,15 @@ pub mod paths;
 pub mod system;
 pub mod themes;
 
+#[cfg(test)]
+mod extensions_test;
+#[cfg(test)]
+mod paths_test;
+#[cfg(test)]
+mod system_test;
+#[cfg(test)]
+mod themes_test;
+
 #[cfg(not(target_os = "android"))]
 #[tracing::instrument(level = "debug", skip_all)]
 fn select_directory() -> String {

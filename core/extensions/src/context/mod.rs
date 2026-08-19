@@ -326,6 +326,8 @@ impl DispatchCommand for main_command::Command {
 }
 
 mod extism_context;
+#[cfg(test)]
+mod mod_test;
 
 /// Represents the context of a single running extension instance.
 #[async_trait::async_trait]

@@ -5,6 +5,7 @@ rust_proc_macro(
     srcs = [
         "src/lib.rs",
         "src/shared.rs",
+        "src/shared_test.rs",
     ],
     edition = "2021",
     visibility = ["//visibility:public"],

@@ -10,6 +10,9 @@ use syn::{
     punctuated::Punctuated,
 };
 
+#[cfg(test)]
+mod lib_test;
+
 #[proc_macro_attribute]
 pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
     let impl_block = parse_macro_input!(input as ItemImpl);

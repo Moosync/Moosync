@@ -37,10 +37,15 @@ use crate::{
 
 mod decoder;
 #[cfg(test)]
-mod test;
+mod decoder_test;
+#[cfg(test)]
+mod mod_test;
 
 #[cfg(target_os = "linux")]
 mod pulse_monitor;
+
+#[cfg(all(test, target_os = "linux"))]
+mod pulse_monitor_test;
 
 /// Get the system's preferred sample rate for audio output.
 ///

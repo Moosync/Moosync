@@ -1,6 +1,10 @@
 use std::fmt::Debug;
 
 mod keyring_context;
+#[cfg(test)]
+mod keyring_context_test;
+#[cfg(test)]
+mod mod_test;
 pub use keyring_context::KeyringContext;
 
 #[cfg_attr(test, mockall::automock)]

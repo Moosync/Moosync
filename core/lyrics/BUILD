@@ -5,7 +5,8 @@ rust_library(
     srcs = [
         "src/error.rs",
         "src/lib.rs",
-        "src/test.rs",
+        "src/lib_test.rs",
+        "src/lib_test_smoke.rs",
     ],
     crate_root = "src/lib.rs",
     proc_macro_deps = [
@@ -15,10 +16,12 @@ rust_library(
     deps = [
         "//core/types",
         "//core/types/protos:songs_rs",
+        "@crates//:tempdir",
         "@crates//:thiserror",
         "@crates//:regex",
         "@crates//:reqwest",
         "@crates//:serde_json",
+        "@crates//:tokio",
         "@crates//:tracing",
     ],
 )

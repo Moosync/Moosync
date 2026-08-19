@@ -29,7 +29,9 @@ use crate::{context::ScannerContext, error::ScannerError};
 mod context;
 
 #[cfg(test)]
-mod tests;
+mod lib_test;
+#[cfg(test)]
+mod lib_test_smoke;
 
 #[derive(Debug)]
 pub struct FileList {

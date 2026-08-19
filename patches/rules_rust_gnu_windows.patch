@@ -29,3 +29,12 @@ diff -urN a/rust/platform/triple_mappings.bzl b/rust/platform/triple_mappings.bz
      # N.B. These "alternative" envs are not supported, as bazel cannot distinguish between them
      # and others using existing @platforms// config_values
      #
+diff -urN a/rust/private/rustc.bzl b/rust/private/rustc.bzl
+--- a/rust/private/rustc.bzl	2026-05-25 17:07:34.848893087 -0700
++++ b/rust/private/rustc.bzl	2026-05-25 17:07:34.849893087 -0700
+@@ -1165,3 +1165,3 @@
+-    if toolchain.llvm_cov and ctx.configuration.coverage_enabled:
++    if toolchain.llvm_cov and ctx.configuration.coverage_enabled and toolchain.target_arch not in ("wasm32", "wasm64"):
+         # https://doc.rust-lang.org/rustc/instrument-coverage.html
+         rustc_flags.add("--codegen=instrument-coverage")
+

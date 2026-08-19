@@ -432,6 +432,10 @@ crates.spec(
     version = "1.17.1",
 )
 crates.spec(
+    package = "i-slint-backend-testing",
+    version = "=1.17.1",
+)
+crates.spec(
     default_features = False,
     package = "slint-lsp",
     version = "1.17.1",

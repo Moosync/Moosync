@@ -4,10 +4,11 @@ rust_library(
     name = "mpris",
     srcs = [
         "src/context/mod.rs",
+        "src/context/mod_test.rs",
         "src/error.rs",
         "src/lib.rs",
+        "src/lib_test.rs",
         "src/mpris_android.rs",
-        "src/tests.rs",
         "src/win32.rs",
     ],
     crate_root = "src/lib.rs",

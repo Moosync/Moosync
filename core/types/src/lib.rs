@@ -24,6 +24,13 @@ pub mod subscription;
 pub mod ui;
 pub mod window;
 
+#[cfg(test)]
+mod lib_test;
+#[cfg(test)]
+mod plugin_test;
+#[cfg(test)]
+mod subscription_test;
+
 #[cfg(target_os = "android")]
 pub mod android;
 

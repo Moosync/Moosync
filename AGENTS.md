@@ -16,6 +16,7 @@ Don't try to explore the entire project. Understand the context of the task and 
 | **bazel**   | Hermetic build/test/package commands; dependency management with bzlmod. Patching external rules. | Cross-project builds, packaging (`@pkg//:all`), adding dependencies. See `.agents/skills/bazel/SKILL.md`. |
 | **moosync** | Project structure — crate boundaries, UI layout, plugin system, platform-specific code patterns.  | Adding new features; understanding where to put new code. See `.agents/skills/moosync/SKILL.md`.          |
 | **instrumentation** | Tracing instrumentation rules and validation tools. | Any function changes or additions requiring observability. See `.agents/skills/instrumentation/SKILL.md`. |
+| **tests**   | Unit and smoke testing rules, 3-section test layout, and hermetic execution. | Writing or refactoring tests. See `.agents/skills/tests/SKILL.md`. |
 
 ---
 

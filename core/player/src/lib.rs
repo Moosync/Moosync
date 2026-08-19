@@ -22,7 +22,15 @@ mod rodio;
 mod source;
 
 #[cfg(test)]
-mod test;
+mod audio_source_test;
+#[cfg(test)]
+mod lib_test;
+#[cfg(test)]
+mod lib_test_smoke;
+#[cfg(test)]
+mod mux_player_test;
+#[cfg(test)]
+mod source_test;
 
 use std::{sync::Arc, time::Duration};
 

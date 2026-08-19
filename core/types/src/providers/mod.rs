@@ -15,3 +15,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pub mod generic;
+
+#[cfg(test)]
+mod generic_test;

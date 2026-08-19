@@ -15,20 +15,24 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
+    collections::HashMap,
+    env::temp_dir,
     fs,
     sync::{Arc, Mutex},
 };
 
 use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
+use types::prelude::ThemeItemExt;
+use uuid::Uuid;
 
 use crate::{error::ThemesError, themes::ThemeHolder};
 
 #[test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_theme_save_load() -> Result<(), ThemesError> {
-    let temp_dir = std::env::temp_dir();
-    let temp_theme_dir = temp_dir.join("temp_themes_save_load");
-    let temp_tmp_dir = temp_dir.join("temp_tmp_save_load");
+fn test_theme_save_load_remove() -> Result<(), ThemesError> {
+    let temp_base = temp_dir().join(format!("moosync_theme_test_{}", Uuid::new_v4()));
+    let temp_theme_dir = temp_base.join("themes");
+    let temp_tmp_dir = temp_base.join("tmp");
 
     fs::create_dir_all(&temp_theme_dir).unwrap();
     fs::create_dir_all(&temp_tmp_dir).unwrap();
@@ -36,7 +40,7 @@ fn test_theme_save_load() -> Result<(), ThemesError> {
     let theme_holder = ThemeHolder::new(temp_theme_dir.clone(), temp_tmp_dir.clone());
     let theme_id = "test_theme_id";
 
-    let mut constants = std::collections::HashMap::new();
+    let mut constants = HashMap::new();
     constants.insert("primary".to_string(), "#ff0000".to_string());
     constants.insert("cardWidth".to_string(), "220px".to_string());
 
@@ -60,21 +64,26 @@ fn test_theme_save_load() -> Result<(), ThemesError> {
     assert_eq!(loaded.description, theme_details.description);
 
     let loaded_item = loaded.theme.unwrap();
-    use types::prelude::ThemeItemExt;
     assert_eq!(loaded_item.get_constant("primary").unwrap(), "#ff0000");
     assert_eq!(loaded_item.get_constant("cardWidth").unwrap(), "220px");
 
-    fs::remove_dir_all(&temp_theme_dir).unwrap();
-    fs::remove_dir_all(&temp_tmp_dir).unwrap();
+    let all = theme_holder.load_all_themes()?;
+    assert!(all.contains_key("default"));
+    assert!(all.contains_key(theme_id));
+
+    theme_holder.remove_theme(theme_id.to_string())?;
+    assert!(theme_holder.load_theme(theme_id.to_string()).is_err());
+
+    let _ = fs::remove_dir_all(&temp_base);
     Ok(())
 }
 
 #[test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_theme_subscribers() -> Result<(), ThemesError> {
-    let temp_dir = std::env::temp_dir();
-    let temp_theme_dir = temp_dir.join("temp_themes_subs");
-    let temp_tmp_dir = temp_dir.join("temp_tmp_subs");
+    let temp_base = temp_dir().join(format!("moosync_theme_subs_{}", Uuid::new_v4()));
+    let temp_theme_dir = temp_base.join("themes");
+    let temp_tmp_dir = temp_base.join("tmp");
 
     fs::create_dir_all(&temp_theme_dir).unwrap();
     fs::create_dir_all(&temp_tmp_dir).unwrap();
@@ -106,7 +115,7 @@ fn test_theme_subscribers() -> Result<(), ThemesError> {
         author: Some("Author".to_string()),
         description: Some("Desc".to_string()),
         theme: Some(ThemeItem {
-            constants: std::collections::HashMap::new(),
+            constants: HashMap::new(),
             ..Default::default()
         }),
     };
@@ -116,18 +125,17 @@ fn test_theme_subscribers() -> Result<(), ThemesError> {
     assert_eq!(*call_count1.lock().unwrap(), 0);
     assert_eq!(*call_count2.lock().unwrap(), 1);
 
-    fs::remove_dir_all(&temp_theme_dir).unwrap();
-    fs::remove_dir_all(&temp_tmp_dir).unwrap();
+    let _ = fs::remove_dir_all(&temp_base);
     Ok(())
 }
 
 #[test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_theme_export_import_cycle() -> Result<(), ThemesError> {
-    let temp_dir = std::env::temp_dir();
-    let temp_theme_dir = temp_dir.join("temp_themes_export");
-    let temp_tmp_dir = temp_dir.join("temp_tmp_export");
-    let export_path = temp_dir.join("exported_theme.mstx");
+    let temp_base = temp_dir().join(format!("moosync_theme_export_{}", Uuid::new_v4()));
+    let temp_theme_dir = temp_base.join("themes");
+    let temp_tmp_dir = temp_base.join("tmp");
+    let export_path = temp_base.join("exported_theme.mstx");
 
     fs::create_dir_all(&temp_theme_dir).unwrap();
     fs::create_dir_all(&temp_tmp_dir).unwrap();
@@ -135,7 +143,7 @@ fn test_theme_export_import_cycle() -> Result<(), ThemesError> {
     let theme_holder = ThemeHolder::new(temp_theme_dir.clone(), temp_tmp_dir.clone());
     let theme_id = "export_test_theme";
 
-    let mut constants = std::collections::HashMap::new();
+    let mut constants = HashMap::new();
     constants.insert("primary".to_string(), "#aabbcc".to_string());
 
     let theme_details = ThemeDetails {
@@ -164,80 +172,6 @@ fn test_theme_export_import_cycle() -> Result<(), ThemesError> {
         "Imported theme should be in all themes"
     );
 
-    fs::remove_file(&export_path).unwrap();
-    fs::remove_dir_all(&temp_theme_dir).unwrap();
-    fs::remove_dir_all(&temp_tmp_dir).unwrap();
-
-    Ok(())
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_theme_backwards_compatibility() -> Result<(), ThemesError> {
-    use types::prelude::ThemeItemExt;
-
-    let old_json = r##"{
-        "id": "old_theme",
-        "name": "Old Theme",
-        "author": "Old Author",
-        "description": "Old Description",
-        "theme": {
-            "primary": "#111111",
-            "secondary": "#222222",
-            "tertiary": "#333333",
-            "textPrimary": "#444444",
-            "textSecondary": "#555555",
-            "textInverse": "#666666",
-            "accent": "#777777",
-            "divider": "#888888",
-            "customCss": "body { background: red; }"
-        }
-    }"##;
-
-    let loaded_old: ThemeDetails = serde_json::from_str(old_json).unwrap();
-    assert_eq!(loaded_old.id, "old_theme");
-    assert_eq!(loaded_old.name, "Old Theme");
-    assert_eq!(loaded_old.author.as_deref(), Some("Old Author"));
-    assert_eq!(loaded_old.description.as_deref(), Some("Old Description"));
-
-    let theme_item = loaded_old.theme.unwrap();
-    assert_eq!(theme_item.get_constant("primary").unwrap(), "#111111");
-    assert_eq!(theme_item.get_constant("secondary").unwrap(), "#222222");
-    assert_eq!(theme_item.get_constant("tertiary").unwrap(), "#333333");
-    assert_eq!(theme_item.get_constant("textPrimary").unwrap(), "#444444");
-    assert_eq!(theme_item.get_constant("textSecondary").unwrap(), "#555555");
-    assert_eq!(theme_item.get_constant("textInverse").unwrap(), "#666666");
-    assert_eq!(theme_item.get_constant("accent").unwrap(), "#777777");
-    assert_eq!(theme_item.get_constant("divider").unwrap(), "#888888");
-    assert_eq!(
-        theme_item.custom_css.as_deref(),
-        Some("body { background: red; }")
-    );
-
-    let transitional_json = r##"{
-        "id": "transitional_theme",
-        "name": "Transitional Theme",
-        "theme": {
-            "constants": {
-                "primary": "#123456",
-                "accent": "#654321",
-                "cardWidth": "240px"
-            }
-        }
-    }"##;
-
-    let loaded_transitional: ThemeDetails = serde_json::from_str(transitional_json).unwrap();
-    let trans_item = loaded_transitional.theme.unwrap();
-    assert_eq!(trans_item.get_constant("primary").unwrap(), "#123456");
-    assert_eq!(trans_item.get_constant("accent").unwrap(), "#654321");
-    assert_eq!(trans_item.get_constant("cardWidth").unwrap(), "240px");
-
-    let mut item_to_save = trans_item;
-    item_to_save.set_constant("primary", "#abcdef".to_string());
-    item_to_save.set_constant("cardWidth", "250px".to_string());
-
-    assert_eq!(item_to_save.primary, "#abcdef");
-    assert_eq!(item_to_save.get_constant("cardWidth").unwrap(), "250px");
-
+    let _ = fs::remove_dir_all(&temp_base);
     Ok(())
 }

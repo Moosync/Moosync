@@ -3,6 +3,9 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 
+#[cfg(test)]
+mod lib_test;
+
 #[proc_macro]
 pub fn generate_theme_impl(input: TokenStream) -> TokenStream {
     let path_str = syn::parse_macro_input!(input as syn::LitStr).value();

@@ -22,7 +22,7 @@ use songs_proto::moosync::types::{
 };
 use uuid::Uuid;
 
-use crate::{cache::CacheHolder, database::Database};
+use crate::database::Database;
 
 // Helper function to create a unique test DB path
 #[tracing::instrument(level = "debug", skip_all)]
@@ -76,7 +76,6 @@ fn create_test_song(title: &str, path: &str) -> Song {
             ..Default::default()
         }],
         genre: vec![Genre {
-            genre_id: None,
             genre_name: Some("Test Genre".to_string()),
             ..Default::default()
         }],
@@ -252,8 +251,7 @@ fn test_remove_songs() {
     let initial_songs = db
         .get_songs_by_options(GetSongOptions {
             song: Some(SearchableSong {
-                r#type: Some(SongType::Local.into()), /* Filter by song type to ensure we get all
-                                                       * test songs */
+                r#type: Some(SongType::Local.into()),
                 ..Default::default()
             }),
             inclusive: Some(true),
@@ -275,8 +273,7 @@ fn test_remove_songs() {
     let all_songs = db
         .get_songs_by_options(GetSongOptions {
             song: Some(SearchableSong {
-                r#type: Some(SongType::Local.into()), /* Filter by song type to ensure we get all
-                                                       * remaining songs */
+                r#type: Some(SongType::Local.into()),
                 ..Default::default()
             }),
             inclusive: Some(true),
@@ -294,17 +291,14 @@ fn test_remove_songs() {
     let removed_song_analytics = analytics
         .songs
         .iter()
-        .find(|(song)| &song.song_id == &remove_id);
+        .find(|song| &song.song_id == &remove_id);
     assert!(
         removed_song_analytics.is_none(),
         "Analytics for removed song should be deleted"
     );
 
     // Verify analytics data for the kept song is still there
-    let kept_song_analytics = analytics
-        .songs
-        .iter()
-        .find(|(song)| song.song_id == keep_id);
+    let kept_song_analytics = analytics.songs.iter().find(|song| song.song_id == keep_id);
     assert!(
         kept_song_analytics.is_some(),
         "Analytics for kept song should still exist"
@@ -359,7 +353,19 @@ fn test_playlist_operations() {
     // Add songs to playlist
     db.add_to_playlist(&playlist_id, &songs).unwrap();
 
-    // Get playlist songs
+    // Verify playlist songs were added
+    let pl_songs = db
+        .get_songs_by_options(GetSongOptions {
+            playlist: Some(Playlist {
+                playlist_id: Some(playlist_id.clone()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        })
+        .unwrap();
+    assert_eq!(pl_songs.len(), 2);
+
+    // Get playlist entity
     let playlist_options = Playlist {
         playlist_id: Some(playlist_id.clone()),
         ..Default::default()
@@ -387,6 +393,22 @@ fn test_playlist_operations() {
     let song_id_to_remove = songs[0].song.clone().unwrap().id.clone().unwrap();
     db.remove_from_playlist(&playlist_id, &vec![song_id_to_remove])
         .unwrap();
+
+    // Verify song was removed from playlist
+    let pl_songs_after = db
+        .get_songs_by_options(GetSongOptions {
+            playlist: Some(Playlist {
+                playlist_id: Some(playlist_id.clone()),
+                ..Default::default()
+            }),
+            ..Default::default()
+        })
+        .unwrap();
+    assert_eq!(pl_songs_after.len(), 1);
+    assert_eq!(
+        pl_songs_after[0].song.as_ref().unwrap().id,
+        songs[1].song.as_ref().unwrap().id
+    );
 
     // Delete the playlist
     db.remove_playlist(&playlist_id).unwrap();
@@ -564,7 +586,10 @@ fn test_artist_operations() {
     );
 
     let artist_id = artists_list.artists[0].artist_id.clone().unwrap();
-    assert!(!artist_id.is_empty(), "artistId should not be empty");
+    assert!(
+        !artist_id.empty_or_whitespace(),
+        "artistId should not be empty"
+    );
 
     artist_to_update.artist_id = Some(artist_id.clone());
     db.update_artist(artist_to_update).unwrap();
@@ -599,8 +624,20 @@ fn test_artist_operations() {
         retrieved_id, artist_id,
         "Retrieved artist ID should match the one we set"
     );
+    assert_eq!(
+        updated_artists_list.artists[0].artist_coverpath.as_deref(),
+        Some("https://example.com/cover.jpg")
+    );
 
     cleanup(&db_path);
+}
+
+trait EmptyOrWhitespace {
+    fn empty_or_whitespace(&self) -> bool;
+}
+
+impl EmptyOrWhitespace for String {
+    fn empty_or_whitespace(&self) -> bool { self.trim().is_empty() }
 }
 
 // Test searching
@@ -693,45 +730,13 @@ fn test_analytics() {
     let song_analytics = analytics
         .songs
         .iter()
-        .find(|(song)| song.song_id.as_str() == song_id.as_str());
+        .find(|song| song.song_id.as_str() == song_id.as_str());
 
     // Verify our song was found and has the expected play time
     assert!(song_analytics.is_some(), "Song should be in analytics data");
     if let Some(listen_time) = song_analytics {
         assert!(listen_time.time > 0.0, "Play time should be recorded");
     }
-
-    cleanup(&db_path);
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_cache_holder() {
-    let db_path = get_test_db_path();
-    let cache_holder = CacheHolder::new(db_path.clone());
-
-    // Success Path
-    let key = "test_url";
-    let data = serde_json::json!({ "foo": "bar" });
-    cache_holder.set(key, &data, 5).unwrap();
-
-    let retrieved: serde_json::Value = cache_holder.get(key).unwrap();
-    assert_eq!(retrieved, data);
-
-    // Conflict (Upsert)
-    let new_data = serde_json::json!({ "foo": "baz" });
-    cache_holder.set(key, &new_data, 5).unwrap();
-
-    let retrieved_new: serde_json::Value = cache_holder.get(key).unwrap();
-    assert_eq!(retrieved_new, new_data);
-
-    // Expiration
-    let exp_key = "expired_url";
-    cache_holder.set(exp_key, &data, 0).unwrap();
-    std::thread::sleep(std::time::Duration::from_millis(50));
-    let res: Result<serde_json::Value, _> = cache_holder.get(exp_key);
-    assert!(res.is_err());
-    assert!(res.unwrap_err().to_string().contains("Cache expired"));
 
     cleanup(&db_path);
 }
@@ -964,16 +969,24 @@ fn test_files_not_in_db() {
     ])
     .unwrap();
 
-    // Matching path and size
+    // Matching path and size -> already in DB, so it should NOT be returned
     let files = vec![(PathBuf::from("/path/to/song1.mp3"), 0.0)];
     let res = db.files_not_in_db(files).unwrap();
-    assert_eq!(res.len(), 1);
-    assert_eq!(res[0].0.to_str().unwrap(), "/path/to/song1.mp3");
+    assert!(res.is_empty());
 
-    // Path matches but size differs -> should NOT return it
+    // Path matches but size differs -> treated as modified / not in DB with this
+    // size
     let files_mismatch = vec![(PathBuf::from("/path/to/song1.mp3"), 100.0)];
     let res_mismatch = db.files_not_in_db(files_mismatch).unwrap();
-    assert!(res_mismatch.is_empty());
+    assert_eq!(res_mismatch.len(), 1);
+    assert_eq!(res_mismatch[0].0.to_str().unwrap(), "/path/to/song1.mp3");
+    assert_eq!(res_mismatch[0].1, 100.0);
+
+    // New file not in DB -> should return it
+    let new_files = vec![(PathBuf::from("/path/to/new_song.mp3"), 0.0)];
+    let res_new = db.files_not_in_db(new_files).unwrap();
+    assert_eq!(res_new.len(), 1);
+    assert_eq!(res_new[0].0.to_str().unwrap(), "/path/to/new_song.mp3");
 
     // Chunking logic check (> 998 files)
     let mut big_list = Vec::new();
@@ -981,16 +994,17 @@ fn test_files_not_in_db() {
         big_list.push((PathBuf::from(format!("/path/to/song_{}.mp3", i)), 0.0));
     }
     let res_big = db.files_not_in_db(big_list.clone()).unwrap();
-    assert!(res_big.is_empty());
+    assert_eq!(res_big.len(), 1005);
 
-    // Insert one of the big list files and check
+    // Insert one of the big list files and check (should return 1004 files)
     db.insert_songs(vec![create_test_song("Song 999", "/path/to/song_999.mp3")])
         .unwrap();
     let res_big_with_match = db.files_not_in_db(big_list).unwrap();
-    assert_eq!(res_big_with_match.len(), 1);
-    assert_eq!(
-        res_big_with_match[0].0.to_str().unwrap(),
-        "/path/to/song_999.mp3"
+    assert_eq!(res_big_with_match.len(), 1004);
+    assert!(
+        !res_big_with_match
+            .iter()
+            .any(|(p, _)| p.to_str().unwrap() == "/path/to/song_999.mp3")
     );
 
     cleanup(&db_path);
@@ -1124,46 +1138,25 @@ fn test_playlist_ops_edge_cases() {
 
 #[test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_updates() {
+fn test_update_song_without_id_is_noop() {
     let db_path = get_test_db_path();
     let db = Database::new(db_path.clone());
 
-    // update_song without ID (no-op)
     let song_no_id = InnerSong {
         title: Some("No ID".to_string()),
         ..Default::default()
     };
-    db.update_song(&song_no_id).unwrap();
+    assert!(db.update_song(&song_no_id).is_ok());
 
-    // Insert song to update
-    let song = Song {
-        song: Some(InnerSong {
-            title: Some("Initial Song".to_string()),
-            path: Some("/song.mp3".to_string()),
-            ..Default::default()
-        }),
-        album: Some(Album {
-            album_name: Some("Initial Album".to_string()),
-            ..Default::default()
-        }),
-        artists: vec![Artist {
-            artist_name: Some("Initial Artist".to_string()),
-            ..Default::default()
-        }],
-        ..Default::default()
-    };
-    let inserted = db.insert_songs(vec![song]).unwrap();
-    let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
-    let album_id = inserted[0]
-        .album
-        .as_ref()
-        .unwrap()
-        .album_id
-        .clone()
-        .unwrap();
-    let artist_id = inserted[0].artists[0].artist_id.clone().unwrap();
+    cleanup(&db_path);
+}
 
-    // update_playlist
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_update_playlist_name() {
+    let db_path = get_test_db_path();
+    let db = Database::new(db_path.clone());
+
     let playlist_id = db
         .create_playlist(Playlist {
             playlist_name: "Initial PL".to_string(),
@@ -1192,7 +1185,42 @@ fn test_updates() {
     };
     assert_eq!(&playlists_list.playlists[0].playlist_name, "Updated PL");
 
-    // update_songs
+    cleanup(&db_path);
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_update_songs_cascades_album_and_artist() {
+    let db_path = get_test_db_path();
+    let db = Database::new(db_path.clone());
+
+    let song = Song {
+        song: Some(InnerSong {
+            title: Some("Initial Song".to_string()),
+            path: Some("/song.mp3".to_string()),
+            ..Default::default()
+        }),
+        album: Some(Album {
+            album_name: Some("Initial Album".to_string()),
+            ..Default::default()
+        }),
+        artists: vec![Artist {
+            artist_name: Some("Initial Artist".to_string()),
+            ..Default::default()
+        }],
+        ..Default::default()
+    };
+    let inserted = db.insert_songs(vec![song]).unwrap();
+    let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
+    let album_id = inserted[0]
+        .album
+        .as_ref()
+        .unwrap()
+        .album_id
+        .clone()
+        .unwrap();
+    let artist_id = inserted[0].artists[0].artist_id.clone().unwrap();
+
     let mut updated_song = inserted[0].clone();
     updated_song.song.as_mut().unwrap().title = Some("Updated Title".to_string());
     updated_song.album.as_mut().unwrap().album_name = Some("Updated Album".to_string());
@@ -1203,7 +1231,7 @@ fn test_updates() {
     let fetched_songs = db
         .get_songs_by_options(GetSongOptions {
             song: Some(SearchableSong {
-                id: Some(song_id.clone()),
+                id: Some(song_id),
                 ..Default::default()
             }),
             ..Default::default()
@@ -1254,10 +1282,22 @@ fn test_updates() {
         "Updated Artist"
     );
 
-    // update_lyrics
+    cleanup(&db_path);
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_update_lyrics() {
+    let db_path = get_test_db_path();
+    let db = Database::new(db_path.clone());
+
+    let song = create_test_song("Lyric Song", "/path/to/lyrics.mp3");
+    let inserted = db.insert_songs(vec![song]).unwrap();
+    let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
+
     db.update_lyrics(song_id.clone(), "New Lyrics".to_string())
         .unwrap();
-    let fetched_songs2 = db
+    let fetched_songs = db
         .get_songs_by_options(GetSongOptions {
             song: Some(SearchableSong {
                 id: Some(song_id),
@@ -1267,7 +1307,7 @@ fn test_updates() {
         })
         .unwrap();
     assert_eq!(
-        fetched_songs2[0]
+        fetched_songs[0]
             .song
             .as_ref()
             .unwrap()
@@ -1275,6 +1315,133 @@ fn test_updates() {
             .as_ref()
             .unwrap(),
         "New Lyrics"
+    );
+
+    cleanup(&db_path);
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_get_entity_songs_and_create_playlist_with_songs() {
+    let db_path = get_test_db_path();
+    let db = Database::new(db_path.clone());
+
+    let song1 = create_test_song("Entity Song 1", "/path/1.mp3");
+    let song2 = create_test_song("Entity Song 2", "/path/2.mp3");
+    let inserted = db.insert_songs(vec![song1, song2]).unwrap();
+
+    let album_id = inserted[0]
+        .album
+        .as_ref()
+        .unwrap()
+        .album_id
+        .clone()
+        .unwrap();
+    let artist_id = inserted[0].artists[0].artist_id.clone().unwrap();
+    let genre_id = inserted[0].genre[0].genre_id.clone().unwrap();
+
+    let mut conn = db.pool.get().unwrap();
+
+    // get_album_songs
+    let album_songs = db
+        .get_album_songs(
+            Album {
+                album_id: Some(album_id),
+                ..Default::default()
+            },
+            false,
+            &mut conn,
+        )
+        .unwrap();
+    assert_eq!(album_songs.len(), 2);
+
+    // get_artist_songs
+    let artist_songs = db
+        .get_artist_songs(
+            Artist {
+                artist_id: Some(artist_id),
+                ..Default::default()
+            },
+            false,
+            &mut conn,
+        )
+        .unwrap();
+    assert_eq!(artist_songs.len(), 2);
+
+    // get_genre_songs
+    let genre_songs = db
+        .get_genre_songs(
+            Genre {
+                genre_id: Some(genre_id),
+                ..Default::default()
+            },
+            false,
+            &mut conn,
+        )
+        .unwrap();
+    assert_eq!(genre_songs.len(), 2);
+
+    // create_playlist_with_songs
+    let pl = Playlist {
+        playlist_name: "Combined PL".to_string(),
+        ..Default::default()
+    };
+    db.create_playlist_with_songs(pl.clone(), &inserted)
+        .unwrap();
+
+    let pl_songs = db.get_playlist_songs(pl, false, &mut conn).unwrap();
+    assert_eq!(pl_songs.len(), 2);
+
+    cleanup(&db_path);
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_empty_inputs_database() {
+    let db_path = get_test_db_path();
+    let db = Database::new(db_path.clone());
+
+    let inserted = db.insert_songs(vec![]).unwrap();
+    assert!(inserted.is_empty());
+
+    assert!(db.update_songs(vec![]).is_ok());
+    assert!(db.remove_songs::<&str>(&[]).is_ok());
+
+    cleanup(&db_path);
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_special_characters_search() {
+    let db_path = get_test_db_path();
+    let db = Database::new(db_path.clone());
+
+    let special_song = create_test_song(
+        "Rock & Roll (100%) [AC/DC] 'Special' \"Quotes\" 🎵",
+        "/path/special.mp3",
+    );
+    db.insert_songs(vec![special_song]).unwrap();
+
+    let fetched = db
+        .get_songs_by_options(GetSongOptions {
+            song: Some(SearchableSong {
+                title: Some("%AC/DC%".to_string()),
+                ..Default::default()
+            }),
+            inclusive: Some(true),
+            ..Default::default()
+        })
+        .unwrap();
+    assert_eq!(fetched.len(), 1);
+    assert!(
+        fetched[0]
+            .song
+            .as_ref()
+            .unwrap()
+            .title
+            .as_ref()
+            .unwrap()
+            .contains("AC/DC")
     );
 
     cleanup(&db_path);
@@ -1545,7 +1712,7 @@ fn test_remove_songs_outside_directories() {
     // Insert 1 song with no path (e.g. YouTube stream)
     let mut song_no_path = create_test_song("Stream", "");
     if let Some(ref mut inner) = song_no_path.song {
-        inner.path = None; // Explicitly set to None
+        inner.path = None;
         inner.playback_url = Some("https://youtube.com/watch?v=123".to_string());
     }
 
@@ -1564,10 +1731,6 @@ fn test_remove_songs_outside_directories() {
     let scan_dirs = vec![PathBuf::from("/music/folders")];
     db.remove_songs_outside_directories(&scan_dirs).unwrap();
 
-    // Verify:
-    // - "Inside" is preserved
-    // - "Stream" is preserved (because it has no path)
-    // - "Outside" is removed
     let remaining = db.get_songs_by_options(query_options).unwrap();
     assert_eq!(remaining.len(), 2);
 

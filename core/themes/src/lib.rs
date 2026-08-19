@@ -18,4 +18,8 @@ pub mod error;
 pub mod themes;
 
 #[cfg(test)]
-mod test;
+mod error_test;
+#[cfg(test)]
+mod lib_test_smoke;
+#[cfg(test)]
+mod themes_test;

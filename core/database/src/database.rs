@@ -1634,10 +1634,17 @@ impl Database {
                 })
                 .map_err(DatabaseError::Query)?;
 
+            let mut found = std::collections::HashSet::new();
             for r in rows {
                 let (path_opt, size_opt) = r.map_err(DatabaseError::Query)?;
                 if let (Some(p), Some(s)) = (path_opt, size_opt) {
-                    ret.push((PathBuf::from(p), s));
+                    found.insert((p, s.to_bits()));
+                }
+            }
+
+            for (path_str, size) in temp_paths {
+                if !found.contains(&(path_str.clone(), size.to_bits())) {
+                    ret.push((PathBuf::from(path_str), size));
                 }
             }
         }

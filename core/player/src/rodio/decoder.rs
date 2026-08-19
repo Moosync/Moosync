@@ -12,7 +12,7 @@ use rodio::{ChannelCount, Sample, SampleRate, Source, source::SeekError};
 use rsmpeg::{
     avcodec::AVCodecContext,
     avformat::AVFormatContextInput,
-    avutil::{AVFrame, AVSamples, err2str, sample_fmt_is_planar},
+    avutil::{AVFrame, AVSamples, err2str},
     error::RsmpegError,
     ffi::{AV_SAMPLE_FMT_FLT, AVMEDIA_TYPE_AUDIO, AVSampleFormat},
     swresample::SwrContext,

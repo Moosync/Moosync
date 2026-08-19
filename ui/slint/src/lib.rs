@@ -22,6 +22,17 @@ mod settings;
 mod utils;
 mod window_info;
 
+#[cfg(test)]
+mod lib_test;
+#[cfg(test)]
+mod pages_test;
+#[cfg(test)]
+pub mod test_utils;
+#[cfg(test)]
+mod utils_test;
+#[cfg(test)]
+mod window_info_test;
+
 pub use window_info::{WINDOW_EVENTS, WindowEvents};
 
 #[cfg(target_os = "android")]

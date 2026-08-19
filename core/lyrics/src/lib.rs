@@ -21,7 +21,9 @@ pub mod error;
 use crate::error::LyricsError;
 
 #[cfg(test)]
-mod test;
+mod lib_test;
+#[cfg(test)]
+mod lib_test_smoke;
 
 #[derive(Debug)]
 pub struct LyricsFetcher {}
@@ -50,11 +52,13 @@ impl LyricsFetcher {
 
         let result = re3.replace_all(&result, "").to_string();
 
-        result
+        let cleaned = result
             .to_lowercase()
             .replace("official", "")
             .replace("music", "")
-            .replace("video", "")
+            .replace("video", "");
+
+        cleaned.split_whitespace().collect::<Vec<_>>().join(" ")
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

@@ -16,3 +16,7 @@ rust-project.json
 **/.settings
 .tokensave
 .bazelrc.local
+coverage_report/
+coverage/
+*.html
+*.info

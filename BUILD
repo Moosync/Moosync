@@ -204,8 +204,10 @@ test_suite(
         "//core/lyrics:lyrics_test",
         "//core/mpris:mpris_test",
         "//core/preferences:preferences_test",
-        # "//core/rodio_player:rodio_player_test",
+        "//core/player:player_test",
         "//core/themes:themes_test",
         "//core/types:types_test",
+        "//core/state_manager:state_manager_test",
+        "//ui/slint:slint_app_lib_test",
     ],
 )

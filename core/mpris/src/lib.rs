@@ -27,11 +27,12 @@ use serde::{Deserialize, Serialize};
 #[cfg(target_os = "android")]
 use types::android::AndroidJNIContext;
 pub mod error;
-#[cfg(target_os = "windows")]
-use crate::context::DummyContext;
 #[cfg(not(target_os = "android"))]
 use crate::context::SouvlakiMprisContext;
-use crate::{context::MprisContext, error::MprisError};
+use crate::{
+    context::{DummyContext, MprisContext},
+    error::MprisError,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct MprisPlayerDetails {
@@ -102,7 +103,7 @@ pub enum SeekDirection {
 mod mpris_android;
 
 #[cfg(test)]
-mod tests;
+mod lib_test;
 
 mod context;
 
@@ -140,8 +141,27 @@ impl MprisHolder {
             }
         }
 
-        let context = Box::new(SouvlakiMprisContext::new()?);
-        Self::new_with_context(context)
+        let context: Box<dyn MprisContext> = match SouvlakiMprisContext::new() {
+            Ok(ctx) => Box::new(ctx),
+            Err(e) => {
+                tracing::warn!(
+                    "Failed to create SouvlakiMprisContext: {:?}, using dummy context",
+                    e
+                );
+                Box::new(DummyContext {})
+            }
+        };
+
+        match Self::new_with_context(context) {
+            Ok(holder) => Ok(holder),
+            Err(e) => {
+                tracing::warn!(
+                    "Failed to attach SouvlakiMprisContext: {:?}, using dummy context",
+                    e
+                );
+                Self::new_with_context(Box::new(DummyContext {}))
+            }
+        }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

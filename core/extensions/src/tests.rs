@@ -224,36 +224,6 @@ impl ReplyHandler for TestReplyHandler {
 
 #[test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_main_command_sanitize() {
-    let song = Song {
-        song: Some(InnerSong {
-            id: Some("123".to_string()),
-            path: Some("/path".to_string()),
-            ..Default::default()
-        }),
-        ..Default::default()
-    };
-
-    let mut cmd = MainCommand {
-        command: Some(main_command::Command::AddSongs(AddSongsRequest {
-            songs: vec![song.clone()],
-        })),
-    };
-
-    cmd.sanitize("test.pkg").unwrap();
-
-    if let Some(main_command::Command::AddSongs(req)) = cmd.command {
-        assert_eq!(
-            req.songs[0].song.clone().unwrap().id.as_ref().unwrap(),
-            "test.pkg:123"
-        );
-    } else {
-        panic!("Wrong command type");
-    }
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
 fn test_find_and_spawn_extensions() {
     init_env();
     let tmp_dir = TempDir::new();

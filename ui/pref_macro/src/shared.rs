@@ -1,5 +1,8 @@
 use quote::quote;
 
+#[cfg(test)]
+mod shared_test;
+
 #[derive(Debug)]
 pub struct Preference {
     pub id: String,

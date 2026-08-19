@@ -20,6 +20,8 @@ use std::time::Duration;
 use extensions_proto::moosync::types::PlayerState;
 #[cfg(test)]
 use mockall::mock;
+#[cfg(test)]
+mod mod_test;
 #[cfg(not(target_os = "android"))]
 use souvlaki::{
     MediaControls, MediaMetadata, MediaPlayback, MediaPosition as SouvlakiMediaPosition,
@@ -186,10 +188,8 @@ impl MprisContext for SouvlakiMprisContext {
 //  DummyContext — used on Wine / unsupported platforms.                   //
 // ─────────────────────────────────────────────────────────────────────── //
 
-#[cfg(target_os = "windows")]
 pub struct DummyContext {}
 
-#[cfg(target_os = "windows")]
 impl MprisContext for DummyContext {
     #[tracing::instrument(level = "debug", skip_all)]
     fn attach(&mut self, _: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<(), MprisError> {

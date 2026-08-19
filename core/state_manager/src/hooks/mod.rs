@@ -8,6 +8,9 @@ pub mod extensions;
 pub mod player;
 pub mod scanner;
 
+#[cfg(test)]
+mod mod_test;
+
 #[async_trait]
 pub trait Hook: Send + Sync {
     #[tracing::instrument(level = "debug", skip_all)]

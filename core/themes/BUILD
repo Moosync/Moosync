@@ -4,9 +4,11 @@ rust_library(
     name = "themes",
     srcs = [
         "src/error.rs",
+        "src/error_test.rs",
         "src/lib.rs",
-        "src/test.rs",
+        "src/lib_test_smoke.rs",
         "src/themes.rs",
+        "src/themes_test.rs",
     ],
     crate_root = "src/lib.rs",
     proc_macro_deps = [
@@ -24,6 +26,7 @@ rust_library(
         "@crates//:reqwest",
         "@crates//:serde",
         "@crates//:serde_json",
+        "@crates//:tempdir",
         "@crates//:tracing",
         "@crates//:uuid",
         "@crates//:zip-extensions",

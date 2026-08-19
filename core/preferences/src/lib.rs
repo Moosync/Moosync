@@ -19,6 +19,10 @@ pub mod keys;
 pub mod preferences;
 
 #[cfg(test)]
-mod tests;
+mod keys_test;
+#[cfg(test)]
+mod lib_test_smoke;
+#[cfg(test)]
+mod preferences_test;
 
 pub mod context;

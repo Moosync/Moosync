@@ -32,6 +32,12 @@ pub enum MprisError {
     Unsupported,
 
     #[cfg(not(target_os = "android"))]
-    #[error("Souvlaki integration error: {0}")]
-    Souvlaki(#[from] souvlaki::Error),
+    #[error("Souvlaki integration error: {0:?}")]
+    Souvlaki(souvlaki::Error),
+}
+
+#[cfg(not(target_os = "android"))]
+impl From<souvlaki::Error> for MprisError {
+    #[tracing::instrument(level = "trace", skip_all)]
+    fn from(err: souvlaki::Error) -> Self { MprisError::Souvlaki(err) }
 }

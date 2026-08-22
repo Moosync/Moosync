@@ -10,7 +10,6 @@ use windows::{
             WINDOW_EX_STYLE, WINDOW_STYLE, WM_QUIT, WNDCLASSEXW,
         },
     },
-    core::PCWSTR,
     w,
 };
 
@@ -30,7 +29,7 @@ impl DummyWindow {
             let wnd_class = WNDCLASSEXW {
                 cbSize: mem::size_of::<WNDCLASSEXW>() as u32,
                 hInstance: instance,
-                lpszClassName: PCWSTR::from(class_name),
+                lpszClassName: class_name,
                 lpfnWndProc: Some(Self::wnd_proc),
                 ..Default::default()
             };
@@ -58,13 +57,13 @@ impl DummyWindow {
             );
 
             if handle.0 == 0 {
-                Err(format!(
+                return Err(format!(
                     "Message only window creation failed: {}",
                     Error::last_os_error()
-                ))
-            } else {
-                Ok(handle)
+                ));
             }
+
+            Ok(handle)
         };
 
         handle_result.map(|handle| DummyWindow { handle })

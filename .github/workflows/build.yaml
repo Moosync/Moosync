@@ -147,7 +147,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew update
-          brew install nasm
+          brew install nasm pkg-config
 
       - name: Setup Java (Android)
         if: contains(matrix.target, 'android')

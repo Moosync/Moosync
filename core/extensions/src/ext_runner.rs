@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#[cfg(any(target_os = "android", target_os = "ios"))]
-use std::path::Path;
 use std::{
     collections::HashMap,
     fs,

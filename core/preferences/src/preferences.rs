@@ -22,10 +22,12 @@ use std::{
     sync::Mutex,
 };
 
+#[cfg(not(target_os = "android"))]
 use chacha20poly1305::{
-    AeadCore, ChaCha20Poly1305, Key, KeyInit, KeySizeUser,
-    aead::{Aead, OsRng, generic_array::GenericArray},
+    AeadCore, KeySizeUser,
+    aead::{Aead, generic_array::GenericArray},
 };
+use chacha20poly1305::{ChaCha20Poly1305, Key, KeyInit, aead::OsRng};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use types::subscription::SubscriberList;
@@ -89,7 +91,7 @@ impl PreferenceConfig {
                 .map_err(PreferencesError::Io)?;
         }
 
-        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        #[cfg(not(target_os = "android"))]
         let secret = match context.get_secret() {
             Ok(password) => {
                 tracing::debug!("Got keystore password");
@@ -140,7 +142,7 @@ impl PreferenceConfig {
     where
         T: DeserializeOwned,
     {
-        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        #[cfg(not(target_os = "android"))]
         {
             let data: String = self.load_selective(key.clone())?;
             let mut split = data.split(':');
@@ -161,7 +163,7 @@ impl PreferenceConfig {
             Ok(serde_json::from_str(&plaintext)?)
         }
 
-        #[cfg(any(target_os = "android", target_os = "ios"))]
+        #[cfg(target_os = "android")]
         {
             self.load_selective(key.clone())
         }
@@ -176,7 +178,7 @@ impl PreferenceConfig {
             return self.remove_selective(key);
         }
 
-        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        #[cfg(not(target_os = "android"))]
         {
             let value = value.unwrap();
 
@@ -192,7 +194,7 @@ impl PreferenceConfig {
             self.save_selective(key, parsed)?;
         }
 
-        #[cfg(any(target_os = "android", target_os = "ios"))]
+        #[cfg(target_os = "android")]
         {
             self.save_selective(key, value.unwrap())?;
         }

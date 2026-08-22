@@ -14,18 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{
-    sync::{
-        Arc, Mutex,
-        mpsc::{self, Receiver, Sender},
-    },
-    time::Duration,
-};
+use std::{sync::mpsc::Sender, time::Duration};
 
 use extensions_proto::moosync::types::PlayerState;
 use jni::{
-    AttachGuard, JavaVM,
-    objects::{GlobalRef, JClass, JObject, JString, JValue},
+    AttachGuard,
+    objects::{JClass, JObject, JString, JValue},
 };
 use tracing::{debug, info, warn};
 use types::android::AndroidJNIContext;

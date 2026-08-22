@@ -28,11 +28,8 @@ use serde::{Deserialize, Serialize};
 use types::android::AndroidJNIContext;
 pub mod error;
 #[cfg(not(target_os = "android"))]
-use crate::context::SouvlakiMprisContext;
-use crate::{
-    context::{DummyContext, MprisContext},
-    error::MprisError,
-};
+use crate::context::{DummyContext, SouvlakiMprisContext};
+use crate::{context::MprisContext, error::MprisError};
 
 #[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct MprisPlayerDetails {
@@ -220,7 +217,7 @@ impl types::plugin::Plugin for MprisHolder {
         types::plugin::Arc::new(types::plugin::RwLock::new(
             MprisHolder::new(
                 #[cfg(target_os = "android")]
-                context.android_context.clone(),
+                _context.android_context.clone(),
             )
             .expect("Failed to initialize MprisHolder"),
         ))

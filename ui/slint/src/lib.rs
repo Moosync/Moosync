@@ -43,7 +43,7 @@ fn android_main(app: slint::android::AndroidApp) {
     ANDROID_APP.set(app).expect("failed to set ANDROID_APP");
     let rt = tokio::runtime::Runtime::new().unwrap();
     let _guard = rt.enter();
-    run();
+    rt.block_on(run());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

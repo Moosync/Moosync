@@ -31,15 +31,14 @@ fn select_directory() -> String {
 #[cfg(not(target_os = "android"))]
 #[tracing::instrument(level = "debug", skip_all)]
 fn select_file(filter: String) -> String {
-    if let Some(path) = rfd::FileDialog::new()
-        .add_filter("Custom files", &filter.split(",").collect::<Vec<&str>>())
+    let Some(path) = rfd::FileDialog::new()
+        .add_filter("Custom files", &filter.split(',').collect::<Vec<&str>>())
         .pick_file()
-    {
-        tracing::info!("Selected file: {:?}", path);
-        path.to_string_lossy().to_string()
-    } else {
-        String::new()
-    }
+    else {
+        return String::new();
+    };
+    tracing::info!("Selected file: {:?}", path);
+    path.to_string_lossy().to_string()
 }
 
 #[cfg(target_os = "android")]
@@ -48,7 +47,7 @@ fn select_directory() -> String { String::new() }
 
 #[cfg(target_os = "android")]
 #[tracing::instrument(level = "debug", skip_all)]
-fn select_file(filter: String) -> String { String::new() }
+fn select_file(_filter: String) -> String { String::new() }
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static StateManager) {

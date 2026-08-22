@@ -28,5 +28,5 @@ pub trait ScannerContext: Send + Sync {
 
 #[cfg(target_os = "android")]
 pub mod android;
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
+#[cfg(not(target_os = "android"))]
 pub mod desktop;

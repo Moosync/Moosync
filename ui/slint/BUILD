@@ -230,5 +230,6 @@ rust_shared_library(
         "@crates//:tracing-appender",
         "@crates//:tracing-subscriber",
         "@crates//:uuid",
+        "@crates//:futures",
     ],
 )

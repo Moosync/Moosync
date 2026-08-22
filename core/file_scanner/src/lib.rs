@@ -22,7 +22,7 @@ pub use types::ScanProgress;
 pub mod error;
 #[cfg(target_os = "android")]
 use crate::context::android::AndroidScannerContext;
-#[cfg(not(any(target_os = "android", target_os = "ios")))]
+#[cfg(not(target_os = "android"))]
 use crate::context::desktop::DesktopScannerContext;
 use crate::{context::ScannerContext, error::ScannerError};
 
@@ -159,7 +159,7 @@ impl ScannerHolder {
         });
 
         tracing::trace!("here 2");
-        #[cfg(not(any(target_os = "android", target_os = "ios")))]
+        #[cfg(not(target_os = "android"))]
         let context = DesktopScannerContext::new(
             scan_dirs,
             thumbnail_dir,

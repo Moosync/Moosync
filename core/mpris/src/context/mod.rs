@@ -30,9 +30,7 @@ use souvlaki::{
 
 #[cfg(not(target_os = "android"))]
 use crate::SeekDirection;
-#[cfg(not(target_os = "android"))]
-use crate::error::MprisError;
-use crate::{MediaControlEvent, MprisPlayerDetails};
+use crate::{MediaControlEvent, MprisPlayerDetails, error::MprisError};
 
 // ─────────────────────────────────────────────────────────────────────── //
 //  MprisContext trait — platform-agnostic interface.                       //
@@ -188,8 +186,10 @@ impl MprisContext for SouvlakiMprisContext {
 //  DummyContext — used on Wine / unsupported platforms.                   //
 // ─────────────────────────────────────────────────────────────────────── //
 
+#[cfg(not(target_os = "android"))]
 pub struct DummyContext {}
 
+#[cfg(not(target_os = "android"))]
 impl MprisContext for DummyContext {
     #[tracing::instrument(level = "debug", skip_all)]
     fn attach(&mut self, _: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<(), MprisError> {

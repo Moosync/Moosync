@@ -69,13 +69,15 @@ use_repo(go_sdk, "go_toolchains")
 register_toolchains("@go_toolchains//:all")
 
 bazel_dep(name = "moosync_ext", version = "0.0.1")
-local_path_override(
+git_override(
     module_name = "moosync_ext",
-    path = "../moosync-exts",
+    branch = "bazel",
+    remote = "https://github.com/Moosync/moosync-exts",
 )
 
 bazel_dep(name = "extensions_sdk")
-local_path_override(
+git_override(
     module_name = "extensions_sdk",
-    path = "../extensions-sdk",
+    branch = "main",
+    remote = "https://github.com/Moosync/extensions-sdk",
 )

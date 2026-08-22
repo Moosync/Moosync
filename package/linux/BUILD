@@ -42,6 +42,7 @@ pkg_tar2rpm(
     release = RELEASE,
     requires = [
         "openssl",
+        "pulseaudio-libs",
     ],
     version = VERSION,
 )
@@ -57,6 +58,7 @@ pkg_deb(
     data = ":moosync_filesystem_tar",
     depends = [
         "libssl3",
+        "libpulse0",
     ],
     description = "Moosync",
     maintainer = "Sahil Gupte <ovenoboyo@gmail.com>",

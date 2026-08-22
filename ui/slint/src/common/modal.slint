@@ -1,0 +1,62 @@
+import { Theme } from "../constants.slint";
+
+export enum ModalSize { Sm, Md, Lg, Xl }
+
+export component Modal inherits Rectangle {
+    in property <ModalSize> modalSize;
+    callback close();
+
+    property <length> target-width: modalSize == ModalSize.Xl ? Theme.modalWidthXl : modalSize == ModalSize.Lg ? Theme.modalWidthLg : modalSize == ModalSize.Md ? Theme.modalWidthMd : Theme.modalWidthSm;
+    property <length> target-height: modalSize == ModalSize.Xl ? Theme.modalHeightXl : modalSize == ModalSize.Lg ? Theme.modalHeightLg : modalSize == ModalSize.Md ? Theme.modalHeightMd : Theme.modalHeightSm;
+
+    background: rgba(0, 0, 0, 0.5);
+    width: 100%;
+    height: 100%;
+
+    TouchArea {
+        clicked => {
+            root.close();
+        }
+    }
+
+    HorizontalLayout {
+        padding: 32px;
+
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+
+        VerticalLayout {
+            Rectangle {
+                vertical-stretch: 1;
+            }
+
+            Rectangle {
+                preferred-width: root.target-width;
+                preferred-height: root.target-height;
+
+                max-width: root.target-width;
+                max-height: root.target-height;
+
+                border-radius: Theme.borderRadiusXl;
+
+                clip: true;
+
+                TouchArea {
+                    width: 100%;
+                    height: 100%;
+                }
+
+                @children
+            }
+
+            Rectangle {
+                vertical-stretch: 1;
+            }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+    }
+}

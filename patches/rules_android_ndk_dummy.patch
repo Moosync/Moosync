@@ -1,0 +1,195 @@
+diff --git a/BUILD.empty.tpl b/BUILD.empty.tpl
+new file mode 100644
+index 0000000..bd06551
+--- /dev/null
++++ b/BUILD.empty.tpl
+@@ -0,0 +1,57 @@
++"""
++This module adds no-op repository rules when the Android NDK is not installed.
++"""
++
++package(default_visibility = ["//visibility:public"])
++
++load(":dummy_cc_toolchain.bzl", "dummy_cc_config", "dummy_cc_toolchain")
++load("//:target_systems.bzl", "CPU_CONSTRAINT", "TARGET_SYSTEM_NAMES")
++
++# android_ndk_repository was used without a valid Android NDK being set.
++# Either the path attribute of android_ndk_repository or the ANDROID_NDK_HOME
++# environment variable must be set.
++# This is a minimal BUILD file to allow non-Android builds to continue.
++
++# Loop over TARGET_SYSTEM_NAMES and define all empty toolchain targets.
++[toolchain(
++    name = "toolchain_%s" % target_system_name,
++    toolchain = ":dummy_android_ndk_toolchain_cc",
++    toolchain_type = "@bazel_tools//tools/cpp:toolchain_type",
++    target_compatible_with = [
++        "@platforms//os:android",
++        CPU_CONSTRAINT[target_system_name],
++    ],
++) for target_system_name in TARGET_SYSTEM_NAMES]
++
++cc_toolchain(
++    name = "dummy_android_ndk_toolchain_cc",
++    all_files = ":invalid_android_ndk_repository_error",
++    compiler_files = ":invalid_android_ndk_repository_error",
++    dwp_files = ":invalid_android_ndk_repository_error",
++    linker_files = ":invalid_android_ndk_repository_error",
++    objcopy_files = ":invalid_android_ndk_repository_error",
++    strip_files = ":invalid_android_ndk_repository_error",
++    supports_param_files = 0,
++    toolchain_config = ":cc_toolchain_config",
++    toolchain_identifier = "dummy_wasm32_cc",
++)
++
++dummy_cc_config(
++    name = "cc_toolchain_config",
++)
++
++cc_library(
++    name = "cpufeatures",
++    data = [":error_message"],
++)
++
++genrule(
++    name = "invalid_android_ndk_repository_error",
++    outs = [
++        "error_message",
++    ],
++    cmd = """echo \
++    rules_android_ndk was used without a valid Android NDK being set: \
++    either the path attribute of android_ndk_repository or the ANDROID_NDK_HOME environment variable must be set. ; \
++    exit 1""",
++)
+diff --git a/dummy_cc_toolchain.bzl.tpl b/dummy_cc_toolchain.bzl.tpl
+new file mode 100644
+index 0000000..647af44
+--- /dev/null
++++ b/dummy_cc_toolchain.bzl.tpl
+@@ -0,0 +1,28 @@
++def _dummy_cc_toolchain_impl(_ctx):
++    # The `all_files` attribute is referenced by rustc_compile_action().
++    return [platform_common.ToolchainInfo(all_files = depset([]))]
++
++dummy_cc_toolchain = rule(
++    implementation = _dummy_cc_toolchain_impl,
++    attrs = {},
++)
++
++# dummy values from https://bazel.build/tutorials/ccp-toolchain-config#configuring_the_c_toolchain
++def _config_impl(ctx):
++    return cc_common.create_cc_toolchain_config_info(
++        ctx = ctx,
++        toolchain_identifier = "dummy-android-ndk-toolchain-cc",
++        host_system_name = "unknown",
++        target_system_name = "unknown",
++        target_cpu = "unknown",
++        target_libc = "unknown",
++        compiler = "unknown",
++        abi_version = "unknown",
++        abi_libc_version = "unknown",
++    )
++
++dummy_cc_config = rule(
++    implementation = _config_impl,
++    attrs = {},
++    provides = [CcToolchainConfigInfo],
++)
+diff --git a/rules.bzl b/rules.bzl
+index 53b9f7c..bc1597c 100644
+--- a/rules.bzl
++++ b/rules.bzl
+@@ -23,10 +23,52 @@ def _android_ndk_repository_impl(ctx):
+     Returns:
+         A final dict of configuration attributes and values.
+     """
++    ctx.template(
++        "target_systems.bzl",
++        ctx.attr._template_target_systems,
++        {
++        },
++        executable = False,
++    )
++
+     ndk_path = ctx.attr.path or ctx.getenv("ANDROID_NDK_HOME", None)
+-    if not ndk_path:
+-        fail("Either the ANDROID_NDK_HOME environment variable or the " +
+-             "path attribute of android_ndk_repository must be set.")
++    
++    is_valid_ndk = False
++    if ndk_path:
++        clang_directory = ""
++        if ctx.os.name == "linux":
++            clang_directory = "toolchains/llvm/prebuilt/linux-x86_64"
++        elif ctx.os.name == "mac os x":
++            clang_directory = "toolchains/llvm/prebuilt/darwin-x86_64"
++        elif ctx.os.name.startswith("windows"):
++            clang_directory = "toolchains/llvm/prebuilt/windows-x86_64"
++
++        actual_path = ndk_path
++        if ndk_path.startswith("$WORKSPACE_ROOT"):
++            actual_path = str(ctx.workspace_root) + ndk_path.removeprefix("$WORKSPACE_ROOT")
++
++        if clang_directory and ctx.path(actual_path + "/" + clang_directory).exists:
++            is_valid_ndk = True
++
++    if not is_valid_ndk:
++        ctx.template(
++            "BUILD.bazel",
++            ctx.attr._template_empty_repository,
++            {},
++            executable = False,
++        )
++        ctx.template(
++            "dummy_cc_toolchain.bzl",
++            ctx.attr._template_dummy_cc_toolchain,
++            {},
++            executable = False,
++        )
++        ctx.file(
++            "toolchains/llvm/prebuilt/linux-x86_64/sysroot/BUILD.bazel",
++            content = "filegroup(name = 'all_files', srcs = [])\n",
++            executable = False,
++        )
++        return
+     if ndk_path.startswith("$WORKSPACE_ROOT"):
+         ndk_path = str(ctx.workspace_root) + ndk_path.removeprefix("$WORKSPACE_ROOT")
+ 
+@@ -71,14 +108,6 @@ def _android_ndk_repository_impl(ctx):
+         executable = False,
+     )
+ 
+-    ctx.template(
+-        "target_systems.bzl",
+-        ctx.attr._template_target_systems,
+-        {
+-        },
+-        executable = False,
+-    )
+-
+     ctx.template(
+         "%s/BUILD.bazel" % clang_directory,
+         ctx.attr._template_ndk_clang,
+@@ -133,6 +162,8 @@ android_ndk_repository = repository_rule(
+         "_template_target_systems": attr.label(default = ":target_systems.bzl.tpl", allow_single_file = True),
+         "_template_ndk_clang": attr.label(default = ":BUILD.ndk_clang.tpl", allow_single_file = True),
+         "_template_ndk_sysroot": attr.label(default = ":BUILD.ndk_sysroot.tpl", allow_single_file = True),
++        "_template_empty_repository": attr.label(default = ":BUILD.empty.tpl", allow_single_file = True),
++        "_template_dummy_cc_toolchain": attr.label(default = ":dummy_cc_toolchain.bzl.tpl", allow_single_file = True),
+     },
+     local = True,
+     implementation = _android_ndk_repository_impl,
+@@ -152,3 +183,12 @@ def _create_symlinks(ctx, ndk_path, clang_directory, sysroot_directory):
+     for p in ctx.path(ndk_path + sysroot_directory).readdir():
+         repo_relative_path = str(p).replace(ndk_path, "")
+-        ctx.symlink(p, repo_relative_path)
++        if repo_relative_path.endswith("/usr"):
++            ctx.execute(["mkdir", "-p", repo_relative_path])
++            for sub_p in p.readdir():
++                sub_name = str(sub_p).split("/")[-1]
++                if sub_name == "include":
++                    ctx.execute(["cp", "-R", str(sub_p), repo_relative_path + "/include"])
++                else:
++                    ctx.symlink(sub_p, repo_relative_path + "/" + sub_name)
++        else:
++            ctx.symlink(p, repo_relative_path)

@@ -1,0 +1,88 @@
+import { NavButtons } from "nav_buttons.slint";
+import { SearchBar } from "search_bar.slint";
+import { Theme } from "../constants.slint";
+
+export component TopBar inherits Rectangle {
+    callback settings_clicked();
+    callback search-submitted(string);
+
+    height: Theme.topbarHeight;
+    background: Theme.primary; // Sampleed Topbar Background
+
+    // Bottom border for the top bar
+    Rectangle {
+        y: parent.height - Theme.borderWidth;
+        height: Theme.borderWidth;
+        background: Theme.divider;
+    }
+
+    VerticalLayout {
+        alignment: center;
+        HorizontalLayout {
+            padding-left: Theme.paddingLg;
+            padding-right: Theme.paddingLg;
+
+            HorizontalLayout {
+                horizontal-stretch: 1;
+
+                NavButtons { }
+
+                HorizontalLayout {
+                    horizontal-stretch: 1;
+                    alignment: stretch;
+                    padding-right: Theme.paddingLg;
+                    padding-left: Theme.paddingLg;
+                    SearchBar {
+                        horizontal-stretch: 1;
+                        accepted(txt) => {
+                            root.search-submitted(txt);
+                        }
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                horizontal-stretch: 0;
+                spacing: Theme.spacingLg;
+
+                // Profile Action
+                profile_btn := Rectangle {
+                    width: Theme.topbarIconSize;
+                    height: Theme.topbarIconSize;
+                    border-radius: Theme.borderRadiusMd;
+                    background: profile_touch.has-hover ? Theme.textPrimary.with-alpha(0.05) : transparent;
+
+                    profile_touch := TouchArea { }
+
+                    Image {
+                        source: @image-url("../icons/profile.svg");
+                        colorize: profile_touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
+                        width: Theme.iconSizeLg;
+                        height: Theme.iconSizeLg;
+                    }
+                }
+
+                // Settings Action
+                settings_btn := Rectangle {
+                    width: Theme.topbarIconSize;
+                    height: Theme.topbarIconSize;
+                    border-radius: Theme.borderRadiusMd;
+                    background: settings_touch.has-hover ? Theme.textPrimary.with-alpha(0.05) : transparent;
+
+                    settings_touch := TouchArea {
+                        clicked => {
+                            root.settings_clicked();
+                        }
+                    }
+
+                    Image {
+                        source: @image-url("../icons/settings.svg");
+                        colorize: settings_touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
+                        width: Theme.iconSizeLg;
+                        height: Theme.iconSizeLg;
+                    }
+                }
+            }
+        }
+    }
+}

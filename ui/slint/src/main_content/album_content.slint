@@ -1,0 +1,21 @@
+import { SongsPageLayout } from "../common/songs_page_layout.slint";
+import { SongModel, AlbumModel } from "../types/song_view.slint";
+import { Constants } from "../constants.slint";
+import { AlbumsPageProps } from "./albums.slint";
+
+export global AlbumContentPageProps {
+    in-out property <[SongModel]> songs: Constants.testSongs;
+}
+
+export component AlbumContent inherits Rectangle {
+    SongsPageLayout {
+        songs <=> AlbumContentPageProps.songs;
+        default-song: {
+            id: "",
+            title: AlbumsPageProps.selected-album.title,
+            coverPathHigh: AlbumsPageProps.selected-album.coverPath,
+            coverPathLow: AlbumsPageProps.selected-album.coverPath,
+            extension-icon: @image-url("../icons/song_default.svg"),
+        };
+    }
+}

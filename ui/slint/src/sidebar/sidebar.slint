@@ -1,0 +1,86 @@
+import { SidebarHeader } from "sidebar_header.slint";
+import { SidebarButton } from "sidebar_button.slint";
+import { Pages, SettingsPages, Theme } from "../constants.slint";
+import { WindowInfo } from "../window_info.slint";
+
+export struct SidebarItem { text: string, icon: image, page: Pages }
+
+export component Sidebar inherits Rectangle {
+    in-out property <Pages> activePage;
+    in property <length> sidebarWidth;
+    in property <[SidebarItem]> items: [];
+
+    width: sidebarWidth;
+    background: @linear-gradient(180deg, Theme.secondary 0%, Theme.primary 100%);
+
+    // Border line on the right side
+    Rectangle {
+        x: parent.width - Theme.borderWidth;
+        width: Theme.borderWidth;
+        height: parent.height;
+        background: Theme.divider;
+    }
+
+    VerticalLayout {
+        alignment: start;
+        spacing: Theme.spacingLg;
+
+        SidebarHeader { }
+
+        VerticalLayout {
+            padding-left: Theme.paddingSm;
+            padding-right: Theme.paddingSm;
+            spacing: Theme.spacingXxs;
+
+            for item in items: SidebarButton {
+                text: item.text;
+                icon: item.icon;
+                active: root.activePage == item.page;
+                clicked => {
+                    root.activePage = item.page;
+                }
+            }
+        }
+    }
+}
+
+export struct SettingsSidebarItem { text: string, icon: image, page: SettingsPages }
+
+export component SettingsSidebar inherits Rectangle {
+    in-out property <SettingsPages> activePage;
+    in property <length> sidebarWidth;
+    in property <[SettingsSidebarItem]> items: [];
+
+    width: sidebarWidth;
+    background: @linear-gradient(180deg, Theme.secondary 0%, Theme.primary 100%);
+
+    // Border line on the right side
+    Rectangle {
+        x: parent.width - Theme.borderWidth;
+        width: Theme.borderWidth;
+        height: parent.height;
+        background: Theme.divider;
+    }
+
+    VerticalLayout {
+        alignment: start;
+        spacing: Theme.spacingLg;
+
+        SidebarHeader { }
+
+        VerticalLayout {
+            padding-left: Theme.paddingSm;
+            padding-right: Theme.paddingSm;
+            spacing: Theme.spacingXxs;
+
+            for item in items: SidebarButton {
+                text: item.text;
+                icon: item.icon;
+                active: root.activePage == item.page;
+                clicked => {
+                    root.activePage = item.page;
+                }
+            }
+        }
+    }
+}

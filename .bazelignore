@@ -1,0 +1,3 @@
+ui/gen_dist/node_modules
+core/types/protos/node_modules
+lib/extensions_sdk

@@ -1,0 +1,42 @@
+import { AlbumModel } from "../types/song_view.slint";
+import { GridListView } from "../common/grid_list_view.slint";
+import { Constants, Theme, Pages } from "../constants.slint";
+
+export global AlbumsPageProps {
+    in-out property <[AlbumModel]> albums: Constants.testAlbums;
+    in-out property <AlbumModel> selected-album;
+}
+
+export component AlbumsPage inherits Rectangle {
+    in-out property <Pages> active-page;
+
+    background: transparent;
+
+    VerticalLayout {
+        spacing: Theme.spacingXxl;
+        alignment: start;
+
+        text := Text {
+            height: Theme.pageHeader + Theme.paddingLg;
+            text: "Albums";
+            font-size: Theme.pageHeader;
+            color: Theme.textPrimary;
+        }
+
+        GridListView {
+            height: root.height - text.height - (Theme.spacingXxl + Theme.paddingLg);
+            item-width: Theme.cardWidth;
+            total-items: AlbumsPageProps.albums.length;
+            item-title(idx) => {
+                AlbumsPageProps.albums[idx].title
+            }
+            item-cover(idx) => {
+                AlbumsPageProps.albums[idx].coverPath
+            }
+            item-clicked(idx) => {
+                AlbumsPageProps.selected-album = AlbumsPageProps.albums[idx];
+                root.active-page = Pages.AlbumContent;
+            }
+        }
+    }
+}

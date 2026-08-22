@@ -1,0 +1,61 @@
+import { Theme } from "../constants.slint";
+import { ProviderRecommendations, SongModel } from "../types/song_view.slint";
+import { ProviderItem, Provider } from "./search.slint";
+import { SongListView } from "../common/song_list_view.slint";
+
+export global ExplorePageProps {
+    in-out property <[ProviderRecommendations]> provider-recommendations;
+}
+
+export component ExplorePage inherits Rectangle {
+    property <int> selected-provider: 0;
+
+    background: transparent;
+    width: 100%;
+    height: 100%;
+
+    VerticalLayout {
+        spacing: Theme.spacingXxl;
+        padding: Theme.paddingMd;
+
+        Text {
+            text: "Explore";
+            height: Theme.pageHeader + Theme.paddingLg;
+            font-size: Theme.pageHeader;
+            color: Theme.textPrimary;
+            font-weight: 700;
+        }
+
+        if (ExplorePageProps.provider-recommendations.length == 0): Rectangle {
+            vertical-stretch: 1;
+            Text {
+                text: "No recommendations";
+                color: Theme.textSecondary;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+
+        if (ExplorePageProps.provider-recommendations.length > 0): VerticalLayout {
+            vertical-stretch: 1;
+            spacing: Theme.spacingLg;
+
+            // Provider Selector
+            FlexboxLayout {
+                for prov[idx] in ExplorePageProps.provider-recommendations: ProviderItem {
+                    provider: { name: prov.provider-name, icon: prov.provider-icon };
+                    active: root.selected-provider == idx;
+                    clicked => { root.selected-provider = idx; }
+                }
+            }
+
+            // Song list for selected provider
+            Rectangle {
+                vertical-stretch: 1;
+                SongListView {
+                    songs: ExplorePageProps.provider-recommendations[root.selected-provider].songs;
+                }
+            }
+        }
+    }
+}

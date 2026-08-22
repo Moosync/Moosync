@@ -1,0 +1,54 @@
+import { Theme } from "../constants.slint";
+
+export component CardView inherits VerticalLayout {
+    in property <string> title: "Card Title";
+    in property <image> cover-img: @image-url("../icons/song_default.svg");
+    in property <image> extension-icon: @image-url("../icons/empty.svg");
+
+    padding: Theme.paddingSm;
+    spacing: Theme.spacingXs;
+
+    Rectangle {
+        border-radius: Theme.borderRadiusLg;
+        height: self.width;
+        clip: true;
+
+        Image {
+            height: parent.height;
+            width: parent.width;
+            source: root.cover-img;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            image-fit: contain;
+            image-rendering: pixelated;
+        }
+
+        if (root.extension-icon.width > 0 || root.extension-icon.height > 0): Rectangle {
+            x: parent.width - self.width - Theme.paddingSm;
+            y: Theme.paddingSm;
+            width: Theme.iconSizeSm;
+            height: Theme.iconSizeSm;
+            background: Theme.primary.with-alpha(0.85);
+            border-radius: self.width / 2;
+
+            Image {
+                width: parent.width - 4px;
+                height: parent.height - 4px;
+                x: 2px;
+                y: 2px;
+                source: root.extension-icon;
+            }
+        }
+    }
+
+    VerticalLayout {
+        padding-left: Theme.spacingXxs;
+        Text {
+            text: root.title;
+            font-size: Theme.modelTitle;
+            color: Theme.textPrimary;
+            horizontal-alignment: start;
+            overflow: elide;
+        }
+    }
+}

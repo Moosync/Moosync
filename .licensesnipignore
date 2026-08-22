@@ -6,3 +6,6 @@ public/
 .cargo/
 locales/
 styles/
+BUILD
+*.bazel
+*.bzl

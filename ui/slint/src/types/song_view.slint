@@ -1,0 +1,102 @@
+export struct AlbumModel {
+    id: string,
+    title: string,
+    songs_count: int,
+    coverPath: image,
+    coverPathUrl: string,
+    extension: string,
+    extension-icon: image,
+}
+
+export struct PlaylistModel {
+    id: string,
+    title: string,
+    songs_count: int,
+    coverPath: image,
+    coverPathUrl: string,
+    extension: string,
+    extension-icon: image,
+}
+
+export struct ArtistModel {
+    id: string,
+    mbid: string,
+    title: string,
+    songs_count: int,
+    coverPath: image,
+    coverPathUrl: string,
+    sanitized_name: string,
+    extension: string,
+    extension-icon: image,
+}
+
+export struct GenreModel {
+    id: string,
+    title: string,
+    songs_count: int,
+    coverPath: image,
+    coverPathUrl: string,
+}
+
+
+export struct SongModel {
+    // InnerSong fields
+    id: string,
+    path: string,
+    size: float,
+    title: string,
+    date: string,
+    year: string,
+    lyrics: string,
+    release_type: string,
+    bitrate: float,
+    codec: string,
+    container: string,
+    duration_s: int,
+    sample_rate: float,
+    hash: string,
+    type: int,
+    url: string,
+    song_cover_path_high: string,
+    playback_url: string,
+    song_cover_path_low: string,
+    date_added: int,
+    track_no: float,
+    album_id: string,
+    album_name: string,
+    album_artist: string,
+    album_coverpath_high: string,
+    album_coverpath_low: string,
+    album_song_count: float,
+    album_year: string,
+    artists: [ArtistModel],
+    genre: [GenreModel],
+    coverPathHigh: image,
+    coverPathLow: image,
+    coverPathUrlHigh: string,
+    coverPathUrlLow: string,
+    duration_str: string,
+    extension: string,
+    extension-icon: image,
+}
+
+export global CoverHelper {
+    pure callback fetch_cover_high(SongModel) -> image;
+    pure callback fetch_cover_low(SongModel) -> image;
+}
+
+export struct SearchResult {
+    songs: [SongModel],
+    albums: [AlbumModel],
+    artists: [ArtistModel],
+    playlists: [PlaylistModel],
+    genres: [GenreModel],
+    extension: string,
+    extension-icon: image,
+}
+
+export struct ProviderRecommendations {
+    provider-name: string,
+    provider-icon: image,
+    songs: [SongModel],
+}

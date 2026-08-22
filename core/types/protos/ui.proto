@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package moosync.types;
+
+import "google/protobuf/struct.proto";
+
+enum PreferenceTypes {
+  DIRECTORY_GROUP = 0;
+  EDIT_TEXT = 1;
+  FILE_PICKER = 2;
+  CHECKBOX_GROUP = 3;
+  THEME_SELECTOR = 4;
+  EXTENSIONS = 5;
+  BUTTON_GROUP = 6;
+  PROGRESS_BAR = 7;
+  TEXT_FIELD = 8;
+  INFO_FIELD = 9;
+  DROPDOWN = 10;
+}
+
+enum InputType {
+  TEXT = 0;
+  NUMBER = 1;
+  SECURE_TEXT = 2;
+}
+
+message CheckboxItem {
+  string title = 1;
+  string key = 2;
+}
+
+message PreferenceUiData {
+  PreferenceTypes type = 1;
+  string title = 2;
+  string key = 3;
+  string description = 4;
+  optional InputType input_type = 5;
+  optional bool single = 6;
+  repeated CheckboxItem items = 7;
+  optional google.protobuf.Struct default = 8;
+  optional bool mobile = 9;
+}
+
+message Page {
+  repeated PreferenceUiData data = 1;
+  string title = 2;
+  string path = 3;
+  string icon = 4;
+}
+
+message PreferenceUIFile { repeated Page page = 1; }

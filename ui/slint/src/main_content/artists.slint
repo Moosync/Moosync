@@ -1,0 +1,42 @@
+import { ArtistModel } from "../types/song_view.slint";
+import { GridListView } from "../common/grid_list_view.slint";
+import { Constants, Theme, Pages } from "../constants.slint";
+
+export global ArtistsPageProps {
+    in-out property <[ArtistModel]> artists: Constants.testArtists;
+    in-out property <ArtistModel> selected-artist;
+}
+
+export component ArtistsPage inherits Rectangle {
+    in-out property <Pages> active-page;
+
+    background: transparent;
+
+    VerticalLayout {
+        spacing: Theme.spacingXxl;
+        alignment: start;
+
+        text := Text {
+            height: Theme.pageHeader + Theme.paddingLg;
+            text: "Artists";
+            font-size: Theme.pageHeader;
+            color: Theme.textPrimary;
+        }
+
+        GridListView {
+            height: root.height - text.height - (Theme.spacingXxl + Theme.paddingLg);
+            item-width: Theme.cardWidth;
+            total-items: ArtistsPageProps.artists.length;
+            item-title(idx) => {
+                ArtistsPageProps.artists[idx].title
+            }
+            item-cover(idx) => {
+                ArtistsPageProps.artists[idx].coverPath
+            }
+            item-clicked(idx) => {
+                ArtistsPageProps.selected-artist = ArtistsPageProps.artists[idx];
+                root.active-page = Pages.ArtistContent;
+            }
+        }
+    }
+}

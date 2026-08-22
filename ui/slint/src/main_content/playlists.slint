@@ -1,0 +1,45 @@
+import { PlaylistModel } from "../types/song_view.slint";
+import { GridListView } from "../common/grid_list_view.slint";
+import { Constants, Theme, Pages } from "../constants.slint";
+
+export global PlaylistsPageProps {
+    in-out property <[PlaylistModel]> playlists: Constants.testPlaylists;
+    in-out property <PlaylistModel> selected-playlist;
+}
+
+export component PlaylistsPage inherits Rectangle {
+    in-out property <Pages> active-page;
+
+    background: transparent;
+
+    VerticalLayout {
+        spacing: Theme.spacingXxl;
+        alignment: start;
+
+        text := Text {
+            height: Theme.pageHeader + Theme.paddingLg;
+            text: "Playlists";
+            font-size: Theme.pageHeader;
+            color: Theme.textPrimary;
+        }
+
+        GridListView {
+            height: root.height - text.height - (Theme.spacingXxl + Theme.paddingLg);
+            item-width: Theme.cardWidth;
+            total-items: PlaylistsPageProps.playlists.length;
+            item-title(idx) => {
+                PlaylistsPageProps.playlists[idx].title
+            }
+            item-cover(idx) => {
+                PlaylistsPageProps.playlists[idx].coverPath
+            }
+            item-extension-icon(idx) => {
+                PlaylistsPageProps.playlists[idx].extension-icon
+            }
+            item-clicked(idx) => {
+                PlaylistsPageProps.selected-playlist = PlaylistsPageProps.playlists[idx];
+                root.active-page = Pages.PlaylistContent;
+            }
+        }
+    }
+}

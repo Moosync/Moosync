@@ -1,0 +1,70 @@
+import { Theme } from "../constants.slint";
+import { BottomBarCallbacks } from "../callbacks.slint";
+
+export component PlaybackProgressBar inherits Rectangle {
+    in-out property <int> current_duration: 0;
+    in property <int> total_duration: 0;
+
+    property <float> progress: current_duration / Math.max(total_duration, 1);
+
+    height: Theme.bottombarProgressBarHeight;
+    background: transparent;
+
+    touch := TouchArea {
+        width: parent.width;
+        height: parent.height;
+
+        clicked => {
+            BottomBarCallbacks.seek(Math.max(0, Math.min(root.total_duration, Math.round((self.mouse-x / self.width) * root.total_duration))));
+        }
+
+        moved => {
+            if (self.pressed) {
+                BottomBarCallbacks.seek(Math.max(0, Math.min(root.total_duration, Math.round((self.mouse-x / self.width) * root.total_duration))));
+            }
+        }
+    }
+
+    // Background rail (gray)
+    Rectangle {
+        y: (parent.height - Theme.playbackSliderTrackHeight) / 2;
+        height: Theme.playbackSliderTrackHeight;
+        background: Theme.textSecondary;
+        border-radius: Theme.borderRadiusSm;
+    }
+
+    // Active rail (green)
+    Rectangle {
+        x: 0px;
+        y: (parent.height - Theme.playbackSliderTrackHeight) / 2;
+        width: parent.width * progress;
+        height: Theme.playbackSliderTrackHeight;
+        background: Theme.accent;
+        border-radius: Theme.borderRadiusSm;
+
+        animate width { duration: 100ms; }
+    }
+
+    // Slider thumb (white circle)
+    Rectangle {
+        x: (parent.width * progress) - Theme.sliderThumbSize / 2;
+        y: (parent.height - Theme.sliderThumbSize) / 2;
+        width: Theme.sliderThumbSize;
+        height: Theme.sliderThumbSize;
+        border-radius: Theme.sliderThumbSize / 2;
+        background: Theme.textPrimary;
+        border-width: 1.5px;
+        border-color: Theme.primary;
+
+        animate width, height, x, y { duration: 100ms; }
+
+        states [
+            hover when touch.has-hover: {
+                width: Theme.sliderThumbHoverSize;
+                height: Theme.sliderThumbHoverSize;
+                x: (parent.width * progress) - Theme.sliderThumbHoverSize / 2;
+                y: (parent.height - Theme.sliderThumbHoverSize) / 2;
+            }
+        ]
+    }
+}

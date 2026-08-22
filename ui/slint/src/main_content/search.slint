@@ -1,0 +1,196 @@
+import { Theme, Constants } from "../constants.slint";
+import {
+    SongModel,
+    AlbumModel,
+    ArtistModel,
+    PlaylistModel,
+    GenreModel,
+    SearchResult,
+} from "../types/song_view.slint";
+import { SongListView } from "../common/song_list_view.slint";
+import { GridListView } from "../common/grid_list_view.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export struct Provider {
+    name: string,
+    icon: image,
+}
+
+export component ProviderItem inherits TouchArea {
+    in property <Provider> provider;
+    in property <bool> active: false;
+
+    VerticalLayout {
+        spacing: Theme.spacingXs;
+        alignment: center;
+
+        height: Theme.iconSizeMd + Theme.paddingMd;
+
+        Rectangle {
+            background: root.has-hover ? Theme.secondary.brighter(0.1) : transparent;
+            border-radius: Theme.borderRadiusMd;
+
+            HorizontalLayout {
+                spacing: Theme.spacingSm;
+                alignment: center;
+                padding: Theme.paddingSm;
+
+                Image {
+                    source: root.provider.icon;
+                    width: Theme.iconSizeMd;
+                    height: Theme.iconSizeMd;
+                    colorize: root.active ? Theme.accent : Theme.textPrimary;
+                }
+
+                Text {
+                    text: root.provider.name;
+                    color: root.active ? Theme.accent : Theme.textPrimary;
+                    font-size: Theme.subtitle;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+}
+
+export global SearchPageProps {
+    in-out property <[SearchResult]> provider-results;
+}
+
+export component SearchPage inherits Rectangle {
+    in property <string> search-query: "";
+    changed search-query => {
+        AppCallbacks.search_term_changed(self.search-query);
+    }
+
+    property <int> active-tab: 0;
+    property <int> selected-provider: 0;
+
+    background: transparent;
+
+    VerticalLayout {
+        width: 100%;
+        height: 100%;
+        spacing: Theme.spacingXxl;
+        padding: Theme.paddingMd;
+
+        // Title
+        Text {
+            height: Theme.pageHeader + Theme.paddingLg;
+            text: "Search";
+            font-size: Theme.pageHeader;
+            color: Theme.textPrimary;
+            font-weight: 700;
+        }
+
+        // Provider Wrapping Grid Rows using FlexboxLayout
+        FlexboxLayout {
+            for prov[idx] in SearchPageProps.provider-results: ProviderItem {
+                provider: { name: prov.extension == "" ? "Local" : prov.extension, icon: prov.extension-icon };
+                active: root.selected-provider == idx;
+                clicked => { root.selected-provider = idx; }
+            }
+        }
+
+        FlexboxLayout {
+            spacing: Theme.spacingLg;
+            alignment: start;
+
+            for tab-name[tab-idx] in ["Songs", "Albums", "Artists", "Playlists", "Genres"]: Rectangle {
+                background: root.active-tab == tab-idx ? Theme.accent : transparent;
+                border-radius: Theme.borderRadiusLg * 2;
+                border-width: root.active-tab == tab-idx ? 0px : 1px;
+                border-color: root.active-tab == tab-idx ? transparent : Theme.textSecondary.with-alpha(0.3);
+                height: 36px;
+
+                animate background { duration: 150ms; }
+
+                HorizontalLayout {
+                    padding-left: Theme.paddingLg;
+                    padding-right: Theme.paddingLg;
+                    alignment: center;
+
+                    Text {
+                        text: tab-name;
+                        color: root.active-tab == tab-idx ? Theme.textInverse : Theme.textPrimary;
+                        font-size: Theme.subtitle;
+                        font-weight: 600;
+                        vertical-alignment: center;
+                        horizontal-alignment: center;
+                    }
+                }
+
+                TouchArea {
+                    clicked => { root.active-tab = tab-idx; }
+                }
+            }
+        }
+
+        res-container := Rectangle {
+            vertical-stretch: 1;
+            property <SearchResult> current-res: SearchPageProps.provider-results[root.selected-provider];
+
+            SongListView {
+                songs: res-container.current-res.songs;
+                opacity: root.active-tab == 0 ? 1.0 : 0.0;
+                visible: self.opacity > 0.01;
+                animate opacity {
+                    duration: 200ms;
+                    easing: ease-in-out;
+                }
+            }
+
+            GridListView {
+                item-width: Theme.cardWidth;
+                total-items: res-container.current-res.albums.length;
+                item-title(idx) => { res-container.current-res.albums[idx].title }
+                item-cover(idx) => { res-container.current-res.albums[idx].coverPath }
+                opacity: root.active-tab == 1 ? 1.0 : 0.0;
+                visible: self.opacity > 0.01;
+                animate opacity {
+                    duration: 200ms;
+                    easing: ease-in-out;
+                }
+            }
+
+            GridListView {
+                item-width: Theme.cardWidth;
+                total-items: res-container.current-res.artists.length;
+                item-title(idx) => { res-container.current-res.artists[idx].title }
+                item-cover(idx) => { res-container.current-res.artists[idx].coverPath }
+                opacity: root.active-tab == 2 ? 1.0 : 0.0;
+                visible: self.opacity > 0.01;
+                animate opacity {
+                    duration: 200ms;
+                    easing: ease-in-out;
+                }
+            }
+
+            GridListView {
+                item-width: Theme.cardWidth;
+                total-items: res-container.current-res.playlists.length;
+                item-title(idx) => { res-container.current-res.playlists[idx].title }
+                item-cover(idx) => { res-container.current-res.playlists[idx].coverPath }
+                opacity: root.active-tab == 3 ? 1.0 : 0.0;
+                visible: self.opacity > 0.01;
+                animate opacity {
+                    duration: 200ms;
+                    easing: ease-in-out;
+                }
+            }
+
+            GridListView {
+                item-width: Theme.cardWidth;
+                total-items: res-container.current-res.genres.length;
+                item-title(idx) => { res-container.current-res.genres[idx].title }
+                item-cover(idx) => { res-container.current-res.genres[idx].coverPath }
+                opacity: root.active-tab == 4 ? 1.0 : 0.0;
+                visible: self.opacity > 0.01;
+                animate opacity {
+                    duration: 200ms;
+                    easing: ease-in-out;
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,83 @@
+import { Theme } from "../constants.slint";
+import { PreferenceItem, RadioItem } from "preferences.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export component RadioGroup inherits VerticalLayout {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
+    in property <[RadioItem]> options: root.preference.options_radio;
+    in-out property <string> selected-id: root.preference.value_string;
+    callback changed(string);
+
+    spacing: Theme.spacingMd;
+    alignment: start;
+
+    VerticalLayout {
+        Text {
+            text: root.title;
+            font-size: Theme.modelTitle;
+            color: Theme.textPrimary;
+        }
+
+        Text {
+            text: root.subtitle;
+            font-size: Theme.caption;
+            wrap: word-wrap;
+            color: Theme.textSecondary;
+        }
+    }
+
+    VerticalLayout {
+        spacing: Theme.spacingSm;
+        alignment: start;
+
+        for option in root.options: touch := TouchArea {
+            height: Theme.radioOptionHeight;
+
+            clicked => {
+                root.selected-id = option.id;
+                if (root.preference.id != "") {
+                    AppCallbacks.preference_changed({ id: root.preference.id, value_string: option.id, value_bool: false, value_number: 0.0 });
+                }
+                root.changed(option.id);
+            }
+
+            HorizontalLayout {
+                spacing: Theme.spacingMd;
+                alignment: start;
+
+                VerticalLayout {
+                    alignment: center;
+
+                    Rectangle {
+                        width: Theme.radioOptionCircleSize;
+                        height: Theme.radioOptionCircleSize;
+                        border-radius: self.width / 2;
+                        border-width: 2px;
+                        border-color: root.selected-id == option.id || touch.has-hover ? Theme.accent : Theme.textSecondary;
+
+                        animate border-color { duration: 150ms; }
+
+                        Rectangle {
+                            width: parent.width / 2;
+                            height: parent.height / 2;
+                            x: (parent.width - self.width) / 2;
+                            y: (parent.height - self.height) / 2;
+                            border-radius: self.width / 2;
+                            background: Theme.accent;
+                            opacity: root.selected-id == option.id ? 1 : 0;
+                            animate opacity { duration: 150ms; }
+                        }
+                    }
+                }
+
+                Text {
+                    vertical-alignment: center;
+                    text: option.label;
+                    color: Theme.textPrimary;
+                }
+            }
+        }
+    }
+}

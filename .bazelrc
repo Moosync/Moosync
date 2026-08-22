@@ -1,0 +1,68 @@
+common --enable_platform_specific_config
+# Use nightly rustc by default
+common --@rules_rust//rust/toolchain/channel=stable
+common --experimental_isolated_extension_usages
+common --action_env=CARGO_PKG_AUTHORS=Moosync --action_env=CARGO_PKG_DESCRIPTION= --action_env=CARGO_PKG_HOMEPAGE= --action_env=CARGO_PKG_LICENSE= --action_env=CARGO_PKG_REPOSITORY= --action_env=CARGO_MANIFEST_LINKS="https://github.com/Moosync/Moosync"
+common:linux --repo_env=BAZEL_CONLYOPTS="-std=gnu17"
+common:linux --incompatible_strict_action_env
+startup --windows_enable_symlinks
+build --enable_runfiles
+build:windows --spawn_strategy=local
+common --registry=https://raw.githubusercontent.com/bazelbuild/bazel-central-registry/main
+
+# Per-contributor overrides (gitignored). See .bazelrc.local.example.
+try-import %workspace%/.bazelrc.local
+build:check --@rules_rust//rust/settings:pipelined_compilation=True
+build:check --output_groups=build_metadata
+
+# Use root rustfmt.toml for hermetic rustfmt configuration
+build --@rules_rust//rust/settings:rustfmt.toml=//:rustfmt.toml
+
+
+coverage --experimental_fetch_all_coverage_outputs
+build --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
+build --output_groups=+clippy_checks
+build --@rules_rust//rust/settings:rustc_output_diagnostics=true --output_groups=+rust_lib_rustc_output,+rust_metadata_rustc_output
+
+# Android NDK/SDK configuration - propagate from host environment
+common --repo_env=ANDROID_NDK_HOME
+common --action_env=ANDROID_NDK_HOME
+common --repo_env=ANDROID_HOME
+common --action_env=ANDROID_HOME
+common --repo_env=ANDROID_SDK_ROOT
+common --action_env=ANDROID_SDK_ROOT
+
+# build --define=rust_nostd_alloc_profile=opt-0
+
+build:release -c opt
+build:release --copt=-march=native
+build:release --strip=always
+build:release --@rules_rust//rust/settings:lto=fat
+build:release --@rules_rust//rust/settings:extra_rustc_flag=-Copt-level=3
+build:release --@rules_rust//rust/settings:extra_rustc_flag=-Ccodegen-units=1
+build:release --@rules_rust//rust/settings:extra_rustc_flag=-Cdebug-assertions=off
+build:release --@rules_rust//rust/settings:extra_rustc_flag=-Coverflow-checks=off
+build:release --@rules_rust//rust/settings:extra_rustc_flag=-Cdebuginfo=1
+build:release --@rules_rust//rust/settings:extra_rustc_flag=-Cincremental=false
+build:release --@rules_rust//rust/settings:toolchain_generated_sysroot=True
+build:release --@rules_rust//rust/settings:extra_rustc_flag=-Cembed-bitcode=yes
+build:release --@rules_rust//rust/settings:extra_rustc_flag=-Ctarget-cpu=native
+
+# Fix Bazel Android tools build by using Java 24 toolchain for host tools
+build --tool_java_language_version=17
+build --tool_java_runtime_version=remotejdk_17
+
+# Configs for IDE rust-analyzer project generation targeting Android
+build:android_x86_64 --platforms=//:android_x86_64
+build:android_x86_64 --@rules_rust//rust/settings:extra_rustc_flag=-Clink-arg=-Lexternal/rules_android_ndk++android_ndk_repository_extension+androidndk/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/21/lib/linux
+build:android_x86_64 --@rules_rust//rust/settings:extra_rustc_flag=-Clink-arg=-lclang_rt.builtins-x86_64-android
+build:android_x86_64 --@rules_python//python/config_settings:precompile=force_disabled
+build:android_arm64 --platforms=//:android_arm64
+build:android_arm64 --@rules_python//python/config_settings:precompile=force_disabled
+build:linux_x86_64 --platforms=//:linux_x86_64
+build:windows_x86_64 --platforms=//:windows_x86_64_gnu
+build:windows_x86_64 --@rules_rust//rust/settings:extra_rustc_env=PATH=external/+_repo_rules2+mingw_compiler_files/bin:/usr/bin:/bin
+
+
+
+

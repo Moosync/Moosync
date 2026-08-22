@@ -1,0 +1,27 @@
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    edition = "2024",
+    extra_target_triples = [
+        "x86_64-linux-android",
+        "aarch64-linux-android",
+        "x86_64-pc-windows-gnu",
+        "wasm32-wasip1",
+    ],
+    versions = [
+        "1.95.0",
+        # "nightly/2025-12-16",
+    ],
+)
+use_repo(
+    rust,
+    "rust_toolchains",
+)
+
+register_toolchains("@rust_toolchains//:rust_linux_x86_64__x86_64-pc-windows-gnu__stable")
+
+register_toolchains("@rust_toolchains//:all")
+
+register_toolchains(
+    "@extensions_sdk//prost_toolchain:prost_toolchain_wasi",
+    "//tools/rust/prost_toolchain:prost_toolchain_default",
+)

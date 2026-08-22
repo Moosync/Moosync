@@ -1,0 +1,323 @@
+import { SongModel, CoverHelper } from "../types/song_view.slint";
+import { Theme, Constants, QueuePages } from "../constants.slint";
+import { ListView } from "std-widgets.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { Button } from "../common/button.slint";
+import { SongDetails } from "../common/song_details.slint";
+
+component QueueListItem inherits Rectangle {
+    in property <SongModel> song;
+    in property <int> item-idx;
+    in property <int> model-idx;
+    in property <bool> is-active: false;
+    in property <bool> is-ghost: false;
+    in-out property <int> drag-source-idx: -1;
+    in-out property <int> drag-target-idx: -1;
+    in-out property <length> drag-mouse-y: -1px;
+    in property <length> list-viewport-y: 0px;
+    callback clicked();
+    callback remove-clicked();
+
+    background: transparent;
+    height: 60px + Theme.paddingSm;
+
+    DragArea {
+        width: 100%;
+        height: 100%;
+        allow-move: true;
+        // preferred-action: DragAction.move;
+        data: AppCallbacks.string-to-transfer(root.model-idx);
+
+        DropArea {
+            width: 100%;
+            height: 100%;
+
+            can-drop(event) => {
+                if (event.proposed-action == DragAction.move) {
+                    root.drag-source-idx = AppCallbacks.transfer-to-string(event.data).to-float();
+                    root.drag-target-idx = root.item-idx;
+                    // Computes y coordinate of mouse relative to visible list viewport
+                    root.drag-mouse-y = root.item-idx * (60px + Theme.paddingSm) + event.position.y + root.list-viewport-y;
+                    return DragAction.move;
+                }
+                return DragAction.none;
+            }
+
+            dropped(event) => {
+                AppCallbacks.move-queue-item(AppCallbacks.transfer-to-string(event.data), root.item-idx);
+                root.drag-source-idx = -1;
+                root.drag-target-idx = -1;
+                root.drag-mouse-y = -1px;
+                return event.proposed-action;
+            }
+
+            VerticalLayout {
+                width: 100%;
+                height: 100%;
+
+                Rectangle {
+                    height: 60px;
+                    background: root.is-ghost ? Theme.accent.transparentize(0.9) : (touch.has-hover ? rgba(255, 255, 255, 0.05) : transparent);
+                    border-radius: Theme.borderRadiusMd;
+                    border-width: root.is-ghost ? 1px : 0px;
+                    border-color: root.is-ghost ? Theme.accent.transparentize(0.7) : transparent;
+                    opacity: root.is-ghost ? 0.4 : 1.0;
+
+                    touch := TouchArea {
+                        pointer-event(event) => {
+                            if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
+                                root.drag-source-idx = -1;
+                                root.drag-target-idx = -1;
+                                root.drag-mouse-y = -1px;
+                            }
+                        }
+                        clicked => { root.clicked(); }
+                    }
+
+                    HorizontalLayout {
+                        padding-left: Theme.paddingXs;
+                        padding-right: Theme.paddingXs;
+                        padding-top: Theme.paddingXs;
+                        padding-bottom: Theme.paddingXs;
+                        spacing: Theme.spacingMd;
+
+                        Rectangle {
+                            width: Theme.songListItemThumbnailSize;
+                            height: Theme.songListItemThumbnailSize;
+                            border-radius: Theme.borderRadiusMd;
+                            clip: true;
+
+                            Image {
+                                width: 100%;
+                                height: 100%;
+                                source: song.coverPathLow;
+                                image-fit: cover;
+                            }
+                        }
+
+                        VerticalLayout {
+                            alignment: center;
+                            spacing: Theme.spacingTiny;
+                            horizontal-stretch: 1;
+
+                            HorizontalLayout {
+                                spacing: Theme.spacingSm;
+                                alignment: start;
+
+                                Text {
+                                    text: song.title;
+                                    color: root.is-active ? Theme.accent : Theme.textPrimary;
+                                    font-size: Theme.body;
+                                    font-weight: 600;
+                                    overflow: elide;
+                                }
+
+                                if song.extension-icon.height > 0 || song.extension-icon.width > 0: Image {
+                                    width: Theme.iconSizeSm;
+                                    source: song.extension-icon;
+                                    vertical-alignment: center;
+                                }
+                            }
+
+                            HorizontalLayout {
+                                spacing: 0px;
+                                for artist[i] in song.artists: HorizontalLayout {
+                                    spacing: 0px;
+                                    Text {
+                                        text: (i > 0 ? ", " : "") + artist.title;
+                                        color: Theme.textSecondary;
+                                        font-size: Theme.caption;
+                                        overflow: elide;
+                                    }
+                                }
+                            }
+                        }
+
+                        if touch.has-hover || root.is-active: VerticalLayout {
+                            alignment: center;
+
+                            TouchArea {
+                                width: Theme.iconSizeLg;
+                                height: Theme.iconSizeLg;
+                                clicked => { root.remove-clicked(); }
+
+                                Image {
+                                    width: Theme.iconSizeMd;
+                                    height: Theme.iconSizeMd;
+                                    source: @image-url("../icons/cross.svg");
+                                    colorize: #ff5555; // Red color for delete
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: Theme.paddingSm;
+                }
+            }
+        }
+    }
+}
+
+export global QueuePageProps {
+    in-out property <[SongModel]> queue: Constants.testSongs;
+    in-out property <image> blurred-cover;
+}
+
+export component QueuePage inherits Rectangle {
+    in property <QueuePages> page-type: QueuePages.Queue;
+    in property <SongModel> current-song: Constants.defaultSong;
+    in-out property <int> active-idx: -1;
+
+    in-out property <int> drag-source-idx: -1;
+    in-out property <int> drag-target-idx: -1;
+    in-out property <length> drag-mouse-y: -1px;
+
+    property <[SongModel]> queue-alias <=> QueuePageProps.queue;
+
+    // Resets drag source, target, and mouse Y coordinates when the queue list changes.
+    changed queue-alias => {
+        root.drag-source-idx = -1;
+        root.drag-target-idx = -1;
+        root.drag-mouse-y = -1px;
+    }
+
+    // Scroll the viewport and update the active drop target index dynamically when drag-mouse-y changes.
+    changed drag-mouse-y => {
+        if (root.drag-source-idx != -1 && root.drag-mouse-y >= 0px) {
+            // Scroll up near the top boundary (top 50px)
+            if (root.drag-mouse-y < 50px) {
+                list-view.viewport-y = Math.min(0px, list-view.viewport-y + (50px - root.drag-mouse-y) * 0.5);
+                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - list-view.viewport-y) / (60px + Theme.paddingSm)));
+            }
+            // Scroll down near the bottom boundary (bottom 50px)
+            if (root.drag-mouse-y > list-view.height - 50px) {
+                list-view.viewport-y = Math.max(-(list-view.viewport-height - list-view.height), list-view.viewport-y - (root.drag-mouse-y - (list-view.height - 50px)) * 0.5);
+                root.drag-target-idx = Math.max(0, Math.min(QueuePageProps.queue.length - 1, (root.drag-mouse-y - list-view.viewport-y) / (60px + Theme.paddingSm)));
+            }
+        }
+    }
+
+    // Returns the model index corresponding to a visual position during a drag operation.
+    pure function get-mapped-idx(visual-idx: int, F: int, T: int) -> int {
+        if (F == -1 || T == -1 || F == T) {
+            return visual-idx;
+        }
+        if (visual-idx == T) {
+            return F;
+        }
+        if (F < T) {
+            if (visual-idx >= F && visual-idx < T) {
+                return visual-idx + 1;
+            }
+        } else {
+            if (visual-idx > T && visual-idx <= F) {
+                return visual-idx - 1;
+            }
+        }
+        return visual-idx;
+    }
+
+    background: Theme.primary;
+
+    Image {
+        width: 100%;
+        height: 100%;
+        source: QueuePageProps.blurred-cover;
+        image-fit: cover;
+        opacity: 0.85;
+    }
+
+    Rectangle {
+        width: 100%;
+        height: 100%;
+        background: rgba(15, 15, 15, 0.65);
+    }
+
+    HorizontalLayout {
+        padding: Theme.paddingLg * 2;
+        spacing: Theme.spacingXl * 2;
+
+        SongDetails {
+            song: root.current-song;
+
+            HorizontalLayout {
+                alignment: end;
+                padding-top: Theme.spacingSm;
+                TouchArea {
+                    Text {
+                        text: "Show Lyrics";
+                        color: Theme.accent;
+                        font-size: Theme.subtitle;
+                        font-weight: 600;
+                    }
+                }
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: Theme.spacingXl;
+
+            HorizontalLayout {
+                height: Theme.searchBarHeight;
+                spacing: Theme.spacingMd;
+
+                Button {
+                    text: "Save as playlist";
+                    clicked => {
+                    }
+                }
+
+                Button {
+                    text: "Clear";
+                    clicked => {
+                        AppCallbacks.clear-queue();
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+            }
+
+            Rectangle {
+                vertical-stretch: 1;
+                border-radius: Theme.borderRadiusLg;
+                clip: true;
+
+                list-view := ListView {
+                    width: 100%;
+                    height: 100%;
+
+                    for song[idx] in QueuePageProps.queue: VerticalLayout {
+                        padding-right: Theme.paddingSm;
+
+                        property <int> mapped-idx: root.get-mapped-idx(idx, root.drag-source-idx, root.drag-target-idx);
+                        property <SongModel> mapped-song: QueuePageProps.queue[mapped-idx];
+
+                        QueueListItem {
+                            song: mapped-song;
+                            item-idx: idx;
+                            model-idx: mapped-idx;
+                            is-active: root.current-song.id == mapped-song.id;
+                            is-ghost: mapped-idx == root.drag-source-idx && idx == root.drag-target-idx;
+                            drag-source-idx <=> root.drag-source-idx;
+                            drag-target-idx <=> root.drag-target-idx;
+                            drag-mouse-y <=> root.drag-mouse-y;
+                            list-viewport-y: list-view.viewport-y;
+
+                            clicked => {
+                                AppCallbacks.play-queue-index(mapped-idx);
+                            }
+                            remove-clicked => {
+                                AppCallbacks.remove-from-queue(mapped-idx);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,64 @@
+import { Theme } from "../constants.slint";
+import { SongModel, CoverHelper } from "../types/song_view.slint";
+
+export component TrackInfo inherits Rectangle {
+    width: Theme.trackInfoWidth;
+    height: Theme.topbarHeight;
+    in property <SongModel> current-song;
+
+    HorizontalLayout {
+        spacing: Theme.spacingMd;
+        alignment: start;
+
+        Rectangle {
+            width: Theme.trackInfoThumbnailSize;
+            height: Theme.trackInfoThumbnailSize;
+            border-radius: Theme.borderRadiusMd;
+            background: Theme.secondary;
+            border-width: Theme.borderWidth;
+            border-color: Theme.textPrimary.with-alpha(0.06);
+            clip: true;
+
+            Image {
+                width: root.current-song.id == "" ? Theme.iconSizeXl : parent.width;
+                height: root.current-song.id == "" ? Theme.iconSizeXl : parent.height;
+                source: root.current-song.coverPathLow.width > 0 ? root.current-song.coverPathLow : (root.current-song.id != "" ? CoverHelper.fetch_cover_low(root.current-song) : @image-url("../icons/song_default.svg"));
+                image-fit: cover;
+                colorize: root.current-song.id == "" ? Theme.textSecondary : transparent;
+            }
+        }
+
+        // Song Details
+        VerticalLayout {
+            alignment: center;
+            spacing: Theme.spacingTiny;
+
+            Text {
+                text: root.current-song.title;
+                color: Theme.textPrimary; // Text Primary
+                font-size: Theme.body;
+                font-weight: 600;
+                overflow: elide;
+            }
+
+            HorizontalLayout {
+                spacing: 0px;
+                for artist[i] in root.current-song.artists: HorizontalLayout {
+                    spacing: 0px;
+                    Text {
+                        text: (i > 0 ? ", " : "") + artist.title;
+                        color: Theme.textSecondary;
+                        font-size: Theme.caption;
+                        overflow: elide;
+                    }
+                }
+            }
+
+            Text {
+                text: root.current-song.album_name;
+                color: Theme.textSecondary; // Text Secondary
+                font-size: Theme.extraSmall;
+            }
+        }
+    }
+}

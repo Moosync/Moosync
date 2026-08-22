@@ -1,0 +1,51 @@
+import { Theme } from "../constants.slint";
+
+export component NavButton inherits Rectangle {
+    in property <string> direction; // "back" or "forward"
+    
+    width: Theme.navButtonSize;
+    height: Theme.navButtonSize;
+    border-radius: Theme.navButtonSize / 2;
+    background: touch.has-hover ? Theme.textPrimary.with-alpha(0.08) : Theme.textPrimary.with-alpha(0.03);
+
+    animate background { duration: 150ms; }
+
+    touch := TouchArea { }
+
+    Rectangle {
+        width: Theme.spacingSm;
+        height: Theme.iconSizeMd;
+
+        if (direction == "back"):  Image {
+            width: parent.width;
+            height: parent.height;
+            source: @image-url("../icons/nav_button.svg");
+            colorize: touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
+        }
+
+        if (direction == "forward"): 
+        Image {
+            width: parent.width;
+            height: parent.height;
+            source: @image-url("../icons/nav_button.svg");
+            colorize: touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
+            transform-rotation: 180deg;
+        }
+    }
+}
+
+export component NavButtons inherits VerticalLayout {
+    alignment: center;
+    padding-right: Theme.spacingXs;
+
+    HorizontalLayout {
+        spacing: Theme.spacingXs;
+        NavButton {
+            direction: "back";
+        }
+
+        NavButton {
+            direction: "forward";
+        }
+    }
+}

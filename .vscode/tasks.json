@@ -2,21 +2,35 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "ui:dev",
-            "type": "shell",
-            "isBackground": true,
-            "command": "trunk",
+            "label": "Generate rust-project.json",
+            "command": "bazel",
             "args": [
-                "serve"
-            ]
+                "run",
+                "@rules_rust//tools/rust_analyzer:gen_rust_project"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "never",
+                "panel": "dedicated"
+            },
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
         },
         {
-            "label": "ui:build",
-            "type": "shell",
-            "command": "trunk",
-            "args": [
-                "build"
-            ]
+            "label": "Show test coverage from all tests",
+            "type": "bazel",
+            "command": "coverage",
+            "targets": [
+                "//:all"
+            ],
+            "options": [
+                "--instrumentation_filter=.*"
+            ],
         }
     ]
 }

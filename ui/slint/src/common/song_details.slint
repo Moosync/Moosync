@@ -1,0 +1,77 @@
+import { SongModel, CoverHelper } from "../types/song_view.slint";
+import { Theme } from "../constants.slint";
+import { WindowInfo } from "../window_info.slint";
+import { ScrollView } from "std-widgets.slint";
+
+export component SongDetails inherits HorizontalLayout {
+
+    in property <SongModel> song: {
+        id: "",
+        title: "",
+        coverPathHigh: @image-url("../icons/song_default.svg"),
+        coverPathLow: @image-url("../icons/song_default.svg"),
+        extension-icon: @image-url("../icons/song_default.svg"),
+    };
+
+    // High res cover image needs to be dynamically fetched
+    property <image> cover-image: song.coverPathHigh.width > 0 ? song.coverPathHigh : (song.id != "" ? CoverHelper.fetch_cover_high(song) : @image-url("../icons/song_default.svg"));
+
+    alignment: start;
+    spacing: Theme.spacingMd;
+    width: WindowInfo.window-size > WindowInfo.md ? Theme.songDetailsThumbnailSize : 0px;
+    visible: WindowInfo.window-size > WindowInfo.md;
+
+    ScrollView {
+        height: 100%;
+        width: 100%;
+
+        VerticalLayout {
+            alignment: start;
+            Rectangle {
+                width: Theme.songDetailsThumbnailSize;
+                height: Theme.songDetailsThumbnailSize;
+                border-radius: Theme.borderRadiusLg;
+                clip: true;
+                Image {
+                    height: parent.height;
+                    width: parent.width;
+                    source: cover-image;
+                    image-fit: cover;
+                }
+            }
+
+            VerticalLayout {
+                spacing: Theme.spacingXxs;
+                Text {
+                    text: song.title;
+                    color: Theme.textPrimary;
+                    font-size: Theme.modelTitle;
+                    font-weight: 600;
+                    overflow: elide;
+                }
+
+                HorizontalLayout {
+                    spacing: 0px;
+                    for artist[i] in song.artists: HorizontalLayout {
+                        spacing: 0px;
+                        Text {
+                            text: (i > 0 ? ", " : "") + artist.title;
+                            color: Theme.textSecondary;
+                            font-size: Theme.subtitle;
+                            overflow: elide;
+                        }
+                    }
+                }
+
+                Text {
+                    text: song.duration_str;
+                    color: Theme.textSecondary;
+                    font-size: Theme.subtitle;
+                    overflow: elide;
+                }
+
+                @children
+            }
+        }
+    }
+}

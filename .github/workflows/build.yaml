@@ -1,154 +1,284 @@
-name: "build"
+name: build
 
 on:
   workflow_dispatch:
     inputs:
-      os:
-        description: Select OS
+      platform:
+        description: "Platform to build"
+        required: true
+        default: "all"
         type: choice
         options:
-          - '[{"platform": "ubuntu-22.04", "args": ""}]'
-          - '[{"platform": "ubuntu-22.04-arm", "args": ""}]'
-          - '[{"platform": "windows-latest", "args": ""}]'
-          - '[{"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}]'
-          - '[{"platform": "macos-13", "args": "--target x86_64-apple-darwin"}]'
-          - '[{"platform": "ubuntu-22.04", "args": ""}, {"platform": "ubuntu-22.04-arm", "args": ""}, {"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}, {"platform": "macos-13", "args": "--target x86_64-apple-darwin"}, {"platform": "windows-latest", "args": ""}]'
-        default: '[{"platform": "ubuntu-22.04", "args": ""}, {"platform": "macos-latest", "args": "--target aarch64-apple-darwin"}, {"platform": "macos-13", "args": "--target x86_64-apple-darwin"}, {"platform": "windows-latest", "args": ""}]'
-        required: true
+          - all
+          - linux
+          - macos
+          - windows
+          - android
       publish:
-        description: Publish release?
+        description: "Publish release?"
         type: boolean
         default: false
         required: true
   push:
-    branches:
-      - release
+    branches: ["main", "release"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  APP_NAME: "Moosync"
 
 jobs:
-  publish-tauri:
-    permissions:
-      contents: write
+  configure:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          MATRIX_JSON='{"include": []}'
+
+          LINUX_X64='{
+            "name": "Linux x64",
+            "os": "ubuntu-22.04",
+            "target": "//package/linux:linux_release",
+            "artifact_path_base": "bazel-bin/package/linux",
+            "artifact_patterns": "Moosync-*-*.x86_64.rpm\nMoosync-*-*.amd64.deb"
+          }'
+
+          LINUX_ARM='{
+            "name": "Linux ARM64",
+            "os": "ubuntu-22.04-arm",
+            "target": "//package/linux:linux_release",
+            "artifact_path_base": "bazel-bin/package/linux",
+            "artifact_patterns": "Moosync-*-*.aarch64.rpm\nMoosync-*-*.arm64.deb"
+          }'
+
+          MAC_X64='{
+            "name": "macOS x64",
+            "os": "macos-15-intel",
+            "target": "//package/apple:apple_release",
+            "extra_flags": "--experimental_ui_max_stdouterr_bytes=2000000",
+            "artifact_path_base": "bazel-bin/package/apple",
+            "artifact_patterns": "Moosync-*-*.darwin-x64.zip"
+          }'
+
+          MAC_ARM='{
+            "name": "macOS ARM64",
+            "os": "macos-latest",
+            "target": "//package/apple:apple_release",
+            "extra_flags": "--experimental_ui_max_stdouterr_bytes=2000000",
+            "artifact_path_base": "bazel-bin/package/apple",
+            "artifact_patterns": "Moosync-*-*.darwin-arm64.zip"
+          }'
+
+          WIN_X64='{
+            "name": "Windows x64",
+            "os": "ubuntu-22.04",
+            "target": "//package/windows:windows_release",
+            "extra_flags": "--config=windows_x86_64",
+            "artifact_path_base": "bazel-bin/package/windows",
+            "artifact_patterns": "Moosync-*-*.x86_64-setup.exe\nMoosync-*-*.x86_64.exe"
+          }'
+
+          ANDROID_ARM64='{
+            "name": "Android ARM64",
+            "os": "ubuntu-22.04",
+            "target": "//android:moosync_apk",
+            "extra_flags": "--config=android_arm64",
+            "artifact_path_base": "bazel-bin/android",
+            "artifact_patterns": "moosync_apk.apk",
+            "rename_to": "Moosync-android-arm64.apk"
+          }'
+
+          ANDROID_X64='{
+            "name": "Android x86_64",
+            "os": "ubuntu-22.04",
+            "target": "//android:moosync_apk",
+            "extra_flags": "--config=android_x86_64",
+            "artifact_path_base": "bazel-bin/android",
+            "artifact_patterns": "moosync_apk.apk",
+            "rename_to": "Moosync-android-x86_64.apk"
+          }'
+
+          INPUT="${{ inputs.platform || 'all' }}"
+
+          if [[ "$INPUT" == "all" || "$INPUT" == "linux" ]]; then
+             MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$LINUX_X64, $LINUX_ARM]")
+          fi
+
+          if [[ "$INPUT" == "all" || "$INPUT" == "macos" ]]; then
+             MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$MAC_X64, $MAC_ARM]")
+          fi
+
+          if [[ "$INPUT" == "all" || "$INPUT" == "windows" ]]; then
+             MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$WIN_X64]")
+          fi
+
+          if [[ "$INPUT" == "all" || "$INPUT" == "android" ]]; then
+             MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c ".include += [$ANDROID_ARM64, $ANDROID_X64]")
+          fi
+
+          echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+
+  build-and-test:
+    needs: configure
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
+    continue-on-error: false
+
     strategy:
       fail-fast: false
-      matrix:
-        include: ${{ fromJson(inputs.os) }}
+      matrix: ${{ fromJson(needs.configure.outputs.matrix) }}
 
-    runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'ubuntu-22.04-arm'
+      - name: Install Common Linux Dependencies
+        if: runner.os == 'Linux'
         uses: awalsh128/cache-apt-pkgs-action@latest
         with:
-          packages: libwebkit2gtk-4.1-dev gir1.2-javascriptcoregtk-4.1 libgtk-3-dev libunwind-dev libappindicator3-dev librsvg2-dev patchelf alsa-tools libasound2-dev libudev-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
+          packages: >
+            nasm yasm autoconf automake libtool pkg-config make build-essential clang
+            libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libfontconfig1-dev
+            nsis lld libdbus-1-dev libpulse-dev
           version: 1.0
 
-      - name: Install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04-arm'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y curl libwebkit2gtk-4.1-dev build-essential libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev patchelf libfuse2 file gstreamer1.0-pulseaudio libunwind-dev alsa-tools libasound2-dev libudev-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio xdg-utils
-
-      - name: install dependencies (macos only)
-        if: matrix.platform == 'macos-latest'
+      - name: Install Dependencies (macOS)
+        if: runner.os == 'macOS'
         run: |
           brew update
-          brew upgrade
-          brew install openssl@3
+          brew install nasm pkg-config
 
-      # https://github.com/sfackler/rust-openssl/blob/master/.github/workflows/ci.yml#L94
-      - name: Install vcpkg (Windows only)
-        run: echo "VCPKG_ROOT=$env:VCPKG_INSTALLATION_ROOT" | Out-File -FilePath $env:GITHUB_ENV -Append
-        if: matrix.platform == 'windows-latest'
-
-      - name: Export GitHub Actions cache environment variables
-        uses: actions/github-script@v7
-        if: matrix.platform == 'windows-latest'
+      - name: Setup Java (Android)
+        if: contains(matrix.target, 'android')
+        uses: actions/setup-java@v4
         with:
-          script: |
-            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
-            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+          distribution: "zulu"
+          java-version: "17"
 
-      - name: Install OpenSSL (Windows only)
-        run: vcpkg install openssl:x64-windows-static-md
-        if: matrix.platform == 'windows-latest'
+      - name: Cache NDK (Android)
+        if: contains(matrix.target, 'android')
+        id: cache-ndk
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.ANDROID_HOME }}/ndk/29.0.13599879
+          key: ndk-${{ runner.os }}-29.0.13599879
+
+      - name: Setup Android SDK and NDK
+        if: contains(matrix.target, 'android')
+        uses: android-actions/setup-android@v4
+        with:
+          cmdline-tools-version: 12266719 # v16
+          packages: ""
+
+      - name: Install NDK (Android)
+        if: contains(matrix.target, 'android')
+        run: yes | sdkmanager "ndk;29.0.13599879"
+
+      - uses: bazel-contrib/setup-bazel@0.16.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ matrix.name }}
+          repository-cache: true
+
+      - name: Bazel Build Package
+        run: bazel build ${{ matrix.target }} ${{ matrix.extra_flags }} -c opt
         env:
-          VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/29.0.13599879
 
-      - name: install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin,wasm32-unknown-unknown' || 'wasm32-unknown-unknown' }}
+      - name: Prepare Artifacts for Upload
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [ -n "${{ matrix.rename_to }}" ]; then
+            cp -L ${{ matrix.artifact_path_base }}/${{ matrix.artifact_patterns }} dist/${{ matrix.rename_to }}
+          else
+            echo "${{ matrix.artifact_patterns }}" | while read -r pattern; do
+              if [[ -z "$pattern" ]]; then continue; fi
+              cp -L ${{ matrix.artifact_path_base }}/$pattern dist/
+            done
+          fi
+          ls -R dist/
 
-      # - uses: jetli/trunk-action@v0.5.0
-      #   with:
-      #     # Optional version of trunk to install(eg. 'v0.19.1', 'latest')
-      #     version: "latest"
-      #
-      - name: Install trunk
-        uses: baptiste0928/cargo-install@v3
-        with:
-          crate: trunk
-
-      - name: Rust cache
-        uses: swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-          cache-all-crates: true
-          workspaces: |
-            . -> target
-
-      - name: Current PWD
-        run: pwd
-
-      - name: Install tauri CLI
-        run: npm install -g @tauri-apps/cli@latest
-
-      - name: Build Tauri app (no publish)
-        if: ${{ !inputs.publish }}
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        with:
-          args: ${{ matrix.args }}
-          tauriScript: tauri
-          projectPath: "."
-
-      - name: Publish Tauri release
-        if: ${{ inputs.publish }}
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        with:
-          tagName: Moosync-v__VERSION__ # the action automatically replaces __VERSION__ with the app version.
-          releaseName: "Moosync v__VERSION__"
-          releaseBody: "See the assets to download this version and install."
-          releaseDraft: true
-          prerelease: true
-          args: ${{ matrix.args }}
-          tauriScript: tauri
-          projectPath: "."
-
-      - name: Upload build artifacts
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: moosync-build-${{ matrix.platform }}
-          path: |
-            target/**/latest.json
-            target/**/*.rpm
-            target/**/*.AppImage
-            target/**/*.AppImage.sig
-            target/**/*.dmg
-            target/**/*.deb
-            target/**/*-setup.exe
-            target/**/*-setup.exe.sig
-            target/**/*_en-US.msi
-            target/**/*_en-US.msi.sig
-            target/**/*.app.tar.gz
-            target/**/*.app.tar.gz.sig
+          name: moosync-package-${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: warn
+
+  release:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/release') || (github.event_name == 'workflow_dispatch' && github.event.inputs.publish == 'true')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name:
+          Prepare Release Assets
+          # Construct latest-android.json for Android releases
+        id: prepare-release
+        run: |
+          mkdir -p release-assets
+          find ./artifacts -type f -exec cp {} ./release-assets/ \;
+          ls -R release-assets/
+
+          if ls release-assets/*-android-*.apk 1>/dev/null 2>&1; then
+            echo "Generating latest-android.json..."
+            VERSION=$(grep -o 'VERSION = "[^"]*"' version.bzl | cut -d'"' -f2)
+            NOTES="See the assets to download this version and install."
+            PUB_DATE=$(date -u +"%Y-%m-%dT%H:%M:%S.%3NZ")
+
+            PLATFORMS_JSON="{"
+            SEP=""
+
+            for apk in release-assets/*-android-*.apk; do
+              filename=$(basename "$apk")
+              target=$(echo "$filename" | sed -E 's/^.*-android-([a-z0-9_]+)\.apk$/\1/')
+              if [ "$target" = "arm64" ]; then
+                platform_key="android-aarch64"
+              elif [ "$target" = "x86_64" ]; then
+                platform_key="android-x86_64"
+              else
+                platform_key="$target"
+              fi
+
+              signature=$(sha256sum "$apk" | awk '{print $1}')
+              url="https://github.com/Moosync/Moosync/releases/download/Moosync-v${VERSION}/${filename}"
+              PLATFORMS_JSON="${PLATFORMS_JSON}${SEP}\"${platform_key}\": {\"signature\": \"${signature}\", \"url\": \"${url}\"}"
+              SEP=","
+            done
+
+            PLATFORMS_JSON="${PLATFORMS_JSON}}"
+
+            cat > release-assets/latest-android.json <<EOF
+          {
+            "version": "${VERSION}",
+            "notes": "${NOTES}",
+            "pub_date": "${PUB_DATE}",
+            "platforms": ${PLATFORMS_JSON}
+          }
+          EOF
+            echo "latest-android.json generated:"
+            cat release-assets/latest-android.json
+          fi
+
+          VERSION=$(grep -o 'VERSION = "[^"]*"' version.bzl | cut -d'"' -f2)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Moosync v${{ steps.prepare-release.outputs.version }}
+          tag_name: Moosync-v${{ steps.prepare-release.outputs.version }}
+          body: "See the assets to download this version and install."
+          draft: true
+          prerelease: true
+          files: |
+            release-assets/*

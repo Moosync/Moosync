@@ -1,0 +1,21 @@
+import { SongsPageLayout } from "../common/songs_page_layout.slint";
+import { SongModel, ArtistModel } from "../types/song_view.slint";
+import { Constants } from "../constants.slint";
+import { ArtistsPageProps } from "./artists.slint";
+
+export global ArtistContentPageProps {
+    in-out property <[SongModel]> songs: Constants.testSongs;
+}
+
+export component ArtistContent inherits Rectangle {
+    SongsPageLayout {
+        songs <=> ArtistContentPageProps.songs;
+        default-song: {
+            id: "",
+            title: ArtistsPageProps.selected-artist.title,
+            coverPathHigh: ArtistsPageProps.selected-artist.coverPath,
+            coverPathLow: ArtistsPageProps.selected-artist.coverPath,
+            extension-icon: @image-url("../icons/song_default.svg"),
+        };
+    }
+}

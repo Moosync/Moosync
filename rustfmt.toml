@@ -1,1 +1,8 @@
-edition = "2021"
+max_width = 100
+style_edition = "2024"
+group_imports = "StdExternalCrate"
+imports_granularity = "Crate"
+fn_single_line = true
+error_on_unformatted = true
+use_field_init_shorthand = true
+wrap_comments = true

@@ -1,0 +1,10 @@
+# Copy this file to .bazelrc.local and edit the paths.
+# .bazelrc.local is gitignored - it lets each contributor override the
+# local checkouts for the moosync_ext and extensions_sdk modules without
+# touching MODULE.bazel (which still pins the upstream remotes).
+
+# Override MODULE.bazel's git_override for moosync_ext with a local checkout.
+# common --override_module=moosync_ext=/var/home/mulverine/Workspaces/MusicApp/moosync-exts
+
+# Override MODULE.bazel's git_override for extensions_sdk with a local checkout.
+# common --override_module=extensions_sdk=/var/home/mulverine/Workspaces/MusicApp/moosync-extensions-sdk

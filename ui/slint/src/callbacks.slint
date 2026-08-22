@@ -1,0 +1,48 @@
+import { Pages, SettingsPages } from "constants.slint";
+import { SongModel, SearchResult } from "./types/song_view.slint";
+
+export struct PreferenceChange {
+    id: string,
+    value_string: string,
+    value_bool: bool,
+    value_number: float,
+}
+
+export global AppCallbacks {
+    callback search_term_changed(string);
+    callback resize();
+    callback active-page-changed(Pages);
+    callback play-song(SongModel);
+    callback add-song-to-queue(SongModel);
+    callback preference_changed(PreferenceChange);
+    callback open_directory_picker() -> string;
+    callback open_file_picker(string) -> string;
+    callback theme_constant_changed(string, string);
+    callback save_custom_theme(string, string, string);
+    callback select_preset_theme(string);
+    callback install_extension(string);
+    callback toggle_extension(string);
+
+    // Queue & Drag-and-Drop Callbacks
+    callback play-queue-index(int);
+    callback remove-from-queue(int);
+    callback clear-queue();
+    callback move-queue-item(string, int);
+    pure callback string-to-transfer(string) -> data-transfer;
+    pure callback transfer-to-string(data-transfer) -> string;
+
+    // Page Lifecycle Decoupling Callbacks
+    callback settings-active-page-changed(SettingsPages);
+    callback settings-toggled(bool);
+    callback queue-toggled(bool);
+}
+
+export global BottomBarCallbacks {
+    callback play-pause-clicked();
+    callback toggle-repeat();
+    callback next-song();
+    callback prev-song();
+    callback shuffle();
+    callback set-volume(int);
+    callback seek(int);
+}

@@ -1,0 +1,42 @@
+import { GenreModel } from "../types/song_view.slint";
+import { GridListView } from "../common/grid_list_view.slint";
+import { Constants, Theme, Pages } from "../constants.slint";
+
+export global GenresPageProps {
+    in-out property <[GenreModel]> genres: Constants.testGenres;
+    in-out property <GenreModel> selected-genre;
+}
+
+export component GenresPage inherits Rectangle {
+    in-out property <Pages> active-page;
+
+    background: transparent;
+
+    VerticalLayout {
+        spacing: Theme.spacingXxl;
+        alignment: start;
+
+        text := Text {
+            height: Theme.pageHeader + Theme.paddingLg;
+            text: "Genres";
+            font-size: Theme.pageHeader;
+            color: Theme.textPrimary;
+        }
+
+        GridListView {
+            height: root.height - text.height - (Theme.spacingXxl + Theme.paddingLg);
+            item-width: Theme.cardWidth;
+            total-items: GenresPageProps.genres.length;
+            item-title(idx) => {
+                GenresPageProps.genres[idx].title
+            }
+            item-cover(idx) => {
+                GenresPageProps.genres[idx].coverPath
+            }
+            item-clicked(idx) => {
+                GenresPageProps.selected-genre = GenresPageProps.genres[idx];
+                root.active-page = Pages.GenreContent;
+            }
+        }
+    }
+}

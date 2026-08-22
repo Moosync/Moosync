@@ -1,0 +1,141 @@
+import { WindowInfo } from "../window_info.slint";
+import { SongModel } from "../types/song_view.slint";
+import { Constants, Theme } from "../constants.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export component SongListItem inherits TouchArea {
+    in property <SongModel> song: Constants.defaultSong;
+
+    in property <color> border-color;
+    in property <length> border-width: 0px;
+
+    Rectangle {
+        background: Theme.secondary;
+        border-radius: Theme.borderRadiusLg;
+        border-width: border-width;
+        border-color: border-color;
+        height: Theme.songListItemHeight;
+
+        HorizontalLayout {
+            padding: Theme.paddingXs;
+            padding-right: Theme.paddingLg;
+
+            Rectangle {
+                width: Theme.songListItemThumbnailSize;
+                height: Theme.songListItemThumbnailSize;
+                border-radius: Theme.borderRadiusMd;
+                background: Theme.secondary;
+                border-width: Theme.borderWidth;
+                border-color: Theme.textPrimary.with-alpha(0.06);
+                clip: true;
+
+                Image {
+                    width: parent.width;
+                    height: parent.height;
+                    source: song.coverPathLow;
+                    image-fit: cover;
+                }
+
+                touch := TouchArea {
+                    width: parent.width;
+                    height: parent.height;
+                    clicked => {
+                        AppCallbacks.play-song(song);
+                    }
+                }
+
+                Rectangle {
+                    visible: touch.has-hover;
+                    width: parent.width;
+                    height: parent.height;
+                    background: rgba(0, 0, 0, 0.6);
+                    Image {
+                        source: @image-url("../icons/play.svg");
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                horizontal-stretch: 1;
+                alignment: start;
+
+                VerticalLayout {
+                    alignment: center;
+                    spacing: Theme.spacingTiny;
+                    padding-left: Theme.paddingLg;
+
+                    Text {
+                        text: song.title;
+                        color: Theme.textPrimary; // Text Primary
+                        font-size: Theme.body;
+                        font-weight: 600;
+                        overflow: elide;
+                    }
+
+                    HorizontalLayout {
+                        spacing: 0px;
+                        for artist[i] in song.artists: HorizontalLayout {
+                            spacing: 0px;
+                            Text {
+                                text: (i > 0 ? ", " : "") + artist.title;
+                                color: Theme.textSecondary;
+                                font-size: Theme.caption;
+                                overflow: elide;
+                            }
+                        }
+                    }
+                }
+
+                VerticalLayout {
+                    spacing: Theme.spacingTiny;
+                    alignment: center;
+                    padding-left: Theme.spacingSm / 2;
+                    padding-top: Theme.spacingSm / 2;
+
+                    if song.extension-icon.height > 0 || song.extension-icon.width > 0: Image {
+                        width: Theme.iconSizeSm;
+                        source: song.extension-icon;
+                    }
+
+                    Rectangle {
+                        height: 50%;
+                    }
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
+                HorizontalLayout {
+                    spacing: Theme.spacingXxl + Theme.paddingLg;
+                    alignment: end;
+
+                    HorizontalLayout {
+                        spacing: Theme.spacingXl;
+                        Text {
+                            text: song.duration_str;
+                            color: Theme.textSecondary;
+                            font-size: Theme.caption;
+                            vertical-alignment: center;
+                        }
+
+                        if (WindowInfo.window-size > WindowInfo.sm): TouchArea {
+                            clicked => {
+                                AppCallbacks.add-song-to-queue(song)
+                            }
+                            Image {
+                                width: Theme.iconSizeMd;
+                                source: @image-url("../icons/add_to_queue.svg");
+                                colorize: Theme.accent;
+                            }
+                        }
+                    }
+
+                    Image {
+                        width: Theme.iconSizeMd;
+                        source: @image-url("../icons/ellipsis.svg");
+                    }
+                }
+            }
+        }
+    }
+}

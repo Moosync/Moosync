@@ -1,0 +1,139 @@
+import { Theme } from "../constants.slint";
+import { BottomBarCallbacks } from "../callbacks.slint";
+
+export enum VolumeScale { Linear, Logarithmic }
+
+export component VolumeControl inherits VerticalLayout {
+    in-out property <float> volume: 70; // 0 to 100 representing current volume
+    in property <VolumeScale> scale: VolumeScale.Logarithmic;
+
+    // Remembers the last volume before muting
+    property <float> previous-volume: 70;
+
+    // Calculates where the thumb/fill should visually sit based on the scale
+    property <float> visual-progress: root.scale == VolumeScale.Logarithmic ? Math.sqrt(root.volume / 100) : (root.volume / 100);
+
+    changed volume => {
+        BottomBarCallbacks.set-volume(volume)
+    }
+
+    max-width: Theme.volumeControlWidth;
+    alignment: center;
+
+    HorizontalLayout {
+        spacing: Theme.spacingSm;
+        alignment: end;
+
+        // Speaker Icon
+        speaker-icon := Rectangle {
+            width: Theme.iconSizeLg;
+            height: Theme.iconSizeLg;
+
+            speaker-touch := TouchArea {
+                clicked => {
+                    if (root.volume > 0) {
+                        // Save current volume and mute
+                        root.previous-volume = root.volume;
+                        root.volume = 0;
+                        debug("Muted");
+                    } else {
+                        // Restore previous volume (fallback to 1 if it was somehow 0)
+                        root.volume = root.previous-volume > 0 ? root.previous-volume : 1;
+                        debug("Unmuted: \{root.volume}");
+                    }
+                }
+            }
+
+            property <color> current-color: speaker-touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
+
+            Rectangle {
+                width: 100%;
+                height: 100%;
+
+                Image {
+                    width: Theme.iconSizeLg;
+                    height: Theme.iconSizeLg;
+                    source: @image-url("../icons/volume.svg");
+                    colorize: speaker-icon.current-color;
+                }
+
+                if (volume == 0): Path {
+                    width: Theme.iconSizeLg;
+                    height: Theme.iconSizeLg;
+                    viewbox-x: 0;
+                    viewbox-y: 0;
+                    viewbox-width: 8;
+                    viewbox-height: 8;
+                    fill: speaker-icon.current-color;
+                    commands: "M 0.5 0 L 8 7.5 L 7.5 8 L 0 0.5 Z";
+                }
+            }
+        }
+
+        // Volume Slider Bar
+        Rectangle {
+            width: Theme.volumeSliderWidth;
+            height: Theme.volumeControlProgressBarHeight;
+
+            slider-touch := TouchArea {
+                moved => {
+                    if (self.pressed) {
+                        let pos = Math.max(0.0, Math.min(1.0, self.mouse-x / parent.width));
+                        let new-vol = root.scale == VolumeScale.Logarithmic ? Math.pow(pos, 2) * 100 : pos * 100;
+
+                        root.volume = Math.max(0, Math.min(100, Math.round(new-vol)));
+                    }
+                }
+
+                pointer-event(event) => {
+                    if (event.button == PointerEventButton.left && event.kind == PointerEventKind.down) {
+                        let pos = Math.max(0.0, Math.min(1.0, self.mouse-x / parent.width));
+                        let new-vol = root.scale == VolumeScale.Logarithmic ? Math.pow(pos, 2) * 100 : pos * 100;
+
+                        root.volume = Math.max(0, Math.min(100, Math.round(new-vol)));
+                    }
+                }
+            }
+
+            // Background track (gray)
+            Rectangle {
+                y: (parent.height - Theme.volumeSliderTrackHeight) / 2;
+                height: Theme.volumeSliderTrackHeight;
+                background: Theme.textSecondary;
+                border-radius: Theme.borderRadiusSm;
+            }
+
+            // Filled track (green)
+            Rectangle {
+                x: 0px;
+                y: (parent.height - Theme.volumeSliderTrackHeight) / 2;
+                width: parent.width * root.visual-progress;
+                height: Theme.volumeSliderTrackHeight;
+                background: Theme.accent;
+                border-radius: Theme.borderRadiusSm;
+            }
+
+            // Thumb dot (white/green)
+            Rectangle {
+                x: (parent.width * root.visual-progress) - Theme.spacingXs / 2;
+                y: (parent.height - Theme.spacingXs) / 2;
+                width: Theme.spacingXs;
+                height: Theme.spacingXs;
+                border-radius: Theme.spacingXs / 2;
+                background: Theme.textPrimary;
+                border-width: Theme.borderWidth;
+                border-color: Theme.primary;
+
+                states [
+                    hover when slider-touch.has-hover: {
+                        width: Theme.spacingSm;
+                        height: Theme.spacingSm;
+                        x: (parent.width * root.visual-progress) - Theme.spacingSm / 2;
+                        y: (parent.height - Theme.spacingSm) / 2;
+                        background: Theme.accent;
+                    }
+                ]
+            }
+        }
+    }
+}

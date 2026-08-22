@@ -1,0 +1,120 @@
+diff -urN a/rust/platform/platform.bzl b/rust/platform/platform.bzl
+--- a/rust/platform/platform.bzl	2026-05-25 17:07:34.848893087 -0700
++++ b/rust/platform/platform.bzl	2026-05-25 17:07:34.849893087 -0700
+@@ -61,9 +61,16 @@
+ 
+     all_supported_triples = ALL_PLATFORM_TRIPLES
+     for triple in all_supported_triples:
++        flag_values = {}
++        if "msvc" in triple:
++            flag_values["@bazel_tools//tools/cpp:compiler"] = "msvc-cl"
++        elif "windows" in triple and "gnu" in triple:
++            flag_values["@bazel_tools//tools/cpp:compiler"] = "mingw-gcc"
++
+         native.config_setting(
+             name = triple,
+             constraint_values = triple_to_constraint_set(triple),
++            flag_values = flag_values,
+         )
+ 
+     native.alias(
+diff -urN a/rust/platform/triple_mappings.bzl b/rust/platform/triple_mappings.bzl
+--- a/rust/platform/triple_mappings.bzl	2026-05-25 17:07:34.848893087 -0700
++++ b/rust/platform/triple_mappings.bzl	2026-05-25 17:07:34.849893087 -0700
+@@ -32,6 +32,7 @@
+     "x86_64-pc-windows-msvc": _support(std = True, host_tools = True),
+     "x86_64-unknown-linux-gnu": _support(std = True, host_tools = True),
+     "x86_64-unknown-nixos-gnu": _support(std = True, host_tools = True),  # Same as `x86_64-unknown-linux-gnu` but with `@platforms//os:nixos`.
++    "x86_64-pc-windows-gnu": _support(std = True, host_tools = True),
+     # N.B. These "alternative" envs are not supported, as bazel cannot distinguish between them
+     # and others using existing @platforms// config_values
+     #
+diff -urN a/rust/private/repository_utils.bzl b/rust/private/repository_utils.bzl
+--- a/rust/private/repository_utils.bzl	2026-05-25 17:07:34.848893087 -0700
++++ b/rust/private/repository_utils.bzl	2026-05-25 17:07:34.849893087 -0700
+@@ -280,6 +280,7 @@
+     srcs = glob(
+         [
+             "lib/rustlib/{target_triple}/lib/*.rlib",
++            "lib/rustlib/{target_triple}/lib/*.rmeta",
+             "lib/rustlib/{target_triple}/lib/*{dylib_ext}*",
+             "lib/rustlib/{target_triple}/lib/*{staticlib_ext}",
+             "lib/rustlib/{target_triple}/lib/self-contained/**",
+diff -urN a/rust/private/rustc.bzl b/rust/private/rustc.bzl
+--- a/rust/private/rustc.bzl	2026-05-25 17:07:34.848893087 -0700
++++ b/rust/private/rustc.bzl	2026-05-25 17:07:34.849893087 -0700
+@@ -560,9 +560,9 @@
+ 
+     # Take the absolute value of hash() since it could be negative.
+     path_hash = abs(hash(lib.path))
+-    lib_name = get_lib_name_for_windows(lib) if toolchain.target_os.startswith("windows") else get_lib_name_default(lib)
+-
+-    if toolchain.target_os.startswith("windows"):
++    lib_name = get_lib_name_for_windows(lib) if (toolchain.target_os.startswith("windows") and toolchain.target_abi == "msvc") else get_lib_name_default(lib)
++
++    if toolchain.target_os.startswith("windows") and toolchain.target_abi == "msvc":
+         prefix = ""
+         extension = ".lib"
+     elif lib_name.endswith(".pic"):
+@@ -629,7 +629,7 @@
+             if _is_dylib(lib):
+                 continue
+             artifact = get_preferred_artifact(lib, use_pic)
+-            name = get_lib_name_for_windows(artifact) if toolchain.target_os.startswith("windows") else get_lib_name_default(artifact)
++            name = get_lib_name_for_windows(artifact) if (toolchain.target_os.startswith("windows") and toolchain.target_abi == "msvc") else get_lib_name_default(artifact)
+ 
+             # On Linux-like platforms, normally library base names start with
+             # `lib`, following the pattern `lib[name].(a|lo)` and we pass
+@@ -639,10 +639,10 @@
+             # FIXME: Under the native-link-modifiers unstable rustc feature,
+             # we could use -lstatic:+verbatim instead.
+             needs_symlink_to_standardize_name = (
+-                toolchain.target_os.startswith(("linux", "mac", "darwin")) and
++                (toolchain.target_os.startswith(("linux", "mac", "darwin")) or (toolchain.target_os.startswith("windows") and toolchain.target_abi != "msvc")) and
+                 artifact.basename.endswith(".a") and not artifact.basename.startswith("lib")
+             ) or (
+-                toolchain.target_os.startswith("windows") and not artifact.basename.endswith(".lib")
++                toolchain.target_os.startswith("windows") and toolchain.target_abi == "msvc" and not artifact.basename.endswith(".lib")
+             )
+ 
+             # Detect cases where we need to disambiguate library dependencies
+@@ -1165,3 +1165,3 @@
+-    if toolchain.llvm_cov and ctx.configuration.coverage_enabled:
++    if toolchain.llvm_cov and ctx.configuration.coverage_enabled and toolchain.target_arch not in ("wasm32", "wasm64"):
+         # https://doc.rust-lang.org/rustc/instrument-coverage.html
+         rustc_flags.add("--codegen=instrument-coverage")
+@@ -1497,4 +1497,4 @@
+     if crate_info.type in ("cdylib", "bin") and not experimental_use_cc_common_link:
+-        if toolchain.target_os == "windows" and compilation_mode.strip_level == "none":
++        if toolchain.target_os == "windows" and compilation_mode.strip_level == "none" and toolchain.target_abi == "msvc":
+             pdb_file = ctx.actions.declare_file(crate_info.output.basename[:-len(crate_info.output.extension)] + "pdb", sibling = crate_info.output)
+             action_outputs.append(pdb_file)
+@@ -2249,7 +2249,7 @@
+             else:
+                 return [
+                     "-lstatic=%s" % get_lib_name(artifact),
+-                    "-Clink-arg=-l{}".format(artifact.basename),
++                    "-Clink-arg=-l{}".format(get_lib_name(artifact)),
+                 ]
+         else:
+             return [
+@@ -2281,7 +2281,8 @@
+                     ("-Clink-arg=%s--no-whole-archive" % prefix),
+                 ])
+         elif include_link_flags:
+-            ret.extend(_portable_link_flags(lib, use_pic, ambiguous_libs, get_lib_name_for_windows, for_windows = True, flavor_msvc = flavor_msvc))
++            get_lib_name_fn = get_lib_name_for_windows if flavor_msvc else get_lib_name_default
++            ret.extend(_portable_link_flags(lib, use_pic, ambiguous_libs, get_lib_name_fn, for_windows = True, flavor_msvc = flavor_msvc))
+     _add_user_link_flags(ret, linker_input)
+     return ret
+ 
+@@ -2365,7 +2366,7 @@
+         make_link_flags_windows_msvc = _make_link_flags_windows_msvc_direct if use_direct_link_driver else _make_link_flags_windows_msvc_indirect
+         make_link_flags_windows_gnu = _make_link_flags_windows_gnu_direct if use_direct_link_driver else _make_link_flags_windows_gnu_indirect
+         make_link_flags = make_link_flags_windows_msvc if target_abi == "msvc" else make_link_flags_windows_gnu
+-        get_lib_name = get_lib_name_for_windows
++        get_lib_name = get_lib_name_for_windows if target_abi == "msvc" else get_lib_name_default
+     elif target_os.startswith(("mac", "darwin", "ios")):
+         make_link_flags_darwin = _make_link_flags_darwin_direct if use_direct_link_driver else _make_link_flags_darwin_indirect
+         make_link_flags = make_link_flags_darwin
+

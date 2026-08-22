@@ -1,0 +1,55 @@
+import { Theme } from "../constants.slint";
+
+export component SearchBar inherits Rectangle {
+    in-out property <string> text;
+    callback accepted(string);
+
+    height: Theme.searchBarHeight;
+    background: Theme.secondary; // Secondary
+    border-radius: Theme.searchBarHeight / 2;
+    border-width: Theme.borderWidth;
+    border-color: Theme.divider; // Divider
+
+    HorizontalLayout {
+        padding-left: Theme.paddingMd;
+        padding-right: Theme.paddingMd;
+        spacing: Theme.spacingSm;
+
+        VerticalLayout {
+            alignment: center;
+
+            // search icon
+            Image {
+                width: Theme.iconSizeMd;
+                height: Theme.iconSizeMd;
+                source: @image-url("../icons/search.svg");
+                colorize: Theme.accent; // Text Secondary
+            }
+        }
+
+        // Custom text field / placeholder
+        Rectangle {
+            horizontal-stretch: 1;
+
+            // Placeholder text (visible when empty)
+            if (input.text == ""): Text {
+                text: "Search...";
+                color: Theme.textSecondary; // Text Secondary
+                font-size: Theme.subtitle;
+                vertical-alignment: center;
+                x: 0px;
+            }
+
+            input := TextInput {
+                text <=> root.text;
+                color: Theme.textPrimary; // Text Primary
+                font-size: Theme.subtitle;
+                vertical-alignment: center;
+                single-line: true;
+                accepted => {
+                    root.accepted(self.text);
+                }
+            }
+        }
+    }
+}

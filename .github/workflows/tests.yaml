@@ -1,0 +1,68 @@
+name: tests
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  code-quality: write
+
+jobs:
+  test:
+    name: Run Tests & Coverage
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - uses: bazel-contrib/setup-bazel@0.16.0
+        with:
+          bazelisk-cache: true
+          disk-cache: true
+          repository-cache: true
+
+      - name: Install Dependencies
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: >
+            nasm yasm autoconf automake libtool pkg-config make build-essential clang
+            libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libfontconfig1-dev
+            nsis lld libdbus-1-dev libpulse-dev
+          version: 1.0
+
+      - name: Run Tests & Collect Coverage
+        continue-on-error: true
+        run: bazel coverage --combined_report=lcov --instrumentation_filter='^//core/' //:core_tests
+
+      - name: Convert Coverage to XML
+        run: |
+          python3 -m pip install --upgrade lcov_cobertura
+          REPORT_PATH="$(bazel info output_path)/_coverage/_coverage_report.dat"
+          if [ -f "$REPORT_PATH" ]; then
+            python3 -m lcov_cobertura "$REPORT_PATH" --output coverage.xml
+          elif [ -f "bazel-out/_coverage/_coverage_report.dat" ]; then
+            python3 -m lcov_cobertura "bazel-out/_coverage/_coverage_report.dat" --output coverage.xml
+          else
+            echo "Coverage report not found"
+          fi
+
+      - name: Upload coverage report
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/upload-code-coverage@v1
+        continue-on-error: true
+        with:
+          file: coverage.xml
+          language: Rust
+          label: code-coverage/bazel
+
+      - name: Upload Test Logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: bazel-test-logs
+          path: bazel-testlogs/
+          if-no-files-found: ignore

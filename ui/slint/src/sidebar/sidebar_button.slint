@@ -1,0 +1,65 @@
+import { Theme } from "../constants.slint";
+
+export component SidebarButton inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> active: false;
+    callback clicked();
+
+    height: Theme.sidebarButtonHeight;
+    background: active ? Theme.accent.with-alpha(0.08) : (touch.has-hover ? Theme.textPrimary.with-alpha(0.03) : transparent);
+    border-radius: Theme.borderRadiusLg;
+
+    // Smooth transition for background hover
+    animate background {
+        duration: 150ms;
+        easing: ease-out;
+    }
+
+    property <color> current-color: active ? Theme.accent : (touch.has-hover ? Theme.textPrimary : Theme.textSecondary);
+    animate current-color {
+        duration: 150ms;
+        easing: ease-out;
+    }
+
+    touch := TouchArea {
+        width: 100%;
+        height: 100%;
+        clicked => {
+            root.clicked();
+        }
+        Image {
+            width: Theme.iconSizeLg;
+            x: Theme.iconSizeLg;
+            y: Theme.paddingMd;
+            height: Theme.iconSizeLg;
+            source: icon;
+            colorize: current-color;
+        }
+
+        Text {
+            text: text;
+            color: current-color;
+            font-size: Theme.subtitle;
+            font-weight: active ? 600 : 500;
+            vertical-alignment: center;
+            x: Theme.iconSizeLg * 2 + Theme.spacingXl - Theme.borderWidth;
+            y: Theme.paddingMd;
+        }
+    }
+
+    // Left indicator bar
+    Rectangle {
+        x: 0px;
+        y: (parent.height - Theme.iconSizeXl) / 2;
+        width: Theme.borderWidth * 3;
+        height: active ? Theme.iconSizeXl : 0px;
+        background: Theme.accent;
+        border-radius: Theme.borderRadiusSm;
+
+        animate height {
+            duration: 200ms;
+            easing: ease-out;
+        }
+    }
+}

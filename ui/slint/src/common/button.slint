@@ -1,0 +1,47 @@
+import { Theme } from "../constants.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export component Button inherits VerticalLayout {
+    in property <string> text;
+    in property <image> icon;
+    callback clicked();
+
+    alignment: center;
+    horizontal-stretch: 0;
+    padding-right: Theme.paddingLg;
+
+    TouchArea {
+        clicked => {
+            root.clicked();
+        }
+        Rectangle {
+            background: Theme.accent;
+            border-radius: 13px;
+            height: Theme.modelTitle + 10px;
+
+            HorizontalLayout {
+                alignment: center;
+                padding-right: 10px;
+                padding-left: 10px;
+                spacing: 5px;
+
+                VerticalLayout {
+                    alignment: center;
+                    Image {
+                        source: root.icon;
+                        colorize: Theme.textInverse;
+                        width: 8px;
+                        height: 8px;
+                    }
+                }
+
+                Text {
+                    vertical-alignment: center;
+                    text: root.text;
+                    color: Theme.textInverse;
+                    font-size: Theme.caption;
+                }
+            }
+        }
+    }
+}

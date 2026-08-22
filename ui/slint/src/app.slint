@@ -1,0 +1,309 @@
+import { Sidebar, SidebarItem } from "sidebar/sidebar.slint";
+import { TopBar } from "topbar/top_bar.slint";
+import { BottomBar } from "bottombar/bottom_bar.slint";
+import { AllSongs, AllSongsPageProps } from "main_content/all_songs.slint";
+import { WindowInfo } from "window_info.slint";
+import {
+    SongModel,
+    CoverHelper,
+    AlbumModel,
+    PlaylistModel,
+    ArtistModel,
+    GenreModel,
+    SearchResult,
+    ProviderRecommendations,
+} from "types/song_view.slint";
+import { AlbumsPage, AlbumsPageProps } from "main_content/albums.slint";
+import { ArtistsPage, ArtistsPageProps } from "main_content/artists.slint";
+import {
+    PlaylistsPage,
+    PlaylistsPageProps,
+} from "main_content/playlists.slint";
+import { GenresPage, GenresPageProps } from "main_content/genres.slint";
+import { ExplorePage, ExplorePageProps } from "main_content/explore.slint";
+import { SearchPage, SearchPageProps } from "main_content/search.slint";
+import { SongListView } from "common/song_list_view.slint";
+import { QueuePage, QueuePageProps } from "main_content/queue_page.slint";
+import {
+    PlaylistContent,
+    PlaylistContentPageProps,
+} from "main_content/playlist_content.slint";
+import {
+    AlbumContent,
+    AlbumContentPageProps,
+} from "main_content/album_content.slint";
+import {
+    ArtistContent,
+    ArtistContentPageProps,
+} from "main_content/artist_content.slint";
+import {
+    GenreContent,
+    GenreContentPageProps,
+} from "main_content/genre_content.slint";
+import {
+    Pages,
+    SettingsPages,
+    QueuePages,
+    Constants,
+    Theme,
+    ThemeConfig,
+    RgbaColor,
+    ThemeConstant,
+} from "constants.slint";
+import { AppCallbacks, BottomBarCallbacks } from "callbacks.slint";
+import { Settings } from "settings/settings.slint";
+import { PageWrapper } from "common/page_wrapper.slint";
+import {
+    Preferences,
+    AppPreferences,
+    PreferenceItem,
+    RadioItem,
+} from "settings/preferences.slint";
+import { PreferenceChange } from "callbacks.slint";
+import { ExtensionItem } from "./types/extension_view.slint";
+
+export {
+    CoverHelper,
+    Constants,
+    Theme,
+    AppCallbacks,
+    BottomBarCallbacks,
+    Preferences,
+    AppPreferences,
+    PreferenceChange,
+    PreferenceItem,
+    RadioItem,
+    ThemeConfig,
+    RgbaColor,
+    ExtensionItem,
+    ThemeConstant,
+    SettingsPages,
+    QueuePages,
+    PlaylistsPageProps,
+    PlaylistContentPageProps,
+    ArtistsPageProps,
+    ArtistContentPageProps,
+    AlbumsPageProps,
+    AlbumContentPageProps,
+    GenresPageProps,
+    GenreContentPageProps,
+    AllSongsPageProps,
+    SearchPageProps,
+    ExplorePageProps,
+    QueuePageProps,
+}
+export component MainWindow inherits Window {
+    title: "moosync";
+    background: Theme.primary; // Sampled Topbar/Main background
+
+    changed width => {
+        WindowInfo.window-width = self.width;
+        if (self.width < 600px) {
+            WindowInfo.window-size = WindowInfo.sm;
+        } else if (self.width < 900px) {
+            WindowInfo.window-size = WindowInfo.md;
+        } else if (self.width < 1200px) {
+            WindowInfo.window-size = WindowInfo.lg;
+        } else {
+            WindowInfo.window-size = WindowInfo.xl;
+        }
+        AppCallbacks.resize();
+    }
+
+    changed height => {
+        WindowInfo.window-height = self.height;
+        AppCallbacks.resize();
+    }
+
+    in-out property <Pages> active-page;
+    changed active-page => {
+        AppCallbacks.active-page-changed(self.active-page);
+    }
+
+    in-out property <string> search_query: "";
+
+    // Settings
+    in-out property <bool> show_settings: false;
+    changed show_settings => {
+        AppCallbacks.settings-toggled(self.show_settings);
+    }
+    in-out property <bool> show_queue: false;
+    changed show_queue => {
+        AppCallbacks.queue-toggled(self.show_queue);
+    }
+    in-out property <[ThemeConfig]> available-themes;
+    in-out property <string> active-theme-id;
+    in-out property <[ThemeConstant]> theme-constants;
+    in-out property <[ExtensionItem]> extensions: Constants.testExtensions;
+
+    // Main page
+    in property <SongModel> current_song: Constants.defaultSong;
+    in-out property <int> repeat_mode: 0;
+    in-out property <bool> playing: false;
+    in-out property <int> current_duration: 0;
+    in-out property <string> current_pos_str: "00:00";
+
+    property <[SidebarItem]> sidebar_items: [
+        { text: "Songs", icon: @image-url("./icons/songs.svg"), page: Pages.AllSongs },
+        { text: "Playlists", icon: @image-url("./icons/playlists.svg"), page: Pages.Playlists },
+        { text: "Artists", icon: @image-url("./icons/artists.svg"), page: Pages.Artists },
+        { text: "Albums", icon: @image-url("./icons/albums.svg"), page: Pages.Albums },
+        { text: "Genres", icon: @image-url("./icons/genres.svg"), page: Pages.Genres },
+        { text: "Explore", icon: @image-url("./icons/explore.svg"), page: Pages.Explore },
+    ];
+
+    VerticalLayout {
+        spacing: 0px;
+        padding: 0px;
+        height: 100%;
+        width: 100%;
+
+        // Container for upper section and sliding queue overlay
+        Rectangle {
+            vertical-stretch: 1;
+            clip: true;
+
+            // Upper section containing Sidebar and main content area with TopBar
+            HorizontalLayout {
+                spacing: 0px;
+                width: 100%;
+                height: 100%;
+
+                Sidebar {
+                    items: sidebar_items;
+                    activePage <=> active-page;
+                    width: Theme.sidebarWidth;
+                }
+
+                VerticalLayout {
+                    spacing: 0px;
+
+                    TopBar {
+                        settings_clicked => {
+                            root.show_settings = true;
+                        }
+                        search-submitted(txt) => {
+                            root.search_query = txt;
+                            root.active-page = Pages.Search;
+                        }
+                    }
+
+                    // Main Content Area
+                    Rectangle {
+                        background: Theme.primary; // Primary
+                        clip: true;
+
+                        PageWrapper {
+                            page-type: Pages.Search;
+                            active-page <=> root.active-page;
+                            SearchPage {
+                                search-query: root.search_query;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.AllSongs;
+                            active-page <=> root.active-page;
+                            AllSongs { }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.Playlists;
+                            active-page <=> root.active-page;
+                            PlaylistsPage {
+                                active-page <=> root.active-page;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.PlaylistContent;
+                            active-page <=> root.active-page;
+                            PlaylistContent { }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.Artists;
+                            active-page <=> root.active-page;
+                            ArtistsPage {
+                                active-page <=> root.active-page;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.ArtistContent;
+                            active-page <=> root.active-page;
+                            ArtistContent { }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.Albums;
+                            active-page <=> root.active-page;
+                            AlbumsPage {
+                                active-page <=> root.active-page;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.AlbumContent;
+                            active-page <=> root.active-page;
+                            AlbumContent { }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.Genres;
+                            active-page <=> root.active-page;
+                            GenresPage {
+                                active-page <=> root.active-page;
+                            }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.GenreContent;
+                            active-page <=> root.active-page;
+                            GenreContent { }
+                        }
+
+                        PageWrapper {
+                            page-type: Pages.Explore;
+                            active-page <=> root.active-page;
+                            ExplorePage { }
+                        }
+                    }
+                }
+            }
+
+            // Slide-up queue page overlay
+            QueuePage {
+                y: root.show_queue ? 0px : parent.height;
+                width: 100%;
+                height: 100%;
+                current-song: root.current_song;
+
+                animate y {
+                    duration: 250ms;
+                    easing: ease-in-out;
+                }
+            }
+        }
+
+        // Bottom player controller section
+        BottomBar {
+            current-song: root.current_song;
+            repeat-mode: root.repeat_mode;
+            playing: root.playing;
+            current_duration: root.current_duration;
+            current-pos-str: root.current_pos_str;
+            show-queue <=> root.show_queue;
+        }
+    }
+
+    if show_settings: Settings {
+        available-themes <=> root.available-themes;
+        active-theme-id <=> root.active-theme-id;
+        theme-constants <=> root.theme-constants;
+        extensions <=> root.extensions;
+        close => {
+            show_settings = false;
+        }
+    }
+}

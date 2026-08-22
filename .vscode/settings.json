@@ -1,18 +1,62 @@
 {
-  "typescript.tsdk": "node_modules/typescript/lib",
-  "rust-analyzer.procMacro.ignored": {
-    "leptos_macro": [
-      // optional:
-      // "component",
-      "server"
-    ],
-  },
-  // "rust-analyzer.rustfmt.overrideCommand": [
-  //   "/home/ovenoboyo/.cargo/bin/leptosfmt",
-  //   "--stdin",
-  //   "--rustfmt"
-  // ],
-  "rust-analyzer.showUnlinkedFileNotification": false,
+  "rust-analyzer.showUnlinkedFileNotification": true,
   "editor.formatOnSave": true,
-  "rust-analyzer.checkOnSave": true
+  "rust-analyzer.checkOnSave": true,
+  "bazel.lsp.command": "bazel-lsp",
+  "testing.coverageToolbarEnabled": true,
+  "bazel.buildifierFixOnFormat": true,
+  // Android SDK/NDK env vars are inherited from the user's shell via .bazelrc
+  // (--repo_env=ANDROID_HOME, --repo_env=ANDROID_NDK_HOME). Do not override here.
+  "rust-analyzer.check.overrideCommand": [
+    "bazel",
+    "--output_base=/tmp/bazel/ra_output",
+    "build",
+    "//core/database",
+    "//core/extensions",
+    "//core/lyrics",
+    "//core/mpris",
+    "//core/player",
+    "//core/plugin_macro",
+    "//core/theme_macro",
+    "//core/preferences",
+    "//core/state_manager",
+    "//core/themes",
+    "//core/types",
+    "//ui/slint:slint_app_lib",
+    "--jobs",
+    "32",
+    "--@rules_rust//:error_format=json",
+  ],
+  // "rust-analyzer.cargo.target": "x86_64-linux-android",
+  "rust-analyzer.workspace.discoverConfig": {
+    "command": [
+      "./discover_bazel_rust_project.sh",
+      "{arg}"
+    ],
+    "progressLabel": "rust_analyzer",
+    "filesToWatch": [
+      "BUILD",
+      "BUILD.bazel",
+      "MODULE.bazel"
+    ]
+  },
+  "rust-analyzer.trace.server": "off",
+  "rust-analyzer.server.extraEnv": {
+    "RA_LOG": "info"
+  },
+  "rust-analyzer.linkedProjects": [
+    "rust-project.json"
+  ],
+  // "rust-analyzer.workspace.discoverConfig": {
+  //   "command": [
+  //     "discover_bazel_rust_project.sh",
+  //     "{arg}"
+  //   ],
+  //   "progressLabel": "rust_analyzer",
+  //   "filesToWatch": [
+  //     "BUILD",
+  //     "BUILD.bazel",
+  //     "MODULE.bazel"
+  //   ]
+  // }
 }

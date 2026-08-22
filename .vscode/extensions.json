@@ -1,7 +1,8 @@
 {
   "recommendations": [
-    "tauri-apps.tauri-vscode",
+    "bazelbuild.vscode-bazel",
+    "mattstark.bazel-rust-analyzer",
     "rust-lang.rust-analyzer",
-    "bram209.leptos-language-server"
-  ]
+    "slint.slint",
+  ],
 }

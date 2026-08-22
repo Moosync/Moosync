@@ -1,0 +1,104 @@
+import { TrackInfo } from "track_info.slint";
+import { PlaybackProgressBar } from "playback_progress.slint";
+import { PlaybackControls } from "playback_controls.slint";
+import { VolumeControl } from "volume_control.slint";
+import { Theme } from "../constants.slint";
+import { SongModel } from "../types/song_view.slint";
+
+export component BottomBar inherits Rectangle {
+    in property <SongModel> current-song;
+    in property <int> repeat-mode: 0;
+    in property <bool> playing: false;
+    in property <int> current_duration: 0;
+    in property <string> current-pos-str: "00:00";
+    in-out property <bool> show-queue: false;
+
+    height: Theme.bottombarHeight;
+    background: Theme.primary; // Sampled Bottombar Background
+    
+    // Top border line behind the progress bar
+    Rectangle {
+        y: 0px;
+        height: Theme.borderWidth;
+        background: Theme.divider; // Darker divider to match Leptos
+    }
+
+    VerticalLayout {
+        alignment: center;
+        padding-top: 0px;
+        padding-bottom: 0px;
+
+        // Full width progress bar at the very top edge
+        PlaybackProgressBar {
+            height: Theme.bottombarProgressBarHeight;
+            current_duration: root.current_duration;
+            total_duration: current-song.duration-s;
+        }
+
+        // Row containing Track details, controls and volume slider
+        HorizontalLayout {
+            padding-left: Theme.paddingLg;
+            padding-right: Theme.paddingLg;
+
+            // Left: Track Details
+            TrackInfo {
+                width: Theme.trackInfoWidth;
+                current-song: root.current-song;
+            }
+
+            // Spacer
+            Rectangle {
+                horizontal-stretch: 1;
+            }
+
+            // Center Layout: Duration text + Controls
+            HorizontalLayout {
+                PlaybackControls {
+                    repeat-mode: root.repeat-mode;
+                    playing: root.playing;
+                    current-pos-str: root.current-pos-str;
+                    duration-str: root.current-song.duration_str;
+                }
+            }
+
+            HorizontalLayout {
+                spacing: Theme.spacingXl;
+                // Right: Volume Slider Controls
+                VolumeControl {
+                    width: Theme.volumeControlWidth;
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    padding-bottom: Theme.spacingXs;
+
+                    // Queue/Playlist toggle icon
+                    Rectangle {
+                        width: Theme.iconSizeLg;
+
+                        queue-touch := TouchArea {
+                            clicked => {
+                                root.show-queue = !root.show-queue;
+                            }
+                        }
+
+                        property <color> current-color: queue-touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
+
+                        Image {
+                            width: Theme.iconSizeLg;
+                            height: Theme.spacingMd;
+                            source: @image-url("../icons/chevron.svg");
+                            colorize: current-color;
+                            transform-rotation: root.show-queue ? 180deg : 0deg;
+
+                            animate transform-rotation {
+                                duration: 250ms;
+                                easing: ease-in-out;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

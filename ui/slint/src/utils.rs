@@ -181,12 +181,8 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
                 let height = (window.size().height as f32 / scale) as usize;
                 let width = (window.size().width as f32 / scale) as usize;
 
-                let mut new_max_items = height / item_height;
-                let columns = if item_width > 0 {
-                    (width / item_width).max(1)
-                } else {
-                    1
-                };
+                let columns = width.checked_div(item_width).map_or(1, |c| c.max(1));
+                let mut new_max_items = height.checked_div(item_height).unwrap_or(0);
 
                 if item_width > 0 {
                     new_max_items *= columns;
@@ -248,7 +244,7 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn release_image(&self, row: usize, model: &mut T) {
         trace!("Releasing image for row {}", row);
-        if !is_empty_image(&model.get_cover()) {
+        if !is_empty_image(model.get_cover()) {
             model.set_cover(Image::default());
         }
         self.allocated_rows.borrow_mut().remove(&row);
@@ -300,7 +296,7 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
         let (song_model, is_loaded) = {
             let array = self.array.borrow();
             let song_model = array.get(row)?;
-            let is_loaded = !is_empty_image(&song_model.get_cover());
+            let is_loaded = !is_empty_image(song_model.get_cover());
             (song_model.clone(), is_loaded)
         };
 
@@ -326,7 +322,7 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
                     let prefetch_url = {
                         let array = self.array.borrow();
                         array.get(i).and_then(|item| {
-                            is_empty_image(&item.get_cover())
+                            is_empty_image(item.get_cover())
                                 .then(|| item.get_cover_url().to_string())
                         })
                     };
@@ -348,10 +344,10 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
             return;
         }
 
-        if is_empty_image(&data.get_cover()) {
+        if is_empty_image(data.get_cover()) {
             self.allocated_rows.borrow_mut().remove(&row);
         }
-        if !is_empty_image(&data.get_cover()) {
+        if !is_empty_image(data.get_cover()) {
             self.allocated_rows.borrow_mut().insert(row);
         }
         self.array.borrow_mut()[row] = data;
@@ -684,7 +680,6 @@ pub fn song_model_to_song(model: &SongModel) -> songs_proto::moosync::types::Son
         } else {
             Some(model.track_no as f64)
         },
-        ..Default::default()
     };
 
     let album = if model.album_id.is_empty() && model.album_name.is_empty() {
@@ -878,7 +873,7 @@ pub fn to_search_result(
             cache_dir.to_path_buf(),
         )),
         genres: ModelRc::new(LazySongVecModel::new(
-            res.genres.iter().map(|g| to_genre_model(g)).collect(),
+            res.genres.iter().map(to_genre_model).collect(),
             theme.get_cardHeight() as usize,
             theme.get_cardWidth() as usize,
             cache_dir.to_path_buf(),
@@ -986,25 +981,25 @@ fn blur_and_save(path: &Path, blurred_path: &Path) -> Option<()> {
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn parse_color(val: &str) -> Option<slint::Color> {
     let val = val.trim();
-    if val.starts_with('#') {
-        let hex = &val[1..];
+    if let Some(hex) = val.strip_prefix('#') {
         match hex.len() {
             6 => {
                 let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
                 let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
                 let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
-                Some(slint::Color::from_rgb_u8(r, g, b))
+                return Some(slint::Color::from_rgb_u8(r, g, b));
             }
             8 => {
                 let r = u8::from_str_radix(&hex[0..2], 16).ok()?;
                 let g = u8::from_str_radix(&hex[2..4], 16).ok()?;
                 let b = u8::from_str_radix(&hex[4..6], 16).ok()?;
                 let a = u8::from_str_radix(&hex[6..8], 16).ok()?;
-                Some(slint::Color::from_argb_u8(a, r, g, b))
+                return Some(slint::Color::from_argb_u8(a, r, g, b));
             }
-            _ => None,
+            _ => return None,
         }
-    } else if val.starts_with("rgb") {
+    }
+    if val.starts_with("rgb") {
         let start = val.find('(')? + 1;
         let end = val.rfind(')')?;
         let parts: Vec<&str> = val[start..end].split(',').map(|s| s.trim()).collect();
@@ -1023,18 +1018,16 @@ pub fn parse_color(val: &str) -> Option<slint::Color> {
                 b as f32 / 255.0,
             ));
         }
-        Some(slint::Color::from_rgb_u8(r, g, b))
-    } else {
-        None
+        return Some(slint::Color::from_rgb_u8(r, g, b));
     }
+    None
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn parse_length(val: &str) -> Option<f32> {
     let val = val.trim();
-    if val.ends_with("px") {
-        val[..val.len() - 2].parse::<f32>().ok()
-    } else {
-        val.parse::<f32>().ok()
+    if let Some(val) = val.strip_suffix("px") {
+        return val.parse::<f32>().ok();
     }
+    val.parse::<f32>().ok()
 }

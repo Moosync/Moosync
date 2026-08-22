@@ -48,11 +48,11 @@ pub fn check_directory(dir: PathBuf) -> Result<(), ScannerError> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn read_tagged_file(path: &PathBuf, guess: bool) -> Result<TaggedFile, ScannerError> {
+fn read_tagged_file(path: &Path, guess: bool) -> Result<TaggedFile, ScannerError> {
     if guess {
-        Ok(read_from_path(path.clone())?)
+        Ok(read_from_path(path)?)
     } else {
-        Ok(Probe::open(path.clone())
+        Ok(Probe::open(path)
             .map_err(ScannerError::AudioMeta)?
             .guess_file_type()
             .map_err(ScannerError::Io)?
@@ -107,7 +107,7 @@ async fn store_picture(
             ImageProcessor::new(&d).resize(400).compress().save(&hp)
         })
         .await
-        .map_err(|e| ScannerError::Join(e))??;
+        .map_err(ScannerError::Join)??;
     }
     if !low_path.exists() {
         let lp = low_path.clone();
@@ -115,7 +115,7 @@ async fn store_picture(
             ImageProcessor::new(&data).resize(80).compress().save(&lp)
         })
         .await
-        .map_err(|e| ScannerError::Join(e))??;
+        .map_err(ScannerError::Join)??;
     }
     Ok((
         dunce::canonicalize(high_path).map_err(ScannerError::Io)?,
@@ -176,7 +176,7 @@ fn extract_album(metadata: &Tag, inner_song: &InnerSong) -> Option<Album> {
 #[tracing::instrument(level = "debug", skip_all)]
 fn extract_metadata(
     metadata: &Tag,
-    path: &PathBuf,
+    path: &Path,
     artist_split: &str,
     song: &mut Song,
     inner_song: &mut InnerSong,
@@ -353,8 +353,7 @@ impl<'a> SongScanner<'a> {
 
 #[tracing::instrument(level = "debug", skip_all)]
 fn update_scan_progress(total: usize, current: usize, on_progress: &OnProgressUpdated) {
-    if total > 0 {
-        let progress = ((current * 100) / total) as u8;
-        on_progress(ScanProgress::PROGRESS(progress));
+    if let Some(div) = (current * 100).checked_div(total) {
+        on_progress(ScanProgress::PROGRESS(div as u8));
     }
 }

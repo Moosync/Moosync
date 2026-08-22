@@ -2,8 +2,14 @@ use std::sync::Mutex;
 
 use slint::Window;
 
+pub type WindowResizeCallback = Box<dyn Fn(&Window)>;
+
 pub struct WindowEvents {
-    pub on_resize: Mutex<Vec<Box<dyn Fn(&Window)>>>,
+    pub on_resize: Mutex<Vec<WindowResizeCallback>>,
+}
+
+impl Default for WindowEvents {
+    fn default() -> Self { Self::new() }
 }
 
 impl WindowEvents {
@@ -15,7 +21,7 @@ impl WindowEvents {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn on_resize(&self, callback: Box<dyn Fn(&Window)>) {
+    pub fn on_resize(&self, callback: WindowResizeCallback) {
         self.on_resize.lock().unwrap().push(callback);
     }
 
@@ -30,5 +36,5 @@ impl WindowEvents {
 }
 
 thread_local! {
-    pub static WINDOW_EVENTS: WindowEvents = WindowEvents::new();
+    pub static WINDOW_EVENTS: WindowEvents = WindowEvents::default();
 }

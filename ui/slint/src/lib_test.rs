@@ -174,6 +174,6 @@ fn test_ui_get_all_pages_and_setup() {
             .global::<CoverHelper>()
             .invoke_fetch_cover_low(song_model.clone());
 
-        assert_eq!(main_window.get_playing(), false);
+        assert!(!main_window.get_playing());
     });
 }

@@ -9,9 +9,9 @@ use crate::rodio::DecoderError;
 #[derive(Debug, Error)]
 pub enum PlayerError {
     #[error("Could not find a player to play song: {0:?}")]
-    NoPlayerFound(Song),
+    NoPlayerFound(Box<Song>),
     #[error("Could not find a src for song: {0:?}")]
-    NoSrcFound(Song),
+    NoSrcFound(Box<Song>),
     #[error("Could not resolve playback url for song: {0}")]
     PlaybackUrlResolutionFailed(String),
     #[error("Invalid song")]

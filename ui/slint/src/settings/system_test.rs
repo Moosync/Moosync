@@ -46,7 +46,7 @@ fn test_system_page_handler_initialize() {
         handler.on_show();
         handler.on_hide();
 
-        assert_eq!(main_window.get_playing(), false);
+        assert!(!main_window.get_playing());
     });
 }
 
@@ -76,6 +76,6 @@ fn test_system_page_handler_handle_change() {
 
         let handled = SystemPageHandler::handle_change(&change, &mw_weak, sm);
 
-        assert_eq!(handled, false);
+        assert!(!handled);
     });
 }

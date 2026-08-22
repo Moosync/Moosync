@@ -14,24 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{
-    collections::HashMap,
-    fs::{self, File},
-    io::Write,
-    path::PathBuf,
-    str::FromStr,
-    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
-};
+use std::{fs, path::PathBuf, str::FromStr, sync::Arc};
 
 use ext_runner::ExtensionHandlerInner;
 use extensions_proto::moosync::types::{
-    ExtensionCommand, ExtensionCommandResponse, ExtensionDetail, ExtensionManifest,
-    FetchedExtensionManifest, PackageName,
+    ExtensionDetail, ExtensionManifest, FetchedExtensionManifest, PackageName,
 };
 use fs_extra::dir::CopyOptions;
-use futures::StreamExt;
-use serde_json::Value;
-use ui_proto::moosync::types::PreferenceUiData;
 use zip_extensions::zip_extract;
 
 pub use crate::{errors::ExtensionError, extension::Extension};
@@ -131,12 +120,12 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_extension(&self, package_name: &str) -> Result<Arc<Extension>, ExtensionError> {
-        Ok(self.inner.get_extension(package_name)?)
+        self.inner.get_extension(package_name)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_extension_mut(&self, package_name: &str) -> Result<Arc<Extension>, ExtensionError> {
-        Ok(self.inner.get_extension(package_name)?)
+        self.inner.get_extension(package_name)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -310,12 +299,11 @@ impl ExtensionHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_cached_remote_manifests(&self) -> Vec<FetchedExtensionManifest> {
         let path = self.extensions_dir.join("remote_manifest_cache.json");
-        if path.exists() {
-            if let Ok(contents) = fs::read(path) {
-                if let Ok(manifests) = serde_json::from_slice(&contents) {
-                    return manifests;
-                }
-            }
+        if path.exists()
+            && let Ok(contents) = fs::read(path)
+            && let Ok(manifests) = serde_json::from_slice(&contents)
+        {
+            return manifests;
         }
         vec![]
     }

@@ -267,7 +267,7 @@ fn test_remove_songs() {
     db.increment_play_time(&remove_id, 120.0).unwrap();
 
     // Remove one song
-    db.remove_songs(&vec![&remove_id]).unwrap();
+    db.remove_songs(&[&remove_id]).unwrap();
 
     // Verify only one song remains
     let all_songs = db
@@ -291,7 +291,7 @@ fn test_remove_songs() {
     let removed_song_analytics = analytics
         .songs
         .iter()
-        .find(|song| &song.song_id == &remove_id);
+        .find(|song| song.song_id == remove_id);
     assert!(
         removed_song_analytics.is_none(),
         "Analytics for removed song should be deleted"
@@ -391,7 +391,7 @@ fn test_playlist_operations() {
 
     // Remove one song from playlist
     let song_id_to_remove = songs[0].song.clone().unwrap().id.clone().unwrap();
-    db.remove_from_playlist(&playlist_id, &vec![song_id_to_remove])
+    db.remove_from_playlist(&playlist_id, &[song_id_to_remove])
         .unwrap();
 
     // Verify song was removed from playlist
@@ -1113,7 +1113,7 @@ fn test_playlist_ops_edge_cases() {
         song: None,
         ..Default::default()
     };
-    db.add_to_playlist(&playlist_id, &vec![empty_song]).unwrap();
+    db.add_to_playlist(&playlist_id, &[empty_song]).unwrap();
 
     // add_to_playlist duplicate songs
     let song = create_test_song("Song", "/path.mp3");
@@ -1126,7 +1126,7 @@ fn test_playlist_ops_edge_cases() {
     assert!(db.is_song_in_playlist(&playlist_id, &song_id).unwrap());
 
     // remove_from_playlist for song not in playlist
-    db.remove_from_playlist(&playlist_id, &vec!["non_existent_song"])
+    db.remove_from_playlist(&playlist_id, &["non_existent_song"])
         .unwrap();
 
     // remove_playlist

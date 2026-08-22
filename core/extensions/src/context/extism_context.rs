@@ -282,7 +282,7 @@ impl ExtismContext {
             plugin_manifest.allowed_paths.clone(),
         );
 
-        let plugin = Self::build_plugin(&cache_path, plugin_manifest, user_data, sock_data);
+        let plugin = Self::build_plugin(cache_path, plugin_manifest, user_data, sock_data);
         let plugin_clone = plugin.clone();
         let package_name_clone = package_name.clone();
         let reply_handler_clone = reply_handler.clone();
@@ -312,7 +312,7 @@ impl ExtismContext {
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_allowed_paths(
         permissions: &ManifestPermissions,
-        ext_cache_dir: &PathBuf,
+        ext_cache_dir: &Path,
     ) -> HashMap<String, PathBuf> {
         let re = Regex::new(r"\{([A-Z_][A-Z0-9_]*)\}").unwrap();
         let mut allowed_paths = HashMap::new();

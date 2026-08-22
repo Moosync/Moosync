@@ -15,8 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use extensions_proto::moosync::types::{
-    AddPlaylistRequest, AddSongsRequest, AddToPlaylistRequest, MainCommand, RemoveSongRequest,
-    UpdateSongRequest, main_command,
+    AddPlaylistRequest, AddSongsRequest, MainCommand, main_command,
 };
 use songs_proto::moosync::types::{InnerSong, Playlist, Song};
 

@@ -35,9 +35,8 @@ fn test_parse_line_url_or_file_variants() {
     fs::write(&s1, b"fake flac content").unwrap();
 
     let m3u_path = dir.join("variants.m3u");
-    let content = format!(
-        "http://example.com/stream.mp3\nhttps://example.com/secure_stream.mp3\nsong.flac\n"
-    );
+    let content =
+        "http://example.com/stream.mp3\nhttps://example.com/secure_stream.mp3\nsong.flac\n";
     fs::write(&m3u_path, content).unwrap();
 
     let file_list = FileList {
@@ -99,9 +98,7 @@ fn test_playlist_scanner_standard_and_extended_m3u() {
     fs::write(&s2, b"audio 2").unwrap();
 
     let m3u_path = dir.join("playlist.m3u");
-    let content = format!(
-        "#EXTM3U\n#PLAYLIST:Rock Classics\n#EXTINF:240.5,Queen - Bohemian Rhapsody\ntrack1.mp3\n#EXTINF:180,Pink Floyd-Time\ntrack2.mp3\nhttps://radio.example.com/live\n"
-    );
+    let content = "#EXTM3U\n#PLAYLIST:Rock Classics\n#EXTINF:240.5,Queen - Bohemian Rhapsody\ntrack1.mp3\n#EXTINF:180,Pink Floyd-Time\ntrack2.mp3\nhttps://radio.example.com/live\n";
     fs::write(&m3u_path, content).unwrap();
 
     let file_list = FileList {

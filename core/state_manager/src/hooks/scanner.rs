@@ -10,6 +10,10 @@ use crate::StateManager;
 
 pub struct ScannerHook;
 
+impl Default for ScannerHook {
+    fn default() -> Self { Self::new() }
+}
+
 impl ScannerHook {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new() -> Self { Self }
@@ -89,10 +93,10 @@ impl Hook for ScannerHook {
                             .map(std::path::PathBuf::from)
                             .collect::<Vec<_>>();
 
-                        if scan_dirs.is_empty() {
-                            if let Some(user_dirs) = platform_dirs::UserDirs::new() {
-                                scan_dirs.push(user_dirs.music_dir);
-                            }
+                        if scan_dirs.is_empty()
+                            && let Some(user_dirs) = platform_dirs::UserDirs::new()
+                        {
+                            scan_dirs.push(user_dirs.music_dir);
                         }
 
                         let exclude_dirs = prefs_read
@@ -153,10 +157,10 @@ impl Hook for ScannerHook {
                             .load(preferences::keys::ScanInterval)
                             .unwrap_or(0);
 
-                        if let Ok(mut guard) = periodic_task.lock() {
-                            if let Some(handle) = guard.take() {
-                                handle.abort();
-                            }
+                        if let Ok(mut guard) = periodic_task.lock()
+                            && let Some(handle) = guard.take()
+                        {
+                            handle.abort();
                         }
 
                         if interval_mins <= 0 {
@@ -213,24 +217,36 @@ fn resolve_or_create_playlist_song(db: &Database, identifier: PlaylistSongId) ->
         return Some(song);
     }
 
-    let mut inner_song = songs_proto::moosync::types::InnerSong::default();
-    inner_song.id = Some(uuid::Uuid::new_v4().to_string());
-    match identifier {
-        PlaylistSongId::Url(url) => {
-            inner_song.r#type = songs_proto::moosync::types::SongType::Url.into();
-            inner_song.playback_url = Some(url);
-        }
-        PlaylistSongId::Path(path) => {
-            inner_song.r#type = songs_proto::moosync::types::SongType::Local.into();
-            let path_str = path.to_string_lossy().to_string();
-            inner_song.path = Some(path_str.clone());
-            let title = path
+    let (song_type, playback_url, path, title) = match identifier {
+        PlaylistSongId::Url(url) => (
+            songs_proto::moosync::types::SongType::Url.into(),
+            Some(url),
+            None,
+            None,
+        ),
+        PlaylistSongId::Path(p) => {
+            let path_str = p.to_string_lossy().to_string();
+            let title = p
                 .file_stem()
                 .map(|s| s.to_string_lossy().to_string())
-                .unwrap_or(path_str);
-            inner_song.title = Some(title);
+                .unwrap_or_else(|| path_str.clone());
+            (
+                songs_proto::moosync::types::SongType::Local.into(),
+                None,
+                Some(path_str),
+                Some(title),
+            )
         }
-    }
+    };
+
+    let inner_song = songs_proto::moosync::types::InnerSong {
+        id: Some(uuid::Uuid::new_v4().to_string()),
+        r#type: song_type,
+        playback_url,
+        path,
+        title,
+        ..Default::default()
+    };
 
     let proto_song = Song {
         song: Some(inner_song),

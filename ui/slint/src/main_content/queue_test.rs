@@ -51,6 +51,6 @@ fn test_queue_page_handler_initialize() {
             .invoke_remove_from_queue(0);
         main_window.global::<AppCallbacks>().invoke_clear_queue();
 
-        assert_eq!(main_window.get_playing(), false);
+        assert!(!main_window.get_playing());
     });
 }

@@ -39,9 +39,8 @@ impl AudioSource {
         let (events_tx, mut events_rx) = unbounded_channel();
         tokio::spawn(async move {
             while let Some(event) = events_rx.recv().await {
-                match event {
-                    Ended(_) => on_ended_callback(),
-                    _ => {}
+                if let Ended(_) = event {
+                    on_ended_callback();
                 }
             }
         });

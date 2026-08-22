@@ -44,7 +44,7 @@ fn test_paths_page_handler_initialize() {
 
         handler.initialize();
 
-        assert_eq!(main_window.get_playing(), false);
+        assert!(!main_window.get_playing());
     });
 }
 
@@ -74,6 +74,6 @@ fn test_paths_page_handler_handle_change() {
 
         let handled = PathsPageHandler::handle_change(&change, &mw_weak, sm);
 
-        assert_eq!(handled, true);
+        assert!(handled);
     });
 }

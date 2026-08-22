@@ -49,7 +49,7 @@ use types::{
 
 use crate::audio_source::AudioSource;
 
-pub type OnEndedCallback = Box<dyn Fn() -> () + Send + Sync + 'static>;
+pub type OnEndedCallback = Box<dyn Fn() + Send + Sync + 'static>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RepeatMode {
@@ -58,10 +58,10 @@ pub enum RepeatMode {
     Infinite,
 }
 
-pub type OnSongChangedCallback = Box<dyn Fn(Option<&Song>) -> () + Send + Sync + 'static>;
-pub type OnQueueUpdatedCallback = Box<dyn Fn(&[Song]) -> () + Send + Sync + 'static>;
-pub type OnRepeatChangedCallback = Box<dyn Fn(RepeatMode) -> () + Send + Sync + 'static>;
-pub type OnPlayerEventCallback = Box<dyn Fn(&PlayerEvent) -> () + Send + Sync + 'static>;
+pub type OnSongChangedCallback = Box<dyn Fn(Option<&Song>) + Send + Sync + 'static>;
+pub type OnQueueUpdatedCallback = Box<dyn Fn(&[Song]) + Send + Sync + 'static>;
+pub type OnRepeatChangedCallback = Box<dyn Fn(RepeatMode) + Send + Sync + 'static>;
+pub type OnPlayerEventCallback = Box<dyn Fn(&PlayerEvent) + Send + Sync + 'static>;
 
 pub struct PlayerHandler {
     pub(crate) song_queue: Vec<Song>,
@@ -328,11 +328,11 @@ impl PlayerHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn trigger_song_changed(&mut self) {
         let current = self.current_song().cloned();
-        if let Some(song) = &current {
-            if let Err(e) = self.player.set_src(song.clone()) {
-                tracing::error!("Failed to load song: {:?}", e);
-                return;
-            }
+        if let Some(song) = &current
+            && let Err(e) = self.player.set_src(song.clone())
+        {
+            tracing::error!("Failed to load song: {:?}", e);
+            return;
         }
         self.on_song_changed.run_all(|cb| {
             cb(current.as_ref());
@@ -363,7 +363,7 @@ impl Plugin for PlayerHandler {
 
         let ph_clone = ph.clone();
         tokio::spawn(async move {
-            while let Some(_) = ended_rx.recv().await {
+            while ended_rx.recv().await.is_some() {
                 let mut ph = ph_clone.write().await;
                 ph.on_song_ended();
             }

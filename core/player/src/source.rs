@@ -37,7 +37,7 @@ pub(crate) fn get_valid_src(song: &'_ Song) -> Result<ValidSrc<'_>, PlayerError>
     if let Some(src) = song.get_playback_url() {
         return Ok(ValidSrc::Url(src));
     }
-    Err(PlayerError::NoSrcFound(song.clone()))
+    Err(PlayerError::NoSrcFound(Box::new(song.clone())))
 }
 
 pub type SourceResolverFn =

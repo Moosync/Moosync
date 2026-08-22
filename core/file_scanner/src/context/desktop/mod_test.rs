@@ -46,7 +46,7 @@ fn test_get_files_recursively_filters_and_excludes() {
     fs::write(&txt1, b"hello").unwrap();
     fs::write(&song2, b"flac").unwrap();
 
-    let res = get_files_recursively(dir.clone(), &[sub2.clone()]).unwrap();
+    let res = get_files_recursively(dir.clone(), std::slice::from_ref(&sub2)).unwrap();
     assert_eq!(res.file_list.len(), 1);
     assert_eq!(res.file_list[0].0, song1);
     assert_eq!(res.playlist_list.len(), 1);

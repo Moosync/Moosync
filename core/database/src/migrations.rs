@@ -63,7 +63,7 @@ pub fn run_migrations(conn: &mut rusqlite::Connection) {
 
         if !already_run {
             tx.execute_batch(sql)
-                .expect(&format!("Failed to run migration {}", version));
+                .unwrap_or_else(|_| panic!("Failed to run migration {}", version));
             tx.execute(
                 "INSERT INTO __diesel_schema_migrations (version) VALUES (?1)",
                 [version],
@@ -106,7 +106,7 @@ pub fn run_migration_cache(conn: &mut rusqlite::Connection) {
 
         if !already_run {
             tx.execute_batch(sql)
-                .expect(&format!("Failed to run migration {}", version));
+                .unwrap_or_else(|_| panic!("Failed to run migration {}", version));
             tx.execute(
                 "INSERT INTO __diesel_schema_migrations (version) VALUES (?1)",
                 [version],

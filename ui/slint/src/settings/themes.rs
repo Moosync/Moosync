@@ -177,11 +177,10 @@ impl<'a> ThemesPageHandler<'a> {
             let active_theme = theme_holder
                 .inner
                 .load_theme(active_theme_id.clone())
-                .unwrap_or_else(|_| {
-                    let mut def = ThemeDetails::default();
-                    def.id = "default".to_string();
-                    def.name = "Default".to_string();
-                    def
+                .unwrap_or_else(|_| ThemeDetails {
+                    id: "default".to_string(),
+                    name: "Default".to_string(),
+                    ..Default::default()
                 });
 
             let mut current_theme = active_theme.clone();
@@ -298,11 +297,10 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                                 let active_theme = theme_holder
                                     .inner
                                     .load_theme(active_theme_id.clone())
-                                    .unwrap_or_else(|_| {
-                                        let mut def = ThemeDetails::default();
-                                        def.id = "default".to_string();
-                                        def.name = "Default".to_string();
-                                        def
+                                    .unwrap_or_else(|_| ThemeDetails {
+                                        id: "default".to_string(),
+                                        name: "Default".to_string(),
+                                        ..Default::default()
                                     });
 
                                 let themes_list = Self::get_all_themes_list(&theme_holder.inner);

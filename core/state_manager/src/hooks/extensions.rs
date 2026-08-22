@@ -8,6 +8,10 @@ use crate::{StateManager, reply_handler::StateReplyHandler};
 
 pub struct ExtensionsHook;
 
+impl Default for ExtensionsHook {
+    fn default() -> Self { Self::new() }
+}
+
 impl ExtensionsHook {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new() -> Self { Self }

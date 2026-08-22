@@ -30,7 +30,7 @@ use uuid::Uuid;
 
 use crate::error::ThemesError;
 
-pub type OnThemeChangedCallback = Box<dyn Fn(&ThemeDetails) -> () + Send + Sync + 'static>;
+pub type OnThemeChangedCallback = Box<dyn Fn(&ThemeDetails) + Send + Sync + 'static>;
 
 pub struct ThemeHolder {
     pub theme_dir: PathBuf,

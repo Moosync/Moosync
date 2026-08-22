@@ -47,6 +47,6 @@ fn test_search_page_handler_initialize() {
             .global::<AppCallbacks>()
             .invoke_search_term_changed("test".into());
 
-        assert_eq!(main_window.get_playing(), false);
+        assert!(!main_window.get_playing());
     });
 }

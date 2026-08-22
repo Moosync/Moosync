@@ -50,8 +50,13 @@ pub fn generate(_args: TokenStream, input: TokenStream) -> TokenStream {
             let before_name = format_ident!("before_{}", method_name);
             let after_name = format_ident!("after_{}", method_name);
 
-            let (trait_sigs, wrapper_calls, vec_calls, inner_calls, mut_shadows) =
-                extract_arguments(method);
+            let ExtractedArgs {
+                trait_sigs,
+                wrapper_calls,
+                vec_calls,
+                inner_calls,
+                mut_shadows,
+            } = extract_arguments(method);
             let return_type = get_return_type(method);
 
             let has_generics = !method.sig.generics.params.is_empty();
@@ -161,15 +166,15 @@ fn get_struct_name(impl_block: &ItemImpl) -> &Ident {
     }
 }
 
-fn extract_arguments(
-    method: &ImplItemFn,
-) -> (
-    Vec<TokenStream2>,
-    Vec<TokenStream2>,
-    Vec<TokenStream2>,
-    Vec<TokenStream2>,
-    Vec<TokenStream2>,
-) {
+struct ExtractedArgs {
+    trait_sigs: Vec<TokenStream2>,
+    wrapper_calls: Vec<TokenStream2>,
+    vec_calls: Vec<TokenStream2>,
+    inner_calls: Vec<TokenStream2>,
+    mut_shadows: Vec<TokenStream2>,
+}
+
+fn extract_arguments(method: &ImplItemFn) -> ExtractedArgs {
     let mut trait_sigs = Vec::new();
     let mut wrapper_calls = Vec::new();
     let mut vec_calls = Vec::new();
@@ -177,37 +182,37 @@ fn extract_arguments(
     let mut mut_shadows = Vec::new();
 
     for arg in &method.sig.inputs {
-        if let FnArg::Typed(pat_type) = arg {
-            if let Pat::Ident(pat_ident) = &*pat_type.pat {
-                let ident = &pat_ident.ident;
-                let p_ident = format_ident!("_{}", ident); // The prefixed variable
-                let ty = &pat_type.ty;
+        if let FnArg::Typed(pat_type) = arg
+            && let Pat::Ident(pat_ident) = &*pat_type.pat
+        {
+            let ident = &pat_ident.ident;
+            let p_ident = format_ident!("_{}", ident); // The prefixed variable
+            let ty = &pat_type.ty;
 
-                match &**ty {
-                    syn::Type::Reference(_) => {
-                        trait_sigs.push(quote! { #p_ident: #ty });
-                        wrapper_calls.push(quote! { #ident });
-                        vec_calls.push(quote! { #p_ident });
-                        inner_calls.push(quote! { #ident });
-                    }
-                    _ => {
-                        trait_sigs.push(quote! { #p_ident: &mut #ty });
-                        wrapper_calls.push(quote! { &mut #p_ident });
-                        vec_calls.push(quote! { #p_ident });
-                        inner_calls.push(quote! { #p_ident });
-                        mut_shadows.push(quote! { let mut #p_ident = #ident; });
-                    }
+            match &**ty {
+                syn::Type::Reference(_) => {
+                    trait_sigs.push(quote! { #p_ident: #ty });
+                    wrapper_calls.push(quote! { #ident });
+                    vec_calls.push(quote! { #p_ident });
+                    inner_calls.push(quote! { #ident });
+                }
+                _ => {
+                    trait_sigs.push(quote! { #p_ident: &mut #ty });
+                    wrapper_calls.push(quote! { &mut #p_ident });
+                    vec_calls.push(quote! { #p_ident });
+                    inner_calls.push(quote! { #p_ident });
+                    mut_shadows.push(quote! { let mut #p_ident = #ident; });
                 }
             }
         }
     }
-    (
+    ExtractedArgs {
         trait_sigs,
         wrapper_calls,
         vec_calls,
         inner_calls,
         mut_shadows,
-    )
+    }
 }
 
 fn get_return_type(method: &ImplItemFn) -> TokenStream2 {
@@ -299,11 +304,11 @@ fn generate_wrapper_method(
             .inputs
             .iter()
             .filter_map(|arg| {
-                if let FnArg::Typed(pat_type) = arg {
-                    if let Pat::Ident(pat_ident) = &*pat_type.pat {
-                        let ident = &pat_ident.ident;
-                        return Some(quote! { #ident });
-                    }
+                if let FnArg::Typed(pat_type) = arg
+                    && let Pat::Ident(pat_ident) = &*pat_type.pat
+                {
+                    let ident = &pat_ident.ident;
+                    return Some(quote! { #ident });
                 }
                 None
             })

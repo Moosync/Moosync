@@ -4,10 +4,7 @@ include!(concat!(env!("OUT_DIR"), "/app.rs"));
 
 use std::{path::Path, time::Duration};
 
-use extensions_proto;
-use player;
 use slint::{Image, ModelRc, VecModel};
-use songs_proto;
 use state_manager::StateManager;
 use tracing::{debug, trace};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};

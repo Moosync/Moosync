@@ -15,8 +15,8 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use extensions_proto::moosync::types::{
-    GetAppVersionRequest, GetPlayerStateRequest, GetTimeRequest, GetVolumeRequest, MainCommand,
-    main_command, main_command_response,
+    GetAppVersionRequest, GetPlayerStateRequest, GetTimeRequest, GetVolumeRequest, main_command,
+    main_command_response,
 };
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Song};
 use ui_proto::moosync::types::PreferenceUiData;

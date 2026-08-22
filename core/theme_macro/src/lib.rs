@@ -372,45 +372,45 @@ fn parse_slint_theme(content: &str) -> Vec<(String, String, String)> {
     let mut properties = Vec::new();
     let content = strip_comments(content);
 
-    if let Some(theme_start) = content.find("global Theme") {
-        if let Some(brace_start) = content[theme_start..].find('{') {
-            let start_idx = theme_start + brace_start + 1;
-            let mut brace_count = 1;
-            let mut end_idx = start_idx;
-            let chars: Vec<char> = content[start_idx..].chars().collect();
-            for (i, c) in chars.iter().enumerate() {
-                if *c == '{' {
-                    brace_count += 1;
-                } else if *c == '}' {
-                    brace_count -= 1;
-                    if brace_count == 0 {
-                        end_idx = start_idx + i;
-                        break;
-                    }
+    if let Some(theme_start) = content.find("global Theme")
+        && let Some(brace_start) = content[theme_start..].find('{')
+    {
+        let start_idx = theme_start + brace_start + 1;
+        let mut brace_count = 1;
+        let mut end_idx = start_idx;
+        let chars: Vec<char> = content[start_idx..].chars().collect();
+        for (i, c) in chars.iter().enumerate() {
+            if *c == '{' {
+                brace_count += 1;
+            } else if *c == '}' {
+                brace_count -= 1;
+                if brace_count == 0 {
+                    end_idx = start_idx + i;
+                    break;
                 }
             }
+        }
 
-            let theme_block = &content[start_idx..end_idx];
-            for statement in theme_block.split(';') {
-                let statement = statement.trim();
-                if statement.is_empty() {
-                    continue;
-                }
-                if let Some(prop_idx) = statement.find("property") {
-                    let after_prop = &statement[prop_idx + 8..].trim();
-                    if after_prop.starts_with('<') {
-                        if let Some(type_end) = after_prop.find('>') {
-                            let prop_type = after_prop[1..type_end].trim().to_string();
-                            let after_type = after_prop[type_end + 1..].trim();
-                            if let Some(colon_idx) = after_type.find(':') {
-                                let prop_name = after_type[..colon_idx].trim().to_string();
-                                let default_val = after_type[colon_idx + 1..].trim().to_string();
-                                properties.push((prop_name, prop_type, default_val));
-                            } else {
-                                let prop_name = after_type.trim().to_string();
-                                properties.push((prop_name, prop_type, String::new()));
-                            }
-                        }
+        let theme_block = &content[start_idx..end_idx];
+        for statement in theme_block.split(';') {
+            let statement = statement.trim();
+            if statement.is_empty() {
+                continue;
+            }
+            if let Some(prop_idx) = statement.find("property") {
+                let after_prop = &statement[prop_idx + 8..].trim();
+                if after_prop.starts_with('<')
+                    && let Some(type_end) = after_prop.find('>')
+                {
+                    let prop_type = after_prop[1..type_end].trim().to_string();
+                    let after_type = after_prop[type_end + 1..].trim();
+                    if let Some(colon_idx) = after_type.find(':') {
+                        let prop_name = after_type[..colon_idx].trim().to_string();
+                        let default_val = after_type[colon_idx + 1..].trim().to_string();
+                        properties.push((prop_name, prop_type, default_val));
+                    } else {
+                        let prop_name = after_type.trim().to_string();
+                        properties.push((prop_name, prop_type, String::new()));
                     }
                 }
             }

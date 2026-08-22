@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    cell::RefCell,
+    sync::{Arc, Mutex},
+};
 
 use slint::ComponentHandle;
 use state_manager::StateManager;
@@ -10,7 +13,7 @@ pub struct QueuePageHandler<'a> {
     main_window: &'a MainWindow,
     state_manager: &'a StateManager,
     cancel_handles: Arc<Mutex<Vec<types::subscription::CancelHandle>>>,
-    hide_timer: Arc<Mutex<slint::Timer>>,
+    hide_timer: RefCell<slint::Timer>,
     is_visible: Arc<Mutex<bool>>,
 }
 
@@ -21,7 +24,7 @@ impl<'a> QueuePageHandler<'a> {
             main_window,
             state_manager,
             cancel_handles: Arc::new(Mutex::new(Vec::new())),
-            hide_timer: Arc::new(Mutex::new(slint::Timer::default())),
+            hide_timer: RefCell::new(slint::Timer::default()),
             is_visible: Arc::new(Mutex::new(false)),
         }
     }
@@ -84,7 +87,7 @@ impl<'a> QueuePageHandler<'a> {
 
         self.main_window
             .global::<AppCallbacks>()
-            .on_string_to_transfer(move |text| slint::DataTransfer::from(text));
+            .on_string_to_transfer(slint::DataTransfer::from);
 
         self.main_window
             .global::<AppCallbacks>()
@@ -230,7 +233,7 @@ impl<'a> PageHandler for QueuePageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         *self.is_visible.lock().unwrap() = true;
-        self.hide_timer.lock().unwrap().stop();
+        self.hide_timer.borrow().stop();
 
         Self::fetch_initial_state(self.state_manager.clone(), self.main_window.as_weak());
         Self::register_player_callbacks(
@@ -248,7 +251,7 @@ impl<'a> PageHandler for QueuePageHandler<'a> {
         let cancel_handles = self.cancel_handles.clone();
         let is_visible = self.is_visible.clone();
 
-        self.hide_timer.lock().unwrap().start(
+        self.hide_timer.borrow().start(
             slint::TimerMode::SingleShot,
             std::time::Duration::from_millis(250),
             move || {

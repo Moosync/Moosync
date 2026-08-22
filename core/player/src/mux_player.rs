@@ -50,7 +50,7 @@ impl MuxPlayer {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn find_best_player(&mut self, song: &Song) -> Result<(), PlayerError> {
-        let src = get_valid_src(&song)?;
+        let src = get_valid_src(song)?;
         for player in &self.players {
             if player.can_play(src.clone()) {
                 self.set_active_player(player.clone());
@@ -58,7 +58,7 @@ impl MuxPlayer {
             }
         }
 
-        Err(PlayerError::NoPlayerFound(song.clone()))
+        Err(PlayerError::NoPlayerFound(Box::new(song.clone())))
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

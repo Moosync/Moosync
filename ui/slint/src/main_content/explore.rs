@@ -8,6 +8,12 @@ use crate::{
     utils::{LazySongVecModel, cache_image, load_local_icon, to_song_model},
 };
 
+type RecommendationItem = (
+    extensions_proto::moosync::types::ExtensionDetail,
+    Option<String>,
+    Vec<songs_proto::moosync::types::Song>,
+);
+
 pub struct ExplorePageHandler<'a> {
     main_window: &'a MainWindow,
     state_manager: &'a StateManager,
@@ -39,14 +45,7 @@ impl<'a> ExplorePageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn fetch_all_recommendations(
         state_manager: &StateManager,
-    ) -> Result<
-        Vec<(
-            extensions_proto::moosync::types::ExtensionDetail,
-            Option<String>,
-            Vec<songs_proto::moosync::types::Song>,
-        )>,
-        UiError,
-    > {
+    ) -> Result<Vec<RecommendationItem>, UiError> {
         let mut results = Vec::new();
         let ext_handler = state_manager.get_extension_handler().await;
         let rec_extensions = ext_handler

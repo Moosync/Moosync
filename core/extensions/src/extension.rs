@@ -1,19 +1,18 @@
 use std::{
     collections::HashMap,
     fs,
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::{Arc, Mutex, RwLock},
 };
 
 use extensions_proto::moosync::types::{
-    ContextMenuActionRequest, ContextMenuActionResponse, ContextMenuReturnType, CustomRequest,
-    CustomRequestResponse, ExtensionAccountDetail, ExtensionCommand, ExtensionCommandResponse,
-    ExtensionDetail, ExtensionManifest, ExtensionProviderScope, GetAccountsRequest,
-    GetAccountsResponse, GetProviderScopesRequest, GetProviderScopesResponse, GetRemoteUrlRequest,
-    GetRemoteUrlResponse, OauthCallbackRequest, OauthCallbackResponse, PerformAccountLoginRequest,
-    PerformAccountLoginResponse, PlaybackDetailsRequestedRequest, PlaybackDetailsRequestedResponse,
-    PlayerStateChangedRequest, PlayerStateChangedResponse, PlaylistAddedRequest,
-    PlaylistAddedResponse, PlaylistRemovedRequest, PlaylistRemovedResponse,
+    ContextMenuActionRequest, ContextMenuActionResponse, CustomRequest, CustomRequestResponse,
+    ExtensionCommand, ExtensionCommandResponse, ExtensionDetail, ExtensionManifest,
+    GetAccountsRequest, GetAccountsResponse, GetProviderScopesRequest, GetProviderScopesResponse,
+    GetRemoteUrlRequest, GetRemoteUrlResponse, OauthCallbackRequest, OauthCallbackResponse,
+    PerformAccountLoginRequest, PerformAccountLoginResponse, PlaybackDetailsRequestedRequest,
+    PlaybackDetailsRequestedResponse, PlayerStateChangedRequest, PlayerStateChangedResponse,
+    PlaylistAddedRequest, PlaylistAddedResponse, PlaylistRemovedRequest, PlaylistRemovedResponse,
     PreferenceChangedRequest, PreferenceChangedResponse, RequestedAlbumSongsRequest,
     RequestedAlbumSongsResponse, RequestedArtistSongsRequest, RequestedArtistSongsResponse,
     RequestedLyricsRequest, RequestedLyricsResponse, RequestedPlaylistContextMenuRequest,
@@ -29,7 +28,6 @@ use extensions_proto::moosync::types::{
     SongRemovedResponse, VolumeChangedRequest, VolumeChangedResponse, extension_command,
     extension_command_response,
 };
-use songs_proto::moosync::types::{Album, Artist, Playlist, Song};
 use ui_proto::moosync::types::PreferenceUiData;
 
 use crate::{
@@ -109,10 +107,10 @@ impl Extension {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn kill_extension(&self) {
-        if let Some(context) = self.context.lock().unwrap().take() {
-            if let Err(e) = context.kill() {
-                tracing::error!("Failed to kill extension: {}", e);
-            }
+        if let Some(context) = self.context.lock().unwrap().take()
+            && let Err(e) = context.kill()
+        {
+            tracing::error!("Failed to kill extension: {}", e);
         }
         self.has_started
             .store(false, std::sync::atomic::Ordering::SeqCst);
@@ -399,24 +397,24 @@ impl Extension {
     );
 }
 
-impl Into<ExtensionDetail> for &Extension {
-    fn into(self) -> ExtensionDetail {
+impl From<&Extension> for ExtensionDetail {
+    fn from(val: &Extension) -> Self {
         ExtensionDetail {
-            name: self.manifest.display_name.clone(),
-            package_name: self.manifest.name.clone(),
+            name: val.manifest.display_name.clone(),
+            package_name: val.manifest.name.clone(),
             desc: None,
-            author: self.manifest.author.clone(),
-            version: self.manifest.version.clone(),
-            has_started: self.has_started.load(std::sync::atomic::Ordering::SeqCst),
-            preferences: self
+            author: val.manifest.author.clone(),
+            version: val.manifest.version.clone(),
+            has_started: val.has_started.load(std::sync::atomic::Ordering::SeqCst),
+            preferences: val
                 .preferences
                 .read()
                 .unwrap()
                 .clone()
                 .into_values()
                 .collect(),
-            extension_icon: Some(self.manifest.icon.clone()),
-            active: self.is_active(),
+            extension_icon: Some(val.manifest.icon.clone()),
+            active: val.is_active(),
         }
     }
 }

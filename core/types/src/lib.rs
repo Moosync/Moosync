@@ -42,7 +42,7 @@ pub enum ScanProgress {
 }
 
 pub mod prelude {
-    use std::{borrow::Cow, time::Duration};
+    use std::borrow::Cow;
 
     use songs_proto::moosync::types::{
         Album, Artist, EntityResult, Genre, InnerSong, Playlist, Song, SongType, entity_result,

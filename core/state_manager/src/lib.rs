@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use tempdir;
 use tokio::runtime::Handle;
 #[cfg(target_os = "android")]
 use types::android::AndroidJNIContext;

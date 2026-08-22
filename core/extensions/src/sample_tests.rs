@@ -4,15 +4,10 @@ use std::{
 };
 
 use extensions_proto::moosync::types::{
-    ContextMenuActionRequest, ContextMenuActionResponse, CustomRequest, CustomRequestResponse,
-    ExtensionCommand, GetAccountsRequest, GetAccountsResponse, GetProviderScopesRequest,
-    GetProviderScopesResponse, MainCommand, PerformAccountLoginRequest,
-    PerformAccountLoginResponse, PlayerState, PlayerStateChangedRequest,
-    PlayerStateChangedResponse, PreferenceArgs, PreferenceChangedRequest,
-    PreferenceChangedResponse, RequestedSearchResultRequest, RequestedSearchResultResponse,
-    SeekedRequest, SeekedResponse, SongChangedRequest, SongChangedResponse,
-    SongQueueChangedRequest, SongQueueChangedResponse, VolumeChangedRequest, VolumeChangedResponse,
-    extension_command, extension_command_response, main_command,
+    ContextMenuActionRequest, CustomRequest, GetProviderScopesRequest, MainCommand,
+    PerformAccountLoginRequest, PlayerState, PlayerStateChangedRequest, PreferenceArgs,
+    PreferenceChangedRequest, RequestedSearchResultRequest, SeekedRequest, SongChangedRequest,
+    SongQueueChangedRequest, VolumeChangedRequest, main_command,
 };
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use ui_proto::moosync::types::PreferenceUiData;
@@ -519,9 +514,19 @@ async fn setup_extension_at(
         if path.is_file() {
             let dest = dest_ext_path.join(path.file_name().unwrap());
             std::fs::copy(&path, &dest).unwrap();
-            let mut perms = std::fs::metadata(&dest).unwrap().permissions();
-            perms.set_readonly(false);
-            std::fs::set_permissions(&dest, perms).unwrap();
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let perms = std::fs::Permissions::from_mode(0o644);
+                std::fs::set_permissions(&dest, perms).unwrap();
+            }
+            #[cfg(not(unix))]
+            {
+                let mut perms = std::fs::metadata(&dest).unwrap().permissions();
+                #[allow(clippy::permissions_set_readonly_false)]
+                perms.set_readonly(false);
+                std::fs::set_permissions(&dest, perms).unwrap();
+            }
         }
     }
 

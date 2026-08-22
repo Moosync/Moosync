@@ -120,7 +120,8 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn create_playlist(&self, mut playlist: Playlist) -> Result<String, DatabaseError> {
+    pub fn create_playlist(&self, playlist: Playlist) -> Result<String, DatabaseError> {
+        let mut playlist = playlist;
         let mut conn = self.pool.get().unwrap();
 
         trace!("Sanitizing playlist");
@@ -193,7 +194,8 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn insert_songs(&self, mut songs: Vec<Song>) -> Result<Vec<Song>, DatabaseError> {
+    pub fn insert_songs(&self, songs: Vec<Song>) -> Result<Vec<Song>, DatabaseError> {
+        let mut songs = songs;
         self.insert_songs_by_ref(&mut songs)?;
         Ok(songs)
     }
@@ -239,31 +241,30 @@ impl Database {
         let mut unique_genres = std::collections::HashMap::new();
 
         for song in songs.iter() {
-            if let Some(album) = &song.album {
-                if let Some(ref name) = album.album_name {
-                    if !name.is_empty() {
-                        unique_albums
-                            .entry(name.clone())
-                            .or_insert_with(|| album.clone());
-                    }
-                }
+            if let Some(album) = &song.album
+                && let Some(ref name) = album.album_name
+                && !name.is_empty()
+            {
+                unique_albums
+                    .entry(name.clone())
+                    .or_insert_with(|| album.clone());
             }
             for artist in &song.artists {
-                if let Some(ref name) = artist.artist_name {
-                    if !name.is_empty() {
-                        unique_artists
-                            .entry(name.clone())
-                            .or_insert_with(|| artist.clone());
-                    }
+                if let Some(ref name) = artist.artist_name
+                    && !name.is_empty()
+                {
+                    unique_artists
+                        .entry(name.clone())
+                        .or_insert_with(|| artist.clone());
                 }
             }
             for genre in &song.genre {
-                if let Some(ref name) = genre.genre_name {
-                    if !name.is_empty() {
-                        unique_genres
-                            .entry(name.clone())
-                            .or_insert_with(|| genre.clone());
-                    }
+                if let Some(ref name) = genre.genre_name
+                    && !name.is_empty()
+                {
+                    unique_genres
+                        .entry(name.clone())
+                        .or_insert_with(|| genre.clone());
                 }
             }
         }
@@ -474,12 +475,11 @@ impl Database {
         // 4. Fetch existing song IDs for paths that already exist in the database
         let mut paths_to_query = Vec::new();
         for song in songs.iter() {
-            if let Some(inner_song) = &song.song {
-                if let Some(ref path) = inner_song.path {
-                    if !path.is_empty() {
-                        paths_to_query.push(path.clone());
-                    }
-                }
+            if let Some(inner_song) = &song.song
+                && let Some(ref path) = inner_song.path
+                && !path.is_empty()
+            {
+                paths_to_query.push(path.clone());
             }
         }
 
@@ -514,12 +514,11 @@ impl Database {
         for song in songs.iter_mut() {
             if let Some(inner_song) = song.song.as_mut() {
                 let mut resolved_id = None;
-                if let Some(ref path) = inner_song.path {
-                    if !path.is_empty() {
-                        if let Some(id) = existing_song_ids.get(path) {
-                            resolved_id = Some(id.clone());
-                        }
-                    }
+                if let Some(ref path) = inner_song.path
+                    && !path.is_empty()
+                    && let Some(id) = existing_song_ids.get(path)
+                {
+                    resolved_id = Some(id.clone());
                 }
                 if resolved_id.is_none() {
                     resolved_id = Some(
@@ -531,25 +530,24 @@ impl Database {
                 }
                 inner_song.id = resolved_id;
             }
-            if let Some(album) = song.album.as_mut() {
-                if let Some(ref name) = album.album_name {
-                    if let Some(id) = album_ids.get(name) {
-                        album.album_id = Some(id.clone());
-                    }
-                }
+            if let Some(album) = song.album.as_mut()
+                && let Some(ref name) = album.album_name
+                && let Some(id) = album_ids.get(name)
+            {
+                album.album_id = Some(id.clone());
             }
             for artist in song.artists.iter_mut() {
-                if let Some(ref name) = artist.artist_name {
-                    if let Some(id) = artist_ids.get(name) {
-                        artist.artist_id = Some(id.clone());
-                    }
+                if let Some(ref name) = artist.artist_name
+                    && let Some(id) = artist_ids.get(name)
+                {
+                    artist.artist_id = Some(id.clone());
                 }
             }
             for genre in song.genre.iter_mut() {
-                if let Some(ref name) = genre.genre_name {
-                    if let Some(id) = genre_ids.get(name) {
-                        genre.genre_id = Some(id.clone());
-                    }
+                if let Some(ref name) = genre.genre_name
+                    && let Some(id) = genre_ids.get(name)
+                {
+                    genre.genre_id = Some(id.clone());
                 }
             }
         }
@@ -595,10 +593,10 @@ impl Database {
                     library_item: None,
                 });
 
-                if let Some(album) = &song.album {
-                    if let Some(ref album_id) = album.album_id {
-                        album_bridges.push((song_id.clone(), album_id.clone()));
-                    }
+                if let Some(album) = &song.album
+                    && let Some(ref album_id) = album.album_id
+                {
+                    album_bridges.push((song_id.clone(), album_id.clone()));
                 }
 
                 for artist in &song.artists {
@@ -1571,7 +1569,6 @@ impl Database {
                 extension: None,
                 icon: None,
                 library_item: None,
-                ..Default::default()
             },
             false,
             &mut conn,
@@ -1591,8 +1588,9 @@ impl Database {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn files_not_in_db(
         &self,
-        mut file_list: Vec<(PathBuf, f64)>,
+        file_list: Vec<(PathBuf, f64)>,
     ) -> Result<Vec<(PathBuf, f64)>, DatabaseError> {
+        let mut file_list = file_list;
         let conn = self.pool.get().unwrap();
 
         let len = file_list.len();
@@ -1616,10 +1614,10 @@ impl Database {
             }
 
             let mut params = Vec::new();
-            for i in 0..curr_len {
+            for temp_path in temp_paths.iter().take(curr_len) {
                 clauses.push("(path = ? AND size = ?)".to_string());
-                params.push(&temp_paths[i].0 as &dyn rusqlite::ToSql);
-                params.push(&temp_paths[i].1 as &dyn rusqlite::ToSql);
+                params.push(&temp_path.0 as &dyn rusqlite::ToSql);
+                params.push(&temp_path.1 as &dyn rusqlite::ToSql);
             }
 
             query.push_str(" WHERE ");

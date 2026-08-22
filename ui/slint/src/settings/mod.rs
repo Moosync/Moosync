@@ -79,8 +79,6 @@ pub fn handle_preference_change(
         if paths::PathsPageHandler::handle_change(&change, &main_window_weak, state_manager) {
             return;
         }
-        if system::SystemPageHandler::handle_change(&change, &main_window_weak, state_manager) {
-            return;
-        }
+        system::SystemPageHandler::handle_change(&change, &main_window_weak, state_manager);
     });
 }

@@ -168,7 +168,6 @@ pub fn map_row_to_inner_song(row: &rusqlite::Row) -> rusqlite::Result<InnerSong>
         song_cover_path_low: row.get(20)?,
         date_added: row.get(21)?,
         track_no: row.get(25)?,
-        ..Default::default()
     })
 }
 

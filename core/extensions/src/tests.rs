@@ -16,19 +16,11 @@
 
 use std::{path::PathBuf, sync::Arc};
 
-use extensions_proto::moosync::types::{
-    AddSongsRequest, ExtensionCommand, GetProviderScopesRequest, MainCommand, extension_command,
-    extension_command_response, main_command,
-};
-use songs_proto::moosync::types::{
-    EntityResult, GetEntityOptions, GetSongOptions, InnerSong, Playlist, Song,
-};
+use extensions_proto::moosync::types::GetProviderScopesRequest;
+use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use ui_proto::moosync::types::{PreferenceTypes, PreferenceUiData};
 
-use crate::{
-    ExtensionError, context::ReplyHandler, ext_runner::ExtensionHandlerInner,
-    models::SanitizeCommand,
-};
+use crate::{ExtensionError, context::ReplyHandler, ext_runner::ExtensionHandlerInner};
 
 static INIT: std::sync::Once = std::sync::Once::new();
 
@@ -250,7 +242,7 @@ fn test_find_and_spawn_extensions() {
 
     let reply_handler = Arc::new(TestReplyHandler);
 
-    let mut handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
+    let handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
 
     let installed = handler.get_installed_extensions();
     assert_eq!(installed.len(), 0);
@@ -287,7 +279,7 @@ async fn test_handle_extension_command() {
     // Copy valid sample WASM fixture to temporary directory
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
-    let mut handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
+    let handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
 
     let reply_handler = Arc::new(TestReplyHandler);
     handler.spawn_extensions(reply_handler);

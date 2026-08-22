@@ -133,7 +133,7 @@ fn test_map_album_row() {
         [],
     ).unwrap();
     let album = conn
-        .query_row("SELECT * FROM albums", [], |row| map_row_to_album(row))
+        .query_row("SELECT * FROM albums", [], map_row_to_album)
         .unwrap();
     assert_eq!(album.album_id, Some("alb1".to_string()));
     assert_eq!(album.album_name, Some("Dark Side".to_string()));
@@ -156,7 +156,7 @@ fn test_map_artist_row() {
     )
     .unwrap();
     let artist = conn
-        .query_row("SELECT * FROM artists", [], |row| map_row_to_artist(row))
+        .query_row("SELECT * FROM artists", [], map_row_to_artist)
         .unwrap();
     assert_eq!(artist.artist_id, Some("art1".to_string()));
     assert_eq!(artist.artist_mbid, Some("mbid123".to_string()));
@@ -177,7 +177,7 @@ fn test_map_genre_row() {
     conn.execute("INSERT INTO genres VALUES ('gen1', 'Rock', 100)", [])
         .unwrap();
     let genre = conn
-        .query_row("SELECT * FROM genres", [], |row| map_row_to_genre(row))
+        .query_row("SELECT * FROM genres", [], map_row_to_genre)
         .unwrap();
     assert_eq!(genre.genre_id, Some("gen1".to_string()));
     assert_eq!(genre.genre_name, Some("Rock".to_string()));
@@ -197,9 +197,7 @@ fn test_map_playlist_row() {
         [],
     ).unwrap();
     let playlist = conn
-        .query_row("SELECT * FROM playlists", [], |row| {
-            map_row_to_playlist(row)
-        })
+        .query_row("SELECT * FROM playlists", [], map_row_to_playlist)
         .unwrap();
     assert_eq!(playlist.playlist_id, Some("pl1".to_string()));
     assert_eq!(playlist.playlist_name, "Roadtrip");
@@ -234,7 +232,7 @@ fn test_map_song_row() {
     )
     .unwrap();
     let song = conn
-        .query_row("SELECT * FROM songs", [], |row| map_row_to_inner_song(row))
+        .query_row("SELECT * FROM songs", [], map_row_to_inner_song)
         .unwrap();
     assert_eq!(song.id, Some("s1".to_string()));
     assert_eq!(song.path, Some("/music/track.mp3".to_string()));

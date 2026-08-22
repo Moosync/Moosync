@@ -126,7 +126,6 @@ fn generate_playlists(count: usize) -> Vec<Playlist> {
             extension: Some("local_extension".to_string()),
             icon: Some("playlist_icon".to_string()),
             library_item: Some(true),
-            ..Default::default()
         });
     }
     playlists
@@ -361,7 +360,7 @@ fn bench_db_ops(c: &mut Criterion) {
         let mut song_to_update = inserted_huge[0].song.clone().unwrap();
         song_to_update.title = Some("Updated Title for Bench".to_string());
         b.iter(|| {
-            let _ = shared_db.update_song(&song_to_update).unwrap();
+            shared_db.update_song(&song_to_update).unwrap();
         });
     });
 
@@ -381,14 +380,14 @@ fn bench_db_ops(c: &mut Criterion) {
             });
         }
         b.iter(|| {
-            let _ = shared_db.update_songs(songs_to_update.clone()).unwrap();
+            shared_db.update_songs(songs_to_update.clone()).unwrap();
         });
     });
 
     update_group.bench_function("update_lyrics", |b| {
         let target_id = inserted_huge[0].song.as_ref().unwrap().id.clone().unwrap();
         b.iter(|| {
-            let _ = shared_db
+            shared_db
                 .update_lyrics(
                     target_id.clone(),
                     "New lyrics for the benchmark".to_string(),
@@ -400,14 +399,14 @@ fn bench_db_ops(c: &mut Criterion) {
     update_group.bench_function("increment_play_count", |b| {
         let target_id = inserted_huge[0].song.as_ref().unwrap().id.clone().unwrap();
         b.iter(|| {
-            let _ = shared_db.increment_play_count(&target_id).unwrap();
+            shared_db.increment_play_count(&target_id).unwrap();
         });
     });
 
     update_group.bench_function("increment_play_time", |b| {
         let target_id = inserted_huge[0].song.as_ref().unwrap().id.clone().unwrap();
         b.iter(|| {
-            let _ = shared_db.increment_play_time(&target_id, 245.5).unwrap();
+            shared_db.increment_play_time(&target_id, 245.5).unwrap();
         });
     });
 
@@ -504,7 +503,7 @@ fn bench_db_ops(c: &mut Criterion) {
                 (db, ids, db_path)
             },
             |(db, ids, db_path)| {
-                let _ = db.remove_songs(&ids).unwrap();
+                db.remove_songs(&ids).unwrap();
                 cleanup(&db_path);
             },
             BatchSize::SmallInput,

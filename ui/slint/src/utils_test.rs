@@ -148,7 +148,6 @@ fn test_to_genre_model() {
         genre_id: Some("gen123".to_string()),
         genre_name: Some("Rock".to_string()),
         genre_song_count: 15.0,
-        ..Default::default()
     };
 
     let model = to_genre_model(&genre);

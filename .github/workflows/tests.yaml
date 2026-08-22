@@ -13,7 +13,7 @@ permissions:
 jobs:
   test:
     name: Run Tests & Coverage
-    runs-on: ubuntu-22.04-arm
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4

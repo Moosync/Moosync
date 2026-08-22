@@ -29,4 +29,7 @@ rust_library(
 rust_test(
     name = "lyrics_test",
     crate = ":lyrics",
+    deps = [
+        "@crates//:wiremock",
+    ],
 )

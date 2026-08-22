@@ -25,8 +25,11 @@ mod lib_test;
 #[cfg(test)]
 mod lib_test_smoke;
 
-#[derive(Debug)]
-pub struct LyricsFetcher {}
+#[derive(Debug, Clone)]
+pub struct LyricsFetcher {
+    az_base_url: Option<String>,
+    genius_base_url: Option<String>,
+}
 
 impl Default for LyricsFetcher {
     #[tracing::instrument(level = "debug", skip_all)]
@@ -36,7 +39,21 @@ impl Default for LyricsFetcher {
 #[plugin_macro::generate]
 impl LyricsFetcher {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new() -> LyricsFetcher { LyricsFetcher {} }
+    pub fn new() -> LyricsFetcher {
+        LyricsFetcher {
+            az_base_url: None,
+            genius_base_url: None,
+        }
+    }
+
+    #[cfg(test)]
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new_with_urls(az_base_url: String, genius_base_url: String) -> LyricsFetcher {
+        LyricsFetcher {
+            az_base_url: Some(az_base_url),
+            genius_base_url: Some(genius_base_url),
+        }
+    }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn sanitize_title(&self, title: &str) -> String {
@@ -82,12 +99,11 @@ impl LyricsFetcher {
         artists: &[String],
         title: &str,
     ) -> Result<String, LyricsError> {
-        let url = self.get_url(
-            "https://genius.com/api/search/song?q=",
-            artists,
-            title,
-            false,
-        );
+        let base = self
+            .genius_base_url
+            .as_deref()
+            .unwrap_or("https://genius.com/api/search/song?q=");
+        let url = self.get_url(base, artists, title, false);
 
         let client = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11")
@@ -136,6 +152,7 @@ impl LyricsFetcher {
         };
 
         let res = split
+            .trim_start_matches([':', '\\', '"', ' '])
             .replace("<br>", "\n")
             .replace("\\\\n", "")
             .replace('\\', "");
@@ -149,12 +166,11 @@ impl LyricsFetcher {
 
     #[tracing::instrument(level = "debug", skip_all)]
     async fn get_az_lyrics(&self, artists: &[String], title: &str) -> Result<String, LyricsError> {
-        let url = self.get_url(
-            "https://search.azlyrics.com/suggest.php?q=",
-            artists,
-            title,
-            false,
-        );
+        let base = self
+            .az_base_url
+            .as_deref()
+            .unwrap_or("https://search.azlyrics.com/suggest.php?q=");
+        let url = self.get_url(base, artists, title, false);
 
         let client = reqwest::Client::builder()
             .user_agent("Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11")
@@ -169,13 +185,9 @@ impl LyricsFetcher {
             && let Some(suggestion) = suggestion.first()
             && let Some(suggestion) = suggestion.as_object()
             && let Some(suggestion) = suggestion.get("url")
+            && let Some(song_url) = suggestion.as_str()
         {
-            let lyrics_resp = client
-                .get(suggestion.as_str().unwrap())
-                .send()
-                .await?
-                .text()
-                .await?;
+            let lyrics_resp = client.get(song_url).send().await?.text().await?;
 
             let lyrics = lyrics_resp
                 .split("<div class=\"ringtone\">")
@@ -210,9 +222,11 @@ impl LyricsFetcher {
         artists: Vec<String>,
         title: String,
     ) -> Result<String, LyricsError> {
-        let res = self.get_az_lyrics(&artists, &title).await;
-        if res.is_ok() {
-            return res;
+        let az_res = self.get_az_lyrics(&artists, &title).await;
+        if let Ok(lyrics) = az_res
+            && !lyrics.is_empty()
+        {
+            return Ok(lyrics);
         }
 
         self.get_genius_lyrics(&artists, &title).await

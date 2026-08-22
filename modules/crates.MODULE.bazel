@@ -403,6 +403,10 @@ crates.spec(
     version = "0.13.1",
 )
 crates.spec(
+    package = "wiremock",
+    version = "0.6.5",
+)
+crates.spec(
     package = "prost",
     version = "0.14",
 )

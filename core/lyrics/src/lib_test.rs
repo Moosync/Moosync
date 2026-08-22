@@ -14,6 +14,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use wiremock::{
+    Mock, MockServer, ResponseTemplate,
+    matchers::{method, path},
+};
+
 use crate::LyricsFetcher;
 
 #[test]
@@ -75,17 +80,123 @@ fn test_get_url() {
 #[tokio::test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_lyrics_fallback_when_az_empty() {
-    // Per user instruction 5.1: Add test for fallback when AZ lyrics returns empty
-    let fetcher = LyricsFetcher::new();
+    let mock_server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/suggest.php"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({"songs": []})))
+        .mount(&mock_server)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/api/search/song"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "response": {
+                "sections": [{
+                    "hits": [{
+                        "result": {
+                            "url": format!("{}/genius_song", mock_server.uri())
+                        }
+                    }]
+                }]
+            }
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let html = r#"window.__PRELOADED_STATE__ = JSON.parse('{"lyricsData": {"body": {"html\"": "<p>Fallback Genius Lyrics Content</p>", "other": 1}}}');"#;
+    Mock::given(method("GET"))
+        .and(path("/genius_song"))
+        .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html"))
+        .mount(&mock_server)
+        .await;
+
+    let fetcher = LyricsFetcher::new_with_urls(
+        format!("{}/suggest.php?q=", mock_server.uri()),
+        format!("{}/api/search/song?q=", mock_server.uri()),
+    );
+
     let res = fetcher
         .get_lyrics(
             "id".to_string(),
             "".to_string(),
-            vec!["Nonexistent Artist For Fallback Test".to_string()],
-            "Nonexistent Song Title 12345678".to_string(),
+            vec!["Artist Name".to_string()],
+            "Song Title".to_string(),
         )
         .await;
 
-    // Both remote sources return empty for dummy query
     assert!(res.is_ok());
+    assert_eq!(res.unwrap(), "Fallback Genius Lyrics Content");
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_lyrics_az_success() {
+    let mock_server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/suggest.php"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "songs": [{"url": format!("{}/az_song", mock_server.uri())}]
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let html = r#"<div class="ringtone"></div><!-- -->Direct AZ Lyrics Content</div><div class="noprint">"#;
+    Mock::given(method("GET"))
+        .and(path("/az_song"))
+        .respond_with(ResponseTemplate::new(200).set_body_raw(html, "text/html"))
+        .mount(&mock_server)
+        .await;
+
+    let fetcher = LyricsFetcher::new_with_urls(
+        format!("{}/suggest.php?q=", mock_server.uri()),
+        format!("{}/api/search/song?q=", mock_server.uri()),
+    );
+
+    let res = fetcher
+        .get_lyrics(
+            "id".to_string(),
+            "".to_string(),
+            vec!["Artist Name".to_string()],
+            "Song Title".to_string(),
+        )
+        .await;
+
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), "Direct AZ Lyrics Content");
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_lyrics_all_sources_empty() {
+    let mock_server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/suggest.php"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({"songs": []})))
+        .mount(&mock_server)
+        .await;
+
+    Mock::given(method("GET"))
+        .and(path("/api/search/song"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "response": {"sections": [{"hits": []}]}
+        })))
+        .mount(&mock_server)
+        .await;
+
+    let fetcher = LyricsFetcher::new_with_urls(
+        format!("{}/suggest.php?q=", mock_server.uri()),
+        format!("{}/api/search/song?q=", mock_server.uri()),
+    );
+
+    let res = fetcher
+        .get_lyrics(
+            "id".to_string(),
+            "".to_string(),
+            vec!["Artist Name".to_string()],
+            "Song Title".to_string(),
+        )
+        .await;
+
+    assert!(res.is_ok());
+    assert_eq!(res.unwrap(), "");
 }

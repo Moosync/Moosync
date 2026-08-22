@@ -1,0 +1,11 @@
+--- a/def.bzl
++++ b/def.bzl
+@@ -11,7 +11,7 @@
+     args.add("--postin", ctx.attr.postin)
+     args.add("--preun", ctx.attr.preun)
+     args.add("--postun", ctx.attr.postun)
+-    args.add_all("--requires", ctx.attr.requires)
++    args.add_all(ctx.attr.requires, before_each = "--requires")
+     args.add_joined("--prefixes", ctx.attr.prefixes, join_with = ",")
+     if ctx.attr.build_time != "":
+         args.add("--build_time", ctx.attr.build_time)

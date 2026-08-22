@@ -42,6 +42,8 @@ bazel_dep(name = "rpmpack", version = "0.6.0")
 git_override(
     module_name = "rpmpack",
     commit = "2467806670a618497006ff8d8623b0430c7605a9",
+    patch_strip = 1,
+    patches = ["//patches:rpmpack.patch"],
     remote = "https://github.com/google/rpmpack.git",
 )
 

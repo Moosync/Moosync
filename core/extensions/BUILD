@@ -28,6 +28,7 @@ rust_library(
     name = "extensions",
     srcs = [
         "src/context/extism_context.rs",
+        "src/context/extism_context_test.rs",
         "src/context/mod.rs",
         "src/context/mod_test.rs",
         "src/errors.rs",

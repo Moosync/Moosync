@@ -34,8 +34,9 @@ use crypto::{
     sha2::{Sha256, Sha512},
 };
 use extensions_proto::moosync::types::{
-    Error as MainCommandError, ExtensionCommand, ExtensionCommandResponse, ExtensionManifest,
-    MainCommand, MainCommandResponse, ManifestPermissions, main_command_response,
+    BatchHttpRequest, BatchHttpResponse, Error as MainCommandError, ExtensionCommand,
+    ExtensionCommandResponse, ExtensionManifest, HttpRequest, HttpResponse, HttpResult,
+    MainCommand, MainCommandResponse, ManifestPermissions, http_result, main_command_response,
 };
 use extism::{Manifest, PTR, Plugin, PluginBuilder, UserData, ValType::I64, Wasm, host_fn};
 use extism_convert::Prost;
@@ -59,6 +60,11 @@ struct MainCommandUserData {
 struct SocketUserData {
     socks: Vec<LocalSocketStream>,
     allowed_paths: Option<BTreeMap<String, PathBuf>>,
+}
+
+struct HttpUserData {
+    allowed_hosts: Option<Vec<String>>,
+    client: reqwest::Client,
 }
 
 host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Prost<MainCommand>) {
@@ -220,13 +226,156 @@ host_fn!(hash(hash_type: String, data: Vec<u8>) -> Vec<u8> {
         },
         _ => {
             Box::new(Sha1::new())
-        },
+        }
     };
 
     hasher.input(&data);
     let mut buf = vec![0u8; hasher.output_bytes()];
     hasher.result(&mut buf);
-    return Ok(buf);
+    Ok(buf)
+});
+
+#[tracing::instrument(level = "trace", skip_all)]
+fn is_host_allowed(host: &str, allowed_hosts: Option<&[String]>) -> bool {
+    let Some(allowed) = allowed_hosts else {
+        return false;
+    };
+    let host_lower = host.to_ascii_lowercase();
+    for pattern in allowed {
+        let pattern_lower = pattern.to_ascii_lowercase();
+        if pattern_lower == "*" {
+            return true;
+        }
+        if let Some(bare) = pattern_lower.strip_prefix("*.") {
+            let suffix = &pattern_lower[1..];
+            if host_lower.ends_with(suffix) || host_lower == bare {
+                return true;
+            }
+        }
+        if host_lower == pattern_lower {
+            return true;
+        }
+    }
+    false
+}
+
+#[tracing::instrument(level = "trace", skip_all)]
+fn validate_request(req: &HttpRequest, allowed_hosts: Option<&[String]>) -> Result<(), String> {
+    let url_parsed = reqwest::Url::parse(&req.url).map_err(|e| format!("Invalid URL: {e}"))?;
+    let host = url_parsed
+        .host_str()
+        .ok_or_else(|| "URL has no host".to_string())?;
+    if !is_host_allowed(host, allowed_hosts) {
+        return Err(format!(
+            "Host '{host}' is not allowed by manifest permissions"
+        ));
+    }
+    Ok(())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub(crate) async fn execute_single_request(
+    client: &reqwest::Client,
+    req: HttpRequest,
+    allowed_hosts: Option<&[String]>,
+) -> Result<HttpResponse, String> {
+    validate_request(&req, allowed_hosts)?;
+    let url_parsed = reqwest::Url::parse(&req.url).map_err(|e| format!("Invalid URL: {e}"))?;
+
+    let method = match req.method.to_uppercase().as_str() {
+        "POST" => reqwest::Method::POST,
+        "PUT" => reqwest::Method::PUT,
+        "DELETE" => reqwest::Method::DELETE,
+        "PATCH" => reqwest::Method::PATCH,
+        "HEAD" => reqwest::Method::HEAD,
+        "OPTIONS" => reqwest::Method::OPTIONS,
+        _ => reqwest::Method::GET,
+    };
+
+    let mut builder = client.request(method, url_parsed);
+    for (k, v) in req.headers {
+        builder = builder.header(k, v);
+    }
+
+    if let Some(body) = req.body {
+        builder = builder.body(body);
+    }
+
+    if req.timeout_ms.unwrap_or(0) > 0 {
+        let timeout_ms = req.timeout_ms.unwrap();
+        builder = builder.timeout(std::time::Duration::from_millis(timeout_ms));
+    }
+
+    let resp = builder
+        .send()
+        .await
+        .map_err(|e| format!("Network request failed: {e}"))?;
+
+    let status_code = resp.status().as_u16() as u32;
+    let status_text = resp.status().canonical_reason().unwrap_or("").to_string();
+    let mut headers = HashMap::new();
+    for (k, v) in resp.headers() {
+        if let Ok(v_str) = v.to_str() {
+            headers.insert(k.as_str().to_string(), v_str.to_string());
+        }
+    }
+
+    let body_bytes = resp
+        .bytes()
+        .await
+        .map_err(|e| format!("Failed to read response body: {e}"))?;
+
+    Ok(HttpResponse {
+        status_code,
+        status_text,
+        headers,
+        body: body_bytes.to_vec(),
+    })
+}
+
+host_fn!(batch_http_request(user_data: HttpUserData; req: Prost<BatchHttpRequest>) -> Prost<BatchHttpResponse> {
+    let requests = req.0.requests;
+    let (client, allowed_hosts) = {
+        let user_data = user_data.get()?;
+        let data = user_data.lock().unwrap();
+        (data.client.clone(), data.allowed_hosts.clone())
+    };
+
+    // Upfront validation: if ANY request is invalid or disallowed, abort and do not execute any request
+    for (idx, r) in requests.iter().enumerate() {
+        if let Err(err) = validate_request(r, allowed_hosts.as_deref()) {
+            return Ok(Prost(BatchHttpResponse {
+                responses: Vec::new(),
+                error: Some(format!("Request #{idx} invalid: {err}")),
+            }));
+        }
+    }
+
+    let handle = tokio::runtime::Handle::current();
+    let responses = tokio::task::block_in_place(|| {
+        handle.block_on(async {
+            let futures = requests
+                .into_iter()
+                .map(|r| execute_single_request(&client, r, allowed_hosts.as_deref()));
+            let results = futures::future::join_all(futures).await;
+            results
+                .into_iter()
+                .map(|res| match res {
+                    Ok(response) => HttpResult {
+                        result: Some(http_result::Result::Response(response)),
+                    },
+                    Err(error) => HttpResult {
+                        result: Some(http_result::Result::Error(error)),
+                    },
+                })
+                .collect()
+        })
+    });
+
+    Ok(Prost(BatchHttpResponse {
+        responses,
+        error: None,
+    }))
 });
 
 static COMPILE_LIMIT: Mutex<usize> = Mutex::new(0);
@@ -276,13 +425,15 @@ impl ExtismContext {
                 .with_config_key("pid", format!("{}", process::id()));
         }
 
-        let (user_data, sock_data) = Self::get_user_data(
+        let (user_data, sock_data, http_data) = Self::get_user_data(
             package_name.clone(),
             reply_handler.clone(),
             plugin_manifest.allowed_paths.clone(),
+            manifest.permissions.as_ref().map(|p| p.hosts.clone()),
         );
 
-        let plugin = Self::build_plugin(cache_path, plugin_manifest, user_data, sock_data);
+        let plugin =
+            Self::build_plugin(cache_path, plugin_manifest, user_data, sock_data, http_data);
         let plugin_clone = plugin.clone();
         let package_name_clone = package_name.clone();
         let reply_handler_clone = reply_handler.clone();
@@ -348,7 +499,12 @@ impl ExtismContext {
         package_name: String,
         reply_handler: Arc<dyn ReplyHandler>,
         allowed_paths: Option<BTreeMap<String, PathBuf>>,
-    ) -> (UserData<MainCommandUserData>, UserData<SocketUserData>) {
+        allowed_hosts: Option<Vec<String>>,
+    ) -> (
+        UserData<MainCommandUserData>,
+        UserData<SocketUserData>,
+        UserData<HttpUserData>,
+    ) {
         let user_data = UserData::new(MainCommandUserData {
             package_name,
             reply_handler,
@@ -359,7 +515,15 @@ impl ExtismContext {
             allowed_paths,
         });
 
-        (user_data, sock_data)
+        let http_data = UserData::new(HttpUserData {
+            allowed_hosts,
+            client: reqwest::Client::builder()
+                .pool_max_idle_per_host(10)
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
+        });
+
+        (user_data, sock_data, http_data)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -368,6 +532,7 @@ impl ExtismContext {
         plugin_manifest: Manifest,
         user_data: UserData<MainCommandUserData>,
         sock_data: UserData<SocketUserData>,
+        http_data: UserData<HttpUserData>,
     ) -> Arc<Mutex<Plugin>> {
         let config_path = cache_path.join("wasmtime").join("config.toml");
         static WRITTEN_PATHS: std::sync::OnceLock<
@@ -436,7 +601,14 @@ files-total-size-soft-limit = "1Gi"
                     write_sock,
                 )
                 .with_function("read_sock", [I64, I64], [PTR], sock_data, read_sock)
-                .with_function("hash", [PTR, PTR], [PTR], UserData::default(), hash);
+                .with_function("hash", [PTR, PTR], [PTR], UserData::default(), hash)
+                .with_function(
+                    "batch_http_request",
+                    [PTR],
+                    [PTR],
+                    http_data,
+                    batch_http_request,
+                );
 
             plugin_builder.build().unwrap()
         });

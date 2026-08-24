@@ -5,7 +5,7 @@ use crate::{
     ExplorePageProps, MainWindow, ProviderRecommendations,
     error::UiError,
     pages::PageHandler,
-    utils::{LazySongVecModel, cache_image, load_local_icon, to_song_model},
+    utils::{LazySongVecModel, cache_image, load_icon, to_song_model},
 };
 
 type RecommendationItem = (
@@ -93,7 +93,7 @@ impl<'a> PageHandler for ExplorePageHandler<'a> {
                             let theme = main_window.global::<crate::Theme>();
                             let mut list = Vec::new();
                             for (detail, cached_path, songs) in recommendations {
-                                let icon = load_local_icon(cached_path.as_deref().unwrap_or(""));
+                                let icon = load_icon(cached_path.as_deref().unwrap_or(""));
                                 let song_models = songs
                                     .iter()
                                     .map(|s| to_song_model(s, Some(&detail)))

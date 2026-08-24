@@ -22,8 +22,8 @@ use songs_proto::moosync::types::{
 use tempdir::TempDir;
 
 use crate::utils::{
-    cache_image, default_empty_icon, default_folder_icon, default_song_cover, get_safe_name,
-    parse_color, parse_length, song_model_to_song, to_album_model, to_artist_model,
+    LazySongVecModel, cache_image, default_empty_icon, default_folder_icon, default_song_cover,
+    get_safe_name, parse_color, parse_length, song_model_to_song, to_album_model, to_artist_model,
     to_extension_item, to_fetched_extension_item, to_genre_model, to_playlist_model,
     to_search_result, to_song_model,
 };
@@ -71,6 +71,9 @@ fn test_to_song_model() {
     assert_eq!(model.id, "id123");
     assert_eq!(model.title, "Song Title");
     assert_eq!(model.album_name, "Album Name");
+    assert_eq!(model.coverPathHigh.size().width, 0);
+    assert_eq!(model.coverPathLow.size(), default_song_cover().size());
+    assert_ne!(model.coverPathLow.size().width, 0);
 }
 
 #[test]
@@ -389,4 +392,24 @@ fn test_default_folder_icon() {
 
     assert_ne!(icon.size().width, 0);
     assert_ne!(icon.size().height, 0);
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_lazy_song_vec_model_row_count_and_data() {
+    let tmp = TempDir::new("moosync_lazy_model_test").unwrap();
+    let album = to_album_model(
+        &Album {
+            album_id: Some("a1".to_string()),
+            album_name: Some("Album 1".to_string()),
+            ..Default::default()
+        },
+        None,
+    );
+    let lazy_model = LazySongVecModel::new(vec![album], 100, 100, tmp.path().to_path_buf());
+
+    assert_eq!(lazy_model.row_count(), 1);
+    let item = lazy_model.row_data(0);
+    assert!(item.is_some());
+    assert_eq!(item.unwrap().title, "Album 1");
 }

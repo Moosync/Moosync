@@ -6,7 +6,7 @@ use crate::{
     AppCallbacks, MainWindow, SearchPageProps,
     error::UiError,
     pages::PageHandler,
-    utils::{cache_image, load_local_icon, to_search_result},
+    utils::{cache_image, load_icon, to_search_result},
 };
 
 pub struct SearchPageHandler<'a> {
@@ -105,7 +105,7 @@ impl<'a> SearchPageHandler<'a> {
         }
 
         for (detail, cached_path, res) in ext_results {
-            let icon = load_local_icon(cached_path.as_deref().unwrap_or(""));
+            let icon = load_icon(cached_path.as_deref().unwrap_or(""));
             let results = to_search_result(res, Some(&detail), icon, &theme, &cache_dir);
             list.push(results);
         }

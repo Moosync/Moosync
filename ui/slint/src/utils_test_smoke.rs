@@ -18,7 +18,7 @@ use extensions_proto::moosync::types::{ExtensionDetail, FetchedExtensionManifest
 use songs_proto::moosync::types::{Album, Artist, Genre, Playlist, Song};
 
 use crate::utils::{
-    default_empty_icon, default_folder_icon, default_song_cover, load_local_icon, to_album_model,
+    default_empty_icon, default_folder_icon, default_song_cover, load_icon, to_album_model,
     to_artist_model, to_extension_item, to_fetched_extension_item, to_genre_model,
     to_playlist_model, to_song_model,
 };
@@ -37,7 +37,7 @@ fn test_default_folder_icon_smoke() { let _img = default_folder_icon(); }
 
 #[test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_load_local_icon_smoke() { let _img = load_local_icon(""); }
+fn test_load_icon_smoke() { let _img = load_icon(""); }
 
 #[test]
 #[tracing::instrument(level = "debug", skip_all)]

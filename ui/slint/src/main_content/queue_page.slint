@@ -90,7 +90,7 @@ component QueueListItem inherits Rectangle {
                             Image {
                                 width: 100%;
                                 height: 100%;
-                                source: song.coverPathLow;
+                                source: song.coverPathLow.width > 0 ? song.coverPathLow : @image-url("../icons/song_default.svg");
                                 image-fit: cover;
                             }
                         }

@@ -32,7 +32,7 @@ export component SongListItem inherits TouchArea {
                 Image {
                     width: parent.width;
                     height: parent.height;
-                    source: song.coverPathLow;
+                    source: song.coverPathLow.width > 0 ? song.coverPathLow : @image-url("../icons/song_default.svg");
                     image-fit: cover;
                 }
 

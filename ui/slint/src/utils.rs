@@ -127,15 +127,12 @@ pub async fn cache_image(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn load_icon(path: &str) -> Image {
+pub fn load_icon(path: &str) -> Image {
     if path.is_empty() {
         return default_empty_icon();
     }
     Image::load_from_path(std::path::Path::new(path)).unwrap_or_else(|_| default_empty_icon())
 }
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn load_local_icon(path: &str) -> Image { load_icon(path) }
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn get_extension_icon(detail: Option<&ExtensionDetail>) -> Image {
@@ -198,7 +195,6 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
 
                 let columns = width.checked_div(item_width).map_or(1, |c| c.max(1));
                 let mut new_max_items = height.checked_div(item_height).unwrap_or(0);
-
                 if item_width > 0 {
                     new_max_items *= columns;
                 }
@@ -240,11 +236,13 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
 
         slint::spawn_local(async move {
             let Some(img) = load_image_from_path_or_url(&cover_url_str, &cache_dir).await else {
+                allocated_rows.borrow_mut().remove(&row);
                 return;
             };
             {
                 let mut array = array.borrow_mut();
                 let Some(item) = array.get_mut(row) else {
+                    allocated_rows.borrow_mut().remove(&row);
                     return;
                 };
                 item.set_cover(img);
@@ -293,6 +291,8 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
             let mut array = self.array.borrow_mut();
             if let Some(s) = array.get_mut(r) {
                 self.release_image(r, s);
+            } else {
+                self.allocated_rows.borrow_mut().remove(&r);
             }
         }
     }
@@ -535,7 +535,7 @@ pub fn to_song_model(song: &Song, detail: Option<&ExtensionDetail>) -> SongModel
         genre: slint::ModelRc::new(slint::VecModel::from(genres)),
 
         // UI-only display fields
-        coverPathHigh: default_song_cover(),
+        coverPathHigh: Image::default(),
         coverPathLow: default_song_cover(),
         coverPathUrlHigh: song
             .get_cover_high()

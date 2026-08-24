@@ -733,6 +733,78 @@ macro_rules! generate_sample_tests {
 
             #[tokio::test]
             #[tracing::instrument(level = "debug", skip_all)]
+            async fn test_custom_request_http_get() {
+                let (handler, pkg, _, _guard) = setup().await;
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
+                };
+                let res = ext
+                    .custom_request(CustomRequest {
+                        request_id: "http_get_test".to_string(),
+                        payload: None,
+                    })
+                    .await
+                    .unwrap();
+                assert!(res.data.is_none());
+            }
+
+            #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
+            async fn test_custom_request_http_request() {
+                let (handler, pkg, _, _guard) = setup().await;
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
+                };
+                let res = ext
+                    .custom_request(CustomRequest {
+                        request_id: "http_request_test".to_string(),
+                        payload: None,
+                    })
+                    .await
+                    .unwrap();
+                assert!(res.data.is_none());
+            }
+
+            #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
+            async fn test_custom_request_http_batch_get() {
+                let (handler, pkg, _, _guard) = setup().await;
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
+                };
+                let res = ext
+                    .custom_request(CustomRequest {
+                        request_id: "http_batch_get_test".to_string(),
+                        payload: None,
+                    })
+                    .await
+                    .unwrap();
+                assert!(res.data.is_none());
+            }
+
+            #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
+            async fn test_custom_request_http_batch_request() {
+                let (handler, pkg, _, _guard) = setup().await;
+                let ext = {
+                    let map = handler.extensions_map.lock().unwrap();
+                    map.get(&pkg).unwrap().clone()
+                };
+                let res = ext
+                    .custom_request(CustomRequest {
+                        request_id: "http_batch_request_test".to_string(),
+                        payload: None,
+                    })
+                    .await
+                    .unwrap();
+                assert!(res.data.is_none());
+            }
+
+            #[tokio::test]
+            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_search() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {

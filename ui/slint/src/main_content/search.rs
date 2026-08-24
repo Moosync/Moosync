@@ -1,4 +1,4 @@
-use slint::{ComponentHandle, Image, ModelRc, VecModel};
+use slint::{ComponentHandle, ModelRc, VecModel};
 use state_manager::StateManager;
 use types::prelude::SearchResultExt;
 
@@ -99,8 +99,7 @@ impl<'a> SearchPageHandler<'a> {
         let mut list = Vec::new();
 
         if let Ok(local) = local_res {
-            let local_icon =
-                Image::load_from_svg_data(include_bytes!("../icons/folder.svg")).unwrap();
+            let local_icon = crate::utils::default_folder_icon();
             let results = to_search_result(local, None, local_icon, &theme, &cache_dir);
             list.push(results);
         }

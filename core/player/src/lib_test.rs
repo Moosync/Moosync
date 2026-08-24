@@ -46,7 +46,7 @@ async fn test_add_and_current_song() {
     assert!(ph.current_song().is_none());
 
     let song1 = create_mock_song("1", "Song One");
-    ph.add_to_queue(song1.clone());
+    ph.add_to_queue(vec![song1.clone()]);
 
     assert_eq!(
         ph.current_song()
@@ -61,7 +61,7 @@ async fn test_add_and_current_song() {
     );
 
     let song2 = create_mock_song("2", "Song Two");
-    ph.add_to_queue(song2);
+    ph.add_to_queue(vec![song2]);
 
     assert_eq!(
         ph.current_song()
@@ -83,8 +83,8 @@ async fn test_play_now_and_queue_ops() {
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
 
-    ph.add_to_queue(song1);
-    ph.play_now(song2);
+    ph.add_to_queue(vec![song1]);
+    ph.play_now(vec![song2]);
 
     assert_eq!(
         ph.current_song()
@@ -103,15 +103,120 @@ async fn test_play_now_and_queue_ops() {
 
 #[tokio::test]
 #[tracing::instrument(level = "debug", skip_all)]
+async fn test_play_now_multiple_songs() {
+    let mut ph = create_player_handler();
+    let song1 = create_mock_song("1", "Song One");
+    let song2 = create_mock_song("2", "Song Two");
+    let song3 = create_mock_song("3", "Song Three");
+
+    ph.play_now(vec![song1, song2, song3]);
+
+    assert_eq!(ph.song_queue.len(), 3);
+    assert_eq!(ph.current_idx, 0);
+    assert_eq!(
+        ph.current_song()
+            .unwrap()
+            .song
+            .as_ref()
+            .unwrap()
+            .id
+            .as_deref(),
+        Some("1")
+    );
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_play_now_empty() {
+    let mut ph = create_player_handler();
+
+    ph.play_now(vec![]);
+
+    assert!(ph.current_song().is_none());
+    assert!(ph.song_queue.is_empty());
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_play_now_empty_with_existing_queue() {
+    let mut ph = create_player_handler();
+    let song = create_mock_song("1", "Song One");
+    ph.add_to_queue(vec![song]);
+
+    ph.play_now(vec![]);
+
+    assert_eq!(ph.song_queue.len(), 1);
+    assert_eq!(
+        ph.current_song()
+            .unwrap()
+            .song
+            .as_ref()
+            .unwrap()
+            .id
+            .as_deref(),
+        Some("1")
+    );
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_add_to_queue_multiple_songs() {
+    let mut ph = create_player_handler();
+    let song1 = create_mock_song("1", "Song One");
+    let song2 = create_mock_song("2", "Song Two");
+    let song3 = create_mock_song("3", "Song Three");
+    ph.add_to_queue(vec![song1]);
+
+    ph.add_to_queue(vec![song2, song3]);
+
+    assert_eq!(ph.song_queue.len(), 3);
+    assert_eq!(ph.current_idx, 0);
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_add_to_queue_empty() {
+    let mut ph = create_player_handler();
+
+    ph.add_to_queue(vec![]);
+
+    assert!(ph.current_song().is_none());
+    assert!(ph.song_queue.is_empty());
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_add_to_queue_empty_with_existing_queue() {
+    let mut ph = create_player_handler();
+    let song = create_mock_song("1", "Song One");
+    ph.add_to_queue(vec![song]);
+
+    ph.add_to_queue(vec![]);
+
+    assert_eq!(ph.song_queue.len(), 1);
+    assert_eq!(
+        ph.current_song()
+            .unwrap()
+            .song
+            .as_ref()
+            .unwrap()
+            .id
+            .as_deref(),
+        Some("1")
+    );
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
 async fn test_next_prev_and_repeat_cycle() {
     let mut ph = create_player_handler();
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
     let song3 = create_mock_song("3", "Song Three");
 
-    ph.add_to_queue(song1);
-    ph.add_to_queue(song2);
-    ph.add_to_queue(song3);
+    ph.add_to_queue(vec![song1]);
+    ph.add_to_queue(vec![song2]);
+    ph.add_to_queue(vec![song3]);
 
     assert_eq!(ph.current_idx, 0);
 
@@ -140,8 +245,8 @@ async fn test_repeat_modes_and_events() {
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
 
-    ph.add_to_queue(song1);
-    ph.add_to_queue(song2);
+    ph.add_to_queue(vec![song1]);
+    ph.add_to_queue(vec![song2]);
 
     let repeat_changed_fired = Arc::new(Mutex::new(Option::<RepeatMode>::None));
     let rc_clone = repeat_changed_fired.clone();
@@ -171,7 +276,10 @@ async fn test_repeat_modes_and_events() {
 async fn test_shuffle_and_reorder() {
     let mut ph = create_player_handler();
     for i in 1..=8 {
-        ph.add_to_queue(create_mock_song(&i.to_string(), &format!("Song {}", i)));
+        ph.add_to_queue(vec![create_mock_song(
+            &i.to_string(),
+            &format!("Song {}", i),
+        )]);
     }
 
     ph.current_idx = 3;
@@ -213,7 +321,7 @@ async fn test_empty_and_single_queue_boundaries() {
 
     // Single item queue
     let single = create_mock_song("single", "Single Song");
-    ph.add_to_queue(single);
+    ph.add_to_queue(vec![single]);
     assert_eq!(ph.song_queue.len(), 1);
     ph.next();
     assert_eq!(ph.current_idx, 0);

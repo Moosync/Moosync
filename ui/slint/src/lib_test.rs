@@ -14,14 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use slint::ComponentHandle;
+use slint::{ComponentHandle, ModelRc};
 use state_manager::StateManager;
 use tempdir::TempDir;
 use types::plugin::PluginContext;
 
 use crate::{
-    AppCallbacks, BottomBarCallbacks, CoverHelper, MainWindow, Pages, SettingsPages, get_all_pages,
-    pages::AppPage, setup_ui, test_utils::run_async_test, utils,
+    AppCallbacks, BottomBarCallbacks, CoverHelper, MainWindow, PageLifecycleManager, Pages,
+    SettingsPages, get_all_pages, pages::AppPage, setup_ui, test_utils::run_async_test, utils,
 };
 
 #[test]
@@ -49,6 +49,64 @@ fn test_ui_app_page_from_mappings() {
         AppPage::Extensions
     );
     assert_eq!(AppPage::from(SettingsPages::Themes), AppPage::Themes);
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_page_lifecycle_manager_queue_open_does_not_hide_active_page() {
+    let all_pages = vec![
+        AppPage::AllSongs,
+        AppPage::Albums,
+        AppPage::Queue,
+        AppPage::Paths,
+        AppPage::Extensions,
+    ];
+    let mut manager = PageLifecycleManager::new(&all_pages, AppPage::AllSongs);
+    manager.compute_visibility_changes(&all_pages);
+
+    manager.queue_open = true;
+    let queue_open_actions = manager.compute_visibility_changes(&all_pages);
+
+    assert_eq!(queue_open_actions, vec![(AppPage::Queue, true)]);
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_page_lifecycle_manager_queue_close_does_not_show_active_page() {
+    let all_pages = vec![
+        AppPage::AllSongs,
+        AppPage::Albums,
+        AppPage::Queue,
+        AppPage::Paths,
+        AppPage::Extensions,
+    ];
+    let mut manager = PageLifecycleManager::new(&all_pages, AppPage::AllSongs);
+    manager.compute_visibility_changes(&all_pages);
+    manager.queue_open = true;
+    manager.compute_visibility_changes(&all_pages);
+
+    manager.queue_open = false;
+    let queue_close_actions = manager.compute_visibility_changes(&all_pages);
+
+    assert_eq!(queue_close_actions, vec![(AppPage::Queue, false)]);
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_page_lifecycle_manager_queue_toggle_with_settings_open() {
+    let all_pages = vec![AppPage::AllSongs, AppPage::Queue, AppPage::Extensions];
+    let mut manager = PageLifecycleManager::new(&all_pages, AppPage::AllSongs);
+    manager.settings_open = true;
+    manager.compute_visibility_changes(&all_pages);
+
+    manager.queue_open = true;
+    let actions_open = manager.compute_visibility_changes(&all_pages);
+
+    manager.queue_open = false;
+    let actions_close = manager.compute_visibility_changes(&all_pages);
+
+    assert_eq!(actions_open, vec![(AppPage::Queue, true)]);
+    assert_eq!(actions_close, vec![(AppPage::Queue, false)]);
 }
 
 #[test]
@@ -147,6 +205,18 @@ fn test_ui_get_all_pages_and_setup() {
         main_window
             .global::<AppCallbacks>()
             .invoke_add_song_to_queue(song_model.clone());
+        main_window
+            .global::<AppCallbacks>()
+            .invoke_song_detail_action(
+                crate::SongDetailAction::Play,
+                ModelRc::new(slint::VecModel::from(vec![song_model.clone()])),
+            );
+        main_window
+            .global::<AppCallbacks>()
+            .invoke_song_detail_action(
+                crate::SongDetailAction::AddToQueue,
+                ModelRc::new(slint::VecModel::from(vec![song_model.clone()])),
+            );
 
         main_window
             .global::<BottomBarCallbacks>()

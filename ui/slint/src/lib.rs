@@ -4,7 +4,7 @@ include!(concat!(env!("OUT_DIR"), "/app.rs"));
 
 use std::{path::Path, time::Duration};
 
-use slint::{Image, ModelRc, VecModel};
+use slint::{Image, Model, ModelRc, VecModel};
 use state_manager::StateManager;
 use tracing::{debug, trace};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};
@@ -222,7 +222,7 @@ fn setup_cover_helper(main_window: &MainWindow) {
                     return image;
                 }
             }
-            Image::load_from_svg_data(utils::DEFAULT_SONG_SVG).unwrap()
+            utils::default_song_cover()
         });
 
     main_window
@@ -236,7 +236,7 @@ fn setup_cover_helper(main_window: &MainWindow) {
                     return image;
                 }
             }
-            Image::load_from_svg_data(utils::DEFAULT_SONG_SVG).unwrap()
+            utils::default_song_cover()
         });
 }
 
@@ -248,7 +248,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
             let song = utils::song_model_to_song(&song_model);
             tokio::spawn(async move {
                 let mut queue = state_manager.get_player_handler_mut().await;
-                queue.play_now(song);
+                queue.play_now(vec![song]);
             });
         });
 
@@ -258,7 +258,27 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
             let song = utils::song_model_to_song(&song_model);
             tokio::spawn(async move {
                 let mut queue = state_manager.get_player_handler_mut().await;
-                queue.add_to_queue(song);
+                queue.add_to_queue(vec![song]);
+            });
+        });
+
+    main_window
+        .global::<AppCallbacks>()
+        .on_song_detail_action(move |action, song_models| {
+            let songs = (0..song_models.row_count())
+                .filter_map(|i| song_models.row_data(i))
+                .map(|model| utils::song_model_to_song(&model))
+                .collect::<Vec<_>>();
+            tokio::spawn(async move {
+                let mut queue = state_manager.get_player_handler_mut().await;
+                match action {
+                    SongDetailAction::Play => {
+                        queue.play_now(songs);
+                    }
+                    SongDetailAction::AddToQueue => {
+                        queue.add_to_queue(songs);
+                    }
+                }
             });
         });
 
@@ -466,48 +486,32 @@ impl PageLifecycleManager {
 
                 AppPage::Paths => {
                     self.settings_open
-                        && !self.queue_open
                         && (was_visible || self.active_settings_page == AppPage::Paths)
                 }
                 AppPage::System => {
                     self.settings_open
-                        && !self.queue_open
                         && (was_visible || self.active_settings_page == AppPage::System)
                 }
                 AppPage::Extensions => {
                     self.settings_open
-                        && !self.queue_open
                         && (was_visible || self.active_settings_page == AppPage::Extensions)
                 }
                 AppPage::Themes => {
                     self.settings_open
-                        && !self.queue_open
                         && (was_visible || self.active_settings_page == AppPage::Themes)
                 }
 
-                AppPage::AllSongs => {
-                    !self.queue_open && (self.active_main_page == AppPage::AllSongs)
-                }
-                AppPage::Albums => !self.queue_open && (self.active_main_page == AppPage::Albums),
-                AppPage::Artists => !self.queue_open && (self.active_main_page == AppPage::Artists),
-                AppPage::Playlists => {
-                    !self.queue_open && (self.active_main_page == AppPage::Playlists)
-                }
-                AppPage::Genres => !self.queue_open && (self.active_main_page == AppPage::Genres),
-                AppPage::Explore => !self.queue_open && (self.active_main_page == AppPage::Explore),
-                AppPage::Search => !self.queue_open && (self.active_main_page == AppPage::Search),
-                AppPage::PlaylistContent => {
-                    !self.queue_open && (self.active_main_page == AppPage::PlaylistContent)
-                }
-                AppPage::AlbumContent => {
-                    !self.queue_open && (self.active_main_page == AppPage::AlbumContent)
-                }
-                AppPage::ArtistContent => {
-                    !self.queue_open && (self.active_main_page == AppPage::ArtistContent)
-                }
-                AppPage::GenreContent => {
-                    !self.queue_open && (self.active_main_page == AppPage::GenreContent)
-                }
+                AppPage::AllSongs => self.active_main_page == AppPage::AllSongs,
+                AppPage::Albums => self.active_main_page == AppPage::Albums,
+                AppPage::Artists => self.active_main_page == AppPage::Artists,
+                AppPage::Playlists => self.active_main_page == AppPage::Playlists,
+                AppPage::Genres => self.active_main_page == AppPage::Genres,
+                AppPage::Explore => self.active_main_page == AppPage::Explore,
+                AppPage::Search => self.active_main_page == AppPage::Search,
+                AppPage::PlaylistContent => self.active_main_page == AppPage::PlaylistContent,
+                AppPage::AlbumContent => self.active_main_page == AppPage::AlbumContent,
+                AppPage::ArtistContent => self.active_main_page == AppPage::ArtistContent,
+                AppPage::GenreContent => self.active_main_page == AppPage::GenreContent,
             };
 
             if is_visible != was_visible {

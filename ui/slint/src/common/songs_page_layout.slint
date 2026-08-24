@@ -1,8 +1,9 @@
 import { ListView, VerticalBox } from "std-widgets.slint";
-import { SongModel } from "../types/song_view.slint";
+import { SongModel, SongDetailAction } from "../types/song_view.slint";
 import { SongListItem } from "song_list_item.slint";
 import { SongDetails } from "song_details.slint";
 import { Constants, Theme } from "../constants.slint";
+import { AppCallbacks } from "../callbacks.slint";
 
 export component SongsPageLayout inherits Rectangle {
     in-out property <int> active-idx: -1;
@@ -25,6 +26,58 @@ export component SongsPageLayout inherits Rectangle {
             horizontal-stretch: 2;
             SongDetails {
                 song: active;
+
+                HorizontalLayout {
+                    spacing: Theme.spacingMd;
+                    alignment: start;
+                    padding-top: Theme.spacingSm;
+
+                    // Play Now button
+                    Rectangle {
+                        width: 32px;
+                        height: 32px;
+                        border-radius: Theme.borderRadiusMd;
+                        background: play-touch.has-hover ? Theme.secondary : transparent;
+
+                        play-touch := TouchArea {
+                            clicked => {
+                                AppCallbacks.song_detail_action(
+                                    SongDetailAction.Play,
+                                    root.active-idx >= 0 ? [root.active] : root.songs);
+                            }
+                        }
+
+                        Image {
+                            width: 20px;
+                            height: 20px;
+                            source: @image-url("../icons/plain_play.svg");
+                            colorize: play-touch.has-hover ? Theme.accent.brighter(0.2) : Theme.accent;
+                        }
+                    }
+
+                    // Add to Queue button
+                    Rectangle {
+                        width: 32px;
+                        height: 32px;
+                        border-radius: Theme.borderRadiusMd;
+                        background: queue-touch.has-hover ? Theme.secondary : transparent;
+
+                        queue-touch := TouchArea {
+                            clicked => {
+                                AppCallbacks.song_detail_action(
+                                    SongDetailAction.AddToQueue,
+                                    root.active-idx >= 0 ? [root.active] : root.songs);
+                            }
+                        }
+
+                        Image {
+                            width: 20px;
+                            height: 20px;
+                            source: @image-url("../icons/add_to_queue.svg");
+                            colorize: queue-touch.has-hover ? Theme.accent.brighter(0.2) : Theme.accent;
+                        }
+                    }
+                }
             }
         }
 

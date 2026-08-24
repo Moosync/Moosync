@@ -88,6 +88,7 @@ impl FFMPEGDecoder {
         } else {
             CString::from_str(&format!("file:{}", path))?
         };
+
         // https://www.ffmpeg.org/ffmpeg-protocols.html#cache
         let format_ctx = AVFormatContextInput::builder()
             .url(&input_path)

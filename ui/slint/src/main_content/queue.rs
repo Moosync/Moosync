@@ -214,11 +214,10 @@ impl<'a> QueuePageHandler<'a> {
         blurred_path: &Option<std::path::PathBuf>,
     ) {
         let blurred_cover = if let Some(path) = blurred_path {
-            slint::Image::load_from_path(path).unwrap_or_else(|_| {
-                slint::Image::load_from_svg_data(crate::utils::DEFAULT_SONG_SVG).unwrap()
-            })
+            slint::Image::load_from_path(path)
+                .unwrap_or_else(|_| crate::utils::default_song_cover())
         } else {
-            slint::Image::load_from_svg_data(crate::utils::DEFAULT_SONG_SVG).unwrap()
+            crate::utils::default_song_cover()
         };
         main_window
             .global::<QueuePageProps>()
@@ -265,10 +264,9 @@ impl<'a> PageHandler for QueuePageHandler<'a> {
                         main_window
                             .global::<QueuePageProps>()
                             .set_queue(slint::ModelRc::default());
-                        main_window.global::<QueuePageProps>().set_blurred_cover(
-                            slint::Image::load_from_svg_data(crate::utils::DEFAULT_SONG_SVG)
-                                .unwrap(),
-                        );
+                        main_window
+                            .global::<QueuePageProps>()
+                            .set_blurred_cover(crate::utils::default_song_cover());
                     }
                 }
             },

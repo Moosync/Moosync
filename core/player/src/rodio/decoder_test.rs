@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::time::Duration;
+
 use crate::rodio::decoder::FFMPEGDecoder;
 
 const CAPTURE_DURATION_SECS: u64 = 5;
@@ -105,4 +107,66 @@ fn test_raw_decoder_succession() {
 
     assert_exact_bytes(&expected_48k, &succession_48k, "Track 1 (48k)");
     assert_exact_bytes(&expected_44k, &succession_44k, "Track 2 (44.1k)");
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_decoder_http_stream_with_cache() {
+    let mock_server = wiremock::MockServer::start().await;
+    let audio_bytes = std::fs::read(PATH_48K).expect("Failed to read test audio file");
+
+    wiremock::Mock::given(wiremock::matchers::method("GET"))
+        .respond_with(
+            wiremock::ResponseTemplate::new(200)
+                .set_body_bytes(audio_bytes.clone())
+                .insert_header("content-type", "audio/mpeg")
+                .insert_header("content-length", audio_bytes.len().to_string().as_str())
+                .insert_header("accept-ranges", "bytes"),
+        )
+        .mount(&mock_server)
+        .await;
+
+    let url = format!("{}/audio.mp3", mock_server.uri());
+
+    let decoder = FFMPEGDecoder::open(&url, 48000).expect("Failed to open http stream with cache");
+    let output = capture_raw_decoder_output(decoder, 48000, 2);
+
+    assert_eq!(output.len(), 480_000);
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_decoder_http_stream_cache_seeking() {
+    let mock_server = wiremock::MockServer::start().await;
+    let audio_bytes = std::fs::read(PATH_48K).expect("Failed to read test audio file");
+
+    wiremock::Mock::given(wiremock::matchers::method("GET"))
+        .respond_with(
+            wiremock::ResponseTemplate::new(200)
+                .set_body_bytes(audio_bytes.clone())
+                .insert_header("content-type", "audio/mpeg")
+                .insert_header("content-length", audio_bytes.len().to_string().as_str())
+                .insert_header("accept-ranges", "bytes"),
+        )
+        .mount(&mock_server)
+        .await;
+
+    let url = format!("{}/audio.mp3", mock_server.uri());
+
+    let mut decoder =
+        FFMPEGDecoder::open(&url, 48000).expect("Failed to open http stream with cache");
+
+    // Read initial samples
+    let first_chunk: Vec<f32> = decoder.by_ref().take(48_000).collect();
+    assert_eq!(first_chunk.len(), 48_000);
+    assert!(first_chunk.iter().any(|&s| s != 0.0));
+
+    // Seek back to start using cached data
+    rodio::Source::try_seek(&mut decoder, Duration::from_secs(0))
+        .expect("Failed to seek back using cache");
+
+    // Read samples again from the beginning
+    let reseeked_chunk: Vec<f32> = decoder.take(48_000).collect();
+    assert_eq!(reseeked_chunk.len(), 48_000);
+    assert!(reseeked_chunk.iter().any(|&s| s != 0.0));
 }

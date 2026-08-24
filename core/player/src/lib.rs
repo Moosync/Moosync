@@ -119,25 +119,45 @@ impl PlayerHandler {
     pub fn get_repeat_mode(&self) -> RepeatMode { self.repeat_mode }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn add_to_queue(&mut self, song: Song) {
-        if self.current_song().is_none() {
-            self.play_now(song);
-        } else {
-            self.song_queue.push(song);
-            self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
+    pub fn add_to_queue(&mut self, songs: Vec<Song>) {
+        if songs.is_empty() {
+            return;
         }
+
+        if self.current_song().is_none() {
+            self.play_now(songs);
+            return;
+        }
+
+        self.song_queue.extend(songs);
+        self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn play_now(&mut self, song: Song) {
-        debug!("Playing song now: {:?}", song);
+    pub fn play_now(&mut self, songs: Vec<Song>) {
+        if songs.is_empty() {
+            return;
+        }
+
+        debug!("Playing songs now: {:?}", songs);
         if self.current_song().is_none() {
-            self.song_queue.push(song.clone());
+            self.song_queue = songs;
             self.current_idx = 0;
-        } else {
-            let insert_pos = self.current_idx;
-            self.song_queue.insert(insert_pos, song.clone());
-            self.current_idx = insert_pos;
+            self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
+            self.trigger_song_changed();
+            if let Err(e) = self.play() {
+                tracing::error!("Failed to play song: {:?}", e);
+            }
+            return;
+        }
+
+        let mut songs = songs;
+        let insert_pos = self.current_idx;
+        let first_song = songs.remove(0);
+        self.song_queue.insert(insert_pos, first_song);
+        self.current_idx = insert_pos;
+        for (offset, song) in songs.into_iter().enumerate() {
+            self.song_queue.insert(insert_pos + 1 + offset, song);
         }
         self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
         self.trigger_song_changed();

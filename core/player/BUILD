@@ -58,6 +58,7 @@ rust_library(
         "@crates//:tempdir",
         "@crates//:tokio",
         "@crates//:tracing",
+        "@crates//:wiremock",
     ] + select({
         "@platforms//os:linux": ["@crates//:libpulse-binding"],
         "//conditions:default": [],

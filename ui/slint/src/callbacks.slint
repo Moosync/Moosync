@@ -1,5 +1,9 @@
 import { Pages, SettingsPages } from "constants.slint";
-import { SongModel, SearchResult } from "./types/song_view.slint";
+import {
+    SongModel,
+    SearchResult,
+    SongDetailAction,
+} from "./types/song_view.slint";
 
 export struct PreferenceChange {
     id: string,
@@ -14,6 +18,7 @@ export global AppCallbacks {
     callback active-page-changed(Pages);
     callback play-song(SongModel);
     callback add-song-to-queue(SongModel);
+    callback song_detail_action(SongDetailAction, [SongModel]);
     callback preference_changed(PreferenceChange);
     callback open_directory_picker() -> string;
     callback open_file_picker(string) -> string;

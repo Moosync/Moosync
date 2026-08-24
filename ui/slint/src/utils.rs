@@ -17,10 +17,26 @@ use crate::{
 };
 
 pub static DEFAULT_SONG_SVG: &[u8] = include_bytes!("icons/song_default.svg");
+pub static DEFAULT_EMPTY_SVG: &[u8] = include_bytes!("icons/empty.svg");
+pub static DEFAULT_FOLDER_SVG: &[u8] = include_bytes!("icons/folder.svg");
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn default_song_cover() -> Image {
+    Image::load_from_svg_data(DEFAULT_SONG_SVG).expect("default song SVG should be valid")
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn default_empty_icon() -> Image {
+    Image::load_from_svg_data(DEFAULT_EMPTY_SVG).expect("default empty SVG should be valid")
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn default_folder_icon() -> Image {
+    Image::load_from_svg_data(DEFAULT_FOLDER_SVG).expect("default folder SVG should be valid")
+}
 
 pub trait LazyModel: Clone {
     fn set_cover(&mut self, image: Image);
-    fn get_cover(&self) -> &Image;
     fn get_cover_url(&self) -> &SharedString;
 }
 
@@ -113,10 +129,9 @@ pub async fn cache_image(
 #[tracing::instrument(level = "debug", skip_all)]
 fn load_icon(path: &str) -> Image {
     if path.is_empty() {
-        return Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap();
+        return default_empty_icon();
     }
-    Image::load_from_path(std::path::Path::new(path))
-        .unwrap_or_else(|_| Image::load_from_svg_data(include_bytes!("icons/empty.svg")).unwrap())
+    Image::load_from_path(std::path::Path::new(path)).unwrap_or_else(|_| default_empty_icon())
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -244,9 +259,7 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn release_image(&self, row: usize, model: &mut T) {
         trace!("Releasing image for row {}", row);
-        if !is_empty_image(model.get_cover()) {
-            model.set_cover(Image::default());
-        }
+        model.set_cover(default_song_cover());
         self.allocated_rows.borrow_mut().remove(&row);
     }
 
@@ -296,7 +309,7 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
         let (song_model, is_loaded) = {
             let array = self.array.borrow();
             let song_model = array.get(row)?;
-            let is_loaded = !is_empty_image(song_model.get_cover());
+            let is_loaded = self.allocated_rows.borrow().contains(&row);
             (song_model.clone(), is_loaded)
         };
 
@@ -322,7 +335,7 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
                     let prefetch_url = {
                         let array = self.array.borrow();
                         array.get(i).and_then(|item| {
-                            is_empty_image(item.get_cover())
+                            (!self.allocated_rows.borrow().contains(&i))
                                 .then(|| item.get_cover_url().to_string())
                         })
                     };
@@ -344,12 +357,7 @@ impl<T: LazyModel + 'static> Model for LazySongVecModel<T> {
             return;
         }
 
-        if is_empty_image(data.get_cover()) {
-            self.allocated_rows.borrow_mut().remove(&row);
-        }
-        if !is_empty_image(data.get_cover()) {
-            self.allocated_rows.borrow_mut().insert(row);
-        }
+        self.allocated_rows.borrow_mut().insert(row);
         self.array.borrow_mut()[row] = data;
         self.notify.row_changed(row);
     }
@@ -366,24 +374,12 @@ impl LazyModel for ExtensionItem {
     fn set_cover(&mut self, image: Image) { self.icon = image; }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_cover(&self) -> &Image { &self.icon }
-
-    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.icon_url }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn is_empty_image(image: &Image) -> bool {
-    let size = image.size();
-    size.width == 0 && size.height == 0
 }
 
 impl LazyModel for SongModel {
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPathLow = image }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn get_cover(&self) -> &Image { &self.coverPathLow }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrlLow }
@@ -394,18 +390,12 @@ impl LazyModel for AlbumModel {
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_cover(&self) -> &Image { &self.coverPath }
-
-    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 }
 
 impl LazyModel for PlaylistModel {
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn get_cover(&self) -> &Image { &self.coverPath }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
@@ -416,18 +406,12 @@ impl LazyModel for ArtistModel {
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_cover(&self) -> &Image { &self.coverPath }
-
-    #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
 }
 
 impl LazyModel for GenreModel {
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_cover(&mut self, image: Image) { self.coverPath = image; }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn get_cover(&self) -> &Image { &self.coverPath }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_cover_url(&self) -> &SharedString { &self.coverPathUrl }
@@ -551,8 +535,8 @@ pub fn to_song_model(song: &Song, detail: Option<&ExtensionDetail>) -> SongModel
         genre: slint::ModelRc::new(slint::VecModel::from(genres)),
 
         // UI-only display fields
-        coverPathHigh: Image::default(),
-        coverPathLow: Image::default(),
+        coverPathHigh: default_song_cover(),
+        coverPathLow: default_song_cover(),
         coverPathUrlHigh: song
             .get_cover_high()
             .map(|c| c.to_string())
@@ -781,9 +765,11 @@ pub fn song_model_to_song(model: &SongModel) -> songs_proto::moosync::types::Son
 pub fn to_album_model(album: &Album, detail: Option<&ExtensionDetail>) -> AlbumModel {
     let extension = detail.map(|d| d.package_name.clone()).unwrap_or_default();
     let extension_icon = get_extension_icon(detail);
+    let cover_path_url = album.album_coverpath_high().to_string();
+    let default_cover = default_song_cover();
     AlbumModel {
-        coverPath: Image::default(),
-        coverPathUrl: album.album_coverpath_high().into(),
+        coverPath: default_cover,
+        coverPathUrl: cover_path_url.into(),
         id: album.album_id().into(),
         songs_count: album.album_song_count as i32,
         title: album.album_name().into(),
@@ -796,9 +782,11 @@ pub fn to_album_model(album: &Album, detail: Option<&ExtensionDetail>) -> AlbumM
 pub fn to_artist_model(artist: &Artist, detail: Option<&ExtensionDetail>) -> ArtistModel {
     let extension = detail.map(|d| d.package_name.clone()).unwrap_or_default();
     let extension_icon = get_extension_icon(detail);
+    let cover_path_url = artist.artist_coverpath.clone().unwrap_or_default();
+    let default_cover = default_song_cover();
     ArtistModel {
-        coverPath: Image::default(),
-        coverPathUrl: artist.artist_coverpath.clone().unwrap_or_default().into(),
+        coverPath: default_cover,
+        coverPathUrl: cover_path_url.into(),
         id: artist.artist_id.clone().unwrap_or_default().into(),
         songs_count: artist.artist_song_count as i32,
         title: artist.artist_name.clone().unwrap_or_default().into(),
@@ -828,14 +816,11 @@ pub fn to_playlist_model(playlist: &Playlist, detail: Option<&ExtensionDetail>) 
                 .map(|p| load_icon(p))
                 .unwrap_or_else(|| load_icon(""))
         });
-
+    let cover_path_url = playlist.playlist_coverpath.clone().unwrap_or_default();
+    let default_cover = default_song_cover();
     PlaylistModel {
-        coverPath: Image::default(),
-        coverPathUrl: playlist
-            .playlist_coverpath
-            .clone()
-            .unwrap_or_default()
-            .into(),
+        coverPath: default_cover,
+        coverPathUrl: cover_path_url.into(),
         id: playlist.playlist_id.clone().unwrap_or_default().into(),
         songs_count: playlist.playlist_song_count as i32,
         title: playlist.playlist_name.clone().into(),
@@ -900,8 +885,9 @@ pub fn to_search_result(
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn to_genre_model(genre: &Genre) -> GenreModel {
+    let default_cover = default_song_cover();
     GenreModel {
-        coverPath: Image::default(),
+        coverPath: default_cover,
         coverPathUrl: "".into(),
         id: genre.genre_id.clone().unwrap_or_default().into(),
         songs_count: genre.genre_song_count as i32,
@@ -919,7 +905,7 @@ pub fn to_extension_item(ext: &ExtensionDetail) -> ExtensionItem {
         is_installed: true,
         loading: ext.active && !ext.has_started,
         description: ext.desc.clone().unwrap_or_default().into(),
-        icon: slint::Image::default(),
+        icon: default_empty_icon(),
         has_started: ext.has_started,
         icon_url: ext.extension_icon.clone().unwrap_or_default().into(),
     }
@@ -935,7 +921,7 @@ pub fn to_fetched_extension_item(ext: &FetchedExtensionManifest) -> ExtensionIte
         is_installed: false,
         loading: false,
         description: ext.description.clone().unwrap_or_default().into(),
-        icon: slint::Image::default(),
+        icon: default_empty_icon(),
         has_started: false,
         icon_url: ext.logo.clone().unwrap_or_default().into(),
     }

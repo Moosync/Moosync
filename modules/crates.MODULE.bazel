@@ -559,3 +559,23 @@ use_repo(
     "crates__windows_x86_64_gnu-0.52.6",
     "crates__windows_x86_64_gnu-0.53.1",
 )
+
+bindeps = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+
+bindeps.spec(
+    artifact = "bin",
+    package = "slint-tr-extractor",
+    version = "1.17.1",
+)
+bindeps.annotation(
+    crate = "slint-tr-extractor",
+    gen_all_binaries = True,
+)
+
+bindeps.from_specs(
+    name = "bindeps",
+    host_tools = "@rust_host_tools_nightly",
+)
+
+use_repo(bindeps, "bindeps")
+

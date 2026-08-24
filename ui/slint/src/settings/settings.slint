@@ -37,14 +37,26 @@ export component Settings inherits Modal {
     property <string> new-theme-author: "";
 
     property <[SettingsSidebarItem]> items: [
-        { text: "Paths", icon: @image-url("../icons/paths.svg"), page: SettingsPages.Paths },
-        { text: "System", icon: @image-url("../icons/system.svg"), page: SettingsPages.System },
         {
-            text: "Extensions",
+            text: @tr("Paths"),
+            icon: @image-url("../icons/paths.svg"),
+            page: SettingsPages.Paths
+        },
+        {
+            text: @tr("System"),
+            icon: @image-url("../icons/system.svg"),
+            page: SettingsPages.System
+        },
+        {
+            text: @tr("Extensions"),
             icon: @image-url("../icons/extensions.svg"),
             page: SettingsPages.Extensions
         },
-        { text: "Themes", icon: @image-url("../icons/themes.svg"), page: SettingsPages.Themes },
+        {
+            text: @tr("Themes"),
+            icon: @image-url("../icons/themes.svg"),
+            page: SettingsPages.Themes
+        },
     ];
 
     HorizontalLayout {
@@ -157,13 +169,13 @@ export component Settings inherits Modal {
                         VerticalLayout {
                             spacing: Theme.spacingXs;
                             Text {
-                                text: "Save Custom Theme";
+                                text: @tr("Save Custom Theme");
                                 font-size: Theme.modelTitle;
                                 color: Theme.textPrimary;
                             }
 
                             Text {
-                                text: "Your current accent and advanced styling variables will be saved.";
+                                text: @tr("Your current accent and advanced styling variables will be saved.");
                                 font-size: Theme.caption;
                                 color: Theme.textSecondary;
                                 wrap: word-wrap;
@@ -171,25 +183,25 @@ export component Settings inherits Modal {
                         }
 
                         TextInputGroup {
-                            title: "Theme Name";
-                            subtitle: "A short, distinct name";
-                            placeholder: "e.g., Midnight Blue";
+                            title: @tr("Theme Name");
+                            subtitle: @tr("A short, distinct name");
+                            placeholder: @tr("e.g., Midnight Blue");
                             value <=> root.new-theme-name;
                             inputType: InputType.text;
                         }
 
                         TextInputGroup {
-                            title: "Author";
-                            subtitle: "Who created this theme?";
-                            placeholder: "Your name";
+                            title: @tr("Author");
+                            subtitle: @tr("Who created this theme?");
+                            placeholder: @tr("Your name");
                             value <=> root.new-theme-author;
                             inputType: InputType.text;
                         }
 
                         TextInputGroup {
-                            title: "Description";
-                            subtitle: "A brief summary of the aesthetics";
-                            placeholder: "High contrast dark theme...";
+                            title: @tr("Description");
+                            subtitle: @tr("A brief summary of the aesthetics");
+                            placeholder: @tr("High contrast dark theme...");
                             value <=> root.new-theme-desc;
                             inputType: InputType.text;
                         }
@@ -200,8 +212,8 @@ export component Settings inherits Modal {
                                 title: "";
                                 subtitle: "";
                                 buttons: [
-                                    { id: "cancel", text: "Cancel", is-destructive: false },
-                                    { id: "confirm", text: "Save Theme", is-destructive: false }
+                                    { id: "cancel", text: @tr("Cancel"), is-destructive: false },
+                                    { id: "confirm", text: @tr("Save Theme"), is-destructive: false }
                                 ];
                                 clicked(id) => {
                                     if (id == "confirm") {

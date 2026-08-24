@@ -247,7 +247,7 @@ export component QueuePage inherits Rectangle {
                 padding-top: Theme.spacingSm;
                 TouchArea {
                     Text {
-                        text: "Show Lyrics";
+                        text: @tr("Show Lyrics");
                         color: Theme.accent;
                         font-size: Theme.subtitle;
                         font-weight: 600;
@@ -265,13 +265,13 @@ export component QueuePage inherits Rectangle {
                 spacing: Theme.spacingMd;
 
                 Button {
-                    text: "Save as playlist";
+                    text: @tr("Save as playlist");
                     clicked => {
                     }
                 }
 
                 Button {
-                    text: "Clear";
+                    text: @tr("Clear");
                     clicked => {
                         AppCallbacks.clear-queue();
                     }

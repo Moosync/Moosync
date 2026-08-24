@@ -1,0 +1,243 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: slint_app\n"
+"POT-Creation-Date: 2026-08-24 20:45+0000\n"
+"PO-Revision-Date: 2026-08-24 20:45+0000\n"
+"Language: he_IL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: src/app.slint:156 src/main_content/search.slint:99
+msgid "Songs"
+msgstr "All Songs"
+
+#: src/app.slint:157 src/main_content/playlists.slint:21
+#: src/app.slint:157 src/main_content/playlists.slint:21
+msgid "Playlists"
+msgstr "Playlists"
+
+#: src/app.slint:158 src/main_content/artists.slint:21
+#: src/app.slint:158 src/main_content/artists.slint:21
+msgid "Artists"
+msgstr "Artists"
+
+#: src/app.slint:159 src/main_content/albums.slint:21
+#: src/app.slint:159 src/main_content/albums.slint:21
+msgid "Albums"
+msgstr "Albums"
+
+#: src/app.slint:160 src/main_content/genres.slint:21
+#: src/app.slint:160 src/main_content/genres.slint:21
+msgid "Genres"
+msgstr "Genres"
+
+#: src/app.slint:161 src/main_content/explore.slint:22
+msgid "Explore"
+msgstr "Explore"
+
+#: src/common/song_list_view.slint:59
+msgid "Filter songs..."
+msgstr "Search..."
+
+#: src/common/card_view.slint:4
+msgid "Card Title"
+msgstr ""
+
+#: src/constants.slint:17 src/callbacks.slint:75
+msgid "Title"
+msgstr "Title"
+
+#: src/constants.slint:25 src/callbacks.slint:83
+msgid "Date"
+msgstr "Date added"
+
+#: src/constants.slint:33 src/callbacks.slint:91
+msgid "Album"
+msgstr "Album (Track No.)"
+
+#: src/constants.slint:41 src/callbacks.slint:99
+msgid "Track Number"
+msgstr ""
+
+#: src/constants.slint:49 src/callbacks.slint:107
+msgid "Artist"
+msgstr "Artist"
+
+#: src/main_content/explore.slint:32
+msgid "No recommendations"
+msgstr ""
+
+#: src/main_content/search.slint:80
+msgid "Search"
+msgstr ""
+
+#: src/main_content/search.slint:89
+msgid "Local"
+msgstr "Local"
+
+#: src/main_content/queue_page.slint:250
+msgid "Show Lyrics"
+msgstr ""
+
+#: src/main_content/queue_page.slint:268
+msgid "Save as playlist"
+msgstr ""
+
+#: src/main_content/queue_page.slint:274
+msgid "Clear"
+msgstr ""
+
+#: src/settings/extensions.slint:154
+msgid "Settings > Extensions"
+msgstr ""
+
+#: src/settings/extensions.slint:167 src/settings/settings.slint:43
+msgid "Extensions"
+msgstr "Extensions"
+
+#: src/settings/extensions.slint:173
+msgid "Manage your extensions"
+msgstr ""
+
+#: src/settings/extensions.slint:181
+msgid "Add Extension"
+msgstr ""
+
+#: src/settings/extensions.slint:193
+msgid "No extensions available."
+msgstr ""
+
+#: src/settings/path_selector.slint:35
+msgid "Add folder"
+msgstr ""
+
+#: src/settings/paths.slint:24
+msgid "Settings > Paths"
+msgstr ""
+
+#: src/settings/settings.slint:40
+msgid "Paths"
+msgstr "Paths"
+
+#: src/settings/settings.slint:41
+msgid "System"
+msgstr "System"
+
+#: src/settings/settings.slint:47
+msgid "Themes"
+msgstr "Themes"
+
+#: src/settings/settings.slint:160
+msgid "Save Custom Theme"
+msgstr ""
+
+#: src/settings/settings.slint:166
+msgid "Your current accent and advanced styling variables will be saved."
+msgstr ""
+
+#: src/settings/settings.slint:174
+msgid "Theme Name"
+msgstr ""
+
+#: src/settings/settings.slint:175
+msgid "A short, distinct name"
+msgstr ""
+
+#: src/settings/settings.slint:176
+msgid "e.g., Midnight Blue"
+msgstr ""
+
+#: src/settings/settings.slint:182
+msgid "Author"
+msgstr ""
+
+#: src/settings/settings.slint:183
+msgid "Who created this theme?"
+msgstr ""
+
+#: src/settings/settings.slint:184
+msgid "Your name"
+msgstr ""
+
+#: src/settings/settings.slint:190
+msgid "Description"
+msgstr ""
+
+#: src/settings/settings.slint:191
+msgid "A brief summary of the aesthetics"
+msgstr ""
+
+#: src/settings/settings.slint:192
+msgid "High contrast dark theme..."
+msgstr ""
+
+#: src/settings/settings.slint:203
+msgid "Cancel"
+msgstr ""
+
+#: src/settings/settings.slint:204
+msgid "Save Theme"
+msgstr ""
+
+#: src/settings/system.slint:24
+msgid "Settings > System"
+msgstr ""
+
+#: src/settings/themes.slint:215
+msgid "Opacity"
+msgstr ""
+
+#: src/settings/themes.slint:467
+msgid "Settings > Themes"
+msgstr ""
+
+#: src/settings/themes.slint:484
+msgid "Preset Themes"
+msgstr ""
+
+#: src/settings/themes.slint:490
+msgid "Selecting a theme will instantly override your advanced styling configurations."
+msgstr ""
+
+#: src/settings/themes.slint:520
+msgid "Quick Accent"
+msgstr ""
+
+#: src/settings/themes.slint:526
+msgid "Instantly update the primary interactive color."
+msgstr ""
+
+#: src/settings/themes.slint:573
+msgid "Advanced Styling"
+msgstr ""
+
+#: src/settings/themes.slint:579
+msgid "Fine-tune UI parameters. Modifying these clones/mutates the current active theme."
+msgstr ""
+
+#: src/settings/themes.slint:606
+msgid "Adjust the color for {}"
+msgstr ""
+
+#: src/settings/themes.slint:615
+msgid "Adjust the size for {}"
+msgstr ""
+
+#: src/settings/themes.slint:630
+msgid "Export Theme"
+msgstr ""
+
+#: src/settings/themes.slint:631
+msgid "Save your current styling configuration as a new reusable preset."
+msgstr ""
+
+#: src/settings/themes.slint:632
+msgid "Save as New Theme"
+msgstr ""
+
+#: src/topbar/search_bar.slint:6
+msgid "Search..."
+msgstr "Search..."

@@ -212,7 +212,7 @@ component FullColorPicker inherits VerticalLayout {
         HorizontalLayout {
             spacing: Theme.spacingSm;
             Text {
-                text: "Opacity";
+                text: @tr("Opacity");
                 color: Theme.textSecondary;
                 font-size: Theme.caption;
                 vertical-alignment: center;
@@ -464,7 +464,7 @@ export component ThemesPage inherits VerticalLayout {
     HorizontalLayout {
         padding-bottom: Theme.paddingSm;
         Text {
-            text: "Settings > Themes";
+            text: @tr("Settings > Themes");
             font-size: Theme.modelTitle;
             color: Theme.accent;
         }
@@ -481,13 +481,13 @@ export component ThemesPage inherits VerticalLayout {
                 VerticalLayout {
                     spacing: Theme.spacingMd;
                     Text {
-                        text: "Preset Themes";
+                        text: @tr("Preset Themes");
                         font-size: Theme.modelTitle;
                         color: Theme.textPrimary;
                     }
 
                     Text {
-                        text: "Selecting a theme will instantly override your advanced styling configurations.";
+                        text: @tr("Selecting a theme will instantly override your advanced styling configurations.");
                         font-size: Theme.caption;
                         color: Theme.textSecondary;
                         wrap: word-wrap;
@@ -517,13 +517,13 @@ export component ThemesPage inherits VerticalLayout {
                         horizontal-stretch: 1;
                         alignment: center;
                         Text {
-                            text: "Quick Accent";
+                            text: @tr("Quick Accent");
                             font-size: Theme.modelTitle;
                             color: Theme.textPrimary;
                         }
 
                         Text {
-                            text: "Instantly update the primary interactive color.";
+                            text: @tr("Instantly update the primary interactive color.");
                             font-size: Theme.caption;
                             color: Theme.textSecondary;
                         }
@@ -570,13 +570,13 @@ export component ThemesPage inherits VerticalLayout {
                                 alignment: center;
                                 spacing: Theme.spacingXs;
                                 Text {
-                                    text: "Advanced Styling";
+                                    text: @tr("Advanced Styling");
                                     font-size: Theme.modelTitle;
                                     color: Theme.textPrimary;
                                 }
 
                                 Text {
-                                    text: "Fine-tune UI parameters. Modifying these clones/mutates the current active theme.";
+                                    text: @tr("Fine-tune UI parameters. Modifying these clones/mutates the current active theme.");
                                     font-size: Theme.caption;
                                     color: Theme.textSecondary;
                                 }
@@ -603,7 +603,7 @@ export component ThemesPage inherits VerticalLayout {
                             spacing: Theme.spacingMd;
                             if item.is-color: ColorTabCard {
                                 title: item.name;
-                                desc: "Adjust the color for " + item.name;
+                                desc: @tr("Adjust the color for {}", item.name);
                                 active-val: item.color-value;
                                 changed(val) => {
                                     let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
@@ -612,7 +612,7 @@ export component ThemesPage inherits VerticalLayout {
                             }
                             if !item.is-color: NumberInputGroup {
                                 title: item.name;
-                                subtitle: "Adjust the size for " + item.name;
+                                subtitle: @tr("Adjust the size for {}", item.name);
                                 unit: "px";
                                 value: item.value;
                                 edited(v) => {
@@ -627,9 +627,9 @@ export component ThemesPage inherits VerticalLayout {
             // SECTION 4: SAVE ACTION
             PreferenceGroup {
                 ButtonGroup {
-                    title: "Export Theme";
-                    subtitle: "Save your current styling configuration as a new reusable preset.";
-                    buttons: [{ id: "save_modal", text: "Save as New Theme", is-destructive: false }];
+                    title: @tr("Export Theme");
+                    subtitle: @tr("Save your current styling configuration as a new reusable preset.");
+                    buttons: [{ id: "save_modal", text: @tr("Save as New Theme"), is-destructive: false }];
                     clicked(id) => {
                         root.show-save-modal = true;
                     }

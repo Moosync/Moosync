@@ -32,7 +32,7 @@ export component PathSelector {
             }
 
             Button {
-                text: "Add folder";
+                text: @tr("Add folder");
                 icon: @image-url("../icons/plus.svg");
                 clicked => {
                     let chosen = AppCallbacks.open_directory_picker();

@@ -151,7 +151,7 @@ export component ExtensionsPage inherits VerticalLayout {
     HorizontalLayout {
         padding-bottom: Theme.paddingSm;
         Text {
-            text: "Settings > Extensions";
+            text: @tr("Settings > Extensions");
             font-size: Theme.modelTitle;
             color: Theme.accent;
         }
@@ -164,13 +164,13 @@ export component ExtensionsPage inherits VerticalLayout {
                 alignment: start;
                 horizontal-stretch: 1;
                 Text {
-                    text: "Extensions";
+                    text: @tr("Extensions");
                     font-size: Theme.modelTitle;
                     color: Theme.textPrimary;
                 }
 
                 Text {
-                    text: "Manage your extensions";
+                    text: @tr("Manage your extensions");
                     font-size: Theme.caption;
                     wrap: word-wrap;
                     color: Theme.textSecondary;
@@ -178,7 +178,7 @@ export component ExtensionsPage inherits VerticalLayout {
             }
 
             Button {
-                text: "Add Extension";
+                text: @tr("Add Extension");
                 icon: @image-url("../icons/plus.svg");
                 clicked => {
                     let chosen = AppCallbacks.open_file_picker("msxt");
@@ -190,7 +190,7 @@ export component ExtensionsPage inherits VerticalLayout {
         }
 
         if (root.extensions.length == 0): Text {
-            text: "No extensions available.";
+            text: @tr("No extensions available.");
             font-size: Theme.body;
             color: Theme.textSecondary;
             horizontal-alignment: left;

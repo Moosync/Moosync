@@ -3,7 +3,7 @@ import { Theme } from "../constants.slint";
 export component SearchBar inherits Rectangle {
     in-out property <string> text;
     in property <color> custom-background: Theme.secondary;
-    in property <string> placeholder-text: "Search...";
+    in property <string> placeholder-text: @tr("Search...");
     callback accepted(string);
     callback edited(string);
 

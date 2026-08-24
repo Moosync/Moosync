@@ -153,12 +153,16 @@ export component MainWindow inherits Window {
     in-out property <string> current_pos_str: "00:00";
 
     property <[SidebarItem]> sidebar_items: [
-        { text: "Songs", icon: @image-url("./icons/songs.svg"), page: Pages.AllSongs },
-        { text: "Playlists", icon: @image-url("./icons/playlists.svg"), page: Pages.Playlists },
-        { text: "Artists", icon: @image-url("./icons/artists.svg"), page: Pages.Artists },
-        { text: "Albums", icon: @image-url("./icons/albums.svg"), page: Pages.Albums },
-        { text: "Genres", icon: @image-url("./icons/genres.svg"), page: Pages.Genres },
-        { text: "Explore", icon: @image-url("./icons/explore.svg"), page: Pages.Explore },
+        { text: @tr("Songs"), icon: @image-url("./icons/songs.svg"), page: Pages.AllSongs },
+        {
+            text: @tr("Playlists"),
+            icon: @image-url("./icons/playlists.svg"),
+            page: Pages.Playlists
+        },
+        { text: @tr("Artists"), icon: @image-url("./icons/artists.svg"), page: Pages.Artists },
+        { text: @tr("Albums"), icon: @image-url("./icons/albums.svg"), page: Pages.Albums },
+        { text: @tr("Genres"), icon: @image-url("./icons/genres.svg"), page: Pages.Genres },
+        { text: @tr("Explore"), icon: @image-url("./icons/explore.svg"), page: Pages.Explore },
     ];
 
     VerticalLayout {

@@ -4,7 +4,10 @@ fn main() {
     unsafe {
         std::env::set_var("SLINT_ENABLE_EXPERIMENTAL_FEATURES", "1");
     }
-    slint_build::compile("src/app.slint").unwrap();
+    let config = slint_build::CompilerConfiguration::new()
+        .with_bundled_translations("locales")
+        .with_default_translation_context(slint_build::DefaultTranslationContext::None);
+    slint_build::compile_with_config("src/app.slint", config).unwrap();
 
     let out_dir = env::var("OUT_DIR").unwrap();
     let app_rs_path = PathBuf::from(out_dir).join("app.rs");

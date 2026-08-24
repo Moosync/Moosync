@@ -37,6 +37,7 @@ Donot
 
 5. Use `bazel run //tools:format -- <files>` to format Rust (`.rs`) and Slint (`.slint`) files. This is wired as the git pre-commit hook via `.git/hooks/pre-commit`. Do not invoke rustfmt or slint-lsp directly — they are resolved through Bazel runfiles.
 6. No Clippy lints exist in this project. Use `bazel query` to discover available targets for a crate; test suites are defined under the root `BUILD` (e.g., `core_tests`).
+7. Use `bazel run //tools:extract_translations` to extract translatable strings from Slint files into `ui/slint/locales/slint_app.pot`.
 12. **Nesting and Control Flow**: Conditions should not be nested and an early return pattern should be preferred (e.g., using `let else` or flat early exits). Avoid using `else` blocks wherever possible, and avoid using `continue` inside loops to maintain clear and readable control flow.
 13. **Single Responsibility & No Else Blocks**: Avoid `else` blocks entirely to reduce cognitive load and simplify control flow. Each function must perform only one task. Split distinct logic paths into separate, single-purpose helper functions and have the caller function orchestrate or delegate using flat early returns.
 14. **Simple & Obvious Naming**: Keep function names simple and obvious. Do not repeat context from the struct or module name inside function names (e.g., in `PlaylistContentPageHandler`, use `fetch_local` or `fetch_local_songs` instead of `fetch_local_playlist_songs`).

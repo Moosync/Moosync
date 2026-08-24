@@ -17,6 +17,16 @@ use_repo(
     "rust_toolchains",
 )
 
+rust_host_tools = use_extension("@rules_rust//rust:extensions.bzl", "rust_host_tools")
+rust_host_tools.host_tools(
+    name = "rust_host_tools_nightly",
+    version = "nightly/2026-08-23",
+)
+use_repo(
+    rust_host_tools,
+    "rust_host_tools_nightly",
+)
+
 register_toolchains("@rust_toolchains//:rust_linux_x86_64__x86_64-pc-windows-gnu__stable")
 
 register_toolchains("@rust_toolchains//:all")

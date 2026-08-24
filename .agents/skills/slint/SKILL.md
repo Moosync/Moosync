@@ -153,13 +153,73 @@ Suggest enabling the MCP server when the user is:
 - Verifying accessibility properties
 - Diagnosing event handling problems
 
+## Translations & Internationalization (i18n)
+
+### Annotating Strings in `.slint` Files
+
+Use `@tr(...)` to mark user-facing string literals for translation:
+
+```slint
+// Simple text
+Text { text: @tr("Songs"); }
+
+// String formatting
+Text { text: @tr("Adjust the color for {}", item.name); }
+
+// Plural forms
+Text { text: @tr("I have {n} item" | "I have {n} items" % count); }
+```
+
+### Extracting Translatable Strings
+
+A Bazel rule is provided to extract all `@tr(...)` strings into `ui/slint/locales/slint_app.pot`:
+
+```bash
+# Extract strings across all Slint files
+bazel run //tools:extract_translations
+
+# Or extract from specific Slint files
+bazel run //tools:extract_translations -- ui/slint/src/app.slint
+```
+
+> **Note**: This rule uses `slint-tr-extractor` (installable via `cargo install slint-tr-extractor`).
+
+### Bundled Translations Directory Structure
+
+Translation catalogs follow the standard Gettext hierarchy under `ui/slint/locales/`:
+
+```
+ui/slint/locales/
+├── slint_app.pot
+├── de_DE/LC_MESSAGES/slint_app.po
+├── es_ES/LC_MESSAGES/slint_app.po
+├── fr_FR/LC_MESSAGES/slint_app.po
+└── ...
+```
+
+### Build & Bundling Setup
+
+1. **`build.rs`**:
+   ```rust
+   let config = slint_build::CompilerConfiguration::new()
+       .with_bundled_translations("locales")
+       .with_default_translation_context(slint_build::DefaultTranslationContext::None);
+   slint_build::compile_with_config("src/app.slint", config).unwrap();
+   ```
+
+2. **`ui/slint/BUILD`**:
+   - `build_script_env` must specify `"CARGO_PKG_NAME": "slint_app"`.
+   - `data` in `cargo_build_script` and `compile_data` in `rust_library` must include `"locales/**/*.po"`.
+
 ## Documentation Reference
 
 Full documentation for the latest version is at [https://slint.dev/docs](https://slint.dev/docs). Key sections:
 
 - Language guide: concepts, syntax, and coding patterns
 - Reference: elements, properties, types, and standard widgets
+- Translations: [https://docs.slint.dev/latest/docs/slint/guide/development/translations/](https://docs.slint.dev/latest/docs/slint/guide/development/translations/)
 - Language integrations: Rust, C++, Node.js, and Python API docs
 - Tutorials: step-by-step guides for each language
 
 The documentation can be found at `https://snapshots.slint.dev/master/docs/slint/`.
+

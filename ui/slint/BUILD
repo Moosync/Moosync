@@ -20,6 +20,7 @@ cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
     build_script_env = {
+        "CARGO_PKG_NAME": "slint_app",
         "CARGO_PKG_VERSION": "1.18.0",
         "CARGO_PKG_VERSION_MAJOR": "1",
         "CARGO_PKG_VERSION_MINOR": "18",
@@ -27,6 +28,7 @@ cargo_build_script(
         "SLINT_ENABLE_EXPERIMENTAL_FEATURES": "1",
     },
     data = glob([
+        "locales/**/*.po",
         "src/**/*.slint",
         "src/**/*.svg",
     ]),
@@ -83,6 +85,7 @@ rust_library(
         "src/window_info_test.rs",
     ],
     compile_data = glob([
+        "locales/**/*.po",
         "src/**/*.slint",
         "src/**/*.svg",
         "src/**/*.yaml",
@@ -198,6 +201,7 @@ rust_shared_library(
         "src/window_info_test.rs",
     ],
     compile_data = glob([
+        "locales/**/*.po",
         "src/**/*.slint",
         "src/**/*.svg",
         "src/**/*.yaml",

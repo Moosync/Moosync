@@ -22,24 +22,24 @@ export component GridListView inherits Rectangle {
     pure callback item-extension-icon(int) -> image;
     callback item-clicked(int);
 
-    HorizontalLayout {
-        alignment: start;
+    ListView {
+        width: 100%;
+        height: 100%;
+        vertical-scrollbar-policy: always-on;
 
-        for col-index in 20: Rectangle {
-            visible: col-index < root.max-columns;
-            width: self.visible ? root.item-width + ((col-index < root.max-columns - 1) ? root.spacing-x : 0px) : 0px;
+        for row-index in root.total-rows: Rectangle {
+            height: root.item-height + root.spacing-y;
 
-            if (self.visible): ListView {
-                viewport-y <=> root.scroll-y;
-                vertical-scrollbar-policy: (col-index == root.max-columns - 1) ? always-on : always-off;
-                horizontal-scrollbar-policy: always-off;
+            HorizontalLayout {
+                alignment: start;
 
-                for row-index in root.total-rows: cell := Rectangle {
-                    height: root.item-height + root.spacing-y;
+                for col-index in 20: col := Rectangle {
+                    visible: col-index < root.max-columns;
+                    width: self.visible ? root.item-width + ((col-index < root.max-columns - 1) ? root.spacing-x : 0px) : 0px;
 
                     property <int> item-idx: row-index * root.max-columns + col-index;
 
-                    if (cell.item-idx < root.total-items): Rectangle {
+                    if (self.visible && self.item-idx < root.total-items): cell := Rectangle {
                         width: root.item-width;
                         height: root.item-height;
                         background: touch.has-hover ? Theme.secondary : transparent;
@@ -47,15 +47,15 @@ export component GridListView inherits Rectangle {
                         clip: true;
 
                         CardView {
-                            title: root.item-title(cell.item-idx);
-                            cover-img: root.item-cover(cell.item-idx);
-                            extension-icon: root.item-extension-icon(cell.item-idx);
+                            title: root.item-title(col.item-idx);
+                            cover-img: root.item-cover(col.item-idx);
+                            extension-icon: root.item-extension-icon(col.item-idx);
                         }
 
                         touch := TouchArea {
                             mouse-cursor: pointer;
                             clicked => {
-                                root.item-clicked(cell.item-idx);
+                                root.item-clicked(col.item-idx);
                             }
                         }
                     }

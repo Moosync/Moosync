@@ -1,0 +1,99 @@
+import { Theme } from "../constants.slint";
+import { MenuItem } from "../types/song_view.slint";
+
+export { MenuItem }
+export component PopupMenu inherits Rectangle {
+    in property <[MenuItem]> items;
+    in property <length> menu-width: 0px;
+    in property <length> menu-min-width: 140px;
+    in property <color> menu-background: Theme.secondary;
+    in property <length> menu-border-radius: Theme.borderRadiusLg;
+
+    callback selected(string);
+    callback item-clicked(string, int);
+
+    public function show() {
+        popup.show();
+    }
+
+    width: 0px;
+    height: 0px;
+
+    popup := PopupWindow {
+        Rectangle {
+            min-width: root.menu-width > 0px ? root.menu-width : root.menu-min-width;
+            background: root.menu-background;
+            border-radius: root.menu-border-radius;
+            border-width: Theme.borderWidth;
+            border-color: Theme.textSecondary.with-alpha(0.25);
+            clip: true;
+
+            VerticalLayout {
+                padding: Theme.paddingXs;
+                spacing: Theme.spacingTiny;
+
+                for item[index] in root.items: item-touch := TouchArea {
+                    height: item.is-divider ? 1px : 32px;
+                    clicked => {
+                        if (!item.is-divider) {
+                            root.selected(item.id);
+                            root.item-clicked(item.id, index);
+                        }
+                    }
+
+                    if (item.is-divider): Rectangle {
+                        height: 1px;
+                        background: Theme.textSecondary.with-alpha(0.2);
+                    }
+
+                    if (!item.is-divider): Rectangle {
+                        border-radius: Theme.borderRadiusMd;
+                        background: item-touch.has-hover ? Theme.primary.brighter(0.2) : transparent;
+
+                        animate background { duration: 100ms; }
+
+                        HorizontalLayout {
+                            padding-left: Theme.paddingMd;
+                            padding-right: Theme.paddingMd;
+                            spacing: Theme.spacingSm;
+                            alignment: start;
+
+                            // Optional Icon (only rendered when an icon is provided)
+                            if (item.icon.width > 0): VerticalLayout {
+                                alignment: center;
+                                Image {
+                                    width: Theme.iconSizeSm;
+                                    height: Theme.iconSizeSm;
+                                    source: item.icon;
+                                    colorize: item.is-danger ? #ff5555 : (item.is-selected ? Theme.accent : Theme.textPrimary);
+                                }
+                            }
+
+                            // Title Text
+                            Text {
+                                text: item.title;
+                                font-size: Theme.subtitle;
+                                vertical-alignment: center;
+                                horizontal-alignment: left;
+                                color: item.is-danger ? #ff5555 : (item.is-selected ? Theme.accent : (item-touch.has-hover ? Theme.textPrimary : Theme.textPrimary.with-alpha(0.85)));
+                                animate color { duration: 100ms; }
+                            }
+
+                            // Selection indicator on the right
+                            if (item.is-selected): VerticalLayout {
+                                alignment: center;
+                                Rectangle {
+                                    width: 3px;
+                                    height: 14px;
+                                    border-radius: 2px;
+                                    background: Theme.accent;
+                                    animate background { duration: 150ms; }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -2,10 +2,13 @@ import { Theme } from "../constants.slint";
 
 export component SearchBar inherits Rectangle {
     in-out property <string> text;
+    in property <color> custom-background: Theme.secondary;
+    in property <string> placeholder-text: "Search...";
     callback accepted(string);
+    callback edited(string);
 
     height: Theme.searchBarHeight;
-    background: Theme.secondary; // Secondary
+    background: root.custom-background;
     border-radius: Theme.searchBarHeight / 2;
     border-width: Theme.borderWidth;
     border-color: Theme.divider; // Divider
@@ -33,7 +36,7 @@ export component SearchBar inherits Rectangle {
 
             // Placeholder text (visible when empty)
             if (input.text == ""): Text {
-                text: "Search...";
+                text: root.placeholder-text;
                 color: Theme.textSecondary; // Text Secondary
                 font-size: Theme.subtitle;
                 vertical-alignment: center;
@@ -48,6 +51,9 @@ export component SearchBar inherits Rectangle {
                 single-line: true;
                 accepted => {
                     root.accepted(self.text);
+                }
+                edited => {
+                    root.edited(self.text);
                 }
             }
         }

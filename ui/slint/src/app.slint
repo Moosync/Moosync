@@ -12,7 +12,9 @@ import {
     GenreModel,
     SearchResult,
     ProviderRecommendations,
+    SongSortCriterion,
 } from "types/song_view.slint";
+import { MenuItem, PopupMenu } from "common/popup_menu.slint";
 import { AlbumsPage, AlbumsPageProps } from "main_content/albums.slint";
 import { ArtistsPage, ArtistsPageProps } from "main_content/artists.slint";
 import {
@@ -50,7 +52,12 @@ import {
     RgbaColor,
     ThemeConstant,
 } from "constants.slint";
-import { AppCallbacks, BottomBarCallbacks } from "callbacks.slint";
+import {
+    AppCallbacks,
+    BottomBarCallbacks,
+    PreferenceChange,
+    SortDecision,
+} from "callbacks.slint";
 import { Settings } from "settings/settings.slint";
 import { PageWrapper } from "common/page_wrapper.slint";
 import {
@@ -59,7 +66,6 @@ import {
     PreferenceItem,
     RadioItem,
 } from "settings/preferences.slint";
-import { PreferenceChange } from "callbacks.slint";
 import { ExtensionItem } from "./types/extension_view.slint";
 
 export {
@@ -71,6 +77,7 @@ export {
     Preferences,
     AppPreferences,
     PreferenceChange,
+    SortDecision,
     PreferenceItem,
     RadioItem,
     ThemeConfig,
@@ -91,6 +98,8 @@ export {
     SearchPageProps,
     ExplorePageProps,
     QueuePageProps,
+    SongSortCriterion,
+    MenuItem,
 }
 export component MainWindow inherits Window {
     title: "moosync";

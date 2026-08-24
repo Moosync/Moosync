@@ -105,3 +105,20 @@ export enum SongDetailAction {
     Play,
     AddToQueue,
 }
+
+export struct MenuItem {
+    id: string,
+    title: string,
+    icon: image,
+    is-selected: bool,
+    is-divider: bool,
+    is-danger: bool,
+}
+
+export enum SongSortCriterion {
+    Title,
+    Date,
+    Album,
+    TrackNumber,
+    Artist,
+}

@@ -241,6 +241,29 @@ fn setup_cover_helper(main_window: &MainWindow) {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+fn setup_song_list_helper(main_window: &MainWindow, state_manager: &'static StateManager) {
+    let main_window_weak = main_window.as_weak();
+    main_window
+        .global::<AppCallbacks>()
+        .on_filter_and_sort_songs(move |songs, query, criterion, ascending| {
+            let Some(main_window) = main_window_weak.upgrade() else {
+                return songs;
+            };
+            let theme = main_window.global::<crate::Theme>();
+            let cache_dir = state_manager.get_cache_dir();
+            utils::filter_and_sort_songs(
+                songs,
+                &query,
+                criterion,
+                ascending,
+                theme.get_songListItemHeight() as usize,
+                theme.get_songListItemWidth() as usize,
+                cache_dir,
+            )
+        });
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager) {
     main_window
         .global::<AppCallbacks>()
@@ -610,6 +633,7 @@ fn setup_page_navigation(
 fn setup_ui(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     setup_resize(main_window);
     setup_cover_helper(main_window);
+    setup_song_list_helper(main_window, state_manager);
     let pages = get_all_pages(main_window, state_manager);
     setup_page_navigation(main_window, pages);
     setup_song_cbs(main_window, state_manager);

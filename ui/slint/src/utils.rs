@@ -1023,3 +1023,96 @@ pub fn parse_length(val: &str) -> Option<f32> {
     }
     val.parse::<f32>().ok()
 }
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn song_matches_query(song: &SongModel, query: &str) -> bool {
+    if query.is_empty() {
+        return true;
+    }
+    song.title.to_lowercase().contains(&query.to_lowercase())
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn get_primary_artist_title(song: &SongModel) -> String {
+    song.artists
+        .row_data(0)
+        .map(|a| a.title.to_string())
+        .unwrap_or_default()
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn get_song_date_field(song: &SongModel) -> &str {
+    if !song.year.is_empty() {
+        return &song.year;
+    }
+    &song.date
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn compare_song_dates(a: &SongModel, b: &SongModel) -> std::cmp::Ordering {
+    let a_date = get_song_date_field(a);
+    let b_date = get_song_date_field(b);
+    if !a_date.is_empty() || !b_date.is_empty() {
+        return a_date.cmp(b_date);
+    }
+    a.date_added.cmp(&b.date_added)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+fn compare_songs(
+    a: &SongModel,
+    b: &SongModel,
+    criterion: crate::SongSortCriterion,
+    ascending: bool,
+) -> std::cmp::Ordering {
+    let ordering = match criterion {
+        crate::SongSortCriterion::Title => a.title.to_lowercase().cmp(&b.title.to_lowercase()),
+        crate::SongSortCriterion::Date => compare_song_dates(a, b),
+        crate::SongSortCriterion::Album => a
+            .album_name
+            .to_lowercase()
+            .cmp(&b.album_name.to_lowercase()),
+        crate::SongSortCriterion::TrackNumber => a
+            .track_no
+            .partial_cmp(&b.track_no)
+            .unwrap_or(std::cmp::Ordering::Equal),
+        crate::SongSortCriterion::Artist => get_primary_artist_title(a)
+            .to_lowercase()
+            .cmp(&get_primary_artist_title(b).to_lowercase()),
+    };
+
+    if !ascending {
+        return ordering.reverse();
+    }
+    ordering
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn filter_and_sort_songs(
+    songs: ModelRc<SongModel>,
+    query: &str,
+    criterion: crate::SongSortCriterion,
+    ascending: bool,
+    item_height: usize,
+    item_width: usize,
+    cache_dir: std::path::PathBuf,
+) -> ModelRc<SongModel> {
+    let query = query.trim().to_lowercase();
+    if query.is_empty() && criterion == crate::SongSortCriterion::Title && ascending {
+        return songs;
+    }
+
+    let mut filtered: Vec<SongModel> = (0..songs.row_count())
+        .filter_map(|i| songs.row_data(i))
+        .filter(|song| song_matches_query(song, &query))
+        .collect();
+
+    filtered.sort_by(|a, b| compare_songs(a, b, criterion, ascending));
+
+    ModelRc::new(LazySongVecModel::new(
+        filtered,
+        item_height,
+        item_width,
+        cache_dir,
+    ))
+}

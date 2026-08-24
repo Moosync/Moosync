@@ -1,33 +1,152 @@
 import { ListView } from "std-widgets.slint";
-import { SongModel } from "../types/song_view.slint";
+import {
+    SongModel,
+    SongSortCriterion,
+} from "../types/song_view.slint";
 import { SongListItem } from "song_list_item.slint";
 import { Theme, Constants } from "../constants.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { SearchBar } from "../topbar/search_bar.slint";
+import { PopupMenu } from "popup_menu.slint";
 
 export component SongListView inherits Rectangle {
     in property <[SongModel]> songs: Constants.testSongs;
     in-out property <int> active-idx: -1;
+    in property <bool> show-controls: true;
+
+    out property <[SongModel]> display-songs: (root.search-text == "" && root.sort-criterion == SongSortCriterion.Title && root.sort-ascending) ? root.songs : AppCallbacks.filter_and_sort_songs(
+        root.songs,
+        root.search-text,
+        root.sort-criterion,
+        root.sort-ascending);
+
+    property <bool> search-open: false;
+    property <string> search-text: "";
+    property <SongSortCriterion> sort-criterion: SongSortCriterion.Title;
+    property <bool> sort-ascending: true;
 
     background: transparent;
 
-    ListView {
-        width: 100%;
-        height: 100%;
-        vertical-scrollbar-policy: always-on;
+    VerticalLayout {
+        spacing: root.show-controls ? Theme.spacingSm : 0px;
 
-        for song[index] in root.songs: VerticalLayout {
-            HorizontalLayout {
-                padding-bottom: Theme.paddingSm;
-                padding-right: Theme.spacingXl;
+        HorizontalLayout {
+            visible: root.show-controls;
+            alignment: end;
+            spacing: Theme.spacingSm;
+            padding-right: Theme.spacingXl;
+            height: root.show-controls ? Theme.searchBarHeight : 0px;
 
-                Rectangle {
-                    SongListItem {
-                        song: song;
-                        border-width: (root.active-idx == index || self.has-hover) ? Theme.borderWidth * 2 : 0px;
-                        border-color: root.active-idx == index ? Theme.accent : Theme.accent.darker(0.2);
+            // Expandable Search Bar container
+            Rectangle {
+                width: root.search-open ? 220px : 0px;
+                opacity: root.search-open ? 1.0 : 0.0;
+                clip: true;
 
-                        changed pressed => {
-                            if self.pressed {
-                                root.active-idx = index;
+                animate width {
+                    duration: 200ms;
+                    easing: ease-in-out;
+                }
+                animate opacity {
+                    duration: 150ms;
+                    easing: ease-in-out;
+                }
+
+                SearchBar {
+                    width: 220px;
+                    text <=> root.search-text;
+                    custom-background: Theme.tertiary;
+                    placeholder-text: "Filter songs...";
+                }
+            }
+
+            // Search Icon Button
+            Rectangle {
+                width: 32px;
+                height: 32px;
+                border-radius: Theme.borderRadiusMd;
+                background: search-touch.has-hover || root.search-open ? Theme.secondary : transparent;
+
+                search-touch := TouchArea {
+                    clicked => {
+                        root.search-open = !root.search-open;
+                        if (!root.search-open) {
+                            root.search-text = "";
+                        }
+                    }
+                }
+
+                Image {
+                    width: Theme.iconSizeMd;
+                    height: Theme.iconSizeMd;
+                    source: @image-url("../icons/search.svg");
+                    colorize: root.search-open ? Theme.accent : (search-touch.has-hover ? Theme.textPrimary : Theme.textSecondary);
+                }
+            }
+
+            // Sort Icon Button
+            sort-btn := Rectangle {
+                width: 32px;
+                height: 32px;
+                border-radius: Theme.borderRadiusMd;
+                background: sort-touch.has-hover || root.sort-criterion != SongSortCriterion.Title || !root.sort-ascending ? Theme.secondary : transparent;
+
+                sort-touch := TouchArea {
+                    clicked => {
+                        sort-popup.show();
+                    }
+                }
+
+                Image {
+                    width: Theme.iconSizeMd;
+                    height: Theme.iconSizeMd;
+                    source: @image-url("../icons/sort.svg");
+                    colorize: (root.sort-criterion != SongSortCriterion.Title || !root.sort-ascending) ? Theme.accent : (sort-touch.has-hover ? Theme.textPrimary : Theme.textSecondary);
+                    transform-rotation: !root.sort-ascending ? 180deg : 0deg;
+
+                    animate transform-rotation {
+                        duration: 150ms;
+                        easing: ease-in-out;
+                    }
+                }
+
+                sort-popup := PopupMenu {
+                    x: sort-btn.width - self.width;
+                    y: sort-btn.height + 4px;
+                    items: AppCallbacks.get_sort_menu_items(root.sort-criterion);
+
+                    selected(id) => {
+                        root.sort-ascending = AppCallbacks.decide_sort_ascending(root.sort-criterion, root.sort-ascending, id);
+                        root.sort-criterion = AppCallbacks.decide_sort_criterion(id);
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+
+            ListView {
+                width: 100%;
+                height: 100%;
+                vertical-scrollbar-policy: always-on;
+
+                for song[index] in root.display-songs: VerticalLayout {
+                    HorizontalLayout {
+                        padding-bottom: Theme.paddingSm;
+                        padding-right: Theme.spacingXl;
+
+                        Rectangle {
+                            SongListItem {
+                                song: song;
+                                border-width: (root.active-idx == index || self.has-hover) ? Theme.borderWidth * 2 : 0px;
+                                border-color: root.active-idx == index ? Theme.accent : Theme.accent.darker(0.2);
+
+                                changed pressed => {
+                                    if self.pressed {
+                                        root.active-idx = index;
+                                    }
+                                }
                             }
                         }
                     }

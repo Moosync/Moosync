@@ -1,13 +1,13 @@
-import { ListView, VerticalBox } from "std-widgets.slint";
+import { VerticalBox } from "std-widgets.slint";
 import { SongModel, SongDetailAction } from "../types/song_view.slint";
-import { SongListItem } from "song_list_item.slint";
+import { SongListView } from "song_list_view.slint";
 import { SongDetails } from "song_details.slint";
 import { Constants, Theme } from "../constants.slint";
 import { AppCallbacks } from "../callbacks.slint";
 
 export component SongsPageLayout inherits Rectangle {
     in-out property <int> active-idx: -1;
-    property <SongModel> active: active-idx >= 0 ? songs[active-idx] : default-song;
+    property <SongModel> active: root.active-idx >= 0 && root.active-idx < song-list.display-songs.length ? song-list.display-songs[root.active-idx] : root.default-song;
 
     in property <[SongModel]> songs: Constants.testSongs;
     in property <SongModel> default-song: Constants.defaultSong;
@@ -43,7 +43,7 @@ export component SongsPageLayout inherits Rectangle {
                             clicked => {
                                 AppCallbacks.song_detail_action(
                                     SongDetailAction.Play,
-                                    root.active-idx >= 0 ? [root.active] : root.songs);
+                                    root.active-idx >= 0 ? [root.active] : song-list.display-songs);
                             }
                         }
 
@@ -66,7 +66,7 @@ export component SongsPageLayout inherits Rectangle {
                             clicked => {
                                 AppCallbacks.song_detail_action(
                                     SongDetailAction.AddToQueue,
-                                    root.active-idx >= 0 ? [root.active] : root.songs);
+                                    root.active-idx >= 0 ? [root.active] : song-list.display-songs);
                             }
                         }
 
@@ -84,31 +84,9 @@ export component SongsPageLayout inherits Rectangle {
         VerticalBox {
             horizontal-stretch: 3;
 
-            ListView {
-                vertical-scrollbar-policy: always-on;
-                preferred-height: songs.length * Theme.songListItemHeight;
-
-                for song[index] in songs: VerticalLayout {
-
-                    HorizontalLayout {
-                        padding-bottom: Theme.paddingSm;
-                        padding-right: Theme.spacingXl;
-
-                        Rectangle {
-                            SongListItem {
-                                song: song;
-                                border-width: (active-idx == index || self.has-hover) ? Theme.borderWidth * 2 : 0px;
-                                border-color: active-idx == index ? Theme.accent : Theme.accent.darker(0.2);
-
-                                changed pressed => {
-                                    if self.pressed {
-                                        active-idx = index;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+            song-list := SongListView {
+                songs: root.songs;
+                active-idx <=> root.active-idx;
             }
         }
     }

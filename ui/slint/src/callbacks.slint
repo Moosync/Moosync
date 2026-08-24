@@ -1,8 +1,10 @@
-import { Pages, SettingsPages } from "constants.slint";
+import { Pages, SettingsPages, Constants } from "constants.slint";
 import {
     SongModel,
     SearchResult,
     SongDetailAction,
+    SongSortCriterion,
+    MenuItem,
 } from "./types/song_view.slint";
 
 export struct PreferenceChange {
@@ -10,6 +12,11 @@ export struct PreferenceChange {
     value_string: string,
     value_bool: bool,
     value_number: float,
+}
+
+export struct SortDecision {
+    criterion: SongSortCriterion,
+    ascending: bool,
 }
 
 export global AppCallbacks {
@@ -40,6 +47,71 @@ export global AppCallbacks {
     callback settings-active-page-changed(SettingsPages);
     callback settings-toggled(bool);
     callback queue-toggled(bool);
+
+    // Song List Filter & Sort Callbacks and Functions
+    pure callback filter_and_sort_songs([SongModel], string, SongSortCriterion, bool) -> [SongModel];
+
+    pure public function decide_sort_criterion(id: string) -> SongSortCriterion {
+        if (id == "date") { return SongSortCriterion.Date; }
+        if (id == "album") { return SongSortCriterion.Album; }
+        if (id == "track") { return SongSortCriterion.TrackNumber; }
+        if (id == "artist") { return SongSortCriterion.Artist; }
+        return SongSortCriterion.Title;
+    }
+
+    pure public function decide_sort_ascending(current_criterion: SongSortCriterion, current_ascending: bool, id: string) -> bool {
+        if (id == "title" && current_criterion == SongSortCriterion.Title) { return !current_ascending; }
+        if (id == "date" && current_criterion == SongSortCriterion.Date) { return !current_ascending; }
+        if (id == "album" && current_criterion == SongSortCriterion.Album) { return !current_ascending; }
+        if (id == "track" && current_criterion == SongSortCriterion.TrackNumber) { return !current_ascending; }
+        if (id == "artist" && current_criterion == SongSortCriterion.Artist) { return !current_ascending; }
+        return true;
+    }
+
+    pure public function get_sort_menu_items(active_criterion: SongSortCriterion) -> [MenuItem] {
+        return [
+            {
+                id: "title",
+                title: "Title",
+                icon: @image-url(""),
+                is-selected: active_criterion == SongSortCriterion.Title,
+                is-divider: false,
+                is-danger: false,
+            },
+            {
+                id: "date",
+                title: "Date",
+                icon: @image-url(""),
+                is-selected: active_criterion == SongSortCriterion.Date,
+                is-divider: false,
+                is-danger: false,
+            },
+            {
+                id: "album",
+                title: "Album",
+                icon: @image-url(""),
+                is-selected: active_criterion == SongSortCriterion.Album,
+                is-divider: false,
+                is-danger: false,
+            },
+            {
+                id: "track",
+                title: "Track Number",
+                icon: @image-url(""),
+                is-selected: active_criterion == SongSortCriterion.TrackNumber,
+                is-divider: false,
+                is-danger: false,
+            },
+            {
+                id: "artist",
+                title: "Artist",
+                icon: @image-url(""),
+                is-selected: active_criterion == SongSortCriterion.Artist,
+                is-divider: false,
+                is-danger: false,
+            },
+        ];
+    }
 }
 
 export global BottomBarCallbacks {

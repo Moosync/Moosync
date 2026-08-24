@@ -244,6 +244,16 @@ fn test_ui_get_all_pages_and_setup() {
             .global::<CoverHelper>()
             .invoke_fetch_cover_low(song_model.clone());
 
+        // Invoke song list helper
+        let _ = main_window
+            .global::<crate::AppCallbacks>()
+            .invoke_filter_and_sort_songs(
+                ModelRc::new(slint::VecModel::from(vec![song_model.clone()])),
+                "test".into(),
+                crate::SongSortCriterion::Title,
+                true,
+            );
+
         assert!(!main_window.get_playing());
     });
 }

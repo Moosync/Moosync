@@ -4,12 +4,55 @@ import {
     PlaylistModel,
     ArtistModel,
     GenreModel,
+    MenuItem,
 } from "./types/song_view.slint";
 import { ExtensionItem } from "./types/extension_view.slint";
 
-
 export global Constants {
     out property <duration> page-transition-duration: 250ms;
+
+    out property <[MenuItem]> sortMenuItems: [
+        {
+            id: "title",
+            title: "Title",
+            icon: @image-url(""),
+            is-selected: false,
+            is-divider: false,
+            is-danger: false,
+        },
+        {
+            id: "date",
+            title: "Date",
+            icon: @image-url(""),
+            is-selected: false,
+            is-divider: false,
+            is-danger: false,
+        },
+        {
+            id: "album",
+            title: "Album",
+            icon: @image-url(""),
+            is-selected: false,
+            is-divider: false,
+            is-danger: false,
+        },
+        {
+            id: "track",
+            title: "Track Number",
+            icon: @image-url(""),
+            is-selected: false,
+            is-divider: false,
+            is-danger: false,
+        },
+        {
+            id: "artist",
+            title: "Artist",
+            icon: @image-url(""),
+            is-selected: false,
+            is-divider: false,
+            is-danger: false,
+        },
+    ];
 
     out property <SongModel> defaultSong: {
         id: "",

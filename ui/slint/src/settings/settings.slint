@@ -14,6 +14,8 @@ import { SystemPage } from "system.slint";
 import { ExtensionsPage } from "extensions.slint";
 import { ExtensionItem } from "../types/extension_view.slint";
 import { ThemesPage } from "themes.slint";
+import { TextInputGroup } from "text_input.slint";
+import { ButtonGroup, ButtonItem } from "button_group.slint";
 import { AppCallbacks } from "../callbacks.slint";
 
 export component Settings inherits Modal {
@@ -27,6 +29,12 @@ export component Settings inherits Modal {
     in-out property <string> active-theme-id;
     in-out property <[ThemeConstant]> theme-constants;
     in-out property <[ExtensionItem]> extensions;
+
+    // Save Theme Modal State
+    in-out property <bool> show-save-theme-modal: false;
+    property <string> new-theme-name: "";
+    property <string> new-theme-desc: "";
+    property <string> new-theme-author: "";
 
     property <[SettingsSidebarItem]> items: [
         { text: "Paths", icon: @image-url("../icons/paths.svg"), page: SettingsPages.Paths },
@@ -81,6 +89,7 @@ export component Settings inherits Modal {
                     available-themes <=> root.available-themes;
                     active-theme-id <=> root.active-theme-id;
                     theme-constants <=> root.theme-constants;
+                    show-save-modal <=> root.show-save-theme-modal;
                 }
             }
 
@@ -106,6 +115,105 @@ export component Settings inherits Modal {
                         height: 10px;
                         x: (parent.width - self.width) / 2;
                         y: (parent.height - self.height) / 2;
+                    }
+                }
+            }
+        }
+    }
+
+    if root.show-save-theme-modal: Rectangle {
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+
+        TouchArea {
+            clicked => {
+                root.show-save-theme-modal = false;
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+
+            HorizontalLayout {
+                alignment: center;
+
+                Rectangle {
+                    width: Theme.themeSavePopupWidth;
+                    border-radius: Theme.borderRadiusXl;
+                    background: Theme.secondary;
+                    border-width: 1px;
+                    border-color: Theme.textSecondary;
+
+                    TouchArea {
+                        width: 100%;
+                        height: 100%;
+                    }
+
+                    VerticalLayout {
+                        padding: Theme.paddingLg;
+                        spacing: Theme.spacingMd;
+
+                        VerticalLayout {
+                            spacing: Theme.spacingXs;
+                            Text {
+                                text: "Save Custom Theme";
+                                font-size: Theme.modelTitle;
+                                color: Theme.textPrimary;
+                            }
+
+                            Text {
+                                text: "Your current accent and advanced styling variables will be saved.";
+                                font-size: Theme.caption;
+                                color: Theme.textSecondary;
+                                wrap: word-wrap;
+                            }
+                        }
+
+                        TextInputGroup {
+                            title: "Theme Name";
+                            subtitle: "A short, distinct name";
+                            placeholder: "e.g., Midnight Blue";
+                            value <=> root.new-theme-name;
+                            inputType: InputType.text;
+                        }
+
+                        TextInputGroup {
+                            title: "Author";
+                            subtitle: "Who created this theme?";
+                            placeholder: "Your name";
+                            value <=> root.new-theme-author;
+                            inputType: InputType.text;
+                        }
+
+                        TextInputGroup {
+                            title: "Description";
+                            subtitle: "A brief summary of the aesthetics";
+                            placeholder: "High contrast dark theme...";
+                            value <=> root.new-theme-desc;
+                            inputType: InputType.text;
+                        }
+
+                        HorizontalLayout {
+                            alignment: end;
+                            ButtonGroup {
+                                title: "";
+                                subtitle: "";
+                                buttons: [
+                                    { id: "cancel", text: "Cancel", is-destructive: false },
+                                    { id: "confirm", text: "Save Theme", is-destructive: false }
+                                ];
+                                clicked(id) => {
+                                    if (id == "confirm") {
+                                        AppCallbacks.save_custom_theme(root.new-theme-name, root.new-theme-author, root.new-theme-desc);
+                                        root.new-theme-name = "";
+                                        root.new-theme-author = "";
+                                        root.new-theme-desc = "";
+                                    }
+                                    root.show-save-theme-modal = false;
+                                }
+                            }
+                        }
                     }
                 }
             }

@@ -441,6 +441,7 @@ export component ThemesPage inherits VerticalLayout {
     in-out property <string> active-theme-id;
     in-out property <[ThemeConfig]> available-themes;
     in-out property <[ThemeConstant]> theme-constants;
+    in-out property <bool> show-save-modal: false;
 
     // Helper function to map a color object to RgbaColor reactively
     pure function color_to_rgba(c: color) -> RgbaColor {
@@ -459,11 +460,6 @@ export component ThemesPage inherits VerticalLayout {
 
     // Accordion Sections State
     property <bool> advanced-expanded: false;
-
-    // Save Modal State
-    property <string> new-theme-name: "";
-    property <string> new-theme-desc: "";
-    property <string> new-theme-author: "";
 
     HorizontalLayout {
         padding-bottom: Theme.paddingSm;
@@ -635,83 +631,7 @@ export component ThemesPage inherits VerticalLayout {
                     subtitle: "Save your current styling configuration as a new reusable preset.";
                     buttons: [{ id: "save_modal", text: "Save as New Theme", is-destructive: false }];
                     clicked(id) => {
-                        save_popup.show();
-                    }
-                }
-            }
-        }
-    }
-
-    save_popup := PopupWindow {
-        x: (root.width - Theme.themeSavePopupWidth) / 2;
-        y: (root.height - 400px) / 2;
-        width: Theme.themeSavePopupWidth;
-
-        Rectangle {
-            border-radius: Theme.borderRadiusXl;
-            background: Theme.secondary;
-            border-width: 1px;
-            border-color: Theme.textSecondary;
-
-            VerticalLayout {
-                padding: Theme.paddingLg;
-                spacing: Theme.spacingLg;
-
-                VerticalLayout {
-                    spacing: Theme.spacingXs;
-                    Text {
-                        text: "Save Custom Theme";
-                        font-size: Theme.modelTitle;
-                        color: Theme.textPrimary;
-                    }
-
-                    Text {
-                        text: "Your current accent and advanced styling variables will be saved.";
-                        font-size: Theme.caption;
-                        color: Theme.textSecondary;
-                        wrap: word-wrap;
-                    }
-                }
-
-                TextInputGroup {
-                    title: "Theme Name";
-                    subtitle: "A short, distinct name";
-                    placeholder: "e.g., Midnight Blue";
-                    value <=> root.new-theme-name;
-                    inputType: InputType.text;
-                }
-
-                TextInputGroup {
-                    title: "Author";
-                    subtitle: "Who created this theme?";
-                    placeholder: "Your name";
-                    value <=> root.new-theme-author;
-                    inputType: InputType.text;
-                }
-
-                TextInputGroup {
-                    title: "Description";
-                    subtitle: "A brief summary of the aesthetics";
-                    placeholder: "High contrast dark theme...";
-                    value <=> root.new-theme-desc;
-                    inputType: InputType.text;
-                }
-
-                HorizontalLayout {
-                    alignment: end;
-                    ButtonGroup {
-                        title: "";
-                        subtitle: "";
-                        buttons: [
-                            { id: "cancel", text: "Cancel", is-destructive: false },
-                            { id: "confirm", text: "Save Theme", is-destructive: false }
-                        ];
-                        clicked(id) => {
-                            if (id == "confirm") {
-                                AppCallbacks.save_custom_theme(root.new-theme-name, root.new-theme-author, root.new-theme-desc);
-                            }
-                            save_popup.close();
-                        }
+                        root.show-save-modal = true;
                     }
                 }
             }

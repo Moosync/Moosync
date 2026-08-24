@@ -17,12 +17,18 @@ use crate::{
 };
 
 pub static DEFAULT_SONG_SVG: &[u8] = include_bytes!("icons/song_default.svg");
+pub static DEFAULT_ENTITY_SVG: &[u8] = include_bytes!("icons/entity_default.svg");
 pub static DEFAULT_EMPTY_SVG: &[u8] = include_bytes!("icons/empty.svg");
 pub static DEFAULT_FOLDER_SVG: &[u8] = include_bytes!("icons/folder.svg");
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn default_song_cover() -> Image {
     Image::load_from_svg_data(DEFAULT_SONG_SVG).expect("default song SVG should be valid")
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn default_entity_cover() -> Image {
+    Image::load_from_svg_data(DEFAULT_ENTITY_SVG).expect("default entity SVG should be valid")
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -766,7 +772,7 @@ pub fn to_album_model(album: &Album, detail: Option<&ExtensionDetail>) -> AlbumM
     let extension = detail.map(|d| d.package_name.clone()).unwrap_or_default();
     let extension_icon = get_extension_icon(detail);
     let cover_path_url = album.album_coverpath_high().to_string();
-    let default_cover = default_song_cover();
+    let default_cover = default_entity_cover();
     AlbumModel {
         coverPath: default_cover,
         coverPathUrl: cover_path_url.into(),
@@ -783,7 +789,7 @@ pub fn to_artist_model(artist: &Artist, detail: Option<&ExtensionDetail>) -> Art
     let extension = detail.map(|d| d.package_name.clone()).unwrap_or_default();
     let extension_icon = get_extension_icon(detail);
     let cover_path_url = artist.artist_coverpath.clone().unwrap_or_default();
-    let default_cover = default_song_cover();
+    let default_cover = default_entity_cover();
     ArtistModel {
         coverPath: default_cover,
         coverPathUrl: cover_path_url.into(),
@@ -817,7 +823,7 @@ pub fn to_playlist_model(playlist: &Playlist, detail: Option<&ExtensionDetail>) 
                 .unwrap_or_else(|| load_icon(""))
         });
     let cover_path_url = playlist.playlist_coverpath.clone().unwrap_or_default();
-    let default_cover = default_song_cover();
+    let default_cover = default_entity_cover();
     PlaylistModel {
         coverPath: default_cover,
         coverPathUrl: cover_path_url.into(),
@@ -885,7 +891,7 @@ pub fn to_search_result(
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn to_genre_model(genre: &Genre) -> GenreModel {
-    let default_cover = default_song_cover();
+    let default_cover = default_entity_cover();
     GenreModel {
         coverPath: default_cover,
         coverPathUrl: "".into(),

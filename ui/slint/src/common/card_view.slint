@@ -2,15 +2,15 @@ import { Theme } from "../constants.slint";
 
 export component CardView inherits VerticalLayout {
     in property <string> title: "Card Title";
-    in property <image> cover-img: @image-url("../icons/song_default.svg");
-    in property <image> placeholder-img: @image-url("../icons/song_default.svg");
+    in property <image> cover-img: @image-url("../icons/entity_default.svg");
+    in property <image> placeholder-img: @image-url("../icons/entity_default.svg");
     in property <image> extension-icon: @image-url("../icons/empty.svg");
 
     padding: Theme.paddingSm;
     spacing: Theme.spacingXs;
 
     Rectangle {
-        border-radius: Theme.borderRadiusLg;
+        border-radius: Theme.borderRadiusMd;
         height: self.width;
         clip: true;
 
@@ -20,7 +20,7 @@ export component CardView inherits VerticalLayout {
             source: root.cover-img.width > 0 ? root.cover-img : root.placeholder-img;
             horizontal-alignment: center;
             vertical-alignment: center;
-            image-fit: contain;
+            image-fit: cover;
             image-rendering: pixelated;
         }
 

@@ -22,10 +22,10 @@ use songs_proto::moosync::types::{
 use tempdir::TempDir;
 
 use crate::utils::{
-    LazySongVecModel, cache_image, default_empty_icon, default_folder_icon, default_song_cover,
-    get_safe_name, parse_color, parse_length, song_model_to_song, to_album_model, to_artist_model,
-    to_extension_item, to_fetched_extension_item, to_genre_model, to_playlist_model,
-    to_search_result, to_song_model,
+    LazySongVecModel, cache_image, default_empty_icon, default_entity_cover, default_folder_icon,
+    default_song_cover, get_safe_name, parse_color, parse_length, song_model_to_song,
+    to_album_model, to_artist_model, to_extension_item, to_fetched_extension_item, to_genre_model,
+    to_playlist_model, to_search_result, to_song_model,
 };
 
 #[test]
@@ -154,7 +154,7 @@ fn test_to_album_model_without_cover_has_placeholder() {
         album_coverpath_high: None,
         ..Default::default()
     };
-    let expected = default_song_cover();
+    let expected = default_entity_cover();
 
     let model = to_album_model(&album, None);
 
@@ -172,7 +172,7 @@ fn test_to_artist_model_without_cover_has_placeholder() {
         artist_coverpath: None,
         ..Default::default()
     };
-    let expected = default_song_cover();
+    let expected = default_entity_cover();
 
     let model = to_artist_model(&artist, None);
 
@@ -189,7 +189,7 @@ fn test_to_genre_model() {
         genre_name: Some("Rock".to_string()),
         genre_song_count: 15.0,
     };
-    let expected = default_song_cover();
+    let expected = default_entity_cover();
 
     let model = to_genre_model(&genre);
 
@@ -209,7 +209,7 @@ fn test_to_playlist_model() {
         playlist_song_count: 25.0,
         ..Default::default()
     };
-    let expected = default_song_cover();
+    let expected = default_entity_cover();
 
     let model = to_playlist_model(&playlist, None);
 

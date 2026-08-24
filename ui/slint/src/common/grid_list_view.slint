@@ -10,8 +10,8 @@ export component GridListView inherits Rectangle {
     property <int> max-columns: Math.max(1, Math.floor((WindowInfo.window-width - WindowInfo.sidebar-width - Theme.paddingLg - root.padding-offset) / (root.item-width + root.spacing-x)));
     in property <length> item-width: Theme.cardWidth;
     in property <length> item-height: Theme.cardHeight;
-    in property <length> spacing-x: Theme.spacingLg;
-    in property <length> spacing-y: Theme.spacingLg;
+    in property <length> spacing-x: Theme.spacingSm;
+    in property <length> spacing-y: Theme.spacingSm;
     in property <int> total-items: 0;
 
     property <int> total-rows: root.total-items == 0 ? 0 : (root.total-items + root.max-columns - 1) / root.max-columns;
@@ -27,7 +27,7 @@ export component GridListView inherits Rectangle {
 
         for col-index in 20: Rectangle {
             visible: col-index < root.max-columns;
-            width: self.visible ? root.item-width : 0px;
+            width: self.visible ? root.item-width + ((col-index < root.max-columns - 1) ? root.spacing-x : 0px) : 0px;
 
             if (self.visible): ListView {
                 viewport-y <=> root.scroll-y;
@@ -42,6 +42,9 @@ export component GridListView inherits Rectangle {
                     if (cell.item-idx < root.total-items): Rectangle {
                         width: root.item-width;
                         height: root.item-height;
+                        background: touch.has-hover ? Theme.secondary : transparent;
+                        border-radius: Theme.borderRadiusLg;
+                        clip: true;
 
                         CardView {
                             title: root.item-title(cell.item-idx);
@@ -49,7 +52,8 @@ export component GridListView inherits Rectangle {
                             extension-icon: root.item-extension-icon(cell.item-idx);
                         }
 
-                        TouchArea {
+                        touch := TouchArea {
+                            mouse-cursor: pointer;
                             clicked => {
                                 root.item-clicked(cell.item-idx);
                             }

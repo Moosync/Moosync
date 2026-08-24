@@ -18,14 +18,18 @@ use extensions_proto::moosync::types::{ExtensionDetail, FetchedExtensionManifest
 use songs_proto::moosync::types::{Album, Artist, Genre, Playlist, Song};
 
 use crate::utils::{
-    default_empty_icon, default_folder_icon, default_song_cover, load_icon, to_album_model,
-    to_artist_model, to_extension_item, to_fetched_extension_item, to_genre_model,
+    default_empty_icon, default_entity_cover, default_folder_icon, default_song_cover, load_icon,
+    to_album_model, to_artist_model, to_extension_item, to_fetched_extension_item, to_genre_model,
     to_playlist_model, to_song_model,
 };
 
 #[test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_default_song_cover_smoke() { let _img = default_song_cover(); }
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_default_entity_cover_smoke() { let _img = default_entity_cover(); }
 
 #[test]
 #[tracing::instrument(level = "debug", skip_all)]

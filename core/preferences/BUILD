@@ -23,7 +23,6 @@ rust_library(
     deps = [
         "//core/types",
         "//core/types/protos:extensions_rs",
-        "@crates//:thiserror",
         "@crates//:chacha20poly1305",
         "@crates//:crossbeam-channel",
         "@crates//:hex",
@@ -33,6 +32,7 @@ rust_library(
         "@crates//:serde",
         "@crates//:serde_json",
         "@crates//:tempdir",
+        "@crates//:thiserror",
         "@crates//:tracing",
         "@crates//:whoami",
     ],

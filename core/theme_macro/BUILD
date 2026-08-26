@@ -9,8 +9,8 @@ rust_proc_macro(
     crate_root = "src/lib.rs",
     visibility = ["//visibility:public"],
     deps = [
-        "@crates//:syn",
-        "@crates//:quote",
         "@crates//:proc-macro2",
+        "@crates//:quote",
+        "@crates//:syn",
     ],
 )

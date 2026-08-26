@@ -3,12 +3,9 @@ syntax = "proto3";
 package moosync.types;
 
 import "core/types/protos/songs.proto";
-import "google/protobuf/struct.proto";
-import "google/protobuf/empty.proto";
 import "core/types/protos/ui.proto";
 import "google/protobuf/duration.proto";
-
-
+import "google/protobuf/struct.proto";
 
 message ExtensionCommand {
   string package_name = 1;
@@ -83,8 +80,12 @@ message ExtensionCommandResponse {
   }
 }
 
-message RequestedPlaylistsRequest { bool refresh = 1; }
-message RequestedPlaylistsResponse { repeated Playlist playlists = 1; }
+message RequestedPlaylistsRequest {
+  bool refresh = 1;
+}
+message RequestedPlaylistsResponse {
+  repeated Playlist playlists = 1;
+}
 
 message RequestedPlaylistSongsRequest {
   string id = 1;
@@ -96,28 +97,44 @@ message RequestedPlaylistSongsResponse {
   optional string next_page_token = 2;
 }
 
-message OauthCallbackRequest { string callback_uri = 1; }
+message OauthCallbackRequest {
+  string callback_uri = 1;
+}
 message OauthCallbackResponse {}
 
-message SongQueueChangedRequest { google.protobuf.Struct queue_state = 1; }
+message SongQueueChangedRequest {
+  google.protobuf.Struct queue_state = 1;
+}
 message SongQueueChangedResponse {}
 
-message SeekedRequest { double position = 1; }
+message SeekedRequest {
+  double position = 1;
+}
 message SeekedResponse {}
 
-message VolumeChangedRequest { double volume = 1; }
+message VolumeChangedRequest {
+  double volume = 1;
+}
 message VolumeChangedResponse {}
 
-message PlayerStateChangedRequest { PlayerState state = 1; }
+message PlayerStateChangedRequest {
+  PlayerState state = 1;
+}
 message PlayerStateChangedResponse {}
 
-message SongChangedRequest { Song song = 1; }
+message SongChangedRequest {
+  Song song = 1;
+}
 message SongChangedResponse {}
 
-message PreferenceChangedRequest { PreferenceArgs preference = 1; }
+message PreferenceChangedRequest {
+  PreferenceArgs preference = 1;
+}
 message PreferenceChangedResponse {}
 
-message PlaybackDetailsRequestedRequest { Song song = 1; }
+message PlaybackDetailsRequestedRequest {
+  Song song = 1;
+}
 message PlaybackDetailsRequestedResponse {
   uint32 duration = 1;
   string url = 2;
@@ -137,7 +154,9 @@ message RequestedSongFromUrlRequest {
   string url = 1;
   bool refresh = 2;
 }
-message RequestedSongFromUrlResponse { optional Song song = 1; }
+message RequestedSongFromUrlResponse {
+  optional Song song = 1;
+}
 
 message RequestedPlaylistFromUrlRequest {
   string url = 1;
@@ -148,7 +167,9 @@ message RequestedPlaylistFromUrlResponse {
   repeated Song songs = 2;
 }
 
-message RequestedSearchResultRequest { string query = 1; }
+message RequestedSearchResultRequest {
+  string query = 1;
+}
 message RequestedSearchResultResponse {
   repeated Song songs = 1;
   repeated Playlist playlists = 2;
@@ -156,11 +177,19 @@ message RequestedSearchResultResponse {
   repeated Album albums = 4;
 }
 
-message RequestedRecommendationsRequest { bool refresh = 1; }
-message RequestedRecommendationsResponse { repeated Song songs = 1; }
+message RequestedRecommendationsRequest {
+  bool refresh = 1;
+}
+message RequestedRecommendationsResponse {
+  repeated Song songs = 1;
+}
 
-message RequestedLyricsRequest { Song song = 1; }
-message RequestedLyricsResponse { string lyrics = 1; }
+message RequestedLyricsRequest {
+  Song song = 1;
+}
+message RequestedLyricsResponse {
+  string lyrics = 1;
+}
 
 message RequestedArtistSongsRequest {
   Artist artist = 1;
@@ -180,34 +209,62 @@ message RequestedAlbumSongsResponse {
   optional string next_page_token = 2;
 }
 
-message SongAddedRequest { repeated Song songs = 1; }
+message SongAddedRequest {
+  repeated Song songs = 1;
+}
 message SongAddedResponse {}
 
-message SongRemovedRequest { repeated Song songs = 1; }
+message SongRemovedRequest {
+  repeated Song songs = 1;
+}
 message SongRemovedResponse {}
 
-message PlaylistAddedRequest { repeated Playlist playlists = 1; }
+message PlaylistAddedRequest {
+  repeated Playlist playlists = 1;
+}
 message PlaylistAddedResponse {}
 
-message PlaylistRemovedRequest { repeated Playlist playlists = 1; }
+message PlaylistRemovedRequest {
+  repeated Playlist playlists = 1;
+}
 message PlaylistRemovedResponse {}
 
-message RequestedSongFromIdRequest { string id = 1; }
-message RequestedSongFromIdResponse { optional Song song = 1; }
+message RequestedSongFromIdRequest {
+  string id = 1;
+}
+message RequestedSongFromIdResponse {
+  optional Song song = 1;
+}
 
-message GetRemoteUrlRequest { Song song = 1; }
-message GetRemoteUrlResponse { string url = 1; }
+message GetRemoteUrlRequest {
+  Song song = 1;
+}
+message GetRemoteUrlResponse {
+  string url = 1;
+}
 
-message ScrobbleRequest { Song song = 1; }
+message ScrobbleRequest {
+  Song song = 1;
+}
 message ScrobbleResponse {}
 
-message RequestedSongContextMenuRequest { repeated Song songs = 1; }
-message RequestedSongContextMenuResponse { ContextMenuReturnType menu = 1; }
+message RequestedSongContextMenuRequest {
+  repeated Song songs = 1;
+}
+message RequestedSongContextMenuResponse {
+  ContextMenuReturnType menu = 1;
+}
 
-message RequestedPlaylistContextMenuRequest { Playlist playlist = 1; }
-message RequestedPlaylistContextMenuResponse { ContextMenuReturnType menu = 1; }
+message RequestedPlaylistContextMenuRequest {
+  Playlist playlist = 1;
+}
+message RequestedPlaylistContextMenuResponse {
+  ContextMenuReturnType menu = 1;
+}
 
-message ContextMenuActionRequest { string action_id = 1; }
+message ContextMenuActionRequest {
+  string action_id = 1;
+}
 message ContextMenuActionResponse {}
 
 message GetProviderScopesRequest {}
@@ -216,13 +273,17 @@ message GetProviderScopesResponse {
 }
 
 message GetAccountsRequest {}
-message GetAccountsResponse { repeated ExtensionAccountDetail accounts = 1; }
+message GetAccountsResponse {
+  repeated ExtensionAccountDetail accounts = 1;
+}
 
 message PerformAccountLoginRequest {
   string account_id = 2;
   bool login_status = 3;
 }
-message PerformAccountLoginResponse { string status = 1; }
+message PerformAccountLoginResponse {
+  string status = 1;
+}
 
 message MainCommand {
   oneof command {
@@ -281,77 +342,151 @@ message MainCommandResponse {
   }
 }
 
-message GetSongRequest { GetSongOptions options = 1; }
-message GetSongResponse { repeated Song songs = 1; }
+message GetSongRequest {
+  GetSongOptions options = 1;
+}
+message GetSongResponse {
+  repeated Song songs = 1;
+}
 
-message GetEntityRequest { GetEntityOptions options = 1; }
-message GetEntityResponse { EntityResult entity = 1; }
+message GetEntityRequest {
+  GetEntityOptions options = 1;
+}
+message GetEntityResponse {
+  EntityResult entity = 1;
+}
 
 message GetCurrentSongRequest {}
-message GetCurrentSongResponse { Song song = 1; }
+message GetCurrentSongResponse {
+  Song song = 1;
+}
 
 message GetPlayerStateRequest {}
-message GetPlayerStateResponse { PlayerState state = 1; }
+message GetPlayerStateResponse {
+  PlayerState state = 1;
+}
 
 message GetVolumeRequest {}
-message GetVolumeResponse { double volume = 1; }
+message GetVolumeResponse {
+  double volume = 1;
+}
 
 message GetTimeRequest {}
-message GetTimeResponse { double time = 1; }
+message GetTimeResponse {
+  double time = 1;
+}
 
 message GetQueueRequest {}
-message GetQueueResponse { google.protobuf.Struct queue = 1; }
+message GetQueueResponse {
+  google.protobuf.Struct queue = 1;
+}
 
-message GetPreferenceRequest { PreferenceData data = 1; }
-message GetPreferenceResponse { PreferenceData data = 1; }
+message GetPreferenceRequest {
+  PreferenceData data = 1;
+}
+message GetPreferenceResponse {
+  PreferenceData data = 1;
+}
 
-message SetPreferenceRequest { PreferenceData data = 1; }
-message SetPreferenceResponse { bool success = 1; }
+message SetPreferenceRequest {
+  PreferenceData data = 1;
+}
+message SetPreferenceResponse {
+  bool success = 1;
+}
 
-message GetSecureRequest { PreferenceData data = 1; }
-message GetSecureResponse { PreferenceData data = 1; }
+message GetSecureRequest {
+  PreferenceData data = 1;
+}
+message GetSecureResponse {
+  PreferenceData data = 1;
+}
 
-message SetSecureRequest { PreferenceData data = 1; }
-message SetSecureResponse { bool success = 1; }
+message SetSecureRequest {
+  PreferenceData data = 1;
+}
+message SetSecureResponse {
+  bool success = 1;
+}
 
-message AddSongsRequest { repeated Song songs = 1; }
-message AddSongsResponse { repeated Song songs = 1; }
+message AddSongsRequest {
+  repeated Song songs = 1;
+}
+message AddSongsResponse {
+  repeated Song songs = 1;
+}
 
-message RemoveSongRequest { Song song = 1; }
-message RemoveSongResponse { bool success = 1; }
+message RemoveSongRequest {
+  Song song = 1;
+}
+message RemoveSongResponse {
+  bool success = 1;
+}
 
-message UpdateSongRequest { Song song = 1; }
-message UpdateSongResponse { Song song = 1; }
+message UpdateSongRequest {
+  Song song = 1;
+}
+message UpdateSongResponse {
+  Song song = 1;
+}
 
-message AddPlaylistRequest { Playlist playlist = 1; }
-message AddPlaylistResponse { string playlist_id = 1; }
+message AddPlaylistRequest {
+  Playlist playlist = 1;
+}
+message AddPlaylistResponse {
+  string playlist_id = 1;
+}
 
 message AddToPlaylistRequest {
   string playlist_id = 1;
   repeated Song songs = 2;
 }
-message AddToPlaylistResponse { bool success = 1; }
+message AddToPlaylistResponse {
+  bool success = 1;
+}
 
-message RegisterOauthRequest { string url = 1; }
-message RegisterOauthResponse { bool success = 1; }
+message RegisterOauthRequest {
+  string url = 1;
+}
+message RegisterOauthResponse {
+  bool success = 1;
+}
 
-message OpenExternalUrlRequest { string url = 1; }
-message OpenExternalUrlResponse { bool success = 1; }
+message OpenExternalUrlRequest {
+  string url = 1;
+}
+message OpenExternalUrlResponse {
+  bool success = 1;
+}
 
-message UpdateAccountsRequest { optional string account = 1; }
-message UpdateAccountsResponse { bool success = 1; }
+message UpdateAccountsRequest {
+  optional string account = 1;
+}
+message UpdateAccountsResponse {
+  bool success = 1;
+}
 
-message RegisterUserPreferenceRequest { repeated PreferenceUiData prefs = 1; }
-message RegisterUserPreferenceResponse { bool success = 1; }
+message RegisterUserPreferenceRequest {
+  repeated PreferenceUiData prefs = 1;
+}
+message RegisterUserPreferenceResponse {
+  bool success = 1;
+}
 
-message UnregisterUserPreferenceRequest { repeated string keys = 1; }
-message UnregisterUserPreferenceResponse { bool success = 1; }
+message UnregisterUserPreferenceRequest {
+  repeated string keys = 1;
+}
+message UnregisterUserPreferenceResponse {
+  bool success = 1;
+}
 
 message ExtensionsUpdatedRequest {}
 message ExtensionsUpdatedResponse {}
 
 message GetAppVersionRequest {}
-message GetAppVersionResponse { string version = 1; }
+message GetAppVersionResponse {
+  string version = 1;
+}
 
 message PreferenceData {
   string key = 1;
@@ -470,12 +605,17 @@ message PlayerEvent {
   }
 }
 
+message PackageName {
+  string package_name = 1;
+}
 
-message PackageName { string package_name = 1; }
+message InstalledExtensions {
+  repeated ExtensionDetail extensions = 1;
+}
 
-message InstalledExtensions { repeated ExtensionDetail extensions = 1; }
-
-message Error { string message = 1; }
+message Error {
+  string message = 1;
+}
 
 message HttpRequest {
   string url = 1;

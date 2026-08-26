@@ -94,6 +94,7 @@ platform(
     constraint_values = [
         "@platforms//cpu:x86_64",
         "@platforms//os:windows",
+        "@rules_rust//rust/platform:gnu",
     ],
     visibility = ["//visibility:public"],
 )
@@ -203,11 +204,11 @@ test_suite(
         "//core/file_scanner:file_scanner_test",
         "//core/lyrics:lyrics_test",
         "//core/mpris:mpris_test",
-        "//core/preferences:preferences_test",
         "//core/player:player_test",
+        "//core/preferences:preferences_test",
+        "//core/state_manager:state_manager_test",
         "//core/themes:themes_test",
         "//core/types:types_test",
-        "//core/state_manager:state_manager_test",
         "//ui/slint:slint_app_lib_test",
     ],
 )

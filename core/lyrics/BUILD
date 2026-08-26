@@ -16,11 +16,11 @@ rust_library(
     deps = [
         "//core/types",
         "//core/types/protos:songs_rs",
-        "@crates//:tempdir",
-        "@crates//:thiserror",
         "@crates//:regex",
         "@crates//:reqwest",
         "@crates//:serde_json",
+        "@crates//:tempdir",
+        "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",
     ],

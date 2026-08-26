@@ -35,7 +35,7 @@ Donot
 
 ### Rust Operations
 
-5. Use `bazel run //tools:format -- <files>` to format Rust (`.rs`) and Slint (`.slint`) files. This is wired as the git pre-commit hook via `.git/hooks/pre-commit`. Do not invoke rustfmt or slint-lsp directly — they are resolved through Bazel runfiles.
+5. Use `bazel run //tools:format -- <files>` to format Rust (`.rs`), Slint (`.slint`), Bazel (`BUILD`, `MODULE.bazel`, `.bzl`), and Protobuf (`.proto`) files. This is wired as the git pre-commit hook via `.git/hooks/pre-commit`. Do not invoke rustfmt, slint-lsp, buildifier, or buf directly — they are resolved through Bazel runfiles.
 6. No Clippy lints exist in this project. Use `bazel query` to discover available targets for a crate; test suites are defined under the root `BUILD` (e.g., `core_tests`).
 7. Use `bazel run //tools:extract_translations` to extract translatable strings from Slint files into `ui/slint/locales/slint_app.pot`.
 12. **Nesting and Control Flow**: Conditions should not be nested and an early return pattern should be preferred (e.g., using `let else` or flat early exits). Avoid using `else` blocks wherever possible, and avoid using `continue` inside loops to maintain clear and readable control flow.

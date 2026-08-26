@@ -20,9 +20,9 @@ rust_library(
         "//core/types",
         "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",
-        "@crates//:thiserror",
         "@crates//:mockall",
         "@crates//:serde",
+        "@crates//:thiserror",
         "@crates//:tracing",
     ] + select({
         "@platforms//os:android": [

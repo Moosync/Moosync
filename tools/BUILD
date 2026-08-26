@@ -6,10 +6,14 @@ sh_binary(
     args = [
         "$(rlocationpath @rules_rust//tools/upstream_wrapper:rustfmt)",
         "$(rlocationpath @crates//:slint-lsp__slint-lsp)",
+        "$(rlocationpath @buildifier_prebuilt//:buildifier)",
+        "$(rlocationpath @rules_buf_toolchains//:buf)",
     ],
     data = [
-        "@rules_rust//tools/upstream_wrapper:rustfmt",
+        "@buildifier_prebuilt//:buildifier",
         "@crates//:slint-lsp__slint-lsp",
+        "@rules_buf_toolchains//:buf",
+        "@rules_rust//tools/upstream_wrapper:rustfmt",
     ],
     deps = ["@bazel_tools//tools/bash/runfiles"],
 )
@@ -43,4 +47,3 @@ sh_binary(
     srcs = [":gen_extract_translations"],
     data = ["@bindeps//:slint-tr-extractor__slint-tr-extractor"],
 )
-

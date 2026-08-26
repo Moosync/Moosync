@@ -18,7 +18,6 @@ rust_library(
     deps = [
         "//core/types",
         "//core/types/protos:themes_rs",
-        "@crates//:thiserror",
         "@crates//:fs_extra",
         "@crates//:futures",
         "@crates//:notify",
@@ -27,6 +26,7 @@ rust_library(
         "@crates//:serde",
         "@crates//:serde_json",
         "@crates//:tempdir",
+        "@crates//:thiserror",
         "@crates//:tracing",
         "@crates//:uuid",
         "@crates//:zip-extensions",

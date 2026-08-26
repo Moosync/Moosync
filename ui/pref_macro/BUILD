@@ -10,9 +10,9 @@ rust_proc_macro(
     edition = "2021",
     visibility = ["//visibility:public"],
     deps = [
-        "@crates//:syn",
-        "@crates//:quote",
         "@crates//:proc-macro2",
+        "@crates//:quote",
+        "@crates//:syn",
     ],
 )
 
@@ -25,8 +25,8 @@ rust_binary(
     edition = "2021",
     visibility = ["//visibility:public"],
     deps = [
-        "@crates//:quote",
         "@crates//:proc-macro2",
+        "@crates//:quote",
         "@crates//:syn",
     ],
 )

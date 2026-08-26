@@ -28,7 +28,6 @@ rust_library(
     deps = [
         "//core/types",
         "//core/types/protos:songs_rs",
-        "@crates//:thiserror",
         "@crates//:blake3",
         "@crates//:dunce",
         "@crates//:fast_image_resize",
@@ -40,6 +39,7 @@ rust_library(
         "@crates//:regex",
         "@crates//:substring",
         "@crates//:tempdir",
+        "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",
         "@crates//:uuid",

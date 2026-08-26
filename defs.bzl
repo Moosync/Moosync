@@ -1,24 +1,24 @@
+load("@rules_cc//cc:cc_toolchain_config_lib.bzl", "tool_path")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 load("@rules_cc//cc/toolchains:cc_toolchain_config_info.bzl", "CcToolchainConfigInfo")
-load("@rules_cc//cc:cc_toolchain_config_lib.bzl", "tool_path")
 load("@rules_rust//rust:defs.bzl", "rust_binary")
 
 def _flutter_app_bundle_impl(ctx):
     out_dir = ctx.actions.declare_directory(ctx.attr.name)
-    
+
     # Find the tree artifact containing the build bundle
     tree_artifact = None
     for f in ctx.files.app:
         if f.is_directory:
             tree_artifact = f
             break
-            
+
     if not tree_artifact:
         fail("Could not find build artifacts directory in app")
-        
+
     rust_lib = ctx.file.moosync_rust
     platform = ctx.attr.platform
-    
+
     if platform == "linux":
         script = """
         rm -rf "{out}"
@@ -62,7 +62,7 @@ def _flutter_app_bundle_impl(ctx):
         )
     else:
         fail("Unsupported platform for bundling: " + platform)
-        
+
     ctx.actions.run_shell(
         inputs = [tree_artifact, rust_lib],
         outputs = [out_dir],
@@ -70,7 +70,7 @@ def _flutter_app_bundle_impl(ctx):
         mnemonic = "BundleFlutterApp",
         progress_message = "Bundling Flutter App with Rust library for %s (%s)" % (ctx.label.name, platform),
     )
-    
+
     return [DefaultInfo(files = depset([out_dir]))]
 
 flutter_app_bundle = rule(
@@ -111,6 +111,3 @@ def rust_benchmark(name, **kwargs):
         name = name,
         **kwargs
     )
-
-
-

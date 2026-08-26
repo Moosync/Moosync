@@ -117,7 +117,7 @@ EOF
     """,
     targets = MAKE_TARGETS,
     toolchain = "@rules_foreign_cc//toolchains:preinstalled_nmake_toolchain",
-    toolchains = ["@rules_perl//:current_toolchain"],
+    toolchains = ["@rules_perl//perl:current_exec_toolchain"],
 )
 
 configure_make(
@@ -131,7 +131,7 @@ configure_make(
         "--libdir=lib",
     ],
     env = {
-        "PERL": "$$EXT_BUILD_ROOT$$/$$(echo '$(PERL)' | tr '\\\\' '/')",
+        "PERL": "$$EXT_BUILD_ROOT$$/external/$(PERL_RLOCATIONPATH)",
     },
     lib_name = LIB_NAME,
     lib_source = "@openssl//:all_srcs",
@@ -140,7 +140,7 @@ configure_make(
         "libcrypto.a",
     ],
     targets = MAKE_TARGETS,
-    toolchains = ["@rules_perl//:current_toolchain"],
+    toolchains = ["@rules_perl//perl:current_exec_toolchain"],
 )
 
 configure_make(
@@ -181,7 +181,7 @@ configure_make(
         "libcrypto.a",
     ],
     targets = MAKE_TARGETS,
-    toolchains = ["@rules_perl//:current_toolchain"],
+    toolchains = ["@rules_perl//perl:current_exec_toolchain"],
 )
 
 filegroup(

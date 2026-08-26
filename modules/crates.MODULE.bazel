@@ -1,244 +1,27 @@
-crates = use_extension("@rules_rust//crate_universe:extension.bzl", "crate", isolate = True)
-crates.spec(
-    package = "bitcode",
-    version = "0.6.7",
-)
-crates.spec(
-    package = "r2d2",
-    version = "0.8.10",
-)
-crates.spec(
-    package = "r2d2_sqlite",
-    version = "0.31.0",
-)
-crates.spec(
-    features = ["trace"],
-    package = "rusqlite",
-    version = "0.37.0",
-)
-crates.spec(
-    package = "extism",
-    version = "1.12.0",
-)
-crates.spec(
-    package = "extism-convert",
-    version = "1.12.0",
-)
-crates.spec(
-    package = "fs_extra",
-    version = "1.3.0",
-)
-crates.spec(
-    default_features = False,
-    features = ["executor"],
-    package = "futures",
-    version = "0.3.31",
-)
-crates.spec(
-    features = ["tokio"],
-    package = "interprocess",
-    version = "2.2.3",
-)
-crates.spec(
-    features = ["bundled"],
-    package = "libsqlite3-sys",
-    version = "0.35.0",
-)
-crates.spec(
-    package = "regex",
-    version = "1.12.2",
-)
-crates.spec(
-    package = "rust-crypto",
-    version = "0.2.36",
-)
-crates.spec(
-    default_features = False,
-    features = ["derive"],
-    package = "serde",
-    version = "1.0.228",
-)
-crates.spec(
-    default_features = False,
-    package = "serde_json",
-    version = "1.0.145",
-)
-crates.spec(
-    package = "thiserror",
-    version = "2.0.17",
-)
-crates.spec(
-    features = [
-        "rt-multi-thread",
-        "rt",
-        "macros",
+crates = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate", isolate = True)
+crates.from_cargo(
+    name = "crates",
+    cargo_lockfile = "//:Cargo.lock",
+    lockfile = "//:crates.lock",
+    manifests = ["//:Cargo.toml"],
+    supported_platform_triples = [
+        "x86_64-unknown-linux-gnu",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-pc-windows-msvc",
+        "x86_64-pc-windows-gnu",
+        "x86_64-apple-darwin",
+        "aarch64-apple-darwin",
+        "x86_64-linux-android",
+        "aarch64-linux-android",
     ],
-    package = "tokio",
-    version = "1.48.0",
 )
-crates.spec(
-    default_features = False,
-    package = "tracing",
-    version = "0.1.41",
+crates.annotation(
+    crate = "protoc-gen-prost",
+    gen_binaries = ["protoc-gen-prost"],
 )
-crates.spec(
-    default_features = False,
-    features = ["v4"],
-    package = "uuid",
-    version = "1.18.1",
-)
-crates.spec(
-    package = "zip-extensions",
-    version = "0.8",
-)
-crates.spec(
-    features = [
-        "json",
-        "stream",
-    ],
-    package = "reqwest",
-    version = "0.12.26",
-)
-crates.spec(
-    package = "glob",
-    version = "0.3.3",
-)
-crates.spec(
-    default_features = False,
-    package = "blake3",
-    version = "1.8.2",
-)
-crates.spec(
-    package = "fast_image_resize",
-    version = "5.3.0",
-)
-crates.spec(
-    package = "image",
-    version = "0.25.8",
-)
-crates.spec(
-    package = "lazy_static",
-    version = "1.5.0",
-)
-crates.spec(
-    default_features = False,
-    package = "lofty",
-    version = "0.22.4",
-)
-crates.spec(
-    default_features = False,
-    package = "regex",
-    version = "1.12.2",
-)
-crates.spec(
-    package = "num_cpus",
-    version = "1.17.0",
-)
-crates.spec(
-    package = "dunce",
-    version = "1.0.5",
-)
-crates.spec(
-    package = "substring",
-    version = "1.4.5",
-)
-crates.spec(
-    default_features = False,
-    package = "regex",
-    version = "1.12.2",
-)
-crates.spec(
-    package = "url",
-    version = "2.5.7",
-)
-crates.spec(
-    default_features = False,
-    package = "tracing",
-    version = "0.1.41",
-)
-crates.spec(
-    default_features = False,
-    package = "futures-util",
-    version = "0.3.31",
-)
-crates.spec(
-    default_features = False,
-    features = [
-        "rodio-backend",
-        "native-tls",
-    ],
-    git = "https://github.com/librespot-org/librespot",
-    package = "librespot",
-    rev = "33bf3a77ed4b549df67e8347d7d6e55b007b3ec2",
-)
-crates.spec(
-    package = "vergen",
-    version = "=9.0.6",
-)
-crates.spec(
-    default_features = False,
-    features = ["bytes"],
-    package = "protobuf",
-    version = "3.7.2",
-)
-crates.spec(
-    package = "env_logger",
-    version = "0.11.8",
-)
-crates.spec(
-    features = [
-        "Win32_Foundation",
-        "Win32_Graphics_Gdi",
-        "Win32_System_LibraryLoader",
-        "Win32_UI_WindowsAndMessaging",
-    ],
-    package = "windows",
-    version = "0.44",
-)
-crates.spec(
-    package = "souvlaki",
-    version = "0.7.3",
-)
-crates.spec(
-    default_features = False,
-    features = [
-        "apple-native",
-        "windows-native",
-        "sync-secret-service",
-    ],
-    package = "keyring",
-    version = "3",
-)
-crates.spec(
-    default_features = False,
-    package = "whoami",
-    version = "1.6.1",
-)
-crates.spec(
-    package = "hex",
-    version = "0.4.3",
-)
-crates.spec(
-    package = "chacha20poly1305",
-    version = "0.10.1",
-)
-crates.spec(
-    package = "json_dotpath",
-    version = "1.1.0",
-)
-crates.spec(
-    package = "crossbeam-channel",
-    version = "0.5.15",
-)
-crates.spec(
-    package = "notify",
-    version = "8.2.0",
-)
-crates.spec(
-    default_features = False,
-    features = ["ffmpeg8"],
-    package = "rusty_ffmpeg",
-    version = "0.16.7+ffmpeg.8",
+crates.annotation(
+    crate = "slint-lsp",
+    gen_binaries = ["slint-lsp"],
 )
 crates.annotation(
     build_script_data = ["@@//external/ffmpeg:gen_dir"],
@@ -291,242 +74,6 @@ crates.annotation_select(
         "aarch64-linux-android",
     ],
 )
-crates.spec(
-    default_features = False,
-    features = ["ffmpeg8"],
-    git = "https://github.com/aegroto/rsmpeg",
-    package = "rsmpeg",
-    rev = "a1f06d4c2c87e938bb6f84d66bb9c5afe4a006ed",
-)
-crates.spec(
-    default_features = False,
-    features = [
-        "playback",
-    ],
-    git = "https://github.com/RustAudio/rodio",
-    package = "rodio",
-    rev = "ffa1d8a2e5fc3efdec2c675eecca8f1f4be4e0f2",
-)
-crates.spec(
-    package = "libpulse-binding",
-    version = "2.30.1",
-)
-crates.spec(
-    features = [
-        "v4",
-        "js",
-    ],
-    package = "uuid",
-    version = "1.18.1",
-)
-crates.spec(
-    package = "async-trait",
-    version = "0.1.89",
-)
-crates.spec(
-    default_features = False,
-    package = "serde_json",
-    version = "1.0",
-)
-crates.spec(
-    package = "tracing-appender",
-    version = "0.2.3",
-)
-crates.spec(
-    package = "url",
-    version = "2.5.7",
-)
-crates.spec(
-    default_features = False,
-    package = "regex",
-    version = "1.12.2",
-)
-crates.spec(
-    default_features = False,
-    features = [
-        "json",
-        "stream",
-    ],
-    package = "reqwest",
-    version = "0.12.24",
-)
-crates.spec(
-    default_features = False,
-    package = "serde",
-    version = "1.0",
-)
-crates.spec(
-    features = ["full"],
-    package = "syn",
-    version = "2.0.96",
-)
-crates.spec(
-    package = "quote",
-    version = "1.0.38",
-)
-crates.spec(
-    package = "proc-macro2",
-    version = "1.0.92",
-)
-crates.spec(
-    package = "rand",
-    version = "0.8.5",
-)
-
-# Git Dependencies
-
-crates.spec(
-    default_features = False,
-    package = "tracing",
-    version = "0.1.41",
-)
-crates.spec(
-    default_features = False,
-    features = [
-        "ansi",
-        "env-filter",
-    ],
-    package = "tracing-subscriber",
-    version = "0.3.20",
-)
-crates.spec(
-    features = ["sync"],
-    package = "tokio",
-    version = "1.48.0",
-)
-crates.spec(
-    package = "tikv-jemallocator",
-    version = "0.7.0",
-)
-crates.spec(
-    package = "mockall",
-    version = "0.13.1",
-)
-crates.spec(
-    package = "wiremock",
-    version = "0.6.5",
-)
-crates.spec(
-    package = "prost",
-    version = "0.14",
-)
-crates.spec(
-    default_features = False,
-    package = "prost-types",
-    version = "0.14",
-)
-crates.spec(
-    package = "protoc-gen-prost",
-    version = "0.3.1",
-)
-crates.annotation(
-    crate = "protoc-gen-prost",
-    gen_binaries = ["protoc-gen-prost"],
-)
-crates.spec(
-    features = [
-        "backend-android-activity-06",
-        "mcp",
-    ],
-    package = "slint",
-    version = "1.17.1",
-)
-crates.spec(
-    package = "slint-build",
-    version = "1.17.1",
-)
-crates.spec(
-    package = "i-slint-backend-testing",
-    version = "=1.17.1",
-)
-crates.spec(
-    default_features = False,
-    package = "slint-lsp",
-    version = "1.17.1",
-)
-crates.annotation(
-    crate = "slint-lsp",
-    gen_binaries = ["slint-lsp"],
-)
-crates.spec(
-    features = ["xdg-portal"],
-    package = "rfd",
-    version = "0.17.2",
-)
-crates.spec(
-    package = "platform-dirs",
-    version = "0.3.0",
-)
-crates.spec(
-    package = "tempdir",
-    version = "0.3.7",
-)
-crates.spec(
-    package = "is_wine",
-    version = "0.1.2",
-)
-crates.spec(
-    default_features = False,
-    features = ["invocation"],
-    package = "jni",
-    version = "0.21",
-)
-crates.spec(
-    package = "lru",
-    version = "0.18.0",
-)
-crates.spec(
-    package = "openssl-sys",
-    version = "0.9.111",
-)
-crates.annotation(
-    build_script_data = [
-        "@@//external/openssl:gen_dir",
-    ],
-    build_script_env = {
-        "OPENSSL_NO_VENDOR": "1",
-        "OPENSSL_LIB_DIR": "$(execpath @@//external/openssl:gen_dir)/lib",
-        "OPENSSL_INCLUDE_DIR": "$(execpath @@//external/openssl:gen_dir)/include",
-        "OPENSSL_STATIC": "1",
-    },
-    crate = "openssl-sys",
-)
-crates.annotation(
-    compile_data_glob = [
-        "**/*.xml",
-        "**/*.idl",
-    ],
-    crate = "khronos_api",
-    patch_args = ["-p1"],
-    patches = ["//patches:khronos_api.patch"],
-)
-crates.annotation(
-    build_script_env = {
-        "CARGO_PKG_AUTHORS": "",
-        "CARGO_PKG_NAME": "",
-        "CARGO_PKG_DESCRIPTION": "",
-        "CARGO_PKG_REPOSITORY": "",
-        "CARGO_PKG_HOMEPAGE": "",
-        "CARGO_PKG_LICENSE": "",
-    },
-    crate = "rav1e",
-)
-crates.spec(
-    package = "criterion",
-    version = "0.5.1",
-)
-crates.from_specs(
-    supported_platform_triples = [
-        "x86_64-unknown-linux-gnu",
-        "aarch64-unknown-linux-gnu",
-        "x86_64-pc-windows-msvc",
-        "x86_64-pc-windows-gnu",
-        "x86_64-apple-darwin",
-        "aarch64-apple-darwin",
-        "x86_64-linux-android",
-        "aarch64-linux-android",
-    ],
-)
 crates.annotation_select(
     crate = "windows_x86_64_gnu",
     triples = ["x86_64-pc-windows-gnu"],
@@ -551,6 +98,38 @@ crates.annotation_select(
     version = "0.4.0",
     deps = ["@@//:libwinapi_all"],
 )
+crates.annotation(
+    compile_data_glob = [
+        "**/*.xml",
+        "**/*.idl",
+    ],
+    crate = "khronos_api",
+    patch_args = ["-p1"],
+    patches = ["//patches:khronos_api.patch"],
+)
+crates.annotation(
+    build_script_env = {
+        "CARGO_PKG_AUTHORS": "",
+        "CARGO_PKG_NAME": "",
+        "CARGO_PKG_DESCRIPTION": "",
+        "CARGO_PKG_REPOSITORY": "",
+        "CARGO_PKG_HOMEPAGE": "",
+        "CARGO_PKG_LICENSE": "",
+    },
+    crate = "rav1e",
+)
+crates.annotation(
+    build_script_data = [
+        "@@//external/openssl:gen_dir",
+    ],
+    build_script_env = {
+        "OPENSSL_NO_VENDOR": "1",
+        "OPENSSL_LIB_DIR": "$(execpath @@//external/openssl:gen_dir)/lib",
+        "OPENSSL_INCLUDE_DIR": "$(execpath @@//external/openssl:gen_dir)/include",
+        "OPENSSL_STATIC": "1",
+    },
+    crate = "openssl-sys",
+)
 use_repo(
     crates,
     "crates",
@@ -561,7 +140,6 @@ use_repo(
 )
 
 bindeps = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
-
 bindeps.spec(
     artifact = "bin",
     package = "slint-tr-extractor",
@@ -571,11 +149,8 @@ bindeps.annotation(
     crate = "slint-tr-extractor",
     gen_all_binaries = True,
 )
-
 bindeps.from_specs(
     name = "bindeps",
     host_tools = "@rust_host_tools_nightly",
 )
-
 use_repo(bindeps, "bindeps")
-

@@ -37,10 +37,10 @@ rust_library(
         ":build_script",
         "//core/types",
         "//core/types/protos:songs_rs",
+        "@crates//:libsqlite3-sys",
         "@crates//:r2d2",
         "@crates//:r2d2_sqlite",
         "@crates//:rusqlite",
-        "@crates//:libsqlite3-sys",
         "@crates//:serde",
         "@crates//:serde_json",
         "@crates//:tempdir",
@@ -71,7 +71,7 @@ rust_benchmark(
     deps = [
         ":database",
         "//core/types/protos:songs_rs",
-        "@crates//:uuid",
         "@crates//:criterion",
+        "@crates//:uuid",
     ],
 )

@@ -48,4 +48,6 @@ message Page {
   string icon = 4;
 }
 
-message PreferenceUIFile { repeated Page page = 1; }
+message PreferenceUIFile {
+  repeated Page page = 1;
+}

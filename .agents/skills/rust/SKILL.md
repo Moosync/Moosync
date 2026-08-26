@@ -15,13 +15,13 @@ The **Rust** skill provides a set of reusable commands for building, testing, an
 | ---------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
 | **Build crate**  | Build a specific Rust library or binary target via Bazel.                            | `bazel build //core/player:player`                               |
 | **Run tests**    | Execute unit tests for a crate through Bazel.                                        | `bazel test //core/database:database_test`                       |
-| **Format files** | Run hermetic formatter on staged `.rs` and `.slint` files via the pre-commit target. | `bazel run //tools:format -- path/to/file.rs path/to/file.slint` |
+| **Format files** | Run hermetic formatter on staged `.rs`, `.slint`, `.proto`, and Bazel files via the pre-commit target. | `bazel run //tools:format -- path/to/file.rs path/to/file.proto` |
 
 ## Usage Patterns
 
 1. **Quick build of a feature module** — identify the target label in the crate's `BUILD.bazel` file and run the _Build crate_ command.
 2. **Test after change** — run _Run tests_ to catch regressions before committing. Test suites are aggregated under `core_tests` at the root level.
-3. **Formatting** — invoke _Format files_ as part of a Git pre-commit hook (see `.git/hooks/pre-commit`). The formatter resolves hermetic rustfmt and slint-lsp through Bazel runfiles.
+3. **Formatting** — invoke _Format files_ as part of a Git pre-commit hook (see `.git/hooks/pre-commit`). The formatter resolves hermetic rustfmt, slint-lsp, buildifier, and buf through Bazel runfiles.
 
 ## Example Workflow
 

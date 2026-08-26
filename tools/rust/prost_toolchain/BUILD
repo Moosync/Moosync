@@ -8,7 +8,6 @@ PROST_OPTS = [
     "type_attribute=.=#[serde(rename_all=\"camelCase\")]",
 ]
 
-
 rust_library_group(
     name = "prost_runtime_default",
     deps = [

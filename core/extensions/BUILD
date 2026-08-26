@@ -64,7 +64,7 @@ rust_library(
         "@crates//:interprocess",
         "@crates//:regex",
         "@crates//:reqwest",
-        "@crates//:rust_crypto",
+        "@crates//:rust-crypto",
         "@crates//:serde",
         "@crates//:serde_json",
         "@crates//:tempdir",

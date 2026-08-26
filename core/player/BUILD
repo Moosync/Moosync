@@ -32,6 +32,7 @@ rust_library(
     ],
     crate_root = "src/lib.rs",
     data = ["//external/ffmpeg:gen_dir"],
+    link_deps = ["//external/ffmpeg"],
     proc_macro_deps = [
         "//core/plugin_macro",
     ],
@@ -49,7 +50,6 @@ rust_library(
         "//core/types",
         "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",
-        "//external/ffmpeg",
         "@crates//:rand",
         "@crates//:rodio",
         "@crates//:rsmpeg",

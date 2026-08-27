@@ -34,7 +34,8 @@ async fn test_audio_source_load_and_methods() {
         ..Default::default()
     };
 
-    let set_res = audio_src.set_src(song);
+    let mut song = song;
+    let set_res = audio_src.set_src(&mut song);
     let vol_res = audio_src.set_volume(85);
     let seek_res = audio_src.seek(Duration::from_secs(12));
     let pause_res = audio_src.pause();
@@ -57,7 +58,7 @@ async fn test_audio_source_two_pass_resolver() {
         Ok("https://resolved.example.com/stream.mp3".to_string())
     }));
 
-    let song = Song {
+    let mut song = Song {
         song: Some(InnerSong {
             id: Some("stream_song".to_string()),
             ..Default::default()
@@ -65,7 +66,7 @@ async fn test_audio_source_two_pass_resolver() {
         ..Default::default()
     };
 
-    let res = audio_src.load_song(song);
+    let res = audio_src.load_song(&mut song);
 
     assert!(res.is_err());
     assert_eq!(audio_src.get_player_state(), PlayerState::Stopped);

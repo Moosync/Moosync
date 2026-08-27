@@ -8,6 +8,7 @@ use std::{
 use extensions_proto::moosync::types::{ExtensionDetail, FetchedExtensionManifest};
 use slint::{Image, Model, ModelNotify, ModelRc, ModelTracker, SharedString};
 use songs_proto::moosync::types::{Album, Artist, Genre, Playlist, Song};
+use state_manager::StateManager;
 use tracing::trace;
 use types::prelude::SongsExt;
 
@@ -542,7 +543,7 @@ pub fn to_song_model(song: &Song, detail: Option<&ExtensionDetail>) -> SongModel
 
         // UI-only display fields
         coverPathHigh: Image::default(),
-        coverPathLow: default_song_cover(),
+        coverPathLow: Image::default(),
         coverPathUrlHigh: song
             .get_cover_high()
             .map(|c| c.to_string())
@@ -1115,4 +1116,37 @@ pub fn filter_and_sort_songs(
         item_width,
         cache_dir,
     ))
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub async fn save_queue(state_manager: &StateManager, name: String, description: String) {
+    let player_handler = state_manager.get_player_handler().await;
+    let queue = player_handler.get_queue().to_vec();
+    if queue.is_empty() {
+        return;
+    }
+
+    let database = state_manager.get_database().await;
+    let trimmed_name = name.trim();
+    let mut playlist_name = trimmed_name.to_string();
+    if playlist_name.is_empty() {
+        playlist_name = "Queue playlist".to_string();
+    }
+
+    let trimmed_desc = description.trim();
+    let playlist_desc = if trimmed_desc.is_empty() {
+        None
+    } else {
+        Some(trimmed_desc.to_string())
+    };
+
+    let playlist = Playlist {
+        playlist_name,
+        playlist_desc,
+        ..Default::default()
+    };
+
+    if let Err(e) = database.create_playlist_with_songs(playlist, &queue) {
+        tracing::error!("Failed to save queue as playlist: {:?}", e);
+    }
 }

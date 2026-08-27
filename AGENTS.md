@@ -52,6 +52,16 @@ Donot
 9. New plugins are registered by adding types to the `generate_plugin_system!()` macro call in `core/state_manager/src/lib.rs`. The macro generates all registry code — do not create plugin registration boilerplate manually.
 10. **Context pattern** for platform-specific code: each major crate has a `context/` submodule (`preferences/context/keyring_context.rs`, `mpris/context/mod.rs`). New platform implementations should follow this pattern.
 
+### Code Style & UI Modals
+
+- **No Fully-Qualified Inline Paths**: Always import types and functions at the top of the file (`use ...;`). Never use inline fully-qualified paths (e.g., `songs_proto::...`, `crate::utils::...`) in code bodies.
+- **No Abbreviations**: Do not abbreviate domain objects or variables (e.g., use `state_manager`, never `sm`).
+- **Avoid Unnecessary Cloning**: Mutate collections in place rather than cloning expensive structures (like `Song`).
+- **Control Flow Simplicity**: Prefer simple, direct `if let Some(...) = ...` over awkward `let Some(...) = ... else { return; }` inversions. Avoid `else` blocks and `continue` inside loops.
+- **Single Responsibility & Thin UI Handlers**: Split distinct logic paths into separate helper functions; keep page handlers thin by moving multi-step coordination logic into `utils.rs`.
+- **Slint Naming Conventions**: All Slint variables, properties, callbacks, and functions must strictly use `snake_case` (never `kebab-case`).
+- **Slint Modal Lifecycle**: Reusable modals inherit from `Modal` and live in `ui/slint/src/common/`. The parent controls visibility conditionally (`if show_modal: MyModal { close => { show_modal = false; } }`). Rely on `Modal`'s built-in `callback close();` — backdrop clicks and dialog action buttons trigger `root.close()`. Do not create custom `is_open` properties on modals.
+
 ### Git & Version Control
 
 11. Never use destructive git commands (`git reset`, `git checkout`). Only use `git diff` and `git status`.

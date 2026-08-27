@@ -17,18 +17,21 @@
 use extensions_proto::moosync::types::{ExtensionDetail, FetchedExtensionManifest};
 use slint::{Model, ModelRc, VecModel};
 use songs_proto::moosync::types::{
-    Album, Artist, Genre, InnerSong, Playlist, SearchResult as ProtoSearchResult, Song,
+    Album, Artist, Genre, GetEntityOptions, InnerSong, Playlist, SearchResult as ProtoSearchResult,
+    Song, entity_result,
 };
+use state_manager::StateManager;
 use tempdir::TempDir;
+use types::plugin::PluginContext;
 
 use crate::{
     SongSortCriterion,
     utils::{
         LazySongVecModel, cache_image, default_empty_icon, default_entity_cover,
         default_folder_icon, default_song_cover, filter_and_sort_songs, get_safe_name, parse_color,
-        parse_length, song_model_to_song, to_album_model, to_artist_model, to_extension_item,
-        to_fetched_extension_item, to_genre_model, to_playlist_model, to_search_result,
-        to_song_model,
+        parse_length, save_queue, song_model_to_song, to_album_model, to_artist_model,
+        to_extension_item, to_fetched_extension_item, to_genre_model, to_playlist_model,
+        to_search_result, to_song_model,
     },
 };
 
@@ -76,8 +79,7 @@ fn test_to_song_model() {
     assert_eq!(model.title, "Song Title");
     assert_eq!(model.album_name, "Album Name");
     assert_eq!(model.coverPathHigh.size().width, 0);
-    assert_eq!(model.coverPathLow.size(), default_song_cover().size());
-    assert_ne!(model.coverPathLow.size().width, 0);
+    assert_eq!(model.coverPathLow.size().width, 0);
 }
 
 #[test]
@@ -705,4 +707,57 @@ fn test_filter_and_sort_songs_title_ascending_uses_original_model() {
     assert_eq!(result.row_data(0).unwrap().title, "Bravo Song");
     assert_eq!(result.row_data(1).unwrap().title, "Alpha Song");
     assert_eq!(result.row_data(2).unwrap().title, "Charlie Song");
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_save_queue_creates_playlist_in_db() {
+    let tmp = TempDir::new("utils_save_queue_test").unwrap();
+    let test_dir = tmp.path().to_path_buf();
+    let context = PluginContext {
+        data_dir: test_dir.clone(),
+        cache_dir: test_dir.clone(),
+        tmp_dir: test_dir.clone(),
+        #[cfg(target_os = "android")]
+        android_context: types::android::AndroidJNIContext::default(),
+    };
+    let state_manager = StateManager::new_with_context(context).unwrap();
+
+    let song = Song {
+        song: Some(InnerSong {
+            id: Some("song_util_1".into()),
+            title: Some("Queue Song".into()),
+            path: Some("/music/test_u1.mp3".into()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    {
+        let mut ph = state_manager.get_player_handler_mut().await;
+        ph.add_to_queue(vec![song]);
+    }
+
+    save_queue(
+        &state_manager,
+        "Custom Playlist".to_string(),
+        "Custom Desc".to_string(),
+    )
+    .await;
+
+    let db = state_manager.get_database().await;
+    let playlists_res = db.get_entity_by_options(GetEntityOptions {
+        playlist: Some(Playlist::default()),
+        ..Default::default()
+    });
+
+    assert!(playlists_res.is_ok());
+    let res = playlists_res.unwrap().result;
+    match res {
+        Some(entity_result::Result::Playlists(list)) => {
+            assert_eq!(list.playlists.len(), 1);
+            assert_eq!(list.playlists[0].playlist_name, "Custom Playlist");
+            assert_eq!(list.playlists[0].playlist_desc, Some("Custom Desc".into()));
+        }
+        _ => panic!("Expected playlists in entity result"),
+    }
 }

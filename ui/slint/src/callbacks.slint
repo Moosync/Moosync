@@ -40,6 +40,7 @@ export global AppCallbacks {
     callback remove-from-queue(int);
     callback clear-queue();
     callback move-queue-item(string, int);
+    callback save_queue_as_playlist(string, string);
     pure callback string-to-transfer(string) -> data-transfer;
     pure callback transfer-to-string(data-transfer) -> string;
 

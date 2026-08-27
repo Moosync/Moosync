@@ -53,20 +53,21 @@ impl AudioSource {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_resolver(&self, f: SourceResolverFn) { self.source_resolver.set_resolver(f); }
 
+    // set_src might try to resolve the playback url and mutate the song
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_src(&mut self, song: Song) -> Result<(), PlayerError> { self.load_song(song) }
+    pub fn set_src(&mut self, song: &mut Song) -> Result<(), PlayerError> { self.load_song(song) }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn load_song(&mut self, mut song: Song) -> Result<(), PlayerError> {
-        let res = self.mux.load(&song);
+    pub fn load_song(&mut self, song: &mut Song) -> Result<(), PlayerError> {
+        let res = self.mux.load(song);
 
         // Try to resolve the playback url if no player was found
         // This basically runs 2 passes of load if no playback url was found
         if let Err(e) = res {
             match e {
                 PlayerError::NoPlayerFound(_) | PlayerError::NoSrcFound(_) => {
-                    self.source_resolver.resolve_playback_url(&mut song)?;
-                    self.mux.load(&song)?;
+                    self.source_resolver.resolve_playback_url(song)?;
+                    self.mux.load(song)?;
                 }
                 _ => return Err(e),
             }

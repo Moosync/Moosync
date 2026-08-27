@@ -31,6 +31,15 @@ When using this skill:
 
 Slint UIs are written in `.slint` markup files. The language is declarative and reactive.
 
+## Naming Conventions
+
+Follow these project naming conventions when writing `.slint` and related Rust files:
+
+1. **Components and Structs**: Use `PascalCase` for component names and struct types (e.g., `QueuePage`, `SongModel`, `TextInputGroup`, `ModalSize`).
+2. **Properties, Variables, Callbacks, and Functions**: All Slint variables, properties, callbacks, and functions MUST be `snake_case` and NEVER `kebab-case` (e.g., `in property <bool> is_active;`, `in-out property <string> new_playlist_name;`, `callback remove_clicked();`, `save_queue_as_playlist(string)`).
+3. **Rust Function Names**: Follow standard Rust `snake_case`, keep names simple and obvious, and avoid repeating struct/module context in function names (e.g., `save_queue` rather than `save_queue_page_queue_songs`).
+
+
 ## Project Setup
 
 ### Rust

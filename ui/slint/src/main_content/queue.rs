@@ -7,7 +7,7 @@ use slint::ComponentHandle;
 use state_manager::StateManager;
 use types::prelude::SongsExt;
 
-use crate::{AppCallbacks, MainWindow, QueuePageProps, pages::PageHandler};
+use crate::{AppCallbacks, MainWindow, QueuePageProps, pages::PageHandler, utils::save_queue};
 
 pub struct QueuePageHandler<'a> {
     main_window: &'a MainWindow,
@@ -82,6 +82,20 @@ impl<'a> QueuePageHandler<'a> {
                             player_handler.move_queue_item(from_idx, to_idx as usize);
                         });
                     }
+                }
+            });
+
+        self.main_window
+            .global::<AppCallbacks>()
+            .on_save_queue_as_playlist({
+                let state_manager = state_manager.clone();
+                move |name, desc| {
+                    let state_manager = state_manager.clone();
+                    let name_str = name.to_string();
+                    let desc_str = desc.to_string();
+                    tokio::spawn(async move {
+                        save_queue(&state_manager, name_str, desc_str).await;
+                    });
                 }
             });
 

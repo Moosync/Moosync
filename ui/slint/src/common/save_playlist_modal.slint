@@ -1,0 +1,84 @@
+import { Theme } from "../constants.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { Modal, ModalSize } from "modal.slint";
+import { TextInputGroup } from "../settings/text_input.slint";
+import { ButtonGroup } from "../settings/button_group.slint";
+
+export component SavePlaylistModal inherits Modal {
+    in-out property <string> playlist_name: "";
+    in-out property <string> playlist_description: "";
+
+    modalSize: ModalSize.Md;
+
+    Rectangle {
+        background: Theme.primary;
+        border-radius: Theme.borderRadiusLg;
+        border-width: 1px;
+        border-color: Theme.accent.transparentize(0.8);
+        clip: true;
+        preferred-height: 270px;
+        max-height: 280px;
+
+        VerticalLayout {
+            padding: Theme.paddingMd;
+            spacing: Theme.spacingSm;
+
+            VerticalLayout {
+                spacing: Theme.spacingTiny;
+                Text {
+                    text: @tr("Save as Playlist");
+                    font-size: Theme.modelTitle;
+                    font-weight: 700;
+                    color: Theme.textPrimary;
+                }
+
+                Text {
+                    text: @tr("Enter details for the new playlist.");
+                    font-size: Theme.caption;
+                    color: Theme.textSecondary;
+                    wrap: word-wrap;
+                }
+            }
+
+            TextInputGroup {
+                title: @tr("Playlist Name");
+                subtitle: "";
+                placeholder: @tr("e.g., My Queue Playlist");
+                value <=> root.playlist_name;
+                inputType: InputType.text;
+            }
+
+            TextInputGroup {
+                title: @tr("Description");
+                subtitle: "";
+                placeholder: @tr("e.g., Chill vibes and favorites");
+                value <=> root.playlist_description;
+                inputType: InputType.text;
+            }
+
+            Rectangle {
+                vertical-stretch: 1;
+            }
+
+            HorizontalLayout {
+                alignment: end;
+                ButtonGroup {
+                    title: "";
+                    subtitle: "";
+                    buttons: [
+                        { id: "cancel", text: @tr("Cancel"), is-destructive: false },
+                        { id: "confirm", text: @tr("Save"), is-destructive: false }
+                    ];
+                    clicked(id) => {
+                        if (id == "confirm") {
+                            AppCallbacks.save_queue_as_playlist(root.playlist_name, root.playlist_description);
+                            root.playlist_name = "";
+                            root.playlist_description = "";
+                        }
+                        root.close();
+                    }
+                }
+            }
+        }
+    }
+}

@@ -130,7 +130,7 @@ impl PlayerHandler {
         }
 
         self.song_queue.extend(songs);
-        self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
+        self.trigger_queue_changed();
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -143,7 +143,7 @@ impl PlayerHandler {
         if self.current_song().is_none() {
             self.song_queue = songs;
             self.current_idx = 0;
-            self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
+            self.trigger_queue_changed();
             self.trigger_song_changed();
             if let Err(e) = self.play() {
                 tracing::error!("Failed to play song: {:?}", e);
@@ -159,7 +159,7 @@ impl PlayerHandler {
         for (offset, song) in songs.into_iter().enumerate() {
             self.song_queue.insert(insert_pos + 1 + offset, song);
         }
-        self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
+        self.trigger_queue_changed();
         self.trigger_song_changed();
 
         if let Err(e) = self.play() {
@@ -180,7 +180,7 @@ impl PlayerHandler {
         self.song_queue.shuffle(&mut rng);
 
         self.song_queue.insert(self.current_idx, current_song);
-        self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
+        self.trigger_queue_changed();
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -281,17 +281,29 @@ impl PlayerHandler {
             if self.current_idx >= self.song_queue.len() && !self.song_queue.is_empty() {
                 self.current_idx = self.song_queue.len() - 1;
             }
-            self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
+            self.trigger_queue_changed();
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn clear_queue(&mut self) {
-        self.song_queue.clear();
-        self.current_idx = 0;
-        self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
-        let _ = self.player.stop();
-        self.trigger_song_changed();
+        if self.song_queue.len() > 1 {
+            if self.current_idx < self.song_queue.len() {
+                let song = self.song_queue.remove(self.current_idx);
+                self.song_queue.clear();
+                self.song_queue.push(song);
+                self.current_idx = 0;
+                self.trigger_queue_changed();
+            }
+            return;
+        }
+
+        if self.song_queue.len() == 1 {
+            self.song_queue.clear();
+            self.current_idx = 0;
+            self.trigger_queue_changed();
+            self.trigger_song_changed();
+        }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -306,7 +318,7 @@ impl PlayerHandler {
             } else if from_idx > self.current_idx && to_idx <= self.current_idx {
                 self.current_idx += 1;
             }
-            self.on_queue_updated.run_all(|cb| cb(&self.song_queue));
+            self.trigger_queue_changed();
         }
     }
 
@@ -346,10 +358,17 @@ impl PlayerHandler {
     pub fn set_resolver(&self, f: crate::source::SourceResolverFn) { self.player.set_resolver(f); }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    fn trigger_queue_changed(&self) { self.on_queue_updated.run_all(|cb| cb(&self.song_queue)); }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn trigger_song_changed(&mut self) {
-        let current = self.current_song().cloned();
-        if let Some(song) = &current
-            && let Err(e) = self.player.set_src(song.clone())
+        let mut current = self.current_song().cloned();
+        if current.is_none() {
+            let _ = self.player.stop();
+        }
+
+        if let Some(song) = current.as_mut()
+            && let Err(e) = self.player.set_src(song)
         {
             tracing::error!("Failed to load song: {:?}", e);
             return;

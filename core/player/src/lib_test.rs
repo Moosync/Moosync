@@ -300,7 +300,9 @@ async fn test_shuffle_and_reorder() {
     ph.remove_from_queue(0);
     assert_eq!(ph.song_queue.len(), 7);
 
-    // clear_queue
+    // clear_queue (first click keeps current song, second click clears all)
+    ph.clear_queue();
+    assert_eq!(ph.song_queue.len(), 1);
     ph.clear_queue();
     assert!(ph.song_queue.is_empty());
 }

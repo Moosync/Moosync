@@ -59,6 +59,7 @@ import {
     SortDecision,
 } from "callbacks.slint";
 import { Settings } from "settings/settings.slint";
+import { SavePlaylistModal } from "common/save_playlist_modal.slint";
 import { PageWrapper } from "common/page_wrapper.slint";
 import {
     Preferences,
@@ -140,6 +141,7 @@ export component MainWindow inherits Window {
     changed show_queue => {
         AppCallbacks.queue-toggled(self.show_queue);
     }
+    in-out property <bool> show_save_playlist_modal: false;
     in-out property <[ThemeConfig]> available-themes;
     in-out property <string> active-theme-id;
     in-out property <[ThemeConstant]> theme-constants;
@@ -291,6 +293,7 @@ export component MainWindow inherits Window {
                 width: 100%;
                 height: 100%;
                 current-song: root.current_song;
+                show_save_playlist_modal <=> root.show_save_playlist_modal;
 
                 animate y {
                     duration: 250ms;
@@ -317,6 +320,12 @@ export component MainWindow inherits Window {
         extensions <=> root.extensions;
         close => {
             show_settings = false;
+        }
+    }
+
+    if show_save_playlist_modal: SavePlaylistModal {
+        close => {
+            show_save_playlist_modal = false;
         }
     }
 }

@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-08-27 21:05\n"
+"PO-Revision-Date: 2026-08-28 04:54\n"
 "Language: cs_CZ\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -17,233 +17,233 @@ msgstr ""
 
 #: src/app.slint:156 src/main_content/search.slint:99
 msgid "Songs"
-msgstr ""
+msgstr "Všechny skladby"
 
 #: src/app.slint:157 src/main_content/playlists.slint:21
 #: src/app.slint:157 src/main_content/playlists.slint:21
 msgid "Playlists"
-msgstr ""
+msgstr "Seznamy stop"
 
 #: src/app.slint:158 src/main_content/artists.slint:21
 #: src/app.slint:158 src/main_content/artists.slint:21
 msgid "Artists"
-msgstr ""
+msgstr "Umělci"
 
 #: src/app.slint:159 src/main_content/albums.slint:21
 #: src/app.slint:159 src/main_content/albums.slint:21
 msgid "Albums"
-msgstr ""
+msgstr "Alba"
 
 #: src/app.slint:160 src/main_content/genres.slint:21
 #: src/app.slint:160 src/main_content/genres.slint:21
 msgid "Genres"
-msgstr ""
+msgstr "Žánry"
 
 #: src/app.slint:161 src/main_content/explore.slint:22
 msgid "Explore"
-msgstr ""
+msgstr "Prozkoumat"
 
 #: src/common/song_list_view.slint:59
 msgid "Filter songs..."
-msgstr ""
+msgstr "Filtrovat skladby..."
 
 #: src/common/card_view.slint:4
 msgid "Card Title"
-msgstr ""
+msgstr "Název karty"
 
 #: src/constants.slint:17 src/callbacks.slint:75
 msgid "Title"
-msgstr ""
+msgstr "Hlava 1 – Celkem"
 
 #: src/constants.slint:25 src/callbacks.slint:83
 msgid "Date"
-msgstr ""
+msgstr "Datum:"
 
 #: src/constants.slint:33 src/callbacks.slint:91
 msgid "Album"
-msgstr ""
+msgstr "Album"
 
 #: src/constants.slint:41 src/callbacks.slint:99
 msgid "Track Number"
-msgstr ""
+msgstr "Číslo trasy"
 
 #: src/constants.slint:49 src/callbacks.slint:107
 msgid "Artist"
-msgstr ""
+msgstr "Umělec"
 
 #: src/main_content/explore.slint:32
 msgid "No recommendations"
-msgstr ""
+msgstr "Žádná doporučení"
 
 #: src/main_content/search.slint:80
 msgid "Search"
-msgstr ""
+msgstr "Hledat"
 
 #: src/main_content/search.slint:89
 msgid "Local"
-msgstr ""
+msgstr "Místní"
 
 #: src/main_content/queue_page.slint:250
 msgid "Show Lyrics"
-msgstr ""
+msgstr "Zobrazit texty"
 
 #: src/main_content/queue_page.slint:268
 msgid "Save as playlist"
-msgstr ""
+msgstr "Uložit jako playlist"
 
 #: src/main_content/queue_page.slint:274
 msgid "Clear"
-msgstr ""
+msgstr "Vyčistit"
 
 #: src/settings/extensions.slint:154
 msgid "Settings > Extensions"
-msgstr ""
+msgstr "Nastavení > Rozšíření"
 
 #: src/settings/extensions.slint:167 src/settings/settings.slint:43
 msgid "Extensions"
-msgstr ""
+msgstr "Rozšíření"
 
 #: src/settings/extensions.slint:173
 msgid "Manage your extensions"
-msgstr ""
+msgstr "Spravovat vaše rozšíření"
 
 #: src/settings/extensions.slint:181
 msgid "Add Extension"
-msgstr ""
+msgstr "Přidat rozšíření"
 
 #: src/settings/extensions.slint:193
 msgid "No extensions available."
-msgstr ""
+msgstr "Žádná rozšíření nejsou k dispozici."
 
 #: src/settings/path_selector.slint:35
 msgid "Add folder"
-msgstr ""
+msgstr "Přidat složku"
 
 #: src/settings/paths.slint:24
 msgid "Settings > Paths"
-msgstr ""
+msgstr "Nastavení > Cesty"
 
 #: src/settings/settings.slint:40
 msgid "Paths"
-msgstr ""
+msgstr "Cesty"
 
 #: src/settings/settings.slint:41
 msgid "System"
-msgstr ""
+msgstr "Systém"
 
 #: src/settings/settings.slint:47
 msgid "Themes"
-msgstr ""
+msgstr "Motivy"
 
 #: src/settings/settings.slint:160
 msgid "Save Custom Theme"
-msgstr ""
+msgstr "Uložit vlastní motiv"
 
 #: src/settings/settings.slint:166
 msgid "Your current accent and advanced styling variables will be saved."
-msgstr ""
+msgstr "Vaše aktuální zvýraznění a pokročilé stylové proměnné budou uloženy."
 
 #: src/settings/settings.slint:174
 msgid "Theme Name"
-msgstr ""
+msgstr "Název šablony"
 
 #: src/settings/settings.slint:175
 msgid "A short, distinct name"
-msgstr ""
+msgstr "Krátký, odlišný název"
 
 #: src/settings/settings.slint:176
 msgid "e.g., Midnight Blue"
-msgstr ""
+msgstr "Např. půlnočně modrá"
 
 #: src/settings/settings.slint:182
 msgid "Author"
-msgstr ""
+msgstr "Autor"
 
 #: src/settings/settings.slint:183
 msgid "Who created this theme?"
-msgstr ""
+msgstr "Kdo vytvořil tento motiv?"
 
 #: src/settings/settings.slint:184
 msgid "Your name"
-msgstr ""
+msgstr "Vaše jméno"
 
 #: src/settings/settings.slint:190
 msgid "Description"
-msgstr ""
+msgstr "L 343, 22.12.2009, s. 1)."
 
 #: src/settings/settings.slint:191
 msgid "A brief summary of the aesthetics"
-msgstr ""
+msgstr "Stručný přehled estetiky"
 
 #: src/settings/settings.slint:192
 msgid "High contrast dark theme..."
-msgstr ""
+msgstr "Vysoký kontrast tmavého motivu..."
 
 #: src/settings/settings.slint:203
 msgid "Cancel"
-msgstr ""
+msgstr "Zrušit"
 
 #: src/settings/settings.slint:204
 msgid "Save Theme"
-msgstr ""
+msgstr "Uložit motiv"
 
 #: src/settings/system.slint:24
 msgid "Settings > System"
-msgstr ""
+msgstr "Nastavení > Systém"
 
 #: src/settings/themes.slint:215
 msgid "Opacity"
-msgstr ""
+msgstr "Neprůhlednost"
 
 #: src/settings/themes.slint:467
 msgid "Settings > Themes"
-msgstr ""
+msgstr "Nastavení > Motivy"
 
 #: src/settings/themes.slint:484
 msgid "Preset Themes"
-msgstr ""
+msgstr "Přednastavená témata"
 
 #: src/settings/themes.slint:490
 msgid "Selecting a theme will instantly override your advanced styling configurations."
-msgstr ""
+msgstr "Výběrem motivu dojde k okamžitému přepsání pokročilých stylových konfigurací."
 
 #: src/settings/themes.slint:520
 msgid "Quick Accent"
-msgstr ""
+msgstr "Rychlá zvýraznění"
 
 #: src/settings/themes.slint:526
 msgid "Instantly update the primary interactive color."
-msgstr ""
+msgstr "Okamžitě aktualizovat primární interaktivní barvu."
 
 #: src/settings/themes.slint:573
 msgid "Advanced Styling"
-msgstr ""
+msgstr "Pokročilé styly"
 
 #: src/settings/themes.slint:579
 msgid "Fine-tune UI parameters. Modifying these clones/mutates the current active theme."
-msgstr ""
+msgstr "Parametry UI jemně. Úprava těchto klonů/mutací aktuálního motivu."
 
 #: src/settings/themes.slint:606
 msgid "Adjust the color for {}"
-msgstr ""
+msgstr "Upravte barvu pro {}"
 
 #: src/settings/themes.slint:615
 msgid "Adjust the size for {}"
-msgstr ""
+msgstr "Upravit velikost pro {}"
 
 #: src/settings/themes.slint:630
 msgid "Export Theme"
-msgstr ""
+msgstr "Exportovat šablonu"
 
 #: src/settings/themes.slint:631
 msgid "Save your current styling configuration as a new reusable preset."
-msgstr ""
+msgstr "Uložit aktuální konfiguraci stylu jako novou předvolbu pro opakované použití."
 
 #: src/settings/themes.slint:632
 msgid "Save as New Theme"
-msgstr ""
+msgstr "Uložit jako nový motiv"
 
 #: src/topbar/search_bar.slint:6
 msgid "Search..."
-msgstr ""
+msgstr "Hledat..."
 

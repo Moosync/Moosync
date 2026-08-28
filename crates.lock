@@ -1,5 +1,5 @@
 {
-  "checksum": "46f6fdcca356dec955c0379fb9c72256dbbb86e991e9d9425b767e6cffc0a201",
+  "checksum": "7bea255f401763f4ac4c4c2c1b144b4232d73fbb4e8e8f52cb27ec303dcd8de2",
   "crates": {
     "ab_glyph 0.2.32": {
       "name": "ab_glyph",
@@ -34417,15 +34417,15 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "moosync-deps 0.0.0": {
-      "name": "moosync-deps",
+    "moosync 0.0.0": {
+      "name": "moosync",
       "version": "0.0.0",
       "package_url": null,
       "repository": null,
       "targets": [
         {
           "Library": {
-            "crate_name": "moosync_deps",
+            "crate_name": "moosync",
             "crate_root": "core/types/src/lib.rs",
             "srcs": {
               "allow_empty": true,
@@ -34436,7 +34436,7 @@
           }
         }
       ],
-      "library_target_name": "moosync_deps",
+      "library_target_name": "moosync",
       "common_attrs": {
         "compile_data_glob": [
           "**"
@@ -77659,7 +77659,7 @@
     "slint-lsp 1.17.1"
   ],
   "workspace_members": {
-    "moosync-deps 0.0.0": ""
+    "moosync 0.0.0": ""
   },
   "conditions": {
     "aarch64-apple-darwin": [

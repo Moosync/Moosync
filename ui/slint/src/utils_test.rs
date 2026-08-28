@@ -25,13 +25,12 @@ use tempdir::TempDir;
 use types::plugin::PluginContext;
 
 use crate::{
-    SongSortCriterion,
+    AlbumModel, PlaylistModel, SongSortCriterion,
     utils::{
-        LazySongVecModel, cache_image, default_empty_icon, default_entity_cover,
+        IntoVec, LazySongVecModel, cache_image, default_empty_icon, default_entity_cover,
         default_folder_icon, default_song_cover, filter_and_sort_songs, get_safe_name, parse_color,
-        parse_length, save_queue, song_model_to_song, to_album_model, to_artist_model,
-        to_extension_item, to_fetched_extension_item, to_genre_model, to_playlist_model,
-        to_search_result, to_song_model,
+        parse_length, save_queue, song_model_to_song, to_artist_model, to_extension_item,
+        to_fetched_extension_item, to_genre_model, to_search_result, to_song_model,
     },
 };
 
@@ -127,11 +126,35 @@ fn test_to_album_model() {
         ..Default::default()
     };
 
-    let model = to_album_model(&album, None);
+    let model: AlbumModel = album.into();
 
     assert_eq!(model.id, "alb123");
     assert_eq!(model.title, "Greatest Hits");
     assert_eq!(model.songs_count, 12);
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_from_album_model() {
+    let model = AlbumModel {
+        id: "alb123".into(),
+        title: "Greatest Hits".into(),
+        songs_count: 12,
+        coverPath: default_entity_cover(),
+        coverPathUrl: "https://example.com/cover.jpg".into(),
+        extension: "local".into(),
+        extension_icon: default_empty_icon(),
+    };
+
+    let album: Album = model.into();
+
+    assert_eq!(album.album_id.as_deref(), Some("alb123"));
+    assert_eq!(album.album_name.as_deref(), Some("Greatest Hits"));
+    assert_eq!(
+        album.album_coverpath_high.as_deref(),
+        Some("https://example.com/cover.jpg")
+    );
+    assert_eq!(album.album_song_count, 12.0);
 }
 
 #[test]
@@ -162,7 +185,7 @@ fn test_to_album_model_without_cover_has_placeholder() {
     };
     let expected = default_entity_cover();
 
-    let model = to_album_model(&album, None);
+    let model: AlbumModel = album.into();
 
     assert_eq!(model.id, "alb123");
     assert_eq!(model.coverPath.size(), expected.size());
@@ -217,13 +240,38 @@ fn test_to_playlist_model() {
     };
     let expected = default_entity_cover();
 
-    let model = to_playlist_model(&playlist, None);
+    let model: PlaylistModel = playlist.into();
 
     assert_eq!(model.id, "pl123");
     assert_eq!(model.title, "Favorites");
     assert_eq!(model.songs_count, 25);
     assert_eq!(model.coverPath.size(), expected.size());
     assert_ne!(model.coverPath.size().width, 0);
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_from_playlist_model() {
+    let model = PlaylistModel {
+        id: "pl123".into(),
+        title: "Favorites".into(),
+        songs_count: 25,
+        coverPath: default_entity_cover(),
+        coverPathUrl: "https://example.com/cover.jpg".into(),
+        extension: "local".into(),
+        extension_icon: default_empty_icon(),
+    };
+
+    let playlist: Playlist = model.into();
+
+    assert_eq!(playlist.playlist_id.as_deref(), Some("pl123"));
+    assert_eq!(playlist.playlist_name, "Favorites");
+    assert_eq!(
+        playlist.playlist_coverpath.as_deref(),
+        Some("https://example.com/cover.jpg")
+    );
+    assert_eq!(playlist.playlist_song_count, 25.0);
+    assert_eq!(playlist.extension.as_deref(), Some("local"));
 }
 
 #[test]
@@ -404,14 +452,12 @@ fn test_default_folder_icon() {
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_lazy_song_vec_model_row_count_and_data() {
     let tmp = TempDir::new("moosync_lazy_model_test").unwrap();
-    let album = to_album_model(
-        &Album {
-            album_id: Some("a1".to_string()),
-            album_name: Some("Album 1".to_string()),
-            ..Default::default()
-        },
-        None,
-    );
+    let album: AlbumModel = Album {
+        album_id: Some("a1".to_string()),
+        album_name: Some("Album 1".to_string()),
+        ..Default::default()
+    }
+    .into();
     let lazy_model = LazySongVecModel::new(vec![album], 100, 100, tmp.path().to_path_buf());
 
     assert_eq!(lazy_model.row_count(), 1);
@@ -760,4 +806,30 @@ async fn test_save_queue_creates_playlist_in_db() {
         }
         _ => panic!("Expected playlists in entity result"),
     }
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_context_menu_item_vec_from_model_rc() {
+    let items = vec![
+        crate::ContextMenuItem {
+            action_id: "play_now".into(),
+            title: "Play Now".into(),
+            icon: default_empty_icon(),
+        },
+        crate::ContextMenuItem {
+            action_id: "add_to_queue".into(),
+            title: "Add to Queue".into(),
+            icon: default_empty_icon(),
+        },
+    ];
+
+    let model_rc = ModelRc::new(VecModel::from(items));
+    let converted: Vec<crate::ContextMenuItem> = model_rc.into_vec();
+
+    assert_eq!(converted.len(), 2);
+    assert_eq!(converted[0].action_id, "play_now");
+    assert_eq!(converted[0].title, "Play Now");
+    assert_eq!(converted[1].action_id, "add_to_queue");
+    assert_eq!(converted[1].title, "Add to Queue");
 }

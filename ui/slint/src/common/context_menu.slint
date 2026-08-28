@@ -1,0 +1,92 @@
+import { Theme } from "../constants.slint";
+import { WindowInfo } from "../window_info.slint";
+import { ContextMenuItem } from "../types/context_menu.slint";
+
+export component ContextMenu inherits Rectangle {
+    in-out property <[ContextMenuItem]> items: [];
+    in-out property <length> requested_x: 0px;
+    in-out property <length> requested_y: 0px;
+
+    callback selected(string);
+
+    property <length> menu_width: Theme.cardWidth;
+    property <length> item_height: Theme.dropdownOptionHeight + Theme.paddingXs;
+    property <length> estimated_height: items.length * item_height + Theme.paddingXs * 2;
+
+    property <length> clamped_x: Math.max(Theme.paddingXs, Math.min(WindowInfo.window-width - menu_width - Theme.paddingXs, requested_x));
+    property <length> clamped_y: Math.max(Theme.paddingXs, Math.min(WindowInfo.window-height - estimated_height - Theme.paddingXs, requested_y));
+
+    x: 0px;
+    y: 0px;
+    width: 0px;
+    height: 0px;
+
+    public function show_at(x: length, y: length) {
+        requested_x = x;
+        requested_y = y;
+        popup.show();
+    }
+
+    public function hide() {
+        popup.close();
+    }
+
+    popup := PopupWindow {
+        x: root.clamped_x;
+        y: root.clamped_y;
+
+        Rectangle {
+            width: root.menu_width;
+            background: Theme.secondary;
+            border-radius: Theme.borderRadiusLg;
+            border-width: Theme.borderWidth;
+            border-color: Theme.textSecondary.with-alpha(0.25);
+            clip: true;
+
+            VerticalLayout {
+                padding: Theme.paddingXs;
+                spacing: Theme.spacingTiny;
+
+                for item in root.items: item_touch := TouchArea {
+                    height: root.item_height;
+
+                    clicked => {
+                        root.selected(item.action_id);
+                        popup.close();
+                    }
+
+                    Rectangle {
+                        border-radius: Theme.borderRadiusMd;
+                        background: item_touch.has-hover ? Theme.textPrimary.with-alpha(0.1) : transparent;
+                        animate background { duration: 100ms; }
+
+                        HorizontalLayout {
+                            padding-left: Theme.paddingMd;
+                            padding-right: Theme.paddingMd;
+                            spacing: Theme.spacingSm;
+                            alignment: start;
+
+                            if (item.icon.width > 0): VerticalLayout {
+                                alignment: center;
+                                Image {
+                                    width: Theme.iconSizeSm;
+                                    height: Theme.iconSizeSm;
+                                    source: item.icon;
+                                    colorize: Theme.textSecondary;
+                                }
+                            }
+
+                            Text {
+                                text: item.title;
+                                font-size: Theme.subtitle;
+                                vertical-alignment: center;
+                                horizontal-alignment: left;
+                                color: Theme.textPrimary;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

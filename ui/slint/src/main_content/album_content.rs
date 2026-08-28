@@ -107,15 +107,8 @@ impl<'a> PageHandler for AlbumContentPageHandler<'a> {
             .main_window
             .global::<AlbumsPageProps>()
             .get_selected_album();
-        let album = Album {
-            album_id: Some(selected.id.to_string()),
-            album_name: Some(selected.title.to_string()),
-            album_coverpath_high: Some(selected.coverPathUrl.to_string()),
-            album_coverpath_low: Some(selected.coverPathUrl.to_string()),
-            album_song_count: selected.songs_count as f64,
-            ..Default::default()
-        };
         let extension = selected.extension.to_string();
+        let album: Album = selected.into();
 
         tokio::spawn({
             let state_manager = self.state_manager.clone();

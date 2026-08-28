@@ -3,11 +3,17 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use slint::ComponentHandle;
+use slint::{ComponentHandle, ModelRc, VecModel};
+use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
 use types::prelude::SongsExt;
 
-use crate::{AppCallbacks, MainWindow, QueuePageProps, pages::PageHandler, utils::save_queue};
+use crate::{
+    AppCallbacks, ContextMenuCallbacks, ContextMenuItem, ContextMenuItems, MainWindow,
+    QueuePageProps, SongModel,
+    pages::PageHandler,
+    utils::{IntoVec, save_queue},
+};
 
 pub struct QueuePageHandler<'a> {
     main_window: &'a MainWindow,
@@ -237,11 +243,72 @@ impl<'a> QueuePageHandler<'a> {
             .global::<QueuePageProps>()
             .set_blurred_cover(blurred_cover);
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn register_context_menu_callbacks(&self) {
+        let main_window_weak = self.main_window.as_weak();
+
+        self.main_window
+            .global::<ContextMenuCallbacks>()
+            .on_get_queue_menu_items(move |_song_models, _idx| {
+                let Some(main_window) = main_window_weak.upgrade() else {
+                    return ModelRc::default();
+                };
+
+                let all_items: Vec<ContextMenuItem> = main_window
+                    .global::<ContextMenuItems>()
+                    .invoke_get_queue_items()
+                    .into_vec();
+
+                ModelRc::new(VecModel::from(all_items))
+            });
+
+        let state_manager = self.state_manager.clone();
+        self.main_window
+            .global::<ContextMenuCallbacks>()
+            .on_queue_action(move |song_models, idx, action_id| {
+                Self::dispatch_action(
+                    &state_manager,
+                    &song_models,
+                    idx as usize,
+                    action_id.as_str(),
+                );
+            });
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn dispatch_action(
+        state_manager: &StateManager,
+        song_models: &ModelRc<SongModel>,
+        queue_idx: usize,
+        action_id: &str,
+    ) {
+        let state_manager = state_manager.clone();
+        let songs: Vec<songs_proto::moosync::types::Song> =
+            song_models.into_vec().into_iter().map(Song::from).collect();
+        let action = action_id.to_string();
+
+        tokio::spawn(async move {
+            let mut player = state_manager.get_player_handler_mut().await;
+            match action.as_str() {
+                "play_now" => {
+                    player.play_now(songs);
+                }
+                "remove_from_queue" => {
+                    player.remove_from_queue(queue_idx);
+                }
+                _ => {}
+            }
+        });
+    }
 }
 
 impl<'a> PageHandler for QueuePageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn initialize(&self) { self.register_ui_callbacks(); }
+    fn initialize(&self) {
+        self.register_ui_callbacks();
+        self.register_context_menu_callbacks();
+    }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {

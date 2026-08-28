@@ -1,10 +1,14 @@
-use slint::{ComponentHandle, ModelRc};
+use slint::{ComponentHandle, ModelRc, VecModel};
 use songs_proto::moosync::types::{GetEntityOptions, Playlist, PlaylistList, entity_result};
 use state_manager::StateManager;
 use tracing::debug;
 
 use crate::{
-    MainWindow, PlaylistsPageProps, error::UiError, pages::PageHandler, utils::LazySongVecModel,
+    ContextMenuCallbacks, ContextMenuItem, ContextMenuItems, MainWindow, PlaylistModel,
+    PlaylistsPageProps,
+    error::UiError,
+    pages::PageHandler,
+    utils::{IntoVec, LazySongVecModel},
 };
 
 pub struct PlaylistsPageHandler<'a> {
@@ -90,10 +94,7 @@ impl<'a> PlaylistsPageHandler<'a> {
         playlists: Vec<Playlist>,
     ) {
         debug!("Setting playlists");
-        let playlist_model = playlists
-            .into_iter()
-            .map(|playlist| crate::utils::to_playlist_model(&playlist, None))
-            .collect::<Vec<_>>();
+        let playlist_model: Vec<PlaylistModel> = playlists.into_iter().map(Into::into).collect();
 
         let theme = main_window.global::<crate::Theme>();
         let cache_dir = state_manager.get_cache_dir();
@@ -106,11 +107,62 @@ impl<'a> PlaylistsPageHandler<'a> {
                 cache_dir,
             )));
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn register_context_menu_callbacks(&self) {
+        let main_window_weak = self.main_window.as_weak();
+
+        self.main_window
+            .global::<ContextMenuCallbacks>()
+            .on_get_playlist_menu_items(move |_playlist_models| {
+                let Some(main_window) = main_window_weak.upgrade() else {
+                    return ModelRc::default();
+                };
+
+                let all_items: Vec<ContextMenuItem> = main_window
+                    .global::<ContextMenuItems>()
+                    .invoke_get_playlists_items()
+                    .into_vec();
+
+                ModelRc::new(VecModel::from(all_items))
+            });
+
+        let state_manager = self.state_manager.clone();
+        self.main_window
+            .global::<ContextMenuCallbacks>()
+            .on_playlist_action(move |playlist_models, action_id| {
+                Self::dispatch_action(&state_manager, &playlist_models, action_id.as_str());
+            });
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn dispatch_action(
+        state_manager: &StateManager,
+        playlist_models: &ModelRc<PlaylistModel>,
+        action_id: &str,
+    ) {
+        let state_manager = state_manager.clone();
+        let playlist_ids: Vec<String> = playlist_models
+            .into_vec()
+            .into_iter()
+            .map(|p| p.id.to_string())
+            .collect();
+        let action = action_id.to_string();
+
+        tokio::spawn(async move {
+            if action.as_str() == "delete_playlist" {
+                let db = state_manager.get_database().await;
+                for pid in playlist_ids {
+                    let _ = db.remove_playlist(&pid);
+                }
+            }
+        });
+    }
 }
 
 impl<'a> PageHandler for PlaylistsPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn initialize(&self) {}
+    fn initialize(&self) { self.register_context_menu_callbacks(); }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {

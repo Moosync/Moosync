@@ -181,7 +181,7 @@ Text { text: @tr("I have {n} item" | "I have {n} items" % count); }
 
 ### Extracting Translatable Strings
 
-A Bazel rule is provided to extract all `@tr(...)` strings into `ui/slint/locales/slint_app.pot`:
+A Bazel rule is provided to extract all `@tr(...)` strings into `ui/slint/locales/en_US/LC_MESSAGES/slint_app.po`:
 
 ```bash
 # Extract strings across all Slint files
@@ -199,7 +199,7 @@ Translation catalogs follow the standard Gettext hierarchy under `ui/slint/local
 
 ```
 ui/slint/locales/
-├── slint_app.pot
+├── en_US/LC_MESSAGES/slint_app.po
 ├── de_DE/LC_MESSAGES/slint_app.po
 ├── es_ES/LC_MESSAGES/slint_app.po
 ├── fr_FR/LC_MESSAGES/slint_app.po

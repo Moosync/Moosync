@@ -1,0 +1,77 @@
+export struct ContextMenuItem {
+    action_id: string,
+    title: string,
+    icon: image,
+}
+
+export global ContextMenuItems {
+    pure public function get_all_songs_items() -> [ContextMenuItem] {
+        return [
+            {
+                action_id: "play_now",
+                title: @tr("Play Now"),
+                icon: @image-url("../icons/play.svg"),
+            },
+            {
+                action_id: "play_next",
+                title: @tr("Play Next"),
+                icon: @image-url(""),
+            },
+            {
+                action_id: "add_to_queue",
+                title: @tr("Add to Queue"),
+                icon: @image-url("../icons/add_to_queue.svg"),
+            },
+        ];
+    }
+
+    pure public function get_queue_items() -> [ContextMenuItem] {
+        return [
+            {
+                action_id: "play_now",
+                title: @tr("Play Now"),
+                icon: @image-url("../icons/play.svg"),
+            },
+            {
+                action_id: "remove_from_queue",
+                title: @tr("Remove from Queue"),
+                icon: @image-url(""),
+            },
+        ];
+    }
+
+    pure public function get_playlist_song_items() -> [ContextMenuItem] {
+        return [
+            {
+                action_id: "play_now",
+                title: @tr("Play Now"),
+                icon: @image-url("../icons/play.svg"),
+            },
+            {
+                action_id: "play_next",
+                title: @tr("Play Next"),
+                icon: @image-url(""),
+            },
+            {
+                action_id: "add_to_queue",
+                title: @tr("Add to Queue"),
+                icon: @image-url("../icons/add_to_queue.svg"),
+            },
+            {
+                action_id: "remove_from_playlist",
+                title: @tr("Remove from Playlist"),
+                icon: @image-url(""),
+            },
+        ];
+    }
+
+    pure public function get_playlists_items() -> [ContextMenuItem] {
+        return [
+            {
+                action_id: "delete_playlist",
+                title: @tr("Delete Playlist"),
+                icon: @image-url(""),
+            },
+        ];
+    }
+}

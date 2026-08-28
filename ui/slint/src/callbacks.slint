@@ -1,11 +1,16 @@
 import { Pages, SettingsPages, Constants } from "constants.slint";
 import {
     SongModel,
+    AlbumModel,
+    PlaylistModel,
+    ArtistModel,
+    GenreModel,
     SearchResult,
     SongDetailAction,
     SongSortCriterion,
     MenuItem,
 } from "./types/song_view.slint";
+import { ContextMenuItem } from "./types/context_menu.slint";
 
 export struct PreferenceChange {
     id: string,
@@ -123,4 +128,27 @@ export global BottomBarCallbacks {
     callback shuffle();
     callback set-volume(int);
     callback seek(int);
+}
+
+export global ContextMenuCallbacks {
+    pure callback get_all_songs_menu_items([SongModel]) -> [ContextMenuItem];
+    callback all_songs_action([SongModel], string);
+
+    pure callback get_playlist_song_menu_items([SongModel]) -> [ContextMenuItem];
+    callback playlist_song_action([SongModel], string, string);
+
+    pure callback get_queue_menu_items([SongModel], int) -> [ContextMenuItem];
+    callback queue_action([SongModel], int, string);
+
+    pure callback get_playlist_menu_items([PlaylistModel]) -> [ContextMenuItem];
+    callback playlist_action([PlaylistModel], string);
+
+    pure callback get_album_menu_items([AlbumModel]) -> [ContextMenuItem];
+    callback album_action([AlbumModel], string);
+
+    pure callback get_artist_menu_items([ArtistModel]) -> [ContextMenuItem];
+    callback artist_action([ArtistModel], string);
+
+    pure callback get_genre_menu_items([GenreModel]) -> [ContextMenuItem];
+    callback genre_action([GenreModel], string);
 }

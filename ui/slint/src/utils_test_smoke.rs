@@ -17,10 +17,13 @@
 use extensions_proto::moosync::types::{ExtensionDetail, FetchedExtensionManifest};
 use songs_proto::moosync::types::{Album, Artist, Genre, Playlist, Song};
 
-use crate::utils::{
-    default_empty_icon, default_entity_cover, default_folder_icon, default_song_cover, load_icon,
-    to_album_model, to_artist_model, to_extension_item, to_fetched_extension_item, to_genre_model,
-    to_playlist_model, to_song_model,
+use crate::{
+    AlbumModel, PlaylistModel,
+    utils::{
+        default_empty_icon, default_entity_cover, default_folder_icon, default_song_cover,
+        load_icon, to_artist_model, to_extension_item, to_fetched_extension_item, to_genre_model,
+        to_song_model,
+    },
 };
 
 #[test]
@@ -54,7 +57,8 @@ fn test_to_song_model_smoke() {
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_to_album_model_smoke() {
     let album = Album::default();
-    let _model = to_album_model(&album, None);
+    let model: AlbumModel = album.into();
+    let _album: Album = model.into();
 }
 
 #[test]
@@ -68,7 +72,8 @@ fn test_to_artist_model_smoke() {
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_to_playlist_model_smoke() {
     let playlist = Playlist::default();
-    let _model = to_playlist_model(&playlist, None);
+    let model: PlaylistModel = playlist.into();
+    let _playlist: Playlist = model.into();
 }
 
 #[test]

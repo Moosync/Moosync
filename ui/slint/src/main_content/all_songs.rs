@@ -1,10 +1,14 @@
-use slint::{ComponentHandle, ModelRc};
+use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song};
 use state_manager::StateManager;
 use tracing::debug;
 
 use crate::{
-    AllSongsPageProps, MainWindow, error::UiError, pages::PageHandler, utils::LazySongVecModel,
+    AllSongsPageProps, ContextMenuCallbacks, ContextMenuItem, ContextMenuItems, MainWindow,
+    SongModel,
+    error::UiError,
+    pages::PageHandler,
+    utils::{IntoVec, LazySongVecModel},
 };
 
 pub struct AllSongsPageHandler<'a> {
@@ -19,6 +23,68 @@ impl<'a> AllSongsPageHandler<'a> {
             main_window,
             state_manager,
         }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn register_context_menu_callbacks(&self) {
+        let main_window_weak = self.main_window.as_weak();
+
+        self.main_window
+            .global::<ContextMenuCallbacks>()
+            .on_get_all_songs_menu_items(move |song_models| {
+                let Some(main_window) = main_window_weak.upgrade() else {
+                    return ModelRc::default();
+                };
+
+                let mut all_items: Vec<ContextMenuItem> = main_window
+                    .global::<ContextMenuItems>()
+                    .invoke_get_all_songs_items()
+                    .into_vec();
+
+                let first_song = song_models.row_data(0);
+                if let Some(song) = first_song {
+                    if !song.path.is_empty() {
+                        all_items.push(ContextMenuItem {
+                            action_id: "open_in_file_manager".into(),
+                            title: "Show in File Manager".into(),
+                            icon: crate::utils::default_folder_icon(),
+                        });
+                    }
+                }
+
+                ModelRc::new(VecModel::from(all_items))
+            });
+
+        let state_manager = self.state_manager.clone();
+        self.main_window
+            .global::<ContextMenuCallbacks>()
+            .on_all_songs_action(move |song_models, action_id| {
+                Self::dispatch_action(&state_manager, &song_models, action_id.as_str());
+            });
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn dispatch_action(
+        state_manager: &StateManager,
+        song_models: &ModelRc<SongModel>,
+        action_id: &str,
+    ) {
+        let state_manager = state_manager.clone();
+        let songs: Vec<Song> = song_models.into_vec().into_iter().map(Song::from).collect();
+        let action = action_id.to_string();
+
+        tokio::spawn(async move {
+            let mut player = state_manager.get_player_handler_mut().await;
+            match action.as_str() {
+                "play_now" => {
+                    player.play_now(songs);
+                }
+                "add_to_queue" | "play_next" => {
+                    player.add_to_queue(songs);
+                }
+                _ => {}
+            }
+        });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -59,7 +125,7 @@ impl<'a> AllSongsPageHandler<'a> {
 
 impl<'a> PageHandler for AllSongsPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn initialize(&self) {}
+    fn initialize(&self) { self.register_context_menu_callbacks(); }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {

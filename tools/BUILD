@@ -32,11 +32,58 @@ genrule(
 set -euo pipefail
 EXTRACTOR="$$(pwd)/$(rootpath @bindeps//:slint-tr-extractor__slint-tr-extractor)"
 cd "$${BUILD_WORKSPACE_DIRECTORY:-$$(pwd)}"
-if [ $$# -gt 0 ]; then
-  exec "$$EXTRACTOR" --no-default-translation-context -o ui/slint/locales/slint_app.pot "$$@"
-else
-  find ui/slint/src -name "*.slint" | sort | xargs "$$EXTRACTOR" --no-default-translation-context -o ui/slint/locales/slint_app.pot
+mkdir -p ui/slint/locales/en_US/LC_MESSAGES
+PO_FILE="ui/slint/locales/en_US/LC_MESSAGES/slint_app.po"
+JOIN_FLAG=""
+if [ -f "$$PO_FILE" ]; then
+  JOIN_FLAG="-j"
 fi
+
+if [ $$# -gt 0 ]; then
+  "$$EXTRACTOR" --package-name slint_app --no-default-translation-context $$JOIN_FLAG -o "$$PO_FILE" "$$@"
+else
+  mapfile -t FILES < <(find ui/slint/src -name "*.slint" | sort)
+  "$$EXTRACTOR" --package-name slint_app --no-default-translation-context $$JOIN_FLAG -o "$$PO_FILE" "$${FILES[@]}"
+fi
+
+TMP_FILE="$${PO_FILE}.tmp"
+awk '
+/^#: / {
+  for (i = 2; i <= NF; i++) {
+    token = $$i
+    if (index(token, "src/") == 1) {
+      token = "ui/slint/" token
+    }
+    if (!seen[token]++) {
+      tokens[++n] = token
+    }
+  }
+  next
+}
+{
+  if (n > 0) {
+    printf "#:"
+    for (i = 1; i <= n; i++) {
+      printf " %s", tokens[i]
+    }
+    printf "\\n"
+    delete seen
+    delete tokens
+    n = 0
+  }
+  print
+}
+END {
+  if (n > 0) {
+    printf "#:"
+    for (i = 1; i <= n; i++) {
+      printf " %s", tokens[i]
+    }
+    printf "\\n"
+  }
+}
+' "$$PO_FILE" > "$$TMP_FILE"
+mv "$$TMP_FILE" "$$PO_FILE"
 EOF
 """,
     tools = ["@bindeps//:slint-tr-extractor__slint-tr-extractor"],

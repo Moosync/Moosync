@@ -48,7 +48,7 @@ export component PopupMenu inherits Rectangle {
 
                     if (!item.is-divider): Rectangle {
                         border-radius: Theme.borderRadiusMd;
-                        background: item-touch.has-hover ? Theme.primary.brighter(0.2) : transparent;
+                        background: item-touch.has-hover ? Theme.textPrimary.with-alpha(0.1) : transparent;
 
                         animate background { duration: 100ms; }
 

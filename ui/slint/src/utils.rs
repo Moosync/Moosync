@@ -17,6 +17,128 @@ use crate::{
     WINDOW_EVENTS,
 };
 
+pub trait IntoVec<T> {
+    fn into_vec(self) -> Vec<T>;
+}
+
+impl<T: Clone + 'static> IntoVec<T> for ModelRc<T> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn into_vec(self) -> Vec<T> {
+        (0..self.row_count())
+            .filter_map(|i| self.row_data(i))
+            .collect()
+    }
+}
+
+impl<T: Clone + 'static> IntoVec<T> for &ModelRc<T> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn into_vec(self) -> Vec<T> {
+        (0..self.row_count())
+            .filter_map(|i| self.row_data(i))
+            .collect()
+    }
+}
+
+impl From<&SongModel> for Song {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(model: &SongModel) -> Self { song_model_to_song(model) }
+}
+
+impl From<SongModel> for Song {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(model: SongModel) -> Self { song_model_to_song(&model) }
+}
+
+impl From<Album> for AlbumModel {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(album: Album) -> Self { (album, None).into() }
+}
+
+impl From<(Album, Option<&ExtensionDetail>)> for AlbumModel {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from((album, detail): (Album, Option<&ExtensionDetail>)) -> Self {
+        let extension = detail.map(|d| d.package_name.clone()).unwrap_or_default();
+        let extension_icon = get_extension_icon(detail);
+        let cover_path_url = album.album_coverpath_high().to_string();
+        let default_cover = default_entity_cover();
+        Self {
+            coverPath: default_cover,
+            coverPathUrl: cover_path_url.into(),
+            id: album.album_id().into(),
+            songs_count: album.album_song_count as i32,
+            title: album.album_name().into(),
+            extension: extension.into(),
+            extension_icon,
+        }
+    }
+}
+
+impl From<AlbumModel> for Album {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(model: AlbumModel) -> Self {
+        Self {
+            album_id: (!model.id.is_empty()).then(|| model.id.to_string()),
+            album_name: (!model.title.is_empty()).then(|| model.title.to_string()),
+            album_coverpath_high: (!model.coverPathUrl.is_empty())
+                .then(|| model.coverPathUrl.to_string()),
+            album_coverpath_low: (!model.coverPathUrl.is_empty())
+                .then(|| model.coverPathUrl.to_string()),
+            album_song_count: model.songs_count as f64,
+            ..Default::default()
+        }
+    }
+}
+
+impl From<Playlist> for PlaylistModel {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(playlist: Playlist) -> Self { (playlist, None).into() }
+}
+
+impl From<(Playlist, Option<&ExtensionDetail>)> for PlaylistModel {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from((playlist, detail): (Playlist, Option<&ExtensionDetail>)) -> Self {
+        let extension = detail
+            .map(|d| d.package_name.clone())
+            .unwrap_or_else(|| playlist.extension.unwrap_or_default());
+        let extension_icon = detail
+            .map(|d| get_extension_icon(Some(d)))
+            .unwrap_or_else(|| {
+                playlist
+                    .icon
+                    .as_ref()
+                    .filter(|p| !p.is_empty())
+                    .map(|p| load_icon(p))
+                    .unwrap_or_else(|| load_icon(""))
+            });
+        let cover_path_url = playlist.playlist_coverpath.unwrap_or_default();
+        let default_cover = default_entity_cover();
+        Self {
+            coverPath: default_cover,
+            coverPathUrl: cover_path_url.into(),
+            id: playlist.playlist_id.unwrap_or_default().into(),
+            songs_count: playlist.playlist_song_count as i32,
+            title: playlist.playlist_name.into(),
+            extension: extension.into(),
+            extension_icon,
+        }
+    }
+}
+
+impl From<PlaylistModel> for Playlist {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(model: PlaylistModel) -> Self {
+        Self {
+            playlist_id: (!model.id.is_empty()).then(|| model.id.to_string()),
+            playlist_name: model.title.to_string(),
+            playlist_coverpath: (!model.coverPathUrl.is_empty())
+                .then(|| model.coverPathUrl.to_string()),
+            playlist_song_count: model.songs_count as f64,
+            extension: (!model.extension.is_empty()).then(|| model.extension.to_string()),
+            ..Default::default()
+        }
+    }
+}
+
 pub static DEFAULT_SONG_SVG: &[u8] = include_bytes!("icons/song_default.svg");
 pub static DEFAULT_ENTITY_SVG: &[u8] = include_bytes!("icons/entity_default.svg");
 pub static DEFAULT_EMPTY_SVG: &[u8] = include_bytes!("icons/empty.svg");
@@ -769,23 +891,6 @@ pub fn song_model_to_song(model: &SongModel) -> songs_proto::moosync::types::Son
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn to_album_model(album: &Album, detail: Option<&ExtensionDetail>) -> AlbumModel {
-    let extension = detail.map(|d| d.package_name.clone()).unwrap_or_default();
-    let extension_icon = get_extension_icon(detail);
-    let cover_path_url = album.album_coverpath_high().to_string();
-    let default_cover = default_entity_cover();
-    AlbumModel {
-        coverPath: default_cover,
-        coverPathUrl: cover_path_url.into(),
-        id: album.album_id().into(),
-        songs_count: album.album_song_count as i32,
-        title: album.album_name().into(),
-        extension: extension.into(),
-        extension_icon,
-    }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
 pub fn to_artist_model(artist: &Artist, detail: Option<&ExtensionDetail>) -> ArtistModel {
     let extension = detail.map(|d| d.package_name.clone()).unwrap_or_default();
     let extension_icon = get_extension_icon(detail);
@@ -809,34 +914,6 @@ pub fn to_artist_model(artist: &Artist, detail: Option<&ExtensionDetail>) -> Art
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn to_playlist_model(playlist: &Playlist, detail: Option<&ExtensionDetail>) -> PlaylistModel {
-    let extension = detail
-        .map(|d| d.package_name.clone())
-        .unwrap_or_else(|| playlist.extension.clone().unwrap_or_default());
-    let extension_icon = detail
-        .map(|d| get_extension_icon(Some(d)))
-        .unwrap_or_else(|| {
-            playlist
-                .icon
-                .as_ref()
-                .filter(|p| !p.is_empty())
-                .map(|p| load_icon(p))
-                .unwrap_or_else(|| load_icon(""))
-        });
-    let cover_path_url = playlist.playlist_coverpath.clone().unwrap_or_default();
-    let default_cover = default_entity_cover();
-    PlaylistModel {
-        coverPath: default_cover,
-        coverPathUrl: cover_path_url.into(),
-        id: playlist.playlist_id.clone().unwrap_or_default().into(),
-        songs_count: playlist.playlist_song_count as i32,
-        title: playlist.playlist_name.clone().into(),
-        extension: extension.into(),
-        extension_icon,
-    }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
 pub fn to_search_result(
     res: songs_proto::moosync::types::SearchResult,
     detail: Option<&ExtensionDetail>,
@@ -847,10 +924,7 @@ pub fn to_search_result(
     let extension = detail.map(|d| d.package_name.clone()).unwrap_or_default();
     SearchResult {
         albums: ModelRc::new(LazySongVecModel::new(
-            res.albums
-                .iter()
-                .map(|a| to_album_model(a, detail))
-                .collect(),
+            res.albums.into_iter().map(|a| (a, detail).into()).collect(),
             theme.get_cardHeight() as usize,
             theme.get_cardWidth() as usize,
             cache_dir.to_path_buf(),
@@ -872,8 +946,8 @@ pub fn to_search_result(
         )),
         playlists: ModelRc::new(LazySongVecModel::new(
             res.playlists
-                .iter()
-                .map(|p| to_playlist_model(p, detail))
+                .into_iter()
+                .map(|p| (p, detail).into())
                 .collect(),
             theme.get_cardHeight() as usize,
             theme.get_cardWidth() as usize,

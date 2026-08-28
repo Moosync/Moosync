@@ -4,7 +4,8 @@ use state_manager::StateManager;
 use tracing::debug;
 
 use crate::{
-    AlbumsPageProps, MainWindow, error::UiError, pages::PageHandler, utils::LazySongVecModel,
+    AlbumModel, AlbumsPageProps, MainWindow, error::UiError, pages::PageHandler,
+    utils::LazySongVecModel,
 };
 
 pub struct AlbumsPageHandler<'a> {
@@ -43,10 +44,7 @@ impl<'a> AlbumsPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_albums(main_window: &MainWindow, state_manager: &StateManager, albums: Vec<Album>) {
         debug!("Setting albums");
-        let album_model = albums
-            .into_iter()
-            .map(|album| crate::utils::to_album_model(&album, None))
-            .collect::<Vec<_>>();
+        let album_model: Vec<AlbumModel> = albums.into_iter().map(Into::into).collect();
 
         let theme = main_window.global::<crate::Theme>();
         let cache_dir = state_manager.get_cache_dir();

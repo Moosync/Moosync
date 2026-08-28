@@ -21,7 +21,7 @@ use types::plugin::PluginContext;
 
 use crate::{
     AllSongsPageProps, MainWindow, main_content::all_songs::AllSongsPageHandler,
-    pages::PageHandler, test_utils::run_async_test,
+    pages::PageHandler, test_utils::run_async_test, utils::IntoVec,
 };
 
 #[test]
@@ -83,6 +83,45 @@ fn test_all_songs_page_handler_on_hide() {
                 .get_songs()
                 .row_count(),
             0
+        );
+    });
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_all_songs_context_menu_items() {
+    run_async_test(|| async move {
+        let tmp = TempDir::new("moosync_ui_all_songs_cm").unwrap();
+        let test_dir = tmp.path().to_path_buf();
+        let context = PluginContext {
+            data_dir: test_dir.clone(),
+            cache_dir: test_dir.clone(),
+            tmp_dir: test_dir.clone(),
+            #[cfg(target_os = "android")]
+            android_context: types::android::AndroidJNIContext::default(),
+        };
+        let sm: &'static StateManager =
+            Box::leak(Box::new(StateManager::new_with_context(context).unwrap()));
+        let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
+        let handler = AllSongsPageHandler::new(main_window, sm);
+        handler.initialize();
+
+        let song_with_path = crate::SongModel {
+            path: "/path/to/song.mp3".into(),
+            ..Default::default()
+        };
+        let models = ModelRc::new(slint::VecModel::from(vec![song_with_path]));
+
+        let items = main_window
+            .global::<crate::ContextMenuCallbacks>()
+            .invoke_get_all_songs_menu_items(models);
+
+        let items_vec: Vec<crate::ContextMenuItem> = items.into_vec();
+        assert!(items_vec.iter().any(|i| i.action_id == "play_now"));
+        assert!(
+            items_vec
+                .iter()
+                .any(|i| i.action_id == "open_in_file_manager")
         );
     });
 }

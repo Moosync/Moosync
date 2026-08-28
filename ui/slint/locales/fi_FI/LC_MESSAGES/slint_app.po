@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-08-27 21:05\n"
+"PO-Revision-Date: 2026-08-28 04:54\n"
 "Language: fi_FI\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -17,233 +17,233 @@ msgstr ""
 
 #: src/app.slint:156 src/main_content/search.slint:99
 msgid "Songs"
-msgstr ""
+msgstr "Kaikki Kappaleet"
 
 #: src/app.slint:157 src/main_content/playlists.slint:21
 #: src/app.slint:157 src/main_content/playlists.slint:21
 msgid "Playlists"
-msgstr ""
+msgstr "Soittolistat"
 
 #: src/app.slint:158 src/main_content/artists.slint:21
 #: src/app.slint:158 src/main_content/artists.slint:21
 msgid "Artists"
-msgstr ""
+msgstr "Esittäjät"
 
 #: src/app.slint:159 src/main_content/albums.slint:21
 #: src/app.slint:159 src/main_content/albums.slint:21
 msgid "Albums"
-msgstr ""
+msgstr "Albumit"
 
 #: src/app.slint:160 src/main_content/genres.slint:21
 #: src/app.slint:160 src/main_content/genres.slint:21
 msgid "Genres"
-msgstr ""
+msgstr "Genres"
 
 #: src/app.slint:161 src/main_content/explore.slint:22
 msgid "Explore"
-msgstr ""
+msgstr "Tutki"
 
 #: src/common/song_list_view.slint:59
 msgid "Filter songs..."
-msgstr ""
+msgstr "Suodata kappaleita..."
 
 #: src/common/card_view.slint:4
 msgid "Card Title"
-msgstr ""
+msgstr "Kortin Otsikko"
 
 #: src/constants.slint:17 src/callbacks.slint:75
 msgid "Title"
-msgstr ""
+msgstr "Otsikko"
 
 #: src/constants.slint:25 src/callbacks.slint:83
 msgid "Date"
-msgstr ""
+msgstr "Päivämäärä"
 
 #: src/constants.slint:33 src/callbacks.slint:91
 msgid "Album"
-msgstr ""
+msgstr "Albumi"
 
 #: src/constants.slint:41 src/callbacks.slint:99
 msgid "Track Number"
-msgstr ""
+msgstr "Kappaleen Numero"
 
 #: src/constants.slint:49 src/callbacks.slint:107
 msgid "Artist"
-msgstr ""
+msgstr "Esittäjä"
 
 #: src/main_content/explore.slint:32
 msgid "No recommendations"
-msgstr ""
+msgstr "Ei suosituksia"
 
 #: src/main_content/search.slint:80
 msgid "Search"
-msgstr ""
+msgstr "Etsi"
 
 #: src/main_content/search.slint:89
 msgid "Local"
-msgstr ""
+msgstr "Paikallinen"
 
 #: src/main_content/queue_page.slint:250
 msgid "Show Lyrics"
-msgstr ""
+msgstr "Näytä Sanoitukset"
 
 #: src/main_content/queue_page.slint:268
 msgid "Save as playlist"
-msgstr ""
+msgstr "Tallenna soittolistana"
 
 #: src/main_content/queue_page.slint:274
 msgid "Clear"
-msgstr ""
+msgstr "Tyhjennä"
 
 #: src/settings/extensions.slint:154
 msgid "Settings > Extensions"
-msgstr ""
+msgstr "Asetukset > Lisäosat"
 
 #: src/settings/extensions.slint:167 src/settings/settings.slint:43
 msgid "Extensions"
-msgstr ""
+msgstr "Laajennukset"
 
 #: src/settings/extensions.slint:173
 msgid "Manage your extensions"
-msgstr ""
+msgstr "Hallinnoi laajennuksiasi"
 
 #: src/settings/extensions.slint:181
 msgid "Add Extension"
-msgstr ""
+msgstr "Lisää Lisäosa"
 
 #: src/settings/extensions.slint:193
 msgid "No extensions available."
-msgstr ""
+msgstr "Laajennuksia ei saatavilla."
 
 #: src/settings/path_selector.slint:35
 msgid "Add folder"
-msgstr ""
+msgstr "Lisää kansio"
 
 #: src/settings/paths.slint:24
 msgid "Settings > Paths"
-msgstr ""
+msgstr "Asetukset > Polut"
 
 #: src/settings/settings.slint:40
 msgid "Paths"
-msgstr ""
+msgstr "Polut"
 
 #: src/settings/settings.slint:41
 msgid "System"
-msgstr ""
+msgstr "Järjestelmä"
 
 #: src/settings/settings.slint:47
 msgid "Themes"
-msgstr ""
+msgstr "Teemat"
 
 #: src/settings/settings.slint:160
 msgid "Save Custom Theme"
-msgstr ""
+msgstr "Tallenna Muokattu Teema"
 
 #: src/settings/settings.slint:166
 msgid "Your current accent and advanced styling variables will be saved."
-msgstr ""
+msgstr "Nykyinen aksentti ja kehittyneet muotoilumuuttujat tallennetaan."
 
 #: src/settings/settings.slint:174
 msgid "Theme Name"
-msgstr ""
+msgstr "Teeman Nimi"
 
 #: src/settings/settings.slint:175
 msgid "A short, distinct name"
-msgstr ""
+msgstr "Lyhyt, erillinen nimi"
 
 #: src/settings/settings.slint:176
 msgid "e.g., Midnight Blue"
-msgstr ""
+msgstr "esim., Midnight Blue"
 
 #: src/settings/settings.slint:182
 msgid "Author"
-msgstr ""
+msgstr "Tekijä"
 
 #: src/settings/settings.slint:183
 msgid "Who created this theme?"
-msgstr ""
+msgstr "Kuka loi tämän teeman?"
 
 #: src/settings/settings.slint:184
 msgid "Your name"
-msgstr ""
+msgstr "Sinun nimesi"
 
 #: src/settings/settings.slint:190
 msgid "Description"
-msgstr ""
+msgstr "Kuvaus"
 
 #: src/settings/settings.slint:191
 msgid "A brief summary of the aesthetics"
-msgstr ""
+msgstr "Lyhyt yhteenveto estetiikasta"
 
 #: src/settings/settings.slint:192
 msgid "High contrast dark theme..."
-msgstr ""
+msgstr "Korkea kontrasti tumma teema..."
 
 #: src/settings/settings.slint:203
 msgid "Cancel"
-msgstr ""
+msgstr "Peruuta"
 
 #: src/settings/settings.slint:204
 msgid "Save Theme"
-msgstr ""
+msgstr "Tallenna Teema"
 
 #: src/settings/system.slint:24
 msgid "Settings > System"
-msgstr ""
+msgstr "Asetukset > Järjestelmä"
 
 #: src/settings/themes.slint:215
 msgid "Opacity"
-msgstr ""
+msgstr "Läpinäkyvyys"
 
 #: src/settings/themes.slint:467
 msgid "Settings > Themes"
-msgstr ""
+msgstr "Asetukset > Teemat"
 
 #: src/settings/themes.slint:484
 msgid "Preset Themes"
-msgstr ""
+msgstr "Esiasetuksen Teemat"
 
 #: src/settings/themes.slint:490
 msgid "Selecting a theme will instantly override your advanced styling configurations."
-msgstr ""
+msgstr "Teeman valitseminen ohittaa välittömästi kehittyneet muotoiluasetukset."
 
 #: src/settings/themes.slint:520
 msgid "Quick Accent"
-msgstr ""
+msgstr "Nopea Korostus"
 
 #: src/settings/themes.slint:526
 msgid "Instantly update the primary interactive color."
-msgstr ""
+msgstr "Päivitä välittömästi ensisijainen interaktiivinen väri."
 
 #: src/settings/themes.slint:573
 msgid "Advanced Styling"
-msgstr ""
+msgstr "Edistynyt Muotoilu"
 
 #: src/settings/themes.slint:579
 msgid "Fine-tune UI parameters. Modifying these clones/mutates the current active theme."
-msgstr ""
+msgstr "Hienosäädä UI-parametreja. Näiden kloonien / mutaatioiden muokkaaminen nykyiseen aktiiviseen teemaan."
 
 #: src/settings/themes.slint:606
 msgid "Adjust the color for {}"
-msgstr ""
+msgstr "Säädä väriä kohteelle {}"
 
 #: src/settings/themes.slint:615
 msgid "Adjust the size for {}"
-msgstr ""
+msgstr "Säädä kokoa pelaajalle {}"
 
 #: src/settings/themes.slint:630
 msgid "Export Theme"
-msgstr ""
+msgstr "Vie Teema"
 
 #: src/settings/themes.slint:631
 msgid "Save your current styling configuration as a new reusable preset."
-msgstr ""
+msgstr "Tallenna nykyinen muotoiluasetuksesi uutena uudelleenkäytettävänä esiasetuksena."
 
 #: src/settings/themes.slint:632
 msgid "Save as New Theme"
-msgstr ""
+msgstr "Tallenna uudeksi teemaksi"
 
 #: src/topbar/search_bar.slint:6
 msgid "Search..."
-msgstr ""
+msgstr "Etsi..."
 

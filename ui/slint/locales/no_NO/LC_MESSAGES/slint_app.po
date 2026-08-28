@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-08-27 21:05\n"
+"PO-Revision-Date: 2026-08-28 04:54\n"
 "Language: no_NO\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -17,233 +17,233 @@ msgstr ""
 
 #: src/app.slint:156 src/main_content/search.slint:99
 msgid "Songs"
-msgstr ""
+msgstr "Alle Sanger"
 
 #: src/app.slint:157 src/main_content/playlists.slint:21
 #: src/app.slint:157 src/main_content/playlists.slint:21
 msgid "Playlists"
-msgstr ""
+msgstr "Spillelister"
 
 #: src/app.slint:158 src/main_content/artists.slint:21
 #: src/app.slint:158 src/main_content/artists.slint:21
 msgid "Artists"
-msgstr ""
+msgstr "Artister"
 
 #: src/app.slint:159 src/main_content/albums.slint:21
 #: src/app.slint:159 src/main_content/albums.slint:21
 msgid "Albums"
-msgstr ""
+msgstr "Album"
 
 #: src/app.slint:160 src/main_content/genres.slint:21
 #: src/app.slint:160 src/main_content/genres.slint:21
 msgid "Genres"
-msgstr ""
+msgstr "Genres"
 
 #: src/app.slint:161 src/main_content/explore.slint:22
 msgid "Explore"
-msgstr ""
+msgstr "Utforsk"
 
 #: src/common/song_list_view.slint:59
 msgid "Filter songs..."
-msgstr ""
+msgstr "Filtrer sanger..."
 
 #: src/common/card_view.slint:4
 msgid "Card Title"
-msgstr ""
+msgstr "Kort tittel"
 
 #: src/constants.slint:17 src/callbacks.slint:75
 msgid "Title"
-msgstr ""
+msgstr "Tittel"
 
 #: src/constants.slint:25 src/callbacks.slint:83
 msgid "Date"
-msgstr ""
+msgstr "Dato"
 
 #: src/constants.slint:33 src/callbacks.slint:91
 msgid "Album"
-msgstr ""
+msgstr "album"
 
 #: src/constants.slint:41 src/callbacks.slint:99
 msgid "Track Number"
-msgstr ""
+msgstr "Spor nummer"
 
 #: src/constants.slint:49 src/callbacks.slint:107
 msgid "Artist"
-msgstr ""
+msgstr "Kunstner"
 
 #: src/main_content/explore.slint:32
 msgid "No recommendations"
-msgstr ""
+msgstr "Ingen anbefalinger"
 
 #: src/main_content/search.slint:80
 msgid "Search"
-msgstr ""
+msgstr "Søk"
 
 #: src/main_content/search.slint:89
 msgid "Local"
-msgstr ""
+msgstr "Lokal"
 
 #: src/main_content/queue_page.slint:250
 msgid "Show Lyrics"
-msgstr ""
+msgstr "Vis tekster"
 
 #: src/main_content/queue_page.slint:268
 msgid "Save as playlist"
-msgstr ""
+msgstr "Lagre som spilleliste"
 
 #: src/main_content/queue_page.slint:274
 msgid "Clear"
-msgstr ""
+msgstr "Tøm"
 
 #: src/settings/extensions.slint:154
 msgid "Settings > Extensions"
-msgstr ""
+msgstr "Innstillinger > utvidelser"
 
 #: src/settings/extensions.slint:167 src/settings/settings.slint:43
 msgid "Extensions"
-msgstr ""
+msgstr "Utvidelser"
 
 #: src/settings/extensions.slint:173
 msgid "Manage your extensions"
-msgstr ""
+msgstr "Administrer utvidelsene dine"
 
 #: src/settings/extensions.slint:181
 msgid "Add Extension"
-msgstr ""
+msgstr "Legg til utvidelse"
 
 #: src/settings/extensions.slint:193
 msgid "No extensions available."
-msgstr ""
+msgstr "Ingen utvidelser tilgjengelig."
 
 #: src/settings/path_selector.slint:35
 msgid "Add folder"
-msgstr ""
+msgstr "Legg til mappe"
 
 #: src/settings/paths.slint:24
 msgid "Settings > Paths"
-msgstr ""
+msgstr "Innstillinger > Stier"
 
 #: src/settings/settings.slint:40
 msgid "Paths"
-msgstr ""
+msgstr "Veier"
 
 #: src/settings/settings.slint:41
 msgid "System"
-msgstr ""
+msgstr "System"
 
 #: src/settings/settings.slint:47
 msgid "Themes"
-msgstr ""
+msgstr "Temaer"
 
 #: src/settings/settings.slint:160
 msgid "Save Custom Theme"
-msgstr ""
+msgstr "Lagre egendefinert tema"
 
 #: src/settings/settings.slint:166
 msgid "Your current accent and advanced styling variables will be saved."
-msgstr ""
+msgstr "Gjeldende aksente og avanserte stilingsvariabler vil bli lagret."
 
 #: src/settings/settings.slint:174
 msgid "Theme Name"
-msgstr ""
+msgstr "Tema Navn"
 
 #: src/settings/settings.slint:175
 msgid "A short, distinct name"
-msgstr ""
+msgstr "Et kort, distinkt navn"
 
 #: src/settings/settings.slint:176
 msgid "e.g., Midnight Blue"
-msgstr ""
+msgstr "f.eks midnatteblå"
 
 #: src/settings/settings.slint:182
 msgid "Author"
-msgstr ""
+msgstr "Forfatter"
 
 #: src/settings/settings.slint:183
 msgid "Who created this theme?"
-msgstr ""
+msgstr "Hvem laget dette temaet?"
 
 #: src/settings/settings.slint:184
 msgid "Your name"
-msgstr ""
+msgstr "Ditt navn"
 
 #: src/settings/settings.slint:190
 msgid "Description"
-msgstr ""
+msgstr "Beskrivelse"
 
 #: src/settings/settings.slint:191
 msgid "A brief summary of the aesthetics"
-msgstr ""
+msgstr "En kort oppsummering av estetikken"
 
 #: src/settings/settings.slint:192
 msgid "High contrast dark theme..."
-msgstr ""
+msgstr "Høy kontrast mørkt tema..."
 
 #: src/settings/settings.slint:203
 msgid "Cancel"
-msgstr ""
+msgstr "Avbryt"
 
 #: src/settings/settings.slint:204
 msgid "Save Theme"
-msgstr ""
+msgstr "Lagre tema"
 
 #: src/settings/system.slint:24
 msgid "Settings > System"
-msgstr ""
+msgstr "Innstillinger > System"
 
 #: src/settings/themes.slint:215
 msgid "Opacity"
-msgstr ""
+msgstr "Opasitet"
 
 #: src/settings/themes.slint:467
 msgid "Settings > Themes"
-msgstr ""
+msgstr "Innstillinger > Temaer"
 
 #: src/settings/themes.slint:484
 msgid "Preset Themes"
-msgstr ""
+msgstr "Forhåndsinnstillinger Temaer"
 
 #: src/settings/themes.slint:490
 msgid "Selecting a theme will instantly override your advanced styling configurations."
-msgstr ""
+msgstr "Å velge et tema vil umiddelbart overstyre dine avanserte stylingkonfigurasjoner."
 
 #: src/settings/themes.slint:520
 msgid "Quick Accent"
-msgstr ""
+msgstr "Rask akset"
 
 #: src/settings/themes.slint:526
 msgid "Instantly update the primary interactive color."
-msgstr ""
+msgstr "Oppdater den primære interaktive fargen med en gang."
 
 #: src/settings/themes.slint:573
 msgid "Advanced Styling"
-msgstr ""
+msgstr "Avansert stil"
 
 #: src/settings/themes.slint:579
 msgid "Fine-tune UI parameters. Modifying these clones/mutates the current active theme."
-msgstr ""
+msgstr "Finjuster UI parametre. Endre disse klonene/muterer det aktive temaet."
 
 #: src/settings/themes.slint:606
 msgid "Adjust the color for {}"
-msgstr ""
+msgstr "Juster fargen for {}"
 
 #: src/settings/themes.slint:615
 msgid "Adjust the size for {}"
-msgstr ""
+msgstr "Juster størrelsen for {}"
 
 #: src/settings/themes.slint:630
 msgid "Export Theme"
-msgstr ""
+msgstr "Eksporter tema"
 
 #: src/settings/themes.slint:631
 msgid "Save your current styling configuration as a new reusable preset."
-msgstr ""
+msgstr "Lagre den gjeldende stilkonfigurasjonen som en ny forhåndsinnstilt gjenbrukbar."
 
 #: src/settings/themes.slint:632
 msgid "Save as New Theme"
-msgstr ""
+msgstr "Lagre som nytt tema"
 
 #: src/topbar/search_bar.slint:6
 msgid "Search..."
-msgstr ""
+msgstr "Søk..."
 

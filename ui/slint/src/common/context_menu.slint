@@ -11,6 +11,7 @@ export component ContextMenu inherits TouchArea {
     in-out property <length> requested_y: 0px;
 
     callback selected(string);
+    callback handle_pointer_event(PointerEvent);
 
     property <length> menu_width: Theme.cardWidth;
     property <length> item_height: Theme.dropdownOptionHeight + Theme.paddingXs;
@@ -37,6 +38,7 @@ export component ContextMenu inherits TouchArea {
     height: 100%;
 
     pointer-event(event) => {
+        root.handle_pointer_event(event);
         if (event.kind == PointerEventKind.up && event.button == PointerEventButton.right) {
             if (root.items.length > 0) {
                 root.show_at(self.mouse-x, self.mouse-y);

@@ -93,6 +93,8 @@ rust_library(
         "src/utils/parsers_test.rs",
         "src/utils/queue.rs",
         "src/utils/queue_test.rs",
+        "src/utils/selection.rs",
+        "src/utils/selection_test.rs",
         "src/window_info.rs",
         "src/window_info_test.rs",
     ],

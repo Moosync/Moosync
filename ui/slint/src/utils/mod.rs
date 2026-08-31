@@ -5,6 +5,7 @@ pub mod lazy_model;
 pub mod models;
 pub mod parsers;
 pub mod queue;
+pub mod selection;
 
 pub use context_menu::*;
 pub use filter_sort::*;
@@ -13,6 +14,7 @@ pub use lazy_model::*;
 pub use models::*;
 pub use parsers::*;
 pub use queue::*;
+pub use selection::*;
 
 #[cfg(test)]
 mod context_menu_test;
@@ -28,3 +30,5 @@ mod models_test;
 mod parsers_test;
 #[cfg(test)]
 mod queue_test;
+#[cfg(test)]
+mod selection_test;

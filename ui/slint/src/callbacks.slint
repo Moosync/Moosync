@@ -130,6 +130,12 @@ export global BottomBarCallbacks {
     callback seek(int);
 }
 
+export global UtilCallbacks {
+    pure callback update_selection([int], int, int, bool, bool, bool, int) -> [int];
+    pure callback is_index_selected([int], int) -> bool;
+    pure callback get_selected_songs([SongModel], [int]) -> [SongModel];
+}
+
 export global ContextMenuCallbacks {
     pure callback get_song_menu_items([SongModel]) -> [ContextMenuItem];
     callback song_action([SongModel], string);

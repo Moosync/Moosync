@@ -5,13 +5,18 @@ import {
 } from "../types/song_view.slint";
 import { SongListItem } from "song_list_item.slint";
 import { Theme, Constants } from "../constants.slint";
-import { AppCallbacks } from "../callbacks.slint";
+import {
+    AppCallbacks,
+    UtilCallbacks,
+} from "../callbacks.slint";
 import { SearchBar } from "../topbar/search_bar.slint";
 import { PopupMenu } from "popup_menu.slint";
 
 export component SongListView inherits Rectangle {
     in property <[SongModel]> songs: Constants.testSongs;
     in-out property <int> active-idx: -1;
+    in-out property <[int]> selected-indices: [];
+    property <int> anchor-idx: 0;
     in property <bool> show-controls: true;
 
     out property <[SongModel]> display-songs: (root.search-text == "" && root.sort-criterion == SongSortCriterion.Title && root.sort-ascending) ? root.songs : AppCallbacks.filter_and_sort_songs(
@@ -19,6 +24,8 @@ export component SongListView inherits Rectangle {
         root.search-text,
         root.sort-criterion,
         root.sort-ascending);
+
+    out property <[SongModel]> selected-songs: UtilCallbacks.get_selected_songs(root.display-songs, root.selected-indices);
 
     property <bool> search-open: false;
     property <string> search-text: "";
@@ -139,11 +146,37 @@ export component SongListView inherits Rectangle {
                         Rectangle {
                             SongListItem {
                                 song: song;
-                                border-width: (root.active-idx == index || self.has-hover) ? Theme.borderWidth * 2 : 0px;
-                                border-color: root.active-idx == index ? Theme.accent : Theme.accent.darker(0.2);
+                                border-width: (UtilCallbacks.is_index_selected(root.selected-indices, index) || root.active-idx == index || self.has-hover) ? Theme.borderWidth * 2 : 0px;
+                                border-color: (UtilCallbacks.is_index_selected(root.selected-indices, index) || root.active-idx == index) ? Theme.accent : Theme.accent.darker(0.2);
 
-                                changed pressed => {
-                                    if self.pressed {
+                                get_selected_songs => {
+                                    return root.selected-songs.length > 0 ? root.selected-songs : [song];
+                                }
+
+                                item_pressed(event) => {
+                                    if (event.kind == PointerEventKind.down && event.button == PointerEventButton.left) {
+                                        root.selected-indices = UtilCallbacks.update_selection(
+                                            root.selected-indices,
+                                            index,
+                                            root.anchor-idx,
+                                            event.modifiers.control || event.modifiers.meta,
+                                            event.modifiers.shift,
+                                            false,
+                                            root.display-songs.length);
+                                        if (!event.modifiers.shift) {
+                                            root.anchor-idx = index;
+                                        }
+                                        root.active-idx = index;
+                                    }
+                                    if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
+                                        root.selected-indices = UtilCallbacks.update_selection(
+                                            root.selected-indices,
+                                            index,
+                                            root.anchor-idx,
+                                            false,
+                                            false,
+                                            true,
+                                            root.display-songs.length);
                                         root.active-idx = index;
                                     }
                                 }

@@ -17,6 +17,7 @@ export component SongsPageLayout inherits Rectangle {
         height: 100%;
         clicked => {
             active-idx = -1;
+            song-list.selected-indices = [];
         }
     }
 
@@ -43,7 +44,7 @@ export component SongsPageLayout inherits Rectangle {
                             clicked => {
                                 AppCallbacks.song_detail_action(
                                     SongDetailAction.Play,
-                                    root.active-idx >= 0 ? [root.active] : song-list.display-songs);
+                                    song-list.selected-songs.length > 0 ? song-list.selected-songs : (root.active-idx >= 0 ? [root.active] : song-list.display-songs));
                             }
                         }
 
@@ -66,7 +67,7 @@ export component SongsPageLayout inherits Rectangle {
                             clicked => {
                                 AppCallbacks.song_detail_action(
                                     SongDetailAction.AddToQueue,
-                                    root.active-idx >= 0 ? [root.active] : song-list.display-songs);
+                                    song-list.selected-songs.length > 0 ? song-list.selected-songs : (root.active-idx >= 0 ? [root.active] : song-list.display-songs));
                             }
                         }
 

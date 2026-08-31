@@ -262,6 +262,44 @@ fn setup_song_list_helper(main_window: &MainWindow, state_manager: &'static Stat
                 cache_dir,
             )
         });
+
+    main_window.global::<UtilCallbacks>().on_update_selection(
+        move |current, clicked, anchor, is_ctrl, is_shift, is_right, total| {
+            let current_vec: Vec<i32> = (0..current.row_count())
+                .filter_map(|i| current.row_data(i))
+                .collect();
+            let res = utils::update_selection(
+                &current_vec,
+                clicked,
+                anchor,
+                is_ctrl,
+                is_shift,
+                is_right,
+                total as usize,
+            );
+            ModelRc::new(VecModel::from(res))
+        },
+    );
+
+    main_window
+        .global::<UtilCallbacks>()
+        .on_is_index_selected(move |selected, index| {
+            (0..selected.row_count()).any(|i| selected.row_data(i) == Some(index))
+        });
+
+    main_window.global::<UtilCallbacks>().on_get_selected_songs(
+        move |display_songs, selected_indices| {
+            if selected_indices.row_count() == 0 {
+                return display_songs;
+            }
+            let songs: Vec<SongModel> = (0..selected_indices.row_count())
+                .filter_map(|i| selected_indices.row_data(i))
+                .filter(|&idx| idx >= 0)
+                .filter_map(|idx| display_songs.row_data(idx as usize))
+                .collect();
+            ModelRc::new(VecModel::from(songs))
+        },
+    );
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

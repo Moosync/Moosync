@@ -1,24 +1,28 @@
 import { WindowInfo } from "../window_info.slint";
 import { SongModel } from "../types/song_view.slint";
 import { Constants, Theme } from "../constants.slint";
-import { AppCallbacks, ContextMenuCallbacks } from "../callbacks.slint";
+import {
+    AppCallbacks,
+    ContextMenuCallbacks,
+} from "../callbacks.slint";
 import { ContextMenu } from "context_menu.slint";
 
 export component SongListItem inherits Rectangle {
     in property <SongModel> song: Constants.defaultSong;
 
     callback clicked <=> context_menu.clicked;
+    callback item_pressed <=> context_menu.handle_pointer_event;
+    pure callback get_selected_songs() -> [SongModel];
     out property <bool> has-hover: context_menu.has-hover;
-    out property <bool> pressed: context_menu.pressed;
 
     background: Theme.secondary;
     border-radius: Theme.borderRadiusLg;
     height: Theme.songListItemHeight;
 
     context_menu := ContextMenu {
-        items: ContextMenuCallbacks.get_song_menu_items([song]);
+        items: ContextMenuCallbacks.get_song_menu_items(root.get_selected_songs().length > 0 ? root.get_selected_songs() : [song]);
         selected(id) => {
-            ContextMenuCallbacks.song_action([song], id);
+            ContextMenuCallbacks.song_action(root.get_selected_songs().length > 0 ? root.get_selected_songs() : [song], id);
         }
     }
 

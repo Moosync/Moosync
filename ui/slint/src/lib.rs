@@ -4,7 +4,10 @@ include!(concat!(env!("OUT_DIR"), "/app.rs"));
 
 use std::{path::Path, time::Duration};
 
+use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
+use player::RepeatMode;
 use slint::{Image, Model, ModelRc, VecModel};
+use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
 use tracing::{debug, trace};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};
@@ -25,8 +28,6 @@ mod lib_test;
 mod pages_test;
 #[cfg(test)]
 pub mod test_utils;
-#[cfg(test)]
-mod utils_test;
 #[cfg(test)]
 mod window_info_test;
 
@@ -249,7 +250,7 @@ fn setup_song_list_helper(main_window: &MainWindow, state_manager: &'static Stat
             let Some(main_window) = main_window_weak.upgrade() else {
                 return songs;
             };
-            let theme = main_window.global::<crate::Theme>();
+            let theme = main_window.global::<Theme>();
             let cache_dir = state_manager.get_cache_dir();
             utils::filter_and_sort_songs(
                 songs,
@@ -268,7 +269,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
     main_window
         .global::<AppCallbacks>()
         .on_play_song(move |song_model| {
-            let song = utils::song_model_to_song(&song_model);
+            let song = Song::from(song_model);
             tokio::spawn(async move {
                 let mut queue = state_manager.get_player_handler_mut().await;
                 queue.play_now(vec![song]);
@@ -278,7 +279,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
     main_window
         .global::<AppCallbacks>()
         .on_add_song_to_queue(move |song_model| {
-            let song = utils::song_model_to_song(&song_model);
+            let song = Song::from(song_model);
             tokio::spawn(async move {
                 let mut queue = state_manager.get_player_handler_mut().await;
                 queue.add_to_queue(vec![song]);
@@ -290,7 +291,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
         .on_song_detail_action(move |action, song_models| {
             let songs = (0..song_models.row_count())
                 .filter_map(|i| song_models.row_data(i))
-                .map(|model| utils::song_model_to_song(&model))
+                .map(Song::from)
                 .collect::<Vec<_>>();
             tokio::spawn(async move {
                 let mut queue = state_manager.get_player_handler_mut().await;
@@ -329,9 +330,9 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
             tokio::spawn(async move {
                 let mut player_handler = state_manager.get_player_handler_mut().await;
                 let next_mode = match player_handler.get_repeat_mode() {
-                    player::RepeatMode::None => player::RepeatMode::Once,
-                    player::RepeatMode::Once => player::RepeatMode::Infinite,
-                    player::RepeatMode::Infinite => player::RepeatMode::None,
+                    RepeatMode::None => RepeatMode::Once,
+                    RepeatMode::Once => RepeatMode::Infinite,
+                    RepeatMode::Infinite => RepeatMode::None,
                 };
                 player_handler.repeat(next_mode);
             });
@@ -341,10 +342,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
 #[tracing::instrument(level = "debug", skip_all)]
 fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     // Clear default values on load
-    main_window.set_current_song(utils::to_song_model(
-        &songs_proto::moosync::types::Song::default(),
-        None,
-    ));
+    main_window.set_current_song(SongModel::from(Song::default()));
     main_window
         .global::<QueuePageProps>()
         .set_queue(ModelRc::new(VecModel::default()));
@@ -368,12 +366,9 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
             let song = song.cloned();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = mw_weak.upgrade() {
-                    let song_model = match &song {
-                        Some(s) => utils::to_song_model(s, None),
-                        None => utils::to_song_model(
-                            &songs_proto::moosync::types::Song::default(),
-                            None,
-                        ),
+                    let song_model = match song {
+                        Some(s) => SongModel::from(s),
+                        None => SongModel::from(Song::default()),
                     };
                     main_window.set_current_song(song_model);
                 }
@@ -398,15 +393,13 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
                 if let Some(main_window) = mw_weak.upgrade() {
                     if let Some(ev) = &event_cloned.event {
                         match ev {
-                            extensions_proto::moosync::types::player_event::Event::Play(_) => {
+                            PlayerEvent::Play(_) => {
                                 main_window.set_playing(true);
                             }
-                            extensions_proto::moosync::types::player_event::Event::Pause(_) => {
+                            PlayerEvent::Pause(_) => {
                                 main_window.set_playing(false);
                             }
-                            extensions_proto::moosync::types::player_event::Event::TimeUpdate(
-                                pos,
-                            ) => {
+                            PlayerEvent::TimeUpdate(pos) => {
                                 main_window.set_current_duration(pos.seconds as i32);
                                 main_window
                                     .set_current_pos_str(format_duration(pos.seconds).into());

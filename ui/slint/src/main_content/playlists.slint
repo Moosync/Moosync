@@ -1,6 +1,7 @@
 import { PlaylistModel } from "../types/song_view.slint";
 import { GridListView } from "../common/grid_list_view.slint";
 import { Constants, Theme, Pages } from "../constants.slint";
+import { ContextMenuCallbacks } from "../callbacks.slint";
 
 export global PlaylistsPageProps {
     in-out property <[PlaylistModel]> playlists: Constants.testPlaylists;
@@ -27,6 +28,7 @@ export component PlaylistsPage inherits Rectangle {
             height: root.height - text.height - (Theme.spacingXxl + Theme.paddingLg);
             item-width: Theme.cardWidth;
             total-items: PlaylistsPageProps.playlists.length;
+            enable-context-menu: true;
             item-title(idx) => {
                 PlaylistsPageProps.playlists[idx].title
             }
@@ -39,6 +41,12 @@ export component PlaylistsPage inherits Rectangle {
             item-clicked(idx) => {
                 PlaylistsPageProps.selected-playlist = PlaylistsPageProps.playlists[idx];
                 root.active-page = Pages.PlaylistContent;
+            }
+            get-context-menu-items(idx) => {
+                ContextMenuCallbacks.get_playlist_menu_items([PlaylistsPageProps.playlists[idx]])
+            }
+            context-menu-action(idx, action_id) => {
+                ContextMenuCallbacks.playlist_action([PlaylistsPageProps.playlists[idx]], action_id)
             }
         }
     }

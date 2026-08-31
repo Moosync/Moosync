@@ -14,11 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::path::PathBuf;
+
 use extensions::ExtensionInfo;
 use slint::{ComponentHandle, ModelRc};
 use state_manager::StateManager;
 
-use crate::{MainWindow, pages::PageHandler};
+use crate::{
+    AppCallbacks, ExtensionItem, MainWindow, Theme, pages::PageHandler, utils::LazySongVecModel,
+};
 
 pub struct ExtensionsPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -38,21 +42,19 @@ impl<'a> ExtensionsPageHandler<'a> {
     fn render_extensions(
         main_window: &MainWindow,
         extensions: Vec<ExtensionInfo>,
-        cache_dir: std::path::PathBuf,
+        cache_dir: PathBuf,
     ) {
-        let mut items: Vec<crate::ExtensionItem> = extensions
+        let mut items: Vec<ExtensionItem> = extensions
             .into_iter()
             .map(|ext| match ext {
-                ExtensionInfo::Local(detail) => crate::utils::to_extension_item(&detail),
-                ExtensionInfo::Remote(manifest) => {
-                    crate::utils::to_fetched_extension_item(&manifest)
-                }
+                ExtensionInfo::Local(detail) => ExtensionItem::from(detail),
+                ExtensionInfo::Remote(manifest) => ExtensionItem::from(manifest),
                 ExtensionInfo::LocalPath(_) => unreachable!(),
             })
             .collect();
 
         items.sort_by(|a, b| {
-            let rank = |item: &crate::ExtensionItem| {
+            let rank = |item: &ExtensionItem| {
                 if item.is_installed && item.active && !item.has_started {
                     0 // Installing / spawning
                 } else if item.active {
@@ -64,8 +66,8 @@ impl<'a> ExtensionsPageHandler<'a> {
             rank(a).cmp(&rank(b)).then_with(|| a.name.cmp(&b.name))
         });
 
-        let theme = main_window.global::<crate::Theme>();
-        main_window.set_extensions(ModelRc::new(crate::utils::LazySongVecModel::new(
+        let theme = main_window.global::<Theme>();
+        main_window.set_extensions(ModelRc::new(LazySongVecModel::new(
             items,
             theme.get_extensionListItemHeight() as usize,
             theme.get_extensionListItemWidth() as usize,
@@ -76,7 +78,7 @@ impl<'a> ExtensionsPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn setup_callbacks(&self) {
         self.main_window
-            .global::<crate::AppCallbacks>()
+            .global::<AppCallbacks>()
             .on_toggle_extension({
                 let state_manager = self.state_manager.clone();
                 move |package_name| {
@@ -89,7 +91,7 @@ impl<'a> ExtensionsPageHandler<'a> {
             });
 
         self.main_window
-            .global::<crate::AppCallbacks>()
+            .global::<AppCallbacks>()
             .on_install_extension({
                 let state_manager = self.state_manager.clone();
                 move |file_path| {
@@ -137,7 +139,7 @@ impl<'a> ExtensionsPageHandler<'a> {
     async fn install_local_extension(file_path: String, state_manager: StateManager) {
         tracing::info!("install_local_extension: {}", file_path);
         let handler = state_manager.get_extension_handler().await;
-        let info = ExtensionInfo::LocalPath(std::path::PathBuf::from(file_path));
+        let info = ExtensionInfo::LocalPath(PathBuf::from(file_path));
         match handler.install_extension(info).await {
             Ok(_) => tracing::info!("install_local_extension: Installed successfully"),
             Err(e) => tracing::error!("install_local_extension: Failed: {:?}", e),

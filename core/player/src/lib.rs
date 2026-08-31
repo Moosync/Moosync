@@ -134,6 +134,31 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    pub fn play_next(&mut self, songs: Vec<Song>) {
+        if songs.is_empty() {
+            return;
+        }
+
+        if self.current_song().is_none() {
+            self.play_now(songs);
+            return;
+        }
+
+        let insert_pos = self.current_idx + 1;
+        for (offset, song) in songs.into_iter().enumerate() {
+            self.song_queue.insert(insert_pos + offset, song);
+        }
+        self.trigger_queue_changed();
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn clear_and_play(&mut self, songs: Vec<Song>) {
+        self.song_queue.clear();
+        self.current_idx = 0;
+        self.play_now(songs);
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn play_now(&mut self, songs: Vec<Song>) {
         if songs.is_empty() {
             return;

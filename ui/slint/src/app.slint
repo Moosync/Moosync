@@ -62,7 +62,6 @@ import {
 import { Settings } from "settings/settings.slint";
 import { SavePlaylistModal } from "common/save_playlist_modal.slint";
 import { PageWrapper } from "common/page_wrapper.slint";
-import { ContextMenu } from "common/context_menu.slint";
 import { ContextMenuItem, ContextMenuItems } from "types/context_menu.slint";
 import {
     Preferences,
@@ -172,19 +171,6 @@ export component MainWindow inherits Window {
         { text: @tr("Genres"), icon: @image-url("./icons/genres.svg"), page: Pages.Genres },
         { text: @tr("Explore"), icon: @image-url("./icons/explore.svg"), page: Pages.Explore },
     ];
-
-    // Non-blocking backdrop preview trigger behind main layout
-    TouchArea {
-        width: 100%;
-        height: 100%;
-
-        pointer-event(event) => {
-            if (event.kind == PointerEventKind.down && event.button == PointerEventButton.right) {
-                context_menu.items = ContextMenuCallbacks.get_all_songs_menu_items([root.current_song]);
-                context_menu.show_at(self.mouse-x, self.mouse-y);
-            }
-        }
-    }
 
     VerticalLayout {
         spacing: 0px;
@@ -345,12 +331,6 @@ export component MainWindow inherits Window {
     if show_save_playlist_modal: SavePlaylistModal {
         close => {
             show_save_playlist_modal = false;
-        }
-    }
-
-    context_menu := ContextMenu {
-        selected(action_id) => {
-            ContextMenuCallbacks.all_songs_action([root.current_song], action_id);
         }
     }
 }

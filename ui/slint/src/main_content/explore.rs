@@ -1,18 +1,19 @@
+use extensions::Extension;
+use extensions_proto::moosync::types::{
+    ExtensionDetail, ExtensionProviderScope, RequestedRecommendationsRequest,
+};
 use slint::{ComponentHandle, ModelRc, VecModel};
+use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
 
 use crate::{
-    ExplorePageProps, MainWindow, ProviderRecommendations,
+    ExplorePageProps, MainWindow, ProviderRecommendations, SongModel, Theme,
     error::UiError,
     pages::PageHandler,
-    utils::{LazySongVecModel, cache_image, load_icon, to_song_model},
+    utils::{LazySongVecModel, cache_image, load_icon},
 };
 
-type RecommendationItem = (
-    extensions_proto::moosync::types::ExtensionDetail,
-    Option<String>,
-    Vec<songs_proto::moosync::types::Song>,
-);
+type RecommendationItem = (ExtensionDetail, Option<String>, Vec<Song>);
 
 pub struct ExplorePageHandler<'a> {
     main_window: &'a MainWindow,
@@ -29,15 +30,9 @@ impl<'a> ExplorePageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_extension_recommendations(
-        ext: &extensions::Extension,
-    ) -> Result<Vec<songs_proto::moosync::types::Song>, UiError> {
+    async fn fetch_extension_recommendations(ext: &Extension) -> Result<Vec<Song>, UiError> {
         let resp = ext
-            .get_recommendations(
-                extensions_proto::moosync::types::RequestedRecommendationsRequest {
-                    refresh: false,
-                },
-            )
+            .get_recommendations(RequestedRecommendationsRequest { refresh: false })
             .await?;
         Ok(resp.songs)
     }
@@ -49,9 +44,7 @@ impl<'a> ExplorePageHandler<'a> {
         let mut results = Vec::new();
         let ext_handler = state_manager.get_extension_handler().await;
         let rec_extensions = ext_handler
-            .get_extensions_with_scope(
-                extensions_proto::moosync::types::ExtensionProviderScope::Recommendations,
-            )
+            .get_extensions_with_scope(ExtensionProviderScope::Recommendations)
             .await;
 
         let cache_dir = state_manager.get_cache_dir();
@@ -90,14 +83,14 @@ impl<'a> PageHandler for ExplorePageHandler<'a> {
                     let _ = slint::invoke_from_event_loop(move || {
                         if let Some(main_window) = main_window_weak.upgrade() {
                             let cache_dir = state_manager.get_cache_dir();
-                            let theme = main_window.global::<crate::Theme>();
+                            let theme = main_window.global::<Theme>();
                             let mut list = Vec::new();
                             for (detail, cached_path, songs) in recommendations {
                                 let icon = load_icon(cached_path.as_deref().unwrap_or(""));
                                 let song_models = songs
-                                    .iter()
-                                    .map(|s| to_song_model(s, Some(&detail)))
-                                    .collect::<Vec<_>>();
+                                    .into_iter()
+                                    .map(|s| (s, Some(&detail)).into())
+                                    .collect::<Vec<SongModel>>();
                                 let mapped_songs = ModelRc::new(LazySongVecModel::new(
                                     song_models,
                                     theme.get_songListItemHeight() as usize,

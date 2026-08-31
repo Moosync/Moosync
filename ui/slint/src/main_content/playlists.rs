@@ -1,11 +1,13 @@
-use slint::{ComponentHandle, ModelRc, VecModel};
+use extensions::Extension;
+use extensions_proto::moosync::types::{ExtensionProviderScope, RequestedPlaylistsRequest};
+use slint::{ComponentHandle, ModelRc, VecModel, Weak};
 use songs_proto::moosync::types::{GetEntityOptions, Playlist, PlaylistList, entity_result};
 use state_manager::StateManager;
 use tracing::debug;
 
 use crate::{
     ContextMenuCallbacks, ContextMenuItem, ContextMenuItems, MainWindow, PlaylistModel,
-    PlaylistsPageProps,
+    PlaylistsPageProps, Theme,
     error::UiError,
     pages::PageHandler,
     utils::{IntoVec, LazySongVecModel},
@@ -26,7 +28,7 @@ impl<'a> PlaylistsPageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_local_playlists(state_manager: &StateManager) -> Result<Vec<Playlist>, UiError> {
+    async fn get_local_playlists(state_manager: &StateManager) -> Result<Vec<Playlist>, UiError> {
         let database = state_manager.get_database().await;
         let playlists_res = database.get_entity_by_options(GetEntityOptions {
             playlist: Some(Playlist::default()),
@@ -40,14 +42,10 @@ impl<'a> PlaylistsPageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_extension_playlists(
-        ext: &extensions::Extension,
-    ) -> Result<Vec<Playlist>, UiError> {
+    async fn fetch_extension_playlists(ext: &Extension) -> Result<Vec<Playlist>, UiError> {
         let detail = ext.get_extension_detail();
         let resp = ext
-            .get_playlists(
-                extensions_proto::moosync::types::RequestedPlaylistsRequest { refresh: false },
-            )
+            .get_playlists(RequestedPlaylistsRequest { refresh: false })
             .await?;
         let mut playlists = resp.playlists;
         for p in &mut playlists {
@@ -58,33 +56,32 @@ impl<'a> PlaylistsPageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_playlists(state_manager: &StateManager) -> Result<Vec<Playlist>, UiError> {
-        let local = Self::fetch_local_playlists(state_manager)
-            .await
-            .unwrap_or_default();
+    async fn get_extension_playlists(
+        state_manager: &StateManager,
+    ) -> Result<Vec<Playlist>, UiError> {
+        let mut playlists = Vec::new();
         let ext_handler = state_manager.get_extension_handler().await;
         let playlist_extensions = ext_handler
-            .get_extensions_with_scope(
-                extensions_proto::moosync::types::ExtensionProviderScope::Playlists,
-            )
+            .get_extensions_with_scope(ExtensionProviderScope::Playlists)
             .await;
+        for ext in playlist_extensions {
+            if let Ok(ext_playlists) = Self::fetch_extension_playlists(&ext).await {
+                playlists.extend(ext_playlists);
+            }
+        }
+        Ok(playlists)
+    }
 
-        let all_playlists: Vec<Playlist> = local
-            .into_iter()
-            .chain(
-                futures::future::join_all(
-                    playlist_extensions
-                        .iter()
-                        .map(|ext| Self::fetch_extension_playlists(ext)),
-                )
-                .await
-                .into_iter()
-                .filter_map(|r| r.ok())
-                .flatten(),
-            )
-            .collect();
-
-        Ok(all_playlists)
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn fetch_playlists(state_manager: &StateManager) -> Result<Vec<Playlist>, UiError> {
+        let mut playlists = Vec::new();
+        if let Ok(local) = Self::get_local_playlists(state_manager).await {
+            playlists.extend(local);
+        }
+        if let Ok(extension) = Self::get_extension_playlists(state_manager).await {
+            playlists.extend(extension);
+        }
+        Ok(playlists)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -94,9 +91,12 @@ impl<'a> PlaylistsPageHandler<'a> {
         playlists: Vec<Playlist>,
     ) {
         debug!("Setting playlists");
-        let playlist_model: Vec<PlaylistModel> = playlists.into_iter().map(Into::into).collect();
+        let playlist_model = playlists
+            .into_iter()
+            .map(PlaylistModel::from)
+            .collect::<Vec<_>>();
 
-        let theme = main_window.global::<crate::Theme>();
+        let theme = main_window.global::<Theme>();
         let cache_dir = state_manager.get_cache_dir();
         main_window
             .global::<PlaylistsPageProps>()
@@ -106,6 +106,26 @@ impl<'a> PlaylistsPageHandler<'a> {
                 theme.get_cardWidth() as usize,
                 cache_dir,
             )));
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn handle_playlist_action(
+        weak: Weak<MainWindow>,
+        state_manager: StateManager,
+        playlist_ids: Vec<String>,
+        action: String,
+    ) {
+        if action == "delete_playlist" {
+            let db = state_manager.get_database().await;
+            for pid in playlist_ids {
+                let _ = db.remove_playlist(&pid);
+            }
+            if let Ok(playlists) = Self::fetch_playlists(&state_manager).await {
+                let _ = weak.upgrade_in_event_loop(move |main_window| {
+                    Self::set_playlists(&main_window, &state_manager, playlists);
+                });
+            }
+        }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -128,35 +148,23 @@ impl<'a> PlaylistsPageHandler<'a> {
             });
 
         let state_manager = self.state_manager.clone();
+        let main_window_weak = self.main_window.as_weak();
         self.main_window
             .global::<ContextMenuCallbacks>()
             .on_playlist_action(move |playlist_models, action_id| {
-                Self::dispatch_action(&state_manager, &playlist_models, action_id.as_str());
+                let state_manager = state_manager.clone();
+                let playlist_ids: Vec<String> = playlist_models
+                    .into_vec()
+                    .into_iter()
+                    .map(|p| p.id.to_string())
+                    .collect();
+                let action = action_id.to_string();
+                let weak = main_window_weak.clone();
+
+                tokio::spawn(async move {
+                    Self::handle_playlist_action(weak, state_manager, playlist_ids, action).await;
+                });
             });
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn dispatch_action(
-        state_manager: &StateManager,
-        playlist_models: &ModelRc<PlaylistModel>,
-        action_id: &str,
-    ) {
-        let state_manager = state_manager.clone();
-        let playlist_ids: Vec<String> = playlist_models
-            .into_vec()
-            .into_iter()
-            .map(|p| p.id.to_string())
-            .collect();
-        let action = action_id.to_string();
-
-        tokio::spawn(async move {
-            if action.as_str() == "delete_playlist" {
-                let db = state_manager.get_database().await;
-                for pid in playlist_ids {
-                    let _ = db.remove_playlist(&pid);
-                }
-            }
-        });
     }
 }
 

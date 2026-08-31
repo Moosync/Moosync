@@ -1,7 +1,15 @@
+export struct ContextSubMenuItem {
+    action_id: string,
+    title: string,
+    icon: image,
+}
+
 export struct ContextMenuItem {
     action_id: string,
     title: string,
     icon: image,
+    has_sub_menu: bool,
+    sub_items: [ContextSubMenuItem],
 }
 
 export global ContextMenuItems {
@@ -11,16 +19,29 @@ export global ContextMenuItems {
                 action_id: "play_now",
                 title: @tr("Play Now"),
                 icon: @image-url("../icons/play.svg"),
+                has_sub_menu: false,
+                sub_items: [],
             },
             {
                 action_id: "play_next",
                 title: @tr("Play Next"),
                 icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
+            },
+            {
+                action_id: "clear_queue_and_play",
+                title: @tr("Clear queue and play"),
+                icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
             },
             {
                 action_id: "add_to_queue",
                 title: @tr("Add to Queue"),
                 icon: @image-url("../icons/add_to_queue.svg"),
+                has_sub_menu: false,
+                sub_items: [],
             },
         ];
     }
@@ -31,11 +52,15 @@ export global ContextMenuItems {
                 action_id: "play_now",
                 title: @tr("Play Now"),
                 icon: @image-url("../icons/play.svg"),
+                has_sub_menu: false,
+                sub_items: [],
             },
             {
                 action_id: "remove_from_queue",
                 title: @tr("Remove from Queue"),
                 icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
             },
         ];
     }
@@ -46,21 +71,36 @@ export global ContextMenuItems {
                 action_id: "play_now",
                 title: @tr("Play Now"),
                 icon: @image-url("../icons/play.svg"),
+                has_sub_menu: false,
+                sub_items: [],
             },
             {
                 action_id: "play_next",
                 title: @tr("Play Next"),
                 icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
+            },
+            {
+                action_id: "clear_queue_and_play",
+                title: @tr("Clear queue and play"),
+                icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
             },
             {
                 action_id: "add_to_queue",
                 title: @tr("Add to Queue"),
                 icon: @image-url("../icons/add_to_queue.svg"),
+                has_sub_menu: false,
+                sub_items: [],
             },
             {
                 action_id: "remove_from_playlist",
                 title: @tr("Remove from Playlist"),
                 icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
             },
         ];
     }
@@ -71,7 +111,39 @@ export global ContextMenuItems {
                 action_id: "delete_playlist",
                 title: @tr("Delete Playlist"),
                 icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
+            },
+            {
+                action_id: "export_playlist",
+                title: @tr("Export Playlist"),
+                icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
+            },
+            {
+                action_id: "save_playlist",
+                title: @tr("Save Playlist"),
+                icon: @image-url(""),
+                has_sub_menu: false,
+                sub_items: [],
             },
         ];
+    }
+
+    pure public function get_add_to_playlist_title() -> string {
+        return @tr("Add to Playlist");
+    }
+
+    pure public function get_goto_album_title(album_title: string) -> string {
+        return @tr("Go to album") + " (" + album_title + ")";
+    }
+
+    pure public function get_goto_artists_title() -> string {
+        return @tr("Go to artists");
+    }
+
+    pure public function get_remove_from_playlist_title() -> string {
+        return @tr("Remove from Playlist");
     }
 }

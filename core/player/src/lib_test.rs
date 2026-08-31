@@ -332,3 +332,73 @@ async fn test_empty_and_single_queue_boundaries() {
     ph.shuffle();
     assert_eq!(ph.song_queue.len(), 1);
 }
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_play_next_empty_queue() {
+    let mut ph = create_player_handler();
+    let song = create_mock_song("1", "Song One");
+
+    ph.play_next(vec![song]);
+
+    assert_eq!(ph.song_queue.len(), 1);
+    assert_eq!(ph.current_idx, 0);
+    assert_eq!(
+        ph.current_song()
+            .unwrap()
+            .song
+            .as_ref()
+            .unwrap()
+            .id
+            .as_deref(),
+        Some("1")
+    );
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_play_next_with_existing_queue() {
+    let mut ph = create_player_handler();
+    let song1 = create_mock_song("1", "Song One");
+    let song2 = create_mock_song("2", "Song Two");
+    let song_next = create_mock_song("next", "Next Song");
+    ph.add_to_queue(vec![song1, song2]);
+
+    ph.play_next(vec![song_next]);
+
+    assert_eq!(ph.song_queue.len(), 3);
+    assert_eq!(
+        ph.song_queue[1].song.as_ref().unwrap().id.as_deref(),
+        Some("next")
+    );
+    assert_eq!(
+        ph.song_queue[2].song.as_ref().unwrap().id.as_deref(),
+        Some("2")
+    );
+}
+
+#[tokio::test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_clear_and_play() {
+    let mut ph = create_player_handler();
+    let old1 = create_mock_song("old1", "Old 1");
+    let old2 = create_mock_song("old2", "Old 2");
+    ph.add_to_queue(vec![old1, old2]);
+    ph.next();
+    let new_song = create_mock_song("new1", "New 1");
+
+    ph.clear_and_play(vec![new_song]);
+
+    assert_eq!(ph.song_queue.len(), 1);
+    assert_eq!(ph.current_idx, 0);
+    assert_eq!(
+        ph.current_song()
+            .unwrap()
+            .song
+            .as_ref()
+            .unwrap()
+            .id
+            .as_deref(),
+        Some("new1")
+    );
+}

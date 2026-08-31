@@ -131,11 +131,8 @@ export global BottomBarCallbacks {
 }
 
 export global ContextMenuCallbacks {
-    pure callback get_all_songs_menu_items([SongModel]) -> [ContextMenuItem];
-    callback all_songs_action([SongModel], string);
-
-    pure callback get_playlist_song_menu_items([SongModel]) -> [ContextMenuItem];
-    callback playlist_song_action([SongModel], string, string);
+    pure callback get_song_menu_items([SongModel]) -> [ContextMenuItem];
+    callback song_action([SongModel], string);
 
     pure callback get_queue_menu_items([SongModel], int) -> [ContextMenuItem];
     callback queue_action([SongModel], int, string);

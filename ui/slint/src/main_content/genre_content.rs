@@ -4,7 +4,7 @@ use state_manager::StateManager;
 use tracing::debug;
 
 use crate::{
-    GenreContentPageProps, GenresPageProps, MainWindow, error::UiError, pages::PageHandler,
+    GenreContentPageProps, GenresPageProps, MainWindow, Theme, error::UiError, pages::PageHandler,
     utils::LazySongVecModel,
 };
 
@@ -41,12 +41,8 @@ impl<'a> GenreContentPageHandler<'a> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_songs(main_window: &MainWindow, state_manager: &StateManager, songs: Vec<Song>) {
-        debug!("Fetched {} songs for genre", songs.len());
-        let songs_view = songs
-            .iter()
-            .map(|s| crate::utils::to_song_model(s, None))
-            .collect::<Vec<_>>();
-        let theme = main_window.global::<crate::Theme>();
+        let songs_view = songs.into_iter().map(Into::into).collect::<Vec<_>>();
+        let theme = main_window.global::<Theme>();
         let cache_dir = state_manager.get_cache_dir();
         main_window
             .global::<GenreContentPageProps>()

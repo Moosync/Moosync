@@ -1,8 +1,11 @@
 import { Theme } from "../constants.slint";
 import { WindowInfo } from "../window_info.slint";
-import { ContextMenuItem } from "../types/context_menu.slint";
+import {
+    ContextMenuItem,
+    ContextSubMenuItem,
+} from "../types/context_menu.slint";
 
-export component ContextMenu inherits Rectangle {
+export component ContextMenu inherits TouchArea {
     in-out property <[ContextMenuItem]> items: [];
     in-out property <length> requested_x: 0px;
     in-out property <length> requested_y: 0px;
@@ -11,19 +14,40 @@ export component ContextMenu inherits Rectangle {
 
     property <length> menu_width: Theme.cardWidth;
     property <length> item_height: Theme.dropdownOptionHeight + Theme.paddingXs;
-    property <length> estimated_height: items.length * item_height + Theme.paddingXs * 2;
+    property <length> estimated_height: items.length * item_height + Math.max(0, items.length - 1) * Theme.spacingTiny + Theme.paddingXs * 2;
 
-    property <length> clamped_x: Math.max(Theme.paddingXs, Math.min(WindowInfo.window-width - menu_width - Theme.paddingXs, requested_x));
-    property <length> clamped_y: Math.max(Theme.paddingXs, Math.min(WindowInfo.window-height - estimated_height - Theme.paddingXs, requested_y));
+    property <bool> has_active_submenu: active_submenu_index >= 0 && active_submenu_index < items.length && (items[active_submenu_index].has_sub_menu || items[active_submenu_index].sub_items.length > 0);
+    property <length> submenu_height: has_active_submenu ? (items[active_submenu_index].sub_items.length * item_height + Math.max(0, items[active_submenu_index].sub_items.length - 1) * Theme.spacingTiny + Theme.paddingXs * 2) : 0px;
+    property <length> submenu_y: has_active_submenu ? (active_submenu_index * (item_height + Theme.spacingTiny)) : 0px;
+    property <length> popup_height: Math.max(estimated_height, submenu_y + submenu_height);
+    property <length> total_width: has_active_submenu ? (menu_width * 2 + Theme.spacingTiny) : menu_width;
 
-    x: 0px;
-    y: 0px;
-    width: 0px;
-    height: 0px;
+    property <length> global_x: root.absolute-position.x + requested_x;
+    property <length> global_y: root.absolute-position.y + requested_y;
+
+    property <length> clamped_global_x: Math.max(Theme.paddingXs, Math.min(WindowInfo.window-width - total_width - Theme.paddingXs, global_x));
+    property <length> clamped_global_y: Math.max(Theme.paddingXs, Math.min(WindowInfo.window-height - popup_height - Theme.paddingXs, global_y));
+
+    property <length> clamped_x: clamped_global_x - root.absolute-position.x;
+    property <length> clamped_y: clamped_global_y - root.absolute-position.y;
+
+    property <int> active_submenu_index: -1;
+
+    width: 100%;
+    height: 100%;
+
+    pointer-event(event) => {
+        if (event.kind == PointerEventKind.up && event.button == PointerEventButton.right) {
+            if (root.items.length > 0) {
+                root.show_at(self.mouse-x, self.mouse-y);
+            }
+        }
+    }
 
     public function show_at(x: length, y: length) {
         requested_x = x;
         requested_y = y;
+        active_submenu_index = -1;
         popup.show();
     }
 
@@ -34,9 +58,15 @@ export component ContextMenu inherits Rectangle {
     popup := PopupWindow {
         x: root.clamped_x;
         y: root.clamped_y;
+        width: root.total_width;
+        height: root.popup_height;
 
+        // Main Menu Box
         Rectangle {
+            x: 0px;
+            y: 0px;
             width: root.menu_width;
+            height: root.estimated_height;
             background: Theme.secondary;
             border-radius: Theme.borderRadiusLg;
             border-width: Theme.borderWidth;
@@ -47,28 +77,51 @@ export component ContextMenu inherits Rectangle {
                 padding: Theme.paddingXs;
                 spacing: Theme.spacingTiny;
 
-                for item in root.items: item_touch := TouchArea {
+                for item[idx] in root.items: item_touch := TouchArea {
                     height: root.item_height;
 
+                    pointer-event(event) => {
+                        if (event.kind == PointerEventKind.move) {
+                            if (item.has_sub_menu || item.sub_items.length > 0) {
+                                root.active_submenu_index = idx;
+                            } else {
+                                root.active_submenu_index = -1;
+                            }
+                        }
+                    }
+
                     clicked => {
-                        root.selected(item.action_id);
-                        popup.close();
+                        if (item.has_sub_menu || item.sub_items.length > 0) {
+                            if (root.active_submenu_index == idx) {
+                                root.active_submenu_index = -1;
+                            } else {
+                                root.active_submenu_index = idx;
+                            }
+                        } else {
+                            root.selected(item.action_id);
+                            popup.close();
+                        }
                     }
 
                     Rectangle {
+                        width: 100%;
+                        height: 100%;
                         border-radius: Theme.borderRadiusMd;
-                        background: item_touch.has-hover ? Theme.textPrimary.with-alpha(0.1) : transparent;
-                        animate background { duration: 100ms; }
+                        background: (item_touch.has-hover || root.active_submenu_index == idx) ? Theme.textPrimary.with-alpha(0.1) : transparent;
 
                         HorizontalLayout {
                             padding-left: Theme.paddingMd;
                             padding-right: Theme.paddingMd;
                             spacing: Theme.spacingSm;
-                            alignment: start;
+                            height: 100%;
 
-                            if (item.icon.width > 0): VerticalLayout {
+                            // Always keep icon slot on the left so text aligns uniformly, centered vertically
+                            VerticalLayout {
                                 alignment: center;
-                                Image {
+                                width: Theme.iconSizeMd;
+                                height: 100%;
+
+                                if (item.icon.width > 0): Image {
                                     width: Theme.iconSizeSm;
                                     height: Theme.iconSizeSm;
                                     source: item.icon;
@@ -77,11 +130,92 @@ export component ContextMenu inherits Rectangle {
                             }
 
                             Text {
+                                horizontal-stretch: 1;
                                 text: item.title;
                                 font-size: Theme.subtitle;
                                 vertical-alignment: center;
                                 horizontal-alignment: left;
                                 color: Theme.textPrimary;
+                                overflow: elide;
+                            }
+
+                            if (item.has_sub_menu || item.sub_items.length > 0): VerticalLayout {
+                                alignment: center;
+                                height: 100%;
+                                width: Theme.spacingSm;
+
+                                Image {
+                                    width: Theme.spacingSm;
+                                    height: Theme.iconSizeSm;
+                                    source: @image-url("../icons/nav_button.svg");
+                                    colorize: Theme.textSecondary;
+                                    transform-rotation: 180deg;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Submenu Box (aligned vertically with the parent item)
+        if (root.has_active_submenu): Rectangle {
+            x: root.menu_width + Theme.spacingTiny;
+            y: root.submenu_y;
+            width: root.menu_width;
+            height: root.submenu_height;
+            background: Theme.secondary;
+            border-radius: Theme.borderRadiusLg;
+            border-width: Theme.borderWidth;
+            border-color: Theme.textSecondary.with-alpha(0.25);
+            clip: true;
+
+            VerticalLayout {
+                padding: Theme.paddingXs;
+                spacing: Theme.spacingTiny;
+
+                for sub_item in root.items[root.active_submenu_index].sub_items: sub_touch := TouchArea {
+                    height: root.item_height;
+
+                    clicked => {
+                        root.selected(sub_item.action_id);
+                        popup.close();
+                    }
+
+                    Rectangle {
+                        width: 100%;
+                        height: 100%;
+                        border-radius: Theme.borderRadiusMd;
+                        background: sub_touch.has-hover ? Theme.textPrimary.with-alpha(0.1) : transparent;
+
+                        HorizontalLayout {
+                            padding-left: Theme.paddingMd;
+                            padding-right: Theme.paddingMd;
+                            spacing: Theme.spacingSm;
+                            height: 100%;
+
+                            // Always keep icon slot on the left so text aligns uniformly, centered vertically
+                            VerticalLayout {
+                                alignment: center;
+                                width: Theme.iconSizeSm;
+                                height: 100%;
+
+                                if (sub_item.icon.width > 0): Image {
+                                    width: Theme.iconSizeSm;
+                                    height: Theme.iconSizeSm;
+                                    source: sub_item.icon;
+                                    colorize: Theme.textSecondary;
+                                }
+                            }
+
+                            Text {
+                                horizontal-stretch: 1;
+                                text: sub_item.title;
+                                font-size: Theme.subtitle;
+                                vertical-alignment: center;
+                                horizontal-alignment: left;
+                                color: Theme.textPrimary;
+                                overflow: elide;
                             }
                         }
                     }

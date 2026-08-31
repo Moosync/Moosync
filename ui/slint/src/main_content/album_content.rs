@@ -1,10 +1,11 @@
+use extensions_proto::moosync::types::{ExtensionDetail, RequestedAlbumSongsRequest};
 use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{Album, GetSongOptions, Song};
 use state_manager::StateManager;
 use tracing::debug;
 
 use crate::{
-    AlbumContentPageProps, AlbumsPageProps, MainWindow, error::UiError, pages::PageHandler,
+    AlbumContentPageProps, AlbumsPageProps, MainWindow, Theme, error::UiError, pages::PageHandler,
     utils::LazySongVecModel,
 };
 
@@ -50,12 +51,10 @@ impl<'a> AlbumContentPageHandler<'a> {
         let handler = state_manager.get_extension_handler().await;
         let ext = handler.get_extension(&extension)?;
         let resp = ext
-            .get_album_songs(
-                extensions_proto::moosync::types::RequestedAlbumSongsRequest {
-                    album: Some(album),
-                    page_token: None,
-                },
-            )
+            .get_album_songs(RequestedAlbumSongsRequest {
+                album: Some(album),
+                page_token: None,
+            })
             .await?;
         Ok(resp.songs)
     }
@@ -77,14 +76,13 @@ impl<'a> AlbumContentPageHandler<'a> {
         main_window: &MainWindow,
         state_manager: &StateManager,
         songs: Vec<Song>,
-        detail: Option<&extensions_proto::moosync::types::ExtensionDetail>,
+        detail: Option<&ExtensionDetail>,
     ) {
-        debug!("Fetched {} songs for album", songs.len());
         let songs_view = songs
-            .iter()
-            .map(|s| crate::utils::to_song_model(s, detail))
+            .into_iter()
+            .map(|s| (s, detail).into())
             .collect::<Vec<_>>();
-        let theme = main_window.global::<crate::Theme>();
+        let theme = main_window.global::<Theme>();
         let cache_dir = state_manager.get_cache_dir();
         main_window
             .global::<AlbumContentPageProps>()

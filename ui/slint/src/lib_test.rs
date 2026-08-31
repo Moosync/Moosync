@@ -14,14 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use slint::{ComponentHandle, ModelRc};
+use slint::{ComponentHandle, ModelRc, VecModel};
+use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
 use tempdir::TempDir;
 use types::plugin::PluginContext;
 
 use crate::{
     AppCallbacks, BottomBarCallbacks, CoverHelper, MainWindow, PageLifecycleManager, Pages,
-    SettingsPages, get_all_pages, pages::AppPage, setup_ui, test_utils::run_async_test, utils,
+    SettingsPages, SongDetailAction, SongModel, SongSortCriterion, get_all_pages, pages::AppPage,
+    setup_ui, test_utils::run_async_test,
 };
 
 #[test]
@@ -198,7 +200,7 @@ fn test_ui_get_all_pages_and_setup() {
             .invoke_queue_toggled(false);
 
         // Invoke song and bottom bar callbacks
-        let song_model = utils::to_song_model(&songs_proto::moosync::types::Song::default(), None);
+        let song_model = SongModel::from(Song::default());
         main_window
             .global::<AppCallbacks>()
             .invoke_play_song(song_model.clone());
@@ -208,14 +210,14 @@ fn test_ui_get_all_pages_and_setup() {
         main_window
             .global::<AppCallbacks>()
             .invoke_song_detail_action(
-                crate::SongDetailAction::Play,
-                ModelRc::new(slint::VecModel::from(vec![song_model.clone()])),
+                SongDetailAction::Play,
+                ModelRc::new(VecModel::from(vec![song_model.clone()])),
             );
         main_window
             .global::<AppCallbacks>()
             .invoke_song_detail_action(
-                crate::SongDetailAction::AddToQueue,
-                ModelRc::new(slint::VecModel::from(vec![song_model.clone()])),
+                SongDetailAction::AddToQueue,
+                ModelRc::new(VecModel::from(vec![song_model.clone()])),
             );
 
         main_window
@@ -246,11 +248,11 @@ fn test_ui_get_all_pages_and_setup() {
 
         // Invoke song list helper
         let _ = main_window
-            .global::<crate::AppCallbacks>()
+            .global::<AppCallbacks>()
             .invoke_filter_and_sort_songs(
-                ModelRc::new(slint::VecModel::from(vec![song_model.clone()])),
+                ModelRc::new(VecModel::from(vec![song_model.clone()])),
                 "test".into(),
-                crate::SongSortCriterion::Title,
+                SongSortCriterion::Title,
                 true,
             );
 

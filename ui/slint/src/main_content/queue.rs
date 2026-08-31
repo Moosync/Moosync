@@ -1,25 +1,28 @@
 use std::{
     cell::RefCell,
+    path::PathBuf,
     sync::{Arc, Mutex},
 };
 
-use slint::{ComponentHandle, ModelRc, VecModel};
+use slint::{ComponentHandle, Image, ModelRc, Timer};
 use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
-use types::prelude::SongsExt;
+use types::{prelude::SongsExt, subscription::CancelHandle};
 
 use crate::{
-    AppCallbacks, ContextMenuCallbacks, ContextMenuItem, ContextMenuItems, MainWindow,
-    QueuePageProps, SongModel,
+    AppCallbacks, ContextMenuCallbacks, MainWindow, QueuePageProps, SongModel, Theme,
     pages::PageHandler,
-    utils::{IntoVec, save_queue},
+    utils::{
+        LazySongVecModel, build_queue_context_menu_items, default_song_cover,
+        dispatch_song_context_action, save_queue,
+    },
 };
 
 pub struct QueuePageHandler<'a> {
     main_window: &'a MainWindow,
     state_manager: &'a StateManager,
-    cancel_handles: Arc<Mutex<Vec<types::subscription::CancelHandle>>>,
-    hide_timer: RefCell<slint::Timer>,
+    cancel_handles: Arc<Mutex<Vec<CancelHandle>>>,
+    hide_timer: RefCell<Timer>,
     is_visible: Arc<Mutex<bool>>,
 }
 
@@ -138,7 +141,7 @@ impl<'a> QueuePageHandler<'a> {
 
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = main_window_weak.upgrade() {
-                    Self::update_ui_queue(&main_window, &state_manager, &queue);
+                    Self::update_ui_queue(&main_window, &state_manager, queue);
                     Self::update_ui_blurred_cover(&main_window, &blurred_path);
                 }
             });
@@ -196,7 +199,7 @@ impl<'a> QueuePageHandler<'a> {
                 let state_manager = state_manager_queue.clone();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = mw_weak.upgrade() {
-                        Self::update_ui_queue(&main_window, &state_manager, &queue_cloned);
+                        Self::update_ui_queue(&main_window, &state_manager, queue_cloned);
                     }
                 });
             });
@@ -207,20 +210,13 @@ impl<'a> QueuePageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn update_ui_queue(
-        main_window: &MainWindow,
-        state_manager: &StateManager,
-        queue: &[songs_proto::moosync::types::Song],
-    ) {
-        let queue_models: Vec<crate::SongModel> = queue
-            .iter()
-            .map(|s| crate::utils::to_song_model(s, None))
-            .collect();
-        let theme = main_window.global::<crate::Theme>();
+    fn update_ui_queue(main_window: &MainWindow, state_manager: &StateManager, queue: Vec<Song>) {
+        let queue_models: Vec<SongModel> = queue.into_iter().map(Into::into).collect();
+        let theme = main_window.global::<Theme>();
         let cache_dir = state_manager.get_cache_dir();
         main_window
             .global::<QueuePageProps>()
-            .set_queue(slint::ModelRc::new(crate::utils::LazySongVecModel::new(
+            .set_queue(ModelRc::new(LazySongVecModel::new(
                 queue_models,
                 theme.get_songListItemHeight() as usize,
                 theme.get_songListItemWidth() as usize,
@@ -229,16 +225,11 @@ impl<'a> QueuePageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn update_ui_blurred_cover(
-        main_window: &MainWindow,
-        blurred_path: &Option<std::path::PathBuf>,
-    ) {
-        let blurred_cover = if let Some(path) = blurred_path {
-            slint::Image::load_from_path(path)
-                .unwrap_or_else(|_| crate::utils::default_song_cover())
-        } else {
-            crate::utils::default_song_cover()
-        };
+    fn update_ui_blurred_cover(main_window: &MainWindow, blurred_path: &Option<PathBuf>) {
+        let blurred_cover = blurred_path
+            .as_deref()
+            .and_then(|path| Image::load_from_path(path).ok())
+            .unwrap_or_else(default_song_cover);
         main_window
             .global::<QueuePageProps>()
             .set_blurred_cover(blurred_cover);
@@ -247,59 +238,55 @@ impl<'a> QueuePageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn register_context_menu_callbacks(&self) {
         let main_window_weak = self.main_window.as_weak();
+        let state_manager_clone = self.state_manager.clone();
 
         self.main_window
             .global::<ContextMenuCallbacks>()
-            .on_get_queue_menu_items(move |_song_models, _idx| {
+            .on_get_queue_menu_items(move |song_models, idx| {
                 let Some(main_window) = main_window_weak.upgrade() else {
                     return ModelRc::default();
                 };
 
-                let all_items: Vec<ContextMenuItem> = main_window
-                    .global::<ContextMenuItems>()
-                    .invoke_get_queue_items()
-                    .into_vec();
-
-                ModelRc::new(VecModel::from(all_items))
+                build_queue_context_menu_items(
+                    &main_window,
+                    &state_manager_clone,
+                    &song_models,
+                    idx,
+                )
             });
 
         let state_manager = self.state_manager.clone();
+        let main_window_weak = self.main_window.as_weak();
         self.main_window
             .global::<ContextMenuCallbacks>()
             .on_queue_action(move |song_models, idx, action_id| {
-                Self::dispatch_action(
+                if action_id == "play_now" {
+                    let state_manager = state_manager.clone();
+                    let queue_idx = idx as usize;
+                    tokio::spawn(async move {
+                        let mut player = state_manager.get_player_handler_mut().await;
+                        player.play_index(queue_idx);
+                    });
+                    return;
+                }
+
+                if action_id == "remove_from_queue" {
+                    let state_manager = state_manager.clone();
+                    let queue_idx = idx as usize;
+                    tokio::spawn(async move {
+                        let mut player = state_manager.get_player_handler_mut().await;
+                        player.remove_from_queue(queue_idx);
+                    });
+                    return;
+                }
+
+                dispatch_song_context_action(
+                    &main_window_weak,
                     &state_manager,
                     &song_models,
-                    idx as usize,
                     action_id.as_str(),
                 );
             });
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn dispatch_action(
-        state_manager: &StateManager,
-        song_models: &ModelRc<SongModel>,
-        queue_idx: usize,
-        action_id: &str,
-    ) {
-        let state_manager = state_manager.clone();
-        let songs: Vec<songs_proto::moosync::types::Song> =
-            song_models.into_vec().into_iter().map(Song::from).collect();
-        let action = action_id.to_string();
-
-        tokio::spawn(async move {
-            let mut player = state_manager.get_player_handler_mut().await;
-            match action.as_str() {
-                "play_now" => {
-                    player.play_now(songs);
-                }
-                "remove_from_queue" => {
-                    player.remove_from_queue(queue_idx);
-                }
-                _ => {}
-            }
-        });
     }
 }
 

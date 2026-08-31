@@ -2,6 +2,8 @@ import { ListView } from "std-widgets.slint";
 import { CardView } from "card_view.slint";
 import { Theme } from "../constants.slint";
 import { WindowInfo } from "../window_info.slint";
+import { ContextMenu } from "context_menu.slint";
+import { ContextMenuItem } from "../types/context_menu.slint";
 
 export component GridListView inherits Rectangle {
     clip: true;
@@ -13,6 +15,7 @@ export component GridListView inherits Rectangle {
     in property <length> spacing-x: Theme.spacingSm;
     in property <length> spacing-y: Theme.spacingSm;
     in property <int> total-items: 0;
+    in property <bool> enable-context-menu: false;
 
     property <int> total-rows: root.total-items == 0 ? 0 : (root.total-items + root.max-columns - 1) / root.max-columns;
     property <length> scroll-y: 0px;
@@ -21,6 +24,8 @@ export component GridListView inherits Rectangle {
     pure callback item-cover(int) -> image;
     pure callback item-extension-icon(int) -> image;
     callback item-clicked(int);
+    pure callback get-context-menu-items(int) -> [ContextMenuItem];
+    callback context-menu-action(int, string);
 
     ListView {
         width: 100%;
@@ -42,7 +47,7 @@ export component GridListView inherits Rectangle {
                     if (self.visible && self.item-idx < root.total-items): cell := Rectangle {
                         width: root.item-width;
                         height: root.item-height;
-                        background: touch.has-hover ? Theme.secondary : transparent;
+                        background: context_menu.has-hover ? Theme.secondary : transparent;
                         border-radius: Theme.borderRadiusLg;
                         clip: true;
 
@@ -52,10 +57,14 @@ export component GridListView inherits Rectangle {
                             extension-icon: root.item-extension-icon(col.item-idx);
                         }
 
-                        touch := TouchArea {
+                        context_menu := ContextMenu {
                             mouse-cursor: pointer;
+                            items: root.enable-context-menu ? root.get-context-menu-items(col.item-idx) : [];
                             clicked => {
                                 root.item-clicked(col.item-idx);
+                            }
+                            selected(action_id) => {
+                                root.context-menu-action(col.item-idx, action_id);
                             }
                         }
                     }

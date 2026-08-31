@@ -1,13 +1,20 @@
-use slint::{ComponentHandle, ModelRc, VecModel};
+use extensions::Extension;
+use extensions_proto::moosync::types::{
+    ExtensionDetail, ExtensionProviderScope, RequestedSearchResultRequest,
+};
+use slint::{ComponentHandle, ModelRc, VecModel, Weak};
+use songs_proto::moosync::types::SearchResult as ProtoSearchResult;
 use state_manager::StateManager;
 use types::prelude::SearchResultExt;
 
 use crate::{
-    AppCallbacks, MainWindow, SearchPageProps,
+    AppCallbacks, MainWindow, SearchPageProps, Theme,
     error::UiError,
     pages::PageHandler,
-    utils::{cache_image, load_icon, to_search_result},
+    utils::{cache_image, default_folder_icon, load_icon},
 };
+
+type SearchResultItem = (ExtensionDetail, Option<String>, ProtoSearchResult);
 
 pub struct SearchPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -27,40 +34,26 @@ impl<'a> SearchPageHandler<'a> {
     async fn search_local(
         state_manager: &StateManager,
         term: &str,
-    ) -> Result<songs_proto::moosync::types::SearchResult, UiError> {
+    ) -> Result<ProtoSearchResult, UiError> {
         let database = state_manager.get_database().await;
         Ok(database.search_all(term)?)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn search_extension(
-        term: &str,
-        ext: &extensions::Extension,
-    ) -> Result<songs_proto::moosync::types::SearchResult, UiError> {
+    async fn search_extension(term: &str, ext: &Extension) -> Result<ProtoSearchResult, UiError> {
         let resp = ext
-            .get_search_result(
-                extensions_proto::moosync::types::RequestedSearchResultRequest {
-                    query: term.to_string(),
-                },
-            )
+            .get_search_result(RequestedSearchResultRequest {
+                query: term.to_string(),
+            })
             .await?;
         Ok(resp.to_songs_proto())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn search_extensions(
-        state_manager: &StateManager,
-        term: &str,
-    ) -> Vec<(
-        extensions_proto::moosync::types::ExtensionDetail,
-        Option<String>,
-        songs_proto::moosync::types::SearchResult,
-    )> {
+    async fn search_extensions(state_manager: &StateManager, term: &str) -> Vec<SearchResultItem> {
         let ext_handler = state_manager.get_extension_handler().await;
         let active_extensions = ext_handler
-            .get_extensions_with_scope(
-                extensions_proto::moosync::types::ExtensionProviderScope::Search,
-            )
+            .get_extensions_with_scope(ExtensionProviderScope::Search)
             .await;
 
         let cache_dir = state_manager.get_cache_dir();
@@ -87,26 +80,22 @@ impl<'a> SearchPageHandler<'a> {
     fn update_ui(
         main_window: &MainWindow,
         state_manager: &StateManager,
-        local_res: Result<songs_proto::moosync::types::SearchResult, UiError>,
-        ext_results: Vec<(
-            extensions_proto::moosync::types::ExtensionDetail,
-            Option<String>,
-            songs_proto::moosync::types::SearchResult,
-        )>,
+        local_res: Result<ProtoSearchResult, UiError>,
+        ext_results: Vec<SearchResultItem>,
     ) {
-        let theme = main_window.global::<crate::Theme>();
+        let theme = main_window.global::<Theme>();
         let cache_dir = state_manager.get_cache_dir();
         let mut list = Vec::new();
 
         if let Ok(local) = local_res {
-            let local_icon = crate::utils::default_folder_icon();
-            let results = to_search_result(local, None, local_icon, &theme, &cache_dir);
+            let local_icon = default_folder_icon();
+            let results = (local, None, local_icon, &theme, cache_dir.as_path()).into();
             list.push(results);
         }
 
         for (detail, cached_path, res) in ext_results {
             let icon = load_icon(cached_path.as_deref().unwrap_or(""));
-            let results = to_search_result(res, Some(&detail), icon, &theme, &cache_dir);
+            let results = (res, Some(&detail), icon, &theme, cache_dir.as_path()).into();
             list.push(results);
         }
 
@@ -118,7 +107,7 @@ impl<'a> SearchPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn perform_search(
         state_manager: StateManager,
-        main_window_weak: slint::Weak<MainWindow>,
+        main_window_weak: Weak<MainWindow>,
         term: String,
     ) {
         tokio::spawn(async move {

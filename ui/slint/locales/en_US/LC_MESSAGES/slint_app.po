@@ -14,19 +14,19 @@ msgstr ""
 msgid "Songs"
 msgstr "Songs"
 
-#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21 ui/slint/src/app.slint:166
+#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21 ui/slint/src/app.slint:165
 msgid "Playlists"
 msgstr "Playlists"
 
-#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21 ui/slint/src/app.slint:170
+#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21 ui/slint/src/app.slint:169
 msgid "Artists"
 msgstr "Artists"
 
-#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21 ui/slint/src/app.slint:171
+#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21 ui/slint/src/app.slint:170
 msgid "Albums"
 msgstr "Albums"
 
-#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21 ui/slint/src/app.slint:172
+#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21 ui/slint/src/app.slint:171
 msgid "Genres"
 msgstr "Genres"
 
@@ -90,7 +90,7 @@ msgstr "Clear"
 msgid "Settings > Extensions"
 msgstr "Settings > Extensions"
 
-#: ui/slint/src/settings/extensions.slint:167 ui/slint/src/settings/settings.slint:43
+#: ui/slint/src/settings/extensions.slint:167
 msgid "Extensions"
 msgstr "Extensions"
 
@@ -114,47 +114,47 @@ msgstr "Add folder"
 msgid "Settings > Paths"
 msgstr "Settings > Paths"
 
-#: ui/slint/src/settings/settings.slint:40 ui/slint/src/settings/settings.slint:41
+#: ui/slint/src/settings/settings.slint:40
 msgid "Paths"
 msgstr "Paths"
 
-#: ui/slint/src/settings/settings.slint:41 ui/slint/src/settings/settings.slint:46
+#: ui/slint/src/settings/settings.slint:41
 msgid "System"
 msgstr "System"
 
-#: ui/slint/src/settings/settings.slint:47 ui/slint/src/settings/settings.slint:56
+#: ui/slint/src/settings/settings.slint:47
 msgid "Themes"
 msgstr "Themes"
 
-#: ui/slint/src/settings/settings.slint:160 ui/slint/src/settings/settings.slint:172
+#: ui/slint/src/settings/settings.slint:160
 msgid "Save Custom Theme"
 msgstr "Save Custom Theme"
 
-#: ui/slint/src/settings/settings.slint:166 ui/slint/src/settings/settings.slint:178
+#: ui/slint/src/settings/settings.slint:166
 msgid "Your current accent and advanced styling variables will be saved."
 msgstr "Your current accent and advanced styling variables will be saved."
 
-#: ui/slint/src/settings/settings.slint:174 ui/slint/src/settings/settings.slint:186
+#: ui/slint/src/settings/settings.slint:174
 msgid "Theme Name"
 msgstr "Theme Name"
 
-#: ui/slint/src/settings/settings.slint:175 ui/slint/src/settings/settings.slint:187
+#: ui/slint/src/settings/settings.slint:175
 msgid "A short, distinct name"
 msgstr "A short, distinct name"
 
-#: ui/slint/src/settings/settings.slint:176 ui/slint/src/settings/settings.slint:188
+#: ui/slint/src/settings/settings.slint:176
 msgid "e.g., Midnight Blue"
 msgstr "e.g., Midnight Blue"
 
-#: ui/slint/src/settings/settings.slint:182 ui/slint/src/settings/settings.slint:194
+#: ui/slint/src/settings/settings.slint:182
 msgid "Author"
 msgstr "Author"
 
-#: ui/slint/src/settings/settings.slint:183 ui/slint/src/settings/settings.slint:195
+#: ui/slint/src/settings/settings.slint:183
 msgid "Who created this theme?"
 msgstr "Who created this theme?"
 
-#: ui/slint/src/settings/settings.slint:184 ui/slint/src/settings/settings.slint:196
+#: ui/slint/src/settings/settings.slint:184
 msgid "Your name"
 msgstr "Your name"
 
@@ -162,11 +162,11 @@ msgstr "Your name"
 msgid "Description"
 msgstr "Description"
 
-#: ui/slint/src/settings/settings.slint:191 ui/slint/src/settings/settings.slint:203
+#: ui/slint/src/settings/settings.slint:191
 msgid "A brief summary of the aesthetics"
 msgstr "A brief summary of the aesthetics"
 
-#: ui/slint/src/settings/settings.slint:192 ui/slint/src/settings/settings.slint:204
+#: ui/slint/src/settings/settings.slint:192
 msgid "High contrast dark theme..."
 msgstr "High contrast dark theme..."
 
@@ -174,7 +174,7 @@ msgstr "High contrast dark theme..."
 msgid "Cancel"
 msgstr "Cancel"
 
-#: ui/slint/src/settings/settings.slint:204 ui/slint/src/settings/settings.slint:216
+#: ui/slint/src/settings/settings.slint:204
 msgid "Save Theme"
 msgstr "Save Theme"
 
@@ -292,4 +292,28 @@ msgstr ""
 
 #: ui/slint/src/types/context_menu.slint:72
 msgid "Delete Playlist"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:34
+msgid "Clear queue and play"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:119
+msgid "Export Playlist"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:126
+msgid "Save Playlist"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:135
+msgid "Add to Playlist"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:139
+msgid "Go to album"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:143
+msgid "Go to artists"
 msgstr ""

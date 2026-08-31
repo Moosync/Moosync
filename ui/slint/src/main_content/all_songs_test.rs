@@ -14,14 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use slint::{ComponentHandle, Model, ModelRc};
+use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use state_manager::StateManager;
 use tempdir::TempDir;
 use types::plugin::PluginContext;
 
 use crate::{
-    AllSongsPageProps, MainWindow, main_content::all_songs::AllSongsPageHandler,
-    pages::PageHandler, test_utils::run_async_test, utils::IntoVec,
+    AllSongsPageProps, ContextMenuCallbacks, ContextMenuItem, MainWindow, SongModel,
+    main_content::all_songs::AllSongsPageHandler, pages::PageHandler, test_utils::run_async_test,
+    utils::IntoVec,
 };
 
 #[test]
@@ -100,28 +101,23 @@ fn test_all_songs_context_menu_items() {
             #[cfg(target_os = "android")]
             android_context: types::android::AndroidJNIContext::default(),
         };
-        let sm: &'static StateManager =
+        let state_manager: &'static StateManager =
             Box::leak(Box::new(StateManager::new_with_context(context).unwrap()));
         let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
-        let handler = AllSongsPageHandler::new(main_window, sm);
+        let handler = AllSongsPageHandler::new(main_window, state_manager);
         handler.initialize();
 
-        let song_with_path = crate::SongModel {
+        let song_with_path = SongModel {
             path: "/path/to/song.mp3".into(),
             ..Default::default()
         };
-        let models = ModelRc::new(slint::VecModel::from(vec![song_with_path]));
+        let models = ModelRc::new(VecModel::from(vec![song_with_path]));
 
         let items = main_window
-            .global::<crate::ContextMenuCallbacks>()
-            .invoke_get_all_songs_menu_items(models);
+            .global::<ContextMenuCallbacks>()
+            .invoke_get_song_menu_items(models);
 
-        let items_vec: Vec<crate::ContextMenuItem> = items.into_vec();
+        let items_vec: Vec<ContextMenuItem> = items.into_vec();
         assert!(items_vec.iter().any(|i| i.action_id == "play_now"));
-        assert!(
-            items_vec
-                .iter()
-                .any(|i| i.action_id == "open_in_file_manager")
-        );
     });
 }

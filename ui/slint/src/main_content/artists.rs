@@ -4,7 +4,8 @@ use state_manager::StateManager;
 use tracing::debug;
 
 use crate::{
-    ArtistsPageProps, MainWindow, error::UiError, pages::PageHandler, utils::LazySongVecModel,
+    ArtistModel, ArtistsPageProps, MainWindow, Theme, error::UiError, pages::PageHandler,
+    utils::LazySongVecModel,
 };
 
 pub struct ArtistsPageHandler<'a> {
@@ -24,15 +25,14 @@ impl<'a> ArtistsPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn get_artists_from_db(state_manager: &StateManager) -> Result<Vec<Artist>, UiError> {
         let database = state_manager.get_database().await;
-        let artists_res = database.get_entity_by_options(GetEntityOptions {
+        let artists = database.get_entity_by_options(GetEntityOptions {
             artist: Some(Artist::default()),
             ..Default::default()
         })?;
-
-        match artists_res.result {
-            Some(entity_result::Result::Artists(ArtistList { artists })) => Ok(artists),
-            _ => Err(UiError::EntityParseFailed),
+        if let Some(entity_result::Result::Artists(ArtistList { artists })) = artists.result {
+            return Ok(artists);
         }
+        Ok(vec![])
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -45,10 +45,10 @@ impl<'a> ArtistsPageHandler<'a> {
         debug!("Setting artists");
         let artist_model = artists
             .into_iter()
-            .map(|artist| crate::utils::to_artist_model(&artist, None))
+            .map(ArtistModel::from)
             .collect::<Vec<_>>();
 
-        let theme = main_window.global::<crate::Theme>();
+        let theme = main_window.global::<Theme>();
         let cache_dir = state_manager.get_cache_dir();
         main_window
             .global::<ArtistsPageProps>()

@@ -1,9 +1,10 @@
 import { SongModel, CoverHelper } from "../types/song_view.slint";
 import { Theme, Constants, QueuePages } from "../constants.slint";
 import { ListView } from "std-widgets.slint";
-import { AppCallbacks } from "../callbacks.slint";
+import { AppCallbacks, ContextMenuCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button.slint";
 import { SongDetails } from "../common/song_details.slint";
+import { ContextMenu } from "../common/context_menu.slint";
 
 component QueueListItem inherits Rectangle {
     in property <SongModel> song;
@@ -57,13 +58,14 @@ component QueueListItem inherits Rectangle {
 
                 Rectangle {
                     height: 60px;
-                    background: root.is-ghost ? Theme.accent.transparentize(0.9) : (touch.has-hover ? rgba(255, 255, 255, 0.05) : transparent);
+                    background: root.is-ghost ? Theme.accent.transparentize(0.9) : (context_menu.has-hover ? rgba(255, 255, 255, 0.05) : transparent);
                     border-radius: Theme.borderRadiusMd;
                     border-width: root.is-ghost ? 1px : 0px;
                     border-color: root.is-ghost ? Theme.accent.transparentize(0.7) : transparent;
                     opacity: root.is-ghost ? 0.4 : 1.0;
 
-                    touch := TouchArea {
+                    context_menu := ContextMenu {
+                        items: ContextMenuCallbacks.get_queue_menu_items([song], root.model-idx);
                         pointer-event(event) => {
                             if (event.kind == PointerEventKind.up || event.kind == PointerEventKind.cancel) {
                                 root.drag-source-idx = -1;
@@ -72,6 +74,9 @@ component QueueListItem inherits Rectangle {
                             }
                         }
                         clicked => { root.clicked(); }
+                        selected(action_id) => {
+                            ContextMenuCallbacks.queue_action([song], root.model-idx, action_id);
+                        }
                     }
 
                     HorizontalLayout {
@@ -133,7 +138,7 @@ component QueueListItem inherits Rectangle {
                             }
                         }
 
-                        if touch.has-hover || root.is-active: VerticalLayout {
+                        if context_menu.has-hover || root.is-active: VerticalLayout {
                             alignment: center;
 
                             TouchArea {
@@ -221,23 +226,32 @@ export component QueuePage inherits Rectangle {
         return visual-idx;
     }
 
+    clip: true;
     background: Theme.primary;
-
-    Image {
-        width: 100%;
-        height: 100%;
-        source: QueuePageProps.blurred-cover;
-        image-fit: cover;
-        opacity: 0.85;
-    }
 
     Rectangle {
         width: 100%;
         height: 100%;
-        background: rgba(15, 15, 15, 0.65);
+        clip: true;
+
+        if (QueuePageProps.blurred-cover.width > 0): Image {
+            width: parent.width;
+            height: parent.height;
+            source: QueuePageProps.blurred-cover;
+            image-fit: cover;
+            opacity: 0.85;
+        }
+
+        Rectangle {
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 15, 15, 0.65);
+        }
     }
 
     HorizontalLayout {
+        width: 100%;
+        height: 100%;
         padding: Theme.paddingLg * 2;
         spacing: Theme.spacingXl * 2;
 

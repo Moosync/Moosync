@@ -1,11 +1,12 @@
+use extensions_proto::moosync::types::{ExtensionDetail, RequestedArtistSongsRequest};
 use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{Artist, GetSongOptions, Song};
 use state_manager::StateManager;
 use tracing::debug;
 
 use crate::{
-    ArtistContentPageProps, ArtistsPageProps, MainWindow, error::UiError, pages::PageHandler,
-    utils::LazySongVecModel,
+    ArtistContentPageProps, ArtistsPageProps, MainWindow, Theme, error::UiError,
+    pages::PageHandler, utils::LazySongVecModel,
 };
 
 pub struct ArtistContentPageHandler<'a> {
@@ -50,12 +51,10 @@ impl<'a> ArtistContentPageHandler<'a> {
         let handler = state_manager.get_extension_handler().await;
         let ext = handler.get_extension(&extension)?;
         let resp = ext
-            .get_artist_songs(
-                extensions_proto::moosync::types::RequestedArtistSongsRequest {
-                    artist: Some(artist),
-                    page_token: None,
-                },
-            )
+            .get_artist_songs(RequestedArtistSongsRequest {
+                artist: Some(artist),
+                page_token: None,
+            })
             .await?;
         Ok(resp.songs)
     }
@@ -77,14 +76,13 @@ impl<'a> ArtistContentPageHandler<'a> {
         main_window: &MainWindow,
         state_manager: &StateManager,
         songs: Vec<Song>,
-        detail: Option<&extensions_proto::moosync::types::ExtensionDetail>,
+        detail: Option<&ExtensionDetail>,
     ) {
-        debug!("Fetched {} songs for artist", songs.len());
         let songs_view = songs
-            .iter()
-            .map(|s| crate::utils::to_song_model(s, detail))
+            .into_iter()
+            .map(|s| (s, detail).into())
             .collect::<Vec<_>>();
-        let theme = main_window.global::<crate::Theme>();
+        let theme = main_window.global::<Theme>();
         let cache_dir = state_manager.get_cache_dir();
         main_window
             .global::<ArtistContentPageProps>()
@@ -107,14 +105,7 @@ impl<'a> PageHandler for ArtistContentPageHandler<'a> {
             .main_window
             .global::<ArtistsPageProps>()
             .get_selected_artist();
-        let artist = Artist {
-            artist_id: Some(selected.id.to_string()),
-            artist_name: Some(selected.title.to_string()),
-            artist_coverpath: Some(selected.coverPathUrl.to_string()),
-            artist_mbid: Some(selected.mbid.to_string()),
-            sanitized_artist_name: Some(selected.sanitized_name.to_string()),
-            artist_song_count: selected.songs_count as f64,
-        };
+        let artist: Artist = selected.clone().into();
         let extension = selected.extension.to_string();
 
         tokio::spawn({

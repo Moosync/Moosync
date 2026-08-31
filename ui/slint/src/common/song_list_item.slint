@@ -1,138 +1,154 @@
 import { WindowInfo } from "../window_info.slint";
 import { SongModel } from "../types/song_view.slint";
 import { Constants, Theme } from "../constants.slint";
-import { AppCallbacks } from "../callbacks.slint";
+import { AppCallbacks, ContextMenuCallbacks } from "../callbacks.slint";
+import { ContextMenu } from "context_menu.slint";
 
-export component SongListItem inherits TouchArea {
+export component SongListItem inherits Rectangle {
     in property <SongModel> song: Constants.defaultSong;
 
-    in property <color> border-color;
-    in property <length> border-width: 0px;
+    callback clicked <=> context_menu.clicked;
+    out property <bool> has-hover: context_menu.has-hover;
+    out property <bool> pressed: context_menu.pressed;
 
-    Rectangle {
-        background: Theme.secondary;
-        border-radius: Theme.borderRadiusLg;
-        border-width: border-width;
-        border-color: border-color;
-        height: Theme.songListItemHeight;
+    background: Theme.secondary;
+    border-radius: Theme.borderRadiusLg;
+    height: Theme.songListItemHeight;
 
-        HorizontalLayout {
-            padding: Theme.paddingXs;
-            padding-right: Theme.paddingLg;
+    context_menu := ContextMenu {
+        items: ContextMenuCallbacks.get_song_menu_items([song]);
+        selected(id) => {
+            ContextMenuCallbacks.song_action([song], id);
+        }
+    }
 
-            Rectangle {
-                width: Theme.songListItemThumbnailSize;
-                height: Theme.songListItemThumbnailSize;
-                border-radius: Theme.borderRadiusMd;
-                background: Theme.secondary;
-                border-width: Theme.borderWidth;
-                border-color: Theme.textPrimary.with-alpha(0.06);
-                clip: true;
+    HorizontalLayout {
+        padding: Theme.paddingXs;
+        padding-right: Theme.paddingLg;
 
-                Image {
-                    width: parent.width;
-                    height: parent.height;
-                    source: song.coverPathLow.width > 0 ? song.coverPathLow : @image-url("../icons/song_default.svg");
-                    image-fit: cover;
-                }
+        Rectangle {
+            width: Theme.songListItemThumbnailSize;
+            height: Theme.songListItemThumbnailSize;
+            border-radius: Theme.borderRadiusMd;
+            background: Theme.secondary;
+            border-width: Theme.borderWidth;
+            border-color: Theme.textPrimary.with-alpha(0.06);
+            clip: true;
 
-                touch := TouchArea {
-                    width: parent.width;
-                    height: parent.height;
-                    clicked => {
-                        AppCallbacks.play-song(song);
-                    }
-                }
+            Image {
+                width: parent.width;
+                height: parent.height;
+                source: song.coverPathLow.width > 0 ? song.coverPathLow : @image-url("../icons/song_default.svg");
+                image-fit: cover;
+            }
 
-                Rectangle {
-                    visible: touch.has-hover;
-                    width: parent.width;
-                    height: parent.height;
-                    background: rgba(0, 0, 0, 0.6);
-                    Image {
-                        source: @image-url("../icons/play.svg");
-                    }
+            touch := TouchArea {
+                width: parent.width;
+                height: parent.height;
+                clicked => {
+                    AppCallbacks.play-song(song);
                 }
             }
 
-            HorizontalLayout {
-                horizontal-stretch: 1;
-                alignment: start;
+            Rectangle {
+                visible: touch.has-hover;
+                width: parent.width;
+                height: parent.height;
+                background: rgba(0, 0, 0, 0.6);
+                Image {
+                    source: @image-url("../icons/play.svg");
+                }
+            }
+        }
 
-                VerticalLayout {
-                    alignment: center;
-                    spacing: Theme.spacingTiny;
-                    padding-left: Theme.paddingLg;
+        HorizontalLayout {
+            horizontal-stretch: 1;
+            alignment: start;
 
-                    Text {
-                        text: song.title;
-                        color: Theme.textPrimary; // Text Primary
-                        font-size: Theme.body;
-                        font-weight: 600;
-                        overflow: elide;
-                    }
+            VerticalLayout {
+                alignment: center;
+                spacing: Theme.spacingTiny;
+                padding-left: Theme.paddingLg;
 
-                    HorizontalLayout {
-                        spacing: 0px;
-                        for artist[i] in song.artists: HorizontalLayout {
-                            spacing: 0px;
-                            Text {
-                                text: (i > 0 ? ", " : "") + artist.title;
-                                color: Theme.textSecondary;
-                                font-size: Theme.caption;
-                                overflow: elide;
-                            }
-                        }
-                    }
+                Text {
+                    text: song.title;
+                    color: Theme.textPrimary; // Text Primary
+                    font-size: Theme.body;
+                    font-weight: 600;
+                    overflow: elide;
                 }
 
-                VerticalLayout {
-                    spacing: Theme.spacingTiny;
-                    alignment: center;
-                    padding-left: Theme.spacingSm / 2;
-                    padding-top: Theme.spacingSm / 2;
-
-                    if song.extension-icon.height > 0 || song.extension-icon.width > 0: Image {
-                        width: Theme.iconSizeSm;
-                        source: song.extension-icon;
-                    }
-
-                    Rectangle {
-                        height: 50%;
+                HorizontalLayout {
+                    spacing: 0px;
+                    for artist[i] in song.artists: HorizontalLayout {
+                        spacing: 0px;
+                        Text {
+                            text: (i > 0 ? ", " : "") + artist.title;
+                            color: Theme.textSecondary;
+                            font-size: Theme.caption;
+                            overflow: elide;
+                        }
                     }
                 }
             }
 
             VerticalLayout {
+                spacing: Theme.spacingTiny;
                 alignment: center;
+                padding-left: Theme.spacingSm / 2;
+                padding-top: Theme.spacingSm / 2;
+
+                if song.extension-icon.height > 0 || song.extension-icon.width > 0: Image {
+                    width: Theme.iconSizeSm;
+                    source: song.extension-icon;
+                }
+
+                Rectangle {
+                    height: 50%;
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            HorizontalLayout {
+                spacing: Theme.spacingXxl + Theme.paddingLg;
+                alignment: end;
+
                 HorizontalLayout {
-                    spacing: Theme.spacingXxl + Theme.paddingLg;
-                    alignment: end;
+                    spacing: Theme.spacingXl;
+                    Text {
+                        text: song.duration_str;
+                        color: Theme.textSecondary;
+                        font-size: Theme.caption;
+                        vertical-alignment: center;
+                    }
 
-                    HorizontalLayout {
-                        spacing: Theme.spacingXl;
-                        Text {
-                            text: song.duration_str;
-                            color: Theme.textSecondary;
-                            font-size: Theme.caption;
-                            vertical-alignment: center;
+                    if (WindowInfo.window-size > WindowInfo.sm): TouchArea {
+                        clicked => {
+                            AppCallbacks.add-song-to-queue(song)
                         }
+                        Image {
+                            width: Theme.iconSizeMd;
+                            source: @image-url("../icons/add_to_queue.svg");
+                            colorize: Theme.accent;
+                        }
+                    }
+                }
 
-                        if (WindowInfo.window-size > WindowInfo.sm): TouchArea {
-                            clicked => {
-                                AppCallbacks.add-song-to-queue(song)
-                            }
-                            Image {
-                                width: Theme.iconSizeMd;
-                                source: @image-url("../icons/add_to_queue.svg");
-                                colorize: Theme.accent;
-                            }
-                        }
+                ellipsis_touch := TouchArea {
+                    width: Theme.iconSizeMd;
+                    height: Theme.iconSizeMd;
+                    clicked => {
+                        context_menu.show_at(root.width - Theme.cardWidth, root.height);
                     }
 
                     Image {
                         width: Theme.iconSizeMd;
+                        height: Theme.iconSizeMd;
+                        image-fit: contain;
                         source: @image-url("../icons/ellipsis.svg");
+                        colorize: ellipsis_touch.has-hover ? Theme.accent : Theme.textSecondary;
                     }
                 }
             }

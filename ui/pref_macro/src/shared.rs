@@ -125,41 +125,50 @@ pub fn parse_yaml(content: &str) -> Vec<Preference> {
     prefs
 }
 
-pub fn generate_expansion(content: &str, property_name: &syn::Ident) -> proc_macro2::TokenStream {
+pub fn generate_expansion(
+    content: &str,
+    property_name: &syn::Ident,
+    handler: &syn::Ident,
+) -> proc_macro2::TokenStream {
     let prefs = parse_yaml(content);
+
+    let mut rebuild_blocks = Vec::new();
+    let mut change_cases = Vec::new();
+    let mut id_match_cases = Vec::new();
+
     let setter_name = quote::format_ident!("set_{}", property_name);
     let getter_name = quote::format_ident!("get_{}", property_name);
 
-    let mut rebuild_blocks = Vec::new();
-    let mut id_match_cases = Vec::new();
-    let mut change_cases = Vec::new();
-
-    for p in &prefs {
+    for p in prefs {
         let id_str = &p.id;
         let component_str = &p.component;
         let title_str = &p.title;
         let subtitle_str = &p.subtitle;
         let placeholder_str = &p.placeholder;
 
-        id_match_cases.push(quote! {
-            #id_str => true,
-        });
+        let radio_options_tokens: Vec<_> = p
+            .options_radio
+            .iter()
+            .map(|(opt_id, opt_label)| {
+                quote! {
+                    (#opt_id.to_string(), #opt_label.to_string())
+                }
+            })
+            .collect();
 
-        let radio_options_tokens = p.options_radio.iter().map(|(oid, olabel)| {
-            quote! {
-                (#oid.to_string(), #olabel.to_string())
-            }
-        });
-
-        let dropdown_options_tokens = p.options_dropdown.iter().map(|o| {
-            quote! {
-                #o.to_string()
-            }
-        });
+        let dropdown_options_tokens: Vec<_> = p
+            .options_dropdown
+            .iter()
+            .map(|o| {
+                quote! {
+                    #o.to_string()
+                }
+            })
+            .collect();
 
         let id_ident = quote::format_ident!("{}", id_str);
 
-        let load_value_block = if p.component == "PathSelector" {
+        let load_value_block = if p.component == "PathSelector" || p.component == "TextArrayInput" {
             quote! {
                 let val_list = config.load(preferences::keys::#id_ident).unwrap_or_default();
                 let val_string = String::new();
@@ -209,29 +218,34 @@ pub fn generate_expansion(content: &str, property_name: &syn::Ident) -> proc_mac
             }
         });
 
-        let save_block = if p.component == "PathSelector" {
+        let save_block = if p.component == "PathSelector" || p.component == "TextArrayInput" {
             quote! {
                 let mut current_list = config.load(preferences::keys::#id_ident).unwrap_or_default();
-                let val_str = change.value_string.to_string();
-                if current_list.contains(&val_str) {
-                    current_list.retain(|x| x != &val_str);
-                } else {
-                    current_list.push(val_str);
+                if !value_list.is_empty() {
+                    current_list = value_list.clone();
+                } else if !value_string.is_empty() {
+                    let val_str = value_string.clone();
+                    if current_list.contains(&val_str) {
+                        current_list.retain(|x| x != &val_str);
+                    } else {
+                        current_list.push(val_str);
+                    }
                 }
-                let _ = config.save(preferences::keys::#id_ident, current_list);
+                let _ = config.save(preferences::keys::#id_ident, current_list.clone());
+                updated_list = Some(current_list);
             }
         } else if p.component == "ToggleGroup" {
             quote! {
-                let _ = config.save(preferences::keys::#id_ident, change.value_bool);
+                let _ = config.save(preferences::keys::#id_ident, value_bool);
             }
         } else if p.component == "NumberInputGroup" {
             quote! {
-                let val: i32 = change.value_string.parse().unwrap_or(change.value_number as i32);
+                let val: i32 = value_string.parse().unwrap_or(value_number as i32);
                 let _ = config.save(preferences::keys::#id_ident, val);
             }
         } else {
             quote! {
-                let _ = config.save(preferences::keys::#id_ident, change.value_string.to_string());
+                let _ = config.save(preferences::keys::#id_ident, value_string.clone());
             }
         };
 
@@ -240,12 +254,14 @@ pub fn generate_expansion(content: &str, property_name: &syn::Ident) -> proc_mac
                 #save_block
             }
         });
+
+        id_match_cases.push(quote! {
+            #id_str => true,
+        });
     }
 
     quote! {
-        use slint::ComponentHandle;
-        use slint::Model;
-
+        #[derive(Debug, Clone, Default)]
         struct TempPrefItem {
             id: String,
             kind: String,
@@ -260,22 +276,32 @@ pub fn generate_expansion(content: &str, property_name: &syn::Ident) -> proc_mac
             options_dropdown: Vec<String>,
         }
 
-        fn rebuild_items(config: &preferences::preferences::PreferenceConfig) -> Vec<TempPrefItem> {
-            let mut items = Vec::new();
-            #(#rebuild_blocks)*
-            items
-        }
+        pub fn init(
+            main_window: &crate::MainWindow,
+            state_manager: &state_manager::StateManager,
+        ) {
+            use slint::ComponentHandle;
 
-        pub fn init(main_window: &crate::MainWindow, state_manager: &state_manager::StateManager) {
             let main_window_weak = main_window.as_weak();
             let state_manager = state_manager.clone();
+
             tokio::spawn(async move {
                 let config = state_manager.get_preference_config().await;
-                let temp_items = rebuild_items(&*config.inner);
+                let mut items = Vec::new();
+                #(#rebuild_blocks)*
 
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = main_window_weak.upgrade() {
-                        let slint_items: Vec<crate::PreferenceItem> = temp_items.into_iter().map(|item| {
+                        let slint_items: Vec<crate::PreferenceItem> = items.into_iter().map(|item| {
+                            let radio_items: Vec<crate::RadioItem> = item.options_radio.into_iter().map(|(id, label)| {
+                                crate::RadioItem {
+                                    id: id.into(),
+                                    label: label.into(),
+                                }
+                            }).collect();
+                            let dropdown_items: Vec<slint::SharedString> = item.options_dropdown.into_iter().map(|s| s.into()).collect();
+                            let list_items: Vec<slint::SharedString> = item.value_list.into_iter().map(|s| s.into()).collect();
+
                             crate::PreferenceItem {
                                 id: item.id.into(),
                                 kind: item.kind.into(),
@@ -285,18 +311,9 @@ pub fn generate_expansion(content: &str, property_name: &syn::Ident) -> proc_mac
                                 value_string: item.value_string.into(),
                                 value_bool: item.value_bool,
                                 value_number: item.value_number,
-                                value_list: slint::ModelRc::new(slint::VecModel::from(
-                                    item.value_list.into_iter().map(slint::SharedString::from).collect::<Vec<_>>()
-                                )),
-                                options_radio: slint::ModelRc::new(slint::VecModel::from(
-                                    item.options_radio.into_iter().map(|(oid, olabel)| crate::RadioItem {
-                                        id: oid.into(),
-                                        label: olabel.into(),
-                                    }).collect::<Vec<_>>()
-                                )),
-                                options_dropdown: slint::ModelRc::new(slint::VecModel::from(
-                                    item.options_dropdown.into_iter().map(slint::SharedString::from).collect::<Vec<_>>()
-                                )),
+                                value_list: slint::ModelRc::new(slint::VecModel::from(list_items)),
+                                options_radio: slint::ModelRc::new(slint::VecModel::from(radio_items)),
+                                options_dropdown: slint::ModelRc::new(slint::VecModel::from(dropdown_items)),
                             }
                         }).collect();
 
@@ -307,54 +324,78 @@ pub fn generate_expansion(content: &str, property_name: &syn::Ident) -> proc_mac
             });
         }
 
-        pub fn handle_change(
-            change: &crate::PreferenceChange,
-            main_window_weak: &slint::Weak<crate::MainWindow>,
-            state_manager: &state_manager::StateManager,
-        ) -> bool {
-            let id = change.id.to_string();
-            let main_window_weak = main_window_weak.clone();
-
-            let matches = match id.as_str() {
-                #(#id_match_cases)*
-                _ => false,
-            };
-
-            if !matches {
-                return false;
+        impl<'a> crate::settings::PreferenceHandler for #handler<'a> {
+            #[tracing::instrument(level = "debug", skip_all)]
+            fn init_preferences(&self) {
+                init(self.main_window, self.state_manager);
             }
 
-            let change = change.clone();
-            let state_manager = state_manager.clone();
-            tokio::spawn(async move {
-                let mut config = state_manager.get_preference_config_mut().await;
-                match id.as_str() {
-                    #(#change_cases)*
-                    _ => {}
+            #[tracing::instrument(level = "debug", skip_all)]
+            fn handle_preference_change(
+                &self,
+                change: &crate::PreferenceChange,
+                main_window_weak: &slint::Weak<crate::MainWindow>,
+                state_manager: &state_manager::StateManager,
+            ) -> bool {
+                use slint::Model;
+
+                let id = change.id.to_string();
+                let main_window_weak = main_window_weak.clone();
+
+                let matches = match id.as_str() {
+                    #(#id_match_cases)*
+                    _ => false,
+                };
+
+                if !matches {
+                    return false;
                 }
 
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(main_window) = main_window_weak.upgrade() {
-                        let prefs_global = main_window.global::<crate::AppPreferences>();
-                        let model_rc = prefs_global.#getter_name();
-                        if let Some(vec_model) = model_rc.as_any().downcast_ref::<slint::VecModel<crate::PreferenceItem>>() {
-                            for idx in 0..vec_model.row_count() {
-                                if let Some(mut item) = vec_model.row_data(idx) {
-                                    if item.id == id {
-                                        item.value_bool = change.value_bool;
-                                        item.value_string = change.value_string.clone().into();
-                                        item.value_number = change.value_number;
-                                        vec_model.set_row_data(idx, item);
-                                        break;
+                let value_string = change.value_string.to_string();
+                let value_bool = change.value_bool;
+                let value_number = change.value_number;
+                let value_list: Vec<String> = change.value_list.iter().map(|s| s.to_string()).collect();
+                let state_manager = state_manager.clone();
+                tokio::spawn(async move {
+                    let mut config = state_manager.get_preference_config_mut().await;
+                    let mut updated_list: Option<Vec<String>> = None;
+                    match id.as_str() {
+                        #(#change_cases)*
+                        _ => {}
+                    }
+
+                    let _ = slint::invoke_from_event_loop(move || {
+                        use slint::{ComponentHandle, Model};
+
+                        if let Some(main_window) = main_window_weak.upgrade() {
+                            let prefs_global = main_window.global::<crate::AppPreferences>();
+                            let model_rc = prefs_global.#getter_name();
+                            if let Some(vec_model) = model_rc.as_any().downcast_ref::<slint::VecModel<crate::PreferenceItem>>() {
+                                for idx in 0..vec_model.row_count() {
+                                    if let Some(mut item) = vec_model.row_data(idx) {
+                                        if item.id == id {
+                                            item.value_bool = value_bool;
+                                            item.value_string = value_string.clone().into();
+                                            item.value_number = value_number;
+                                            if let Some(ref list) = updated_list {
+                                                let list_items: Vec<slint::SharedString> = list.iter().map(|s| slint::SharedString::from(s.as_str())).collect();
+                                                item.value_list = slint::ModelRc::new(slint::VecModel::from(list_items));
+                                            } else if !value_list.is_empty() {
+                                                let list_items: Vec<slint::SharedString> = value_list.iter().map(|s| slint::SharedString::from(s.as_str())).collect();
+                                                item.value_list = slint::ModelRc::new(slint::VecModel::from(list_items));
+                                            }
+                                            vec_model.set_row_data(idx, item);
+                                            break;
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
+                    });
                 });
-            });
 
-            true
+                true
+            }
         }
     }
 }

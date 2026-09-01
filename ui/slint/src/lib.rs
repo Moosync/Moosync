@@ -601,7 +601,7 @@ fn update_manager_visibility(
 #[tracing::instrument(level = "debug", skip_all)]
 fn setup_page_navigation(
     main_window: &MainWindow,
-    pages: std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>>,
+    pages: std::rc::Rc<std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>>>,
 ) {
     for page in pages.values() {
         page.initialize();
@@ -609,7 +609,6 @@ fn setup_page_navigation(
 
     let initial_main_page = AppPage::from(main_window.get_active_page());
     let page_types: Vec<AppPage> = pages.keys().copied().collect();
-    let pages = std::rc::Rc::new(pages);
 
     let manager = std::rc::Rc::new(std::cell::RefCell::new(PageLifecycleManager::new(
         &page_types,
@@ -665,8 +664,8 @@ fn setup_ui(main_window: &'static MainWindow, state_manager: &'static StateManag
     setup_resize(main_window);
     setup_cover_helper(main_window);
     setup_song_list_helper(main_window, state_manager);
-    let pages = get_all_pages(main_window, state_manager);
-    setup_page_navigation(main_window, pages);
+    let pages = std::rc::Rc::new(get_all_pages(main_window, state_manager));
+    setup_page_navigation(main_window, pages.clone());
     setup_song_cbs(main_window, state_manager);
     setup_player_events(main_window, state_manager);
     settings::setup_settings(main_window, state_manager);

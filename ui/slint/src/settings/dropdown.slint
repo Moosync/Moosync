@@ -81,7 +81,13 @@ export component DropdownGroup inherits VerticalLayout {
                         clicked => {
                             root.current-value = option;
                             if (root.preference.id != "") {
-                                AppCallbacks.preference_changed({ id: root.preference.id, value_string: option, value_bool: false, value_number: 0.0 });
+                                AppCallbacks.preference_changed({
+                                    id: root.preference.id,
+                                    value_string: option,
+                                    value_bool: false,
+                                    value_number: 0.0,
+                                    value_list: []
+                                });
                             }
                             root.changed(option);
                         }

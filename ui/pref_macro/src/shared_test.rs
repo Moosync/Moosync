@@ -60,12 +60,16 @@ preferences:
 "#;
 
     let ident = syn::Ident::new("system_items", proc_macro2::Span::call_site());
-    let token_stream = generate_expansion(yaml, &ident);
+    let handler_ident = syn::Ident::new("SystemPageHandler", proc_macro2::Span::call_site());
+    let token_stream = generate_expansion(yaml, &ident, &handler_ident);
     let code = token_stream.to_string();
 
     assert!(code.contains("TempPrefItem"));
     assert!(code.contains("enable_scrobbling"));
-    assert!(code.contains("handle_change"));
+    assert!(code.contains("SystemPageHandler"));
+    assert!(code.contains("PreferenceHandler"));
+    assert!(code.contains("init_preferences"));
+    assert!(code.contains("handle_preference_change"));
 }
 
 #[test]

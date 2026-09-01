@@ -1,15 +1,7 @@
-import { PathSelector } from "path_selector.slint";
 import { Theme } from "../constants.slint";
-import { PreferenceGroup } from "preference_group.slint";
-import { TextInputGroup } from "text_input.slint";
 import { ScrollView } from "std-widgets.slint";
-import { ToggleGroup } from "toggle.slint";
-import { RadioGroup } from "radio_group.slint";
-import { DropdownGroup } from "dropdown.slint";
-import { NumberInputGroup } from "number_input.slint";
-import { ButtonGroup } from "button_group.slint";
 import { AppPreferences } from "preferences.slint";
-import { SingleFileInput } from "single_file_input.slint";
+import { PreferenceList } from "preference_list.slint";
 
 export component SystemPage inherits VerticalLayout {
     height: 100%;
@@ -33,28 +25,8 @@ export component SystemPage inherits VerticalLayout {
             spacing: Theme.spacingLg;
             padding-right: Theme.paddingLg;
 
-            for item in AppPreferences.system_items: PreferenceGroup {
-                if item.kind == "PathSelector": PathSelector {
-                    preference: item;
-                }
-                if item.kind == "SingleFileInput": SingleFileInput {
-                    preference: item;
-                }
-                if item.kind == "NumberInputGroup": NumberInputGroup {
-                    preference: item;
-                }
-                if item.kind == "TextInputGroup": TextInputGroup {
-                    preference: item;
-                }
-                if item.kind == "ToggleGroup": ToggleGroup {
-                    preference: item;
-                }
-                if item.kind == "RadioGroup": RadioGroup {
-                    preference: item;
-                }
-                if item.kind == "DropdownGroup": DropdownGroup {
-                    preference: item;
-                }
+            PreferenceList {
+                items: AppPreferences.system_items;
             }
         }
     }

@@ -36,6 +36,12 @@ use crate::{
     errors::ExtensionError,
 };
 
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+pub struct ExtensionLockData {
+    pub registry: String,
+    pub disabled: bool,
+}
+
 pub struct Extension {
     context: Mutex<Option<Arc<dyn ExtensionContext>>>,
     manifest: ExtensionManifest,
@@ -118,7 +124,30 @@ impl Extension {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn is_active(&self) -> bool { !self.extension_path.join(".disabled").exists() }
+    pub fn get_lock_data(&self) -> ExtensionLockData {
+        let lock_path = self.extension_path.join("extension.lock");
+        if let Ok(bytes) = fs::read(&lock_path)
+            && let Ok(data) = serde_json::from_slice::<ExtensionLockData>(&bytes)
+        {
+            return data;
+        }
+
+        ExtensionLockData {
+            registry: "local".to_string(),
+            disabled: false,
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn save_lock_data(&self, data: &ExtensionLockData) -> Result<(), ExtensionError> {
+        let lock_path = self.extension_path.join("extension.lock");
+        let bytes = serde_json::to_vec_pretty(data)?;
+        fs::write(lock_path, bytes)?;
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn is_active(&self) -> bool { !self.get_lock_data().disabled }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_active(&self, active: bool) -> Result<(), ExtensionError> {
@@ -126,22 +155,9 @@ impl Extension {
         if active {
             self.spawn_extension();
         }
-        self.set_extension_disabled_file(!active)?;
-        Ok(())
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn set_extension_disabled_file(&self, disabled: bool) -> Result<(), ExtensionError> {
-        if !self.extension_path.exists() {
-            tracing::error!("Extension path does not exist: {:?}", self.extension_path);
-            return Err(ExtensionError::NoExtensionFound);
-        }
-        let disabled_file = self.extension_path.join(".disabled");
-        if disabled {
-            fs::write(disabled_file, "")?;
-        } else if disabled_file.exists() {
-            fs::remove_file(disabled_file)?;
-        }
+        let mut lock_data = self.get_lock_data();
+        lock_data.disabled = !active;
+        self.save_lock_data(&lock_data)?;
         Ok(())
     }
 
@@ -398,7 +414,9 @@ impl Extension {
 }
 
 impl From<&Extension> for ExtensionDetail {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn from(val: &Extension) -> Self {
+        let lock_data = val.get_lock_data();
         ExtensionDetail {
             name: val.manifest.display_name.clone(),
             package_name: val.manifest.name.clone(),
@@ -414,7 +432,8 @@ impl From<&Extension> for ExtensionDetail {
                 .into_values()
                 .collect(),
             extension_icon: Some(val.manifest.icon.clone()),
-            active: val.is_active(),
+            active: !lock_data.disabled,
+            registry: Some(lock_data.registry),
         }
     }
 }

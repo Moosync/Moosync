@@ -1,4 +1,4 @@
-load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_proc_macro")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_proc_macro", "rust_test")
 
 rust_proc_macro(
     name = "pref_macro",
@@ -13,6 +13,15 @@ rust_proc_macro(
         "@crates//:proc-macro2",
         "@crates//:quote",
         "@crates//:syn",
+        "@crates//:tracing",
+    ],
+)
+
+rust_test(
+    name = "pref_macro_test",
+    crate = ":pref_macro",
+    deps = [
+        "@crates//:tracing",
     ],
 )
 

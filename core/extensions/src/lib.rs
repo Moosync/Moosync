@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{fs, path::PathBuf, str::FromStr, sync::Arc};
+use std::{collections::HashSet, fs, path::PathBuf, str::FromStr, sync::Arc};
 
 use ext_runner::ExtensionHandlerInner;
 use extensions_proto::moosync::types::{
@@ -23,16 +23,19 @@ use extensions_proto::moosync::types::{
 use fs_extra::dir::CopyOptions;
 use zip_extensions::zip_extract;
 
-pub use crate::{errors::ExtensionError, extension::Extension};
+pub use crate::{
+    errors::ExtensionError,
+    extension::{Extension, ExtensionLockData},
+};
 
 mod context;
 pub use context::ReplyHandler;
 mod errors;
 mod ext_runner;
 mod extension;
-mod remote;
-pub use remote::RemoteExtensions;
 pub mod models;
+mod remote;
+pub use remote::{DEFAULT_EXTENSION_REGISTRY, RemoteExtensions};
 
 #[cfg(test)]
 mod ext_runner_test;
@@ -44,6 +47,8 @@ mod lib_test;
 mod lib_test_smoke;
 #[cfg(test)]
 mod models_test;
+#[cfg(test)]
+mod remote_test;
 #[cfg(test)]
 mod remote_test_smoke;
 
@@ -59,6 +64,29 @@ pub enum ExtensionInfo {
     LocalPath(std::path::PathBuf),
 }
 
+impl ExtensionInfo {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn package_name(&self) -> &str {
+        match self {
+            ExtensionInfo::Local(detail) => &detail.package_name,
+            ExtensionInfo::Remote(manifest) => &manifest.package_name,
+            ExtensionInfo::LocalPath(_) => "",
+        }
+    }
+}
+
+impl std::hash::Hash for ExtensionInfo {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) { self.package_name().hash(state); }
+}
+
+impl PartialEq for ExtensionInfo {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn eq(&self, other: &Self) -> bool { self.package_name() == other.package_name() }
+}
+
+impl Eq for ExtensionInfo {}
+
 pub struct ExtensionHandler {
     pub extensions_dir: PathBuf,
     pub tmp_dir: PathBuf,
@@ -68,6 +96,7 @@ pub struct ExtensionHandler {
     pub on_extensions_updated:
         types::subscription::SubscriberList<Box<dyn Fn(()) + Send + Sync + 'static>>,
     remote: RemoteExtensions,
+    registries: HashSet<String>,
 }
 
 types::generate_on_event_impl!(
@@ -79,15 +108,32 @@ types::generate_on_event_impl!(
 impl ExtensionHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(extensions_dir: PathBuf, tmp_dir: PathBuf, cache_dir: PathBuf) -> Self {
+        let mut registries = HashSet::new();
+        registries.insert(DEFAULT_EXTENSION_REGISTRY.to_string());
         Self {
             inner: ExtensionHandlerInner::new(extensions_dir.clone(), cache_dir.clone()),
             extensions_dir: extensions_dir.clone(),
             tmp_dir: tmp_dir.clone(),
-            cache_dir,
+            cache_dir: cache_dir.clone(),
             reply_handler: None,
             on_extensions_updated: types::subscription::SubscriberList::new(),
-            remote: RemoteExtensions::new(extensions_dir, tmp_dir),
+            remote: RemoteExtensions::new(extensions_dir, tmp_dir, cache_dir),
+            registries,
         }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn set_registries(&mut self, registries: HashSet<String>) {
+        let mut registries = registries;
+        registries.insert(DEFAULT_EXTENSION_REGISTRY.to_string());
+        self.registries = registries;
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_registries(&self) -> HashSet<String> {
+        let mut set = self.registries.clone();
+        set.insert(DEFAULT_EXTENSION_REGISTRY.to_string());
+        set
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -130,12 +176,18 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn install_extension(&self, info: ExtensionInfo) -> Result<(), ExtensionError> {
-        let ext_path = match info {
+        let (ext_path, registry_name) = match info {
             ExtensionInfo::Local(_) => {
                 return Ok(());
             }
-            ExtensionInfo::Remote(manifest) => self.remote.download_extension(manifest).await?,
-            ExtensionInfo::LocalPath(path) => path,
+            ExtensionInfo::Remote(manifest) => {
+                let reg = manifest
+                    .registry
+                    .clone()
+                    .unwrap_or_else(|| "remote".to_string());
+                (self.remote.download_extension(manifest).await?, reg)
+            }
+            ExtensionInfo::LocalPath(path) => (path, "local".to_string()),
         };
 
         tracing::debug!("ext path {:?}", ext_path);
@@ -191,8 +243,18 @@ impl ExtensionHandler {
         );
         fs::rename(
             parent_dir.join(tmp_dir.file_name().unwrap()),
-            parent_dir.join(package_manifest.name),
+            parent_dir.join(package_manifest.name.clone()),
         )?;
+
+        // Write extension.lock with registry metadata and active status
+        let lock_data = ExtensionLockData {
+            registry: registry_name,
+            disabled: false,
+        };
+        let _ = fs::write(
+            ext_extract_path.join("extension.lock"),
+            serde_json::to_vec_pretty(&lock_data)?,
+        );
 
         self.find_new_extensions()?;
         self.trigger_extensions_updated();
@@ -232,16 +294,17 @@ impl ExtensionHandler {
         let installed = self.get_installed_extensions();
         let remote = self.get_cached_remote_manifests();
 
-        let mut ret = vec![];
+        let mut seen_packages = HashSet::new();
+        let mut ret = Vec::new();
+
         for inst in installed {
+            seen_packages.insert(inst.package_name.clone());
             ret.push(ExtensionInfo::Local(inst));
         }
 
         for rem in remote {
-            if !ret.iter().any(|item| match item {
-                ExtensionInfo::Local(detail) => detail.package_name == rem.package_name,
-                _ => false,
-            }) {
+            if !seen_packages.contains(&rem.package_name) {
+                seen_packages.insert(rem.package_name.clone());
                 ret.push(ExtensionInfo::Remote(rem));
             }
         }
@@ -298,7 +361,7 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_cached_remote_manifests(&self) -> Vec<FetchedExtensionManifest> {
-        let path = self.extensions_dir.join("remote_manifest_cache.json");
+        let path = self.cache_dir.join("remote_manifest_cache.json");
         if path.exists()
             && let Ok(contents) = fs::read(path)
             && let Ok(manifests) = serde_json::from_slice(&contents)
@@ -312,7 +375,8 @@ impl ExtensionHandler {
     pub async fn get_extension_manifest(
         &self,
     ) -> Result<Vec<FetchedExtensionManifest>, ExtensionError> {
-        self.remote.get_extension_manifest().await
+        let registries = self.get_registries();
+        self.remote.get_extension_manifest(&registries).await
     }
 }
 

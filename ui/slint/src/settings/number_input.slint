@@ -73,7 +73,8 @@ export component NumberInputGroup inherits HorizontalLayout {
                                     id: root.preference.id,
                                     value_string: root.value,
                                     value_bool: false,
-                                    value_number: root.value.to-float()
+                                    value_number: root.value.to-float(),
+                                    value_list: []
                                 });
                             }
                             root.edited(root.value);

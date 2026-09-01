@@ -40,7 +40,13 @@ export component ToggleGroup inherits HorizontalLayout {
             clicked => {
                 root.checked = !root.checked;
                 if (root.preference.id != "") {
-                    AppCallbacks.preference_changed({ id: root.preference.id, value_string: "", value_bool: root.checked, value_number: 0.0 });
+                    AppCallbacks.preference_changed({
+                        id: root.preference.id,
+                        value_string: "",
+                        value_bool: root.checked,
+                        value_number: 0.0,
+                        value_list: []
+                    });
                 }
                 root.toggled(root.checked);
             }

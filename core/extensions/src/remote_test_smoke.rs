@@ -26,8 +26,10 @@ fn test_remote_extensions_init() {
     let tmp = TempDir::new("moosync_remote_smoke").unwrap();
     let ext_dir = tmp.path().join("exts");
     let tmp_dir = tmp.path().join("tmp");
+    let cache_dir = tmp.path().join("cache");
     fs::create_dir_all(&ext_dir).unwrap();
     fs::create_dir_all(&tmp_dir).unwrap();
+    fs::create_dir_all(&cache_dir).unwrap();
 
-    let _remote = RemoteExtensions::new(ext_dir, tmp_dir);
+    let _remote = RemoteExtensions::new(ext_dir, tmp_dir, cache_dir);
 }

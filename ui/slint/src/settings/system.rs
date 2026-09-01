@@ -1,38 +1,35 @@
-pref_macro::generate_preferences!("src/settings/system_prefs.yaml", system_items);
+use state_manager::StateManager;
+
+use crate::{MainWindow, pages::PageHandler, settings::PreferenceHandler};
 
 pub struct SystemPageHandler<'a> {
-    main_window: &'a crate::MainWindow,
-    state_manager: &'a state_manager::StateManager,
+    main_window: &'a MainWindow,
+    state_manager: &'a StateManager,
 }
 
 impl<'a> SystemPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(
-        main_window: &'a crate::MainWindow,
-        state_manager: &'a state_manager::StateManager,
-    ) -> Self {
+    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
         Self {
             main_window,
             state_manager,
         }
     }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn handle_change(
-        change: &crate::PreferenceChange,
-        main_window_weak: &slint::Weak<crate::MainWindow>,
-        state_manager: &state_manager::StateManager,
-    ) -> bool {
-        handle_change(change, main_window_weak, state_manager)
-    }
 }
 
-impl<'a> crate::pages::PageHandler for SystemPageHandler<'a> {
+pref_macro::generate_preferences!(
+    "src/settings/system_prefs.yaml",
+    system_items,
+    SystemPageHandler
+);
+
+impl<'a> PageHandler for SystemPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn initialize(&self) { init(self.main_window, self.state_manager); }
+    fn initialize(&self) { self.init_preferences(); }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {}
+
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) {}
 }

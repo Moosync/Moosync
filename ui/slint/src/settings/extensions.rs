@@ -21,7 +21,8 @@ use slint::{ComponentHandle, ModelRc};
 use state_manager::StateManager;
 
 use crate::{
-    AppCallbacks, ExtensionItem, MainWindow, Theme, pages::PageHandler, utils::LazySongVecModel,
+    AppCallbacks, ExtensionItem, MainWindow, Theme, pages::PageHandler,
+    settings::PreferenceHandler, utils::LazySongVecModel,
 };
 
 pub struct ExtensionsPageHandler<'a> {
@@ -115,23 +116,25 @@ impl<'a> ExtensionsPageHandler<'a> {
             _ => false,
         });
 
-        if let Some(info) = ext_info {
-            match info {
-                ExtensionInfo::Local(_) => {
-                    if let Err(e) = handler.toggle_extension(info) {
-                        tracing::error!("handle_toggle_extension: Failed to toggle: {:?}", e);
-                    }
+        let Some(info) = ext_info else {
+            return;
+        };
+
+        match info {
+            ExtensionInfo::Local(_) => {
+                if let Err(e) = handler.toggle_extension(info) {
+                    tracing::error!("handle_toggle_extension: Failed to toggle: {:?}", e);
                 }
-                ExtensionInfo::Remote(_) => {
-                    if let Err(e) = handler.install_extension(info).await {
-                        tracing::error!(
-                            "handle_toggle_extension: Failed to install remote extension: {:?}",
-                            e
-                        );
-                    }
-                }
-                _ => {}
             }
+            ExtensionInfo::Remote(_) => {
+                if let Err(e) = handler.install_extension(info).await {
+                    tracing::error!(
+                        "handle_toggle_extension: Failed to install remote extension: {:?}",
+                        e
+                    );
+                }
+            }
+            _ => {}
         }
     }
 
@@ -147,10 +150,17 @@ impl<'a> ExtensionsPageHandler<'a> {
     }
 }
 
+pref_macro::generate_preferences!(
+    "src/settings/extensions_prefs.yaml",
+    extensions_items,
+    ExtensionsPageHandler
+);
+
 impl<'a> PageHandler for ExtensionsPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
         tracing::info!("ExtensionsPageHandler: Initializing");
+        self.init_preferences();
         self.setup_callbacks();
 
         let state_manager = self.state_manager.clone();

@@ -38,7 +38,13 @@ export component PathSelector {
                     let chosen = AppCallbacks.open_directory_picker();
                     if (chosen != "") {
                         if (root.preference.id != "") {
-                            AppCallbacks.preference_changed({ id: root.preference.id, value_string: chosen, value_bool: false, value_number: 0.0 });
+                            AppCallbacks.preference_changed({
+                                id: root.preference.id,
+                                value_string: chosen,
+                                value_bool: false,
+                                value_number: 0.0,
+                                value_list: []
+                            });
                         }
                     }
                 }
@@ -49,6 +55,7 @@ export component PathSelector {
             height: 150px;
             VerticalLayout {
                 spacing: Theme.spacingXxs;
+                padding-right: Theme.paddingLg;
 
                 for item in root.items: Rectangle {
                     border-radius: Theme.borderRadiusLg;
@@ -78,7 +85,13 @@ export component PathSelector {
                             height: Theme.iconSizeMd;
                             clicked => {
                                 if (root.preference.id != "") {
-                                    AppCallbacks.preference_changed({ id: root.preference.id, value_string: item, value_bool: false, value_number: 0.0 });
+                                    AppCallbacks.preference_changed({
+                                        id: root.preference.id,
+                                        value_string: item,
+                                        value_bool: false,
+                                        value_number: 0.0,
+                                        value_list: []
+                                    });
                                 }
                             }
                             VerticalLayout {

@@ -20,7 +20,9 @@ use tempdir::TempDir;
 use types::plugin::PluginContext;
 
 use crate::{
-    MainWindow, PreferenceChange, pages::PageHandler, settings::system::SystemPageHandler,
+    MainWindow, PreferenceChange,
+    pages::PageHandler,
+    settings::{PreferenceHandler, system::SystemPageHandler},
     test_utils::run_async_test,
 };
 
@@ -71,10 +73,12 @@ fn test_system_page_handler_handle_change() {
             value_string: "".into(),
             value_bool: true,
             value_number: 0.0,
+            value_list: slint::ModelRc::default(),
         };
         let mw_weak = main_window.as_weak();
+        let handler = SystemPageHandler::new(main_window, sm);
 
-        let handled = SystemPageHandler::handle_change(&change, &mw_weak, sm);
+        let handled = handler.handle_preference_change(&change, &mw_weak, sm);
 
         assert!(!handled);
     });

@@ -64,7 +64,13 @@ export component TextInputGroup inherits VerticalLayout {
                         single-line: true;
                         edited => {
                             if (root.preference.id != "") {
-                                AppCallbacks.preference_changed({ id: root.preference.id, value_string: self.text, value_bool: false, value_number: 0.0 });
+                                AppCallbacks.preference_changed({
+                                    id: root.preference.id,
+                                    value_string: self.text,
+                                    value_bool: false,
+                                    value_number: 0.0,
+                                    value_list: []
+                                });
                             }
                             root.edited(self.text);
                         }

@@ -209,6 +209,7 @@ test_suite(
         "//core/state_manager:state_manager_test",
         "//core/themes:themes_test",
         "//core/types:types_test",
+        "//ui/pref_macro:pref_macro_test",
         "//ui/slint:slint_app_lib_test",
     ],
 )

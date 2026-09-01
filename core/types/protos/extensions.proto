@@ -530,6 +530,7 @@ message ExtensionDetail {
   repeated PreferenceUiData preferences = 8;
   optional string extension_icon = 10;
   bool active = 11;
+  optional string registry = 12;
 }
 
 message ExtensionAccountDetail {
@@ -549,6 +550,7 @@ message FetchedExtensionManifest {
   optional string description = 4;
   string url = 5;
   string version = 6;
+  optional string registry = 7;
 }
 
 enum ExtensionProviderScope {

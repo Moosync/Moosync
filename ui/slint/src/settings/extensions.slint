@@ -4,6 +4,8 @@ import { AppCallbacks } from "../callbacks.slint";
 import { PreferenceGroup } from "preference_group.slint";
 import { ExtensionItem } from "../types/extension_view.slint";
 import { Button } from "../common/button.slint";
+import { AppPreferences } from "preferences.slint";
+import { PreferenceList } from "preference_list.slint";
 
 component Spinner inherits Rectangle {
     in property <bool> active: true;
@@ -51,7 +53,7 @@ component ExtensionsManifest inherits VerticalLayout {
                             Image {
                                 width: 100%;
                                 height: 100%;
-                                source: item.icon.width > 0 ? item.icon : @image-url("../icons/song_default.svg");
+                                source: item.icon.width > 0 ? item.icon : @image-url("../icons/extensions.svg");
                                 image-fit: contain;
                             }
                         }
@@ -63,13 +65,14 @@ component ExtensionsManifest inherits VerticalLayout {
                         spacing: Theme.spacingTiny;
 
                         HorizontalLayout {
-                            alignment: start;
                             spacing: Theme.spacingMd;
                             Text {
                                 text: item.name;
                                 font-size: Theme.body;
                                 font-weight: 700;
                                 color: Theme.textPrimary;
+                                overflow: elide;
+                                horizontal-stretch: 1;
                             }
 
                             Text {
@@ -77,6 +80,26 @@ component ExtensionsManifest inherits VerticalLayout {
                                 font-size: Theme.caption;
                                 color: Theme.textSecondary;
                                 vertical-alignment: center;
+                                horizontal-stretch: 0;
+                            }
+
+                            if item.registry != "": Rectangle {
+                                border-radius: Theme.borderRadiusSm;
+                                background: Theme.accent.transparentize(0.85);
+                                horizontal-stretch: 0;
+                                HorizontalLayout {
+                                    padding-left: Theme.paddingXs;
+                                    padding-right: Theme.paddingXs;
+                                    padding-top: Theme.spacingTiny;
+                                    padding-bottom: Theme.spacingTiny;
+                                    Text {
+                                        text: item.registry;
+                                        font-size: Theme.caption;
+                                        color: Theme.accent;
+                                        vertical-alignment: center;
+                                        overflow: elide;
+                                    }
+                                }
                             }
                         }
 
@@ -199,5 +222,9 @@ export component ExtensionsPage inherits VerticalLayout {
         ExtensionsManifest {
             extensions <=> root.extensions;
         }
+    }
+
+    PreferenceList {
+        items: AppPreferences.extensions_items;
     }
 }

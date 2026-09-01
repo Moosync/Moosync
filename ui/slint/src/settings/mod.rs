@@ -1,7 +1,7 @@
 use slint::ComponentHandle;
 use state_manager::StateManager;
 
-use crate::{MainWindow, PreferenceChange};
+use crate::{AppCallbacks, MainWindow, PreferenceChange};
 
 pub mod extensions;
 pub mod paths;
@@ -16,6 +16,16 @@ mod paths_test;
 mod system_test;
 #[cfg(test)]
 mod themes_test;
+
+pub(crate) trait PreferenceHandler {
+    fn init_preferences(&self);
+    fn handle_preference_change(
+        &self,
+        change: &PreferenceChange,
+        main_window_weak: &slint::Weak<MainWindow>,
+        state_manager: &StateManager,
+    ) -> bool;
+}
 
 #[cfg(not(target_os = "android"))]
 #[tracing::instrument(level = "debug", skip_all)]
@@ -51,19 +61,27 @@ fn select_file(_filter: String) -> String { String::new() }
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static StateManager) {
+    let handlers: Vec<Box<dyn PreferenceHandler + 'static>> = vec![
+        Box::new(paths::PathsPageHandler::new(main_window, state_manager)),
+        Box::new(system::SystemPageHandler::new(main_window, state_manager)),
+        Box::new(extensions::ExtensionsPageHandler::new(
+            main_window,
+            state_manager,
+        )),
+    ];
     let main_window_weak = main_window.as_weak();
     main_window
-        .global::<crate::AppCallbacks>()
+        .global::<AppCallbacks>()
         .on_preference_changed(move |change| {
-            handle_preference_change(change, &main_window_weak, state_manager);
+            handle_preference_change(change, &main_window_weak, state_manager, &handlers);
         });
 
     main_window
-        .global::<crate::AppCallbacks>()
+        .global::<AppCallbacks>()
         .on_open_directory_picker(move || select_directory().into());
 
     main_window
-        .global::<crate::AppCallbacks>()
+        .global::<AppCallbacks>()
         .on_open_file_picker(move |filter| select_file(filter.into()).into());
 }
 
@@ -72,12 +90,11 @@ pub fn handle_preference_change(
     change: PreferenceChange,
     main_window_weak: &slint::Weak<MainWindow>,
     state_manager: &'static StateManager,
+    handlers: &[Box<dyn PreferenceHandler + 'static>],
 ) {
-    let main_window_weak = main_window_weak.clone();
-    tokio::spawn(async move {
-        if paths::PathsPageHandler::handle_change(&change, &main_window_weak, state_manager) {
+    for handler in handlers {
+        if handler.handle_preference_change(&change, main_window_weak, state_manager) {
             return;
         }
-        system::SystemPageHandler::handle_change(&change, &main_window_weak, state_manager);
-    });
+    }
 }

@@ -332,3 +332,45 @@ fn test_to_search_result() {
         assert_eq!(result.genres.row_count(), 1);
     });
 }
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_from_extension_detail_default_icon() {
+    let detail = ExtensionDetail {
+        name: "Test Extension".to_string(),
+        package_name: "test.ext".to_string(),
+        version: "1.0.0".to_string(),
+        active: true,
+        has_started: true,
+        desc: Some("A test extension".to_string()),
+        extension_icon: None,
+        registry: Some("local".to_string()),
+        ..Default::default()
+    };
+
+    let item = ExtensionItem::from(detail);
+
+    assert_eq!(item.name, "Test Extension");
+    assert_eq!(item.icon.size().width, 0);
+    assert_eq!(item.icon.size().height, 0);
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_from_fetched_extension_manifest_default_icon() {
+    let manifest = FetchedExtensionManifest {
+        name: "Remote Extension".to_string(),
+        package_name: "remote.ext".to_string(),
+        version: "2.0.0".to_string(),
+        description: Some("Remote description".to_string()),
+        logo: None,
+        url: "https://example.com/ext.msox".to_string(),
+        registry: Some("Community".to_string()),
+    };
+
+    let item = ExtensionItem::from(manifest);
+
+    assert_eq!(item.name, "Remote Extension");
+    assert_eq!(item.icon.size().width, 0);
+    assert_eq!(item.icon.size().height, 0);
+}

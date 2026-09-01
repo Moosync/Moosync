@@ -9,6 +9,9 @@ rust_test(
         "@moosync_ext//sample_extensions/py:sample_extension",
         "@moosync_ext//sample_extensions/rs:sample_extension",
     ],
+    deps = [
+        "@crates//:wiremock",
+    ],
 )
 
 rust_test(
@@ -42,6 +45,7 @@ rust_library(
         "src/models.rs",
         "src/models_test.rs",
         "src/remote.rs",
+        "src/remote_test.rs",
         "src/remote_test_smoke.rs",
         "src/sample_tests.rs",
         "src/tests.rs",

@@ -7,10 +7,7 @@ use songs_proto::moosync::types::{
 };
 use types::prelude::{SongsExt, core_to_proto_duration};
 
-use super::{
-    default_empty_icon, default_entity_cover, get_extension_icon, lazy_model::LazySongVecModel,
-    load_icon,
-};
+use super::{default_entity_cover, get_extension_icon, lazy_model::LazySongVecModel, load_icon};
 use crate::{
     AlbumModel, ArtistModel, ExtensionItem, GenreModel, PlaylistModel, SearchResult, SongModel,
     Theme,
@@ -435,9 +432,10 @@ impl From<ExtensionDetail> for ExtensionItem {
             is_installed: true,
             loading: ext.active && !ext.has_started,
             description: ext.desc.unwrap_or_default().into(),
-            icon: default_empty_icon(),
+            icon: Image::default(),
             has_started: ext.has_started,
             icon_url: ext.extension_icon.unwrap_or_default().into(),
+            registry: ext.registry.unwrap_or_else(|| "local".to_string()).into(),
         }
     }
 }
@@ -453,9 +451,10 @@ impl From<FetchedExtensionManifest> for ExtensionItem {
             is_installed: false,
             loading: false,
             description: ext.description.unwrap_or_default().into(),
-            icon: default_empty_icon(),
+            icon: Image::default(),
             has_started: false,
             icon_url: ext.logo.unwrap_or_default().into(),
+            registry: ext.registry.unwrap_or_default().into(),
         }
     }
 }

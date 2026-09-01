@@ -1,0 +1,43 @@
+import { Theme } from "../constants.slint";
+import { PathSelector } from "path_selector.slint";
+import { SingleFileInput } from "single_file_input.slint";
+import { NumberInputGroup } from "number_input.slint";
+import { TextInputGroup } from "text_input.slint";
+import { ToggleGroup } from "toggle.slint";
+import { RadioGroup } from "radio_group.slint";
+import { DropdownGroup } from "dropdown.slint";
+import { TextArrayInput } from "text_array_input.slint";
+import { PreferenceGroup } from "preference_group.slint";
+import { PreferenceItem } from "preferences.slint";
+
+export component PreferenceList inherits VerticalLayout {
+    in property <[PreferenceItem]> items;
+    spacing: Theme.spacingLg;
+
+    for item in root.items: PreferenceGroup {
+        if item.kind == "PathSelector": PathSelector {
+            preference: item;
+        }
+        if item.kind == "SingleFileInput": SingleFileInput {
+            preference: item;
+        }
+        if item.kind == "NumberInputGroup": NumberInputGroup {
+            preference: item;
+        }
+        if item.kind == "TextInputGroup": TextInputGroup {
+            preference: item;
+        }
+        if item.kind == "ToggleGroup": ToggleGroup {
+            preference: item;
+        }
+        if item.kind == "RadioGroup": RadioGroup {
+            preference: item;
+        }
+        if item.kind == "DropdownGroup": DropdownGroup {
+            preference: item;
+        }
+        if item.kind == "TextArrayInput": TextArrayInput {
+            preference: item;
+        }
+    }
+}

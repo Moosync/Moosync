@@ -144,7 +144,15 @@ fn test_extension_preferences_and_active_state() {
     let manifest_path = test_dir.join("package.json");
     fs::write(&manifest_path, manifest_json).unwrap();
     // Initially disabled
-    fs::write(test_dir.join(".disabled"), "").unwrap();
+    let lock_data = serde_json::json!({
+        "registry": "local",
+        "disabled": true
+    });
+    fs::write(
+        test_dir.join("extension.lock"),
+        serde_json::to_vec(&lock_data).unwrap(),
+    )
+    .unwrap();
 
     let reply = Arc::new(DummyReply);
     let has_started = Arc::new(AtomicBool::new(false));
@@ -153,6 +161,7 @@ fn test_extension_preferences_and_active_state() {
 
     assert_eq!(ext.get_package_name(), "unit.pkg");
     assert!(!ext.is_active());
+    assert_eq!(ext.get_lock_data().registry, "local");
 
     // Register UI preferences
     ext.register_ui_preferences(vec![PreferenceUiData {

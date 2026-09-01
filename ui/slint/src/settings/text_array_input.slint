@@ -1,0 +1,155 @@
+import { Theme } from "../constants.slint";
+import { ScrollView } from "std-widgets.slint";
+import { PreferenceItem } from "preferences.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { Button } from "../common/button.slint";
+
+export component TextArrayInput inherits VerticalLayout {
+    in property <PreferenceItem> preference;
+    in property <string> title: root.preference.title;
+    in property <string> subtitle: root.preference.subtitle;
+    in property <string> placeholder: root.preference.placeholder;
+    in property <[string]> items: root.preference.value_list;
+
+    property <string> new_text: "";
+
+    callback added(string);
+    callback removed(string);
+
+    spacing: Theme.spacingSm;
+
+    VerticalLayout {
+        spacing: Theme.spacingXs;
+        Text {
+            text: root.title;
+            font-size: Theme.modelTitle;
+            color: Theme.textPrimary;
+        }
+
+        if root.subtitle != "": Text {
+            text: root.subtitle;
+            font-size: Theme.caption;
+            color: Theme.textSecondary;
+            wrap: word-wrap;
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.spacingMd;
+        height: Theme.textInputHeight;
+
+        Rectangle {
+            horizontal-stretch: 1;
+            border-radius: Theme.borderRadiusXl;
+            border-color: text_area.has-hover || text_input.has-focus ? Theme.accent : Theme.textSecondary;
+            border-width: 1px;
+
+            HorizontalLayout {
+                padding-left: Theme.paddingMd;
+                padding-right: Theme.paddingMd;
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                    if (text_input.text == "" && root.placeholder != ""): Text {
+                        text: root.placeholder;
+                        color: Theme.textSecondary;
+                        font-size: Theme.body;
+                        vertical-alignment: center;
+                    }
+                    text_input := TextInput {
+                        width: 100%;
+                        height: 100%;
+                        text <=> root.new_text;
+                        color: Theme.textPrimary;
+                        font-size: Theme.body;
+                        vertical-alignment: center;
+                        single-line: true;
+                    }
+                }
+            }
+
+            text_area := TouchArea {
+                clicked => {
+                    text_input.focus();
+                }
+            }
+        }
+
+        Button {
+            text: @tr("Add");
+            icon: @image-url("../icons/plus.svg");
+            clicked => {
+                if (root.new_text != "") {
+                    if (root.preference.id != "") {
+                        AppCallbacks.preference_changed({
+                            id: root.preference.id,
+                            value_string: root.new_text,
+                            value_bool: false,
+                            value_number: 0.0,
+                            value_list: []
+                        });
+                    }
+                    root.added(root.new_text);
+                    root.new_text = "";
+                }
+            }
+        }
+    }
+
+    ScrollView {
+        height: 120px;
+        VerticalLayout {
+            spacing: Theme.spacingXxs;
+            padding-right: Theme.paddingLg;
+
+            for item in root.items: Rectangle {
+                border-radius: Theme.borderRadiusLg;
+                border-width: 1px;
+                border-color: Theme.textSecondary;
+
+                HorizontalLayout {
+                    padding-top: 10px;
+                    padding-bottom: 10px;
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    spacing: Theme.spacingMd;
+
+                    Text {
+                        text: item;
+                        horizontal-stretch: 1;
+                        vertical-alignment: center;
+                        color: Theme.textPrimary;
+                        font-size: Theme.body;
+                        overflow: elide;
+                    }
+
+                    TouchArea {
+                        width: Theme.iconSizeMd;
+                        height: Theme.iconSizeMd;
+                        clicked => {
+                            if (root.preference.id != "") {
+                                AppCallbacks.preference_changed({
+                                    id: root.preference.id,
+                                    value_string: item,
+                                    value_bool: false,
+                                    value_number: 0.0,
+                                    value_list: []
+                                });
+                            }
+                            root.removed(item);
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            Image {
+                                source: @image-url("../icons/cross.svg");
+                                colorize: Theme.textPrimary;
+                                width: 8px;
+                                height: 8px;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

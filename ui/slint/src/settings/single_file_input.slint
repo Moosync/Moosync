@@ -54,7 +54,13 @@ export component SingleFileInput inherits VerticalLayout {
                         let chosen = AppCallbacks.open_directory_picker();
                         if (chosen != "") {
                             if (root.preference.id != "") {
-                                AppCallbacks.preference_changed({ id: root.preference.id, value_string: chosen, value_bool: false, value_number: 0.0 });
+                                AppCallbacks.preference_changed({
+                                    id: root.preference.id,
+                                    value_string: chosen,
+                                    value_bool: false,
+                                    value_number: 0.0,
+                                    value_list: []
+                                });
                             }
                             root.value = chosen;
                             root.browse_clicked();

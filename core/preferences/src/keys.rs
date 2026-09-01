@@ -94,4 +94,5 @@ define_keys! {
     VolumePersistMode: String = "volume_persist_mode";
     I18nLanguage: String = "i18n_language";
     ActiveThemeId: String = "active_theme_id";
+    ExtensionRegistries: Vec<String> = "extension_registries";
 }

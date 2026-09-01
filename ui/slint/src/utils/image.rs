@@ -1,7 +1,12 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::LazyLock,
+};
 
 use extensions_proto::moosync::types::ExtensionDetail;
 use slint::Image;
+
+static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 
 pub static DEFAULT_SONG_SVG: &[u8] = include_bytes!("../icons/song_default.svg");
 pub static DEFAULT_ENTITY_SVG: &[u8] = include_bytes!("../icons/entity_default.svg");
@@ -96,8 +101,7 @@ pub async fn cache_image(cover_url: &str, cache_dir: &Path) -> Option<PathBuf> {
         let _ = std::fs::create_dir_all(&img_cache_dir);
     }
 
-    let client = reqwest::Client::new();
-    let resp = client.get(cover_url).send().await.ok()?;
+    let resp = HTTP_CLIENT.get(cover_url).send().await.ok()?;
     if resp.status() != reqwest::StatusCode::OK {
         return None;
     }

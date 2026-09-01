@@ -23,7 +23,7 @@ impl<'a> AlbumsPageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn get_albums_from_db(state_manager: &StateManager) -> Result<Vec<Album>, UiError> {
+    async fn fetch_albums(state_manager: &StateManager) -> Result<Vec<Album>, UiError> {
         let database = state_manager.get_database().await;
         let albums_res = database.get_entity_by_options(GetEntityOptions {
             album: Some(Album::default()),
@@ -34,11 +34,6 @@ impl<'a> AlbumsPageHandler<'a> {
             Some(entity_result::Result::Albums(AlbumList { albums })) => Ok(albums),
             _ => Err(UiError::EntityParseFailed),
         }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_albums(state_manager: &StateManager) -> Result<Vec<Album>, UiError> {
-        Self::get_albums_from_db(state_manager).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

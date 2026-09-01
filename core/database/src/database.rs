@@ -40,6 +40,11 @@ use crate::{
     },
 };
 
+const ALLSONGS_COLUMNS: &str = "a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype, \
+                                a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url, \
+                                a.song_coverpath_high, a.playbackurl, a.song_coverpath_low, a.date_added, \
+                                a.provider_extension, a.icon, a.show_in_library, a.track_no, a.library_item";
+
 #[derive(Debug, Clone)]
 pub struct Database {
     pub pool: r2d2::Pool<r2d2_sqlite::SqliteConnectionManager>,
@@ -906,14 +911,11 @@ impl Database {
 
         trace!("Getting albums");
         let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let rows = stmt
+        let fetched = stmt
             .query_map(&*params, map_row_to_album)
+            .map_err(DatabaseError::Query)?
+            .collect::<Result<Vec<_>, _>>()
             .map_err(DatabaseError::Query)?;
-
-        let mut fetched = Vec::new();
-        for r in rows {
-            fetched.push(r.map_err(DatabaseError::Query)?);
-        }
         info!("Fetched albums");
         Ok(fetched)
     }
@@ -950,14 +952,11 @@ impl Database {
 
         trace!("Fetching artists");
         let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let rows = stmt
+        let fetched = stmt
             .query_map(&*params, map_row_to_artist)
+            .map_err(DatabaseError::Query)?
+            .collect::<Result<Vec<_>, _>>()
             .map_err(DatabaseError::Query)?;
-
-        let mut fetched = Vec::new();
-        for r in rows {
-            fetched.push(r.map_err(DatabaseError::Query)?);
-        }
         info!("Fetched artists");
         Ok(fetched)
     }
@@ -990,14 +989,11 @@ impl Database {
 
         trace!("Fetching genres");
         let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let rows = stmt
+        let fetched = stmt
             .query_map(&*params, map_row_to_genre)
+            .map_err(DatabaseError::Query)?
+            .collect::<Result<Vec<_>, _>>()
             .map_err(DatabaseError::Query)?;
-
-        let mut fetched = Vec::new();
-        for r in rows {
-            fetched.push(r.map_err(DatabaseError::Query)?);
-        }
         info!("Fetched genres");
         Ok(fetched)
     }
@@ -1034,14 +1030,11 @@ impl Database {
 
         trace!("Fetching playlists");
         let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let rows = stmt
+        let fetched = stmt
             .query_map(&*params, map_row_to_playlist)
+            .map_err(DatabaseError::Query)?
+            .collect::<Result<Vec<_>, _>>()
             .map_err(DatabaseError::Query)?;
-
-        let mut fetched = Vec::new();
-        for r in rows {
-            fetched.push(r.map_err(DatabaseError::Query)?);
-        }
         Ok(fetched)
     }
 
@@ -1123,13 +1116,9 @@ impl Database {
         conn: &mut rusqlite::Connection,
     ) -> Result<Vec<InnerSong>, DatabaseError> {
         trace!("Fetching album songs");
-        let mut query = "SELECT a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype,
-                                a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url,
-                                a.song_coverpath_high, a.playbackurl, a.song_coverpath_low, a.date_added,
-                                a.provider_extension, a.icon, a.show_in_library, a.track_no, a.library_item
-                         FROM allsongs a
-                         JOIN album_bridge b ON a._id = b.song
-                         JOIN albums al ON b.album = al.album_id".to_string();
+        let mut query = format!(
+            "SELECT {ALLSONGS_COLUMNS} FROM allsongs a JOIN album_bridge b ON a._id = b.song JOIN albums al ON b.album = al.album_id"
+        );
         let mut clauses = Vec::new();
         let mut params = Vec::new();
 
@@ -1149,14 +1138,11 @@ impl Database {
         }
 
         let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let rows = stmt
+        let fetched = stmt
             .query_map(&*params, map_row_to_inner_song)
+            .map_err(DatabaseError::Query)?
+            .collect::<Result<Vec<_>, _>>()
             .map_err(DatabaseError::Query)?;
-
-        let mut fetched = Vec::new();
-        for r in rows {
-            fetched.push(r.map_err(DatabaseError::Query)?);
-        }
         info!("Fetched album songs");
         Ok(fetched)
     }
@@ -1169,13 +1155,9 @@ impl Database {
         conn: &mut rusqlite::Connection,
     ) -> Result<Vec<InnerSong>, DatabaseError> {
         trace!("Fetching artist songs");
-        let mut query = "SELECT a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype,
-                                a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url,
-                                a.song_coverpath_high, a.playbackurl, a.song_coverpath_low, a.date_added,
-                                a.provider_extension, a.icon, a.show_in_library, a.track_no, a.library_item
-                         FROM allsongs a
-                         JOIN artist_bridge b ON a._id = b.song
-                         JOIN artists ar ON b.artist = ar.artist_id".to_string();
+        let mut query = format!(
+            "SELECT {ALLSONGS_COLUMNS} FROM allsongs a JOIN artist_bridge b ON a._id = b.song JOIN artists ar ON b.artist = ar.artist_id"
+        );
         let mut clauses = Vec::new();
         let mut params = Vec::new();
 
@@ -1199,14 +1181,11 @@ impl Database {
         }
 
         let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let rows = stmt
+        let fetched = stmt
             .query_map(&*params, map_row_to_inner_song)
+            .map_err(DatabaseError::Query)?
+            .collect::<Result<Vec<_>, _>>()
             .map_err(DatabaseError::Query)?;
-
-        let mut fetched = Vec::new();
-        for r in rows {
-            fetched.push(r.map_err(DatabaseError::Query)?);
-        }
         info!("Fetched artist songs");
         Ok(fetched)
     }
@@ -1219,13 +1198,9 @@ impl Database {
         conn: &mut rusqlite::Connection,
     ) -> Result<Vec<InnerSong>, DatabaseError> {
         trace!("Fetching genre songs");
-        let mut query = "SELECT a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype,
-                                a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url,
-                                a.song_coverpath_high, a.playbackurl, a.song_coverpath_low, a.date_added,
-                                a.provider_extension, a.icon, a.show_in_library, a.track_no, a.library_item
-                         FROM allsongs a
-                         JOIN genre_bridge b ON a._id = b.song
-                         JOIN genres g ON b.genre = g.genre_id".to_string();
+        let mut query = format!(
+            "SELECT {ALLSONGS_COLUMNS} FROM allsongs a JOIN genre_bridge b ON a._id = b.song JOIN genres g ON b.genre = g.genre_id"
+        );
         let mut clauses = Vec::new();
         let mut params = Vec::new();
 
@@ -1245,14 +1220,11 @@ impl Database {
         }
 
         let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let rows = stmt
+        let fetched = stmt
             .query_map(&*params, map_row_to_inner_song)
+            .map_err(DatabaseError::Query)?
+            .collect::<Result<Vec<_>, _>>()
             .map_err(DatabaseError::Query)?;
-
-        let mut fetched = Vec::new();
-        for r in rows {
-            fetched.push(r.map_err(DatabaseError::Query)?);
-        }
         info!("Fetched genre songs");
         Ok(fetched)
     }
@@ -1265,13 +1237,9 @@ impl Database {
         conn: &mut rusqlite::Connection,
     ) -> Result<Vec<InnerSong>, DatabaseError> {
         trace!("Fetching playlist songs");
-        let mut query = "SELECT a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype,
-                                a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url,
-                                a.song_coverpath_high, a.playbackurl, a.song_coverpath_low, a.date_added,
-                                a.provider_extension, a.icon, a.show_in_library, a.track_no, a.library_item
-                         FROM allsongs a
-                         JOIN playlist_bridge b ON a._id = b.song
-                         JOIN playlists p ON b.playlist = p.playlist_id".to_string();
+        let mut query = format!(
+            "SELECT {ALLSONGS_COLUMNS} FROM allsongs a JOIN playlist_bridge b ON a._id = b.song JOIN playlists p ON b.playlist = p.playlist_id"
+        );
         let mut clauses = Vec::new();
         let mut params = Vec::new();
 
@@ -1295,14 +1263,11 @@ impl Database {
         }
 
         let mut stmt = conn.prepare(&query).map_err(DatabaseError::Query)?;
-        let rows = stmt
+        let fetched = stmt
             .query_map(&*params, map_row_to_inner_song)
+            .map_err(DatabaseError::Query)?
+            .collect::<Result<Vec<_>, _>>()
             .map_err(DatabaseError::Query)?;
-
-        let mut fetched = Vec::new();
-        for r in rows {
-            fetched.push(r.map_err(DatabaseError::Query)?);
-        }
         info!("Fetched playlist songs");
         Ok(fetched)
     }

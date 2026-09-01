@@ -202,7 +202,7 @@ impl ThemeHolder {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn get_themes_manifest(&self) -> Result<HashMap<String, ThemeDetails>, ThemesError> {
-        #[derive(serde::Deserialize, Debug, Clone)]
+        #[derive(serde::Deserialize, Debug)]
         struct GithubReleaseAsset {
             browser_download_url: String,
             name: String,
@@ -219,38 +219,51 @@ impl ThemeHolder {
         }
 
         let client = reqwest::Client::new();
-        let res = client.get(
-            "https://api.github.com/repos/Moosync/themes/releases/latest",
-        )        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
-        .header("Accept", "application/json")
-        .send()
-        .await
-        .map_err(ThemesError::Network)?;
+        let res = client
+            .get("https://api.github.com/repos/Moosync/themes/releases/latest")
+            .header(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+            )
+            .header("Accept", "application/json")
+            .send()
+            .await
+            .map_err(ThemesError::Network)?;
 
         let releases_resp = res
             .json::<GithubReleasesResp>()
             .await
             .map_err(ThemesError::Network)?;
 
-        let mut ret = HashMap::new();
-        for item in releases_resp.assets.clone() {
-            if item.name == "manifest.json" {
-                let res = client.get(&item.browser_download_url).header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
-                        .header("Accept", "application/json")
-                        .send().await
-                        .map_err(ThemesError::Network)?;
+        let Some(manifest_asset) = releases_resp
+            .assets
+            .iter()
+            .find(|asset| asset.name == "manifest.json")
+        else {
+            return Ok(HashMap::new());
+        };
 
-                let bytes = res.bytes().await.map_err(ThemesError::Network)?;
-                let manifests: HashMap<String, ThemeItemHelper> = serde_json::from_slice(&bytes)?;
-                for (theme_id, manifest) in manifests {
-                    let asset = releases_resp.assets.iter().find(|asset| {
-                        asset.name.starts_with(theme_id.as_str()) && asset.name.ends_with(".mstx")
-                    });
-                    if let Some(asset) = asset {
-                        ret.insert(asset.browser_download_url.clone(), manifest.data);
-                    }
-                }
-                break;
+        let res = client
+            .get(&manifest_asset.browser_download_url)
+            .header(
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+            )
+            .header("Accept", "application/json")
+            .send()
+            .await
+            .map_err(ThemesError::Network)?;
+
+        let bytes = res.bytes().await.map_err(ThemesError::Network)?;
+        let manifests: HashMap<String, ThemeItemHelper> = serde_json::from_slice(&bytes)?;
+
+        let mut ret = HashMap::new();
+        for (theme_id, manifest) in manifests {
+            let asset = releases_resp.assets.iter().find(|asset| {
+                asset.name.starts_with(theme_id.as_str()) && asset.name.ends_with(".mstx")
+            });
+            if let Some(asset) = asset {
+                ret.insert(asset.browser_download_url.clone(), manifest.data);
             }
         }
 

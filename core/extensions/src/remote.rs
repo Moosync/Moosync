@@ -56,6 +56,7 @@ pub struct RemoteExtensions {
     _extensions_dir: PathBuf,
     tmp_dir: PathBuf,
     cache_dir: PathBuf,
+    client: reqwest::Client,
 }
 
 impl RemoteExtensions {
@@ -65,6 +66,7 @@ impl RemoteExtensions {
             _extensions_dir: extensions_dir,
             tmp_dir,
             cache_dir,
+            client: reqwest::Client::new(),
         }
     }
 
@@ -72,23 +74,18 @@ impl RemoteExtensions {
     pub async fn get_extension_manifest(
         &self,
         registries: &HashSet<String>,
-    ) -> Result<Vec<FetchedExtensionManifest>, ExtensionError> {
+    ) -> Result<HashSet<FetchedExtensionManifest>, ExtensionError> {
         tracing::info!(
             "Getting extension manifests from registries: {:?}",
             registries
         );
-        let client = reqwest::Client::new();
-        let mut seen_packages = HashSet::new();
-        let mut ret = Vec::new();
+        let mut ret = HashSet::new();
 
         for registry_url in registries {
-            match self.fetch_registry(&client, registry_url).await {
+            match self.fetch_registry(&self.client, registry_url).await {
                 Ok(manifests) => {
                     for manifest in manifests {
-                        if !seen_packages.contains(&manifest.package_name) {
-                            seen_packages.insert(manifest.package_name.clone());
-                            ret.push(manifest);
-                        }
+                        ret.insert(manifest);
                     }
                 }
                 Err(err) => {
@@ -199,7 +196,10 @@ impl RemoteExtensions {
 
         tracing::info!("parsed url {}. Saving at {:?}", parsed_url, file_path);
 
-        let mut stream = reqwest::get(parsed_url)
+        let mut stream = self
+            .client
+            .get(parsed_url)
+            .send()
             .await?
             .error_for_status()?
             .bytes_stream();

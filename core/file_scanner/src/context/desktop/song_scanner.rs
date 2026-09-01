@@ -94,14 +94,13 @@ async fn store_picture(
     thumbnail_dir: &Path,
     picture: &lofty::picture::Picture,
 ) -> Result<(PathBuf, PathBuf), ScannerError> {
-    let data = picture.data().to_vec();
-    let hash = blake3::hash(&data).to_hex();
+    let hash = blake3::hash(picture.data()).to_hex();
     let hash_str = hash.as_str();
     let low_path = thumbnail_dir.join(format!("{}-low.png", hash_str));
     let high_path = thumbnail_dir.join(format!("{}.png", hash_str));
 
     if !high_path.exists() {
-        let d = data.clone();
+        let d = picture.data().to_vec();
         let hp = high_path.clone();
         tokio::task::spawn_blocking(move || {
             ImageProcessor::new(&d).resize(400).compress().save(&hp)
@@ -110,9 +109,10 @@ async fn store_picture(
         .map_err(ScannerError::Join)??;
     }
     if !low_path.exists() {
+        let d = picture.data().to_vec();
         let lp = low_path.clone();
         tokio::task::spawn_blocking(move || {
-            ImageProcessor::new(&data).resize(80).compress().save(&lp)
+            ImageProcessor::new(&d).resize(80).compress().save(&lp)
         })
         .await
         .map_err(ScannerError::Join)??;

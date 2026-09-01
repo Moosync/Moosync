@@ -234,7 +234,7 @@ impl PreferenceConfig {
     {
         let prefs = self.memcache.read().unwrap();
         if let Some(val) = prefs.prefs.get(&key) {
-            let t: T = serde_json::from_value(val.clone())?;
+            let t = T::deserialize(val)?;
             return Ok(t);
         }
         Err(PreferencesError::KeyNotFound(key))

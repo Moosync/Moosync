@@ -5,6 +5,7 @@ PROST_OPTS = [
     "type_attribute=.=#[derive(serde::Serialize\\,serde::Deserialize)]",
     "type_attribute=.moosync.types.ThemeItem=#[serde(default)]",
     "type_attribute=.moosync.types.ThemeDetails=#[serde(default)]",
+    "type_attribute=.moosync.types.FetchedExtensionManifest=#[derive(Eq\\,Hash)]",
     "type_attribute=.=#[serde(rename_all=\"camelCase\")]",
 ]
 

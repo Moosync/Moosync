@@ -23,7 +23,7 @@ impl<'a> GenresPageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn get_genres_from_db(state_manager: &StateManager) -> Result<Vec<Genre>, UiError> {
+    async fn fetch_genres(state_manager: &StateManager) -> Result<Vec<Genre>, UiError> {
         let database = state_manager.get_database().await;
         let genres_res = database.get_entity_by_options(GetEntityOptions {
             genre: Some(Genre::default()),
@@ -34,11 +34,6 @@ impl<'a> GenresPageHandler<'a> {
             Some(entity_result::Result::Genres(GenreList { genres })) => Ok(genres),
             _ => Err(UiError::EntityParseFailed),
         }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_genres(state_manager: &StateManager) -> Result<Vec<Genre>, UiError> {
-        Self::get_genres_from_db(state_manager).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

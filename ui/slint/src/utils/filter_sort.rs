@@ -10,7 +10,7 @@ fn song_matches_query(song: &SongModel, query: &str) -> bool {
     if query.is_empty() {
         return true;
     }
-    song.title.to_lowercase().contains(&query.to_lowercase())
+    song.title.to_lowercase().contains(query)
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

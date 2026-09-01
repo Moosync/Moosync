@@ -23,7 +23,7 @@ use std::{
     path::{Path, PathBuf},
     process,
     str::FromStr,
-    sync::{Arc, Mutex},
+    sync::{Arc, LazyLock, Mutex},
     thread,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -51,6 +51,9 @@ use crate::{
     errors::ExtensionError,
     models::SanitizeCommand,
 };
+
+static ENV_VAR_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\{([A-Z_][A-Z0-9_]*)\}").unwrap());
 
 struct MainCommandUserData {
     package_name: String,
@@ -445,8 +448,23 @@ impl ExtismContext {
                 if let Err(e) = plugin.call::<(), ()>("entry", ()) {
                     println!("Failed to called extension entry: {:?}", e);
                     if let Some(parent) = PathBuf::from(&extension_entry).parent() {
-                        let disabled_file = parent.join(".disabled");
-                        let _ = fs::write(disabled_file, "");
+                        let lock_path = parent.join("extension.lock");
+                        let mut lock_data = if let Ok(bytes) = fs::read(&lock_path)
+                            && let Ok(data) = serde_json::from_slice::<
+                                crate::extension::ExtensionLockData,
+                            >(&bytes)
+                        {
+                            data
+                        } else {
+                            crate::extension::ExtensionLockData {
+                                registry: "local".to_string(),
+                                disabled: false,
+                            }
+                        };
+                        lock_data.disabled = true;
+                        if let Ok(bytes) = serde_json::to_vec_pretty(&lock_data) {
+                            let _ = fs::write(lock_path, bytes);
+                        }
                     }
                 }
             }
@@ -465,12 +483,11 @@ impl ExtismContext {
         permissions: &ManifestPermissions,
         ext_cache_dir: &Path,
     ) -> HashMap<String, PathBuf> {
-        let re = Regex::new(r"\{([A-Z_][A-Z0-9_]*)\}").unwrap();
         let mut allowed_paths = HashMap::new();
 
         for (key, value) in &permissions.paths {
             // Replace all matches with corresponding env variable values
-            let parsed = re
+            let parsed = ENV_VAR_REGEX
                 .replace_all(key.as_str(), |caps: &Captures| {
                     let var_name = &caps[1];
                     if var_name == "CACHE_DIR" {

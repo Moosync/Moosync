@@ -145,9 +145,7 @@ impl PlayerHandler {
         }
 
         let insert_pos = self.current_idx + 1;
-        for (offset, song) in songs.into_iter().enumerate() {
-            self.song_queue.insert(insert_pos + offset, song);
-        }
+        self.song_queue.splice(insert_pos..insert_pos, songs);
         self.trigger_queue_changed();
     }
 
@@ -176,14 +174,9 @@ impl PlayerHandler {
             return;
         }
 
-        let mut songs = songs;
         let insert_pos = self.current_idx;
-        let first_song = songs.remove(0);
-        self.song_queue.insert(insert_pos, first_song);
+        self.song_queue.splice(insert_pos..insert_pos, songs);
         self.current_idx = insert_pos;
-        for (offset, song) in songs.into_iter().enumerate() {
-            self.song_queue.insert(insert_pos + 1 + offset, song);
-        }
         self.trigger_queue_changed();
         self.trigger_song_changed();
 

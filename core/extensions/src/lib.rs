@@ -294,8 +294,8 @@ impl ExtensionHandler {
         let installed = self.get_installed_extensions();
         let remote = self.get_cached_remote_manifests();
 
-        let mut seen_packages = HashSet::new();
-        let mut ret = Vec::new();
+        let mut seen_packages = HashSet::with_capacity(installed.len() + remote.len());
+        let mut ret = Vec::with_capacity(installed.len() + remote.len());
 
         for inst in installed {
             seen_packages.insert(inst.package_name.clone());
@@ -360,7 +360,7 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_cached_remote_manifests(&self) -> Vec<FetchedExtensionManifest> {
+    pub fn get_cached_remote_manifests(&self) -> HashSet<FetchedExtensionManifest> {
         let path = self.cache_dir.join("remote_manifest_cache.json");
         if path.exists()
             && let Ok(contents) = fs::read(path)
@@ -368,13 +368,13 @@ impl ExtensionHandler {
         {
             return manifests;
         }
-        vec![]
+        HashSet::new()
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn get_extension_manifest(
         &self,
-    ) -> Result<Vec<FetchedExtensionManifest>, ExtensionError> {
+    ) -> Result<HashSet<FetchedExtensionManifest>, ExtensionError> {
         let registries = self.get_registries();
         self.remote.get_extension_manifest(&registries).await
     }

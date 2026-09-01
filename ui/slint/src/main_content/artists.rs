@@ -23,7 +23,7 @@ impl<'a> ArtistsPageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn get_artists_from_db(state_manager: &StateManager) -> Result<Vec<Artist>, UiError> {
+    async fn fetch_artists(state_manager: &StateManager) -> Result<Vec<Artist>, UiError> {
         let database = state_manager.get_database().await;
         let artists = database.get_entity_by_options(GetEntityOptions {
             artist: Some(Artist::default()),
@@ -33,11 +33,6 @@ impl<'a> ArtistsPageHandler<'a> {
             return Ok(artists);
         }
         Ok(vec![])
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_artists(state_manager: &StateManager) -> Result<Vec<Artist>, UiError> {
-        Self::get_artists_from_db(state_manager).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

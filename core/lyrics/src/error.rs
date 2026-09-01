@@ -16,9 +16,6 @@
 
 #[derive(Debug, thiserror::Error)]
 pub enum LyricsError {
-    #[error("HTTP request failed: {0}")]
-    Network(#[from] reqwest::Error),
-
-    #[error("JSON parsing error: {0}")]
-    Json(#[from] serde_json::Error),
+    #[error("Lyrics error: {0}")]
+    General(String),
 }

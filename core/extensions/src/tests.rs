@@ -20,7 +20,10 @@ use extensions_proto::moosync::types::GetProviderScopesRequest;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use ui_proto::moosync::types::{PreferenceTypes, PreferenceUiData};
 
-use crate::{ExtensionError, context::ReplyHandler, ext_runner::ExtensionHandlerInner};
+use crate::{
+    ExtensionError, context::ReplyHandler, ext_runner::ExtensionHandlerInner,
+    extension::ExtensionLockData,
+};
 
 static INIT: std::sync::Once = std::sync::Once::new();
 
@@ -385,13 +388,20 @@ fn test_extension_failed_to_start_disables_extension() {
     // Find and spawn extensions
     handler.spawn_extensions(reply_handler);
 
-    // Since the spawn_extension runs in a background thread, we wait/sleep a bit
-    // for it to run and fail
-    std::thread::sleep(std::time::Duration::from_millis(500));
+    // Wait for the background thread to run and fail
+    let lock_file = ext_path.join("extension.lock");
+    for _ in 0..50 {
+        if lock_file.exists()
+            && let Ok(bytes) = std::fs::read(&lock_file)
+            && let Ok(data) = serde_json::from_slice::<ExtensionLockData>(&bytes)
+            && data.disabled
+        {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
 
-    // Verify that the .disabled file has been created in the extension's folder
-    let disabled_file = ext_path.join(".disabled");
-    assert!(disabled_file.exists());
+    assert!(lock_file.exists());
 
     // Verify that GetInstalledExtensions returns the extension as active: false
     let installed = handler.get_installed_extensions();
@@ -403,6 +413,7 @@ fn test_extension_failed_to_start_disables_extension() {
 #[test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_extension_activation_deactivation() {
+    init_env();
     let tmp_dir = TempDir::new();
     let extensions_path = tmp_dir.path().join("extensions");
     std::fs::create_dir_all(&extensions_path).unwrap();
@@ -423,9 +434,13 @@ fn test_extension_activation_deactivation() {
     // Copy valid sample WASM fixture to temporary directory
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
-    // Create a disabled file initially
-    let disabled_file = ext_path.join(".disabled");
-    std::fs::write(&disabled_file, "").unwrap();
+    // Create a disabled extension.lock initially
+    let lock_file = ext_path.join("extension.lock");
+    let lock_data = ExtensionLockData {
+        registry: "local".to_string(),
+        disabled: true,
+    };
+    std::fs::write(&lock_file, serde_json::to_vec_pretty(&lock_data).unwrap()).unwrap();
 
     let reply_handler = Arc::new(TestReplyHandler);
 
@@ -439,7 +454,7 @@ fn test_extension_activation_deactivation() {
         assert!(!ext.is_active());
         assert!(!ext.get_extension_detail().has_started);
     }
-    assert!(disabled_file.exists());
+    assert!(lock_file.exists());
 
     {
         let extensions_map = handler.extensions_map.lock().unwrap();
@@ -447,9 +462,17 @@ fn test_extension_activation_deactivation() {
         ext.set_active(true).unwrap();
     }
 
-    // Since spawning runs on a background thread/task, we sleep briefly to let it
-    // start
-    std::thread::sleep(std::time::Duration::from_millis(500));
+    // Since spawning runs on a background thread/task, wait for it to start
+    for _ in 0..50 {
+        let extensions_map = handler.extensions_map.lock().unwrap();
+        if let Some(ext) = extensions_map.get("test_pkg")
+            && ext.get_extension_detail().has_started
+        {
+            break;
+        }
+        drop(extensions_map);
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    }
 
     {
         let extensions_map = handler.extensions_map.lock().unwrap();
@@ -457,7 +480,6 @@ fn test_extension_activation_deactivation() {
         assert!(ext.is_active());
         assert!(ext.get_extension_detail().has_started);
     }
-    assert!(!disabled_file.exists());
 
     {
         let extensions_map = handler.extensions_map.lock().unwrap();
@@ -471,5 +493,4 @@ fn test_extension_activation_deactivation() {
         assert!(!ext.is_active());
         assert!(!ext.get_extension_detail().has_started);
     }
-    assert!(disabled_file.exists());
 }

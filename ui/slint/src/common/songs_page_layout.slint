@@ -4,6 +4,22 @@ import { SongListView } from "song_list_view.slint";
 import { SongDetails } from "song_details.slint";
 import { Constants, Theme } from "../constants.slint";
 import { AppCallbacks } from "../callbacks.slint";
+import { Button } from "button.slint";
+
+export component SongActionButton inherits Button {
+    has_custom_layout: true;
+    width: 32px;
+    height: 32px;
+    border-radius: Theme.borderRadiusMd;
+    background: root.has_hover ? Theme.secondary : transparent;
+
+    Image {
+        width: 20px;
+        height: 20px;
+        source: root.icon;
+        colorize: root.has_hover ? Theme.accent.brighter(0.2) : Theme.accent;
+    }
+}
 
 export component SongsPageLayout inherits Rectangle {
     in-out property <int> active-idx: -1;
@@ -33,49 +49,21 @@ export component SongsPageLayout inherits Rectangle {
                     alignment: start;
                     padding-top: Theme.spacingSm;
 
-                    // Play Now button
-                    Rectangle {
-                        width: 32px;
-                        height: 32px;
-                        border-radius: Theme.borderRadiusMd;
-                        background: play-touch.has-hover ? Theme.secondary : transparent;
-
-                        play-touch := TouchArea {
-                            clicked => {
-                                AppCallbacks.song_detail_action(
-                                    SongDetailAction.Play,
-                                    song-list.selected-songs.length > 0 ? song-list.selected-songs : (root.active-idx >= 0 ? [root.active] : song-list.display-songs));
-                            }
-                        }
-
-                        Image {
-                            width: 20px;
-                            height: 20px;
-                            source: @image-url("../icons/plain_play.svg");
-                            colorize: play-touch.has-hover ? Theme.accent.brighter(0.2) : Theme.accent;
+                    SongActionButton {
+                        icon: @image-url("../icons/plain_play.svg");
+                        clicked => {
+                            AppCallbacks.song_detail_action(
+                                SongDetailAction.Play,
+                                song-list.selected-songs.length > 0 ? song-list.selected-songs : (root.active-idx >= 0 ? [root.active] : song-list.display-songs));
                         }
                     }
 
-                    // Add to Queue button
-                    Rectangle {
-                        width: 32px;
-                        height: 32px;
-                        border-radius: Theme.borderRadiusMd;
-                        background: queue-touch.has-hover ? Theme.secondary : transparent;
-
-                        queue-touch := TouchArea {
-                            clicked => {
-                                AppCallbacks.song_detail_action(
-                                    SongDetailAction.AddToQueue,
-                                    song-list.selected-songs.length > 0 ? song-list.selected-songs : (root.active-idx >= 0 ? [root.active] : song-list.display-songs));
-                            }
-                        }
-
-                        Image {
-                            width: 20px;
-                            height: 20px;
-                            source: @image-url("../icons/add_to_queue.svg");
-                            colorize: queue-touch.has-hover ? Theme.accent.brighter(0.2) : Theme.accent;
+                    SongActionButton {
+                        icon: @image-url("../icons/add_to_queue.svg");
+                        clicked => {
+                            AppCallbacks.song_detail_action(
+                                SongDetailAction.AddToQueue,
+                                song-list.selected-songs.length > 0 ? song-list.selected-songs : (root.active-idx >= 0 ? [root.active] : song-list.display-songs));
                         }
                     }
                 }

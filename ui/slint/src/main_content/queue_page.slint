@@ -3,6 +3,7 @@ import { Theme, Constants, QueuePages } from "../constants.slint";
 import { ListView } from "std-widgets.slint";
 import { AppCallbacks, ContextMenuCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button.slint";
+import { IconButton } from "../common/icon_button.slint";
 import { SongDetails } from "../common/song_details.slint";
 import { ContextMenu } from "../common/context_menu.slint";
 
@@ -141,17 +142,13 @@ component QueueListItem inherits Rectangle {
                         if context_menu.has-hover || root.is-active: VerticalLayout {
                             alignment: center;
 
-                            TouchArea {
+                            IconButton {
+                                icon_source: @image-url("../icons/cross.svg");
+                                icon_size: Theme.iconSizeMd;
                                 width: Theme.iconSizeLg;
                                 height: Theme.iconSizeLg;
+                                icon_color: #ff5555;
                                 clicked => { root.remove-clicked(); }
-
-                                Image {
-                                    width: Theme.iconSizeMd;
-                                    height: Theme.iconSizeMd;
-                                    source: @image-url("../icons/cross.svg");
-                                    colorize: #ff5555; // Red color for delete
-                                }
                             }
                         }
                     }

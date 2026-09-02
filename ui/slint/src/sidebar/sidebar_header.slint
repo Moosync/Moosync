@@ -1,13 +1,6 @@
 import { Theme } from "../constants.slint";
+import { IconButton } from "../common/icon_button.slint";
 
-export component HamburgerIcon inherits Image {
-    in property <color> current-color: Theme.textPrimary;
-    width: Theme.playbackControlsIconSize;
-    height: Theme.iconSizeMd;
-    source: @image-url("../icons/sidebar_toggle.svg");
-    colorize: current-color;
-}
- 
 export component SidebarHeader inherits Rectangle {
     height: Theme.sidebarHeaderHeight;
 
@@ -18,20 +11,12 @@ export component SidebarHeader inherits Rectangle {
 
         VerticalLayout {
             alignment: center;
-
-            Rectangle {
+            IconButton {
+                icon_source: @image-url("../icons/sidebar_toggle.svg");
+                icon_width: Theme.playbackControlsIconSize;
+                icon_height: Theme.iconSizeMd;
                 width: Theme.sidebarHeaderToggleSize;
                 height: Theme.sidebarHeaderToggleSize;
-                border-radius: Theme.borderRadiusMd;
-                background: hamburger-touch.has-hover ? Theme.textPrimary.with-alpha(0.06) : transparent;
-
-                hamburger-touch := TouchArea { }
-
-                HamburgerIcon {
-                    current-color: hamburger-touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
-                    width: Theme.playbackControlsIconSize;
-                    height: Theme.iconSizeMd;
-                }
             }
         }
     }

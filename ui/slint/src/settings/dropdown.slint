@@ -30,6 +30,7 @@ export component DropdownGroup inherits VerticalLayout {
 
     touch := TouchArea {
         height: Theme.dropdownHeight;
+        mouse-cursor: pointer;
         clicked => {
             popup.show();
         }
@@ -78,6 +79,7 @@ export component DropdownGroup inherits VerticalLayout {
 
                     for option in root.options: option_touch := TouchArea {
                         height: Theme.dropdownOptionHeight;
+                        mouse-cursor: pointer;
                         clicked => {
                             root.current-value = option;
                             if (root.preference.id != "") {

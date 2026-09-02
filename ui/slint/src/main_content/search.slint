@@ -10,44 +10,43 @@ import {
 import { SongListView } from "../common/song_list_view.slint";
 import { GridListView } from "../common/grid_list_view.slint";
 import { AppCallbacks } from "../callbacks.slint";
+import { Button } from "../common/button.slint";
 
 export struct Provider {
     name: string,
     icon: image,
 }
 
-export component ProviderItem inherits TouchArea {
+export component ProviderItem inherits Button {
     in property <Provider> provider;
     in property <bool> active: false;
+
+    has_custom_layout: true;
+    background: root.has_hover ? Theme.secondary.brighter(0.1) : transparent;
+    border-radius: Theme.borderRadiusMd;
 
     VerticalLayout {
         spacing: Theme.spacingXs;
         alignment: center;
-
         height: Theme.iconSizeMd + Theme.paddingMd;
 
-        Rectangle {
-            background: root.has-hover ? Theme.secondary.brighter(0.1) : transparent;
-            border-radius: Theme.borderRadiusMd;
+        HorizontalLayout {
+            spacing: Theme.spacingSm;
+            alignment: center;
+            padding: Theme.paddingSm;
 
-            HorizontalLayout {
-                spacing: Theme.spacingSm;
-                alignment: center;
-                padding: Theme.paddingSm;
+            Image {
+                source: root.provider.icon;
+                width: Theme.iconSizeMd;
+                height: Theme.iconSizeMd;
+                colorize: root.active ? Theme.accent : Theme.textPrimary;
+            }
 
-                Image {
-                    source: root.provider.icon;
-                    width: Theme.iconSizeMd;
-                    height: Theme.iconSizeMd;
-                    colorize: root.active ? Theme.accent : Theme.textPrimary;
-                }
-
-                Text {
-                    text: root.provider.name;
-                    color: root.active ? Theme.accent : Theme.textPrimary;
-                    font-size: Theme.subtitle;
-                    vertical-alignment: center;
-                }
+            Text {
+                text: root.provider.name;
+                color: root.active ? Theme.accent : Theme.textPrimary;
+                font-size: Theme.subtitle;
+                vertical-alignment: center;
             }
         }
     }

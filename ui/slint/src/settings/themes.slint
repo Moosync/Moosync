@@ -536,6 +536,7 @@ export component ThemesPage inherits VerticalLayout {
                             for swatch in quick-accents: TouchArea {
                                 width: Theme.quickAccentSwatchSize;
                                 height: Theme.quickAccentSwatchSize;
+                                mouse-cursor: pointer;
                                 clicked => {
                                     let val-str = "rgba(" + round(swatch.r) + "," + round(swatch.g) + "," + round(swatch.b) + "," + swatch.a + ")";
                                     AppCallbacks.theme_constant_changed("accent", val-str);
@@ -559,6 +560,7 @@ export component ThemesPage inherits VerticalLayout {
                     // Accordion Header
                     accordion_touch := TouchArea {
                         height: Theme.advancedAccordionHeaderHeight;
+                        mouse-cursor: pointer;
                         clicked => {
                             root.advanced-expanded = !root.advanced-expanded;
                         }

@@ -6,6 +6,7 @@ import {
     ContextMenuCallbacks,
 } from "../callbacks.slint";
 import { ContextMenu } from "context_menu.slint";
+import { IconButton } from "icon_button.slint";
 
 export component SongListItem inherits Rectangle {
     in property <SongModel> song: Constants.defaultSong;
@@ -128,31 +129,25 @@ export component SongListItem inherits Rectangle {
                         vertical-alignment: center;
                     }
 
-                    if (WindowInfo.window-size > WindowInfo.sm): TouchArea {
+                    if (WindowInfo.window-size > WindowInfo.sm): IconButton {
+                        icon_source: @image-url("../icons/add_to_queue.svg");
+                        icon_size: Theme.iconSizeMd;
+                        width: Theme.iconSizeMd;
+                        height: Theme.iconSizeMd;
+                        icon_color: Theme.accent;
                         clicked => {
-                            AppCallbacks.add-song-to-queue(song)
-                        }
-                        Image {
-                            width: Theme.iconSizeMd;
-                            source: @image-url("../icons/add_to_queue.svg");
-                            colorize: Theme.accent;
+                            AppCallbacks.add-song-to-queue(song);
                         }
                     }
                 }
 
-                ellipsis_touch := TouchArea {
+                IconButton {
+                    icon_source: @image-url("../icons/ellipsis.svg");
+                    icon_size: Theme.iconSizeMd;
                     width: Theme.iconSizeMd;
                     height: Theme.iconSizeMd;
                     clicked => {
                         context_menu.show_at(root.width - Theme.cardWidth, root.height);
-                    }
-
-                    Image {
-                        width: Theme.iconSizeMd;
-                        height: Theme.iconSizeMd;
-                        image-fit: contain;
-                        source: @image-url("../icons/ellipsis.svg");
-                        colorize: ellipsis_touch.has-hover ? Theme.accent : Theme.textSecondary;
                     }
                 }
             }

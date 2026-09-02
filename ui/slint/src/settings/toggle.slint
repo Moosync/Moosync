@@ -36,6 +36,7 @@ export component ToggleGroup inherits HorizontalLayout {
         touch := TouchArea {
             width: Theme.toggleWidth;
             height: Theme.toggleHeight;
+            mouse-cursor: pointer;
 
             clicked => {
                 root.checked = !root.checked;

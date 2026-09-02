@@ -1,38 +1,5 @@
 import { Theme } from "../constants.slint";
-
-export component NavButton inherits Rectangle {
-    in property <string> direction; // "back" or "forward"
-    
-    width: Theme.navButtonSize;
-    height: Theme.navButtonSize;
-    border-radius: Theme.navButtonSize / 2;
-    background: touch.has-hover ? Theme.textPrimary.with-alpha(0.08) : Theme.textPrimary.with-alpha(0.03);
-
-    animate background { duration: 150ms; }
-
-    touch := TouchArea { }
-
-    Rectangle {
-        width: Theme.spacingSm;
-        height: Theme.iconSizeMd;
-
-        if (direction == "back"):  Image {
-            width: parent.width;
-            height: parent.height;
-            source: @image-url("../icons/nav_button.svg");
-            colorize: touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
-        }
-
-        if (direction == "forward"): 
-        Image {
-            width: parent.width;
-            height: parent.height;
-            source: @image-url("../icons/nav_button.svg");
-            colorize: touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
-            transform-rotation: 180deg;
-        }
-    }
-}
+import { IconButton } from "../common/icon_button.slint";
 
 export component NavButtons inherits VerticalLayout {
     alignment: center;
@@ -40,12 +7,17 @@ export component NavButtons inherits VerticalLayout {
 
     HorizontalLayout {
         spacing: Theme.spacingXs;
-        NavButton {
-            direction: "back";
+        IconButton {
+            icon_source: @image-url("../icons/nav_button.svg");
+            icon_width: Theme.spacingSm;
+            icon_height: Theme.iconSizeMd;
         }
 
-        NavButton {
-            direction: "forward";
+        IconButton {
+            icon_source: @image-url("../icons/nav_button.svg");
+            icon_width: Theme.spacingSm;
+            icon_height: Theme.iconSizeMd;
+            icon_rotation: 180deg;
         }
     }
 }

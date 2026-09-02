@@ -11,6 +11,7 @@ import {
 } from "../callbacks.slint";
 import { SearchBar } from "../topbar/search_bar.slint";
 import { PopupMenu } from "popup_menu.slint";
+import { IconButton } from "icon_button.slint";
 
 export component SongListView inherits Rectangle {
     in property <[SongModel]> songs: Constants.testSongs;
@@ -68,58 +69,29 @@ export component SongListView inherits Rectangle {
             }
 
             // Search Icon Button
-            Rectangle {
-                width: 32px;
-                height: 32px;
-                border-radius: Theme.borderRadiusMd;
-                background: search-touch.has-hover || root.search-open ? Theme.secondary : transparent;
-
-                search-touch := TouchArea {
-                    clicked => {
-                        root.search-open = !root.search-open;
-                        if (!root.search-open) {
-                            root.search-text = "";
-                        }
+            IconButton {
+                icon_source: @image-url("../icons/search.svg");
+                active: root.search-open;
+                clicked => {
+                    root.search-open = !root.search-open;
+                    if (!root.search-open) {
+                        root.search-text = "";
                     }
-                }
-
-                Image {
-                    width: Theme.iconSizeMd;
-                    height: Theme.iconSizeMd;
-                    source: @image-url("../icons/search.svg");
-                    colorize: root.search-open ? Theme.accent : (search-touch.has-hover ? Theme.textPrimary : Theme.textSecondary);
                 }
             }
 
             // Sort Icon Button
-            sort-btn := Rectangle {
-                width: 32px;
-                height: 32px;
-                border-radius: Theme.borderRadiusMd;
-                background: sort-touch.has-hover || root.sort-criterion != SongSortCriterion.Title || !root.sort-ascending ? Theme.secondary : transparent;
-
-                sort-touch := TouchArea {
-                    clicked => {
-                        sort-popup.show();
-                    }
-                }
-
-                Image {
-                    width: Theme.iconSizeMd;
-                    height: Theme.iconSizeMd;
-                    source: @image-url("../icons/sort.svg");
-                    colorize: (root.sort-criterion != SongSortCriterion.Title || !root.sort-ascending) ? Theme.accent : (sort-touch.has-hover ? Theme.textPrimary : Theme.textSecondary);
-                    transform-rotation: !root.sort-ascending ? 180deg : 0deg;
-
-                    animate transform-rotation {
-                        duration: 150ms;
-                        easing: ease-in-out;
-                    }
+            sort_btn := IconButton {
+                icon_source: @image-url("../icons/sort.svg");
+                active: root.sort-criterion != SongSortCriterion.Title || !root.sort-ascending;
+                icon_rotation: !root.sort-ascending ? 180deg : 0deg;
+                clicked => {
+                    sort-popup.show();
                 }
 
                 sort-popup := PopupMenu {
-                    x: sort-btn.width - self.width;
-                    y: sort-btn.height + 4px;
+                    x: sort_btn.width - self.width;
+                    y: sort_btn.height + 4px;
                     items: AppCallbacks.get_sort_menu_items(root.sort-criterion);
 
                     selected(id) => {

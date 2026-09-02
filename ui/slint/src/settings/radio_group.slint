@@ -34,6 +34,7 @@ export component RadioGroup inherits VerticalLayout {
 
         for option in root.options: touch := TouchArea {
             height: Theme.radioOptionHeight;
+            mouse-cursor: pointer;
 
             clicked => {
                 root.selected-id = option.id;

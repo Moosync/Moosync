@@ -4,6 +4,7 @@ import { PlaybackControls } from "playback_controls.slint";
 import { VolumeControl } from "volume_control.slint";
 import { Theme } from "../constants.slint";
 import { SongModel } from "../types/song_view.slint";
+import { IconButton } from "../common/icon_button.slint";
 
 export component BottomBar inherits Rectangle {
     in property <SongModel> current-song;
@@ -15,7 +16,7 @@ export component BottomBar inherits Rectangle {
 
     height: Theme.bottombarHeight;
     background: Theme.primary; // Sampled Bottombar Background
-    
+
     // Top border line behind the progress bar
     Rectangle {
         y: 0px;
@@ -23,78 +24,63 @@ export component BottomBar inherits Rectangle {
         background: Theme.divider; // Darker divider to match Leptos
     }
 
+    // Playback Progress Bar (Full Width at Top)
+    PlaybackProgressBar {
+        y: 0px;
+        current_duration: root.current_duration;
+        total_duration: root.current-song.duration-s;
+    }
+
     VerticalLayout {
         alignment: center;
-        padding-top: 0px;
-        padding-bottom: 0px;
-
-        // Full width progress bar at the very top edge
-        PlaybackProgressBar {
-            height: Theme.bottombarProgressBarHeight;
-            current_duration: root.current_duration;
-            total_duration: current-song.duration-s;
-        }
-
-        // Row containing Track details, controls and volume slider
         HorizontalLayout {
             padding-left: Theme.paddingLg;
             padding-right: Theme.paddingLg;
 
-            // Left: Track Details
-            TrackInfo {
-                width: Theme.trackInfoWidth;
-                current-song: root.current-song;
-            }
-
-            // Spacer
-            Rectangle {
-                horizontal-stretch: 1;
-            }
-
-            // Center Layout: Duration text + Controls
+            // Left: Track Info
             HorizontalLayout {
+                alignment: start;
+                horizontal-stretch: 1;
+                TrackInfo {
+                    current-song: root.current-song;
+                }
+            }
+
+            // Center: Playback Controls
+            HorizontalLayout {
+                alignment: center;
+                horizontal-stretch: 2;
                 PlaybackControls {
                     repeat-mode: root.repeat-mode;
                     playing: root.playing;
                     current-pos-str: root.current-pos-str;
-                    duration-str: root.current-song.duration_str;
+                    duration-str: root.current-song.duration-str;
                 }
             }
 
+            // Right: Volume and Queue Toggle
             HorizontalLayout {
-                spacing: Theme.spacingXl;
+                alignment: end;
+                horizontal-stretch: 1;
+                spacing: Theme.spacingXs;
                 // Right: Volume Slider Controls
-                VolumeControl {
-                    width: Theme.volumeControlWidth;
-                }
+                VolumeControl { }
 
                 VerticalLayout {
                     alignment: center;
                     padding-bottom: Theme.spacingXs;
+                    padding-top: Theme.spacingXs / 2;
 
-                    // Queue/Playlist toggle icon
-                    Rectangle {
-                        width: Theme.iconSizeLg;
-
-                        queue-touch := TouchArea {
-                            clicked => {
-                                root.show-queue = !root.show-queue;
-                            }
-                        }
-
-                        property <color> current-color: queue-touch.has-hover ? Theme.textPrimary : Theme.textSecondary;
-
-                        Image {
-                            width: Theme.iconSizeLg;
-                            height: Theme.spacingMd;
-                            source: @image-url("../icons/chevron.svg");
-                            colorize: current-color;
-                            transform-rotation: root.show-queue ? 180deg : 0deg;
-
-                            animate transform-rotation {
-                                duration: 250ms;
-                                easing: ease-in-out;
-                            }
+                    IconButton {
+                        icon_source: @image-url("../icons/chevron.svg");
+                        icon_width: Theme.playbackControlsIconSize;
+                        icon_height: Theme.playbackControlsIconSize;
+                        icon_rotation: root.show-queue ? 180deg : 0deg;
+                        width: Theme.playbackButtonSize;
+                        height: Theme.playbackButtonSize;
+                        border-radius: Theme.playbackButtonSize / 2;
+                        clicked => {
+                            root.show-queue = !root.show-queue;
                         }
                     }
                 }

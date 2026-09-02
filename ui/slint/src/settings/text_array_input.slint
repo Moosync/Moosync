@@ -3,6 +3,7 @@ import { ScrollView } from "std-widgets.slint";
 import { PreferenceItem } from "preferences.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button.slint";
+import { IconButton } from "../common/icon_button.slint";
 
 export component TextArrayInput inherits VerticalLayout {
     in property <PreferenceItem> preference;
@@ -59,11 +60,13 @@ export component TextArrayInput inherits VerticalLayout {
                     text_input := TextInput {
                         width: 100%;
                         height: 100%;
-                        text <=> root.new_text;
+                        vertical-alignment: center;
                         color: Theme.textPrimary;
                         font-size: Theme.body;
-                        vertical-alignment: center;
                         single-line: true;
+                        edited => {
+                            root.new_text = self.text;
+                        }
                     }
                 }
             }
@@ -90,6 +93,7 @@ export component TextArrayInput inherits VerticalLayout {
                         });
                     }
                     root.added(root.new_text);
+                    text_input.text = "";
                     root.new_text = "";
                 }
             }
@@ -123,7 +127,9 @@ export component TextArrayInput inherits VerticalLayout {
                         overflow: elide;
                     }
 
-                    TouchArea {
+                    IconButton {
+                        icon_source: @image-url("../icons/cross.svg");
+                        icon_size: 8px;
                         width: Theme.iconSizeMd;
                         height: Theme.iconSizeMd;
                         clicked => {
@@ -137,15 +143,6 @@ export component TextArrayInput inherits VerticalLayout {
                                 });
                             }
                             root.removed(item);
-                        }
-                        VerticalLayout {
-                            alignment: center;
-                            Image {
-                                source: @image-url("../icons/cross.svg");
-                                colorize: Theme.textPrimary;
-                                width: 8px;
-                                height: 8px;
-                            }
                         }
                     }
                 }

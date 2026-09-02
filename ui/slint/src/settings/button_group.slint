@@ -1,9 +1,53 @@
 import { Theme } from "../constants.slint";
+import { Button } from "../common/button.slint";
 
 export struct ButtonItem {
     id: string,
     text: string,
     is-destructive: bool,
+}
+
+export component GroupActionButton inherits Button {
+    in property <bool> is_destructive: false;
+
+    has_custom_layout: true;
+    height: 35px;
+    border-radius: Theme.borderRadiusXl;
+    border-width: 1px;
+    border-color: is_destructive ? (root.has_hover ? #ff4444 : Theme.textSecondary) : Theme.accent;
+    background: is_destructive ? (root.pressed ? #ff4444 : transparent) : Theme.accent;
+    opacity: root.pressed ? 0.7 : (root.has_hover ? 0.85 : 1.0);
+
+    animate border-color { duration: 150ms; }
+    animate background { duration: 150ms; }
+    animate opacity { duration: 100ms; }
+
+    Text {
+        text: root.text;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+        color: is_destructive ? (root.pressed ? Theme.textInverse : (root.has_hover ? #ff4444 : Theme.textPrimary)) : Theme.textInverse;
+        animate color { duration: 150ms; }
+    }
+}
+
+export component ModalActionButton inherits Button {
+    in property <bool> is_confirm: false;
+
+    has_custom_layout: true;
+    width: 80px;
+    height: 30px;
+    border-radius: Theme.borderRadiusLg;
+    border-width: is_confirm ? 0px : 1px;
+    border-color: root.has_hover ? Theme.accent : Theme.textSecondary;
+    background: is_confirm ? (root.has_hover ? #cc0000 : #ff4444) : transparent;
+
+    Text {
+        text: root.text;
+        color: is_confirm ? Theme.textInverse : Theme.textPrimary;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+    }
 }
 
 export component ButtonGroup inherits VerticalLayout {
@@ -38,9 +82,10 @@ export component ButtonGroup inherits VerticalLayout {
         spacing: Theme.spacingMd;
         alignment: start;
 
-        for btn in buttons: touch := TouchArea {
-            width: max(100px, btn_text.preferred-width + 30px);
-            height: 35px;
+        for btn in buttons: GroupActionButton {
+            width: max(100px, self.preferred-width + 30px);
+            text: btn.text;
+            is_destructive: btn.is-destructive;
 
             clicked => {
                 if (btn.is-destructive) {
@@ -49,29 +94,6 @@ export component ButtonGroup inherits VerticalLayout {
                     modal_popup.show();
                 } else {
                     root.clicked(btn.id);
-                }
-            }
-
-            Rectangle {
-                border-radius: Theme.borderRadiusXl;
-                border-width: 1px;
-
-                border-color: btn.is-destructive ? (touch.has-hover ? #ff4444 : Theme.textSecondary) : Theme.accent;
-                background: btn.is-destructive ? (touch.pressed ? #ff4444 : transparent) : Theme.accent;
-                opacity: touch.pressed ? 0.7 : (touch.has-hover ? 0.85 : 1.0);
-
-                animate border-color { duration: 150ms; }
-                animate background { duration: 150ms; }
-                animate opacity { duration: 100ms; }
-
-                btn_text := Text {
-                    text: btn.text;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-
-                    color: btn.is-destructive ? (touch.pressed ? Theme.textInverse : (touch.has-hover ? #ff4444 : Theme.textPrimary)) : Theme.textInverse;
-
-                    animate color { duration: 150ms; }
                 }
             }
         }
@@ -130,44 +152,19 @@ export component ButtonGroup inherits VerticalLayout {
                                 alignment: end;
                                 spacing: Theme.spacingMd;
 
-                                cancel_touch := TouchArea {
-                                    width: 80px;
-                                    height: 30px;
+                                ModalActionButton {
+                                    text: "Cancel";
                                     clicked => {
                                         modal_popup.close();
-                                    }
-
-                                    Rectangle {
-                                        border-radius: Theme.borderRadiusLg;
-                                        border-width: 1px;
-                                        border-color: cancel_touch.has-hover ? Theme.accent : Theme.textSecondary;
-
-                                        Text {
-                                            text: "Cancel";
-                                            vertical-alignment: center;
-                                            horizontal-alignment: center;
-                                        }
                                     }
                                 }
 
-                                confirm_touch := TouchArea {
-                                    width: 80px;
-                                    height: 30px;
+                                ModalActionButton {
+                                    text: "Confirm";
+                                    is_confirm: true;
                                     clicked => {
                                         root.clicked(root.pending-action-id);
                                         modal_popup.close();
-                                    }
-
-                                    Rectangle {
-                                        border-radius: Theme.borderRadiusLg;
-                                        background: confirm_touch.has-hover ? #cc0000 : #ff4444;
-
-                                        Text {
-                                            text: "Confirm";
-                                            color: Theme.textInverse;
-                                            vertical-alignment: center;
-                                            horizontal-alignment: center;
-                                        }
                                     }
                                 }
                             }

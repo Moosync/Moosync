@@ -3,6 +3,7 @@ import { ScrollView } from "std-widgets.slint";
 import { PreferenceItem } from "preferences.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button.slint";
+import { IconButton } from "../common/icon_button.slint";
 
 export component PathSelector {
     in property <PreferenceItem> preference;
@@ -80,7 +81,9 @@ export component PathSelector {
                             color: Theme.textPrimary;
                         }
 
-                        TouchArea {
+                        IconButton {
+                            icon_source: @image-url("../icons/cross.svg");
+                            icon_size: 8px;
                             width: Theme.iconSizeMd;
                             height: Theme.iconSizeMd;
                             clicked => {
@@ -92,15 +95,6 @@ export component PathSelector {
                                         value_number: 0.0,
                                         value_list: []
                                     });
-                                }
-                            }
-                            VerticalLayout {
-                                alignment: center;
-                                Image {
-                                    source: @image-url("../icons/cross.svg");
-                                    colorize: Theme.textPrimary;
-                                    width: 8px;
-                                    height: 8px;
                                 }
                             }
                         }

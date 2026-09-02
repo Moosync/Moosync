@@ -1,0 +1,38 @@
+import { Button } from "button.slint";
+import { Theme } from "../constants.slint";
+
+export component IconButton inherits Button {
+    in property <image> icon_source: root.icon;
+    in property <length> icon_size: Theme.iconSizeMd;
+    in property <length> icon_width: root.icon_size;
+    in property <length> icon_height: root.icon_size;
+    in property <bool> active: false;
+    in property <color> icon_color: active ? Theme.accent : (root.has_hover ? Theme.textPrimary : Theme.textSecondary);
+    in property <angle> icon_rotation: 0deg;
+
+    has_custom_layout: true;
+    width: Theme.topbarIconSize;
+    height: Theme.topbarIconSize;
+    border-radius: Theme.borderRadiusMd;
+    background: root.has_hover || active ? Theme.textPrimary.with-alpha(0.06) : transparent;
+
+    VerticalLayout {
+        alignment: center;
+        HorizontalLayout {
+            alignment: center;
+            Image {
+                width: root.icon_width;
+                height: root.icon_height;
+                image-fit: contain;
+                source: root.icon_source;
+                colorize: root.icon_color;
+                transform-rotation: root.icon_rotation;
+
+                animate transform-rotation {
+                    duration: 200ms;
+                    easing: ease-in-out;
+                }
+            }
+        }
+    }
+}

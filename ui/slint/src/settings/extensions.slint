@@ -124,6 +124,7 @@ component ExtensionsManifest inherits VerticalLayout {
                                 width: Theme.toggleWidth;
                                 height: Theme.toggleHeight;
                                 enabled: !item.loading;
+                                mouse-cursor: pointer;
 
                                 clicked => {
                                     AppCallbacks.toggle_extension(item.package_name);

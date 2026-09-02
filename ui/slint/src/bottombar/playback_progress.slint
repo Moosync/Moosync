@@ -27,7 +27,7 @@ export component PlaybackProgressBar inherits Rectangle {
 
     // Background rail (gray)
     Rectangle {
-        y: (parent.height - Theme.playbackSliderTrackHeight) / 2;
+        y: 0;
         height: Theme.playbackSliderTrackHeight;
         background: Theme.textSecondary;
         border-radius: Theme.borderRadiusSm;
@@ -36,7 +36,7 @@ export component PlaybackProgressBar inherits Rectangle {
     // Active rail (green)
     Rectangle {
         x: 0px;
-        y: (parent.height - Theme.playbackSliderTrackHeight) / 2;
+        y: 0;
         width: parent.width * progress;
         height: Theme.playbackSliderTrackHeight;
         background: Theme.accent;
@@ -48,7 +48,7 @@ export component PlaybackProgressBar inherits Rectangle {
     // Slider thumb (white circle)
     Rectangle {
         x: (parent.width * progress) - Theme.sliderThumbSize / 2;
-        y: (parent.height - Theme.sliderThumbSize) / 2;
+        y: -Theme.sliderThumbSize / 2;
         width: Theme.sliderThumbSize;
         height: Theme.sliderThumbSize;
         border-radius: Theme.sliderThumbSize / 2;
@@ -63,7 +63,7 @@ export component PlaybackProgressBar inherits Rectangle {
                 width: Theme.sliderThumbHoverSize;
                 height: Theme.sliderThumbHoverSize;
                 x: (parent.width * progress) - Theme.sliderThumbHoverSize / 2;
-                y: (parent.height - Theme.sliderThumbHoverSize) / 2;
+                y: -Theme.sliderThumbSize / 2;
             }
         ]
     }

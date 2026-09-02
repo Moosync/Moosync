@@ -16,78 +16,21 @@
 
 use std::time::Duration;
 
-use assertables::assert_gt;
 use i_slint_backend_testing::ElementHandle;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use songs_proto::moosync::types::{Album, Artist, Genre, InnerSong, Playlist, Song, SongType};
 use state_manager::StateManager;
 use tracing_test::traced_test;
+use types::prelude::SongsExt;
 
 use crate::{
     AlbumContentPageProps, AlbumsPageProps, AllSongsPageProps, AppCallbacks,
     ArtistContentPageProps, ArtistsPageProps, BottomBarCallbacks, MainWindow, Pages,
     PlaylistContentPageProps, PlaylistsPageProps, SearchPageProps, SongModel, UtilCallbacks,
     setup_ui,
-    test_utils::{TestSlintSmContext, state_manager_fixture},
+    test_utils::{TestSlintSmContext, run_slint_test, wait_until},
     utils::IntoVec,
 };
-
-type Task = Box<dyn FnOnce() + Send + 'static>;
-static RUNNER: std::sync::OnceLock<std::sync::mpsc::Sender<Task>> = std::sync::OnceLock::new();
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn runtime() -> &'static tokio::runtime::Runtime {
-    static RUNTIME: std::sync::OnceLock<tokio::runtime::Runtime> = std::sync::OnceLock::new();
-    RUNTIME.get_or_init(|| {
-        tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-    })
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn runner() -> &'static std::sync::mpsc::Sender<Task> {
-    RUNNER.get_or_init(|| {
-        let (tx, rx) = std::sync::mpsc::channel::<Task>();
-        std::thread::Builder::new()
-            .name("slint_integration_runner".into())
-            .spawn(move || {
-                let _guard = runtime().enter();
-                i_slint_backend_testing::init_integration_test_with_system_time();
-                while let Ok(task) = rx.recv() {
-                    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(task));
-                }
-            })
-            .expect("failed to spawn slint runner");
-        tx
-    })
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn run_slint_test<F, Fut>(test_fn: F)
-where
-    F: FnOnce(&'static MainWindow, TestSlintSmContext) -> Fut + Send + 'static,
-    Fut: std::future::Future<Output = ()> + 'static,
-{
-    let (tx, rx) = std::sync::mpsc::channel();
-    runner()
-        .send(Box::new(move || {
-            let state_manager_fixture = state_manager_fixture();
-            let main_window: &'static MainWindow = Box::leak(Box::new(MainWindow::new().unwrap()));
-
-            slint::spawn_local(async move {
-                test_fn(main_window, state_manager_fixture).await;
-                let _ = slint::quit_event_loop();
-            })
-            .expect("failed to spawn local task on slint event loop");
-
-            slint::run_event_loop().expect("failed to run slint event loop");
-            let _ = tx.send(());
-        }))
-        .expect("failed to send task to slint runner");
-    rx.recv().expect("test failed or runner panicked");
-}
 
 macro_rules! integration_test {
     ($($test_name:ident => $async_fn:ident),* $(,)?) => {
@@ -139,20 +82,6 @@ fn create_test_song(id: &str, title: &str, album: &str, artist: &str) -> Song {
             ..Default::default()
         }],
     }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-async fn wait_until<F>(mut condition: F) -> bool
-where
-    F: FnMut() -> bool,
-{
-    for _ in 0..50 {
-        if condition() {
-            return true;
-        }
-        tokio::time::sleep(Duration::from_millis(10)).await;
-    }
-    false
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -209,7 +138,7 @@ async fn do_view_all_songs(
     );
     let handles: Vec<ElementHandle> =
         ElementHandle::find_by_accessible_label(main_window, "Songs").collect();
-    assert_gt!(handles.len(), 0);
+    assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
@@ -265,7 +194,7 @@ async fn do_view_playlists(
     );
     let handles: Vec<ElementHandle> =
         ElementHandle::find_by_accessible_label(main_window, "Playlists").collect();
-    assert_gt!(handles.len(), 0);
+    assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
@@ -340,7 +269,7 @@ async fn do_view_playlist_content(
     );
     let handles: Vec<ElementHandle> =
         ElementHandle::find_by_accessible_label(main_window, "Playlists").collect();
-    assert_gt!(handles.len(), 0);
+    assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
@@ -388,7 +317,7 @@ async fn do_view_albums(
     );
     let handles: Vec<ElementHandle> =
         ElementHandle::find_by_accessible_label(main_window, "Albums").collect();
-    assert_gt!(handles.len(), 0);
+    assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
@@ -455,7 +384,7 @@ async fn do_view_album_content(
     );
     let handles: Vec<ElementHandle> =
         ElementHandle::find_by_accessible_label(main_window, "Albums").collect();
-    assert_gt!(handles.len(), 0);
+    assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
@@ -503,7 +432,7 @@ async fn do_view_artists(
     );
     let handles: Vec<ElementHandle> =
         ElementHandle::find_by_accessible_label(main_window, "Artists").collect();
-    assert_gt!(handles.len(), 0);
+    assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
@@ -570,7 +499,7 @@ async fn do_view_artist_content(
     );
     let handles: Vec<ElementHandle> =
         ElementHandle::find_by_accessible_label(main_window, "Artists").collect();
-    assert_gt!(handles.len(), 0);
+    assert_eq!(handles.len(), 1);
     assert!(handles[0].is_valid());
 }
 
@@ -614,10 +543,6 @@ async fn do_search_songs(
         first_result.songs.row_data(0).unwrap().title,
         "Searchable Melody"
     );
-    let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Songs").collect();
-    assert_gt!(handles.len(), 0);
-    assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -660,10 +585,6 @@ async fn do_search_albums(
         first_result.albums.row_data(0).unwrap().title,
         "Searchable Disc"
     );
-    let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Albums").collect();
-    assert_gt!(handles.len(), 0);
-    assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -706,10 +627,6 @@ async fn do_search_artists(
         first_result.artists.row_data(0).unwrap().title,
         "Searchable Singer"
     );
-    let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Artists").collect();
-    assert_gt!(handles.len(), 0);
-    assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -760,10 +677,6 @@ async fn do_search_playlists(
         first_result.playlists.row_data(0).unwrap().title,
         "Searchable Mix"
     );
-    let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Playlists").collect();
-    assert_gt!(handles.len(), 0);
-    assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -782,10 +695,6 @@ async fn do_select_single_song(
 
     let selected_vec: Vec<i32> = selected.into_vec();
     assert_eq!(selected_vec, vec![2]);
-    let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Songs").collect();
-    assert_gt!(handles.len(), 0);
-    assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -822,10 +731,6 @@ async fn do_select_multiple_songs_ctrl(
             .global::<UtilCallbacks>()
             .invoke_is_index_selected(selected, 2)
     );
-    let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Songs").collect();
-    assert_gt!(handles.len(), 0);
-    assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -844,10 +749,6 @@ async fn do_select_range_songs_shift(
 
     let selected_vec: Vec<i32> = selected.into_vec();
     assert_eq!(selected_vec, vec![1, 2, 3]);
-    let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Songs").collect();
-    assert_gt!(handles.len(), 0);
-    assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -883,10 +784,6 @@ async fn do_get_selected_songs(
     assert_eq!(selected_songs.row_count(), 2);
     assert_eq!(selected_songs.row_data(0).unwrap().title, "Track 0");
     assert_eq!(selected_songs.row_data(1).unwrap().title, "Track 2");
-    let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Songs").collect();
-    assert_gt!(handles.len(), 0);
-    assert!(handles[0].is_valid());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -903,14 +800,16 @@ async fn do_play_song(main_window: &'static MainWindow, state_manager_fixture: T
     };
 
     main_window.global::<AppCallbacks>().invoke_play_song(song);
-    let updated = wait_until(|| main_window.get_current_song().title == "Playing Song").await;
+    let updated =
+        wait_until(|| main_window.get_playing() && main_window.get_current_song().id == "play_1")
+            .await;
 
     assert!(updated);
+    assert!(main_window.get_playing());
+    assert_eq!(main_window.get_current_song().id, "play_1");
     assert_eq!(main_window.get_current_song().title, "Playing Song");
-    let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Songs").collect();
-    assert_gt!(handles.len(), 0);
-    assert!(handles[0].is_valid());
+    let ph = state_manager.get_player_handler().await;
+    assert_eq!(ph.current_song().unwrap().get_id().unwrap(), "play_1");
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -922,18 +821,29 @@ async fn do_pause_and_resume_song(
     let state_manager: &'static StateManager = Box::leak(Box::new(sm));
     setup_test_context(state_manager).await;
     setup_ui(main_window, state_manager);
-    main_window.set_playing(true);
+    let song = SongModel {
+        id: "pause_1".into(),
+        title: "Pause Song".into(),
+        playback_url: "https://example.com/pause_1".into(),
+        ..Default::default()
+    };
+    main_window.global::<AppCallbacks>().invoke_play_song(song);
+    let started = wait_until(|| main_window.get_playing()).await;
+    assert!(started);
 
     main_window
         .global::<BottomBarCallbacks>()
         .invoke_play_pause_clicked();
-    let initial_playing = main_window.get_playing();
+    let paused = wait_until(|| !main_window.get_playing()).await;
+    assert!(paused);
+    assert!(!main_window.get_playing());
 
-    assert!(initial_playing);
-    let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Songs").collect();
-    assert_gt!(handles.len(), 0);
-    assert!(handles[0].is_valid());
+    main_window
+        .global::<BottomBarCallbacks>()
+        .invoke_play_pause_clicked();
+    let resumed = wait_until(|| main_window.get_playing()).await;
+    assert!(resumed);
+    assert!(main_window.get_playing());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -957,7 +867,7 @@ async fn do_skip_song(main_window: &'static MainWindow, state_manager_fixture: T
     main_window
         .global::<AppCallbacks>()
         .invoke_play_song(song_first);
-    let _ = wait_until(|| main_window.get_current_song().title == "Track One").await;
+    let _ = wait_until(|| main_window.get_current_song().id == "skip_1").await;
     main_window
         .global::<AppCallbacks>()
         .invoke_add_song_to_queue(song_second);
@@ -965,14 +875,13 @@ async fn do_skip_song(main_window: &'static MainWindow, state_manager_fixture: T
     main_window
         .global::<BottomBarCallbacks>()
         .invoke_next_song();
-    let skipped = wait_until(|| main_window.get_current_song().title == "Track Two").await;
+    let skipped = wait_until(|| main_window.get_current_song().id == "skip_2").await;
 
     assert!(skipped);
+    assert_eq!(main_window.get_current_song().id, "skip_2");
     assert_eq!(main_window.get_current_song().title, "Track Two");
-    let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Songs").collect();
-    assert_gt!(handles.len(), 0);
-    assert!(handles[0].is_valid());
+    let ph = state_manager.get_player_handler().await;
+    assert_eq!(ph.current_song().unwrap().get_id().unwrap(), "skip_2");
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -990,10 +899,8 @@ async fn do_change_volume(
         .invoke_set_volume(72);
     tokio::time::sleep(Duration::from_millis(50)).await;
 
-    let handles: Vec<ElementHandle> =
-        ElementHandle::find_by_accessible_label(main_window, "Songs").collect();
-    assert_gt!(handles.len(), 0);
-    assert!(handles[0].is_valid());
+    let ph = state_manager.get_player_handler().await;
+    assert_eq!(ph.get_volume(), 72);
 }
 
 integration_test!(

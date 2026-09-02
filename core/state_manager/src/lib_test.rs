@@ -14,6 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::sync::{Arc, Mutex};
+
+use async_trait::async_trait;
 use rstest::{fixture, rstest};
 use tempdir::TempDir;
 use tracing_test::traced_test;
@@ -45,16 +48,60 @@ fn sm_context() -> TestSmContext {
     }
 }
 
+struct TrackingHook {
+    events: Arc<Mutex<Vec<&'static str>>>,
+}
+
+#[async_trait]
+impl crate::hooks::Hook for TrackingHook {
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn on_startup(
+        &self,
+        _state_manager: &StateManager,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.events.lock().unwrap().push("startup");
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn on_delayed_startup(
+        &self,
+        _state_manager: &StateManager,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.events.lock().unwrap().push("delayed_startup");
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn on_exit(
+        &self,
+        _state_manager: &StateManager,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.events.lock().unwrap().push("exit");
+        Ok(())
+    }
+}
+
 #[rstest]
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_state_manager_lifecycle_methods(sm_context: TestSmContext) {
     let TestSmContext { sm, .. } = sm_context;
+    let events = Arc::new(Mutex::new(Vec::new()));
+    let hook = Arc::new(TrackingHook {
+        events: events.clone(),
+    });
+    sm.register_hook(hook).await;
 
     assert!(!sm.get_cache_dir().as_os_str().is_empty());
 
     sm.setup().await;
     sm.delayed_setup().await;
     sm.shutdown().await;
+
+    assert_eq!(
+        *events.lock().unwrap(),
+        vec!["startup", "delayed_startup", "exit"]
+    );
 }

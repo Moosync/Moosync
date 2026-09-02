@@ -14,32 +14,69 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use rstest::rstest;
-use slint::ComponentHandle;
+use assertables::assert_ok;
+use slint::{ComponentHandle, Model};
+use songs_proto::moosync::types::{InnerSong, Song};
 use tracing_test::traced_test;
 
 use crate::{
-    AppCallbacks, MainWindow,
+    AppCallbacks, MainWindow, SearchPageProps,
     main_content::search::SearchPageHandler,
     pages::PageHandler,
-    test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
+    test_utils::{TestSlintSmContext, run_slint_test, wait_until},
 };
 
-#[rstest]
-#[tokio::test]
+#[test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_search_page_handler_initialize(
-    main_window: MainWindow,
+fn test_search_page_handler_initialize() { run_slint_test(do_search_page_handler_initialize); }
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_search_page_handler_initialize(
+    main_window: &'static MainWindow,
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = SearchPageHandler::new(&main_window, &sm);
+    let song = Song {
+        song: Some(InnerSong {
+            id: Some("search_test_id".into()),
+            title: Some("Searchable Track".into()),
+            path: Some("/music/search.mp3".into()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let db = sm.get_database().await;
+    assert_ok!(db.insert_songs(vec![song]));
 
+    let handler = SearchPageHandler::new(main_window, &sm);
     handler.initialize();
+
     main_window
         .global::<AppCallbacks>()
-        .invoke_search_term_changed("test".into());
+        .invoke_search_term_changed("Searchable".into());
 
-    assert!(!main_window.get_playing());
+    let loaded = wait_until(|| {
+        let provider_results = main_window
+            .global::<SearchPageProps>()
+            .get_provider_results();
+        if provider_results.row_count() == 1 {
+            let local_provider = provider_results.row_data(0).unwrap();
+            return local_provider.songs.row_count() == 1;
+        }
+        false
+    })
+    .await;
+
+    assert!(loaded);
+    let provider_results = main_window
+        .global::<SearchPageProps>()
+        .get_provider_results();
+    assert_eq!(provider_results.row_count(), 1);
+    let local_provider = provider_results.row_data(0).unwrap();
+    assert_eq!(local_provider.songs.row_count(), 1);
+    assert_eq!(
+        local_provider.songs.row_data(0).unwrap().title,
+        "Searchable Track"
+    );
 }

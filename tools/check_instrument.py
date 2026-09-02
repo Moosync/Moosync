@@ -137,18 +137,13 @@ def check_async_blocks(content, lines):
                 if end_comment == -1:
                     after_close = ""
                     break
-                after_close = after_close[end_comment + 2:].lstrip()
-                
-        has_instrument = (
-            after_close.startswith(".in_current_span()")
-            or after_close.startswith(".in_current_span ()")
-            or after_close.startswith(".instrument(")
-            or after_close.startswith(".instrument (")
+        has_instrument = bool(
+            re.match(r'^\.(in_current_span\s*\(\s*\)|instrument\s*\()', after_close)
         )
         
         if not has_instrument:
             snippet = lines[line_num - 1].strip() if line_num - 1 < len(lines) else "async block"
-            errors.append((line_num, "async block/closure", snippet, "Missing '.in_current_span()' on async block"))
+            errors.append((line_num, "async block/closure", snippet, "Missing '.in_current_span()' or '.instrument(...)' on async block"))
             
         idx = closing_brace_pos + 1
         
@@ -249,7 +244,7 @@ def main():
     has_errors = False
     project_root = os.environ.get("BUILD_WORKSPACE_DIRECTORY", os.getcwd())
     
-    print("Checking recursively all .rs files for #[tracing::instrument] and .in_current_span()...")
+    print("Checking recursively all .rs files for #[tracing::instrument], .in_current_span(), and .instrument()...")
     target_files = get_all_rs_files(project_root)
     
     for rel_path in target_files:

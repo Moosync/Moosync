@@ -384,6 +384,8 @@ pub fn dispatch_song_context_action(
                 handle_goto_artist(weak, &state_manager, artist_id).await;
             }
         }
-        .in_current_span(),
+        .instrument(tracing::debug_span!(
+            "slint_cb_dispatch_song_context_action"
+        )),
     );
 }

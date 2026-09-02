@@ -1,4 +1,4 @@
-use assertables::{assert_gt, assert_len_eq_x};
+use assertables::assert_len_eq_x;
 use rstest::rstest;
 use slint::{Model, ModelRc, VecModel};
 use tracing_test::traced_test;
@@ -43,7 +43,7 @@ async fn test_build_song_context_menu_items(
 
     let items = build_song_context_menu_items(&main_window, &sm, &song_models);
 
-    assert_gt!(items.row_count(), 0);
+    assert_eq!(items.row_count(), 4);
 }
 
 #[rstest]
@@ -59,5 +59,5 @@ async fn test_build_queue_context_menu_items(
 
     let items = build_queue_context_menu_items(&main_window, &sm, &song_models, 0);
 
-    assert_gt!(items.row_count(), 0);
+    assert_eq!(items.row_count(), 2);
 }

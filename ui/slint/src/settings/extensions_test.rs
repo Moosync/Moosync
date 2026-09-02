@@ -51,8 +51,14 @@ async fn test_extensions_page_handler_on_hide(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = ExtensionsPageHandler::new(&main_window, &sm);
+    let dummy_exts = vec![
+        crate::ExtensionItem::default(),
+        crate::ExtensionItem::default(),
+    ];
+    main_window.set_extensions(ModelRc::new(slint::VecModel::from(dummy_exts)));
+    assert_eq!(main_window.get_extensions().row_count(), 2);
 
+    let handler = ExtensionsPageHandler::new(&main_window, &sm);
     handler.on_hide();
 
     assert_eq!(main_window.get_extensions().row_count(), 0);

@@ -166,7 +166,7 @@ impl<'a> PlaylistsPageHandler<'a> {
                         Self::handle_playlist_action(weak, state_manager, playlist_ids, action)
                             .await;
                     }
-                    .in_current_span(),
+                    .instrument(tracing::debug_span!("slint_cb_on_playlist_action")),
                 );
             });
     }

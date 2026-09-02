@@ -15,11 +15,11 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use rstest::rstest;
-use slint::{ComponentHandle, Model};
+use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use tracing_test::traced_test;
 
 use crate::{
-    ExplorePageProps, MainWindow,
+    ExplorePageProps, MainWindow, ProviderRecommendations,
     main_content::explore::ExplorePageHandler,
     pages::PageHandler,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
@@ -29,7 +29,7 @@ use crate::{
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_explore_page_handler_on_show(
+async fn test_explore_page_handler_on_show_empty(
     main_window: MainWindow,
     state_manager_fixture: TestSlintSmContext,
 ) {
@@ -54,29 +54,24 @@ async fn test_explore_page_handler_on_hide(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = ExplorePageHandler::new(&main_window, &sm);
-
-    handler.on_hide();
-    let count = main_window
+    let dummy_recs = vec![
+        ProviderRecommendations::default(),
+        ProviderRecommendations::default(),
+    ];
+    main_window
         .global::<ExplorePageProps>()
-        .get_provider_recommendations()
-        .row_count();
+        .set_provider_recommendations(ModelRc::new(VecModel::from(dummy_recs)));
+    assert_eq!(
+        main_window
+            .global::<ExplorePageProps>()
+            .get_provider_recommendations()
+            .row_count(),
+        2
+    );
 
-    assert_eq!(count, 0);
-}
-
-#[rstest]
-#[tokio::test]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-async fn test_explore_page_handler_initialize(
-    main_window: MainWindow,
-    state_manager_fixture: TestSlintSmContext,
-) {
-    let TestSlintSmContext { sm, .. } = state_manager_fixture;
     let handler = ExplorePageHandler::new(&main_window, &sm);
+    handler.on_hide();
 
-    handler.initialize();
     let count = main_window
         .global::<ExplorePageProps>()
         .get_provider_recommendations()

@@ -14,6 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use std::time::Duration;
+
 use assertables::assert_ok;
 use rstest::{fixture, rstest};
 use tempdir::TempDir;
@@ -58,4 +60,11 @@ async fn test_scanner_hook_on_startup(sm_context: TestSmContext) {
     let hook = ScannerHook::new();
 
     assert_ok!(hook.on_startup(&sm).await);
+
+    let pref = sm.get_preference_config().await;
+    assert_ok!(pref.save(preferences::keys::ScanThreads, 4));
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    let scanner = sm.get_scanner_holder().await;
+    assert_eq!(scanner.get_scan_threads(), Some(4));
 }

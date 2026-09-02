@@ -14,52 +14,114 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use rstest::rstest;
-use slint::{ComponentHandle, Model, ModelRc};
+use assertables::assert_ok;
+use slint::{ComponentHandle, Model, ModelRc, VecModel};
+use songs_proto::moosync::types::{Artist, InnerSong, Song};
 use tracing_test::traced_test;
 
 use crate::{
-    ArtistContentPageProps, MainWindow,
+    ArtistContentPageProps, ArtistsPageProps, MainWindow, SongModel,
     main_content::artist_content::ArtistContentPageHandler,
     pages::PageHandler,
-    test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
+    test_utils::{TestSlintSmContext, run_slint_test, wait_until},
 };
 
-#[rstest]
-#[tokio::test]
+#[test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_artist_content_page_handler_on_show(
-    main_window: MainWindow,
-    state_manager_fixture: TestSlintSmContext,
-) {
-    let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    main_window
-        .global::<ArtistContentPageProps>()
-        .set_songs(ModelRc::default());
-    let handler = ArtistContentPageHandler::new(&main_window, &sm);
-
-    handler.on_show();
-    let row_count = main_window
-        .global::<ArtistContentPageProps>()
-        .get_songs()
-        .row_count();
-
-    assert_eq!(row_count, 0);
+fn test_artist_content_page_handler_on_show() {
+    run_slint_test(do_artist_content_page_handler_on_show);
 }
 
-#[rstest]
-#[tokio::test]
-#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_artist_content_page_handler_on_hide(
-    main_window: MainWindow,
+async fn do_artist_content_page_handler_on_show(
+    main_window: &'static MainWindow,
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = ArtistContentPageHandler::new(&main_window, &sm);
+    let artist = Artist {
+        artist_name: Some("Target Artist".into()),
+        ..Default::default()
+    };
+    let song = Song {
+        song: Some(InnerSong {
+            id: Some("s_art_content".into()),
+            title: Some("Song By Target Artist".into()),
+            path: Some("/music/target_art.mp3".into()),
+            ..Default::default()
+        }),
+        artists: vec![artist.clone()],
+        ..Default::default()
+    };
+    let db = sm.get_database().await;
+    assert_ok!(db.insert_songs(vec![song]));
 
+    let inserted_artists = db
+        .get_entity_by_options(songs_proto::moosync::types::GetEntityOptions {
+            artist: Some(artist),
+            ..Default::default()
+        })
+        .unwrap();
+    if let Some(songs_proto::moosync::types::entity_result::Result::Artists(list)) =
+        inserted_artists.result
+    {
+        if let Some(first_artist) = list.artists.into_iter().next() {
+            main_window
+                .global::<ArtistsPageProps>()
+                .set_selected_artist(first_artist.into());
+        }
+    }
+
+    let handler = ArtistContentPageHandler::new(main_window, &sm);
+    handler.on_show();
+
+    let loaded = wait_until(|| {
+        main_window
+            .global::<ArtistContentPageProps>()
+            .get_songs()
+            .row_count()
+            == 1
+    })
+    .await;
+
+    assert!(loaded);
+    assert_eq!(
+        main_window
+            .global::<ArtistContentPageProps>()
+            .get_songs()
+            .row_count(),
+        1
+    );
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_artist_content_page_handler_on_hide() {
+    run_slint_test(do_artist_content_page_handler_on_hide);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_artist_content_page_handler_on_hide(
+    main_window: &'static MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let dummy_songs = vec![SongModel::default(), SongModel::default()];
+    main_window
+        .global::<ArtistContentPageProps>()
+        .set_songs(ModelRc::new(VecModel::from(dummy_songs)));
+    assert_eq!(
+        main_window
+            .global::<ArtistContentPageProps>()
+            .get_songs()
+            .row_count(),
+        2
+    );
+
+    let handler = ArtistContentPageHandler::new(main_window, &sm);
     handler.on_hide();
+
     let row_count = main_window
         .global::<ArtistContentPageProps>()
         .get_songs()

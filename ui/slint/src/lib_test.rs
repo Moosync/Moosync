@@ -125,7 +125,7 @@ async fn test_ui_get_all_pages_and_setup(
     let state_manager: &'static StateManager = Box::leak(Box::new(sm));
 
     let pages = get_all_pages(main_window, state_manager);
-    for (_page_type, page) in pages {
+    for page in pages.values() {
         page.initialize();
         page.on_show();
         page.on_hide();
@@ -244,5 +244,5 @@ async fn test_ui_get_all_pages_and_setup(
             true,
         );
 
-    assert!(!main_window.get_playing());
+    assert_eq!(pages.len(), 16);
 }

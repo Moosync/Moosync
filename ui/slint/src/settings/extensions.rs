@@ -90,7 +90,7 @@ impl<'a> ExtensionsPageHandler<'a> {
                         async move {
                             Self::handle_toggle_extension(package_name, state_manager).await;
                         }
-                        .in_current_span(),
+                        .instrument(tracing::debug_span!("slint_cb_on_toggle_extension")),
                     );
                 }
             });
@@ -106,7 +106,7 @@ impl<'a> ExtensionsPageHandler<'a> {
                         async move {
                             Self::install_local_extension(file_path, state_manager).await;
                         }
-                        .in_current_span(),
+                        .instrument(tracing::debug_span!("slint_cb_on_install_extension")),
                     );
                 }
             });

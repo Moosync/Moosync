@@ -93,6 +93,12 @@ impl ScannerHolder {
     pub fn set_scan_threads(&mut self, threads: i32) { self.scan_threads = Some(threads); }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_scan_threads(&self) -> Option<i32> { self.scan_threads }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_scan_dirs(&self) -> &[PathBuf] { &self.scan_dirs }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_thumbnail_dir(&mut self, dir: PathBuf) { self.thumbnail_dir = Some(dir); }
 
     #[tracing::instrument(level = "debug", skip_all)]

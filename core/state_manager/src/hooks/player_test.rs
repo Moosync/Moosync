@@ -16,6 +16,7 @@
 
 use assertables::assert_ok;
 use rstest::{fixture, rstest};
+use songs_proto::moosync::types::{InnerSong, Song};
 use tempdir::TempDir;
 use tracing_test::traced_test;
 use types::plugin::PluginContext;
@@ -58,4 +59,14 @@ async fn test_player_hook_on_startup(sm_context: TestSmContext) {
     let hook = PlayerHook::new();
 
     assert_ok!(hook.on_startup(&sm).await);
+
+    let mut song = Song {
+        song: Some(InnerSong {
+            id: Some("hook_test_song".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let player = sm.get_player_handler().await;
+    assert_ok!(player.resolve_playback_url(&mut song));
 }

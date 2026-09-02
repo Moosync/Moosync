@@ -315,7 +315,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
                     let mut queue = state_manager.get_player_handler_mut().await;
                     queue.play_now(vec![song]);
                 }
-                .in_current_span(),
+                .instrument(tracing::debug_span!("slint_cb_on_play_song")),
             );
         });
 
@@ -328,7 +328,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
                     let mut queue = state_manager.get_player_handler_mut().await;
                     queue.add_to_queue(vec![song]);
                 }
-                .in_current_span(),
+                .instrument(tracing::debug_span!("slint_cb_on_add_song_to_queue")),
             );
         });
 
@@ -351,7 +351,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
                         }
                     }
                 }
-                .in_current_span(),
+                .instrument(tracing::debug_span!("slint_cb_on_song_detail_action")),
             );
         });
 
@@ -372,7 +372,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
                         }
                     });
                 }
-                .in_current_span(),
+                .instrument(tracing::debug_span!("slint_cb_on_play_pause_clicked")),
             );
         });
 
@@ -389,7 +389,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
                     };
                     player_handler.repeat(next_mode);
                 }
-                .in_current_span(),
+                .instrument(tracing::debug_span!("slint_cb_on_toggle_repeat")),
             );
         });
 }
@@ -479,7 +479,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
                     let mut player_handler = state_manager_clone.get_player_handler_mut().await;
                     player_handler.next();
                 }
-                .in_current_span(),
+                .instrument(tracing::debug_span!("slint_cb_on_next_song")),
             );
         });
 
@@ -492,7 +492,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
                     let mut player_handler = state_manager_clone.get_player_handler_mut().await;
                     player_handler.prev();
                 }
-                .in_current_span(),
+                .instrument(tracing::debug_span!("slint_cb_on_prev_song")),
             );
         });
 
@@ -505,7 +505,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
                     let player_handler = state_manager_clone.get_player_handler().await;
                     player_handler.set_volume(volume as u8);
                 }
-                .in_current_span(),
+                .instrument(tracing::debug_span!("slint_cb_on_set_volume")),
             );
         });
 
@@ -518,7 +518,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
                     let mut player_handler = state_manager_clone.get_player_handler_mut().await;
                     player_handler.shuffle();
                 }
-                .in_current_span(),
+                .instrument(tracing::debug_span!("slint_cb_on_shuffle")),
             );
         });
 
@@ -535,7 +535,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
 
                     player_handler.seek(target_duration);
                 }
-                .in_current_span(),
+                .instrument(tracing::debug_span!("slint_cb_on_seek")),
             );
         });
 }

@@ -125,8 +125,8 @@ impl StateManager {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn register_hook(&self, hook: Arc<dyn hooks::Hook>) {
-        self.hooks.blocking_lock().push(hook);
+    pub async fn register_hook(&self, hook: Arc<dyn hooks::Hook>) {
+        self.hooks.lock().await.push(hook);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

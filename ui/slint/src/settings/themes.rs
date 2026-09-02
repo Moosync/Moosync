@@ -370,7 +370,7 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                                 });
                             }
                         }
-                        .in_current_span(),
+                        .instrument(tracing::debug_span!("slint_cb_on_select_preset_theme")),
                     );
                 }
             });
@@ -453,7 +453,7 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                                 });
                             }
                         }
-                        .in_current_span(),
+                        .instrument(tracing::debug_span!("slint_cb_on_save_custom_theme")),
                     );
                 }
             });

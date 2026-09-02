@@ -54,7 +54,7 @@ impl<'a> QueuePageHandler<'a> {
                             let mut player_handler = state_manager.get_player_handler_mut().await;
                             player_handler.play_index(idx as usize);
                         }
-                        .in_current_span(),
+                        .instrument(tracing::debug_span!("slint_cb_on_play_queue_index")),
                     );
                 }
             });
@@ -70,7 +70,7 @@ impl<'a> QueuePageHandler<'a> {
                             let mut player_handler = state_manager.get_player_handler_mut().await;
                             player_handler.remove_from_queue(idx as usize);
                         }
-                        .in_current_span(),
+                        .instrument(tracing::debug_span!("slint_cb_on_remove_from_queue")),
                     );
                 }
             });
@@ -84,7 +84,7 @@ impl<'a> QueuePageHandler<'a> {
                         let mut player_handler = state_manager.get_player_handler_mut().await;
                         player_handler.clear_queue();
                     }
-                    .in_current_span(),
+                    .instrument(tracing::debug_span!("slint_cb_on_clear_queue")),
                 );
             }
         });
@@ -102,7 +102,7 @@ impl<'a> QueuePageHandler<'a> {
                                     state_manager.get_player_handler_mut().await;
                                 player_handler.move_queue_item(from_idx, to_idx as usize);
                             }
-                            .in_current_span(),
+                            .instrument(tracing::debug_span!("slint_cb_on_move_queue_item")),
                         );
                     }
                 }
@@ -120,7 +120,7 @@ impl<'a> QueuePageHandler<'a> {
                         async move {
                             save_queue(&state_manager, name_str, desc_str).await;
                         }
-                        .in_current_span(),
+                        .instrument(tracing::debug_span!("slint_cb_on_save_queue_as_playlist")),
                     );
                 }
             });
@@ -294,7 +294,7 @@ impl<'a> QueuePageHandler<'a> {
                             let mut player = state_manager.get_player_handler_mut().await;
                             player.play_index(queue_idx);
                         }
-                        .in_current_span(),
+                        .instrument(tracing::debug_span!("slint_cb_on_queue_action_play_now")),
                     );
                     return;
                 }
@@ -307,7 +307,9 @@ impl<'a> QueuePageHandler<'a> {
                             let mut player = state_manager.get_player_handler_mut().await;
                             player.remove_from_queue(queue_idx);
                         }
-                        .in_current_span(),
+                        .instrument(tracing::debug_span!(
+                            "slint_cb_on_queue_action_remove_from_queue"
+                        )),
                     );
                     return;
                 }

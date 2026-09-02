@@ -122,7 +122,7 @@ impl<'a> SearchPageHandler<'a> {
                     }
                 });
             }
-            .in_current_span(),
+            .instrument(tracing::debug_span!("slint_cb_perform_search")),
         );
     }
 }

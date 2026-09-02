@@ -1,4 +1,5 @@
 {
+  // "code_lens": "on", -> enable this in your local zed config
   "format_on_save": "on",
   "languages": {
     "Starlark": {
@@ -49,11 +50,26 @@
         // },
       },
     },
+    "covhl": {
+      "settings": {
+        "enabled": true,
+        "showHover": true,
+        "showCodeLens": true,
+        "autoRefresh": true,
+        "alpha": 0.2,
+        "coveragePath": "bazel-out/_coverage/_coverage_report.dat",
+        "colors": {
+          "covered": "#2ecc71",
+          "uncovered": "rgba(231,76,60,0.35)",
+          "partial": "hsl(48, 89%, 50%)",
+        },
+      },
+    },
   },
   "file_scan_exclusions": [
-    "bazel-out",
+    "bazel-out/[!\\_coverage]*",
     "bazel-bin",
-    "bazel-testlogs",
     "bazel-Moosync",
+    "...",
   ],
 }

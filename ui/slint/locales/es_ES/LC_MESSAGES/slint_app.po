@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-08-28 04:54\n"
+"PO-Revision-Date: 2026-09-02 01:31\n"
 "Language: es_ES\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -15,235 +15,303 @@ msgstr ""
 "X-Crowdin-File-ID: 73\n"
 "Language-Team: Spanish\n"
 
-#: src/app.slint:156 src/main_content/search.slint:99
+#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99
 msgid "Songs"
 msgstr "Todas las canciones"
 
-#: src/app.slint:157 src/main_content/playlists.slint:21
-#: src/app.slint:157 src/main_content/playlists.slint:21
+#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21 ui/slint/src/app.slint:165
 msgid "Playlists"
 msgstr "Listas de reproducción"
 
-#: src/app.slint:158 src/main_content/artists.slint:21
-#: src/app.slint:158 src/main_content/artists.slint:21
+#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21 ui/slint/src/app.slint:169
 msgid "Artists"
 msgstr "Artistas"
 
-#: src/app.slint:159 src/main_content/albums.slint:21
-#: src/app.slint:159 src/main_content/albums.slint:21
+#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21 ui/slint/src/app.slint:170
 msgid "Albums"
 msgstr "Álbumes"
 
-#: src/app.slint:160 src/main_content/genres.slint:21
-#: src/app.slint:160 src/main_content/genres.slint:21
+#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21 ui/slint/src/app.slint:171
 msgid "Genres"
 msgstr "Géneros"
 
-#: src/app.slint:161 src/main_content/explore.slint:22
+#: ui/slint/src/app.slint:161 ui/slint/src/main_content/explore.slint:22
 msgid "Explore"
 msgstr "Explorar"
 
-#: src/common/song_list_view.slint:59
+#: ui/slint/src/common/song_list_view.slint:59
 msgid "Filter songs..."
 msgstr "Filtrar canciones..."
 
-#: src/common/card_view.slint:4
+#: ui/slint/src/common/card_view.slint:4
 msgid "Card Title"
 msgstr "Título de la tarjeta"
 
-#: src/constants.slint:17 src/callbacks.slint:75
+#: ui/slint/src/constants.slint:17 ui/slint/src/callbacks.slint:75
 msgid "Title"
 msgstr "Título"
 
-#: src/constants.slint:25 src/callbacks.slint:83
+#: ui/slint/src/constants.slint:25 ui/slint/src/callbacks.slint:83
 msgid "Date"
 msgstr "Fecha"
 
-#: src/constants.slint:33 src/callbacks.slint:91
+#: ui/slint/src/constants.slint:33 ui/slint/src/callbacks.slint:91
 msgid "Album"
 msgstr "Álbum"
 
-#: src/constants.slint:41 src/callbacks.slint:99
+#: ui/slint/src/constants.slint:41 ui/slint/src/callbacks.slint:99
 msgid "Track Number"
 msgstr "Número de pista"
 
-#: src/constants.slint:49 src/callbacks.slint:107
+#: ui/slint/src/constants.slint:49 ui/slint/src/callbacks.slint:107
 msgid "Artist"
 msgstr "Artista"
 
-#: src/main_content/explore.slint:32
+#: ui/slint/src/main_content/explore.slint:32
 msgid "No recommendations"
 msgstr "No hay recomendaciones"
 
-#: src/main_content/search.slint:80
+#: ui/slint/src/main_content/search.slint:80
 msgid "Search"
 msgstr "Buscar"
 
-#: src/main_content/search.slint:89
+#: ui/slint/src/main_content/search.slint:89
 msgid "Local"
 msgstr "Local"
 
-#: src/main_content/queue_page.slint:250
+#: ui/slint/src/main_content/queue_page.slint:250
 msgid "Show Lyrics"
 msgstr "Mostrar Letras"
 
-#: src/main_content/queue_page.slint:268
+#: ui/slint/src/main_content/queue_page.slint:268
 msgid "Save as playlist"
 msgstr "Guardar como lista"
 
-#: src/main_content/queue_page.slint:274
+#: ui/slint/src/main_content/queue_page.slint:274
 msgid "Clear"
 msgstr "Claro"
 
-#: src/settings/extensions.slint:154
+#: ui/slint/src/settings/extensions.slint:154
 msgid "Settings > Extensions"
 msgstr "Ajustes > Extensiones"
 
-#: src/settings/extensions.slint:167 src/settings/settings.slint:43
+#: ui/slint/src/settings/extensions.slint:167
 msgid "Extensions"
 msgstr "Extensiones"
 
-#: src/settings/extensions.slint:173
+#: ui/slint/src/settings/extensions.slint:173
 msgid "Manage your extensions"
 msgstr "Administra tus extensiones"
 
-#: src/settings/extensions.slint:181
+#: ui/slint/src/settings/extensions.slint:181
 msgid "Add Extension"
 msgstr "Añadir extensión"
 
-#: src/settings/extensions.slint:193
+#: ui/slint/src/settings/extensions.slint:193
 msgid "No extensions available."
 msgstr "No hay extensiones disponibles."
 
-#: src/settings/path_selector.slint:35
+#: ui/slint/src/settings/path_selector.slint:35
 msgid "Add folder"
 msgstr "Añadir carpeta"
 
-#: src/settings/paths.slint:24
+#: ui/slint/src/settings/paths.slint:24
 msgid "Settings > Paths"
 msgstr "Ajustes > Rutas"
 
-#: src/settings/settings.slint:40
+#: ui/slint/src/settings/settings.slint:40
 msgid "Paths"
 msgstr "Rutas"
 
-#: src/settings/settings.slint:41
+#: ui/slint/src/settings/settings.slint:41
 msgid "System"
 msgstr "Sistema"
 
-#: src/settings/settings.slint:47
+#: ui/slint/src/settings/settings.slint:47
 msgid "Themes"
 msgstr "Temas"
 
-#: src/settings/settings.slint:160
+#: ui/slint/src/settings/settings.slint:160
 msgid "Save Custom Theme"
 msgstr "Guardar tema personalizado"
 
-#: src/settings/settings.slint:166
+#: ui/slint/src/settings/settings.slint:166
 msgid "Your current accent and advanced styling variables will be saved."
 msgstr "Se guardarán sus actuales variables de acento y estilo avanzado."
 
-#: src/settings/settings.slint:174
+#: ui/slint/src/settings/settings.slint:174
 msgid "Theme Name"
 msgstr "Nombre del tema"
 
-#: src/settings/settings.slint:175
+#: ui/slint/src/settings/settings.slint:175
 msgid "A short, distinct name"
 msgstr "Un nombre corto y distinto"
 
-#: src/settings/settings.slint:176
+#: ui/slint/src/settings/settings.slint:176
 msgid "e.g., Midnight Blue"
 msgstr "ej. Azul Medianoche"
 
-#: src/settings/settings.slint:182
+#: ui/slint/src/settings/settings.slint:182
 msgid "Author"
 msgstr "Autor"
 
-#: src/settings/settings.slint:183
+#: ui/slint/src/settings/settings.slint:183
 msgid "Who created this theme?"
 msgstr "¿Quién creó este tema?"
 
-#: src/settings/settings.slint:184
+#: ui/slint/src/settings/settings.slint:184
 msgid "Your name"
 msgstr "Tu nombre"
 
-#: src/settings/settings.slint:190
+#: ui/slint/src/settings/settings.slint:190
 msgid "Description"
 msgstr "Descripción"
 
-#: src/settings/settings.slint:191
+#: ui/slint/src/settings/settings.slint:191
 msgid "A brief summary of the aesthetics"
 msgstr "Un breve resumen de la estética"
 
-#: src/settings/settings.slint:192
+#: ui/slint/src/settings/settings.slint:192
 msgid "High contrast dark theme..."
 msgstr "Tema oscuro de alto contraste..."
 
-#: src/settings/settings.slint:203
+#: ui/slint/src/settings/settings.slint:203
 msgid "Cancel"
 msgstr "Cancelar"
 
-#: src/settings/settings.slint:204
+#: ui/slint/src/settings/settings.slint:204
 msgid "Save Theme"
 msgstr "Guardar tema"
 
-#: src/settings/system.slint:24
+#: ui/slint/src/settings/system.slint:24
 msgid "Settings > System"
 msgstr "Ajustes > Sistema"
 
-#: src/settings/themes.slint:215
+#: ui/slint/src/settings/themes.slint:215
 msgid "Opacity"
 msgstr "Opacidad"
 
-#: src/settings/themes.slint:467
+#: ui/slint/src/settings/themes.slint:467
 msgid "Settings > Themes"
 msgstr "Ajustes > Temas"
 
-#: src/settings/themes.slint:484
+#: ui/slint/src/settings/themes.slint:484
 msgid "Preset Themes"
 msgstr "Temas preestablecidos"
 
-#: src/settings/themes.slint:490
+#: ui/slint/src/settings/themes.slint:490
 msgid "Selecting a theme will instantly override your advanced styling configurations."
 msgstr "Seleccionar un tema anulará instantáneamente tus configuraciones avanzadas de estilo."
 
-#: src/settings/themes.slint:520
+#: ui/slint/src/settings/themes.slint:520
 msgid "Quick Accent"
 msgstr "Acento rápido"
 
-#: src/settings/themes.slint:526
+#: ui/slint/src/settings/themes.slint:526
 msgid "Instantly update the primary interactive color."
 msgstr "Actualiza instantáneamente el color interactivo primario."
 
-#: src/settings/themes.slint:573
+#: ui/slint/src/settings/themes.slint:573
 msgid "Advanced Styling"
 msgstr "Estilo avanzado"
 
-#: src/settings/themes.slint:579
+#: ui/slint/src/settings/themes.slint:579
 msgid "Fine-tune UI parameters. Modifying these clones/mutates the current active theme."
 msgstr "Afinar los parámetros de la interfaz de usuario. Modificando estos clones/muta el tema activo actual."
 
-#: src/settings/themes.slint:606
+#: ui/slint/src/settings/themes.slint:606
 msgid "Adjust the color for {}"
 msgstr "Ajusta el color para {}"
 
-#: src/settings/themes.slint:615
+#: ui/slint/src/settings/themes.slint:615
 msgid "Adjust the size for {}"
 msgstr "Ajustar el tamaño para {}"
 
-#: src/settings/themes.slint:630
+#: ui/slint/src/settings/themes.slint:630
 msgid "Export Theme"
 msgstr "Exportar tema"
 
-#: src/settings/themes.slint:631
+#: ui/slint/src/settings/themes.slint:631
 msgid "Save your current styling configuration as a new reusable preset."
 msgstr "Guarda tu configuración actual de estilo como un nuevo preset reutilizable."
 
-#: src/settings/themes.slint:632
+#: ui/slint/src/settings/themes.slint:632
 msgid "Save as New Theme"
 msgstr "Guardar como nuevo tema"
 
-#: src/topbar/search_bar.slint:6
+#: ui/slint/src/topbar/search_bar.slint:6
 msgid "Search..."
 msgstr "Buscar..."
+
+#: ui/slint/src/common/save_playlist_modal.slint:29
+msgid "Save as Playlist"
+msgstr "Guardar como lista de reproducción"
+
+#: ui/slint/src/common/save_playlist_modal.slint:36
+msgid "Enter details for the new playlist."
+msgstr "Introduce los detalles de la nueva lista de reproducción."
+
+#: ui/slint/src/common/save_playlist_modal.slint:44
+msgid "Playlist Name"
+msgstr "Nombre de la lista"
+
+#: ui/slint/src/common/save_playlist_modal.slint:46
+msgid "e.g., My Queue Playlist"
+msgstr "por ejemplo, Mi lista de reproducción de cola"
+
+#: ui/slint/src/common/save_playlist_modal.slint:54
+msgid "e.g., Chill vibes and favorites"
+msgstr "por ejemplo, vibes fríos y favoritos"
+
+#: ui/slint/src/common/save_playlist_modal.slint:70
+msgid "Save"
+msgstr "Guardar"
+
+#: ui/slint/src/types/context_menu.slint:12
+msgid "Play Now"
+msgstr "Reproducir ahora"
+
+#: ui/slint/src/types/context_menu.slint:17
+msgid "Play Next"
+msgstr "Jugar siguiente"
+
+#: ui/slint/src/types/context_menu.slint:22
+msgid "Add to Queue"
+msgstr "Añadir a la cola"
+
+#: ui/slint/src/types/context_menu.slint:37
+msgid "Remove from Queue"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:62
+msgid "Remove from Playlist"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:72
+msgid "Delete Playlist"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:34
+msgid "Clear queue and play"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:119
+msgid "Export Playlist"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:126
+msgid "Save Playlist"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:135
+msgid "Add to Playlist"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:139
+msgid "Go to album"
+msgstr ""
+
+#: ui/slint/src/types/context_menu.slint:143
+msgid "Go to artists"
+msgstr ""
 

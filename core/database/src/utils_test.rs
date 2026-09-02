@@ -293,6 +293,7 @@ fn test_map_song_row(memory_connection: Connection) {
     assert_some_eq_x!(song.id.as_deref(), "s1");
     assert_some_eq_x!(song.path.as_deref(), "/music/track.mp3");
     assert_some_eq_x!(song.title.as_deref(), "Bohemian Rhapsody");
+    assert_none!(song.lyrics);
     assert_eq!(song.bitrate, Some(320.0));
     assert_eq!(song.track_no, Some(1.0));
     assert_eq!(song.r#type, SongType::Local as i32);

@@ -10,13 +10,13 @@ Don't try to explore the entire project. Understand the context of the task and 
 
 ## Skill References
 
-| Skill       | Purpose                                                                                           | When to Use                                                                                               |
-| ----------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **rust**    | Hermetic Rust crate building, testing, and formatting via Bazel targets.                          | Any Rust code changes — build, test, format. See `.agents/skills/rust/SKILL.md`.                          |
-| **bazel**   | Hermetic build/test/package commands; dependency management with bzlmod. Patching external rules. | Cross-project builds, packaging (`@pkg//:all`), adding dependencies. See `.agents/skills/bazel/SKILL.md`. |
-| **moosync** | Project structure — crate boundaries, UI layout, plugin system, platform-specific code patterns.  | Adding new features; understanding where to put new code. See `.agents/skills/moosync/SKILL.md`.          |
-| **instrumentation** | Tracing instrumentation rules and validation tools. | Any function changes or additions requiring observability. See `.agents/skills/instrumentation/SKILL.md`. |
-| **tests**   | Unit and smoke testing rules, 3-section test layout, and hermetic execution. | Writing or refactoring tests. See `.agents/skills/tests/SKILL.md`. |
+| Skill               | Purpose                                                                                           | When to Use                                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **rust**            | Hermetic Rust crate building, testing, and formatting via Bazel targets.                          | Any Rust code changes — build, test, format. See `.agents/skills/rust/SKILL.md`.                          |
+| **bazel**           | Hermetic build/test/package commands; dependency management with bzlmod. Patching external rules. | Cross-project builds, packaging (`@pkg//:all`), adding dependencies. See `.agents/skills/bazel/SKILL.md`. |
+| **moosync**         | Project structure — crate boundaries, UI layout, plugin system, platform-specific code patterns.  | Adding new features; understanding where to put new code. See `.agents/skills/moosync/SKILL.md`.          |
+| **instrumentation** | Tracing instrumentation rules and validation tools.                                               | Any function changes or additions requiring observability. See `.agents/skills/instrumentation/SKILL.md`. |
+| **tests**           | Unit and smoke testing rules, 3-section test layout, and hermetic execution.                      | Writing or refactoring tests. See `.agents/skills/tests/SKILL.md`.                                        |
 
 ---
 
@@ -24,7 +24,8 @@ Don't try to explore the entire project. Understand the context of the task and 
 
 ### Mandatory rules
 
-Donot
+- Donot try to manually format files while editing. If Bazel skips a test, thats because nothing was changed. You can ignore that test.
+- If you want to format a file, use bazel run //tools:format
 
 ### Build System
 
@@ -38,9 +39,9 @@ Donot
 5. Use `bazel run //tools:format -- <files>` to format Rust (`.rs`), Slint (`.slint`), Bazel (`BUILD`, `MODULE.bazel`, `.bzl`), and Protobuf (`.proto`) files. This is wired as the git pre-commit hook via `.git/hooks/pre-commit`. Do not invoke rustfmt, slint-lsp, buildifier, or buf directly — they are resolved through Bazel runfiles.
 6. No Clippy lints exist in this project. Use `bazel query` to discover available targets for a crate; test suites are defined under the root `BUILD` (e.g., `core_tests`).
 7. Use `bazel run //tools:extract_translations` to extract translatable strings from Slint files into `ui/slint/locales/en_US/LC_MESSAGES/slint_app.po`.
-12. **Nesting and Control Flow**: Conditions should not be nested and an early return pattern should be preferred (e.g., using `let else` or flat early exits). Avoid using `else` blocks wherever possible, and avoid using `continue` inside loops to maintain clear and readable control flow.
-13. **Single Responsibility & No Else Blocks**: Avoid `else` blocks entirely to reduce cognitive load and simplify control flow. Each function must perform only one task. Split distinct logic paths into separate, single-purpose helper functions and have the caller function orchestrate or delegate using flat early returns.
-14. **Simple & Obvious Naming**: Keep function names simple and obvious. Do not repeat context from the struct or module name inside function names (e.g., in `PlaylistContentPageHandler`, use `fetch_local` or `fetch_local_songs` instead of `fetch_local_playlist_songs`).
+8. **Nesting and Control Flow**: Conditions should not be nested and an early return pattern should be preferred (e.g., using `let else` or flat early exits). Avoid using `else` blocks wherever possible, and avoid using `continue` inside loops to maintain clear and readable control flow.
+9. **Single Responsibility & No Else Blocks**: Avoid `else` blocks entirely to reduce cognitive load and simplify control flow. Each function must perform only one task. Split distinct logic paths into separate, single-purpose helper functions and have the caller function orchestrate or delegate using flat early returns.
+10. **Simple & Obvious Naming**: Keep function names simple and obvious. Do not repeat context from the struct or module name inside function names (e.g., in `PlaylistContentPageHandler`, use `fetch_local` or `fetch_local_songs` instead of `fetch_local_playlist_songs`).
 
 ### Tracing Instrumentation
 

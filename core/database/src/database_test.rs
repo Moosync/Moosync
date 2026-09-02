@@ -16,7 +16,9 @@
 
 use std::path::PathBuf;
 
-use assertables::{assert_err, assert_len_eq_x, assert_none, assert_some, assert_some_eq_x};
+use assertables::{
+    assert_err, assert_len_eq_x, assert_none, assert_ok, assert_some, assert_some_eq_x,
+};
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{
     Album, Artist, Genre, GetEntityOptions, GetSongOptions, InnerSong, Playlist, SearchableSong,
@@ -1244,22 +1246,44 @@ fn test_update_lyrics(db_context: TestDbContext) {
     let fetched_songs = db
         .get_songs_by_options(GetSongOptions {
             song: Some(SearchableSong {
-                id: Some(song_id),
+                id: Some(song_id.clone()),
                 ..Default::default()
             }),
             ..Default::default()
         })
         .unwrap();
-    assert_eq!(
-        fetched_songs[0]
-            .song
-            .as_ref()
-            .unwrap()
-            .lyrics
-            .as_ref()
-            .unwrap(),
-        "New Lyrics"
-    );
+    let lyrics = db.get_lyrics(&song_id).unwrap();
+
+    assert_none!(fetched_songs[0].song.as_ref().unwrap().lyrics);
+    assert_eq!(lyrics.as_deref(), Some("New Lyrics"));
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_get_lyrics_success(db_context: TestDbContext) {
+    let TestDbContext { db, .. } = db_context;
+    let mut song = create_test_song("Lyric Song", "/path/to/lyrics.mp3");
+    song.song.as_mut().unwrap().lyrics = Some("Song lyrics content".to_string());
+    let inserted = db.insert_songs(vec![song]).unwrap();
+    let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
+
+    let lyrics = db.get_lyrics(&song_id);
+
+    assert_ok!(lyrics.as_ref());
+    assert_eq!(lyrics.unwrap().as_deref(), Some("Song lyrics content"));
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_get_lyrics_not_found(db_context: TestDbContext) {
+    let TestDbContext { db, .. } = db_context;
+
+    let lyrics = db.get_lyrics("non_existent_song_id");
+
+    assert_ok!(lyrics.as_ref());
+    assert_eq!(lyrics.unwrap(), None);
 }
 
 #[rstest]

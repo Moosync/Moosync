@@ -22,6 +22,7 @@ use std::{
     vec,
 };
 
+use rusqlite::OptionalExtension;
 use songs_proto::moosync::types::{
     Album, AlbumList, AllAnalytics, Artist, ArtistList, EntityResult, Genre, GenreList,
     GetEntityOptions, GetSongOptions, InnerSong, Playlist, PlaylistList, SearchResult,
@@ -40,7 +41,7 @@ use crate::{
     },
 };
 
-const ALLSONGS_COLUMNS: &str = "a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, a.lyrics, a.releasetype, \
+const ALLSONGS_COLUMNS: &str = "a._id, a.path, a.size, a.inode, a.deviceno, a.title, a.date, a.year, NULL as lyrics, a.releasetype, \
                                 a.bitrate, a.codec, a.container, a.duration, a.samplerate, a.hash, a.type, a.url, \
                                 a.song_coverpath_high, a.playbackurl, a.song_coverpath_low, a.date_added, \
                                 a.provider_extension, a.icon, a.show_in_library, a.track_no, a.library_item";
@@ -1285,7 +1286,7 @@ impl Database {
         let mut fetched_songs: Vec<InnerSong> = vec![];
 
         if let Some(song) = options.song {
-            let mut query = "SELECT _id, path, size, inode, deviceno, title, date, year, lyrics, releasetype, bitrate, codec, container, duration, samplerate, hash, type, url, song_coverpath_high, playbackurl, song_coverpath_low, date_added, provider_extension, icon, show_in_library, track_no, library_item FROM allsongs".to_string();
+            let mut query = "SELECT _id, path, size, inode, deviceno, title, date, year, NULL as lyrics, releasetype, bitrate, codec, container, duration, samplerate, hash, type, url, song_coverpath_high, playbackurl, song_coverpath_low, date_added, provider_extension, icon, show_in_library, track_no, library_item FROM allsongs".to_string();
             let mut clauses = Vec::new();
             let mut params = Vec::new();
             let song_type_str;
@@ -1804,6 +1805,21 @@ impl Database {
         }
         info!("Updated songs");
         Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_lyrics(&self, id: &str) -> Result<Option<String>, DatabaseError> {
+        trace!("Getting lyrics for song {id}");
+        let conn = self.pool.get().unwrap();
+        let lyrics = conn
+            .query_row("SELECT lyrics FROM allsongs WHERE _id = ?1", [id], |row| {
+                row.get::<_, Option<String>>(0)
+            })
+            .optional()
+            .map_err(DatabaseError::Query)?
+            .flatten();
+        info!("Fetched lyrics for song {id}");
+        Ok(lyrics)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

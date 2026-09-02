@@ -153,7 +153,7 @@ pub fn map_row_to_inner_song(row: &rusqlite::Row) -> rusqlite::Result<InnerSong>
         title: row.get(5)?,
         date: row.get(6)?,
         year: row.get(7)?,
-        lyrics: row.get(8)?,
+        lyrics: None,
         release_type: row.get(9)?,
         bitrate: row.get(10)?,
         codec: row.get(11)?,

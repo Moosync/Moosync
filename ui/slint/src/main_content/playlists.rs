@@ -3,7 +3,7 @@ use extensions_proto::moosync::types::{ExtensionProviderScope, RequestedPlaylist
 use slint::{ComponentHandle, ModelRc, VecModel, Weak};
 use songs_proto::moosync::types::{GetEntityOptions, Playlist, PlaylistList, entity_result};
 use state_manager::StateManager;
-use tracing::debug;
+use tracing::{Instrument, debug};
 
 use crate::{
     ContextMenuCallbacks, ContextMenuItem, ContextMenuItems, MainWindow, PlaylistModel,
@@ -161,9 +161,13 @@ impl<'a> PlaylistsPageHandler<'a> {
                 let action = action_id.to_string();
                 let weak = main_window_weak.clone();
 
-                tokio::spawn(async move {
-                    Self::handle_playlist_action(weak, state_manager, playlist_ids, action).await;
-                });
+                tokio::spawn(
+                    async move {
+                        Self::handle_playlist_action(weak, state_manager, playlist_ids, action)
+                            .await;
+                    }
+                    .in_current_span(),
+                );
             });
     }
 }
@@ -184,6 +188,7 @@ impl<'a> PageHandler for PlaylistsPageHandler<'a> {
                     });
                 }
             }
+            .in_current_span()
         });
     }
 

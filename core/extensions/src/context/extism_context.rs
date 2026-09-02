@@ -45,6 +45,7 @@ use interprocess::local_socket::{
     traits::Stream,
 };
 use regex::{Captures, Regex};
+use tracing::Instrument;
 
 use crate::{
     context::{DispatchCommand, ExtensionContext, ReplyHandler},
@@ -372,7 +373,7 @@ host_fn!(batch_http_request(user_data: HttpUserData; req: Prost<BatchHttpRequest
                     },
                 })
                 .collect()
-        })
+        }.in_current_span())
     });
 
     Ok(Prost(BatchHttpResponse {

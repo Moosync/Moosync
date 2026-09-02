@@ -6,7 +6,7 @@ use std::{
 };
 
 use slint::{Image, Model, ModelNotify, ModelTracker, SharedString};
-use tracing::trace;
+use tracing::{Instrument, trace};
 
 use super::{default_song_cover, load_image_from_path_or_url};
 use crate::{
@@ -92,23 +92,27 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
         let cover_url_str = cover_url.to_string();
         let cache_dir = self.cache_dir.clone();
 
-        slint::spawn_local(async move {
-            let Some(img) = load_image_from_path_or_url(&cover_url_str, &cache_dir).await else {
-                allocated_rows.borrow_mut().remove(&row);
-                return;
-            };
-            {
-                let mut array = array.borrow_mut();
-                let Some(item) = array.get_mut(row) else {
+        slint::spawn_local(
+            async move {
+                let Some(img) = load_image_from_path_or_url(&cover_url_str, &cache_dir).await
+                else {
                     allocated_rows.borrow_mut().remove(&row);
                     return;
                 };
-                item.set_cover(img);
+                {
+                    let mut array = array.borrow_mut();
+                    let Some(item) = array.get_mut(row) else {
+                        allocated_rows.borrow_mut().remove(&row);
+                        return;
+                    };
+                    item.set_cover(img);
+                }
+                tracing::trace!("Loaded image for row {}", row);
+                allocated_rows.borrow_mut().insert(row);
+                notify.row_changed(row);
             }
-            tracing::trace!("Loaded image for row {}", row);
-            allocated_rows.borrow_mut().insert(row);
-            notify.row_changed(row);
-        })
+            .in_current_span(),
+        )
         .unwrap();
     }
 

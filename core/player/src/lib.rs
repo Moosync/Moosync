@@ -42,7 +42,7 @@ use tokio::{
     sync::mpsc::{UnboundedSender, unbounded_channel},
     time::interval,
 };
-use tracing::debug;
+use tracing::{Instrument, debug};
 use types::{
     plugin::{Plugin, PluginContext, RwLock},
     prelude::core_to_proto_duration,
@@ -453,28 +453,34 @@ impl Plugin for PlayerHandler {
         let ph = Arc::new(RwLock::new(PlayerHandler::new(ended_tx)));
 
         let ph_clone = ph.clone();
-        tokio::spawn(async move {
-            while ended_rx.recv().await.is_some() {
-                let mut ph = ph_clone.write().await;
-                ph.on_song_ended();
-            }
-        });
-
-        let ph_clone_timer = ph.clone();
-        tokio::spawn(async move {
-            let mut interval = interval(Duration::from_secs(1));
-            loop {
-                interval.tick().await;
-                let ph = ph_clone_timer.read().await;
-                if let Ok(pos) = ph.player.get_current_pos() {
-                    ph.on_player_event.run_all(|cb| {
-                        cb(&PlayerEvent {
-                            event: Some(Event::TimeUpdate(core_to_proto_duration(pos))),
-                        });
-                    });
+        tokio::spawn(
+            async move {
+                while ended_rx.recv().await.is_some() {
+                    let mut ph = ph_clone.write().await;
+                    ph.on_song_ended();
                 }
             }
-        });
+            .in_current_span(),
+        );
+
+        let ph_clone_timer = ph.clone();
+        tokio::spawn(
+            async move {
+                let mut interval = interval(Duration::from_secs(1));
+                loop {
+                    interval.tick().await;
+                    let ph = ph_clone_timer.read().await;
+                    if let Ok(pos) = ph.player.get_current_pos() {
+                        ph.on_player_event.run_all(|cb| {
+                            cb(&PlayerEvent {
+                                event: Some(Event::TimeUpdate(core_to_proto_duration(pos))),
+                            });
+                        });
+                    }
+                }
+            }
+            .in_current_span(),
+        );
 
         ph
     }

@@ -7,6 +7,9 @@ import sys
 # Handles: pub fn, fn, async fn, pub async fn, pub(crate) fn, etc.
 FN_RE = re.compile(r'^\s*(?:pub\s+(?:\([^)]+\)\s+)?)?(?:async\s+)?(?:const\s+)?fn\s+([a-zA-Z0-9_]+)')
 
+# Regex to match async blocks / async closures (not async fn)
+ASYNC_BLOCK_RE = re.compile(r'\basync\b(?:\s+move)?(?:\s*\|[^|]*\|)?\s*\{')
+
 def get_all_rs_files(project_root):
     rs_files = []
     # Check core/ and ui/slint/src/
@@ -29,12 +32,136 @@ def get_all_rs_files(project_root):
                     rs_files.append(os.path.relpath(os.path.join(root, file), project_root))
     return rs_files
 
+def check_async_blocks(content, lines):
+    """
+    Finds all async blocks/closures (e.g. `async move { ... }` or `async { ... }`)
+    and verifies that `.in_current_span()` or `.instrument(...)` is chained on them.
+    """
+    errors = []
+    
+    # Simple scanner over content
+    # Look for occurrences of 'async' not followed by 'fn '
+    idx = 0
+    length = len(content)
+    
+    while idx < length:
+        # Check for 'async' keyword boundary
+        match = re.search(r'\basync\b', content[idx:])
+        if not match:
+            break
+            
+        async_start = idx + match.start()
+        idx = async_start + 5
+        
+        # Check what follows 'async'
+        after_async = content[idx:].lstrip()
+        if after_async.startswith("fn ") or after_async.startswith("fn\t") or after_async.startswith("fn\n"):
+            continue
+            
+        # Must match `async move {` or `async {` or `async |...| {` or `async move |...| {`
+        block_match = ASYNC_BLOCK_RE.match(content[async_start:])
+        if not block_match:
+            continue
+            
+        # Find the opening brace of this async block
+        brace_pos = async_start + block_match.end() - 1
+        
+        # Calculate line number (1-indexed)
+        line_num = content[:async_start].count('\n') + 1
+        
+        # Match the balanced closing brace
+        depth = 0
+        in_string = False
+        in_char = False
+        in_line_comment = False
+        in_block_comment = False
+        pos = brace_pos
+        closing_brace_pos = -1
+        
+        while pos < length:
+            ch = content[pos]
+            
+            if in_line_comment:
+                if ch == '\n':
+                    in_line_comment = False
+            elif in_block_comment:
+                if ch == '*' and pos + 1 < length and content[pos + 1] == '/':
+                    in_block_comment = False
+                    pos += 1
+            elif in_string:
+                if ch == '\\':
+                    pos += 1  # Skip escaped char
+                elif ch == '"':
+                    in_string = False
+            elif in_char:
+                if ch == '\\':
+                    pos += 1
+                elif ch == "'":
+                    in_char = False
+            else:
+                if ch == '/' and pos + 1 < length:
+                    if content[pos + 1] == '/':
+                        in_line_comment = True
+                        pos += 1
+                    elif content[pos + 1] == '*':
+                        in_block_comment = True
+                        pos += 1
+                elif ch == '"':
+                    in_string = True
+                elif ch == "'":
+                    in_char = True
+                elif ch == '{':
+                    depth += 1
+                elif ch == '}':
+                    depth -= 1
+                    if depth == 0:
+                        closing_brace_pos = pos
+                        break
+            pos += 1
+            
+        if closing_brace_pos == -1:
+            continue
+            
+        # Inspect what comes immediately after the closing brace (skipping whitespace/comments)
+        after_close = content[closing_brace_pos + 1:].lstrip()
+        # Clean leading comments
+        while after_close.startswith("//") or after_close.startswith("/*"):
+            if after_close.startswith("//"):
+                newline_idx = after_close.find("\n")
+                if newline_idx == -1:
+                    after_close = ""
+                    break
+                after_close = after_close[newline_idx + 1:].lstrip()
+            elif after_close.startswith("/*"):
+                end_comment = after_close.find("*/")
+                if end_comment == -1:
+                    after_close = ""
+                    break
+                after_close = after_close[end_comment + 2:].lstrip()
+                
+        has_instrument = (
+            after_close.startswith(".in_current_span()")
+            or after_close.startswith(".in_current_span ()")
+            or after_close.startswith(".instrument(")
+            or after_close.startswith(".instrument (")
+        )
+        
+        if not has_instrument:
+            snippet = lines[line_num - 1].strip() if line_num - 1 < len(lines) else "async block"
+            errors.append((line_num, "async block/closure", snippet, "Missing '.in_current_span()' on async block"))
+            
+        idx = closing_brace_pos + 1
+        
+    return errors
+
 def check_file(filepath):
     if not os.path.exists(filepath):
         return []
 
     with open(filepath, 'r') as f:
-        lines = f.readlines()
+        content = f.read()
+
+    lines = content.splitlines()
 
     missing = []
     in_test_mod = False
@@ -109,7 +236,12 @@ def check_file(filepath):
                             break
                 
                 if has_body:
-                    missing.append((idx + 1, fn_name, striped))
+                    missing.append((idx + 1, f"Function '{fn_name}'", striped, "Function is missing #[tracing::instrument]"))
+
+    # Check for async blocks without .in_current_span()
+    async_errors = check_async_blocks(content, lines)
+    missing.extend(async_errors)
+    missing.sort(key=lambda x: x[0])
 
     return missing
 
@@ -117,7 +249,7 @@ def main():
     has_errors = False
     project_root = os.environ.get("BUILD_WORKSPACE_DIRECTORY", os.getcwd())
     
-    print("Checking recursively all .rs files for #[tracing::instrument]...")
+    print("Checking recursively all .rs files for #[tracing::instrument] and .in_current_span()...")
     target_files = get_all_rs_files(project_root)
     
     for rel_path in target_files:
@@ -125,13 +257,12 @@ def main():
         missing = check_file(full_path)
         if missing:
             has_errors = True
-            print(f"\n{rel_path}:")
-            for line_num, fn_name, decl in missing:
-                print(f"  Line {line_num}: Function '{fn_name}' is missing instrumentation")
-                print(f"    Code: {decl}")
+            for line_num, item_name, decl, reason in missing:
+                print(f"{rel_path}:{line_num}: {reason}")
+                print(f"  Code: {decl}")
                 
     if has_errors:
-        print("\nError: Some functions are missing #[tracing::instrument].")
+        print("\nError: Instrumentation checks failed.")
         sys.exit(1)
     else:
         print("\nSuccess: All check targets are properly instrumented.")
@@ -139,3 +270,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

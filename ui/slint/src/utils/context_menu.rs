@@ -5,6 +5,7 @@ use songs_proto::moosync::types::{
     Album, Artist, GetEntityOptions, GetSongOptions, Playlist, Song, entity_result,
 };
 use state_manager::StateManager;
+use tracing::Instrument;
 use types::prelude::SongsExt;
 
 use super::{default_empty_icon, lazy_model::LazySongVecModel, models::IntoVec};
@@ -105,54 +106,57 @@ fn attach_playlist_submenu(
     main_window_weak: Weak<MainWindow>,
     state_manager: StateManager,
 ) {
-    let _ = slint::spawn_local(async move {
-        let db = state_manager.get_database().await;
-        let Ok(res) = db.get_entity_by_options(GetEntityOptions {
-            playlist: Some(Playlist::default()),
-            ..Default::default()
-        }) else {
-            return;
-        };
-        let Some(entity_result::Result::Playlists(list)) = res.result else {
-            return;
-        };
-        if list.playlists.is_empty() {
-            return;
-        }
+    let _ = slint::spawn_local(
+        async move {
+            let db = state_manager.get_database().await;
+            let Ok(res) = db.get_entity_by_options(GetEntityOptions {
+                playlist: Some(Playlist::default()),
+                ..Default::default()
+            }) else {
+                return;
+            };
+            let Some(entity_result::Result::Playlists(list)) = res.result else {
+                return;
+            };
+            if list.playlists.is_empty() {
+                return;
+            }
 
-        let playlist_sub_items: Vec<ContextSubMenuItem> = list
-            .playlists
-            .into_iter()
-            .map(|p| {
-                let pid = p.playlist_id.unwrap_or_default();
-                let action_id = format!("add_to_playlist:{}", pid);
-                make_context_sub_item(action_id, p.playlist_name, default_empty_icon())
-            })
-            .collect();
+            let playlist_sub_items: Vec<ContextSubMenuItem> = list
+                .playlists
+                .into_iter()
+                .map(|p| {
+                    let pid = p.playlist_id.unwrap_or_default();
+                    let action_id = format!("add_to_playlist:{}", pid);
+                    make_context_sub_item(action_id, p.playlist_name, default_empty_icon())
+                })
+                .collect();
 
-        let Some(window) = main_window_weak.upgrade() else {
-            return;
-        };
-        let title = window
-            .global::<ContextMenuItems>()
-            .invoke_get_add_to_playlist_title();
-        let item = make_context_submenu_item(
-            "add_to_playlist",
-            title,
-            default_empty_icon(),
-            playlist_sub_items,
-        );
-        let mut insert_idx = vec_model.row_count();
-        for i in 0..vec_model.row_count() {
-            if let Some(existing) = vec_model.row_data(i) {
-                if existing.action_id.starts_with("goto_") {
-                    insert_idx = i;
-                    break;
+            let Some(window) = main_window_weak.upgrade() else {
+                return;
+            };
+            let title = window
+                .global::<ContextMenuItems>()
+                .invoke_get_add_to_playlist_title();
+            let item = make_context_submenu_item(
+                "add_to_playlist",
+                title,
+                default_empty_icon(),
+                playlist_sub_items,
+            );
+            let mut insert_idx = vec_model.row_count();
+            for i in 0..vec_model.row_count() {
+                if let Some(existing) = vec_model.row_data(i) {
+                    if existing.action_id.starts_with("goto_") {
+                        insert_idx = i;
+                        break;
+                    }
                 }
             }
+            vec_model.insert(insert_idx, item);
         }
-        vec_model.insert(insert_idx, item);
-    });
+        .in_current_span(),
+    );
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -352,31 +356,34 @@ pub fn dispatch_song_context_action(
     let action = action_id.to_string();
     let weak = main_window_weak.clone();
 
-    tokio::spawn(async move {
-        match action.as_str() {
-            "play_now" | "play_next" | "clear_queue_and_play" | "add_to_queue" => {
-                handle_playback_action(&state_manager, songs, &action).await;
+    tokio::spawn(
+        async move {
+            match action.as_str() {
+                "play_now" | "play_next" | "clear_queue_and_play" | "add_to_queue" => {
+                    handle_playback_action(&state_manager, songs, &action).await;
+                    return;
+                }
+                "remove_from_playlist" => {
+                    handle_remove_from_playlist(weak, state_manager, &songs).await;
+                    return;
+                }
+                _ => {}
+            }
+
+            if let Some(playlist_id) = action.strip_prefix("add_to_playlist:") {
+                handle_add_to_playlist(&state_manager, &songs, playlist_id).await;
                 return;
             }
-            "remove_from_playlist" => {
-                handle_remove_from_playlist(weak, state_manager, &songs).await;
+
+            if let Some(album_id) = action.strip_prefix("goto_album:") {
+                handle_goto_album(weak, &state_manager, album_id).await;
                 return;
             }
-            _ => {}
-        }
 
-        if let Some(playlist_id) = action.strip_prefix("add_to_playlist:") {
-            handle_add_to_playlist(&state_manager, &songs, playlist_id).await;
-            return;
+            if let Some(artist_id) = action.strip_prefix("goto_artist:") {
+                handle_goto_artist(weak, &state_manager, artist_id).await;
+            }
         }
-
-        if let Some(album_id) = action.strip_prefix("goto_album:") {
-            handle_goto_album(weak, &state_manager, album_id).await;
-            return;
-        }
-
-        if let Some(artist_id) = action.strip_prefix("goto_artist:") {
-            handle_goto_artist(weak, &state_manager, artist_id).await;
-        }
-    });
+        .in_current_span(),
+    );
 }

@@ -1,6 +1,7 @@
 use std::{error::Error, sync::Arc};
 
 use async_trait::async_trait;
+use tracing::Instrument;
 
 use super::Hook;
 use crate::{StateManager, reply_handler::StateReplyHandler};
@@ -38,35 +39,42 @@ impl Hook for ExtensionsHook {
                 let state_manager = state_manager.clone();
                 move |_key| {
                     let state_manager = state_manager.clone();
-                    tokio::spawn(async move {
-                        let preferences = state_manager.get_preference_config().await;
-                        if let Ok(registries) =
-                            preferences.load(preferences::keys::ExtensionRegistries)
-                        {
-                            let mut extensions = state_manager.get_extension_handler_mut().await;
-                            extensions.set_registries(registries.into_iter().collect());
-                            if let Err(e) = extensions.get_extension_manifest().await {
-                                tracing::error!("Failed to fetch remote manifests: {:?}", e);
+                    tokio::spawn(
+                        async move {
+                            let preferences = state_manager.get_preference_config().await;
+                            if let Ok(registries) =
+                                preferences.load(preferences::keys::ExtensionRegistries)
+                            {
+                                let mut extensions =
+                                    state_manager.get_extension_handler_mut().await;
+                                extensions.set_registries(registries.into_iter().collect());
+                                if let Err(e) = extensions.get_extension_manifest().await {
+                                    tracing::error!("Failed to fetch remote manifests: {:?}", e);
+                                }
+                                extensions.trigger_extensions_updated();
                             }
-                            extensions.trigger_extensions_updated();
                         }
-                    });
+                        .in_current_span(),
+                    );
                 }
             },
             preferences::keys::ExtensionRegistries,
         );
 
         let state_manager = state_manager.clone();
-        tokio::spawn(async move {
-            let extensions = state_manager.get_extension_handler().await;
-            if let Err(e) = extensions.find_new_extensions() {
-                tracing::error!("Failed to find new extensions: {:?}", e);
+        tokio::spawn(
+            async move {
+                let extensions = state_manager.get_extension_handler().await;
+                if let Err(e) = extensions.find_new_extensions() {
+                    tracing::error!("Failed to find new extensions: {:?}", e);
+                }
+                if let Err(e) = extensions.get_extension_manifest().await {
+                    tracing::error!("Failed to fetch remote manifests on startup: {:?}", e);
+                }
+                extensions.trigger_extensions_updated();
             }
-            if let Err(e) = extensions.get_extension_manifest().await {
-                tracing::error!("Failed to fetch remote manifests on startup: {:?}", e);
-            }
-            extensions.trigger_extensions_updated();
-        });
+            .in_current_span(),
+        );
 
         Ok(())
     }

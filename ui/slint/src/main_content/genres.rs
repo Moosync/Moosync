@@ -1,7 +1,7 @@
 use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{Genre, GenreList, GetEntityOptions, entity_result};
 use state_manager::StateManager;
-use tracing::debug;
+use tracing::{Instrument, debug};
 
 use crate::{
     GenreModel, GenresPageProps, MainWindow, Theme, error::UiError, pages::PageHandler,
@@ -70,6 +70,7 @@ impl<'a> PageHandler for GenresPageHandler<'a> {
                     });
                 }
             }
+            .in_current_span()
         });
     }
 

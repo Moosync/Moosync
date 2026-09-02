@@ -15,6 +15,9 @@
   "lsp": {
     "rust-analyzer": {
       "initialization_options": {
+        "rustfmt": {
+          "extraArgs": ["+nightly"],
+        },
         "check": {
           "extraEnv": {},
           "overrideCommand": [
@@ -52,7 +55,7 @@
     },
     "covhl": {
       "settings": {
-        "enabled": true,
+        "enabled": false,
         "showHover": true,
         "showCodeLens": true,
         "autoRefresh": true,

@@ -2,7 +2,7 @@ use extensions_proto::moosync::types::{ExtensionDetail, RequestedAlbumSongsReque
 use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{Album, GetSongOptions, Song};
 use state_manager::StateManager;
-use tracing::debug;
+use tracing::{Instrument, debug};
 
 use crate::{
     AlbumContentPageProps, AlbumsPageProps, MainWindow, Theme, error::UiError, pages::PageHandler,
@@ -132,6 +132,7 @@ impl<'a> PageHandler for AlbumContentPageHandler<'a> {
                     }
                 }
             }
+            .in_current_span()
         });
     }
 

@@ -134,6 +134,7 @@ macro_rules! generate_on_event_impl {
     ($struct_name:ident; $($name:ident, $watch_name:ident, $arg:ty, $trait_name:path);* $(;)?) => {
         impl $struct_name {
             $(
+                #[tracing::instrument(level = "debug", skip_all)]
                 pub fn $name<F, K>(&self, callback: F, keys: K) -> $crate::subscription::CancelHandle
                 where
                     F: Fn($arg) + Send + Sync + 'static,
@@ -147,6 +148,7 @@ macro_rules! generate_on_event_impl {
                     }))
                 }
 
+                #[tracing::instrument(level = "debug", skip_all)]
                 pub fn $watch_name<F, K>(&self, callback: F, keys: K) -> $crate::subscription::CancelHandle
                 where
                     F: Fn($arg) + Send + Sync + 'static,
@@ -169,6 +171,7 @@ macro_rules! generate_on_event_impl {
     ($struct_name:ident; $($name:ident, $watch_name:ident, $arg:ty);* $(;)?) => {
         impl $struct_name {
             $(
+                #[tracing::instrument(level = "debug", skip_all)]
                 pub fn $name<F>(&self, callback: F) -> $crate::subscription::CancelHandle
                 where
                     F: Fn($arg) + Send + Sync + 'static,
@@ -176,6 +179,7 @@ macro_rules! generate_on_event_impl {
                     self.$name.insert(Box::new(callback))
                 }
 
+                #[tracing::instrument(level = "debug", skip_all)]
                 pub fn $watch_name<F>(&self, callback: F, init_val: $arg) -> $crate::subscription::CancelHandle
                 where
                     F: Fn($arg) + Send + Sync + 'static,
@@ -189,6 +193,7 @@ macro_rules! generate_on_event_impl {
     ($struct_name:ident; $($name:ident, $arg:ty);* $(;)?) => {
         impl $struct_name {
             $(
+                #[tracing::instrument(level = "debug", skip_all)]
                 pub fn $name<F>(&self, callback: F) -> $crate::subscription::CancelHandle
                 where
                     F: Fn($arg) + Send + Sync + 'static,

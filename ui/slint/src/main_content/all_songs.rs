@@ -1,6 +1,7 @@
 use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{GetSongOptions, SearchableSong, Song};
 use state_manager::StateManager;
+use tracing::Instrument;
 
 use crate::{
     AllSongsPageProps, ContextMenuCallbacks, MainWindow, Theme,
@@ -100,6 +101,7 @@ impl<'a> PageHandler for AllSongsPageHandler<'a> {
                     });
                 }
             }
+            .in_current_span()
         });
     }
 

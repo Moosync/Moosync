@@ -19,6 +19,7 @@ use std::time::Duration;
 use extensions_proto::moosync::types::player_event::Event::Ended;
 use songs_proto::moosync::types::Song;
 use tokio::sync::mpsc::unbounded_channel;
+use tracing::Instrument;
 
 use crate::{
     OnEndedCallback,
@@ -37,13 +38,16 @@ impl AudioSource {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(on_ended_callback: OnEndedCallback) -> Self {
         let (events_tx, mut events_rx) = unbounded_channel();
-        tokio::spawn(async move {
-            while let Some(event) = events_rx.recv().await {
-                if let Ended(_) = event {
-                    on_ended_callback();
+        tokio::spawn(
+            async move {
+                while let Some(event) = events_rx.recv().await {
+                    if let Ended(_) = event {
+                        on_ended_callback();
+                    }
                 }
             }
-        });
+            .in_current_span(),
+        );
         Self {
             mux: MuxPlayer::new(events_tx),
             source_resolver: SourceResolver::new(),
@@ -56,13 +60,16 @@ impl AudioSource {
         context: Box<dyn AudioPlayerContext>,
     ) -> Self {
         let (events_tx, mut events_rx) = unbounded_channel();
-        tokio::spawn(async move {
-            while let Some(event) = events_rx.recv().await {
-                if let Ended(_) = event {
-                    on_ended_callback();
+        tokio::spawn(
+            async move {
+                while let Some(event) = events_rx.recv().await {
+                    if let Ended(_) = event {
+                        on_ended_callback();
+                    }
                 }
             }
-        });
+            .in_current_span(),
+        );
         Self {
             mux: MuxPlayer::new_with_context(events_tx, context),
             source_resolver: SourceResolver::new(),

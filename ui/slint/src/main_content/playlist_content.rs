@@ -2,7 +2,7 @@ use extensions_proto::moosync::types::{ExtensionDetail, RequestedPlaylistSongsRe
 use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{GetSongOptions, Playlist, Song};
 use state_manager::StateManager;
-use tracing::debug;
+use tracing::{Instrument, debug};
 
 use crate::{
     MainWindow, PlaylistContentPageProps, PlaylistsPageProps, Theme, error::UiError,
@@ -133,6 +133,7 @@ impl<'a> PageHandler for PlaylistContentPageHandler<'a> {
                     }
                 }
             }
+            .in_current_span()
         });
     }
 

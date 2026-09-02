@@ -1,7 +1,7 @@
 use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{Album, AlbumList, GetEntityOptions, entity_result};
 use state_manager::StateManager;
-use tracing::debug;
+use tracing::{Instrument, debug};
 
 use crate::{
     AlbumModel, AlbumsPageProps, MainWindow, error::UiError, pages::PageHandler,
@@ -70,6 +70,7 @@ impl<'a> PageHandler for AlbumsPageHandler<'a> {
                     });
                 }
             }
+            .in_current_span()
         });
     }
 

@@ -5,6 +5,7 @@ use extensions_proto::moosync::types::{
 use slint::{ComponentHandle, ModelRc, VecModel, Weak};
 use songs_proto::moosync::types::SearchResult as ProtoSearchResult;
 use state_manager::StateManager;
+use tracing::Instrument;
 use types::prelude::SearchResultExt;
 
 use crate::{
@@ -110,16 +111,19 @@ impl<'a> SearchPageHandler<'a> {
         main_window_weak: Weak<MainWindow>,
         term: String,
     ) {
-        tokio::spawn(async move {
-            let local_res = Self::search_local(&state_manager, &term).await;
-            let ext_results = Self::search_extensions(&state_manager, &term).await;
+        tokio::spawn(
+            async move {
+                let local_res = Self::search_local(&state_manager, &term).await;
+                let ext_results = Self::search_extensions(&state_manager, &term).await;
 
-            let _ = slint::invoke_from_event_loop(move || {
-                if let Some(main_window) = main_window_weak.upgrade() {
-                    Self::update_ui(&main_window, &state_manager, local_res, ext_results);
-                }
-            });
-        });
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(main_window) = main_window_weak.upgrade() {
+                        Self::update_ui(&main_window, &state_manager, local_res, ext_results);
+                    }
+                });
+            }
+            .in_current_span(),
+        );
     }
 }
 

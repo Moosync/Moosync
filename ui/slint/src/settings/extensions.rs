@@ -19,6 +19,7 @@ use std::path::PathBuf;
 use extensions::ExtensionInfo;
 use slint::{ComponentHandle, ModelRc};
 use state_manager::StateManager;
+use tracing::Instrument;
 
 use crate::{
     AppCallbacks, ExtensionItem, MainWindow, Theme, pages::PageHandler,
@@ -85,9 +86,12 @@ impl<'a> ExtensionsPageHandler<'a> {
                 move |package_name| {
                     let package_name = package_name.to_string();
                     let state_manager = state_manager.clone();
-                    tokio::spawn(async move {
-                        Self::handle_toggle_extension(package_name, state_manager).await;
-                    });
+                    tokio::spawn(
+                        async move {
+                            Self::handle_toggle_extension(package_name, state_manager).await;
+                        }
+                        .in_current_span(),
+                    );
                 }
             });
 
@@ -98,9 +102,12 @@ impl<'a> ExtensionsPageHandler<'a> {
                 move |file_path| {
                     let file_path = file_path.to_string();
                     let state_manager = state_manager.clone();
-                    tokio::spawn(async move {
-                        Self::install_local_extension(file_path, state_manager).await;
-                    });
+                    tokio::spawn(
+                        async move {
+                            Self::install_local_extension(file_path, state_manager).await;
+                        }
+                        .in_current_span(),
+                    );
                 }
             });
     }
@@ -165,33 +172,39 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
 
         let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
-        tokio::spawn(async move {
-            let handler = state_manager.get_extension_handler().await;
-            let _cancel = handler.on_extensions_updated({
-                let state_manager = state_manager.clone();
-                let main_window_weak = main_window_weak.clone();
-                move |_| {
+        tokio::spawn(
+            async move {
+                let handler = state_manager.get_extension_handler().await;
+                let _cancel = handler.on_extensions_updated({
                     let state_manager = state_manager.clone();
                     let main_window_weak = main_window_weak.clone();
-                    tokio::spawn(async move {
-                        let handler = state_manager.get_extension_handler().await;
-                        if let Err(e) = handler.get_extension_manifest().await {
-                            tracing::error!(
-                                "on_extensions_updated: failed to refresh remote manifests: {:?}",
-                                e
-                            );
-                        }
-                        let extensions = handler.get_all_extensions();
-                        let cache_dir = state_manager.get_cache_dir();
-                        let _ = slint::invoke_from_event_loop(move || {
-                            if let Some(main_window) = main_window_weak.upgrade() {
-                                Self::render_extensions(&main_window, extensions, cache_dir);
+                    move |_| {
+                        let state_manager = state_manager.clone();
+                        let main_window_weak = main_window_weak.clone();
+                        tokio::spawn(
+                            async move {
+                                let handler = state_manager.get_extension_handler().await;
+                                if let Err(e) = handler.get_extension_manifest().await {
+                                    tracing::error!(
+                                        "on_extensions_updated: failed to refresh remote manifests: {:?}",
+                                        e
+                                    );
+                                }
+                                let extensions = handler.get_all_extensions();
+                                let cache_dir = state_manager.get_cache_dir();
+                                let _ = slint::invoke_from_event_loop(move || {
+                                    if let Some(main_window) = main_window_weak.upgrade() {
+                                        Self::render_extensions(&main_window, extensions, cache_dir);
+                                    }
+                                });
                             }
-                        });
-                    });
-                }
-            });
-        });
+                            .in_current_span(),
+                        );
+                    }
+                });
+            }
+            .in_current_span(),
+        );
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -199,16 +212,19 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
         tracing::info!("ExtensionsPageHandler: on_show");
         let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
-        tokio::spawn(async move {
-            let cache_dir = state_manager.get_cache_dir();
-            let handler = state_manager.get_extension_handler().await;
-            let extensions = handler.get_all_extensions();
-            let _ = slint::invoke_from_event_loop(move || {
-                if let Some(main_window) = main_window_weak.upgrade() {
-                    Self::render_extensions(&main_window, extensions, cache_dir);
-                }
-            });
-        });
+        tokio::spawn(
+            async move {
+                let cache_dir = state_manager.get_cache_dir();
+                let handler = state_manager.get_extension_handler().await;
+                let extensions = handler.get_all_extensions();
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(main_window) = main_window_weak.upgrade() {
+                        Self::render_extensions(&main_window, extensions, cache_dir);
+                    }
+                });
+            }
+            .in_current_span(),
+        );
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

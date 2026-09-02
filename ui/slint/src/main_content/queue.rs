@@ -7,6 +7,7 @@ use std::{
 use slint::{ComponentHandle, Image, ModelRc, Timer};
 use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
+use tracing::Instrument;
 use types::{prelude::SongsExt, subscription::CancelHandle};
 
 use crate::{
@@ -48,10 +49,13 @@ impl<'a> QueuePageHandler<'a> {
                 let state_manager = state_manager.clone();
                 move |idx| {
                     let state_manager = state_manager.clone();
-                    tokio::spawn(async move {
-                        let mut player_handler = state_manager.get_player_handler_mut().await;
-                        player_handler.play_index(idx as usize);
-                    });
+                    tokio::spawn(
+                        async move {
+                            let mut player_handler = state_manager.get_player_handler_mut().await;
+                            player_handler.play_index(idx as usize);
+                        }
+                        .in_current_span(),
+                    );
                 }
             });
 
@@ -61,10 +65,13 @@ impl<'a> QueuePageHandler<'a> {
                 let state_manager = state_manager.clone();
                 move |idx| {
                     let state_manager = state_manager.clone();
-                    tokio::spawn(async move {
-                        let mut player_handler = state_manager.get_player_handler_mut().await;
-                        player_handler.remove_from_queue(idx as usize);
-                    });
+                    tokio::spawn(
+                        async move {
+                            let mut player_handler = state_manager.get_player_handler_mut().await;
+                            player_handler.remove_from_queue(idx as usize);
+                        }
+                        .in_current_span(),
+                    );
                 }
             });
 
@@ -72,10 +79,13 @@ impl<'a> QueuePageHandler<'a> {
             let state_manager = state_manager.clone();
             move || {
                 let state_manager = state_manager.clone();
-                tokio::spawn(async move {
-                    let mut player_handler = state_manager.get_player_handler_mut().await;
-                    player_handler.clear_queue();
-                });
+                tokio::spawn(
+                    async move {
+                        let mut player_handler = state_manager.get_player_handler_mut().await;
+                        player_handler.clear_queue();
+                    }
+                    .in_current_span(),
+                );
             }
         });
 
@@ -86,10 +96,14 @@ impl<'a> QueuePageHandler<'a> {
                 move |from_idx_str, to_idx| {
                     if let Ok(from_idx) = from_idx_str.parse::<usize>() {
                         let state_manager = state_manager.clone();
-                        tokio::spawn(async move {
-                            let mut player_handler = state_manager.get_player_handler_mut().await;
-                            player_handler.move_queue_item(from_idx, to_idx as usize);
-                        });
+                        tokio::spawn(
+                            async move {
+                                let mut player_handler =
+                                    state_manager.get_player_handler_mut().await;
+                                player_handler.move_queue_item(from_idx, to_idx as usize);
+                            }
+                            .in_current_span(),
+                        );
                     }
                 }
             });
@@ -102,9 +116,12 @@ impl<'a> QueuePageHandler<'a> {
                     let state_manager = state_manager.clone();
                     let name_str = name.to_string();
                     let desc_str = desc.to_string();
-                    tokio::spawn(async move {
-                        save_queue(&state_manager, name_str, desc_str).await;
-                    });
+                    tokio::spawn(
+                        async move {
+                            save_queue(&state_manager, name_str, desc_str).await;
+                        }
+                        .in_current_span(),
+                    );
                 }
             });
 
@@ -119,33 +136,36 @@ impl<'a> QueuePageHandler<'a> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn fetch_initial_state(state_manager: StateManager, main_window_weak: slint::Weak<MainWindow>) {
-        tokio::spawn(async move {
-            let player_handler = state_manager.get_player_handler().await;
-            let queue = player_handler.get_queue().to_vec();
-            let current_song = player_handler.get_current_song().cloned();
-            let cache_dir = state_manager.get_cache_dir();
+        tokio::spawn(
+            async move {
+                let player_handler = state_manager.get_player_handler().await;
+                let queue = player_handler.get_queue().to_vec();
+                let current_song = player_handler.get_current_song().cloned();
+                let cache_dir = state_manager.get_cache_dir();
 
-            let (song_id, cover_path_high) = match &current_song {
-                Some(s) => (
-                    s.get_id().unwrap_or_default(),
-                    s.get_cover_high().unwrap_or_default(),
-                ),
-                None => ("".into(), "".into()),
-            };
+                let (song_id, cover_path_high) = match &current_song {
+                    Some(s) => (
+                        s.get_id().unwrap_or_default(),
+                        s.get_cover_high().unwrap_or_default(),
+                    ),
+                    None => ("".into(), "".into()),
+                };
 
-            let blurred_path = crate::utils::generate_blurred_cover_disk_cache(
-                &song_id,
-                &cover_path_high,
-                &cache_dir,
-            );
+                let blurred_path = crate::utils::generate_blurred_cover_disk_cache(
+                    &song_id,
+                    &cover_path_high,
+                    &cache_dir,
+                );
 
-            let _ = slint::invoke_from_event_loop(move || {
-                if let Some(main_window) = main_window_weak.upgrade() {
-                    Self::update_ui_queue(&main_window, &state_manager, queue);
-                    Self::update_ui_blurred_cover(&main_window, &blurred_path);
-                }
-            });
-        });
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(main_window) = main_window_weak.upgrade() {
+                        Self::update_ui_queue(&main_window, &state_manager, queue);
+                        Self::update_ui_blurred_cover(&main_window, &blurred_path);
+                    }
+                });
+            }
+            .in_current_span(),
+        );
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -154,59 +174,65 @@ impl<'a> QueuePageHandler<'a> {
         main_window_weak: slint::Weak<MainWindow>,
         cancel_handles: Arc<Mutex<Vec<types::subscription::CancelHandle>>>,
     ) {
-        tokio::spawn(async move {
-            let player_handler = state_manager.get_player_handler().await;
-            let cache_dir = state_manager.get_cache_dir();
-            let mut handles = Vec::new();
+        tokio::spawn(
+            async move {
+                let player_handler = state_manager.get_player_handler().await;
+                let cache_dir = state_manager.get_cache_dir();
+                let mut handles = Vec::new();
 
-            // Song changed listener to update blurred cover background
-            let mw_weak_song = main_window_weak.clone();
-            let cache_dir_events = cache_dir.clone();
-            let ch_song = player_handler.on_song_changed(move |song| {
-                let mw_weak = mw_weak_song.clone();
-                let song = song.cloned();
-                let cache_dir = cache_dir_events.clone();
+                // Song changed listener to update blurred cover background
+                let mw_weak_song = main_window_weak.clone();
+                let cache_dir_events = cache_dir.clone();
+                let ch_song = player_handler.on_song_changed(move |song| {
+                    let mw_weak = mw_weak_song.clone();
+                    let song = song.cloned();
+                    let cache_dir = cache_dir_events.clone();
 
-                tokio::spawn(async move {
-                    let (song_id, cover_path_high) = match &song {
-                        Some(s) => (
-                            s.get_id().unwrap_or_default().to_string(),
-                            s.get_cover_high().unwrap_or_default().to_string(),
-                        ),
-                        None => (String::new(), String::new()),
-                    };
+                    tokio::spawn(
+                        async move {
+                            let (song_id, cover_path_high) = match &song {
+                                Some(s) => (
+                                    s.get_id().unwrap_or_default().to_string(),
+                                    s.get_cover_high().unwrap_or_default().to_string(),
+                                ),
+                                None => (String::new(), String::new()),
+                            };
 
-                    let blurred_path = crate::utils::generate_blurred_cover_disk_cache(
-                        &song_id,
-                        &cover_path_high,
-                        &cache_dir,
+                            let blurred_path = crate::utils::generate_blurred_cover_disk_cache(
+                                &song_id,
+                                &cover_path_high,
+                                &cache_dir,
+                            );
+
+                            let _ = slint::invoke_from_event_loop(move || {
+                                if let Some(main_window) = mw_weak.upgrade() {
+                                    Self::update_ui_blurred_cover(&main_window, &blurred_path);
+                                }
+                            });
+                        }
+                        .in_current_span(),
                     );
+                });
+                handles.push(ch_song);
 
+                let mw_weak_queue = main_window_weak.clone();
+                let state_manager_queue = state_manager.clone();
+                let ch_queue = player_handler.on_queue_updated(move |queue| {
+                    let queue_cloned = queue.to_vec();
+                    let mw_weak = mw_weak_queue.clone();
+                    let state_manager = state_manager_queue.clone();
                     let _ = slint::invoke_from_event_loop(move || {
                         if let Some(main_window) = mw_weak.upgrade() {
-                            Self::update_ui_blurred_cover(&main_window, &blurred_path);
+                            Self::update_ui_queue(&main_window, &state_manager, queue_cloned);
                         }
                     });
                 });
-            });
-            handles.push(ch_song);
+                handles.push(ch_queue);
 
-            let mw_weak_queue = main_window_weak.clone();
-            let state_manager_queue = state_manager.clone();
-            let ch_queue = player_handler.on_queue_updated(move |queue| {
-                let queue_cloned = queue.to_vec();
-                let mw_weak = mw_weak_queue.clone();
-                let state_manager = state_manager_queue.clone();
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(main_window) = mw_weak.upgrade() {
-                        Self::update_ui_queue(&main_window, &state_manager, queue_cloned);
-                    }
-                });
-            });
-            handles.push(ch_queue);
-
-            *cancel_handles.lock().unwrap() = handles;
-        });
+                *cancel_handles.lock().unwrap() = handles;
+            }
+            .in_current_span(),
+        );
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -263,20 +289,26 @@ impl<'a> QueuePageHandler<'a> {
                 if action_id == "play_now" {
                     let state_manager = state_manager.clone();
                     let queue_idx = idx as usize;
-                    tokio::spawn(async move {
-                        let mut player = state_manager.get_player_handler_mut().await;
-                        player.play_index(queue_idx);
-                    });
+                    tokio::spawn(
+                        async move {
+                            let mut player = state_manager.get_player_handler_mut().await;
+                            player.play_index(queue_idx);
+                        }
+                        .in_current_span(),
+                    );
                     return;
                 }
 
                 if action_id == "remove_from_queue" {
                     let state_manager = state_manager.clone();
                     let queue_idx = idx as usize;
-                    tokio::spawn(async move {
-                        let mut player = state_manager.get_player_handler_mut().await;
-                        player.remove_from_queue(queue_idx);
-                    });
+                    tokio::spawn(
+                        async move {
+                            let mut player = state_manager.get_player_handler_mut().await;
+                            player.remove_from_queue(queue_idx);
+                        }
+                        .in_current_span(),
+                    );
                     return;
                 }
 

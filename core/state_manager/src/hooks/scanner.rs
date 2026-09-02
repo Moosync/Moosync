@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use database::Database;
 use file_scanner::PlaylistSongId;
 use songs_proto::moosync::types::Song;
+use tracing::Instrument;
 
 use super::Hook;
 use crate::StateManager;
@@ -58,6 +59,7 @@ impl Hook for ScannerHook {
                         }
                     }
                 }
+                .in_current_span()
             });
 
             let db_song = database.clone();
@@ -72,6 +74,7 @@ impl Hook for ScannerHook {
                     };
                     let _ = db.read().await.add_to_playlist(&pl_id, &songs);
                 }
+                .in_current_span()
             });
         }
 
@@ -84,48 +87,53 @@ impl Hook for ScannerHook {
                     let database = database.clone();
                     let scanner = scanner.clone();
                     let preferences = preferences.clone();
-                    tokio::spawn(async move {
-                        let prefs_read = preferences.read().await;
-                        let mut scan_dirs = prefs_read
-                            .load(preferences::keys::MusicPaths)
-                            .unwrap_or_default()
-                            .into_iter()
-                            .map(std::path::PathBuf::from)
-                            .collect::<Vec<_>>();
+                    tokio::spawn(
+                        async move {
+                            let prefs_read = preferences.read().await;
+                            let mut scan_dirs = prefs_read
+                                .load(preferences::keys::MusicPaths)
+                                .unwrap_or_default()
+                                .into_iter()
+                                .map(std::path::PathBuf::from)
+                                .collect::<Vec<_>>();
 
-                        if scan_dirs.is_empty()
-                            && let Some(user_dirs) = platform_dirs::UserDirs::new()
-                        {
-                            scan_dirs.push(user_dirs.music_dir);
-                        }
-
-                        let exclude_dirs = prefs_read
-                            .load(preferences::keys::ExcludeMusicPaths)
-                            .unwrap_or_default()
-                            .into_iter()
-                            .map(std::path::PathBuf::from)
-                            .collect::<Vec<_>>();
-
-                        let threads = prefs_read.load(preferences::keys::ScanThreads).unwrap_or(0);
-
-                        {
-                            let mut scanner_write = scanner.write().await;
-                            scanner_write.set_scan_dirs(scan_dirs.clone());
-                            scanner_write.set_exclude_dirs(exclude_dirs);
-                            scanner_write.set_scan_threads(threads);
-                        }
-
-                        if key == preferences::keys::MusicPaths && !scan_dirs.is_empty() {
-                            let db_read = database.read().await;
-                            if let Err(e) = db_read.remove_songs_outside_directories(&scan_dirs) {
-                                tracing::error!("Failed to clean up songs: {:?}", e);
+                            if scan_dirs.is_empty()
+                                && let Some(user_dirs) = platform_dirs::UserDirs::new()
+                            {
+                                scan_dirs.push(user_dirs.music_dir);
                             }
-                            let scanner_read = scanner.read().await;
-                            if let Err(e) = scanner_read.start_scan().await {
-                                tracing::error!("Scan failed: {:?}", e);
+
+                            let exclude_dirs = prefs_read
+                                .load(preferences::keys::ExcludeMusicPaths)
+                                .unwrap_or_default()
+                                .into_iter()
+                                .map(std::path::PathBuf::from)
+                                .collect::<Vec<_>>();
+
+                            let threads =
+                                prefs_read.load(preferences::keys::ScanThreads).unwrap_or(0);
+
+                            {
+                                let mut scanner_write = scanner.write().await;
+                                scanner_write.set_scan_dirs(scan_dirs.clone());
+                                scanner_write.set_exclude_dirs(exclude_dirs);
+                                scanner_write.set_scan_threads(threads);
+                            }
+
+                            if key == preferences::keys::MusicPaths && !scan_dirs.is_empty() {
+                                let db_read = database.read().await;
+                                if let Err(e) = db_read.remove_songs_outside_directories(&scan_dirs)
+                                {
+                                    tracing::error!("Failed to clean up songs: {:?}", e);
+                                }
+                                let scanner_read = scanner.read().await;
+                                if let Err(e) = scanner_read.start_scan().await {
+                                    tracing::error!("Scan failed: {:?}", e);
+                                }
                             }
                         }
-                    });
+                        .in_current_span(),
+                    );
                 }
             },
             vec![
@@ -150,40 +158,46 @@ impl Hook for ScannerHook {
                     let scanner = scanner.clone();
                     let preferences = preferences.clone();
                     let periodic_task = periodic_task.clone();
-                    tokio::spawn(async move {
-                        let interval_mins = preferences
-                            .read()
-                            .await
-                            .load(preferences::keys::ScanInterval)
-                            .unwrap_or(0);
+                    tokio::spawn(
+                        async move {
+                            let interval_mins = preferences
+                                .read()
+                                .await
+                                .load(preferences::keys::ScanInterval)
+                                .unwrap_or(0);
 
-                        if let Ok(mut guard) = periodic_task.lock()
-                            && let Some(handle) = guard.take()
-                        {
-                            handle.abort();
-                        }
-
-                        if interval_mins <= 0 {
-                            return;
-                        }
-
-                        let scanner = scanner.clone();
-                        let handle = tokio::spawn(async move {
-                            loop {
-                                tokio::time::sleep(tokio::time::Duration::from_secs(
-                                    interval_mins as u64 * 60,
-                                ))
-                                .await;
-                                let scanner = scanner.read().await;
-                                if let Err(e) = scanner.start_scan().await {
-                                    tracing::error!("Periodic scan failed: {:?}", e);
-                                }
+                            if let Ok(mut guard) = periodic_task.lock()
+                                && let Some(handle) = guard.take()
+                            {
+                                handle.abort();
                             }
-                        });
-                        if let Ok(mut guard) = periodic_task.lock() {
-                            *guard = Some(handle);
+
+                            if interval_mins <= 0 {
+                                return;
+                            }
+
+                            let scanner = scanner.clone();
+                            let handle = tokio::spawn(
+                                async move {
+                                    loop {
+                                        tokio::time::sleep(tokio::time::Duration::from_secs(
+                                            interval_mins as u64 * 60,
+                                        ))
+                                        .await;
+                                        let scanner = scanner.read().await;
+                                        if let Err(e) = scanner.start_scan().await {
+                                            tracing::error!("Periodic scan failed: {:?}", e);
+                                        }
+                                    }
+                                }
+                                .in_current_span(),
+                            );
+                            if let Ok(mut guard) = periodic_task.lock() {
+                                *guard = Some(handle);
+                            }
                         }
-                    });
+                        .in_current_span(),
+                    );
                 }
             },
             preferences::keys::ScanInterval,

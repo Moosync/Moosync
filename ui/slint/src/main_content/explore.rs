@@ -5,6 +5,7 @@ use extensions_proto::moosync::types::{
 use slint::{ComponentHandle, ModelRc, VecModel};
 use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
+use tracing::Instrument;
 
 use crate::{
     ExplorePageProps, MainWindow, ProviderRecommendations, SongModel, Theme,
@@ -110,6 +111,7 @@ impl<'a> PageHandler for ExplorePageHandler<'a> {
                     });
                 }
             }
+            .in_current_span()
         });
     }
 

@@ -1,6 +1,7 @@
 use extensions::{ExtensionError, ReplyHandler};
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use tokio::runtime::Handle;
+use tracing::Instrument;
 use types::prelude::SongsExt;
 use ui_proto::moosync::types::PreferenceUiData;
 
@@ -300,10 +301,13 @@ impl ReplyHandler for StateReplyHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn extensions_updated(&self, _package_name: &str) -> Result<(), ExtensionError> {
         let state_manager = self.state_manager.clone();
-        self.runtime.spawn(async move {
-            let extensions = state_manager.get_extension_handler().await;
-            extensions.trigger_extensions_updated();
-        });
+        self.runtime.spawn(
+            async move {
+                let extensions = state_manager.get_extension_handler().await;
+                extensions.trigger_extensions_updated();
+            }
+            .in_current_span(),
+        );
         Ok(())
     }
 

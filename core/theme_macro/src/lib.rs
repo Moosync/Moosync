@@ -144,6 +144,7 @@ pub fn generate_theme_impl(input: TokenStream) -> TokenStream {
         }
 
         impl ThemeItemExt for ThemeItem {
+            #[tracing::instrument(level = "debug", skip_all)]
             fn get_constant(&self, key: &str) -> Option<String> {
                 match key {
                     #(#get_arms)*
@@ -151,6 +152,7 @@ pub fn generate_theme_impl(input: TokenStream) -> TokenStream {
                 }
             }
 
+            #[tracing::instrument(level = "debug", skip_all)]
             fn set_constant(&mut self, key: &str, value: String) {
                 match key {
                     #(#set_arms)*
@@ -160,6 +162,7 @@ pub fn generate_theme_impl(input: TokenStream) -> TokenStream {
                 }
             }
 
+            #[tracing::instrument(level = "debug", skip_all)]
             fn get_all_keys(&self) -> std::collections::HashSet<String> {
                 let mut keys = std::collections::HashSet::new();
                 #(#key_inserts)*
@@ -170,6 +173,7 @@ pub fn generate_theme_impl(input: TokenStream) -> TokenStream {
             }
         }
 
+        #[tracing::instrument(level = "debug", skip_all)]
         pub fn get_default_theme_item() -> ThemeItem {
             let mut item = ThemeItem::default();
             #(#default_setters)*
@@ -308,6 +312,7 @@ pub fn generate_theme_ui_helpers(input: TokenStream) -> TokenStream {
     }
 
     let expanded = quote! {
+        #[tracing::instrument(level = "debug", skip_all)]
         pub fn update_theme_constants_ui(main_window: &crate::MainWindow, theme: &themes_proto::moosync::types::ThemeDetails) {
             let theme_item = theme.get_theme_item_or_default();
             let default_item = types::prelude::get_default_theme_item();

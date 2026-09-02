@@ -229,7 +229,9 @@ fn generate_trait_methods(
     return_type: &TokenStream2,
 ) -> TokenStream2 {
     quote! {
+        #[tracing::instrument(level = "debug", skip_all)]
         fn #before_name(&self, _ctx: &mut types::plugin::CallContext, #(#trait_sigs),*) -> Option<#return_type> { None }
+        #[tracing::instrument(level = "debug", skip_all)]
         fn #after_name(&self, _ctx: &mut types::plugin::CallContext, _result: &mut #return_type) {}
     }
 }
@@ -242,6 +244,7 @@ fn generate_vec_impl_methods(
     return_type: &TokenStream2,
 ) -> TokenStream2 {
     quote! {
+        #[tracing::instrument(level = "debug", skip_all)]
         fn #before_name(&self, _ctx: &mut types::plugin::CallContext, #(#trait_sigs),*) -> Option<#return_type> {
             for _interceptor in self {
                 if let Some(_early_ret) = _interceptor.#before_name(_ctx, #(#vec_calls),*) {
@@ -250,6 +253,7 @@ fn generate_vec_impl_methods(
             }
             None
         }
+        #[tracing::instrument(level = "debug", skip_all)]
         fn #after_name(&self, _ctx: &mut types::plugin::CallContext, _result: &mut #return_type) {
             for _interceptor in self {
                 _interceptor.#after_name(_ctx, _result);
@@ -279,6 +283,7 @@ fn generate_wrapper_method(
         };
 
         quote! {
+            #[tracing::instrument(level = "debug", skip_all)]
             #vis #sig {
                 #(#mut_shadows)*
 
@@ -321,6 +326,7 @@ fn generate_wrapper_method(
         };
 
         quote! {
+            #[tracing::instrument(level = "debug", skip_all)]
             #vis #sig {
                 #inner_call
             }
@@ -380,6 +386,7 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
         });
 
         getters.push(quote! {
+            #[tracing::instrument(level = "debug", skip_all)]
             pub async fn #getter_ident(&self) -> #mod_prefix #wrapper_ident<tokio::sync::OwnedRwLockReadGuard<#mod_prefix #struct_ident>> {
                 let _db = self.plugins.get::<#mod_prefix #struct_ident>();
                 let _guard = _db.read_owned().await;
@@ -389,6 +396,7 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
                 }
             }
 
+            #[tracing::instrument(level = "debug", skip_all)]
             pub async fn #getter_mut_ident(&self) -> #mod_prefix #wrapper_ident<tokio::sync::OwnedRwLockWriteGuard<#mod_prefix #struct_ident>> {
                 let _db = self.plugins.get::<#mod_prefix #struct_ident>();
                 let _guard = _db.write_owned().await;
@@ -407,6 +415,7 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
             where
                 T: #mod_prefix #trait_ident + 'static,
             {
+                #[tracing::instrument(level = "debug", skip_all)]
                 fn register(self, _registry: &mut Interceptors) {
                     _registry.#field_ident.push(std::sync::Arc::new(self) as std::sync::Arc<dyn #mod_prefix #trait_ident>);
                 }
@@ -440,6 +449,7 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
         }
 
         impl Interceptors {
+            #[tracing::instrument(level = "debug", skip_all)]
             pub fn with<M, I>(mut self, interceptor: I) -> Self
             where
                 I: RegisterInterceptor<M>,
@@ -451,6 +461,7 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
 
         #(#builder_impls)*
 
+        #[tracing::instrument(level = "debug", skip_all)]
         pub fn init_all_plugins(_registry: &mut types::plugin::PluginRegistry, _context: &types::plugin::PluginContext) {
             #(#init_statements)*
         }

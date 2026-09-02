@@ -276,52 +276,57 @@ pub fn generate_expansion(
             options_dropdown: Vec<String>,
         }
 
+        #[tracing::instrument(level = "debug", skip_all)]
         pub fn init(
             main_window: &crate::MainWindow,
             state_manager: &state_manager::StateManager,
         ) {
             use slint::ComponentHandle;
+            use tracing::Instrument;
 
             let main_window_weak = main_window.as_weak();
             let state_manager = state_manager.clone();
 
-            tokio::spawn(async move {
-                let config = state_manager.get_preference_config().await;
-                let mut items = Vec::new();
-                #(#rebuild_blocks)*
+            tokio::spawn(
+                async move {
+                    let config = state_manager.get_preference_config().await;
+                    let mut items = Vec::new();
+                    #(#rebuild_blocks)*
 
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(main_window) = main_window_weak.upgrade() {
-                        let slint_items: Vec<crate::PreferenceItem> = items.into_iter().map(|item| {
-                            let radio_items: Vec<crate::RadioItem> = item.options_radio.into_iter().map(|(id, label)| {
-                                crate::RadioItem {
-                                    id: id.into(),
-                                    label: label.into(),
+                    let _ = slint::invoke_from_event_loop(move || {
+                        if let Some(main_window) = main_window_weak.upgrade() {
+                            let slint_items: Vec<crate::PreferenceItem> = items.into_iter().map(|item| {
+                                let radio_items: Vec<crate::RadioItem> = item.options_radio.into_iter().map(|(id, label)| {
+                                    crate::RadioItem {
+                                        id: id.into(),
+                                        label: label.into(),
+                                    }
+                                }).collect();
+                                let dropdown_items: Vec<slint::SharedString> = item.options_dropdown.into_iter().map(|s| s.into()).collect();
+                                let list_items: Vec<slint::SharedString> = item.value_list.into_iter().map(|s| s.into()).collect();
+
+                                crate::PreferenceItem {
+                                    id: item.id.into(),
+                                    kind: item.kind.into(),
+                                    title: item.title.into(),
+                                    subtitle: item.subtitle.into(),
+                                    placeholder: item.placeholder.into(),
+                                    value_string: item.value_string.into(),
+                                    value_bool: item.value_bool,
+                                    value_number: item.value_number,
+                                    value_list: slint::ModelRc::new(slint::VecModel::from(list_items)),
+                                    options_radio: slint::ModelRc::new(slint::VecModel::from(radio_items)),
+                                    options_dropdown: slint::ModelRc::new(slint::VecModel::from(dropdown_items)),
                                 }
                             }).collect();
-                            let dropdown_items: Vec<slint::SharedString> = item.options_dropdown.into_iter().map(|s| s.into()).collect();
-                            let list_items: Vec<slint::SharedString> = item.value_list.into_iter().map(|s| s.into()).collect();
 
-                            crate::PreferenceItem {
-                                id: item.id.into(),
-                                kind: item.kind.into(),
-                                title: item.title.into(),
-                                subtitle: item.subtitle.into(),
-                                placeholder: item.placeholder.into(),
-                                value_string: item.value_string.into(),
-                                value_bool: item.value_bool,
-                                value_number: item.value_number,
-                                value_list: slint::ModelRc::new(slint::VecModel::from(list_items)),
-                                options_radio: slint::ModelRc::new(slint::VecModel::from(radio_items)),
-                                options_dropdown: slint::ModelRc::new(slint::VecModel::from(dropdown_items)),
-                            }
-                        }).collect();
-
-                        let prefs_global = main_window.global::<crate::AppPreferences>();
-                        prefs_global.#setter_name(slint::ModelRc::new(slint::VecModel::from(slint_items)));
-                    }
-                });
-            });
+                            let prefs_global = main_window.global::<crate::AppPreferences>();
+                            prefs_global.#setter_name(slint::ModelRc::new(slint::VecModel::from(slint_items)));
+                        }
+                    });
+                }
+                .instrument(tracing::debug_span!("slint_cb_init_preferences")),
+            );
         }
 
         impl<'a> crate::settings::PreferenceHandler for #handler<'a> {
@@ -338,6 +343,7 @@ pub fn generate_expansion(
                 state_manager: &state_manager::StateManager,
             ) -> bool {
                 use slint::Model;
+                use tracing::Instrument;
 
                 let id = change.id.to_string();
                 let main_window_weak = main_window_weak.clone();
@@ -356,43 +362,46 @@ pub fn generate_expansion(
                 let value_number = change.value_number;
                 let value_list: Vec<String> = change.value_list.iter().map(|s| s.to_string()).collect();
                 let state_manager = state_manager.clone();
-                tokio::spawn(async move {
-                    let mut config = state_manager.get_preference_config_mut().await;
-                    let mut updated_list: Option<Vec<String>> = None;
-                    match id.as_str() {
-                        #(#change_cases)*
-                        _ => {}
-                    }
+                tokio::spawn(
+                    async move {
+                        let mut config = state_manager.get_preference_config_mut().await;
+                        let mut updated_list: Option<Vec<String>> = None;
+                        match id.as_str() {
+                            #(#change_cases)*
+                            _ => {}
+                        }
 
-                    let _ = slint::invoke_from_event_loop(move || {
-                        use slint::{ComponentHandle, Model};
+                        let _ = slint::invoke_from_event_loop(move || {
+                            use slint::{ComponentHandle, Model};
 
-                        if let Some(main_window) = main_window_weak.upgrade() {
-                            let prefs_global = main_window.global::<crate::AppPreferences>();
-                            let model_rc = prefs_global.#getter_name();
-                            if let Some(vec_model) = model_rc.as_any().downcast_ref::<slint::VecModel<crate::PreferenceItem>>() {
-                                for idx in 0..vec_model.row_count() {
-                                    if let Some(mut item) = vec_model.row_data(idx) {
-                                        if item.id == id {
-                                            item.value_bool = value_bool;
-                                            item.value_string = value_string.clone().into();
-                                            item.value_number = value_number;
-                                            if let Some(ref list) = updated_list {
-                                                let list_items: Vec<slint::SharedString> = list.iter().map(|s| slint::SharedString::from(s.as_str())).collect();
-                                                item.value_list = slint::ModelRc::new(slint::VecModel::from(list_items));
-                                            } else if !value_list.is_empty() {
-                                                let list_items: Vec<slint::SharedString> = value_list.iter().map(|s| slint::SharedString::from(s.as_str())).collect();
-                                                item.value_list = slint::ModelRc::new(slint::VecModel::from(list_items));
+                            if let Some(main_window) = main_window_weak.upgrade() {
+                                let prefs_global = main_window.global::<crate::AppPreferences>();
+                                let model_rc = prefs_global.#getter_name();
+                                if let Some(vec_model) = model_rc.as_any().downcast_ref::<slint::VecModel<crate::PreferenceItem>>() {
+                                    for idx in 0..vec_model.row_count() {
+                                        if let Some(mut item) = vec_model.row_data(idx) {
+                                            if item.id == id {
+                                                item.value_bool = value_bool;
+                                                item.value_string = value_string.clone().into();
+                                                item.value_number = value_number;
+                                                if let Some(ref list) = updated_list {
+                                                    let list_items: Vec<slint::SharedString> = list.iter().map(|s| slint::SharedString::from(s.as_str())).collect();
+                                                    item.value_list = slint::ModelRc::new(slint::VecModel::from(list_items));
+                                                } else if !value_list.is_empty() {
+                                                    let list_items: Vec<slint::SharedString> = value_list.iter().map(|s| slint::SharedString::from(s.as_str())).collect();
+                                                    item.value_list = slint::ModelRc::new(slint::VecModel::from(list_items));
+                                                }
+                                                vec_model.set_row_data(idx, item);
+                                                break;
                                             }
-                                            vec_model.set_row_data(idx, item);
-                                            break;
                                         }
                                     }
                                 }
                             }
-                        }
-                    });
-                });
+                        });
+                    }
+                    .instrument(tracing::debug_span!("slint_cb_handle_preference_change")),
+                );
 
                 true
             }

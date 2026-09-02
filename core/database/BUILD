@@ -43,7 +43,6 @@ rust_library(
         "@crates//:rusqlite",
         "@crates//:serde",
         "@crates//:serde_json",
-        "@crates//:tempdir",
         "@crates//:thiserror",
         "@crates//:tracing",
         "@crates//:uuid",
@@ -61,6 +60,12 @@ cargo_build_script(
 rust_test(
     name = "database_test",
     crate = ":database",
+    deps = [
+        "@crates//:assertables",
+        "@crates//:rstest",
+        "@crates//:tempdir",
+        "@crates//:tracing-test",
+    ],
 )
 
 rust_benchmark(

@@ -16,10 +16,13 @@
 
 use std::collections::HashMap;
 
+use assertables::assert_err;
 use extensions_proto::moosync::types::HttpRequest;
+use tracing_test::traced_test;
 
 use crate::context::extism_context::execute_single_request;
 
+#[tracing::instrument(level = "debug", skip_all)]
 fn make_req(url: &str) -> HttpRequest {
     HttpRequest {
         url: url.to_string(),
@@ -31,6 +34,7 @@ fn make_req(url: &str) -> HttpRequest {
 }
 
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_execute_single_request_disallowed_host() {
     let client = reqwest::Client::new();
@@ -39,11 +43,12 @@ async fn test_execute_single_request_disallowed_host() {
 
     let res = execute_single_request(&client, req, Some(&allowed)).await;
 
-    assert!(res.is_err());
+    assert_err!(res.as_ref());
     assert!(res.unwrap_err().contains("unauthorized.domain.com"));
 }
 
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_execute_single_request_invalid_url() {
     let client = reqwest::Client::new();
@@ -52,11 +57,12 @@ async fn test_execute_single_request_invalid_url() {
 
     let res = execute_single_request(&client, req, Some(&allowed)).await;
 
-    assert!(res.is_err());
+    assert_err!(res.as_ref());
     assert!(res.unwrap_err().contains("Invalid URL"));
 }
 
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_execute_single_request_none_allowed() {
     let client = reqwest::Client::new();
@@ -64,19 +70,20 @@ async fn test_execute_single_request_none_allowed() {
 
     let res = execute_single_request(&client, req, None).await;
 
-    assert!(res.is_err());
+    assert_err!(res.as_ref());
     assert!(res.unwrap_err().contains("not allowed"));
 }
 
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_execute_single_request_disallowed_subdomain() {
     let client = reqwest::Client::new();
     let allowed = vec!["*.spotify.com".to_string()];
-
     let diff_req = make_req("https://notspotify.com/tracks");
+
     let res = execute_single_request(&client, diff_req, Some(&allowed)).await;
 
-    assert!(res.is_err());
+    assert_err!(res.as_ref());
     assert!(res.unwrap_err().contains("notspotify.com"));
 }

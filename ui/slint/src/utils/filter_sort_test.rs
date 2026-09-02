@@ -1,12 +1,22 @@
+use rstest::{fixture, rstest};
 use slint::{Model, ModelRc, VecModel};
 use songs_proto::moosync::types::{Album, Artist, InnerSong, Song};
 use tempdir::TempDir;
+use tracing_test::traced_test;
 
 use super::filter_and_sort_songs;
 use crate::{SongModel, SongSortCriterion};
 
+struct TestFilterSortContext {
+    pub _temp_dir: TempDir,
+    pub songs: ModelRc<SongModel>,
+}
+
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-fn create_test_song_models() -> ModelRc<SongModel> {
+fn filter_sort_context() -> TestFilterSortContext {
+    let temp_dir = TempDir::new("test_filter_sort").expect("failed to create temp dir");
+
     let song1 = SongModel::from(Song {
         song: Some(InnerSong {
             id: Some("1".to_string()),
@@ -64,14 +74,19 @@ fn create_test_song_models() -> ModelRc<SongModel> {
         ..Default::default()
     });
 
-    ModelRc::new(VecModel::from(vec![song1, song2, song3]))
+    let songs = ModelRc::new(VecModel::from(vec![song1, song2, song3]));
+
+    TestFilterSortContext {
+        _temp_dir: temp_dir,
+        songs,
+    }
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_filter_and_sort_songs_filter_by_title() {
-    let tmp = TempDir::new("test_filter_title").unwrap();
-    let songs = create_test_song_models();
+fn test_filter_and_sort_songs_filter_by_title(filter_sort_context: TestFilterSortContext) {
+    let TestFilterSortContext { _temp_dir, songs } = filter_sort_context;
 
     let result = filter_and_sort_songs(
         songs,
@@ -80,20 +95,21 @@ fn test_filter_and_sort_songs_filter_by_title() {
         true,
         100,
         100,
-        tmp.path().to_path_buf(),
+        _temp_dir.path().to_path_buf(),
     );
 
     assert_eq!(result.row_count(), 1);
     assert_eq!(result.row_data(0).unwrap().title, "Bravo Song");
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_filter_and_sort_songs_search_matches_only_title() {
-    let tmp = TempDir::new("test_search_title_only").unwrap();
-    let songs = create_test_song_models();
+fn test_filter_and_sort_songs_search_matches_only_title(
+    filter_sort_context: TestFilterSortContext,
+) {
+    let TestFilterSortContext { _temp_dir, songs } = filter_sort_context;
 
-    // Matching title succeeds
     let result_title = filter_and_sort_songs(
         songs.clone(),
         "Alpha",
@@ -101,12 +117,8 @@ fn test_filter_and_sort_songs_search_matches_only_title() {
         true,
         100,
         100,
-        tmp.path().to_path_buf(),
+        _temp_dir.path().to_path_buf(),
     );
-    assert_eq!(result_title.row_count(), 1);
-    assert_eq!(result_title.row_data(0).unwrap().title, "Alpha Song");
-
-    // Searching by artist name does not match
     let result_artist = filter_and_sort_songs(
         songs.clone(),
         "Delta",
@@ -114,11 +126,8 @@ fn test_filter_and_sort_songs_search_matches_only_title() {
         true,
         100,
         100,
-        tmp.path().to_path_buf(),
+        _temp_dir.path().to_path_buf(),
     );
-    assert_eq!(result_artist.row_count(), 0);
-
-    // Searching by album name does not match
     let result_album = filter_and_sort_songs(
         songs,
         "Echo",
@@ -126,16 +135,20 @@ fn test_filter_and_sort_songs_search_matches_only_title() {
         true,
         100,
         100,
-        tmp.path().to_path_buf(),
+        _temp_dir.path().to_path_buf(),
     );
+
+    assert_eq!(result_title.row_count(), 1);
+    assert_eq!(result_title.row_data(0).unwrap().title, "Alpha Song");
+    assert_eq!(result_artist.row_count(), 0);
     assert_eq!(result_album.row_count(), 0);
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_filter_and_sort_songs_sort_by_title() {
-    let tmp = TempDir::new("test_sort_title").unwrap();
-    let songs = create_test_song_models();
+fn test_filter_and_sort_songs_sort_by_title(filter_sort_context: TestFilterSortContext) {
+    let TestFilterSortContext { _temp_dir, songs } = filter_sort_context;
 
     let result = filter_and_sort_songs(
         songs,
@@ -144,7 +157,7 @@ fn test_filter_and_sort_songs_sort_by_title() {
         true,
         100,
         100,
-        tmp.path().to_path_buf(),
+        _temp_dir.path().to_path_buf(),
     );
 
     assert_eq!(result.row_count(), 3);
@@ -153,11 +166,11 @@ fn test_filter_and_sort_songs_sort_by_title() {
     assert_eq!(result.row_data(2).unwrap().title, "Charlie Song");
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_filter_and_sort_songs_sort_by_title_descending() {
-    let tmp = TempDir::new("test_sort_title_desc").unwrap();
-    let songs = create_test_song_models();
+fn test_filter_and_sort_songs_sort_by_title_descending(filter_sort_context: TestFilterSortContext) {
+    let TestFilterSortContext { _temp_dir, songs } = filter_sort_context;
 
     let result = filter_and_sort_songs(
         songs,
@@ -166,7 +179,7 @@ fn test_filter_and_sort_songs_sort_by_title_descending() {
         false,
         100,
         100,
-        tmp.path().to_path_buf(),
+        _temp_dir.path().to_path_buf(),
     );
 
     assert_eq!(result.row_count(), 3);
@@ -175,11 +188,11 @@ fn test_filter_and_sort_songs_sort_by_title_descending() {
     assert_eq!(result.row_data(2).unwrap().title, "Alpha Song");
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_filter_and_sort_songs_sort_by_date() {
-    let tmp = TempDir::new("test_sort_date").unwrap();
-    let songs = create_test_song_models();
+fn test_filter_and_sort_songs_sort_by_date(filter_sort_context: TestFilterSortContext) {
+    let TestFilterSortContext { _temp_dir, songs } = filter_sort_context;
 
     let result = filter_and_sort_songs(
         songs,
@@ -188,20 +201,20 @@ fn test_filter_and_sort_songs_sort_by_date() {
         true,
         100,
         100,
-        tmp.path().to_path_buf(),
+        _temp_dir.path().to_path_buf(),
     );
 
     assert_eq!(result.row_count(), 3);
-    assert_eq!(result.row_data(0).unwrap().title, "Charlie Song"); // 2020
-    assert_eq!(result.row_data(1).unwrap().title, "Bravo Song"); // 2021
-    assert_eq!(result.row_data(2).unwrap().title, "Alpha Song"); // 2023
+    assert_eq!(result.row_data(0).unwrap().title, "Charlie Song");
+    assert_eq!(result.row_data(1).unwrap().title, "Bravo Song");
+    assert_eq!(result.row_data(2).unwrap().title, "Alpha Song");
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_filter_and_sort_songs_sort_by_album() {
-    let tmp = TempDir::new("test_sort_album").unwrap();
-    let songs = create_test_song_models();
+fn test_filter_and_sort_songs_sort_by_album(filter_sort_context: TestFilterSortContext) {
+    let TestFilterSortContext { _temp_dir, songs } = filter_sort_context;
 
     let result = filter_and_sort_songs(
         songs,
@@ -210,7 +223,7 @@ fn test_filter_and_sort_songs_sort_by_album() {
         true,
         100,
         100,
-        tmp.path().to_path_buf(),
+        _temp_dir.path().to_path_buf(),
     );
 
     assert_eq!(result.row_count(), 3);
@@ -219,11 +232,11 @@ fn test_filter_and_sort_songs_sort_by_album() {
     assert_eq!(result.row_data(2).unwrap().album_name, "Zulu Album");
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_filter_and_sort_songs_sort_by_track_number() {
-    let tmp = TempDir::new("test_sort_track").unwrap();
-    let songs = create_test_song_models();
+fn test_filter_and_sort_songs_sort_by_track_number(filter_sort_context: TestFilterSortContext) {
+    let TestFilterSortContext { _temp_dir, songs } = filter_sort_context;
 
     let result = filter_and_sort_songs(
         songs,
@@ -232,7 +245,7 @@ fn test_filter_and_sort_songs_sort_by_track_number() {
         true,
         100,
         100,
-        tmp.path().to_path_buf(),
+        _temp_dir.path().to_path_buf(),
     );
 
     assert_eq!(result.row_count(), 3);
@@ -241,11 +254,11 @@ fn test_filter_and_sort_songs_sort_by_track_number() {
     assert_eq!(result.row_data(2).unwrap().track_no, 3.0);
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_filter_and_sort_songs_sort_by_artist() {
-    let tmp = TempDir::new("test_sort_artist").unwrap();
-    let songs = create_test_song_models();
+fn test_filter_and_sort_songs_sort_by_artist(filter_sort_context: TestFilterSortContext) {
+    let TestFilterSortContext { _temp_dir, songs } = filter_sort_context;
 
     let result = filter_and_sort_songs(
         songs,
@@ -254,20 +267,22 @@ fn test_filter_and_sort_songs_sort_by_artist() {
         true,
         100,
         100,
-        tmp.path().to_path_buf(),
+        _temp_dir.path().to_path_buf(),
     );
 
     assert_eq!(result.row_count(), 3);
-    assert_eq!(result.row_data(0).unwrap().title, "Charlie Song"); // Alpha Artist
-    assert_eq!(result.row_data(1).unwrap().title, "Bravo Song"); // Charlie Artist
-    assert_eq!(result.row_data(2).unwrap().title, "Alpha Song"); // Delta Artist
+    assert_eq!(result.row_data(0).unwrap().title, "Charlie Song");
+    assert_eq!(result.row_data(1).unwrap().title, "Bravo Song");
+    assert_eq!(result.row_data(2).unwrap().title, "Alpha Song");
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_filter_and_sort_songs_title_ascending_uses_original_model() {
-    let tmp = TempDir::new("test_title_asc").unwrap();
-    let songs = create_test_song_models();
+fn test_filter_and_sort_songs_title_ascending_uses_original_model(
+    filter_sort_context: TestFilterSortContext,
+) {
+    let TestFilterSortContext { _temp_dir, songs } = filter_sort_context;
 
     let result = filter_and_sort_songs(
         songs,
@@ -276,7 +291,7 @@ fn test_filter_and_sort_songs_title_ascending_uses_original_model() {
         true,
         100,
         100,
-        tmp.path().to_path_buf(),
+        _temp_dir.path().to_path_buf(),
     );
 
     assert_eq!(result.row_count(), 3);

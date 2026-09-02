@@ -14,18 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use assertables::assert_err;
+use rstest::{fixture, rstest};
+use tracing_test::traced_test;
 use uuid::Uuid;
 
 use crate::context::{Keyring, KeyringContext};
 
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_keyring_context_get_nonexistent_returns_no_entry() {
+#[fixture]
+fn fresh_keyring_context() -> KeyringContext {
     let service = format!("moosync_test_empty_{}", Uuid::new_v4());
     let user = format!("moosync_test_user_{}", Uuid::new_v4());
+    KeyringContext::new(&service, &user).expect("failed to init fresh keyring context")
+}
 
-    let ctx = KeyringContext::new(&service, &user).unwrap();
-    // Before setting any secret, get_secret should return an error
-    let res = ctx.get_secret();
-    assert!(res.is_err());
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_keyring_context_get_nonexistent_returns_no_entry(fresh_keyring_context: KeyringContext) {
+    assert_err!(fresh_keyring_context.get_secret());
 }

@@ -16,20 +16,39 @@
 
 use std::fs;
 
+use rstest::{fixture, rstest};
 use tempdir::TempDir;
+use tracing_test::traced_test;
 
 use crate::remote::RemoteExtensions;
 
-#[test]
+struct TestRemoteSmokeContext {
+    pub _temp_dir: TempDir,
+}
+
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_remote_extensions_init() {
-    let tmp = TempDir::new("moosync_remote_smoke").unwrap();
-    let ext_dir = tmp.path().join("exts");
-    let tmp_dir = tmp.path().join("tmp");
-    let cache_dir = tmp.path().join("cache");
+fn smoke_context() -> TestRemoteSmokeContext {
+    let temp_dir = TempDir::new("moosync_remote_smoke").expect("failed to create temp dir");
+    let ext_dir = temp_dir.path().join("exts");
+    let tmp_dir = temp_dir.path().join("tmp");
+    let cache_dir = temp_dir.path().join("cache");
     fs::create_dir_all(&ext_dir).unwrap();
     fs::create_dir_all(&tmp_dir).unwrap();
     fs::create_dir_all(&cache_dir).unwrap();
+
+    TestRemoteSmokeContext {
+        _temp_dir: temp_dir,
+    }
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_remote_extensions_init(smoke_context: TestRemoteSmokeContext) {
+    let ext_dir = smoke_context._temp_dir.path().join("exts");
+    let tmp_dir = smoke_context._temp_dir.path().join("tmp");
+    let cache_dir = smoke_context._temp_dir.path().join("cache");
 
     let _remote = RemoteExtensions::new(ext_dir, tmp_dir, cache_dir);
 }

@@ -15,14 +15,17 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    env::temp_dir,
     fs,
+    path::PathBuf,
     sync::{Arc, atomic::AtomicBool},
 };
 
+use assertables::{assert_is_empty, assert_len_eq_x};
+use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Song};
+use tempdir::TempDir;
+use tracing_test::traced_test;
 use ui_proto::moosync::types::PreferenceUiData;
-use uuid::Uuid;
 
 use crate::{ReplyHandler, errors::ExtensionError, extension::Extension};
 
@@ -126,12 +129,16 @@ impl ReplyHandler for DummyReply {
     fn get_app_version(&self, _: &str) -> Result<String, ExtensionError> { Ok("1.0.0".to_string()) }
 }
 
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_extension_preferences_and_active_state() {
-    let test_dir = temp_dir().join(format!("moosync_ext_unit_{}", Uuid::new_v4()));
-    fs::create_dir_all(&test_dir).unwrap();
+struct TestExtContext {
+    pub _temp_dir: TempDir,
+    pub manifest_path: PathBuf,
+    pub cache_dir: PathBuf,
+}
 
+#[fixture]
+#[tracing::instrument(level = "debug", skip_all)]
+fn ext_context() -> TestExtContext {
+    let temp_dir = TempDir::new("moosync_ext_unit").expect("failed to create temp dir");
     let manifest_json = r#"{
         "name": "unit.pkg",
         "displayName": "Unit Test Extension",
@@ -141,42 +148,56 @@ fn test_extension_preferences_and_active_state() {
         "icon": "icon.png",
         "author": "Tester"
     }"#;
-    let manifest_path = test_dir.join("package.json");
+    let manifest_path = temp_dir.path().join("package.json");
     fs::write(&manifest_path, manifest_json).unwrap();
-    // Initially disabled
     let lock_data = serde_json::json!({
         "registry": "local",
         "disabled": true
     });
     fs::write(
-        test_dir.join("extension.lock"),
+        temp_dir.path().join("extension.lock"),
         serde_json::to_vec(&lock_data).unwrap(),
     )
     .unwrap();
+    let cache_dir = temp_dir.path().join("cache");
 
+    TestExtContext {
+        _temp_dir: temp_dir,
+        manifest_path,
+        cache_dir,
+    }
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_extension_preferences_and_active_state(ext_context: TestExtContext) {
+    let TestExtContext {
+        manifest_path,
+        cache_dir,
+        ..
+    } = ext_context;
     let reply = Arc::new(DummyReply);
     let has_started = Arc::new(AtomicBool::new(false));
 
-    let ext = Extension::new(&manifest_path, reply, test_dir.join("cache"), has_started).unwrap();
+    let ext = Extension::new(&manifest_path, reply, cache_dir, has_started);
+    assert!(ext.is_ok());
+    let ext = ext.unwrap();
 
     assert_eq!(ext.get_package_name(), "unit.pkg");
     assert!(!ext.is_active());
     assert_eq!(ext.get_lock_data().registry, "local");
 
-    // Register UI preferences
     ext.register_ui_preferences(vec![PreferenceUiData {
         key: "volume".to_string(),
         title: "Default Volume".to_string(),
         ..Default::default()
     }]);
-
     let details = ext.get_extension_detail();
-    assert_eq!(details.preferences.len(), 1);
+    assert_len_eq_x!(&details.preferences, 1);
     assert_eq!(details.preferences[0].key, "volume");
 
     ext.unregister_ui_preferences(vec!["volume".to_string()]);
     let details_after = ext.get_extension_detail();
-    assert_eq!(details_after.preferences.len(), 0);
-
-    let _ = fs::remove_dir_all(test_dir);
+    assert_is_empty!(&details_after.preferences);
 }

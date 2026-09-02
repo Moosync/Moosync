@@ -20,7 +20,6 @@ rust_library(
         "//core/types",
         "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",
-        "@crates//:mockall",
         "@crates//:serde",
         "@crates//:thiserror",
         "@crates//:tracing",
@@ -42,4 +41,10 @@ rust_library(
 rust_test(
     name = "mpris_test",
     crate = ":mpris",
+    deps = [
+        "@crates//:assertables",
+        "@crates//:mockall",
+        "@crates//:rstest",
+        "@crates//:tracing-test",
+    ],
 )

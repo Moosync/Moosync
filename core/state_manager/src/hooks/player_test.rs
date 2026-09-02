@@ -14,21 +14,48 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use assertables::assert_ok;
+use rstest::{fixture, rstest};
+use tempdir::TempDir;
+use tracing_test::traced_test;
+use types::plugin::PluginContext;
+
 use crate::{
     StateManager,
     hooks::{Hook, player::PlayerHook},
 };
 
-#[tokio::test]
-#[tracing::instrument(level = "debug", skip_all)]
-async fn test_player_hook_on_startup() {
-    let sm = StateManager::new(
-        #[cfg(target_os = "android")]
-        types::android::AndroidJNIContext::default(),
-    )
-    .unwrap();
+struct TestSmContext {
+    pub _temp_dir: TempDir,
+    pub sm: StateManager,
+}
 
+#[fixture]
+#[tracing::instrument(level = "debug", skip_all)]
+fn sm_context() -> TestSmContext {
+    let temp_dir = TempDir::new("moosync_sm_player_hook_test").expect("failed to create temp dir");
+    let test_dir = temp_dir.path().to_path_buf();
+    let context = PluginContext {
+        data_dir: test_dir.clone(),
+        cache_dir: test_dir.clone(),
+        tmp_dir: test_dir.clone(),
+        #[cfg(target_os = "android")]
+        android_context: types::android::AndroidJNIContext::default(),
+    };
+    let sm = StateManager::new_with_context(context).expect("failed to create state manager");
+    TestSmContext {
+        _temp_dir: temp_dir,
+        sm,
+    }
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_player_hook_on_startup(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
     let hook = PlayerHook::new();
-    let res = hook.on_startup(&sm).await;
-    assert!(res.is_ok());
+
+    assert_ok!(hook.on_startup(&sm).await);
 }

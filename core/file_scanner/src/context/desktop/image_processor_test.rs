@@ -14,12 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{env::temp_dir, fs, io::Cursor};
+use std::io::Cursor;
 
+use assertables::{assert_err, assert_matches, assert_ok};
 use image::{DynamicImage, ImageBuffer, ImageFormat, Rgba};
-use uuid::Uuid;
+use rstest::{fixture, rstest};
+use tempdir::TempDir;
+use tracing_test::traced_test;
 
 use crate::{context::desktop::image_processor::ImageProcessor, error::ScannerError};
+
+#[fixture]
+#[tracing::instrument(level = "debug", skip_all)]
+fn temp_dir_fixture() -> TempDir {
+    TempDir::new("moosync_img_test").expect("failed to create temp dir")
+}
 
 #[tracing::instrument(level = "debug", skip_all)]
 fn create_synthetic_png_bytes(width: u32, height: u32) -> Vec<u8> {
@@ -38,75 +47,59 @@ fn create_synthetic_png_bytes(width: u32, height: u32) -> Vec<u8> {
     bytes
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_image_processor_resize_and_save_synthetic_image() {
+fn test_image_processor_resize_and_save_synthetic_image(temp_dir_fixture: TempDir) {
     let png_bytes = create_synthetic_png_bytes(500, 300);
-    let out_dir = temp_dir().join(format!("moosync_img_test_{}", Uuid::new_v4()));
-    fs::create_dir_all(&out_dir).unwrap();
-    let out_path = out_dir.join("resized_cover.png");
-
+    let out_path = temp_dir_fixture.path().join("resized_cover.png");
     let processor = ImageProcessor::new(&png_bytes).resize(250).compress();
-    let save_res = processor.save(&out_path);
-    assert!(save_res.is_ok());
 
+    assert_ok!(processor.save(&out_path));
     let loaded = image::open(&out_path).unwrap();
     assert_eq!(loaded.width(), 250);
     assert_eq!(loaded.height(), 250);
-
-    let _ = fs::remove_dir_all(out_dir);
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_image_processor_from_image_default_dimension() {
+fn test_image_processor_from_image_default_dimension(temp_dir_fixture: TempDir) {
     let imgbuf = ImageBuffer::from_pixel(100, 100, Rgba([255, 0, 0, 255]));
     let dynamic = DynamicImage::ImageRgba8(imgbuf);
-
-    let out_dir = temp_dir().join(format!("moosync_img_test_{}", Uuid::new_v4()));
-    fs::create_dir_all(&out_dir).unwrap();
-    let out_path = out_dir.join("default_dim_cover.png");
-
+    let out_path = temp_dir_fixture.path().join("default_dim_cover.png");
     let processor = ImageProcessor::from_image(dynamic);
-    let save_res = processor.save(&out_path);
-    assert!(save_res.is_ok());
 
+    assert_ok!(processor.save(&out_path));
     let loaded = image::open(&out_path).unwrap();
     assert_eq!(loaded.width(), 400);
     assert_eq!(loaded.height(), 400);
-
-    let _ = fs::remove_dir_all(out_dir);
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_image_processor_invalid_bytes_returns_error() {
+fn test_image_processor_invalid_bytes_returns_error(temp_dir_fixture: TempDir) {
     let bad_bytes = b"definitely_not_valid_image_bytes_xyz";
-    let out_path = temp_dir().join("bad.png");
-
+    let out_path = temp_dir_fixture.path().join("bad.png");
     let processor = ImageProcessor::new(bad_bytes);
+
     let res = processor.save(&out_path);
-    assert!(res.is_err());
-    match res.unwrap_err() {
-        ScannerError::Image(_) => {}
-        err => panic!("Expected ScannerError::Image, got: {:?}", err),
-    }
+
+    assert_err!(res.as_ref());
+    assert_matches!(res.unwrap_err(), ScannerError::Image(_));
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_image_processor_zero_dimension_returns_error() {
+fn test_image_processor_zero_dimension_returns_error(temp_dir_fixture: TempDir) {
     let png_bytes = create_synthetic_png_bytes(50, 50);
-    let out_path = temp_dir().join("zero.png");
-
+    let out_path = temp_dir_fixture.path().join("zero.png");
     let processor = ImageProcessor::new(&png_bytes).resize(0);
+
     let res = processor.save(&out_path);
-    assert!(res.is_err());
-    match res.unwrap_err() {
-        ScannerError::InvalidImageDimensions => {}
-        err => panic!(
-            "Expected ScannerError::InvalidImageDimensions, got: {:?}",
-            err
-        ),
-    }
+
+    assert_err!(res.as_ref());
+    assert_matches!(res.unwrap_err(), ScannerError::InvalidImageDimensions);
 }

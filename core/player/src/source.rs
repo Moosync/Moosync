@@ -75,7 +75,8 @@ impl SourceResolver {
 
         if let Some(inner_song) = song.song.as_mut() {
             inner_song.playback_url = Some(playback_url);
-        };
+            return Ok(());
+        }
         Err(PlayerError::InvalidSong)
     }
 }

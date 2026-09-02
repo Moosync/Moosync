@@ -58,11 +58,9 @@ rust_library(
         "@crates//:rodio",
         "@crates//:rsmpeg",
         "@crates//:rusty_ffmpeg",
-        "@crates//:tempdir",
         "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",
-        "@crates//:wiremock",
     ] + select({
         "@platforms//os:linux": ["@crates//:libpulse-binding"],
         "//conditions:default": [],
@@ -80,4 +78,11 @@ rust_test(
         "@platforms//os:windows": [],
         "//conditions:default": ["-lz"],
     }),
+    deps = [
+        "@crates//:assertables",
+        "@crates//:rstest",
+        "@crates//:tempdir",
+        "@crates//:tracing-test",
+        "@crates//:wiremock",
+    ],
 )

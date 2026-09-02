@@ -14,9 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use assertables::assert_len_eq_x;
+use tracing_test::traced_test;
+
 use crate::{parse_slint_theme, strip_comments};
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_strip_comments_line_and_block() {
     let raw = r#"
@@ -29,12 +33,14 @@ fn test_strip_comments_line_and_block() {
     "#;
 
     let stripped = strip_comments(raw);
+
     assert!(!stripped.contains("Single line comment"));
     assert!(!stripped.contains("Block comment"));
     assert!(stripped.contains("property <color> primary: #ff0000;"));
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_parse_slint_theme_properties() {
     let content = r#"
@@ -45,7 +51,8 @@ fn test_parse_slint_theme_properties() {
     "#;
 
     let props = parse_slint_theme(content);
-    assert_eq!(props.len(), 2);
+
+    assert_len_eq_x!(&props, 2);
     assert_eq!(props[0].0, "primary");
     assert_eq!(props[0].1, "color");
     assert_eq!(props[0].2, "#112233");

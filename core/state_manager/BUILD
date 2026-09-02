@@ -3,6 +3,12 @@ load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
 rust_test(
     name = "state_manager_test",
     crate = ":state_manager",
+    deps = [
+        "@crates//:assertables",
+        "@crates//:rstest",
+        "@crates//:tempdir",
+        "@crates//:tracing-test",
+    ],
 )
 
 rust_library(

@@ -14,16 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use rstest::rstest;
 use slint::{ComponentHandle, ModelRc, VecModel};
 use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
-use tempdir::TempDir;
-use types::plugin::PluginContext;
+use tracing_test::traced_test;
 
 use crate::{
     AppCallbacks, BottomBarCallbacks, CoverHelper, MainWindow, PageLifecycleManager, Pages,
-    SettingsPages, SongDetailAction, SongModel, SongSortCriterion, get_all_pages, pages::AppPage,
-    setup_ui, test_utils::run_async_test,
+    SettingsPages, SongDetailAction, SongModel, SongSortCriterion, get_all_pages,
+    pages::AppPage,
+    setup_ui,
+    test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
 };
 
 #[test]
@@ -43,7 +45,6 @@ fn test_ui_app_page_from_mappings() {
     assert_eq!(AppPage::from(Pages::AlbumContent), AppPage::AlbumContent);
     assert_eq!(AppPage::from(Pages::ArtistContent), AppPage::ArtistContent);
     assert_eq!(AppPage::from(Pages::GenreContent), AppPage::GenreContent);
-
     assert_eq!(AppPage::from(SettingsPages::Paths), AppPage::Paths);
     assert_eq!(AppPage::from(SettingsPages::System), AppPage::System);
     assert_eq!(
@@ -111,151 +112,137 @@ fn test_page_lifecycle_manager_queue_toggle_with_settings_open() {
     assert_eq!(actions_close, vec![(AppPage::Queue, false)]);
 }
 
-#[test]
+#[rstest]
+#[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_ui_get_all_pages_and_setup() {
-    run_async_test(|| async move {
-        let tmp = TempDir::new("moosync_ui_test").unwrap();
-        let test_dir = tmp.path().to_path_buf();
+async fn test_ui_get_all_pages_and_setup(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window: &'static MainWindow = Box::leak(Box::new(main_window));
+    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
 
-        let context = PluginContext {
-            data_dir: test_dir.clone(),
-            cache_dir: test_dir.clone(),
-            tmp_dir: test_dir.clone(),
-            #[cfg(target_os = "android")]
-            android_context: types::android::AndroidJNIContext::default(),
-        };
+    let pages = get_all_pages(main_window, state_manager);
+    for (_page_type, page) in pages {
+        page.initialize();
+        page.on_show();
+        page.on_hide();
+    }
 
-        let sm: &'static StateManager =
-            Box::leak(Box::new(StateManager::new_with_context(context).unwrap()));
-        let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
+    setup_ui(main_window, state_manager);
 
-        let pages = get_all_pages(main_window, sm);
-        for (_page_type, page) in pages {
-            page.initialize();
-            page.on_show();
-            page.on_hide();
-        }
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Albums);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Artists);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Playlists);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Genres);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Explore);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Search);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::PlaylistContent);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::AlbumContent);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::ArtistContent);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::GenreContent);
 
-        setup_ui(main_window, sm);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(true);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::Paths);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::System);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::Extensions);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::Themes);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(false);
 
-        // Invoke AppCallbacks
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_active_page_changed(Pages::Albums);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_active_page_changed(Pages::Artists);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_active_page_changed(Pages::Playlists);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_active_page_changed(Pages::Genres);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_active_page_changed(Pages::Explore);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_active_page_changed(Pages::Search);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_active_page_changed(Pages::PlaylistContent);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_active_page_changed(Pages::AlbumContent);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_active_page_changed(Pages::ArtistContent);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_active_page_changed(Pages::GenreContent);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_queue_toggled(true);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_queue_toggled(false);
 
-        // Invoke Settings callbacks
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_settings_toggled(true);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_settings_active_page_changed(SettingsPages::Paths);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_settings_active_page_changed(SettingsPages::System);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_settings_active_page_changed(SettingsPages::Extensions);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_settings_active_page_changed(SettingsPages::Themes);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_settings_toggled(false);
+    let song_model = SongModel::from(Song::default());
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_play_song(song_model.clone());
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_add_song_to_queue(song_model.clone());
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_song_detail_action(
+            SongDetailAction::Play,
+            ModelRc::new(VecModel::from(vec![song_model.clone()])),
+        );
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_song_detail_action(
+            SongDetailAction::AddToQueue,
+            ModelRc::new(VecModel::from(vec![song_model.clone()])),
+        );
 
-        // Invoke Queue toggle
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_queue_toggled(true);
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_queue_toggled(false);
+    main_window
+        .global::<BottomBarCallbacks>()
+        .invoke_play_pause_clicked();
+    main_window
+        .global::<BottomBarCallbacks>()
+        .invoke_toggle_repeat();
+    main_window
+        .global::<BottomBarCallbacks>()
+        .invoke_next_song();
+    main_window
+        .global::<BottomBarCallbacks>()
+        .invoke_prev_song();
+    main_window
+        .global::<BottomBarCallbacks>()
+        .invoke_set_volume(75);
+    main_window.global::<BottomBarCallbacks>().invoke_shuffle();
+    main_window.global::<BottomBarCallbacks>().invoke_seek(30);
 
-        // Invoke song and bottom bar callbacks
-        let song_model = SongModel::from(Song::default());
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_play_song(song_model.clone());
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_add_song_to_queue(song_model.clone());
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_song_detail_action(
-                SongDetailAction::Play,
-                ModelRc::new(VecModel::from(vec![song_model.clone()])),
-            );
-        main_window
-            .global::<AppCallbacks>()
-            .invoke_song_detail_action(
-                SongDetailAction::AddToQueue,
-                ModelRc::new(VecModel::from(vec![song_model.clone()])),
-            );
+    let _ = main_window
+        .global::<CoverHelper>()
+        .invoke_fetch_cover_high(song_model.clone());
+    let _ = main_window
+        .global::<CoverHelper>()
+        .invoke_fetch_cover_low(song_model.clone());
 
-        main_window
-            .global::<BottomBarCallbacks>()
-            .invoke_play_pause_clicked();
-        main_window
-            .global::<BottomBarCallbacks>()
-            .invoke_toggle_repeat();
-        main_window
-            .global::<BottomBarCallbacks>()
-            .invoke_next_song();
-        main_window
-            .global::<BottomBarCallbacks>()
-            .invoke_prev_song();
-        main_window
-            .global::<BottomBarCallbacks>()
-            .invoke_set_volume(75);
-        main_window.global::<BottomBarCallbacks>().invoke_shuffle();
-        main_window.global::<BottomBarCallbacks>().invoke_seek(30);
+    let _ = main_window
+        .global::<AppCallbacks>()
+        .invoke_filter_and_sort_songs(
+            ModelRc::new(VecModel::from(vec![song_model.clone()])),
+            "test".into(),
+            SongSortCriterion::Title,
+            true,
+        );
 
-        // Invoke cover helper
-        let _ = main_window
-            .global::<CoverHelper>()
-            .invoke_fetch_cover_high(song_model.clone());
-        let _ = main_window
-            .global::<CoverHelper>()
-            .invoke_fetch_cover_low(song_model.clone());
-
-        // Invoke song list helper
-        let _ = main_window
-            .global::<AppCallbacks>()
-            .invoke_filter_and_sort_songs(
-                ModelRc::new(VecModel::from(vec![song_model.clone()])),
-                "test".into(),
-                SongSortCriterion::Title,
-                true,
-            );
-
-        assert!(!main_window.get_playing());
-    });
+    assert!(!main_window.get_playing());
 }

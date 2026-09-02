@@ -553,9 +553,9 @@ async fn setup_extension_at(
 
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
-        tracing_subscriber::fmt()
+        let _ = tracing_subscriber::fmt()
             .with_env_filter("debug,extism=debug,extism_pdk=debug,cranelift_codegen=warn,wasmtime_cranelift=warn,wasmtime_internal_cranelift=warn,wasmtime=warn")
-            .init();
+            .try_init();
     });
 
     let captured_commands = Arc::new(Mutex::new(Vec::<MainCommand>::new()));

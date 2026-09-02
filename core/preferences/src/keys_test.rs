@@ -14,23 +14,37 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use rstest::rstest;
+use tracing_test::traced_test;
+
 use crate::keys::{
     ActiveThemeId, ArtistSplitter, ArtworkPath, AutoStartup, ClearQueue, ExcludeMusicPaths,
     ExtensionKey, I18nLanguage, JukeboxMode, MinimizeToTray, MusicPaths, PreferenceKey,
     ScanInterval, ScanThreads, ThumbnailPath, VolumePersistMode,
 };
 
-#[test]
+#[rstest]
+#[case("moosync.spotify", "client_id", "extensions.moosync.spotify.client_id")]
+#[case("moosync.youtube", "api_key", "extensions.moosync.youtube.api_key")]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_extension_key_formatting() {
+fn test_extension_key_formatting(
+    #[case] package_name: &str,
+    #[case] key_name: &str,
+    #[case] expected: &str,
+) {
     let key = ExtensionKey {
-        package_name: "moosync.spotify".to_string(),
-        key: "client_id".to_string(),
+        package_name: package_name.to_string(),
+        key: key_name.to_string(),
     };
-    assert_eq!(key.key(), "extensions.moosync.spotify.client_id");
+
+    let formatted_key = key.key();
+
+    assert_eq!(formatted_key, expected);
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_preference_keys_definitions_and_values() {
     assert_eq!(MusicPaths.key(), "music_paths");

@@ -16,8 +16,11 @@
 
 use std::{path::PathBuf, sync::Arc};
 
+use assertables::{assert_is_empty, assert_len_eq_x};
 use extensions_proto::moosync::types::GetProviderScopesRequest;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
+use tempdir::TempDir;
+use tracing_test::traced_test;
 use ui_proto::moosync::types::{PreferenceTypes, PreferenceUiData};
 
 use crate::{
@@ -52,27 +55,6 @@ fn get_sample_wasm_path() -> PathBuf {
     } else {
         panic!("TEST_SRCDIR not set or sample_extension.wasm not found in runfiles")
     }
-}
-
-struct TempDir {
-    path: PathBuf,
-}
-
-impl TempDir {
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn new() -> Self {
-        let mut path = std::env::temp_dir();
-        path.push(uuid::Uuid::new_v4().to_string());
-        std::fs::create_dir_all(&path).unwrap();
-        Self { path }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn path(&self) -> &PathBuf { &self.path }
-}
-
-impl Drop for TempDir {
-    fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.path); }
 }
 
 struct TestReplyHandler;
@@ -218,10 +200,11 @@ impl ReplyHandler for TestReplyHandler {
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_find_and_spawn_extensions() {
     init_env();
-    let tmp_dir = TempDir::new();
+    let tmp_dir = TempDir::new("moosync_test_spawn_ext").unwrap();
     let extensions_path = tmp_dir.path().join("extensions");
     std::fs::create_dir_all(&extensions_path).unwrap();
 
@@ -240,29 +223,27 @@ fn test_find_and_spawn_extensions() {
     }"#;
     std::fs::write(ext_path.join("package.json"), manifest).unwrap();
 
-    // Copy valid sample WASM fixture to temporary directory
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
     let reply_handler = Arc::new(TestReplyHandler);
-
     let handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
 
-    let installed = handler.get_installed_extensions();
-    assert_eq!(installed.len(), 0);
+    assert_is_empty!(&handler.get_installed_extensions());
 
     handler.spawn_extensions(reply_handler);
-
     let installed = handler.get_installed_extensions();
-    assert_eq!(installed.len(), 1);
+
+    assert_len_eq_x!(&installed, 1);
     assert_eq!(installed[0].package_name, "test.pkg");
     assert_eq!(installed[0].name, "Test Extension");
 }
 
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_handle_extension_command() {
     init_env();
-    let tmp_dir = TempDir::new();
+    let tmp_dir = TempDir::new("moosync_test_cmd_ext").unwrap();
     let extensions_path = tmp_dir.path().join("extensions");
     std::fs::create_dir_all(&extensions_path).unwrap();
 
@@ -279,16 +260,12 @@ async fn test_handle_extension_command() {
     }"#;
     std::fs::write(ext_path.join("package.json"), manifest).unwrap();
 
-    // Copy valid sample WASM fixture to temporary directory
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
     let handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
-
     let reply_handler = Arc::new(TestReplyHandler);
     handler.spawn_extensions(reply_handler);
 
-    // Since the spawn_extension runs in a background thread, we wait/sleep a bit
-    // for it to start
     std::thread::sleep(std::time::Duration::from_millis(500));
 
     let ext = {
@@ -301,14 +278,15 @@ async fn test_handle_extension_command() {
         .await
         .unwrap();
 
-    assert_eq!(res.scopes, vec![13]); // Accounts = 13
+    assert_eq!(res.scopes, vec![13]);
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_register_unregister_ui_preferences() {
     init_env();
-    let tmp_dir = TempDir::new();
+    let tmp_dir = TempDir::new("moosync_test_ui_prefs").unwrap();
     let extensions_path = tmp_dir.path().join("extensions");
     std::fs::create_dir_all(&extensions_path).unwrap();
 
@@ -325,11 +303,9 @@ fn test_register_unregister_ui_preferences() {
     }"#;
     std::fs::write(ext_path.join("package.json"), manifest).unwrap();
 
-    // Copy valid sample WASM fixture to temporary directory
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
     let handler = ExtensionHandlerInner::new(extensions_path, tmp_dir.path().join("cache"));
-
     let reply_handler = Arc::new(TestReplyHandler);
     handler.spawn_extensions(reply_handler);
 
@@ -344,24 +320,21 @@ fn test_register_unregister_ui_preferences() {
     let ext = handler.get_extension("sample.pkg").unwrap();
     ext.register_ui_preferences(prefs);
 
-    // Verify stored
     let installed = handler.get_installed_extensions();
-    assert_eq!(installed[0].preferences.len(), 1);
+    assert_len_eq_x!(&installed[0].preferences, 1);
     assert_eq!(installed[0].preferences[0].key, "pref1");
 
-    // Test unregister
     ext.unregister_ui_preferences(vec!["pref1".to_string()]);
-
-    // Verify removed
-    let installed = handler.get_installed_extensions();
-    assert_eq!(installed[0].preferences.len(), 0);
+    let installed_after = handler.get_installed_extensions();
+    assert_is_empty!(&installed_after[0].preferences);
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_extension_failed_to_start_disables_extension() {
     init_env();
-    let tmp_dir = TempDir::new();
+    let tmp_dir = TempDir::new("moosync_test_fail_ext").unwrap();
     let extensions_path = tmp_dir.path().join("extensions");
     std::fs::create_dir_all(&extensions_path).unwrap();
 
@@ -377,18 +350,13 @@ fn test_extension_failed_to_start_disables_extension() {
         "icon": "icon.png"
     }"#;
     std::fs::write(ext_path.join("package.json"), manifest).unwrap();
-    // Write valid empty WASM module header
     let empty_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
     std::fs::write(ext_path.join("main.wasm"), empty_wasm).unwrap();
 
     let reply_handler = Arc::new(TestReplyHandler);
-
     let handler = ExtensionHandlerInner::new(extensions_path.clone(), tmp_dir.path().join("cache"));
-
-    // Find and spawn extensions
     handler.spawn_extensions(reply_handler);
 
-    // Wait for the background thread to run and fail
     let lock_file = ext_path.join("extension.lock");
     for _ in 0..50 {
         if lock_file.exists()
@@ -402,19 +370,18 @@ fn test_extension_failed_to_start_disables_extension() {
     }
 
     assert!(lock_file.exists());
-
-    // Verify that GetInstalledExtensions returns the extension as active: false
     let installed = handler.get_installed_extensions();
-    assert_eq!(installed.len(), 1);
+    assert_len_eq_x!(&installed, 1);
     assert_eq!(installed[0].package_name, "fail.pkg");
-    assert_eq!(installed[0].active, false);
+    assert!(!installed[0].active);
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_extension_activation_deactivation() {
     init_env();
-    let tmp_dir = TempDir::new();
+    let tmp_dir = TempDir::new("moosync_test_act_ext").unwrap();
     let extensions_path = tmp_dir.path().join("extensions");
     std::fs::create_dir_all(&extensions_path).unwrap();
 
@@ -431,10 +398,8 @@ fn test_extension_activation_deactivation() {
     }"#;
     std::fs::write(ext_path.join("package.json"), manifest).unwrap();
 
-    // Copy valid sample WASM fixture to temporary directory
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
-    // Create a disabled extension.lock initially
     let lock_file = ext_path.join("extension.lock");
     let lock_data = ExtensionLockData {
         registry: "local".to_string(),
@@ -443,9 +408,7 @@ fn test_extension_activation_deactivation() {
     std::fs::write(&lock_file, serde_json::to_vec_pretty(&lock_data).unwrap()).unwrap();
 
     let reply_handler = Arc::new(TestReplyHandler);
-
     let handler = ExtensionHandlerInner::new(extensions_path.clone(), tmp_dir.path().join("cache"));
-
     handler.spawn_extensions(reply_handler.clone());
 
     {
@@ -462,7 +425,6 @@ fn test_extension_activation_deactivation() {
         ext.set_active(true).unwrap();
     }
 
-    // Since spawning runs on a background thread/task, wait for it to start
     for _ in 0..50 {
         let extensions_map = handler.extensions_map.lock().unwrap();
         if let Some(ext) = extensions_map.get("test_pkg")

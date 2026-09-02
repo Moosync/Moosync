@@ -14,14 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use assertables::assert_ok_eq_x;
+use rstest::{fixture, rstest};
+use tracing_test::traced_test;
+
 use crate::LyricsFetcher;
 
-#[tokio::test]
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_get_lyrics_returns_empty() {
-    let fetcher = LyricsFetcher::new();
+fn lyrics_fetcher() -> LyricsFetcher { LyricsFetcher::new() }
 
-    let res = fetcher
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_get_lyrics_returns_empty(lyrics_fetcher: LyricsFetcher) {
+    let res = lyrics_fetcher
         .get_lyrics(
             "id".to_string(),
             "".to_string(),
@@ -30,6 +38,5 @@ async fn test_get_lyrics_returns_empty() {
         )
         .await;
 
-    assert!(res.is_ok());
-    assert_eq!(res.unwrap(), "");
+    assert_ok_eq_x!(res.as_deref(), "");
 }

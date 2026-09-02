@@ -14,24 +14,43 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{env::temp_dir, fs};
+use std::fs;
 
-use uuid::Uuid;
+use assertables::assert_is_empty;
+use rstest::{fixture, rstest};
+use tempdir::TempDir;
+use tracing_test::traced_test;
 
 use crate::ext_runner::ExtensionHandlerInner;
 
-#[test]
+struct TestRunnerContext {
+    pub _temp_dir: TempDir,
+    pub runner: ExtensionHandlerInner,
+}
+
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_ext_runner_get_installed_extensions_empty() {
-    let test_dir = temp_dir().join(format!("moosync_ext_runner_{}", Uuid::new_v4()));
-    let ext_dir = test_dir.join("exts");
-    let cache_dir = test_dir.join("cache");
+fn runner_context() -> TestRunnerContext {
+    let temp_dir = TempDir::new("moosync_ext_runner").expect("failed to create temp dir");
+    let ext_dir = temp_dir.path().join("exts");
+    let cache_dir = temp_dir.path().join("cache");
     fs::create_dir_all(&ext_dir).unwrap();
     fs::create_dir_all(&cache_dir).unwrap();
 
     let runner = ExtensionHandlerInner::new(ext_dir, cache_dir);
-    let list = runner.get_installed_extensions();
-    assert!(list.is_empty());
+    TestRunnerContext {
+        _temp_dir: temp_dir,
+        runner,
+    }
+}
 
-    let _ = fs::remove_dir_all(test_dir);
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_ext_runner_get_installed_extensions_empty(runner_context: TestRunnerContext) {
+    let TestRunnerContext { runner, .. } = runner_context;
+
+    let list = runner.get_installed_extensions();
+
+    assert_is_empty!(&list);
 }

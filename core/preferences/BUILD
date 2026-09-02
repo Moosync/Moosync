@@ -28,10 +28,8 @@ rust_library(
         "@crates//:hex",
         "@crates//:json_dotpath",
         "@crates//:keyring",
-        "@crates//:mockall",
         "@crates//:serde",
         "@crates//:serde_json",
-        "@crates//:tempdir",
         "@crates//:thiserror",
         "@crates//:tracing",
         "@crates//:whoami",
@@ -42,7 +40,11 @@ rust_test(
     name = "preferences_test",
     crate = ":preferences",
     deps = [
+        "@crates//:assertables",
         "@crates//:mockall",
+        "@crates//:rstest",
+        "@crates//:tempdir",
+        "@crates//:tracing-test",
         "@crates//:uuid",
     ],
 )

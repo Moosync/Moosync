@@ -14,19 +14,32 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::time::Duration;
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+};
 
+use assertables::{assert_err, assert_ok};
 use extensions_proto::moosync::types::PlayerState;
+use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{InnerSong, Song};
+use tracing_test::traced_test;
 
 use crate::audio_source::AudioSource;
 
-#[tokio::test]
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_audio_source_load_and_methods() {
-    let mut audio_src = AudioSource::new(Box::new(|| {}));
+fn audio_source() -> AudioSource { AudioSource::new(Box::new(|| {})) }
 
-    let song = Song {
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_audio_source_load_and_methods(mut audio_source: AudioSource) {
+    let mut song = Song {
         song: Some(InnerSong {
             playback_url: Some("https://example.com/audio.mp3".to_string()),
             ..Default::default()
@@ -34,30 +47,25 @@ async fn test_audio_source_load_and_methods() {
         ..Default::default()
     };
 
-    let mut song = song;
-    let set_res = audio_src.set_src(&mut song);
-    let vol_res = audio_src.set_volume(85);
-    let seek_res = audio_src.seek(Duration::from_secs(12));
-    let pause_res = audio_src.pause();
-    let stop_res = audio_src.stop();
-
-    assert!(set_res.is_err());
-    assert!(vol_res.is_ok());
-    assert!(seek_res.is_ok());
-    assert!(pause_res.is_ok());
-    assert!(stop_res.is_ok());
-    assert_eq!(audio_src.get_player_state(), PlayerState::Stopped);
+    assert_err!(audio_source.set_src(&mut song).as_ref());
+    assert_ok!(audio_source.set_volume(85));
+    assert_ok!(audio_source.seek(Duration::from_secs(12)));
+    assert_ok!(audio_source.pause());
+    assert_ok!(audio_source.stop());
+    assert_eq!(audio_source.get_player_state(), PlayerState::Stopped);
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_audio_source_two_pass_resolver() {
-    let mut audio_src = AudioSource::new(Box::new(|| {}));
-
-    audio_src.set_resolver(Box::new(|_s| {
+async fn test_audio_source_two_pass_resolver(mut audio_source: AudioSource) {
+    let resolver_called = Arc::new(AtomicBool::new(false));
+    let flag = resolver_called.clone();
+    audio_source.set_resolver(Box::new(move |_s| {
+        flag.store(true, Ordering::SeqCst);
         Ok("https://resolved.example.com/stream.mp3".to_string())
     }));
-
     let mut song = Song {
         song: Some(InnerSong {
             id: Some("stream_song".to_string()),
@@ -66,8 +74,7 @@ async fn test_audio_source_two_pass_resolver() {
         ..Default::default()
     };
 
-    let res = audio_src.load_song(&mut song);
-
-    assert!(res.is_err());
-    assert_eq!(audio_src.get_player_state(), PlayerState::Stopped);
+    assert_err!(audio_source.load_song(&mut song).as_ref());
+    assert!(resolver_called.load(Ordering::SeqCst));
+    assert_eq!(audio_source.get_player_state(), PlayerState::Stopped);
 }

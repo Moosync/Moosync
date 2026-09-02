@@ -14,81 +14,72 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{env::temp_dir, fs, path::PathBuf, sync::Mutex};
+use std::fs;
 
-use uuid::Uuid;
+use assertables::{assert_none, assert_ok};
+use rstest::{fixture, rstest};
+use tempdir::TempDir;
+use tracing_test::traced_test;
 
 use crate::{
     FileList, ScanProgress,
     context::desktop::song_scanner::{SongScanner, check_directory},
 };
 
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-fn get_test_dir() -> PathBuf {
-    let dir = temp_dir().join(format!("moosync_song_scan_test_{}", Uuid::new_v4()));
-    fs::create_dir_all(&dir).unwrap();
-    dir
+fn temp_dir_fixture() -> TempDir {
+    TempDir::new("moosync_song_scan_test").expect("failed to create temp dir")
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_check_directory_creates_dir_if_missing() {
-    let dir = temp_dir().join(format!("moosync_chk_dir_{}", Uuid::new_v4()));
+fn test_check_directory_creates_dir_if_missing(temp_dir_fixture: TempDir) {
+    let dir = temp_dir_fixture.path().join("missing_sub_dir");
     assert!(!dir.exists());
 
     let res = check_directory(dir.clone());
-    assert!(res.is_ok());
-    assert!(dir.exists());
 
-    let _ = fs::remove_dir_all(dir);
+    assert_ok!(res);
+    assert!(dir.exists());
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_song_scanner_scan_song_non_audio() {
-    let dir = get_test_dir();
-    let thumb_dir = dir.join("thumbs");
-    let song_path = dir.join("not_audio.mp3");
+async fn test_song_scanner_scan_song_non_audio(temp_dir_fixture: TempDir) {
+    let thumb_dir = temp_dir_fixture.path().join("thumbs");
+    let song_path = temp_dir_fixture.path().join("not_audio.mp3");
     fs::write(&song_path, b"fake data").unwrap();
-
     let file_list = FileList {
         file_list: vec![(song_path.clone(), 1234.0)],
         playlist_list: vec![],
     };
+    let scanner = SongScanner::new(&file_list, thumb_dir, ";".to_string(), Some(1));
 
-    let scanner = SongScanner::new(&file_list, thumb_dir.clone(), ";".to_string(), Some(1));
-    let result = scanner.scan_song(1234.0, song_path.clone()).await;
+    let result = scanner.scan_song(1234.0, song_path).await;
 
-    assert!(result.is_ok());
-    assert!(result.unwrap().song.is_none());
-
-    let _ = fs::remove_dir_all(dir);
+    assert_ok!(result.as_ref());
+    assert_none!(result.unwrap().song);
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_song_scanner_lifecycle() {
-    let dir = get_test_dir();
-    let thumb_dir = dir.join("thumbs");
-
+async fn test_song_scanner_lifecycle(temp_dir_fixture: TempDir) {
+    let thumb_dir = temp_dir_fixture.path().join("thumbs");
     let file_list = FileList {
         file_list: vec![],
         playlist_list: vec![],
     };
-
-    let scanner = SongScanner::new(&file_list, thumb_dir.clone(), ";".to_string(), Some(2));
+    let scanner = SongScanner::new(&file_list, thumb_dir, ";".to_string(), Some(2));
     let mut scanned = 0;
-    let progress_events = std::sync::Arc::new(Mutex::new(Vec::new()));
-    let p_clone = progress_events.clone();
-
     let on_song: crate::OnSongScanned = Box::new(|_pl_id, _songs| Box::pin(async {}));
-    let on_progress: crate::OnProgressUpdated = Box::new(move |p: ScanProgress| {
-        p_clone.lock().unwrap().push(p);
-    });
+    let on_progress: crate::OnProgressUpdated = Box::new(|_p: ScanProgress| {});
 
-    let res = scanner.scan(&mut scanned, 0, &on_song, &on_progress).await;
-    assert!(res.is_ok());
+    assert_ok!(scanner.scan(&mut scanned, 0, &on_song, &on_progress).await);
     assert_eq!(scanned, 0);
-
-    let _ = fs::remove_dir_all(dir);
 }

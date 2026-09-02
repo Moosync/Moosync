@@ -54,4 +54,9 @@ rust_library(
 rust_test(
     name = "types_test",
     crate = ":types",
+    deps = [
+        "@crates//:assertables",
+        "@crates//:rstest",
+        "@crates//:tracing-test",
+    ],
 )

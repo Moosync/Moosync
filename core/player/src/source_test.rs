@@ -14,37 +14,44 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{borrow::Cow, env::temp_dir, fs, path::PathBuf};
+use std::{borrow::Cow, fs, path::PathBuf};
 
+use assertables::{assert_err, assert_matches, assert_ok, assert_some_eq_x};
+use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{InnerSong, Song};
+use tempdir::TempDir;
+use tracing_test::traced_test;
 
 use crate::{
     error::PlayerError,
     source::{SourceResolver, ValidSrc, get_valid_src},
 };
 
+#[fixture]
+#[tracing::instrument(level = "debug", skip_all)]
+fn temp_dir_fixture() -> TempDir {
+    TempDir::new("moosync_src_test").expect("failed to create temp dir")
+}
+
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_valid_src_inner_and_display() {
     let path_src = ValidSrc::Path(PathBuf::from("/music/song.mp3"));
+    let url_src = ValidSrc::Url(Cow::Borrowed("https://stream.org/audio.mp3"));
+
     assert_eq!(path_src.inner(), "/music/song.mp3");
     assert_eq!(format!("{}", path_src), "/music/song.mp3");
-
-    let url_src = ValidSrc::Url(Cow::Borrowed("https://stream.org/audio.mp3"));
     assert_eq!(url_src.inner(), "https://stream.org/audio.mp3");
     assert_eq!(format!("{}", url_src), "https://stream.org/audio.mp3");
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_get_valid_src_file_exists() {
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let test_file = temp_dir().join(format!("moosync_src_test_{}.mp3", now));
+fn test_get_valid_src_file_exists(temp_dir_fixture: TempDir) {
+    let test_file = temp_dir_fixture.path().join("song.mp3");
     fs::write(&test_file, b"audio").unwrap();
-
     let song = Song {
         song: Some(InnerSong {
             path: Some(test_file.to_string_lossy().to_string()),
@@ -54,16 +61,13 @@ fn test_get_valid_src_file_exists() {
     };
 
     let valid_src = get_valid_src(&song);
-    assert!(valid_src.is_ok());
-    match valid_src.unwrap() {
-        ValidSrc::Path(p) => assert_eq!(p, test_file),
-        _ => panic!("Expected ValidSrc::Path"),
-    }
 
-    let _ = fs::remove_file(test_file);
+    assert_ok!(valid_src.as_ref());
+    assert_matches!(valid_src.unwrap(), ValidSrc::Path(p) if p == test_file);
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_get_valid_src_playback_url_when_file_absent() {
     let song = Song {
@@ -76,14 +80,13 @@ fn test_get_valid_src_playback_url_when_file_absent() {
     };
 
     let valid_src = get_valid_src(&song);
-    assert!(valid_src.is_ok());
-    match valid_src.unwrap() {
-        ValidSrc::Url(u) => assert_eq!(u, "https://example.com/audio"),
-        _ => panic!("Expected ValidSrc::Url"),
-    }
+
+    assert_ok!(valid_src.as_ref());
+    assert_matches!(valid_src.unwrap(), ValidSrc::Url(u) if u == "https://example.com/audio");
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_get_valid_src_error_when_none_present() {
     let song = Song {
@@ -96,14 +99,13 @@ fn test_get_valid_src_error_when_none_present() {
     };
 
     let valid_src = get_valid_src(&song);
-    assert!(valid_src.is_err());
-    match valid_src.unwrap_err() {
-        PlayerError::NoSrcFound(_) => {}
-        err => panic!("Expected PlayerError::NoSrcFound, got: {:?}", err),
-    }
+
+    assert_err!(valid_src.as_ref());
+    assert_matches!(valid_src.unwrap_err(), PlayerError::NoSrcFound(_));
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_source_resolver_resolve_playback_url() {
     let resolver = SourceResolver::new();
@@ -115,15 +117,12 @@ fn test_source_resolver_resolve_playback_url() {
         ..Default::default()
     };
 
-    // Unset resolver fails
-    let res = resolver.resolve_playback_url(&mut song);
-    assert!(res.is_err());
+    assert_err!(resolver.resolve_playback_url(&mut song).as_ref());
 
-    // Set resolver
     resolver.set_resolver(Box::new(|_s| Ok("https://resolved.stream/123".to_string())));
-    let _ = resolver.resolve_playback_url(&mut song);
-    assert_eq!(
-        song.song.unwrap().playback_url,
-        Some("https://resolved.stream/123".to_string())
+    assert_ok!(resolver.resolve_playback_url(&mut song));
+    assert_some_eq_x!(
+        song.song.as_ref().unwrap().playback_url.as_deref(),
+        "https://resolved.stream/123"
     );
 }

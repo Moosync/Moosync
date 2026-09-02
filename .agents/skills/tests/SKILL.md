@@ -48,15 +48,34 @@ fn test_feature_specific_behavior() {
 - **Rule #3: Don't assert on intermediate setup steps**: Focus assertions on the output and final state of the function under test.
 - **Rule #4: Never assert on no-ops**: Functions that are empty or no-ops (`{}`) must not have unit tests asserting nothing changed.
 
-### 4. State-Agnostic and Hermetic Execution
+### 4. Parameterized Tests & Fixtures with `rstest`
+- **Always use `rstest`**: Use `rstest` for all fixtures (`#[fixture]`) and parameterized test cases (`#[case(...)]`).
+- **Never use `test-case`**: Do not import or add `@crates//:test-case`. `rstest` provides complete parameterized testing support natively.
+- **Async Tests with Fixtures**: Annotate async tests with both `#[rstest]` and `#[tokio::test]`.
+- **Multi-threaded Tokio Tests**: When background tasks or timers must run concurrently with a blocking UI loop, use proc macro directives `#[tokio::test(flavor = "multi_thread", worker_threads = 2)]` rather than manually constructing runtimes in code.
+
+```rust
+#[rstest]
+#[case(Pages::AllSongs, AppPage::AllSongs)]
+#[case(Pages::Albums, AppPage::Albums)]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_app_page_from_pages(#[case] page: Pages, #[case] expected: AppPage) {
+    assert_eq!(AppPage::from(page), expected);
+}
+```
+
+### 5. State-Agnostic and Hermetic Execution
 - Tests must never depend on execution order or runner flags (e.g., do not rely on `RUST_TEST_THREADS=1` in Bazel).
 - Use `tempdir::TempDir` for isolated temporary directories.
-- In Slint UI tests, execute inside `crate::test_utils::run_test` or `crate::test_utils::run_async_test` and reset UI model state before each test.
+- **Slint Unit Tests**: Must use `i_slint_backend_testing::init_no_event_loop()`. This can be initialized in fixtures.
+- **Slint Integration Tests**: Must use the event loop backend (`i_slint_backend_testing::init_integration_test_with_system_time()`), initialized once per process on the runner thread driving `slint::run_event_loop()`.
+- **Slint Integration Test Structure**: Write test logic as plain async functions taking `(main_window: &'static MainWindow, state_manager_fixture: TestSlintSmContext)`. Never write inline `spawn_local` boilerplate inside test functions; use the `integration_test!` macro runner.
 
-### 5. Separation of Smoke Tests
+### 6. Separation of Smoke Tests
 - Pure construction or plugin initialization tests (`Plugin::init`, `new`) that verify initialization does not panic without operational assertions must be placed in separate files named `filename_test_smoke.rs` (e.g. `lib_test_smoke.rs`, `remote_test_smoke.rs`).
 
-### 6. Build & Instrumentation Rules
+### 7. Build & Instrumentation Rules
 - **Explicit files in BUILD**: Never use `glob()` in `BUILD` files; list every `.rs`, `*_test.rs`, and `*_test_smoke.rs` file explicitly in `srcs`.
 - **Tracing Instrumentation**: Every test function definition must be decorated with `#[tracing::instrument(level = "debug", skip_all)]`. Validate with `bazel run //tools:check_instrument`.
 - **Formatting**: Run `bazel run //tools:format` on modified files before committing.

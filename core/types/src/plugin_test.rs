@@ -16,7 +16,10 @@
 
 use std::sync::Arc;
 
+use assertables::{assert_none, assert_some_eq_x};
+use rstest::{fixture, rstest};
 use tokio::sync::RwLock;
+use tracing_test::traced_test;
 
 use crate::plugin::{CallContext, Plugin, PluginContext, PluginRegistry};
 
@@ -31,12 +34,18 @@ impl Plugin for DummyPlugin {
     }
 }
 
-#[tokio::test]
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_plugin_registry_register_and_get() {
+fn dummy_plugin() -> Arc<RwLock<DummyPlugin>> { Arc::new(RwLock::new(DummyPlugin { value: 100 })) }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_plugin_registry_register_and_get(dummy_plugin: Arc<RwLock<DummyPlugin>>) {
     let mut registry = PluginRegistry::new();
-    let plugin = Arc::new(RwLock::new(DummyPlugin { value: 100 }));
-    registry.register(plugin);
+
+    registry.register(dummy_plugin);
 
     let retrieved = registry.get::<DummyPlugin>();
     let guard = retrieved.read().await;
@@ -44,15 +53,15 @@ async fn test_plugin_registry_register_and_get() {
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_call_context_insert_get_remove() {
-    let mut ctx = CallContext::default();
-    ctx.insert(12345u64);
+    let mut context = CallContext::default();
 
-    assert_eq!(*ctx.get_mut::<u64>().unwrap(), 12345u64);
-    *ctx.get_mut::<u64>().unwrap() = 54321u64;
+    context.insert(12345u64);
+    assert_eq!(*context.get_mut::<u64>().unwrap(), 12345u64);
 
-    let removed = ctx.remove::<u64>();
-    assert_eq!(removed, Some(54321u64));
-    assert!(ctx.get_mut::<u64>().is_none());
+    *context.get_mut::<u64>().unwrap() = 54321u64;
+    assert_some_eq_x!(context.remove::<u64>(), 54321u64);
+    assert_none!(context.get_mut::<u64>());
 }

@@ -14,23 +14,29 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{env::temp_dir, fs, path::PathBuf};
+use std::fs;
 
-use uuid::Uuid;
+use assertables::{assert_len_eq_x, assert_ok};
+use rstest::{fixture, rstest};
+use tempdir::TempDir;
+use tracing_test::traced_test;
 
-use crate::context::desktop::{DesktopScannerContext, get_files_recursively};
+use crate::context::{
+    ScannerContext,
+    desktop::{DesktopScannerContext, get_files_recursively},
+};
 
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-fn get_test_dir() -> PathBuf {
-    let dir = temp_dir().join(format!("moosync_desk_test_{}", Uuid::new_v4()));
-    fs::create_dir_all(&dir).unwrap();
-    dir
+fn temp_dir_fixture() -> TempDir {
+    TempDir::new("moosync_desk_test").expect("failed to create temp dir")
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_get_files_recursively_filters_and_excludes() {
-    let dir = get_test_dir();
+fn test_get_files_recursively_filters_and_excludes(temp_dir_fixture: TempDir) {
+    let dir = temp_dir_fixture.path().to_path_buf();
     let sub1 = dir.join("included");
     let sub2 = dir.join("excluded");
     fs::create_dir_all(&sub1).unwrap();
@@ -46,19 +52,20 @@ fn test_get_files_recursively_filters_and_excludes() {
     fs::write(&txt1, b"hello").unwrap();
     fs::write(&song2, b"flac").unwrap();
 
-    let res = get_files_recursively(dir.clone(), std::slice::from_ref(&sub2)).unwrap();
-    assert_eq!(res.file_list.len(), 1);
-    assert_eq!(res.file_list[0].0, song1);
-    assert_eq!(res.playlist_list.len(), 1);
-    assert_eq!(res.playlist_list[0], playlist1);
+    let res = get_files_recursively(dir, std::slice::from_ref(&sub2)).unwrap();
 
-    let _ = fs::remove_dir_all(dir);
+    assert_len_eq_x!(&res.file_list, 1);
+    assert_eq!(res.file_list[0].0, song1);
+    assert_len_eq_x!(&res.playlist_list, 1);
+    assert_eq!(res.playlist_list[0], playlist1);
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_desktop_scanner_context_start_scan() {
-    let dir = get_test_dir();
+async fn test_desktop_scanner_context_start_scan(temp_dir_fixture: TempDir) {
+    let dir = temp_dir_fixture.path().to_path_buf();
     let thumb_dir = dir.join("thumbs");
     let scan_dir = dir.join("music");
     fs::create_dir_all(&scan_dir).unwrap();
@@ -71,14 +78,11 @@ async fn test_desktop_scanner_context_start_scan() {
         Some(2),
     );
 
-    use crate::context::ScannerContext;
-
     let on_song: crate::OnSongScanned = Box::new(|_pl_id, _songs| Box::pin(async {}));
     let on_playlist: crate::OnPlaylistScanned = Box::new(|_pls| Box::pin(async {}));
     let on_progress: crate::OnProgressUpdated = Box::new(|_p| {});
 
     let res = ctx.start_scan(&on_song, &on_playlist, &on_progress).await;
-    assert!(res.is_ok());
 
-    let _ = fs::remove_dir_all(dir);
+    assert_ok!(res);
 }

@@ -14,13 +14,18 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use rstest::rstest;
+use tracing_test::traced_test;
+
 use crate::to_snake_case;
 
-#[test]
+#[rstest]
+#[case("Database", "database")]
+#[case("PreferenceConfig", "preference_config")]
+#[case("ScannerHolder", "scanner_holder")]
+#[case("MprisHolder", "mpris_holder")]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_to_snake_case() {
-    assert_eq!(to_snake_case("Database"), "database");
-    assert_eq!(to_snake_case("PreferenceConfig"), "preference_config");
-    assert_eq!(to_snake_case("ScannerHolder"), "scanner_holder");
-    assert_eq!(to_snake_case("MprisHolder"), "mpris_holder");
+fn test_to_snake_case(#[case] input: &str, #[case] expected: &str) {
+    assert_eq!(to_snake_case(input), expected);
 }

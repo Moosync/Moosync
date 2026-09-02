@@ -14,28 +14,39 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use assertables::assert_ok;
 use extensions_proto::moosync::types::PlayerState;
+use rstest::{fixture, rstest};
+use tracing_test::traced_test;
 
 use crate::{MprisHolder, MprisPlayerDetails, context::MockMprisContext};
 
-#[test]
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mpris_holder_new() {
+fn mock_mpris_context() -> Box<MockMprisContext> {
     let mut mock = Box::new(MockMprisContext::new());
     mock.expect_attach().returning(|_| Ok(()));
+    mock
+}
 
-    let holder = MprisHolder::new_with_context(mock);
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_mpris_holder_new(mock_mpris_context: Box<MockMprisContext>) {
+    let holder = MprisHolder::new_with_context(mock_mpris_context);
+
     assert!(holder.is_ok());
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mpris_holder_set_metadata() {
-    let mut mock = Box::new(MockMprisContext::new());
-    mock.expect_attach().returning(|_| Ok(()));
-    mock.expect_set_metadata().times(1).returning(|_| Ok(()));
-
-    let holder = MprisHolder::new_with_context(mock).unwrap();
+fn test_mpris_holder_set_metadata(mut mock_mpris_context: Box<MockMprisContext>) {
+    mock_mpris_context
+        .expect_set_metadata()
+        .times(1)
+        .returning(|_| Ok(()));
+    let holder = MprisHolder::new_with_context(mock_mpris_context).unwrap();
     let metadata = MprisPlayerDetails {
         title: Some("Title".to_string()),
         album_name: Some("Album".to_string()),
@@ -45,34 +56,33 @@ fn test_mpris_holder_set_metadata() {
         ..Default::default()
     };
 
-    let res = holder.set_metadata(metadata);
-    assert!(res.is_ok());
+    assert_ok!(holder.set_metadata(metadata));
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mpris_holder_set_playback_state_and_position() {
-    let mut mock = Box::new(MockMprisContext::new());
-    mock.expect_attach().returning(|_| Ok(()));
-    mock.expect_set_playback_state()
+fn test_mpris_holder_set_playback_state_and_position(
+    mut mock_mpris_context: Box<MockMprisContext>,
+) {
+    mock_mpris_context
+        .expect_set_playback_state()
         .with(
             mockall::predicate::eq(PlayerState::Playing),
             mockall::predicate::eq(0),
         )
         .times(1)
         .returning(|_, _| Ok(()));
-    mock.expect_set_playback_state()
+    mock_mpris_context
+        .expect_set_playback_state()
         .with(
             mockall::predicate::eq(PlayerState::Playing),
             mockall::predicate::eq(45000),
         )
         .times(1)
         .returning(|_, _| Ok(()));
+    let holder = MprisHolder::new_with_context(mock_mpris_context).unwrap();
 
-    let holder = MprisHolder::new_with_context(mock).unwrap();
-    let res = holder.set_playback_state(PlayerState::Playing);
-    assert!(res.is_ok());
-
-    let pos_res = holder.set_position(45.0);
-    assert!(pos_res.is_ok());
+    assert_ok!(holder.set_playback_state(PlayerState::Playing));
+    assert_ok!(holder.set_position(45.0));
 }

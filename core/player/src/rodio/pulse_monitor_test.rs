@@ -1,3 +1,7 @@
+use assertables::assert_none;
+use rstest::rstest;
+use tracing_test::traced_test;
+
 use super::{pulse_monitor, pulse_monitor::PulseError};
 
 struct EnvVarGuard {
@@ -6,6 +10,7 @@ struct EnvVarGuard {
 }
 
 impl EnvVarGuard {
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set(key: &'static str, val: &str) -> Self {
         let prev = std::env::var(key).ok();
         unsafe {
@@ -28,6 +33,7 @@ impl Drop for EnvVarGuard {
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_pulse_monitor_unreachable_server() {
     let temp_dir = std::env::temp_dir();
@@ -35,13 +41,15 @@ fn test_pulse_monitor_unreachable_server() {
     if socket_path.exists() {
         let _ = std::fs::remove_file(&socket_path);
     }
-
     let _guard = EnvVarGuard::set("PULSE_SERVER", &format!("unix:{}", socket_path.display()));
+
     let rate = pulse_monitor::get_default_sample_rate();
-    assert!(rate.is_none());
+
+    assert_none!(rate);
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_pulse_monitor_mock_dummy_unix_server() {
     use std::{env::temp_dir, os::unix::net::UnixListener, thread, time::Duration};
@@ -66,24 +74,21 @@ fn test_pulse_monitor_mock_dummy_unix_server() {
 
     let _guard = EnvVarGuard::set("PULSE_SERVER", &format!("unix:{}", temp_base.display()));
     let rate = pulse_monitor::get_default_sample_rate();
-    assert!(rate.is_none());
-
     let _ = handle.join();
     let _ = std::fs::remove_file(&temp_base);
+
+    assert_none!(rate);
 }
 
-#[test]
+#[rstest]
+#[case(PulseError::MainloopCreate, "Failed to create PulseAudio mainloop")]
+#[case(PulseError::ContextCreate, "Failed to create PulseAudio context")]
+#[case(PulseError::Connect("refused".into()), "Failed to connect to PulseAudio: refused")]
+#[case(PulseError::Timeout, "PulseAudio connection timed out")]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_pulse_error_variants() {
-    let err1 = PulseError::MainloopCreate;
-    assert_eq!(err1.to_string(), "Failed to create PulseAudio mainloop");
+fn test_pulse_error_variants(#[case] err: PulseError, #[case] expected: &str) {
+    let err_str = err.to_string();
 
-    let err2 = PulseError::ContextCreate;
-    assert_eq!(err2.to_string(), "Failed to create PulseAudio context");
-
-    let err3 = PulseError::Connect("refused".into());
-    assert_eq!(err3.to_string(), "Failed to connect to PulseAudio: refused");
-
-    let err4 = PulseError::Timeout;
-    assert_eq!(err4.to_string(), "PulseAudio connection timed out");
+    assert_eq!(err_str, expected);
 }

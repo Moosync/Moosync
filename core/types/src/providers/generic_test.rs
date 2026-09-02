@@ -14,35 +14,57 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use assertables::assert_some_eq_x;
+use tracing_test::traced_test;
+
 use crate::providers::generic::Pagination;
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_pagination_limit_and_next_page() {
-    let p = Pagination::new_limit(20, 0);
-    assert!(p.is_first);
-    assert!(p.is_valid);
-    assert_eq!(p.limit, 20);
-    assert_eq!(p.offset, 0);
+fn test_pagination_limit_initial() {
+    let pagination = Pagination::new_limit(20, 0);
 
-    let p2 = p.next_page();
-    assert!(!p2.is_first);
-    assert_eq!(p2.offset, 20);
-
-    let mut p3 = p2.next_page();
-    assert_eq!(p3.offset, 40);
-
-    p3.invalidate();
-    assert!(!p3.is_valid);
+    assert!(pagination.is_first);
+    assert!(pagination.is_valid);
+    assert_eq!(pagination.limit, 20);
+    assert_eq!(pagination.offset, 0);
 }
 
 #[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_pagination_limit_next_page() {
+    let pagination = Pagination::new_limit(20, 0);
+
+    let next = pagination.next_page();
+    let second_next = next.next_page();
+
+    assert!(!next.is_first);
+    assert_eq!(next.offset, 20);
+    assert_eq!(second_next.offset, 40);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_pagination_invalidate() {
+    let mut pagination = Pagination::new_limit(20, 0);
+
+    pagination.invalidate();
+
+    assert!(!pagination.is_valid);
+}
+
+#[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_pagination_token_and_next_page_wtoken() {
-    let p = Pagination::new_token(Some("tok1".to_string()));
-    assert_eq!(p.token, Some("tok1".to_string()));
+    let pagination = Pagination::new_token(Some("tok1".to_string()));
 
-    let p2 = p.next_page_wtoken(Some("tok2".to_string()));
-    assert_eq!(p2.token, Some("tok2".to_string()));
-    assert!(!p2.is_first);
+    let next = pagination.next_page_wtoken(Some("tok2".to_string()));
+
+    assert_some_eq_x!(pagination.token.as_deref(), "tok1");
+    assert_some_eq_x!(next.token.as_deref(), "tok2");
+    assert!(!next.is_first);
 }

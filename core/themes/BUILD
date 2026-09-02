@@ -25,7 +25,6 @@ rust_library(
         "@crates//:reqwest",
         "@crates//:serde",
         "@crates//:serde_json",
-        "@crates//:tempdir",
         "@crates//:thiserror",
         "@crates//:tracing",
         "@crates//:uuid",
@@ -36,4 +35,10 @@ rust_library(
 rust_test(
     name = "themes_test",
     crate = ":themes",
+    deps = [
+        "@crates//:assertables",
+        "@crates//:rstest",
+        "@crates//:tempdir",
+        "@crates//:tracing-test",
+    ],
 )

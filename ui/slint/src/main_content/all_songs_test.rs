@@ -14,110 +14,82 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use rstest::rstest;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
-use state_manager::StateManager;
-use tempdir::TempDir;
-use types::plugin::PluginContext;
+use tracing_test::traced_test;
 
 use crate::{
     AllSongsPageProps, ContextMenuCallbacks, ContextMenuItem, MainWindow, SongModel,
-    main_content::all_songs::AllSongsPageHandler, pages::PageHandler, test_utils::run_async_test,
+    main_content::all_songs::AllSongsPageHandler,
+    pages::PageHandler,
+    test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
     utils::IntoVec,
 };
 
-#[test]
+#[rstest]
+#[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_all_songs_page_handler_on_show() {
-    run_async_test(|| async move {
-        let tmp = TempDir::new("moosync_ui_all_songs_show").unwrap();
-        let test_dir = tmp.path().to_path_buf();
-        let context = PluginContext {
-            data_dir: test_dir.clone(),
-            cache_dir: test_dir.clone(),
-            tmp_dir: test_dir.clone(),
-            #[cfg(target_os = "android")]
-            android_context: types::android::AndroidJNIContext::default(),
-        };
-        let sm: &'static StateManager =
-            Box::leak(Box::new(StateManager::new_with_context(context).unwrap()));
-        let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
-        main_window
-            .global::<AllSongsPageProps>()
-            .set_songs(ModelRc::default());
-        let handler = AllSongsPageHandler::new(main_window, sm);
+async fn test_all_songs_page_handler_on_show(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    main_window
+        .global::<AllSongsPageProps>()
+        .set_songs(ModelRc::default());
+    let handler = AllSongsPageHandler::new(&main_window, &sm);
 
-        handler.on_show();
+    handler.on_show();
+    let row_count = main_window
+        .global::<AllSongsPageProps>()
+        .get_songs()
+        .row_count();
 
-        assert_eq!(
-            main_window
-                .global::<AllSongsPageProps>()
-                .get_songs()
-                .row_count(),
-            0
-        );
-    });
+    assert_eq!(row_count, 0);
 }
 
-#[test]
+#[rstest]
+#[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_all_songs_page_handler_on_hide() {
-    run_async_test(|| async move {
-        let tmp = TempDir::new("moosync_ui_all_songs_hide").unwrap();
-        let test_dir = tmp.path().to_path_buf();
-        let context = PluginContext {
-            data_dir: test_dir.clone(),
-            cache_dir: test_dir.clone(),
-            tmp_dir: test_dir.clone(),
-            #[cfg(target_os = "android")]
-            android_context: types::android::AndroidJNIContext::default(),
-        };
-        let sm: &'static StateManager =
-            Box::leak(Box::new(StateManager::new_with_context(context).unwrap()));
-        let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
-        let handler = AllSongsPageHandler::new(main_window, sm);
+async fn test_all_songs_page_handler_on_hide(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let handler = AllSongsPageHandler::new(&main_window, &sm);
 
-        handler.on_hide();
+    handler.on_hide();
+    let row_count = main_window
+        .global::<AllSongsPageProps>()
+        .get_songs()
+        .row_count();
 
-        assert_eq!(
-            main_window
-                .global::<AllSongsPageProps>()
-                .get_songs()
-                .row_count(),
-            0
-        );
-    });
+    assert_eq!(row_count, 0);
 }
 
-#[test]
+#[rstest]
+#[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_all_songs_context_menu_items() {
-    run_async_test(|| async move {
-        let tmp = TempDir::new("moosync_ui_all_songs_cm").unwrap();
-        let test_dir = tmp.path().to_path_buf();
-        let context = PluginContext {
-            data_dir: test_dir.clone(),
-            cache_dir: test_dir.clone(),
-            tmp_dir: test_dir.clone(),
-            #[cfg(target_os = "android")]
-            android_context: types::android::AndroidJNIContext::default(),
-        };
-        let state_manager: &'static StateManager =
-            Box::leak(Box::new(StateManager::new_with_context(context).unwrap()));
-        let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
-        let handler = AllSongsPageHandler::new(main_window, state_manager);
-        handler.initialize();
+async fn test_all_songs_context_menu_items(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let handler = AllSongsPageHandler::new(&main_window, &sm);
+    handler.initialize();
+    let song_with_path = SongModel {
+        path: "/path/to/song.mp3".into(),
+        ..Default::default()
+    };
+    let models = ModelRc::new(VecModel::from(vec![song_with_path]));
 
-        let song_with_path = SongModel {
-            path: "/path/to/song.mp3".into(),
-            ..Default::default()
-        };
-        let models = ModelRc::new(VecModel::from(vec![song_with_path]));
+    let items = main_window
+        .global::<ContextMenuCallbacks>()
+        .invoke_get_song_menu_items(models);
+    let items_vec: Vec<ContextMenuItem> = items.into_vec();
 
-        let items = main_window
-            .global::<ContextMenuCallbacks>()
-            .invoke_get_song_menu_items(models);
-
-        let items_vec: Vec<ContextMenuItem> = items.into_vec();
-        assert!(items_vec.iter().any(|i| i.action_id == "play_now"));
-    });
+    assert!(items_vec.iter().any(|i| i.action_id == "play_now"));
 }

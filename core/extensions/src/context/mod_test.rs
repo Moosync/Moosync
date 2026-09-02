@@ -14,11 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use assertables::assert_ok;
 use extensions_proto::moosync::types::{
     GetAppVersionRequest, GetPlayerStateRequest, GetTimeRequest, GetVolumeRequest, main_command,
     main_command_response,
 };
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Song};
+use tracing_test::traced_test;
 use ui_proto::moosync::types::PreferenceUiData;
 
 use crate::{
@@ -127,34 +129,38 @@ impl ReplyHandler for MockReply {
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_dispatch_command_handlers() {
     let mock = MockReply;
 
     let cmd_state = main_command::Command::GetPlayerState(GetPlayerStateRequest {});
-    let res = cmd_state.dispatch(&mock, "pkg").unwrap();
-    match res {
+    let res_state = cmd_state.dispatch(&mock, "pkg");
+    let cmd_vol = main_command::Command::GetVolume(GetVolumeRequest {});
+    let res_vol = cmd_vol.dispatch(&mock, "pkg");
+    let cmd_time = main_command::Command::GetTime(GetTimeRequest {});
+    let res_time = cmd_time.dispatch(&mock, "pkg");
+    let cmd_ver = main_command::Command::GetAppVersion(GetAppVersionRequest {});
+    let res_ver = cmd_ver.dispatch(&mock, "pkg");
+
+    assert_ok!(res_state.as_ref());
+    assert_ok!(res_vol.as_ref());
+    assert_ok!(res_time.as_ref());
+    assert_ok!(res_ver.as_ref());
+
+    match res_state.unwrap() {
         main_command_response::Response::GetPlayerState(r) => assert_eq!(r.state, 1),
         _ => panic!("Expected GetPlayerState"),
     }
-
-    let cmd_vol = main_command::Command::GetVolume(GetVolumeRequest {});
-    let res = cmd_vol.dispatch(&mock, "pkg").unwrap();
-    match res {
+    match res_vol.unwrap() {
         main_command_response::Response::GetVolume(r) => assert_eq!(r.volume, 0.8),
         _ => panic!("Expected GetVolume"),
     }
-
-    let cmd_time = main_command::Command::GetTime(GetTimeRequest {});
-    let res = cmd_time.dispatch(&mock, "pkg").unwrap();
-    match res {
+    match res_time.unwrap() {
         main_command_response::Response::GetTime(r) => assert_eq!(r.time, 42.0),
         _ => panic!("Expected GetTime"),
     }
-
-    let cmd_ver = main_command::Command::GetAppVersion(GetAppVersionRequest {});
-    let res = cmd_ver.dispatch(&mock, "pkg").unwrap();
-    match res {
+    match res_ver.unwrap() {
         main_command_response::Response::GetAppVersion(r) => assert_eq!(r.version, "2.0.0"),
         _ => panic!("Expected GetAppVersion"),
     }

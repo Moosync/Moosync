@@ -1,97 +1,33 @@
+#![allow(clippy::too_many_arguments)]
+
+use rstest::rstest;
+use tracing_test::traced_test;
+
 use super::selection::update_selection;
 
-#[test]
+#[rstest]
+#[case(vec![1, 2, 3], 5, 1, false, false, false, 10, vec![5])]
+#[case(vec![1, 3], 2, 1, true, false, false, 10, vec![1, 2, 3])]
+#[case(vec![1, 2, 3], 2, 1, true, false, false, 10, vec![1, 3])]
+#[case(vec![1], 4, 1, false, true, false, 10, vec![1, 2, 3, 4])]
+#[case(vec![4], 1, 4, false, true, false, 10, vec![1, 2, 3, 4])]
+#[case(vec![1, 2], 4, 1, false, false, true, 10, vec![1, 2, 4])]
+#[case(vec![1, 2, 3], 2, 1, false, false, true, 10, vec![1, 2, 3])]
+#[case(vec![1, 2], 15, 1, false, false, false, 10, vec![1, 2])]
+#[allow(clippy::too_many_arguments)]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_normal_click_selects_single_item() {
-    let current = vec![1, 2, 3];
-    let clicked = 5;
-    let anchor = 1;
+fn test_update_selection(
+    #[case] current: Vec<i32>,
+    #[case] clicked: i32,
+    #[case] anchor: i32,
+    #[case] ctrl: bool,
+    #[case] shift: bool,
+    #[case] right: bool,
+    #[case] total_count: usize,
+    #[case] expected: Vec<i32>,
+) {
+    let result = update_selection(&current, clicked, anchor, ctrl, shift, right, total_count);
 
-    let result = update_selection(&current, clicked, anchor, false, false, false, 10);
-
-    assert_eq!(result, vec![5]);
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_ctrl_click_adds_unselected_item() {
-    let current = vec![1, 3];
-    let clicked = 2;
-    let anchor = 1;
-
-    let result = update_selection(&current, clicked, anchor, true, false, false, 10);
-
-    assert_eq!(result, vec![1, 2, 3]);
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_ctrl_click_removes_selected_item() {
-    let current = vec![1, 2, 3];
-    let clicked = 2;
-    let anchor = 1;
-
-    let result = update_selection(&current, clicked, anchor, true, false, false, 10);
-
-    assert_eq!(result, vec![1, 3]);
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_shift_click_selects_forward_range() {
-    let current = vec![1];
-    let clicked = 4;
-    let anchor = 1;
-
-    let result = update_selection(&current, clicked, anchor, false, true, false, 10);
-
-    assert_eq!(result, vec![1, 2, 3, 4]);
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_shift_click_selects_backward_range() {
-    let current = vec![4];
-    let clicked = 1;
-    let anchor = 4;
-
-    let result = update_selection(&current, clicked, anchor, false, true, false, 10);
-
-    assert_eq!(result, vec![1, 2, 3, 4]);
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_right_click_adds_unselected_item() {
-    let current = vec![1, 2];
-    let clicked = 4;
-    let anchor = 1;
-
-    let result = update_selection(&current, clicked, anchor, false, false, true, 10);
-
-    assert_eq!(result, vec![1, 2, 4]);
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_right_click_preserves_already_selected_item() {
-    let current = vec![1, 2, 3];
-    let clicked = 2;
-    let anchor = 1;
-
-    let result = update_selection(&current, clicked, anchor, false, false, true, 10);
-
-    assert_eq!(result, vec![1, 2, 3]);
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_out_of_bounds_click_returns_current() {
-    let current = vec![1, 2];
-    let clicked = 15;
-    let anchor = 1;
-
-    let result = update_selection(&current, clicked, anchor, false, false, false, 10);
-
-    assert_eq!(result, vec![1, 2]);
+    assert_eq!(result, expected);
 }

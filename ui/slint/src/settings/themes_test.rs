@@ -14,35 +14,29 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use rstest::rstest;
 use slint::Model;
-use state_manager::StateManager;
-use tempdir::TempDir;
-use types::plugin::PluginContext;
+use tracing_test::traced_test;
 
 use crate::{
-    MainWindow, pages::PageHandler, settings::themes::ThemesPageHandler, test_utils::run_async_test,
+    MainWindow,
+    pages::PageHandler,
+    settings::themes::ThemesPageHandler,
+    test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
 };
 
-#[test]
+#[rstest]
+#[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_themes_page_handler_initialize() {
-    run_async_test(|| async move {
-        let tmp = TempDir::new("moosync_ui_themes_init").unwrap();
-        let test_dir = tmp.path().to_path_buf();
-        let context = PluginContext {
-            data_dir: test_dir.clone(),
-            cache_dir: test_dir.clone(),
-            tmp_dir: test_dir.clone(),
-            #[cfg(target_os = "android")]
-            android_context: types::android::AndroidJNIContext::default(),
-        };
-        let sm: &'static StateManager =
-            Box::leak(Box::new(StateManager::new_with_context(context).unwrap()));
-        let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
-        let handler = ThemesPageHandler::new(main_window, sm);
+async fn test_themes_page_handler_initialize(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let handler = ThemesPageHandler::new(&main_window, &sm);
 
-        handler.initialize();
+    handler.initialize();
 
-        assert_eq!(main_window.get_available_themes().row_count(), 0);
-    });
+    assert_eq!(main_window.get_available_themes().row_count(), 0);
 }

@@ -16,7 +16,6 @@ rust_library(
     deps = [
         "//core/types",
         "//core/types/protos:songs_rs",
-        "@crates//:tempdir",
         "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",
@@ -26,4 +25,10 @@ rust_library(
 rust_test(
     name = "lyrics_test",
     crate = ":lyrics",
+    deps = [
+        "@crates//:assertables",
+        "@crates//:rstest",
+        "@crates//:tempdir",
+        "@crates//:tracing-test",
+    ],
 )

@@ -16,10 +16,13 @@
 
 use std::time::Duration;
 
+use assertables::{assert_len_eq_x, assert_not_empty, assert_some_eq_x};
+use rstest::rstest;
 use songs_proto::moosync::types::{
     Album, Artist, EntityResult, InnerSong, Song, SongType, entity_result,
 };
 use themes_proto::moosync::types::ThemeDetails;
+use tracing_test::traced_test;
 
 use crate::{
     ScanProgress,
@@ -28,30 +31,53 @@ use crate::{
     },
 };
 
-#[test]
+#[rstest]
+#[case(0, "00:00")]
+#[case(59, "00:59")]
+#[case(125, "02:05")]
+#[case(3599, "59:59")]
+#[case(3600, "60:00")]
+#[case(3661, "61:01")]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_scan_progress_and_format_duration() {
-    let stopped = ScanProgress::STOPPED;
-    let in_progress = ScanProgress::PROGRESS(75);
-    assert_ne!(stopped, in_progress);
+fn test_format_duration(#[case] seconds: i64, #[case] expected: &str) {
+    let formatted = format_duration(seconds);
 
-    assert_eq!(format_duration(0), "00:00");
-    assert_eq!(format_duration(59), "00:59");
-    assert_eq!(format_duration(125), "02:05");
-    assert_eq!(format_duration(3599), "59:59");
-    assert_eq!(format_duration(3600), "60:00");
-    assert_eq!(format_duration(3661), "61:01");
+    assert_eq!(formatted, expected);
+}
 
-    let zero_proto = core_to_proto_duration(Duration::ZERO);
-    assert_eq!(zero_proto.seconds, 0);
-    assert_eq!(zero_proto.nanos, 0);
+#[rstest]
+#[case(0, 0, 0, 0)]
+#[case(120, 500, 120, 500)]
+#[case(120, 999_999_999, 120, 999_999_999)]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_core_to_proto_duration(
+    #[case] secs: u64,
+    #[case] nanos: u32,
+    #[case] expected_secs: i64,
+    #[case] expected_nanos: i32,
+) {
+    let duration = Duration::new(secs, nanos);
 
-    let precise_proto = core_to_proto_duration(Duration::new(120, 999_999_999));
-    assert_eq!(precise_proto.seconds, 120);
-    assert_eq!(precise_proto.nanos, 999_999_999);
+    let proto = core_to_proto_duration(duration);
+
+    assert_eq!(proto.seconds, expected_secs);
+    assert_eq!(proto.nanos, expected_nanos);
 }
 
 #[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_scan_progress_states() {
+    let stopped = ScanProgress::STOPPED;
+    let in_progress = ScanProgress::PROGRESS(75);
+
+    assert_ne!(stopped, in_progress);
+}
+
+#[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_inner_song_ext_and_song_ext() {
     let inner = InnerSong {
@@ -64,9 +90,6 @@ fn test_inner_song_ext_and_song_ext() {
         r#type: SongType::Local as i32,
         ..Default::default()
     };
-
-    assert_eq!(inner.get_type_or_default(), SongType::Local);
-
     let song = Song {
         song: Some(inner),
         artists: vec![Artist {
@@ -80,13 +103,23 @@ fn test_inner_song_ext_and_song_ext() {
         ..Default::default()
     };
 
-    assert_eq!(song.get_id().unwrap(), "s1");
-    assert_eq!(song.get_title().unwrap(), "Title 1");
-    assert_eq!(song.get_duration_or_default(), Duration::from_secs(180));
-    assert_eq!(song.get_artist_string().unwrap(), "Artist 1");
-    assert_eq!(song.get_album_string().unwrap(), "Album 1");
-    assert_eq!(song.format_duration(), "03:00");
+    let inner_ref = song.song.as_ref().unwrap();
+    let song_type = inner_ref.get_type_or_default();
+    let formatted = song.format_duration();
 
+    assert_eq!(song_type, SongType::Local);
+    assert_some_eq_x!(song.get_id(), "s1");
+    assert_some_eq_x!(song.get_title(), "Title 1");
+    assert_eq!(song.get_duration_or_default(), Duration::from_secs(180));
+    assert_some_eq_x!(song.get_artist_string(), "Artist 1");
+    assert_some_eq_x!(song.get_album_string(), "Album 1");
+    assert_eq!(formatted, "03:00");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_song_format_duration_without_duration() {
     let live_song = Song {
         song: Some(InnerSong {
             duration: None,
@@ -94,16 +127,27 @@ fn test_inner_song_ext_and_song_ext() {
         }),
         ..Default::default()
     };
-    assert_eq!(live_song.format_duration(), "00:00");
+
+    let formatted = live_song.format_duration();
+
+    assert_eq!(formatted, "00:00");
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_theme_ext_and_entity_result_ext() {
+fn test_theme_ext_default() {
     let theme_details = ThemeDetails::default();
-    let theme_item = theme_details.get_theme_item_or_default();
-    assert!(!theme_item.primary.is_empty());
 
+    let theme_item = theme_details.get_theme_item_or_default();
+
+    assert_not_empty!(theme_item.primary);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_entity_result_ext_albums() {
     let entity = EntityResult {
         result: Some(entity_result::Result::Albums(
             songs_proto::moosync::types::AlbumList {
@@ -114,15 +158,8 @@ fn test_theme_ext_and_entity_result_ext() {
             },
         )),
     };
-    let albums = entity.get_albums();
-    assert_eq!(albums.unwrap().len(), 1);
-}
 
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_core_to_proto_duration() {
-    let dur = Duration::new(120, 500);
-    let proto = core_to_proto_duration(dur);
-    assert_eq!(proto.seconds, 120);
-    assert_eq!(proto.nanos, 500);
+    let albums = entity.get_albums().unwrap();
+
+    assert_len_eq_x!(albums, 1);
 }

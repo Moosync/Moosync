@@ -3,7 +3,18 @@ load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_shared_l
 
 rust_test(
     name = "slint_app_lib_test",
+    args = ["--test-threads=1"],
     crate = ":slint_app_lib",
+    env = {
+        "RUST_TEST_THREADS": "1",
+    },
+    deps = [
+        "@crates//:assertables",
+        "@crates//:i-slint-backend-testing",
+        "@crates//:rstest",
+        "@crates//:tempdir",
+        "@crates//:tracing-test",
+    ],
 )
 
 package(default_visibility = ["//visibility:public"])
@@ -125,12 +136,10 @@ rust_library(
         "//core/types/protos:songs_rs",
         "//core/types/protos:themes_rs",
         "@crates//:futures",
-        "@crates//:i-slint-backend-testing",
         "@crates//:image",
         "@crates//:platform-dirs",
         "@crates//:reqwest",
         "@crates//:slint",
-        "@crates//:tempdir",
         "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",

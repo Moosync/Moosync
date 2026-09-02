@@ -16,8 +16,11 @@
 
 use std::{collections::HashSet, fs};
 
+use assertables::{assert_err, assert_is_empty, assert_len_eq_x, assert_ok};
 use extensions_proto::moosync::types::FetchedExtensionManifest;
+use rstest::{fixture, rstest};
 use tempdir::TempDir;
+use tracing_test::traced_test;
 use wiremock::{
     Mock, MockServer, ResponseTemplate,
     matchers::{method, path},
@@ -25,9 +28,34 @@ use wiremock::{
 
 use crate::remote::RemoteExtensions;
 
-#[tokio::test]
+struct TestRemoteContext {
+    pub _temp_dir: TempDir,
+    pub remote: RemoteExtensions,
+}
+
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_fetch_registry_success_and_caching() {
+fn remote_context() -> TestRemoteContext {
+    let temp_dir = TempDir::new("moosync_remote_test").expect("failed to create temp dir");
+    let ext_dir = temp_dir.path().join("exts");
+    let tmp_dir = temp_dir.path().join("tmp");
+    let cache_dir = temp_dir.path().join("cache");
+    fs::create_dir_all(&ext_dir).unwrap();
+    fs::create_dir_all(&tmp_dir).unwrap();
+    fs::create_dir_all(&cache_dir).unwrap();
+
+    let remote = RemoteExtensions::new(ext_dir, tmp_dir, cache_dir);
+    TestRemoteContext {
+        _temp_dir: temp_dir,
+        remote,
+    }
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_fetch_registry_success_and_caching(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
     let manifest_body = serde_json::json!({
         "displayName": "Test Community Registry",
@@ -48,21 +76,18 @@ async fn test_fetch_registry_success_and_caching() {
         .mount(&server)
         .await;
 
-    let tmp = TempDir::new("test_remote_success").unwrap();
-    let ext_dir = tmp.path().join("exts");
-    let tmp_dir = tmp.path().join("tmp");
-    let cache_dir = tmp.path().join("cache");
-    fs::create_dir_all(&ext_dir).unwrap();
-    fs::create_dir_all(&tmp_dir).unwrap();
-    fs::create_dir_all(&cache_dir).unwrap();
-
-    let remote = RemoteExtensions::new(ext_dir, tmp_dir, cache_dir.clone());
+    let TestRemoteContext {
+        remote, _temp_dir, ..
+    } = remote_context;
     let mut registries = HashSet::new();
     let registry_url = format!("{}/manifest.json", server.uri());
     registries.insert(registry_url.clone());
 
-    let results = remote.get_extension_manifest(&registries).await.unwrap();
-    assert_eq!(results.len(), 1);
+    let results = remote.get_extension_manifest(&registries).await;
+
+    assert_ok!(results.as_ref());
+    let results = results.unwrap();
+    assert_len_eq_x!(&results, 1);
 
     let item = results
         .iter()
@@ -76,13 +101,19 @@ async fn test_fetch_registry_success_and_caching() {
         item.logo,
         Some(format!("{}/assets/discord.svg", server.uri()))
     );
-
-    assert!(cache_dir.join("remote_manifest_cache.json").exists());
+    assert!(
+        _temp_dir
+            .path()
+            .join("cache/remote_manifest_cache.json")
+            .exists()
+    );
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_fetch_registry_rejects_missing_name() {
+async fn test_fetch_registry_rejects_missing_name(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
     let manifest_no_name = serde_json::json!({
         "extensions": {
@@ -99,23 +130,21 @@ async fn test_fetch_registry_rejects_missing_name() {
         .mount(&server)
         .await;
 
-    let tmp = TempDir::new("test_remote_no_name").unwrap();
-    let remote = RemoteExtensions::new(
-        tmp.path().join("exts"),
-        tmp.path().join("tmp"),
-        tmp.path().join("cache"),
-    );
-
+    let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
     registries.insert(format!("{}/no_name.json", server.uri()));
 
-    let results = remote.get_extension_manifest(&registries).await.unwrap();
-    assert!(results.is_empty());
+    let results = remote.get_extension_manifest(&registries).await;
+
+    assert_ok!(results.as_ref());
+    assert_is_empty!(&results.unwrap());
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_fetch_registry_rejects_missing_version() {
+async fn test_fetch_registry_rejects_missing_version(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
     let manifest_body = serde_json::json!({
         "name": "Verified Registry",
@@ -136,25 +165,24 @@ async fn test_fetch_registry_rejects_missing_version() {
         .mount(&server)
         .await;
 
-    let tmp = TempDir::new("test_remote_version").unwrap();
-    let remote = RemoteExtensions::new(
-        tmp.path().join("exts"),
-        tmp.path().join("tmp"),
-        tmp.path().join("cache"),
-    );
-
+    let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
     registries.insert(format!("{}/version_check.json", server.uri()));
 
-    let results = remote.get_extension_manifest(&registries).await.unwrap();
-    assert_eq!(results.len(), 1);
+    let results = remote.get_extension_manifest(&registries).await;
+
+    assert_ok!(results.as_ref());
+    let results = results.unwrap();
+    assert_len_eq_x!(&results, 1);
     let item = results.into_iter().next().unwrap();
     assert_eq!(item.package_name, "valid.ext");
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_fetch_multiple_registries_and_download() {
+async fn test_fetch_multiple_registries_and_download(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
     let reg1_body = serde_json::json!({
         "displayName": "Registry 1",
@@ -196,35 +224,33 @@ async fn test_fetch_multiple_registries_and_download() {
         .mount(&server)
         .await;
 
-    let tmp = TempDir::new("test_remote_multi").unwrap();
-    let ext_dir = tmp.path().join("exts");
-    let tmp_dir = tmp.path().join("tmp");
-    let cache_dir = tmp.path().join("cache");
-    fs::create_dir_all(&ext_dir).unwrap();
-    fs::create_dir_all(&tmp_dir).unwrap();
-    fs::create_dir_all(&cache_dir).unwrap();
-
-    let remote = RemoteExtensions::new(ext_dir, tmp_dir, cache_dir);
+    let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
     registries.insert(format!("{}/reg1.json", server.uri()));
     registries.insert(format!("{}/reg2.json", server.uri()));
 
-    let results = remote.get_extension_manifest(&registries).await.unwrap();
-    assert_eq!(results.len(), 2);
+    let results = remote.get_extension_manifest(&registries).await;
+    assert_ok!(results.as_ref());
+    let results = results.unwrap();
+    assert_len_eq_x!(&results, 2);
 
     let ext_one = results
         .iter()
         .find(|i| i.package_name == "ext.one")
         .unwrap();
-    let downloaded_path = remote.download_extension(ext_one.clone()).await.unwrap();
+    let downloaded_path = remote.download_extension(ext_one.clone()).await;
 
+    assert_ok!(downloaded_path.as_ref());
+    let downloaded_path = downloaded_path.unwrap();
     assert!(downloaded_path.exists());
     assert_eq!(fs::read(downloaded_path).unwrap(), dummy_pkg);
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_fetch_registry_malformed_json() {
+async fn test_fetch_registry_malformed_json(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
 
     Mock::given(method("GET"))
@@ -233,24 +259,21 @@ async fn test_fetch_registry_malformed_json() {
         .mount(&server)
         .await;
 
-    let tmp = TempDir::new("test_remote_malformed").unwrap();
-    let remote = RemoteExtensions::new(
-        tmp.path().join("exts"),
-        tmp.path().join("tmp"),
-        tmp.path().join("cache"),
-    );
-
+    let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
     registries.insert(format!("{}/malformed.json", server.uri()));
 
-    let results = remote.get_extension_manifest(&registries).await.unwrap();
+    let results = remote.get_extension_manifest(&registries).await;
 
-    assert!(results.is_empty());
+    assert_ok!(results.as_ref());
+    assert_is_empty!(&results.unwrap());
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_fetch_registry_http_404_not_found() {
+async fn test_fetch_registry_http_404_not_found(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
 
     Mock::given(method("GET"))
@@ -259,24 +282,21 @@ async fn test_fetch_registry_http_404_not_found() {
         .mount(&server)
         .await;
 
-    let tmp = TempDir::new("test_remote_404").unwrap();
-    let remote = RemoteExtensions::new(
-        tmp.path().join("exts"),
-        tmp.path().join("tmp"),
-        tmp.path().join("cache"),
-    );
-
+    let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
     registries.insert(format!("{}/not_found.json", server.uri()));
 
-    let results = remote.get_extension_manifest(&registries).await.unwrap();
+    let results = remote.get_extension_manifest(&registries).await;
 
-    assert!(results.is_empty());
+    assert_ok!(results.as_ref());
+    assert_is_empty!(&results.unwrap());
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_fetch_registry_http_500_server_error() {
+async fn test_fetch_registry_http_500_server_error(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
 
     Mock::given(method("GET"))
@@ -285,42 +305,36 @@ async fn test_fetch_registry_http_500_server_error() {
         .mount(&server)
         .await;
 
-    let tmp = TempDir::new("test_remote_500").unwrap();
-    let remote = RemoteExtensions::new(
-        tmp.path().join("exts"),
-        tmp.path().join("tmp"),
-        tmp.path().join("cache"),
-    );
-
+    let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
     registries.insert(format!("{}/server_error.json", server.uri()));
 
-    let results = remote.get_extension_manifest(&registries).await.unwrap();
+    let results = remote.get_extension_manifest(&registries).await;
 
-    assert!(results.is_empty());
+    assert_ok!(results.as_ref());
+    assert_is_empty!(&results.unwrap());
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_fetch_registry_network_connection_error() {
-    let tmp = TempDir::new("test_remote_unreachable").unwrap();
-    let remote = RemoteExtensions::new(
-        tmp.path().join("exts"),
-        tmp.path().join("tmp"),
-        tmp.path().join("cache"),
-    );
-
+async fn test_fetch_registry_network_connection_error(remote_context: TestRemoteContext) {
+    let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
     registries.insert("http://127.0.0.1:1/non_existent.json".to_string());
 
-    let results = remote.get_extension_manifest(&registries).await.unwrap();
+    let results = remote.get_extension_manifest(&registries).await;
 
-    assert!(results.is_empty());
+    assert_ok!(results.as_ref());
+    assert_is_empty!(&results.unwrap());
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_download_extension_http_404_error() {
+async fn test_download_extension_http_404_error(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
 
     Mock::given(method("GET"))
@@ -329,11 +343,7 @@ async fn test_download_extension_http_404_error() {
         .mount(&server)
         .await;
 
-    let tmp = TempDir::new("test_download_404").unwrap();
-    let tmp_dir = tmp.path().join("tmp");
-    fs::create_dir_all(&tmp_dir).unwrap();
-    let remote = RemoteExtensions::new(tmp.path().join("exts"), tmp_dir, tmp.path().join("cache"));
-
+    let TestRemoteContext { remote, .. } = remote_context;
     let fake_ext = FetchedExtensionManifest {
         name: "Broken Extension".to_string(),
         package_name: "broken.ext".to_string(),
@@ -346,12 +356,14 @@ async fn test_download_extension_http_404_error() {
 
     let result = remote.download_extension(fake_ext).await;
 
-    assert!(result.is_err());
+    assert_err!(result.as_ref());
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_download_extension_http_500_error() {
+async fn test_download_extension_http_500_error(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
 
     Mock::given(method("GET"))
@@ -360,11 +372,7 @@ async fn test_download_extension_http_500_error() {
         .mount(&server)
         .await;
 
-    let tmp = TempDir::new("test_download_500").unwrap();
-    let tmp_dir = tmp.path().join("tmp");
-    fs::create_dir_all(&tmp_dir).unwrap();
-    let remote = RemoteExtensions::new(tmp.path().join("exts"), tmp_dir, tmp.path().join("cache"));
-
+    let TestRemoteContext { remote, .. } = remote_context;
     let fake_ext = FetchedExtensionManifest {
         name: "Crash Extension".to_string(),
         package_name: "crash.ext".to_string(),
@@ -377,16 +385,16 @@ async fn test_download_extension_http_500_error() {
 
     let result = remote.download_extension(fake_ext).await;
 
-    assert!(result.is_err());
+    assert_err!(result.as_ref());
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_fetch_registry_with_mixed_and_broken_extensions() {
+async fn test_fetch_registry_with_mixed_and_broken_extensions(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
 
-    // Fake manifest with a healthy extension, an extension with missing version,
-    // and one with absolute url
     let manifest_body = serde_json::json!({
         "displayName": "Mock Fake Server Registry",
         "name": "fake_server",
@@ -418,19 +426,15 @@ async fn test_fetch_registry_with_mixed_and_broken_extensions() {
         .mount(&server)
         .await;
 
-    let tmp = TempDir::new("test_fake_server").unwrap();
-    let remote = RemoteExtensions::new(
-        tmp.path().join("exts"),
-        tmp.path().join("tmp"),
-        tmp.path().join("cache"),
-    );
-
+    let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
     registries.insert(format!("{}/manifest.json", server.uri()));
 
-    let results = remote.get_extension_manifest(&registries).await.unwrap();
+    let results = remote.get_extension_manifest(&registries).await;
 
-    assert_eq!(results.len(), 2);
+    assert_ok!(results.as_ref());
+    let results = results.unwrap();
+    assert_len_eq_x!(&results, 2);
 
     let spotify = results
         .iter()

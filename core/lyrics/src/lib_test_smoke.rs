@@ -14,16 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use rstest::{fixture, rstest};
 use tempdir::TempDir;
+use tracing_test::traced_test;
 use types::plugin::{Plugin, PluginContext};
 
 use crate::LyricsFetcher;
 
-#[test]
+struct PluginSmokeContext {
+    pub _temp_dir: TempDir,
+    pub context: PluginContext,
+}
+
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_lyrics_plugin_init() {
-    let tmp = TempDir::new("moosync_lyrics_plugin_smoke").unwrap();
-    let test_dir = tmp.path().to_path_buf();
+fn smoke_context() -> PluginSmokeContext {
+    let temp_dir = TempDir::new("moosync_lyrics_plugin_smoke").expect("failed to create temp dir");
+    let test_dir = temp_dir.path().to_path_buf();
     let context = PluginContext {
         data_dir: test_dir.clone(),
         cache_dir: test_dir.clone(),
@@ -31,6 +38,17 @@ fn test_lyrics_plugin_init() {
         #[cfg(target_os = "android")]
         android_context: types::android::AndroidJNIContext::default(),
     };
+    PluginSmokeContext {
+        _temp_dir: temp_dir,
+        context,
+    }
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_lyrics_plugin_init(smoke_context: PluginSmokeContext) {
+    let PluginSmokeContext { context, .. } = smoke_context;
 
     let plugin = LyricsFetcher::init(&context);
     let _guard = plugin.blocking_read();

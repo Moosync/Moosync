@@ -16,36 +16,46 @@
 
 use std::{
     collections::HashMap,
-    env::temp_dir,
-    fs,
     sync::{Arc, Mutex},
 };
 
+use assertables::{assert_err, assert_ok, assert_some_eq_x};
+use rstest::{fixture, rstest};
+use tempdir::TempDir;
 use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
+use tracing_test::traced_test;
 use types::prelude::ThemeItemExt;
-use uuid::Uuid;
 
-use crate::{error::ThemesError, themes::ThemeHolder};
+use crate::themes::ThemeHolder;
 
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_theme_save_load_remove() -> Result<(), ThemesError> {
-    let temp_base = temp_dir().join(format!("moosync_theme_test_{}", Uuid::new_v4()));
-    let temp_theme_dir = temp_base.join("themes");
-    let temp_tmp_dir = temp_base.join("tmp");
+struct TestThemeContext {
+    pub _temp_dir: TempDir,
+    pub theme_holder: ThemeHolder,
+}
 
-    fs::create_dir_all(&temp_theme_dir).unwrap();
-    fs::create_dir_all(&temp_tmp_dir).unwrap();
+#[fixture]
+fn theme_context() -> TestThemeContext {
+    let temp_dir = TempDir::new("moosync_theme_test").expect("failed to create temp dir");
+    let theme_dir = temp_dir.path().join("themes");
+    let tmp_dir = temp_dir.path().join("tmp");
+    std::fs::create_dir_all(&theme_dir).unwrap();
+    std::fs::create_dir_all(&tmp_dir).unwrap();
 
-    let theme_holder = ThemeHolder::new(temp_theme_dir.clone(), temp_tmp_dir.clone());
-    let theme_id = "test_theme_id";
+    let theme_holder = ThemeHolder::new(theme_dir, tmp_dir);
+    TestThemeContext {
+        _temp_dir: temp_dir,
+        theme_holder,
+    }
+}
 
+#[fixture]
+fn sample_theme_details() -> ThemeDetails {
     let mut constants = HashMap::new();
     constants.insert("primary".to_string(), "#ff0000".to_string());
     constants.insert("cardWidth".to_string(), "220px".to_string());
 
-    let theme_details = ThemeDetails {
-        id: theme_id.to_string(),
+    ThemeDetails {
+        id: "test_theme_id".to_string(),
         name: "Test Theme".to_string(),
         author: Some("Test Author".to_string()),
         description: Some("Test Description".to_string()),
@@ -53,60 +63,60 @@ fn test_theme_save_load_remove() -> Result<(), ThemesError> {
             constants,
             ..Default::default()
         }),
-    };
+    }
+}
 
-    theme_holder.save_theme(theme_details.clone())?;
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_theme_save_load_remove(
+    theme_context: TestThemeContext,
+    sample_theme_details: ThemeDetails,
+) {
+    let TestThemeContext { theme_holder, .. } = theme_context;
+    let theme_id = "test_theme_id";
 
-    let loaded = theme_holder.load_theme(theme_id.to_string())?;
-    assert_eq!(loaded.id, theme_details.id);
-    assert_eq!(loaded.name, theme_details.name);
-    assert_eq!(loaded.author, theme_details.author);
-    assert_eq!(loaded.description, theme_details.description);
+    assert_ok!(theme_holder.save_theme(sample_theme_details.clone()));
 
+    let loaded_res = theme_holder.load_theme(theme_id.to_string());
+    assert_ok!(loaded_res.as_ref());
+    let loaded = loaded_res.unwrap();
+    assert_eq!(loaded.id, sample_theme_details.id);
+    assert_eq!(loaded.name, sample_theme_details.name);
+    assert_eq!(loaded.author, sample_theme_details.author);
+    assert_eq!(loaded.description, sample_theme_details.description);
     let loaded_item = loaded.theme.unwrap();
-    assert_eq!(loaded_item.get_constant("primary").unwrap(), "#ff0000");
-    assert_eq!(loaded_item.get_constant("cardWidth").unwrap(), "220px");
+    assert_some_eq_x!(loaded_item.get_constant("primary"), "#ff0000");
+    assert_some_eq_x!(loaded_item.get_constant("cardWidth"), "220px");
 
-    let all = theme_holder.load_all_themes()?;
+    let all_res = theme_holder.load_all_themes();
+    assert_ok!(all_res.as_ref());
+    let all = all_res.unwrap();
     assert!(all.contains_key("default"));
     assert!(all.contains_key(theme_id));
 
-    theme_holder.remove_theme(theme_id.to_string())?;
-    assert!(theme_holder.load_theme(theme_id.to_string()).is_err());
-
-    let _ = fs::remove_dir_all(&temp_base);
-    Ok(())
+    assert_ok!(theme_holder.remove_theme(theme_id.to_string()));
+    assert_err!(theme_holder.load_theme(theme_id.to_string()));
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_theme_subscribers() -> Result<(), ThemesError> {
-    let temp_base = temp_dir().join(format!("moosync_theme_subs_{}", Uuid::new_v4()));
-    let temp_theme_dir = temp_base.join("themes");
-    let temp_tmp_dir = temp_base.join("tmp");
-
-    fs::create_dir_all(&temp_theme_dir).unwrap();
-    fs::create_dir_all(&temp_tmp_dir).unwrap();
-
-    let theme_holder = ThemeHolder::new(temp_theme_dir.clone(), temp_tmp_dir.clone());
-
+fn test_theme_subscribers(theme_context: TestThemeContext) {
+    let TestThemeContext { theme_holder, .. } = theme_context;
     let call_count1 = Arc::new(Mutex::new(0));
     let call_count2 = Arc::new(Mutex::new(0));
 
-    let c1 = call_count1.clone();
+    let count1_clone = call_count1.clone();
     let handle1 = theme_holder.on_theme_changed(move |theme| {
-        let mut count = c1.lock().unwrap();
-        *count += 1;
+        *count1_clone.lock().unwrap() += 1;
         assert_eq!(theme.name, "Notify Test Theme");
     });
-
-    let c2 = call_count2.clone();
+    let count2_clone = call_count2.clone();
     let _handle2 = theme_holder.on_theme_changed(move |theme| {
-        let mut count = c2.lock().unwrap();
-        *count += 1;
+        *count2_clone.lock().unwrap() += 1;
         assert_eq!(theme.name, "Notify Test Theme");
     });
-
     handle1.cancel();
 
     let theme_details = ThemeDetails {
@@ -120,32 +130,23 @@ fn test_theme_subscribers() -> Result<(), ThemesError> {
         }),
     };
 
-    theme_holder.save_theme(theme_details)?;
-
+    assert_ok!(theme_holder.save_theme(theme_details));
     assert_eq!(*call_count1.lock().unwrap(), 0);
     assert_eq!(*call_count2.lock().unwrap(), 1);
-
-    let _ = fs::remove_dir_all(&temp_base);
-    Ok(())
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_theme_export_import_cycle() -> Result<(), ThemesError> {
-    let temp_base = temp_dir().join(format!("moosync_theme_export_{}", Uuid::new_v4()));
-    let temp_theme_dir = temp_base.join("themes");
-    let temp_tmp_dir = temp_base.join("tmp");
-    let export_path = temp_base.join("exported_theme.mstx");
-
-    fs::create_dir_all(&temp_theme_dir).unwrap();
-    fs::create_dir_all(&temp_tmp_dir).unwrap();
-
-    let theme_holder = ThemeHolder::new(temp_theme_dir.clone(), temp_tmp_dir.clone());
+fn test_theme_export_import_cycle(theme_context: TestThemeContext) {
+    let TestThemeContext {
+        _temp_dir,
+        theme_holder,
+    } = theme_context;
+    let export_path = _temp_dir.path().join("exported_theme.mstx");
     let theme_id = "export_test_theme";
-
     let mut constants = HashMap::new();
     constants.insert("primary".to_string(), "#aabbcc".to_string());
-
     let theme_details = ThemeDetails {
         id: theme_id.to_string(),
         name: "Export Test Theme".to_string(),
@@ -157,21 +158,19 @@ fn test_theme_export_import_cycle() -> Result<(), ThemesError> {
         }),
     };
 
-    theme_holder.save_theme(theme_details.clone())?;
+    assert_ok!(theme_holder.save_theme(theme_details));
+    assert_ok!(theme_holder.export_theme(theme_id.to_string(), export_path.clone()));
+    assert!(export_path.exists());
 
-    theme_holder.export_theme(theme_id.to_string(), export_path.clone())?;
-    assert!(export_path.exists(), "Export file should exist");
+    assert_ok!(theme_holder.remove_theme(theme_id.to_string()));
+    assert_ok!(theme_holder.import_theme(export_path.to_string_lossy().to_string()));
 
-    theme_holder.remove_theme(theme_id.to_string())?;
-
-    theme_holder.import_theme(export_path.to_string_lossy().to_string())?;
-
-    let all_themes = theme_holder.load_all_themes()?;
+    let all_themes_res = theme_holder.load_all_themes();
+    assert_ok!(all_themes_res.as_ref());
+    let all_themes = all_themes_res.unwrap();
     assert!(
-        all_themes.values().any(|t| t.name == "Export Test Theme"),
-        "Imported theme should be in all themes"
+        all_themes
+            .values()
+            .any(|theme| theme.name == "Export Test Theme")
     );
-
-    let _ = fs::remove_dir_all(&temp_base);
-    Ok(())
 }

@@ -16,27 +16,37 @@
 
 use std::{borrow::Cow, time::Duration};
 
+use assertables::{assert_err, assert_ok};
 use extensions_proto::moosync::types::PlayerState;
+use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{InnerSong, Song};
 use tokio::sync::mpsc::unbounded_channel;
+use tracing_test::traced_test;
 
 use crate::{mux_player::MuxPlayer, source::ValidSrc};
 
-#[test]
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mux_player_initial_state_and_can_play() {
+fn mux_player() -> MuxPlayer {
     let (tx, _rx) = unbounded_channel();
-    let mux = MuxPlayer::new(tx);
-
-    assert_eq!(mux.get_player_state(), PlayerState::Stopped);
-    assert!(!mux.can_play(ValidSrc::Url(Cow::Borrowed("ftp://example.com"))));
+    MuxPlayer::new(tx)
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mux_player_load_unsupported_url_and_controls() {
-    let (tx, _rx) = unbounded_channel();
-    let mut mux = MuxPlayer::new(tx);
+fn test_mux_player_initial_state_and_can_play(mux_player: MuxPlayer) {
+    let state = mux_player.get_player_state();
+    let can_play_ftp = mux_player.can_play(ValidSrc::Url(Cow::Borrowed("ftp://example.com")));
+
+    assert_eq!(state, PlayerState::Stopped);
+    assert!(!can_play_ftp);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_mux_player_load_unsupported_url_and_controls(mut mux_player: MuxPlayer) {
     let song = Song {
         song: Some(InnerSong {
             playback_url: Some("ftp://example.com/audio.mp3".to_string()),
@@ -45,16 +55,10 @@ fn test_mux_player_load_unsupported_url_and_controls() {
         ..Default::default()
     };
 
-    let load_res = mux.load(&song);
-    let pause_res = mux.pause();
-    let stop_res = mux.stop();
-    let vol_res = mux.set_volume(90);
-    let seek_res = mux.seek(Duration::from_secs(5));
-
-    assert!(load_res.is_err());
-    assert!(pause_res.is_ok());
-    assert!(stop_res.is_ok());
-    assert!(vol_res.is_ok());
-    assert!(seek_res.is_ok());
-    assert_eq!(mux.get_player_state(), PlayerState::Stopped);
+    assert_err!(mux_player.load(&song).as_ref());
+    assert_ok!(mux_player.pause());
+    assert_ok!(mux_player.stop());
+    assert_ok!(mux_player.set_volume(90));
+    assert_ok!(mux_player.seek(Duration::from_secs(5)));
+    assert_eq!(mux_player.get_player_state(), PlayerState::Stopped);
 }

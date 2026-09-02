@@ -21,7 +21,10 @@ rust_test(
     name = "pref_macro_test",
     crate = ":pref_macro",
     deps = [
+        "@crates//:assertables",
+        "@crates//:rstest",
         "@crates//:tracing",
+        "@crates//:tracing-test",
     ],
 )
 

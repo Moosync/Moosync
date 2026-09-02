@@ -14,17 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use rstest::{fixture, rstest};
 use tempdir::TempDir;
+use tracing_test::traced_test;
 use types::plugin::PluginContext;
 
 use crate::StateManager;
 
-#[tokio::test]
-#[tracing::instrument(level = "debug", skip_all)]
-async fn test_state_manager_lifecycle_methods() {
-    let tmp = TempDir::new("moosync_sm_lib_test").unwrap();
-    let test_dir = tmp.path().to_path_buf();
+struct TestSmContext {
+    pub _temp_dir: TempDir,
+    pub sm: StateManager,
+}
 
+#[fixture]
+#[tracing::instrument(level = "debug", skip_all)]
+fn sm_context() -> TestSmContext {
+    let temp_dir = TempDir::new("moosync_sm_lib_test").expect("failed to create temp dir");
+    let test_dir = temp_dir.path().to_path_buf();
     let context = PluginContext {
         data_dir: test_dir.clone(),
         cache_dir: test_dir.clone(),
@@ -32,8 +38,19 @@ async fn test_state_manager_lifecycle_methods() {
         #[cfg(target_os = "android")]
         android_context: types::android::AndroidJNIContext::default(),
     };
+    let sm = StateManager::new_with_context(context).expect("failed to create state manager");
+    TestSmContext {
+        _temp_dir: temp_dir,
+        sm,
+    }
+}
 
-    let sm = StateManager::new_with_context(context).unwrap();
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_state_manager_lifecycle_methods(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
 
     assert!(!sm.get_cache_dir().as_os_str().is_empty());
 

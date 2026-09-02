@@ -1,4 +1,6 @@
+use assertables::assert_some_eq_x;
 use extensions_proto::moosync::types::{ExtensionDetail, FetchedExtensionManifest};
+use rstest::rstest;
 use slint::{ComponentHandle, Model};
 use songs_proto::{
     duration_proto::google::protobuf::Duration,
@@ -7,14 +9,16 @@ use songs_proto::{
     },
 };
 use tempdir::TempDir;
+use tracing_test::traced_test;
 
 use super::{default_empty_icon, default_entity_cover};
 use crate::{
     AlbumModel, ArtistModel, ExtensionItem, GenreModel, MainWindow, PlaylistModel, SearchResult,
-    SongModel, Theme, test_utils::run_test,
+    SongModel, Theme, test_utils::main_window,
 };
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_to_song_model() {
     let song = Song {
@@ -46,6 +50,7 @@ fn test_to_song_model() {
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_song_model_to_song() {
     let original = Song {
@@ -66,29 +71,27 @@ fn test_song_model_to_song() {
 
     let reconstructed = Song::from(model);
 
-    assert_eq!(
-        reconstructed.song.as_ref().unwrap().id.as_deref(),
-        Some("id123")
-    );
-    assert_eq!(
+    assert_some_eq_x!(reconstructed.song.as_ref().unwrap().id.as_deref(), "id123");
+    assert_some_eq_x!(
         reconstructed.song.as_ref().unwrap().title.as_deref(),
-        Some("Song Title")
+        "Song Title"
     );
-    assert_eq!(
+    assert_some_eq_x!(
         reconstructed.song.as_ref().unwrap().path.as_deref(),
-        Some("/music/test.mp3")
+        "/music/test.mp3"
     );
-    assert_eq!(
+    assert_some_eq_x!(
         reconstructed.album.as_ref().unwrap().album_id.as_deref(),
-        Some("alb1")
+        "alb1"
     );
-    assert_eq!(
+    assert_some_eq_x!(
         reconstructed.album.as_ref().unwrap().album_name.as_deref(),
-        Some("Album Name")
+        "Album Name"
     );
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_to_album_model() {
     let album = Album {
@@ -108,6 +111,7 @@ fn test_to_album_model() {
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_album_model_to_album() {
     let model = AlbumModel {
@@ -122,16 +126,17 @@ fn test_album_model_to_album() {
 
     let album: Album = model.into();
 
-    assert_eq!(album.album_id.as_deref(), Some("alb123"));
-    assert_eq!(album.album_name.as_deref(), Some("Greatest Hits"));
-    assert_eq!(
+    assert_some_eq_x!(album.album_id.as_deref(), "alb123");
+    assert_some_eq_x!(album.album_name.as_deref(), "Greatest Hits");
+    assert_some_eq_x!(
         album.album_coverpath_high.as_deref(),
-        Some("https://example.com/cover.jpg")
+        "https://example.com/cover.jpg"
     );
     assert_eq!(album.album_song_count, 12.0);
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_to_artist_model() {
     let artist = Artist {
@@ -149,6 +154,7 @@ fn test_to_artist_model() {
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_to_album_model_without_cover_has_placeholder() {
     let album = Album {
@@ -167,6 +173,7 @@ fn test_to_album_model_without_cover_has_placeholder() {
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_to_artist_model_without_cover_has_placeholder() {
     let artist = Artist {
@@ -185,6 +192,7 @@ fn test_to_artist_model_without_cover_has_placeholder() {
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_to_genre_model() {
     let genre = Genre {
@@ -204,6 +212,7 @@ fn test_to_genre_model() {
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_to_playlist_model() {
     let playlist = Playlist {
@@ -224,6 +233,7 @@ fn test_to_playlist_model() {
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_from_playlist_model() {
     let model = PlaylistModel {
@@ -238,17 +248,18 @@ fn test_from_playlist_model() {
 
     let playlist: Playlist = model.into();
 
-    assert_eq!(playlist.playlist_id.as_deref(), Some("pl123"));
+    assert_some_eq_x!(playlist.playlist_id.as_deref(), "pl123");
     assert_eq!(playlist.playlist_name, "Favorites");
-    assert_eq!(
+    assert_some_eq_x!(
         playlist.playlist_coverpath.as_deref(),
-        Some("https://example.com/cover.jpg")
+        "https://example.com/cover.jpg"
     );
     assert_eq!(playlist.playlist_song_count, 25.0);
-    assert_eq!(playlist.extension.as_deref(), Some("local"));
+    assert_some_eq_x!(playlist.extension.as_deref(), "local");
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_to_extension_item() {
     let detail = ExtensionDetail {
@@ -267,6 +278,7 @@ fn test_to_extension_item() {
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_to_fetched_extension_item() {
     let manifest = FetchedExtensionManifest {
@@ -283,57 +295,55 @@ fn test_to_fetched_extension_item() {
     assert_eq!(fetched_item.name, "Fetched Ext");
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_to_search_result() {
-    run_test(|| {
-        let main_window = MainWindow::new().unwrap();
-        let theme = main_window.global::<Theme>();
-        let proto_res = ProtoSearchResult {
-            songs: vec![Song {
-                song: Some(InnerSong {
-                    id: Some("s1".to_string()),
-                    title: Some("Song 1".to_string()),
-                    ..Default::default()
-                }),
+fn test_to_search_result(main_window: MainWindow) {
+    let theme = main_window.global::<Theme>();
+    let proto_res = ProtoSearchResult {
+        songs: vec![Song {
+            song: Some(InnerSong {
+                id: Some("s1".to_string()),
+                title: Some("Song 1".to_string()),
                 ..Default::default()
-            }],
-            albums: vec![Album {
-                album_id: Some("a1".to_string()),
-                album_name: Some("Album 1".to_string()),
-                ..Default::default()
-            }],
-            artists: vec![Artist {
-                artist_id: Some("ar1".to_string()),
-                artist_name: Some("Artist 1".to_string()),
-                ..Default::default()
-            }],
-            playlists: vec![Playlist {
-                playlist_id: Some("p1".to_string()),
-                playlist_name: "Playlist 1".to_string(),
-                ..Default::default()
-            }],
-            genres: vec![Genre {
-                genre_id: Some("g1".to_string()),
-                genre_name: Some("Genre 1".to_string()),
-                ..Default::default()
-            }],
-        };
-        let tmp = TempDir::new("moosync_search_utils_test").unwrap();
+            }),
+            ..Default::default()
+        }],
+        albums: vec![Album {
+            album_id: Some("a1".to_string()),
+            album_name: Some("Album 1".to_string()),
+            ..Default::default()
+        }],
+        artists: vec![Artist {
+            artist_id: Some("ar1".to_string()),
+            artist_name: Some("Artist 1".to_string()),
+            ..Default::default()
+        }],
+        playlists: vec![Playlist {
+            playlist_id: Some("p1".to_string()),
+            playlist_name: "Playlist 1".to_string(),
+            ..Default::default()
+        }],
+        genres: vec![Genre {
+            genre_id: Some("g1".to_string()),
+            genre_name: Some("Genre 1".to_string()),
+            ..Default::default()
+        }],
+    };
+    let tmp = TempDir::new("moosync_search_utils_test").unwrap();
 
-        let result =
-            SearchResult::from((proto_res, None, default_empty_icon(), &theme, tmp.path()));
+    let result = SearchResult::from((proto_res, None, default_empty_icon(), &theme, tmp.path()));
 
-        assert_eq!(result.extension, "");
-        assert_eq!(result.songs.row_count(), 1);
-        assert_eq!(result.albums.row_count(), 1);
-        assert_eq!(result.artists.row_count(), 1);
-        assert_eq!(result.playlists.row_count(), 1);
-        assert_eq!(result.genres.row_count(), 1);
-    });
+    assert_eq!(result.extension, "");
+    assert_eq!(result.songs.row_count(), 1);
+    assert_eq!(result.albums.row_count(), 1);
+    assert_eq!(result.artists.row_count(), 1);
+    assert_eq!(result.playlists.row_count(), 1);
+    assert_eq!(result.genres.row_count(), 1);
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_from_extension_detail_default_icon() {
     let detail = ExtensionDetail {
@@ -356,6 +366,7 @@ fn test_from_extension_detail_default_icon() {
 }
 
 #[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_from_fetched_extension_manifest_default_icon() {
     let manifest = FetchedExtensionManifest {

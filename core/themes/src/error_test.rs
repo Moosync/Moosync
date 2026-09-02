@@ -14,24 +14,31 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use assertables::assert_matches;
+use rstest::rstest;
+use tracing_test::traced_test;
+
 use crate::error::ThemesError;
 
-#[test]
+#[rstest]
+#[case(ThemesError::ThemeNotFound, "Theme not found")]
+#[case(ThemesError::ParseThemeFailed, "Failed to parse theme")]
+#[case(ThemesError::Zip("bad zip".to_string()), "Zip error: bad zip")]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_themes_error_display_and_conversions() {
-    let not_found = ThemesError::ThemeNotFound;
-    assert_eq!(format!("{}", not_found), "Theme not found");
+fn test_themes_error_display(#[case] error: ThemesError, #[case] expected: &str) {
+    let display = format!("{}", error);
 
-    let parse_err = ThemesError::ParseThemeFailed;
-    assert_eq!(format!("{}", parse_err), "Failed to parse theme");
+    assert_eq!(display, expected);
+}
 
-    let zip_err = ThemesError::Zip("bad zip".to_string());
-    assert_eq!(format!("{}", zip_err), "Zip error: bad zip");
-
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_themes_error_from_json() {
     let json_err = serde_json::from_str::<bool>("invalid").unwrap_err();
+
     let theme_err: ThemesError = json_err.into();
-    match theme_err {
-        ThemesError::Json(_) => {}
-        _ => panic!("Expected ThemesError::Json"),
-    }
+
+    assert_matches!(theme_err, ThemesError::Json(_));
 }

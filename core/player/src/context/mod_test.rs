@@ -16,38 +16,60 @@
 
 use std::time::Duration;
 
+use assertables::assert_ok_eq_x;
 use extensions_proto::moosync::types::PlayerState;
+use rstest::{fixture, rstest};
 use tokio::sync::mpsc::unbounded_channel;
+use tracing_test::traced_test;
 
 use super::{AudioPlayerContext, DummyAudioPlayerContext};
 use crate::source::ValidSrc;
 
-#[test]
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_dummy_audio_player_context_operations() {
-    let context = DummyAudioPlayerContext::new();
+fn dummy_player_context() -> DummyAudioPlayerContext { DummyAudioPlayerContext::new() }
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_dummy_audio_player_context_operations(dummy_player_context: DummyAudioPlayerContext) {
     let (events_tx, _events_rx) = unbounded_channel();
 
-    assert_eq!(context.get_player_state().unwrap(), PlayerState::Stopped);
-    assert_eq!(context.get_volume().unwrap(), 100);
+    assert_ok_eq_x!(
+        dummy_player_context.get_player_state(),
+        PlayerState::Stopped
+    );
+    assert_ok_eq_x!(dummy_player_context.get_volume(), 100);
 
-    context.set_volume(80).unwrap();
-    assert_eq!(context.get_volume().unwrap(), 80);
+    dummy_player_context.set_volume(80).unwrap();
+    assert_ok_eq_x!(dummy_player_context.get_volume(), 80);
 
     let src = ValidSrc::Url("https://example.com/test.mp3".into());
-    context.set_src(src, events_tx).unwrap();
-    assert_eq!(context.get_player_state().unwrap(), PlayerState::Playing);
+    dummy_player_context.set_src(src, events_tx).unwrap();
+    assert_ok_eq_x!(
+        dummy_player_context.get_player_state(),
+        PlayerState::Playing
+    );
 
-    context.pause().unwrap();
-    assert_eq!(context.get_player_state().unwrap(), PlayerState::Paused);
+    dummy_player_context.pause().unwrap();
+    assert_ok_eq_x!(dummy_player_context.get_player_state(), PlayerState::Paused);
 
-    context.play().unwrap();
-    assert_eq!(context.get_player_state().unwrap(), PlayerState::Playing);
+    dummy_player_context.play().unwrap();
+    assert_ok_eq_x!(
+        dummy_player_context.get_player_state(),
+        PlayerState::Playing
+    );
 
-    context.seek(Duration::from_secs(45)).unwrap();
-    assert_eq!(context.get_current_pos().unwrap(), Duration::from_secs(45));
+    dummy_player_context.seek(Duration::from_secs(45)).unwrap();
+    assert_ok_eq_x!(
+        dummy_player_context.get_current_pos(),
+        Duration::from_secs(45)
+    );
 
-    context.stop().unwrap();
-    assert_eq!(context.get_player_state().unwrap(), PlayerState::Stopped);
-    assert_eq!(context.get_current_pos().unwrap(), Duration::default());
+    dummy_player_context.stop().unwrap();
+    assert_ok_eq_x!(
+        dummy_player_context.get_player_state(),
+        PlayerState::Stopped
+    );
+    assert_ok_eq_x!(dummy_player_context.get_current_pos(), Duration::default());
 }

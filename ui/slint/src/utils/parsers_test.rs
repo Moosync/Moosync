@@ -1,41 +1,38 @@
+use assertables::{assert_none, assert_some, assert_some_eq_x};
+use rstest::rstest;
+use tracing_test::traced_test;
+
 use super::{parse_color, parse_length};
 
-#[test]
+#[rstest]
+#[case("#ff5733", true)]
+#[case("not-a-color", false)]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_parse_color_valid() {
-    let col = parse_color("#ff5733");
+fn test_parse_color(#[case] input: &str, #[case] is_valid: bool) {
+    let col = parse_color(input);
 
-    assert!(col.is_some());
+    if is_valid {
+        assert_some!(col);
+        return;
+    }
+
+    assert_none!(col);
 }
 
-#[test]
+#[rstest]
+#[case("16px", Some(16.0))]
+#[case("32", Some(32.0))]
+#[case("invalid", None)]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_parse_color_invalid() {
-    let col = parse_color("not-a-color");
+fn test_parse_length(#[case] input: &str, #[case] expected: Option<f32>) {
+    let len = parse_length(input);
 
-    assert!(col.is_none());
-}
+    if let Some(exp) = expected {
+        assert_some_eq_x!(len, exp);
+        return;
+    }
 
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_parse_length_px() {
-    let len = parse_length("16px");
-
-    assert_eq!(len, Some(16.0));
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_parse_length_raw_number() {
-    let len = parse_length("32");
-
-    assert_eq!(len, Some(32.0));
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_parse_length_invalid() {
-    let len = parse_length("invalid");
-
-    assert!(len.is_none());
+    assert_none!(len);
 }

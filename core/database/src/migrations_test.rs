@@ -14,20 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use rstest::{fixture, rstest};
 use rusqlite::Connection;
+use tracing_test::traced_test;
 
 use crate::migrations::{run_migration_cache, run_migrations};
 
-#[test]
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_run_migrations_creates_schema_and_is_idempotent() {
-    let mut conn = Connection::open_in_memory().unwrap();
+fn memory_connection() -> Connection {
+    Connection::open_in_memory().expect("failed to open memory sqlite connection")
+}
 
-    // First run
-    run_migrations(&mut conn);
-
-    // Verify migrations table created
-    let migration_count: i64 = conn
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_run_migrations_creates_schema_and_is_idempotent(mut memory_connection: Connection) {
+    run_migrations(&mut memory_connection);
+    let migration_count: i64 = memory_connection
         .query_row(
             "SELECT count(*) FROM __diesel_schema_migrations",
             [],
@@ -36,8 +40,7 @@ fn test_run_migrations_creates_schema_and_is_idempotent() {
         .unwrap();
     assert_eq!(migration_count, 5);
 
-    // Verify core tables exist
-    let tables: Vec<String> = conn
+    let tables: Vec<String> = memory_connection
         .prepare("SELECT name FROM sqlite_master WHERE type='table'")
         .unwrap()
         .query_map([], |row| row.get(0))
@@ -45,20 +48,22 @@ fn test_run_migrations_creates_schema_and_is_idempotent() {
         .filter_map(|res| res.ok())
         .collect();
 
-    assert!(tables.contains(&"allsongs".to_string()));
-    assert!(tables.contains(&"albums".to_string()));
-    assert!(tables.contains(&"artists".to_string()));
-    assert!(tables.contains(&"genres".to_string()));
-    assert!(tables.contains(&"playlists".to_string()));
-    assert!(tables.contains(&"playlist_bridge".to_string()));
-    assert!(tables.contains(&"artist_bridge".to_string()));
-    assert!(tables.contains(&"genre_bridge".to_string()));
-    assert!(tables.contains(&"analytics".to_string()));
+    for table in &[
+        "allsongs",
+        "albums",
+        "artists",
+        "genres",
+        "playlists",
+        "playlist_bridge",
+        "artist_bridge",
+        "genre_bridge",
+        "analytics",
+    ] {
+        assert!(tables.contains(&table.to_string()));
+    }
 
-    // Run migrations second time to verify idempotency
-    run_migrations(&mut conn);
-
-    let migration_count_second_run: i64 = conn
+    run_migrations(&mut memory_connection);
+    let migration_count_second_run: i64 = memory_connection
         .query_row(
             "SELECT count(*) FROM __diesel_schema_migrations",
             [],
@@ -68,14 +73,14 @@ fn test_run_migrations_creates_schema_and_is_idempotent() {
     assert_eq!(migration_count_second_run, 5);
 }
 
-#[test]
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_run_migration_cache_creates_cache_table_and_is_idempotent() {
-    let mut conn = Connection::open_in_memory().unwrap();
-
-    run_migration_cache(&mut conn);
-
-    let cache_table_exists: bool = conn
+fn test_run_migration_cache_creates_cache_table_and_is_idempotent(
+    mut memory_connection: Connection,
+) {
+    run_migration_cache(&mut memory_connection);
+    let cache_table_exists: bool = memory_connection
         .query_row(
             "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='cache')",
             [],
@@ -84,10 +89,8 @@ fn test_run_migration_cache_creates_cache_table_and_is_idempotent() {
         .unwrap();
     assert!(cache_table_exists);
 
-    // Run again to verify idempotency
-    run_migration_cache(&mut conn);
-
-    let migration_count: i64 = conn
+    run_migration_cache(&mut memory_connection);
+    let migration_count: i64 = memory_connection
         .query_row(
             "SELECT count(*) FROM __diesel_schema_migrations",
             [],

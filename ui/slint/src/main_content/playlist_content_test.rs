@@ -14,76 +14,56 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use rstest::rstest;
 use slint::{ComponentHandle, Model, ModelRc};
-use state_manager::StateManager;
-use tempdir::TempDir;
-use types::plugin::PluginContext;
+use tracing_test::traced_test;
 
 use crate::{
     MainWindow, PlaylistContentPageProps,
-    main_content::playlist_content::PlaylistContentPageHandler, pages::PageHandler,
-    test_utils::run_async_test,
+    main_content::playlist_content::PlaylistContentPageHandler,
+    pages::PageHandler,
+    test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
 };
 
-#[test]
+#[rstest]
+#[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_playlist_content_page_handler_on_show() {
-    run_async_test(|| async move {
-        let tmp = TempDir::new("moosync_ui_playlist_content_show").unwrap();
-        let test_dir = tmp.path().to_path_buf();
-        let context = PluginContext {
-            data_dir: test_dir.clone(),
-            cache_dir: test_dir.clone(),
-            tmp_dir: test_dir.clone(),
-            #[cfg(target_os = "android")]
-            android_context: types::android::AndroidJNIContext::default(),
-        };
-        let sm: &'static StateManager =
-            Box::leak(Box::new(StateManager::new_with_context(context).unwrap()));
-        let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
-        main_window
-            .global::<PlaylistContentPageProps>()
-            .set_songs(ModelRc::default());
-        let handler = PlaylistContentPageHandler::new(main_window, sm);
+async fn test_playlist_content_page_handler_on_show(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    main_window
+        .global::<PlaylistContentPageProps>()
+        .set_songs(ModelRc::default());
+    let handler = PlaylistContentPageHandler::new(&main_window, &sm);
 
-        handler.on_show();
+    handler.on_show();
+    let row_count = main_window
+        .global::<PlaylistContentPageProps>()
+        .get_songs()
+        .row_count();
 
-        assert_eq!(
-            main_window
-                .global::<PlaylistContentPageProps>()
-                .get_songs()
-                .row_count(),
-            0
-        );
-    });
+    assert_eq!(row_count, 0);
 }
 
-#[test]
+#[rstest]
+#[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_playlist_content_page_handler_on_hide() {
-    run_async_test(|| async move {
-        let tmp = TempDir::new("moosync_ui_playlist_content_hide").unwrap();
-        let test_dir = tmp.path().to_path_buf();
-        let context = PluginContext {
-            data_dir: test_dir.clone(),
-            cache_dir: test_dir.clone(),
-            tmp_dir: test_dir.clone(),
-            #[cfg(target_os = "android")]
-            android_context: types::android::AndroidJNIContext::default(),
-        };
-        let sm: &'static StateManager =
-            Box::leak(Box::new(StateManager::new_with_context(context).unwrap()));
-        let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
-        let handler = PlaylistContentPageHandler::new(main_window, sm);
+async fn test_playlist_content_page_handler_on_hide(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let handler = PlaylistContentPageHandler::new(&main_window, &sm);
 
-        handler.on_hide();
+    handler.on_hide();
+    let row_count = main_window
+        .global::<PlaylistContentPageProps>()
+        .get_songs()
+        .row_count();
 
-        assert_eq!(
-            main_window
-                .global::<PlaylistContentPageProps>()
-                .get_songs()
-                .row_count(),
-            0
-        );
-    });
+    assert_eq!(row_count, 0);
 }

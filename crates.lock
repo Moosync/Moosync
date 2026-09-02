@@ -1,5 +1,5 @@
 {
-  "checksum": "7bea255f401763f4ac4c4c2c1b144b4232d73fbb4e8e8f52cb27ec303dcd8de2",
+  "checksum": "435876e7394fd9b335ccf2e2d5109bb83b2b49b0778f03c13c8f4729e3d3589e",
   "crates": {
     "ab_glyph 0.2.32": {
       "name": "ab_glyph",
@@ -2635,6 +2635,48 @@
         "MIT"
       ],
       "license_file": "LICENSE"
+    },
+    "assertables 9.9.0": {
+      "name": "assertables",
+      "version": "9.9.0",
+      "package_url": "https://github.com/sixarm/assertables-rust-crate/",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/assertables/9.9.0/download",
+          "sha256": "627b0b35c347252505ec6c078827dfcecc4e9dcfa931c54c54066f9245ac752b"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "assertables",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "assertables",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2021",
+        "version": "9.9.0"
+      },
+      "license": "MIT OR Apache-2.0 OR BSD-3-Clause OR GPL-2.0-only OR GPL-3.0-only",
+      "license_ids": [
+        "Apache-2.0",
+        "BSD-3-Clause",
+        "GPL-2.0",
+        "GPL-3.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE.md"
     },
     "async-broadcast 0.7.2": {
       "name": "async-broadcast",
@@ -34444,6 +34486,10 @@
         "deps": {
           "common": [
             {
+              "id": "assertables 9.9.0",
+              "target": "assertables"
+            },
+            {
               "id": "bitcode 0.6.9",
               "target": "bitcode"
             },
@@ -34632,6 +34678,10 @@
               "target": "rsmpeg"
             },
             {
+              "id": "rstest 0.25.0",
+              "target": "rstest"
+            },
+            {
               "id": "rusqlite 0.37.0",
               "target": "rusqlite"
             },
@@ -34698,6 +34748,10 @@
             {
               "id": "tracing-subscriber 0.3.23",
               "target": "tracing_subscriber"
+            },
+            {
+              "id": "tracing-test 0.2.6",
+              "target": "tracing_test"
             },
             {
               "id": "url 2.5.8",
@@ -48533,6 +48587,51 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
+    "relative-path 1.9.3": {
+      "name": "relative-path",
+      "version": "1.9.3",
+      "package_url": "https://github.com/udoprog/relative-path",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/relative-path/1.9.3/download",
+          "sha256": "ba39f3699c378cd8970968dcbff9c43159ea4cfbd88d43c00b22f2ef10a435d2"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "relative_path",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "relative_path",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "crate_features": {
+          "common": [
+            "default"
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "1.9.3"
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": null
+    },
     "remove_dir_all 0.5.3": {
       "name": "remove_dir_all",
       "version": "0.5.3",
@@ -49861,6 +49960,168 @@
         "MIT"
       ],
       "license_file": null
+    },
+    "rstest 0.25.0": {
+      "name": "rstest",
+      "version": "0.25.0",
+      "package_url": "https://github.com/la10736/rstest",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/rstest/0.25.0/download",
+          "sha256": "6fc39292f8613e913f7df8fa892b8944ceb47c247b78e1b1ae2f09e019be789d"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "rstest",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "rstest",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "edition": "2021",
+        "proc_macro_deps": {
+          "common": [
+            {
+              "id": "rstest_macros 0.25.0",
+              "target": "rstest_macros"
+            }
+          ],
+          "selects": {}
+        },
+        "version": "0.25.0"
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "rstest_macros 0.25.0": {
+      "name": "rstest_macros",
+      "version": "0.25.0",
+      "package_url": "https://github.com/la10736/rstest",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/rstest_macros/0.25.0/download",
+          "sha256": "1f168d99749d307be9de54d23fd226628d99768225ef08f6ffb52e0182a27746"
+        }
+      },
+      "targets": [
+        {
+          "ProcMacro": {
+            "crate_name": "rstest_macros",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        },
+        {
+          "BuildScript": {
+            "crate_name": "build_script_build",
+            "crate_root": "build.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "rstest_macros",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "cfg-if 1.0.4",
+              "target": "cfg_if"
+            },
+            {
+              "id": "glob 0.3.4",
+              "target": "glob"
+            },
+            {
+              "id": "proc-macro2 1.0.107",
+              "target": "proc_macro2"
+            },
+            {
+              "id": "quote 1.0.47",
+              "target": "quote"
+            },
+            {
+              "id": "regex 1.13.1",
+              "target": "regex"
+            },
+            {
+              "id": "relative-path 1.9.3",
+              "target": "relative_path"
+            },
+            {
+              "id": "syn 2.0.119",
+              "target": "syn"
+            },
+            {
+              "id": "unicode-ident 1.0.24",
+              "target": "unicode_ident"
+            }
+          ],
+          "selects": {}
+        },
+        "extra_deps": {
+          "common": [
+            ":build_script_build"
+          ],
+          "selects": {}
+        },
+        "edition": "2021",
+        "version": "0.25.0"
+      },
+      "build_script_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "compile_data_glob_excludes": [
+          "**/*.rs"
+        ],
+        "data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "rustc_version 0.4.1",
+              "target": "rustc_version"
+            }
+          ],
+          "selects": {}
+        }
+      },
+      "license": "MIT OR Apache-2.0",
+      "license_ids": [
+        "Apache-2.0",
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
     },
     "rusqlite 0.37.0": {
       "name": "rusqlite",
@@ -61493,6 +61754,117 @@
         "MIT"
       ],
       "license_file": "LICENSE"
+    },
+    "tracing-test 0.2.6": {
+      "name": "tracing-test",
+      "version": "0.2.6",
+      "package_url": "https://github.com/dbrgn/tracing-test",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/tracing-test/0.2.6/download",
+          "sha256": "19a4c448db514d4f24c5ddb9f73f2ee71bfb24c526cf0c570ba142d1119e0051"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "tracing_test",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "tracing_test",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "tracing-core 0.1.36",
+              "target": "tracing_core"
+            },
+            {
+              "id": "tracing-subscriber 0.3.23",
+              "target": "tracing_subscriber"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "proc_macro_deps": {
+          "common": [
+            {
+              "id": "tracing-test-macro 0.2.6",
+              "target": "tracing_test_macro"
+            }
+          ],
+          "selects": {}
+        },
+        "version": "0.2.6"
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
+    },
+    "tracing-test-macro 0.2.6": {
+      "name": "tracing-test-macro",
+      "version": "0.2.6",
+      "package_url": "https://github.com/dbrgn/tracing-test",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/tracing-test-macro/0.2.6/download",
+          "sha256": "ad06847b7afb65c7866a36664b75c40b895e318cea4f71299f013fb22965329d"
+        }
+      },
+      "targets": [
+        {
+          "ProcMacro": {
+            "crate_name": "tracing_test_macro",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "tracing_test_macro",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "quote 1.0.47",
+              "target": "quote"
+            },
+            {
+              "id": "syn 2.0.119",
+              "target": "syn"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2018",
+        "version": "0.2.6"
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": "LICENSE-APACHE"
     },
     "try-lock 0.2.5": {
       "name": "try-lock",
@@ -78101,6 +78473,7 @@
     "xtensa-esp32s2-none-elf": []
   },
   "direct_deps": [
+    "assertables 9.9.0",
     "async-trait 0.1.92",
     "bitcode 0.6.9",
     "blake3 1.8.7",
@@ -78149,6 +78522,7 @@
     "rfd 0.17.2",
     "rodio 0.22.1",
     "rsmpeg 0.18.0+ffmpeg.8.0",
+    "rstest 0.25.0",
     "rusqlite 0.37.0",
     "rust-crypto 0.2.36",
     "rusty_ffmpeg 0.16.7+ffmpeg.8",
@@ -78166,6 +78540,7 @@
     "tracing 0.1.44",
     "tracing-appender 0.2.5",
     "tracing-subscriber 0.3.23",
+    "tracing-test 0.2.6",
     "url 2.5.8",
     "uuid 1.25.0",
     "vergen 9.0.6",

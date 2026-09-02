@@ -10,6 +10,10 @@ rust_test(
         "@moosync_ext//sample_extensions/rs:sample_extension",
     ],
     deps = [
+        "@crates//:assertables",
+        "@crates//:rstest",
+        "@crates//:tempdir",
+        "@crates//:tracing-test",
         "@crates//:wiremock",
     ],
 )
@@ -26,6 +30,10 @@ rust_test(
         "@moosync_ext//sample_extensions/rs:sample_extension",
     ],
     deps = [
+        "@crates//:assertables",
+        "@crates//:rstest",
+        "@crates//:tempdir",
+        "@crates//:tracing-test",
         "@crates//:wiremock",
     ],
 )
@@ -74,7 +82,6 @@ rust_library(
         "@crates//:rust-crypto",
         "@crates//:serde",
         "@crates//:serde_json",
-        "@crates//:tempdir",
         "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",

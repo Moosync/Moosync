@@ -38,7 +38,6 @@ rust_library(
         "@crates//:num_cpus",
         "@crates//:regex",
         "@crates//:substring",
-        "@crates//:tempdir",
         "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",
@@ -49,4 +48,10 @@ rust_library(
 rust_test(
     name = "file_scanner_test",
     crate = ":file_scanner",
+    deps = [
+        "@crates//:assertables",
+        "@crates//:rstest",
+        "@crates//:tempdir",
+        "@crates//:tracing-test",
+    ],
 )

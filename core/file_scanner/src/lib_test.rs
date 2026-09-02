@@ -20,61 +20,94 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use assertables::{assert_err, assert_matches, assert_not_empty, assert_ok};
+use rstest::{fixture, rstest};
 use songs_proto::moosync::types::Playlist;
 use tempdir::TempDir;
+use tracing_test::traced_test;
 
 use crate::{PlaylistSongId, ScanProgress, ScannerHolder, error::ScannerError};
 
-#[tokio::test]
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_scanner_holder_scan_dirs_not_configured() {
-    let scanner = ScannerHolder::new();
-    let res = scanner.start_scan().await;
-    assert!(matches!(res, Err(ScannerError::ScanDirsNotConfigured)));
+fn temp_dir_fixture() -> TempDir {
+    TempDir::new("moosync_holder_test").expect("failed to create temp dir")
 }
 
-#[tokio::test]
+#[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_scanner_holder_thumbnail_dir_not_configured() {
-    let mut scanner = ScannerHolder::new();
-    let tmp = TempDir::new("moosync_holder_val").unwrap();
-    scanner.set_scan_dirs(vec![tmp.path().to_path_buf()]);
+fn default_scanner() -> ScannerHolder { ScannerHolder::new() }
 
-    let res = scanner.start_scan().await;
-    assert!(matches!(res, Err(ScannerError::ThumbnailDirNotConfigured)));
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_scanner_holder_scan_dirs_not_configured(default_scanner: ScannerHolder) {
+    let res = default_scanner.start_scan().await;
+
+    assert_err!(res.as_ref());
+    assert_matches!(res.unwrap_err(), ScannerError::ScanDirsNotConfigured);
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_scanner_holder_song_callback_not_configured() {
-    let mut scanner = ScannerHolder::new();
-    let tmp = TempDir::new("moosync_holder_val").unwrap();
-    scanner.set_scan_dirs(vec![tmp.path().to_path_buf()]);
-    scanner.set_thumbnail_dir(tmp.path().to_path_buf());
+async fn test_scanner_holder_thumbnail_dir_not_configured(
+    mut default_scanner: ScannerHolder,
+    temp_dir_fixture: TempDir,
+) {
+    default_scanner.set_scan_dirs(vec![temp_dir_fixture.path().to_path_buf()]);
 
-    let res = scanner.start_scan().await;
-    assert!(matches!(res, Err(ScannerError::SongCallbackNotConfigured)));
+    let res = default_scanner.start_scan().await;
+
+    assert_err!(res.as_ref());
+    assert_matches!(res.unwrap_err(), ScannerError::ThumbnailDirNotConfigured);
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_scanner_holder_playlist_callback_not_configured() {
-    let mut scanner = ScannerHolder::new();
-    let tmp = TempDir::new("moosync_holder_val").unwrap();
-    scanner.set_scan_dirs(vec![tmp.path().to_path_buf()]);
-    scanner.set_thumbnail_dir(tmp.path().to_path_buf());
-    scanner.set_on_song(|_pl, _songs| async {});
+async fn test_scanner_holder_song_callback_not_configured(
+    mut default_scanner: ScannerHolder,
+    temp_dir_fixture: TempDir,
+) {
+    default_scanner.set_scan_dirs(vec![temp_dir_fixture.path().to_path_buf()]);
+    default_scanner.set_thumbnail_dir(temp_dir_fixture.path().to_path_buf());
 
-    let res = scanner.start_scan().await;
-    assert!(matches!(
-        res,
-        Err(ScannerError::PlaylistCallbackNotConfigured)
-    ));
+    let res = default_scanner.start_scan().await;
+
+    assert_err!(res.as_ref());
+    assert_matches!(res.unwrap_err(), ScannerError::SongCallbackNotConfigured);
 }
 
+#[rstest]
 #[tokio::test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_scanner_holder_scan_lifecycle_and_subscribers() {
+async fn test_scanner_holder_playlist_callback_not_configured(
+    mut default_scanner: ScannerHolder,
+    temp_dir_fixture: TempDir,
+) {
+    default_scanner.set_scan_dirs(vec![temp_dir_fixture.path().to_path_buf()]);
+    default_scanner.set_thumbnail_dir(temp_dir_fixture.path().to_path_buf());
+    default_scanner.set_on_song(|_pl, _songs| async {});
+
+    let res = default_scanner.start_scan().await;
+
+    assert_err!(res.as_ref());
+    assert_matches!(
+        res.unwrap_err(),
+        ScannerError::PlaylistCallbackNotConfigured
+    );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_scanner_holder_scan_lifecycle_and_subscribers(temp_dir_fixture: TempDir) {
     let playlist_contents = r#"
 #EXTM3U
 #EXTINF:0,stream
@@ -83,10 +116,8 @@ https://cast.animu.com.br:9079/stream
 https://radio.stereoanime.net/listen/stereoanime/320
 "#;
 
-    let tmp = TempDir::new("moosync_holder_test").unwrap();
-    let in_dir = tmp.path().join("in");
-    let out_dir = tmp.path().join("out");
-
+    let in_dir = temp_dir_fixture.path().join("in");
+    let out_dir = temp_dir_fixture.path().join("out");
     fs::create_dir_all(&in_dir).unwrap();
     fs::create_dir_all(&out_dir).unwrap();
 
@@ -116,14 +147,13 @@ https://radio.stereoanime.net/listen/stereoanime/320
     let mut progress_rx = scanner.add_subscriber();
 
     let scan_res = scanner.start_scan().await;
-    assert!(scan_res.is_ok());
-
     let mut progress_events = Vec::new();
     while let Ok(evt) = progress_rx.try_recv() {
         progress_events.push(evt);
     }
-    assert!(!progress_events.is_empty());
-    assert_eq!(*progress_events.last().unwrap(), ScanProgress::STOPPED);
 
+    assert_ok!(scan_res);
+    assert_not_empty!(&progress_events);
+    assert_eq!(*progress_events.last().unwrap(), ScanProgress::STOPPED);
     assert_eq!(*playlist_count.lock().unwrap(), 1);
 }

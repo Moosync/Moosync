@@ -23,6 +23,8 @@ mod utils;
 mod window_info;
 
 #[cfg(test)]
+mod integration_test;
+#[cfg(test)]
 mod lib_test;
 #[cfg(test)]
 mod pages_test;

@@ -14,28 +14,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{
-    num::NonZero,
-    sync::{Arc, Mutex},
-    time::Duration,
-};
+use std::time::Duration;
 
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
-use rodio::{
-    MixerDeviceSink, Player,
-    cpal::{
-        SupportedStreamConfig,
-        traits::{DeviceTrait, HostTrait},
-    },
-    source::EmptyCallback,
+use rodio::cpal::{
+    SupportedStreamConfig,
+    traits::{DeviceTrait, HostTrait},
 };
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-    error::PlayerError, generic::PlayerExt, rodio::decoder::FFMPEGDecoder, source::ValidSrc,
+    context::{AudioPlayerContext, RodioPlayerContext},
+    error::PlayerError,
+    generic::PlayerExt,
+    source::ValidSrc,
 };
 
-mod decoder;
+pub(crate) mod decoder;
 #[cfg(test)]
 mod decoder_test;
 #[cfg(test)]
@@ -83,8 +78,7 @@ fn get_cpal_default_sample_rate() -> u32 {
 pub(crate) use decoder::DecoderError;
 
 pub struct RodioPlayer {
-    _sink: Mutex<Option<MixerDeviceSink>>,
-    player: Arc<Mutex<Option<Player>>>,
+    context: Box<dyn AudioPlayerContext>,
     events_tx: UnboundedSender<PlayerEvent>,
 }
 
@@ -92,109 +86,39 @@ impl RodioPlayer {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(events_tx: UnboundedSender<PlayerEvent>) -> Self {
         Self {
-            _sink: Mutex::new(None),
-            player: Arc::new(Mutex::new(None)),
+            context: Box::new(RodioPlayerContext::new()),
             events_tx,
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn send_event(events_tx: UnboundedSender<PlayerEvent>, event: PlayerEvent) {
-        if let Err(e) = events_tx.send(event) {
-            tracing::error!("Failed to send event: {:?}", e);
-        }
+    pub fn new_with_context(
+        context: Box<dyn AudioPlayerContext>,
+        events_tx: UnboundedSender<PlayerEvent>,
+    ) -> Self {
+        Self { context, events_tx }
     }
 }
 
 impl PlayerExt for RodioPlayer {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn play(&self) -> Result<(), PlayerError> {
-        if let Some(player) = self.player.lock().unwrap().as_ref() {
-            player.play();
-        }
-        Ok(())
-    }
+    fn play(&self) -> Result<(), PlayerError> { self.context.play() }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn pause(&self) -> Result<(), PlayerError> {
-        if let Some(player) = self.player.lock().unwrap().as_ref() {
-            player.pause();
-        }
-        Ok(())
-    }
+    fn pause(&self) -> Result<(), PlayerError> { self.context.pause() }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn stop(&self) -> Result<(), PlayerError> {
-        if let Some(player) = self.player.lock().unwrap().as_ref() {
-            player.stop();
-        }
-        Ok(())
-    }
+    fn stop(&self) -> Result<(), PlayerError> { self.context.stop() }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_volume(&self, volume: u8) -> Result<(), PlayerError> {
-        if let Some(player) = self.player.lock().unwrap().as_ref() {
-            player.set_volume(volume as f32 / 100f32);
-        }
-
-        Ok(())
-    }
+    fn set_volume(&self, volume: u8) -> Result<(), PlayerError> { self.context.set_volume(volume) }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn seek(&self, pos: Duration) -> Result<(), PlayerError> {
-        if let Some(player) = self.player.lock().unwrap().as_ref() {
-            player.try_seek(pos)?;
-        }
-        Ok(())
-    }
+    fn seek(&self, pos: Duration) -> Result<(), PlayerError> { self.context.seek(pos) }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_src(&self, src: ValidSrc) -> Result<(), PlayerError> {
-        let old_volume = self.get_volume().unwrap_or_else(|e| {
-            tracing::error!("Failed to retrieve old volume: {:?}. Defaulting to 50", e);
-            50
-        });
-        let events_tx = self.events_tx.clone();
-
-        if let Some(player) = self.player.lock().unwrap().as_ref() {
-            player.clear();
-        }
-
-        // Prefer PulseAudio's native sample rate over cpal's default,
-        // since cpal's default_output_config() can lie on PipeWire sinks.
-        let system_rate = get_system_sample_rate().max(1);
-        let safe_rate = NonZero::new(system_rate).expect("Sample rate is clamped to 1");
-
-        // Request the rate from the OS so cpal/PipeWire negotiate it explicitly
-        // rather than picking whatever happens to be default. The actual
-        // negotiated rate may differ; we use that for decoder output.
-        let device_builder = rodio::DeviceSinkBuilder::from_default_device()?;
-        let mut sink = device_builder
-            .with_sample_rate(safe_rate)
-            .open_stream()
-            .unwrap_or(rodio::DeviceSinkBuilder::open_default_sink()?);
-        sink.log_on_drop(false);
-        let cfg = sink.config();
-        let output_sample_rate = cfg.sample_rate().get();
-        tracing::trace!(
-            "Sink requested rate={}, actual channels={}, sample_rate={}, format={:?}",
-            system_rate,
-            cfg.channel_count(),
-            output_sample_rate,
-            cfg.sample_format()
-        );
-
-        let player = rodio::Player::connect_new(sink.mixer());
-        player.append(FFMPEGDecoder::open(&src.inner(), output_sample_rate)?);
-        player.append(EmptyCallback::new(Box::new(move || {
-            let events_tx = events_tx.clone();
-            Self::send_event(events_tx, PlayerEvent::Ended(true));
-        })));
-        player.set_volume(old_volume as f32 / 100f32);
-
-        *self.player.lock().unwrap() = Some(player);
-        *self._sink.lock().unwrap() = Some(sink);
-        Ok(())
+        self.context.set_src(src, self.events_tx.clone())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -206,37 +130,15 @@ impl PlayerExt for RodioPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_current_pos(&self) -> Result<Duration, PlayerError> {
-        if let Some(player) = &self.player.lock().unwrap().as_ref() {
-            return Ok(player.get_pos());
-        }
-        Ok(Duration::default())
-    }
+    fn get_current_pos(&self) -> Result<Duration, PlayerError> { self.context.get_current_pos() }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_volume(&self) -> Result<u8, PlayerError> {
-        if let Some(player) = self.player.lock().unwrap().as_ref() {
-            Ok((player.volume() * 100.0).round() as u8)
-        } else {
-            Ok(100)
-        }
-    }
+    fn get_volume(&self) -> Result<u8, PlayerError> { self.context.get_volume() }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_player_state(
         &self,
     ) -> Result<extensions_proto::moosync::types::PlayerState, PlayerError> {
-        let guard = self.player.lock().unwrap();
-        let Some(player) = guard.as_ref() else {
-            return Ok(extensions_proto::moosync::types::PlayerState::Stopped);
-        };
-
-        if player.empty() {
-            return Ok(extensions_proto::moosync::types::PlayerState::Stopped);
-        }
-        if player.is_paused() {
-            return Ok(extensions_proto::moosync::types::PlayerState::Paused);
-        }
-        Ok(extensions_proto::moosync::types::PlayerState::Playing)
+        self.context.get_player_state()
     }
 }

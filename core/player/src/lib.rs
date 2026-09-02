@@ -15,6 +15,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 pub(crate) mod audio_source;
+pub mod context;
 pub mod error;
 mod generic;
 mod mux_player;
@@ -34,6 +35,7 @@ mod source_test;
 
 use std::{sync::Arc, time::Duration};
 
+pub use context::{AudioPlayerContext, DummyAudioPlayerContext, RodioPlayerContext};
 use extensions_proto::moosync::types::{PlayerEvent, player_event::Event};
 use songs_proto::moosync::types::Song;
 use tokio::{
@@ -90,6 +92,38 @@ impl PlayerHandler {
             on_repeat_changed: SubscriberList::new(),
             on_player_event: SubscriberList::new(),
         }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new_with_context(
+        ended_tx: UnboundedSender<()>,
+        context: Box<dyn AudioPlayerContext>,
+    ) -> Self {
+        PlayerHandler {
+            song_queue: vec![],
+            current_idx: 0,
+            repeat_mode: RepeatMode::None,
+            player: AudioSource::new_with_context(
+                Box::new(move || {
+                    let _ = ended_tx.send(());
+                }),
+                context,
+            ),
+            on_song_changed: SubscriberList::new(),
+            on_queue_updated: SubscriberList::new(),
+            on_repeat_changed: SubscriberList::new(),
+            on_player_event: SubscriberList::new(),
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new_dummy(ended_tx: UnboundedSender<()>) -> Self {
+        Self::new_with_context(ended_tx, Box::new(DummyAudioPlayerContext::new()))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn set_context(&mut self, context: Box<dyn AudioPlayerContext>) {
+        self.player = AudioSource::new_with_context(Box::new(|| {}), context);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

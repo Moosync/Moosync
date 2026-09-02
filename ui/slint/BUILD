@@ -26,6 +26,7 @@ cargo_build_script(
         "CARGO_PKG_VERSION_MINOR": "18",
         "CARGO_PKG_VERSION_PATCH": "0",
         "SLINT_ENABLE_EXPERIMENTAL_FEATURES": "1",
+        "SLINT_EMIT_DEBUG_INFO": "1",
     },
     data = glob([
         "locales/**/*.po",
@@ -39,6 +40,7 @@ rust_library(
     name = "slint_app_lib",
     srcs = [
         "src/error.rs",
+        "src/integration_test.rs",
         "src/lib.rs",
         "src/lib_test.rs",
         "src/main_content/album_content.rs",
@@ -169,6 +171,7 @@ rust_shared_library(
     name = "slint_app_android",
     srcs = [
         "src/error.rs",
+        "src/integration_test.rs",
         "src/lib.rs",
         "src/lib_test.rs",
         "src/main_content/album_content.rs",

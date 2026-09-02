@@ -20,7 +20,7 @@ use extensions_proto::moosync::types::PlayerState;
 use songs_proto::moosync::types::{InnerSong, Song};
 use tokio::sync::mpsc::unbounded_channel;
 
-use crate::{generic::PlayerExt, mux_player::MuxPlayer, source::ValidSrc};
+use crate::{mux_player::MuxPlayer, source::ValidSrc};
 
 #[test]
 #[tracing::instrument(level = "debug", skip_all)]
@@ -29,7 +29,7 @@ fn test_mux_player_initial_state_and_can_play() {
     let mux = MuxPlayer::new(tx);
 
     assert_eq!(mux.get_player_state(), PlayerState::Stopped);
-    assert!(!mux.can_play(ValidSrc::Url(Cow::Borrowed("https://example.com"))));
+    assert!(!mux.can_play(ValidSrc::Url(Cow::Borrowed("ftp://example.com"))));
 }
 
 #[test]
@@ -39,7 +39,7 @@ fn test_mux_player_load_unsupported_url_and_controls() {
     let mut mux = MuxPlayer::new(tx);
     let song = Song {
         song: Some(InnerSong {
-            playback_url: Some("https://example.com/audio.mp3".to_string()),
+            playback_url: Some("ftp://example.com/audio.mp3".to_string()),
             ..Default::default()
         }),
         ..Default::default()

@@ -22,8 +22,8 @@ use tokio::sync::mpsc::unbounded_channel;
 
 use crate::{
     OnEndedCallback,
+    context::AudioPlayerContext,
     error::PlayerError,
-    generic::PlayerExt,
     mux_player::MuxPlayer,
     source::{SourceResolver, SourceResolverFn},
 };
@@ -46,6 +46,25 @@ impl AudioSource {
         });
         Self {
             mux: MuxPlayer::new(events_tx),
+            source_resolver: SourceResolver::new(),
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new_with_context(
+        on_ended_callback: OnEndedCallback,
+        context: Box<dyn AudioPlayerContext>,
+    ) -> Self {
+        let (events_tx, mut events_rx) = unbounded_channel();
+        tokio::spawn(async move {
+            while let Some(event) = events_rx.recv().await {
+                if let Ended(_) = event {
+                    on_ended_callback();
+                }
+            }
+        });
+        Self {
+            mux: MuxPlayer::new_with_context(events_tx, context),
             source_resolver: SourceResolver::new(),
         }
     }

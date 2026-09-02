@@ -14,6 +14,10 @@ rust_library(
     srcs = [
         "src/audio_source.rs",
         "src/audio_source_test.rs",
+        "src/context/dummy.rs",
+        "src/context/mod.rs",
+        "src/context/mod_test.rs",
+        "src/context/rodio.rs",
         "src/error.rs",
         "src/generic.rs",
         "src/lib.rs",

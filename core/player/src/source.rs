@@ -6,7 +6,7 @@ use types::prelude::SongsExt;
 use crate::error::PlayerError;
 
 #[derive(Clone, Debug)]
-pub(crate) enum ValidSrc<'a> {
+pub enum ValidSrc<'a> {
     Path(PathBuf),
     Url(Cow<'a, str>),
 }

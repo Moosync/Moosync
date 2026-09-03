@@ -1,243 +1,317 @@
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: slint_app\n"
+"Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-08-24 20:45+0000\n"
+"PO-Revision-Date: 2026-09-03 01:37\n"
 "Language: da_DK\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Crowdin-Project: moosync\n"
+"X-Crowdin-Project-ID: 529128\n"
+"X-Crowdin-Language: da\n"
+"X-Crowdin-File: /main/ui/slint/locales/en_US/LC_MESSAGES/slint_app.po\n"
+"X-Crowdin-File-ID: 73\n"
+"Language-Team: Danish\n"
 
-#: src/app.slint:156 src/main_content/search.slint:99
+#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99
 msgid "Songs"
 msgstr "Alle Sange"
 
-#: src/app.slint:157 src/main_content/playlists.slint:21
-#: src/app.slint:157 src/main_content/playlists.slint:21
+#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21 ui/slint/src/app.slint:165
 msgid "Playlists"
 msgstr "Afspilningslister"
 
-#: src/app.slint:158 src/main_content/artists.slint:21
-#: src/app.slint:158 src/main_content/artists.slint:21
+#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21 ui/slint/src/app.slint:169
 msgid "Artists"
 msgstr "Kunstnere"
 
-#: src/app.slint:159 src/main_content/albums.slint:21
-#: src/app.slint:159 src/main_content/albums.slint:21
+#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21 ui/slint/src/app.slint:170
 msgid "Albums"
 msgstr "Albummer"
 
-#: src/app.slint:160 src/main_content/genres.slint:21
-#: src/app.slint:160 src/main_content/genres.slint:21
+#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21 ui/slint/src/app.slint:171
 msgid "Genres"
 msgstr "Genres"
 
-#: src/app.slint:161 src/main_content/explore.slint:22
+#: ui/slint/src/app.slint:161 ui/slint/src/main_content/explore.slint:22
 msgid "Explore"
 msgstr "Udforsk"
 
-#: src/common/song_list_view.slint:59
+#: ui/slint/src/common/song_list_view.slint:59
 msgid "Filter songs..."
-msgstr "Søg..."
+msgstr "Filtrer sange..."
 
-#: src/common/card_view.slint:4
+#: ui/slint/src/common/card_view.slint:4
 msgid "Card Title"
-msgstr ""
+msgstr "Kort Titel"
 
-#: src/constants.slint:17 src/callbacks.slint:75
+#: ui/slint/src/constants.slint:17 ui/slint/src/callbacks.slint:75
 msgid "Title"
 msgstr "Titel"
 
-#: src/constants.slint:25 src/callbacks.slint:83
+#: ui/slint/src/constants.slint:25 ui/slint/src/callbacks.slint:83
 msgid "Date"
-msgstr "Dato tilføjet"
+msgstr "Dato"
 
-#: src/constants.slint:33 src/callbacks.slint:91
+#: ui/slint/src/constants.slint:33 ui/slint/src/callbacks.slint:91
 msgid "Album"
-msgstr "Album (Track No.)"
+msgstr "Album"
 
-#: src/constants.slint:41 src/callbacks.slint:99
+#: ui/slint/src/constants.slint:41 ui/slint/src/callbacks.slint:99
 msgid "Track Number"
-msgstr ""
+msgstr "Nummer På Spor"
 
-#: src/constants.slint:49 src/callbacks.slint:107
+#: ui/slint/src/constants.slint:49 ui/slint/src/callbacks.slint:107
 msgid "Artist"
 msgstr "Kunstner"
 
-#: src/main_content/explore.slint:32
+#: ui/slint/src/main_content/explore.slint:32
 msgid "No recommendations"
-msgstr ""
+msgstr "Ingen anbefalinger"
 
-#: src/main_content/search.slint:80
+#: ui/slint/src/main_content/search.slint:80
 msgid "Search"
-msgstr ""
+msgstr "Søg"
 
-#: src/main_content/search.slint:89
+#: ui/slint/src/main_content/search.slint:89
 msgid "Local"
-msgstr "Local"
+msgstr "Lokal"
 
-#: src/main_content/queue_page.slint:250
+#: ui/slint/src/main_content/queue_page.slint:250
 msgid "Show Lyrics"
-msgstr ""
+msgstr "Vis Sangtekster"
 
-#: src/main_content/queue_page.slint:268
+#: ui/slint/src/main_content/queue_page.slint:268
 msgid "Save as playlist"
-msgstr ""
+msgstr "Gem som afspilningsliste"
 
-#: src/main_content/queue_page.slint:274
+#: ui/slint/src/main_content/queue_page.slint:274
 msgid "Clear"
-msgstr ""
+msgstr "Ryd"
 
-#: src/settings/extensions.slint:154
+#: ui/slint/src/settings/extensions.slint:154
 msgid "Settings > Extensions"
-msgstr ""
+msgstr "Indstillinger > Udvidelser"
 
-#: src/settings/extensions.slint:167 src/settings/settings.slint:43
+#: ui/slint/src/settings/extensions.slint:167
 msgid "Extensions"
-msgstr "Extensions"
+msgstr "Udvidelser"
 
-#: src/settings/extensions.slint:173
+#: ui/slint/src/settings/extensions.slint:173
 msgid "Manage your extensions"
-msgstr ""
+msgstr "Administrer dine udvidelser"
 
-#: src/settings/extensions.slint:181
+#: ui/slint/src/settings/extensions.slint:181
 msgid "Add Extension"
-msgstr ""
+msgstr "Tilføj Udvidelse"
 
-#: src/settings/extensions.slint:193
+#: ui/slint/src/settings/extensions.slint:193
 msgid "No extensions available."
-msgstr ""
+msgstr "Ingen tilgængelige udvidelser."
 
-#: src/settings/path_selector.slint:35
+#: ui/slint/src/settings/path_selector.slint:35
 msgid "Add folder"
-msgstr ""
+msgstr "Tilføj mappe"
 
-#: src/settings/paths.slint:24
+#: ui/slint/src/settings/paths.slint:24
 msgid "Settings > Paths"
-msgstr ""
+msgstr "Indstillinger > Stier"
 
-#: src/settings/settings.slint:40
+#: ui/slint/src/settings/settings.slint:40
 msgid "Paths"
-msgstr "Paths"
+msgstr "Stier"
 
-#: src/settings/settings.slint:41
+#: ui/slint/src/settings/settings.slint:41
 msgid "System"
 msgstr "System"
 
-#: src/settings/settings.slint:47
+#: ui/slint/src/settings/settings.slint:47
 msgid "Themes"
-msgstr "Themes"
+msgstr "Temaer"
 
-#: src/settings/settings.slint:160
+#: ui/slint/src/settings/settings.slint:160
 msgid "Save Custom Theme"
-msgstr ""
+msgstr "Gem Brugerdefineret Tema"
 
-#: src/settings/settings.slint:166
+#: ui/slint/src/settings/settings.slint:166
 msgid "Your current accent and advanced styling variables will be saved."
-msgstr ""
+msgstr "Din nuværende accent og avancerede styling variabler vil blive gemt."
 
-#: src/settings/settings.slint:174
+#: ui/slint/src/settings/settings.slint:174
 msgid "Theme Name"
-msgstr ""
+msgstr "Tema Navn"
 
-#: src/settings/settings.slint:175
+#: ui/slint/src/settings/settings.slint:175
 msgid "A short, distinct name"
-msgstr ""
+msgstr "Et kort, særskilt navn"
 
-#: src/settings/settings.slint:176
+#: ui/slint/src/settings/settings.slint:176
 msgid "e.g., Midnight Blue"
-msgstr ""
+msgstr "f.eks. Midnight Blue"
 
-#: src/settings/settings.slint:182
+#: ui/slint/src/settings/settings.slint:182
 msgid "Author"
-msgstr ""
+msgstr "Forfatter"
 
-#: src/settings/settings.slint:183
+#: ui/slint/src/settings/settings.slint:183
 msgid "Who created this theme?"
-msgstr ""
+msgstr "Hvem skabte dette tema?"
 
-#: src/settings/settings.slint:184
+#: ui/slint/src/settings/settings.slint:184
 msgid "Your name"
-msgstr ""
+msgstr "Dit navn"
 
-#: src/settings/settings.slint:190
+#: ui/slint/src/settings/settings.slint:190
 msgid "Description"
-msgstr ""
+msgstr "Varebeskrivelse"
 
-#: src/settings/settings.slint:191
+#: ui/slint/src/settings/settings.slint:191
 msgid "A brief summary of the aesthetics"
-msgstr ""
+msgstr "Et kort resumé af æstetik"
 
-#: src/settings/settings.slint:192
+#: ui/slint/src/settings/settings.slint:192
 msgid "High contrast dark theme..."
-msgstr ""
+msgstr "Mørkt tema med høj kontrast..."
 
-#: src/settings/settings.slint:203
+#: ui/slint/src/settings/settings.slint:203
 msgid "Cancel"
-msgstr ""
+msgstr "Annuller"
 
-#: src/settings/settings.slint:204
+#: ui/slint/src/settings/settings.slint:204
 msgid "Save Theme"
-msgstr ""
+msgstr "Gem Tema"
 
-#: src/settings/system.slint:24
+#: ui/slint/src/settings/system.slint:24
 msgid "Settings > System"
-msgstr ""
+msgstr "Indstillinger > System"
 
-#: src/settings/themes.slint:215
+#: ui/slint/src/settings/themes.slint:215
 msgid "Opacity"
-msgstr ""
+msgstr "Gennemsigtighed"
 
-#: src/settings/themes.slint:467
+#: ui/slint/src/settings/themes.slint:467
 msgid "Settings > Themes"
-msgstr ""
+msgstr "Indstillinger > Temaer"
 
-#: src/settings/themes.slint:484
+#: ui/slint/src/settings/themes.slint:484
 msgid "Preset Themes"
-msgstr ""
+msgstr "Forudindstillede Temaer"
 
-#: src/settings/themes.slint:490
+#: ui/slint/src/settings/themes.slint:490
 msgid "Selecting a theme will instantly override your advanced styling configurations."
-msgstr ""
+msgstr "Valg af et tema vil øjeblikkeligt tilsidesætte dine avancerede styling konfigurationer."
 
-#: src/settings/themes.slint:520
+#: ui/slint/src/settings/themes.slint:520
 msgid "Quick Accent"
-msgstr ""
+msgstr "Hurtig Accent"
 
-#: src/settings/themes.slint:526
+#: ui/slint/src/settings/themes.slint:526
 msgid "Instantly update the primary interactive color."
-msgstr ""
+msgstr "Opdater straks den primære interaktive farve."
 
-#: src/settings/themes.slint:573
+#: ui/slint/src/settings/themes.slint:573
 msgid "Advanced Styling"
-msgstr ""
+msgstr "Avanceret Styling"
 
-#: src/settings/themes.slint:579
+#: ui/slint/src/settings/themes.slint:579
 msgid "Fine-tune UI parameters. Modifying these clones/mutates the current active theme."
-msgstr ""
+msgstr "Fin- tune UI parametre. Ændring af disse kloner/muterer det aktuelle aktive tema."
 
-#: src/settings/themes.slint:606
+#: ui/slint/src/settings/themes.slint:606
 msgid "Adjust the color for {}"
-msgstr ""
+msgstr "Justér farven for {}"
 
-#: src/settings/themes.slint:615
+#: ui/slint/src/settings/themes.slint:615
 msgid "Adjust the size for {}"
-msgstr ""
+msgstr "Justér størrelsen for {}"
 
-#: src/settings/themes.slint:630
+#: ui/slint/src/settings/themes.slint:630
 msgid "Export Theme"
-msgstr ""
+msgstr "Eksporter Tema"
 
-#: src/settings/themes.slint:631
+#: ui/slint/src/settings/themes.slint:631
 msgid "Save your current styling configuration as a new reusable preset."
-msgstr ""
+msgstr "Gem din nuværende styling konfiguration som en ny genanvendelig forudindstilling."
 
-#: src/settings/themes.slint:632
+#: ui/slint/src/settings/themes.slint:632
 msgid "Save as New Theme"
-msgstr ""
+msgstr "Gem som nyt tema"
 
-#: src/topbar/search_bar.slint:6
+#: ui/slint/src/topbar/search_bar.slint:6
 msgid "Search..."
 msgstr "Søg..."
+
+#: ui/slint/src/common/save_playlist_modal.slint:29
+msgid "Save as Playlist"
+msgstr "Gem som spilleliste"
+
+#: ui/slint/src/common/save_playlist_modal.slint:36
+msgid "Enter details for the new playlist."
+msgstr "Indtast detaljer for den nye spilleliste."
+
+#: ui/slint/src/common/save_playlist_modal.slint:44
+msgid "Playlist Name"
+msgstr "Spillelistens Navn"
+
+#: ui/slint/src/common/save_playlist_modal.slint:46
+msgid "e.g., My Queue Playlist"
+msgstr "f.eks. Min Kø Spilleliste"
+
+#: ui/slint/src/common/save_playlist_modal.slint:54
+msgid "e.g., Chill vibes and favorites"
+msgstr "f.eks. Chill vibes og favoritter"
+
+#: ui/slint/src/common/save_playlist_modal.slint:70
+msgid "Save"
+msgstr "Gem"
+
+#: ui/slint/src/types/context_menu.slint:12
+msgid "Play Now"
+msgstr "Spil Nu"
+
+#: ui/slint/src/types/context_menu.slint:17
+msgid "Play Next"
+msgstr "Afspil Næste"
+
+#: ui/slint/src/types/context_menu.slint:22
+msgid "Add to Queue"
+msgstr "Føj til kø"
+
+#: ui/slint/src/types/context_menu.slint:37
+msgid "Remove from Queue"
+msgstr "Fjern fra kø"
+
+#: ui/slint/src/types/context_menu.slint:62
+msgid "Remove from Playlist"
+msgstr "Fjern fra spilleliste"
+
+#: ui/slint/src/types/context_menu.slint:72
+msgid "Delete Playlist"
+msgstr "Slet Spilleliste"
+
+#: ui/slint/src/types/context_menu.slint:34
+msgid "Clear queue and play"
+msgstr "Ryd kø og afspil"
+
+#: ui/slint/src/types/context_menu.slint:119
+msgid "Export Playlist"
+msgstr "Eksporter Spilleliste"
+
+#: ui/slint/src/types/context_menu.slint:126
+msgid "Save Playlist"
+msgstr "Gem Afspilningsliste"
+
+#: ui/slint/src/types/context_menu.slint:135
+msgid "Add to Playlist"
+msgstr "Føj til spilleliste"
+
+#: ui/slint/src/types/context_menu.slint:139
+msgid "Go to album"
+msgstr "Gå til album"
+
+#: ui/slint/src/types/context_menu.slint:143
+msgid "Go to artists"
+msgstr "Gå til kunstnere"
+

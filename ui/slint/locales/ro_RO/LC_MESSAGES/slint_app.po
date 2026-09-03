@@ -1,243 +1,317 @@
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: slint_app\n"
+"Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-08-24 20:45+0000\n"
+"PO-Revision-Date: 2026-09-03 01:37\n"
 "Language: ro_RO\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=3; plural=(n==1 ? 0 : (n==0 || (n%100>0 && n%100<20)) ? 1 : 2);\n"
+"X-Crowdin-Project: moosync\n"
+"X-Crowdin-Project-ID: 529128\n"
+"X-Crowdin-Language: ro\n"
+"X-Crowdin-File: /main/ui/slint/locales/en_US/LC_MESSAGES/slint_app.po\n"
+"X-Crowdin-File-ID: 73\n"
+"Language-Team: Romanian\n"
 
-#: src/app.slint:156 src/main_content/search.slint:99
+#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99
 msgid "Songs"
 msgstr "Toate melodiile"
 
-#: src/app.slint:157 src/main_content/playlists.slint:21
-#: src/app.slint:157 src/main_content/playlists.slint:21
+#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21 ui/slint/src/app.slint:165
 msgid "Playlists"
 msgstr "Liste"
 
-#: src/app.slint:158 src/main_content/artists.slint:21
-#: src/app.slint:158 src/main_content/artists.slint:21
+#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21 ui/slint/src/app.slint:169
 msgid "Artists"
 msgstr "Artişti"
 
-#: src/app.slint:159 src/main_content/albums.slint:21
-#: src/app.slint:159 src/main_content/albums.slint:21
+#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21 ui/slint/src/app.slint:170
 msgid "Albums"
 msgstr "Albume"
 
-#: src/app.slint:160 src/main_content/genres.slint:21
-#: src/app.slint:160 src/main_content/genres.slint:21
+#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21 ui/slint/src/app.slint:171
 msgid "Genres"
 msgstr "Genres"
 
-#: src/app.slint:161 src/main_content/explore.slint:22
+#: ui/slint/src/app.slint:161 ui/slint/src/main_content/explore.slint:22
 msgid "Explore"
 msgstr "Explorați"
 
-#: src/common/song_list_view.slint:59
+#: ui/slint/src/common/song_list_view.slint:59
 msgid "Filter songs..."
-msgstr "Caută..."
+msgstr "Filtrează melodiile..."
 
-#: src/common/card_view.slint:4
+#: ui/slint/src/common/card_view.slint:4
 msgid "Card Title"
-msgstr ""
+msgstr "Titlu card"
 
-#: src/constants.slint:17 src/callbacks.slint:75
+#: ui/slint/src/constants.slint:17 ui/slint/src/callbacks.slint:75
 msgid "Title"
 msgstr "Titlu"
 
-#: src/constants.slint:25 src/callbacks.slint:83
+#: ui/slint/src/constants.slint:25 ui/slint/src/callbacks.slint:83
 msgid "Date"
-msgstr "Data adăugării"
+msgstr "Data"
 
-#: src/constants.slint:33 src/callbacks.slint:91
+#: ui/slint/src/constants.slint:33 ui/slint/src/callbacks.slint:91
 msgid "Album"
-msgstr "Album (Track No.)"
+msgstr "Album"
 
-#: src/constants.slint:41 src/callbacks.slint:99
+#: ui/slint/src/constants.slint:41 ui/slint/src/callbacks.slint:99
 msgid "Track Number"
-msgstr ""
+msgstr "Numar piesa"
 
-#: src/constants.slint:49 src/callbacks.slint:107
+#: ui/slint/src/constants.slint:49 ui/slint/src/callbacks.slint:107
 msgid "Artist"
 msgstr "Artist"
 
-#: src/main_content/explore.slint:32
+#: ui/slint/src/main_content/explore.slint:32
 msgid "No recommendations"
-msgstr ""
+msgstr "Nu există recomandări"
 
-#: src/main_content/search.slint:80
+#: ui/slint/src/main_content/search.slint:80
 msgid "Search"
-msgstr ""
+msgstr "Caută"
 
-#: src/main_content/search.slint:89
+#: ui/slint/src/main_content/search.slint:89
 msgid "Local"
 msgstr "Local"
 
-#: src/main_content/queue_page.slint:250
+#: ui/slint/src/main_content/queue_page.slint:250
 msgid "Show Lyrics"
-msgstr ""
+msgstr "Arată versuri"
 
-#: src/main_content/queue_page.slint:268
+#: ui/slint/src/main_content/queue_page.slint:268
 msgid "Save as playlist"
-msgstr ""
+msgstr "Salvează ca listă de redare"
 
-#: src/main_content/queue_page.slint:274
+#: ui/slint/src/main_content/queue_page.slint:274
 msgid "Clear"
-msgstr ""
+msgstr "Curăță"
 
-#: src/settings/extensions.slint:154
+#: ui/slint/src/settings/extensions.slint:154
 msgid "Settings > Extensions"
-msgstr ""
+msgstr "Setări > Extensii"
 
-#: src/settings/extensions.slint:167 src/settings/settings.slint:43
+#: ui/slint/src/settings/extensions.slint:167
 msgid "Extensions"
-msgstr "Extensions"
+msgstr "Extensii"
 
-#: src/settings/extensions.slint:173
+#: ui/slint/src/settings/extensions.slint:173
 msgid "Manage your extensions"
-msgstr ""
+msgstr "Gestionează extensiile"
 
-#: src/settings/extensions.slint:181
+#: ui/slint/src/settings/extensions.slint:181
 msgid "Add Extension"
-msgstr ""
+msgstr "Adaugă Extensie"
 
-#: src/settings/extensions.slint:193
+#: ui/slint/src/settings/extensions.slint:193
 msgid "No extensions available."
-msgstr ""
+msgstr "Nici o extensie disponibilă."
 
-#: src/settings/path_selector.slint:35
+#: ui/slint/src/settings/path_selector.slint:35
 msgid "Add folder"
-msgstr ""
+msgstr "Adaugă dosar"
 
-#: src/settings/paths.slint:24
+#: ui/slint/src/settings/paths.slint:24
 msgid "Settings > Paths"
-msgstr ""
+msgstr "Setări > Căi"
 
-#: src/settings/settings.slint:40
+#: ui/slint/src/settings/settings.slint:40
 msgid "Paths"
-msgstr "Paths"
+msgstr "Cale"
 
-#: src/settings/settings.slint:41
+#: ui/slint/src/settings/settings.slint:41
 msgid "System"
-msgstr "System"
+msgstr "Sistem"
 
-#: src/settings/settings.slint:47
+#: ui/slint/src/settings/settings.slint:47
 msgid "Themes"
-msgstr "Themes"
+msgstr "Teme"
 
-#: src/settings/settings.slint:160
+#: ui/slint/src/settings/settings.slint:160
 msgid "Save Custom Theme"
-msgstr ""
+msgstr "Salvează tema personalizată"
 
-#: src/settings/settings.slint:166
+#: ui/slint/src/settings/settings.slint:166
 msgid "Your current accent and advanced styling variables will be saved."
-msgstr ""
+msgstr "Accentul curent și variabilele avansate de stilizare vor fi salvate."
 
-#: src/settings/settings.slint:174
+#: ui/slint/src/settings/settings.slint:174
 msgid "Theme Name"
-msgstr ""
+msgstr "Nume Temă"
 
-#: src/settings/settings.slint:175
+#: ui/slint/src/settings/settings.slint:175
 msgid "A short, distinct name"
-msgstr ""
+msgstr "Un nume scurt, distinct"
 
-#: src/settings/settings.slint:176
+#: ui/slint/src/settings/settings.slint:176
 msgid "e.g., Midnight Blue"
-msgstr ""
+msgstr "de exemplu, Miezul nopţii Albastru"
 
-#: src/settings/settings.slint:182
+#: ui/slint/src/settings/settings.slint:182
 msgid "Author"
-msgstr ""
+msgstr "Autor"
 
-#: src/settings/settings.slint:183
+#: ui/slint/src/settings/settings.slint:183
 msgid "Who created this theme?"
-msgstr ""
+msgstr "Cine a creat această temă?"
 
-#: src/settings/settings.slint:184
+#: ui/slint/src/settings/settings.slint:184
 msgid "Your name"
-msgstr ""
+msgstr "Numele tău"
 
-#: src/settings/settings.slint:190
+#: ui/slint/src/settings/settings.slint:190
 msgid "Description"
-msgstr ""
+msgstr "Descriere"
 
-#: src/settings/settings.slint:191
+#: ui/slint/src/settings/settings.slint:191
 msgid "A brief summary of the aesthetics"
-msgstr ""
+msgstr "Un scurt rezumat al esteticii"
 
-#: src/settings/settings.slint:192
+#: ui/slint/src/settings/settings.slint:192
 msgid "High contrast dark theme..."
-msgstr ""
+msgstr "Tema întunecată cu contrast mare..."
 
-#: src/settings/settings.slint:203
+#: ui/slint/src/settings/settings.slint:203
 msgid "Cancel"
-msgstr ""
+msgstr "Anulează"
 
-#: src/settings/settings.slint:204
+#: ui/slint/src/settings/settings.slint:204
 msgid "Save Theme"
-msgstr ""
+msgstr "Salvează tema"
 
-#: src/settings/system.slint:24
+#: ui/slint/src/settings/system.slint:24
 msgid "Settings > System"
-msgstr ""
+msgstr "Setări > Sistem"
 
-#: src/settings/themes.slint:215
+#: ui/slint/src/settings/themes.slint:215
 msgid "Opacity"
-msgstr ""
+msgstr "Opacitate"
 
-#: src/settings/themes.slint:467
+#: ui/slint/src/settings/themes.slint:467
 msgid "Settings > Themes"
-msgstr ""
+msgstr "Setări > Teme"
 
-#: src/settings/themes.slint:484
+#: ui/slint/src/settings/themes.slint:484
 msgid "Preset Themes"
-msgstr ""
+msgstr "Teme presetate"
 
-#: src/settings/themes.slint:490
+#: ui/slint/src/settings/themes.slint:490
 msgid "Selecting a theme will instantly override your advanced styling configurations."
-msgstr ""
+msgstr "Selectarea unei teme va suprascrie instant configuratiile avansate de stilizare."
 
-#: src/settings/themes.slint:520
+#: ui/slint/src/settings/themes.slint:520
 msgid "Quick Accent"
-msgstr ""
+msgstr "Accent rapid"
 
-#: src/settings/themes.slint:526
+#: ui/slint/src/settings/themes.slint:526
 msgid "Instantly update the primary interactive color."
-msgstr ""
+msgstr "Actualizați instant culoarea interactivă primară."
 
-#: src/settings/themes.slint:573
+#: ui/slint/src/settings/themes.slint:573
 msgid "Advanced Styling"
-msgstr ""
+msgstr "Stil avansat"
 
-#: src/settings/themes.slint:579
+#: ui/slint/src/settings/themes.slint:579
 msgid "Fine-tune UI parameters. Modifying these clones/mutates the current active theme."
-msgstr ""
+msgstr "Reglați parametrii interfeței. Modificarea acestor cloni/mută tema activă curentă."
 
-#: src/settings/themes.slint:606
+#: ui/slint/src/settings/themes.slint:606
 msgid "Adjust the color for {}"
-msgstr ""
+msgstr "Reglaţi culoarea pentru {}"
 
-#: src/settings/themes.slint:615
+#: ui/slint/src/settings/themes.slint:615
 msgid "Adjust the size for {}"
-msgstr ""
+msgstr "Reglaţi dimensiunea pentru {}"
 
-#: src/settings/themes.slint:630
+#: ui/slint/src/settings/themes.slint:630
 msgid "Export Theme"
-msgstr ""
+msgstr "Exportă tema"
 
-#: src/settings/themes.slint:631
+#: ui/slint/src/settings/themes.slint:631
 msgid "Save your current styling configuration as a new reusable preset."
-msgstr ""
+msgstr "Salvați configurația curentă de stilizare ca o nouă presetare reutilizabilă."
 
-#: src/settings/themes.slint:632
+#: ui/slint/src/settings/themes.slint:632
 msgid "Save as New Theme"
-msgstr ""
+msgstr "Salvează ca temă nouă"
 
-#: src/topbar/search_bar.slint:6
+#: ui/slint/src/topbar/search_bar.slint:6
 msgid "Search..."
 msgstr "Caută..."
+
+#: ui/slint/src/common/save_playlist_modal.slint:29
+msgid "Save as Playlist"
+msgstr "Salvează ca Playlist"
+
+#: ui/slint/src/common/save_playlist_modal.slint:36
+msgid "Enter details for the new playlist."
+msgstr "Introdu detaliile pentru noua listă de redare."
+
+#: ui/slint/src/common/save_playlist_modal.slint:44
+msgid "Playlist Name"
+msgstr "Nume Playlist"
+
+#: ui/slint/src/common/save_playlist_modal.slint:46
+msgid "e.g., My Queue Playlist"
+msgstr "De exemplu, lista mea de redare"
+
+#: ui/slint/src/common/save_playlist_modal.slint:54
+msgid "e.g., Chill vibes and favorites"
+msgstr "de exemplu Chill vibes și favorite"
+
+#: ui/slint/src/common/save_playlist_modal.slint:70
+msgid "Save"
+msgstr "Salvează"
+
+#: ui/slint/src/types/context_menu.slint:12
+msgid "Play Now"
+msgstr "Redă acum"
+
+#: ui/slint/src/types/context_menu.slint:17
+msgid "Play Next"
+msgstr "Redă următorul"
+
+#: ui/slint/src/types/context_menu.slint:22
+msgid "Add to Queue"
+msgstr "Adaugă în coadă"
+
+#: ui/slint/src/types/context_menu.slint:37
+msgid "Remove from Queue"
+msgstr "Elimină din coadă"
+
+#: ui/slint/src/types/context_menu.slint:62
+msgid "Remove from Playlist"
+msgstr "Elimină din Playlist"
+
+#: ui/slint/src/types/context_menu.slint:72
+msgid "Delete Playlist"
+msgstr "Șterge Playlist"
+
+#: ui/slint/src/types/context_menu.slint:34
+msgid "Clear queue and play"
+msgstr "Curăță coada de redare"
+
+#: ui/slint/src/types/context_menu.slint:119
+msgid "Export Playlist"
+msgstr "Exportă Playlist"
+
+#: ui/slint/src/types/context_menu.slint:126
+msgid "Save Playlist"
+msgstr "Salvează Playlist"
+
+#: ui/slint/src/types/context_menu.slint:135
+msgid "Add to Playlist"
+msgstr "Adaugă la Playlist"
+
+#: ui/slint/src/types/context_menu.slint:139
+msgid "Go to album"
+msgstr "Mergi la album"
+
+#: ui/slint/src/types/context_menu.slint:143
+msgid "Go to artists"
+msgstr "Du-te la artiști"
+

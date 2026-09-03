@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-09-02 01:31\n"
+"PO-Revision-Date: 2026-09-03 01:37\n"
 "Language: cs_CZ\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -281,37 +281,37 @@ msgstr "Přidat do fronty"
 
 #: ui/slint/src/types/context_menu.slint:37
 msgid "Remove from Queue"
-msgstr ""
+msgstr "Odebrat z fronty"
 
 #: ui/slint/src/types/context_menu.slint:62
 msgid "Remove from Playlist"
-msgstr ""
+msgstr "Odstranit z playlistu"
 
 #: ui/slint/src/types/context_menu.slint:72
 msgid "Delete Playlist"
-msgstr ""
+msgstr "Odstranit playlist"
 
 #: ui/slint/src/types/context_menu.slint:34
 msgid "Clear queue and play"
-msgstr ""
+msgstr "Vymazat frontu a hrát"
 
 #: ui/slint/src/types/context_menu.slint:119
 msgid "Export Playlist"
-msgstr ""
+msgstr "Exportovat seznam skladeb"
 
 #: ui/slint/src/types/context_menu.slint:126
 msgid "Save Playlist"
-msgstr ""
+msgstr "Uložit seznam skladeb"
 
 #: ui/slint/src/types/context_menu.slint:135
 msgid "Add to Playlist"
-msgstr ""
+msgstr "Přidat do playlistu"
 
 #: ui/slint/src/types/context_menu.slint:139
 msgid "Go to album"
-msgstr ""
+msgstr "Přejít na album"
 
 #: ui/slint/src/types/context_menu.slint:143
 msgid "Go to artists"
-msgstr ""
+msgstr "Přejít na umělce"
 

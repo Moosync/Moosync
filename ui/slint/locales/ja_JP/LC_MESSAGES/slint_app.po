@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-09-02 01:31\n"
+"PO-Revision-Date: 2026-09-03 01:37\n"
 "Language: ja_JP\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -281,37 +281,37 @@ msgstr "キューに追加"
 
 #: ui/slint/src/types/context_menu.slint:37
 msgid "Remove from Queue"
-msgstr ""
+msgstr "キューから削除"
 
 #: ui/slint/src/types/context_menu.slint:62
 msgid "Remove from Playlist"
-msgstr ""
+msgstr "プレイリストから削除"
 
 #: ui/slint/src/types/context_menu.slint:72
 msgid "Delete Playlist"
-msgstr ""
+msgstr "プレイリストを削除"
 
 #: ui/slint/src/types/context_menu.slint:34
 msgid "Clear queue and play"
-msgstr ""
+msgstr "キューをクリアして再生"
 
 #: ui/slint/src/types/context_menu.slint:119
 msgid "Export Playlist"
-msgstr ""
+msgstr "プレイリストをエクスポート"
 
 #: ui/slint/src/types/context_menu.slint:126
 msgid "Save Playlist"
-msgstr ""
+msgstr "プレイリストを保存"
 
 #: ui/slint/src/types/context_menu.slint:135
 msgid "Add to Playlist"
-msgstr ""
+msgstr "プレイリストに追加"
 
 #: ui/slint/src/types/context_menu.slint:139
 msgid "Go to album"
-msgstr ""
+msgstr "アルバムに移動"
 
 #: ui/slint/src/types/context_menu.slint:143
 msgid "Go to artists"
-msgstr ""
+msgstr "アーティストへ移動"
 

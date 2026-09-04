@@ -6,15 +6,12 @@ filegroup(
     name = "migrations",
     srcs = glob([
         "migrations/**/*",
-        "migrations_cache/**/*",
     ]),
 )
 
 rust_library(
     name = "database",
     srcs = [
-        "src/cache.rs",
-        "src/cache_test.rs",
         "src/database.rs",
         "src/database_test.rs",
         "src/error.rs",

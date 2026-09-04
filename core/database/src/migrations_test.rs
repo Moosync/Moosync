@@ -18,7 +18,7 @@ use rstest::{fixture, rstest};
 use rusqlite::Connection;
 use tracing_test::traced_test;
 
-use crate::migrations::{run_migration_cache, run_migrations};
+use crate::migrations::run_migrations;
 
 #[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
@@ -71,31 +71,4 @@ fn test_run_migrations_creates_schema_and_is_idempotent(mut memory_connection: C
         )
         .unwrap();
     assert_eq!(migration_count_second_run, 5);
-}
-
-#[rstest]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_run_migration_cache_creates_cache_table_and_is_idempotent(
-    mut memory_connection: Connection,
-) {
-    run_migration_cache(&mut memory_connection);
-    let cache_table_exists: bool = memory_connection
-        .query_row(
-            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='cache')",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap();
-    assert!(cache_table_exists);
-
-    run_migration_cache(&mut memory_connection);
-    let migration_count: i64 = memory_connection
-        .query_row(
-            "SELECT count(*) FROM __diesel_schema_migrations",
-            [],
-            |row| row.get(0),
-        )
-        .unwrap();
-    assert_eq!(migration_count, 1);
 }

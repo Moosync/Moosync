@@ -12,6 +12,7 @@ export component SearchBar inherits Rectangle {
     border-radius: Theme.searchBarHeight / 2;
     border-width: Theme.borderWidth;
     border-color: Theme.divider; // Divider
+    forward-focus: input;
 
     HorizontalLayout {
         padding-left: Theme.paddingMd;
@@ -33,6 +34,7 @@ export component SearchBar inherits Rectangle {
         // Custom text field / placeholder
         Rectangle {
             horizontal-stretch: 1;
+            clip: true;
 
             // Placeholder text (visible when empty)
             if (input.text == ""): Text {
@@ -40,15 +42,30 @@ export component SearchBar inherits Rectangle {
                 color: Theme.textSecondary; // Text Secondary
                 font-size: Theme.subtitle;
                 vertical-alignment: center;
+                overflow: elide;
                 x: 0px;
             }
 
             input := TextInput {
+                property <length> computed_x;
+
+                x: Math.min(0px, Math.max(parent.width - self.width - self.text-cursor-width, self.computed_x));
+                width: Math.max(parent.width - self.text-cursor-width, self.preferred-width);
+                height: 100%;
                 text <=> root.text;
                 color: Theme.textPrimary; // Text Primary
                 font-size: Theme.subtitle;
                 vertical-alignment: center;
                 single-line: true;
+
+                cursor-position-changed(cursor-position) => {
+                    if cursor-position.x + self.computed_x < 0px {
+                        self.computed_x = - cursor-position.x;
+                    } else if cursor-position.x + self.computed_x > parent.width - self.text-cursor-width {
+                        self.computed_x = parent.width - cursor-position.x - self.text-cursor-width;
+                    }
+                }
+
                 accepted => {
                     root.accepted(self.text);
                 }

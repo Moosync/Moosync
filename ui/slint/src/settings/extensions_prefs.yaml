@@ -4,3 +4,4 @@ preferences:
     title: Extension Registries
     subtitle: Add or remove extension registry URLs (manifest.json)
     placeholder: https://example.com/manifest.json
+    validation: "^https?://.+"

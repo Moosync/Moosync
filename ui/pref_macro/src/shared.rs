@@ -10,6 +10,7 @@ pub struct Preference {
     pub title: String,
     pub subtitle: String,
     pub placeholder: String,
+    pub validation: String,
     pub options_radio: Vec<(String, String)>,
     pub options_dropdown: Vec<String>,
 }
@@ -47,6 +48,7 @@ pub fn parse_yaml(content: &str) -> Vec<Preference> {
                 title: String::new(),
                 subtitle: String::new(),
                 placeholder: String::new(),
+                validation: String::new(),
                 options_radio: Vec::new(),
                 options_dropdown: Vec::new(),
             });
@@ -108,6 +110,8 @@ pub fn parse_yaml(content: &str) -> Vec<Preference> {
                     p.subtitle = val.to_string();
                 } else if key == "placeholder" {
                     p.placeholder = val.to_string();
+                } else if key == "validation" {
+                    p.validation = val.to_string();
                 }
             }
         }
@@ -145,6 +149,7 @@ pub fn generate_expansion(
         let title_str = &p.title;
         let subtitle_str = &p.subtitle;
         let placeholder_str = &p.placeholder;
+        let validation_str = &p.validation;
 
         let radio_options_tokens: Vec<_> = p
             .options_radio
@@ -208,6 +213,7 @@ pub fn generate_expansion(
                     title: #title_str.to_string(),
                     subtitle: #subtitle_str.to_string(),
                     placeholder: #placeholder_str.to_string(),
+                    validation: #validation_str.to_string(),
                     value_string: val_string,
                     value_bool: val_bool,
                     value_number: val_number,
@@ -268,6 +274,7 @@ pub fn generate_expansion(
             title: String,
             subtitle: String,
             placeholder: String,
+            validation: String,
             value_string: String,
             value_bool: bool,
             value_number: f32,
@@ -311,6 +318,7 @@ pub fn generate_expansion(
                                     title: item.title.into(),
                                     subtitle: item.subtitle.into(),
                                     placeholder: item.placeholder.into(),
+                                    validation: item.validation.into(),
                                     value_string: item.value_string.into(),
                                     value_bool: item.value_bool,
                                     value_number: item.value_number,

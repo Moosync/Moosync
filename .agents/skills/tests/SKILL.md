@@ -20,20 +20,17 @@ Moosync enforces strict conventions for unit and integration testing. Every Rust
 - **Do NOT make private functions public for tests**: Test private functions through the exposed public API and assert the end results.
 
 ### 2. Strict 3-Section Test Layout
-All unit tests must follow the standard 3-section structure separated by empty newlines:
+All unit tests must follow the standard 3-section structure (setup -> action -> assertions) separated by empty newlines:
 
 ```rust
 #[test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_feature_specific_behavior() {
-    // 1. [test environment setup]
     let tmp = TempDir::new("test_context").unwrap();
     let handler = MyHandler::new(tmp.path());
 
-    // 2. [function that is being tested]
     let result = handler.process_item("item_id");
 
-    // 3. [assertions]
     assert!(result.is_ok());
     assert_eq!(result.unwrap(), ExpectedState);
 }
@@ -41,6 +38,7 @@ fn test_feature_specific_behavior() {
 
 - Always place assertions at the very end of the test function.
 - Avoid trailing cleanup statements after assertions — use RAII types like `tempdir::TempDir` so cleanup happens automatically on scope exit.
+- **Never add comments to tests** unless you are performing some obscure action that is unrelated to the test or too complicated to understand in layman's terms. Let empty lines naturally demarcate test sections.
 
 ### 3. Granular, Single-Purpose Test Cases
 - **Rule #1: Only test one thing at a time**: Each unit test must test a single action or condition. Do not combine multiple unrelated workflows into one test.

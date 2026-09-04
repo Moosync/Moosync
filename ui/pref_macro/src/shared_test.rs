@@ -57,6 +57,7 @@ preferences:
     component: ToggleGroup
     title: Enable Scrobbling
     subtitle: Send plays to Last.fm
+    validation: ">= 0"
 "#;
 
     let ident = syn::Ident::new("system_items", proc_macro2::Span::call_site());
@@ -70,6 +71,7 @@ preferences:
     assert!(code.contains("PreferenceHandler"));
     assert!(code.contains("init_preferences"));
     assert!(code.contains("handle_preference_change"));
+    assert!(code.contains("validation : \">= 0\""));
 }
 
 #[test]
@@ -102,4 +104,29 @@ preferences:
     // Empty input returns empty vec
     let empty_prefs = parse_yaml("");
     assert!(empty_prefs.is_empty());
+}
+
+#[test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_parse_yaml_validation() {
+    let yaml = r#"
+preferences:
+  - id: scan_threads
+    component: NumberInputGroup
+    title: Scan Threads
+    subtitle: CPU threads
+    validation: ">= 0 && <= 128"
+  - id: registry_url
+    component: TextInputGroup
+    title: Registry URL
+    subtitle: Extension URL
+    validation: "^https?://.+"
+"#;
+
+    let prefs = parse_yaml(yaml);
+    assert_eq!(prefs.len(), 2);
+    assert_eq!(prefs[0].id, "scan_threads");
+    assert_eq!(prefs[0].validation, ">= 0 && <= 128");
+    assert_eq!(prefs[1].id, "registry_url");
+    assert_eq!(prefs[1].validation, "^https?://.+");
 }

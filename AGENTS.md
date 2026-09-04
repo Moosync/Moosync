@@ -26,6 +26,7 @@ Don't try to explore the entire project. Understand the context of the task and 
 
 - Donot try to manually format files while editing. If Bazel skips a test, thats because nothing was changed. You can ignore that test.
 - If you want to format a file, use bazel run //tools:format
+- Never add comments to tests unless performing an obscure action that is unrelated to the test or too complicated to understand in layman terms.
 
 ### Build System
 

@@ -1,17 +1,19 @@
 import { Theme } from "../constants.slint";
 import { PreferenceItem } from "preferences.slint";
-import { AppCallbacks } from "../callbacks.slint";
+import { AppCallbacks, UtilCallbacks } from "../callbacks.slint";
 
 export component NumberInputGroup inherits HorizontalLayout {
     in property <PreferenceItem> preference;
     in property <string> title: root.preference.title;
     in property <string> subtitle: root.preference.subtitle;
     in property <string> unit: "";
+    in property <string> validation: root.preference.validation;
 
     in property <float> min: -99999999.0;
     in property <float> max: 99999999.0;
 
     in-out property <string> value: root.preference.value_string;
+    property <bool> is_valid: root.validation == "" || UtilCallbacks.validate_input(root.value, root.validation);
     callback edited(string);
 
     spacing: Theme.spacingMd;
@@ -37,38 +39,55 @@ export component NumberInputGroup inherits HorizontalLayout {
     VerticalLayout {
         alignment: center;
 
-        touch := TouchArea {
+        Rectangle {
             height: Theme.numberInputHeight;
             width: Theme.numberInputWidth;
+            border-radius: Theme.borderRadiusXl;
+            border-color: !root.is_valid ? Theme.danger : (text_input.has-focus ? Theme.accent : Theme.textSecondary);
+            border-width: 1px;
+            clip: true;
 
-            Rectangle {
-                border-radius: Theme.borderRadiusXl;
-                border-color: touch.has-hover || text_input.has-focus ? Theme.accent : Theme.textSecondary;
-                border-width: 1px;
-                clip: true;
+            HorizontalLayout {
+                padding-left: Theme.paddingMd;
+                padding-right: Theme.paddingMd;
+                spacing: 5px;
 
-                HorizontalLayout {
-                    padding-left: Theme.paddingMd;
-                    padding-right: Theme.paddingMd;
-                    spacing: 5px;
+                Rectangle {
+                    horizontal-stretch: 1;
+                    min-width: 10px;
+                    clip: true;
 
                     text_input := TextInput {
+                        property <length> computed_x;
+
+                        x: Math.min(0px, Math.max(parent.width - self.width - self.text-cursor-width, self.computed_x));
+                        width: Math.max(parent.width - self.text-cursor-width, self.preferred-width);
+                        height: 100%;
                         text <=> root.value;
                         input-type: number;
                         vertical-alignment: center;
                         single-line: true;
+                        color: Theme.textPrimary;
+                        font-size: Theme.body;
 
-                        horizontal-stretch: 1;
-                        min-width: 10px;
+                        cursor-position-changed(cursor-position) => {
+                            if cursor-position.x + self.computed_x < 0px {
+                                self.computed_x = - cursor-position.x;
+                            } else if cursor-position.x + self.computed_x > parent.width - self.text-cursor-width {
+                                self.computed_x = parent.width - cursor-position.x - self.text-cursor-width;
+                            }
+                        }
 
                         edited => {
                             let num = self.text.to-float();
-                            if (num < root.min) {
-                                root.value = root.min;
-                            } else if (num > root.max) {
-                                root.value = root.max;
+                            if (root.validation == "") {
+                                if (num < root.min) {
+                                    root.value = root.min;
+                                } else if (num > root.max) {
+                                    root.value = root.max;
+                                }
                             }
-                            if (root.preference.id != "") {
+                            if (root.is_valid && root.preference.id != "") {
                                 AppCallbacks.preference_changed({
                                     id: root.preference.id,
                                     value_string: root.value,
@@ -80,13 +99,13 @@ export component NumberInputGroup inherits HorizontalLayout {
                             root.edited(root.value);
                         }
                     }
+                }
 
-                    if root.unit != "": Text {
-                        vertical-alignment: center;
-                        text: root.unit;
-                        color: Theme.textSecondary;
-                        horizontal-stretch: 0;
-                    }
+                if root.unit != "": Text {
+                    vertical-alignment: center;
+                    text: root.unit;
+                    color: Theme.textSecondary;
+                    horizontal-stretch: 0;
                 }
             }
         }

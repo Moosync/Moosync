@@ -1,20 +1,23 @@
 import { Theme } from "../constants.slint";
 import { LineEdit } from "std-widgets.slint";
 import { PreferenceItem } from "preferences.slint";
-import { AppCallbacks } from "../callbacks.slint";
+import { AppCallbacks, UtilCallbacks } from "../callbacks.slint";
 
 export component TextInputGroup inherits VerticalLayout {
     in property <PreferenceItem> preference;
     in property <string> title: root.preference.title;
     in property <string> subtitle: root.preference.subtitle;
     in property <string> placeholder: root.preference.placeholder;
+    in property <string> validation: root.preference.validation;
     in property <InputType> inputType;
 
     in-out property <string> value: root.preference.value_string;
+    property <bool> is_valid: root.validation == "" || UtilCallbacks.validate_input(root.value, root.validation);
     callback edited(string);
 
     spacing: Theme.spacingXs;
     alignment: start;
+    forward-focus: text_input;
 
     VerticalLayout {
         spacing: Theme.spacingXs;
@@ -31,54 +34,60 @@ export component TextInputGroup inherits VerticalLayout {
         }
     }
 
-    TouchArea {
+    Rectangle {
         height: Theme.textInputHeight;
-        clicked => {
-            text_input.focus();
-        }
-        Rectangle {
-            border-radius: Theme.borderRadiusXl;
-            border-color: parent.has-hover || text_input.has-focus ? Theme.accent : Theme.textSecondary;
-            border-width: 1px;
-            clip: true;
+        border-radius: Theme.borderRadiusXl;
+        border-color: !root.is_valid ? Theme.danger : (text_input.has-focus ? Theme.accent : Theme.textSecondary);
+        border-width: 1px;
+        clip: true;
 
-            HorizontalLayout {
-                padding-left: Theme.paddingMd;
-                padding-right: Theme.paddingMd;
-                Rectangle {
-                    horizontal-stretch: 1;
-                    min-width: 0px;
-                    clip: true;
-                    if (text_input.text == "" && root.placeholder != ""): Text {
-                        text: root.placeholder;
-                        color: Theme.textSecondary;
-                        font-size: Theme.body;
-                        vertical-alignment: center;
-                        overflow: elide;
-                        x: 0px;
-                    }
-                    text_input := TextInput {
-                        width: 100%;
-                        height: 100%;
-                        horizontal-stretch: 1;
-                        text <=> root.value;
-                        color: Theme.textPrimary;
-                        font-size: Theme.body;
-                        input-type: root.inputType;
-                        vertical-alignment: center;
-                        single-line: true;
-                        edited => {
-                            if (root.preference.id != "") {
-                                AppCallbacks.preference_changed({
-                                    id: root.preference.id,
-                                    value_string: self.text,
-                                    value_bool: false,
-                                    value_number: 0.0,
-                                    value_list: []
-                                });
-                            }
-                            root.edited(self.text);
+        HorizontalLayout {
+            padding-left: Theme.paddingMd;
+            padding-right: Theme.paddingMd;
+            Rectangle {
+                horizontal-stretch: 1;
+                min-width: 0px;
+                clip: true;
+                if (text_input.text == "" && root.placeholder != ""): Text {
+                    text: root.placeholder;
+                    color: Theme.textSecondary;
+                    font-size: Theme.body;
+                    vertical-alignment: center;
+                    overflow: elide;
+                    x: 0px;
+                }
+                text_input := TextInput {
+                    property <length> computed_x;
+
+                    x: Math.min(0px, Math.max(parent.width - self.width - self.text-cursor-width, self.computed_x));
+                    width: Math.max(parent.width - self.text-cursor-width, self.preferred-width);
+                    height: 100%;
+                    text <=> root.value;
+                    color: Theme.textPrimary;
+                    font-size: Theme.body;
+                    input-type: root.inputType;
+                    vertical-alignment: center;
+                    single-line: true;
+
+                    cursor-position-changed(cursor-position) => {
+                        if cursor-position.x + self.computed_x < 0px {
+                            self.computed_x = - cursor-position.x;
+                        } else if cursor-position.x + self.computed_x > parent.width - self.text-cursor-width {
+                            self.computed_x = parent.width - cursor-position.x - self.text-cursor-width;
                         }
+                    }
+
+                    edited => {
+                        if (root.is_valid && root.preference.id != "") {
+                            AppCallbacks.preference_changed({
+                                id: root.preference.id,
+                                value_string: self.text,
+                                value_bool: false,
+                                value_number: 0.0,
+                                value_list: []
+                            });
+                        }
+                        root.edited(self.text);
                     }
                 }
             }

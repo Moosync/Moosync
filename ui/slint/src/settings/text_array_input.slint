@@ -1,7 +1,7 @@
 import { Theme } from "../constants.slint";
 import { ScrollView } from "std-widgets.slint";
 import { PreferenceItem } from "preferences.slint";
-import { AppCallbacks } from "../callbacks.slint";
+import { AppCallbacks, UtilCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button.slint";
 import { IconButton } from "../common/icon_button.slint";
 
@@ -10,9 +10,11 @@ export component TextArrayInput inherits VerticalLayout {
     in property <string> title: root.preference.title;
     in property <string> subtitle: root.preference.subtitle;
     in property <string> placeholder: root.preference.placeholder;
+    in property <string> validation: root.preference.validation;
     in property <[string]> items: root.preference.value_list;
 
     property <string> new_text: "";
+    property <bool> is_valid: root.new_text == "" || root.validation == "" || UtilCallbacks.validate_input(root.new_text, root.validation);
 
     callback added(string);
     callback removed(string);
@@ -42,7 +44,7 @@ export component TextArrayInput inherits VerticalLayout {
         Rectangle {
             horizontal-stretch: 1;
             border-radius: Theme.borderRadiusXl;
-            border-color: text_area.has-hover || text_input.has-focus ? Theme.accent : Theme.textSecondary;
+            border-color: (root.new_text != "" && !root.is_valid) ? Theme.danger : (text_input.has-focus ? Theme.accent : Theme.textSecondary);
             border-width: 1px;
             clip: true;
 
@@ -62,23 +64,28 @@ export component TextArrayInput inherits VerticalLayout {
                         overflow: elide;
                     }
                     text_input := TextInput {
-                        width: 100%;
+                        property <length> computed_x;
+
+                        x: Math.min(0px, Math.max(parent.width - self.width - self.text-cursor-width, self.computed_x));
+                        width: Math.max(parent.width - self.text-cursor-width, self.preferred-width);
                         height: 100%;
-                        horizontal-stretch: 1;
                         vertical-alignment: center;
                         color: Theme.textPrimary;
                         font-size: Theme.body;
                         single-line: true;
+
+                        cursor-position-changed(cursor-position) => {
+                            if cursor-position.x + self.computed_x < 0px {
+                                self.computed_x = - cursor-position.x;
+                            } else if cursor-position.x + self.computed_x > parent.width - self.text-cursor-width {
+                                self.computed_x = parent.width - cursor-position.x - self.text-cursor-width;
+                            }
+                        }
+
                         edited => {
                             root.new_text = self.text;
                         }
                     }
-                }
-            }
-
-            text_area := TouchArea {
-                clicked => {
-                    text_input.focus();
                 }
             }
         }
@@ -87,7 +94,7 @@ export component TextArrayInput inherits VerticalLayout {
             text: @tr("Add");
             icon: @image-url("../icons/plus.svg");
             clicked => {
-                if (root.new_text != "") {
+                if (root.new_text != "" && root.is_valid) {
                     if (root.preference.id != "") {
                         AppCallbacks.preference_changed({
                             id: root.preference.id,

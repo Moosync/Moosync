@@ -6,6 +6,7 @@ pub mod models;
 pub mod parsers;
 pub mod queue;
 pub mod selection;
+pub mod validation;
 
 pub use context_menu::*;
 pub use filter_sort::*;
@@ -15,6 +16,7 @@ pub use models::*;
 pub use parsers::*;
 pub use queue::*;
 pub use selection::*;
+pub use validation::*;
 
 #[cfg(test)]
 mod context_menu_test;
@@ -32,3 +34,5 @@ mod parsers_test;
 mod queue_test;
 #[cfg(test)]
 mod selection_test;
+#[cfg(test)]
+mod validation_test;

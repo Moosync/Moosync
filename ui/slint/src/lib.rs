@@ -302,6 +302,10 @@ fn setup_song_list_helper(main_window: &MainWindow, state_manager: &'static Stat
             ModelRc::new(VecModel::from(songs))
         },
     );
+
+    main_window
+        .global::<UtilCallbacks>()
+        .on_validate_input(move |value, rule| utils::validate_input(value.as_str(), rule.as_str()));
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

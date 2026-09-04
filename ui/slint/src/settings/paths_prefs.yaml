@@ -12,6 +12,7 @@ preferences:
     component: NumberInputGroup
     title: "Scan CPU threads"
     subtitle: "Number of threads to use when scanning for local music"
+    validation: ">= 0 && <= 128"
   - id: ArtistSplitter
     component: TextInputGroup
     title: "Artist name split pattern"
@@ -21,6 +22,7 @@ preferences:
     component: NumberInputGroup
     title: "Scan interval"
     subtitle: "Interval in minutes to trigger a scan task. Set to -1 to disable automatic scanning"
+    validation: ">= 0"
   - id: ThumbnailPath
     component: SingleFileInput
     title: "Downloaded Thumbnail Path"

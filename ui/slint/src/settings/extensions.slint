@@ -162,6 +162,10 @@ component ExtensionsManifest inherits VerticalLayout {
     }
 }
 
+export global ExtensionsPageProps {
+    in-out property <bool> has_updates: false;
+}
+
 export component ExtensionsPage inherits VerticalLayout {
     in-out property <[ExtensionItem]> extensions;
 
@@ -198,6 +202,14 @@ export component ExtensionsPage inherits VerticalLayout {
                     font-size: Theme.caption;
                     wrap: word-wrap;
                     color: Theme.textSecondary;
+                }
+            }
+
+            if ExtensionsPageProps.has_updates: Button {
+                text: @tr("Update all");
+                clicked => {
+                    ExtensionsPageProps.has_updates = false;
+                    AppCallbacks.update_all_extensions();
                 }
             }
 

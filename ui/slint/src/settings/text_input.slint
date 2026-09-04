@@ -40,22 +40,27 @@ export component TextInputGroup inherits VerticalLayout {
             border-radius: Theme.borderRadiusXl;
             border-color: parent.has-hover || text_input.has-focus ? Theme.accent : Theme.textSecondary;
             border-width: 1px;
+            clip: true;
 
             HorizontalLayout {
                 padding-left: Theme.paddingMd;
                 padding-right: Theme.paddingMd;
                 Rectangle {
                     horizontal-stretch: 1;
+                    min-width: 0px;
+                    clip: true;
                     if (text_input.text == "" && root.placeholder != ""): Text {
                         text: root.placeholder;
                         color: Theme.textSecondary;
                         font-size: Theme.body;
                         vertical-alignment: center;
+                        overflow: elide;
                         x: 0px;
                     }
                     text_input := TextInput {
                         width: 100%;
                         height: 100%;
+                        horizontal-stretch: 1;
                         text <=> root.value;
                         color: Theme.textPrimary;
                         font-size: Theme.body;

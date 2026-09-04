@@ -553,6 +553,11 @@ message FetchedExtensionManifest {
   optional string registry = 7;
 }
 
+message ExtensionRegistryManifest {
+  string name = 1;
+  repeated FetchedExtensionManifest extensions = 2;
+}
+
 enum ExtensionProviderScope {
   SEARCH = 0;
   PLAYLISTS = 1;

@@ -1,5 +1,5 @@
 {
-  "checksum": "435876e7394fd9b335ccf2e2d5109bb83b2b49b0778f03c13c8f4729e3d3589e",
+  "checksum": "017b17681b357291fd04333b32c9bd2d7402ad80ec3f9a43ba0bc038c7e315ad",
   "crates": {
     "ab_glyph 0.2.32": {
       "name": "ab_glyph",
@@ -34694,6 +34694,10 @@
               "target": "rusty_ffmpeg"
             },
             {
+              "id": "semver 1.0.28",
+              "target": "semver"
+            },
+            {
               "id": "serde 1.0.229",
               "target": "serde"
             },
@@ -52178,34 +52182,11 @@
         ],
         "crate_features": {
           "common": [
-            "serde"
+            "default",
+            "serde",
+            "std"
           ],
-          "selects": {
-            "aarch64-apple-darwin": [
-              "default",
-              "std"
-            ],
-            "aarch64-unknown-linux-gnu": [
-              "default",
-              "std"
-            ],
-            "x86_64-apple-darwin": [
-              "default",
-              "std"
-            ],
-            "x86_64-pc-windows-gnu": [
-              "default",
-              "std"
-            ],
-            "x86_64-pc-windows-msvc": [
-              "default",
-              "std"
-            ],
-            "x86_64-unknown-linux-gnu": [
-              "default",
-              "std"
-            ]
-          }
+          "selects": {}
         },
         "deps": {
           "common": [
@@ -78526,6 +78507,7 @@
     "rusqlite 0.37.0",
     "rust-crypto 0.2.36",
     "rusty_ffmpeg 0.16.7+ffmpeg.8",
+    "semver 1.0.28",
     "serde 1.0.229",
     "serde_json 1.0.151",
     "slint 1.17.1",

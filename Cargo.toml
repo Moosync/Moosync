@@ -61,6 +61,7 @@ rstest = { version = "0.25.0", default-features = false }
 rusqlite = { version = "0.37.0", features = ["trace"] }
 rust-crypto = "0.2.36"
 rusty_ffmpeg = { version = "0.16.7+ffmpeg.8", default-features = false, features = ["ffmpeg8"] }
+semver = "1.0.28"
 serde = { version = "1.0.228", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0.145", default-features = false }
 slint = { version = "1.17.1", features = ["backend-android-activity-06", "mcp"] }

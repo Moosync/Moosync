@@ -6,6 +6,7 @@ use crate::StateManager;
 
 pub mod extensions;
 pub mod player;
+pub mod registries;
 pub mod scanner;
 
 #[cfg(test)]

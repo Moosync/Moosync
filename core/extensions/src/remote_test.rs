@@ -17,7 +17,8 @@
 use std::{collections::HashSet, fs};
 
 use assertables::{assert_err, assert_is_empty, assert_len_eq_x, assert_ok};
-use extensions_proto::moosync::types::FetchedExtensionManifest;
+use extensions_proto::moosync::types::{ExtensionRegistryManifest, FetchedExtensionManifest};
+use prost::Message;
 use rstest::{fixture, rstest};
 use tempdir::TempDir;
 use tracing_test::traced_test;
@@ -37,14 +38,10 @@ struct TestRemoteContext {
 #[tracing::instrument(level = "debug", skip_all)]
 fn remote_context() -> TestRemoteContext {
     let temp_dir = TempDir::new("moosync_remote_test").expect("failed to create temp dir");
-    let ext_dir = temp_dir.path().join("exts");
     let tmp_dir = temp_dir.path().join("tmp");
-    let cache_dir = temp_dir.path().join("cache");
-    fs::create_dir_all(&ext_dir).unwrap();
     fs::create_dir_all(&tmp_dir).unwrap();
-    fs::create_dir_all(&cache_dir).unwrap();
 
-    let remote = RemoteExtensions::new(ext_dir, tmp_dir, cache_dir);
+    let remote = RemoteExtensions::new(tmp_dir);
     TestRemoteContext {
         _temp_dir: temp_dir,
         remote,
@@ -57,22 +54,22 @@ fn remote_context() -> TestRemoteContext {
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_fetch_registry_success_and_caching(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
-    let manifest_body = serde_json::json!({
-        "displayName": "Test Community Registry",
-        "extensions": {
-            "org.test.discord": {
-                "displayName": "Discord Integration",
-                "version": "1.2.3",
-                "icon": "assets/discord.svg",
-                "url": "discord.msox",
-                "description": "Rich presence for discord"
-            }
-        }
-    });
+    let manifest = ExtensionRegistryManifest {
+        name: "test_community_registry".to_string(),
+        extensions: vec![FetchedExtensionManifest {
+            name: "Discord Integration".to_string(),
+            package_name: "org.test.discord".to_string(),
+            logo: Some("assets/discord.svg".to_string()),
+            description: Some("Rich presence for discord".to_string()),
+            url: "discord.msox".to_string(),
+            version: "1.2.3".to_string(),
+            registry: None,
+        }],
+    };
 
     Mock::given(method("GET"))
-        .and(path("/manifest.json"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(&manifest_body))
+        .and(path("/manifest.pb"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(manifest.encode_to_vec()))
         .mount(&server)
         .await;
 
@@ -80,7 +77,7 @@ async fn test_fetch_registry_success_and_caching(remote_context: TestRemoteConte
         remote, _temp_dir, ..
     } = remote_context;
     let mut registries = HashSet::new();
-    let registry_url = format!("{}/manifest.json", server.uri());
+    let registry_url = format!("{}/manifest.pb", server.uri());
     registries.insert(registry_url.clone());
 
     let results = remote.get_extension_manifest(&registries).await;
@@ -95,17 +92,11 @@ async fn test_fetch_registry_success_and_caching(remote_context: TestRemoteConte
         .unwrap();
     assert_eq!(item.name, "Discord Integration");
     assert_eq!(item.version, "1.2.3");
-    assert_eq!(item.registry, Some("Test Community Registry".to_string()));
+    assert_eq!(item.registry, Some("test_community_registry".to_string()));
     assert_eq!(item.url, format!("{}/discord.msox", server.uri()));
     assert_eq!(
         item.logo,
         Some(format!("{}/assets/discord.svg", server.uri()))
-    );
-    assert!(
-        _temp_dir
-            .path()
-            .join("cache/remote_manifest_cache.json")
-            .exists()
     );
 }
 
@@ -113,31 +104,38 @@ async fn test_fetch_registry_success_and_caching(remote_context: TestRemoteConte
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_fetch_registry_rejects_missing_name(remote_context: TestRemoteContext) {
+async fn test_fetch_registry_fallback_to_name(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
-    let manifest_no_name = serde_json::json!({
-        "extensions": {
-            "org.test.ext": {
-                "displayName": "Ext",
-                "version": "1.0.0"
-            }
-        }
-    });
+    let manifest = ExtensionRegistryManifest {
+        name: "raw_registry_name".to_string(),
+        extensions: vec![FetchedExtensionManifest {
+            name: "Ext".to_string(),
+            package_name: "org.test.ext".to_string(),
+            logo: None,
+            description: None,
+            url: "ext.msox".to_string(),
+            version: "1.0.0".to_string(),
+            registry: None,
+        }],
+    };
 
     Mock::given(method("GET"))
-        .and(path("/no_name.json"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(&manifest_no_name))
+        .and(path("/fallback.pb"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(manifest.encode_to_vec()))
         .mount(&server)
         .await;
 
     let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
-    registries.insert(format!("{}/no_name.json", server.uri()));
+    registries.insert(format!("{}/fallback.pb", server.uri()));
 
     let results = remote.get_extension_manifest(&registries).await;
 
     assert_ok!(results.as_ref());
-    assert_is_empty!(&results.unwrap());
+    let results = results.unwrap();
+    assert_len_eq_x!(&results, 1);
+    let item = results.into_iter().next().unwrap();
+    assert_eq!(item.registry, Some("raw_registry_name".to_string()));
 }
 
 #[rstest]
@@ -146,28 +144,39 @@ async fn test_fetch_registry_rejects_missing_name(remote_context: TestRemoteCont
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_fetch_registry_rejects_missing_version(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
-    let manifest_body = serde_json::json!({
-        "name": "Verified Registry",
-        "extensions": {
-            "valid.ext": {
-                "displayName": "Valid Ext",
-                "version": "2.0.0"
+    let manifest = ExtensionRegistryManifest {
+        name: "Verified Registry".to_string(),
+        extensions: vec![
+            FetchedExtensionManifest {
+                name: "Valid Ext".to_string(),
+                package_name: "valid.ext".to_string(),
+                logo: None,
+                description: None,
+                url: "valid.msox".to_string(),
+                version: "2.0.0".to_string(),
+                registry: None,
             },
-            "invalid.ext": {
-                "displayName": "No Version Ext"
-            }
-        }
-    });
+            FetchedExtensionManifest {
+                name: "No Version Ext".to_string(),
+                package_name: "invalid.ext".to_string(),
+                logo: None,
+                description: None,
+                url: "invalid.msox".to_string(),
+                version: "".to_string(),
+                registry: None,
+            },
+        ],
+    };
 
     Mock::given(method("GET"))
-        .and(path("/version_check.json"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(&manifest_body))
+        .and(path("/version_check.pb"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(manifest.encode_to_vec()))
         .mount(&server)
         .await;
 
     let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
-    registries.insert(format!("{}/version_check.json", server.uri()));
+    registries.insert(format!("{}/version_check.pb", server.uri()));
 
     let results = remote.get_extension_manifest(&registries).await;
 
@@ -184,36 +193,40 @@ async fn test_fetch_registry_rejects_missing_version(remote_context: TestRemoteC
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_fetch_multiple_registries_and_download(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
-    let reg1_body = serde_json::json!({
-        "displayName": "Registry 1",
-        "extensions": {
-            "ext.one": {
-                "displayName": "Extension One",
-                "version": "1.0.0",
-                "url": "pkg1.msox"
-            }
-        }
-    });
-    let reg2_body = serde_json::json!({
-        "displayName": "Registry 2",
-        "extensions": {
-            "ext.two": {
-                "displayName": "Extension Two",
-                "version": "1.0.0",
-                "url": "pkg2.msox"
-            }
-        }
-    });
+    let reg1 = ExtensionRegistryManifest {
+        name: "reg1".to_string(),
+        extensions: vec![FetchedExtensionManifest {
+            name: "Extension One".to_string(),
+            package_name: "ext.one".to_string(),
+            logo: None,
+            description: None,
+            url: "pkg1.msox".to_string(),
+            version: "1.0.0".to_string(),
+            registry: None,
+        }],
+    };
+    let reg2 = ExtensionRegistryManifest {
+        name: "reg2".to_string(),
+        extensions: vec![FetchedExtensionManifest {
+            name: "Extension Two".to_string(),
+            package_name: "ext.two".to_string(),
+            logo: None,
+            description: None,
+            url: "pkg2.msox".to_string(),
+            version: "1.0.0".to_string(),
+            registry: None,
+        }],
+    };
 
     Mock::given(method("GET"))
-        .and(path("/reg1.json"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(&reg1_body))
+        .and(path("/reg1.pb"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(reg1.encode_to_vec()))
         .mount(&server)
         .await;
 
     Mock::given(method("GET"))
-        .and(path("/reg2.json"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(&reg2_body))
+        .and(path("/reg2.pb"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(reg2.encode_to_vec()))
         .mount(&server)
         .await;
 
@@ -226,8 +239,8 @@ async fn test_fetch_multiple_registries_and_download(remote_context: TestRemoteC
 
     let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
-    registries.insert(format!("{}/reg1.json", server.uri()));
-    registries.insert(format!("{}/reg2.json", server.uri()));
+    registries.insert(format!("{}/reg1.pb", server.uri()));
+    registries.insert(format!("{}/reg2.pb", server.uri()));
 
     let results = remote.get_extension_manifest(&registries).await;
     assert_ok!(results.as_ref());
@@ -250,18 +263,18 @@ async fn test_fetch_multiple_registries_and_download(remote_context: TestRemoteC
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_fetch_registry_malformed_json(remote_context: TestRemoteContext) {
+async fn test_fetch_registry_malformed_protobuf(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
 
     Mock::given(method("GET"))
-        .and(path("/malformed.json"))
-        .respond_with(ResponseTemplate::new(200).set_body_string("{ this is not valid json {"))
+        .and(path("/malformed.pb"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(vec![0xFF, 0xFF, 0xFF]))
         .mount(&server)
         .await;
 
     let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
-    registries.insert(format!("{}/malformed.json", server.uri()));
+    registries.insert(format!("{}/malformed.pb", server.uri()));
 
     let results = remote.get_extension_manifest(&registries).await;
 
@@ -277,14 +290,14 @@ async fn test_fetch_registry_http_404_not_found(remote_context: TestRemoteContex
     let server = MockServer::start().await;
 
     Mock::given(method("GET"))
-        .and(path("/not_found.json"))
+        .and(path("/not_found.pb"))
         .respond_with(ResponseTemplate::new(404))
         .mount(&server)
         .await;
 
     let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
-    registries.insert(format!("{}/not_found.json", server.uri()));
+    registries.insert(format!("{}/not_found.pb", server.uri()));
 
     let results = remote.get_extension_manifest(&registries).await;
 
@@ -300,14 +313,14 @@ async fn test_fetch_registry_http_500_server_error(remote_context: TestRemoteCon
     let server = MockServer::start().await;
 
     Mock::given(method("GET"))
-        .and(path("/server_error.json"))
+        .and(path("/server_error.pb"))
         .respond_with(ResponseTemplate::new(500).set_body_string("Internal Server Error"))
         .mount(&server)
         .await;
 
     let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
-    registries.insert(format!("{}/server_error.json", server.uri()));
+    registries.insert(format!("{}/server_error.pb", server.uri()));
 
     let results = remote.get_extension_manifest(&registries).await;
 
@@ -322,7 +335,7 @@ async fn test_fetch_registry_http_500_server_error(remote_context: TestRemoteCon
 async fn test_fetch_registry_network_connection_error(remote_context: TestRemoteContext) {
     let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
-    registries.insert("http://127.0.0.1:1/non_existent.json".to_string());
+    registries.insert("http://127.0.0.1:1/non_existent.pb".to_string());
 
     let results = remote.get_extension_manifest(&registries).await;
 
@@ -395,40 +408,48 @@ async fn test_download_extension_http_500_error(remote_context: TestRemoteContex
 async fn test_fetch_registry_with_mixed_and_broken_extensions(remote_context: TestRemoteContext) {
     let server = MockServer::start().await;
 
-    let manifest_body = serde_json::json!({
-        "displayName": "Mock Fake Server Registry",
-        "name": "fake_server",
-        "extensions": {
-            "app.fake.spotify": {
-                "displayName": "Fake Spotify Integration",
-                "name": "spotify_plugin",
-                "version": "2.1.0",
-                "desc": "Stream metadata and controls from fake spotify",
-                "logo": "icons/spotify_logo.png",
-                "downloadUrl": "downloads/spotify.msox"
+    let manifest = ExtensionRegistryManifest {
+        name: "fake_server".to_string(),
+        extensions: vec![
+            FetchedExtensionManifest {
+                name: "Fake Spotify Integration".to_string(),
+                package_name: "app.fake.spotify".to_string(),
+                logo: Some("icons/spotify_logo.png".to_string()),
+                description: Some("Stream metadata and controls from fake spotify".to_string()),
+                url: "downloads/spotify.msox".to_string(),
+                version: "2.1.0".to_string(),
+                registry: None,
             },
-            "app.fake.broken_version": {
-                "displayName": "Broken Missing Version",
-                "url": "broken.msox"
+            FetchedExtensionManifest {
+                name: "Broken Missing Version".to_string(),
+                package_name: "app.fake.broken_version".to_string(),
+                logo: None,
+                description: None,
+                url: "broken.msox".to_string(),
+                version: "".to_string(),
+                registry: None,
             },
-            "app.fake.absolute_urls": {
-                "name": "Absolute URLs Extension",
-                "version": "3.0.0",
-                "icon": "https://cdn.example.com/icon.svg",
-                "url": "https://cdn.example.com/download.msox"
-            }
-        }
-    });
+            FetchedExtensionManifest {
+                name: "Absolute URLs Extension".to_string(),
+                package_name: "app.fake.absolute_urls".to_string(),
+                logo: Some("https://cdn.example.com/icon.svg".to_string()),
+                description: None,
+                url: "https://cdn.example.com/download.msox".to_string(),
+                version: "3.0.0".to_string(),
+                registry: None,
+            },
+        ],
+    };
 
     Mock::given(method("GET"))
-        .and(path("/manifest.json"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(&manifest_body))
+        .and(path("/manifest.pb"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(manifest.encode_to_vec()))
         .mount(&server)
         .await;
 
     let TestRemoteContext { remote, .. } = remote_context;
     let mut registries = HashSet::new();
-    registries.insert(format!("{}/manifest.json", server.uri()));
+    registries.insert(format!("{}/manifest.pb", server.uri()));
 
     let results = remote.get_extension_manifest(&registries).await;
 

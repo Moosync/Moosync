@@ -65,8 +65,14 @@ pub enum ExtensionError {
     Reqwest(#[from] reqwest::Error),
 
     #[error("Extension version parse error: {0}")]
-    VersionParse(#[from] std::num::ParseIntError),
+    VersionParse(#[from] semver::Error),
+
+    #[error("Protobuf decode error: {0}")]
+    Decode(#[from] prost::DecodeError),
 
     #[error("Response sanitization error: {0}")]
     Sanitize(String),
+
+    #[error("Extension update failed: {0}")]
+    UpdateFailed(String),
 }

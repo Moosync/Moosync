@@ -21,6 +21,7 @@ rust_library(
         "src/hooks/mod_test.rs",
         "src/hooks/player.rs",
         "src/hooks/player_test.rs",
+        "src/hooks/registries.rs",
         "src/hooks/scanner.rs",
         "src/hooks/scanner_test.rs",
         "src/interceptors/mod.rs",

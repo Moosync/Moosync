@@ -110,3 +110,26 @@ async fn test_extensions_page_handler_registries(
     let saved: Vec<String> = pref.load(preferences::keys::ExtensionRegistries).unwrap();
     assert!(saved.contains(&"https://new-registry.org/manifest.json".to_string()));
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extensions_page_handler_props_and_callbacks(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let handler = ExtensionsPageHandler::new(&main_window, &sm);
+    handler.initialize();
+
+    let props = main_window.global::<crate::ExtensionsPageProps>();
+    assert!(!props.get_has_updates());
+
+    props.set_has_updates(true);
+    assert!(props.get_has_updates());
+
+    main_window
+        .global::<crate::AppCallbacks>()
+        .invoke_update_all_extensions();
+}

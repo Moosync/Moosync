@@ -5619,6 +5619,7 @@ dependencies = [
  "rusqlite",
  "rust-crypto",
  "rusty_ffmpeg",
+ "semver",
  "serde",
  "serde_json",
  "slint",

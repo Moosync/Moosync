@@ -30,7 +30,7 @@ use types::plugin::PluginContext;
 
 use crate::{
     StateManager,
-    hooks::{Hook, extensions::ExtensionsHook},
+    hooks::{Hook, extensions::ExtensionsHook, registries::ExtensionRegistriesHook},
 };
 
 struct TestSmContext {
@@ -65,6 +65,16 @@ async fn test_extensions_hook_on_startup(sm_context: TestSmContext) {
     let TestSmContext { sm, .. } = sm_context;
     let hook = ExtensionsHook::new();
     assert_ok!(hook.on_startup(&sm).await);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extension_registries_hook_on_startup(sm_context: TestSmContext) {
+    let TestSmContext { sm, .. } = sm_context;
+    let hook = ExtensionRegistriesHook::new();
+    assert_ok!(hook.on_startup(&sm).await);
 
     let pref = sm.get_preference_config().await;
     assert_ok!(pref.save(
@@ -84,9 +94,11 @@ async fn test_extensions_hook_on_startup(sm_context: TestSmContext) {
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_extensions_hook_triggers_update_on_registry_change(sm_context: TestSmContext) {
+async fn test_extension_registries_hook_triggers_update_on_registry_change(
+    sm_context: TestSmContext,
+) {
     let TestSmContext { sm, .. } = sm_context;
-    let hook = ExtensionsHook::new();
+    let hook = ExtensionRegistriesHook::new();
     assert_ok!(hook.on_startup(&sm).await);
 
     let updated_flag = Arc::new(AtomicBool::new(false));

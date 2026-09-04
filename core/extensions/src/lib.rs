@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{collections::HashSet, fs, path::PathBuf, str::FromStr, sync::Arc};
+use std::{collections::HashSet, fs, path::PathBuf, sync::Arc};
 
 use ext_runner::ExtensionHandlerInner;
 use extensions_proto::moosync::types::{
@@ -97,6 +97,8 @@ pub struct ExtensionHandler {
         types::subscription::SubscriberList<Box<dyn Fn(()) + Send + Sync + 'static>>,
     remote: RemoteExtensions,
     registries: HashSet<String>,
+    remote_manifests: HashSet<FetchedExtensionManifest>,
+    has_updates: bool,
 }
 
 types::generate_on_event_impl!(
@@ -117,9 +119,74 @@ impl ExtensionHandler {
             cache_dir: cache_dir.clone(),
             reply_handler: None,
             on_extensions_updated: types::subscription::SubscriberList::new(),
-            remote: RemoteExtensions::new(extensions_dir, tmp_dir, cache_dir),
+            remote: RemoteExtensions::new(tmp_dir),
             registries,
+            remote_manifests: HashSet::new(),
+            has_updates: false,
         }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn has_updates(&self) -> bool { self.has_updates }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn check_for_updates(&mut self) -> bool {
+        let updatables = self.get_updatable_extensions();
+        self.has_updates = !updatables.is_empty();
+        self.has_updates
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_updatable_extensions(&self) -> Vec<FetchedExtensionManifest> {
+        let installed = self.get_installed_extensions();
+        let mut updatables = Vec::new();
+        for inst in installed {
+            let Some(remote) = self
+                .remote_manifests
+                .iter()
+                .find(|r| r.package_name == inst.package_name)
+            else {
+                continue;
+            };
+
+            let Ok(remote_ver) = semver::Version::parse(&remote.version) else {
+                continue;
+            };
+            let Ok(inst_ver) = semver::Version::parse(&inst.version) else {
+                continue;
+            };
+
+            if remote_ver > inst_ver {
+                updatables.push(remote.clone());
+            }
+        }
+        updatables
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn update_all_extensions(&mut self) -> Result<(), ExtensionError> {
+        self.has_updates = false;
+        let updatables = self.get_updatable_extensions();
+        let mut any_failed = false;
+        for remote in updatables {
+            if let Err(e) = self.install_extension(ExtensionInfo::Remote(remote)).await {
+                tracing::error!("update_all_extensions: Failed to update: {:?}", e);
+                any_failed = true;
+            }
+        }
+        self.check_for_updates();
+        self.trigger_extensions_updated();
+        if any_failed {
+            return Err(ExtensionError::UpdateFailed(
+                "Failed to update one or more extensions".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn set_remote_manifests(&mut self, manifests: HashSet<FetchedExtensionManifest>) {
+        self.remote_manifests = manifests;
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -155,13 +222,6 @@ impl ExtensionHandler {
         }
 
         Err(ExtensionError::NoExtensionFound)
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn get_ext_version(&self, version: String) -> Result<u64, ExtensionError> {
-        Ok(u64::from_str(
-            &version.split('.').collect::<Vec<&str>>().join(""),
-        )?)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -209,10 +269,13 @@ impl ExtensionHandler {
 
         match self.get_extension_version(ext_extract_path.clone()) {
             Ok(version) => {
-                let old_version = self.get_ext_version(version)?;
-                let new_version = self.get_ext_version(package_manifest.version)?;
+                let old_version = semver::Version::parse(&version)?;
+                let new_version = semver::Version::parse(&package_manifest.version)?;
 
                 if new_version > old_version {
+                    let _ = self.send_remove_extension(PackageName {
+                        package_name: package_manifest.name.clone(),
+                    });
                     fs::remove_dir_all(ext_extract_path.clone())?;
                 } else {
                     return Err(ExtensionError::DuplicateExtension(package_manifest.name));
@@ -292,7 +355,7 @@ impl ExtensionHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_all_extensions(&self) -> Vec<ExtensionInfo> {
         let installed = self.get_installed_extensions();
-        let remote = self.get_cached_remote_manifests();
+        let remote = &self.remote_manifests;
 
         let mut seen_packages = HashSet::with_capacity(installed.len() + remote.len());
         let mut ret = Vec::with_capacity(installed.len() + remote.len());
@@ -305,7 +368,7 @@ impl ExtensionHandler {
         for rem in remote {
             if !seen_packages.contains(&rem.package_name) {
                 seen_packages.insert(rem.package_name.clone());
-                ret.push(ExtensionInfo::Remote(rem));
+                ret.push(ExtensionInfo::Remote(rem.clone()));
             }
         }
 
@@ -357,18 +420,6 @@ impl ExtensionHandler {
             }
         }
         extensions
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_cached_remote_manifests(&self) -> HashSet<FetchedExtensionManifest> {
-        let path = self.cache_dir.join("remote_manifest_cache.json");
-        if path.exists()
-            && let Ok(contents) = fs::read(path)
-            && let Ok(manifests) = serde_json::from_slice(&contents)
-        {
-            return manifests;
-        }
-        HashSet::new()
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

@@ -44,6 +44,7 @@ export component TextArrayInput inherits VerticalLayout {
             border-radius: Theme.borderRadiusXl;
             border-color: text_area.has-hover || text_input.has-focus ? Theme.accent : Theme.textSecondary;
             border-width: 1px;
+            clip: true;
 
             HorizontalLayout {
                 padding-left: Theme.paddingMd;
@@ -51,15 +52,19 @@ export component TextArrayInput inherits VerticalLayout {
 
                 Rectangle {
                     horizontal-stretch: 1;
+                    min-width: 0px;
+                    clip: true;
                     if (text_input.text == "" && root.placeholder != ""): Text {
                         text: root.placeholder;
                         color: Theme.textSecondary;
                         font-size: Theme.body;
                         vertical-alignment: center;
+                        overflow: elide;
                     }
                     text_input := TextInput {
                         width: 100%;
                         height: 100%;
+                        horizontal-stretch: 1;
                         vertical-alignment: center;
                         color: Theme.textPrimary;
                         font-size: Theme.body;

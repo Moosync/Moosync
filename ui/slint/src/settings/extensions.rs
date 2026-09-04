@@ -22,7 +22,7 @@ use state_manager::StateManager;
 use tracing::Instrument;
 
 use crate::{
-    AppCallbacks, ExtensionItem, MainWindow, Theme, pages::PageHandler,
+    AppCallbacks, ExtensionItem, ExtensionsPageProps, MainWindow, Theme, pages::PageHandler,
     settings::PreferenceHandler, utils::LazySongVecModel,
 };
 
@@ -110,6 +110,41 @@ impl<'a> ExtensionsPageHandler<'a> {
                     );
                 }
             });
+
+        self.main_window
+            .global::<AppCallbacks>()
+            .on_update_all_extensions({
+                let state_manager = self.state_manager.clone();
+                let main_window_weak = self.main_window.as_weak();
+                move || {
+                    let state_manager = state_manager.clone();
+                    let main_window_weak = main_window_weak.clone();
+                    if let Some(main_window) = main_window_weak.upgrade() {
+                        main_window
+                            .global::<ExtensionsPageProps>()
+                            .set_has_updates(false);
+                    }
+                    tokio::spawn(
+                        async move {
+                            tracing::info!("on_update_all_extensions");
+                            let mut handler = state_manager.get_extension_handler_mut().await;
+                            if let Err(e) = handler.update_all_extensions().await {
+                                tracing::error!("on_update_all_extensions: Failed: {:?}", e);
+                                handler.check_for_updates();
+                                let has_updates = handler.has_updates();
+                                let _ = slint::invoke_from_event_loop(move || {
+                                    if let Some(main_window) = main_window_weak.upgrade() {
+                                        main_window
+                                            .global::<ExtensionsPageProps>()
+                                            .set_has_updates(has_updates);
+                                    }
+                                });
+                            }
+                        }
+                        .instrument(tracing::debug_span!("slint_cb_on_update_all_extensions")),
+                    );
+                }
+            });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -184,17 +219,19 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
                         tokio::spawn(
                             async move {
                                 let handler = state_manager.get_extension_handler().await;
-                                if let Err(e) = handler.get_extension_manifest().await {
-                                    tracing::error!(
-                                        "on_extensions_updated: failed to refresh remote manifests: {:?}",
-                                        e
-                                    );
-                                }
                                 let extensions = handler.get_all_extensions();
+                                let has_updates = handler.has_updates();
                                 let cache_dir = state_manager.get_cache_dir();
                                 let _ = slint::invoke_from_event_loop(move || {
                                     if let Some(main_window) = main_window_weak.upgrade() {
-                                        Self::render_extensions(&main_window, extensions, cache_dir);
+                                        main_window
+                                            .global::<ExtensionsPageProps>()
+                                            .set_has_updates(has_updates);
+                                        Self::render_extensions(
+                                            &main_window,
+                                            extensions,
+                                            cache_dir,
+                                        );
                                     }
                                 });
                             }
@@ -217,8 +254,12 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
                 let cache_dir = state_manager.get_cache_dir();
                 let handler = state_manager.get_extension_handler().await;
                 let extensions = handler.get_all_extensions();
+                let has_updates = handler.has_updates();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = main_window_weak.upgrade() {
+                        main_window
+                            .global::<ExtensionsPageProps>()
+                            .set_has_updates(has_updates);
                         Self::render_extensions(&main_window, extensions, cache_dir);
                     }
                 });

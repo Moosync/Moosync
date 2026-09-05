@@ -1,57 +1,98 @@
+use extensions_proto::moosync::types::ExtensionProviderScope;
 use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{Genre, GetSongOptions, Song};
 use state_manager::StateManager;
-use tracing::{Instrument, debug};
 
 use crate::{
-    GenreContentPageProps, GenresPageProps, MainWindow, Theme, error::UiError, pages::PageHandler,
-    utils::LazySongVecModel,
+    ExtensionProviderItem, GenreContentPageProps, GenresPageProps, MainWindow, SongModel,
+    error::UiError,
+    pages::PageHandler,
+    utils::{EntityContentCoordinator, EntitySongProvider, IntoVec},
 };
 
+#[derive(Clone)]
+pub struct GenreSongProvider;
+
+impl EntitySongProvider for GenreSongProvider {
+    type Entity = Genre;
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn extension_scope() -> Option<ExtensionProviderScope> { None }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_entity(main_window: &MainWindow) -> (Genre, String) {
+        let genre: Genre = main_window
+            .global::<GenresPageProps>()
+            .get_selected_genre()
+            .into();
+        (genre, String::new())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_songs(main_window: &MainWindow) -> Vec<SongModel> {
+        main_window
+            .global::<GenreContentPageProps>()
+            .get_songs()
+            .into_vec()
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_songs(main_window: &MainWindow, model: ModelRc<SongModel>) {
+        main_window
+            .global::<GenreContentPageProps>()
+            .set_songs(model);
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_extensions_enabled(_main_window: &MainWindow, _package_name: &str, _enabled: bool) {}
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_extensions(_main_window: &MainWindow, _extensions: ModelRc<ExtensionProviderItem>) {}
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn clear_ui(main_window: &MainWindow) {
+        main_window
+            .global::<GenreContentPageProps>()
+            .set_songs(ModelRc::default());
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn fetch_local_songs(
+        state_manager: &StateManager,
+        genre: Genre,
+    ) -> Result<Vec<Song>, UiError> {
+        tracing::debug!("Fetching local songs for genre {:?}", genre.genre_name);
+        let database = state_manager.get_database().await;
+        let options = GetSongOptions {
+            genre: Some(genre),
+            ..Default::default()
+        };
+        database.get_songs_by_options(options).map_err(Into::into)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn fetch_extension_songs(
+        _state_manager: &StateManager,
+        _genre: Genre,
+        _extension: String,
+        _page_token: Option<String>,
+    ) -> Result<(Vec<Song>, Option<String>), UiError> {
+        Ok((vec![], None))
+    }
+}
+
 pub struct GenreContentPageHandler<'a> {
-    main_window: &'a MainWindow,
-    state_manager: &'a StateManager,
+    _main_window: &'a MainWindow,
+    coordinator: EntityContentCoordinator<GenreSongProvider>,
 }
 
 impl<'a> GenreContentPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
         Self {
-            main_window,
-            state_manager,
+            _main_window: main_window,
+            coordinator: EntityContentCoordinator::new(main_window, state_manager),
         }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_songs(
-        state_manager: &StateManager,
-        genre_id: String,
-    ) -> Result<Vec<Song>, UiError> {
-        debug!("Fetching songs for genre ID: {}", genre_id);
-        let database = state_manager.get_database().await;
-        let options = GetSongOptions {
-            genre: Some(Genre {
-                genre_id: Some(genre_id),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        database.get_songs_by_options(options).map_err(|e| e.into())
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn set_songs(main_window: &MainWindow, state_manager: &StateManager, songs: Vec<Song>) {
-        let songs_view = songs.into_iter().map(Into::into).collect::<Vec<_>>();
-        let theme = main_window.global::<Theme>();
-        let cache_dir = state_manager.get_cache_dir();
-        main_window
-            .global::<GenreContentPageProps>()
-            .set_songs(ModelRc::new(LazySongVecModel::new(
-                songs_view,
-                theme.get_songListItemHeight() as usize,
-                theme.get_songListItemWidth() as usize,
-                cache_dir,
-            )));
     }
 }
 
@@ -60,36 +101,8 @@ impl<'a> PageHandler for GenreContentPageHandler<'a> {
     fn initialize(&self) {}
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_show(&self) {
-        let selected = self
-            .main_window
-            .global::<GenresPageProps>()
-            .get_selected_genre();
-        let genre_id = selected.id.to_string();
-
-        tokio::spawn({
-            let state_manager = self.state_manager.clone();
-            let main_window_weak = self.main_window.as_weak();
-            async move {
-                match Self::fetch_songs(&state_manager, genre_id).await {
-                    Ok(songs) => {
-                        let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
-                            Self::set_songs(&main_window, &state_manager, songs);
-                        });
-                    }
-                    Err(e) => {
-                        tracing::error!("Failed to fetch genre songs: {:?}", e)
-                    }
-                }
-            }
-            .in_current_span()
-        });
-    }
+    fn on_show(&self) { self.coordinator.on_show(); }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_hide(&self) {
-        self.main_window
-            .global::<GenreContentPageProps>()
-            .set_songs(ModelRc::default());
-    }
+    fn on_hide(&self) { self.coordinator.on_hide(); }
 }

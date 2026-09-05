@@ -3,30 +3,19 @@ use extensions_proto::moosync::types::{ExtensionProviderScope, RequestedPlaylist
 use slint::{ComponentHandle, ModelRc, VecModel, Weak};
 use songs_proto::moosync::types::{GetEntityOptions, Playlist, PlaylistList, entity_result};
 use state_manager::StateManager;
-use tracing::{Instrument, debug};
+use tracing::Instrument;
 
 use crate::{
     ContextMenuCallbacks, ContextMenuItem, ContextMenuItems, MainWindow, PlaylistModel,
-    PlaylistsPageProps, Theme,
+    PlaylistsPageProps,
     error::UiError,
     pages::PageHandler,
-    utils::{IntoVec, LazySongVecModel},
+    utils::{EntityListCoordinator, EntityListProvider, IntoVec, make_lazy_card_model},
 };
 
-pub struct PlaylistsPageHandler<'a> {
-    main_window: &'a MainWindow,
-    state_manager: &'a StateManager,
-}
+pub struct PlaylistListProvider;
 
-impl<'a> PlaylistsPageHandler<'a> {
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
-        Self {
-            main_window,
-            state_manager,
-        }
-    }
-
+impl PlaylistListProvider {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn get_local_playlists(state_manager: &StateManager) -> Result<Vec<Playlist>, UiError> {
         let database = state_manager.get_database().await;
@@ -65,47 +54,70 @@ impl<'a> PlaylistsPageHandler<'a> {
             .get_extensions_with_scope(ExtensionProviderScope::Playlists)
             .await;
         for ext in playlist_extensions {
-            if let Ok(ext_playlists) = Self::fetch_extension_playlists(&ext).await {
-                playlists.extend(ext_playlists);
+            match Self::fetch_extension_playlists(&ext).await {
+                Ok(ext_playlists) => {
+                    playlists.extend(ext_playlists);
+                }
+                Err(e) => {
+                    tracing::error!(
+                        "Failed to fetch playlists from extension {}: {:?}",
+                        ext.get_extension_detail().package_name,
+                        e
+                    );
+                }
             }
         }
         Ok(playlists)
     }
+}
+
+impl EntityListProvider for PlaylistListProvider {
+    type Entity = Playlist;
+    type EntityModel = PlaylistModel;
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_playlists(state_manager: &StateManager) -> Result<Vec<Playlist>, UiError> {
-        let mut playlists = Vec::new();
-        if let Ok(local) = Self::get_local_playlists(state_manager).await {
-            playlists.extend(local);
-        }
-        if let Ok(extension) = Self::get_extension_playlists(state_manager).await {
-            playlists.extend(extension);
-        }
-        Ok(playlists)
+    fn name() -> &'static str { "Playlists" }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn to_model(entity: Playlist) -> PlaylistModel { PlaylistModel::from(entity) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_models(main_window: &MainWindow, model: ModelRc<PlaylistModel>) {
+        main_window
+            .global::<PlaylistsPageProps>()
+            .set_playlists(model);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_playlists(
-        main_window: &MainWindow,
-        state_manager: &StateManager,
-        playlists: Vec<Playlist>,
-    ) {
-        debug!("Setting playlists");
-        let playlist_model = playlists
-            .into_iter()
-            .map(PlaylistModel::from)
-            .collect::<Vec<_>>();
+    async fn fetch_entities(state_manager: &StateManager) -> Result<Vec<Playlist>, UiError> {
+        tracing::debug!("Fetching all playlists (local and extension)");
+        let mut playlists = Vec::new();
+        match Self::get_local_playlists(state_manager).await {
+            Ok(local) => playlists.extend(local),
+            Err(e) => tracing::error!("Failed to fetch local playlists: {:?}", e),
+        }
+        match Self::get_extension_playlists(state_manager).await {
+            Ok(extension) => playlists.extend(extension),
+            Err(e) => tracing::error!("Failed to fetch extension playlists: {:?}", e),
+        }
+        Ok(playlists)
+    }
+}
 
-        let theme = main_window.global::<Theme>();
-        let cache_dir = state_manager.get_cache_dir();
-        main_window
-            .global::<PlaylistsPageProps>()
-            .set_playlists(ModelRc::new(LazySongVecModel::new(
-                playlist_model,
-                theme.get_cardHeight() as usize,
-                theme.get_cardWidth() as usize,
-                cache_dir,
-            )));
+pub struct PlaylistsPageHandler<'a> {
+    main_window: &'a MainWindow,
+    state_manager: &'a StateManager,
+    coordinator: EntityListCoordinator<PlaylistListProvider>,
+}
+
+impl<'a> PlaylistsPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+        Self {
+            main_window,
+            state_manager,
+            coordinator: EntityListCoordinator::new(main_window, state_manager),
+        }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -115,15 +127,37 @@ impl<'a> PlaylistsPageHandler<'a> {
         playlist_ids: Vec<String>,
         action: String,
     ) {
+        tracing::debug!(
+            "Handling playlist action '{}' for playlists: {:?}",
+            action,
+            playlist_ids
+        );
         if action == "delete_playlist" {
             let db = state_manager.get_database().await;
-            for pid in playlist_ids {
-                let _ = db.remove_playlist(&pid);
+            for pid in &playlist_ids {
+                match db.remove_playlist(pid) {
+                    Ok(()) => {
+                        tracing::debug!("Successfully deleted playlist '{}'", pid);
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to delete playlist '{}': {:?}", pid, e);
+                    }
+                }
             }
-            if let Ok(playlists) = Self::fetch_playlists(&state_manager).await {
-                let _ = weak.upgrade_in_event_loop(move |main_window| {
-                    Self::set_playlists(&main_window, &state_manager, playlists);
-                });
+            match PlaylistListProvider::fetch_entities(&state_manager).await {
+                Ok(playlists) => {
+                    let _ = weak.upgrade_in_event_loop(move |main_window| {
+                        let playlists: Vec<PlaylistModel> =
+                            playlists.into_iter().map(PlaylistModel::from).collect();
+                        let model = make_lazy_card_model(&main_window, &state_manager, playlists);
+                        main_window
+                            .global::<PlaylistsPageProps>()
+                            .set_playlists(model);
+                    });
+                }
+                Err(e) => {
+                    tracing::error!("Failed to refresh playlists after deletion: {:?}", e);
+                }
             }
         }
     }
@@ -177,25 +211,8 @@ impl<'a> PageHandler for PlaylistsPageHandler<'a> {
     fn initialize(&self) { self.register_context_menu_callbacks(); }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_show(&self) {
-        tokio::spawn({
-            let state_manager = self.state_manager.clone();
-            let main_window_weak = self.main_window.as_weak();
-            async move {
-                if let Ok(playlists) = Self::fetch_playlists(&state_manager).await {
-                    let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
-                        Self::set_playlists(&main_window, &state_manager, playlists);
-                    });
-                }
-            }
-            .in_current_span()
-        });
-    }
+    fn on_show(&self) { self.coordinator.on_show(); }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_hide(&self) {
-        self.main_window
-            .global::<PlaylistsPageProps>()
-            .set_playlists(ModelRc::default());
-    }
+    fn on_hide(&self) { self.coordinator.on_hide(); }
 }

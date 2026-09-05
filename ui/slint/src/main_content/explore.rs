@@ -8,10 +8,10 @@ use state_manager::StateManager;
 use tracing::Instrument;
 
 use crate::{
-    ExplorePageProps, MainWindow, ProviderRecommendations, SongModel, Theme,
+    ExplorePageProps, MainWindow, ProviderRecommendations, SongModel,
     error::UiError,
     pages::PageHandler,
-    utils::{LazySongVecModel, cache_image, load_icon},
+    utils::{cache_image, load_icon, make_lazy_song_model},
 };
 
 type RecommendationItem = (ExtensionDetail, Option<String>, Vec<Song>);
@@ -42,6 +42,7 @@ impl<'a> ExplorePageHandler<'a> {
     async fn fetch_all_recommendations(
         state_manager: &StateManager,
     ) -> Result<Vec<RecommendationItem>, UiError> {
+        tracing::debug!("Fetching recommendations across all active providers");
         let mut results = Vec::new();
         let ext_handler = state_manager.get_extension_handler().await;
         let rec_extensions = ext_handler
@@ -59,10 +60,23 @@ impl<'a> ExplorePageHandler<'a> {
                     .map(|p| p.to_string_lossy().to_string()),
                 _ => None,
             };
-            let res = Self::fetch_extension_recommendations(&ext).await;
-            if let Ok(songs) = res {
-                if !songs.is_empty() {
-                    results.push((detail, cached_path, songs));
+            match Self::fetch_extension_recommendations(&ext).await {
+                Ok(songs) => {
+                    tracing::debug!(
+                        "Fetched {} recommendations from extension '{}'",
+                        songs.len(),
+                        detail.package_name
+                    );
+                    if !songs.is_empty() {
+                        results.push((detail, cached_path, songs));
+                    }
+                }
+                Err(e) => {
+                    tracing::error!(
+                        "Failed to fetch recommendations from extension '{}': {:?}",
+                        detail.package_name,
+                        e
+                    );
                 }
             }
         }
@@ -76,39 +90,44 @@ impl<'a> PageHandler for ExplorePageHandler<'a> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
+        tracing::debug!("ExplorePage: on_show triggered");
         tokio::spawn({
             let state_manager = self.state_manager.clone();
             let main_window_weak = self.main_window.as_weak();
             async move {
-                if let Ok(recommendations) = Self::fetch_all_recommendations(&state_manager).await {
-                    let _ = slint::invoke_from_event_loop(move || {
-                        if let Some(main_window) = main_window_weak.upgrade() {
-                            let cache_dir = state_manager.get_cache_dir();
-                            let theme = main_window.global::<Theme>();
-                            let mut list = Vec::new();
-                            for (detail, cached_path, songs) in recommendations {
-                                let icon = load_icon(cached_path.as_deref().unwrap_or(""));
-                                let song_models = songs
-                                    .into_iter()
-                                    .map(|s| (s, Some(&detail)).into())
-                                    .collect::<Vec<SongModel>>();
-                                let mapped_songs = ModelRc::new(LazySongVecModel::new(
-                                    song_models,
-                                    theme.get_songListItemHeight() as usize,
-                                    theme.get_songListItemWidth() as usize,
-                                    cache_dir.clone(),
-                                ));
-                                list.push(ProviderRecommendations {
-                                    provider_name: detail.name.clone().into(),
-                                    provider_icon: icon,
-                                    songs: mapped_songs,
-                                });
+                match Self::fetch_all_recommendations(&state_manager).await {
+                    Ok(recommendations) => {
+                        let _ = slint::invoke_from_event_loop(move || {
+                            if let Some(main_window) = main_window_weak.upgrade() {
+                                let mut list = Vec::new();
+                                for (detail, cached_path, songs) in recommendations {
+                                    let icon = load_icon(cached_path.as_deref().unwrap_or(""));
+                                    let song_models = songs
+                                        .into_iter()
+                                        .map(|s| (s, Some(&detail)).into())
+                                        .collect::<Vec<SongModel>>();
+                                    let mapped_songs = make_lazy_song_model(
+                                        &main_window,
+                                        &state_manager,
+                                        song_models,
+                                    );
+                                    list.push(ProviderRecommendations {
+                                        provider_name: detail.name.clone().into(),
+                                        provider_icon: icon,
+                                        songs: mapped_songs,
+                                    });
+                                }
+                                main_window
+                                    .global::<ExplorePageProps>()
+                                    .set_provider_recommendations(ModelRc::new(VecModel::from(
+                                        list,
+                                    )));
                             }
-                            main_window
-                                .global::<ExplorePageProps>()
-                                .set_provider_recommendations(ModelRc::new(VecModel::from(list)));
-                        }
-                    });
+                        });
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to fetch recommendations: {:?}", e);
+                    }
                 }
             }
             .in_current_span()
@@ -117,6 +136,7 @@ impl<'a> PageHandler for ExplorePageHandler<'a> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) {
+        tracing::debug!("ExplorePage: on_hide clearing recommendations");
         self.main_window
             .global::<ExplorePageProps>()
             .set_provider_recommendations(ModelRc::default());

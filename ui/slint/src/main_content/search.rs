@@ -2,15 +2,17 @@ use extensions::Extension;
 use extensions_proto::moosync::types::{
     ExtensionDetail, ExtensionProviderScope, RequestedSearchResultRequest,
 };
-use slint::{ComponentHandle, Model, ModelRc, VecModel, Weak};
+use slint::{ComponentHandle, ModelRc, VecModel, Weak};
 use songs_proto::moosync::types::SearchResult as ProtoSearchResult;
 use state_manager::StateManager;
 use tracing::Instrument;
 use types::prelude::SearchResultExt;
 
 use crate::{
-    AppCallbacks, MainWindow, SearchPageProps, SearchResult, Theme, error::UiError,
-    pages::PageHandler, utils::create_search_result,
+    AppCallbacks, MainWindow, SearchPageProps, SearchResult, Theme,
+    error::UiError,
+    pages::PageHandler,
+    utils::{IntoVec, create_search_result},
 };
 
 pub struct SearchPageHandler<'a> {
@@ -58,8 +60,7 @@ impl<'a> SearchPageHandler<'a> {
             let theme = window.global::<Theme>();
             let result_model = create_search_result(res, detail.as_ref(), &theme, &cache_dir);
             let props = window.global::<SearchPageProps>();
-            let current_model = props.get_provider_results();
-            let mut list: Vec<SearchResult> = current_model.iter().collect();
+            let mut list: Vec<SearchResult> = props.get_provider_results().into_vec();
             list.push(result_model);
             props.set_provider_results(ModelRc::new(VecModel::from(list)));
         });
@@ -83,14 +84,20 @@ impl<'a> SearchPageHandler<'a> {
                     return;
                 }
 
-                let local_res = Self::search_local(&state_manager, &term).await;
-                if let Ok(local) = local_res {
-                    let _ = main_window_weak.upgrade_in_event_loop(|window| {
-                        window
-                            .global::<SearchPageProps>()
-                            .set_provider_results(ModelRc::default());
-                    });
-                    Self::append_search_result(&main_window_weak, &state_manager, local, None);
+                tracing::debug!("Performing search for '{}'", term);
+
+                match Self::search_local(&state_manager, &term).await {
+                    Ok(local) => {
+                        let _ = main_window_weak.upgrade_in_event_loop(|window| {
+                            window
+                                .global::<SearchPageProps>()
+                                .set_provider_results(ModelRc::default());
+                        });
+                        Self::append_search_result(&main_window_weak, &state_manager, local, None);
+                    }
+                    Err(e) => {
+                        tracing::error!("Local search failed for query '{}': {:?}", term, e);
+                    }
                 }
 
                 let ext_handler = state_manager.get_extension_handler().await;
@@ -104,15 +111,24 @@ impl<'a> SearchPageHandler<'a> {
                     let term = term.clone();
 
                     tokio::spawn(async move {
-                        let res = Self::search_extension(&term, &ext).await;
-                        if let Ok(res) = res {
-                            let detail = ext.get_extension_detail();
-                            Self::append_search_result(
-                                &main_window_weak,
-                                &state_manager,
-                                res,
-                                Some(detail),
-                            );
+                        let detail = ext.get_extension_detail();
+                        match Self::search_extension(&term, &ext).await {
+                            Ok(res) => {
+                                Self::append_search_result(
+                                    &main_window_weak,
+                                    &state_manager,
+                                    res,
+                                    Some(detail),
+                                );
+                            }
+                            Err(e) => {
+                                tracing::error!(
+                                    "Extension search failed for '{}' ({:?}): {:?}",
+                                    detail.package_name,
+                                    term,
+                                    e
+                                );
+                            }
                         }
                     });
                 }

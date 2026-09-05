@@ -5,13 +5,47 @@ use std::{
     rc::Rc,
 };
 
-use slint::{Image, Model, ModelNotify, ModelTracker, SharedString};
+use slint::{ComponentHandle, Image, Model, ModelNotify, ModelRc, ModelTracker, SharedString};
+use state_manager::StateManager;
 use tracing::{Instrument, trace};
 
 use super::load_image_from_path_or_url;
 use crate::{
-    AlbumModel, ArtistModel, ExtensionItem, GenreModel, PlaylistModel, SongModel, WINDOW_EVENTS,
+    AlbumModel, ArtistModel, ExtensionItem, GenreModel, MainWindow, PlaylistModel, SongModel,
+    Theme, WINDOW_EVENTS,
 };
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn make_lazy_song_model(
+    main_window: &MainWindow,
+    state_manager: &StateManager,
+    songs: Vec<SongModel>,
+) -> ModelRc<SongModel> {
+    let theme = main_window.global::<Theme>();
+    let cache_dir = state_manager.get_cache_dir();
+    ModelRc::new(LazySongVecModel::new(
+        songs,
+        theme.get_songListItemHeight() as usize,
+        theme.get_songListItemWidth() as usize,
+        cache_dir,
+    ))
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn make_lazy_card_model<T: LazyModel + 'static>(
+    main_window: &MainWindow,
+    state_manager: &StateManager,
+    items: Vec<T>,
+) -> ModelRc<T> {
+    let theme = main_window.global::<Theme>();
+    let cache_dir = state_manager.get_cache_dir();
+    ModelRc::new(LazySongVecModel::new(
+        items,
+        theme.get_cardHeight() as usize,
+        theme.get_cardWidth() as usize,
+        cache_dir,
+    ))
+}
 
 pub trait LazyModel: Clone {
     fn set_cover(&mut self, image: Image);

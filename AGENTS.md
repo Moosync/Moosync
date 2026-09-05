@@ -62,6 +62,7 @@ Don't try to explore the entire project. Understand the context of the task and 
 - **Control Flow Simplicity**: Prefer simple, direct `if let Some(...) = ...` over awkward `let Some(...) = ... else { return; }` inversions. Prefer early returns and avoid `continue` inside loops.
 - **Single Responsibility & Thin UI Handlers**: Split distinct logic paths into separate helper functions; keep page handlers thin by moving multi-step coordination logic into `utils.rs`.
 - **Slint Naming Conventions**: All Slint variables, properties, callbacks, and functions must strictly use `snake_case` (never `kebab-case`).
+- **Error Handling & Explicit Logging**: Never ignore errors silently (e.g. avoid unlogged `if let Ok(...)` or `let Ok(...) = ... else { return; }`). All errors must be logged at least once (e.g. using `tracing::error!`). Prefer explicit `match` statements for error handling and logging rather than `else` returns that drop error context.
 - **Slint Modal Lifecycle**: Reusable modals inherit from `Modal` and live in `ui/slint/src/common/`. The parent controls visibility conditionally (`if show_modal: MyModal { close => { show_modal = false; } }`). Rely on `Modal`'s built-in `callback close();` — backdrop clicks and dialog action buttons trigger `root.close()`. Do not create custom `is_open` properties on modals.
 
 ### Git & Version Control

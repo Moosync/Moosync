@@ -11,10 +11,11 @@ use tracing::Instrument;
 use types::{prelude::SongsExt, subscription::CancelHandle};
 
 use crate::{
-    AppCallbacks, ContextMenuCallbacks, MainWindow, QueuePageProps, SongModel, Theme,
+    AppCallbacks, ContextMenuCallbacks, MainWindow, QueuePageProps, SongModel,
     pages::PageHandler,
     utils::{
-        LazySongVecModel, build_queue_context_menu_items, dispatch_song_context_action, save_queue,
+        build_queue_context_menu_items, dispatch_song_context_action, make_lazy_song_model,
+        save_queue,
     },
 };
 
@@ -47,6 +48,7 @@ impl<'a> QueuePageHandler<'a> {
             .on_play_queue_index({
                 let state_manager = state_manager.clone();
                 move |idx| {
+                    tracing::debug!("Queue action: play_queue_index({})", idx);
                     let state_manager = state_manager.clone();
                     tokio::spawn(
                         async move {
@@ -63,6 +65,7 @@ impl<'a> QueuePageHandler<'a> {
             .on_remove_from_queue({
                 let state_manager = state_manager.clone();
                 move |idx| {
+                    tracing::debug!("Queue action: remove_from_queue({})", idx);
                     let state_manager = state_manager.clone();
                     tokio::spawn(
                         async move {
@@ -77,6 +80,7 @@ impl<'a> QueuePageHandler<'a> {
         self.main_window.global::<AppCallbacks>().on_clear_queue({
             let state_manager = state_manager.clone();
             move || {
+                tracing::debug!("Queue action: clear_queue");
                 let state_manager = state_manager.clone();
                 tokio::spawn(
                     async move {
@@ -92,8 +96,13 @@ impl<'a> QueuePageHandler<'a> {
             .global::<AppCallbacks>()
             .on_move_queue_item({
                 let state_manager = state_manager.clone();
-                move |from_idx_str, to_idx| {
-                    if let Ok(from_idx) = from_idx_str.parse::<usize>() {
+                move |from_idx_str, to_idx| match from_idx_str.parse::<usize>() {
+                    Ok(from_idx) => {
+                        tracing::debug!(
+                            "Queue action: move_queue_item from {} to {}",
+                            from_idx,
+                            to_idx
+                        );
                         let state_manager = state_manager.clone();
                         tokio::spawn(
                             async move {
@@ -104,6 +113,9 @@ impl<'a> QueuePageHandler<'a> {
                             .instrument(tracing::debug_span!("slint_cb_on_move_queue_item")),
                         );
                     }
+                    Err(e) => {
+                        tracing::error!("Failed to parse from_idx '{}': {:?}", from_idx_str, e);
+                    }
                 }
             });
 
@@ -112,6 +124,11 @@ impl<'a> QueuePageHandler<'a> {
             .on_save_queue_as_playlist({
                 let state_manager = state_manager.clone();
                 move |name, desc| {
+                    tracing::debug!(
+                        "Queue action: save_queue_as_playlist '{}' ('{}')",
+                        name,
+                        desc
+                    );
                     let state_manager = state_manager.clone();
                     let name_str = name.to_string();
                     let desc_str = desc.to_string();
@@ -237,16 +254,8 @@ impl<'a> QueuePageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn update_ui_queue(main_window: &MainWindow, state_manager: &StateManager, queue: Vec<Song>) {
         let queue_models: Vec<SongModel> = queue.into_iter().map(Into::into).collect();
-        let theme = main_window.global::<Theme>();
-        let cache_dir = state_manager.get_cache_dir();
-        main_window
-            .global::<QueuePageProps>()
-            .set_queue(ModelRc::new(LazySongVecModel::new(
-                queue_models,
-                theme.get_songListItemHeight() as usize,
-                theme.get_songListItemWidth() as usize,
-                cache_dir,
-            )));
+        let model = make_lazy_song_model(main_window, state_manager, queue_models);
+        main_window.global::<QueuePageProps>().set_queue(model);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

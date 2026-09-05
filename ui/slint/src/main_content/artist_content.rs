@@ -18,7 +18,9 @@ impl EntitySongProvider for ArtistSongProvider {
     type Entity = Artist;
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn scope() -> ExtensionProviderScope { ExtensionProviderScope::ArtistSongs }
+    fn extension_scope() -> Option<ExtensionProviderScope> {
+        Some(ExtensionProviderScope::ArtistSongs)
+    }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_entity(main_window: &MainWindow) -> (Artist, String) {

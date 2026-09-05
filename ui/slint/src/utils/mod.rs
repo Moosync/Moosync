@@ -1,5 +1,6 @@
 pub mod context_menu;
 pub mod entity_content;
+pub mod entity_list;
 pub mod filter_sort;
 pub mod image;
 pub mod lazy_model;
@@ -12,6 +13,7 @@ pub mod validation;
 
 pub use context_menu::*;
 pub use entity_content::*;
+pub use entity_list::*;
 pub use filter_sort::*;
 pub use image::*;
 pub use lazy_model::*;
@@ -25,6 +27,8 @@ pub use validation::*;
 mod context_menu_test;
 #[cfg(test)]
 mod entity_content_test;
+#[cfg(test)]
+mod entity_list_test;
 #[cfg(test)]
 mod filter_sort_test;
 #[cfg(test)]

@@ -21,3 +21,4 @@ coverage_report/
 coverage/
 *.html
 *.info
+.rules_rust_analyzer

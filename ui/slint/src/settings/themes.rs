@@ -38,15 +38,20 @@ impl<'a> ThemesPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_all_themes_list(theme_holder: &themes::themes::ThemeHolder) -> Vec<ThemeDetails> {
         let mut list = Vec::new();
-        if let Ok(themes) = theme_holder.load_all_themes() {
-            for (id, mut theme) in themes {
-                if id == "default" {
-                    theme.id = "default".to_string();
-                    theme.name = "Default".to_string();
-                    theme.author = Some("Moosync".to_string());
-                    theme.description = Some("System default theme".to_string());
+        match theme_holder.load_all_themes() {
+            Ok(themes) => {
+                for (id, mut theme) in themes {
+                    if id == "default" {
+                        theme.id = "default".to_string();
+                        theme.name = "Default".to_string();
+                        theme.author = Some("Moosync".to_string());
+                        theme.description = Some("System default theme".to_string());
+                    }
+                    list.push(theme);
                 }
-                list.push(theme);
+            }
+            Err(e) => {
+                tracing::error!("Failed to load all themes: {:?}", e);
             }
         }
         list.sort_by(|a, b| {
@@ -201,41 +206,46 @@ impl<'a> ThemesPageHandler<'a> {
             target_theme_id = "current".to_string();
         }
 
-        if let Ok(mut theme) = theme_holder.inner.load_theme(target_theme_id.clone()) {
-            let mut theme_item = theme
-                .theme
-                .clone()
-                .unwrap_or_else(types::prelude::get_default_theme_item);
+        match theme_holder.inner.load_theme(target_theme_id.clone()) {
+            Ok(mut theme) => {
+                let mut theme_item = theme
+                    .theme
+                    .clone()
+                    .unwrap_or_else(types::prelude::get_default_theme_item);
 
-            // Insert all pending changes
-            for (name, val) in pending_changes.drain() {
-                theme_item.set_constant(&name, val);
-            }
-            theme.theme = Some(theme_item);
-
-            if let Err(e) = theme_holder.inner.save_theme(theme.clone()) {
-                tracing::error!("Failed to save theme modifications to 'current': {:?}", e);
-                return;
-            }
-
-            let themes_list = Self::get_all_themes_list(&theme_holder.inner);
-
-            let _ = slint::invoke_from_event_loop({
-                let main_window_weak = main_window_weak.clone();
-                let target_theme_id = target_theme_id.clone();
-                move || {
-                    if let Some(main_window) = main_window_weak.upgrade() {
-                        main_window.set_active_theme_id(target_theme_id.into());
-                        Self::apply_theme(&main_window, &theme);
-
-                        let vec_model = slint::VecModel::default();
-                        for t in themes_list {
-                            vec_model.push(Self::map_theme_to_config(&t));
-                        }
-                        main_window.set_available_themes(slint::ModelRc::new(vec_model));
-                    }
+                // Insert all pending changes
+                for (name, val) in pending_changes.drain() {
+                    theme_item.set_constant(&name, val);
                 }
-            });
+                theme.theme = Some(theme_item);
+
+                if let Err(e) = theme_holder.inner.save_theme(theme.clone()) {
+                    tracing::error!("Failed to save theme modifications to 'current': {:?}", e);
+                    return;
+                }
+
+                let themes_list = Self::get_all_themes_list(&theme_holder.inner);
+
+                let _ = slint::invoke_from_event_loop({
+                    let main_window_weak = main_window_weak.clone();
+                    let target_theme_id = target_theme_id.clone();
+                    move || {
+                        if let Some(main_window) = main_window_weak.upgrade() {
+                            main_window.set_active_theme_id(target_theme_id.into());
+                            Self::apply_theme(&main_window, &theme);
+
+                            let vec_model = slint::VecModel::default();
+                            for t in themes_list {
+                                vec_model.push(Self::map_theme_to_config(&t));
+                            }
+                            main_window.set_available_themes(slint::ModelRc::new(vec_model));
+                        }
+                    }
+                });
+            }
+            Err(e) => {
+                tracing::error!("Failed to load theme '{}': {:?}", target_theme_id, e);
+            }
         }
     }
 }
@@ -352,22 +362,34 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
 
                     tokio::spawn(
                         async move {
+                            tracing::debug!("Selecting preset theme: {}", theme_id);
                             let theme_holder = state_manager.get_theme_holder().await;
                             let preference_config = state_manager.get_preference_config().await;
 
-                            if let Ok(theme) = theme_holder.inner.load_theme(theme_id.clone()) {
-                                let _ = preference_config
-                                    .inner
-                                    .save(preferences::keys::ActiveThemeId, theme_id.clone());
-                                theme_holder.inner.on_theme_changed.run_all(|cb| cb(&theme));
-
-                                let theme_id = theme_id.clone();
-                                let _ = slint::invoke_from_event_loop(move || {
-                                    if let Some(main_window) = main_window_weak.upgrade() {
-                                        main_window.set_active_theme_id(theme_id.into());
-                                        Self::apply_theme(&main_window, &theme);
+                            match theme_holder.inner.load_theme(theme_id.clone()) {
+                                Ok(theme) => {
+                                    if let Err(e) = preference_config
+                                        .inner
+                                        .save(preferences::keys::ActiveThemeId, theme_id.clone())
+                                    {
+                                        tracing::error!(
+                                            "Failed to save active theme preference: {:?}",
+                                            e
+                                        );
                                     }
-                                });
+                                    theme_holder.inner.on_theme_changed.run_all(|cb| cb(&theme));
+
+                                    let theme_id = theme_id.clone();
+                                    let _ = slint::invoke_from_event_loop(move || {
+                                        if let Some(main_window) = main_window_weak.upgrade() {
+                                            main_window.set_active_theme_id(theme_id.into());
+                                            Self::apply_theme(&main_window, &theme);
+                                        }
+                                    });
+                                }
+                                Err(e) => {
+                                    tracing::error!("Failed to load theme {}: {:?}", theme_id, e);
+                                }
                             }
                         }
                         .instrument(tracing::debug_span!("slint_cb_on_select_preset_theme")),
@@ -412,45 +434,57 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
 
                     tokio::spawn(
                         async move {
+                            tracing::debug!("Saving custom theme: name={}, author={}", name, author);
                             let theme_holder = state_manager.get_theme_holder().await;
                             let preference_config = state_manager.get_preference_config().await;
 
-                            if let Ok(mut theme) =
-                                theme_holder.inner.load_theme("current".to_string())
-                            {
-                                let new_id = uuid::Uuid::new_v4().to_string();
-                                theme.id = new_id.clone();
-                                theme.name = name;
-                                theme.author = Some(author);
-                                theme.description = Some(description);
+                            match theme_holder.inner.load_theme("current".to_string()) {
+                                Ok(mut theme) => {
+                                    let new_id = uuid::Uuid::new_v4().to_string();
+                                    theme.id = new_id.clone();
+                                    theme.name = name;
+                                    theme.author = Some(author);
+                                    theme.description = Some(description);
 
-                                if let Err(e) = theme_holder.inner.save_theme(theme.clone()) {
-                                    tracing::error!("Failed to save custom theme: {:?}", e);
-                                    return;
-                                }
-
-                                let _ = theme_holder.inner.remove_theme("current".to_string());
-                                let _ = preference_config
-                                    .inner
-                                    .save(preferences::keys::ActiveThemeId, new_id.clone());
-
-                                let themes_list = Self::get_all_themes_list(&theme_holder.inner);
-
-                                let main_window_weak = main_window_weak.clone();
-                                let new_id = new_id.clone();
-                                let _ = slint::invoke_from_event_loop(move || {
-                                    if let Some(main_window) = main_window_weak.upgrade() {
-                                        main_window.set_active_theme_id(new_id.into());
-                                        Self::apply_theme(&main_window, &theme);
-
-                                        let vec_model = slint::VecModel::default();
-                                        for t in themes_list {
-                                            vec_model.push(Self::map_theme_to_config(&t));
-                                        }
-                                        main_window
-                                            .set_available_themes(slint::ModelRc::new(vec_model));
+                                    if let Err(e) = theme_holder.inner.save_theme(theme.clone()) {
+                                        tracing::error!("Failed to save custom theme: {:?}", e);
+                                        return;
                                     }
-                                });
+
+                                    if let Err(e) = theme_holder.inner.remove_theme("current".to_string()) {
+                                        tracing::error!("Failed to remove current temporary theme: {:?}", e);
+                                    }
+                                    if let Err(e) = preference_config
+                                        .inner
+                                        .save(preferences::keys::ActiveThemeId, new_id.clone())
+                                    {
+                                        tracing::error!("Failed to save active theme preference: {:?}", e);
+                                    }
+
+                                    let themes_list = Self::get_all_themes_list(&theme_holder.inner);
+
+                                    let main_window_weak = main_window_weak.clone();
+                                    let new_id = new_id.clone();
+                                    let _ = slint::invoke_from_event_loop(move || {
+                                        if let Some(main_window) = main_window_weak.upgrade() {
+                                            main_window.set_active_theme_id(new_id.into());
+                                            Self::apply_theme(&main_window, &theme);
+
+                                            let vec_model = slint::VecModel::default();
+                                            for t in themes_list {
+                                                vec_model.push(Self::map_theme_to_config(&t));
+                                            }
+                                            main_window
+                                                .set_available_themes(slint::ModelRc::new(vec_model));
+                                        }
+                                    });
+                                }
+                                Err(e) => {
+                                    tracing::error!(
+                                        "Failed to load 'current' theme for saving custom theme: {:?}",
+                                        e
+                                    );
+                                }
                             }
                         }
                         .instrument(tracing::debug_span!("slint_cb_on_save_custom_theme")),

@@ -9,13 +9,13 @@ use tracing::Instrument;
 use types::prelude::SongsExt;
 
 use super::{
-    lazy_model::LazySongVecModel,
+    lazy_model::make_lazy_song_model,
     models::IntoVec,
     navigation::{goto_album, goto_artist},
 };
 use crate::{
     AlbumModel, AppPage, ArtistModel, ContextMenuItem, ContextMenuItems, ContextSubMenuItem,
-    MainWindow, Pages, PlaylistContentPageProps, PlaylistsPageProps, SongModel, Theme,
+    MainWindow, Pages, PlaylistContentPageProps, PlaylistsPageProps, SongModel,
 };
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -113,11 +113,15 @@ fn attach_playlist_submenu(
     let _ = slint::spawn_local(
         async move {
             let db = state_manager.get_database().await;
-            let Ok(res) = db.get_entity_by_options(GetEntityOptions {
+            let res = match db.get_entity_by_options(GetEntityOptions {
                 playlist: Some(Playlist::default()),
                 ..Default::default()
-            }) else {
-                return;
+            }) {
+                Ok(r) => r,
+                Err(e) => {
+                    tracing::error!("Failed to fetch playlists for context menu: {:?}", e);
+                    return;
+                }
             };
             let Some(entity_result::Result::Playlists(list)) = res.result else {
                 return;
@@ -221,6 +225,11 @@ pub fn build_queue_context_menu_items(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn handle_playback_action(state_manager: &StateManager, songs: Vec<Song>, action: &str) {
+    tracing::debug!(
+        "Handling playback action '{}' on {} songs",
+        action,
+        songs.len()
+    );
     let mut player = state_manager.get_player_handler_mut().await;
     match action {
         "play_now" => player.play_now(songs),
@@ -255,8 +264,28 @@ async fn handle_remove_from_playlist(
         return;
     }
 
+    tracing::debug!(
+        "Removing {} songs from playlist '{}'",
+        song_ids.len(),
+        selected_pid
+    );
     let db = state_manager.get_database().await;
-    let _ = db.remove_from_playlist(&selected_pid, &song_ids);
+    match db.remove_from_playlist(&selected_pid, &song_ids) {
+        Ok(()) => {
+            tracing::debug!(
+                "Successfully removed songs from playlist '{}'",
+                selected_pid
+            );
+        }
+        Err(e) => {
+            tracing::error!(
+                "Failed to remove songs from playlist '{}': {:?}",
+                selected_pid,
+                e
+            );
+        }
+    }
+
     let options = GetSongOptions {
         playlist: Some(Playlist {
             playlist_id: Some(selected_pid),
@@ -264,32 +293,33 @@ async fn handle_remove_from_playlist(
         }),
         ..Default::default()
     };
-    let Ok(updated_songs) = db.get_songs_by_options(options) else {
-        return;
+    let updated_songs = match db.get_songs_by_options(options) {
+        Ok(songs) => songs,
+        Err(e) => {
+            tracing::error!("Failed to fetch updated songs for playlist: {:?}", e);
+            return;
+        }
     };
 
-    let cache_dir = state_manager.get_cache_dir();
     let _ = weak.upgrade_in_event_loop(move |window| {
-        let songs_view = updated_songs
-            .into_iter()
-            .map(Into::into)
-            .collect::<Vec<_>>();
-        let theme = window.global::<Theme>();
-        window
-            .global::<PlaylistContentPageProps>()
-            .set_songs(ModelRc::new(LazySongVecModel::new(
-                songs_view,
-                theme.get_songListItemHeight() as usize,
-                theme.get_songListItemWidth() as usize,
-                cache_dir,
-            )));
+        let songs_view: Vec<SongModel> = updated_songs.into_iter().map(Into::into).collect();
+        let model = make_lazy_song_model(&window, &state_manager, songs_view);
+        window.global::<PlaylistContentPageProps>().set_songs(model);
     });
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn handle_add_to_playlist(state_manager: &StateManager, songs: &[Song], playlist_id: &str) {
+    tracing::debug!("Adding {} songs to playlist '{}'", songs.len(), playlist_id);
     let db = state_manager.get_database().await;
-    let _ = db.add_to_playlist(playlist_id, songs);
+    match db.add_to_playlist(playlist_id, songs) {
+        Ok(()) => {
+            tracing::debug!("Successfully added songs to playlist '{}'", playlist_id);
+        }
+        Err(e) => {
+            tracing::error!("Failed to add songs to playlist '{}': {:?}", playlist_id, e);
+        }
+    }
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -299,17 +329,19 @@ async fn handle_goto_entity_by_id(
     target_page: AppPage,
     id: &str,
 ) {
+    tracing::debug!("Navigating to {:?} with ID: '{}'", target_page, id);
     let db = state_manager.get_database().await;
     match target_page {
         AppPage::AlbumContent => {
-            let album = if let Ok(res) = db.get_entity_by_options(GetEntityOptions {
+            let album = match db.get_entity_by_options(GetEntityOptions {
                 album: Some(Album {
                     album_id: Some(id.to_string()),
                     ..Default::default()
                 }),
                 ..Default::default()
             }) {
-                res.result
+                Ok(res) => res
+                    .result
                     .and_then(|r| match r {
                         entity_result::Result::Albums(list) => list.albums.into_iter().next(),
                         _ => None,
@@ -317,11 +349,13 @@ async fn handle_goto_entity_by_id(
                     .unwrap_or_else(|| Album {
                         album_id: Some(id.to_string()),
                         ..Default::default()
-                    })
-            } else {
-                Album {
-                    album_id: Some(id.to_string()),
-                    ..Default::default()
+                    }),
+                Err(e) => {
+                    tracing::error!("Failed to fetch album by ID '{}': {:?}", id, e);
+                    Album {
+                        album_id: Some(id.to_string()),
+                        ..Default::default()
+                    }
                 }
             };
 
@@ -331,14 +365,15 @@ async fn handle_goto_entity_by_id(
             });
         }
         AppPage::ArtistContent => {
-            let artist = if let Ok(res) = db.get_entity_by_options(GetEntityOptions {
+            let artist = match db.get_entity_by_options(GetEntityOptions {
                 artist: Some(Artist {
                     artist_id: Some(id.to_string()),
                     ..Default::default()
                 }),
                 ..Default::default()
             }) {
-                res.result
+                Ok(res) => res
+                    .result
                     .and_then(|r| match r {
                         entity_result::Result::Artists(list) => list.artists.into_iter().next(),
                         _ => None,
@@ -346,11 +381,13 @@ async fn handle_goto_entity_by_id(
                     .unwrap_or_else(|| Artist {
                         artist_id: Some(id.to_string()),
                         ..Default::default()
-                    })
-            } else {
-                Artist {
-                    artist_id: Some(id.to_string()),
-                    ..Default::default()
+                    }),
+                Err(e) => {
+                    tracing::error!("Failed to fetch artist by ID '{}': {:?}", id, e);
+                    Artist {
+                        artist_id: Some(id.to_string()),
+                        ..Default::default()
+                    }
                 }
             };
 
@@ -376,6 +413,12 @@ pub fn dispatch_song_context_action(
     let songs: Vec<Song> = song_models.into_vec().into_iter().map(Song::from).collect();
     let action = action_id.to_string();
     let weak = main_window_weak.clone();
+
+    tracing::debug!(
+        "Dispatching song context menu action '{}' for {} songs",
+        action,
+        songs.len()
+    );
 
     tokio::spawn(
         async move {

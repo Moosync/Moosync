@@ -1,9 +1,20 @@
-use std::{env::temp_dir, error::Error};
+use std::{
+    env::temp_dir,
+    error::Error,
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use async_trait::async_trait;
 use database::Database;
-use file_scanner::PlaylistSongId;
-use songs_proto::moosync::types::Song;
+use file_scanner::{PlaylistSongId, ScannerHolder};
+use platform_dirs::UserDirs;
+use preferences::preferences::PreferenceConfig;
+use songs_proto::moosync::types::{GetSongOptions, InnerSong, SearchableSong, Song, SongType};
+use tokio::{
+    task::JoinHandle,
+    time::{Duration, sleep},
+};
 use tracing::Instrument;
 
 use super::Hook;
@@ -27,10 +38,8 @@ impl Hook for ScannerHook {
         &self,
         state_manager: &StateManager,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let scanner = state_manager.plugins.get::<file_scanner::ScannerHolder>();
-        let preferences = state_manager
-            .plugins
-            .get::<preferences::preferences::PreferenceConfig>();
+        let scanner = state_manager.plugins.get::<ScannerHolder>();
+        let preferences = state_manager.plugins.get::<PreferenceConfig>();
         let database = state_manager.plugins.get::<Database>();
 
         {
@@ -66,13 +75,22 @@ impl Hook for ScannerHook {
             file_scanner.set_on_song(move |pl_id: Option<String>, songs| {
                 let db = db_song.clone();
                 async move {
-                    let Ok(songs) = db.read().await.insert_songs(songs) else {
-                        return;
+                    let songs = match db.read().await.insert_songs(songs) {
+                        Ok(songs) => songs,
+                        Err(e) => {
+                            tracing::error!("Failed to insert scanned songs: {:?}", e);
+                            return;
+                        }
                     };
-                    let Some(pl_id) = pl_id else {
-                        return;
-                    };
-                    let _ = db.read().await.add_to_playlist(&pl_id, &songs);
+                    if let Some(pl_id) = pl_id
+                        && let Err(e) = db.read().await.add_to_playlist(&pl_id, &songs)
+                    {
+                        tracing::error!(
+                            "Failed to add scanned songs to playlist {}: {:?}",
+                            pl_id,
+                            e
+                        );
+                    }
                 }
                 .in_current_span()
             });
@@ -94,11 +112,11 @@ impl Hook for ScannerHook {
                                 .load(preferences::keys::MusicPaths)
                                 .unwrap_or_default()
                                 .into_iter()
-                                .map(std::path::PathBuf::from)
+                                .map(PathBuf::from)
                                 .collect::<Vec<_>>();
 
                             if scan_dirs.is_empty()
-                                && let Some(user_dirs) = platform_dirs::UserDirs::new()
+                                && let Some(user_dirs) = UserDirs::new()
                             {
                                 scan_dirs.push(user_dirs.music_dir);
                             }
@@ -107,7 +125,7 @@ impl Hook for ScannerHook {
                                 .load(preferences::keys::ExcludeMusicPaths)
                                 .unwrap_or_default()
                                 .into_iter()
-                                .map(std::path::PathBuf::from)
+                                .map(PathBuf::from)
                                 .collect::<Vec<_>>();
 
                             let threads =
@@ -143,8 +161,7 @@ impl Hook for ScannerHook {
             ],
         );
 
-        let periodic_task =
-            std::sync::Arc::new(std::sync::Mutex::new(None::<tokio::task::JoinHandle<()>>));
+        let periodic_task = Arc::new(Mutex::new(None::<JoinHandle<()>>));
 
         preferences.read().await.on_preference_changed_immediate(
             {
@@ -180,10 +197,7 @@ impl Hook for ScannerHook {
                             let handle = tokio::spawn(
                                 async move {
                                     loop {
-                                        tokio::time::sleep(tokio::time::Duration::from_secs(
-                                            interval_mins as u64 * 60,
-                                        ))
-                                        .await;
+                                        sleep(Duration::from_secs(interval_mins as u64 * 60)).await;
                                         let scanner = scanner.read().await;
                                         if let Err(e) = scanner.start_scan().await {
                                             tracing::error!("Periodic scan failed: {:?}", e);
@@ -210,15 +224,15 @@ impl Hook for ScannerHook {
 #[tracing::instrument(level = "debug", skip_all)]
 fn resolve_or_create_playlist_song(db: &Database, identifier: PlaylistSongId) -> Option<Song> {
     let opt = match &identifier {
-        PlaylistSongId::Url(url) => songs_proto::moosync::types::GetSongOptions {
-            song: Some(songs_proto::moosync::types::SearchableSong {
+        PlaylistSongId::Url(url) => GetSongOptions {
+            song: Some(SearchableSong {
                 playback_url: Some(url.clone()),
                 ..Default::default()
             }),
             ..Default::default()
         },
-        PlaylistSongId::Path(path) => songs_proto::moosync::types::GetSongOptions {
-            song: Some(songs_proto::moosync::types::SearchableSong {
+        PlaylistSongId::Path(path) => GetSongOptions {
+            song: Some(SearchableSong {
                 path: Some(path.to_string_lossy().to_string()),
                 ..Default::default()
             }),
@@ -226,34 +240,30 @@ fn resolve_or_create_playlist_song(db: &Database, identifier: PlaylistSongId) ->
         },
     };
 
-    let songs = db.get_songs_by_options(opt).ok()?;
+    let songs = match db.get_songs_by_options(opt) {
+        Ok(songs) => songs,
+        Err(e) => {
+            tracing::error!("Failed to get song by options: {:?}", e);
+            return None;
+        }
+    };
     if let Some(song) = songs.into_iter().next() {
         return Some(song);
     }
 
     let (song_type, playback_url, path, title) = match identifier {
-        PlaylistSongId::Url(url) => (
-            songs_proto::moosync::types::SongType::Url.into(),
-            Some(url),
-            None,
-            None,
-        ),
+        PlaylistSongId::Url(url) => (SongType::Url.into(), Some(url), None, None),
         PlaylistSongId::Path(p) => {
             let path_str = p.to_string_lossy().to_string();
             let title = p
                 .file_stem()
                 .map(|s| s.to_string_lossy().to_string())
                 .unwrap_or_else(|| path_str.clone());
-            (
-                songs_proto::moosync::types::SongType::Local.into(),
-                None,
-                Some(path_str),
-                Some(title),
-            )
+            (SongType::Local.into(), None, Some(path_str), Some(title))
         }
     };
 
-    let inner_song = songs_proto::moosync::types::InnerSong {
+    let inner_song = InnerSong {
         id: Some(uuid::Uuid::new_v4().to_string()),
         r#type: song_type,
         playback_url,
@@ -267,6 +277,12 @@ fn resolve_or_create_playlist_song(db: &Database, identifier: PlaylistSongId) ->
         ..Default::default()
     };
 
-    let inserted = db.insert_songs(vec![proto_song]).ok()?;
+    let inserted = match db.insert_songs(vec![proto_song]) {
+        Ok(inserted) => inserted,
+        Err(e) => {
+            tracing::error!("Failed to insert resolved playlist song: {:?}", e);
+            return None;
+        }
+    };
     inserted.into_iter().next()
 }

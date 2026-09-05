@@ -47,6 +47,8 @@ SRC_LIST = [
     "src/utils/context_menu_test.rs",
     "src/utils/entity_content.rs",
     "src/utils/entity_content_test.rs",
+    "src/utils/entity_list.rs",
+    "src/utils/entity_list_test.rs",
     "src/utils/filter_sort.rs",
     "src/utils/filter_sort_test.rs",
     "src/utils/image.rs",

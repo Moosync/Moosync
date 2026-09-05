@@ -1,29 +1,34 @@
 use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{Album, AlbumList, GetEntityOptions, entity_result};
 use state_manager::StateManager;
-use tracing::{Instrument, debug};
 
 use crate::{
-    AlbumModel, AlbumsPageProps, MainWindow, error::UiError, pages::PageHandler,
-    utils::LazySongVecModel,
+    AlbumModel, AlbumsPageProps, MainWindow,
+    error::UiError,
+    pages::PageHandler,
+    utils::{EntityListCoordinator, EntityListProvider},
 };
 
-pub struct AlbumsPageHandler<'a> {
-    main_window: &'a MainWindow,
-    state_manager: &'a StateManager,
-}
+pub struct AlbumListProvider;
 
-impl<'a> AlbumsPageHandler<'a> {
+impl EntityListProvider for AlbumListProvider {
+    type Entity = Album;
+    type EntityModel = AlbumModel;
+
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
-        Self {
-            main_window,
-            state_manager,
-        }
+    fn name() -> &'static str { "Albums" }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn to_model(entity: Album) -> AlbumModel { AlbumModel::from(entity) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_models(main_window: &MainWindow, model: ModelRc<AlbumModel>) {
+        main_window.global::<AlbumsPageProps>().set_albums(model);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_albums(state_manager: &StateManager) -> Result<Vec<Album>, UiError> {
+    async fn fetch_entities(state_manager: &StateManager) -> Result<Vec<Album>, UiError> {
+        tracing::debug!("Fetching albums from database");
         let database = state_manager.get_database().await;
         let albums_res = database.get_entity_by_options(GetEntityOptions {
             album: Some(Album::default()),
@@ -35,22 +40,20 @@ impl<'a> AlbumsPageHandler<'a> {
             _ => Err(UiError::EntityParseFailed),
         }
     }
+}
 
+pub struct AlbumsPageHandler<'a> {
+    _main_window: &'a MainWindow,
+    coordinator: EntityListCoordinator<AlbumListProvider>,
+}
+
+impl<'a> AlbumsPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn set_albums(main_window: &MainWindow, state_manager: &StateManager, albums: Vec<Album>) {
-        debug!("Setting albums");
-        let album_model: Vec<AlbumModel> = albums.into_iter().map(Into::into).collect();
-
-        let theme = main_window.global::<crate::Theme>();
-        let cache_dir = state_manager.get_cache_dir();
-        main_window
-            .global::<AlbumsPageProps>()
-            .set_albums(ModelRc::new(LazySongVecModel::new(
-                album_model,
-                theme.get_cardHeight() as usize,
-                theme.get_cardWidth() as usize,
-                cache_dir,
-            )));
+    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+        Self {
+            _main_window: main_window,
+            coordinator: EntityListCoordinator::new(main_window, state_manager),
+        }
     }
 }
 
@@ -59,25 +62,8 @@ impl<'a> PageHandler for AlbumsPageHandler<'a> {
     fn initialize(&self) {}
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_show(&self) {
-        tokio::spawn({
-            let state_manager = self.state_manager.clone();
-            let main_window_weak = self.main_window.as_weak();
-            async move {
-                if let Ok(albums) = Self::fetch_albums(&state_manager).await {
-                    let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
-                        Self::set_albums(&main_window, &state_manager, albums);
-                    });
-                }
-            }
-            .in_current_span()
-        });
-    }
+    fn on_show(&self) { self.coordinator.on_show(); }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_hide(&self) {
-        self.main_window
-            .global::<AlbumsPageProps>()
-            .set_albums(ModelRc::default());
-    }
+    fn on_hide(&self) { self.coordinator.on_hide(); }
 }

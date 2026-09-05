@@ -13,7 +13,7 @@ use state_manager::StateManager;
 use tracing::Instrument;
 
 use crate::{
-    ExtensionProviderItem, MainWindow, SongModel, Theme, error::UiError, utils::LazySongVecModel,
+    ExtensionProviderItem, MainWindow, SongModel, error::UiError, utils::make_lazy_song_model,
 };
 
 #[derive(Debug, Default, Clone)]
@@ -83,7 +83,7 @@ impl ExtensionPaginationManager {
 pub trait EntitySongProvider: Send + Sync + 'static {
     type Entity: Clone + Send + 'static;
 
-    fn scope() -> ExtensionProviderScope;
+    fn extension_scope() -> Option<ExtensionProviderScope>;
     fn get_entity(main_window: &MainWindow) -> (Self::Entity, String);
     fn get_songs(main_window: &MainWindow) -> Vec<SongModel>;
     fn set_songs(main_window: &MainWindow, model: ModelRc<SongModel>);
@@ -171,16 +171,20 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
 
         tokio::spawn(
             async move {
-                let Ok(ext) = state_manager
+                let ext = match state_manager
                     .get_extension_handler()
                     .await
                     .get_extension(&package_name)
-                else {
-                    pagination.lock().unwrap().remove_extension(&package_name);
-                    let _ = weak.upgrade_in_event_loop(move |window| {
-                        P::update_extensions_enabled(&window, &package_name, false);
-                    });
-                    return;
+                {
+                    Ok(ext) => ext,
+                    Err(e) => {
+                        tracing::error!("Failed to get extension {} detail: {:?}", package_name, e);
+                        pagination.lock().unwrap().remove_extension(&package_name);
+                        let _ = weak.upgrade_in_event_loop(move |window| {
+                            P::update_extensions_enabled(&window, &package_name, false);
+                        });
+                        return;
+                    }
                 };
                 let detail = ext.get_extension_detail();
 
@@ -311,7 +315,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
             async move {
                 let ext_handler = state_manager.get_extension_handler().await;
                 let (extensions, detail) =
-                    fetch_scope_providers(&ext_handler, P::scope(), &extension).await;
+                    fetch_scope_providers(&ext_handler, P::extension_scope(), &extension).await;
 
                 let (songs, next_token) = if !extension.is_empty() {
                     match P::fetch_extension_songs(&state_manager, entity, extension.clone(), None)
@@ -361,22 +365,6 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn make_lazy_song_model(
-    main_window: &MainWindow,
-    state_manager: &StateManager,
-    songs: Vec<SongModel>,
-) -> ModelRc<SongModel> {
-    let theme = main_window.global::<Theme>();
-    let cache_dir = state_manager.get_cache_dir();
-    ModelRc::new(LazySongVecModel::new(
-        songs,
-        theme.get_songListItemHeight() as usize,
-        theme.get_songListItemWidth() as usize,
-        cache_dir,
-    ))
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
 pub fn map_songs_to_models(songs: Vec<Song>, detail: Option<&ExtensionDetail>) -> Vec<SongModel> {
     songs.into_iter().map(|s| (s, detail).into()).collect()
 }
@@ -384,9 +372,13 @@ pub fn map_songs_to_models(songs: Vec<Song>, detail: Option<&ExtensionDetail>) -
 #[tracing::instrument(level = "debug", skip_all)]
 pub async fn fetch_scope_providers(
     ext_handler: &ExtensionHandler,
-    scope: ExtensionProviderScope,
+    scope: Option<ExtensionProviderScope>,
     current_extension: &str,
 ) -> (Vec<ExtensionProviderItem>, Option<ExtensionDetail>) {
+    let Some(scope) = scope else {
+        return (Vec::new(), None);
+    };
+
     let active_exts = ext_handler.get_extensions_with_scope(scope).await;
 
     let providers: Vec<ExtensionProviderItem> = active_exts

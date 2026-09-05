@@ -30,6 +30,7 @@ export component SongsPageLayout inherits Rectangle {
     in property <SongModel> default-song: Constants.defaultSong;
     in-out property <[ExtensionProviderItem]> extension_providers: [];
     callback provider_toggled(string, bool);
+    callback load_more();
 
     TouchArea {
         width: 100%;
@@ -82,6 +83,9 @@ export component SongsPageLayout inherits Rectangle {
                 extension_providers <=> root.extension_providers;
                 provider_toggled(id, enabled) => {
                     root.provider_toggled(id, enabled);
+                }
+                load_more => {
+                    root.load_more();
                 }
             }
         }

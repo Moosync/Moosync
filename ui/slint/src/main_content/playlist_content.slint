@@ -17,6 +17,9 @@ export component PlaylistContent inherits Rectangle {
         provider_toggled(id, enabled) => {
             AppCallbacks.toggle_playlist_content_extension(id, enabled);
         }
+        load_more => {
+            AppCallbacks.load_more_playlist_content();
+        }
         default-song: {
             id: "",
             title: PlaylistsPageProps.selected-playlist.title,

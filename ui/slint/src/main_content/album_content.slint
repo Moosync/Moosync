@@ -17,6 +17,9 @@ export component AlbumContent inherits Rectangle {
         provider_toggled(id, enabled) => {
             AppCallbacks.toggle_album_content_extension(id, enabled);
         }
+        load_more => {
+            AppCallbacks.load_more_album_content();
+        }
         default-song: {
             id: "",
             title: AlbumsPageProps.selected-album.title,

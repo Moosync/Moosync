@@ -974,25 +974,37 @@ fn get_sample_wasm_path() -> PathBuf {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn load_sample_extension(state_manager: &StateManager) {
+async fn load_custom_extension(
+    state_manager: &StateManager,
+    dir_name: &str,
+    pkg_name: &str,
+    display_name: &str,
+) {
     let ext_handler = state_manager.get_extension_handler().await;
     let extensions_dir = ext_handler.extensions_dir.clone();
-    let ext_dir = extensions_dir.join("sample_rs");
+    let ext_dir = extensions_dir.join(dir_name);
     fs::create_dir_all(&ext_dir).unwrap();
-    let manifest = r#"{
-        "name": "sample.rs",
-        "displayName": "Sample Extension",
+    let manifest = format!(
+        r#"{{
+        "name": "{pkg_name}",
+        "displayName": "{display_name}",
         "version": "1.0.0",
         "extensionEntry": "main.wasm",
         "moosyncExtension": true,
         "description": "Sample Rust Extension",
         "icon": "",
         "author": "Moosync"
-    }"#;
+    }}"#
+    );
     fs::write(ext_dir.join("package.json"), manifest).unwrap();
     fs::copy(get_sample_wasm_path(), ext_dir.join("main.wasm")).unwrap();
 
     ext_handler.find_new_extensions().unwrap();
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn load_sample_extension(state_manager: &StateManager) {
+    load_custom_extension(state_manager, "sample_rs", "sample.rs", "Sample Extension").await;
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -1088,7 +1100,7 @@ async fn do_playlists_extension_integration(
             .global::<PlaylistContentPageProps>()
             .get_songs()
             .row_count()
-            == 2
+            == 25
     })
     .await;
 
@@ -1192,7 +1204,7 @@ async fn do_playlist_content_extension_toggle(
             .global::<PlaylistContentPageProps>()
             .get_songs()
             .row_count()
-            == 3
+            == 26
     })
     .await;
     assert!(toggled_on);
@@ -1271,7 +1283,7 @@ async fn do_artist_content_extension_toggle_and_open(
             .global::<ArtistContentPageProps>()
             .get_songs()
             .row_count()
-            == 3
+            == 26
     })
     .await;
     assert!(toggled_on);
@@ -1311,7 +1323,7 @@ async fn do_artist_content_extension_toggle_and_open(
             .global::<ArtistContentPageProps>()
             .get_songs()
             .row_count()
-            == 2
+            == 25
             && main_window
                 .global::<ArtistContentPageProps>()
                 .get_extension_providers()
@@ -1321,7 +1333,7 @@ async fn do_artist_content_extension_toggle_and_open(
     .await;
     assert!(ext_loaded);
     let songs = main_window.global::<ArtistContentPageProps>().get_songs();
-    assert_eq!(songs.row_count(), 2);
+    assert_eq!(songs.row_count(), 25);
     assert_eq!(songs.row_data(0).unwrap().title, "Artist Song 1");
     assert_eq!(songs.row_data(0).unwrap().extension, "sample.rs");
 
@@ -1391,7 +1403,7 @@ async fn do_album_content_extension_toggle_and_open(
             .global::<AlbumContentPageProps>()
             .get_songs()
             .row_count()
-            == 3
+            == 26
     })
     .await;
     assert!(toggled_on);
@@ -1431,7 +1443,7 @@ async fn do_album_content_extension_toggle_and_open(
             .global::<AlbumContentPageProps>()
             .get_songs()
             .row_count()
-            == 2
+            == 25
             && main_window
                 .global::<AlbumContentPageProps>()
                 .get_extension_providers()
@@ -1441,7 +1453,7 @@ async fn do_album_content_extension_toggle_and_open(
     .await;
     assert!(ext_loaded);
     let songs = main_window.global::<AlbumContentPageProps>().get_songs();
-    assert_eq!(songs.row_count(), 2);
+    assert_eq!(songs.row_count(), 25);
     assert_eq!(songs.row_data(0).unwrap().title, "Album Song 1");
     assert_eq!(songs.row_data(0).unwrap().extension, "sample.rs");
 
@@ -1571,6 +1583,166 @@ async fn do_context_menu_goto_artist(
     );
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_playlist_content_pagination_integration(
+    main_window: &'static MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
+    setup_test_context(state_manager).await;
+    load_sample_extension(state_manager).await;
+    setup_ui(main_window, state_manager);
+
+    let ext_playlist = PlaylistModel {
+        id: "ext-playlist-1".into(),
+        title: "Extension Playlist 1".into(),
+        extension: "sample.rs".into(),
+        ..Default::default()
+    };
+    main_window
+        .global::<PlaylistsPageProps>()
+        .set_selected_playlist(ext_playlist);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::PlaylistContent);
+
+    let page1_loaded = wait_until(|| {
+        main_window
+            .global::<PlaylistContentPageProps>()
+            .get_songs()
+            .row_count()
+            == 25
+    })
+    .await;
+    assert!(page1_loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_load_more_playlist_content();
+
+    let page2_loaded = wait_until(|| {
+        main_window
+            .global::<PlaylistContentPageProps>()
+            .get_songs()
+            .row_count()
+            == 50
+    })
+    .await;
+    assert!(page2_loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_load_more_playlist_content();
+
+    let page3_loaded = wait_until(|| {
+        main_window
+            .global::<PlaylistContentPageProps>()
+            .get_songs()
+            .row_count()
+            == 60
+    })
+    .await;
+    assert!(page3_loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_load_more_playlist_content();
+
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    assert_eq!(
+        main_window
+            .global::<PlaylistContentPageProps>()
+            .get_songs()
+            .row_count(),
+        60
+    );
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_multiple_extensions_pagination_integration(
+    main_window: &'static MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
+    setup_test_context(state_manager).await;
+    load_custom_extension(state_manager, "sample_rs_1", "sample.rs.1", "Sample 1").await;
+    load_custom_extension(state_manager, "sample_rs_2", "sample.rs.2", "Sample 2").await;
+
+    let database = state_manager.get_database().await;
+    let song = create_test_song("pl_multi", "Local Song", "Local Album", "Local Artist");
+    database.insert_songs(vec![song.clone()]).unwrap();
+    let playlist = Playlist {
+        playlist_id: Some("pl_multi_1".into()),
+        playlist_name: "Multi Playlist".into(),
+        ..Default::default()
+    };
+    database
+        .create_playlist_with_songs(playlist, &[song])
+        .unwrap();
+
+    setup_ui(main_window, state_manager);
+
+    let playlist_model = PlaylistModel {
+        id: "pl_multi_1".into(),
+        title: "Multi Playlist".into(),
+        ..Default::default()
+    };
+    main_window
+        .global::<PlaylistsPageProps>()
+        .set_selected_playlist(playlist_model);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::PlaylistContent);
+
+    let loaded = wait_until(|| {
+        main_window
+            .global::<PlaylistContentPageProps>()
+            .get_songs()
+            .row_count()
+            == 1
+            && main_window
+                .global::<PlaylistContentPageProps>()
+                .get_extension_providers()
+                .row_count()
+                == 2
+    })
+    .await;
+    assert!(loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_toggle_playlist_content_extension("sample.rs.1".into(), true);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_toggle_playlist_content_extension("sample.rs.2".into(), true);
+
+    let initial_ext_loaded = wait_until(|| {
+        main_window
+            .global::<PlaylistContentPageProps>()
+            .get_songs()
+            .row_count()
+            == 51
+    })
+    .await;
+    assert!(initial_ext_loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_load_more_playlist_content();
+
+    let page2_multi_loaded = wait_until(|| {
+        main_window
+            .global::<PlaylistContentPageProps>()
+            .get_songs()
+            .row_count()
+            == 101
+    })
+    .await;
+    assert!(page2_multi_loaded);
+}
+
 integration_test!(
     test_view_all_songs => do_view_all_songs,
     test_view_playlists => do_view_playlists,
@@ -1599,4 +1771,6 @@ integration_test!(
     test_album_content_extension_toggle_and_open => do_album_content_extension_toggle_and_open,
     test_context_menu_goto_album => do_context_menu_goto_album,
     test_context_menu_goto_artist => do_context_menu_goto_artist,
+    test_playlist_content_pagination_integration => do_playlist_content_pagination_integration,
+    test_multiple_extensions_pagination_integration => do_multiple_extensions_pagination_integration,
 );

@@ -24,6 +24,8 @@ pub use validation::*;
 #[cfg(test)]
 mod context_menu_test;
 #[cfg(test)]
+mod entity_content_test;
+#[cfg(test)]
 mod filter_sort_test;
 #[cfg(test)]
 mod image_test;

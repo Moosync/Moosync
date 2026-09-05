@@ -19,10 +19,18 @@ export component SongListView inherits Rectangle {
     in property <[SongModel]> songs: Constants.testSongs;
     in-out property <[ExtensionProviderItem]> extension_providers: [];
     callback provider_toggled(string, bool);
+    callback load_more();
     in-out property <int> active-idx: -1;
     in-out property <[int]> selected-indices: [];
     property <int> anchor-idx: 0;
     in property <bool> show-controls: true;
+    out property <bool> is_scrollable: list_view.viewport-height > list_view.height;
+
+    changed display-songs => {
+        if (!root.is_scrollable) {
+            root.load_more();
+        }
+    }
 
     out property <[SongModel]> display-songs: (root.search-text == "" && root.sort-criterion == SongSortCriterion.Title && root.sort-ascending) ? root.songs : AppCallbacks.filter_and_sort_songs(
         root.songs,
@@ -128,10 +136,16 @@ export component SongListView inherits Rectangle {
         Rectangle {
             vertical-stretch: 1;
 
-            ListView {
+            list_view := ListView {
                 width: 100%;
                 height: 100%;
                 vertical-scrollbar-policy: always-on;
+
+                changed viewport-y => {
+                    if (root.is_scrollable && -self.viewport-y + self.height >= self.viewport-height - 200px) {
+                        root.load_more();
+                    }
+                }
 
                 for song[index] in root.display-songs: VerticalLayout {
                     HorizontalLayout {

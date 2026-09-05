@@ -1,31 +1,70 @@
 use extensions_proto::moosync::types::{ExtensionProviderScope, RequestedAlbumSongsRequest};
-use slint::{ComponentHandle, ModelRc, VecModel, Weak};
+use slint::{ComponentHandle, ModelRc, VecModel};
 use songs_proto::moosync::types::{Album, GetSongOptions, Song};
 use state_manager::StateManager;
-use tracing::Instrument;
 
 use crate::{
-    AlbumContentPageProps, AlbumsPageProps, AppCallbacks, MainWindow, SongModel,
+    AlbumContentPageProps, AlbumsPageProps, AppCallbacks, ExtensionProviderItem, MainWindow,
+    SongModel,
     error::UiError,
     pages::PageHandler,
-    utils::{
-        IntoVec, fetch_scope_providers, make_lazy_song_model, map_songs_to_models,
-        update_provider_list_enabled,
-    },
+    utils::{EntityContentCoordinator, EntitySongProvider, IntoVec, update_provider_list_enabled},
 };
 
-pub struct AlbumContentPageHandler<'a> {
-    main_window: &'a MainWindow,
-    state_manager: &'a StateManager,
-}
+#[derive(Clone)]
+pub struct AlbumSongProvider;
 
-impl<'a> AlbumContentPageHandler<'a> {
+impl EntitySongProvider for AlbumSongProvider {
+    type Entity = Album;
+
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
-        Self {
-            main_window,
-            state_manager,
-        }
+    fn scope() -> ExtensionProviderScope { ExtensionProviderScope::AlbumSongs }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_entity(main_window: &MainWindow) -> (Album, String) {
+        let album: Album = main_window
+            .global::<AlbumsPageProps>()
+            .get_selected_album()
+            .into();
+        let extension = album.extension.clone().unwrap_or_default();
+        (album, extension)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn get_songs(main_window: &MainWindow) -> Vec<SongModel> {
+        main_window
+            .global::<AlbumContentPageProps>()
+            .get_songs()
+            .into_vec()
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_songs(main_window: &MainWindow, model: ModelRc<SongModel>) {
+        main_window
+            .global::<AlbumContentPageProps>()
+            .set_songs(model);
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_extensions_enabled(main_window: &MainWindow, package_name: &str, enabled: bool) {
+        let props = main_window.global::<AlbumContentPageProps>();
+        let extensions = props.get_extension_providers().into_vec();
+        let updated = update_provider_list_enabled(&extensions, package_name, enabled);
+        props.set_extension_providers(ModelRc::new(VecModel::from(updated)));
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn set_extensions(main_window: &MainWindow, extensions: ModelRc<ExtensionProviderItem>) {
+        main_window
+            .global::<AlbumContentPageProps>()
+            .set_extension_providers(extensions);
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn clear_ui(main_window: &MainWindow) {
+        let props = main_window.global::<AlbumContentPageProps>();
+        props.set_songs(ModelRc::default());
+        props.set_extension_providers(ModelRc::default());
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -46,183 +85,58 @@ impl<'a> AlbumContentPageHandler<'a> {
         state_manager: &StateManager,
         album: Album,
         extension: String,
-    ) -> Result<Vec<Song>, UiError> {
-        let handler = state_manager.get_extension_handler().await;
-        let ext = handler.get_extension(&extension)?;
+        page_token: Option<String>,
+    ) -> Result<(Vec<Song>, Option<String>), UiError> {
+        let ext = state_manager
+            .get_extension_handler()
+            .await
+            .get_extension(&extension)?;
         let resp = ext
             .get_album_songs(RequestedAlbumSongsRequest {
                 album: Some(album),
-                page_token: None,
+                page_token,
             })
             .await?;
-        Ok(resp.songs)
+        Ok((resp.songs, resp.next_page_token))
     }
+}
 
+pub struct AlbumContentPageHandler<'a> {
+    main_window: &'a MainWindow,
+    coordinator: EntityContentCoordinator<AlbumSongProvider>,
+}
+
+impl<'a> AlbumContentPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_songs(
-        state_manager: &StateManager,
-        album: Album,
-        extension: String,
-    ) -> Result<Vec<Song>, UiError> {
-        if !extension.is_empty() {
-            return Self::fetch_extension_songs(state_manager, album, extension).await;
+    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+        Self {
+            main_window,
+            coordinator: EntityContentCoordinator::new(main_window, state_manager),
         }
-        Self::fetch_local_songs(state_manager, album).await
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn update_providers_enabled(main_window: &MainWindow, package_name: &str, enabled: bool) {
-        let props = main_window.global::<AlbumContentPageProps>();
-        let providers = props.get_extension_providers().into_vec();
-        let updated = update_provider_list_enabled(&providers, package_name, enabled);
-        props.set_extension_providers(ModelRc::new(VecModel::from(updated)));
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn toggle_extension(
-        weak: Weak<MainWindow>,
-        state_manager: StateManager,
-        package_name: String,
-        enabled: bool,
-    ) {
-        if !enabled {
-            let _ = weak.upgrade_in_event_loop(move |main_window| {
-                Self::update_providers_enabled(&main_window, &package_name, false);
-                let current = main_window
-                    .global::<AlbumContentPageProps>()
-                    .get_songs()
-                    .into_vec();
-                let filtered: Vec<SongModel> = current
-                    .into_iter()
-                    .filter(|s| s.extension != package_name)
-                    .collect();
-                let model = make_lazy_song_model(&main_window, &state_manager, filtered);
-                main_window
-                    .global::<AlbumContentPageProps>()
-                    .set_songs(model);
-            });
-            return;
-        }
-
-        let Some(main_window) = weak.upgrade() else {
-            return;
-        };
-        Self::update_providers_enabled(&main_window, &package_name, true);
-        let album: Album = main_window
-            .global::<AlbumsPageProps>()
-            .get_selected_album()
-            .into();
-        drop(main_window);
-
-        tokio::spawn({
-            let state_manager = state_manager.clone();
-            let weak = weak.clone();
-            async move {
-                let handler = state_manager.get_extension_handler().await;
-                let Ok(ext) = handler.get_extension(&package_name) else {
-                    tracing::error!("Extension {} not found", package_name);
-                    let _ = weak.upgrade_in_event_loop(move |window| {
-                        Self::update_providers_enabled(&window, &package_name, false);
-                    });
-                    return;
-                };
-                let detail = ext.get_extension_detail();
-
-                let Ok(new_songs) =
-                    Self::fetch_extension_songs(&state_manager, album, package_name.clone()).await
-                else {
-                    tracing::error!(
-                        "Failed to fetch album songs from extension {}",
-                        package_name
-                    );
-                    let _ = weak.upgrade_in_event_loop(move |window| {
-                        Self::update_providers_enabled(&window, &package_name, false);
-                    });
-                    return;
-                };
-
-                let _ = weak.upgrade_in_event_loop(move |main_window| {
-                    let mut current = main_window
-                        .global::<AlbumContentPageProps>()
-                        .get_songs()
-                        .into_vec();
-                    current.extend(map_songs_to_models(new_songs, Some(&detail)));
-                    let model = make_lazy_song_model(&main_window, &state_manager, current);
-                    main_window
-                        .global::<AlbumContentPageProps>()
-                        .set_songs(model);
-                });
-            }
-            .in_current_span()
-        });
     }
 }
 
 impl<'a> PageHandler for AlbumContentPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
-        let state_manager = self.state_manager.clone();
-        let main_window_weak = self.main_window.as_weak();
+        let coordinator = self.coordinator.clone();
         self.main_window
             .global::<AppCallbacks>()
             .on_toggle_album_content_extension(move |pkg, enabled| {
-                Self::toggle_extension(
-                    main_window_weak.clone(),
-                    state_manager.clone(),
-                    pkg.to_string(),
-                    enabled,
-                );
+                coordinator.on_toggle_extension(pkg.to_string(), enabled);
+            });
+
+        let coordinator = self.coordinator.clone();
+        self.main_window
+            .global::<AppCallbacks>()
+            .on_load_more_album_content(move || {
+                coordinator.on_load_more_songs();
             });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_show(&self) {
-        let selected = self
-            .main_window
-            .global::<AlbumsPageProps>()
-            .get_selected_album();
-        let album: Album = selected.into();
-        let extension = album.extension.clone().unwrap_or_default();
-
-        tokio::spawn({
-            let state_manager = self.state_manager.clone();
-            let main_window_weak = self.main_window.as_weak();
-            async move {
-                let ext_handler = state_manager.get_extension_handler().await;
-                let (providers, detail) = fetch_scope_providers(
-                    &ext_handler,
-                    ExtensionProviderScope::AlbumSongs,
-                    &extension,
-                )
-                .await;
-
-                let Ok(songs) = Self::fetch_songs(&state_manager, album, extension).await else {
-                    tracing::error!("Failed to fetch album songs");
-                    return;
-                };
-
-                let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
-                    main_window
-                        .global::<AlbumContentPageProps>()
-                        .set_extension_providers(ModelRc::new(VecModel::from(providers)));
-                    let song_models = map_songs_to_models(songs, detail.as_ref());
-                    let model = make_lazy_song_model(&main_window, &state_manager, song_models);
-                    main_window
-                        .global::<AlbumContentPageProps>()
-                        .set_songs(model);
-                });
-            }
-            .in_current_span()
-        });
-    }
+    fn on_show(&self) { self.coordinator.on_show(); }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn on_hide(&self) {
-        self.main_window
-            .global::<AlbumContentPageProps>()
-            .set_songs(ModelRc::default());
-        self.main_window
-            .global::<AlbumContentPageProps>()
-            .set_extension_providers(ModelRc::default());
-    }
+    fn on_hide(&self) { self.coordinator.on_hide(); }
 }

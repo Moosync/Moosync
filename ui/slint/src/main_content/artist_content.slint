@@ -17,6 +17,9 @@ export component ArtistContent inherits Rectangle {
         provider_toggled(id, enabled) => {
             AppCallbacks.toggle_artist_content_extension(id, enabled);
         }
+        load_more => {
+            AppCallbacks.load_more_artist_content();
+        }
         default-song: {
             id: "",
             title: ArtistsPageProps.selected-artist.title,

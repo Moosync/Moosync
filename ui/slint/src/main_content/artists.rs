@@ -11,15 +11,13 @@ use crate::{
 
 pub struct ArtistListProvider;
 
+#[async_trait::async_trait]
 impl EntityListProvider for ArtistListProvider {
     type Entity = Artist;
     type EntityModel = ArtistModel;
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn name() -> &'static str { "Artists" }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn to_model(entity: Artist) -> ArtistModel { ArtistModel::from(entity) }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_models(main_window: &MainWindow, model: ModelRc<ArtistModel>) {
@@ -58,9 +56,6 @@ impl<'a> ArtistsPageHandler<'a> {
 }
 
 impl<'a> PageHandler for ArtistsPageHandler<'a> {
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn initialize(&self) {}
-
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) { self.coordinator.on_show(); }
 

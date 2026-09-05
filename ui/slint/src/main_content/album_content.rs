@@ -1,5 +1,5 @@
 use extensions_proto::moosync::types::{ExtensionProviderScope, RequestedAlbumSongsRequest};
-use slint::{ComponentHandle, ModelRc, VecModel};
+use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{Album, GetSongOptions, Song};
 use state_manager::StateManager;
 
@@ -8,12 +8,13 @@ use crate::{
     SongModel,
     error::UiError,
     pages::PageHandler,
-    utils::{EntityContentCoordinator, EntitySongProvider, IntoVec, update_provider_list_enabled},
+    utils::{EntityContentCoordinator, EntitySongProvider, IntoVec},
 };
 
 #[derive(Clone)]
 pub struct AlbumSongProvider;
 
+#[async_trait::async_trait]
 impl EntitySongProvider for AlbumSongProvider {
     type Entity = Album;
 
@@ -48,11 +49,10 @@ impl EntitySongProvider for AlbumSongProvider {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn update_extensions_enabled(main_window: &MainWindow, package_name: &str, enabled: bool) {
-        let props = main_window.global::<AlbumContentPageProps>();
-        let extensions = props.get_extension_providers().into_vec();
-        let updated = update_provider_list_enabled(&extensions, package_name, enabled);
-        props.set_extension_providers(ModelRc::new(VecModel::from(updated)));
+    fn get_extensions(main_window: &MainWindow) -> ModelRc<ExtensionProviderItem> {
+        main_window
+            .global::<AlbumContentPageProps>()
+            .get_extension_providers()
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -60,13 +60,6 @@ impl EntitySongProvider for AlbumSongProvider {
         main_window
             .global::<AlbumContentPageProps>()
             .set_extension_providers(extensions);
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn clear_ui(main_window: &MainWindow) {
-        let props = main_window.global::<AlbumContentPageProps>();
-        props.set_songs(ModelRc::default());
-        props.set_extension_providers(ModelRc::default());
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

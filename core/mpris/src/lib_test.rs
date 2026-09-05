@@ -56,15 +56,15 @@ fn test_mpris_holder_set_metadata(mut mock_mpris_context: Box<MockMprisContext>)
         ..Default::default()
     };
 
-    assert_ok!(holder.set_metadata(metadata));
+    let result = holder.set_metadata(metadata);
+
+    assert_ok!(result);
 }
 
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mpris_holder_set_playback_state_and_position(
-    mut mock_mpris_context: Box<MockMprisContext>,
-) {
+fn test_mpris_holder_set_playback_state(mut mock_mpris_context: Box<MockMprisContext>) {
     mock_mpris_context
         .expect_set_playback_state()
         .with(
@@ -73,16 +73,28 @@ fn test_mpris_holder_set_playback_state_and_position(
         )
         .times(1)
         .returning(|_, _| Ok(()));
+    let holder = MprisHolder::new_with_context(mock_mpris_context).unwrap();
+
+    let result = holder.set_playback_state(PlayerState::Playing);
+
+    assert_ok!(result);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_mpris_holder_set_position(mut mock_mpris_context: Box<MockMprisContext>) {
     mock_mpris_context
         .expect_set_playback_state()
         .with(
-            mockall::predicate::eq(PlayerState::Playing),
+            mockall::predicate::eq(PlayerState::Stopped),
             mockall::predicate::eq(45000),
         )
         .times(1)
         .returning(|_, _| Ok(()));
     let holder = MprisHolder::new_with_context(mock_mpris_context).unwrap();
 
-    assert_ok!(holder.set_playback_state(PlayerState::Playing));
-    assert_ok!(holder.set_position(45.0));
+    let result = holder.set_position(45.0);
+
+    assert_ok!(result);
 }

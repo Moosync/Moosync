@@ -19,7 +19,7 @@ use crate::{
 };
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn make_context_menu_item(
+fn make_context_menu_item(
     action_id: impl Into<SharedString>,
     title: impl Into<SharedString>,
     icon: Image,
@@ -34,7 +34,7 @@ pub fn make_context_menu_item(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn make_context_sub_item(
+fn make_context_sub_item(
     action_id: impl Into<SharedString>,
     title: impl Into<SharedString>,
     icon: Image,
@@ -47,7 +47,7 @@ pub fn make_context_sub_item(
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn make_context_submenu_item(
+fn make_context_submenu_item(
     action_id: impl Into<SharedString>,
     title: impl Into<SharedString>,
     icon: Image,

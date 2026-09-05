@@ -17,7 +17,7 @@
 use rstest::rstest;
 use tracing_test::traced_test;
 
-use crate::{Pages, QueuePages, SettingsPages, pages::AppPage};
+use crate::{Pages, SettingsPages, pages::AppPage};
 
 #[rstest]
 #[case(Pages::AllSongs, AppPage::AllSongs)]
@@ -45,13 +45,5 @@ fn test_app_page_from_pages(#[case] page: Pages, #[case] expected: AppPage) {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_app_page_from_settings_pages(#[case] page: SettingsPages, #[case] expected: AppPage) {
-    assert_eq!(AppPage::from(page), expected);
-}
-
-#[rstest]
-#[case(QueuePages::Queue, AppPage::Queue)]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_app_page_from_queue_pages(#[case] page: QueuePages, #[case] expected: AppPage) {
     assert_eq!(AppPage::from(page), expected);
 }

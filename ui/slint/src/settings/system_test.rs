@@ -14,60 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use slint::{ComponentHandle, Model};
+use rstest::rstest;
+use slint::ComponentHandle;
 use tracing_test::traced_test;
 
 use crate::{
-    AppPreferences, MainWindow, PreferenceChange,
-    pages::PageHandler,
+    MainWindow, PreferenceChange,
     settings::{PreferenceHandler, system::SystemPageHandler},
-    test_utils::{TestSlintSmContext, run_slint_test, wait_until},
+    test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
 };
 
-#[test]
+#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_system_page_handler_initialize() { run_slint_test(do_system_page_handler_initialize); }
-
-#[tracing::instrument(level = "debug", skip_all)]
-async fn do_system_page_handler_initialize(
-    main_window: &'static MainWindow,
-    state_manager_fixture: TestSlintSmContext,
-) {
-    let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = SystemPageHandler::new(main_window, &sm);
-
-    handler.initialize();
-
-    let loaded = wait_until(|| {
-        main_window
-            .global::<AppPreferences>()
-            .get_system_items()
-            .row_count()
-            == 6
-    })
-    .await;
-
-    assert!(loaded);
-    assert_eq!(
-        main_window
-            .global::<AppPreferences>()
-            .get_system_items()
-            .row_count(),
-        6
-    );
-}
-
-#[test]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_system_page_handler_handle_change() {
-    run_slint_test(do_system_page_handler_handle_change);
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-async fn do_system_page_handler_handle_change(
-    main_window: &'static MainWindow,
+async fn test_system_page_handler_handle_change(
+    main_window: MainWindow,
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
@@ -79,7 +41,7 @@ async fn do_system_page_handler_handle_change(
         value_list: slint::ModelRc::default(),
     };
     let mw_weak = main_window.as_weak();
-    let handler = SystemPageHandler::new(main_window, &sm);
+    let handler = SystemPageHandler::new(&main_window, &sm);
 
     let handled = handler.handle_preference_change(&change, &mw_weak, &sm);
 

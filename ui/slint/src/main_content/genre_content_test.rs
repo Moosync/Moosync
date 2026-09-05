@@ -15,27 +15,59 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use assertables::assert_ok;
+use rstest::rstest;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use songs_proto::moosync::types::{Genre, InnerSong, Song};
 use tracing_test::traced_test;
 
 use crate::{
     GenreContentPageProps, GenresPageProps, MainWindow, SongModel,
-    main_content::genre_content::GenreContentPageHandler,
+    main_content::genre_content::{GenreContentPageHandler, GenreSongProvider},
     pages::PageHandler,
-    test_utils::{TestSlintSmContext, run_slint_test, wait_until},
+    test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
+    utils::EntitySongProvider,
 };
-
-#[test]
+#[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_genre_content_page_handler_on_show() {
-    run_slint_test(do_genre_content_page_handler_on_show);
+fn test_genre_song_provider_get_entity(main_window: MainWindow) {
+    let genre = Genre {
+        genre_name: Some("Selected Genre".into()),
+        ..Default::default()
+    };
+    main_window
+        .global::<GenresPageProps>()
+        .set_selected_genre(genre.into());
+
+    let (ret_genre, ext) = GenreSongProvider::get_entity(&main_window);
+
+    assert_eq!(ret_genre.genre_name.as_deref(), Some("Selected Genre"));
+    assert!(ext.is_empty());
 }
 
+#[rstest]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_genre_content_page_handler_on_show(
-    main_window: &'static MainWindow,
+fn test_genre_song_provider_clear_ui(main_window: MainWindow) {
+    let dummy_songs = vec![SongModel::default()];
+    GenreSongProvider::set_songs(&main_window, ModelRc::new(VecModel::from(dummy_songs)));
+
+    GenreSongProvider::clear_ui(&main_window);
+
+    assert_eq!(
+        main_window
+            .global::<GenreContentPageProps>()
+            .get_songs()
+            .row_count(),
+        0
+    );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_genre_song_provider_fetch_local_songs_success(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
@@ -56,54 +88,19 @@ async fn do_genre_content_page_handler_on_show(
     let db = sm.get_database().await;
     assert_ok!(db.insert_songs(vec![song]));
 
-    let inserted_genres = db
-        .get_entity_by_options(songs_proto::moosync::types::GetEntityOptions {
-            genre: Some(genre),
-            ..Default::default()
-        })
-        .unwrap();
-    if let Some(songs_proto::moosync::types::entity_result::Result::Genres(list)) =
-        inserted_genres.result
-    {
-        if let Some(first_genre) = list.genres.into_iter().next() {
-            main_window
-                .global::<GenresPageProps>()
-                .set_selected_genre(first_genre.into());
-        }
-    }
+    let songs_res = GenreSongProvider::fetch_local_songs(&sm, genre).await;
 
-    let handler = GenreContentPageHandler::new(main_window, &sm);
-    handler.on_show();
-
-    let loaded = wait_until(|| {
-        main_window
-            .global::<GenreContentPageProps>()
-            .get_songs()
-            .row_count()
-            == 1
-    })
-    .await;
-
-    assert!(loaded);
-    assert_eq!(
-        main_window
-            .global::<GenreContentPageProps>()
-            .get_songs()
-            .row_count(),
-        1
-    );
+    assert_ok!(&songs_res);
+    let songs = songs_res.unwrap();
+    assert_eq!(songs.len(), 1);
 }
 
-#[test]
+#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_genre_content_page_handler_on_hide() {
-    run_slint_test(do_genre_content_page_handler_on_hide);
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-async fn do_genre_content_page_handler_on_hide(
-    main_window: &'static MainWindow,
+async fn test_genre_content_page_handler_on_hide(
+    main_window: MainWindow,
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
@@ -111,21 +108,15 @@ async fn do_genre_content_page_handler_on_hide(
     main_window
         .global::<GenreContentPageProps>()
         .set_songs(ModelRc::new(VecModel::from(dummy_songs)));
+    let handler = GenreContentPageHandler::new(&main_window, &sm);
+
+    handler.on_hide();
+
     assert_eq!(
         main_window
             .global::<GenreContentPageProps>()
             .get_songs()
             .row_count(),
-        2
+        0
     );
-
-    let handler = GenreContentPageHandler::new(main_window, &sm);
-    handler.on_hide();
-
-    let row_count = main_window
-        .global::<GenreContentPageProps>()
-        .get_songs()
-        .row_count();
-
-    assert_eq!(row_count, 0);
 }

@@ -153,10 +153,4 @@ impl<'a> PageHandler for SearchPageHandler<'a> {
                 );
             });
     }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn on_show(&self) {}
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn on_hide(&self) {}
 }

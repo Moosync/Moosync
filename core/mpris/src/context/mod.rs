@@ -37,7 +37,7 @@ use crate::{MediaControlEvent, MprisPlayerDetails, error::MprisError};
 //  Uses crate-level MediaControlEvent (defined in lib.rs).                //
 // ─────────────────────────────────────────────────────────────────────── //
 
-pub trait MprisContext: Send + Sync {
+pub trait MprisContext: std::fmt::Debug + Send + Sync {
     fn attach(
         &mut self,
         sender: std::sync::mpsc::Sender<MediaControlEvent>,
@@ -49,6 +49,9 @@ pub trait MprisContext: Send + Sync {
 #[cfg(test)]
 mock! {
     pub MprisContext {}
+    impl std::fmt::Debug for MprisContext {
+        fn fmt<'a, 'b>(&self, f: &'a mut std::fmt::Formatter<'b>) -> std::fmt::Result;
+    }
     impl MprisContext for MprisContext {
         fn attach(&mut self, sender: std::sync::mpsc::Sender<MediaControlEvent>) -> Result<(), MprisError>;
         fn set_metadata(&mut self, metadata: MprisPlayerDetails) -> Result<(), MprisError>;
@@ -63,6 +66,15 @@ mock! {
 #[cfg(not(target_os = "android"))]
 pub struct SouvlakiMprisContext {
     controls: MediaControls,
+}
+
+#[cfg(not(target_os = "android"))]
+impl std::fmt::Debug for SouvlakiMprisContext {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SouvlakiMprisContext")
+            .finish_non_exhaustive()
+    }
 }
 
 #[cfg(not(target_os = "android"))]
@@ -187,6 +199,7 @@ impl MprisContext for SouvlakiMprisContext {
 // ─────────────────────────────────────────────────────────────────────── //
 
 #[cfg(not(target_os = "android"))]
+#[derive(Debug)]
 pub struct DummyContext {}
 
 #[cfg(not(target_os = "android"))]

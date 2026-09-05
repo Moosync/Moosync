@@ -14,85 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::time::Duration;
-
 use rstest::fixture;
 use state_manager::StateManager;
 use tempdir::TempDir;
 use types::plugin::PluginContext;
 
 use crate::MainWindow;
-
-type Task = Box<dyn FnOnce() + Send + 'static>;
-static RUNNER: std::sync::OnceLock<std::sync::mpsc::Sender<Task>> = std::sync::OnceLock::new();
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn runtime() -> &'static tokio::runtime::Runtime {
-    static RUNTIME: std::sync::OnceLock<tokio::runtime::Runtime> = std::sync::OnceLock::new();
-    RUNTIME.get_or_init(|| {
-        tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .unwrap()
-    })
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn runner() -> &'static std::sync::mpsc::Sender<Task> {
-    RUNNER.get_or_init(|| {
-        let (tx, rx) = std::sync::mpsc::channel::<Task>();
-        std::thread::Builder::new()
-            .name("slint_test_runner".into())
-            .spawn(move || {
-                let _guard = runtime().enter();
-                i_slint_backend_testing::init_integration_test_with_system_time();
-                while let Ok(task) = rx.recv() {
-                    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(task));
-                }
-            })
-            .expect("failed to spawn slint runner");
-        tx
-    })
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub fn run_slint_test<F, Fut>(test_fn: F)
-where
-    F: FnOnce(&'static MainWindow, TestSlintSmContext) -> Fut + Send + 'static,
-    Fut: std::future::Future<Output = ()> + 'static,
-{
-    let (tx, rx) = std::sync::mpsc::channel();
-    runner()
-        .send(Box::new(move || {
-            let state_manager_fixture = state_manager_fixture();
-            let main_window: &'static MainWindow = Box::leak(Box::new(MainWindow::new().unwrap()));
-
-            slint::spawn_local(async move {
-                test_fn(main_window, state_manager_fixture).await;
-                let _ = slint::quit_event_loop();
-            })
-            .expect("failed to spawn local task on slint event loop");
-
-            slint::run_event_loop().expect("failed to run slint event loop");
-            let _ = tx.send(());
-        }))
-        .expect("failed to send task to slint runner");
-    rx.recv().expect("test failed or runner panicked");
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-pub async fn wait_until<F>(mut condition: F) -> bool
-where
-    F: FnMut() -> bool,
-{
-    for _ in 0..100 {
-        if condition() {
-            return true;
-        }
-        tokio::time::sleep(Duration::from_millis(10)).await;
-    }
-    false
-}
 
 #[fixture]
 #[tracing::instrument(level = "debug", skip_all)]

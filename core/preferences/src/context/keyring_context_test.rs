@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use assertables::{assert_ok, assert_ok_eq_x};
+use assertables::{assert_err, assert_ok, assert_ok_eq_x};
 use rstest::{fixture, rstest};
 use tracing_test::traced_test;
 use uuid::Uuid;
@@ -22,6 +22,7 @@ use uuid::Uuid;
 use crate::context::{Keyring, KeyringContext};
 
 #[fixture]
+#[tracing::instrument(level = "debug", skip_all)]
 fn keyring_context() -> KeyringContext {
     let service = format!("moosync_test_service_{}", Uuid::new_v4());
     let user = format!("moosync_test_user_{}", Uuid::new_v4());
@@ -31,9 +32,21 @@ fn keyring_context() -> KeyringContext {
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
+fn test_keyring_context_get_secret_when_unset(keyring_context: KeyringContext) {
+    let result = keyring_context.get_secret();
+
+    assert_err!(result);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_keyring_context_set_and_get_secret(keyring_context: KeyringContext) {
     let secret = b"my_secret_token_12345";
 
-    assert_ok!(keyring_context.set_secret(secret));
-    assert_ok_eq_x!(keyring_context.get_secret().as_deref(), secret.as_slice());
+    let set_result = keyring_context.set_secret(secret);
+    let get_result = keyring_context.get_secret();
+
+    assert_ok!(set_result);
+    assert_ok_eq_x!(get_result.as_deref(), secret.as_slice());
 }

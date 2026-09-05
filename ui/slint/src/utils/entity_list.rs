@@ -1,4 +1,4 @@
-use std::{future::Future, marker::PhantomData};
+use std::marker::PhantomData;
 
 use slint::{ComponentHandle, ModelRc, Weak};
 use state_manager::StateManager;
@@ -10,18 +10,17 @@ use crate::{
     utils::{LazyModel, make_lazy_card_model},
 };
 
+#[async_trait::async_trait]
 pub trait EntityListProvider: Send + Sync + 'static {
-    type Entity: Send + 'static;
-    type EntityModel: LazyModel + 'static;
+    type Entity: Send + Sync + 'static;
+    type EntityModel: LazyModel + From<Self::Entity> + 'static;
 
     fn name() -> &'static str;
-    fn to_model(entity: Self::Entity) -> Self::EntityModel;
+    fn to_model(entity: Self::Entity) -> Self::EntityModel { entity.into() }
     fn set_models(main_window: &MainWindow, model: ModelRc<Self::EntityModel>);
     fn clear_models(main_window: &MainWindow) { Self::set_models(main_window, ModelRc::default()); }
 
-    fn fetch_entities(
-        state_manager: &StateManager,
-    ) -> impl Future<Output = Result<Vec<Self::Entity>, UiError>> + Send;
+    async fn fetch_entities(state_manager: &StateManager) -> Result<Vec<Self::Entity>, UiError>;
 }
 
 pub struct EntityListCoordinator<P: EntityListProvider> {

@@ -71,15 +71,13 @@ impl PlaylistListProvider {
     }
 }
 
+#[async_trait::async_trait]
 impl EntityListProvider for PlaylistListProvider {
     type Entity = Playlist;
     type EntityModel = PlaylistModel;
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn name() -> &'static str { "Playlists" }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn to_model(entity: Playlist) -> PlaylistModel { PlaylistModel::from(entity) }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_models(main_window: &MainWindow, model: ModelRc<PlaylistModel>) {

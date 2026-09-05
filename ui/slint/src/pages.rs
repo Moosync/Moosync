@@ -1,9 +1,12 @@
-use crate::{Pages, QueuePages, SettingsPages};
+use crate::{Pages, SettingsPages};
 
 pub(crate) trait PageHandler {
-    fn initialize(&self);
-    fn on_show(&self);
-    fn on_hide(&self);
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn initialize(&self) {}
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn on_show(&self) {}
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn on_hide(&self) {}
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -51,14 +54,6 @@ impl From<SettingsPages> for AppPage {
             SettingsPages::System => AppPage::System,
             SettingsPages::Extensions => AppPage::Extensions,
             SettingsPages::Themes => AppPage::Themes,
-        }
-    }
-}
-
-impl From<QueuePages> for AppPage {
-    fn from(page: QueuePages) -> Self {
-        match page {
-            QueuePages::Queue => AppPage::Queue,
         }
     }
 }

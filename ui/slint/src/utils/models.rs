@@ -104,7 +104,7 @@ impl From<SongModel> for Song {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn resolve_extension_icon(extension: &str, detail: Option<&ExtensionDetail>) -> Image {
+fn resolve_extension_icon(extension: &str, detail: Option<&ExtensionDetail>) -> Image {
     if !extension.is_empty() {
         get_extension_icon(detail)
     } else {

@@ -15,25 +15,84 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use assertables::assert_ok;
+use rstest::rstest;
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use songs_proto::moosync::types::{Artist, InnerSong, Song};
 use tracing_test::traced_test;
 
 use crate::{
     ArtistModel, ArtistsPageProps, MainWindow,
-    main_content::artists::ArtistsPageHandler,
+    main_content::artists::{ArtistListProvider, ArtistsPageHandler},
     pages::PageHandler,
-    test_utils::{TestSlintSmContext, run_slint_test, wait_until},
+    test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
+    utils::EntityListProvider,
 };
 
 #[test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_artists_page_handler_on_show() { run_slint_test(do_artists_page_handler_on_show); }
+fn test_artist_list_provider_name() {
+    let name = ArtistListProvider::name();
 
+    assert_eq!(name, "Artists");
+}
+
+#[test]
+#[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn do_artists_page_handler_on_show(
-    main_window: &'static MainWindow,
+fn test_artist_list_provider_to_model() {
+    let artist = Artist {
+        artist_name: Some("Test Artist".into()),
+        ..Default::default()
+    };
+
+    let model = ArtistListProvider::to_model(artist);
+
+    assert_eq!(model.title.as_str(), "Test Artist");
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_artist_list_provider_set_models(main_window: MainWindow) {
+    let dummy_artists = vec![ArtistModel::default(), ArtistModel::default()];
+    let model = ModelRc::new(VecModel::from(dummy_artists));
+
+    ArtistListProvider::set_models(&main_window, model);
+
+    assert_eq!(
+        main_window
+            .global::<ArtistsPageProps>()
+            .get_artists()
+            .row_count(),
+        2
+    );
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_artist_list_provider_clear_models(main_window: MainWindow) {
+    let dummy_artists = vec![ArtistModel::default(), ArtistModel::default()];
+    let model = ModelRc::new(VecModel::from(dummy_artists));
+    ArtistListProvider::set_models(&main_window, model);
+
+    ArtistListProvider::clear_models(&main_window);
+
+    assert_eq!(
+        main_window
+            .global::<ArtistsPageProps>()
+            .get_artists()
+            .row_count(),
+        0
+    );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_artist_list_provider_fetch_entities_success(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
@@ -53,36 +112,20 @@ async fn do_artists_page_handler_on_show(
     let db = sm.get_database().await;
     assert_ok!(db.insert_songs(vec![song]));
 
-    let handler = ArtistsPageHandler::new(main_window, &sm);
-    handler.on_show();
+    let entities_res = ArtistListProvider::fetch_entities(&sm).await;
 
-    let loaded = wait_until(|| {
-        main_window
-            .global::<ArtistsPageProps>()
-            .get_artists()
-            .row_count()
-            == 1
-    })
-    .await;
-
-    assert!(loaded);
-    assert_eq!(
-        main_window
-            .global::<ArtistsPageProps>()
-            .get_artists()
-            .row_count(),
-        1
-    );
+    assert_ok!(&entities_res);
+    let entities = entities_res.unwrap();
+    assert_eq!(entities.len(), 1);
+    assert_eq!(entities[0].artist_name.as_deref(), Some("Artist 1"));
 }
 
-#[test]
+#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_artists_page_handler_on_hide() { run_slint_test(do_artists_page_handler_on_hide); }
-
-#[tracing::instrument(level = "debug", skip_all)]
-async fn do_artists_page_handler_on_hide(
-    main_window: &'static MainWindow,
+async fn test_artists_page_handler_on_hide(
+    main_window: MainWindow,
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
@@ -90,21 +133,15 @@ async fn do_artists_page_handler_on_hide(
     main_window
         .global::<ArtistsPageProps>()
         .set_artists(ModelRc::new(VecModel::from(dummy_artists)));
+    let handler = ArtistsPageHandler::new(&main_window, &sm);
+
+    handler.on_hide();
+
     assert_eq!(
         main_window
             .global::<ArtistsPageProps>()
             .get_artists()
             .row_count(),
-        2
+        0
     );
-
-    let handler = ArtistsPageHandler::new(main_window, &sm);
-    handler.on_hide();
-
-    let row_count = main_window
-        .global::<ArtistsPageProps>()
-        .get_artists()
-        .row_count();
-
-    assert_eq!(row_count, 0);
 }

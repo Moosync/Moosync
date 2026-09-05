@@ -544,10 +544,4 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
             .in_current_span()
         });
     }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn on_show(&self) {}
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn on_hide(&self) {}
 }

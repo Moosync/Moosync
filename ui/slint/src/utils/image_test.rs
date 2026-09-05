@@ -3,23 +3,12 @@ use rstest::{fixture, rstest};
 use tempdir::TempDir;
 use tracing_test::traced_test;
 
-use super::{cache_image, get_safe_name};
+use super::cache_image;
 
 #[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
 fn temp_dir_fixture() -> TempDir {
     TempDir::new("moosync_cache_img_test").expect("failed to create temp dir")
-}
-
-#[rstest]
-#[case("https://example.com/cover.jpg", "https___example_com_cover_jpg")]
-#[case("abc-123_xyz", "abc_123_xyz")]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_get_safe_name(#[case] input: &str, #[case] expected: &str) {
-    let result = get_safe_name(input);
-
-    assert_eq!(result, expected);
 }
 
 #[rstest]

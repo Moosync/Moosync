@@ -1,6 +1,5 @@
 use std::{
     collections::HashMap,
-    future::Future,
     marker::PhantomData,
     sync::{Arc, Mutex},
 };
@@ -13,7 +12,9 @@ use state_manager::StateManager;
 use tracing::Instrument;
 
 use crate::{
-    ExtensionProviderItem, MainWindow, SongModel, error::UiError, utils::make_lazy_song_model,
+    ExtensionProviderItem, MainWindow, SongModel,
+    error::UiError,
+    utils::{IntoVec, make_lazy_song_model},
 };
 
 #[derive(Debug, Default, Clone)]
@@ -80,28 +81,41 @@ impl ExtensionPaginationManager {
     pub fn remove_extension(&mut self, package_name: &str) { self.extensions.remove(package_name); }
 }
 
+#[async_trait::async_trait]
 pub trait EntitySongProvider: Send + Sync + 'static {
-    type Entity: Clone + Send + 'static;
+    type Entity: Clone + Send + Sync + 'static;
 
-    fn extension_scope() -> Option<ExtensionProviderScope>;
+    fn extension_scope() -> Option<ExtensionProviderScope> { None }
     fn get_entity(main_window: &MainWindow) -> (Self::Entity, String);
-    fn get_songs(main_window: &MainWindow) -> Vec<SongModel>;
+    fn get_songs(_main_window: &MainWindow) -> Vec<SongModel> { Vec::new() }
     fn set_songs(main_window: &MainWindow, model: ModelRc<SongModel>);
-    fn update_extensions_enabled(main_window: &MainWindow, package_name: &str, enabled: bool);
-    fn set_extensions(main_window: &MainWindow, extensions: ModelRc<ExtensionProviderItem>);
-    fn clear_ui(main_window: &MainWindow);
+    fn get_extensions(_main_window: &MainWindow) -> ModelRc<ExtensionProviderItem> {
+        ModelRc::default()
+    }
+    fn set_extensions(_main_window: &MainWindow, _extensions: ModelRc<ExtensionProviderItem>) {}
+    fn update_extensions_enabled(main_window: &MainWindow, package_name: &str, enabled: bool) {
+        let extensions = Self::get_extensions(main_window).into_vec();
+        let updated = update_provider_list_enabled(&extensions, package_name, enabled);
+        Self::set_extensions(main_window, ModelRc::new(VecModel::from(updated)));
+    }
+    fn clear_ui(main_window: &MainWindow) {
+        Self::set_songs(main_window, ModelRc::default());
+        Self::set_extensions(main_window, ModelRc::default());
+    }
 
-    fn fetch_local_songs(
+    async fn fetch_local_songs(
         state_manager: &StateManager,
         entity: Self::Entity,
-    ) -> impl Future<Output = Result<Vec<Song>, UiError>> + Send;
+    ) -> Result<Vec<Song>, UiError>;
 
-    fn fetch_extension_songs(
-        state_manager: &StateManager,
-        entity: Self::Entity,
-        extension: String,
-        page_token: Option<String>,
-    ) -> impl Future<Output = Result<(Vec<Song>, Option<String>), UiError>> + Send;
+    async fn fetch_extension_songs(
+        _state_manager: &StateManager,
+        _entity: Self::Entity,
+        _extension: String,
+        _page_token: Option<String>,
+    ) -> Result<(Vec<Song>, Option<String>), UiError> {
+        Ok((Vec::new(), None))
+    }
 }
 
 pub struct EntityContentCoordinator<P: EntitySongProvider> {
@@ -365,12 +379,12 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn map_songs_to_models(songs: Vec<Song>, detail: Option<&ExtensionDetail>) -> Vec<SongModel> {
+fn map_songs_to_models(songs: Vec<Song>, detail: Option<&ExtensionDetail>) -> Vec<SongModel> {
     songs.into_iter().map(|s| (s, detail).into()).collect()
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub async fn fetch_scope_providers(
+async fn fetch_scope_providers(
     ext_handler: &ExtensionHandler,
     scope: Option<ExtensionProviderScope>,
     current_extension: &str,

@@ -57,148 +57,317 @@ fn reply_context() -> TestReplyContext {
 #[tokio::test(flavor = "multi_thread")]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_reply_handler_version_and_player_queries(reply_context: TestReplyContext) {
+async fn test_reply_handler_get_app_version(reply_context: TestReplyContext) {
     let TestReplyContext { handler, .. } = reply_context;
 
-    let res = tokio::task::spawn_blocking(move || {
-        let version = handler.get_app_version("pkg").unwrap();
-        let player_state = handler.get_player_state("pkg").unwrap();
-        let vol = handler.get_volume("pkg").unwrap();
-        let time = handler.get_time("pkg").unwrap();
-        let cur_song = handler.get_current_song("pkg").unwrap();
-        let queue = handler.get_queue("pkg").unwrap();
+    let version = tokio::task::spawn_blocking(move || handler.get_app_version("pkg"))
+        .await
+        .unwrap();
 
-        assert!(!version.is_empty());
-        assert_eq!(
-            player_state,
-            extensions_proto::moosync::types::PlayerState::Stopped as i32
-        );
-        assert_eq!(vol, 100.0);
-        assert_eq!(time, 0.0);
-        assert_none!(cur_song);
-        assert_is_empty!(&queue.0);
-    })
-    .await;
-
-    assert_ok!(res);
+    assert_ok!(version.as_ref());
+    assert!(!version.unwrap().is_empty());
 }
 
 #[rstest]
 #[tokio::test(flavor = "multi_thread")]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_reply_handler_preferences_and_secure_storage(reply_context: TestReplyContext) {
+async fn test_reply_handler_get_player_state(reply_context: TestReplyContext) {
     let TestReplyContext { handler, .. } = reply_context;
 
-    let res = tokio::task::spawn_blocking(move || {
-        let pref_val = extensions_proto::struct_proto::google::protobuf::Value {
-            kind: Some(
-                extensions_proto::struct_proto::google::protobuf::value::Kind::StringValue(
-                    "test_val".to_string(),
-                ),
-            ),
-        };
-        assert_ok!(handler.set_preference("pkg", "my_key", pref_val.clone()));
-        let loaded_pref = handler.get_preference("pkg", "my_key").unwrap();
-        assert_eq!(loaded_pref.unwrap().kind, pref_val.kind);
+    let state = tokio::task::spawn_blocking(move || handler.get_player_state("pkg"))
+        .await
+        .unwrap();
 
-        let sec_val = extensions_proto::struct_proto::google::protobuf::Value {
-            kind: Some(
-                extensions_proto::struct_proto::google::protobuf::value::Kind::StringValue(
-                    "secret_123".to_string(),
-                ),
-            ),
-        };
-        assert_ok!(handler.set_secure("pkg", "sec_key", sec_val.clone()));
-        let loaded_sec = handler.get_secure("pkg", "sec_key").unwrap();
-        assert_eq!(loaded_sec.unwrap().kind, sec_val.kind);
-    })
-    .await;
-
-    assert_ok!(res);
+    assert_ok!(state.as_ref());
+    assert_eq!(
+        state.unwrap(),
+        extensions_proto::moosync::types::PlayerState::Stopped as i32
+    );
 }
 
 #[rstest]
 #[tokio::test(flavor = "multi_thread")]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_reply_handler_songs_crud(reply_context: TestReplyContext) {
+async fn test_reply_handler_get_volume(reply_context: TestReplyContext) {
     let TestReplyContext { handler, .. } = reply_context;
 
-    let res = tokio::task::spawn_blocking(move || {
-        let song = Song {
-            song: Some(InnerSong {
-                id: Some("rep_song_1".to_string()),
-                title: Some("Reply Song".to_string()),
-                path: Some("/music/rep.mp3".to_string()),
-                duration: Some(songs_proto::duration_proto::google::protobuf::Duration {
-                    seconds: 120,
-                    nanos: 0,
-                }),
-                r#type: songs_proto::moosync::types::SongType::Local as i32,
-                ..Default::default()
+    let volume = tokio::task::spawn_blocking(move || handler.get_volume("pkg"))
+        .await
+        .unwrap();
+
+    assert_ok!(volume.as_ref());
+    assert_eq!(volume.unwrap(), 100.0);
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_get_time(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+
+    let time = tokio::task::spawn_blocking(move || handler.get_time("pkg"))
+        .await
+        .unwrap();
+
+    assert_ok!(time.as_ref());
+    assert_eq!(time.unwrap(), 0.0);
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_get_current_song_when_empty(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+
+    let song = tokio::task::spawn_blocking(move || handler.get_current_song("pkg"))
+        .await
+        .unwrap();
+
+    assert_ok!(song.as_ref());
+    assert_none!(song.unwrap());
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_get_queue_when_empty(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+
+    let queue = tokio::task::spawn_blocking(move || handler.get_queue("pkg"))
+        .await
+        .unwrap();
+
+    assert_ok!(queue.as_ref());
+    assert_is_empty!(&queue.unwrap().0);
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_set_and_get_preference(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+    let pref_val = extensions_proto::struct_proto::google::protobuf::Value {
+        kind: Some(
+            extensions_proto::struct_proto::google::protobuf::value::Kind::StringValue(
+                "test_val".to_string(),
+            ),
+        ),
+    };
+    let pref_clone = pref_val.clone();
+
+    let loaded = tokio::task::spawn_blocking(move || {
+        handler.set_preference("pkg", "my_key", pref_clone).unwrap();
+        handler.get_preference("pkg", "my_key")
+    })
+    .await
+    .unwrap();
+
+    assert_ok!(loaded.as_ref());
+    assert_eq!(loaded.unwrap().unwrap().kind, pref_val.kind);
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_set_and_get_secure(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+    let sec_val = extensions_proto::struct_proto::google::protobuf::Value {
+        kind: Some(
+            extensions_proto::struct_proto::google::protobuf::value::Kind::StringValue(
+                "secret_123".to_string(),
+            ),
+        ),
+    };
+    let sec_clone = sec_val.clone();
+
+    let loaded = tokio::task::spawn_blocking(move || {
+        handler.set_secure("pkg", "sec_key", sec_clone).unwrap();
+        handler.get_secure("pkg", "sec_key")
+    })
+    .await
+    .unwrap();
+
+    assert_ok!(loaded.as_ref());
+    assert_eq!(loaded.unwrap().unwrap().kind, sec_val.kind);
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_add_and_get_songs(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+    let song = Song {
+        song: Some(InnerSong {
+            id: Some("rep_song_1".to_string()),
+            title: Some("Reply Song".to_string()),
+            path: Some("/music/rep.mp3".to_string()),
+            duration: Some(songs_proto::duration_proto::google::protobuf::Duration {
+                seconds: 120,
+                nanos: 0,
             }),
+            r#type: songs_proto::moosync::types::SongType::Local as i32,
             ..Default::default()
-        };
+        }),
+        ..Default::default()
+    };
 
-        let inserted = handler.add_songs("pkg", vec![song.clone()]).unwrap();
-        assert_len_eq_x!(&inserted, 1);
-
-        let songs = handler
-            .get_song(
-                "pkg",
-                GetSongOptions {
-                    song: Some(SearchableSong {
-                        id: Some("rep_song_1".to_string()),
-                        ..Default::default()
-                    }),
+    let result = tokio::task::spawn_blocking(move || {
+        let inserted = handler.add_songs("pkg", vec![song]).unwrap();
+        let fetched = handler.get_song(
+            "pkg",
+            GetSongOptions {
+                song: Some(SearchableSong {
+                    id: Some("rep_song_1".to_string()),
                     ..Default::default()
-                },
-            )
-            .unwrap();
-        assert_len_eq_x!(&songs, 1);
-        assert_some_eq_x!(songs[0].get_id(), "rep_song_1");
-
-        let mut updated = song.clone();
-        updated.song.as_mut().unwrap().title = Some("Updated Title".to_string());
-        assert_ok!(handler.update_song("pkg", updated));
-        assert_ok!(handler.remove_song("pkg", song));
+                }),
+                ..Default::default()
+            },
+        );
+        (inserted, fetched)
     })
-    .await;
+    .await
+    .unwrap();
 
-    assert_ok!(res);
+    assert_len_eq_x!(&result.0, 1);
+    assert_ok!(result.1.as_ref());
+    let fetched = result.1.unwrap();
+    assert_len_eq_x!(&fetched, 1);
+    assert_some_eq_x!(fetched[0].get_id(), "rep_song_1");
 }
 
 #[rstest]
 #[tokio::test(flavor = "multi_thread")]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_reply_handler_playlist_operations(reply_context: TestReplyContext) {
+async fn test_reply_handler_update_song(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+    let song = Song {
+        song: Some(InnerSong {
+            id: Some("rep_song_update".to_string()),
+            title: Some("Original Title".to_string()),
+            path: Some("/music/rep_update.mp3".to_string()),
+            duration: Some(songs_proto::duration_proto::google::protobuf::Duration {
+                seconds: 120,
+                nanos: 0,
+            }),
+            r#type: songs_proto::moosync::types::SongType::Local as i32,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let mut updated = song.clone();
+    updated.song.as_mut().unwrap().title = Some("Updated Title".to_string());
+
+    let result = tokio::task::spawn_blocking(move || {
+        handler.add_songs("pkg", vec![song]).unwrap();
+        handler.update_song("pkg", updated)
+    })
+    .await
+    .unwrap();
+
+    assert_ok!(result);
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_remove_song(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+    let song = Song {
+        song: Some(InnerSong {
+            id: Some("rep_song_remove".to_string()),
+            title: Some("Remove Song".to_string()),
+            path: Some("/music/rep_remove.mp3".to_string()),
+            duration: Some(songs_proto::duration_proto::google::protobuf::Duration {
+                seconds: 120,
+                nanos: 0,
+            }),
+            r#type: songs_proto::moosync::types::SongType::Local as i32,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let song_clone = song.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        handler.add_songs("pkg", vec![song]).unwrap();
+        handler.remove_song("pkg", song_clone)
+    })
+    .await
+    .unwrap();
+
+    assert_ok!(result);
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_add_playlist(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+    let playlist = Playlist {
+        playlist_name: "Reply Playlist".to_string(),
+        ..Default::default()
+    };
+
+    let pl_res = tokio::task::spawn_blocking(move || handler.add_playlist("pkg", playlist))
+        .await
+        .unwrap();
+
+    assert_ok!(pl_res.as_ref());
+    assert!(!pl_res.unwrap().is_empty());
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_add_to_playlist(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, .. } = reply_context;
+    let playlist = Playlist {
+        playlist_name: "Reply Playlist With Songs".to_string(),
+        ..Default::default()
+    };
+    let song = Song {
+        song: Some(InnerSong {
+            id: Some("pl_song_1".to_string()),
+            title: Some("Playlist Song".to_string()),
+            path: Some("/music/pl_song.mp3".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+
+    let result = tokio::task::spawn_blocking(move || {
+        let pl_id = handler.add_playlist("pkg", playlist).unwrap();
+        handler.add_to_playlist("pkg", pl_id, vec![song])
+    })
+    .await
+    .unwrap();
+
+    assert_ok!(result);
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_get_entity(reply_context: TestReplyContext) {
     let TestReplyContext { handler, .. } = reply_context;
 
-    let res = tokio::task::spawn_blocking(move || {
-        let playlist = Playlist {
-            playlist_name: "Reply Playlist".to_string(),
-            ..Default::default()
-        };
-        let pl_res = handler.add_playlist("pkg", playlist);
-        assert_ok!(pl_res.as_ref());
-        let pl_id = pl_res.unwrap();
-        assert!(!pl_id.is_empty());
+    let result =
+        tokio::task::spawn_blocking(move || handler.get_entity("pkg", GetEntityOptions::default()))
+            .await
+            .unwrap();
 
-        let song = Song {
-            song: Some(InnerSong {
-                id: Some("pl_song_1".to_string()),
-                title: Some("Playlist Song".to_string()),
-                path: Some("/music/pl_song.mp3".to_string()),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        assert_ok!(handler.add_to_playlist("pkg", pl_id, vec![song]));
-        assert_ok!(handler.get_entity("pkg", GetEntityOptions::default()));
-    })
-    .await;
-
-    assert_ok!(res);
+    assert_ok!(result);
 }

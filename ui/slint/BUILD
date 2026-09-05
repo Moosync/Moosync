@@ -134,6 +134,7 @@ rust_library(
     proc_macro_deps = [
         "//ui/pref_macro",
         "//core/theme_macro",
+        "@crates//:async-trait",
     ],
     deps = [
         ":build_script",

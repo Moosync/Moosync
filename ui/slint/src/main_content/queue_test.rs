@@ -17,6 +17,7 @@
 use std::time::Duration;
 
 use assertables::{assert_len_eq_x, assert_ok};
+use rstest::rstest;
 use slint::ComponentHandle;
 use songs_proto::moosync::types::{GetEntityOptions, InnerSong, Playlist, Song, entity_result};
 use tracing_test::traced_test;
@@ -25,17 +26,16 @@ use crate::{
     AppCallbacks, MainWindow,
     main_content::queue::QueuePageHandler,
     pages::PageHandler,
-    test_utils::{TestSlintSmContext, run_slint_test, wait_until},
+    test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
+    utils::save_queue,
 };
 
-#[test]
+#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_queue_page_handler_initialize() { run_slint_test(do_queue_page_handler_initialize); }
-
-#[tracing::instrument(level = "debug", skip_all)]
-async fn do_queue_page_handler_initialize(
-    main_window: &'static MainWindow,
+async fn test_queue_page_handler_initialize(
+    main_window: MainWindow,
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
@@ -62,7 +62,7 @@ async fn do_queue_page_handler_initialize(
         ph.add_to_queue(vec![song1, song2]);
     }
 
-    let handler = QueuePageHandler::new(main_window, &sm);
+    let handler = QueuePageHandler::new(&main_window, &sm);
     handler.initialize();
 
     main_window
@@ -91,22 +91,12 @@ async fn do_queue_page_handler_initialize(
     }
 }
 
-#[test]
+#[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_queue_page_handler_save_queue_as_playlist() {
-    run_slint_test(do_queue_page_handler_save_queue_as_playlist);
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-async fn do_queue_page_handler_save_queue_as_playlist(
-    main_window: &'static MainWindow,
-    state_manager_fixture: TestSlintSmContext,
-) {
+async fn test_queue_save_queue_as_playlist(state_manager_fixture: TestSlintSmContext) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = QueuePageHandler::new(main_window, &sm);
-    handler.initialize();
-
     let song = Song {
         song: Some(InnerSong {
             id: Some("song_queue_1".into()),
@@ -121,31 +111,8 @@ async fn do_queue_page_handler_save_queue_as_playlist(
         ph.add_to_queue(vec![song]);
     }
 
-    main_window
-        .global::<AppCallbacks>()
-        .invoke_save_queue_as_playlist("My Saved Queue".into(), "My Description".into());
+    save_queue(&sm, "My Saved Queue".into(), "My Description".into()).await;
 
-    let loaded = wait_until(|| {
-        let sm = sm.clone();
-        tokio::task::block_in_place(|| {
-            tokio::runtime::Handle::current().block_on(async {
-                let db = sm.get_database().await;
-                let res = db.get_entity_by_options(GetEntityOptions {
-                    playlist: Some(Playlist::default()),
-                    ..Default::default()
-                });
-                if let Ok(res) = res {
-                    if let Some(entity_result::Result::Playlists(list)) = res.result {
-                        return list.playlists.len() == 1;
-                    }
-                }
-                false
-            })
-        })
-    })
-    .await;
-
-    assert!(loaded);
     let db = sm.get_database().await;
     let playlists_res = db.get_entity_by_options(GetEntityOptions {
         playlist: Some(Playlist::default()),

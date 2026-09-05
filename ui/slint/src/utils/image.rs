@@ -9,7 +9,7 @@ use slint::Image;
 static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub fn get_safe_name(cover_url: &str) -> String {
+fn get_safe_name(cover_url: &str) -> String {
     cover_url
         .chars()
         .map(|c| if c.is_alphanumeric() { c } else { '_' })

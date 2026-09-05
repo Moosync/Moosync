@@ -86,9 +86,6 @@ impl<'a> ExplorePageHandler<'a> {
 
 impl<'a> PageHandler for ExplorePageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn initialize(&self) {}
-
-    #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         tracing::debug!("ExplorePage: on_show triggered");
         tokio::spawn({

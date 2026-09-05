@@ -1,23 +1,20 @@
-use extensions_proto::moosync::types::ExtensionProviderScope;
 use slint::{ComponentHandle, ModelRc};
 use songs_proto::moosync::types::{Genre, GetSongOptions, Song};
 use state_manager::StateManager;
 
 use crate::{
-    ExtensionProviderItem, GenreContentPageProps, GenresPageProps, MainWindow, SongModel,
+    GenreContentPageProps, GenresPageProps, MainWindow, SongModel,
     error::UiError,
     pages::PageHandler,
-    utils::{EntityContentCoordinator, EntitySongProvider, IntoVec},
+    utils::{EntityContentCoordinator, EntitySongProvider},
 };
 
 #[derive(Clone)]
 pub struct GenreSongProvider;
 
+#[async_trait::async_trait]
 impl EntitySongProvider for GenreSongProvider {
     type Entity = Genre;
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn extension_scope() -> Option<ExtensionProviderScope> { None }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_entity(main_window: &MainWindow) -> (Genre, String) {
@@ -29,31 +26,10 @@ impl EntitySongProvider for GenreSongProvider {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn get_songs(main_window: &MainWindow) -> Vec<SongModel> {
-        main_window
-            .global::<GenreContentPageProps>()
-            .get_songs()
-            .into_vec()
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
     fn set_songs(main_window: &MainWindow, model: ModelRc<SongModel>) {
         main_window
             .global::<GenreContentPageProps>()
             .set_songs(model);
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn update_extensions_enabled(_main_window: &MainWindow, _package_name: &str, _enabled: bool) {}
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn set_extensions(_main_window: &MainWindow, _extensions: ModelRc<ExtensionProviderItem>) {}
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn clear_ui(main_window: &MainWindow) {
-        main_window
-            .global::<GenreContentPageProps>()
-            .set_songs(ModelRc::default());
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -68,16 +44,6 @@ impl EntitySongProvider for GenreSongProvider {
             ..Default::default()
         };
         database.get_songs_by_options(options).map_err(Into::into)
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_extension_songs(
-        _state_manager: &StateManager,
-        _genre: Genre,
-        _extension: String,
-        _page_token: Option<String>,
-    ) -> Result<(Vec<Song>, Option<String>), UiError> {
-        Ok((vec![], None))
     }
 }
 
@@ -97,9 +63,6 @@ impl<'a> GenreContentPageHandler<'a> {
 }
 
 impl<'a> PageHandler for GenreContentPageHandler<'a> {
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn initialize(&self) {}
-
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) { self.coordinator.on_show(); }
 

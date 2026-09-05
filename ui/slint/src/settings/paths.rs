@@ -26,10 +26,4 @@ pref_macro::generate_preferences!(
 impl<'a> PageHandler for PathsPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) { self.init_preferences(); }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn on_show(&self) {}
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn on_hide(&self) {}
 }

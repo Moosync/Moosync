@@ -35,18 +35,25 @@ fn mux_player() -> MuxPlayer {
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mux_player_initial_state_and_can_play(mux_player: MuxPlayer) {
+fn test_mux_player_initial_state(mux_player: MuxPlayer) {
     let state = mux_player.get_player_state();
-    let can_play_ftp = mux_player.can_play(ValidSrc::Url(Cow::Borrowed("ftp://example.com")));
 
     assert_eq!(state, PlayerState::Stopped);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_mux_player_can_play_unsupported_url(mux_player: MuxPlayer) {
+    let can_play_ftp = mux_player.can_play(ValidSrc::Url(Cow::Borrowed("ftp://example.com")));
+
     assert!(!can_play_ftp);
 }
 
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mux_player_load_unsupported_url_and_controls(mut mux_player: MuxPlayer) {
+fn test_mux_player_load_unsupported_url(mut mux_player: MuxPlayer) {
     let song = Song {
         song: Some(InnerSong {
             playback_url: Some("ftp://example.com/audio.mp3".to_string()),
@@ -55,10 +62,43 @@ fn test_mux_player_load_unsupported_url_and_controls(mut mux_player: MuxPlayer) 
         ..Default::default()
     };
 
-    assert_err!(mux_player.load(&song).as_ref());
-    assert_ok!(mux_player.pause());
-    assert_ok!(mux_player.stop());
-    assert_ok!(mux_player.set_volume(90));
-    assert_ok!(mux_player.seek(Duration::from_secs(5)));
-    assert_eq!(mux_player.get_player_state(), PlayerState::Stopped);
+    let result = mux_player.load(&song);
+
+    assert_err!(result.as_ref());
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_mux_player_pause(mux_player: MuxPlayer) {
+    let result = mux_player.pause();
+
+    assert_ok!(result);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_mux_player_stop(mux_player: MuxPlayer) {
+    let result = mux_player.stop();
+
+    assert_ok!(result);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_mux_player_set_volume(mux_player: MuxPlayer) {
+    let result = mux_player.set_volume(90);
+
+    assert_ok!(result);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_mux_player_seek(mux_player: MuxPlayer) {
+    let result = mux_player.seek(Duration::from_secs(5));
+
+    assert_ok!(result);
 }

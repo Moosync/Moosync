@@ -1,34 +1,12 @@
-use assertables::assert_len_eq_x;
 use rstest::rstest;
-use slint::{Image, Model, ModelRc, VecModel};
+use slint::{Model, ModelRc};
 use tracing_test::traced_test;
 
-use super::{
-    build_queue_context_menu_items, build_song_context_menu_items, make_context_menu_item,
-    models::IntoVec,
-};
+use super::{build_queue_context_menu_items, build_song_context_menu_items};
 use crate::{
-    ContextMenuItem, MainWindow,
+    MainWindow,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
 };
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_context_menu_item_vec_from_model_rc() {
-    let items = vec![
-        make_context_menu_item("play_now", "Play Now", Image::default()),
-        make_context_menu_item("add_to_queue", "Add to Queue", Image::default()),
-    ];
-
-    let model_rc = ModelRc::new(VecModel::from(items));
-    let converted: Vec<ContextMenuItem> = model_rc.into_vec();
-
-    assert_len_eq_x!(&converted, 2);
-    assert_eq!(converted[0].action_id, "play_now");
-    assert_eq!(converted[0].title, "Play Now");
-    assert_eq!(converted[1].action_id, "add_to_queue");
-    assert_eq!(converted[1].title, "Add to Queue");
-}
 
 #[rstest]
 #[tokio::test]

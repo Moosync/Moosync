@@ -11,15 +11,13 @@ use crate::{
 
 pub struct GenreListProvider;
 
+#[async_trait::async_trait]
 impl EntityListProvider for GenreListProvider {
     type Entity = Genre;
     type EntityModel = GenreModel;
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn name() -> &'static str { "Genres" }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn to_model(entity: Genre) -> GenreModel { GenreModel::from(entity) }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn set_models(main_window: &MainWindow, model: ModelRc<GenreModel>) {
@@ -58,9 +56,6 @@ impl<'a> GenresPageHandler<'a> {
 }
 
 impl<'a> PageHandler for GenresPageHandler<'a> {
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn initialize(&self) {}
-
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) { self.coordinator.on_show(); }
 

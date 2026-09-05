@@ -1,3 +1,10 @@
+//! Navigation utilities for entity navigation.
+//!
+//! NOTE: Do not call `MainWindow::set_active_page` manually elsewhere in the
+//! codebase. All page transitions must route through `NavigationManager` /
+//! `NavigationHistory` to ensure history, UI buttons, and lifecycle events are
+//! properly synchronized.
+
 use slint::ComponentHandle;
 
 use crate::{AlbumModel, AlbumsPageProps, ArtistModel, ArtistsPageProps, MainWindow, Pages};

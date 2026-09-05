@@ -7,11 +7,21 @@ export struct SidebarItem { text: string, icon: image, page: Pages }
 
 export component Sidebar inherits Rectangle {
     in-out property <Pages> activePage;
-    in property <length> sidebarWidth;
+    in property <length> sidebarWidth: Theme.sidebarWidth;
+    in-out property <bool> collapsed: false;
     in property <[SidebarItem]> items: [];
 
-    width: sidebarWidth;
+    width: root.collapsed ? Theme.sidebarCollapsedWidth : sidebarWidth;
     background: @linear-gradient(180deg, Theme.secondary 0%, Theme.primary 100%);
+
+    changed collapsed => {
+        WindowInfo.sidebar-width = root.collapsed ? Theme.sidebarCollapsedWidth : sidebarWidth;
+    }
+
+    animate width {
+        duration: 200ms;
+        easing: ease-in-out;
+    }
 
     // Border line on the right side
     Rectangle {
@@ -25,7 +35,12 @@ export component Sidebar inherits Rectangle {
         alignment: start;
         spacing: Theme.spacingLg;
 
-        SidebarHeader { }
+        SidebarHeader {
+            collapsed: root.collapsed;
+            toggle => {
+                root.collapsed = !root.collapsed;
+            }
+        }
 
         VerticalLayout {
             padding-left: Theme.paddingSm;
@@ -36,6 +51,7 @@ export component Sidebar inherits Rectangle {
                 text: item.text;
                 icon: item.icon;
                 active: root.activePage == item.page;
+                collapsed: root.collapsed;
                 clicked => {
                     root.activePage = item.page;
                 }
@@ -48,11 +64,17 @@ export struct SettingsSidebarItem { text: string, icon: image, page: SettingsPag
 
 export component SettingsSidebar inherits Rectangle {
     in-out property <SettingsPages> activePage;
-    in property <length> sidebarWidth;
+    in property <length> sidebarWidth: Theme.settingsSidebarWidth;
+    in-out property <bool> collapsed: false;
     in property <[SettingsSidebarItem]> items: [];
 
-    width: sidebarWidth;
+    width: root.collapsed ? Theme.sidebarCollapsedWidth : sidebarWidth;
     background: @linear-gradient(180deg, Theme.secondary 0%, Theme.primary 100%);
+
+    animate width {
+        duration: 200ms;
+        easing: ease-in-out;
+    }
 
     // Border line on the right side
     Rectangle {
@@ -66,7 +88,12 @@ export component SettingsSidebar inherits Rectangle {
         alignment: start;
         spacing: Theme.spacingLg;
 
-        SidebarHeader { }
+        SidebarHeader {
+            collapsed: root.collapsed;
+            toggle => {
+                root.collapsed = !root.collapsed;
+            }
+        }
 
         VerticalLayout {
             padding-left: Theme.paddingSm;
@@ -77,6 +104,7 @@ export component SettingsSidebar inherits Rectangle {
                 text: item.text;
                 icon: item.icon;
                 active: root.activePage == item.page;
+                collapsed: root.collapsed;
                 clicked => {
                     root.activePage = item.page;
                 }

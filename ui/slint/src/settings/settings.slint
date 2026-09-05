@@ -69,6 +69,18 @@ export component Settings inherits Modal {
             horizontal-stretch: 1;
             background: Theme.primary;
 
+            TouchArea {
+                pointer-event(event) => {
+                    if (event.kind == PointerEventKind.down) {
+                        if (event.button == PointerEventButton.back) {
+                            AppCallbacks.navigate_back();
+                        } else if (event.button == PointerEventButton.forward) {
+                            AppCallbacks.navigate_forward();
+                        }
+                    }
+                }
+            }
+
             SettingsPageWrapper {
                 active-page <=> root.activePage;
                 page-type: SettingsPages.Paths;

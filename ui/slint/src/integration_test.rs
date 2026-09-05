@@ -27,7 +27,8 @@ use crate::{
     AlbumContentPageProps, AlbumModel, AlbumsPageProps, AllSongsPageProps, AppCallbacks,
     ArtistContentPageProps, ArtistModel, ArtistsPageProps, BottomBarCallbacks,
     ContextMenuCallbacks, ExtensionProviderItem, MainWindow, Pages, PlaylistContentPageProps,
-    PlaylistModel, PlaylistsPageProps, SearchPageProps, SongModel, UtilCallbacks, setup_ui,
+    PlaylistModel, PlaylistsPageProps, SearchPageProps, SettingsPages, SongModel, UtilCallbacks,
+    setup_ui,
     test_utils::{TestSlintSmContext, state_manager_fixture},
     utils::IntoVec,
 };
@@ -1814,6 +1815,171 @@ async fn do_multiple_extensions_pagination_integration(
     assert!(page2_multi_loaded);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_navigation_back_forward_buttons_integration(
+    main_window: &'static MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
+    setup_test_context(state_manager).await;
+    setup_ui(main_window, state_manager);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Albums);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Artists);
+
+    assert!(main_window.get_can_go_back());
+    assert!(!main_window.get_can_go_forward());
+
+    main_window.global::<AppCallbacks>().invoke_navigate_back();
+    let back1_loaded = wait_until(|| {
+        main_window.get_active_page() == Pages::Albums
+            && main_window.get_can_go_back()
+            && main_window.get_can_go_forward()
+    })
+    .await;
+    assert!(back1_loaded);
+
+    main_window.global::<AppCallbacks>().invoke_navigate_back();
+    let back2_loaded = wait_until(|| {
+        main_window.get_active_page() == Pages::AllSongs
+            && !main_window.get_can_go_back()
+            && main_window.get_can_go_forward()
+    })
+    .await;
+    assert!(back2_loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_navigate_forward();
+    let fwd1_loaded = wait_until(|| {
+        main_window.get_active_page() == Pages::Albums
+            && main_window.get_can_go_back()
+            && main_window.get_can_go_forward()
+    })
+    .await;
+    assert!(fwd1_loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_navigate_forward();
+    let fwd2_loaded = wait_until(|| {
+        main_window.get_active_page() == Pages::Artists
+            && main_window.get_can_go_back()
+            && !main_window.get_can_go_forward()
+    })
+    .await;
+    assert!(fwd2_loaded);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_navigation_goto_album_back_forward_integration(
+    main_window: &'static MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
+    setup_test_context(state_manager).await;
+    let database = state_manager.get_database().await;
+    let song = create_test_song("nav_goto", "Song Nav", "Nav Album", "Nav Artist");
+    database.insert_songs(vec![song.clone()]).unwrap();
+    setup_ui(main_window, state_manager);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::AllSongs);
+    let loaded = wait_until(|| {
+        main_window
+            .global::<AllSongsPageProps>()
+            .get_songs()
+            .row_count()
+            == 1
+    })
+    .await;
+    assert!(loaded);
+
+    let song_model = main_window
+        .global::<AllSongsPageProps>()
+        .get_songs()
+        .row_data(0)
+        .unwrap();
+    let song_models = ModelRc::new(VecModel::from(vec![song_model.clone()]));
+    let action_id = format!("goto_album:{}", song_model.album_id);
+
+    main_window
+        .global::<ContextMenuCallbacks>()
+        .invoke_song_action(song_models, action_id.into());
+
+    let nav_loaded = wait_until(|| {
+        main_window.get_active_page() == Pages::AlbumContent
+            && main_window
+                .global::<AlbumContentPageProps>()
+                .get_songs()
+                .row_count()
+                == 1
+    })
+    .await;
+    assert!(nav_loaded);
+    assert_eq!(main_window.get_active_page(), Pages::AlbumContent);
+    assert!(main_window.get_can_go_back());
+
+    main_window.global::<AppCallbacks>().invoke_navigate_back();
+
+    assert_eq!(main_window.get_active_page(), Pages::AllSongs);
+    assert!(!main_window.get_can_go_back());
+    assert!(main_window.get_can_go_forward());
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_navigate_forward();
+
+    assert_eq!(main_window.get_active_page(), Pages::AlbumContent);
+    assert!(main_window.get_can_go_back());
+    assert!(!main_window.get_can_go_forward());
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_navigation_settings_back_forward_integration(
+    main_window: &'static MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
+    setup_test_context(state_manager).await;
+    setup_ui(main_window, state_manager);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(true);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::Paths);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::System);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::Themes);
+
+    main_window.global::<AppCallbacks>().invoke_navigate_back();
+
+    main_window.global::<AppCallbacks>().invoke_navigate_back();
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_navigate_forward();
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(false);
+
+    assert!(!main_window.get_show_settings());
+}
+
 integration_test!(
     test_view_all_songs => do_view_all_songs,
     test_view_playlists => do_view_playlists,
@@ -1844,4 +2010,7 @@ integration_test!(
     test_context_menu_goto_artist => do_context_menu_goto_artist,
     test_playlist_content_pagination_integration => do_playlist_content_pagination_integration,
     test_multiple_extensions_pagination_integration => do_multiple_extensions_pagination_integration,
+    test_navigation_back_forward_buttons_integration => do_navigation_back_forward_buttons_integration,
+    test_navigation_goto_album_back_forward_integration => do_navigation_goto_album_back_forward_integration,
+    test_navigation_settings_back_forward_integration => do_navigation_settings_back_forward_integration,
 );

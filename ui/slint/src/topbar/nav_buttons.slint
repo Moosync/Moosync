@@ -2,22 +2,35 @@ import { Theme } from "../constants.slint";
 import { IconButton } from "../common/icon_button.slint";
 
 export component NavButtons inherits VerticalLayout {
+    in property <bool> can_go_back: false;
+    in property <bool> can_go_forward: false;
+    callback go_back();
+    callback go_forward();
+
     alignment: center;
     padding-right: Theme.spacingXs;
 
     HorizontalLayout {
         spacing: Theme.spacingXs;
         IconButton {
+            enabled: root.can_go_back;
             icon_source: @image-url("../icons/nav_button.svg");
             icon_width: Theme.spacingSm;
             icon_height: Theme.iconSizeMd;
+            clicked => {
+                root.go_back();
+            }
         }
 
         IconButton {
+            enabled: root.can_go_forward;
             icon_source: @image-url("../icons/nav_button.svg");
             icon_width: Theme.spacingSm;
             icon_height: Theme.iconSizeMd;
             icon_rotation: 180deg;
+            clicked => {
+                root.go_forward();
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ import { Button } from "../common/button.slint";
 
 export component SidebarButton inherits Button {
     in property <bool> active: false;
+    in property <bool> collapsed: false;
 
     has_custom_layout: true;
     height: Theme.sidebarButtonHeight;
@@ -17,14 +18,20 @@ export component SidebarButton inherits Button {
 
     Image {
         width: Theme.iconSizeLg;
-        x: Theme.iconSizeLg;
+        x: root.collapsed ? (parent.width - Theme.iconSizeLg) / 2 : Theme.iconSizeLg;
         y: Theme.paddingMd;
         height: Theme.iconSizeLg;
         source: root.icon;
         colorize: current_color;
+
+        animate x {
+            duration: 150ms;
+            easing: ease-out;
+        }
     }
 
     Text {
+        visible: !root.collapsed;
         text: root.text;
         color: current_color;
         font-size: Theme.subtitle;

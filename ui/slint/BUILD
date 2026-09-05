@@ -59,6 +59,7 @@ SRC_LIST = [
     "src/utils/models.rs",
     "src/utils/models_test.rs",
     "src/utils/navigation.rs",
+    "src/utils/navigation_test.rs",
     "src/utils/parsers.rs",
     "src/utils/parsers_test.rs",
     "src/utils/queue.rs",

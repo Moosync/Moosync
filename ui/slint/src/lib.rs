@@ -13,7 +13,7 @@ use tracing::{Instrument, debug, trace};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};
 use types::prelude::format_duration;
 
-use crate::pages::{AppPage, PageHandler};
+use crate::pages::{NavigationManager, PageLifecycleManager};
 
 pub mod error;
 mod main_content;
@@ -47,133 +47,6 @@ fn android_main(app: slint::android::AndroidApp) {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let _guard = rt.enter();
     rt.block_on(run());
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn get_all_pages(
-    main_window: &'static MainWindow,
-    state_manager: &'static StateManager,
-) -> std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>> {
-    let mut map: std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>> =
-        std::collections::HashMap::new();
-
-    map.insert(
-        AppPage::AllSongs,
-        Box::new(main_content::all_songs::AllSongsPageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-    map.insert(
-        AppPage::Albums,
-        Box::new(main_content::albums::AlbumsPageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-    map.insert(
-        AppPage::Artists,
-        Box::new(main_content::artists::ArtistsPageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-    map.insert(
-        AppPage::Playlists,
-        Box::new(main_content::playlists::PlaylistsPageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-    map.insert(
-        AppPage::Genres,
-        Box::new(main_content::genres::GenresPageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-    map.insert(
-        AppPage::Explore,
-        Box::new(main_content::explore::ExplorePageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-    map.insert(
-        AppPage::Search,
-        Box::new(main_content::search::SearchPageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-    map.insert(
-        AppPage::PlaylistContent,
-        Box::new(
-            main_content::playlist_content::PlaylistContentPageHandler::new(
-                main_window,
-                state_manager,
-            ),
-        ),
-    );
-    map.insert(
-        AppPage::AlbumContent,
-        Box::new(main_content::album_content::AlbumContentPageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-    map.insert(
-        AppPage::ArtistContent,
-        Box::new(main_content::artist_content::ArtistContentPageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-    map.insert(
-        AppPage::GenreContent,
-        Box::new(main_content::genre_content::GenreContentPageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-    map.insert(
-        AppPage::Queue,
-        Box::new(main_content::queue::QueuePageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-
-    map.insert(
-        AppPage::Paths,
-        Box::new(settings::paths::PathsPageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-    map.insert(
-        AppPage::System,
-        Box::new(settings::system::SystemPageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-    map.insert(
-        AppPage::Extensions,
-        Box::new(settings::extensions::ExtensionsPageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-    map.insert(
-        AppPage::Themes,
-        Box::new(settings::themes::ThemesPageHandler::new(
-            main_window,
-            state_manager,
-        )),
-    );
-
-    map
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -552,167 +425,36 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
         });
 }
 
-struct PageLifecycleManager {
-    visible_states: std::collections::HashMap<AppPage, bool>,
-    active_main_page: AppPage,
-    active_settings_page: AppPage,
-    settings_open: bool,
-    queue_open: bool,
-}
-
-impl PageLifecycleManager {
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn new(page_types: &[AppPage], initial_main_page: AppPage) -> Self {
-        let mut visible_states = std::collections::HashMap::new();
-        for &page_type in page_types {
-            visible_states.insert(page_type, false);
-        }
-
-        Self {
-            visible_states,
-            active_main_page: initial_main_page,
-            active_settings_page: AppPage::Extensions, // Default tab in Settings is Extensions
-            settings_open: false,
-            queue_open: false,
-        }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn compute_visibility_changes(&mut self, page_types: &[AppPage]) -> Vec<(AppPage, bool)> {
-        let mut actions = Vec::new();
-        for &page_type in page_types {
-            let was_visible = *self.visible_states.get(&page_type).unwrap_or(&false);
-            let is_visible = match page_type {
-                AppPage::Queue => self.queue_open,
-
-                AppPage::Paths => {
-                    self.settings_open
-                        && (was_visible || self.active_settings_page == AppPage::Paths)
-                }
-                AppPage::System => {
-                    self.settings_open
-                        && (was_visible || self.active_settings_page == AppPage::System)
-                }
-                AppPage::Extensions => {
-                    self.settings_open
-                        && (was_visible || self.active_settings_page == AppPage::Extensions)
-                }
-                AppPage::Themes => {
-                    self.settings_open
-                        && (was_visible || self.active_settings_page == AppPage::Themes)
-                }
-
-                AppPage::AllSongs => self.active_main_page == AppPage::AllSongs,
-                AppPage::Albums => self.active_main_page == AppPage::Albums,
-                AppPage::Artists => self.active_main_page == AppPage::Artists,
-                AppPage::Playlists => self.active_main_page == AppPage::Playlists,
-                AppPage::Genres => self.active_main_page == AppPage::Genres,
-                AppPage::Explore => self.active_main_page == AppPage::Explore,
-                AppPage::Search => self.active_main_page == AppPage::Search,
-                AppPage::PlaylistContent => self.active_main_page == AppPage::PlaylistContent,
-                AppPage::AlbumContent => self.active_main_page == AppPage::AlbumContent,
-                AppPage::ArtistContent => self.active_main_page == AppPage::ArtistContent,
-                AppPage::GenreContent => self.active_main_page == AppPage::GenreContent,
-            };
-
-            if is_visible != was_visible {
-                self.visible_states.insert(page_type, is_visible);
-                actions.push((page_type, is_visible));
-            }
-        }
-        actions
-    }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn update_manager_visibility(
-    manager: &std::rc::Rc<std::cell::RefCell<PageLifecycleManager>>,
-    pages: &std::rc::Rc<std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>>>,
-) {
-    let page_types: Vec<AppPage> = pages.keys().copied().collect();
-    let actions = manager.borrow_mut().compute_visibility_changes(&page_types);
-
-    for (page_type, is_visible) in actions {
-        let Some(handler) = pages.get(&page_type) else {
-            continue;
-        };
-        if is_visible {
-            handler.on_show();
-        }
-        if !is_visible {
-            handler.on_hide();
-        }
-    }
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-fn setup_page_navigation(
-    main_window: &MainWindow,
-    pages: std::rc::Rc<std::collections::HashMap<AppPage, Box<dyn PageHandler + 'static>>>,
-) {
-    for page in pages.values() {
-        page.initialize();
-    }
-
-    let initial_main_page = AppPage::from(main_window.get_active_page());
-    let page_types: Vec<AppPage> = pages.keys().copied().collect();
-
-    let manager = std::rc::Rc::new(std::cell::RefCell::new(PageLifecycleManager::new(
-        &page_types,
-        initial_main_page,
-    )));
-
-    // Trigger initial on_show
-    update_manager_visibility(&manager, &pages);
-
-    // 1. Listen to active page change
-    let manager_main = manager.clone();
-    let pages_main = pages.clone();
-    main_window
-        .global::<AppCallbacks>()
-        .on_active_page_changed(move |new_page| {
-            manager_main.borrow_mut().active_main_page = AppPage::from(new_page);
-            update_manager_visibility(&manager_main, &pages_main);
-        });
-
-    // 2. Listen to settings page change
-    let manager_settings = manager.clone();
-    let pages_settings = pages.clone();
-    main_window
-        .global::<AppCallbacks>()
-        .on_settings_active_page_changed(move |new_page| {
-            manager_settings.borrow_mut().active_settings_page = AppPage::from(new_page);
-            update_manager_visibility(&manager_settings, &pages_settings);
-        });
-
-    // 3. Listen to settings toggle
-    let manager_settings_toggle = manager.clone();
-    let pages_settings_toggle = pages.clone();
-    main_window
-        .global::<AppCallbacks>()
-        .on_settings_toggled(move |open| {
-            manager_settings_toggle.borrow_mut().settings_open = open;
-            update_manager_visibility(&manager_settings_toggle, &pages_settings_toggle);
-        });
-
-    // 4. Listen to queue toggle
-    let manager_queue_toggle = manager.clone();
-    let pages_queue_toggle = pages.clone();
-    main_window
-        .global::<AppCallbacks>()
-        .on_queue_toggled(move |open| {
-            manager_queue_toggle.borrow_mut().queue_open = open;
-            update_manager_visibility(&manager_queue_toggle, &pages_queue_toggle);
-        });
-}
-
 #[tracing::instrument(level = "debug", skip_all)]
 fn setup_ui(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     setup_resize(main_window);
     setup_cover_helper(main_window);
     setup_song_list_helper(main_window, state_manager);
-    let pages = std::rc::Rc::new(get_all_pages(main_window, state_manager));
-    setup_page_navigation(main_window, pages.clone());
+
+    let main_pages = PageLifecycleManager::get_main_pages(main_window, state_manager);
+    let settings_pages = PageLifecycleManager::get_settings_pages(main_window, state_manager);
+    let queue_page = PageLifecycleManager::get_queue_page(main_window, state_manager);
+
+    let initial_main_page = main_window.get_active_page();
+    let initial_settings_page = SettingsPages::Extensions;
+
+    let lifecycle = std::rc::Rc::new(std::cell::RefCell::new(PageLifecycleManager::new(
+        main_pages,
+        settings_pages,
+        queue_page,
+    )));
+    lifecycle.borrow().initialize_all();
+
+    let nav = std::rc::Rc::new(std::cell::RefCell::new(NavigationManager::new(
+        initial_main_page,
+        initial_settings_page,
+    )));
+
+    nav.borrow().sync_main_ui(main_window);
+    lifecycle.borrow_mut().update_all_visibility(&nav.borrow());
+
+    NavigationManager::setup_page_navigation(main_window, lifecycle, nav);
+
     setup_song_cbs(main_window, state_manager);
     setup_player_events(main_window, state_manager);
     settings::setup_settings(main_window, state_manager);

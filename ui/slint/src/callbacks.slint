@@ -27,6 +27,8 @@ export struct SortDecision {
 }
 
 export global AppCallbacks {
+    callback navigate_back();
+    callback navigate_forward();
     callback search_term_changed(string);
     callback resize();
     callback active-page-changed(Pages);

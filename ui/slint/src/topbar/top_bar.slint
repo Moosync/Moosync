@@ -4,6 +4,10 @@ import { Theme } from "../constants.slint";
 import { IconButton } from "../common/icon_button.slint";
 
 export component TopBar inherits Rectangle {
+    in property <bool> can_go_back: false;
+    in property <bool> can_go_forward: false;
+    callback go_back();
+    callback go_forward();
     callback settings_clicked();
     callback search-submitted(string);
 
@@ -26,7 +30,16 @@ export component TopBar inherits Rectangle {
             HorizontalLayout {
                 horizontal-stretch: 1;
 
-                NavButtons { }
+                NavButtons {
+                    can_go_back: root.can_go_back;
+                    can_go_forward: root.can_go_forward;
+                    go_back => {
+                        root.go_back();
+                    }
+                    go_forward => {
+                        root.go_forward();
+                    }
+                }
 
                 HorizontalLayout {
                     horizontal-stretch: 1;

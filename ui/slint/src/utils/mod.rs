@@ -38,6 +38,8 @@ mod lazy_model_test;
 #[cfg(test)]
 mod models_test;
 #[cfg(test)]
+mod navigation_test;
+#[cfg(test)]
 mod parsers_test;
 #[cfg(test)]
 mod queue_test;

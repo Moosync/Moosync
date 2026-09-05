@@ -14,8 +14,8 @@ use super::{
     navigation::{goto_album, goto_artist},
 };
 use crate::{
-    AlbumModel, AppPage, ArtistModel, ContextMenuItem, ContextMenuItems, ContextSubMenuItem,
-    MainWindow, Pages, PlaylistContentPageProps, PlaylistsPageProps, SongModel,
+    AlbumModel, ArtistModel, ContextMenuItem, ContextMenuItems, ContextSubMenuItem, MainWindow,
+    Pages, PlaylistContentPageProps, PlaylistsPageProps, SongModel,
 };
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -326,13 +326,13 @@ async fn handle_add_to_playlist(state_manager: &StateManager, songs: &[Song], pl
 async fn handle_goto_entity_by_id(
     weak: Weak<MainWindow>,
     state_manager: &StateManager,
-    target_page: AppPage,
+    target_page: Pages,
     id: &str,
 ) {
     tracing::debug!("Navigating to {:?} with ID: '{}'", target_page, id);
     let db = state_manager.get_database().await;
     match target_page {
-        AppPage::AlbumContent => {
+        Pages::AlbumContent => {
             let album = match db.get_entity_by_options(GetEntityOptions {
                 album: Some(Album {
                     album_id: Some(id.to_string()),
@@ -364,7 +364,7 @@ async fn handle_goto_entity_by_id(
                 goto_album(&window, album_model);
             });
         }
-        AppPage::ArtistContent => {
+        Pages::ArtistContent => {
             let artist = match db.get_entity_by_options(GetEntityOptions {
                 artist: Some(Artist {
                     artist_id: Some(id.to_string()),
@@ -440,13 +440,12 @@ pub fn dispatch_song_context_action(
             }
 
             if let Some(album_id) = action.strip_prefix("goto_album:") {
-                handle_goto_entity_by_id(weak, &state_manager, AppPage::AlbumContent, album_id)
-                    .await;
+                handle_goto_entity_by_id(weak, &state_manager, Pages::AlbumContent, album_id).await;
                 return;
             }
 
             if let Some(artist_id) = action.strip_prefix("goto_artist:") {
-                handle_goto_entity_by_id(weak, &state_manager, AppPage::ArtistContent, artist_id)
+                handle_goto_entity_by_id(weak, &state_manager, Pages::ArtistContent, artist_id)
                     .await;
             }
         }

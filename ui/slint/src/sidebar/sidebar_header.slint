@@ -2,12 +2,15 @@ import { Theme } from "../constants.slint";
 import { IconButton } from "../common/icon_button.slint";
 
 export component SidebarHeader inherits Rectangle {
+    in property <bool> collapsed: false;
+    callback toggle();
+
     height: Theme.sidebarHeaderHeight;
 
     HorizontalLayout {
-        padding-right: Theme.spacingXl;
-        alignment: start;
-        padding-left: Theme.iconSizeLg + Theme.spacingSm / 2;
+        padding-right: root.collapsed ? 0px : Theme.spacingXl;
+        alignment: root.collapsed ? center : start;
+        padding-left: root.collapsed ? 0px : (Theme.iconSizeLg + Theme.spacingSm / 2);
 
         VerticalLayout {
             alignment: center;
@@ -17,6 +20,9 @@ export component SidebarHeader inherits Rectangle {
                 icon_height: Theme.iconSizeMd;
                 width: Theme.sidebarHeaderToggleSize;
                 height: Theme.sidebarHeaderToggleSize;
+                clicked => {
+                    root.toggle();
+                }
             }
         }
     }

@@ -1,19 +1,3 @@
-// Moosync
-// Copyright (C) 2024, 2025  Moosync <support@moosync.app>
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 use rstest::rstest;
 use slint::{ComponentHandle, ModelRc, VecModel};
 use songs_proto::moosync::types::Song;
@@ -21,96 +5,12 @@ use state_manager::StateManager;
 use tracing_test::traced_test;
 
 use crate::{
-    AppCallbacks, BottomBarCallbacks, CoverHelper, MainWindow, PageLifecycleManager, Pages,
-    SettingsPages, SongDetailAction, SongModel, SongSortCriterion, get_all_pages,
-    pages::AppPage,
+    AppCallbacks, BottomBarCallbacks, CoverHelper, MainWindow, Pages, SettingsPages,
+    SongDetailAction, SongModel, SongSortCriterion,
+    pages::PageLifecycleManager,
     setup_ui,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
 };
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_ui_app_page_from_mappings() {
-    assert_eq!(AppPage::from(Pages::AllSongs), AppPage::AllSongs);
-    assert_eq!(AppPage::from(Pages::Albums), AppPage::Albums);
-    assert_eq!(AppPage::from(Pages::Artists), AppPage::Artists);
-    assert_eq!(AppPage::from(Pages::Playlists), AppPage::Playlists);
-    assert_eq!(AppPage::from(Pages::Genres), AppPage::Genres);
-    assert_eq!(AppPage::from(Pages::Explore), AppPage::Explore);
-    assert_eq!(AppPage::from(Pages::Search), AppPage::Search);
-    assert_eq!(
-        AppPage::from(Pages::PlaylistContent),
-        AppPage::PlaylistContent
-    );
-    assert_eq!(AppPage::from(Pages::AlbumContent), AppPage::AlbumContent);
-    assert_eq!(AppPage::from(Pages::ArtistContent), AppPage::ArtistContent);
-    assert_eq!(AppPage::from(Pages::GenreContent), AppPage::GenreContent);
-    assert_eq!(AppPage::from(SettingsPages::Paths), AppPage::Paths);
-    assert_eq!(AppPage::from(SettingsPages::System), AppPage::System);
-    assert_eq!(
-        AppPage::from(SettingsPages::Extensions),
-        AppPage::Extensions
-    );
-    assert_eq!(AppPage::from(SettingsPages::Themes), AppPage::Themes);
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_page_lifecycle_manager_queue_open_does_not_hide_active_page() {
-    let all_pages = vec![
-        AppPage::AllSongs,
-        AppPage::Albums,
-        AppPage::Queue,
-        AppPage::Paths,
-        AppPage::Extensions,
-    ];
-    let mut manager = PageLifecycleManager::new(&all_pages, AppPage::AllSongs);
-    manager.compute_visibility_changes(&all_pages);
-
-    manager.queue_open = true;
-    let queue_open_actions = manager.compute_visibility_changes(&all_pages);
-
-    assert_eq!(queue_open_actions, vec![(AppPage::Queue, true)]);
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_page_lifecycle_manager_queue_close_does_not_show_active_page() {
-    let all_pages = vec![
-        AppPage::AllSongs,
-        AppPage::Albums,
-        AppPage::Queue,
-        AppPage::Paths,
-        AppPage::Extensions,
-    ];
-    let mut manager = PageLifecycleManager::new(&all_pages, AppPage::AllSongs);
-    manager.compute_visibility_changes(&all_pages);
-    manager.queue_open = true;
-    manager.compute_visibility_changes(&all_pages);
-
-    manager.queue_open = false;
-    let queue_close_actions = manager.compute_visibility_changes(&all_pages);
-
-    assert_eq!(queue_close_actions, vec![(AppPage::Queue, false)]);
-}
-
-#[test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_page_lifecycle_manager_queue_toggle_with_settings_open() {
-    let all_pages = vec![AppPage::AllSongs, AppPage::Queue, AppPage::Extensions];
-    let mut manager = PageLifecycleManager::new(&all_pages, AppPage::AllSongs);
-    manager.settings_open = true;
-    manager.compute_visibility_changes(&all_pages);
-
-    manager.queue_open = true;
-    let actions_open = manager.compute_visibility_changes(&all_pages);
-
-    manager.queue_open = false;
-    let actions_close = manager.compute_visibility_changes(&all_pages);
-
-    assert_eq!(actions_open, vec![(AppPage::Queue, true)]);
-    assert_eq!(actions_close, vec![(AppPage::Queue, false)]);
-}
 
 #[rstest]
 #[tokio::test]
@@ -124,12 +24,22 @@ async fn test_ui_get_all_pages_and_setup(
     let main_window: &'static MainWindow = Box::leak(Box::new(main_window));
     let state_manager: &'static StateManager = Box::leak(Box::new(sm));
 
-    let pages = get_all_pages(main_window, state_manager);
-    for page in pages.values() {
+    let main_pages = PageLifecycleManager::get_main_pages(main_window, state_manager);
+    for (_, page) in main_pages.iter() {
         page.initialize();
         page.on_show();
         page.on_hide();
     }
+    let settings_pages = PageLifecycleManager::get_settings_pages(main_window, state_manager);
+    for (_, page) in settings_pages.iter() {
+        page.initialize();
+        page.on_show();
+        page.on_hide();
+    }
+    let queue_page = PageLifecycleManager::get_queue_page(main_window, state_manager);
+    queue_page.initialize();
+    queue_page.on_show();
+    queue_page.on_hide();
 
     setup_ui(main_window, state_manager);
 
@@ -163,6 +73,23 @@ async fn test_ui_get_all_pages_and_setup(
     main_window
         .global::<AppCallbacks>()
         .invoke_active_page_changed(Pages::GenreContent);
+
+    assert!(main_window.get_can_go_back());
+    assert!(!main_window.get_can_go_forward());
+
+    main_window.global::<AppCallbacks>().invoke_navigate_back();
+
+    assert_eq!(main_window.get_active_page(), Pages::ArtistContent);
+    assert!(main_window.get_can_go_back());
+    assert!(main_window.get_can_go_forward());
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_navigate_forward();
+
+    assert_eq!(main_window.get_active_page(), Pages::GenreContent);
+    assert!(main_window.get_can_go_back());
+    assert!(!main_window.get_can_go_forward());
 
     main_window
         .global::<AppCallbacks>()
@@ -244,5 +171,6 @@ async fn test_ui_get_all_pages_and_setup(
             true,
         );
 
-    assert_eq!(pages.len(), 16);
+    assert_eq!(main_pages.len(), 11);
+    assert_eq!(settings_pages.len(), 4);
 }

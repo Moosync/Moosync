@@ -163,6 +163,9 @@ export component MainWindow inherits Window {
     in-out property <[ThemeConstant]> theme-constants;
     in-out property <[ExtensionItem]> extensions: Constants.testExtensions;
 
+    in-out property <bool> can_go_back: false;
+    in-out property <bool> can_go_forward: false;
+
     // Main page
     in property <SongModel> current_song: Constants.defaultSong;
     in-out property <int> repeat_mode: 0;
@@ -203,13 +206,21 @@ export component MainWindow inherits Window {
                 Sidebar {
                     items: sidebar_items;
                     activePage <=> active-page;
-                    width: Theme.sidebarWidth;
+                    sidebarWidth: Theme.sidebarWidth;
                 }
 
                 VerticalLayout {
                     spacing: 0px;
 
                     TopBar {
+                        can_go_back: root.can_go_back;
+                        can_go_forward: root.can_go_forward;
+                        go_back => {
+                            AppCallbacks.navigate_back();
+                        }
+                        go_forward => {
+                            AppCallbacks.navigate_forward();
+                        }
                         settings_clicked => {
                             root.show_settings = true;
                         }
@@ -223,6 +234,18 @@ export component MainWindow inherits Window {
                     Rectangle {
                         background: Theme.primary; // Primary
                         clip: true;
+
+                        TouchArea {
+                            pointer-event(event) => {
+                                if (event.kind == PointerEventKind.down) {
+                                    if (event.button == PointerEventButton.back) {
+                                        AppCallbacks.navigate_back();
+                                    } else if (event.button == PointerEventButton.forward) {
+                                        AppCallbacks.navigate_forward();
+                                    }
+                                }
+                            }
+                        }
 
                         PageWrapper {
                             page-type: Pages.Search;

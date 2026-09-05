@@ -33,6 +33,12 @@ export component AlbumsPage inherits Rectangle {
             item-cover(idx) => {
                 AlbumsPageProps.albums[idx].coverPath
             }
+            item_extension(idx) => {
+                AlbumsPageProps.albums[idx].extension
+            }
+            item_extension_icon(idx) => {
+                AlbumsPageProps.albums[idx].extension_icon
+            }
             item-clicked(idx) => {
                 AlbumsPageProps.selected-album = AlbumsPageProps.albums[idx];
                 root.active-page = Pages.AlbumContent;

@@ -63,6 +63,7 @@ rust_library(
         "src/remote_test.rs",
         "src/remote_test_smoke.rs",
         "src/sample_tests.rs",
+        "src/sanitize.rs",
         "src/tests.rs",
     ],
     crate_root = "src/lib.rs",

@@ -6,6 +6,7 @@ import { Button } from "../common/button.slint";
 import { IconButton } from "../common/icon_button.slint";
 import { SongDetails } from "../common/song_details.slint";
 import { ContextMenu } from "../common/context_menu.slint";
+import { Utils, DefaultIconType } from "../utils.slint";
 
 component QueueListItem inherits Rectangle {
     in property <SongModel> song;
@@ -96,7 +97,7 @@ component QueueListItem inherits Rectangle {
                             Image {
                                 width: 100%;
                                 height: 100%;
-                                source: song.coverPathLow.width > 0 ? song.coverPathLow : @image-url("../icons/song_default.svg");
+                                source: Utils.load_image_or_default(song.coverPathLow, DefaultIconType.Song);
                                 image-fit: cover;
                             }
                         }
@@ -118,9 +119,9 @@ component QueueListItem inherits Rectangle {
                                     overflow: elide;
                                 }
 
-                                if song.extension-icon.height > 0 || song.extension-icon.width > 0: Image {
+                                if song.extension != "": Image {
                                     width: Theme.iconSizeSm;
-                                    source: song.extension-icon;
+                                    source: Utils.load_image_or_default(song.extension_icon, DefaultIconType.Extension);
                                     vertical-alignment: center;
                                 }
                             }

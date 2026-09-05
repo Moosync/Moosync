@@ -11,6 +11,7 @@ import {
     MenuItem,
 } from "./types/song_view.slint";
 import { ContextMenuItem } from "./types/context_menu.slint";
+import { ExtensionProviderItem } from "./types/extension_view.slint";
 
 export struct PreferenceChange {
     id: string,
@@ -41,6 +42,9 @@ export global AppCallbacks {
     callback install_extension(string);
     callback toggle_extension(string);
     callback update_all_extensions();
+    callback toggle_playlist_content_extension(string, bool);
+    callback toggle_artist_content_extension(string, bool);
+    callback toggle_album_content_extension(string, bool);
 
     // Queue & Drag-and-Drop Callbacks
     callback play-queue-index(int);
@@ -137,6 +141,7 @@ export global UtilCallbacks {
     pure callback is_index_selected([int], int) -> bool;
     pure callback get_selected_songs([SongModel], [int]) -> [SongModel];
     pure callback validate_input(string, string) -> bool;
+    pure callback has_active_extension_providers([ExtensionProviderItem]) -> bool;
 }
 
 export global ContextMenuCallbacks {

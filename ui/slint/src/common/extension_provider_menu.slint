@@ -1,0 +1,83 @@
+import { Theme } from "../constants.slint";
+import { ExtensionProviderItem } from "../types/extension_view.slint";
+
+export component ExtensionProviderMenu inherits Rectangle {
+    in-out property <[ExtensionProviderItem]> providers;
+    in property <length> menu_width: 0px;
+    in property <length> menu_min_width: 180px;
+
+    callback toggled(string, bool);
+
+    public function show() {
+        popup.show();
+    }
+
+    width: 0px;
+    height: 0px;
+
+    popup := PopupWindow {
+        Rectangle {
+            min-width: root.menu_width > 0px ? root.menu_width : root.menu_min_width;
+            background: Theme.secondary;
+            border-radius: Theme.borderRadiusLg;
+            border-width: Theme.borderWidth;
+            border-color: Theme.textSecondary.with-alpha(0.25);
+            clip: true;
+
+            VerticalLayout {
+                padding: Theme.paddingXs;
+                spacing: Theme.spacingTiny;
+
+                for item[idx] in root.providers: item_touch := TouchArea {
+                    height: 36px;
+                    clicked => {
+                        root.providers[idx].enabled = !root.providers[idx].enabled;
+                        root.toggled(root.providers[idx].id, root.providers[idx].enabled);
+                    }
+
+                    Rectangle {
+                        border-radius: Theme.borderRadiusMd;
+                        background: item_touch.has-hover ? Theme.textPrimary.with-alpha(0.1) : transparent;
+                        animate background { duration: 100ms; }
+
+                        HorizontalLayout {
+                            padding-left: Theme.paddingMd;
+                            padding-right: Theme.paddingMd;
+                            spacing: Theme.spacingSm;
+                            alignment: start;
+
+                            // Checkbox
+                            VerticalLayout {
+                                alignment: center;
+                                Rectangle {
+                                    width: 16px;
+                                    height: 16px;
+                                    border-radius: 4px;
+                                    border-width: 1.5px;
+                                    border-color: item.enabled ? Theme.accent : Theme.textSecondary;
+                                    background: item.enabled ? Theme.accent : transparent;
+
+                                    if (item.enabled): Image {
+                                        width: 10px;
+                                        height: 10px;
+                                        source: @image-url("../icons/sidebar_toggle.svg");
+                                        colorize: Theme.textPrimary;
+                                    }
+                                }
+                            }
+
+                            // Provider title
+                            Text {
+                                text: item.name;
+                                font-size: Theme.subtitle;
+                                vertical-alignment: center;
+                                horizontal-alignment: left;
+                                color: item_touch.has-hover ? Theme.textPrimary : Theme.textPrimary.with-alpha(0.85);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

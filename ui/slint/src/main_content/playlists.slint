@@ -35,8 +35,11 @@ export component PlaylistsPage inherits Rectangle {
             item-cover(idx) => {
                 PlaylistsPageProps.playlists[idx].coverPath
             }
-            item-extension-icon(idx) => {
-                PlaylistsPageProps.playlists[idx].extension-icon
+            item_extension(idx) => {
+                PlaylistsPageProps.playlists[idx].extension
+            }
+            item_extension_icon(idx) => {
+                PlaylistsPageProps.playlists[idx].extension_icon
             }
             item-clicked(idx) => {
                 PlaylistsPageProps.selected-playlist = PlaylistsPageProps.playlists[idx];

@@ -36,6 +36,8 @@ mod extension;
 pub mod models;
 mod remote;
 pub use remote::{DEFAULT_EXTENSION_REGISTRY, RemoteExtensions};
+pub mod sanitize;
+pub use sanitize::Sanitize;
 
 #[cfg(test)]
 mod ext_runner_test;

@@ -2,20 +2,16 @@ use extensions::Extension;
 use extensions_proto::moosync::types::{
     ExtensionDetail, ExtensionProviderScope, RequestedSearchResultRequest,
 };
-use slint::{ComponentHandle, ModelRc, VecModel, Weak};
+use slint::{ComponentHandle, Model, ModelRc, VecModel, Weak};
 use songs_proto::moosync::types::SearchResult as ProtoSearchResult;
 use state_manager::StateManager;
 use tracing::Instrument;
 use types::prelude::SearchResultExt;
 
 use crate::{
-    AppCallbacks, MainWindow, SearchPageProps, Theme,
-    error::UiError,
-    pages::PageHandler,
-    utils::{cache_image, default_folder_icon, load_icon},
+    AppCallbacks, MainWindow, SearchPageProps, SearchResult, Theme, error::UiError,
+    pages::PageHandler, utils::create_search_result,
 };
-
-type SearchResultItem = (ExtensionDetail, Option<String>, ProtoSearchResult);
 
 pub struct SearchPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -51,58 +47,22 @@ impl<'a> SearchPageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn search_extensions(state_manager: &StateManager, term: &str) -> Vec<SearchResultItem> {
-        let ext_handler = state_manager.get_extension_handler().await;
-        let active_extensions = ext_handler
-            .get_extensions_with_scope(ExtensionProviderScope::Search)
-            .await;
-
-        let cache_dir = state_manager.get_cache_dir();
-        let mut results = Vec::new();
-
-        for ext in active_extensions {
-            let detail = ext.get_extension_detail();
-            let icon_path = detail.extension_icon.clone();
-            let cached_path = match icon_path {
-                Some(ref p) if !p.is_empty() => cache_image(p, &cache_dir)
-                    .await
-                    .map(|p| p.to_string_lossy().to_string()),
-                _ => None,
-            };
-            let res = Self::search_extension(term, &ext).await;
-            if let Ok(r) = res {
-                results.push((detail, cached_path, r));
-            }
-        }
-        results
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn update_ui(
-        main_window: &MainWindow,
+    fn append_search_result(
+        main_window_weak: &Weak<MainWindow>,
         state_manager: &StateManager,
-        local_res: Result<ProtoSearchResult, UiError>,
-        ext_results: Vec<SearchResultItem>,
+        res: ProtoSearchResult,
+        detail: Option<ExtensionDetail>,
     ) {
-        let theme = main_window.global::<Theme>();
         let cache_dir = state_manager.get_cache_dir();
-        let mut list = Vec::new();
-
-        if let Ok(local) = local_res {
-            let local_icon = default_folder_icon();
-            let results = (local, None, local_icon, &theme, cache_dir.as_path()).into();
-            list.push(results);
-        }
-
-        for (detail, cached_path, res) in ext_results {
-            let icon = load_icon(cached_path.as_deref().unwrap_or(""));
-            let results = (res, Some(&detail), icon, &theme, cache_dir.as_path()).into();
-            list.push(results);
-        }
-
-        main_window
-            .global::<SearchPageProps>()
-            .set_provider_results(ModelRc::new(VecModel::from(list)));
+        let _ = main_window_weak.upgrade_in_event_loop(move |window| {
+            let theme = window.global::<Theme>();
+            let result_model = create_search_result(res, detail.as_ref(), &theme, &cache_dir);
+            let props = window.global::<SearchPageProps>();
+            let current_model = props.get_provider_results();
+            let mut list: Vec<SearchResult> = current_model.iter().collect();
+            list.push(result_model);
+            props.set_provider_results(ModelRc::new(VecModel::from(list)));
+        });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -113,14 +73,49 @@ impl<'a> SearchPageHandler<'a> {
     ) {
         tokio::spawn(
             async move {
-                let local_res = Self::search_local(&state_manager, &term).await;
-                let ext_results = Self::search_extensions(&state_manager, &term).await;
+                let term = term.trim().to_string();
+                if term.is_empty() {
+                    let _ = main_window_weak.upgrade_in_event_loop(|window| {
+                        window
+                            .global::<SearchPageProps>()
+                            .set_provider_results(ModelRc::default());
+                    });
+                    return;
+                }
 
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(main_window) = main_window_weak.upgrade() {
-                        Self::update_ui(&main_window, &state_manager, local_res, ext_results);
-                    }
-                });
+                let local_res = Self::search_local(&state_manager, &term).await;
+                if let Ok(local) = local_res {
+                    let _ = main_window_weak.upgrade_in_event_loop(|window| {
+                        window
+                            .global::<SearchPageProps>()
+                            .set_provider_results(ModelRc::default());
+                    });
+                    Self::append_search_result(&main_window_weak, &state_manager, local, None);
+                }
+
+                let ext_handler = state_manager.get_extension_handler().await;
+                let active_extensions = ext_handler
+                    .get_extensions_with_scope(ExtensionProviderScope::Search)
+                    .await;
+
+                for ext in active_extensions {
+                    let state_manager = state_manager.clone();
+                    let main_window_weak = main_window_weak.clone();
+                    let term = term.clone();
+
+                    tokio::spawn(async move {
+                        let res = Self::search_extension(&term, &ext).await;
+                        if let Ok(res) = res {
+                            let detail = ext.get_extension_detail();
+                            Self::append_search_result(
+                                &main_window_weak,
+                                &state_manager,
+                                res,
+                                Some(detail),
+                            );
+                        }
+                    });
+                }
             }
             .instrument(tracing::debug_span!("slint_cb_perform_search")),
         );

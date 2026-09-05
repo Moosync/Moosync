@@ -11,10 +11,12 @@ import { SongListView } from "../common/song_list_view.slint";
 import { GridListView } from "../common/grid_list_view.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button.slint";
+import { Utils, DefaultIconType } from "../utils.slint";
 
 export struct Provider {
     name: string,
     icon: image,
+    is_local: bool,
 }
 
 export component ProviderItem inherits Button {
@@ -36,7 +38,7 @@ export component ProviderItem inherits Button {
             padding: Theme.paddingSm;
 
             Image {
-                source: root.provider.icon;
+                source: Utils.load_image_or_default(root.provider.icon, root.provider.is_local ? DefaultIconType.Folder : DefaultIconType.Extension);
                 width: Theme.iconSizeMd;
                 height: Theme.iconSizeMd;
                 colorize: root.active ? Theme.accent : Theme.textPrimary;
@@ -85,7 +87,11 @@ export component SearchPage inherits Rectangle {
         // Provider Wrapping Grid Rows using FlexboxLayout
         FlexboxLayout {
             for prov[idx] in SearchPageProps.provider-results: ProviderItem {
-                provider: { name: prov.extension == "" ? @tr("Local") : prov.extension, icon: prov.extension-icon };
+                provider: {
+                    name: prov.extension == "" ? @tr("Local") : prov.extension,
+                    icon: prov.extension_icon,
+                    is_local: prov.extension == ""
+                };
                 active: root.selected-provider == idx;
                 clicked => { root.selected-provider = idx; }
             }
@@ -144,6 +150,8 @@ export component SearchPage inherits Rectangle {
                 total-items: res-container.current-res.albums.length;
                 item-title(idx) => { res-container.current-res.albums[idx].title }
                 item-cover(idx) => { res-container.current-res.albums[idx].coverPath }
+                item_extension(idx) => { res-container.current-res.albums[idx].extension }
+                item_extension_icon(idx) => { res-container.current-res.albums[idx].extension_icon }
                 opacity: root.active-tab == 1 ? 1.0 : 0.0;
                 visible: self.opacity > 0.01;
                 animate opacity {
@@ -157,6 +165,8 @@ export component SearchPage inherits Rectangle {
                 total-items: res-container.current-res.artists.length;
                 item-title(idx) => { res-container.current-res.artists[idx].title }
                 item-cover(idx) => { res-container.current-res.artists[idx].coverPath }
+                item_extension(idx) => { res-container.current-res.artists[idx].extension }
+                item_extension_icon(idx) => { res-container.current-res.artists[idx].extension_icon }
                 opacity: root.active-tab == 2 ? 1.0 : 0.0;
                 visible: self.opacity > 0.01;
                 animate opacity {
@@ -170,6 +180,8 @@ export component SearchPage inherits Rectangle {
                 total-items: res-container.current-res.playlists.length;
                 item-title(idx) => { res-container.current-res.playlists[idx].title }
                 item-cover(idx) => { res-container.current-res.playlists[idx].coverPath }
+                item_extension(idx) => { res-container.current-res.playlists[idx].extension }
+                item_extension_icon(idx) => { res-container.current-res.playlists[idx].extension_icon }
                 opacity: root.active-tab == 3 ? 1.0 : 0.0;
                 visible: self.opacity > 0.01;
                 animate opacity {

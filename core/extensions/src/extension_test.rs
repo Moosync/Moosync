@@ -21,13 +21,23 @@ use std::{
 };
 
 use assertables::{assert_is_empty, assert_len_eq_x};
+use extensions_proto::moosync::types::{
+    ExtensionCommandResponse, RequestedSearchResultResponse, extension_command_response,
+};
 use rstest::{fixture, rstest};
-use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Song};
+use songs_proto::moosync::types::{
+    Album, Artist, EntityResult, GetEntityOptions, GetSongOptions, InnerSong, Playlist, Song,
+};
 use tempdir::TempDir;
 use tracing_test::traced_test;
 use ui_proto::moosync::types::PreferenceUiData;
 
-use crate::{ReplyHandler, errors::ExtensionError, extension::Extension};
+use crate::{
+    ReplyHandler,
+    errors::ExtensionError,
+    extension::Extension,
+    sanitize::{Sanitize, sanitize_album, sanitize_artist, sanitize_playlist, sanitize_song},
+};
 
 struct DummyReply;
 impl ReplyHandler for DummyReply {
@@ -200,4 +210,255 @@ fn test_extension_preferences_and_active_state(ext_context: TestExtContext) {
     ext.unregister_ui_preferences(vec!["volume".to_string()]);
     let details_after = ext.get_extension_detail();
     assert_is_empty!(&details_after.preferences);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_extension_load_manifest_without_optional_fields() {
+    let temp_dir = TempDir::new("moosync_ext_no_icon").expect("failed to create temp dir");
+    let manifest_json = r#"{
+        "name": "sample.ext",
+        "displayName": "Sample Extension",
+        "version": "0.1.0",
+        "extensionEntry": "main.wasm",
+        "moosyncExtension": true
+    }"#;
+    let manifest_path = temp_dir.path().join("package.json");
+    fs::write(&manifest_path, manifest_json).unwrap();
+    let lock_data = serde_json::json!({
+        "registry": "dev",
+        "disabled": true
+    });
+    fs::write(
+        temp_dir.path().join("extension.lock"),
+        serde_json::to_vec(&lock_data).unwrap(),
+    )
+    .unwrap();
+    let cache_dir = temp_dir.path().join("cache");
+    let reply = Arc::new(DummyReply);
+    let has_started = Arc::new(AtomicBool::new(false));
+
+    let ext = Extension::new(&manifest_path, reply, cache_dir, has_started);
+
+    assert!(ext.is_ok());
+    let ext = ext.unwrap();
+    assert_eq!(ext.get_package_name(), "sample.ext");
+    let detail = ext.get_extension_detail();
+    assert_eq!(detail.name, "Sample Extension");
+    assert_eq!(detail.version, "0.1.0");
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_sanitize_artist() {
+    let mut artist = Artist {
+        artist_id: Some("art-1".to_string()),
+        artist_name: Some("Artist One".to_string()),
+        extension: None,
+        ..Default::default()
+    };
+
+    sanitize_artist(&mut artist, "sample.ext");
+
+    assert_eq!(artist.extension, Some("sample.ext".to_string()));
+    assert_eq!(artist.artist_id, Some("sample.ext:art-1".to_string()));
+    assert_eq!(artist.artist_name, Some("Artist One".to_string()));
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_sanitize_album() {
+    let mut album = Album {
+        album_id: Some("alb-1".to_string()),
+        album_name: Some("Album One".to_string()),
+        extension: None,
+        ..Default::default()
+    };
+
+    sanitize_album(&mut album, "sample.ext");
+
+    assert_eq!(album.extension, Some("sample.ext".to_string()));
+    assert_eq!(album.album_id, Some("sample.ext:alb-1".to_string()));
+    assert_eq!(album.album_name, Some("Album One".to_string()));
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_sanitize_playlist() {
+    let mut playlist = Playlist {
+        playlist_id: Some("pl-1".to_string()),
+        playlist_name: "Playlist One".to_string(),
+        extension: None,
+        ..Default::default()
+    };
+
+    sanitize_playlist(&mut playlist, "sample.ext");
+
+    assert_eq!(playlist.extension, Some("sample.ext".to_string()));
+    assert_eq!(playlist.playlist_id, Some("sample.ext:pl-1".to_string()));
+    assert_eq!(playlist.playlist_name, "Playlist One");
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_sanitize_song_without_album_and_artists() {
+    let mut song = Song {
+        song: Some(InnerSong {
+            id: Some("song-1".to_string()),
+            title: Some("Song One".to_string()),
+            extension: None,
+            ..Default::default()
+        }),
+        album: None,
+        artists: vec![],
+        genre: vec![],
+    };
+
+    sanitize_song(&mut song, "sample.ext");
+
+    assert_eq!(
+        song.song.as_ref().unwrap().extension,
+        Some("sample.ext".to_string())
+    );
+    assert_eq!(
+        song.song.as_ref().unwrap().id,
+        Some("sample.ext:song-1".to_string())
+    );
+    assert!(song.album.is_none());
+    assert_is_empty!(&song.artists);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_sanitize_song_with_album_and_multiple_artists() {
+    let mut song = Song {
+        song: Some(InnerSong {
+            id: Some("song-2".to_string()),
+            title: Some("Song Two".to_string()),
+            extension: Some("old.ext".to_string()),
+            ..Default::default()
+        }),
+        album: Some(Album {
+            album_id: Some("alb-2".to_string()),
+            album_name: Some("Album Two".to_string()),
+            extension: Some("old.ext".to_string()),
+            ..Default::default()
+        }),
+        artists: vec![
+            Artist {
+                artist_id: Some("art-2a".to_string()),
+                artist_name: Some("Artist 2A".to_string()),
+                extension: None,
+                ..Default::default()
+            },
+            Artist {
+                artist_id: Some("art-2b".to_string()),
+                artist_name: Some("Artist 2B".to_string()),
+                extension: Some("old.ext".to_string()),
+                ..Default::default()
+            },
+        ],
+        genre: vec![],
+    };
+
+    sanitize_song(&mut song, "new.ext");
+
+    assert_eq!(
+        song.song.as_ref().unwrap().extension,
+        Some("new.ext".to_string())
+    );
+    assert_eq!(
+        song.song.as_ref().unwrap().id,
+        Some("new.ext:song-2".to_string())
+    );
+    assert_eq!(
+        song.album.as_ref().unwrap().extension,
+        Some("new.ext".to_string())
+    );
+    assert_eq!(
+        song.album.as_ref().unwrap().album_id,
+        Some("new.ext:alb-2".to_string())
+    );
+    assert_len_eq_x!(&song.artists, 2);
+    assert_eq!(song.artists[0].extension, Some("new.ext".to_string()));
+    assert_eq!(
+        song.artists[0].artist_id,
+        Some("new.ext:art-2a".to_string())
+    );
+    assert_eq!(song.artists[1].extension, Some("new.ext".to_string()));
+    assert_eq!(
+        song.artists[1].artist_id,
+        Some("new.ext:art-2b".to_string())
+    );
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_sanitize_trait_search_result() {
+    let resp = ExtensionCommandResponse {
+        response: Some(extension_command_response::Response::RequestedSearchResult(
+            RequestedSearchResultResponse {
+                songs: vec![Song {
+                    song: Some(InnerSong {
+                        id: Some("s1".to_string()),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }],
+                playlists: vec![Playlist {
+                    playlist_id: Some("p1".to_string()),
+                    ..Default::default()
+                }],
+                artists: vec![Artist {
+                    artist_id: Some("a1".to_string()),
+                    ..Default::default()
+                }],
+                albums: vec![Album {
+                    album_id: Some("al1".to_string()),
+                    ..Default::default()
+                }],
+            },
+        )),
+    };
+
+    let sanitized_resp = resp.sanitize("ext.pkg");
+    let Some(extension_command_response::Response::RequestedSearchResult(search_res)) =
+        sanitized_resp.response
+    else {
+        panic!("expected search result");
+    };
+
+    assert_eq!(
+        search_res.songs[0].song.as_ref().unwrap().extension,
+        Some("ext.pkg".to_string())
+    );
+    assert_eq!(
+        search_res.songs[0].song.as_ref().unwrap().id,
+        Some("ext.pkg:s1".to_string())
+    );
+    assert_eq!(
+        search_res.playlists[0].extension,
+        Some("ext.pkg".to_string())
+    );
+    assert_eq!(
+        search_res.playlists[0].playlist_id,
+        Some("ext.pkg:p1".to_string())
+    );
+    assert_eq!(search_res.artists[0].extension, Some("ext.pkg".to_string()));
+    assert_eq!(
+        search_res.artists[0].artist_id,
+        Some("ext.pkg:a1".to_string())
+    );
+    assert_eq!(search_res.albums[0].extension, Some("ext.pkg".to_string()));
+    assert_eq!(
+        search_res.albums[0].album_id,
+        Some("ext.pkg:al1".to_string())
+    );
 }

@@ -14,8 +14,7 @@ use crate::{
     AppCallbacks, ContextMenuCallbacks, MainWindow, QueuePageProps, SongModel, Theme,
     pages::PageHandler,
     utils::{
-        LazySongVecModel, build_queue_context_menu_items, default_song_cover,
-        dispatch_song_context_action, save_queue,
+        LazySongVecModel, build_queue_context_menu_items, dispatch_song_context_action, save_queue,
     },
 };
 
@@ -255,7 +254,7 @@ impl<'a> QueuePageHandler<'a> {
         let blurred_cover = blurred_path
             .as_deref()
             .and_then(|path| Image::load_from_path(path).ok())
-            .unwrap_or_else(default_song_cover);
+            .unwrap_or_default();
         main_window
             .global::<QueuePageProps>()
             .set_blurred_cover(blurred_cover);
@@ -368,7 +367,7 @@ impl<'a> PageHandler for QueuePageHandler<'a> {
                             .set_queue(slint::ModelRc::default());
                         main_window
                             .global::<QueuePageProps>()
-                            .set_blurred_cover(crate::utils::default_song_cover());
+                            .set_blurred_cover(Image::default());
                     }
                 }
             },

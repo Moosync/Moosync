@@ -8,7 +8,7 @@ use std::{
 use slint::{Image, Model, ModelNotify, ModelTracker, SharedString};
 use tracing::{Instrument, trace};
 
-use super::{default_song_cover, load_image_from_path_or_url};
+use super::load_image_from_path_or_url;
 use crate::{
     AlbumModel, ArtistModel, ExtensionItem, GenreModel, PlaylistModel, SongModel, WINDOW_EVENTS,
 };
@@ -119,7 +119,7 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn release_image(&self, row: usize, model: &mut T) {
         trace!("Releasing image for row {}", row);
-        model.set_cover(default_song_cover());
+        model.set_cover(Image::default());
         self.allocated_rows.borrow_mut().remove(&row);
     }
 

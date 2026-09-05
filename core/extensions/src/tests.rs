@@ -278,7 +278,7 @@ async fn test_handle_extension_command() {
         .await
         .unwrap();
 
-    assert_eq!(res.scopes, vec![13]);
+    assert_eq!(res.scopes, vec![13, 0, 1, 2, 3, 4]);
 }
 
 #[test]

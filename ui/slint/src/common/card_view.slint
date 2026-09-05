@@ -1,10 +1,11 @@
 import { Theme } from "../constants.slint";
+import { Utils, DefaultIconType } from "../utils.slint";
 
 export component CardView inherits VerticalLayout {
     in property <string> title: @tr("Card Title");
-    in property <image> cover-img: @image-url("../icons/entity_default.svg");
-    in property <image> placeholder-img: @image-url("../icons/entity_default.svg");
-    in property <image> extension-icon: @image-url("../icons/empty.svg");
+    in property <image> cover-img: @image-url("");
+    in property <string> extension: "";
+    in property <image> extension_icon: @image-url("");
 
     padding: Theme.paddingSm;
     spacing: Theme.spacingXs;
@@ -17,14 +18,14 @@ export component CardView inherits VerticalLayout {
         Image {
             height: parent.height;
             width: parent.width;
-            source: root.cover-img.width > 0 ? root.cover-img : root.placeholder-img;
+            source: Utils.load_image_or_default(root.cover-img, DefaultIconType.Entity);
             horizontal-alignment: center;
             vertical-alignment: center;
             image-fit: cover;
             image-rendering: pixelated;
         }
 
-        if (root.extension-icon.width > 0 || root.extension-icon.height > 0): Rectangle {
+        if (root.extension != ""): Rectangle {
             x: parent.width - self.width - Theme.paddingSm;
             y: Theme.paddingSm;
             width: Theme.iconSizeSm;
@@ -37,7 +38,7 @@ export component CardView inherits VerticalLayout {
                 height: parent.height - 4px;
                 x: 2px;
                 y: 2px;
-                source: root.extension-icon;
+                source: Utils.load_image_or_default(root.extension_icon, DefaultIconType.Extension);
             }
         }
     }

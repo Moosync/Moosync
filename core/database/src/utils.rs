@@ -104,6 +104,7 @@ pub fn map_row_to_album(row: &rusqlite::Row) -> rusqlite::Result<Album> {
         album_song_count: row.get(4)?,
         year: row.get(5)?,
         album_coverpath_low: row.get(6)?,
+        extension: None,
     })
 }
 
@@ -116,6 +117,7 @@ pub fn map_row_to_artist(row: &rusqlite::Row) -> rusqlite::Result<Artist> {
         artist_coverpath: row.get(3)?,
         artist_song_count: row.get(4)?,
         sanitized_artist_name: row.get(5)?,
+        extension: None,
     })
 }
 
@@ -167,6 +169,7 @@ pub fn map_row_to_inner_song(row: &rusqlite::Row) -> rusqlite::Result<InnerSong>
         playback_url: row.get(19)?,
         song_cover_path_low: row.get(20)?,
         date_added: row.get(21)?,
+        extension: row.get(22)?,
         track_no: row.get(25)?,
     })
 }

@@ -1,11 +1,11 @@
 use assertables::assert_len_eq_x;
 use rstest::rstest;
-use slint::{Model, ModelRc, VecModel};
+use slint::{Image, Model, ModelRc, VecModel};
 use tracing_test::traced_test;
 
 use super::{
-    build_queue_context_menu_items, build_song_context_menu_items, default_empty_icon,
-    make_context_menu_item, models::IntoVec,
+    build_queue_context_menu_items, build_song_context_menu_items, make_context_menu_item,
+    models::IntoVec,
 };
 use crate::{
     ContextMenuItem, MainWindow,
@@ -16,8 +16,8 @@ use crate::{
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_context_menu_item_vec_from_model_rc() {
     let items = vec![
-        make_context_menu_item("play_now", "Play Now", default_empty_icon()),
-        make_context_menu_item("add_to_queue", "Add to Queue", default_empty_icon()),
+        make_context_menu_item("play_now", "Play Now", Image::default()),
+        make_context_menu_item("add_to_queue", "Add to Queue", Image::default()),
     ];
 
     let model_rc = ModelRc::new(VecModel::from(items));

@@ -40,8 +40,8 @@ Don't try to explore the entire project. Understand the context of the task and 
 5. Use `bazel run //tools:format -- <files>` to format Rust (`.rs`), Slint (`.slint`), Bazel (`BUILD`, `MODULE.bazel`, `.bzl`), and Protobuf (`.proto`) files. This is wired as the git pre-commit hook via `.git/hooks/pre-commit`. Do not invoke rustfmt, slint-lsp, buildifier, or buf directly — they are resolved through Bazel runfiles.
 6. No Clippy lints exist in this project. Use `bazel query` to discover available targets for a crate; test suites are defined under the root `BUILD` (e.g., `core_tests`).
 7. Use `bazel run //tools:extract_translations` to extract translatable strings from Slint files into `ui/slint/locales/en_US/LC_MESSAGES/slint_app.po`.
-8. **Nesting and Control Flow**: Conditions should not be nested and an early return pattern should be preferred (e.g., using `let else` or flat early exits). Avoid using `else` blocks wherever possible, and avoid using `continue` inside loops to maintain clear and readable control flow.
-9. **Single Responsibility & No Else Blocks**: Avoid `else` blocks entirely to reduce cognitive load and simplify control flow. Each function must perform only one task. Split distinct logic paths into separate, single-purpose helper functions and have the caller function orchestrate or delegate using flat early returns.
+8. **Nesting and Control Flow**: Conditions should not be deeply nested and an early return pattern should be preferred (e.g., using `let else` or flat early exits). Use `else` blocks when natural and clear, but avoid deep conditional branches and avoid using `continue` inside loops to maintain clear and readable control flow.
+9. **Single Responsibility**: Each function must perform only one cohesive task. Split distinct logic paths into separate, single-purpose helper functions and have the caller function orchestrate using flat early returns.
 10. **Simple & Obvious Naming**: Keep function names simple and obvious. Do not repeat context from the struct or module name inside function names (e.g., in `PlaylistContentPageHandler`, use `fetch_local` or `fetch_local_songs` instead of `fetch_local_playlist_songs`).
 
 ### Tracing Instrumentation
@@ -59,7 +59,7 @@ Don't try to explore the entire project. Understand the context of the task and 
 - **No Fully-Qualified Inline Paths**: Always import types and functions at the top of the file (`use ...;`). Never use inline fully-qualified paths (e.g., `songs_proto::...`, `crate::utils::...`) in code bodies.
 - **No Abbreviations**: Do not abbreviate domain objects or variables (e.g., use `state_manager`, never `sm`).
 - **Avoid Unnecessary Cloning**: Mutate collections in place rather than cloning expensive structures (like `Song`).
-- **Control Flow Simplicity**: Prefer simple, direct `if let Some(...) = ...` over awkward `let Some(...) = ... else { return; }` inversions. Avoid `else` blocks and `continue` inside loops.
+- **Control Flow Simplicity**: Prefer simple, direct `if let Some(...) = ...` over awkward `let Some(...) = ... else { return; }` inversions. Prefer early returns and avoid `continue` inside loops.
 - **Single Responsibility & Thin UI Handlers**: Split distinct logic paths into separate helper functions; keep page handlers thin by moving multi-step coordination logic into `utils.rs`.
 - **Slint Naming Conventions**: All Slint variables, properties, callbacks, and functions must strictly use `snake_case` (never `kebab-case`).
 - **Slint Modal Lifecycle**: Reusable modals inherit from `Modal` and live in `ui/slint/src/common/`. The parent controls visibility conditionally (`if show_modal: MyModal { close => { show_modal = false; } }`). Rely on `Modal`'s built-in `callback close();` — backdrop clicks and dialog action buttons trigger `root.close()`. Do not create custom `is_open` properties on modals.

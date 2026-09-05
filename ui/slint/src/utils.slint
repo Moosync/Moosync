@@ -1,0 +1,27 @@
+export enum DefaultIconType {
+    Song,
+    Entity,
+    Folder,
+    Extension,
+}
+
+export global Utils {
+    pure public function load_image_or_default(icon: image, icon_type: DefaultIconType) -> image {
+        if (icon.width > 0) {
+            return icon;
+        }
+        if (icon_type == DefaultIconType.Song) {
+            return @image-url("icons/song_default.svg");
+        }
+        if (icon_type == DefaultIconType.Entity) {
+            return @image-url("icons/entity_default.svg");
+        }
+        if (icon_type == DefaultIconType.Folder) {
+            return @image-url("icons/folder.svg");
+        }
+        if (icon_type == DefaultIconType.Extension) {
+            return @image-url("icons/extensions.svg");
+        }
+        return icon;
+    }
+}

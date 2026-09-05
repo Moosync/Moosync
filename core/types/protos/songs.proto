@@ -12,6 +12,7 @@ message Album {
   double album_song_count = 5;
   optional string year = 6;
   optional string album_coverpath_low = 7;
+  optional string extension = 8;
 }
 
 message Artist {
@@ -21,6 +22,7 @@ message Artist {
   optional string artist_coverpath = 4;
   double artist_song_count = 5;
   optional string sanitized_artist_name = 7;
+  optional string extension = 8;
 }
 
 message Genre {
@@ -71,6 +73,7 @@ message InnerSong {
   optional string song_cover_path_low = 21;
   optional int64 date_added = 22;
   optional double track_no = 26;
+  optional string extension = 27;
 }
 
 message SearchableSong {
@@ -82,7 +85,7 @@ message SearchableSong {
   optional SongType type = 6;
   optional string url = 7;
   optional string playback_url = 8;
-  optional string provider_extension = 9;
+  optional string extension = 9;
   optional bool show_in_library = 10;
 }
 

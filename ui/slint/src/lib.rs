@@ -225,7 +225,7 @@ fn setup_cover_helper(main_window: &MainWindow) {
                     return image;
                 }
             }
-            utils::default_song_cover()
+            Image::default()
         });
 
     main_window
@@ -239,7 +239,7 @@ fn setup_cover_helper(main_window: &MainWindow) {
                     return image;
                 }
             }
-            utils::default_song_cover()
+            Image::default()
         });
 }
 
@@ -306,6 +306,14 @@ fn setup_song_list_helper(main_window: &MainWindow, state_manager: &'static Stat
     main_window
         .global::<UtilCallbacks>()
         .on_validate_input(move |value, rule| utils::validate_input(value.as_str(), rule.as_str()));
+
+    main_window
+        .global::<UtilCallbacks>()
+        .on_has_active_extension_providers(move |providers| {
+            (0..providers.row_count())
+                .filter_map(|i| providers.row_data(i))
+                .any(|p| p.enabled)
+        });
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

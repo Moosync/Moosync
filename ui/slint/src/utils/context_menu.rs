@@ -8,9 +8,13 @@ use state_manager::StateManager;
 use tracing::Instrument;
 use types::prelude::SongsExt;
 
-use super::{default_empty_icon, lazy_model::LazySongVecModel, models::IntoVec};
+use super::{
+    lazy_model::LazySongVecModel,
+    models::IntoVec,
+    navigation::{goto_album, goto_artist},
+};
 use crate::{
-    AlbumsPageProps, ArtistsPageProps, ContextMenuItem, ContextMenuItems, ContextSubMenuItem,
+    AlbumModel, AppPage, ArtistModel, ContextMenuItem, ContextMenuItems, ContextSubMenuItem,
     MainWindow, Pages, PlaylistContentPageProps, PlaylistsPageProps, SongModel, Theme,
 };
 
@@ -75,7 +79,7 @@ fn populate_navigation_items(
         items.push(make_context_menu_item(
             format!("goto_album:{}", first_song.album_id),
             title,
-            default_empty_icon(),
+            Image::default(),
         ));
     }
 
@@ -83,7 +87,7 @@ fn populate_navigation_items(
         .filter_map(|i| first_song.artists.row_data(i))
         .map(|a| {
             let action_id = format!("goto_artist:{}", a.id);
-            make_context_sub_item(action_id, a.title, default_empty_icon())
+            make_context_sub_item(action_id, a.title, Image::default())
         })
         .collect();
 
@@ -94,7 +98,7 @@ fn populate_navigation_items(
         items.push(make_context_submenu_item(
             "goto_artist",
             title,
-            default_empty_icon(),
+            Image::default(),
             artist_sub_items,
         ));
     }
@@ -128,7 +132,7 @@ fn attach_playlist_submenu(
                 .map(|p| {
                     let pid = p.playlist_id.unwrap_or_default();
                     let action_id = format!("add_to_playlist:{}", pid);
-                    make_context_sub_item(action_id, p.playlist_name, default_empty_icon())
+                    make_context_sub_item(action_id, p.playlist_name, Image::default())
                 })
                 .collect();
 
@@ -141,7 +145,7 @@ fn attach_playlist_submenu(
             let item = make_context_submenu_item(
                 "add_to_playlist",
                 title,
-                default_empty_icon(),
+                Image::default(),
                 playlist_sub_items,
             );
             let mut insert_idx = vec_model.row_count();
@@ -176,7 +180,7 @@ pub fn build_song_context_menu_items(
             title: main_window
                 .global::<ContextMenuItems>()
                 .invoke_get_remove_from_playlist_title(),
-            icon: default_empty_icon(),
+            icon: Image::default(),
             has_sub_menu: false,
             sub_items: ModelRc::default(),
         };
@@ -289,59 +293,76 @@ async fn handle_add_to_playlist(state_manager: &StateManager, songs: &[Song], pl
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-async fn handle_goto_album(weak: Weak<MainWindow>, state_manager: &StateManager, album_id: &str) {
+async fn handle_goto_entity_by_id(
+    weak: Weak<MainWindow>,
+    state_manager: &StateManager,
+    target_page: AppPage,
+    id: &str,
+) {
     let db = state_manager.get_database().await;
-    let Ok(res) = db.get_entity_by_options(GetEntityOptions {
-        album: Some(Album {
-            album_id: Some(album_id.to_string()),
-            ..Default::default()
-        }),
-        ..Default::default()
-    }) else {
-        return;
-    };
+    match target_page {
+        AppPage::AlbumContent => {
+            let album = if let Ok(res) = db.get_entity_by_options(GetEntityOptions {
+                album: Some(Album {
+                    album_id: Some(id.to_string()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }) {
+                res.result
+                    .and_then(|r| match r {
+                        entity_result::Result::Albums(list) => list.albums.into_iter().next(),
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| Album {
+                        album_id: Some(id.to_string()),
+                        ..Default::default()
+                    })
+            } else {
+                Album {
+                    album_id: Some(id.to_string()),
+                    ..Default::default()
+                }
+            };
 
-    let Some(entity_result::Result::Albums(list)) = res.result else {
-        return;
-    };
-    let Some(album) = list.albums.into_iter().next() else {
-        return;
-    };
+            let _ = weak.upgrade_in_event_loop(move |window| {
+                let album_model = AlbumModel::from(album);
+                goto_album(&window, album_model);
+            });
+        }
+        AppPage::ArtistContent => {
+            let artist = if let Ok(res) = db.get_entity_by_options(GetEntityOptions {
+                artist: Some(Artist {
+                    artist_id: Some(id.to_string()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }) {
+                res.result
+                    .and_then(|r| match r {
+                        entity_result::Result::Artists(list) => list.artists.into_iter().next(),
+                        _ => None,
+                    })
+                    .unwrap_or_else(|| Artist {
+                        artist_id: Some(id.to_string()),
+                        ..Default::default()
+                    })
+            } else {
+                Artist {
+                    artist_id: Some(id.to_string()),
+                    ..Default::default()
+                }
+            };
 
-    let _ = weak.upgrade_in_event_loop(move |window| {
-        window
-            .global::<AlbumsPageProps>()
-            .set_selected_album(album.into());
-        window.set_active_page(Pages::AlbumContent);
-    });
-}
-
-#[tracing::instrument(level = "debug", skip_all)]
-async fn handle_goto_artist(weak: Weak<MainWindow>, state_manager: &StateManager, artist_id: &str) {
-    let db = state_manager.get_database().await;
-    let Ok(res) = db.get_entity_by_options(GetEntityOptions {
-        artist: Some(Artist {
-            artist_id: Some(artist_id.to_string()),
-            ..Default::default()
-        }),
-        ..Default::default()
-    }) else {
-        return;
-    };
-
-    let Some(entity_result::Result::Artists(list)) = res.result else {
-        return;
-    };
-    let Some(artist) = list.artists.into_iter().next() else {
-        return;
-    };
-
-    let _ = weak.upgrade_in_event_loop(move |window| {
-        window
-            .global::<ArtistsPageProps>()
-            .set_selected_artist(artist.into());
-        window.set_active_page(Pages::ArtistContent);
-    });
+            let _ = weak.upgrade_in_event_loop(move |window| {
+                let artist_model = ArtistModel::from(artist);
+                goto_artist(&window, artist_model);
+            });
+        }
+        other => {
+            tracing::error!("Unsupported goto entity target: {:?}", other);
+        }
+    }
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -376,12 +397,14 @@ pub fn dispatch_song_context_action(
             }
 
             if let Some(album_id) = action.strip_prefix("goto_album:") {
-                handle_goto_album(weak, &state_manager, album_id).await;
+                handle_goto_entity_by_id(weak, &state_manager, AppPage::AlbumContent, album_id)
+                    .await;
                 return;
             }
 
             if let Some(artist_id) = action.strip_prefix("goto_artist:") {
-                handle_goto_artist(weak, &state_manager, artist_id).await;
+                handle_goto_entity_by_id(weak, &state_manager, AppPage::ArtistContent, artist_id)
+                    .await;
             }
         }
         .instrument(tracing::debug_span!(

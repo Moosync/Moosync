@@ -3,9 +3,7 @@ use rstest::{fixture, rstest};
 use tempdir::TempDir;
 use tracing_test::traced_test;
 
-use super::{
-    cache_image, default_empty_icon, default_folder_icon, default_song_cover, get_safe_name,
-};
+use super::{cache_image, get_safe_name};
 
 #[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
@@ -45,34 +43,4 @@ async fn test_cache_image_existing_local(temp_dir_fixture: TempDir) {
     let res = cache_image(local_file.to_str().unwrap(), temp_dir_fixture.path()).await;
 
     assert_some_eq_x!(&res, &local_file);
-}
-
-#[test]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_default_song_cover() {
-    let cover = default_song_cover();
-
-    assert_ne!(cover.size().width, 0);
-    assert_ne!(cover.size().height, 0);
-}
-
-#[test]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_default_empty_icon() {
-    let icon = default_empty_icon();
-
-    assert_ne!(icon.size().width, 0);
-    assert_ne!(icon.size().height, 0);
-}
-
-#[test]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_default_folder_icon() {
-    let icon = default_folder_icon();
-
-    assert_ne!(icon.size().width, 0);
-    assert_ne!(icon.size().height, 0);
 }

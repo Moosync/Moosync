@@ -1,7 +1,7 @@
 use assertables::assert_some_eq_x;
 use extensions_proto::moosync::types::{ExtensionDetail, FetchedExtensionManifest};
 use rstest::rstest;
-use slint::{ComponentHandle, Model};
+use slint::{ComponentHandle, Image, Model};
 use songs_proto::{
     duration_proto::google::protobuf::Duration,
     moosync::types::{
@@ -11,10 +11,9 @@ use songs_proto::{
 use tempdir::TempDir;
 use tracing_test::traced_test;
 
-use super::{default_empty_icon, default_entity_cover};
 use crate::{
-    AlbumModel, ArtistModel, ExtensionItem, GenreModel, MainWindow, PlaylistModel, SearchResult,
-    SongModel, Theme, test_utils::main_window,
+    AlbumModel, ArtistModel, ExtensionItem, GenreModel, MainWindow, PlaylistModel, SongModel,
+    Theme, test_utils::main_window, utils::create_search_result,
 };
 
 #[test]
@@ -33,11 +32,18 @@ fn test_to_song_model() {
             ..Default::default()
         }),
         album: Some(Album {
-            album_id: Some("alb1".to_string()),
             album_name: Some("Album Name".to_string()),
+            album_coverpath_high: Some("https://example.com/cover.jpg".to_string()),
             ..Default::default()
         }),
-        ..Default::default()
+        artists: vec![Artist {
+            artist_name: Some("Artist Name".to_string()),
+            ..Default::default()
+        }],
+        genre: vec![Genre {
+            genre_name: Some("Rock".to_string()),
+            ..Default::default()
+        }],
     };
 
     let model = SongModel::from(song);
@@ -45,49 +51,37 @@ fn test_to_song_model() {
     assert_eq!(model.id, "id123");
     assert_eq!(model.title, "Song Title");
     assert_eq!(model.album_name, "Album Name");
-    assert_eq!(model.coverPathHigh.size().width, 0);
-    assert_eq!(model.coverPathLow.size().width, 0);
+    assert_eq!(model.album_coverpath_high, "https://example.com/cover.jpg");
+    assert_eq!(model.artists.row_count(), 1);
+    assert_eq!(model.genre.row_count(), 1);
+    assert_eq!(model.duration_s, 240);
 }
 
 #[test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_song_model_to_song() {
-    let original = Song {
-        song: Some(InnerSong {
-            id: Some("id123".to_string()),
-            title: Some("Song Title".to_string()),
-            path: Some("/music/test.mp3".to_string()),
-            ..Default::default()
-        }),
-        album: Some(Album {
-            album_id: Some("alb1".to_string()),
-            album_name: Some("Album Name".to_string()),
-            ..Default::default()
-        }),
+    let model = SongModel {
+        id: "id123".into(),
+        title: "Song Title".into(),
+        album_name: "Album Name".into(),
+        album_id: "album_id".into(),
+        song_cover_path_high: "https://example.com/cover.jpg".into(),
+        duration_s: 240,
         ..Default::default()
     };
-    let model = SongModel::from(original);
 
-    let reconstructed = Song::from(model);
+    let song: Song = model.into();
+    let inner = song.song.unwrap();
 
-    assert_some_eq_x!(reconstructed.song.as_ref().unwrap().id.as_deref(), "id123");
+    assert_some_eq_x!(inner.id.as_deref(), "id123");
+    assert_some_eq_x!(inner.title.as_deref(), "Song Title");
+    assert_eq!(song.album.unwrap().album_name.unwrap(), "Album Name");
     assert_some_eq_x!(
-        reconstructed.song.as_ref().unwrap().title.as_deref(),
-        "Song Title"
+        inner.song_cover_path_high.as_deref(),
+        "https://example.com/cover.jpg"
     );
-    assert_some_eq_x!(
-        reconstructed.song.as_ref().unwrap().path.as_deref(),
-        "/music/test.mp3"
-    );
-    assert_some_eq_x!(
-        reconstructed.album.as_ref().unwrap().album_id.as_deref(),
-        "alb1"
-    );
-    assert_some_eq_x!(
-        reconstructed.album.as_ref().unwrap().album_name.as_deref(),
-        "Album Name"
-    );
+    assert_eq!(inner.duration.unwrap().seconds, 240);
 }
 
 #[test]
@@ -119,9 +113,9 @@ fn test_album_model_to_album() {
         title: "Greatest Hits".into(),
         coverPathUrl: "https://example.com/cover.jpg".into(),
         songs_count: 12,
-        coverPath: default_entity_cover(),
+        coverPath: Image::default(),
         extension: "".into(),
-        extension_icon: default_empty_icon(),
+        extension_icon: Image::default(),
     };
 
     let album: Album = model.into();
@@ -163,13 +157,11 @@ fn test_to_album_model_without_cover_has_placeholder() {
         album_coverpath_high: None,
         ..Default::default()
     };
-    let expected = default_entity_cover();
 
     let model: AlbumModel = album.into();
 
     assert_eq!(model.id, "alb123");
-    assert_eq!(model.coverPath.size(), expected.size());
-    assert_ne!(model.coverPath.size().width, 0);
+    assert_eq!(model.coverPath.size().width, 0);
 }
 
 #[test]
@@ -182,13 +174,11 @@ fn test_to_artist_model_without_cover_has_placeholder() {
         artist_coverpath: None,
         ..Default::default()
     };
-    let expected = default_entity_cover();
 
     let model = ArtistModel::from(artist);
 
     assert_eq!(model.id, "art123");
-    assert_eq!(model.coverPath.size(), expected.size());
-    assert_ne!(model.coverPath.size().width, 0);
+    assert_eq!(model.coverPath.size().width, 0);
 }
 
 #[test]
@@ -200,15 +190,13 @@ fn test_to_genre_model() {
         genre_name: Some("Rock".to_string()),
         genre_song_count: 15.0,
     };
-    let expected = default_entity_cover();
 
     let model = GenreModel::from(genre);
 
     assert_eq!(model.id, "gen123");
     assert_eq!(model.title, "Rock");
     assert_eq!(model.songs_count, 15);
-    assert_eq!(model.coverPath.size(), expected.size());
-    assert_ne!(model.coverPath.size().width, 0);
+    assert_eq!(model.coverPath.size().width, 0);
 }
 
 #[test]
@@ -221,15 +209,13 @@ fn test_to_playlist_model() {
         playlist_song_count: 25.0,
         ..Default::default()
     };
-    let expected = default_entity_cover();
 
     let model: PlaylistModel = playlist.into();
 
     assert_eq!(model.id, "pl123");
     assert_eq!(model.title, "Favorites");
     assert_eq!(model.songs_count, 25);
-    assert_eq!(model.coverPath.size(), expected.size());
-    assert_ne!(model.coverPath.size().width, 0);
+    assert_eq!(model.coverPath.size().width, 0);
 }
 
 #[test]
@@ -240,10 +226,10 @@ fn test_from_playlist_model() {
         id: "pl123".into(),
         title: "Favorites".into(),
         songs_count: 25,
-        coverPath: default_entity_cover(),
+        coverPath: Image::default(),
         coverPathUrl: "https://example.com/cover.jpg".into(),
         extension: "local".into(),
-        extension_icon: default_empty_icon(),
+        extension_icon: Image::default(),
     };
 
     let playlist: Playlist = model.into();
@@ -332,7 +318,7 @@ fn test_to_search_result(main_window: MainWindow) {
     };
     let tmp = TempDir::new("moosync_search_utils_test").unwrap();
 
-    let result = SearchResult::from((proto_res, None, default_empty_icon(), &theme, tmp.path()));
+    let result = create_search_result(proto_res, None, &theme, tmp.path());
 
     assert_eq!(result.extension, "");
     assert_eq!(result.songs.row_count(), 1);
@@ -384,4 +370,73 @@ fn test_from_fetched_extension_manifest_default_icon() {
     assert_eq!(item.name, "Remote Extension");
     assert_eq!(item.icon.size().width, 0);
     assert_eq!(item.icon.size().height, 0);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_extension_items_default_extension_icon() {
+    let detail = ExtensionDetail {
+        name: "Test Ext".to_string(),
+        package_name: "test.ext".to_string(),
+        version: "1.0.0".to_string(),
+        extension_icon: None,
+        ..Default::default()
+    };
+
+    let song = Song {
+        song: Some(InnerSong {
+            id: Some("s1".to_string()),
+            title: Some("Song 1".to_string()),
+            extension: Some("test.ext".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let song_model = SongModel::from((song, Some(&detail)));
+    assert_eq!(song_model.extension, "test.ext");
+    assert_eq!(song_model.extension_icon.size().width, 0);
+
+    let album = Album {
+        album_id: Some("a1".to_string()),
+        album_name: Some("Album 1".to_string()),
+        extension: Some("test.ext".to_string()),
+        ..Default::default()
+    };
+    let album_model = AlbumModel::from((album, Some(&detail)));
+    assert_eq!(album_model.extension, "test.ext");
+    assert_eq!(album_model.extension_icon.size().width, 0);
+
+    let artist = Artist {
+        artist_id: Some("ar1".to_string()),
+        artist_name: Some("Artist 1".to_string()),
+        extension: Some("test.ext".to_string()),
+        ..Default::default()
+    };
+    let artist_model = ArtistModel::from((artist, Some(&detail)));
+    assert_eq!(artist_model.extension, "test.ext");
+    assert_eq!(artist_model.extension_icon.size().width, 0);
+
+    let playlist = Playlist {
+        playlist_id: Some("p1".to_string()),
+        playlist_name: "Playlist 1".to_string(),
+        extension: Some("test.ext".to_string()),
+        ..Default::default()
+    };
+    let playlist_model = PlaylistModel::from((playlist, Some(&detail)));
+    assert_eq!(playlist_model.extension, "test.ext");
+    assert_eq!(playlist_model.extension_icon.size().width, 0);
+
+    let local_song = Song {
+        song: Some(InnerSong {
+            id: Some("ls1".to_string()),
+            title: Some("Local Song".to_string()),
+            extension: None,
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let local_song_model = SongModel::from(local_song);
+    assert_eq!(local_song_model.extension, "");
+    assert_eq!(local_song_model.extension_icon.size().width, 0);
 }

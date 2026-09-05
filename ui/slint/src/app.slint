@@ -70,10 +70,16 @@ import {
     PreferenceItem,
     RadioItem,
 } from "settings/preferences.slint";
-import { ExtensionItem } from "./types/extension_view.slint";
+import {
+    ExtensionItem,
+    ExtensionProviderItem,
+} from "./types/extension_view.slint";
 import { ExtensionsPageProps } from "settings/extensions.slint";
+import { Utils, DefaultIconType } from "utils.slint";
 
 export {
+    Utils,
+    DefaultIconType,
     CoverHelper,
     Constants,
     Theme,
@@ -90,6 +96,7 @@ export {
     ThemeConfig,
     RgbaColor,
     ExtensionItem,
+    ExtensionProviderItem,
     ExtensionsPageProps,
     ThemeConstant,
     SettingsPages,

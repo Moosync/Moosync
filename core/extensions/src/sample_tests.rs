@@ -633,7 +633,7 @@ macro_rules! generate_sample_tests {
                     .get_provider_scopes(GetProviderScopesRequest {})
                     .await
                     .unwrap();
-                assert_eq!(res.scopes, vec![13]);
+                assert_eq!(res.scopes, vec![13, 0, 1, 2, 3, 4]);
             }
 
             #[tokio::test]
@@ -817,7 +817,7 @@ macro_rules! generate_sample_tests {
                     })
                     .await
                     .unwrap();
-                assert!(res.songs.is_empty());
+                assert_eq!(res.songs.len(), 2);
 
                 let cmds = captured_commands.lock().unwrap();
                 assert!(matches!(

@@ -1324,6 +1324,10 @@ impl Database {
                 clauses.push("playbackurl LIKE ?".to_string());
                 params.push(v as &dyn rusqlite::ToSql);
             }
+            if let Some(ref v) = song.extension {
+                clauses.push("provider_extension = ?".to_string());
+                params.push(v as &dyn rusqlite::ToSql);
+            }
 
             if !clauses.is_empty() {
                 let joiner = if inclusive { " AND " } else { " OR " };
@@ -1496,6 +1500,7 @@ impl Database {
                 album_song_count: 0f64,
                 year: None,
                 album_coverpath_low: None,
+                extension: None,
             },
             false,
             &mut conn,
@@ -1509,6 +1514,7 @@ impl Database {
                 artist_coverpath: None,
                 artist_song_count: 0f64,
                 sanitized_artist_name: None,
+                extension: None,
             },
             false,
             &mut conn,

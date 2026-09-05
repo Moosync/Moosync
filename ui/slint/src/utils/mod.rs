@@ -1,14 +1,17 @@
 pub mod context_menu;
+pub mod entity_content;
 pub mod filter_sort;
 pub mod image;
 pub mod lazy_model;
 pub mod models;
+pub mod navigation;
 pub mod parsers;
 pub mod queue;
 pub mod selection;
 pub mod validation;
 
 pub use context_menu::*;
+pub use entity_content::*;
 pub use filter_sort::*;
 pub use image::*;
 pub use lazy_model::*;

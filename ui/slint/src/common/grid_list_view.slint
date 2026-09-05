@@ -22,7 +22,8 @@ export component GridListView inherits Rectangle {
 
     pure callback item-title(int) -> string;
     pure callback item-cover(int) -> image;
-    pure callback item-extension-icon(int) -> image;
+    pure callback item_extension(int) -> string;
+    pure callback item_extension_icon(int) -> image;
     callback item-clicked(int);
     pure callback get-context-menu-items(int) -> [ContextMenuItem];
     callback context-menu-action(int, string);
@@ -54,7 +55,8 @@ export component GridListView inherits Rectangle {
                         CardView {
                             title: root.item-title(col.item-idx);
                             cover-img: root.item-cover(col.item-idx);
-                            extension-icon: root.item-extension-icon(col.item-idx);
+                            extension: root.item_extension(col.item-idx);
+                            extension_icon: root.item_extension_icon(col.item-idx);
                         }
 
                         context_menu := ContextMenu {

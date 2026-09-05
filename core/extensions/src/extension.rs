@@ -34,6 +34,7 @@ use crate::{
     ReplyHandler,
     context::{ExtensionContext, ExtismContext},
     errors::ExtensionError,
+    sanitize::Sanitize,
 };
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -63,8 +64,10 @@ impl Extension {
         let extension_entry_path = parent.join(&manifest.extension_entry);
         manifest.extension_entry = extension_entry_path.to_string_lossy().to_string();
 
-        let icon_path = parent.join(&manifest.icon);
-        manifest.icon = icon_path.to_string_lossy().to_string();
+        if !manifest.icon.is_empty() {
+            let icon_path = parent.join(&manifest.icon);
+            manifest.icon = icon_path.to_string_lossy().to_string();
+        }
 
         Ok(manifest)
     }
@@ -174,6 +177,7 @@ macro_rules! delegate_command {
             };
             self.execute_command(cmd)
                 .await?
+                .sanitize(self.get_package_name())
                 .response
                 .and_then(|r| match r {
                     extension_command_response::Response::$variant(resp) => Some(resp),

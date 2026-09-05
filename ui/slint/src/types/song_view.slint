@@ -5,7 +5,7 @@ export struct AlbumModel {
     coverPath: image,
     coverPathUrl: string,
     extension: string,
-    extension-icon: image,
+    extension_icon: image,
 }
 
 export struct PlaylistModel {
@@ -15,7 +15,7 @@ export struct PlaylistModel {
     coverPath: image,
     coverPathUrl: string,
     extension: string,
-    extension-icon: image,
+    extension_icon: image,
 }
 
 export struct ArtistModel {
@@ -27,7 +27,7 @@ export struct ArtistModel {
     coverPathUrl: string,
     sanitized_name: string,
     extension: string,
-    extension-icon: image,
+    extension_icon: image,
 }
 
 export struct GenreModel {
@@ -77,7 +77,7 @@ export struct SongModel {
     coverPathUrlLow: string,
     duration_str: string,
     extension: string,
-    extension-icon: image,
+    extension_icon: image,
 }
 
 export global CoverHelper {
@@ -92,7 +92,7 @@ export struct SearchResult {
     playlists: [PlaylistModel],
     genres: [GenreModel],
     extension: string,
-    extension-icon: image,
+    extension_icon: image,
 }
 
 export struct ProviderRecommendations {

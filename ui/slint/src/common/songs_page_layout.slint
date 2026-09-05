@@ -1,5 +1,6 @@
 import { VerticalBox } from "std-widgets.slint";
 import { SongModel, SongDetailAction } from "../types/song_view.slint";
+import { ExtensionProviderItem } from "../types/extension_view.slint";
 import { SongListView } from "song_list_view.slint";
 import { SongDetails } from "song_details.slint";
 import { Constants, Theme } from "../constants.slint";
@@ -27,6 +28,8 @@ export component SongsPageLayout inherits Rectangle {
 
     in property <[SongModel]> songs: Constants.testSongs;
     in property <SongModel> default-song: Constants.defaultSong;
+    in-out property <[ExtensionProviderItem]> extension_providers: [];
+    callback provider_toggled(string, bool);
 
     TouchArea {
         width: 100%;
@@ -76,6 +79,10 @@ export component SongsPageLayout inherits Rectangle {
             song-list := SongListView {
                 songs: root.songs;
                 active-idx <=> root.active-idx;
+                extension_providers <=> root.extension_providers;
+                provider_toggled(id, enabled) => {
+                    root.provider_toggled(id, enabled);
+                }
             }
         }
     }

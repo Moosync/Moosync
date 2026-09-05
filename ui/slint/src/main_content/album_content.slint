@@ -1,15 +1,22 @@
 import { SongsPageLayout } from "../common/songs_page_layout.slint";
 import { SongModel, AlbumModel } from "../types/song_view.slint";
+import { ExtensionProviderItem } from "../types/extension_view.slint";
 import { Constants } from "../constants.slint";
+import { AppCallbacks } from "../callbacks.slint";
 import { AlbumsPageProps } from "./albums.slint";
 
 export global AlbumContentPageProps {
     in-out property <[SongModel]> songs: Constants.testSongs;
+    in-out property <[ExtensionProviderItem]> extension_providers: [];
 }
 
 export component AlbumContent inherits Rectangle {
     SongsPageLayout {
         songs <=> AlbumContentPageProps.songs;
+        extension_providers <=> AlbumContentPageProps.extension_providers;
+        provider_toggled(id, enabled) => {
+            AppCallbacks.toggle_album_content_extension(id, enabled);
+        }
         default-song: {
             id: "",
             title: AlbumsPageProps.selected-album.title,

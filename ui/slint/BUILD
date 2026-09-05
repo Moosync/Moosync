@@ -45,6 +45,7 @@ SRC_LIST = [
     "src/test_utils.rs",
     "src/utils/context_menu.rs",
     "src/utils/context_menu_test.rs",
+    "src/utils/entity_content.rs",
     "src/utils/filter_sort.rs",
     "src/utils/filter_sort_test.rs",
     "src/utils/image.rs",
@@ -54,6 +55,7 @@ SRC_LIST = [
     "src/utils/mod.rs",
     "src/utils/models.rs",
     "src/utils/models_test.rs",
+    "src/utils/navigation.rs",
     "src/utils/parsers.rs",
     "src/utils/parsers_test.rs",
     "src/utils/queue.rs",
@@ -70,6 +72,9 @@ rust_test(
     name = "slint_app_lib_test",
     args = ["--test-threads=1"],
     crate = ":slint_app_lib",
+    data = [
+        "@moosync_ext//sample_extensions/rs:sample_extension",
+    ],
     env = {
         "RUST_TEST_THREADS": "1",
     },

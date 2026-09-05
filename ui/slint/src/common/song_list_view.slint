@@ -3,6 +3,8 @@ import {
     SongModel,
     SongSortCriterion,
 } from "../types/song_view.slint";
+import { ExtensionProviderItem } from "../types/extension_view.slint";
+import { ExtensionProviderMenu } from "extension_provider_menu.slint";
 import { SongListItem } from "song_list_item.slint";
 import { Theme, Constants } from "../constants.slint";
 import {
@@ -15,6 +17,8 @@ import { IconButton } from "icon_button.slint";
 
 export component SongListView inherits Rectangle {
     in property <[SongModel]> songs: Constants.testSongs;
+    in-out property <[ExtensionProviderItem]> extension_providers: [];
+    callback provider_toggled(string, bool);
     in-out property <int> active-idx: -1;
     in-out property <[int]> selected-indices: [];
     property <int> anchor-idx: 0;
@@ -97,6 +101,25 @@ export component SongListView inherits Rectangle {
                     selected(id) => {
                         root.sort-ascending = AppCallbacks.decide_sort_ascending(root.sort-criterion, root.sort-ascending, id);
                         root.sort-criterion = AppCallbacks.decide_sort_criterion(id);
+                    }
+                }
+            }
+
+            // Extension Providers Icon Button (extreme right)
+            if (root.extension_providers.length > 0): ext_btn := IconButton {
+                icon_source: @image-url("../icons/extensions.svg");
+                active: UtilCallbacks.has_active_extension_providers(root.extension_providers);
+                clicked => {
+                    ext_popup.show();
+                }
+
+                ext_popup := ExtensionProviderMenu {
+                    x: ext_btn.width - self.width;
+                    y: ext_btn.height + 4px;
+                    providers <=> root.extension_providers;
+
+                    toggled(id, enabled) => {
+                        root.provider_toggled(id, enabled);
                     }
                 }
             }

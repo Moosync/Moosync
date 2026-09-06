@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-09-03 01:37\n"
+"PO-Revision-Date: 2026-09-06 00:10\n"
 "Language: fr_FR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -15,23 +15,23 @@ msgstr ""
 "X-Crowdin-File-ID: 73\n"
 "Language-Team: French\n"
 
-#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99
+#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99 ui/slint/src/main_content/search.slint:98
 msgid "Songs"
 msgstr "Toutes les chansons"
 
-#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21 ui/slint/src/app.slint:165
+#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21 ui/slint/src/app.slint:169
 msgid "Playlists"
 msgstr "Listes de lecture"
 
-#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21 ui/slint/src/app.slint:169
+#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21 ui/slint/src/app.slint:173
 msgid "Artists"
 msgstr "Artistes"
 
-#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21 ui/slint/src/app.slint:170
+#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21 ui/slint/src/app.slint:174
 msgid "Albums"
 msgstr "Albums"
 
-#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21 ui/slint/src/app.slint:171
+#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21 ui/slint/src/app.slint:175
 msgid "Genres"
 msgstr "Genres"
 
@@ -115,7 +115,7 @@ msgstr "Aucune extension disponible."
 msgid "Add folder"
 msgstr "Ajouter un dossier"
 
-#: ui/slint/src/settings/paths.slint:24
+#: ui/slint/src/settings/paths.slint:24 ui/slint/src/settings/paths.slint:16
 msgid "Settings > Paths"
 msgstr "Paramètres > Chemins"
 
@@ -183,7 +183,7 @@ msgstr "Abandonner"
 msgid "Save Theme"
 msgstr "Enregistrer le thème"
 
-#: ui/slint/src/settings/system.slint:24
+#: ui/slint/src/settings/system.slint:24 ui/slint/src/settings/system.slint:16
 msgid "Settings > System"
 msgstr "Paramètres > Système"
 
@@ -314,4 +314,12 @@ msgstr "Aller à l'album"
 #: ui/slint/src/types/context_menu.slint:143
 msgid "Go to artists"
 msgstr "Aller aux artistes"
+
+#: ui/slint/src/settings/extensions.slint:209
+msgid "Update all"
+msgstr "Tout mettre à jour"
+
+#: ui/slint/src/settings/text_array_input.slint:82
+msgid "Add"
+msgstr "Ajouter"
 

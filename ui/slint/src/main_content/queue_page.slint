@@ -7,6 +7,7 @@ import { IconButton } from "../common/icon_button.slint";
 import { SongDetails } from "../common/song_details.slint";
 import { ContextMenu } from "../common/context_menu.slint";
 import { Utils, DefaultIconType } from "../utils.slint";
+import { SavePlaylistState } from "../common/save_playlist_modal.slint";
 
 component QueueListItem inherits Rectangle {
     in property <SongModel> song;
@@ -177,8 +178,6 @@ export component QueuePage inherits Rectangle {
     in-out property <int> drag-target-idx: -1;
     in-out property <length> drag-mouse-y: -1px;
 
-    in-out property <bool> show_save_playlist_modal: false;
-
     property <[SongModel]> queue-alias <=> QueuePageProps.queue;
 
     // Resets drag source, target, and mouse Y coordinates when the queue list changes.
@@ -282,7 +281,7 @@ export component QueuePage inherits Rectangle {
                     text: @tr("Save as playlist");
                     clicked => {
                         if (QueuePageProps.queue.length > 0) {
-                            root.show_save_playlist_modal = true;
+                            SavePlaylistState.show_modal = true;
                         }
                     }
                 }

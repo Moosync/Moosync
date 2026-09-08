@@ -4,6 +4,10 @@ import { Modal, ModalSize } from "modal.slint";
 import { TextInputGroup } from "../settings/text_input.slint";
 import { ButtonGroup } from "../settings/button_group.slint";
 
+export global SavePlaylistState {
+    in-out property <bool> show_modal: false;
+}
+
 export component SavePlaylistModal inherits Modal {
     in-out property <string> playlist_name: "";
     in-out property <string> playlist_description: "";
@@ -13,8 +17,8 @@ export component SavePlaylistModal inherits Modal {
     Rectangle {
         background: Theme.primary;
         border-radius: Theme.borderRadiusLg;
-        border-width: 1px;
-        border-color: Theme.accent.transparentize(0.8);
+        border-width: Theme.borderWidth;
+        border-color: Theme.accent.transparentize(80%);
         clip: true;
         preferred-height: 270px;
         max-height: 280px;
@@ -63,11 +67,9 @@ export component SavePlaylistModal inherits Modal {
             HorizontalLayout {
                 alignment: end;
                 ButtonGroup {
-                    title: "";
-                    subtitle: "";
                     buttons: [
-                        { id: "cancel", text: @tr("Cancel"), is-destructive: false },
-                        { id: "confirm", text: @tr("Save"), is-destructive: false }
+                        { id: "cancel", text: @tr("Cancel"), is-destructive: false, is-neutral: true },
+                        { id: "confirm", text: @tr("Save"), is-destructive: false, is-neutral: false }
                     ];
                     clicked(id) => {
                         if (id == "confirm") {

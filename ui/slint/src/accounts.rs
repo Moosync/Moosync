@@ -164,7 +164,12 @@ impl AccountsHandler {
             .global::<AppCallbacks>()
             .on_submit_oauth_code(move |code| {
                 let sm = sm.clone();
-                let code_str = code.to_string();
+                let code_str = if !code.starts_with("moosync://") {
+                    format!("moosync://{}", code)
+                } else {
+                    code.to_string()
+                };
+                tracing::debug!("Using code str: {}", code_str);
                 let main_window_weak = main_window_weak.clone();
                 tokio::spawn(
                     async move {

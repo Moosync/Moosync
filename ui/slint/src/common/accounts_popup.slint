@@ -12,6 +12,7 @@ export component AccountItemButton inherits Button {
     in property <AccountItem> item;
 
     has_custom_layout: true;
+    width: 100%;
     height: Theme.accountItemHeight;
     border-radius: Theme.accountItemBorderRadius;
     accessible-role: button;
@@ -21,10 +22,11 @@ export component AccountItemButton inherits Button {
         root.pressed ? root.item.bg_color.darker(0.15) : (root.has_hover ? root.item.bg_color.darker(0.08) : root.item.bg_color)) : (
         root.pressed ? Theme.accent.darker(0.15) : (root.has_hover ? Theme.accent.darker(0.08) : Theme.accent));
 
-    // Left-aligned extension icon
     HorizontalLayout {
         padding-left: Theme.paddingMd;
-        alignment: start;
+        padding-right: Theme.paddingMd;
+        spacing: Theme.spacingSm;
+        alignment: center;
 
         VerticalLayout {
             alignment: center;
@@ -34,23 +36,25 @@ export component AccountItemButton inherits Button {
                 height: Theme.iconSizeMd;
             }
         }
-    }
-
-    // Centered text label
-    HorizontalLayout {
-        alignment: center;
-        padding-left: Theme.accountItemPaddingX;
-        padding-right: Theme.accountItemPaddingX;
 
         Text {
             accessible-role: none;
             vertical-alignment: center;
             horizontal-alignment: center;
+            horizontal-stretch: 1;
             font-size: Theme.body;
             font-weight: 600;
             color: Theme.textInverse;
             overflow: elide;
-            text: !root.item.logged_in ? @tr("Login") : (root.has_hover ? @tr("Logout") : (root.item.username != "" ? root.item.username : root.item.name));
+            text: !root.item.logged_in ? (
+                root.has_hover ? @tr("Login") : root.item.name) : (
+                root.has_hover ? @tr("Logout") : (root.item.username != "" ? root.item.username : root.item.name));
+        }
+
+        Rectangle {
+            width: Theme.iconSizeMd;
+            height: Theme.iconSizeMd;
+            background: transparent;
         }
     }
 }
@@ -58,39 +62,39 @@ export component AccountItemButton inherits Button {
 export component AccountsPopupContent inherits Rectangle {
     callback close();
 
-    Rectangle {
-        width: Theme.accountsPopupWidth;
-        background: Theme.secondary;
-        border-radius: Theme.borderRadiusLg;
-        border-width: Theme.borderWidth;
-        border-color: Theme.divider;
-        clip: true;
+    width: Theme.accountsPopupWidth;
+    background: Theme.secondary;
+    border-radius: Theme.borderRadiusLg;
+    border-width: Theme.borderWidth;
+    border-color: Theme.divider;
+    clip: true;
 
-        VerticalLayout {
-            padding: Theme.paddingSm;
-            spacing: Theme.spacingSm;
+    TouchArea { }
 
-            if (AccountsProps.accounts.length == 0): Rectangle {
-                height: Theme.accountItemHeight;
-                Text {
-                    text: @tr("No accounts configured");
-                    color: Theme.textSecondary;
-                    font-size: Theme.caption;
-                    horizontal-alignment: center;
-                    vertical-alignment: center;
-                }
+    VerticalLayout {
+        padding: Theme.paddingSm;
+        spacing: Theme.spacingSm;
+
+        if (AccountsProps.accounts.length == 0): Rectangle {
+            height: Theme.accountItemHeight;
+            Text {
+                text: @tr("No accounts configured");
+                color: Theme.textSecondary;
+                font-size: Theme.caption;
+                horizontal-alignment: center;
+                vertical-alignment: center;
             }
+        }
 
-            for item in AccountsProps.accounts: AccountItemButton {
-                item: item;
-                clicked => {
-                    if (item.logged_in) {
-                        AppCallbacks.account_logout(item.package_name, item.id);
-                    } else {
-                        AppCallbacks.account_login(item.package_name, item.id);
-                    }
-                    close();
+        for item in AccountsProps.accounts: AccountItemButton {
+            item: item;
+            clicked => {
+                if (item.logged_in) {
+                    AppCallbacks.account_logout(item.package_name, item.id);
+                } else {
+                    AppCallbacks.account_login(item.package_name, item.id);
                 }
+                close();
             }
         }
     }
@@ -105,12 +109,23 @@ export component AccountsPopup inherits Rectangle {
         popup.close();
     }
 
+    property <length> content_height: AccountsProps.accounts.length == 0 ? (Theme.accountItemHeight + Theme.paddingSm * 2) : (AccountsProps.accounts.length * Theme.accountItemHeight + (AccountsProps.accounts.length - 1) * Theme.spacingSm + Theme.paddingSm * 2);
+
     width: Theme.accountsPopupWidth;
 
     popup := PopupWindow {
+        x: 0px;
+        y: 0px;
+        width: root.width;
+        height: root.content_height;
         close-policy: PopupClosePolicy.close-on-click-outside;
+
         AccountsPopupContent {
-            close => close();
+            width: 100%;
+            height: 100%;
+            close => {
+                root.close();
+            }
         }
     }
 }

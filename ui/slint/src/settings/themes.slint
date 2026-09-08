@@ -10,6 +10,7 @@ import { ScrollView, Slider } from "std-widgets.slint";
 import { NumberInputGroup } from "number_input.slint";
 import { ButtonGroup, ButtonItem } from "button_group.slint";
 import { AppCallbacks } from "../callbacks.slint";
+import { SaveThemeState } from "../common/save_theme_modal.slint";
 
 
 component FullColorPicker inherits VerticalLayout {
@@ -441,7 +442,6 @@ export component ThemesPage inherits VerticalLayout {
     in-out property <string> active-theme-id;
     in-out property <[ThemeConfig]> available-themes;
     in-out property <[ThemeConstant]> theme-constants;
-    in-out property <bool> show-save-modal: false;
 
     // Helper function to map a color object to RgbaColor reactively
     pure function color_to_rgba(c: color) -> RgbaColor {
@@ -628,12 +628,33 @@ export component ThemesPage inherits VerticalLayout {
 
             // SECTION 4: SAVE ACTION
             PreferenceGroup {
-                ButtonGroup {
-                    title: @tr("Export Theme");
-                    subtitle: @tr("Save your current styling configuration as a new reusable preset.");
-                    buttons: [{ id: "save_modal", text: @tr("Save as New Theme"), is-destructive: false }];
-                    clicked(id) => {
-                        root.show-save-modal = true;
+                VerticalLayout {
+                    spacing: Theme.spacingMd;
+                    Text {
+                        text: @tr("Export Theme");
+                        font-size: Theme.modelTitle;
+                        color: Theme.textPrimary;
+                    }
+
+                    Text {
+                        text: @tr("Save your current styling configuration as a new reusable preset.");
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                        wrap: word-wrap;
+                    }
+
+                    ButtonGroup {
+                        buttons: [
+                            {
+                                id: "save_modal",
+                                text: @tr("Save as New Theme"),
+                                is-destructive: false,
+                                is-neutral: false
+                            }
+                        ];
+                        clicked(id) => {
+                            SaveThemeState.show_modal = true;
+                        }
                     }
                 }
             }

@@ -13,11 +13,11 @@ export component GroupActionButton inherits Button {
     in property <bool> is_neutral: false;
 
     has_custom_layout: true;
-    height: 35px;
+    height: Theme.textInputHeight;
     border-radius: Theme.borderRadiusXl;
-    border-width: 1px;
-    border-color: is_destructive ? (root.has_hover ? #ff4444 : Theme.textSecondary) : is_neutral ? Theme.secondary : Theme.accent;
-    background: is_destructive ? (root.pressed ? #ff4444 : transparent) : is_neutral ? Theme.secondary : Theme.accent;
+    border-width: Theme.borderWidth;
+    border-color: is_destructive ? (root.has_hover ? Theme.danger : Theme.textSecondary) : is_neutral ? Theme.secondary : Theme.accent;
+    background: is_destructive ? (root.pressed ? Theme.danger : transparent) : is_neutral ? Theme.secondary : Theme.accent;
     opacity: root.pressed ? 0.7 : (root.has_hover ? 0.85 : 1.0);
 
     animate border-color { duration: 150ms; }
@@ -28,21 +28,22 @@ export component GroupActionButton inherits Button {
         text: root.text;
         horizontal-alignment: center;
         vertical-alignment: center;
-        color: is_destructive ? (root.pressed ? Theme.textInverse : (root.has_hover ? #ff4444 : Theme.textPrimary)) : root.is_neutral ? Theme.textPrimary : Theme.textInverse;
+        color: is_destructive ? (root.pressed ? Theme.textInverse : (root.has_hover ? Theme.danger : Theme.textPrimary)) : root.is_neutral ? Theme.textPrimary : Theme.textInverse;
         animate color { duration: 150ms; }
     }
 }
 
 export component ModalActionButton inherits Button {
     in property <bool> is_confirm: false;
+    in property <bool> is_neutral: false;
 
     has_custom_layout: true;
-    width: 80px;
-    height: 30px;
+    width: Theme.modalActionButtonWidth;
+    height: Theme.modalActionButtonHeight;
     border-radius: Theme.borderRadiusLg;
-    border-width: is_confirm ? 0px : 1px;
+    border-width: is_confirm ? 0px : Theme.borderWidth;
     border-color: root.has_hover ? Theme.accent : Theme.textSecondary;
-    background: is_confirm ? (root.has_hover ? #cc0000 : #ff4444) : transparent;
+    background: is_confirm ? (root.has_hover ? Theme.danger.darker(0.15) : Theme.danger) : (is_neutral ? Theme.secondary : transparent);
 
     Text {
         text: root.text;
@@ -53,8 +54,6 @@ export component ModalActionButton inherits Button {
 }
 
 export component ButtonGroup inherits VerticalLayout {
-    in property <string> title;
-    in property <string> subtitle;
     in property <[ButtonItem]> buttons;
 
     callback clicked(string);
@@ -65,27 +64,12 @@ export component ButtonGroup inherits VerticalLayout {
     spacing: Theme.spacingMd;
     alignment: start;
 
-    VerticalLayout {
-        Text {
-            text: title;
-            font-size: Theme.modelTitle;
-            color: Theme.textPrimary;
-        }
-
-        Text {
-            text: subtitle;
-            font-size: Theme.caption;
-            wrap: word-wrap;
-            color: Theme.textSecondary;
-        }
-    }
-
     HorizontalLayout {
         spacing: Theme.spacingMd;
         alignment: start;
 
         for btn in buttons: GroupActionButton {
-            width: max(100px, self.preferred-width + 30px);
+            width: max(Theme.buttonMinWidth, self.preferred-width + Theme.spacingXxl);
             text: btn.text;
             is_destructive: btn.is-destructive;
             is_neutral: btn.is-neutral;
@@ -109,7 +93,7 @@ export component ButtonGroup inherits VerticalLayout {
         height: 4000px;
 
         Rectangle {
-            background: rgba(0, 0, 0, 0.5);
+            background: Theme.modalBackdrop;
 
             TouchArea {
                 clicked => {
@@ -123,11 +107,11 @@ export component ButtonGroup inherits VerticalLayout {
                     alignment: center;
 
                     Rectangle {
-                        width: 320px;
-                        height: 150px;
+                        width: Theme.confirmModalWidth;
+                        height: Theme.confirmModalHeight;
                         border-radius: Theme.borderRadiusXl;
                         background: Theme.secondary;
-                        border-width: 1px;
+                        border-width: Theme.borderWidth;
                         border-color: Theme.textSecondary;
 
                         TouchArea { }
@@ -140,12 +124,12 @@ export component ButtonGroup inherits VerticalLayout {
                             VerticalLayout {
                                 spacing: Theme.spacingSm;
                                 Text {
-                                    text: "Confirm Action";
+                                    text: @tr("Confirm Action");
                                     font-size: Theme.modelTitle;
                                 }
 
                                 Text {
-                                    text: "Are you sure you want to " + root.pending-action-text + "? This cannot be undone.";
+                                    text: @tr("Are you sure you want to {}? This cannot be undone.", root.pending-action-text);
                                     font-size: Theme.caption;
                                     wrap: word-wrap;
                                 }
@@ -156,14 +140,15 @@ export component ButtonGroup inherits VerticalLayout {
                                 spacing: Theme.spacingMd;
 
                                 ModalActionButton {
-                                    text: "Cancel";
+                                    text: @tr("Cancel");
+                                    is_neutral: true;
                                     clicked => {
                                         modal_popup.close();
                                     }
                                 }
 
                                 ModalActionButton {
-                                    text: "Confirm";
+                                    text: @tr("Confirm");
                                     is_confirm: true;
                                     clicked => {
                                         root.clicked(root.pending-action-id);

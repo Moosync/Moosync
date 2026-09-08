@@ -24,8 +24,8 @@ use tracing_test::traced_test;
 use types::prelude::SongsExt;
 
 use crate::{
-    AlbumContentPageProps, AlbumModel, AlbumsPageProps, AllSongsPageProps, AppCallbacks,
-    ArtistContentPageProps, ArtistModel, ArtistsPageProps, BottomBarCallbacks,
+    AccountsProps, AlbumContentPageProps, AlbumModel, AlbumsPageProps, AllSongsPageProps,
+    AppCallbacks, ArtistContentPageProps, ArtistModel, ArtistsPageProps, BottomBarCallbacks,
     ContextMenuCallbacks, ExtensionProviderItem, MainWindow, OAuthState, Pages,
     PlaylistContentPageProps, PlaylistModel, PlaylistsPageProps, SearchPageProps, SettingsPages,
     SongModel, UtilCallbacks, setup_ui,
@@ -1992,7 +1992,7 @@ async fn do_accounts_extension_integration(
     setup_ui(main_window, state_manager);
 
     let loaded = wait_until(|| {
-        let accounts = main_window.get_accounts();
+        let accounts = main_window.global::<AccountsProps>().get_accounts();
         accounts.row_count() == 1
             && accounts
                 .row_data(0)
@@ -2000,7 +2000,11 @@ async fn do_accounts_extension_integration(
     })
     .await;
     assert!(loaded);
-    let account = main_window.get_accounts().row_data(0).unwrap();
+    let account = main_window
+        .global::<AccountsProps>()
+        .get_accounts()
+        .row_data(0)
+        .unwrap();
     assert_eq!(account.name, "Spotify");
     assert!(!account.logged_in);
 
@@ -2042,6 +2046,7 @@ async fn do_accounts_extension_integration(
         let oauth = main_window.global::<OAuthState>();
         !oauth.get_show_oauth_modal()
             && main_window
+                .global::<AccountsProps>()
                 .get_accounts()
                 .row_data(0)
                 .is_some_and(|a| a.logged_in && a.username == "SampleUser")
@@ -2071,6 +2076,7 @@ async fn do_accounts_extension_integration(
 
     let logged_out = wait_until(|| {
         main_window
+            .global::<AccountsProps>()
             .get_accounts()
             .row_data(0)
             .is_some_and(|a| !a.logged_in)
@@ -2101,7 +2107,14 @@ async fn do_accounts_deep_link_integration(
     load_sample_extension(state_manager).await;
     setup_ui(main_window, state_manager);
 
-    let loaded = wait_until(|| main_window.get_accounts().row_count() == 1).await;
+    let loaded = wait_until(|| {
+        main_window
+            .global::<AccountsProps>()
+            .get_accounts()
+            .row_count()
+            == 1
+    })
+    .await;
     assert!(loaded);
 
     let accounts_handles: Vec<ElementHandle> =
@@ -2138,6 +2151,7 @@ async fn do_accounts_deep_link_integration(
     let closed = wait_until(|| {
         !main_window.global::<OAuthState>().get_show_oauth_modal()
             && main_window
+                .global::<AccountsProps>()
                 .get_accounts()
                 .row_data(0)
                 .is_some_and(|a| a.logged_in && a.username == "SampleUser")

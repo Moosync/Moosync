@@ -20,11 +20,8 @@ export component OAuthModal inherits Modal {
     Rectangle {
         background: Theme.primary;
         border-radius: Theme.borderRadiusLg;
-        border-width: 1px;
-        border-color: Theme.accent.transparentize(0.8);
-        clip: true;
-        preferred-height: 290px;
-        max-height: 310px;
+        border-width: Theme.borderWidth;
+        border-color: Theme.accent.transparentize(80%);
 
         VerticalLayout {
             padding: Theme.paddingMd;
@@ -51,7 +48,7 @@ export component OAuthModal inherits Modal {
                 height: Theme.textInputHeight;
                 border-radius: Theme.borderRadiusXl;
                 border-color: Theme.divider;
-                border-width: 1px;
+                border-width: Theme.borderWidth;
                 background: Theme.secondary;
                 clip: true;
 
@@ -79,24 +76,17 @@ export component OAuthModal inherits Modal {
                 inputType: InputType.text;
             }
 
-            Rectangle {
-                vertical-stretch: 1;
-            }
-
             HorizontalLayout {
                 alignment: end;
                 ButtonGroup {
-                    title: "";
-                    subtitle: "";
                     buttons: [
-                        { id: "cancel", text: @tr("Cancel"), is-destructive: false },
-                        { id: "submit", text: @tr("Submit"), is-destructive: false }
+                        { id: "cancel", text: @tr("Cancel"), is-destructive: false, is-neutral: true },
+                        { id: "submit", text: @tr("Submit"), is-destructive: false, is-neutral: false }
                     ];
                     clicked(id) => {
                         if (id == "submit") {
                             root.submit_code(root.oauth_code);
                         }
-                        root.close();
                     }
                 }
             }

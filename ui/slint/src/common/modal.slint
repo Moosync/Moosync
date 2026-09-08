@@ -9,7 +9,7 @@ export component Modal inherits Rectangle {
     property <length> target-width: modalSize == ModalSize.Xl ? Theme.modalWidthXl : modalSize == ModalSize.Lg ? Theme.modalWidthLg : modalSize == ModalSize.Md ? Theme.modalWidthMd : Theme.modalWidthSm;
     property <length> target-height: modalSize == ModalSize.Xl ? Theme.modalHeightXl : modalSize == ModalSize.Lg ? Theme.modalHeightLg : modalSize == ModalSize.Md ? Theme.modalHeightMd : Theme.modalHeightSm;
 
-    background: rgba(0, 0, 0, 0.5);
+    background: Theme.modalBackdrop;
     width: 100%;
     height: 100%;
 
@@ -20,7 +20,7 @@ export component Modal inherits Rectangle {
     }
 
     HorizontalLayout {
-        padding: 32px;
+        padding: Theme.modalPadding;
 
         Rectangle {
             horizontal-stretch: 1;

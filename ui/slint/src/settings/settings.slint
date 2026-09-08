@@ -17,7 +17,10 @@ import { ThemesPage } from "themes.slint";
 import { TextInputGroup } from "text_input.slint";
 import { ButtonGroup, ButtonItem } from "button_group.slint";
 import { AppCallbacks } from "../callbacks.slint";
-import { SaveThemeModal } from "../common/save_theme_modal.slint";
+import {
+    SaveThemeModal,
+    SaveThemeState,
+} from "../common/save_theme_modal.slint";
 import { IconButton } from "../common/icon_button.slint";
 
 export component Settings inherits Modal {
@@ -31,9 +34,6 @@ export component Settings inherits Modal {
     in-out property <string> active-theme-id;
     in-out property <[ThemeConstant]> theme-constants;
     in-out property <[ExtensionItem]> extensions;
-
-    // Save Theme Modal State
-    in-out property <bool> show-save-theme-modal: false;
 
     property <[SettingsSidebarItem]> items: [
         {
@@ -112,19 +112,18 @@ export component Settings inherits Modal {
                     available-themes <=> root.available-themes;
                     active-theme-id <=> root.active-theme-id;
                     theme-constants <=> root.theme-constants;
-                    show-save-modal <=> root.show-save-theme-modal;
                 }
             }
 
             // Close button at top right
             IconButton {
-                x: parent.width - self.width - 15px;
-                y: 15px;
-                width: 24px;
-                height: 24px;
-                border-radius: 12px;
+                x: parent.width - self.width - Theme.paddingMd;
+                y: Theme.paddingMd;
+                width: Theme.settingsCloseButtonSize;
+                height: Theme.settingsCloseButtonSize;
+                border-radius: Theme.settingsCloseButtonSize / 2;
                 icon_source: @image-url("../icons/cross.svg");
-                icon_size: 10px;
+                icon_size: Theme.extraSmall;
                 clicked => {
                     root.close();
                 }
@@ -132,9 +131,9 @@ export component Settings inherits Modal {
         }
     }
 
-    if root.show-save-theme-modal: SaveThemeModal {
+    if SaveThemeState.show_modal: SaveThemeModal {
         close => {
-            root.show-save-theme-modal = false;
+            SaveThemeState.show_modal = false;
         }
     }
 }

@@ -1,7 +1,8 @@
 use rstest::rstest;
-use slint::Model;
+use slint::{ComponentHandle, Model};
 
 use crate::{
+    AccountsProps,
     accounts::AccountsHandler,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
 };
@@ -19,5 +20,11 @@ async fn test_accounts_handler_setup_and_empty_render(
 
     AccountsHandler::setup(main_window, state_manager);
 
-    assert_eq!(main_window.get_accounts().row_count(), 0);
+    assert_eq!(
+        main_window
+            .global::<AccountsProps>()
+            .get_accounts()
+            .row_count(),
+        0
+    );
 }

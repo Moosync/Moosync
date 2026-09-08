@@ -242,32 +242,31 @@ impl ReplyHandler for StateReplyHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn register_oauth(&self, _package_name: &str, _url: String) -> Result<bool, ExtensionError> {
-        Ok(false)
+    fn register_oauth(&self, package_name: &str, url: String) -> Result<bool, ExtensionError> {
+        self.state_manager
+            .register_oauth_path(package_name.to_string(), url);
+        Ok(true)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn open_external_url(&self, _package_name: &str, url: String) -> Result<bool, ExtensionError> {
-        #[cfg(target_os = "macos")]
-        let status = std::process::Command::new("open").arg(&url).status();
-        #[cfg(target_os = "windows")]
-        let status = std::process::Command::new("cmd")
-            .args(&["/C", "start", &url])
-            .status();
-        #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-        let status = std::process::Command::new("xdg-open").arg(&url).status();
-
-        let success = status.map(|s| s.success()).unwrap_or(false);
+        let success = open::that_detached(&url).is_ok();
         Ok(success)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn update_accounts(
+    fn set_account(
         &self,
-        _package_name: &str,
-        _account: Option<String>,
+        package_name: &str,
+        account: extensions_proto::moosync::types::ExtensionAccountDetail,
     ) -> Result<bool, ExtensionError> {
-        Ok(false)
+        let extensions = self
+            .runtime
+            .block_on(self.state_manager.get_extension_handler());
+        let extension = extensions.get_extension(package_name)?;
+        extension.set_account(account.clone());
+        extensions.trigger_accounts_updated(Some(account.id));
+        Ok(true)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -315,5 +314,24 @@ impl ReplyHandler for StateReplyHandler {
     fn get_app_version(&self, _package_name: &str) -> Result<String, ExtensionError> {
         let version = option_env!("CARGO_PKG_VERSION").unwrap_or("").to_string();
         Ok(version)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn enter_runtime(self: std::sync::Arc<Self>) -> Box<dyn std::any::Any> {
+        struct StateReplyHandlerRuntimeGuard {
+            _handler: std::sync::Arc<StateReplyHandler>,
+            _guard: tokio::runtime::EnterGuard<'static>,
+        }
+        // SAFETY: self.runtime lives as long as the StateReplyHandler inside the Arc,
+        // which is held in StateReplyHandlerRuntimeGuard.
+        let guard = unsafe {
+            std::mem::transmute::<tokio::runtime::EnterGuard<'_>, tokio::runtime::EnterGuard<'static>>(
+                self.runtime.enter(),
+            )
+        };
+        Box::new(StateReplyHandlerRuntimeGuard {
+            _handler: self,
+            _guard: guard,
+        })
     }
 }

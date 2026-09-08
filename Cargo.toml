@@ -18,6 +18,7 @@ blake3 = { version = "1.8.2", default-features = false }
 chacha20poly1305 = "0.10.1"
 criterion = "0.5.1"
 crossbeam-channel = "0.5.15"
+csscolorparser = "0.7.1"
 dunce = "1.0.5"
 env_logger = "0.11.8"
 extism = "1.12.0"
@@ -43,6 +44,7 @@ lru = "0.18.0"
 mockall = "0.13.1"
 notify = "8.2.0"
 num_cpus = "1.17.0"
+open = "5.4.2"
 openssl-sys = "0.9.111"
 platform-dirs = "0.3.0"
 proc-macro2 = "1.0.92"
@@ -84,6 +86,7 @@ vergen = "=9.0.6"
 whoami = { version = "1.6.1", default-features = false }
 windows = { version = "0.44", features = ["Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_LibraryLoader", "Win32_UI_WindowsAndMessaging"] }
 wiremock = "0.6.5"
+sysuri = "0.1"
 zip-extensions = "0.8"
 
 # Git dependencies

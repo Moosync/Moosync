@@ -62,9 +62,10 @@ impl SanitizeCommand for MainCommand {
                     sanitize_song(&prefix, song)?;
                 }
             }
-            Some(main_command::Command::UpdateAccounts(req)) => {
-                // UpdateAccountsRequest has an optional 'account' string field
-                req.account = Some(package_name.to_string());
+            Some(main_command::Command::SetAccount(req)) => {
+                if let Some(ref mut account) = req.account {
+                    account.package_name = package_name.to_string();
+                }
             }
             Some(main_command::Command::RegisterOauth(_)) => {
                 // Todo logic
@@ -86,11 +87,6 @@ impl SanitizeCommand for ExtensionCommandResponse {
         let prefix = format!("{}:", package_name);
 
         match self.response.as_mut() {
-            Some(extension_command_response::Response::GetAccounts(resp)) => {
-                for account in &mut resp.accounts {
-                    account.package_name = package_name.to_string();
-                }
-            }
             Some(extension_command_response::Response::RequestedPlaylists(resp)) => {
                 for playlist in &mut resp.playlists {
                     sanitize_playlist(&prefix, playlist);

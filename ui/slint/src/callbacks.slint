@@ -50,6 +50,9 @@ export global AppCallbacks {
     callback load_more_playlist_content();
     callback load_more_artist_content();
     callback load_more_album_content();
+    callback account_login(string, string);
+    callback account_logout(string, string);
+    callback submit_oauth_code(string);
 
     // Queue & Drag-and-Drop Callbacks
     callback play-queue-index(int);

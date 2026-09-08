@@ -17,7 +17,7 @@
 use std::{path::PathBuf, sync::Arc};
 
 use assertables::{assert_is_empty, assert_len_eq_x};
-use extensions_proto::moosync::types::GetProviderScopesRequest;
+use extensions_proto::moosync::types::{ExtensionAccountDetail, GetProviderScopesRequest};
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use tempdir::TempDir;
 use tracing_test::traced_test;
@@ -168,10 +168,10 @@ impl ReplyHandler for TestReplyHandler {
         Ok(true)
     }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn update_accounts(
+    fn set_account(
         &self,
         _package_name: &str,
-        _account: Option<String>,
+        _account: ExtensionAccountDetail,
     ) -> Result<bool, ExtensionError> {
         Ok(true)
     }

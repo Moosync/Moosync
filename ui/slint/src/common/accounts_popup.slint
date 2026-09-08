@@ -1,0 +1,116 @@
+import { Theme } from "../constants.slint";
+import { AccountItem } from "../types/extension_view.slint";
+import { Utils, DefaultIconType } from "../utils.slint";
+import { Button } from "button.slint";
+import { AppCallbacks } from "../callbacks.slint";
+
+export global AccountsProps {
+    in-out property <[AccountItem]> accounts;
+}
+
+export component AccountItemButton inherits Button {
+    in property <AccountItem> item;
+
+    has_custom_layout: true;
+    height: Theme.accountItemHeight;
+    border-radius: Theme.accountItemBorderRadius;
+    accessible-role: button;
+    accessible-label: !root.item.logged_in ? @tr("Login") : @tr("Logout");
+
+    background: root.item.bg_color.alpha > 0 ? (
+        root.pressed ? root.item.bg_color.darker(0.15) : (root.has_hover ? root.item.bg_color.darker(0.08) : root.item.bg_color)) : (
+        root.pressed ? Theme.accent.darker(0.15) : (root.has_hover ? Theme.accent.darker(0.08) : Theme.accent));
+
+    // Left-aligned extension icon
+    HorizontalLayout {
+        padding-left: Theme.paddingMd;
+        alignment: start;
+
+        VerticalLayout {
+            alignment: center;
+            Image {
+                source: Utils.load_image_or_default(root.item.icon, DefaultIconType.Extension);
+                width: Theme.iconSizeMd;
+                height: Theme.iconSizeMd;
+            }
+        }
+    }
+
+    // Centered text label
+    HorizontalLayout {
+        alignment: center;
+        padding-left: Theme.accountItemPaddingX;
+        padding-right: Theme.accountItemPaddingX;
+
+        Text {
+            accessible-role: none;
+            vertical-alignment: center;
+            horizontal-alignment: center;
+            font-size: Theme.body;
+            font-weight: 600;
+            color: Theme.textInverse;
+            overflow: elide;
+            text: !root.item.logged_in ? @tr("Login") : (root.has_hover ? @tr("Logout") : (root.item.username != "" ? root.item.username : root.item.name));
+        }
+    }
+}
+
+export component AccountsPopupContent inherits Rectangle {
+    callback close();
+
+    Rectangle {
+        width: Theme.accountsPopupWidth;
+        background: Theme.secondary;
+        border-radius: Theme.borderRadiusLg;
+        border-width: Theme.borderWidth;
+        border-color: Theme.divider;
+        clip: true;
+
+        VerticalLayout {
+            padding: Theme.paddingSm;
+            spacing: Theme.spacingSm;
+
+            if (AccountsProps.accounts.length == 0): Rectangle {
+                height: Theme.accountItemHeight;
+                Text {
+                    text: @tr("No accounts configured");
+                    color: Theme.textSecondary;
+                    font-size: Theme.caption;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+
+            for item in AccountsProps.accounts: AccountItemButton {
+                item: item;
+                clicked => {
+                    if (item.logged_in) {
+                        AppCallbacks.account_logout(item.package_name, item.id);
+                    } else {
+                        AppCallbacks.account_login(item.package_name, item.id);
+                    }
+                    close();
+                }
+            }
+        }
+    }
+}
+
+export component AccountsPopup inherits Rectangle {
+    public function show() {
+        popup.show();
+    }
+
+    public function close() {
+        popup.close();
+    }
+
+    width: Theme.accountsPopupWidth;
+
+    popup := PopupWindow {
+        close-policy: PopupClosePolicy.close-on-click-outside;
+        AccountsPopupContent {
+            close => close();
+        }
+    }
+}

@@ -5,17 +5,19 @@ export struct ButtonItem {
     id: string,
     text: string,
     is-destructive: bool,
+    is-neutral: bool,
 }
 
 export component GroupActionButton inherits Button {
     in property <bool> is_destructive: false;
+    in property <bool> is_neutral: false;
 
     has_custom_layout: true;
     height: 35px;
     border-radius: Theme.borderRadiusXl;
     border-width: 1px;
-    border-color: is_destructive ? (root.has_hover ? #ff4444 : Theme.textSecondary) : Theme.accent;
-    background: is_destructive ? (root.pressed ? #ff4444 : transparent) : Theme.accent;
+    border-color: is_destructive ? (root.has_hover ? #ff4444 : Theme.textSecondary) : is_neutral ? Theme.secondary : Theme.accent;
+    background: is_destructive ? (root.pressed ? #ff4444 : transparent) : is_neutral ? Theme.secondary : Theme.accent;
     opacity: root.pressed ? 0.7 : (root.has_hover ? 0.85 : 1.0);
 
     animate border-color { duration: 150ms; }
@@ -26,7 +28,7 @@ export component GroupActionButton inherits Button {
         text: root.text;
         horizontal-alignment: center;
         vertical-alignment: center;
-        color: is_destructive ? (root.pressed ? Theme.textInverse : (root.has_hover ? #ff4444 : Theme.textPrimary)) : Theme.textInverse;
+        color: is_destructive ? (root.pressed ? Theme.textInverse : (root.has_hover ? #ff4444 : Theme.textPrimary)) : root.is_neutral ? Theme.textPrimary : Theme.textInverse;
         animate color { duration: 150ms; }
     }
 }
@@ -86,6 +88,7 @@ export component ButtonGroup inherits VerticalLayout {
             width: max(100px, self.preferred-width + 30px);
             text: btn.text;
             is_destructive: btn.is-destructive;
+            is_neutral: btn.is-neutral;
 
             clicked => {
                 if (btn.is-destructive) {

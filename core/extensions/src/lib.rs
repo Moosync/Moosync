@@ -97,6 +97,8 @@ pub struct ExtensionHandler {
     reply_handler: Option<Arc<dyn ReplyHandler>>,
     pub on_extensions_updated:
         types::subscription::SubscriberList<Box<dyn Fn(()) + Send + Sync + 'static>>,
+    pub on_accounts_updated:
+        types::subscription::SubscriberList<Box<dyn Fn(Option<String>) + Send + Sync + 'static>>,
     remote: RemoteExtensions,
     registries: HashSet<String>,
     remote_manifests: HashSet<FetchedExtensionManifest>,
@@ -106,6 +108,7 @@ pub struct ExtensionHandler {
 types::generate_on_event_impl!(
     ExtensionHandler;
     on_extensions_updated, ();
+    on_accounts_updated, Option<String>;
 );
 
 #[plugin_macro::generate]
@@ -121,6 +124,7 @@ impl ExtensionHandler {
             cache_dir: cache_dir.clone(),
             reply_handler: None,
             on_extensions_updated: types::subscription::SubscriberList::new(),
+            on_accounts_updated: types::subscription::SubscriberList::new(),
             remote: RemoteExtensions::new(tmp_dir),
             registries,
             remote_manifests: HashSet::new(),
@@ -212,6 +216,12 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn trigger_extensions_updated(&self) { self.on_extensions_updated.run_all(|cb| cb(())); }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn trigger_accounts_updated(&self, account_id: Option<String>) {
+        self.on_accounts_updated
+            .run_all(|cb| cb(account_id.clone()));
+    }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_extension_version(&self, ext_path: PathBuf) -> Result<String, ExtensionError> {

@@ -173,3 +173,11 @@ pub fn sanitize_song(song: &mut Song, ext_name: &str) {
         sanitize_artist(artist, ext_name);
     }
 }
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn sanitize_account(
+    account: &mut extensions_proto::moosync::types::ExtensionAccountDetail,
+    ext_name: &str,
+) {
+    account.package_name = ext_name.to_string();
+}

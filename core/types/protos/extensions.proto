@@ -39,8 +39,7 @@ message ExtensionCommand {
     RequestedPlaylistContextMenuRequest requested_playlist_context_menu = 28;
     ContextMenuActionRequest context_menu_action = 29;
     GetProviderScopesRequest get_provider_scopes = 30;
-    GetAccountsRequest get_accounts = 31;
-    PerformAccountLoginRequest perform_account_login = 32;
+    PerformAccountLoginRequest perform_account_login = 31;
   }
 }
 
@@ -75,8 +74,7 @@ message ExtensionCommandResponse {
     RequestedPlaylistContextMenuResponse requested_playlist_context_menu = 27;
     ContextMenuActionResponse context_menu_action = 28;
     GetProviderScopesResponse get_provider_scopes = 29;
-    GetAccountsResponse get_accounts = 30;
-    PerformAccountLoginResponse perform_account_login = 31;
+    PerformAccountLoginResponse perform_account_login = 30;
   }
 }
 
@@ -272,11 +270,6 @@ message GetProviderScopesResponse {
   repeated ExtensionProviderScope scopes = 1;
 }
 
-message GetAccountsRequest {}
-message GetAccountsResponse {
-  repeated ExtensionAccountDetail accounts = 1;
-}
-
 message PerformAccountLoginRequest {
   string account_id = 2;
   bool login_status = 3;
@@ -305,7 +298,7 @@ message MainCommand {
     AddToPlaylistRequest add_to_playlist = 16;
     RegisterOauthRequest register_oauth = 17;
     OpenExternalUrlRequest open_external_url = 18;
-    UpdateAccountsRequest update_accounts = 19;
+    SetAccountRequest set_account = 19;
     RegisterUserPreferenceRequest register_user_preference = 20;
     UnregisterUserPreferenceRequest unregister_user_preference = 21;
     ExtensionsUpdatedRequest extensions_updated = 22;
@@ -333,7 +326,7 @@ message MainCommandResponse {
     AddToPlaylistResponse add_to_playlist = 16;
     RegisterOauthResponse register_oauth = 17;
     OpenExternalUrlResponse open_external_url = 18;
-    UpdateAccountsResponse update_accounts = 19;
+    SetAccountResponse set_account = 19;
     RegisterUserPreferenceResponse register_user_preference = 20;
     UnregisterUserPreferenceResponse unregister_user_preference = 21;
     ExtensionsUpdatedResponse extensions_updated = 22;
@@ -459,10 +452,10 @@ message OpenExternalUrlResponse {
   bool success = 1;
 }
 
-message UpdateAccountsRequest {
-  optional string account = 1;
+message SetAccountRequest {
+  ExtensionAccountDetail account = 1;
 }
-message UpdateAccountsResponse {
+message SetAccountResponse {
   bool success = 1;
 }
 

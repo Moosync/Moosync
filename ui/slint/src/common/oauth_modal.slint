@@ -1,0 +1,105 @@
+import { Theme } from "../constants.slint";
+import { Modal, ModalSize } from "modal.slint";
+import { TextInputGroup } from "../settings/text_input.slint";
+import { ButtonGroup } from "../settings/button_group.slint";
+
+export global OAuthState {
+    in-out property <bool> show_oauth_modal: false;
+    in-out property <string> oauth_url: "";
+    in-out property <string> oauth_code: "";
+}
+
+export component OAuthModal inherits Modal {
+    in property <string> oauth_url: OAuthState.oauth_url;
+    in-out property <string> oauth_code <=> OAuthState.oauth_code;
+
+    callback submit_code(string);
+
+    modalSize: ModalSize.Md;
+
+    Rectangle {
+        background: Theme.primary;
+        border-radius: Theme.borderRadiusLg;
+        border-width: 1px;
+        border-color: Theme.accent.transparentize(0.8);
+        clip: true;
+        preferred-height: 290px;
+        max-height: 310px;
+
+        VerticalLayout {
+            padding: Theme.paddingMd;
+            spacing: Theme.spacingSm;
+
+            VerticalLayout {
+                spacing: Theme.spacingTiny;
+                Text {
+                    text: @tr("Account Login");
+                    font-size: Theme.modelTitle;
+                    font-weight: 700;
+                    color: Theme.textPrimary;
+                }
+
+                Text {
+                    text: @tr("If the browser did not open automatically, copy the URL below:");
+                    font-size: Theme.caption;
+                    color: Theme.textSecondary;
+                    wrap: word-wrap;
+                }
+            }
+
+            Rectangle {
+                height: Theme.textInputHeight;
+                border-radius: Theme.borderRadiusXl;
+                border-color: Theme.divider;
+                border-width: 1px;
+                background: Theme.secondary;
+                clip: true;
+
+                HorizontalLayout {
+                    padding-left: Theme.paddingMd;
+                    padding-right: Theme.paddingMd;
+                    spacing: Theme.spacingSm;
+
+                    Text {
+                        text: root.oauth_url;
+                        color: Theme.accent;
+                        font-size: Theme.body;
+                        vertical-alignment: center;
+                        overflow: elide;
+                        horizontal-stretch: 1;
+                    }
+                }
+            }
+
+            TextInputGroup {
+                title: @tr("Authorization Code / Callback URL");
+                subtitle: "";
+                placeholder: @tr("Paste the code or redirected URL here");
+                value <=> root.oauth_code;
+                inputType: InputType.text;
+            }
+
+            Rectangle {
+                vertical-stretch: 1;
+            }
+
+            HorizontalLayout {
+                alignment: end;
+                ButtonGroup {
+                    title: "";
+                    subtitle: "";
+                    buttons: [
+                        { id: "cancel", text: @tr("Cancel"), is-destructive: false },
+                        { id: "submit", text: @tr("Submit"), is-destructive: false }
+                    ];
+                    clicked(id) => {
+                        if (id == "submit") {
+                            root.submit_code(root.oauth_code);
+                        }
+                        root.close();
+                    }
+                }
+            }
+        }
+    }
+}

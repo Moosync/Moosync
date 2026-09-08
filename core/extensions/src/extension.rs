@@ -7,12 +7,12 @@ use std::{
 
 use extensions_proto::moosync::types::{
     ContextMenuActionRequest, ContextMenuActionResponse, CustomRequest, CustomRequestResponse,
-    ExtensionCommand, ExtensionCommandResponse, ExtensionDetail, ExtensionManifest,
-    GetAccountsRequest, GetAccountsResponse, GetProviderScopesRequest, GetProviderScopesResponse,
-    GetRemoteUrlRequest, GetRemoteUrlResponse, OauthCallbackRequest, OauthCallbackResponse,
-    PerformAccountLoginRequest, PerformAccountLoginResponse, PlaybackDetailsRequestedRequest,
-    PlaybackDetailsRequestedResponse, PlayerStateChangedRequest, PlayerStateChangedResponse,
-    PlaylistAddedRequest, PlaylistAddedResponse, PlaylistRemovedRequest, PlaylistRemovedResponse,
+    ExtensionAccountDetail, ExtensionCommand, ExtensionCommandResponse, ExtensionDetail,
+    ExtensionManifest, GetProviderScopesRequest, GetProviderScopesResponse, GetRemoteUrlRequest,
+    GetRemoteUrlResponse, OauthCallbackRequest, OauthCallbackResponse, PerformAccountLoginRequest,
+    PerformAccountLoginResponse, PlaybackDetailsRequestedRequest, PlaybackDetailsRequestedResponse,
+    PlayerStateChangedRequest, PlayerStateChangedResponse, PlaylistAddedRequest,
+    PlaylistAddedResponse, PlaylistRemovedRequest, PlaylistRemovedResponse,
     PreferenceChangedRequest, PreferenceChangedResponse, RequestedAlbumSongsRequest,
     RequestedAlbumSongsResponse, RequestedArtistSongsRequest, RequestedArtistSongsResponse,
     RequestedLyricsRequest, RequestedLyricsResponse, RequestedPlaylistContextMenuRequest,
@@ -47,6 +47,7 @@ pub struct Extension {
     context: Mutex<Option<Arc<dyn ExtensionContext>>>,
     manifest: ExtensionManifest,
     preferences: RwLock<HashMap<String, PreferenceUiData>>,
+    accounts: RwLock<HashMap<String, ExtensionAccountDetail>>,
     has_started: Arc<std::sync::atomic::AtomicBool>,
     provider_scopes: Mutex<Option<GetProviderScopesResponse>>,
     cache_path: PathBuf,
@@ -88,6 +89,7 @@ impl Extension {
         let ext = Self {
             context: Mutex::new(None),
             preferences: Default::default(),
+            accounts: Default::default(),
             has_started,
             manifest,
             provider_scopes: Mutex::new(None),
@@ -404,17 +406,24 @@ impl Extension {
         ContextMenuActionResponse
     );
     delegate_command!(
-        get_accounts,
-        GetAccounts,
-        GetAccountsRequest,
-        GetAccountsResponse
-    );
-    delegate_command!(
         perform_account_login,
         PerformAccountLogin,
         PerformAccountLoginRequest,
         PerformAccountLoginResponse
     );
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn set_account(&self, mut account: ExtensionAccountDetail) {
+        account.package_name = self.get_package_name().to_string();
+        let mut accounts = self.accounts.write().unwrap();
+        accounts.insert(account.id.clone(), account);
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_accounts(&self) -> Vec<ExtensionAccountDetail> {
+        let accounts = self.accounts.read().unwrap();
+        accounts.values().cloned().collect()
+    }
 }
 
 impl From<&Extension> for ExtensionDetail {

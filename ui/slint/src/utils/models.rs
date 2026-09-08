@@ -1,16 +1,18 @@
 use std::{path::Path, time::Duration};
 
-use extensions_proto::moosync::types::{ExtensionDetail, FetchedExtensionManifest};
-use slint::{Image, Model, ModelRc, SharedString, VecModel};
+use extensions_proto::moosync::types::{
+    ExtensionAccountDetail, ExtensionDetail, FetchedExtensionManifest,
+};
+use slint::{Color, Image, Model, ModelRc, SharedString, VecModel};
 use songs_proto::moosync::types::{
     Album, Artist, Genre, InnerSong, Playlist, SearchResult as ProtoSearchResult, Song,
 };
 use types::prelude::{SongsExt, core_to_proto_duration};
 
-use super::{get_extension_icon, lazy_model::LazySongVecModel, load_icon};
+use super::{get_extension_icon, lazy_model::LazySongVecModel, load_icon, parse_color};
 use crate::{
-    AlbumModel, ArtistModel, ExtensionItem, GenreModel, PlaylistModel, SearchResult, SongModel,
-    Theme,
+    AccountItem, AlbumModel, ArtistModel, ExtensionItem, GenreModel, PlaylistModel, SearchResult,
+    SongModel, Theme,
 };
 
 pub trait IntoVec<T> {
@@ -532,4 +534,31 @@ pub fn create_search_result(
         extension: extension.into(),
         extension_icon,
     }
+}
+
+impl From<(ExtensionAccountDetail, Option<&ExtensionDetail>)> for AccountItem {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from((detail, ext_detail): (ExtensionAccountDetail, Option<&ExtensionDetail>)) -> Self {
+        let icon = if !detail.icon.is_empty() {
+            load_icon(&detail.icon)
+        } else {
+            get_extension_icon(ext_detail)
+        };
+
+        Self {
+            id: detail.id.into(),
+            package_name: detail.package_name.into(),
+            name: detail.name.into(),
+            bg_color: parse_color(&detail.bg_color)
+                .unwrap_or_else(|| Color::from_rgb_u8(30, 215, 96)),
+            icon,
+            logged_in: detail.logged_in,
+            username: detail.username.unwrap_or_default().into(),
+        }
+    }
+}
+
+impl From<ExtensionAccountDetail> for AccountItem {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn from(detail: ExtensionAccountDetail) -> Self { Self::from((detail, None)) }
 }

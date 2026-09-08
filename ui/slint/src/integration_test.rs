@@ -26,9 +26,9 @@ use types::prelude::SongsExt;
 use crate::{
     AlbumContentPageProps, AlbumModel, AlbumsPageProps, AllSongsPageProps, AppCallbacks,
     ArtistContentPageProps, ArtistModel, ArtistsPageProps, BottomBarCallbacks,
-    ContextMenuCallbacks, ExtensionProviderItem, MainWindow, Pages, PlaylistContentPageProps,
-    PlaylistModel, PlaylistsPageProps, SearchPageProps, SettingsPages, SongModel, UtilCallbacks,
-    setup_ui,
+    ContextMenuCallbacks, ExtensionProviderItem, MainWindow, OAuthState, Pages,
+    PlaylistContentPageProps, PlaylistModel, PlaylistsPageProps, SearchPageProps, SettingsPages,
+    SongModel, UtilCallbacks, setup_ui,
     test_utils::{TestSlintSmContext, state_manager_fixture},
     utils::IntoVec,
 };
@@ -1980,6 +1980,172 @@ async fn do_navigation_settings_back_forward_integration(
     assert!(!main_window.get_show_settings());
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_accounts_extension_integration(
+    main_window: &'static MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
+    setup_test_context(state_manager).await;
+    load_sample_extension(state_manager).await;
+    setup_ui(main_window, state_manager);
+
+    let loaded = wait_until(|| {
+        let accounts = main_window.get_accounts();
+        accounts.row_count() == 1
+            && accounts
+                .row_data(0)
+                .is_some_and(|a| a.package_name == "sample.rs" && a.id == "sample_spotify")
+    })
+    .await;
+    assert!(loaded);
+    let account = main_window.get_accounts().row_data(0).unwrap();
+    assert_eq!(account.name, "Spotify");
+    assert!(!account.logged_in);
+
+    let accounts_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Accounts").collect();
+    assert_eq!(accounts_handles.len(), 1);
+    assert!(accounts_handles[0].is_valid());
+    accounts_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let login_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Login").collect();
+    assert_eq!(login_handles.len(), 1);
+    assert!(login_handles[0].is_valid());
+
+    // Close popup to simulate dismissal on login button click
+    accounts_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_account_login("sample.rs".into(), "sample_spotify".into());
+
+    let modal_shown = wait_until(|| {
+        let oauth = main_window.global::<OAuthState>();
+        oauth.get_show_oauth_modal()
+            && oauth.get_oauth_url() == "https://example.com/oauth/authorize"
+    })
+    .await;
+    assert!(modal_shown);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_submit_oauth_code("moosync://sample_callback?code=auth_123".into());
+
+    let logged_in = wait_until(|| {
+        let oauth = main_window.global::<OAuthState>();
+        !oauth.get_show_oauth_modal()
+            && main_window
+                .get_accounts()
+                .row_data(0)
+                .is_some_and(|a| a.logged_in && a.username == "SampleUser")
+    })
+    .await;
+    assert!(logged_in);
+
+    let accounts_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Accounts").collect();
+    accounts_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let logout_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Logout").collect();
+    assert_eq!(logout_handles.len(), 1);
+    assert!(logout_handles[0].is_valid());
+
+    // Close popup to simulate dismissal on logout button click
+    accounts_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_account_logout("sample.rs".into(), "sample_spotify".into());
+
+    let logged_out = wait_until(|| {
+        main_window
+            .get_accounts()
+            .row_data(0)
+            .is_some_and(|a| !a.logged_in)
+    })
+    .await;
+    assert!(logged_out);
+
+    let accounts_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Accounts").collect();
+    accounts_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let login_handles_after_logout: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Login").collect();
+    assert_eq!(login_handles_after_logout.len(), 1);
+    assert!(login_handles_after_logout[0].is_valid());
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_accounts_deep_link_integration(
+    main_window: &'static MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
+    setup_test_context(state_manager).await;
+    load_sample_extension(state_manager).await;
+    setup_ui(main_window, state_manager);
+
+    let loaded = wait_until(|| main_window.get_accounts().row_count() == 1).await;
+    assert!(loaded);
+
+    let accounts_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Accounts").collect();
+    assert_eq!(accounts_handles.len(), 1);
+    accounts_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let login_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Login").collect();
+    assert_eq!(login_handles.len(), 1);
+    assert!(login_handles[0].is_valid());
+
+    // Close popup before login
+    accounts_handles[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_account_login("sample.rs".into(), "sample_spotify".into());
+
+    let modal_shown =
+        wait_until(|| main_window.global::<OAuthState>().get_show_oauth_modal()).await;
+    assert!(modal_shown);
+
+    crate::accounts::AccountsHandler::handle_deep_link(
+        "moosync://sample_callback?code=deep_link_456",
+        state_manager,
+        main_window,
+    );
+
+    let closed = wait_until(|| {
+        !main_window.global::<OAuthState>().get_show_oauth_modal()
+            && main_window
+                .get_accounts()
+                .row_data(0)
+                .is_some_and(|a| a.logged_in && a.username == "SampleUser")
+    })
+    .await;
+    assert!(closed);
+}
+
 integration_test!(
     test_view_all_songs => do_view_all_songs,
     test_view_playlists => do_view_playlists,
@@ -2013,4 +2179,6 @@ integration_test!(
     test_navigation_back_forward_buttons_integration => do_navigation_back_forward_buttons_integration,
     test_navigation_goto_album_back_forward_integration => do_navigation_goto_album_back_forward_integration,
     test_navigation_settings_back_forward_integration => do_navigation_settings_back_forward_integration,
+    test_accounts_extension_integration => do_accounts_extension_integration,
+    test_accounts_deep_link_integration => do_accounts_deep_link_integration,
 );

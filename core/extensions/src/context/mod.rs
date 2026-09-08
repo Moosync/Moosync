@@ -17,13 +17,13 @@
 use std::fmt::Debug;
 
 use extensions_proto::moosync::types::{
-    AddPlaylistResponse, AddSongsResponse, AddToPlaylistResponse, ExtensionCommand,
-    ExtensionCommandResponse, ExtensionsUpdatedResponse, GetAppVersionResponse,
+    AddPlaylistResponse, AddSongsResponse, AddToPlaylistResponse, ExtensionAccountDetail,
+    ExtensionCommand, ExtensionCommandResponse, ExtensionsUpdatedResponse, GetAppVersionResponse,
     GetCurrentSongResponse, GetEntityResponse, GetPlayerStateResponse, GetPreferenceResponse,
     GetQueueResponse, GetSecureResponse, GetSongResponse, GetTimeResponse, GetVolumeResponse,
     OpenExternalUrlResponse, PreferenceData, RegisterOauthResponse, RegisterUserPreferenceResponse,
-    RemoveSongResponse, SetPreferenceResponse, SetSecureResponse, UnregisterUserPreferenceResponse,
-    UpdateAccountsResponse, UpdateSongResponse, main_command, main_command_response,
+    RemoveSongResponse, SetAccountResponse, SetPreferenceResponse, SetSecureResponse,
+    UnregisterUserPreferenceResponse, UpdateSongResponse, main_command, main_command_response,
 };
 pub use extism_context::ExtismContext;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
@@ -89,10 +89,10 @@ pub trait ReplyHandler: Send + Sync + 'static {
     ) -> Result<bool, ExtensionError>;
     fn register_oauth(&self, _package_name: &str, _url: String) -> Result<bool, ExtensionError>;
     fn open_external_url(&self, _package_name: &str, _url: String) -> Result<bool, ExtensionError>;
-    fn update_accounts(
+    fn set_account(
         &self,
         _package_name: &str,
-        _account: Option<String>,
+        _account: ExtensionAccountDetail,
     ) -> Result<bool, ExtensionError>;
     fn register_user_preference(
         &self,
@@ -106,6 +106,7 @@ pub trait ReplyHandler: Send + Sync + 'static {
     ) -> Result<bool, ExtensionError>;
     fn extensions_updated(&self, _package_name: &str) -> Result<(), ExtensionError>;
     fn get_app_version(&self, _package_name: &str) -> Result<String, ExtensionError>;
+    fn enter_runtime(self: std::sync::Arc<Self>) -> Box<dyn std::any::Any> { Box::new(()) }
 }
 
 pub(crate) trait DispatchCommand {
@@ -176,7 +177,7 @@ impl DispatchCommand for main_command::Command {
                     })
             }
             main_command::Command::GetPreference(req) => {
-                let key = req.data.as_ref().map(|d| d.key.clone()).unwrap_or_default();
+                let key = req.data.map(|d| d.key).unwrap_or_default();
                 reply_handler
                     .get_preference(package_name, &key)
                     .map(|value| {
@@ -288,13 +289,18 @@ impl DispatchCommand for main_command::Command {
                         success,
                     })
                 }),
-            main_command::Command::UpdateAccounts(req) => reply_handler
-                .update_accounts(package_name, req.account)
-                .map(|success| {
-                    main_command_response::Response::UpdateAccounts(UpdateAccountsResponse {
-                        success,
+            main_command::Command::SetAccount(req) => {
+                let account = req.account.ok_or_else(|| {
+                    ExtensionError::Sanitize(
+                        "Account detail missing from SetAccountRequest".to_string(),
+                    )
+                })?;
+                reply_handler
+                    .set_account(package_name, account)
+                    .map(|success| {
+                        main_command_response::Response::SetAccount(SetAccountResponse { success })
                     })
-                }),
+            }
             main_command::Command::RegisterUserPreference(req) => reply_handler
                 .register_user_preference(package_name, req.prefs)
                 .map(|success| {

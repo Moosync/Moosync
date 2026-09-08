@@ -2,12 +2,13 @@ import { NavButtons } from "nav_buttons.slint";
 import { SearchBar } from "search_bar.slint";
 import { Theme } from "../constants.slint";
 import { IconButton } from "../common/icon_button.slint";
+import { AccountsPopup } from "../common/accounts_popup.slint";
+import { AccountItem } from "../types/extension_view.slint";
+import { AppCallbacks } from "../callbacks.slint";
 
 export component TopBar inherits Rectangle {
     in property <bool> can_go_back: false;
     in property <bool> can_go_forward: false;
-    callback go_back();
-    callback go_forward();
     callback settings_clicked();
     callback search-submitted(string);
 
@@ -34,10 +35,10 @@ export component TopBar inherits Rectangle {
                     can_go_back: root.can_go_back;
                     can_go_forward: root.can_go_forward;
                     go_back => {
-                        root.go_back();
+                        AppCallbacks.navigate_back();
                     }
                     go_forward => {
-                        root.go_forward();
+                        AppCallbacks.navigate_forward();
                     }
                 }
 
@@ -60,9 +61,23 @@ export component TopBar inherits Rectangle {
                 spacing: Theme.spacingLg;
 
                 // Profile Action
-                IconButton {
-                    icon_source: @image-url("../icons/profile.svg");
-                    icon_size: Theme.iconSizeLg;
+                Rectangle {
+                    width: Theme.topbarIconSize;
+                    height: Theme.topbarIconSize;
+
+                    IconButton {
+                        accessible-label: @tr("Accounts");
+                        icon_source: @image-url("../icons/profile.svg");
+                        icon_size: Theme.iconSizeLg;
+                        clicked => {
+                            accounts_popup.show();
+                        }
+                    }
+
+                    accounts_popup := AccountsPopup {
+                        x: -180px;
+                        y: parent.height + 6px;
+                    }
                 }
 
                 // Settings Action

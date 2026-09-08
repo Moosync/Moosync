@@ -15,6 +15,9 @@ use types::prelude::format_duration;
 
 use crate::pages::{NavigationManager, PageLifecycleManager};
 
+pub mod accounts;
+#[cfg(test)]
+mod accounts_test;
 pub mod error;
 mod main_content;
 mod pages;
@@ -458,6 +461,8 @@ fn setup_ui(main_window: &'static MainWindow, state_manager: &'static StateManag
     setup_song_cbs(main_window, state_manager);
     setup_player_events(main_window, state_manager);
     settings::setup_settings(main_window, state_manager);
+    accounts::AccountsHandler::setup(main_window, state_manager);
+    accounts::AccountsHandler::setup_uri_scheme(main_window, state_manager);
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

@@ -64,6 +64,7 @@ import { Settings } from "settings/settings.slint";
 import { SavePlaylistModal } from "common/save_playlist_modal.slint";
 import { PageWrapper } from "common/page_wrapper.slint";
 import { ContextMenuItem, ContextMenuItems } from "types/context_menu.slint";
+import { AccountsProps } from "common/accounts_popup.slint";
 import {
     Preferences,
     AppPreferences,
@@ -73,16 +74,27 @@ import {
 import {
     ExtensionItem,
     ExtensionProviderItem,
+    AccountItem,
 } from "./types/extension_view.slint";
 import { ExtensionsPageProps } from "settings/extensions.slint";
 import { Utils, DefaultIconType } from "utils.slint";
+import { OAuthModal, OAuthState } from "common/oauth_modal.slint";
 
 export {
+    OAuthState,
     Utils,
     DefaultIconType,
     CoverHelper,
     Constants,
     Theme,
+    SongModel,
+    AlbumModel,
+    PlaylistModel,
+    ArtistModel,
+    GenreModel,
+    SearchResult,
+    ProviderRecommendations,
+    Pages,
     AppCallbacks,
     BottomBarCallbacks,
     ContextMenuCallbacks,
@@ -97,6 +109,7 @@ export {
     RgbaColor,
     ExtensionItem,
     ExtensionProviderItem,
+    AccountItem,
     ExtensionsPageProps,
     ThemeConstant,
     SettingsPages,
@@ -117,6 +130,7 @@ export {
     MenuItem,
     ContextMenuItem,
     ContextMenuItems,
+    AccountsProps,
 }
 export component MainWindow inherits Window {
     title: "moosync";
@@ -215,12 +229,6 @@ export component MainWindow inherits Window {
                     TopBar {
                         can_go_back: root.can_go_back;
                         can_go_forward: root.can_go_forward;
-                        go_back => {
-                            AppCallbacks.navigate_back();
-                        }
-                        go_forward => {
-                            AppCallbacks.navigate_forward();
-                        }
                         settings_clicked => {
                             root.show_settings = true;
                         }
@@ -365,6 +373,17 @@ export component MainWindow inherits Window {
     if show_save_playlist_modal: SavePlaylistModal {
         close => {
             show_save_playlist_modal = false;
+        }
+    }
+
+    if OAuthState.show_oauth_modal: OAuthModal {
+        oauth_url: OAuthState.oauth_url;
+        oauth_code <=> OAuthState.oauth_code;
+        submit_code(code) => {
+            AppCallbacks.submit_oauth_code(code);
+        }
+        close => {
+            OAuthState.show_oauth_modal = false;
         }
     }
 }

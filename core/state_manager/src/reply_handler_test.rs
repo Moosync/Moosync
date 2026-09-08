@@ -28,6 +28,7 @@ use crate::{StateManager, reply_handler::StateReplyHandler};
 
 struct TestReplyContext {
     pub _temp_dir: TempDir,
+    pub sm: StateManager,
     pub handler: StateReplyHandler,
 }
 
@@ -46,9 +47,10 @@ fn reply_context() -> TestReplyContext {
     };
 
     let sm = StateManager::new_with_context(context).expect("failed to create state manager");
-    let handler = StateReplyHandler::new(sm);
+    let handler = StateReplyHandler::new(sm.clone());
     TestReplyContext {
         _temp_dir: temp_dir,
+        sm,
         handler,
     }
 }
@@ -370,4 +372,54 @@ async fn test_reply_handler_get_entity(reply_context: TestReplyContext) {
             .unwrap();
 
     assert_ok!(result);
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_register_oauth(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, sm, .. } = reply_context;
+
+    let res = tokio::task::spawn_blocking(move || {
+        handler.register_oauth("test_pkg", "moosync://callback".to_string())
+    })
+    .await
+    .unwrap();
+
+    assert_ok!(res);
+    assert_eq!(
+        sm.find_package_for_oauth_host("callback"),
+        Some("test_pkg".to_string())
+    );
+}
+
+#[rstest]
+#[tokio::test(flavor = "multi_thread")]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_reply_handler_set_account(reply_context: TestReplyContext) {
+    let TestReplyContext { handler, sm, .. } = reply_context;
+    let received = std::sync::Arc::new(std::sync::Mutex::new(None));
+    let received_clone = received.clone();
+
+    let ext_handler = sm.get_extension_handler().await;
+    let _sub = ext_handler.on_accounts_updated.insert(Box::new(move |acc| {
+        *received_clone.lock().unwrap() = acc;
+    }));
+
+    let account = extensions_proto::moosync::types::ExtensionAccountDetail {
+        id: "my_account".to_string(),
+        package_name: "test_pkg".to_string(),
+        name: "My Account".to_string(),
+        logged_in: true,
+        ..Default::default()
+    };
+
+    let res = tokio::task::spawn_blocking(move || handler.set_account("test_pkg", account))
+        .await
+        .unwrap();
+
+    // Extension test_pkg is not installed so get_extension fails
+    assert!(res.is_err());
 }

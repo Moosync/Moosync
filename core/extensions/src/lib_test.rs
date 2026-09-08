@@ -17,6 +17,7 @@
 use std::{fs, sync::Arc};
 
 use assertables::assert_is_empty;
+use extensions_proto::moosync::types::ExtensionAccountDetail;
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Song};
 use tempdir::TempDir;
@@ -104,7 +105,7 @@ impl ReplyHandler for DummyReply {
     #[tracing::instrument(level = "debug", skip_all)]
     fn open_external_url(&self, _: &str, _: String) -> Result<bool, ExtensionError> { Ok(true) }
     #[tracing::instrument(level = "debug", skip_all)]
-    fn update_accounts(&self, _: &str, _: Option<String>) -> Result<bool, ExtensionError> {
+    fn set_account(&self, _: &str, _: ExtensionAccountDetail) -> Result<bool, ExtensionError> {
         Ok(true)
     }
     #[tracing::instrument(level = "debug", skip_all)]

@@ -2,6 +2,8 @@ load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_shared_library", "rust_test")
 
 SRC_LIST = [
+    "src/accounts.rs",
+    "src/accounts_test.rs",
     "src/error.rs",
     "src/integration_test.rs",
     "src/lib.rs",
@@ -149,8 +151,10 @@ rust_library(
         "//core/types/protos:extensions_rs",
         "//core/types/protos:songs_rs",
         "//core/types/protos:themes_rs",
+        "@crates//:csscolorparser",
         "@crates//:futures",
         "@crates//:image",
+        "@crates//:open",
         "@crates//:platform-dirs",
         "@crates//:regex",
         "@crates//:reqwest",
@@ -165,6 +169,7 @@ rust_library(
         "@platforms//os:android": [],
         "//conditions:default": [
             "@crates//:rfd",
+            "@crates//:sysuri",
         ],
     }),
 )

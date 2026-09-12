@@ -522,7 +522,6 @@ message ExtensionDetail {
   bool has_started = 6;
   repeated PreferenceUiData preferences = 8;
   optional string extension_icon = 10;
-  bool active = 11;
   optional string registry = 12;
 }
 

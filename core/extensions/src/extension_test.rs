@@ -164,9 +164,10 @@ fn ext_context() -> TestExtContext {
     }"#;
     let manifest_path = temp_dir.path().join("package.json");
     fs::write(&manifest_path, manifest_json).unwrap();
+    let empty_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
+    fs::write(temp_dir.path().join("main.wasm"), empty_wasm).unwrap();
     let lock_data = serde_json::json!({
-        "registry": "local",
-        "disabled": true
+        "registry": "local"
     });
     fs::write(
         temp_dir.path().join("extension.lock"),
@@ -185,7 +186,7 @@ fn ext_context() -> TestExtContext {
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_extension_preferences_and_active_state(ext_context: TestExtContext) {
+fn test_extension_preferences(ext_context: TestExtContext) {
     let TestExtContext {
         manifest_path,
         cache_dir,
@@ -199,7 +200,6 @@ fn test_extension_preferences_and_active_state(ext_context: TestExtContext) {
     let ext = ext.unwrap();
 
     assert_eq!(ext.get_package_name(), "unit.pkg");
-    assert!(!ext.is_active());
     assert_eq!(ext.get_lock_data().registry, "local");
 
     ext.register_ui_preferences(vec![PreferenceUiData {
@@ -230,9 +230,10 @@ fn test_extension_load_manifest_without_optional_fields() {
     }"#;
     let manifest_path = temp_dir.path().join("package.json");
     fs::write(&manifest_path, manifest_json).unwrap();
+    let empty_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
+    fs::write(temp_dir.path().join("main.wasm"), empty_wasm).unwrap();
     let lock_data = serde_json::json!({
-        "registry": "dev",
-        "disabled": true
+        "registry": "dev"
     });
     fs::write(
         temp_dir.path().join("extension.lock"),

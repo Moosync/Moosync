@@ -178,9 +178,10 @@ fn test_extension_handler_check_for_updates(mut handler_context: TestHandlerCont
         "moosyncExtension": true
     }"#;
     fs::write(ext_dir.join("package.json"), pkg_json).unwrap();
+    let empty_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
+    fs::write(ext_dir.join("main.wasm"), empty_wasm.clone()).unwrap();
     let lock_data = serde_json::json!({
-        "registry": "local",
-        "disabled": true
+        "registry": "local"
     });
     fs::write(
         ext_dir.join("extension.lock"),
@@ -229,9 +230,10 @@ fn test_extension_handler_check_for_updates_older_remote(mut handler_context: Te
         "moosyncExtension": true
     }"#;
     fs::write(ext_dir.join("package.json"), pkg_json).unwrap();
+    let empty_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
+    fs::write(ext_dir.join("main.wasm"), empty_wasm.clone()).unwrap();
     let lock_data = serde_json::json!({
-        "registry": "local",
-        "disabled": true
+        "registry": "local"
     });
     fs::write(
         ext_dir.join("extension.lock"),
@@ -293,9 +295,10 @@ async fn test_extension_handler_update_all_extensions_failed(
         "moosyncExtension": true
     }"#;
     fs::write(ext_dir.join("package.json"), pkg_json).unwrap();
+    let empty_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
+    fs::write(ext_dir.join("main.wasm"), empty_wasm).unwrap();
     let lock_data = serde_json::json!({
-        "registry": "local",
-        "disabled": true
+        "registry": "local"
     });
     fs::write(
         ext_dir.join("extension.lock"),

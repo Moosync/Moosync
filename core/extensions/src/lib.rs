@@ -321,10 +321,9 @@ impl ExtensionHandler {
             parent_dir.join(package_manifest.name.clone()),
         )?;
 
-        // Write extension.lock with registry metadata and active status
+        // Write extension.lock with registry metadata
         let lock_data = ExtensionLockData {
             registry: registry_name,
-            disabled: false,
         };
         let _ = fs::write(
             ext_extract_path.join("extension.lock"),
@@ -338,7 +337,7 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn remove_extension(&mut self, package_name: String) -> Result<(), ExtensionError> {
+    pub fn remove_extension(&self, package_name: String) -> Result<(), ExtensionError> {
         let ext_path = self.extensions_dir.join(package_name.clone());
         if ext_path.exists() {
             fs::remove_dir_all(ext_path)?;
@@ -354,11 +353,7 @@ impl ExtensionHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn toggle_extension(&self, info: ExtensionInfo) -> Result<(), ExtensionError> {
         if let ExtensionInfo::Local(detail) = info {
-            let extension = self.get_extension(&detail.package_name)?;
-            let new_active = !extension.is_active();
-            extension.set_active(new_active)?;
-            self.trigger_extensions_updated();
-            Ok(())
+            self.remove_extension(detail.package_name)
         } else {
             Err(ExtensionError::NoExtensionFound)
         }
@@ -409,7 +404,6 @@ impl ExtensionHandler {
     pub fn get_active_extensions(&self) -> Vec<std::sync::Arc<Extension>> {
         self.get_installed_extensions()
             .into_iter()
-            .filter(|d| d.active)
             .filter_map(|d| self.get_extension(&d.package_name).ok())
             .collect()
     }

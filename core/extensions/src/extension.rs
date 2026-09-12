@@ -40,7 +40,6 @@ use crate::{
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
 pub struct ExtensionLockData {
     pub registry: String,
-    pub disabled: bool,
 }
 
 pub struct Extension {
@@ -98,9 +97,7 @@ impl Extension {
             reply_handler,
         };
 
-        if ext.is_active() {
-            ext.spawn_extension();
-        }
+        ext.spawn_extension();
 
         Ok(ext)
     }
@@ -117,7 +114,7 @@ impl Extension {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn kill_extension(&self) {
+    pub(crate) fn kill_extension(&self) {
         if let Some(context) = self.context.lock().unwrap().take()
             && let Err(e) = context.kill()
         {
@@ -139,31 +136,7 @@ impl Extension {
 
         ExtensionLockData {
             registry: "local".to_string(),
-            disabled: false,
         }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn save_lock_data(&self, data: &ExtensionLockData) -> Result<(), ExtensionError> {
-        let lock_path = self.extension_path.join("extension.lock");
-        let bytes = serde_json::to_vec_pretty(data)?;
-        fs::write(lock_path, bytes)?;
-        Ok(())
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn is_active(&self) -> bool { !self.get_lock_data().disabled }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_active(&self, active: bool) -> Result<(), ExtensionError> {
-        self.kill_extension();
-        if active {
-            self.spawn_extension();
-        }
-        let mut lock_data = self.get_lock_data();
-        lock_data.disabled = !active;
-        self.save_lock_data(&lock_data)?;
-        Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -445,7 +418,6 @@ impl From<&Extension> for ExtensionDetail {
                 .into_values()
                 .collect(),
             extension_icon: Some(val.manifest.icon.clone()),
-            active: !lock_data.disabled,
             registry: Some(lock_data.registry),
         }
     }

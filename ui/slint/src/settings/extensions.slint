@@ -134,7 +134,7 @@ component ExtensionsManifest inherits VerticalLayout {
                                     width: 100%;
                                     height: 100%;
                                     border-radius: self.height / 2;
-                                    background: item.active ? (toggle_touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent) : (toggle_touch.has-hover ? Theme.textSecondary.brighter(0.1) : Theme.textSecondary);
+                                    background: item.is_installed ? (toggle_touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent) : (toggle_touch.has-hover ? Theme.textSecondary.brighter(0.1) : Theme.textSecondary);
 
                                     animate background { duration: 150ms; }
 
@@ -145,7 +145,7 @@ component ExtensionsManifest inherits VerticalLayout {
                                         background: Theme.textPrimary;
                                         y: (parent.height - self.height) / 2;
 
-                                        x: item.active ? (Theme.toggleWidth - self.width - Theme.spacingTiny) : Theme.spacingTiny;
+                                        x: item.is_installed ? (Theme.toggleWidth - self.width - Theme.spacingTiny) : Theme.spacingTiny;
 
                                         animate x {
                                             duration: 150ms;

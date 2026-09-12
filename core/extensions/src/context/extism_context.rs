@@ -442,32 +442,11 @@ impl ExtismContext {
         let plugin_clone = plugin.clone();
         let package_name_clone = package_name.clone();
         let reply_handler_clone = reply_handler.clone();
-        let extension_entry = manifest.extension_entry.clone();
         thread::spawn(move || {
             {
                 let mut plugin = plugin_clone.lock().unwrap();
-                println!("Calling entry");
                 if let Err(e) = plugin.call::<(), ()>("entry", ()) {
-                    println!("Failed to called extension entry: {:?}", e);
-                    if let Some(parent) = PathBuf::from(&extension_entry).parent() {
-                        let lock_path = parent.join("extension.lock");
-                        let mut lock_data = if let Ok(bytes) = fs::read(&lock_path)
-                            && let Ok(data) = serde_json::from_slice::<
-                                crate::extension::ExtensionLockData,
-                            >(&bytes)
-                        {
-                            data
-                        } else {
-                            crate::extension::ExtensionLockData {
-                                registry: "local".to_string(),
-                                disabled: false,
-                            }
-                        };
-                        lock_data.disabled = true;
-                        if let Ok(bytes) = serde_json::to_vec_pretty(&lock_data) {
-                            let _ = fs::write(lock_path, bytes);
-                        }
-                    }
+                    tracing::error!("Failed to call extension entry: {:?}", e);
                 }
             }
             has_started.store(true, std::sync::atomic::Ordering::SeqCst);

@@ -57,12 +57,12 @@ impl<'a> ExtensionsPageHandler<'a> {
 
         items.sort_by(|a, b| {
             let rank = |item: &ExtensionItem| {
-                if item.is_installed && item.active && !item.has_started {
+                if item.is_installed && !item.has_started {
                     0 // Installing / spawning
-                } else if item.active {
+                } else if item.is_installed {
                     1 // Active and started
                 } else {
-                    2 // Inactive / disabled / remote
+                    2 // Remote / uninstalled
                 }
             };
             rank(a).cmp(&rank(b)).then_with(|| a.name.cmp(&b.name))
@@ -163,9 +163,12 @@ impl<'a> ExtensionsPageHandler<'a> {
         };
 
         match info {
-            ExtensionInfo::Local(_) => {
-                if let Err(e) = handler.toggle_extension(info) {
-                    tracing::error!("handle_toggle_extension: Failed to toggle: {:?}", e);
+            ExtensionInfo::Local(detail) => {
+                if let Err(e) = handler.remove_extension(detail.package_name) {
+                    tracing::error!(
+                        "handle_toggle_extension: Failed to remove extension: {:?}",
+                        e
+                    );
                 }
             }
             ExtensionInfo::Remote(_) => {

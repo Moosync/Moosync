@@ -336,7 +336,6 @@ fn test_from_extension_detail_default_icon() {
         name: "Test Extension".to_string(),
         package_name: "test.ext".to_string(),
         version: "1.0.0".to_string(),
-        active: true,
         has_started: true,
         desc: Some("A test extension".to_string()),
         extension_icon: None,

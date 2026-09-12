@@ -126,7 +126,9 @@ impl ExtensionHandlerInner {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn remove_extension(&self, package_name: &str) {
         let mut extensions_map = self.extensions_map.lock().unwrap();
-        extensions_map.remove(package_name);
+        if let Some(ext) = extensions_map.remove(package_name) {
+            ext.kill_extension();
+        }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

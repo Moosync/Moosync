@@ -332,56 +332,9 @@ fn test_register_unregister_ui_preferences() {
 #[test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_extension_failed_to_start_disables_extension() {
+fn test_extension_removal() {
     init_env();
-    let tmp_dir = TempDir::new("moosync_test_fail_ext").unwrap();
-    let extensions_path = tmp_dir.path().join("extensions");
-    std::fs::create_dir_all(&extensions_path).unwrap();
-
-    let ext_path = extensions_path.join("fail.pkg");
-    std::fs::create_dir_all(&ext_path).unwrap();
-
-    let manifest = r#"{
-        "name": "fail.pkg",
-        "displayName": "Fail Extension",
-        "version": "1.0.0",
-        "extensionEntry": "main.wasm",
-        "moosyncExtension": true,
-        "icon": "icon.png"
-    }"#;
-    std::fs::write(ext_path.join("package.json"), manifest).unwrap();
-    let empty_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
-    std::fs::write(ext_path.join("main.wasm"), empty_wasm).unwrap();
-
-    let reply_handler = Arc::new(TestReplyHandler);
-    let handler = ExtensionHandlerInner::new(extensions_path.clone(), tmp_dir.path().join("cache"));
-    handler.spawn_extensions(reply_handler);
-
-    let lock_file = ext_path.join("extension.lock");
-    for _ in 0..50 {
-        if lock_file.exists()
-            && let Ok(bytes) = std::fs::read(&lock_file)
-            && let Ok(data) = serde_json::from_slice::<ExtensionLockData>(&bytes)
-            && data.disabled
-        {
-            break;
-        }
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-
-    assert!(lock_file.exists());
-    let installed = handler.get_installed_extensions();
-    assert_len_eq_x!(&installed, 1);
-    assert_eq!(installed[0].package_name, "fail.pkg");
-    assert!(!installed[0].active);
-}
-
-#[test]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_extension_activation_deactivation() {
-    init_env();
-    let tmp_dir = TempDir::new("moosync_test_act_ext").unwrap();
+    let tmp_dir = TempDir::new("moosync_test_rem_ext").unwrap();
     let extensions_path = tmp_dir.path().join("extensions");
     std::fs::create_dir_all(&extensions_path).unwrap();
 
@@ -403,7 +356,6 @@ fn test_extension_activation_deactivation() {
     let lock_file = ext_path.join("extension.lock");
     let lock_data = ExtensionLockData {
         registry: "local".to_string(),
-        disabled: true,
     };
     std::fs::write(&lock_file, serde_json::to_vec_pretty(&lock_data).unwrap()).unwrap();
 
@@ -411,48 +363,13 @@ fn test_extension_activation_deactivation() {
     let handler = ExtensionHandlerInner::new(extensions_path.clone(), tmp_dir.path().join("cache"));
     handler.spawn_extensions(reply_handler.clone());
 
-    {
-        let extensions_map = handler.extensions_map.lock().unwrap();
-        let ext = extensions_map.get("test_pkg").unwrap();
-        assert!(!ext.is_active());
-        assert!(!ext.get_extension_detail().has_started);
-    }
-    assert!(lock_file.exists());
+    let installed = handler.get_installed_extensions();
+    assert_len_eq_x!(&installed, 1);
+    assert_eq!(installed[0].package_name, "test_pkg");
 
-    {
-        let extensions_map = handler.extensions_map.lock().unwrap();
-        let ext = extensions_map.get("test_pkg").unwrap();
-        ext.set_active(true).unwrap();
-    }
+    handler.remove_extension("test_pkg");
 
-    for _ in 0..50 {
-        let extensions_map = handler.extensions_map.lock().unwrap();
-        if let Some(ext) = extensions_map.get("test_pkg")
-            && ext.get_extension_detail().has_started
-        {
-            break;
-        }
-        drop(extensions_map);
-        std::thread::sleep(std::time::Duration::from_millis(100));
-    }
-
-    {
-        let extensions_map = handler.extensions_map.lock().unwrap();
-        let ext = extensions_map.get("test_pkg").unwrap();
-        assert!(ext.is_active());
-        assert!(ext.get_extension_detail().has_started);
-    }
-
-    {
-        let extensions_map = handler.extensions_map.lock().unwrap();
-        let ext = extensions_map.get("test_pkg").unwrap();
-        ext.set_active(false).unwrap();
-    }
-
-    {
-        let extensions_map = handler.extensions_map.lock().unwrap();
-        let ext = extensions_map.get("test_pkg").unwrap();
-        assert!(!ext.is_active());
-        assert!(!ext.get_extension_detail().has_started);
-    }
+    let installed_after = handler.get_installed_extensions();
+    assert_is_empty!(&installed_after);
+    assert!(handler.get_extension("test_pkg").is_err());
 }

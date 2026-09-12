@@ -1,6 +1,7 @@
 import { AlbumModel } from "../types/song_view.slint";
-import { GridListView } from "../common/grid_list_view.slint";
-import { Constants, Theme, Pages } from "../constants.slint";
+import { GridPageLayout } from "../common/grid_page_layout.slint";
+import { Constants, Pages } from "../constants.slint";
+import { AppProps } from "../props.slint";
 
 export global AlbumsPageProps {
     in-out property <[AlbumModel]> albums: Constants.testAlbums;
@@ -8,41 +9,26 @@ export global AlbumsPageProps {
 }
 
 export component AlbumsPage inherits Rectangle {
-    in-out property <Pages> active-page;
-
     background: transparent;
 
-    VerticalLayout {
-        spacing: Theme.spacingXxl;
-        alignment: start;
-
-        text := Text {
-            height: Theme.pageHeader + Theme.paddingLg;
-            text: @tr("Albums");
-            font-size: Theme.pageHeader;
-            color: Theme.textPrimary;
+    GridPageLayout {
+        title: @tr("Albums");
+        total_items: AlbumsPageProps.albums.length;
+        item_title(idx) => {
+            AlbumsPageProps.albums[idx].title
         }
-
-        GridListView {
-            height: root.height - text.height - (Theme.spacingXxl + Theme.paddingLg);
-            item-width: Theme.cardWidth;
-            total-items: AlbumsPageProps.albums.length;
-            item-title(idx) => {
-                AlbumsPageProps.albums[idx].title
-            }
-            item-cover(idx) => {
-                AlbumsPageProps.albums[idx].coverPath
-            }
-            item_extension(idx) => {
-                AlbumsPageProps.albums[idx].extension
-            }
-            item_extension_icon(idx) => {
-                AlbumsPageProps.albums[idx].extension_icon
-            }
-            item-clicked(idx) => {
-                AlbumsPageProps.selected-album = AlbumsPageProps.albums[idx];
-                root.active-page = Pages.AlbumContent;
-            }
+        item_cover(idx) => {
+            AlbumsPageProps.albums[idx].coverPath
+        }
+        item_extension(idx) => {
+            AlbumsPageProps.albums[idx].extension
+        }
+        item_extension_icon(idx) => {
+            AlbumsPageProps.albums[idx].extension_icon
+        }
+        item_clicked(idx) => {
+            AlbumsPageProps.selected-album = AlbumsPageProps.albums[idx];
+            AppProps.active_page = Pages.AlbumContent;
         }
     }
 }

@@ -69,12 +69,14 @@ impl<'a> ExtensionsPageHandler<'a> {
         });
 
         let theme = main_window.global::<Theme>();
-        main_window.set_extensions(ModelRc::new(LazySongVecModel::new(
-            items,
-            theme.get_extensionListItemHeight() as usize,
-            theme.get_extensionListItemWidth() as usize,
-            cache_dir,
-        )));
+        main_window
+            .global::<ExtensionsPageProps>()
+            .set_extensions(ModelRc::new(LazySongVecModel::new(
+                items,
+                theme.get_extensionListItemHeight() as usize,
+                theme.get_extensionListItemWidth() as usize,
+                cache_dir,
+            )));
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -274,6 +276,8 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_hide(&self) {
         tracing::info!("ExtensionsPageHandler: on_hide");
-        self.main_window.set_extensions(ModelRc::default());
+        self.main_window
+            .global::<ExtensionsPageProps>()
+            .set_extensions(ModelRc::default());
     }
 }

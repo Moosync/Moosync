@@ -14,8 +14,8 @@ use super::{
     navigation::{goto_album, goto_artist},
 };
 use crate::{
-    AlbumModel, ArtistModel, ContextMenuItem, ContextMenuItems, ContextSubMenuItem, MainWindow,
-    Pages, PlaylistContentPageProps, PlaylistsPageProps, SongModel,
+    AlbumModel, AppProps, ArtistModel, ContextMenuItem, ContextMenuItems, ContextSubMenuItem,
+    MainWindow, Pages, PlaylistContentPageProps, PlaylistsPageProps, SongModel,
 };
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -178,7 +178,7 @@ pub fn build_song_context_menu_items(
         .invoke_get_all_songs_items()
         .into_vec();
 
-    if main_window.get_active_page() == Pages::PlaylistContent {
+    if main_window.global::<AppProps>().get_active_page() == Pages::PlaylistContent {
         let remove_item = ContextMenuItem {
             action_id: "remove_from_playlist".into(),
             title: main_window

@@ -14,7 +14,7 @@ use tracing::Instrument;
 use types::prelude::{ThemeExt, ThemeItemExt};
 
 use crate::{
-    MainWindow,
+    MainWindow, ThemesPageProps,
     pages::PageHandler,
     utils::{parse_color, parse_length},
 };
@@ -231,14 +231,15 @@ impl<'a> ThemesPageHandler<'a> {
                     let target_theme_id = target_theme_id.clone();
                     move || {
                         if let Some(main_window) = main_window_weak.upgrade() {
-                            main_window.set_active_theme_id(target_theme_id.into());
+                            let themes_props = main_window.global::<ThemesPageProps>();
+                            themes_props.set_active_theme_id(target_theme_id.into());
                             Self::apply_theme(&main_window, &theme);
 
                             let vec_model = slint::VecModel::default();
                             for t in themes_list {
                                 vec_model.push(Self::map_theme_to_config(&t));
                             }
-                            main_window.set_available_themes(slint::ModelRc::new(vec_model));
+                            themes_props.set_available_themes(slint::ModelRc::new(vec_model));
                         }
                     }
                 });
@@ -325,7 +326,9 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
 
                                         let _ = slint::invoke_from_event_loop(move || {
                                             if let Some(main_window) = main_window_weak.upgrade() {
-                                                main_window
+                                                let themes_props =
+                                                    main_window.global::<ThemesPageProps>();
+                                                themes_props
                                                     .set_active_theme_id(active_theme_id.into());
                                                 Self::apply_theme(&main_window, &active_theme);
 
@@ -333,7 +336,7 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                                                 for t in themes_list {
                                                     vec_model.push(Self::map_theme_to_config(&t));
                                                 }
-                                                main_window.set_available_themes(
+                                                themes_props.set_available_themes(
                                                     slint::ModelRc::new(vec_model),
                                                 );
                                             }
@@ -382,7 +385,9 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                                     let theme_id = theme_id.clone();
                                     let _ = slint::invoke_from_event_loop(move || {
                                         if let Some(main_window) = main_window_weak.upgrade() {
-                                            main_window.set_active_theme_id(theme_id.into());
+                                            main_window
+                                                .global::<ThemesPageProps>()
+                                                .set_active_theme_id(theme_id.into());
                                             Self::apply_theme(&main_window, &theme);
                                         }
                                     });
@@ -467,14 +472,15 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                                     let new_id = new_id.clone();
                                     let _ = slint::invoke_from_event_loop(move || {
                                         if let Some(main_window) = main_window_weak.upgrade() {
-                                            main_window.set_active_theme_id(new_id.into());
+                                            let themes_props = main_window.global::<ThemesPageProps>();
+                                            themes_props.set_active_theme_id(new_id.into());
                                             Self::apply_theme(&main_window, &theme);
 
                                             let vec_model = slint::VecModel::default();
                                             for t in themes_list {
                                                 vec_model.push(Self::map_theme_to_config(&t));
                                             }
-                                            main_window
+                                            themes_props
                                                 .set_available_themes(slint::ModelRc::new(vec_model));
                                         }
                                     });
@@ -533,6 +539,7 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                                         vec_model.push(Self::map_theme_to_config(&t));
                                     }
                                     main_window
+                                        .global::<ThemesPageProps>()
                                         .set_available_themes(slint::ModelRc::new(vec_model));
                                 }
                             });

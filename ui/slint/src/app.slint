@@ -1,5 +1,5 @@
 import { Sidebar, SidebarItem } from "sidebar/sidebar.slint";
-import { TopBar } from "topbar/top_bar.slint";
+import { TopBar, TopBarProps } from "topbar/top_bar.slint";
 import { BottomBar } from "bottombar/bottom_bar.slint";
 import { AllSongs, AllSongsPageProps } from "main_content/all_songs.slint";
 import { WindowInfo } from "window_info.slint";
@@ -60,7 +60,7 @@ import {
     PreferenceChange,
     SortDecision,
 } from "callbacks.slint";
-import { Settings } from "settings/settings.slint";
+import { Settings, SettingsState } from "settings/settings.slint";
 import {
     SavePlaylistModal,
     SavePlaylistState,
@@ -81,10 +81,18 @@ import {
     AccountItem,
 } from "./types/extension_view.slint";
 import { ExtensionsPageProps } from "settings/extensions.slint";
+import { ThemesPageProps } from "settings/themes.slint";
 import { Utils, DefaultIconType } from "utils.slint";
 import { OAuthModal, OAuthState } from "common/oauth_modal.slint";
+import { PlayerProps, AppProps } from "props.slint";
 
 export {
+    PlayerProps,
+    AppProps,
+    TopBarProps,
+    SettingsState,
+    ThemesPageProps,
+    ExtensionsPageProps,
     OAuthState,
     SavePlaylistState,
     SaveThemeState,
@@ -116,7 +124,6 @@ export {
     ExtensionItem,
     ExtensionProviderItem,
     AccountItem,
-    ExtensionsPageProps,
     ThemeConstant,
     SettingsPages,
     QueuePages,
@@ -161,50 +168,6 @@ export component MainWindow inherits Window {
         AppCallbacks.resize();
     }
 
-    in-out property <Pages> active-page;
-    changed active-page => {
-        AppCallbacks.active-page-changed(self.active-page);
-    }
-
-    in-out property <string> search_query: "";
-
-    // Settings
-    in-out property <bool> show_settings: false;
-    changed show_settings => {
-        AppCallbacks.settings-toggled(self.show_settings);
-    }
-    in-out property <bool> show_queue: false;
-    changed show_queue => {
-        AppCallbacks.queue-toggled(self.show_queue);
-    }
-    in-out property <[ThemeConfig]> available-themes;
-    in-out property <string> active-theme-id;
-    in-out property <[ThemeConstant]> theme-constants;
-    in-out property <[ExtensionItem]> extensions: Constants.testExtensions;
-
-    in-out property <bool> can_go_back: false;
-    in-out property <bool> can_go_forward: false;
-
-    // Main page
-    in property <SongModel> current_song: Constants.defaultSong;
-    in-out property <int> repeat_mode: 0;
-    in-out property <bool> playing: false;
-    in-out property <int> current_duration: 0;
-    in-out property <string> current_pos_str: "00:00";
-
-    property <[SidebarItem]> sidebar_items: [
-        { text: @tr("Songs"), icon: @image-url("./icons/songs.svg"), page: Pages.AllSongs },
-        {
-            text: @tr("Playlists"),
-            icon: @image-url("./icons/playlists.svg"),
-            page: Pages.Playlists
-        },
-        { text: @tr("Artists"), icon: @image-url("./icons/artists.svg"), page: Pages.Artists },
-        { text: @tr("Albums"), icon: @image-url("./icons/albums.svg"), page: Pages.Albums },
-        { text: @tr("Genres"), icon: @image-url("./icons/genres.svg"), page: Pages.Genres },
-        { text: @tr("Explore"), icon: @image-url("./icons/explore.svg"), page: Pages.Explore },
-    ];
-
     VerticalLayout {
         spacing: 0px;
         padding: 0px;
@@ -222,26 +185,12 @@ export component MainWindow inherits Window {
                 width: 100%;
                 height: 100%;
 
-                Sidebar {
-                    items: sidebar_items;
-                    activePage <=> active-page;
-                    sidebarWidth: Theme.sidebarWidth;
-                }
+                Sidebar { }
 
                 VerticalLayout {
                     spacing: 0px;
 
-                    TopBar {
-                        can_go_back: root.can_go_back;
-                        can_go_forward: root.can_go_forward;
-                        settings_clicked => {
-                            root.show_settings = true;
-                        }
-                        search-submitted(txt) => {
-                            root.search_query = txt;
-                            root.active-page = Pages.Search;
-                        }
-                    }
+                    TopBar { }
 
                     // Main Content Area
                     Rectangle {
@@ -262,77 +211,67 @@ export component MainWindow inherits Window {
 
                         PageWrapper {
                             page-type: Pages.Search;
-                            active-page <=> root.active-page;
-                            SearchPage {
-                                search-query: root.search_query;
-                            }
+                            active-page <=> AppProps.active_page;
+                            SearchPage { }
                         }
 
                         PageWrapper {
                             page-type: Pages.AllSongs;
-                            active-page <=> root.active-page;
+                            active-page <=> AppProps.active_page;
                             AllSongs { }
                         }
 
                         PageWrapper {
                             page-type: Pages.Playlists;
-                            active-page <=> root.active-page;
-                            PlaylistsPage {
-                                active-page <=> root.active-page;
-                            }
+                            active-page <=> AppProps.active_page;
+                            PlaylistsPage { }
                         }
 
                         PageWrapper {
                             page-type: Pages.PlaylistContent;
-                            active-page <=> root.active-page;
+                            active-page <=> AppProps.active_page;
                             PlaylistContent { }
                         }
 
                         PageWrapper {
                             page-type: Pages.Artists;
-                            active-page <=> root.active-page;
-                            ArtistsPage {
-                                active-page <=> root.active-page;
-                            }
+                            active-page <=> AppProps.active_page;
+                            ArtistsPage { }
                         }
 
                         PageWrapper {
                             page-type: Pages.ArtistContent;
-                            active-page <=> root.active-page;
+                            active-page <=> AppProps.active_page;
                             ArtistContent { }
                         }
 
                         PageWrapper {
                             page-type: Pages.Albums;
-                            active-page <=> root.active-page;
-                            AlbumsPage {
-                                active-page <=> root.active-page;
-                            }
+                            active-page <=> AppProps.active_page;
+                            AlbumsPage { }
                         }
 
                         PageWrapper {
                             page-type: Pages.AlbumContent;
-                            active-page <=> root.active-page;
+                            active-page <=> AppProps.active_page;
                             AlbumContent { }
                         }
 
                         PageWrapper {
                             page-type: Pages.Genres;
-                            active-page <=> root.active-page;
-                            GenresPage {
-                                active-page <=> root.active-page;
-                            }
+                            active-page <=> AppProps.active_page;
+                            GenresPage { }
                         }
 
                         PageWrapper {
                             page-type: Pages.GenreContent;
-                            active-page <=> root.active-page;
+                            active-page <=> AppProps.active_page;
                             GenreContent { }
                         }
 
                         PageWrapper {
                             page-type: Pages.Explore;
-                            active-page <=> root.active-page;
+                            active-page <=> AppProps.active_page;
                             ExplorePage { }
                         }
                     }
@@ -341,10 +280,9 @@ export component MainWindow inherits Window {
 
             // Slide-up queue page overlay
             QueuePage {
-                y: root.show_queue ? 0px : parent.height;
+                y: QueuePageProps.show_queue ? 0px : parent.height;
                 width: 100%;
                 height: 100%;
-                current-song: root.current_song;
 
                 animate y {
                     duration: 250ms;
@@ -354,23 +292,12 @@ export component MainWindow inherits Window {
         }
 
         // Bottom player controller section
-        BottomBar {
-            current-song: root.current_song;
-            repeat-mode: root.repeat_mode;
-            playing: root.playing;
-            current_duration: root.current_duration;
-            current-pos-str: root.current_pos_str;
-            show-queue <=> root.show_queue;
-        }
+        BottomBar { }
     }
 
-    if show_settings: Settings {
-        available-themes <=> root.available-themes;
-        active-theme-id <=> root.active-theme-id;
-        theme-constants <=> root.theme-constants;
-        extensions <=> root.extensions;
+    if SettingsState.show_settings: Settings {
         close => {
-            show_settings = false;
+            SettingsState.show_settings = false;
         }
     }
 

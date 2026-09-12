@@ -1,0 +1,30 @@
+import { Theme } from "../constants.slint";
+import { ScrollView } from "std-widgets.slint";
+
+export component SettingsPageLayout inherits VerticalLayout {
+    in property <string> title;
+
+    height: 100%;
+    padding-top: 15px;
+    padding-bottom: 15px;
+    padding-right: 15px;
+    spacing: Theme.spacingLg;
+
+    HorizontalLayout {
+        padding-bottom: Theme.paddingSm;
+        Text {
+            text: root.title;
+            font-size: Theme.modelTitle;
+            color: Theme.accent;
+        }
+    }
+
+    ScrollView {
+        vertical-stretch: 1;
+        VerticalLayout {
+            spacing: Theme.spacingLg;
+            padding-right: Theme.paddingLg;
+            @children
+        }
+    }
+}

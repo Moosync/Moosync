@@ -11,6 +11,7 @@ import { NumberInputGroup } from "number_input.slint";
 import { ButtonGroup, ButtonItem } from "button_group.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { SaveThemeState } from "../common/save_theme_modal.slint";
+import { SettingsPageLayout } from "settings_page_layout.slint";
 
 
 component FullColorPicker inherits VerticalLayout {
@@ -432,16 +433,14 @@ export component ThemeCard inherits TouchArea {
     }
 }
 
-export component ThemesPage inherits VerticalLayout {
-    height: 100%;
-    padding-top: 15px;
-    padding-bottom: 15px;
-    padding-right: 15px;
-    spacing: Theme.spacingLg;
+export global ThemesPageProps {
+    in-out property <string> active_theme_id;
+    in-out property <[ThemeConfig]> available_themes;
+    in-out property <[ThemeConstant]> theme_constants;
+}
 
-    in-out property <string> active-theme-id;
-    in-out property <[ThemeConfig]> available-themes;
-    in-out property <[ThemeConstant]> theme-constants;
+export component ThemesPage inherits SettingsPageLayout {
+    title: @tr("Settings > Themes");
 
     // Helper function to map a color object to RgbaColor reactively
     pure function color_to_rgba(c: color) -> RgbaColor {
@@ -461,69 +460,108 @@ export component ThemesPage inherits VerticalLayout {
     // Accordion Sections State
     property <bool> advanced-expanded: false;
 
-    HorizontalLayout {
-        padding-bottom: Theme.paddingSm;
-        Text {
-            text: @tr("Settings > Themes");
-            font-size: Theme.modelTitle;
-            color: Theme.accent;
-        }
-    }
-
-    ScrollView {
-        vertical-stretch: 1;
-
+    PreferenceGroup {
         VerticalLayout {
-            spacing: Theme.spacingLg;
-            padding-right: Theme.paddingLg;
+            spacing: Theme.spacingMd;
+            Text {
+                text: @tr("Preset Themes");
+                font-size: Theme.modelTitle;
+                color: Theme.textPrimary;
+            }
 
-            PreferenceGroup {
-                VerticalLayout {
+            Text {
+                text: @tr("Selecting a theme will instantly override your advanced styling configurations.");
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+                wrap: word-wrap;
+            }
+
+            ScrollView {
+                height: Theme.themeCardPreviewHeight + 100px;
+                HorizontalLayout {
                     spacing: Theme.spacingMd;
-                    Text {
-                        text: @tr("Preset Themes");
-                        font-size: Theme.modelTitle;
-                        color: Theme.textPrimary;
-                    }
-
-                    Text {
-                        text: @tr("Selecting a theme will instantly override your advanced styling configurations.");
-                        font-size: Theme.caption;
-                        color: Theme.textSecondary;
-                        wrap: word-wrap;
-                    }
-
-                    ScrollView {
-                        height: Theme.themeCardPreviewHeight + 100px;
-                        HorizontalLayout {
-                            spacing: Theme.spacingMd;
-                            padding-bottom: Theme.paddingLg;
-                            for theme in root.available-themes: ThemeCard {
-                                config: theme;
-                                is-active: root.active-theme-id == theme.id;
-                                clicked => {
-                                    AppCallbacks.select_preset_theme(theme.id);
-                                }
-                            }
+                    padding-bottom: Theme.paddingLg;
+                    for theme in ThemesPageProps.available_themes: ThemeCard {
+                        config: theme;
+                        is-active: ThemesPageProps.active_theme_id == theme.id;
+                        clicked => {
+                            AppCallbacks.select_preset_theme(theme.id);
                         }
                     }
                 }
             }
+        }
+    }
 
-            PreferenceGroup {
+    PreferenceGroup {
+        HorizontalLayout {
+            spacing: Theme.spacingMd;
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                Text {
+                    text: @tr("Quick Accent");
+                    font-size: Theme.modelTitle;
+                    color: Theme.textPrimary;
+                }
+
+                Text {
+                    text: @tr("Instantly update the primary interactive color.");
+                    font-size: Theme.caption;
+                    color: Theme.textSecondary;
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
                 HorizontalLayout {
                     spacing: Theme.spacingMd;
+                    for swatch in quick-accents: TouchArea {
+                        width: Theme.quickAccentSwatchSize;
+                        height: Theme.quickAccentSwatchSize;
+                        mouse-cursor: pointer;
+                        clicked => {
+                            let val-str = "rgba(" + round(swatch.r) + "," + round(swatch.g) + "," + round(swatch.b) + "," + swatch.a + ")";
+                            AppCallbacks.theme_constant_changed("accent", val-str);
+                        }
+                        Rectangle {
+                            border-radius: Theme.quickAccentSwatchSize / 2;
+                            background: rgba(swatch.r, swatch.g, swatch.b, swatch.a);
+                            border-width: root.active-accent.r == swatch.r && root.active-accent.g == swatch.g ? 2px : 0px;
+                            border-color: Theme.textPrimary;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    PreferenceGroup {
+        VerticalLayout {
+            spacing: root.advanced-expanded ? Theme.spacingLg : 0px;
+
+            // Accordion Header
+            accordion_touch := TouchArea {
+                height: Theme.advancedAccordionHeaderHeight;
+                mouse-cursor: pointer;
+                clicked => {
+                    root.advanced-expanded = !root.advanced-expanded;
+                }
+
+                HorizontalLayout {
+                    alignment: space-between;
+
                     VerticalLayout {
-                        horizontal-stretch: 1;
                         alignment: center;
+                        spacing: Theme.spacingXs;
                         Text {
-                            text: @tr("Quick Accent");
+                            text: @tr("Advanced Styling");
                             font-size: Theme.modelTitle;
                             color: Theme.textPrimary;
                         }
 
                         Text {
-                            text: @tr("Instantly update the primary interactive color.");
+                            text: @tr("Fine-tune UI parameters. Modifying these clones/mutates the current active theme.");
                             font-size: Theme.caption;
                             color: Theme.textSecondary;
                         }
@@ -531,131 +569,74 @@ export component ThemesPage inherits VerticalLayout {
 
                     VerticalLayout {
                         alignment: center;
-                        HorizontalLayout {
-                            spacing: Theme.spacingMd;
-                            for swatch in quick-accents: TouchArea {
-                                width: Theme.quickAccentSwatchSize;
-                                height: Theme.quickAccentSwatchSize;
-                                mouse-cursor: pointer;
-                                clicked => {
-                                    let val-str = "rgba(" + round(swatch.r) + "," + round(swatch.g) + "," + round(swatch.b) + "," + swatch.a + ")";
-                                    AppCallbacks.theme_constant_changed("accent", val-str);
-                                }
-                                Rectangle {
-                                    border-radius: Theme.quickAccentSwatchSize / 2;
-                                    background: rgba(swatch.r, swatch.g, swatch.b, swatch.a);
-                                    border-width: root.active-accent.r == swatch.r && root.active-accent.g == swatch.g ? 2px : 0px;
-                                    border-color: Theme.textPrimary;
-                                }
-                            }
+                        Text {
+                            text: root.advanced-expanded ? "▲" : "▼";
+                            color: accordion_touch.has-hover ? Theme.accent : Theme.textSecondary;
+                            font-size: 14px;
+                            animate color { duration: 150ms; }
                         }
                     }
                 }
             }
 
-            PreferenceGroup {
-                VerticalLayout {
-                    spacing: root.advanced-expanded ? Theme.spacingLg : 0px;
+            // Accordion Content Body
+            if root.advanced-expanded: VerticalLayout {
+                spacing: Theme.spacingLg;
+                padding-top: Theme.paddingMd;
 
-                    // Accordion Header
-                    accordion_touch := TouchArea {
-                        height: Theme.advancedAccordionHeaderHeight;
-                        mouse-cursor: pointer;
-                        clicked => {
-                            root.advanced-expanded = !root.advanced-expanded;
-                        }
-
-                        HorizontalLayout {
-                            alignment: space-between;
-
-                            VerticalLayout {
-                                alignment: center;
-                                spacing: Theme.spacingXs;
-                                Text {
-                                    text: @tr("Advanced Styling");
-                                    font-size: Theme.modelTitle;
-                                    color: Theme.textPrimary;
-                                }
-
-                                Text {
-                                    text: @tr("Fine-tune UI parameters. Modifying these clones/mutates the current active theme.");
-                                    font-size: Theme.caption;
-                                    color: Theme.textSecondary;
-                                }
-                            }
-
-                            VerticalLayout {
-                                alignment: center;
-                                Text {
-                                    text: root.advanced-expanded ? "▲" : "▼";
-                                    color: accordion_touch.has-hover ? Theme.accent : Theme.textSecondary;
-                                    font-size: 14px;
-                                    animate color { duration: 150ms; }
-                                }
-                            }
-                        }
-                    }
-
-                    // Accordion Content Body
-                    if root.advanced-expanded: VerticalLayout {
-                        spacing: Theme.spacingLg;
-                        padding-top: Theme.paddingMd;
-
-                        for item in root.theme-constants: VerticalLayout {
-                            spacing: Theme.spacingMd;
-                            if item.is-color: ColorTabCard {
-                                title: item.name;
-                                desc: @tr("Adjust the color for {}", item.name);
-                                active-val: item.color-value;
-                                changed(val) => {
-                                    let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
-                                    AppCallbacks.theme_constant_changed(item.name, val-str);
-                                }
-                            }
-                            if !item.is-color: NumberInputGroup {
-                                title: item.name;
-                                subtitle: @tr("Adjust the size for {}", item.name);
-                                unit: "px";
-                                value: item.value;
-                                edited(v) => {
-                                    AppCallbacks.theme_constant_changed(item.name, v);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // SECTION 4: SAVE ACTION
-            PreferenceGroup {
-                VerticalLayout {
+                for item in ThemesPageProps.theme_constants: VerticalLayout {
                     spacing: Theme.spacingMd;
-                    Text {
-                        text: @tr("Export Theme");
-                        font-size: Theme.modelTitle;
-                        color: Theme.textPrimary;
-                    }
-
-                    Text {
-                        text: @tr("Save your current styling configuration as a new reusable preset.");
-                        font-size: Theme.caption;
-                        color: Theme.textSecondary;
-                        wrap: word-wrap;
-                    }
-
-                    ButtonGroup {
-                        buttons: [
-                            {
-                                id: "save_modal",
-                                text: @tr("Save as New Theme"),
-                                is-destructive: false,
-                                is-neutral: false
-                            }
-                        ];
-                        clicked(id) => {
-                            SaveThemeState.show_modal = true;
+                    if item.is-color: ColorTabCard {
+                        title: item.name;
+                        desc: @tr("Adjust the color for {}", item.name);
+                        active-val: item.color-value;
+                        changed(val) => {
+                            let val-str = "rgba(" + round(val.r) + "," + round(val.g) + "," + round(val.b) + "," + val.a + ")";
+                            AppCallbacks.theme_constant_changed(item.name, val-str);
                         }
                     }
+                    if !item.is-color: NumberInputGroup {
+                        title: item.name;
+                        subtitle: @tr("Adjust the size for {}", item.name);
+                        unit: "px";
+                        value: item.value;
+                        edited(v) => {
+                            AppCallbacks.theme_constant_changed(item.name, v);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // SECTION 4: SAVE ACTION
+    PreferenceGroup {
+        VerticalLayout {
+            spacing: Theme.spacingMd;
+            Text {
+                text: @tr("Export Theme");
+                font-size: Theme.modelTitle;
+                color: Theme.textPrimary;
+            }
+
+            Text {
+                text: @tr("Save your current styling configuration as a new reusable preset.");
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+                wrap: word-wrap;
+            }
+
+            ButtonGroup {
+                buttons: [
+                    {
+                        id: "save_modal",
+                        text: @tr("Save as New Theme"),
+                        is-destructive: false,
+                        is-neutral: false
+                    }
+                ];
+                clicked(id) => {
+                    SaveThemeState.show_modal = true;
                 }
             }
         }

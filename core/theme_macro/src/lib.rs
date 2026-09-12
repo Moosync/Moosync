@@ -324,7 +324,7 @@ pub fn generate_theme_ui_helpers(input: TokenStream) -> TokenStream {
             for c in constants_vec {
                 model.push(c);
             }
-            main_window.set_theme_constants(slint::ModelRc::new(model));
+            main_window.global::<crate::ThemesPageProps>().set_theme_constants(slint::ModelRc::new(model));
         }
     };
 

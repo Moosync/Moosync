@@ -8,6 +8,7 @@ import { SongDetails } from "../common/song_details.slint";
 import { ContextMenu } from "../common/context_menu.slint";
 import { Utils, DefaultIconType } from "../utils.slint";
 import { SavePlaylistState } from "../common/save_playlist_modal.slint";
+import { PlayerProps } from "../props.slint";
 
 component QueueListItem inherits Rectangle {
     in property <SongModel> song;
@@ -167,11 +168,15 @@ component QueueListItem inherits Rectangle {
 export global QueuePageProps {
     in-out property <[SongModel]> queue: Constants.testSongs;
     in-out property <image> blurred-cover;
+    in-out property <bool> show_queue: false;
+
+    changed show_queue => {
+        AppCallbacks.queue-toggled(self.show_queue);
+    }
 }
 
 export component QueuePage inherits Rectangle {
     in property <QueuePages> page-type: QueuePages.Queue;
-    in property <SongModel> current-song: Constants.defaultSong;
     in-out property <int> active-idx: -1;
 
     in-out property <int> drag-source-idx: -1;
@@ -253,7 +258,7 @@ export component QueuePage inherits Rectangle {
         spacing: Theme.spacingXl * 2;
 
         SongDetails {
-            song: root.current-song;
+            song: PlayerProps.current_song;
 
             HorizontalLayout {
                 alignment: end;
@@ -317,7 +322,7 @@ export component QueuePage inherits Rectangle {
                             song: mapped-song;
                             item-idx: idx;
                             model-idx: mapped-idx;
-                            is-active: root.current-song.id == mapped-song.id;
+                            is-active: PlayerProps.current_song.id == mapped-song.id;
                             is-ghost: mapped-idx == root.drag-source-idx && idx == root.drag-target-idx;
                             drag-source-idx <=> root.drag-source-idx;
                             drag-target-idx <=> root.drag-target-idx;

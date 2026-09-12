@@ -1,33 +1,11 @@
-import { Theme } from "../constants.slint";
-import { ScrollView } from "std-widgets.slint";
 import { AppPreferences } from "preferences.slint";
 import { PreferenceList } from "preference_list.slint";
+import { SettingsPageLayout } from "settings_page_layout.slint";
 
-export component PathsPage inherits VerticalLayout {
-    height: 100%;
-    padding-top: 15px;
-    padding-bottom: 15px;
-    padding-right: 15px;
-    spacing: Theme.spacingLg;
+export component PathsPage inherits SettingsPageLayout {
+    title: @tr("Settings > Paths");
 
-    HorizontalLayout {
-        padding-bottom: Theme.paddingSm;
-        Text {
-            text: @tr("Settings > Paths");
-            font-size: Theme.modelTitle;
-            color: Theme.accent;
-        }
-    }
-
-    ScrollView {
-        vertical-stretch: 1;
-        VerticalLayout {
-            spacing: Theme.spacingLg;
-            padding-right: Theme.paddingLg;
-
-            PreferenceList {
-                items: AppPreferences.paths_items;
-            }
-        }
+    PreferenceList {
+        items: AppPreferences.paths_items;
     }
 }

@@ -1,0 +1,19 @@
+import { SongModel } from "types/song_view.slint";
+import { Constants, Pages } from "constants.slint";
+import { AppCallbacks } from "callbacks.slint";
+
+export global PlayerProps {
+    in-out property <SongModel> current_song: Constants.defaultSong;
+    in-out property <int> repeat_mode: 0;
+    in-out property <bool> playing: false;
+    in-out property <int> current_duration: 0;
+    in-out property <string> current_pos_str: "00:00";
+}
+
+export global AppProps {
+    in-out property <Pages> active_page: Pages.AllSongs;
+
+    changed active_page => {
+        AppCallbacks.active_page_changed(self.active_page);
+    }
+}

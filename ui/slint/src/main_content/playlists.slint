@@ -1,7 +1,8 @@
 import { PlaylistModel } from "../types/song_view.slint";
-import { GridListView } from "../common/grid_list_view.slint";
-import { Constants, Theme, Pages } from "../constants.slint";
+import { GridPageLayout } from "../common/grid_page_layout.slint";
+import { Constants, Pages } from "../constants.slint";
 import { ContextMenuCallbacks } from "../callbacks.slint";
+import { AppProps } from "../props.slint";
 
 export global PlaylistsPageProps {
     in-out property <[PlaylistModel]> playlists: Constants.testPlaylists;
@@ -9,48 +10,33 @@ export global PlaylistsPageProps {
 }
 
 export component PlaylistsPage inherits Rectangle {
-    in-out property <Pages> active-page;
-
     background: transparent;
 
-    VerticalLayout {
-        spacing: Theme.spacingXxl;
-        alignment: start;
-
-        text := Text {
-            height: Theme.pageHeader + Theme.paddingLg;
-            text: @tr("Playlists");
-            font-size: Theme.pageHeader;
-            color: Theme.textPrimary;
+    GridPageLayout {
+        title: @tr("Playlists");
+        total_items: PlaylistsPageProps.playlists.length;
+        enable_context_menu: true;
+        item_title(idx) => {
+            PlaylistsPageProps.playlists[idx].title
         }
-
-        GridListView {
-            height: root.height - text.height - (Theme.spacingXxl + Theme.paddingLg);
-            item-width: Theme.cardWidth;
-            total-items: PlaylistsPageProps.playlists.length;
-            enable-context-menu: true;
-            item-title(idx) => {
-                PlaylistsPageProps.playlists[idx].title
-            }
-            item-cover(idx) => {
-                PlaylistsPageProps.playlists[idx].coverPath
-            }
-            item_extension(idx) => {
-                PlaylistsPageProps.playlists[idx].extension
-            }
-            item_extension_icon(idx) => {
-                PlaylistsPageProps.playlists[idx].extension_icon
-            }
-            item-clicked(idx) => {
-                PlaylistsPageProps.selected-playlist = PlaylistsPageProps.playlists[idx];
-                root.active-page = Pages.PlaylistContent;
-            }
-            get-context-menu-items(idx) => {
-                ContextMenuCallbacks.get_playlist_menu_items([PlaylistsPageProps.playlists[idx]])
-            }
-            context-menu-action(idx, action_id) => {
-                ContextMenuCallbacks.playlist_action([PlaylistsPageProps.playlists[idx]], action_id)
-            }
+        item_cover(idx) => {
+            PlaylistsPageProps.playlists[idx].coverPath
+        }
+        item_extension(idx) => {
+            PlaylistsPageProps.playlists[idx].extension
+        }
+        item_extension_icon(idx) => {
+            PlaylistsPageProps.playlists[idx].extension_icon
+        }
+        item_clicked(idx) => {
+            PlaylistsPageProps.selected-playlist = PlaylistsPageProps.playlists[idx];
+            AppProps.active_page = Pages.PlaylistContent;
+        }
+        get_context_menu_items(idx) => {
+            ContextMenuCallbacks.get_playlist_menu_items([PlaylistsPageProps.playlists[idx]])
+        }
+        context_menu_action(idx, action_id) => {
+            ContextMenuCallbacks.playlist_action([PlaylistsPageProps.playlists[idx]], action_id)
         }
     }
 }

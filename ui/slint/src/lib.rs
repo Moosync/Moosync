@@ -252,7 +252,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
                 async move {
                     let mut player_handler = state_manager.get_player_handler_mut().await;
                     let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
-                        let currently_playing = main_window.get_playing();
+                        let currently_playing = main_window.global::<PlayerProps>().get_playing();
                         if currently_playing {
                             let _ = player_handler.pause();
                         } else {
@@ -285,7 +285,9 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
 #[tracing::instrument(level = "debug", skip_all)]
 fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     // Clear default values on load
-    main_window.set_current_song(SongModel::from(Song::default()));
+    main_window
+        .global::<PlayerProps>()
+        .set_current_song(SongModel::from(Song::default()));
     main_window
         .global::<QueuePageProps>()
         .set_queue(ModelRc::new(VecModel::default()));
@@ -300,7 +302,9 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
             let mw_weak_init = main_window_weak.clone();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = mw_weak_init.upgrade() {
-                    main_window.set_repeat_mode(repeat_mode as i32);
+                    main_window
+                        .global::<PlayerProps>()
+                        .set_repeat_mode(repeat_mode as i32);
                 }
             });
 
@@ -314,7 +318,9 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
                             Some(s) => SongModel::from(s),
                             None => SongModel::from(Song::default()),
                         };
-                        main_window.set_current_song(song_model);
+                        main_window
+                            .global::<PlayerProps>()
+                            .set_current_song(song_model);
                     }
                 });
             });
@@ -324,7 +330,9 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
                 let mw_weak = mw_weak_repeat.clone();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = mw_weak.upgrade() {
-                        main_window.set_repeat_mode(mode as i32);
+                        main_window
+                            .global::<PlayerProps>()
+                            .set_repeat_mode(mode as i32);
                     }
                 });
             });
@@ -336,16 +344,17 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = mw_weak.upgrade() {
                         if let Some(ev) = &event_cloned.event {
+                            let player_props = main_window.global::<PlayerProps>();
                             match ev {
                                 PlayerEvent::Play(_) => {
-                                    main_window.set_playing(true);
+                                    player_props.set_playing(true);
                                 }
                                 PlayerEvent::Pause(_) => {
-                                    main_window.set_playing(false);
+                                    player_props.set_playing(false);
                                 }
                                 PlayerEvent::TimeUpdate(pos) => {
-                                    main_window.set_current_duration(pos.seconds as i32);
-                                    main_window
+                                    player_props.set_current_duration(pos.seconds as i32);
+                                    player_props
                                         .set_current_pos_str(format_duration(pos.seconds).into());
                                 }
                                 _ => {}
@@ -438,7 +447,7 @@ fn setup_ui(main_window: &'static MainWindow, state_manager: &'static StateManag
     let settings_pages = PageLifecycleManager::get_settings_pages(main_window, state_manager);
     let queue_page = PageLifecycleManager::get_queue_page(main_window, state_manager);
 
-    let initial_main_page = main_window.get_active_page();
+    let initial_main_page = main_window.global::<AppProps>().get_active_page();
     let initial_settings_page = SettingsPages::Extensions;
 
     let lifecycle = std::rc::Rc::new(std::cell::RefCell::new(PageLifecycleManager::new(

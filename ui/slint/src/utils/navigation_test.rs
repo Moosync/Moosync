@@ -4,7 +4,7 @@ use tracing_test::traced_test;
 
 use super::navigation::{goto_album, goto_artist};
 use crate::{
-    AlbumModel, AlbumsPageProps, ArtistModel, ArtistsPageProps, MainWindow, Pages,
+    AlbumModel, AlbumsPageProps, AppProps, ArtistModel, ArtistsPageProps, MainWindow, Pages,
     test_utils::main_window,
 };
 
@@ -28,7 +28,10 @@ fn test_goto_album_sets_selected_album_and_active_page(main_window: MainWindow) 
             .id,
         "album_123"
     );
-    assert_eq!(main_window.get_active_page(), Pages::AlbumContent);
+    assert_eq!(
+        main_window.global::<AppProps>().get_active_page(),
+        Pages::AlbumContent
+    );
 }
 
 #[rstest]
@@ -51,5 +54,8 @@ fn test_goto_artist_sets_selected_artist_and_active_page(main_window: MainWindow
             .id,
         "artist_456"
     );
-    assert_eq!(main_window.get_active_page(), Pages::ArtistContent);
+    assert_eq!(
+        main_window.global::<AppProps>().get_active_page(),
+        Pages::ArtistContent
+    );
 }

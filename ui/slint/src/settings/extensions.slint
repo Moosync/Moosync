@@ -1,4 +1,4 @@
-import { Theme } from "../constants.slint";
+import { Theme, Constants } from "../constants.slint";
 import { ListView } from "std-widgets.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { PreferenceGroup } from "preference_group.slint";
@@ -6,20 +6,8 @@ import { ExtensionItem } from "../types/extension_view.slint";
 import { Button } from "../common/button.slint";
 import { AppPreferences } from "preferences.slint";
 import { PreferenceList } from "preference_list.slint";
-
-component Spinner inherits Rectangle {
-    in property <bool> active: true;
-    width: Theme.iconSizeMd;
-    height: Theme.iconSizeMd;
-
-    Image {
-        width: 100%;
-        height: 100%;
-        source: @image-url("../icons/spinner.svg");
-        colorize: Theme.accent;
-        transform-rotation: root.active ? (animation-tick() * 360deg / 1s) : 0deg;
-    }
-}
+import { Spinner } from "../common/spinner.slint";
+import { SettingsPageLayout } from "settings_page_layout.slint";
 
 component ExtensionsManifest inherits VerticalLayout {
     in property <[ExtensionItem]> extensions;
@@ -163,27 +151,12 @@ component ExtensionsManifest inherits VerticalLayout {
 }
 
 export global ExtensionsPageProps {
+    in-out property <[ExtensionItem]> extensions: Constants.testExtensions;
     in-out property <bool> has_updates: false;
 }
 
-export component ExtensionsPage inherits VerticalLayout {
-    in-out property <[ExtensionItem]> extensions;
-
-    height: 100%;
-    padding-top: Theme.extensionItemPaddingX;
-    padding-bottom: Theme.extensionItemPaddingX;
-    padding-right: Theme.extensionItemPaddingX;
-    spacing: Theme.spacingMd;
-
-    alignment: start;
-    HorizontalLayout {
-        padding-bottom: Theme.paddingSm;
-        Text {
-            text: @tr("Settings > Extensions");
-            font-size: Theme.modelTitle;
-            color: Theme.accent;
-        }
-    }
+export component ExtensionsPage inherits SettingsPageLayout {
+    title: @tr("Settings > Extensions");
 
     PreferenceGroup {
         HorizontalLayout {
@@ -225,7 +198,7 @@ export component ExtensionsPage inherits VerticalLayout {
             }
         }
 
-        if (root.extensions.length == 0): Text {
+        if (ExtensionsPageProps.extensions.length == 0): Text {
             text: @tr("No extensions available.");
             font-size: Theme.body;
             color: Theme.textSecondary;
@@ -233,7 +206,7 @@ export component ExtensionsPage inherits VerticalLayout {
         }
 
         ExtensionsManifest {
-            extensions <=> root.extensions;
+            extensions: ExtensionsPageProps.extensions;
         }
     }
 

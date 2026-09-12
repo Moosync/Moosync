@@ -55,15 +55,15 @@ export component ProviderItem inherits Button {
 }
 
 export global SearchPageProps {
+    in-out property <string> search_query: "";
     in-out property <[SearchResult]> provider-results;
+
+    changed search_query => {
+        AppCallbacks.search_term_changed(self.search_query);
+    }
 }
 
 export component SearchPage inherits Rectangle {
-    in property <string> search-query: "";
-    changed search-query => {
-        AppCallbacks.search_term_changed(self.search-query);
-    }
-
     property <int> active-tab: 0;
     property <int> selected-provider: 0;
 

@@ -1,8 +1,9 @@
 use rstest::rstest;
+use slint::ComponentHandle;
 use tracing_test::traced_test;
 
 use crate::{
-    MainWindow, Pages, SettingsPages,
+    AppProps, MainWindow, Pages, SettingsPages, TopBarProps,
     pages::{NavigationHistory, NavigationManager, PageLifecycleManager},
     test_utils::main_window,
 };
@@ -145,8 +146,8 @@ fn test_navigation_manager_initial_state(main_window: MainWindow) {
 
     assert_eq!(nav.active_main_page(), Pages::AllSongs);
     assert_eq!(nav.active_settings_page(), SettingsPages::Extensions);
-    assert!(!main_window.get_can_go_back());
-    assert!(!main_window.get_can_go_forward());
+    assert!(!main_window.global::<TopBarProps>().get_can_go_back());
+    assert!(!main_window.global::<TopBarProps>().get_can_go_forward());
 }
 
 #[rstest]
@@ -159,9 +160,12 @@ fn test_navigation_manager_navigate_main(main_window: MainWindow) {
 
     assert!(navigated);
     assert_eq!(nav.active_main_page(), Pages::Albums);
-    assert_eq!(main_window.get_active_page(), Pages::Albums);
-    assert!(main_window.get_can_go_back());
-    assert!(!main_window.get_can_go_forward());
+    assert_eq!(
+        main_window.global::<AppProps>().get_active_page(),
+        Pages::Albums
+    );
+    assert!(main_window.global::<TopBarProps>().get_can_go_back());
+    assert!(!main_window.global::<TopBarProps>().get_can_go_forward());
 }
 
 #[rstest]
@@ -187,9 +191,12 @@ fn test_navigation_manager_go_back_main(main_window: MainWindow) {
 
     assert!(went_back);
     assert_eq!(nav.active_main_page(), Pages::AllSongs);
-    assert_eq!(main_window.get_active_page(), Pages::AllSongs);
-    assert!(!main_window.get_can_go_back());
-    assert!(main_window.get_can_go_forward());
+    assert_eq!(
+        main_window.global::<AppProps>().get_active_page(),
+        Pages::AllSongs
+    );
+    assert!(!main_window.global::<TopBarProps>().get_can_go_back());
+    assert!(main_window.global::<TopBarProps>().get_can_go_forward());
 }
 
 #[rstest]
@@ -204,9 +211,12 @@ fn test_navigation_manager_go_forward_main(main_window: MainWindow) {
 
     assert!(went_forward);
     assert_eq!(nav.active_main_page(), Pages::Albums);
-    assert_eq!(main_window.get_active_page(), Pages::Albums);
-    assert!(main_window.get_can_go_back());
-    assert!(!main_window.get_can_go_forward());
+    assert_eq!(
+        main_window.global::<AppProps>().get_active_page(),
+        Pages::Albums
+    );
+    assert!(main_window.global::<TopBarProps>().get_can_go_back());
+    assert!(!main_window.global::<TopBarProps>().get_can_go_forward());
 }
 
 #[rstest]

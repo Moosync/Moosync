@@ -19,7 +19,7 @@ use slint::{ComponentHandle, Model, ModelRc};
 use tracing_test::traced_test;
 
 use crate::{
-    MainWindow, PreferenceChange,
+    AppCallbacks, ExtensionItem, ExtensionsPageProps, MainWindow, PreferenceChange,
     pages::PageHandler,
     settings::{PreferenceHandler, extensions::ExtensionsPageHandler},
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
@@ -34,12 +34,13 @@ async fn test_extensions_page_handler_on_show(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    main_window.set_extensions(ModelRc::default());
+    let props = main_window.global::<ExtensionsPageProps>();
+    props.set_extensions(ModelRc::default());
     let handler = ExtensionsPageHandler::new(&main_window, &sm);
 
     handler.on_show();
 
-    assert_eq!(main_window.get_extensions().row_count(), 0);
+    assert_eq!(props.get_extensions().row_count(), 0);
 }
 
 #[rstest]
@@ -51,16 +52,14 @@ async fn test_extensions_page_handler_on_hide(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let dummy_exts = vec![
-        crate::ExtensionItem::default(),
-        crate::ExtensionItem::default(),
-    ];
-    main_window.set_extensions(ModelRc::new(slint::VecModel::from(dummy_exts)));
+    let props = main_window.global::<ExtensionsPageProps>();
+    let dummy_exts = vec![ExtensionItem::default(), ExtensionItem::default()];
+    props.set_extensions(ModelRc::new(slint::VecModel::from(dummy_exts)));
     let handler = ExtensionsPageHandler::new(&main_window, &sm);
 
     handler.on_hide();
 
-    assert_eq!(main_window.get_extensions().row_count(), 0);
+    assert_eq!(props.get_extensions().row_count(), 0);
 }
 
 #[rstest]
@@ -72,12 +71,13 @@ async fn test_extensions_page_handler_initialize(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    main_window.set_extensions(ModelRc::default());
+    let props = main_window.global::<ExtensionsPageProps>();
+    props.set_extensions(ModelRc::default());
     let handler = ExtensionsPageHandler::new(&main_window, &sm);
 
     handler.initialize();
 
-    assert_eq!(main_window.get_extensions().row_count(), 0);
+    assert_eq!(props.get_extensions().row_count(), 0);
 }
 
 #[rstest]
@@ -120,7 +120,7 @@ async fn test_extensions_page_handler_props(
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
     let handler = ExtensionsPageHandler::new(&main_window, &sm);
     handler.initialize();
-    let props = main_window.global::<crate::ExtensionsPageProps>();
+    let props = main_window.global::<ExtensionsPageProps>();
 
     props.set_has_updates(true);
 
@@ -136,13 +136,13 @@ async fn test_extensions_page_handler_update_all_callback(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let props = main_window.global::<crate::ExtensionsPageProps>();
+    let props = main_window.global::<ExtensionsPageProps>();
     props.set_has_updates(true);
     let handler = ExtensionsPageHandler::new(&main_window, &sm);
     handler.initialize();
 
     main_window
-        .global::<crate::AppCallbacks>()
+        .global::<AppCallbacks>()
         .invoke_update_all_extensions();
 
     assert!(!props.get_has_updates());

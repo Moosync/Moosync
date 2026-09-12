@@ -1,21 +1,14 @@
 import { Modal, ModalSize } from "../common/modal.slint";
 import { SettingsSidebar, SettingsSidebarItem } from "../sidebar/sidebar.slint";
 import {
-    Pages,
     SettingsPages,
     Theme,
-    ThemeConfig,
-    ThemeConstant,
 } from "../constants.slint";
 import { SettingsPageWrapper } from "../common/page_wrapper.slint";
-import { PathSelector } from "path_selector.slint";
 import { PathsPage } from "paths.slint";
 import { SystemPage } from "system.slint";
 import { ExtensionsPage } from "extensions.slint";
-import { ExtensionItem } from "../types/extension_view.slint";
 import { ThemesPage } from "themes.slint";
-import { TextInputGroup } from "text_input.slint";
-import { ButtonGroup, ButtonItem } from "button_group.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import {
     SaveThemeModal,
@@ -23,17 +16,20 @@ import {
 } from "../common/save_theme_modal.slint";
 import { IconButton } from "../common/icon_button.slint";
 
+export global SettingsState {
+    in-out property <bool> show_settings: false;
+
+    changed show_settings => {
+        AppCallbacks.settings-toggled(self.show_settings);
+    }
+}
+
 export component Settings inherits Modal {
     modalSize: ModalSize.Xl;
-    property <SettingsPages> activePage: SettingsPages.Extensions;
-    changed activePage => {
-        AppCallbacks.settings-active-page-changed(self.activePage);
+    property <SettingsPages> active_page: SettingsPages.Extensions;
+    changed active_page => {
+        AppCallbacks.settings-active-page-changed(self.active_page);
     }
-
-    in-out property <[ThemeConfig]> available-themes;
-    in-out property <string> active-theme-id;
-    in-out property <[ThemeConstant]> theme-constants;
-    in-out property <[ExtensionItem]> extensions;
 
     property <[SettingsSidebarItem]> items: [
         {
@@ -60,9 +56,9 @@ export component Settings inherits Modal {
 
     HorizontalLayout {
         SettingsSidebar {
-            sidebarWidth: Theme.settingsSidebarWidth;
+            sidebar_width: Theme.settingsSidebarWidth;
             items: items;
-            activePage <=> root.activePage;
+            active_page <=> root.active_page;
         }
 
         Rectangle {
@@ -82,37 +78,31 @@ export component Settings inherits Modal {
             }
 
             SettingsPageWrapper {
-                active-page <=> root.activePage;
+                active-page <=> root.active_page;
                 page-type: SettingsPages.Paths;
 
                 PathsPage { }
             }
 
             SettingsPageWrapper {
-                active-page <=> root.activePage;
+                active-page <=> root.active_page;
                 page-type: SettingsPages.System;
 
                 SystemPage { }
             }
 
             SettingsPageWrapper {
-                active-page <=> root.activePage;
+                active-page <=> root.active_page;
                 page-type: SettingsPages.Extensions;
 
-                ExtensionsPage {
-                    extensions <=> root.extensions;
-                }
+                ExtensionsPage { }
             }
 
             SettingsPageWrapper {
-                active-page <=> root.activePage;
+                active-page <=> root.active_page;
                 page-type: SettingsPages.Themes;
 
-                ThemesPage {
-                    available-themes <=> root.available-themes;
-                    active-theme-id <=> root.active-theme-id;
-                    theme-constants <=> root.theme-constants;
-                }
+                ThemesPage { }
             }
 
             // Close button at top right

@@ -1,10 +1,12 @@
 import { Theme } from "../constants.slint";
 import { SongModel, CoverHelper } from "../types/song_view.slint";
+import { PlayerProps } from "../props.slint";
 
 export component TrackInfo inherits Rectangle {
     width: Theme.trackInfoWidth;
     height: Theme.topbarHeight;
-    in property <SongModel> current-song;
+
+    property <SongModel> current_song: PlayerProps.current_song;
 
     HorizontalLayout {
         spacing: Theme.spacingMd;
@@ -20,11 +22,11 @@ export component TrackInfo inherits Rectangle {
             clip: true;
 
             Image {
-                width: root.current-song.id == "" ? Theme.iconSizeXl : parent.width;
-                height: root.current-song.id == "" ? Theme.iconSizeXl : parent.height;
-                source: root.current-song.coverPathLow.width > 0 ? root.current-song.coverPathLow : (root.current-song.id != "" ? CoverHelper.fetch_cover_low(root.current-song) : @image-url("../icons/song_default.svg"));
+                width: root.current_song.id == "" ? Theme.iconSizeXl : parent.width;
+                height: root.current_song.id == "" ? Theme.iconSizeXl : parent.height;
+                source: root.current_song.coverPathLow.width > 0 ? root.current_song.coverPathLow : (root.current_song.id != "" ? CoverHelper.fetch_cover_low(root.current_song) : @image-url("../icons/song_default.svg"));
                 image-fit: cover;
-                colorize: root.current-song.id == "" ? Theme.textSecondary : transparent;
+                colorize: root.current_song.id == "" ? Theme.textSecondary : transparent;
             }
         }
 
@@ -34,7 +36,7 @@ export component TrackInfo inherits Rectangle {
             spacing: Theme.spacingTiny;
 
             Text {
-                text: root.current-song.title;
+                text: root.current_song.title;
                 color: Theme.textPrimary; // Text Primary
                 font-size: Theme.body;
                 font-weight: 600;
@@ -43,7 +45,7 @@ export component TrackInfo inherits Rectangle {
 
             HorizontalLayout {
                 spacing: 0px;
-                for artist[i] in root.current-song.artists: HorizontalLayout {
+                for artist[i] in root.current_song.artists: HorizontalLayout {
                     spacing: 0px;
                     Text {
                         text: (i > 0 ? ", " : "") + artist.title;
@@ -55,7 +57,7 @@ export component TrackInfo inherits Rectangle {
             }
 
             Text {
-                text: root.current-song.album_name;
+                text: root.current_song.album_name;
                 color: Theme.textSecondary; // Text Secondary
                 font-size: Theme.extraSmall;
             }

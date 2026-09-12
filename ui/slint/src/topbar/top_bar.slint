@@ -1,19 +1,21 @@
 import { NavButtons } from "nav_buttons.slint";
 import { SearchBar } from "search_bar.slint";
-import { Theme } from "../constants.slint";
+import { Theme, Pages } from "../constants.slint";
 import { IconButton } from "../common/icon_button.slint";
 import { AccountsPopup } from "../common/accounts_popup.slint";
-import { AccountItem } from "../types/extension_view.slint";
 import { AppCallbacks } from "../callbacks.slint";
+import { AppProps } from "../props.slint";
+import { SettingsState } from "../settings/settings.slint";
+import { SearchPageProps } from "../main_content/search.slint";
+
+export global TopBarProps {
+    in-out property <bool> can_go_back: false;
+    in-out property <bool> can_go_forward: false;
+}
 
 export component TopBar inherits Rectangle {
-    in property <bool> can_go_back: false;
-    in property <bool> can_go_forward: false;
-    callback settings_clicked();
-    callback search-submitted(string);
-
     height: Theme.topbarHeight;
-    background: Theme.primary; // Sampleed Topbar Background
+    background: Theme.primary; // Sampled Topbar Background
 
     // Bottom border for the top bar
     Rectangle {
@@ -32,8 +34,8 @@ export component TopBar inherits Rectangle {
                 horizontal-stretch: 1;
 
                 NavButtons {
-                    can_go_back: root.can_go_back;
-                    can_go_forward: root.can_go_forward;
+                    can_go_back: TopBarProps.can_go_back;
+                    can_go_forward: TopBarProps.can_go_forward;
                     go_back => {
                         AppCallbacks.navigate_back();
                     }
@@ -50,7 +52,8 @@ export component TopBar inherits Rectangle {
                     SearchBar {
                         horizontal-stretch: 1;
                         accepted(txt) => {
-                            root.search-submitted(txt);
+                            SearchPageProps.search_query = txt;
+                            AppProps.active_page = Pages.Search;
                         }
                     }
                 }
@@ -85,7 +88,7 @@ export component TopBar inherits Rectangle {
                     icon_source: @image-url("../icons/settings.svg");
                     icon_size: Theme.iconSizeLg;
                     clicked => {
-                        root.settings_clicked();
+                        SettingsState.show_settings = true;
                     }
                 }
             }

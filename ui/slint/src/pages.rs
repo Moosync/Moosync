@@ -3,7 +3,9 @@ use std::{cell::RefCell, rc::Rc};
 use slint::ComponentHandle;
 use state_manager::StateManager;
 
-use crate::{AppCallbacks, MainWindow, Pages, SettingsPages, main_content, settings};
+use crate::{
+    AppCallbacks, AppProps, MainWindow, Pages, SettingsPages, TopBarProps, main_content, settings,
+};
 
 pub(crate) trait PageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
@@ -110,7 +112,7 @@ impl NavigationManager {
     pub fn navigate_main(&mut self, page: Pages, main_window: &crate::MainWindow) -> bool {
         if self.main_history.push(page) {
             self.is_navigating = true;
-            main_window.set_active_page(page);
+            main_window.global::<AppProps>().set_active_page(page);
             self.is_navigating = false;
             self.sync_main_ui(main_window);
             return true;
@@ -151,7 +153,7 @@ impl NavigationManager {
 
         if let Some(page) = self.main_history.go_back() {
             self.is_navigating = true;
-            main_window.set_active_page(page);
+            main_window.global::<AppProps>().set_active_page(page);
             self.is_navigating = false;
             self.sync_main_ui(main_window);
             return true;
@@ -170,7 +172,7 @@ impl NavigationManager {
 
         if let Some(page) = self.main_history.go_forward() {
             self.is_navigating = true;
-            main_window.set_active_page(page);
+            main_window.global::<AppProps>().set_active_page(page);
             self.is_navigating = false;
             self.sync_main_ui(main_window);
             return true;
@@ -180,8 +182,9 @@ impl NavigationManager {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn sync_main_ui(&self, main_window: &crate::MainWindow) {
-        main_window.set_can_go_back(self.main_history.can_go_back());
-        main_window.set_can_go_forward(self.main_history.can_go_forward());
+        let top_bar_props = main_window.global::<TopBarProps>();
+        top_bar_props.set_can_go_back(self.main_history.can_go_back());
+        top_bar_props.set_can_go_forward(self.main_history.can_go_forward());
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

@@ -1,6 +1,7 @@
 import { ArtistModel } from "../types/song_view.slint";
-import { GridListView } from "../common/grid_list_view.slint";
-import { Constants, Theme, Pages } from "../constants.slint";
+import { GridPageLayout } from "../common/grid_page_layout.slint";
+import { Constants, Pages } from "../constants.slint";
+import { AppProps } from "../props.slint";
 
 export global ArtistsPageProps {
     in-out property <[ArtistModel]> artists: Constants.testArtists;
@@ -8,41 +9,26 @@ export global ArtistsPageProps {
 }
 
 export component ArtistsPage inherits Rectangle {
-    in-out property <Pages> active-page;
-
     background: transparent;
 
-    VerticalLayout {
-        spacing: Theme.spacingXxl;
-        alignment: start;
-
-        text := Text {
-            height: Theme.pageHeader + Theme.paddingLg;
-            text: @tr("Artists");
-            font-size: Theme.pageHeader;
-            color: Theme.textPrimary;
+    GridPageLayout {
+        title: @tr("Artists");
+        total_items: ArtistsPageProps.artists.length;
+        item_title(idx) => {
+            ArtistsPageProps.artists[idx].title
         }
-
-        GridListView {
-            height: root.height - text.height - (Theme.spacingXxl + Theme.paddingLg);
-            item-width: Theme.cardWidth;
-            total-items: ArtistsPageProps.artists.length;
-            item-title(idx) => {
-                ArtistsPageProps.artists[idx].title
-            }
-            item-cover(idx) => {
-                ArtistsPageProps.artists[idx].coverPath
-            }
-            item_extension(idx) => {
-                ArtistsPageProps.artists[idx].extension
-            }
-            item_extension_icon(idx) => {
-                ArtistsPageProps.artists[idx].extension_icon
-            }
-            item-clicked(idx) => {
-                ArtistsPageProps.selected-artist = ArtistsPageProps.artists[idx];
-                root.active-page = Pages.ArtistContent;
-            }
+        item_cover(idx) => {
+            ArtistsPageProps.artists[idx].coverPath
+        }
+        item_extension(idx) => {
+            ArtistsPageProps.artists[idx].extension
+        }
+        item_extension_icon(idx) => {
+            ArtistsPageProps.artists[idx].extension_icon
+        }
+        item_clicked(idx) => {
+            ArtistsPageProps.selected-artist = ArtistsPageProps.artists[idx];
+            AppProps.active_page = Pages.ArtistContent;
         }
     }
 }

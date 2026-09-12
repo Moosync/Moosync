@@ -25,10 +25,10 @@ use types::prelude::SongsExt;
 
 use crate::{
     AccountsProps, AlbumContentPageProps, AlbumModel, AlbumsPageProps, AllSongsPageProps,
-    AppCallbacks, ArtistContentPageProps, ArtistModel, ArtistsPageProps, BottomBarCallbacks,
-    ContextMenuCallbacks, ExtensionProviderItem, MainWindow, OAuthState, Pages,
-    PlaylistContentPageProps, PlaylistModel, PlaylistsPageProps, SearchPageProps, SettingsPages,
-    SongModel, UtilCallbacks, setup_ui,
+    AppCallbacks, AppProps, ArtistContentPageProps, ArtistModel, ArtistsPageProps,
+    BottomBarCallbacks, ContextMenuCallbacks, ExtensionProviderItem, MainWindow, OAuthState, Pages,
+    PlayerProps, PlaylistContentPageProps, PlaylistModel, PlaylistsPageProps, SearchPageProps,
+    SettingsPages, SettingsState, SongModel, TopBarProps, UtilCallbacks, setup_ui,
     test_utils::{TestSlintSmContext, state_manager_fixture},
     utils::IntoVec,
 };
@@ -924,14 +924,22 @@ async fn do_play_song(main_window: &'static MainWindow, state_manager_fixture: T
     };
 
     main_window.global::<AppCallbacks>().invoke_play_song(song);
-    let updated =
-        wait_until(|| main_window.get_playing() && main_window.get_current_song().id == "play_1")
-            .await;
+    let updated = wait_until(|| {
+        main_window.global::<PlayerProps>().get_playing()
+            && main_window.global::<PlayerProps>().get_current_song().id == "play_1"
+    })
+    .await;
 
     assert!(updated);
-    assert!(main_window.get_playing());
-    assert_eq!(main_window.get_current_song().id, "play_1");
-    assert_eq!(main_window.get_current_song().title, "Playing Song");
+    assert!(main_window.global::<PlayerProps>().get_playing());
+    assert_eq!(
+        main_window.global::<PlayerProps>().get_current_song().id,
+        "play_1"
+    );
+    assert_eq!(
+        main_window.global::<PlayerProps>().get_current_song().title,
+        "Playing Song"
+    );
     let ph = state_manager.get_player_handler().await;
     assert_eq!(ph.current_song().unwrap().get_id().unwrap(), "play_1");
 }
@@ -952,22 +960,22 @@ async fn do_pause_and_resume_song(
         ..Default::default()
     };
     main_window.global::<AppCallbacks>().invoke_play_song(song);
-    let started = wait_until(|| main_window.get_playing()).await;
+    let started = wait_until(|| main_window.global::<PlayerProps>().get_playing()).await;
     assert!(started);
 
     main_window
         .global::<BottomBarCallbacks>()
         .invoke_play_pause_clicked();
-    let paused = wait_until(|| !main_window.get_playing()).await;
+    let paused = wait_until(|| !main_window.global::<PlayerProps>().get_playing()).await;
     assert!(paused);
-    assert!(!main_window.get_playing());
+    assert!(!main_window.global::<PlayerProps>().get_playing());
 
     main_window
         .global::<BottomBarCallbacks>()
         .invoke_play_pause_clicked();
-    let resumed = wait_until(|| main_window.get_playing()).await;
+    let resumed = wait_until(|| main_window.global::<PlayerProps>().get_playing()).await;
     assert!(resumed);
-    assert!(main_window.get_playing());
+    assert!(main_window.global::<PlayerProps>().get_playing());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -991,7 +999,8 @@ async fn do_skip_song(main_window: &'static MainWindow, state_manager_fixture: T
     main_window
         .global::<AppCallbacks>()
         .invoke_play_song(song_first);
-    let _ = wait_until(|| main_window.get_current_song().id == "skip_1").await;
+    let _ =
+        wait_until(|| main_window.global::<PlayerProps>().get_current_song().id == "skip_1").await;
     main_window
         .global::<AppCallbacks>()
         .invoke_add_song_to_queue(song_second);
@@ -999,11 +1008,18 @@ async fn do_skip_song(main_window: &'static MainWindow, state_manager_fixture: T
     main_window
         .global::<BottomBarCallbacks>()
         .invoke_next_song();
-    let skipped = wait_until(|| main_window.get_current_song().id == "skip_2").await;
+    let skipped =
+        wait_until(|| main_window.global::<PlayerProps>().get_current_song().id == "skip_2").await;
 
     assert!(skipped);
-    assert_eq!(main_window.get_current_song().id, "skip_2");
-    assert_eq!(main_window.get_current_song().title, "Track Two");
+    assert_eq!(
+        main_window.global::<PlayerProps>().get_current_song().id,
+        "skip_2"
+    );
+    assert_eq!(
+        main_window.global::<PlayerProps>().get_current_song().title,
+        "Track Two"
+    );
     let ph = state_manager.get_player_handler().await;
     assert_eq!(ph.current_song().unwrap().get_id().unwrap(), "skip_2");
 }
@@ -1576,7 +1592,7 @@ async fn do_context_menu_goto_album(
         .invoke_song_action(song_models, action_id.into());
 
     let nav_loaded = wait_until(|| {
-        main_window.get_active_page() == Pages::AlbumContent
+        main_window.global::<AppProps>().get_active_page() == Pages::AlbumContent
             && main_window
                 .global::<AlbumContentPageProps>()
                 .get_songs()
@@ -1585,7 +1601,10 @@ async fn do_context_menu_goto_album(
     })
     .await;
     assert!(nav_loaded);
-    assert_eq!(main_window.get_active_page(), Pages::AlbumContent);
+    assert_eq!(
+        main_window.global::<AppProps>().get_active_page(),
+        Pages::AlbumContent
+    );
     assert_eq!(
         main_window
             .global::<AlbumsPageProps>()
@@ -1636,7 +1655,7 @@ async fn do_context_menu_goto_artist(
         .invoke_song_action(song_models, action_id.into());
 
     let nav_loaded = wait_until(|| {
-        main_window.get_active_page() == Pages::ArtistContent
+        main_window.global::<AppProps>().get_active_page() == Pages::ArtistContent
             && main_window
                 .global::<ArtistContentPageProps>()
                 .get_songs()
@@ -1645,7 +1664,10 @@ async fn do_context_menu_goto_artist(
     })
     .await;
     assert!(nav_loaded);
-    assert_eq!(main_window.get_active_page(), Pages::ArtistContent);
+    assert_eq!(
+        main_window.global::<AppProps>().get_active_page(),
+        Pages::ArtistContent
+    );
     assert_eq!(
         main_window
             .global::<ArtistsPageProps>()
@@ -1832,23 +1854,23 @@ async fn do_navigation_back_forward_buttons_integration(
         .global::<AppCallbacks>()
         .invoke_active_page_changed(Pages::Artists);
 
-    assert!(main_window.get_can_go_back());
-    assert!(!main_window.get_can_go_forward());
+    assert!(main_window.global::<TopBarProps>().get_can_go_back());
+    assert!(!main_window.global::<TopBarProps>().get_can_go_forward());
 
     main_window.global::<AppCallbacks>().invoke_navigate_back();
     let back1_loaded = wait_until(|| {
-        main_window.get_active_page() == Pages::Albums
-            && main_window.get_can_go_back()
-            && main_window.get_can_go_forward()
+        main_window.global::<AppProps>().get_active_page() == Pages::Albums
+            && main_window.global::<TopBarProps>().get_can_go_back()
+            && main_window.global::<TopBarProps>().get_can_go_forward()
     })
     .await;
     assert!(back1_loaded);
 
     main_window.global::<AppCallbacks>().invoke_navigate_back();
     let back2_loaded = wait_until(|| {
-        main_window.get_active_page() == Pages::AllSongs
-            && !main_window.get_can_go_back()
-            && main_window.get_can_go_forward()
+        main_window.global::<AppProps>().get_active_page() == Pages::AllSongs
+            && !main_window.global::<TopBarProps>().get_can_go_back()
+            && main_window.global::<TopBarProps>().get_can_go_forward()
     })
     .await;
     assert!(back2_loaded);
@@ -1857,9 +1879,9 @@ async fn do_navigation_back_forward_buttons_integration(
         .global::<AppCallbacks>()
         .invoke_navigate_forward();
     let fwd1_loaded = wait_until(|| {
-        main_window.get_active_page() == Pages::Albums
-            && main_window.get_can_go_back()
-            && main_window.get_can_go_forward()
+        main_window.global::<AppProps>().get_active_page() == Pages::Albums
+            && main_window.global::<TopBarProps>().get_can_go_back()
+            && main_window.global::<TopBarProps>().get_can_go_forward()
     })
     .await;
     assert!(fwd1_loaded);
@@ -1868,9 +1890,9 @@ async fn do_navigation_back_forward_buttons_integration(
         .global::<AppCallbacks>()
         .invoke_navigate_forward();
     let fwd2_loaded = wait_until(|| {
-        main_window.get_active_page() == Pages::Artists
-            && main_window.get_can_go_back()
-            && !main_window.get_can_go_forward()
+        main_window.global::<AppProps>().get_active_page() == Pages::Artists
+            && main_window.global::<TopBarProps>().get_can_go_back()
+            && !main_window.global::<TopBarProps>().get_can_go_forward()
     })
     .await;
     assert!(fwd2_loaded);
@@ -1915,7 +1937,7 @@ async fn do_navigation_goto_album_back_forward_integration(
         .invoke_song_action(song_models, action_id.into());
 
     let nav_loaded = wait_until(|| {
-        main_window.get_active_page() == Pages::AlbumContent
+        main_window.global::<AppProps>().get_active_page() == Pages::AlbumContent
             && main_window
                 .global::<AlbumContentPageProps>()
                 .get_songs()
@@ -1924,22 +1946,31 @@ async fn do_navigation_goto_album_back_forward_integration(
     })
     .await;
     assert!(nav_loaded);
-    assert_eq!(main_window.get_active_page(), Pages::AlbumContent);
-    assert!(main_window.get_can_go_back());
+    assert_eq!(
+        main_window.global::<AppProps>().get_active_page(),
+        Pages::AlbumContent
+    );
+    assert!(main_window.global::<TopBarProps>().get_can_go_back());
 
     main_window.global::<AppCallbacks>().invoke_navigate_back();
 
-    assert_eq!(main_window.get_active_page(), Pages::AllSongs);
-    assert!(!main_window.get_can_go_back());
-    assert!(main_window.get_can_go_forward());
+    assert_eq!(
+        main_window.global::<AppProps>().get_active_page(),
+        Pages::AllSongs
+    );
+    assert!(!main_window.global::<TopBarProps>().get_can_go_back());
+    assert!(main_window.global::<TopBarProps>().get_can_go_forward());
 
     main_window
         .global::<AppCallbacks>()
         .invoke_navigate_forward();
 
-    assert_eq!(main_window.get_active_page(), Pages::AlbumContent);
-    assert!(main_window.get_can_go_back());
-    assert!(!main_window.get_can_go_forward());
+    assert_eq!(
+        main_window.global::<AppProps>().get_active_page(),
+        Pages::AlbumContent
+    );
+    assert!(main_window.global::<TopBarProps>().get_can_go_back());
+    assert!(!main_window.global::<TopBarProps>().get_can_go_forward());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -1977,7 +2008,7 @@ async fn do_navigation_settings_back_forward_integration(
         .global::<AppCallbacks>()
         .invoke_settings_toggled(false);
 
-    assert!(!main_window.get_show_settings());
+    assert!(!main_window.global::<SettingsState>().get_show_settings());
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

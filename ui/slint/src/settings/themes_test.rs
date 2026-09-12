@@ -15,11 +15,11 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use rstest::rstest;
-use slint::Model;
+use slint::{ComponentHandle, Model};
 use tracing_test::traced_test;
 
 use crate::{
-    MainWindow,
+    MainWindow, ThemesPageProps,
     pages::PageHandler,
     settings::themes::ThemesPageHandler,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
@@ -38,5 +38,11 @@ async fn test_themes_page_handler_initialize(
 
     handler.initialize();
 
-    assert_eq!(main_window.get_available_themes().row_count(), 0);
+    assert_eq!(
+        main_window
+            .global::<ThemesPageProps>()
+            .get_available_themes()
+            .row_count(),
+        0
+    );
 }

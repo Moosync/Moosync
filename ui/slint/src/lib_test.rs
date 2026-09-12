@@ -5,8 +5,8 @@ use state_manager::StateManager;
 use tracing_test::traced_test;
 
 use crate::{
-    AppCallbacks, BottomBarCallbacks, CoverHelper, MainWindow, Pages, SettingsPages,
-    SongDetailAction, SongModel, SongSortCriterion,
+    AppCallbacks, AppProps, BottomBarCallbacks, CoverHelper, MainWindow, Pages, SettingsPages,
+    SongDetailAction, SongModel, SongSortCriterion, TopBarProps,
     pages::PageLifecycleManager,
     setup_ui,
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
@@ -74,22 +74,28 @@ async fn test_ui_get_all_pages_and_setup(
         .global::<AppCallbacks>()
         .invoke_active_page_changed(Pages::GenreContent);
 
-    assert!(main_window.get_can_go_back());
-    assert!(!main_window.get_can_go_forward());
+    assert!(main_window.global::<TopBarProps>().get_can_go_back());
+    assert!(!main_window.global::<TopBarProps>().get_can_go_forward());
 
     main_window.global::<AppCallbacks>().invoke_navigate_back();
 
-    assert_eq!(main_window.get_active_page(), Pages::ArtistContent);
-    assert!(main_window.get_can_go_back());
-    assert!(main_window.get_can_go_forward());
+    assert_eq!(
+        main_window.global::<AppProps>().get_active_page(),
+        Pages::ArtistContent
+    );
+    assert!(main_window.global::<TopBarProps>().get_can_go_back());
+    assert!(main_window.global::<TopBarProps>().get_can_go_forward());
 
     main_window
         .global::<AppCallbacks>()
         .invoke_navigate_forward();
 
-    assert_eq!(main_window.get_active_page(), Pages::GenreContent);
-    assert!(main_window.get_can_go_back());
-    assert!(!main_window.get_can_go_forward());
+    assert_eq!(
+        main_window.global::<AppProps>().get_active_page(),
+        Pages::GenreContent
+    );
+    assert!(main_window.global::<TopBarProps>().get_can_go_back());
+    assert!(!main_window.global::<TopBarProps>().get_can_go_forward());
 
     main_window
         .global::<AppCallbacks>()

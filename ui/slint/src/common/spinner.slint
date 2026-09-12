@@ -1,0 +1,15 @@
+import { Theme } from "../constants.slint";
+
+export component Spinner inherits Rectangle {
+    in property <bool> active: true;
+    width: Theme.iconSizeMd;
+    height: Theme.iconSizeMd;
+
+    Image {
+        width: 100%;
+        height: 100%;
+        source: @image-url("../icons/spinner.svg");
+        colorize: Theme.accent;
+        transform-rotation: root.active ? (animation-tick() * 360deg / 1s) : 0deg;
+    }
+}

@@ -599,9 +599,9 @@ export component ThemesPage inherits SettingsPageLayout {
                         title: item.name;
                         subtitle: @tr("Adjust the size for {}", item.name);
                         unit: "px";
-                        value: item.value;
+                        value: item.value.to-float();
                         edited(v) => {
-                            AppCallbacks.theme_constant_changed(item.name, v);
+                            AppCallbacks.theme_constant_changed(item.name, v + "px");
                         }
                     }
                 }

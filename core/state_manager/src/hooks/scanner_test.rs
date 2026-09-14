@@ -16,7 +16,8 @@
 
 use std::time::Duration;
 
-use assertables::assert_ok;
+use preferences::keys::SCAN_THREADS;
+use preferences_proto::moosync::types::{PreferenceItem, PreferenceValue, preference_value};
 use rstest::{fixture, rstest};
 use tempdir::TempDir;
 use tracing_test::traced_test;
@@ -62,7 +63,14 @@ async fn test_scanner_hook_on_startup(sm_context: TestSmContext) {
     assert_ok!(hook.on_startup(&sm).await);
 
     let pref = sm.get_preference_config().await;
-    assert_ok!(pref.save(preferences::keys::ScanThreads, 4));
+    pref.save(PreferenceItem {
+        id: SCAN_THREADS.id.clone(),
+        value: Some(PreferenceValue {
+            value: Some(preference_value::Value::NumberValue(4.0)),
+        }),
+        ..SCAN_THREADS.clone()
+    })
+    .unwrap();
     tokio::time::sleep(Duration::from_millis(50)).await;
 
     let scanner = sm.get_scanner_holder().await;

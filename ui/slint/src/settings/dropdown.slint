@@ -1,13 +1,13 @@
 import { Theme } from "../constants.slint";
-import { PreferenceItem } from "preferences.slint";
+import { PreferenceItem, PreferenceOption } from "preferences.slint";
 import { AppCallbacks } from "../callbacks.slint";
 
 export component DropdownGroup inherits VerticalLayout {
     in property <PreferenceItem> preference;
     in property <string> title: root.preference.title;
     in property <string> subtitle: root.preference.subtitle;
-    in property <[string]> options: root.preference.options_dropdown;
-    in-out property <string> current-value: root.preference.value_string;
+    in property <[PreferenceOption]> options: root.preference.options;
+    in-out property <string> current_value: root.preference.value_string;
     callback changed(string);
 
     spacing: Theme.spacingMd;
@@ -44,11 +44,13 @@ export component DropdownGroup inherits VerticalLayout {
                 padding-left: Theme.paddingMd;
                 padding-right: Theme.paddingMd;
 
-                Text {
-                    text: root.current-value;
-                    vertical-alignment: center;
-                    horizontal-stretch: 1;
-                    color: Theme.textPrimary;
+                for option in root.options: HorizontalLayout {
+                    if option.id == root.current_value || (root.current_value == "" && option.id == root.options[0].id): Text {
+                        text: option.label != "" ? option.label : option.id;
+                        vertical-alignment: center;
+                        horizontal-stretch: 1;
+                        color: Theme.textPrimary;
+                    }
                 }
 
                 VerticalLayout {
@@ -81,17 +83,17 @@ export component DropdownGroup inherits VerticalLayout {
                         height: Theme.dropdownOptionHeight;
                         mouse-cursor: pointer;
                         clicked => {
-                            root.current-value = option;
+                            root.current_value = option.id != "" ? option.id : option.label;
                             if (root.preference.id != "") {
                                 AppCallbacks.preference_changed({
                                     id: root.preference.id,
-                                    value_string: option,
+                                    value_string: root.current_value,
                                     value_bool: false,
                                     value_number: 0.0,
                                     value_list: []
                                 });
                             }
-                            root.changed(option);
+                            root.changed(root.current_value);
                         }
 
                         HorizontalLayout {
@@ -104,14 +106,14 @@ export component DropdownGroup inherits VerticalLayout {
                                     width: 3px;
                                     height: 14px;
                                     border-radius: 4px;
-                                    background: root.current-value == option ? Theme.accent : transparent;
+                                    background: (root.current_value == option.id || root.current_value == option.label) ? Theme.accent : transparent;
 
                                     animate background { duration: 150ms; }
                                 }
                             }
 
                             Text {
-                                text: option;
+                                text: option.label != "" ? option.label : option.id;
                                 vertical-alignment: center;
                                 color: option_touch.has-hover ? Theme.accent : Theme.textPrimary;
 

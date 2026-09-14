@@ -23,11 +23,13 @@ rust_library(
     deps = [
         "//core/types",
         "//core/types/protos:extensions_rs",
+        "//core/types/protos:preferences_rs",
         "@crates//:chacha20poly1305",
         "@crates//:crossbeam-channel",
         "@crates//:hex",
         "@crates//:json_dotpath",
         "@crates//:keyring",
+        "@crates//:prost",
         "@crates//:serde",
         "@crates//:serde_json",
         "@crates//:thiserror",

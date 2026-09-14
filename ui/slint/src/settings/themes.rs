@@ -7,6 +7,8 @@
 // (at your option) any later version.
 //
 
+use preferences::keys::{ACTIVE_THEME_ID, PreferenceItemExt};
+use preferences_proto::moosync::types::{PreferenceValue, preference_value};
 use slint::ComponentHandle;
 use state_manager::StateManager;
 use themes_proto::moosync::types::ThemeDetails;
@@ -174,8 +176,9 @@ impl<'a> ThemesPageHandler<'a> {
 
         let active_theme_id = preference_config
             .inner
-            .load(preferences::keys::ActiveThemeId)
-            .unwrap_or_else(|_| "default".to_string());
+            .load(&ACTIVE_THEME_ID)
+            .value::<String>()
+            .unwrap_or_else(|| "default".to_string());
 
         let mut target_theme_id = active_theme_id.clone();
 
@@ -200,9 +203,11 @@ impl<'a> ThemesPageHandler<'a> {
                 return;
             }
 
-            let _ = preference_config
-                .inner
-                .save(preferences::keys::ActiveThemeId, "current".to_string());
+            let mut pref_item = (*ACTIVE_THEME_ID).clone();
+            pref_item.value = Some(PreferenceValue {
+                value: Some(preference_value::Value::StringValue("current".to_string())),
+            });
+            let _ = preference_config.inner.save(pref_item);
             target_theme_id = "current".to_string();
         }
 
@@ -299,7 +304,7 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                         let main_window_weak = main_window_weak.clone();
                         let state_manager = state_manager.clone();
                         move |key| {
-                            if key == preferences::keys::ActiveThemeId {
+                            if key == ACTIVE_THEME_ID.id.as_str() {
                                 let state_manager = state_manager.clone();
                                 let main_window_weak = main_window_weak.clone();
                                 tokio::spawn(
@@ -309,8 +314,9 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                                             state_manager.get_preference_config().await;
                                         let active_theme_id = preference_config
                                             .inner
-                                            .load(preferences::keys::ActiveThemeId)
-                                            .unwrap_or_else(|_| "default".to_string());
+                                            .load(&ACTIVE_THEME_ID)
+                                            .value::<String>()
+                                            .unwrap_or_else(|| "default".to_string());
 
                                         let active_theme = theme_holder
                                             .inner
@@ -347,7 +353,7 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                             }
                         }
                     },
-                    preferences::keys::ActiveThemeId,
+                    ACTIVE_THEME_ID.id.as_str(),
                 );
             }
             .in_current_span(),
@@ -371,10 +377,13 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
 
                             match theme_holder.inner.load_theme(theme_id.clone()) {
                                 Ok(theme) => {
-                                    if let Err(e) = preference_config
-                                        .inner
-                                        .save(preferences::keys::ActiveThemeId, theme_id.clone())
-                                    {
+                                    let mut pref_item = (*ACTIVE_THEME_ID).clone();
+                                    pref_item.value = Some(PreferenceValue {
+                                        value: Some(preference_value::Value::StringValue(
+                                            theme_id.clone(),
+                                        )),
+                                    });
+                                    if let Err(e) = preference_config.inner.save(pref_item) {
                                         tracing::error!(
                                             "Failed to save active theme preference: {:?}",
                                             e
@@ -459,10 +468,11 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                                     if let Err(e) = theme_holder.inner.remove_theme("current".to_string()) {
                                         tracing::error!("Failed to remove current temporary theme: {:?}", e);
                                     }
-                                    if let Err(e) = preference_config
-                                        .inner
-                                        .save(preferences::keys::ActiveThemeId, new_id.clone())
-                                    {
+                                    let mut pref_item = (*ACTIVE_THEME_ID).clone();
+                                    pref_item.value = Some(PreferenceValue {
+                                        value: Some(preference_value::Value::StringValue(new_id.clone())),
+                                    });
+                                    if let Err(e) = preference_config.inner.save(pref_item) {
                                         tracing::error!("Failed to save active theme preference: {:?}", e);
                                     }
 
@@ -476,7 +486,7 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                                             themes_props.set_active_theme_id(new_id.into());
                                             Self::apply_theme(&main_window, &theme);
 
-                                            let vec_model = slint::VecModel::default();
+                                             let vec_model = slint::VecModel::default();
                                             for t in themes_list {
                                                 vec_model.push(Self::map_theme_to_config(&t));
                                             }
@@ -518,8 +528,9 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
 
                             let active_theme_id = preference_config
                                 .inner
-                                .load(preferences::keys::ActiveThemeId)
-                                .unwrap_or_else(|_| "default".to_string());
+                                .load(&ACTIVE_THEME_ID)
+                                .value::<String>()
+                                .unwrap_or_else(|| "default".to_string());
 
                             if changed_theme.id == active_theme_id {
                                 let changed_theme = changed_theme.clone();

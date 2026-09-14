@@ -17,6 +17,7 @@
 use std::error::Error;
 
 use async_trait::async_trait;
+use preferences::keys::{EXTENSION_REGISTRIES, PreferenceItemExt};
 use tracing::Instrument;
 
 use super::Hook;
@@ -55,7 +56,10 @@ impl Hook for ExtensionRegistriesHook {
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let preferences = state_manager.get_preference_config().await;
 
-        if let Ok(saved_registries) = preferences.load(preferences::keys::ExtensionRegistries) {
+        if let Some(saved_registries) = preferences
+            .load(&EXTENSION_REGISTRIES)
+            .value::<Vec<String>>()
+        {
             let mut extensions = state_manager.get_extension_handler_mut().await;
             extensions.set_registries(saved_registries.into_iter().collect());
         }
@@ -68,8 +72,9 @@ impl Hook for ExtensionRegistriesHook {
                     tokio::spawn(
                         async move {
                             let preferences = state_manager.get_preference_config().await;
-                            let Ok(registries) =
-                                preferences.load(preferences::keys::ExtensionRegistries)
+                            let Some(registries) = preferences
+                                .load(&EXTENSION_REGISTRIES)
+                                .value::<Vec<String>>()
                             else {
                                 return;
                             };
@@ -84,7 +89,7 @@ impl Hook for ExtensionRegistriesHook {
                     );
                 }
             },
-            preferences::keys::ExtensionRegistries,
+            EXTENSION_REGISTRIES.id.clone(),
         );
 
         let state_manager = state_manager.clone();

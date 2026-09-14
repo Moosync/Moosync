@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package moosync.types;
 
+import "core/types/protos/preferences.proto";
 import "core/types/protos/songs.proto";
-import "core/types/protos/ui.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
 
@@ -460,7 +460,7 @@ message SetAccountResponse {
 }
 
 message RegisterUserPreferenceRequest {
-  repeated PreferenceUiData prefs = 1;
+  repeated PreferenceItem prefs = 1;
 }
 message RegisterUserPreferenceResponse {
   bool success = 1;
@@ -520,7 +520,7 @@ message ExtensionDetail {
   optional string author = 4;
   string version = 5;
   bool has_started = 6;
-  repeated PreferenceUiData preferences = 8;
+  repeated PreferenceItem preferences = 8;
   optional string extension_icon = 10;
   optional string registry = 12;
 }

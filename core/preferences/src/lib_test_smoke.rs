@@ -52,6 +52,6 @@ fn test_preferences_plugin_init(smoke_context: PluginSmokeContext) {
     let pref_plugin = PreferenceConfig::init(&context);
     let guard = pref_plugin.blocking_read();
 
-    assert!(context.data_dir.join("config.json").exists());
-    assert!(!guard.has_key("scan_threads"));
+    assert!(context.data_dir.join("preferences.bin").exists());
+    assert!(guard.get("scan_threads").is_none());
 }

@@ -28,7 +28,7 @@ use extensions_proto::moosync::types::{
     SongRemovedResponse, VolumeChangedRequest, VolumeChangedResponse, extension_command,
     extension_command_response,
 };
-use ui_proto::moosync::types::PreferenceUiData;
+use preferences_proto::moosync::types::PreferenceItem;
 
 use crate::{
     ReplyHandler,
@@ -45,7 +45,7 @@ pub struct ExtensionLockData {
 pub struct Extension {
     context: Mutex<Option<Arc<dyn ExtensionContext>>>,
     manifest: ExtensionManifest,
-    preferences: RwLock<HashMap<String, PreferenceUiData>>,
+    preferences: RwLock<HashMap<String, PreferenceItem>>,
     accounts: RwLock<HashMap<String, ExtensionAccountDetail>>,
     has_started: Arc<std::sync::atomic::AtomicBool>,
     provider_scopes: Mutex<Option<GetProviderScopesResponse>>,
@@ -168,10 +168,10 @@ impl Extension {
     pub fn get_package_name(&self) -> &str { &self.manifest.name }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn register_ui_preferences(&self, preferences: Vec<PreferenceUiData>) {
+    pub fn register_ui_preferences(&self, preferences: Vec<PreferenceItem>) {
         let mut preferences_map = self.preferences.write().unwrap();
         for preference in preferences {
-            preferences_map.insert(preference.key.clone(), preference);
+            preferences_map.insert(preference.id.clone(), preference);
         }
     }
 

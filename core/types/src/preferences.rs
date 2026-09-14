@@ -13,17 +13,3 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Clone, Deserialize)]
-pub struct CheckboxPreference {
-    pub key: String,
-    pub enabled: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PathsValue {
-    pub enabled: bool,
-    pub path: String,
-}

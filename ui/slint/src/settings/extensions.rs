@@ -14,17 +14,22 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::LazyLock};
 
 use extensions::ExtensionInfo;
-use slint::{ComponentHandle, ModelRc};
+use preferences::keys::EXTENSION_REGISTRIES;
+use preferences_proto::moosync::types::PreferenceItem as ProtoPreferenceItem;
+use slint::{ComponentHandle, ModelRc, VecModel, invoke_from_event_loop};
 use state_manager::StateManager;
 use tracing::Instrument;
 
 use crate::{
-    AppCallbacks, ExtensionItem, ExtensionsPageProps, MainWindow, Theme, pages::PageHandler,
-    settings::PreferenceHandler, utils::LazySongVecModel,
+    AppCallbacks, ExtensionItem, ExtensionPreferenceGroup, ExtensionsPageProps,
+    ExtensionsPreferenceProps, MainWindow, PreferenceItem, Theme, pages::PageHandler,
+    utils::LazySongVecModel,
 };
+
+pub static PREFERENCES: &[&LazyLock<ProtoPreferenceItem>] = &[&EXTENSION_REGISTRIES];
 
 pub struct ExtensionsPageHandler<'a> {
     main_window: &'a MainWindow,
@@ -38,6 +43,11 @@ impl<'a> ExtensionsPageHandler<'a> {
             main_window,
             state_manager,
         }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_preferences() -> Vec<ProtoPreferenceItem> {
+        PREFERENCES.iter().map(|p| (**p).clone()).collect()
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -58,9 +68,9 @@ impl<'a> ExtensionsPageHandler<'a> {
         items.sort_by(|a, b| {
             let rank = |item: &ExtensionItem| {
                 if item.is_installed && !item.has_started {
-                    0 // Installing / spawning
+                    0
                 } else if item.is_installed {
-                    1 // Active and started
+                    1
                 } else {
                     2 // Remote / uninstalled
                 }
@@ -195,19 +205,70 @@ impl<'a> ExtensionsPageHandler<'a> {
             Err(e) => tracing::error!("install_local_extension: Failed: {:?}", e),
         }
     }
-}
 
-pref_macro::generate_preferences!(
-    "src/settings/extensions_prefs.yaml",
-    extensions_items,
-    ExtensionsPageHandler
-);
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn refresh_preferences(
+        main_window_weak: slint::Weak<MainWindow>,
+        state_manager: StateManager,
+    ) {
+        let config = state_manager.get_preference_config().await;
+        let handler = state_manager.get_extension_handler().await;
+        let installed = handler.get_installed_extensions();
+
+        let loaded_static: Vec<ProtoPreferenceItem> =
+            PREFERENCES.iter().map(|pref| config.load(pref)).collect();
+
+        let mut loaded_ext_groups = Vec::new();
+        for ext in installed {
+            if ext.preferences.is_empty() {
+                continue;
+            }
+
+            let display_name = if !ext.name.is_empty() {
+                ext.name.clone()
+            } else {
+                ext.package_name.clone()
+            };
+
+            let mut group_items = Vec::new();
+            for mut p in ext.preferences {
+                p.id = format!("ext:{}:{}", ext.package_name, p.id);
+                let loaded = config.load(&p);
+                group_items.push(loaded);
+            }
+            loaded_ext_groups.push((ext.package_name, display_name, group_items));
+        }
+
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Some(main_window) = main_window_weak.upgrade() {
+                let mut extension_groups = Vec::new();
+                for (package_name, display_name, group_items) in loaded_ext_groups {
+                    let slint_group_items: Vec<PreferenceItem> =
+                        group_items.into_iter().map(PreferenceItem::from).collect();
+                    extension_groups.push(ExtensionPreferenceGroup {
+                        package_name: package_name.into(),
+                        display_name: display_name.into(),
+                        preferences: ModelRc::new(VecModel::from(slint_group_items)),
+                    });
+                }
+
+                let slint_static: Vec<PreferenceItem> = loaded_static
+                    .into_iter()
+                    .map(PreferenceItem::from)
+                    .collect();
+                let prefs_global = main_window.global::<ExtensionsPreferenceProps>();
+                prefs_global.set_static_preferences(ModelRc::new(VecModel::from(slint_static)));
+                prefs_global
+                    .set_extension_preferences(ModelRc::new(VecModel::from(extension_groups)));
+            }
+        });
+    }
+}
 
 impl<'a> PageHandler for ExtensionsPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
         tracing::info!("ExtensionsPageHandler: Initializing");
-        self.init_preferences();
         self.setup_callbacks();
 
         let state_manager = self.state_manager.clone();
@@ -215,7 +276,7 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
         tokio::spawn(
             async move {
                 let handler = state_manager.get_extension_handler().await;
-                let _cancel = handler.on_extensions_updated({
+                let _cancel_ext = handler.on_extensions_updated({
                     let state_manager = state_manager.clone();
                     let main_window_weak = main_window_weak.clone();
                     move |_| {
@@ -227,8 +288,9 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
                                 let extensions = handler.get_all_extensions();
                                 let has_updates = handler.has_updates();
                                 let cache_dir = state_manager.get_cache_dir();
-                                let _ = slint::invoke_from_event_loop(move || {
-                                    if let Some(main_window) = main_window_weak.upgrade() {
+                                let mw_weak = main_window_weak.clone();
+                                if let Err(e) = invoke_from_event_loop(move || {
+                                    if let Some(main_window) = mw_weak.upgrade() {
                                         main_window
                                             .global::<ExtensionsPageProps>()
                                             .set_has_updates(has_updates);
@@ -238,7 +300,12 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
                                             cache_dir,
                                         );
                                     }
-                                });
+                                }) {
+                                    tracing::error!(
+                                        "Failed to invoke from event loop on extensions updated: {:?}",
+                                        e
+                                    );
+                                }
                             }
                             .in_current_span(),
                         );
@@ -260,14 +327,21 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
                 let handler = state_manager.get_extension_handler().await;
                 let extensions = handler.get_all_extensions();
                 let has_updates = handler.has_updates();
-                let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(main_window) = main_window_weak.upgrade() {
+                let mw_weak = main_window_weak.clone();
+                if let Err(e) = invoke_from_event_loop(move || {
+                    if let Some(main_window) = mw_weak.upgrade() {
                         main_window
                             .global::<ExtensionsPageProps>()
                             .set_has_updates(has_updates);
                         Self::render_extensions(&main_window, extensions, cache_dir);
                     }
-                });
+                }) {
+                    tracing::error!(
+                        "Failed to invoke from event loop on extensions on_show: {:?}",
+                        e
+                    );
+                }
+                Self::refresh_preferences(main_window_weak, state_manager).await;
             }
             .in_current_span(),
         );

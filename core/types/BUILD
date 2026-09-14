@@ -35,8 +35,10 @@ rust_library(
     deps =
         [
             "//core/types/protos:extensions_rs",
+            "//core/types/protos:preferences_rs",
             "//core/types/protos:songs_rs",
             "//core/types/protos:themes_rs",
+            "//core/types/protos:ui_rs",
             "@crates//:bitcode",
             "@crates//:prost",
             "@crates//:serde",

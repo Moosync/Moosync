@@ -73,14 +73,18 @@ import {
     Preferences,
     AppPreferences,
     PreferenceItem,
-    RadioItem,
+    PreferenceOption,
 } from "settings/preferences.slint";
 import {
     ExtensionItem,
     ExtensionProviderItem,
     AccountItem,
 } from "./types/extension_view.slint";
-import { ExtensionsPageProps } from "settings/extensions.slint";
+import {
+    ExtensionsPageProps,
+    ExtensionsPreferenceProps,
+    ExtensionPreferenceGroup,
+} from "settings/extensions.slint";
 import { ThemesPageProps } from "settings/themes.slint";
 import { Utils, DefaultIconType } from "utils.slint";
 import { OAuthModal, OAuthState } from "common/oauth_modal.slint";
@@ -93,6 +97,8 @@ export {
     SettingsState,
     ThemesPageProps,
     ExtensionsPageProps,
+    ExtensionsPreferenceProps,
+    ExtensionPreferenceGroup,
     OAuthState,
     SavePlaylistState,
     SaveThemeState,
@@ -118,7 +124,7 @@ export {
     PreferenceChange,
     SortDecision,
     PreferenceItem,
-    RadioItem,
+    PreferenceOption,
     ThemeConfig,
     RgbaColor,
     ExtensionItem,

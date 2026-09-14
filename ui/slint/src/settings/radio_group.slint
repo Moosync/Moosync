@@ -1,13 +1,13 @@
 import { Theme } from "../constants.slint";
-import { PreferenceItem, RadioItem } from "preferences.slint";
+import { PreferenceItem, PreferenceOption } from "preferences.slint";
 import { AppCallbacks } from "../callbacks.slint";
 
 export component RadioGroup inherits VerticalLayout {
     in property <PreferenceItem> preference;
     in property <string> title: root.preference.title;
     in property <string> subtitle: root.preference.subtitle;
-    in property <[RadioItem]> options: root.preference.options_radio;
-    in-out property <string> selected-id: root.preference.value_string;
+    in property <[PreferenceOption]> options: root.preference.options;
+    in-out property <string> selected_id: root.preference.value_string;
     callback changed(string);
 
     spacing: Theme.spacingMd;
@@ -37,7 +37,7 @@ export component RadioGroup inherits VerticalLayout {
             mouse-cursor: pointer;
 
             clicked => {
-                root.selected-id = option.id;
+                root.selected_id = option.id;
                 if (root.preference.id != "") {
                     AppCallbacks.preference_changed({
                         id: root.preference.id,
@@ -62,7 +62,7 @@ export component RadioGroup inherits VerticalLayout {
                         height: Theme.radioOptionCircleSize;
                         border-radius: self.width / 2;
                         border-width: 2px;
-                        border-color: root.selected-id == option.id || touch.has-hover ? Theme.accent : Theme.textSecondary;
+                        border-color: root.selected_id == option.id || touch.has-hover ? Theme.accent : Theme.textSecondary;
 
                         animate border-color { duration: 150ms; }
 
@@ -73,7 +73,7 @@ export component RadioGroup inherits VerticalLayout {
                             y: (parent.height - self.height) / 2;
                             border-radius: self.width / 2;
                             background: Theme.accent;
-                            opacity: root.selected-id == option.id ? 1 : 0;
+                            opacity: root.selected_id == option.id ? 1 : 0;
                             animate opacity { duration: 150ms; }
                         }
                     }

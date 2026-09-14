@@ -14,13 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use preferences::keys::{MUSIC_PATHS, PreferenceItemExt};
 use rstest::rstest;
 use slint::ComponentHandle;
 use tracing_test::traced_test;
 
 use crate::{
-    MainWindow, PreferenceChange,
-    settings::{PreferenceHandler, paths::PathsPageHandler},
+    MainWindow,
+    pages::PageHandler,
+    settings::{handle_preference_change, paths::PathsPageHandler},
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
 };
 
@@ -28,46 +30,55 @@ use crate::{
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_paths_page_handler_handle_change_music_paths(
+async fn test_paths_page_handler_initialize(
     main_window: MainWindow,
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let change = PreferenceChange {
-        id: "MusicPaths".into(),
-        value_string: "/test/path".into(),
-        value_bool: false,
-        value_number: 0.0,
-        value_list: slint::ModelRc::default(),
-    };
-    let mw_weak = main_window.as_weak();
     let handler = PathsPageHandler::new(&main_window, &sm);
 
-    let handled = handler.handle_preference_change(&change, &mw_weak, &sm);
+    handler.initialize();
 
-    assert!(handled);
+    assert_eq!(PathsPageHandler::get_preferences().len(), 7);
 }
 
 #[rstest]
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_paths_page_handler_handle_change_unhandled_key(
+async fn test_paths_page_handler_on_show(
     main_window: MainWindow,
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let change = PreferenceChange {
-        id: "UnhandledKey".into(),
-        value_string: "".into(),
-        value_bool: false,
-        value_number: 0.0,
-        value_list: slint::ModelRc::default(),
-    };
-    let mw_weak = main_window.as_weak();
     let handler = PathsPageHandler::new(&main_window, &sm);
 
-    let handled = handler.handle_preference_change(&change, &mw_weak, &sm);
+    handler.on_show();
 
-    assert!(!handled);
+    assert_eq!(PathsPageHandler::get_preferences().len(), 7);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_paths_page_handler_handle_change_music_paths(
+    _main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    handle_preference_change(
+        "music_paths".to_string(),
+        "".to_string(),
+        false,
+        0.0,
+        vec!["/test/path".to_string()],
+        sm.clone(),
+        _main_window.as_weak(),
+    )
+    .await;
+
+    let config = sm.get_preference_config().await;
+    let paths = config.load(&MUSIC_PATHS).value::<Vec<String>>().unwrap();
+    assert!(paths.contains(&"/test/path".to_string()));
 }

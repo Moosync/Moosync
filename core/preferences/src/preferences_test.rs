@@ -14,15 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{
-    fs,
-    sync::{
-        Arc,
-        atomic::{AtomicUsize, Ordering},
-    },
+use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
 };
 
-use assertables::{assert_err, assert_ok, assert_ok_eq_x};
+use assertables::{assert_ok, assert_ok_eq_x};
+use preferences_proto::moosync::types::{PreferenceValue, StringList, preference_value};
 use rstest::{fixture, rstest};
 use tempdir::TempDir;
 use tracing_test::traced_test;
@@ -30,7 +28,7 @@ use tracing_test::traced_test;
 use crate::{context::MockKeyring, keys::*, preferences::PreferenceConfig};
 
 struct TestPrefsContext {
-    pub _temp_dir: TempDir,
+    pub temp_dir: TempDir,
     pub prefs: PreferenceConfig,
 }
 
@@ -46,21 +44,18 @@ fn prefs_context(mock_keyring: Box<MockKeyring>) -> TestPrefsContext {
     let temp_dir = TempDir::new("prefs_test").expect("failed to create temp dir");
     let prefs = PreferenceConfig::new_with_context(temp_dir.path().to_path_buf(), mock_keyring)
         .expect("failed to init preferences");
-    TestPrefsContext {
-        _temp_dir: temp_dir,
-        prefs,
-    }
+    TestPrefsContext { temp_dir, prefs }
 }
 
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_preferences_new_and_defaults(prefs_context: TestPrefsContext) {
-    let TestPrefsContext { _temp_dir, prefs } = prefs_context;
-    let config_file = _temp_dir.path().join("config.json");
+    let TestPrefsContext { temp_dir, prefs } = prefs_context;
+    let config_file = temp_dir.path().join("preferences.bin");
 
     assert!(config_file.exists());
-    assert!(!prefs.has_key("scan_threads"));
+    assert!(prefs.get("scan_threads").is_none());
 }
 
 #[rstest]
@@ -69,19 +64,23 @@ fn test_preferences_new_and_defaults(prefs_context: TestPrefsContext) {
 fn test_preferences_music_paths_crud(prefs_context: TestPrefsContext) {
     let TestPrefsContext { prefs, .. } = prefs_context;
     let paths = vec!["/path1".to_string(), "/path2".to_string()];
-    let excl_paths = vec!["/excl1".to_string()];
 
-    assert_ok!(prefs.save(MusicPaths, paths.clone()));
-    assert_ok_eq_x!(prefs.load(MusicPaths).as_ref(), &paths);
-    assert!(prefs.has_key("music_paths"));
+    let mut item = prefs.load(&MUSIC_PATHS);
+    assert_eq!(item.value::<Vec<String>>(), None);
 
-    assert_ok!(prefs.remove_key(MusicPaths));
-    assert!(!prefs.has_key("music_paths"));
-    assert_err!(prefs.load(MusicPaths));
+    item.value = Some(PreferenceValue {
+        value: Some(preference_value::Value::ListValue(StringList {
+            values: paths.clone(),
+        })),
+    });
 
-    assert_ok!(prefs.save(ExcludeMusicPaths, excl_paths.clone()));
-    assert_ok_eq_x!(prefs.load(ExcludeMusicPaths).as_ref(), &excl_paths);
-    assert_ok!(prefs.remove_key(ExcludeMusicPaths));
+    assert_ok!(prefs.save(item));
+    let loaded = prefs.load(&MUSIC_PATHS);
+    assert_eq!(loaded.value::<Vec<String>>(), Some(paths));
+
+    assert_ok!(prefs.remove(&MUSIC_PATHS));
+    assert!(prefs.get("music_paths").is_none());
+    assert_eq!(prefs.load(&MUSIC_PATHS).value::<Vec<String>>(), None);
 }
 
 #[rstest]
@@ -90,17 +89,42 @@ fn test_preferences_music_paths_crud(prefs_context: TestPrefsContext) {
 fn test_preferences_primitive_values(prefs_context: TestPrefsContext) {
     let TestPrefsContext { prefs, .. } = prefs_context;
 
-    assert_ok!(prefs.save(ScanThreads, 8));
-    assert_ok_eq_x!(prefs.load(ScanThreads), 8);
-    assert_ok!(prefs.remove_key(ScanThreads));
+    let mut scan_threads = prefs.load(&SCAN_THREADS);
+    scan_threads.value = Some(PreferenceValue {
+        value: Some(preference_value::Value::NumberValue(8.0)),
+    });
+    assert_ok!(prefs.save(scan_threads));
+    assert_eq!(prefs.load(&SCAN_THREADS).value::<i32>(), Some(8));
 
-    assert_ok!(prefs.save(ArtistSplitter, "/".to_string()));
-    assert_ok_eq_x!(prefs.load(ArtistSplitter).as_deref(), "/");
-    assert_ok!(prefs.remove_key(ArtistSplitter));
+    let mut auto_startup = prefs.load(&AUTO_STARTUP);
+    auto_startup.value = Some(PreferenceValue {
+        value: Some(preference_value::Value::BoolValue(true)),
+    });
+    assert_ok!(prefs.save(auto_startup));
+    assert_eq!(prefs.load(&AUTO_STARTUP).value::<bool>(), Some(true));
+}
 
-    assert_ok!(prefs.save(AutoStartup, true));
-    assert_ok_eq_x!(prefs.load(AutoStartup), true);
-    assert_ok!(prefs.remove_key(AutoStartup));
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_preferences_persistence_reload(prefs_context: TestPrefsContext) {
+    let TestPrefsContext { temp_dir, prefs } = prefs_context;
+
+    let mut item = prefs.load(&ARTIST_SPLITTER);
+    item.value = Some(PreferenceValue {
+        value: Some(preference_value::Value::StringValue(";".to_string())),
+    });
+    assert_ok!(prefs.save(item));
+
+    let mut mock = Box::new(MockKeyring::new());
+    mock.expect_get_secret().returning(|| Ok(vec![0; 32]));
+
+    let reloaded = PreferenceConfig::new_with_context(temp_dir.path().to_path_buf(), mock);
+    assert_ok!(reloaded.as_ref());
+    let reloaded_prefs = reloaded.unwrap();
+
+    let loaded = reloaded_prefs.load(&ARTIST_SPLITTER);
+    assert_eq!(loaded.value::<String>().as_deref(), Some(";"));
 }
 
 #[rstest]
@@ -116,82 +140,40 @@ fn test_preferences_on_preference_changed(prefs_context: TestPrefsContext) {
             c.fetch_add(1, Ordering::SeqCst);
             assert_eq!(key, "scan_threads");
         },
-        ScanThreads,
+        SCAN_THREADS.id.as_str(),
     );
 
-    assert_ok!(prefs.save(ScanThreads, 4));
+    let mut item = prefs.load(&SCAN_THREADS);
+    item.value = Some(PreferenceValue {
+        value: Some(preference_value::Value::NumberValue(4.0)),
+    });
+    assert_ok!(prefs.save(item));
     assert_eq!(call_count.load(Ordering::SeqCst), 1);
 
-    assert_ok!(prefs.remove_key(ScanThreads));
+    assert_ok!(prefs.remove(&SCAN_THREADS));
     assert_eq!(call_count.load(Ordering::SeqCst), 2);
 }
 
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_preferences_extension_protobuf_value(prefs_context: TestPrefsContext) {
+fn test_preferences_secure_storage(prefs_context: TestPrefsContext) {
     let TestPrefsContext { prefs, .. } = prefs_context;
-    let ext_key = ExtensionKey {
-        package_name: "test_pkg".to_string(),
-        key: "test_key".to_string(),
-    };
-    let mut struct_val = extensions_proto::struct_proto::google::protobuf::Struct::default();
-    struct_val.fields.insert(
-        "inner_key".to_string(),
-        extensions_proto::struct_proto::google::protobuf::Value {
-            kind: Some(
-                extensions_proto::struct_proto::google::protobuf::value::Kind::StringValue(
-                    "inner_val".to_string(),
-                ),
-            ),
-        },
-    );
-    let val = extensions_proto::struct_proto::google::protobuf::Value {
-        kind: Some(
-            extensions_proto::struct_proto::google::protobuf::value::Kind::StructValue(struct_val),
-        ),
+
+    #[derive(serde::Serialize, serde::Deserialize, PartialEq, Debug, Clone)]
+    struct SecretToken {
+        token: String,
+    }
+
+    let token = SecretToken {
+        token: "super_secret_123".to_string(),
     };
 
-    assert_ok!(prefs.save(ext_key.clone(), val.clone()));
-    let loaded = prefs.load(ext_key.clone());
-    assert_ok!(loaded.as_ref());
-    assert_eq!(loaded.unwrap().kind, val.kind);
-    assert_ok!(prefs.remove_key(ext_key));
-}
+    assert_ok!(prefs.set_secure("auth_token".to_string(), Some(token.clone())));
+    let loaded: Result<SecretToken, _> = prefs.get_secure("auth_token".to_string());
+    assert_ok_eq_x!(&loaded, &token);
 
-#[rstest]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_preferences_corrupted_json_recovery(mock_keyring: Box<MockKeyring>) {
-    let temp_dir = TempDir::new("prefs_corrupt_test").unwrap();
-    let config_file = temp_dir.path().join("preferences.json");
-    fs::write(&config_file, b"{\"invalid_json: [").unwrap();
-
-    assert_ok!(PreferenceConfig::new_with_context(
-        temp_dir.path().to_path_buf(),
-        mock_keyring
-    ));
-}
-
-#[rstest]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_preferences_special_characters_extension_key(prefs_context: TestPrefsContext) {
-    let TestPrefsContext { prefs, .. } = prefs_context;
-    let special_key = ExtensionKey {
-        package_name: "org.moosync.plugin-v2_sub:item".to_string(),
-        key: "token.special_value/123 🎵".to_string(),
-    };
-    let val = extensions_proto::struct_proto::google::protobuf::Value {
-        kind: Some(
-            extensions_proto::struct_proto::google::protobuf::value::Kind::StringValue(
-                "special_val".to_string(),
-            ),
-        ),
-    };
-
-    assert_ok!(prefs.save(special_key.clone(), val.clone()));
-    let load_res = prefs.load(special_key);
-    assert_ok!(load_res.as_ref());
-    assert_eq!(load_res.unwrap().kind, val.kind);
+    assert_ok!(prefs.set_secure::<SecretToken>("auth_token".to_string(), None));
+    let deleted: Result<SecretToken, _> = prefs.get_secure("auth_token".to_string());
+    assert!(deleted.is_err());
 }

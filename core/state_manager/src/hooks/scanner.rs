@@ -9,7 +9,10 @@ use async_trait::async_trait;
 use database::Database;
 use file_scanner::{PlaylistSongId, ScannerHolder};
 use platform_dirs::UserDirs;
-use preferences::preferences::PreferenceConfig;
+use preferences::{
+    keys::{EXCLUDE_MUSIC_PATHS, MUSIC_PATHS, PreferenceItemExt, SCAN_INTERVAL, SCAN_THREADS},
+    preferences::PreferenceConfig,
+};
 use songs_proto::moosync::types::{GetSongOptions, InnerSong, SearchableSong, Song, SongType};
 use tokio::{
     task::JoinHandle,
@@ -109,7 +112,8 @@ impl Hook for ScannerHook {
                         async move {
                             let prefs_read = preferences.read().await;
                             let mut scan_dirs = prefs_read
-                                .load(preferences::keys::MusicPaths)
+                                .load(&MUSIC_PATHS)
+                                .value::<Vec<String>>()
                                 .unwrap_or_default()
                                 .into_iter()
                                 .map(PathBuf::from)
@@ -122,14 +126,15 @@ impl Hook for ScannerHook {
                             }
 
                             let exclude_dirs = prefs_read
-                                .load(preferences::keys::ExcludeMusicPaths)
+                                .load(&EXCLUDE_MUSIC_PATHS)
+                                .value::<Vec<String>>()
                                 .unwrap_or_default()
                                 .into_iter()
                                 .map(PathBuf::from)
                                 .collect::<Vec<_>>();
 
                             let threads =
-                                prefs_read.load(preferences::keys::ScanThreads).unwrap_or(0);
+                                prefs_read.load(&SCAN_THREADS).value::<i32>().unwrap_or(0);
 
                             {
                                 let mut scanner_write = scanner.write().await;
@@ -138,7 +143,7 @@ impl Hook for ScannerHook {
                                 scanner_write.set_scan_threads(threads);
                             }
 
-                            if key == preferences::keys::MusicPaths && !scan_dirs.is_empty() {
+                            if key == MUSIC_PATHS.id && !scan_dirs.is_empty() {
                                 let db_read = database.read().await;
                                 if let Err(e) = db_read.remove_songs_outside_directories(&scan_dirs)
                                 {
@@ -155,9 +160,9 @@ impl Hook for ScannerHook {
                 }
             },
             vec![
-                preferences::keys::MusicPaths.into(),
-                preferences::keys::ExcludeMusicPaths.into(),
-                preferences::keys::ScanThreads.into(),
+                MUSIC_PATHS.id.clone(),
+                EXCLUDE_MUSIC_PATHS.id.clone(),
+                SCAN_THREADS.id.clone(),
             ],
         );
 
@@ -169,7 +174,7 @@ impl Hook for ScannerHook {
                 let preferences = preferences.clone();
                 let periodic_task = periodic_task.clone();
                 move |key| {
-                    if key != preferences::keys::ScanInterval {
+                    if key != SCAN_INTERVAL.id {
                         return;
                     }
                     let scanner = scanner.clone();
@@ -180,7 +185,8 @@ impl Hook for ScannerHook {
                             let interval_mins = preferences
                                 .read()
                                 .await
-                                .load(preferences::keys::ScanInterval)
+                                .load(&SCAN_INTERVAL)
+                                .value::<i32>()
                                 .unwrap_or(0);
 
                             if let Ok(mut guard) = periodic_task.lock()
@@ -214,7 +220,7 @@ impl Hook for ScannerHook {
                     );
                 }
             },
-            preferences::keys::ScanInterval,
+            SCAN_INTERVAL.id.clone(),
         );
 
         Ok(())

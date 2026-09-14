@@ -5,17 +5,29 @@ package(default_visibility = ["//visibility:public"])
 
 exports_files([
     "extensions.proto",
+    "preferences.proto",
     "songs.proto",
     "themes.proto",
     "ui.proto",
 ])
 
 proto_library(
+    name = "preferences_proto",
+    srcs = ["preferences.proto"],
+)
+
+rust_prost_library(
+    name = "preferences_rs",
+    proto = ":preferences_proto",
+    visibility = ["//visibility:public"],
+)
+
+proto_library(
     name = "extensions_proto",
     srcs = ["extensions.proto"],
     deps = [
+        ":preferences_proto",
         ":songs_proto",
-        ":ui_proto",
         "@com_google_protobuf//:duration_proto",
         "@com_google_protobuf//:empty_proto",
         "@com_google_protobuf//:struct_proto",
@@ -26,6 +38,7 @@ proto_library(
     name = "ui_proto",
     srcs = ["ui.proto"],
     deps = [
+        ":preferences_proto",
         "@com_google_protobuf//:struct_proto",
     ],
 )

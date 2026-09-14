@@ -1,9 +1,10 @@
 use extensions::{ExtensionError, ReplyHandler};
+use preferences_proto::moosync::types::PreferenceItem;
+use prost::Message;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use tokio::runtime::Handle;
 use tracing::Instrument;
 use types::prelude::SongsExt;
-use ui_proto::moosync::types::PreferenceUiData;
 
 use crate::StateManager;
 
@@ -106,13 +107,19 @@ impl ReplyHandler for StateReplyHandler {
         let prefs = self
             .runtime
             .block_on(self.state_manager.get_preference_config());
-        let ext_key = preferences::keys::ExtensionKey {
-            package_name: package_name.to_string(),
-            key: key.to_string(),
-        };
-        match prefs.inner.load(ext_key) {
-            Ok(val) => Ok(Some(val)),
-            Err(_) => Ok(None),
+        let scoped_key = format!("{}.{}", package_name, key);
+        if let Some(item) = prefs.get(&scoped_key)
+            && let Some(val) = item.value
+            && let Some(preferences_proto::moosync::types::preference_value::Value::StringValue(
+                hex_str,
+            )) = val.value
+            && let Ok(bytes) = hex::decode(hex_str)
+            && let Ok(proto_val) =
+                extensions_proto::struct_proto::google::protobuf::Value::decode(&bytes[..])
+        {
+            Ok(Some(proto_val))
+        } else {
+            Ok(None)
         }
     }
 
@@ -126,13 +133,21 @@ impl ReplyHandler for StateReplyHandler {
         let prefs = self
             .runtime
             .block_on(self.state_manager.get_preference_config());
-        let ext_key = preferences::keys::ExtensionKey {
-            package_name: package_name.to_string(),
-            key: key.to_string(),
+        let scoped_key = format!("{}.{}", package_name, key);
+        let bytes = value.encode_to_vec();
+        let item = PreferenceItem {
+            id: scoped_key,
+            value: Some(preferences_proto::moosync::types::PreferenceValue {
+                value: Some(
+                    preferences_proto::moosync::types::preference_value::Value::StringValue(
+                        hex::encode(bytes),
+                    ),
+                ),
+            }),
+            ..Default::default()
         };
         prefs
-            .inner
-            .save(ext_key, value)
+            .save(item)
             .map_err(|e| ExtensionError::Sanitize(e.to_string()))?;
         Ok(true)
     }
@@ -273,13 +288,14 @@ impl ReplyHandler for StateReplyHandler {
     fn register_user_preference(
         &self,
         package_name: &str,
-        prefs: Vec<PreferenceUiData>,
+        prefs: Vec<PreferenceItem>,
     ) -> Result<bool, ExtensionError> {
         let extensions = self
             .runtime
             .block_on(self.state_manager.get_extension_handler_mut());
         let extension = extensions.get_extension(package_name)?;
         extension.register_ui_preferences(prefs);
+        extensions.trigger_preferences_updated(package_name.to_string());
         Ok(true)
     }
 
@@ -294,6 +310,7 @@ impl ReplyHandler for StateReplyHandler {
             .block_on(self.state_manager.get_extension_handler_mut());
         let extension = extensions.get_extension(package_name)?;
         extension.unregister_ui_preferences(keys);
+        extensions.trigger_preferences_updated(package_name.to_string());
         Ok(true)
     }
 

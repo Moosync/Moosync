@@ -18,10 +18,10 @@ use std::{path::PathBuf, sync::Arc};
 
 use assertables::{assert_is_empty, assert_len_eq_x};
 use extensions_proto::moosync::types::{ExtensionAccountDetail, GetProviderScopesRequest};
+use preferences_proto::moosync::types::{PreferenceItem, PreferenceType};
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use tempdir::TempDir;
 use tracing_test::traced_test;
-use ui_proto::moosync::types::{PreferenceTypes, PreferenceUiData};
 
 use crate::{
     ExtensionError, context::ReplyHandler, ext_runner::ExtensionHandlerInner,
@@ -179,7 +179,7 @@ impl ReplyHandler for TestReplyHandler {
     fn register_user_preference(
         &self,
         _package_name: &str,
-        _prefs: Vec<PreferenceUiData>,
+        _prefs: Vec<PreferenceItem>,
     ) -> Result<bool, ExtensionError> {
         Ok(true)
     }
@@ -309,11 +309,11 @@ fn test_register_unregister_ui_preferences() {
     let reply_handler = Arc::new(TestReplyHandler);
     handler.spawn_extensions(reply_handler);
 
-    let prefs = vec![PreferenceUiData {
-        key: "pref1".to_string(),
+    let prefs = vec![PreferenceItem {
+        id: "pref1".to_string(),
         title: "Pref 1".to_string(),
-        description: "Description".to_string(),
-        r#type: PreferenceTypes::Extensions.into(),
+        subtitle: "Description".to_string(),
+        pref_type: PreferenceType::TextInputGroup as i32,
         ..Default::default()
     }];
 
@@ -322,7 +322,7 @@ fn test_register_unregister_ui_preferences() {
 
     let installed = handler.get_installed_extensions();
     assert_len_eq_x!(&installed[0].preferences, 1);
-    assert_eq!(installed[0].preferences[0].key, "pref1");
+    assert_eq!(installed[0].preferences[0].id, "pref1");
 
     ext.unregister_ui_preferences(vec!["pref1".to_string()]);
     let installed_after = handler.get_installed_extensions();

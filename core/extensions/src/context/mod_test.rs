@@ -19,9 +19,9 @@ use extensions_proto::moosync::types::{
     GetAppVersionRequest, GetPlayerStateRequest, GetTimeRequest, GetVolumeRequest, main_command,
     main_command_response,
 };
+use preferences_proto::moosync::types::PreferenceItem;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Song};
 use tracing_test::traced_test;
-use ui_proto::moosync::types::PreferenceUiData;
 
 use crate::{
     context::{DispatchCommand, ReplyHandler},
@@ -118,7 +118,7 @@ impl ReplyHandler for MockReply {
     fn register_user_preference(
         &self,
         _: &str,
-        _: Vec<PreferenceUiData>,
+        _: Vec<PreferenceItem>,
     ) -> Result<bool, ExtensionError> {
         Ok(true)
     }

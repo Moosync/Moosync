@@ -12,9 +12,9 @@ export component NumberInputGroup inherits HorizontalLayout {
     in property <float> min: -99999999.0;
     in property <float> max: 99999999.0;
 
-    in-out property <string> value: root.preference.value_string;
-    property <bool> is_valid: root.validation == "" || UtilCallbacks.validate_input(root.value, root.validation);
-    callback edited(string);
+    in-out property <float> value: root.preference.value_number;
+    property <bool> is_valid: root.validation == "" || UtilCallbacks.validate_input(root.value + "", root.validation);
+    callback edited(float);
 
     spacing: Theme.spacingMd;
 
@@ -63,7 +63,7 @@ export component NumberInputGroup inherits HorizontalLayout {
                         x: Math.min(0px, Math.max(parent.width - self.width - self.text-cursor-width, self.computed_x));
                         width: Math.max(parent.width - self.text-cursor-width, self.preferred-width);
                         height: 100%;
-                        text <=> root.value;
+                        text: root.value;
                         input-type: number;
                         vertical-alignment: center;
                         single-line: true;
@@ -85,14 +85,18 @@ export component NumberInputGroup inherits HorizontalLayout {
                                     root.value = root.min;
                                 } else if (num > root.max) {
                                     root.value = root.max;
+                                } else {
+                                    root.value = num;
                                 }
+                            } else {
+                                root.value = num;
                             }
                             if (root.is_valid && root.preference.id != "") {
                                 AppCallbacks.preference_changed({
                                     id: root.preference.id,
-                                    value_string: root.value,
+                                    value_string: "",
                                     value_bool: false,
-                                    value_number: root.value.to-float(),
+                                    value_number: root.value,
                                     value_list: []
                                 });
                             }

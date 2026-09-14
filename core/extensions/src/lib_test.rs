@@ -18,11 +18,11 @@ use std::{fs, sync::Arc};
 
 use assertables::assert_is_empty;
 use extensions_proto::moosync::types::ExtensionAccountDetail;
+use preferences_proto::moosync::types::PreferenceItem;
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Song};
 use tempdir::TempDir;
 use tracing_test::traced_test;
-use ui_proto::moosync::types::PreferenceUiData;
 
 use crate::{ExtensionHandler, ReplyHandler, errors::ExtensionError};
 
@@ -112,7 +112,7 @@ impl ReplyHandler for DummyReply {
     fn register_user_preference(
         &self,
         _: &str,
-        _: Vec<PreferenceUiData>,
+        _: Vec<PreferenceItem>,
     ) -> Result<bool, ExtensionError> {
         Ok(true)
     }

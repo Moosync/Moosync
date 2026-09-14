@@ -17,6 +17,11 @@
 use std::{env, fs, path::PathBuf, time::Duration};
 
 use i_slint_backend_testing::ElementHandle;
+use preferences::keys::{
+    ARTIST_SPLITTER, ARTWORK_PATH, AUTO_STARTUP, CLEAR_QUEUE, EXCLUDE_MUSIC_PATHS,
+    EXTENSION_REGISTRIES, I18N_LANGUAGE, JUKEBOX_MODE, MINIMIZE_TO_TRAY, MUSIC_PATHS,
+    PreferenceItemExt, SCAN_INTERVAL, SCAN_THREADS, THUMBNAIL_PATH, VOLUME_PERSIST_MODE,
+};
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use songs_proto::moosync::types::{Album, Artist, Genre, InnerSong, Playlist, Song, SongType};
 use state_manager::StateManager;
@@ -25,10 +30,11 @@ use types::prelude::SongsExt;
 
 use crate::{
     AccountsProps, AlbumContentPageProps, AlbumModel, AlbumsPageProps, AllSongsPageProps,
-    AppCallbacks, AppProps, ArtistContentPageProps, ArtistModel, ArtistsPageProps,
-    BottomBarCallbacks, ContextMenuCallbacks, ExtensionProviderItem, MainWindow, OAuthState, Pages,
-    PlayerProps, PlaylistContentPageProps, PlaylistModel, PlaylistsPageProps, SearchPageProps,
-    SettingsPages, SettingsState, SongModel, TopBarProps, UtilCallbacks, setup_ui,
+    AppCallbacks, AppPreferences, AppProps, ArtistContentPageProps, ArtistModel, ArtistsPageProps,
+    BottomBarCallbacks, ContextMenuCallbacks, ExtensionProviderItem, ExtensionsPreferenceProps,
+    MainWindow, OAuthState, Pages, PlayerProps, PlaylistContentPageProps, PlaylistModel,
+    PlaylistsPageProps, PreferenceChange, PreferenceType, SearchPageProps, SettingsPages,
+    SettingsState, SongModel, TopBarProps, UtilCallbacks, setup_ui,
     test_utils::{TestSlintSmContext, state_manager_fixture},
     utils::IntoVec,
 };
@@ -65,6 +71,8 @@ fn runner() -> &'static std::sync::mpsc::Sender<Task> {
     })
 }
 
+use futures::FutureExt;
+
 #[tracing::instrument(level = "debug", skip_all)]
 fn run_slint_test<F, Fut>(test_fn: F)
 where
@@ -77,17 +85,24 @@ where
             let state_manager_fixture = state_manager_fixture();
             let main_window: &'static MainWindow = Box::leak(Box::new(MainWindow::new().unwrap()));
 
+            let tx_clone = tx.clone();
             slint::spawn_local(async move {
-                test_fn(main_window, state_manager_fixture).await;
+                let res = std::panic::AssertUnwindSafe(test_fn(main_window, state_manager_fixture))
+                    .catch_unwind()
+                    .await;
                 let _ = slint::quit_event_loop();
+                let _ = tx_clone.send(res);
             })
             .expect("failed to spawn local task on slint event loop");
 
             slint::run_event_loop().expect("failed to run slint event loop");
-            let _ = tx.send(());
         }))
         .expect("failed to send task to slint runner");
-    rx.recv().expect("test failed or runner panicked");
+    match rx.recv() {
+        Ok(Ok(())) => {}
+        Ok(Err(panic_err)) => std::panic::resume_unwind(panic_err),
+        Err(e) => panic!("runner panicked before completing test: {:?}", e),
+    }
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -95,7 +110,7 @@ async fn wait_until<F>(mut condition: F) -> bool
 where
     F: FnMut() -> bool,
 {
-    for _ in 0..100 {
+    for _ in 0..500 {
         if condition() {
             return true;
         }
@@ -2191,6 +2206,562 @@ async fn do_accounts_deep_link_integration(
     assert!(closed);
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_extension_preferences_integration(
+    main_window: &'static MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
+    setup_test_context(state_manager).await;
+    load_sample_extension(state_manager).await;
+    setup_ui(main_window, state_manager);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(true);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::Extensions);
+
+    let loaded = wait_until(|| {
+        let groups = main_window
+            .global::<ExtensionsPreferenceProps>()
+            .get_extension_preferences();
+        groups.row_count() > 0
+            && groups
+                .row_data(0)
+                .is_some_and(|g| g.package_name == "sample.rs" && g.preferences.row_count() == 2)
+    })
+    .await;
+
+    assert!(loaded);
+
+    let groups = main_window
+        .global::<ExtensionsPreferenceProps>()
+        .get_extension_preferences();
+    let group = groups.row_data(0).unwrap();
+    assert_eq!(group.package_name, "sample.rs");
+    assert_eq!(group.display_name, "Sample Extension");
+    assert_eq!(group.preferences.row_count(), 2);
+
+    let (pref_api_key, pref_enable_feature) = {
+        let p0 = group.preferences.row_data(0).unwrap();
+        let p1 = group.preferences.row_data(1).unwrap();
+        if p0.id == "ext:sample.rs:api_key" {
+            (p0, p1)
+        } else {
+            (p1, p0)
+        }
+    };
+
+    assert_eq!(pref_api_key.id, "ext:sample.rs:api_key");
+    assert_eq!(pref_api_key.pref_type, PreferenceType::TextInputGroup);
+    assert_eq!(pref_api_key.title, "API Key");
+    assert_eq!(pref_api_key.subtitle, "API Key for Sample Extension");
+
+    assert_eq!(pref_enable_feature.id, "ext:sample.rs:enable_feature");
+    assert_eq!(pref_enable_feature.pref_type, PreferenceType::ToggleGroup);
+    assert_eq!(pref_enable_feature.title, "Enable Feature");
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "ext:sample.rs:api_key".into(),
+            value_string: "secret_value_xyz".into(),
+            value_bool: false,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let config = state_manager.get_preference_config().await;
+    let updated = wait_until(|| {
+        config
+            .get("ext:sample.rs:api_key")
+            .and_then(|p| p.value::<String>())
+            == Some("secret_value_xyz".to_string())
+    })
+    .await;
+
+    assert!(updated);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_preferences_integration(
+    main_window: &'static MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
+    setup_test_context(state_manager).await;
+    setup_ui(main_window, state_manager);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(true);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::Paths);
+
+    let paths_loaded = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_paths_items();
+        items.row_count() == 7
+    })
+    .await;
+    assert!(paths_loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "music_paths".into(),
+            value_string: "/music/test_dir".into(),
+            value_bool: false,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let config = state_manager.get_preference_config().await;
+    let music_paths_saved = wait_until(|| {
+        config
+            .load(&MUSIC_PATHS)
+            .value::<Vec<String>>()
+            .is_some_and(|paths| paths.contains(&"/music/test_dir".to_string()))
+    })
+    .await;
+    assert!(music_paths_saved);
+
+    let music_paths_ui_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_paths_items();
+        let Some(item) = items.iter().find(|item| item.id == "music_paths") else {
+            return false;
+        };
+        item.value_list.iter().any(|p| p == "/music/test_dir")
+    })
+    .await;
+    assert!(music_paths_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "music_paths".into(),
+            value_string: "/music/test_dir".into(),
+            value_bool: false,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let music_paths_removed = wait_until(|| {
+        config
+            .load(&MUSIC_PATHS)
+            .value::<Vec<String>>()
+            .is_some_and(|paths| !paths.contains(&"/music/test_dir".to_string()))
+    })
+    .await;
+    assert!(music_paths_removed);
+
+    let music_paths_ui_removed = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_paths_items();
+        let Some(item) = items.iter().find(|item| item.id == "music_paths") else {
+            return false;
+        };
+        !item.value_list.iter().any(|p| p == "/music/test_dir")
+    })
+    .await;
+    assert!(music_paths_ui_removed);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "exclude_music_paths".into(),
+            value_string: "/music/excluded_dir".into(),
+            value_bool: false,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let exclude_paths_saved = wait_until(|| {
+        config
+            .load(&EXCLUDE_MUSIC_PATHS)
+            .value::<Vec<String>>()
+            .is_some_and(|paths| paths.contains(&"/music/excluded_dir".to_string()))
+    })
+    .await;
+    assert!(exclude_paths_saved);
+
+    let exclude_paths_ui_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_paths_items();
+        let Some(item) = items.iter().find(|item| item.id == "exclude_music_paths") else {
+            return false;
+        };
+        item.value_list.iter().any(|p| p == "/music/excluded_dir")
+    })
+    .await;
+    assert!(exclude_paths_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "scan_threads".into(),
+            value_string: "".into(),
+            value_bool: false,
+            value_number: 8.0,
+            value_list: ModelRc::default(),
+        });
+
+    let scan_threads_saved =
+        wait_until(|| config.load(&SCAN_THREADS).value::<f32>() == Some(8.0)).await;
+    assert!(scan_threads_saved);
+
+    let scan_threads_ui_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_paths_items();
+        let Some(item) = items.iter().find(|item| item.id == "scan_threads") else {
+            return false;
+        };
+        item.value_number == 8.0
+    })
+    .await;
+    assert!(scan_threads_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "artist_splitter".into(),
+            value_string: ";".into(),
+            value_bool: false,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let artist_splitter_saved =
+        wait_until(|| config.load(&ARTIST_SPLITTER).value::<String>() == Some(";".to_string()))
+            .await;
+    assert!(artist_splitter_saved);
+
+    let artist_splitter_ui_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_paths_items();
+        let Some(item) = items.iter().find(|item| item.id == "artist_splitter") else {
+            return false;
+        };
+        item.value_string == ";"
+    })
+    .await;
+    assert!(artist_splitter_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "scan_interval".into(),
+            value_string: "".into(),
+            value_bool: false,
+            value_number: 120.0,
+            value_list: ModelRc::default(),
+        });
+
+    let scan_interval_saved =
+        wait_until(|| config.load(&SCAN_INTERVAL).value::<f32>() == Some(120.0)).await;
+    assert!(scan_interval_saved);
+
+    let scan_interval_ui_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_paths_items();
+        let Some(item) = items.iter().find(|item| item.id == "scan_interval") else {
+            return false;
+        };
+        item.value_number == 120.0
+    })
+    .await;
+    assert!(scan_interval_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "thumbnail_path".into(),
+            value_string: "/custom/thumbnails".into(),
+            value_bool: false,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let thumbnail_path_saved = wait_until(|| {
+        config.load(&THUMBNAIL_PATH).value::<String>() == Some("/custom/thumbnails".to_string())
+    })
+    .await;
+    assert!(thumbnail_path_saved);
+
+    let thumbnail_path_ui_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_paths_items();
+        let Some(item) = items.iter().find(|item| item.id == "thumbnail_path") else {
+            return false;
+        };
+        item.value_string == "/custom/thumbnails"
+    })
+    .await;
+    assert!(thumbnail_path_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "artwork_path".into(),
+            value_string: "/custom/artwork".into(),
+            value_bool: false,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let artwork_path_saved = wait_until(|| {
+        config.load(&ARTWORK_PATH).value::<String>() == Some("/custom/artwork".to_string())
+    })
+    .await;
+    assert!(artwork_path_saved);
+
+    let artwork_path_ui_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_paths_items();
+        let Some(item) = items.iter().find(|item| item.id == "artwork_path") else {
+            return false;
+        };
+        item.value_string == "/custom/artwork"
+    })
+    .await;
+    assert!(artwork_path_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::System);
+
+    let system_loaded = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_system_items();
+        items.row_count() == 6
+    })
+    .await;
+    assert!(system_loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "auto_startup".into(),
+            value_string: "".into(),
+            value_bool: true,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let auto_startup_saved =
+        wait_until(|| config.load(&AUTO_STARTUP).value::<bool>() == Some(true)).await;
+    assert!(auto_startup_saved);
+
+    let auto_startup_ui_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_system_items();
+        let Some(item) = items.iter().find(|item| item.id == "auto_startup") else {
+            return false;
+        };
+        item.value_bool
+    })
+    .await;
+    assert!(auto_startup_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "minimize_to_tray".into(),
+            value_string: "".into(),
+            value_bool: true,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let minimize_to_tray_saved =
+        wait_until(|| config.load(&MINIMIZE_TO_TRAY).value::<bool>() == Some(true)).await;
+    assert!(minimize_to_tray_saved);
+
+    let minimize_to_tray_ui_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_system_items();
+        let Some(item) = items.iter().find(|item| item.id == "minimize_to_tray") else {
+            return false;
+        };
+        item.value_bool
+    })
+    .await;
+    assert!(minimize_to_tray_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "jukebox_mode".into(),
+            value_string: "".into(),
+            value_bool: true,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let jukebox_mode_saved =
+        wait_until(|| config.load(&JUKEBOX_MODE).value::<bool>() == Some(true)).await;
+    assert!(jukebox_mode_saved);
+
+    let jukebox_mode_ui_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_system_items();
+        let Some(item) = items.iter().find(|item| item.id == "jukebox_mode") else {
+            return false;
+        };
+        item.value_bool
+    })
+    .await;
+    assert!(jukebox_mode_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "clear_queue".into(),
+            value_string: "".into(),
+            value_bool: true,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let clear_queue_saved =
+        wait_until(|| config.load(&CLEAR_QUEUE).value::<bool>() == Some(true)).await;
+    assert!(clear_queue_saved);
+
+    let clear_queue_ui_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_system_items();
+        let Some(item) = items.iter().find(|item| item.id == "clear_queue") else {
+            return false;
+        };
+        item.value_bool
+    })
+    .await;
+    assert!(clear_queue_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "volume_persist_mode".into(),
+            value_string: "persist_clamp".into(),
+            value_bool: false,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let volume_persist_saved = wait_until(|| {
+        config.load(&VOLUME_PERSIST_MODE).value::<String>() == Some("persist_clamp".to_string())
+    })
+    .await;
+    assert!(volume_persist_saved);
+
+    let volume_persist_ui_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_system_items();
+        let Some(item) = items.iter().find(|item| item.id == "volume_persist_mode") else {
+            return false;
+        };
+        item.value_string == "persist_clamp"
+    })
+    .await;
+    assert!(volume_persist_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "i18n_language".into(),
+            value_string: "fr_FR".into(),
+            value_bool: false,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let language_saved =
+        wait_until(|| config.load(&I18N_LANGUAGE).value::<String>() == Some("fr_FR".to_string()))
+            .await;
+    assert!(language_saved);
+
+    let language_ui_updated = wait_until(|| {
+        let items = main_window.global::<AppPreferences>().get_system_items();
+        let Some(item) = items.iter().find(|item| item.id == "i18n_language") else {
+            return false;
+        };
+        item.value_string == "fr_FR"
+    })
+    .await;
+    assert!(language_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::Extensions);
+
+    let extensions_loaded = wait_until(|| {
+        let items = main_window
+            .global::<ExtensionsPreferenceProps>()
+            .get_static_preferences();
+        items.row_count() == 1
+    })
+    .await;
+    assert!(extensions_loaded);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "extension_registries".into(),
+            value_string: "https://example.com/manifest.json".into(),
+            value_bool: false,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let registry_saved = wait_until(|| {
+        config
+            .load(&EXTENSION_REGISTRIES)
+            .value::<Vec<String>>()
+            .is_some_and(|urls| urls.contains(&"https://example.com/manifest.json".to_string()))
+    })
+    .await;
+    assert!(registry_saved);
+
+    let registry_ui_updated = wait_until(|| {
+        let items = main_window
+            .global::<ExtensionsPreferenceProps>()
+            .get_static_preferences();
+        let Some(item) = items.iter().find(|item| item.id == "extension_registries") else {
+            return false;
+        };
+        item.value_list
+            .iter()
+            .any(|url| url == "https://example.com/manifest.json")
+    })
+    .await;
+    assert!(registry_ui_updated);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_preference_changed(PreferenceChange {
+            id: "extension_registries".into(),
+            value_string: "https://example.com/manifest.json".into(),
+            value_bool: false,
+            value_number: 0.0,
+            value_list: ModelRc::default(),
+        });
+
+    let registry_removed = wait_until(|| {
+        config
+            .load(&EXTENSION_REGISTRIES)
+            .value::<Vec<String>>()
+            .is_some_and(|urls| !urls.contains(&"https://example.com/manifest.json".to_string()))
+    })
+    .await;
+    assert!(registry_removed);
+
+    let registry_ui_removed = wait_until(|| {
+        let items = main_window
+            .global::<ExtensionsPreferenceProps>()
+            .get_static_preferences();
+        let Some(item) = items.iter().find(|item| item.id == "extension_registries") else {
+            return false;
+        };
+        !item
+            .value_list
+            .iter()
+            .any(|url| url == "https://example.com/manifest.json")
+    })
+    .await;
+    assert!(registry_ui_removed);
+}
+
 integration_test!(
     test_view_all_songs => do_view_all_songs,
     test_view_playlists => do_view_playlists,
@@ -2226,4 +2797,6 @@ integration_test!(
     test_navigation_settings_back_forward_integration => do_navigation_settings_back_forward_integration,
     test_accounts_extension_integration => do_accounts_extension_integration,
     test_accounts_deep_link_integration => do_accounts_deep_link_integration,
+    test_extension_preferences_integration => do_extension_preferences_integration,
+    test_preferences_integration => do_preferences_integration,
 );

@@ -9,8 +9,8 @@ use extensions_proto::moosync::types::{
     PreferenceChangedRequest, RequestedSearchResultRequest, SeekedRequest, SongChangedRequest,
     SongQueueChangedRequest, VolumeChangedRequest, main_command,
 };
+use preferences_proto::moosync::types::PreferenceItem;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
-use ui_proto::moosync::types::PreferenceUiData;
 
 use crate::{context::ReplyHandler, errors::ExtensionError, ext_runner::ExtensionHandlerInner};
 
@@ -437,7 +437,7 @@ impl ReplyHandler for TestReplyRouter {
     fn register_user_preference(
         &self,
         package_name: &str,
-        prefs: Vec<PreferenceUiData>,
+        prefs: Vec<PreferenceItem>,
     ) -> Result<bool, ExtensionError> {
         if let Some(cmds) = self.get_captured_commands(package_name) {
             let mut cmds = cmds.lock().unwrap();

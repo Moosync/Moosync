@@ -4,7 +4,7 @@ import { AppCallbacks } from "../callbacks.slint";
 import { PreferenceGroup } from "preference_group.slint";
 import { ExtensionItem } from "../types/extension_view.slint";
 import { Button } from "../common/button.slint";
-import { AppPreferences } from "preferences.slint";
+import { PreferenceItem } from "preferences.slint";
 import { PreferenceList } from "preference_list.slint";
 import { Spinner } from "../common/spinner.slint";
 import { SettingsPageLayout } from "settings_page_layout.slint";
@@ -150,6 +150,17 @@ component ExtensionsManifest inherits VerticalLayout {
     }
 }
 
+export struct ExtensionPreferenceGroup {
+    package_name: string,
+    display_name: string,
+    preferences: [PreferenceItem],
+}
+
+export global ExtensionsPreferenceProps {
+    in-out property <[PreferenceItem]> static_preferences: [];
+    in-out property <[ExtensionPreferenceGroup]> extension_preferences: [];
+}
+
 export global ExtensionsPageProps {
     in-out property <[ExtensionItem]> extensions: Constants.testExtensions;
     in-out property <bool> has_updates: false;
@@ -210,7 +221,39 @@ export component ExtensionsPage inherits SettingsPageLayout {
         }
     }
 
-    PreferenceList {
-        items: AppPreferences.extensions_items;
+    if (ExtensionsPreferenceProps.static_preferences.length > 0): PreferenceList {
+        items: ExtensionsPreferenceProps.static_preferences;
+    }
+
+    for group in ExtensionsPreferenceProps.extension_preferences: VerticalLayout {
+        spacing: Theme.spacingMd;
+
+        HorizontalLayout {
+            spacing: Theme.spacingMd;
+            alignment: center;
+
+            Rectangle {
+                height: Theme.borderWidth;
+                background: Theme.divider;
+                horizontal-stretch: 1;
+            }
+
+            Text {
+                text: group.display_name;
+                font-size: Theme.modelTitle;
+                font-weight: 700;
+                color: Theme.textPrimary;
+            }
+
+            Rectangle {
+                height: Theme.borderWidth;
+                background: Theme.divider;
+                horizontal-stretch: 1;
+            }
+        }
+
+        PreferenceList {
+            items: group.preferences;
+        }
     }
 }

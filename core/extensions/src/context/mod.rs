@@ -26,8 +26,8 @@ use extensions_proto::moosync::types::{
     UnregisterUserPreferenceResponse, UpdateSongResponse, main_command, main_command_response,
 };
 pub use extism_context::ExtismContext;
+use preferences_proto::moosync::types::PreferenceItem;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
-use ui_proto::moosync::types::PreferenceUiData;
 
 use crate::errors::ExtensionError;
 
@@ -97,7 +97,7 @@ pub trait ReplyHandler: Send + Sync + 'static {
     fn register_user_preference(
         &self,
         _package_name: &str,
-        _prefs: Vec<PreferenceUiData>,
+        _prefs: Vec<PreferenceItem>,
     ) -> Result<bool, ExtensionError>;
     fn unregister_user_preference(
         &self,

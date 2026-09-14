@@ -24,13 +24,13 @@ use assertables::{assert_is_empty, assert_len_eq_x};
 use extensions_proto::moosync::types::{
     ExtensionCommandResponse, RequestedSearchResultResponse, extension_command_response,
 };
+use preferences_proto::moosync::types::PreferenceItem;
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{
     Album, Artist, EntityResult, GetEntityOptions, GetSongOptions, InnerSong, Playlist, Song,
 };
 use tempdir::TempDir;
 use tracing_test::traced_test;
-use ui_proto::moosync::types::PreferenceUiData;
 
 use crate::{
     ReplyHandler,
@@ -129,7 +129,7 @@ impl ReplyHandler for DummyReply {
     fn register_user_preference(
         &self,
         _: &str,
-        _: Vec<PreferenceUiData>,
+        _: Vec<PreferenceItem>,
     ) -> Result<bool, ExtensionError> {
         Ok(true)
     }
@@ -202,14 +202,14 @@ fn test_extension_preferences(ext_context: TestExtContext) {
     assert_eq!(ext.get_package_name(), "unit.pkg");
     assert_eq!(ext.get_lock_data().registry, "local");
 
-    ext.register_ui_preferences(vec![PreferenceUiData {
-        key: "volume".to_string(),
+    ext.register_ui_preferences(vec![PreferenceItem {
+        id: "volume".to_string(),
         title: "Default Volume".to_string(),
         ..Default::default()
     }]);
     let details = ext.get_extension_detail();
     assert_len_eq_x!(&details.preferences, 1);
-    assert_eq!(details.preferences[0].key, "volume");
+    assert_eq!(details.preferences[0].id, "volume");
 
     ext.unregister_ui_preferences(vec!["volume".to_string()]);
     let details_after = ext.get_extension_detail();

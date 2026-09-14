@@ -129,6 +129,16 @@ impl<T> ToFilterKeys<T> for Vec<T> {
     fn to_filter_keys(self) -> Vec<T> { self }
 }
 
+impl ToFilterKeys<String> for &str {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn to_filter_keys(self) -> Vec<String> { vec![self.to_string()] }
+}
+
+impl ToFilterKeys<String> for &String {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn to_filter_keys(self) -> Vec<String> { vec![self.clone()] }
+}
+
 #[macro_export]
 macro_rules! generate_on_event_impl {
     ($struct_name:ident; $($name:ident, $watch_name:ident, $arg:ty, $trait_name:path);* $(;)?) => {

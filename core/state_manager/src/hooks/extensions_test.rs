@@ -23,6 +23,10 @@ use std::{
 };
 
 use assertables::assert_ok;
+use preferences::keys::EXTENSION_REGISTRIES;
+use preferences_proto::moosync::types::{
+    PreferenceItem, PreferenceValue, StringList, preference_value,
+};
 use rstest::{fixture, rstest};
 use tempdir::TempDir;
 use tracing_test::traced_test;
@@ -77,10 +81,16 @@ async fn test_extension_registries_hook_on_startup(sm_context: TestSmContext) {
     assert_ok!(hook.on_startup(&sm).await);
 
     let pref = sm.get_preference_config().await;
-    assert_ok!(pref.save(
-        preferences::keys::ExtensionRegistries,
-        vec!["https://example.com/custom_manifest.json".to_string()],
-    ));
+    pref.save(PreferenceItem {
+        id: EXTENSION_REGISTRIES.id.clone(),
+        value: Some(PreferenceValue {
+            value: Some(preference_value::Value::ListValue(StringList {
+                values: vec!["https://example.com/custom_manifest.json".to_string()],
+            })),
+        }),
+        ..EXTENSION_REGISTRIES.clone()
+    })
+    .unwrap();
     tokio::time::sleep(Duration::from_millis(50)).await;
 
     let ext = sm.get_extension_handler().await;
@@ -109,10 +119,16 @@ async fn test_extension_registries_hook_triggers_update_on_registry_change(
     });
 
     let pref = sm.get_preference_config().await;
-    assert_ok!(pref.save(
-        preferences::keys::ExtensionRegistries,
-        vec!["https://example.com/new_registry.json".to_string()],
-    ));
+    pref.save(PreferenceItem {
+        id: EXTENSION_REGISTRIES.id.clone(),
+        value: Some(PreferenceValue {
+            value: Some(preference_value::Value::ListValue(StringList {
+                values: vec!["https://example.com/new_registry.json".to_string()],
+            })),
+        }),
+        ..EXTENSION_REGISTRIES.clone()
+    })
+    .unwrap();
     tokio::time::sleep(Duration::from_millis(50)).await;
 
     assert!(updated_flag.load(Ordering::SeqCst));

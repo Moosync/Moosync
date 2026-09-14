@@ -14,13 +14,15 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use preferences::keys::{AUTO_STARTUP, PreferenceItemExt};
 use rstest::rstest;
 use slint::ComponentHandle;
 use tracing_test::traced_test;
 
 use crate::{
-    MainWindow, PreferenceChange,
-    settings::{PreferenceHandler, system::SystemPageHandler},
+    MainWindow,
+    pages::PageHandler,
+    settings::{handle_preference_change, system::SystemPageHandler},
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
 };
 
@@ -28,22 +30,55 @@ use crate::{
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_system_page_handler_handle_change(
+async fn test_system_page_handler_initialize(
     main_window: MainWindow,
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let change = PreferenceChange {
-        id: "system_key".into(),
-        value_string: "".into(),
-        value_bool: true,
-        value_number: 0.0,
-        value_list: slint::ModelRc::default(),
-    };
-    let mw_weak = main_window.as_weak();
     let handler = SystemPageHandler::new(&main_window, &sm);
 
-    let handled = handler.handle_preference_change(&change, &mw_weak, &sm);
+    handler.initialize();
 
-    assert!(!handled);
+    assert_eq!(SystemPageHandler::get_preferences().len(), 6);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_system_page_handler_on_show(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let handler = SystemPageHandler::new(&main_window, &sm);
+
+    handler.on_show();
+
+    assert_eq!(SystemPageHandler::get_preferences().len(), 6);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_system_page_handler_handle_change_auto_startup(
+    _main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    handle_preference_change(
+        "auto_startup".to_string(),
+        "".to_string(),
+        true,
+        0.0,
+        vec![],
+        sm.clone(),
+        _main_window.as_weak(),
+    )
+    .await;
+
+    let config = sm.get_preference_config().await;
+    let auto_startup = config.load(&AUTO_STARTUP).value::<bool>().unwrap();
+    assert!(auto_startup);
 }

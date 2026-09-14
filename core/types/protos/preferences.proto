@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package moosync.types;
+
+enum PreferenceType {
+  PREFERENCE_TYPE_UNSPECIFIED = 0;
+  PREFERENCE_TYPE_PATH_SELECTOR = 1;
+  PREFERENCE_TYPE_SINGLE_FILE_INPUT = 2;
+  PREFERENCE_TYPE_NUMBER_INPUT_GROUP = 3;
+  PREFERENCE_TYPE_TEXT_INPUT_GROUP = 4;
+  PREFERENCE_TYPE_TOGGLE_GROUP = 5;
+  PREFERENCE_TYPE_RADIO_GROUP = 6;
+  PREFERENCE_TYPE_DROPDOWN_GROUP = 7;
+  PREFERENCE_TYPE_TEXT_ARRAY_INPUT = 8;
+}
+
+message PreferenceOption {
+  string id = 1;
+  string label = 2;
+}
+
+message StringList {
+  repeated string values = 1;
+}
+
+message PreferenceValue {
+  oneof value {
+    string string_value = 1;
+    bool bool_value = 2;
+    float number_value = 3;
+    StringList list_value = 4;
+  }
+}
+
+message PreferenceItem {
+  string id = 1;
+  PreferenceType pref_type = 2;
+  string title = 3;
+  string subtitle = 4;
+  optional string placeholder = 5;
+  string validation = 6;
+
+  repeated PreferenceOption options = 7;
+
+  optional PreferenceValue value = 8;
+  optional PreferenceValue default = 9;
+}

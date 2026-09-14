@@ -4,8 +4,8 @@ import { Button } from "../common/button.slint";
 export struct ButtonItem {
     id: string,
     text: string,
-    is-destructive: bool,
-    is-neutral: bool,
+    is_destructive: bool,
+    is_neutral: bool,
 }
 
 export component GroupActionButton inherits Button {
@@ -58,8 +58,8 @@ export component ButtonGroup inherits VerticalLayout {
 
     callback clicked(string);
 
-    property <string> pending-action-id;
-    property <string> pending-action-text;
+    property <string> pending_action_id;
+    property <string> pending_action_text;
 
     spacing: Theme.spacingMd;
     alignment: start;
@@ -71,13 +71,13 @@ export component ButtonGroup inherits VerticalLayout {
         for btn in buttons: GroupActionButton {
             width: max(Theme.buttonMinWidth, self.preferred-width + Theme.spacingXxl);
             text: btn.text;
-            is_destructive: btn.is-destructive;
-            is_neutral: btn.is-neutral;
+            is_destructive: btn.is_destructive;
+            is_neutral: btn.is_neutral;
 
             clicked => {
-                if (btn.is-destructive) {
-                    root.pending-action-id = btn.id;
-                    root.pending-action-text = btn.text;
+                if (btn.is_destructive) {
+                    root.pending_action_id = btn.id;
+                    root.pending_action_text = btn.text;
                     modal_popup.show();
                 } else {
                     root.clicked(btn.id);
@@ -129,7 +129,7 @@ export component ButtonGroup inherits VerticalLayout {
                                 }
 
                                 Text {
-                                    text: @tr("Are you sure you want to {}? This cannot be undone.", root.pending-action-text);
+                                    text: @tr("Are you sure you want to {}? This cannot be undone.", root.pending_action_text);
                                     font-size: Theme.caption;
                                     wrap: word-wrap;
                                 }
@@ -151,7 +151,7 @@ export component ButtonGroup inherits VerticalLayout {
                                     text: @tr("Confirm");
                                     is_confirm: true;
                                     clicked => {
-                                        root.clicked(root.pending-action-id);
+                                        root.clicked(root.pending_action_id);
                                         modal_popup.close();
                                     }
                                 }

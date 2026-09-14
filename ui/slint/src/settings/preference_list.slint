@@ -8,35 +8,35 @@ import { RadioGroup } from "radio_group.slint";
 import { DropdownGroup } from "dropdown.slint";
 import { TextArrayInput } from "text_array_input.slint";
 import { PreferenceGroup } from "preference_group.slint";
-import { PreferenceItem } from "preferences.slint";
+import { PreferenceItem, PreferenceType } from "preferences.slint";
 
 export component PreferenceList inherits VerticalLayout {
     in property <[PreferenceItem]> items;
     spacing: Theme.spacingLg;
 
     for item in root.items: PreferenceGroup {
-        if item.kind == "PathSelector": PathSelector {
+        if item.pref_type == PreferenceType.PathSelector: PathSelector {
             preference: item;
         }
-        if item.kind == "SingleFileInput": SingleFileInput {
+        if item.pref_type == PreferenceType.SingleFileInput: SingleFileInput {
             preference: item;
         }
-        if item.kind == "NumberInputGroup": NumberInputGroup {
+        if item.pref_type == PreferenceType.NumberInputGroup: NumberInputGroup {
             preference: item;
         }
-        if item.kind == "TextInputGroup": TextInputGroup {
+        if item.pref_type == PreferenceType.TextInputGroup: TextInputGroup {
             preference: item;
         }
-        if item.kind == "ToggleGroup": ToggleGroup {
+        if item.pref_type == PreferenceType.ToggleGroup: ToggleGroup {
             preference: item;
         }
-        if item.kind == "RadioGroup": RadioGroup {
+        if item.pref_type == PreferenceType.RadioGroup: RadioGroup {
             preference: item;
         }
-        if item.kind == "DropdownGroup": DropdownGroup {
+        if item.pref_type == PreferenceType.DropdownGroup: DropdownGroup {
             preference: item;
         }
-        if item.kind == "TextArrayInput": TextArrayInput {
+        if item.pref_type == PreferenceType.TextArrayInput: TextArrayInput {
             preference: item;
         }
     }

@@ -19,9 +19,9 @@ use slint::{ComponentHandle, Model, ModelRc};
 use tracing_test::traced_test;
 
 use crate::{
-    AppCallbacks, ExtensionItem, ExtensionsPageProps, MainWindow, PreferenceChange,
+    AppCallbacks, ExtensionItem, ExtensionsPageProps, MainWindow,
     pages::PageHandler,
-    settings::{PreferenceHandler, extensions::ExtensionsPageHandler},
+    settings::{extensions::ExtensionsPageHandler, handle_preference_change},
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
 };
 
@@ -88,24 +88,27 @@ async fn test_extensions_page_handler_registries(
     main_window: MainWindow,
     state_manager_fixture: TestSlintSmContext,
 ) {
+    use preferences::keys::{EXTENSION_REGISTRIES, PreferenceItemExt};
+
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
     let handler = ExtensionsPageHandler::new(&main_window, &sm);
     handler.initialize();
+    handle_preference_change(
+        "extension_registries".to_string(),
+        "".to_string(),
+        false,
+        0.0,
+        vec!["https://new-registry.org/manifest.json".to_string()],
+        sm.clone(),
+        main_window.as_weak(),
+    )
+    .await;
 
-    let change = PreferenceChange {
-        id: "ExtensionRegistries".into(),
-        value_string: "https://new-registry.org/manifest.json".into(),
-        value_bool: false,
-        value_number: 0.0,
-        value_list: slint::ModelRc::default(),
-    };
-    let mw_weak = main_window.as_weak();
-    let handled = handler.handle_preference_change(&change, &mw_weak, &sm);
-
-    assert!(handled);
-    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     let pref = sm.get_preference_config().await;
-    let saved: Vec<String> = pref.load(preferences::keys::ExtensionRegistries).unwrap();
+    let saved: Vec<String> = pref
+        .load(&EXTENSION_REGISTRIES)
+        .value::<Vec<String>>()
+        .unwrap();
     assert!(saved.contains(&"https://new-registry.org/manifest.json".to_string()));
 }
 

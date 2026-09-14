@@ -41,4 +41,13 @@ pub enum PreferencesError {
 
     #[error("Key not found: {0}")]
     KeyNotFound(String),
+
+    #[error("Invalid extension key: {0}")]
+    InvalidExtensionKey(String),
+
+    #[error("Decode error: {0}")]
+    Decode(#[from] prost::DecodeError),
+
+    #[error("Encode error: {0}")]
+    Encode(#[from] prost::EncodeError),
 }

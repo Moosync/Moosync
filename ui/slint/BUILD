@@ -336,6 +336,11 @@ rust_binary(
         ":slint_app_lib",
         "@crates//:tokio",
     ] + select({
+        "@platforms//os:linux": [
+            "@crates//:prctl",
+        ],
+        "//conditions:default": [],
+    }) + select({
         "@platforms//os:windows": [],
         "@platforms//os:android": [],
         "//conditions:default": [

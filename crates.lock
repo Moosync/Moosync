@@ -1,5 +1,5 @@
 {
-  "checksum": "0a6c06b98bec74cf242c5d41d232b6b97fc604c4fe4f40b6ed44b93a880e70b4",
+  "checksum": "47264513ff61d9c2d18979d96a0f8f6fd32c3337e1aa79ac7976a15399717fe1",
   "crates": {
     "ab_glyph 0.2.32": {
       "name": "ab_glyph",
@@ -29708,28 +29708,10 @@
         "crate_features": {
           "common": [
             "default",
+            "extra_traits",
             "std"
           ],
-          "selects": {
-            "aarch64-apple-darwin": [
-              "extra_traits"
-            ],
-            "aarch64-linux-android": [
-              "extra_traits"
-            ],
-            "aarch64-unknown-linux-gnu": [
-              "extra_traits"
-            ],
-            "x86_64-apple-darwin": [
-              "extra_traits"
-            ],
-            "x86_64-linux-android": [
-              "extra_traits"
-            ],
-            "x86_64-unknown-linux-gnu": [
-              "extra_traits"
-            ]
-          }
+          "selects": {}
         },
         "extra_deps": {
           "common": [
@@ -34686,6 +34668,10 @@
               "target": "platform_dirs"
             },
             {
+              "id": "prctl 1.0.0",
+              "target": "prctl"
+            },
+            {
               "id": "proc-macro2 1.0.107",
               "target": "proc_macro2"
             },
@@ -35621,6 +35607,12 @@
         "compile_data_glob": [
           "**"
         ],
+        "crate_features": {
+          "common": [
+            "default"
+          ],
+          "selects": {}
+        },
         "deps": {
           "common": [
             {
@@ -43856,6 +43848,57 @@
         "MIT"
       ],
       "license_file": "LICENSE-APACHE"
+    },
+    "prctl 1.0.0": {
+      "name": "prctl",
+      "version": "1.0.0",
+      "package_url": "https://github.com/viraptor/prctl-rs.git",
+      "repository": {
+        "Http": {
+          "url": "https://static.crates.io/crates/prctl/1.0.0/download",
+          "sha256": "059a34f111a9dee2ce1ac2826a68b24601c4298cfeb1a587c3cb493d5ab46f52"
+        }
+      },
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "prctl",
+            "crate_root": "src/lib.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "prctl",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "libc 0.2.189",
+              "target": "libc"
+            },
+            {
+              "id": "nix 0.31.3",
+              "target": "nix"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2015",
+        "version": "1.0.0"
+      },
+      "license": "MIT",
+      "license_ids": [
+        "MIT"
+      ],
+      "license_file": null
     },
     "predicates 3.1.4": {
       "name": "predicates",
@@ -78922,6 +78965,7 @@
     "open 5.4.2",
     "openssl-sys 0.9.117",
     "platform-dirs 0.3.0",
+    "prctl 1.0.0",
     "proc-macro2 1.0.107",
     "prost 0.14.4",
     "prost-types 0.14.4",

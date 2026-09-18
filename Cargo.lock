@@ -5612,6 +5612,7 @@ dependencies = [
  "open",
  "openssl-sys",
  "platform-dirs",
+ "prctl",
  "proc-macro2",
  "prost 0.14.4",
  "prost-types 0.14.4",
@@ -7077,6 +7078,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
 dependencies = [
  "zerocopy",
+]
+
+[[package]]
+name = "prctl"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "059a34f111a9dee2ce1ac2826a68b24601c4298cfeb1a587c3cb493d5ab46f52"
+dependencies = [
+ "libc",
+ "nix",
 ]
 
 [[package]]

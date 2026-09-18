@@ -5,6 +5,7 @@ import { VolumeControl } from "volume_control.slint";
 import { Theme } from "../constants.slint";
 import { IconButton } from "../common/icon_button.slint";
 import { QueuePageProps } from "../main_content/queue_page.slint";
+import { AppCallbacks } from "../callbacks.slint";
 
 export component BottomBar inherits Rectangle {
     height: Theme.bottombarHeight;
@@ -56,6 +57,7 @@ export component BottomBar inherits Rectangle {
                     padding-top: Theme.spacingXs / 2;
 
                     IconButton {
+                        accessible-label: @tr("Queue");
                         icon_source: @image-url("../icons/chevron.svg");
                         icon_width: Theme.playbackControlsIconSize;
                         icon_height: Theme.playbackControlsIconSize;
@@ -65,6 +67,7 @@ export component BottomBar inherits Rectangle {
                         border-radius: Theme.playbackButtonSize / 2;
                         clicked => {
                             QueuePageProps.show_queue = !QueuePageProps.show_queue;
+                            AppCallbacks.queue-toggled(QueuePageProps.show_queue);
                         }
                     }
                 }

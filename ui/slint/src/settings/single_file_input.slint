@@ -36,7 +36,7 @@ export component SingleFileInput inherits VerticalLayout {
             color: Theme.textPrimary;
         }
 
-        Text {
+        if (root.subtitle != ""): Text {
             text: root.subtitle;
             font-size: Theme.caption;
             wrap: word-wrap;

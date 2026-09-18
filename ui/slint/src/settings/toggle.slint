@@ -2,78 +2,87 @@ import { Theme } from "../constants.slint";
 import { PreferenceItem } from "preferences.slint";
 import { AppCallbacks } from "../callbacks.slint";
 
-export component ToggleGroup inherits HorizontalLayout {
+export component ToggleGroup inherits Rectangle {
     in property <PreferenceItem> preference;
     in property <string> title: root.preference.title;
     in property <string> subtitle: root.preference.subtitle;
     in-out property <bool> checked: root.preference.value_bool;
     callback toggled(bool);
 
-    spacing: Theme.spacingMd;
+    accessible-role: AccessibleRole.checkbox;
+    accessible-label: root.title;
+    accessible-checked: root.checked;
+    accessible-value: root.checked ? "true" : "false";
 
-    // The Left Side: Text
-    VerticalLayout {
-        horizontal-stretch: 1;
-        alignment: center;
+    HorizontalLayout {
+        spacing: Theme.spacingMd;
 
-        Text {
-            text: root.title;
-            font-size: Theme.modelTitle;
-            color: Theme.textPrimary;
-        }
+        // The Left Side: Text
+        VerticalLayout {
+            horizontal-stretch: 1;
+            spacing: Theme.spacingXs;
 
-        Text {
-            text: root.subtitle;
-            font-size: Theme.caption;
-            wrap: word-wrap;
-            color: Theme.textSecondary;
-        }
-    }
-
-    VerticalLayout {
-        alignment: center;
-
-        touch := TouchArea {
-            width: Theme.toggleWidth;
-            height: Theme.toggleHeight;
-            mouse-cursor: pointer;
-
-            clicked => {
-                root.checked = !root.checked;
-                if (root.preference.id != "") {
-                    AppCallbacks.preference_changed({
-                        id: root.preference.id,
-                        value_string: "",
-                        value_bool: root.checked,
-                        value_number: 0.0,
-                        value_list: []
-                    });
-                }
-                root.toggled(root.checked);
+            Text {
+                text: root.title;
+                font-size: Theme.modelTitle;
+                color: Theme.textPrimary;
             }
 
+            if (root.subtitle != ""): Text {
+                text: root.subtitle;
+                font-size: Theme.caption;
+                wrap: word-wrap;
+                color: Theme.textSecondary;
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+
             Rectangle {
-                width: 100%;
-                height: 100%;
-                border-radius: self.height / 2;
-                background: root.checked
-                    ? (touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent)
-                    : (touch.has-hover ? Theme.textSecondary.brighter(0.1) : Theme.textSecondary);
+                width: Theme.toggleWidth;
+                height: Theme.toggleHeight;
 
-                animate background { duration: 150ms; }
+                touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.checked = !root.checked;
+                        if (root.preference.id != "") {
+                            AppCallbacks.preference_changed({
+                                id: root.preference.id,
+                                value_string: "",
+                                value_bool: root.checked,
+                                value_number: 0.0,
+                                value_list: []
+                            });
+                        }
+                        root.toggled(root.checked);
+                    }
+                }
 
-                thumb := Rectangle {
-                    width: Theme.toggleThumbSize;
-                    height: Theme.toggleThumbSize;
-                    border-radius: self.width / 2;
-                    background: Theme.textPrimary;
-                    y: (parent.height - self.height) / 2;
+                Rectangle {
+                    width: 100%;
+                    height: 100%;
+                    border-radius: self.height / 2;
+                    background: root.checked
+                        ? (touch.has-hover ? Theme.accent.brighter(0.1) : Theme.accent)
+                        : (touch.has-hover ? Theme.textSecondary.brighter(0.1) : Theme.textSecondary);
 
-                    x: root.checked ? (Theme.toggleWidth - self.width - 2px) : 2px;
+                    animate background { duration: 150ms; }
 
-                    animate x {
-                        duration: 150ms;
-                        easing: cubic-bezier(0.25, 0.8, 0.25, 1);
+                    thumb := Rectangle {
+                        width: Theme.toggleThumbSize;
+                        height: Theme.toggleThumbSize;
+                        border-radius: self.width / 2;
+                        background: Theme.textPrimary;
+                        y: (parent.height - self.height) / 2;
+
+                        x: root.checked ? (Theme.toggleWidth - self.width - 2px) : 2px;
+
+                        animate x {
+                            duration: 150ms;
+                            easing: cubic-bezier(0.25, 0.8, 0.25, 1);
+                        }
                     }
                 }
             }

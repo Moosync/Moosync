@@ -22,17 +22,14 @@ pub mod error;
 mod main_content;
 mod pages;
 mod settings;
+pub mod test_utils;
 mod utils;
 mod window_info;
 
 #[cfg(test)]
-mod integration_test;
-#[cfg(test)]
 mod lib_test;
 #[cfg(test)]
 mod pages_test;
-#[cfg(test)]
-pub mod test_utils;
 #[cfg(test)]
 mod window_info_test;
 

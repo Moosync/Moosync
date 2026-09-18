@@ -350,14 +350,12 @@ impl ExtensionHandler {
     pub fn remove_extension(&self, package_name: String) -> Result<(), ExtensionError> {
         let ext_path = self.extensions_dir.join(package_name.clone());
         if ext_path.exists() {
-            fs::remove_dir_all(ext_path)?;
-            self.send_remove_extension(PackageName { package_name })?;
-            self.find_new_extensions()?;
-            self.trigger_extensions_updated();
-            Ok(())
-        } else {
-            Err(ExtensionError::NoExtensionFound)
+            let _ = fs::remove_dir_all(ext_path);
         }
+        self.send_remove_extension(PackageName { package_name })?;
+        self.find_new_extensions()?;
+        self.trigger_extensions_updated();
+        Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

@@ -292,7 +292,7 @@ impl ReplyHandler for StateReplyHandler {
     ) -> Result<bool, ExtensionError> {
         let extensions = self
             .runtime
-            .block_on(self.state_manager.get_extension_handler_mut());
+            .block_on(self.state_manager.get_extension_handler());
         let extension = extensions.get_extension(package_name)?;
         extension.register_ui_preferences(prefs);
         extensions.trigger_preferences_updated(package_name.to_string());
@@ -307,7 +307,7 @@ impl ReplyHandler for StateReplyHandler {
     ) -> Result<bool, ExtensionError> {
         let extensions = self
             .runtime
-            .block_on(self.state_manager.get_extension_handler_mut());
+            .block_on(self.state_manager.get_extension_handler());
         let extension = extensions.get_extension(package_name)?;
         extension.unregister_ui_preferences(keys);
         extensions.trigger_preferences_updated(package_name.to_string());

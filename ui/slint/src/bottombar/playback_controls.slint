@@ -114,6 +114,7 @@ export component PlaybackButton inherits Button {
 export component PlayButton inherits Button {
     in property <bool> playing: false;
 
+    accessible-label: root.playing ? @tr("Pause") : @tr("Play");
     has_custom_layout: true;
     width: Theme.playbackControlsIconSize * 2;
     height: Theme.playbackControlsIconSize * 2;
@@ -202,6 +203,7 @@ export component PlaybackControls inherits VerticalLayout {
 
         alignment: center;
         PlaybackButton {
+            accessible-label: @tr("Previous");
             icon_name: "prev";
             clicked => {
                 BottomBarCallbacks.prev-song()
@@ -209,6 +211,7 @@ export component PlaybackControls inherits VerticalLayout {
         }
 
         PlaybackButton {
+            accessible-label: @tr("Repeat");
             icon_name: "loop";
             active: root.repeat_mode != 0;
             clicked => {
@@ -224,6 +227,7 @@ export component PlaybackControls inherits VerticalLayout {
         }
 
         PlaybackButton {
+            accessible-label: @tr("Next");
             icon_name: "next";
             clicked => {
                 BottomBarCallbacks.next-song()
@@ -231,6 +235,7 @@ export component PlaybackControls inherits VerticalLayout {
         }
 
         PlaybackButton {
+            accessible-label: @tr("Shuffle");
             icon_name: "shuffle";
             clicked => {
                 BottomBarCallbacks.shuffle()
@@ -238,6 +243,7 @@ export component PlaybackControls inherits VerticalLayout {
         }
 
         PlaybackButton {
+            accessible-label: @tr("Favorite");
             icon_name: "heart";
         }
     }

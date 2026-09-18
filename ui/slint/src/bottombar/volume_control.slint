@@ -8,6 +8,7 @@ export component SpeakerButton inherits Button {
     in property <float> volume: 100;
 
     has_custom_layout: true;
+    accessible-label: root.volume > 0 ? @tr("Mute") : @tr("Unmute");
     width: Theme.playbackButtonSize;
     height: Theme.playbackButtonSize;
     border-radius: Theme.playbackButtonSize / 2;
@@ -91,6 +92,9 @@ export component VolumeControl inherits VerticalLayout {
             alignment: center;
 
             Rectangle {
+                accessible-role: slider;
+                accessible-label: @tr("Volume");
+                accessible-value: "\{root.volume}";
                 width: Theme.volumeSliderWidth;
                 height: Theme.volumeControlProgressBarHeight;
 

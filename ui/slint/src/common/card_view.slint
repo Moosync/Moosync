@@ -7,6 +7,8 @@ export component CardView inherits VerticalLayout {
     in property <string> extension: "";
     in property <image> extension_icon: @image-url("");
 
+    accessible-role: button;
+    accessible-label: root.title;
     padding: Theme.paddingSm;
     spacing: Theme.spacingXs;
 
@@ -46,6 +48,7 @@ export component CardView inherits VerticalLayout {
     VerticalLayout {
         padding-left: Theme.spacingXxs;
         Text {
+            accessible-role: none;
             text: root.title;
             font-size: Theme.modelTitle;
             color: Theme.textPrimary;

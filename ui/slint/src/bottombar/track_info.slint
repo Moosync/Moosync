@@ -36,6 +36,8 @@ export component TrackInfo inherits Rectangle {
             spacing: Theme.spacingTiny;
 
             Text {
+                accessible-role: text;
+                accessible-label: root.current_song.title;
                 text: root.current_song.title;
                 color: Theme.textPrimary; // Text Primary
                 font-size: Theme.body;
@@ -48,6 +50,8 @@ export component TrackInfo inherits Rectangle {
                 for artist[i] in root.current_song.artists: HorizontalLayout {
                     spacing: 0px;
                     Text {
+                        accessible-role: text;
+                        accessible-label: artist.title;
                         text: (i > 0 ? ", " : "") + artist.title;
                         color: Theme.textSecondary;
                         font-size: Theme.caption;
@@ -57,6 +61,8 @@ export component TrackInfo inherits Rectangle {
             }
 
             Text {
+                accessible-role: text;
+                accessible-label: root.current_song.album_name;
                 text: root.current_song.album_name;
                 color: Theme.textSecondary; // Text Secondary
                 font-size: Theme.extraSmall;

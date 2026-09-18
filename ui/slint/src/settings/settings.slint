@@ -18,39 +18,44 @@ import { IconButton } from "../common/icon_button.slint";
 
 export global SettingsState {
     in-out property <bool> show_settings: false;
+    in-out property <SettingsPages> active_page: SettingsPages.Paths;
 
     changed show_settings => {
         AppCallbacks.settings-toggled(self.show_settings);
+    }
+    changed active_page => {
+        AppCallbacks.settings-active-page-changed(self.active_page);
     }
 }
 
 export component Settings inherits Modal {
     modalSize: ModalSize.Xl;
-    property <SettingsPages> active_page: SettingsPages.Extensions;
-    changed active_page => {
-        AppCallbacks.settings-active-page-changed(self.active_page);
-    }
+    in-out property <SettingsPages> active_page <=> SettingsState.active_page;
 
     property <[SettingsSidebarItem]> items: [
         {
             text: @tr("Paths"),
             icon: @image-url("../icons/paths.svg"),
-            page: SettingsPages.Paths
+            page: SettingsPages.Paths,
+            accessible_label: @tr("Settings Paths")
         },
         {
             text: @tr("System"),
             icon: @image-url("../icons/system.svg"),
-            page: SettingsPages.System
+            page: SettingsPages.System,
+            accessible_label: @tr("Settings System")
         },
         {
             text: @tr("Extensions"),
             icon: @image-url("../icons/extensions.svg"),
-            page: SettingsPages.Extensions
+            page: SettingsPages.Extensions,
+            accessible_label: @tr("Settings Extensions")
         },
         {
             text: @tr("Themes"),
             icon: @image-url("../icons/themes.svg"),
-            page: SettingsPages.Themes
+            page: SettingsPages.Themes,
+            accessible_label: @tr("Settings Themes")
         },
     ];
 

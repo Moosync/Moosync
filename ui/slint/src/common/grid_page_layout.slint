@@ -22,6 +22,7 @@ export component GridPageLayout inherits Rectangle {
         alignment: start;
 
         header_text := Text {
+            accessible-role: none;
             height: Theme.pageHeader + Theme.paddingLg;
             text: root.title;
             font-size: Theme.pageHeader;

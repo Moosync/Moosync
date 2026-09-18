@@ -17,6 +17,8 @@ export component SongListItem inherits Rectangle {
     pure callback get_selected_songs() -> [SongModel];
     out property <bool> has-hover: context_menu.has-hover;
 
+    accessible-role: list-item;
+    accessible-label: root.song.title;
     background: Theme.secondary;
     border-radius: Theme.borderRadiusLg;
     height: Theme.songListItemHeight;
@@ -77,6 +79,7 @@ export component SongListItem inherits Rectangle {
                 padding-left: Theme.paddingLg;
 
                 Text {
+                    accessible-role: none;
                     text: song.title;
                     color: Theme.textPrimary; // Text Primary
                     font-size: Theme.body;
@@ -89,6 +92,7 @@ export component SongListItem inherits Rectangle {
                     for artist[i] in song.artists: HorizontalLayout {
                         spacing: 0px;
                         Text {
+                            accessible-role: none;
                             text: (i > 0 ? ", " : "") + artist.title;
                             color: Theme.textSecondary;
                             font-size: Theme.caption;
@@ -124,6 +128,7 @@ export component SongListItem inherits Rectangle {
                 HorizontalLayout {
                     spacing: Theme.spacingXl;
                     Text {
+                        accessible-role: none;
                         text: song.duration_str;
                         color: Theme.textSecondary;
                         font-size: Theme.caption;
@@ -131,6 +136,7 @@ export component SongListItem inherits Rectangle {
                     }
 
                     if (WindowInfo.window-size > WindowInfo.sm): IconButton {
+                        accessible-label: @tr("Add to Queue");
                         icon_source: @image-url("../icons/add_to_queue.svg");
                         icon_size: Theme.iconSizeMd;
                         width: Theme.iconSizeMd;

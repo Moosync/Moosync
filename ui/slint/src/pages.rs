@@ -130,6 +130,11 @@ impl NavigationManager {
             return false;
         }
         let changed = self.main_history.push(new_page);
+        if main_window.global::<AppProps>().get_active_page() != new_page {
+            self.is_navigating = true;
+            main_window.global::<AppProps>().set_active_page(new_page);
+            self.is_navigating = false;
+        }
         self.sync_main_ui(main_window);
         changed
     }
@@ -466,11 +471,18 @@ impl PageLifecycleManager {
             self.settings_pages.iter().map(|(p, _)| *p).collect();
 
         let main_actions = self.compute_main_visibility_changes(&main_page_keys, active_main);
+        tracing::debug!(
+            "update_all_visibility: active_main={:?}, main_actions={:?}",
+            active_main,
+            main_actions
+        );
         for (page, is_visible) in main_actions {
             if let Some((_, handler)) = self.main_pages.iter().find(|(p, _)| *p == page) {
                 if is_visible {
+                    tracing::debug!("Calling on_show for {:?}", page);
                     handler.on_show();
                 } else {
+                    tracing::debug!("Calling on_hide for {:?}", page);
                     handler.on_hide();
                 }
             }
@@ -546,7 +558,7 @@ impl PageLifecycleManager {
                 .find(|(p, _)| *p == page)
                 .map(|(_, v)| *v)
                 .unwrap_or(false);
-            let is_visible = settings_open && (was_visible || page == active_settings_page);
+            let is_visible = settings_open && page == active_settings_page;
             if is_visible != was_visible {
                 if let Some(entry) = self
                     .settings_visible_states

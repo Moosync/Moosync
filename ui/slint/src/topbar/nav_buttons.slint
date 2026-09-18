@@ -13,6 +13,7 @@ export component NavButtons inherits VerticalLayout {
     HorizontalLayout {
         spacing: Theme.spacingXs;
         IconButton {
+            accessible-label: @tr("Back");
             enabled: root.can_go_back;
             icon_source: @image-url("../icons/nav_button.svg");
             icon_width: Theme.spacingSm;
@@ -23,6 +24,7 @@ export component NavButtons inherits VerticalLayout {
         }
 
         IconButton {
+            accessible-label: @tr("Forward");
             enabled: root.can_go_forward;
             icon_source: @image-url("../icons/nav_button.svg");
             icon_width: Theme.spacingSm;

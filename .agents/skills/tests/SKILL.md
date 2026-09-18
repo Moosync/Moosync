@@ -67,13 +67,25 @@ fn test_app_page_from_pages(#[case] page: Pages, #[case] expected: AppPage) {
 - Tests must never depend on execution order or runner flags (e.g., do not rely on `RUST_TEST_THREADS=1` in Bazel).
 - Use `tempdir::TempDir` for isolated temporary directories.
 - **Slint Unit Tests**: Must use `i_slint_backend_testing::init_no_event_loop()`. This can be initialized in fixtures.
-- **Slint Integration Tests**: Must use the event loop backend (`i_slint_backend_testing::init_integration_test_with_system_time()`), initialized once per process on the runner thread driving `slint::run_event_loop()`.
-- **Slint Integration Test Structure**: Write test logic as plain async functions taking `(main_window: &'static MainWindow, state_manager_fixture: TestSlintSmContext)`. Never write inline `spawn_local` boilerplate inside test functions; use the `integration_test!` macro runner.
+- **Slint Integration Tests**: Must use the event loop backend (`i_slint_backend_testing::init_integration_test_with_system_time()`), initialized once per process (never using `slint::run_event_loop()`).
+- **Slint Integration Test Structure**: Write test logic as plain async functions taking `(main_window: &'static MainWindow, state_manager_fixture: TestSlintSmContext)`. Never write inline `spawn_local` or `run_event_loop` boilerplate inside test functions; use the `integration_test!` macro runner.
 
-### 6. Separation of Smoke Tests
+### 6. Slint Integration Testing & Three-Tier Verification
+- **Rule #1: Single CUJ per Integration Test**: Every integration test must focus strictly on one Critical User Journey (CUJ) or user action (e.g. playing a track, pausing, skipping next, clearing the queue, toggling an extension provider, opening settings). Use parameterized tests (`rstest` `#[case(...)]`) when testing variations of the same user journey.
+- **Rule #2: Three-Tier Verification Strategy**: Every integration test must verify across all applicable layers:
+  1. **Tier 1 (Rendered UI Tree Assertions - MANDATORY)**: Must assert that elements actually exist, are visible, or have been completely unmounted in the rendered Slint UI tree using `i_slint_backend_testing::ElementHandle` (e.g., `ElementHandle::find_by_accessible_label(main_window, label)` returning valid elements with `len() == 1` when visible and `len() == 0` when unmounted/removed).
+  2. **Tier 2 (Slint Global Props & Models)**: Must assert reactive properties and data vectors on global property structs (`main_window.global::<Props>().get_*()`).
+  3. **Tier 3 (Core Backend Crate State)**: Must assert real backend state inside `core/player` (`PlayerHandler`), `core/database` (`Database`), `core/preferences` (`PreferenceConfig`), and `core/extensions` (`ExtensionHandler`).
+- **Rule #3: Checking Props is NOT a UI Assertion**: Inspecting `ModelRc`, `VecModel`, or global property structs only proves that the Rust state handlers ran. A test only qualifies as asserting the UI when it verifies element handles (`ElementHandle`) in the rendered Slint UI tree.
+- **Rule #4: Real Components Over Mocks**: Integration tests must always use real production components (real `StateManager`, real SQLite `Database`, real `ExtensionHandler` with WASM runtime, real `PreferenceConfig`, real `PlayerHandler`). Hardware-dependent drivers that cannot run in headless test environments (like rodio audio hardware) must use neutral test contexts (like `DummyAudioPlayerContext`).
+- **Rule #5: UI Event Driving**: Simulate real user actions by clicking `ElementHandle`s (using `handle.single_click(slint::platform::PointerEventButton::Left).await`) rather than invoking raw Rust callbacks directly whenever feasible.
+- **Rule #6: Accessible Labels on Interactive Controls**: All interactive buttons, icon buttons, and inputs in `.slint` files must have explicit `@tr("...")` accessible labels (`accessible-label: @tr("...");`) so they are discoverable and testable with `ElementHandle`.
+- **Rule #7: No Visibility Changes for Tests (Use Test-Only Traits)**: Never change visibility (`pub`) on private struct fields, methods, or internals solely to support tests. If a component requires specialized state inspection or verification beyond its public API in tests, define a test-only trait (e.g. `#[cfg(test)] trait ComponentTestExt`) in test modules and implement it for the component.
+
+### 7. Separation of Smoke Tests
 - Pure construction or plugin initialization tests (`Plugin::init`, `new`) that verify initialization does not panic without operational assertions must be placed in separate files named `filename_test_smoke.rs` (e.g. `lib_test_smoke.rs`, `remote_test_smoke.rs`).
 
-### 7. Build & Instrumentation Rules
+### 8. Build & Instrumentation Rules
 - **Explicit files in BUILD**: Never use `glob()` in `BUILD` files; list every `.rs`, `*_test.rs`, and `*_test_smoke.rs` file explicitly in `srcs`.
 - **Tracing Instrumentation**: Every test function definition must be decorated with `#[tracing::instrument(level = "debug", skip_all)]`. Validate with `bazel run //tools:check_instrument`.
 - **Formatting**: Run `bazel run //tools:format` on modified files before committing.
@@ -101,29 +113,45 @@ async fn test_database_insert_song_success() {
 }
 ```
 
-### Slint UI Unit Test
+### Slint UI Integration Test (Three-Tier Assertion)
 ```rust
-use slint::{ComponentHandle, Model, ModelRc};
-use crate::{
-    AlbumsPageProps, MainWindow, main_content::albums::AlbumsPageHandler,
-    test_utils::run_async_test,
-};
-
-#[test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_albums_page_handler_on_show() {
-    run_async_test(|| async move {
-        let main_window = Box::leak(Box::new(MainWindow::new().unwrap()));
-        main_window.global::<AlbumsPageProps>().set_albums(ModelRc::default());
-        let handler = AlbumsPageHandler::new(main_window, mock_state_manager());
+async fn do_playback_pause_song(
+    main_window: &'static MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager: &'static StateManager = Box::leak(Box::new(sm));
+    setup_test_context(state_manager).await;
+    setup_ui(main_window, state_manager);
+    let song = SongModel {
+        id: "pause_1".into(),
+        title: "Pause Song".into(),
+        playback_url: "https://example.com/pause_1".into(),
+        ..Default::default()
+    };
+    main_window.global::<AppCallbacks>().invoke_play_song(song);
+    let _ = wait_until(|| main_window.global::<PlayerProps>().get_playing()).await;
 
-        handler.on_show();
+    let pause_buttons: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Pause").collect();
+    assert_eq!(pause_buttons.len(), 1);
+    pause_buttons[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
 
-        assert_eq!(
-            main_window.global::<AlbumsPageProps>().get_albums().row_count(),
-            0
-        );
-    });
+    let paused = wait_until(|| !main_window.global::<PlayerProps>().get_playing()).await;
+    assert!(paused);
+    // Tier 1: Rendered UI Tree assertion
+    let play_buttons: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Play").collect();
+    assert_eq!(play_buttons.len(), 1);
+    assert!(play_buttons[0].is_valid());
+    // Tier 2: Slint Props assertion
+    assert!(!main_window.global::<PlayerProps>().get_playing());
+    // Tier 3: Core Crate State assertion
+    let ph = state_manager.get_player_handler().await;
+    assert_eq!(ph.get_player_state(), PlayerState::Paused);
 }
 ```
 

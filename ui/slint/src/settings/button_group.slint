@@ -25,6 +25,7 @@ export component GroupActionButton inherits Button {
     animate opacity { duration: 100ms; }
 
     Text {
+        accessible-role: none;
         text: root.text;
         horizontal-alignment: center;
         vertical-alignment: center;
@@ -46,6 +47,7 @@ export component ModalActionButton inherits Button {
     background: is_confirm ? (root.has_hover ? Theme.danger.darker(0.15) : Theme.danger) : (is_neutral ? Theme.secondary : transparent);
 
     Text {
+        accessible-role: none;
         text: root.text;
         color: is_confirm ? Theme.textInverse : Theme.textPrimary;
         vertical-alignment: center;

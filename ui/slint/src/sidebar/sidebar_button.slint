@@ -31,6 +31,7 @@ export component SidebarButton inherits Button {
     }
 
     Text {
+        accessible-role: none;
         visible: !root.collapsed;
         text: root.text;
         color: current_color;

@@ -534,13 +534,13 @@ pub fn create_search_result(
     }
 }
 
-impl From<(ExtensionAccountDetail, Option<&ExtensionDetail>)> for AccountItem {
+impl From<ExtensionAccountDetail> for AccountItem {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn from((detail, ext_detail): (ExtensionAccountDetail, Option<&ExtensionDetail>)) -> Self {
+    fn from(detail: ExtensionAccountDetail) -> Self {
         let icon = if !detail.icon.is_empty() {
             load_icon(&detail.icon)
         } else {
-            get_extension_icon(ext_detail)
+            Image::default()
         };
 
         Self {
@@ -554,9 +554,4 @@ impl From<(ExtensionAccountDetail, Option<&ExtensionDetail>)> for AccountItem {
             username: detail.username.unwrap_or_default().into(),
         }
     }
-}
-
-impl From<ExtensionAccountDetail> for AccountItem {
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn from(detail: ExtensionAccountDetail) -> Self { Self::from((detail, None)) }
 }

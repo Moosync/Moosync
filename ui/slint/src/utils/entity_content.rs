@@ -337,7 +337,10 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                     {
                         Ok(result) => result,
                         Err(error) => {
-                            tracing::error!("Failed to fetch songs from extension: {:?}", error);
+                            tracing::error!(
+                                "on_show: failed to fetch extension songs: {:?}",
+                                error
+                            );
                             return;
                         }
                     }
@@ -345,7 +348,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                     match P::fetch_local_songs(&state_manager, entity).await {
                         Ok(songs) => (songs, None),
                         Err(error) => {
-                            tracing::error!("Failed to fetch local songs: {:?}", error);
+                            tracing::error!("on_show: failed to fetch local songs: {:?}", error);
                             return;
                         }
                     }

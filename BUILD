@@ -211,6 +211,6 @@ test_suite(
         "//core/theme_macro:theme_macro_test",
         "//core/themes:themes_test",
         "//core/types:types_test",
-        "//ui/slint:slint_app_lib_test",
+        "//ui/slint:slint_tests",
     ],
 )

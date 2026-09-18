@@ -4,8 +4,8 @@ import { Pages, SettingsPages, Theme } from "../constants.slint";
 import { WindowInfo } from "../window_info.slint";
 import { AppProps } from "../props.slint";
 
-export struct SidebarItem { text: string, icon: image, page: Pages }
-export struct SettingsSidebarItem { text: string, icon: image, page: SettingsPages }
+export struct SidebarItem { text: string, icon: image, page: Pages, accessible_label: string }
+export struct SettingsSidebarItem { text: string, icon: image, page: SettingsPages, accessible_label: string }
 
 component SidebarBase inherits Rectangle {
     in property <length> sidebar_width: Theme.sidebarWidth;
@@ -50,16 +50,42 @@ component SidebarBase inherits Rectangle {
 
 export component Sidebar inherits SidebarBase {
     in property <[SidebarItem]> items: [
-        { text: @tr("Songs"), icon: @image-url("../icons/songs.svg"), page: Pages.AllSongs },
+        {
+            text: @tr("Songs"),
+            icon: @image-url("../icons/songs.svg"),
+            page: Pages.AllSongs,
+            accessible_label: @tr("Sidebar Songs")
+        },
         {
             text: @tr("Playlists"),
             icon: @image-url("../icons/playlists.svg"),
-            page: Pages.Playlists
+            page: Pages.Playlists,
+            accessible_label: @tr("Sidebar Playlists")
         },
-        { text: @tr("Artists"), icon: @image-url("../icons/artists.svg"), page: Pages.Artists },
-        { text: @tr("Albums"), icon: @image-url("../icons/albums.svg"), page: Pages.Albums },
-        { text: @tr("Genres"), icon: @image-url("../icons/genres.svg"), page: Pages.Genres },
-        { text: @tr("Explore"), icon: @image-url("../icons/explore.svg"), page: Pages.Explore },
+        {
+            text: @tr("Artists"),
+            icon: @image-url("../icons/artists.svg"),
+            page: Pages.Artists,
+            accessible_label: @tr("Sidebar Artists")
+        },
+        {
+            text: @tr("Albums"),
+            icon: @image-url("../icons/albums.svg"),
+            page: Pages.Albums,
+            accessible_label: @tr("Sidebar Albums")
+        },
+        {
+            text: @tr("Genres"),
+            icon: @image-url("../icons/genres.svg"),
+            page: Pages.Genres,
+            accessible_label: @tr("Sidebar Genres")
+        },
+        {
+            text: @tr("Explore"),
+            icon: @image-url("../icons/explore.svg"),
+            page: Pages.Explore,
+            accessible_label: @tr("Sidebar Explore")
+        },
     ];
 
     changed collapsed => {
@@ -69,6 +95,7 @@ export component Sidebar inherits SidebarBase {
     for item in root.items: SidebarButton {
         text: item.text;
         icon: item.icon;
+        accessible-label: item.accessible_label;
         active: AppProps.active_page == item.page;
         collapsed: root.collapsed;
         clicked => {
@@ -85,6 +112,7 @@ export component SettingsSidebar inherits SidebarBase {
     for item in root.items: SidebarButton {
         text: item.text;
         icon: item.icon;
+        accessible-label: item.accessible_label;
         active: root.active_page == item.page;
         collapsed: root.collapsed;
         clicked => {

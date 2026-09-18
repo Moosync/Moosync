@@ -23,6 +23,8 @@ component QueueListItem inherits Rectangle {
     callback clicked();
     callback remove-clicked();
 
+    accessible-role: list-item;
+    accessible-label: root.song.title;
     background: transparent;
     height: 60px + Theme.paddingSm;
 
@@ -114,6 +116,7 @@ component QueueListItem inherits Rectangle {
                                 alignment: start;
 
                                 Text {
+                                    accessible-role: none;
                                     text: song.title;
                                     color: root.is-active ? Theme.accent : Theme.textPrimary;
                                     font-size: Theme.body;
@@ -133,6 +136,7 @@ component QueueListItem inherits Rectangle {
                                 for artist[i] in song.artists: HorizontalLayout {
                                     spacing: 0px;
                                     Text {
+                                        accessible-role: none;
                                         text: (i > 0 ? ", " : "") + artist.title;
                                         color: Theme.textSecondary;
                                         font-size: Theme.caption;
@@ -142,10 +146,12 @@ component QueueListItem inherits Rectangle {
                             }
                         }
 
-                        if context_menu.has-hover || root.is-active: VerticalLayout {
+                        VerticalLayout {
                             alignment: center;
+                            opacity: (context_menu.has-hover || root.is-active) ? 1.0 : 0.0;
 
                             IconButton {
+                                accessible-label: @tr("Remove from queue");
                                 icon_source: @image-url("../icons/cross.svg");
                                 icon_size: Theme.iconSizeMd;
                                 width: Theme.iconSizeLg;

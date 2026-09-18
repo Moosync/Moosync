@@ -1,0 +1,77 @@
+import { Theme } from "../constants.slint";
+
+export component Checkbox inherits Rectangle {
+    in property <string> text;
+    in property <string> subtitle;
+    in property <bool> enabled: true;
+    in-out property <bool> checked: false;
+    out property <bool> has_hover: touch.has-hover;
+    out property <bool> pressed: touch.pressed;
+
+    callback toggled(bool);
+    callback clicked();
+
+    accessible-role: checkbox;
+    accessible-label: root.text;
+    accessible-checked: root.checked;
+    accessible-value: root.checked ? "true" : "false";
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => {
+            root.checked = !root.checked;
+            root.toggled(root.checked);
+            root.clicked();
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.spacingMd;
+        alignment: start;
+
+        VerticalLayout {
+            alignment: center;
+
+            indicator := Rectangle {
+                width: Theme.radioOptionCircleSize;
+                height: Theme.radioOptionCircleSize;
+                border-radius: Theme.borderRadiusSm;
+                border-width: 2px;
+                border-color: root.checked || touch.has-hover ? Theme.accent : Theme.textSecondary;
+                background: root.checked ? Theme.accent : transparent;
+
+                animate border-color { duration: 150ms; }
+                animate background { duration: 150ms; }
+
+                if (root.checked): Rectangle {
+                    width: parent.width / 2;
+                    height: parent.height / 2;
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: Theme.borderRadiusSm;
+                    background: Theme.textInverse;
+                }
+            }
+        }
+
+        if (root.text != "" || root.subtitle != ""): VerticalLayout {
+            alignment: center;
+            spacing: Theme.spacingXxs;
+
+            if (root.text != ""): Text {
+                vertical-alignment: center;
+                text: root.text;
+                font-size: Theme.body;
+                color: Theme.textPrimary;
+            }
+
+            if (root.subtitle != ""): Text {
+                text: root.subtitle;
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+                wrap: word-wrap;
+            }
+        }
+    }
+}

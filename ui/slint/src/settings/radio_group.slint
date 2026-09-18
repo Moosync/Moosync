@@ -1,12 +1,83 @@
 import { Theme } from "../constants.slint";
 import { PreferenceItem, PreferenceOption } from "preferences.slint";
 import { AppCallbacks } from "../callbacks.slint";
+export component RadioOption inherits Rectangle {
+    in property <string> text;
+    in property <string> subtitle;
+    in property <string> option_id;
+    in property <bool> enabled: true;
+    in property <bool> checked: false;
+    out property <bool> has_hover: touch.has-hover;
+    out property <bool> pressed: touch.pressed;
+
+    callback clicked();
+
+    accessible-role: checkbox;
+    accessible-label: root.text;
+    accessible-checked: root.checked;
+    accessible-value: root.checked ? "true" : "false";
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+
+    HorizontalLayout {
+        spacing: Theme.spacingMd;
+        alignment: start;
+
+        VerticalLayout {
+            alignment: center;
+
+            indicator := Rectangle {
+                width: Theme.radioOptionCircleSize;
+                height: Theme.radioOptionCircleSize;
+                border-radius: self.width / 2;
+                border-width: 2px;
+                border-color: root.checked || touch.has-hover ? Theme.accent : Theme.textSecondary;
+                background: transparent;
+
+                animate border-color { duration: 150ms; }
+
+                Rectangle {
+                    width: parent.width / 2;
+                    height: parent.height / 2;
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    border-radius: self.width / 2;
+                    background: Theme.accent;
+                    opacity: root.checked ? 1 : 0;
+                    animate opacity { duration: 150ms; }
+                }
+            }
+        }
+
+        if (root.text != "" || root.subtitle != ""): VerticalLayout {
+            alignment: center;
+            spacing: Theme.spacingXxs;
+
+            if (root.text != ""): Text {
+                vertical-alignment: center;
+                text: root.text;
+                font-size: Theme.body;
+                color: Theme.textPrimary;
+            }
+
+            if (root.subtitle != ""): Text {
+                text: root.subtitle;
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
 
 export component RadioGroup inherits VerticalLayout {
     in property <PreferenceItem> preference;
-    in property <string> title: root.preference.title;
-    in property <string> subtitle: root.preference.subtitle;
-    in property <[PreferenceOption]> options: root.preference.options;
     in-out property <string> selected_id: root.preference.value_string;
     callback changed(string);
 
@@ -15,13 +86,13 @@ export component RadioGroup inherits VerticalLayout {
 
     VerticalLayout {
         Text {
-            text: root.title;
+            text: root.preference.title;
             font-size: Theme.modelTitle;
             color: Theme.textPrimary;
         }
 
-        Text {
-            text: root.subtitle;
+        if (root.preference.subtitle != ""): Text {
+            text: root.preference.subtitle;
             font-size: Theme.caption;
             wrap: word-wrap;
             color: Theme.textSecondary;
@@ -32,10 +103,10 @@ export component RadioGroup inherits VerticalLayout {
         spacing: Theme.spacingSm;
         alignment: start;
 
-        for option in root.options: touch := TouchArea {
-            height: Theme.radioOptionHeight;
-            mouse-cursor: pointer;
-
+        for option in root.preference.options: RadioOption {
+            text: option.label;
+            option_id: option.id;
+            checked: root.selected_id == option.id;
             clicked => {
                 root.selected_id = option.id;
                 if (root.preference.id != "") {
@@ -48,42 +119,6 @@ export component RadioGroup inherits VerticalLayout {
                     });
                 }
                 root.changed(option.id);
-            }
-
-            HorizontalLayout {
-                spacing: Theme.spacingMd;
-                alignment: start;
-
-                VerticalLayout {
-                    alignment: center;
-
-                    Rectangle {
-                        width: Theme.radioOptionCircleSize;
-                        height: Theme.radioOptionCircleSize;
-                        border-radius: self.width / 2;
-                        border-width: 2px;
-                        border-color: root.selected_id == option.id || touch.has-hover ? Theme.accent : Theme.textSecondary;
-
-                        animate border-color { duration: 150ms; }
-
-                        Rectangle {
-                            width: parent.width / 2;
-                            height: parent.height / 2;
-                            x: (parent.width - self.width) / 2;
-                            y: (parent.height - self.height) / 2;
-                            border-radius: self.width / 2;
-                            background: Theme.accent;
-                            opacity: root.selected_id == option.id ? 1 : 0;
-                            animate opacity { duration: 150ms; }
-                        }
-                    }
-                }
-
-                Text {
-                    vertical-alignment: center;
-                    text: option.label;
-                    color: Theme.textPrimary;
-                }
             }
         }
     }

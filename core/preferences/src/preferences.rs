@@ -253,7 +253,11 @@ impl PreferenceConfig {
     pub fn load(&self, item: &PreferenceItem) -> PreferenceItem {
         let prefs = self.memcache.read().unwrap();
         if let Some(saved) = prefs.get(&item.id) {
-            saved.clone()
+            let mut res = item.clone();
+            if saved.value.is_some() {
+                res.value = saved.value.clone();
+            }
+            res
         } else {
             item.clone()
         }

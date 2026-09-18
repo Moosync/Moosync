@@ -5,7 +5,6 @@ SRC_LIST = [
     "src/accounts.rs",
     "src/accounts_test.rs",
     "src/error.rs",
-    "src/integration_test.rs",
     "src/lib.rs",
     "src/lib_test.rs",
     "src/main_content/album_content.rs",
@@ -77,21 +76,163 @@ SRC_LIST = [
 ]
 
 rust_test(
-    name = "slint_app_lib_test",
-    args = ["--test-threads=1"],
+    name = "slint_unit_test",
+    size = "medium",
     crate = ":slint_app_lib",
+    deps = [
+        "@crates//:assertables",
+        "@crates//:tracing-test",
+    ],
+)
+
+rust_test(
+    name = "slint_navigation_test",
+    size = "large",
+    srcs = ["src/integration_tests/navigation_test.rs"],
+    deps = [
+        ":slint_app_lib",
+        "//core/state_manager",
+        "//core/types/protos:songs_rs",
+        "@crates//:i-slint-backend-testing",
+        "@crates//:slint",
+        "@crates//:tokio",
+        "@crates//:tracing",
+        "@crates//:tracing-test",
+    ],
+)
+
+rust_test(
+    name = "slint_views_test",
+    size = "large",
+    srcs = ["src/integration_tests/views_test.rs"],
+    deps = [
+        ":slint_app_lib",
+        "//core/state_manager",
+        "//core/types/protos:songs_rs",
+        "@crates//:i-slint-backend-testing",
+        "@crates//:slint",
+        "@crates//:tokio",
+        "@crates//:tracing",
+        "@crates//:tracing-test",
+    ],
+)
+
+rust_test(
+    name = "slint_playback_test",
+    size = "large",
+    srcs = ["src/integration_tests/playback_test.rs"],
+    deps = [
+        ":slint_app_lib",
+        "//core/state_manager",
+        "@crates//:i-slint-backend-testing",
+        "@crates//:slint",
+        "@crates//:tokio",
+        "@crates//:tracing",
+        "@crates//:tracing-test",
+    ],
+)
+
+rust_test(
+    name = "slint_search_test",
+    size = "large",
+    srcs = ["src/integration_tests/search_test.rs"],
     data = [
         "@moosync_ext//sample_extensions/rs:sample_extension",
     ],
-    env = {
-        "RUST_TEST_THREADS": "1",
-    },
     deps = [
-        "@crates//:assertables",
+        ":slint_app_lib",
+        "//core/state_manager",
+        "//core/types/protos:songs_rs",
         "@crates//:i-slint-backend-testing",
-        "@crates//:rstest",
-        "@crates//:tempdir",
+        "@crates//:slint",
+        "@crates//:tokio",
+        "@crates//:tracing",
         "@crates//:tracing-test",
+    ],
+)
+
+rust_test(
+    name = "slint_queue_test",
+    size = "large",
+    srcs = ["src/integration_tests/queue_test.rs"],
+    deps = [
+        ":slint_app_lib",
+        "//core/state_manager",
+        "@crates//:i-slint-backend-testing",
+        "@crates//:slint",
+        "@crates//:tokio",
+        "@crates//:tracing",
+        "@crates//:tracing-test",
+    ],
+)
+
+rust_test(
+    name = "slint_settings_test",
+    size = "large",
+    srcs = ["src/integration_tests/settings_test.rs"],
+    deps = [
+        ":slint_app_lib",
+        "//core/preferences",
+        "//core/state_manager",
+        "//core/types/protos:preferences_rs",
+        "@crates//:i-slint-backend-testing",
+        "@crates//:slint",
+        "@crates//:tokio",
+        "@crates//:tracing",
+        "@crates//:tracing-test",
+    ],
+)
+
+rust_test(
+    name = "slint_accounts_test",
+    size = "large",
+    srcs = ["src/integration_tests/accounts_test.rs"],
+    data = [
+        "@moosync_ext//sample_extensions/rs:sample_extension",
+    ],
+    deps = [
+        ":slint_app_lib",
+        "//core/state_manager",
+        "@crates//:i-slint-backend-testing",
+        "@crates//:slint",
+        "@crates//:tokio",
+        "@crates//:tracing",
+        "@crates//:tracing-test",
+    ],
+)
+
+rust_test(
+    name = "slint_extensions_test",
+    size = "large",
+    srcs = ["src/integration_tests/extensions_test.rs"],
+    data = [
+        "@moosync_ext//sample_extensions/rs:sample_extension",
+    ],
+    deps = [
+        ":slint_app_lib",
+        "//core/preferences",
+        "//core/state_manager",
+        "//core/types/protos:songs_rs",
+        "@crates//:i-slint-backend-testing",
+        "@crates//:slint",
+        "@crates//:tokio",
+        "@crates//:tracing",
+        "@crates//:tracing-test",
+    ],
+)
+
+test_suite(
+    name = "slint_tests",
+    tests = [
+        ":slint_accounts_test",
+        ":slint_extensions_test",
+        ":slint_navigation_test",
+        ":slint_playback_test",
+        ":slint_queue_test",
+        ":slint_search_test",
+        ":slint_settings_test",
+        ":slint_unit_test",
+        ":slint_views_test",
     ],
 )
 
@@ -155,14 +296,17 @@ rust_library(
         "//core/types/protos:ui_rs",
         "@crates//:csscolorparser",
         "@crates//:futures",
+        "@crates//:i-slint-backend-testing",
         "@crates//:image",
         "@crates//:open",
         "@crates//:platform-dirs",
         "@crates//:prost-types",
         "@crates//:regex",
         "@crates//:reqwest",
+        "@crates//:rstest",
         "@crates//:serde_json",
         "@crates//:slint",
+        "@crates//:tempdir",
         "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",

@@ -28,7 +28,7 @@ export component NumberInputGroup inherits HorizontalLayout {
             color: Theme.textPrimary;
         }
 
-        Text {
+        if (root.subtitle != ""): Text {
             text: root.subtitle;
             font-size: Theme.caption;
             color: Theme.textSecondary;

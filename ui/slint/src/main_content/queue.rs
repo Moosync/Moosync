@@ -344,6 +344,13 @@ impl<'a> PageHandler for QueuePageHandler<'a> {
         *self.is_visible.lock().unwrap() = true;
         self.hide_timer.borrow().stop();
 
+        {
+            let mut handles = self.cancel_handles.lock().unwrap();
+            for handle in handles.drain(..) {
+                handle.cancel();
+            }
+        }
+
         Self::fetch_initial_state(self.state_manager.clone(), self.main_window.as_weak());
         Self::register_player_callbacks(
             self.state_manager.clone(),

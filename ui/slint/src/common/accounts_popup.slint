@@ -11,6 +11,7 @@ export global AccountsProps {
 export component AccountItemButton inherits Button {
     in property <AccountItem> item;
 
+    text: !root.item.logged_in ? @tr("Login") : @tr("Logout");
     has_custom_layout: true;
     width: 100%;
     height: Theme.accountItemHeight;
@@ -69,14 +70,14 @@ export component AccountsPopupContent inherits Rectangle {
     border-color: Theme.divider;
     clip: true;
 
-    TouchArea { }
-
     VerticalLayout {
         padding: Theme.paddingSm;
         spacing: Theme.spacingSm;
 
         if (AccountsProps.accounts.length == 0): Rectangle {
             height: Theme.accountItemHeight;
+            accessible-role: text;
+            accessible-label: @tr("No accounts configured");
             Text {
                 text: @tr("No accounts configured");
                 color: Theme.textSecondary;
@@ -100,32 +101,18 @@ export component AccountsPopupContent inherits Rectangle {
     }
 }
 
-export component AccountsPopup inherits Rectangle {
-    public function show() {
-        popup.show();
-    }
-
-    public function close() {
-        popup.close();
-    }
-
+export component AccountsPopup inherits PopupWindow {
     property <length> content_height: AccountsProps.accounts.length == 0 ? (Theme.accountItemHeight + Theme.paddingSm * 2) : (AccountsProps.accounts.length * Theme.accountItemHeight + (AccountsProps.accounts.length - 1) * Theme.spacingSm + Theme.paddingSm * 2);
 
     width: Theme.accountsPopupWidth;
+    height: root.content_height;
+    close-policy: PopupClosePolicy.close-on-click-outside;
 
-    popup := PopupWindow {
-        x: 0px;
-        y: 0px;
-        width: root.width;
-        height: root.content_height;
-        close-policy: PopupClosePolicy.close-on-click-outside;
-
-        AccountsPopupContent {
-            width: 100%;
-            height: 100%;
-            close => {
-                root.close();
-            }
+    AccountsPopupContent {
+        width: 100%;
+        height: 100%;
+        close => {
+            root.close();
         }
     }
 }

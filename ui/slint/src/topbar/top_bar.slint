@@ -2,7 +2,7 @@ import { NavButtons } from "nav_buttons.slint";
 import { SearchBar } from "search_bar.slint";
 import { Theme, Pages } from "../constants.slint";
 import { IconButton } from "../common/icon_button.slint";
-import { AccountsPopup } from "../common/accounts_popup.slint";
+import { AccountsPopup, AccountsProps } from "../common/accounts_popup.slint";
 import { AppCallbacks } from "../callbacks.slint";
 import { AppProps } from "../props.slint";
 import { SettingsState } from "../settings/settings.slint";
@@ -85,6 +85,7 @@ export component TopBar inherits Rectangle {
 
                 // Settings Action
                 IconButton {
+                    accessible-label: @tr("Settings");
                     icon_source: @image-url("../icons/settings.svg");
                     icon_size: Theme.iconSizeLg;
                     clicked => {

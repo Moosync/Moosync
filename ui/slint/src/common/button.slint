@@ -12,6 +12,7 @@ export component Button inherits Rectangle {
     callback clicked();
 
     accessible-role: button;
+    accessible-label: root.text;
     horizontal-stretch: 0;
     border-radius: 13px;
     height: Theme.modelTitle + 10px;
@@ -46,6 +47,7 @@ export component Button inherits Rectangle {
         }
 
         if (root.text != ""): Text {
+            accessible-role: none;
             vertical-alignment: center;
             text: root.text;
             color: Theme.textInverse;

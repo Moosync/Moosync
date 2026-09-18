@@ -1,4 +1,4 @@
-use extensions_proto::moosync::types::{ExtensionDetail, ExtensionProviderScope};
+use extensions_proto::moosync::types::ExtensionProviderScope;
 use slint::{ComponentHandle, ModelRc, VecModel, Weak};
 use state_manager::StateManager;
 use tracing::Instrument;
@@ -32,19 +32,26 @@ impl AccountsHandler {
                     .await;
 
                 let mut raw_accounts = Vec::new();
-                for ext in extensions {
-                    let ext_detail: ExtensionDetail = (&*ext).into();
+                for ext in &extensions {
                     for acc in ext.get_accounts() {
-                        raw_accounts.push((acc, ext_detail.clone()));
+                        raw_accounts.push(acc);
                     }
                 }
 
+                tracing::debug!(
+                    "fetch_and_render_accounts: found {} extensions with Accounts scope, {} raw_accounts",
+                    extensions.len(),
+                    raw_accounts.len()
+                );
+
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = main_window_weak.upgrade() {
-                        let account_items: Vec<AccountItem> = raw_accounts
-                            .into_iter()
-                            .map(|(acc, ext_detail)| AccountItem::from((acc, Some(&ext_detail))))
-                            .collect();
+                        let account_items: Vec<AccountItem> =
+                            raw_accounts.into_iter().map(AccountItem::from).collect();
+                        tracing::debug!(
+                            "fetch_and_render_accounts: setting AccountsProps with {} items",
+                            account_items.len()
+                        );
                         main_window
                             .global::<AccountsProps>()
                             .set_accounts(ModelRc::new(VecModel::from(account_items)));
@@ -79,6 +86,7 @@ impl AccountsHandler {
         main_window
             .global::<AppCallbacks>()
             .on_account_login(move |package_name, account_id| {
+                tracing::debug!("on_account_login triggered: pkg={}, acc={}", package_name, account_id);
                 let main_window_weak = main_window_weak.clone();
                 let sm = sm.clone();
                 let package_name = package_name.to_string();
@@ -98,6 +106,7 @@ impl AccountsHandler {
                                     .await
                                 {
                                     Ok(resp) => {
+                                        tracing::debug!("perform_account_login response status: {}", resp.status);
                                         let url = resp.status;
                                         #[cfg(not(test))]
                                         Self::open_browser(&url);

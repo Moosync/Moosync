@@ -15,6 +15,7 @@ export component SidebarHeader inherits Rectangle {
         VerticalLayout {
             alignment: center;
             IconButton {
+                accessible-label: @tr("Toggle Sidebar");
                 icon_source: @image-url("../icons/sidebar_toggle.svg");
                 icon_width: Theme.playbackControlsIconSize;
                 icon_height: Theme.iconSizeMd;

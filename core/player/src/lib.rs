@@ -36,7 +36,7 @@ mod source_test;
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
 pub use context::{AudioPlayerContext, DummyAudioPlayerContext, RodioPlayerContext};
-use extensions_proto::moosync::types::{PlayerEvent, player_event::Event};
+use extensions_proto::moosync::types::{PlayerEvent, PlayerState, player_event::Event};
 use player_proto::moosync::types::{PlayerData, RepeatMode};
 use songs_proto::moosync::types::Song;
 use tokio::{
@@ -53,6 +53,7 @@ use types::{
 use crate::{
     audio_source::AudioSource,
     context::{PersistContext, dummy::DummyPersistContext, file_persist::FilePersist},
+    error::PlayerError,
 };
 
 pub type OnEndedCallback = Box<dyn Fn() + Send + Sync + 'static>;
@@ -89,13 +90,16 @@ impl PlayerHandler {
         context: Box<dyn AudioPlayerContext>,
         persist_context: Box<dyn PersistContext>,
     ) -> Self {
-        let player_data = match persist_context.load() {
+        let mut player_data = match persist_context.load() {
             Ok(data) => data,
             Err(e) => {
                 tracing::error!("Failed to load player data: {:?}", e);
                 PlayerData::default()
             }
         };
+        if player_data.current_idx as usize >= player_data.song_queue.len() {
+            player_data.current_idx = 0;
+        }
         PlayerHandler {
             player_data,
             player: AudioSource::new_with_context(
@@ -139,9 +143,7 @@ impl PlayerHandler {
     pub fn get_current_idx(&self) -> usize { self.player_data.current_idx as usize }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_current_pos(&self) -> Result<Duration, crate::error::PlayerError> {
-        self.player.get_current_pos()
-    }
+    pub fn get_current_pos(&self) -> Result<Duration, PlayerError> { self.player.get_current_pos() }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn current_song(&self) -> Option<&Song> {
@@ -253,30 +255,26 @@ impl PlayerHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn repeat(&mut self, mode: RepeatMode) {
         self.player_data.repeat_mode = mode.into();
-        self.on_repeat_changed.run_all(|cb| {
-            cb(RepeatMode::try_from(self.player_data.repeat_mode).unwrap_or_default())
-        });
+        self.trigger_repeat_changed();
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn play(&mut self) -> Result<(), crate::error::PlayerError> {
+    pub fn play(&mut self) -> Result<(), PlayerError> {
+        if self.player.get_player_state() == PlayerState::Stopped
+            && let Some(mut song) = self.current_song().cloned()
+            && let Err(e) = self.player.set_src(&mut song)
+        {
+            tracing::error!("Failed to load song on play: {:?}", e);
+        }
         self.player.play()?;
-        self.on_player_event.run_all(|cb| {
-            cb(&PlayerEvent {
-                event: Some(Event::Play(true)),
-            });
-        });
+        self.trigger_player_event(Event::Play(true));
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn pause(&mut self) -> Result<(), crate::error::PlayerError> {
+    pub fn pause(&mut self) -> Result<(), PlayerError> {
         self.player.pause()?;
-        self.on_player_event.run_all(|cb| {
-            cb(&PlayerEvent {
-                event: Some(Event::Pause(true)),
-            });
-        });
+        self.trigger_player_event(Event::Pause(true));
         Ok(())
     }
 
@@ -324,11 +322,7 @@ impl PlayerHandler {
             tracing::error!("Failed to seek: {:?}", e)
         }
         if let Ok(pos) = self.player.get_current_pos() {
-            self.on_player_event.run_all(|cb| {
-                cb(&PlayerEvent {
-                    event: Some(Event::TimeUpdate(core_to_proto_duration(pos))),
-                });
-            });
+            self.trigger_player_event(Event::TimeUpdate(core_to_proto_duration(pos)));
         }
     }
 
@@ -404,11 +398,7 @@ impl PlayerHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn on_song_ended(&mut self) {
-        self.on_player_event.run_all(|cb| {
-            cb(&PlayerEvent {
-                event: Some(Event::Ended(true)),
-            });
-        });
+        self.trigger_player_event(Event::Ended(true));
 
         match RepeatMode::try_from(self.player_data.repeat_mode).unwrap_or_default() {
             RepeatMode::RepeatOnce => {
@@ -447,6 +437,21 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    fn trigger_repeat_changed(&self) {
+        let mode = RepeatMode::try_from(self.player_data.repeat_mode).unwrap_or_default();
+        self.on_repeat_changed.run_all(|cb| cb(mode));
+        if let Err(e) = self.persist_context.persist(&self.player_data) {
+            tracing::error!("Failed to persist player data: {}", e);
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn trigger_player_event(&self, event: Event) {
+        let player_event = PlayerEvent { event: Some(event) };
+        self.on_player_event.run_all(|cb| cb(&player_event));
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn trigger_song_changed(&mut self) {
         let mut current = self.current_song().cloned();
         if current.is_none() {
@@ -462,13 +467,7 @@ impl PlayerHandler {
         self.on_song_changed.run_all(|cb| {
             cb(current.as_ref());
         });
-        self.on_player_event.run_all(|cb| {
-            cb(&PlayerEvent {
-                event: Some(Event::TimeUpdate(
-                    extensions_proto::duration_proto::google::protobuf::Duration::default(),
-                )),
-            });
-        });
+        self.trigger_player_event(Event::TimeUpdate(Default::default()));
         if let Err(e) = self.persist_context.persist(&self.player_data) {
             tracing::error!("Failed to persist player data: {}", e);
         }
@@ -511,11 +510,7 @@ impl Plugin for PlayerHandler {
                     interval.tick().await;
                     let ph = ph_clone_timer.read().await;
                     if let Ok(pos) = ph.player.get_current_pos() {
-                        ph.on_player_event.run_all(|cb| {
-                            cb(&PlayerEvent {
-                                event: Some(Event::TimeUpdate(core_to_proto_duration(pos))),
-                            });
-                        });
+                        ph.trigger_player_event(Event::TimeUpdate(core_to_proto_duration(pos)));
                     }
                 }
             }

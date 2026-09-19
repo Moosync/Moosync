@@ -17,13 +17,16 @@
 use std::sync::{Arc, Mutex};
 
 use assertables::{assert_is_empty, assert_len_eq_x, assert_none, assert_some_eq_x};
+use extensions_proto::moosync::types::PlayerState;
+use player_proto::moosync::types::PlayerData;
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{InnerSong, Song};
 use tracing_test::traced_test;
 
 use crate::{
     PlayerHandler, RepeatMode,
-    context::{DummyAudioPlayerContext, DummyPersistContext},
+    context::{DummyAudioPlayerContext, DummyPersistContext, PersistContext},
+    error::PlayerError,
 };
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -533,5 +536,143 @@ async fn test_clear_and_play(mut player_handler: PlayerHandler) {
             .and_then(|s| s.song.as_ref())
             .and_then(|s| s.id.as_deref()),
         "new1"
+    );
+}
+
+struct MockPersistContext {
+    data: PlayerData,
+}
+
+impl PersistContext for MockPersistContext {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn persist(&self, _: &PlayerData) -> Result<(), PlayerError> { Ok(()) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn load(&self) -> Result<PlayerData, PlayerError> { Ok(self.data.clone()) }
+}
+
+struct TrackingPersistContext {
+    persisted: Arc<Mutex<Option<PlayerData>>>,
+}
+
+impl PersistContext for TrackingPersistContext {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn persist(&self, data: &PlayerData) -> Result<(), PlayerError> {
+        *self.persisted.lock().unwrap() = Some(data.clone());
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn load(&self) -> Result<PlayerData, PlayerError> { Ok(PlayerData::default()) }
+}
+
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_restore_player_data_sets_current_song() {
+    let song1 = create_mock_song("1", "Song One");
+    let song2 = create_mock_song("2", "Song Two");
+    let player_data = PlayerData {
+        song_queue: vec![song1, song2],
+        current_idx: 1,
+        repeat_mode: RepeatMode::RepeatInfinite.into(),
+    };
+    let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
+    let player_handler = PlayerHandler::new_with_context(
+        ended_tx,
+        Box::new(DummyAudioPlayerContext::new()),
+        Box::new(MockPersistContext { data: player_data }),
+    );
+
+    let current = player_handler.current_song();
+
+    assert_eq!(player_handler.get_current_idx(), 1);
+    assert_len_eq_x!(&player_handler.player_data.song_queue, 2);
+    assert_eq!(player_handler.get_repeat_mode(), RepeatMode::RepeatInfinite);
+    assert_some_eq_x!(
+        current
+            .as_ref()
+            .and_then(|s| s.song.as_ref())
+            .and_then(|s| s.id.as_deref()),
+        "2"
+    );
+}
+
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_restore_player_data_play_loads_and_plays() {
+    let song1 = create_mock_song("1", "Song One");
+    let player_data = PlayerData {
+        song_queue: vec![song1],
+        current_idx: 0,
+        repeat_mode: RepeatMode::RepeatNone.into(),
+    };
+    let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
+    let mut player_handler = PlayerHandler::new_with_context(
+        ended_tx,
+        Box::new(DummyAudioPlayerContext::new()),
+        Box::new(MockPersistContext { data: player_data }),
+    );
+
+    let play_result = player_handler.play();
+
+    assert!(play_result.is_ok());
+    assert_eq!(
+        player_handler.get_player_state(),
+        PlayerState::Playing as i32
+    );
+}
+
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_restore_player_data_out_of_bounds_idx_resets_to_zero() {
+    let song1 = create_mock_song("1", "Song One");
+    let player_data = PlayerData {
+        song_queue: vec![song1],
+        current_idx: 5,
+        repeat_mode: RepeatMode::RepeatNone.into(),
+    };
+    let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
+    let player_handler = PlayerHandler::new_with_context(
+        ended_tx,
+        Box::new(DummyAudioPlayerContext::new()),
+        Box::new(MockPersistContext { data: player_data }),
+    );
+
+    let current = player_handler.current_song();
+
+    assert_eq!(player_handler.get_current_idx(), 0);
+    assert_some_eq_x!(
+        current
+            .as_ref()
+            .and_then(|s| s.song.as_ref())
+            .and_then(|s| s.id.as_deref()),
+        "1"
+    );
+}
+
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_repeat_persists_player_data() {
+    let persisted = Arc::new(Mutex::new(None));
+    let (ended_tx, _ended_rx) = tokio::sync::mpsc::unbounded_channel();
+    let mut player_handler = PlayerHandler::new_with_context(
+        ended_tx,
+        Box::new(DummyAudioPlayerContext::new()),
+        Box::new(TrackingPersistContext {
+            persisted: persisted.clone(),
+        }),
+    );
+
+    player_handler.repeat(RepeatMode::RepeatOnce);
+
+    let guard = persisted.lock().unwrap();
+    assert!(guard.is_some());
+    assert_eq!(
+        guard.as_ref().unwrap().repeat_mode,
+        RepeatMode::RepeatOnce as i32
     );
 }

@@ -294,14 +294,17 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
         async move {
             let player_handler = state_manager.get_player_handler().await;
 
-            // Set initial repeat mode
+            // Set initial repeat mode and current song
             let repeat_mode = player_handler.get_repeat_mode();
+            let current_song = player_handler.get_current_song().cloned();
             let mw_weak_init = main_window_weak.clone();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = mw_weak_init.upgrade() {
-                    main_window
-                        .global::<PlayerProps>()
-                        .set_repeat_mode(repeat_mode as i32);
+                    let player_props = main_window.global::<PlayerProps>();
+                    player_props.set_repeat_mode(repeat_mode as i32);
+                    if let Some(song) = current_song {
+                        player_props.set_current_song(SongModel::from(song));
+                    }
                 }
             });
 

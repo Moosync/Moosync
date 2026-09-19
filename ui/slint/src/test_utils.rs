@@ -95,11 +95,11 @@ pub mod integration {
 
     use crate::{
         AccountsProps, AlbumContentPageProps, AlbumsPageProps, AllSongsPageProps, AppCallbacks,
-        ArtistContentPageProps, ArtistsPageProps, ExtensionsPageProps, ExtensionsPreferenceProps,
-        GenreContentPageProps, MainWindow, OAuthState, Pages, PlayerProps,
-        PlaylistContentPageProps, PlaylistsPageProps, QueuePageProps, SavePlaylistState,
-        SaveThemeState, SearchPageProps, SettingsPages, SettingsState, SongModel, ThemesPageProps,
-        WindowInfo, setup_ui, test_utils::state_manager_fixture,
+        ArtistContentPageProps, ArtistsPageProps, ExtensionDetailsState, ExtensionsPageProps,
+        ExtensionsPreferenceProps, GenreContentPageProps, MainWindow, OAuthState, Pages,
+        PlayerProps, PlaylistContentPageProps, PlaylistsPageProps, QueuePageProps,
+        SavePlaylistState, SaveThemeState, SearchPageProps, SettingsPages, SettingsState,
+        SongModel, ThemesPageProps, WindowInfo, setup_ui, test_utils::state_manager_fixture,
     };
     pub use crate::{integration_test, parameterized_test};
 
@@ -336,6 +336,9 @@ pub mod integration {
             .global::<ThemesPageProps>()
             .set_theme_constants(ModelRc::new(VecModel::default()));
         main_window.global::<SaveThemeState>().set_show_modal(false);
+        main_window
+            .global::<ExtensionDetailsState>()
+            .set_show_modal(false);
         main_window
             .global::<AppCallbacks>()
             .invoke_settings_toggled(false);

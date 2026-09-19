@@ -19,7 +19,7 @@ use slint::{ComponentHandle, Model, ModelRc};
 use tracing_test::traced_test;
 
 use crate::{
-    AppCallbacks, ExtensionItem, ExtensionsPageProps, MainWindow,
+    AppCallbacks, ExtensionDetailsState, ExtensionItem, ExtensionsPageProps, MainWindow,
     pages::PageHandler,
     settings::{extensions::ExtensionsPageHandler, handle_preference_change},
     test_utils::{TestSlintSmContext, main_window, state_manager_fixture},
@@ -149,4 +149,30 @@ async fn test_extensions_page_handler_update_all_callback(
         .invoke_update_all_extensions();
 
     assert!(!props.get_has_updates());
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extension_details_modal_state(main_window: MainWindow) {
+    let state = main_window.global::<ExtensionDetailsState>();
+    let test_item = ExtensionItem {
+        name: "Test Extension".into(),
+        package_name: "test.ext".into(),
+        version: "1.0.0".into(),
+        description: "Modal test description".into(),
+        author: "Tester".into(),
+        ..Default::default()
+    };
+
+    state.set_item(test_item);
+    state.set_show_modal(true);
+
+    assert!(state.get_show_modal());
+    assert_eq!(state.get_item().name, "Test Extension");
+    assert_eq!(state.get_item().package_name, "test.ext");
+    assert_eq!(state.get_item().version, "1.0.0");
+    assert_eq!(state.get_item().description, "Modal test description");
+    assert_eq!(state.get_item().author, "Tester");
 }

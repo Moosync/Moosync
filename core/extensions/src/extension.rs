@@ -419,6 +419,14 @@ impl From<&Extension> for ExtensionDetail {
                 .collect(),
             extension_icon: Some(val.manifest.icon.clone()),
             registry: Some(lock_data.registry),
+            permissions: val.manifest.permissions.clone(),
+            scopes: val
+                .provider_scopes
+                .lock()
+                .unwrap()
+                .as_ref()
+                .map(|s| s.scopes.clone())
+                .unwrap_or_default(),
         }
     }
 }

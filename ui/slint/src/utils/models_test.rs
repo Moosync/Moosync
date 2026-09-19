@@ -1,5 +1,9 @@
+use std::collections::HashMap;
+
 use assertables::assert_some_eq_x;
-use extensions_proto::moosync::types::{ExtensionDetail, FetchedExtensionManifest};
+use extensions_proto::moosync::types::{
+    ExtensionDetail, ExtensionProviderScope, FetchedExtensionManifest, ManifestPermissions,
+};
 use rstest::rstest;
 use slint::{ComponentHandle, Image, Model};
 use songs_proto::{
@@ -12,8 +16,9 @@ use tempdir::TempDir;
 use tracing_test::traced_test;
 
 use crate::{
-    AlbumModel, ArtistModel, ExtensionItem, GenreModel, MainWindow, PlaylistModel, SongModel,
-    Theme, test_utils::main_window, utils::create_search_result,
+    AlbumModel, ArtistModel, ExtensionItem, ExtensionPathPermission, GenreModel, MainWindow,
+    PlaylistModel, ProviderScope, SongModel, Theme, test_utils::main_window,
+    utils::create_search_result,
 };
 
 #[test]
@@ -261,6 +266,147 @@ fn test_to_extension_item() {
 
     assert_eq!(item.package_name, "com.test.ext");
     assert_eq!(item.name, "Test Extension");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_to_extension_item_with_permissions_and_scopes() {
+    let mut paths = HashMap::new();
+    paths.insert("/source/path".to_string(), "/target/path".to_string());
+    let detail = ExtensionDetail {
+        package_name: "com.test.ext".to_string(),
+        name: "Test Extension".to_string(),
+        desc: Some("A test extension".to_string()),
+        version: "1.0.0".to_string(),
+        author: Some("Author".to_string()),
+        permissions: Some(ManifestPermissions {
+            hosts: vec!["https://api.example.com".to_string()],
+            paths,
+        }),
+        scopes: vec![
+            ExtensionProviderScope::Search as i32,
+            ExtensionProviderScope::Playlists as i32,
+        ],
+        ..Default::default()
+    };
+
+    let item = ExtensionItem::from(detail);
+
+    assert_eq!(item.package_name, "com.test.ext");
+    assert_eq!(item.name, "Test Extension");
+    assert_eq!(item.description, "A test extension");
+    assert_eq!(item.version, "1.0.0");
+    assert_eq!(item.author, "Author");
+    assert_eq!(item.network_permissions.row_count(), 1);
+    assert_eq!(
+        item.network_permissions.row_data(0).unwrap(),
+        "https://api.example.com"
+    );
+    assert_eq!(item.filesystem_permissions.row_count(), 1);
+    assert_eq!(
+        item.filesystem_permissions.row_data(0).unwrap().source,
+        "/source/path"
+    );
+    assert_eq!(
+        item.filesystem_permissions.row_data(0).unwrap().target,
+        "/target/path"
+    );
+    assert_eq!(item.scopes.row_count(), 2);
+    assert_eq!(item.scopes.row_data(0).unwrap(), ProviderScope::Search);
+    assert_eq!(item.scopes.row_data(1).unwrap(), ProviderScope::Playlists);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_extension_path_permission_from_tuple() {
+    let source = "/host/music".to_string();
+    let target = "/sandbox/music".to_string();
+
+    let perm = ExtensionPathPermission::from((source, target));
+
+    assert_eq!(perm.source, "/host/music");
+    assert_eq!(perm.target, "/sandbox/music");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_extension_path_permission_from_ref_tuple() {
+    let source = "/host/music".to_string();
+    let target = "/sandbox/music".to_string();
+
+    let perm = ExtensionPathPermission::from((&source, &target));
+
+    assert_eq!(perm.source, "/host/music");
+    assert_eq!(perm.target, "/sandbox/music");
+}
+
+#[rstest]
+#[case(ExtensionProviderScope::Search, ProviderScope::Search)]
+#[case(ExtensionProviderScope::Playlists, ProviderScope::Playlists)]
+#[case(ExtensionProviderScope::PlaylistSongs, ProviderScope::PlaylistSongs)]
+#[case(ExtensionProviderScope::ArtistSongs, ProviderScope::ArtistSongs)]
+#[case(ExtensionProviderScope::AlbumSongs, ProviderScope::AlbumSongs)]
+#[case(
+    ExtensionProviderScope::Recommendations,
+    ProviderScope::Recommendations
+)]
+#[case(ExtensionProviderScope::Scrobble, ProviderScope::Scrobble)]
+#[case(
+    ExtensionProviderScope::PlaylistFromUrl,
+    ProviderScope::PlaylistFromUrl
+)]
+#[case(ExtensionProviderScope::SongFromUrl, ProviderScope::SongFromUrl)]
+#[case(
+    ExtensionProviderScope::PlaybackDetails,
+    ProviderScope::PlaybackDetails
+)]
+#[case(ExtensionProviderScope::Lyrics, ProviderScope::Lyrics)]
+#[case(
+    ExtensionProviderScope::SongContextMenu,
+    ProviderScope::SongContextMenu
+)]
+#[case(
+    ExtensionProviderScope::PlaylistContextMenu,
+    ProviderScope::PlaylistContextMenu
+)]
+#[case(ExtensionProviderScope::Accounts, ProviderScope::Accounts)]
+#[case(
+    ExtensionProviderScope::DatabaseSongEvents,
+    ProviderScope::DatabaseSongEvents
+)]
+#[case(
+    ExtensionProviderScope::DatabasePlaylistEvents,
+    ProviderScope::DatabasePlaylistEvents
+)]
+#[case(ExtensionProviderScope::PlayerUiEvents, ProviderScope::PlayerUiEvents)]
+#[case(
+    ExtensionProviderScope::PlayerDataEvents,
+    ProviderScope::PlayerDataEvents
+)]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_provider_scope_from_proto(
+    #[case] proto_scope: ExtensionProviderScope,
+    #[case] expected: ProviderScope,
+) {
+    let result = ProviderScope::from(proto_scope);
+
+    assert_eq!(result, expected);
+}
+
+#[rstest]
+#[case(0, ProviderScope::Search)]
+#[case(1, ProviderScope::Playlists)]
+#[case(999, ProviderScope::Search)]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_provider_scope_from_i32(#[case] val: i32, #[case] expected: ProviderScope) {
+    let result = ProviderScope::from(val);
+
+    assert_eq!(result, expected);
 }
 
 #[test]

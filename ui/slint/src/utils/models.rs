@@ -1,7 +1,7 @@
 use std::{path::Path, time::Duration};
 
 use extensions_proto::moosync::types::{
-    ExtensionAccountDetail, ExtensionDetail, FetchedExtensionManifest,
+    ExtensionAccountDetail, ExtensionDetail, ExtensionProviderScope, FetchedExtensionManifest,
 };
 use slint::{Color, Image, Model, ModelRc, SharedString, VecModel};
 use songs_proto::moosync::types::{
@@ -11,8 +11,8 @@ use types::prelude::{SongsExt, core_to_proto_duration};
 
 use super::{get_extension_icon, lazy_model::LazySongVecModel, load_icon, parse_color};
 use crate::{
-    AccountItem, AlbumModel, ArtistModel, ExtensionItem, GenreModel, PlaylistModel, SearchResult,
-    SongModel, Theme,
+    AccountItem, AlbumModel, ArtistModel, ExtensionItem, ExtensionPathPermission, GenreModel,
+    PlaylistModel, ProviderScope, SearchResult, SongModel, Theme,
 };
 
 pub trait IntoVec<T> {
@@ -447,9 +447,83 @@ impl From<PlaylistModel> for Playlist {
     }
 }
 
+impl From<(String, String)> for ExtensionPathPermission {
+    #[tracing::instrument(level = "trace", skip_all)]
+    fn from((source, target): (String, String)) -> Self {
+        Self {
+            source: source.into(),
+            target: target.into(),
+        }
+    }
+}
+
+impl From<(&String, &String)> for ExtensionPathPermission {
+    #[tracing::instrument(level = "trace", skip_all)]
+    fn from((source, target): (&String, &String)) -> Self {
+        Self {
+            source: source.clone().into(),
+            target: target.clone().into(),
+        }
+    }
+}
+
+impl From<ExtensionProviderScope> for ProviderScope {
+    #[tracing::instrument(level = "trace", skip_all)]
+    fn from(scope: ExtensionProviderScope) -> Self {
+        match scope {
+            ExtensionProviderScope::Search => ProviderScope::Search,
+            ExtensionProviderScope::Playlists => ProviderScope::Playlists,
+            ExtensionProviderScope::PlaylistSongs => ProviderScope::PlaylistSongs,
+            ExtensionProviderScope::ArtistSongs => ProviderScope::ArtistSongs,
+            ExtensionProviderScope::AlbumSongs => ProviderScope::AlbumSongs,
+            ExtensionProviderScope::Recommendations => ProviderScope::Recommendations,
+            ExtensionProviderScope::Scrobble => ProviderScope::Scrobble,
+            ExtensionProviderScope::PlaylistFromUrl => ProviderScope::PlaylistFromUrl,
+            ExtensionProviderScope::SongFromUrl => ProviderScope::SongFromUrl,
+            ExtensionProviderScope::PlaybackDetails => ProviderScope::PlaybackDetails,
+            ExtensionProviderScope::Lyrics => ProviderScope::Lyrics,
+            ExtensionProviderScope::SongContextMenu => ProviderScope::SongContextMenu,
+            ExtensionProviderScope::PlaylistContextMenu => ProviderScope::PlaylistContextMenu,
+            ExtensionProviderScope::Accounts => ProviderScope::Accounts,
+            ExtensionProviderScope::DatabaseSongEvents => ProviderScope::DatabaseSongEvents,
+            ExtensionProviderScope::DatabasePlaylistEvents => ProviderScope::DatabasePlaylistEvents,
+            ExtensionProviderScope::PlayerUiEvents => ProviderScope::PlayerUiEvents,
+            ExtensionProviderScope::PlayerDataEvents => ProviderScope::PlayerDataEvents,
+        }
+    }
+}
+
+impl From<i32> for ProviderScope {
+    #[tracing::instrument(level = "trace", skip_all)]
+    fn from(val: i32) -> Self {
+        ExtensionProviderScope::try_from(val)
+            .map(ProviderScope::from)
+            .unwrap_or(ProviderScope::Search)
+    }
+}
+
 impl From<ExtensionDetail> for ExtensionItem {
     #[tracing::instrument(level = "debug", skip_all)]
     fn from(ext: ExtensionDetail) -> Self {
+        let (network_permissions, filesystem_permissions) = match ext.permissions {
+            Some(permissions) => {
+                let hosts: Vec<SharedString> = permissions
+                    .hosts
+                    .into_iter()
+                    .map(SharedString::from)
+                    .collect();
+                let paths: Vec<ExtensionPathPermission> = permissions
+                    .paths
+                    .into_iter()
+                    .map(ExtensionPathPermission::from)
+                    .collect();
+                (hosts, paths)
+            }
+            None => (Vec::new(), Vec::new()),
+        };
+
+        let scopes: Vec<ProviderScope> = ext.scopes.into_iter().map(ProviderScope::from).collect();
+
         Self {
             name: ext.name.into(),
             package_name: ext.package_name.into(),
@@ -461,6 +535,10 @@ impl From<ExtensionDetail> for ExtensionItem {
             has_started: ext.has_started,
             icon_url: ext.extension_icon.unwrap_or_default().into(),
             registry: ext.registry.unwrap_or_else(|| "local".to_string()).into(),
+            author: ext.author.unwrap_or_default().into(),
+            network_permissions: ModelRc::new(VecModel::from(network_permissions)),
+            filesystem_permissions: ModelRc::new(VecModel::from(filesystem_permissions)),
+            scopes: ModelRc::new(VecModel::from(scopes)),
         }
     }
 }
@@ -479,6 +557,10 @@ impl From<FetchedExtensionManifest> for ExtensionItem {
             has_started: false,
             icon_url: ext.logo.unwrap_or_default().into(),
             registry: ext.registry.unwrap_or_default().into(),
+            author: SharedString::default(),
+            network_permissions: ModelRc::default(),
+            filesystem_permissions: ModelRc::default(),
+            scopes: ModelRc::default(),
         }
     }
 }

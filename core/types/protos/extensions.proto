@@ -523,6 +523,8 @@ message ExtensionDetail {
   repeated PreferenceItem preferences = 8;
   optional string extension_icon = 10;
   optional string registry = 12;
+  optional ManifestPermissions permissions = 13;
+  repeated ExtensionProviderScope scopes = 14;
 }
 
 message ExtensionAccountDetail {

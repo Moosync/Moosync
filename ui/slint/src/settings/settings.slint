@@ -14,6 +14,10 @@ import {
     SaveThemeModal,
     SaveThemeState,
 } from "../common/save_theme_modal.slint";
+import {
+    ExtensionDetailsModal,
+    ExtensionDetailsState,
+} from "../common/extension_details_modal.slint";
 import { IconButton } from "../common/icon_button.slint";
 
 export global SettingsState {
@@ -129,6 +133,12 @@ export component Settings inherits Modal {
     if SaveThemeState.show_modal: SaveThemeModal {
         close => {
             SaveThemeState.show_modal = false;
+        }
+    }
+
+    if ExtensionDetailsState.show_modal: ExtensionDetailsModal {
+        close => {
+            ExtensionDetailsState.show_modal = false;
         }
     }
 }

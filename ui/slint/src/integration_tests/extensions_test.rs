@@ -5,9 +5,9 @@ use preferences::keys::PreferenceItemExt;
 use slint::{ComponentHandle, Model, ModelRc};
 use slint_app::{
     AlbumContentPageProps, AlbumModel, AlbumsPageProps, AppCallbacks, ArtistContentPageProps,
-    ArtistModel, ArtistsPageProps, ExtensionsPreferenceProps, MainWindow, Pages,
-    PlaylistContentPageProps, PlaylistModel, PlaylistsPageProps, PreferenceChange, SettingsPages,
-    SettingsState,
+    ArtistModel, ArtistsPageProps, ExtensionDetailsState, ExtensionsPageProps,
+    ExtensionsPreferenceProps, MainWindow, Pages, PlaylistContentPageProps, PlaylistModel,
+    PlaylistsPageProps, PreferenceChange, SettingsPages, SettingsState,
     test_utils::integration::{
         click_element, create_test_song, integration_test, load_custom_extension,
         load_sample_extension, set_test_step, wait_until,
@@ -705,6 +705,260 @@ async fn do_multiple_extensions_pagination_integration(
     );
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_extension_details_modal_lifecycle(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(false);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(false);
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    set_test_step("details_modal_load_sample_ext");
+    load_sample_extension(state_manager).await;
+
+    set_test_step("details_modal_show_settings");
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(true);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(true);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::Extensions);
+
+    let tab_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Settings Extensions")
+            .next()
+            .is_some()
+    })
+    .await;
+    if tab_found {
+        let ext_tabs: Vec<ElementHandle> =
+            ElementHandle::find_by_accessible_label(main_window, "Settings Extensions").collect();
+        if !ext_tabs.is_empty() {
+            click_element(&ext_tabs[0]).await;
+        }
+    }
+
+    set_test_step("details_modal_wait_extensions_loaded");
+    let exts_loaded = wait_until(|| {
+        let exts = main_window.global::<ExtensionsPageProps>().get_extensions();
+        exts.row_count() > 0
+            && exts
+                .row_data(0)
+                .is_some_and(|e| e.package_name == "rs.sample")
+    })
+    .await;
+    assert!(exts_loaded);
+    tokio::time::sleep(Duration::from_millis(300)).await;
+
+    set_test_step("details_modal_wait_info_button");
+    let info_btn_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Extension Details")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(info_btn_found);
+
+    let info_btn_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Extension Details").collect();
+    assert_eq!(info_btn_handles.len(), 1);
+    assert!(info_btn_handles[0].is_valid());
+
+    // TODO: Open modal by clicking the info button through the UI once nested
+    // ListView click hit-testing is resolved
+    let exts = main_window.global::<ExtensionsPageProps>().get_extensions();
+    let ext_item = exts.row_data(0).unwrap();
+    main_window
+        .global::<ExtensionDetailsState>()
+        .set_item(ext_item);
+    main_window
+        .global::<ExtensionDetailsState>()
+        .set_show_modal(true);
+
+    let modal_opened = wait_until(|| {
+        main_window
+            .global::<ExtensionDetailsState>()
+            .get_show_modal()
+    })
+    .await;
+    assert!(modal_opened);
+
+    let close_btn_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Close Extension Details")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(close_btn_found);
+
+    let close_handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Close Extension Details").collect();
+    assert_eq!(close_handles.len(), 1);
+    assert!(close_handles[0].is_valid());
+
+    let details_state = main_window.global::<ExtensionDetailsState>();
+    assert!(details_state.get_show_modal());
+    assert_eq!(details_state.get_item().package_name, "rs.sample");
+    assert_eq!(details_state.get_item().network_permissions.row_count(), 2);
+    assert_eq!(
+        details_state.get_item().filesystem_permissions.row_count(),
+        2
+    );
+
+    set_test_step("details_modal_wait_host1");
+    let host1_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Network Host: api.example.com")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(host1_found);
+
+    set_test_step("details_modal_wait_host2");
+    let host2_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Network Host: *.moosync.app")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(host2_found);
+
+    set_test_step("details_modal_wait_path1");
+    let path1_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(
+            main_window,
+            "Filesystem Path: /music -> /media/music",
+        )
+        .next()
+        .is_some()
+    })
+    .await;
+    assert!(path1_found);
+
+    set_test_step("details_modal_wait_path2");
+    let path2_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(
+            main_window,
+            "Filesystem Path: /tmp/moosync -> /tmp/sandbox",
+        )
+        .next()
+        .is_some()
+    })
+    .await;
+    assert!(path2_found);
+
+    set_test_step("details_modal_wait_accounts_scope");
+    let accounts_scope_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Scope: Accounts")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(accounts_scope_found);
+
+    set_test_step("details_modal_wait_search_scope");
+    let search_scope_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Scope: Search")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(search_scope_found);
+
+    set_test_step("details_modal_wait_playlists_scope");
+    let playlists_scope_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Scope: Playlists")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(playlists_scope_found);
+
+    set_test_step("details_modal_wait_playlist_songs_scope");
+    let playlist_songs_scope_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Scope: Playlist Songs")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(playlist_songs_scope_found);
+
+    set_test_step("details_modal_wait_artist_songs_scope");
+    let artist_songs_scope_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Scope: Artist Songs")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(artist_songs_scope_found);
+
+    set_test_step("details_modal_wait_album_songs_scope");
+    let album_songs_scope_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Scope: Album Songs")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(album_songs_scope_found);
+
+    assert_eq!(details_state.get_item().network_permissions.row_count(), 2);
+    assert_eq!(
+        details_state.get_item().filesystem_permissions.row_count(),
+        2
+    );
+    assert_eq!(details_state.get_item().scopes.row_count(), 6);
+
+    let ext_handler = state_manager.get_extension_handler().await;
+    assert!(ext_handler.get_extension("rs.sample").is_ok());
+
+    set_test_step("details_modal_click_close");
+    click_element(&close_handles[0]).await;
+
+    let modal_closed = wait_until(|| {
+        !main_window
+            .global::<ExtensionDetailsState>()
+            .get_show_modal()
+    })
+    .await;
+    assert!(modal_closed);
+
+    let unmounted = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Close Extension Details")
+            .next()
+            .is_none()
+    })
+    .await;
+    assert!(unmounted);
+    let close_handles_after: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Close Extension Details").collect();
+    assert_eq!(close_handles_after.len(), 0);
+
+    assert!(
+        !main_window
+            .global::<ExtensionDetailsState>()
+            .get_show_modal()
+    );
+
+    main_window
+        .global::<SettingsState>()
+        .set_show_settings(false);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_toggled(false);
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_settings_active_page_changed(SettingsPages::Paths);
+    tokio::time::sleep(Duration::from_millis(100)).await;
+}
+
 integration_test!(
     test_playlists_extension_integration => do_playlists_extension_integration,
     test_extension_content_toggle_provider_off => do_extension_content_toggle_provider_off,
@@ -715,4 +969,5 @@ integration_test!(
     test_multiple_extensions_pagination_integration => do_multiple_extensions_pagination_integration,
     test_extension_preference_text_input => do_extension_preference_text_input,
     test_extension_preference_toggle => do_extension_preference_toggle,
+    test_extension_details_modal_lifecycle => do_extension_details_modal_lifecycle,
 );

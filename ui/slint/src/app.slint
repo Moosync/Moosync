@@ -79,6 +79,8 @@ import {
     ExtensionItem,
     ExtensionProviderItem,
     AccountItem,
+    ExtensionPathPermission,
+    ProviderScope,
 } from "./types/extension_view.slint";
 import {
     ExtensionsPageProps,
@@ -88,6 +90,10 @@ import {
 import { ThemesPageProps } from "settings/themes.slint";
 import { Utils, DefaultIconType } from "utils.slint";
 import { OAuthModal, OAuthState } from "common/oauth_modal.slint";
+import {
+    ExtensionDetailsModal,
+    ExtensionDetailsState,
+} from "common/extension_details_modal.slint";
 import { PlayerProps, AppProps } from "props.slint";
 
 export {
@@ -102,6 +108,9 @@ export {
     OAuthState,
     SavePlaylistState,
     SaveThemeState,
+    ExtensionDetailsState,
+    ExtensionPathPermission,
+    ProviderScope,
     WindowInfo,
     Utils,
     DefaultIconType,

@@ -1,0 +1,246 @@
+import { Modal, ModalSize } from "modal.slint";
+import { Theme } from "../constants.slint";
+import { IconButton } from "icon_button.slint";
+import { ScrollView } from "std-widgets.slint";
+import { PreferenceGroup } from "../settings/preference_group.slint";
+import { Button } from "button.slint";
+import { ExtensionItem, ProviderScope } from "../types/extension_view.slint";
+
+export global ExtensionDetailsState {
+    in-out property <bool> show_modal: false;
+    in-out property <ExtensionItem> item;
+}
+
+export component ExtensionDetailsModal inherits Modal {
+    in property <ExtensionItem> item: ExtensionDetailsState.item;
+
+    pure function scope_to_display_string(scope: ProviderScope) -> string {
+        if scope == ProviderScope.search {
+            return @tr("Search");
+        }
+        if scope == ProviderScope.playlists {
+            return @tr("Playlists");
+        }
+        if scope == ProviderScope.playlist_songs {
+            return @tr("Playlist Songs");
+        }
+        if scope == ProviderScope.artist_songs {
+            return @tr("Artist Songs");
+        }
+        if scope == ProviderScope.album_songs {
+            return @tr("Album Songs");
+        }
+        if scope == ProviderScope.recommendations {
+            return @tr("Recommendations");
+        }
+        if scope == ProviderScope.scrobble {
+            return @tr("Scrobble");
+        }
+        if scope == ProviderScope.playlist_from_url {
+            return @tr("Playlist from URL");
+        }
+        if scope == ProviderScope.song_from_url {
+            return @tr("Song from URL");
+        }
+        if scope == ProviderScope.playback_details {
+            return @tr("Playback Details");
+        }
+        if scope == ProviderScope.lyrics {
+            return @tr("Lyrics");
+        }
+        if scope == ProviderScope.song_context_menu {
+            return @tr("Song Context Menu");
+        }
+        if scope == ProviderScope.playlist_context_menu {
+            return @tr("Playlist Context Menu");
+        }
+        if scope == ProviderScope.accounts {
+            return @tr("Accounts");
+        }
+        if scope == ProviderScope.database_song_events {
+            return @tr("Song Database Events");
+        }
+        if scope == ProviderScope.database_playlist_events {
+            return @tr("Playlist Database Events");
+        }
+        if scope == ProviderScope.player_ui_events {
+            return @tr("Player UI Events");
+        }
+        if scope == ProviderScope.player_data_events {
+            return @tr("Player Data Events");
+        }
+        return @tr("Unknown Scope");
+    }
+    modalSize: ModalSize.Lg;
+
+    Rectangle {
+        background: Theme.primary;
+        border-radius: Theme.borderRadiusXl;
+        border-width: Theme.borderWidth;
+        border-color: Theme.divider;
+        clip: true;
+
+        VerticalLayout {
+            padding: Theme.paddingLg;
+            spacing: Theme.spacingMd;
+
+            // Header with Icon, Name, Version, Author & Close button
+            HorizontalLayout {
+                spacing: Theme.spacingMd;
+
+                Rectangle {
+                    width: Theme.extensionIconSize;
+                    height: Theme.extensionIconSize;
+                    border-radius: Theme.borderRadiusMd;
+                    clip: true;
+                    Image {
+                        width: 100%;
+                        height: 100%;
+                        source: root.item.icon.width > 0 ? root.item.icon : @image-url("../icons/extensions.svg");
+                        image-fit: contain;
+                    }
+                }
+
+                VerticalLayout {
+                    horizontal-stretch: 1;
+                    spacing: Theme.spacingTiny;
+
+                    Text {
+                        text: root.item.name;
+                        font-size: Theme.modelTitle;
+                        font-weight: 700;
+                        color: Theme.textPrimary;
+                        overflow: elide;
+                    }
+
+                    Text {
+                        text: root.item.package_name + " • v" + root.item.version;
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                    }
+
+                    if root.item.author != "": Text {
+                        text: @tr("By ") + root.item.author;
+                        font-size: Theme.caption;
+                        color: Theme.textSecondary;
+                    }
+                }
+            }
+
+            if root.item.description != "": Text {
+                text: root.item.description;
+                font-size: Theme.caption;
+                color: Theme.textSecondary;
+                wrap: word-wrap;
+            }
+
+            ScrollView {
+                vertical-stretch: 1;
+
+                VerticalLayout {
+                    spacing: Theme.spacingMd;
+                    padding-right: Theme.paddingSm;
+                    padding-top: Theme.paddingMd;
+
+                    PreferenceGroup {
+                        Text {
+                            text: @tr("Network Permissions");
+                            font-size: Theme.body;
+                            font-weight: 700;
+                            color: Theme.textPrimary;
+                        }
+
+                        if root.item.network_permissions.length == 0: Text {
+                            accessible-role: text;
+                            accessible-label: @tr("No network permissions requested.");
+                            text: @tr("No network permissions requested.");
+                            font-size: Theme.caption;
+                            color: Theme.textSecondary;
+                        }
+
+                        for host in root.item.network_permissions: Text {
+                            accessible-role: text;
+                            accessible-label: @tr("Network Host: ") + host;
+                            text: "• " + host;
+                            font-size: Theme.caption;
+                            color: Theme.textPrimary;
+                        }
+                    }
+
+                    PreferenceGroup {
+                        Text {
+                            text: @tr("Filesystem Permissions");
+                            font-size: Theme.body;
+                            font-weight: 700;
+                            color: Theme.textPrimary;
+                        }
+
+                        if root.item.filesystem_permissions.length == 0: Text {
+                            accessible-role: text;
+                            accessible-label: @tr("No filesystem permissions requested.");
+                            text: @tr("No filesystem permissions requested.");
+                            font-size: Theme.caption;
+                            color: Theme.textSecondary;
+                        }
+
+                        for path in root.item.filesystem_permissions: Text {
+                            accessible-role: text;
+                            accessible-label: @tr("Filesystem Path: ") + path.source + " -> " + path.target;
+                            text: "• " + path.source + " -> " + path.target;
+                            font-size: Theme.caption;
+                            color: Theme.textPrimary;
+                        }
+                    }
+
+                    PreferenceGroup {
+                        Text {
+                            text: @tr("Provider Scopes");
+                            font-size: Theme.body;
+                            font-weight: 700;
+                            color: Theme.textPrimary;
+                        }
+
+                        if root.item.scopes.length == 0: Text {
+                            accessible-role: text;
+                            accessible-label: @tr("No provider scopes registered.");
+                            text: @tr("No provider scopes registered.");
+                            font-size: Theme.caption;
+                            color: Theme.textSecondary;
+                        }
+
+                        HorizontalLayout {
+                            spacing: Theme.spacingXs;
+                            alignment: start;
+                            for scope in root.item.scopes: Rectangle {
+                                border-radius: Theme.borderRadiusSm;
+                                background: Theme.accent.transparentize(0.85);
+                                HorizontalLayout {
+                                    padding-left: Theme.paddingSm;
+                                    padding-right: Theme.paddingSm;
+                                    padding-top: Theme.spacingTiny;
+                                    padding-bottom: Theme.spacingTiny;
+                                    Text {
+                                        accessible-role: text;
+                                        accessible-label: @tr("Scope: ") + root.scope_to_display_string(scope);
+                                        text: root.scope_to_display_string(scope);
+                                        font-size: Theme.caption;
+                                        color: Theme.accent;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                alignment: end;
+                Button {
+                    text: @tr("Close");
+                    accessible-label: @tr("Close Extension Details");
+                    clicked => { root.close(); }
+                }
+            }
+        }
+    }
+}

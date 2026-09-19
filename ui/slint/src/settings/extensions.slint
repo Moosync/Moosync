@@ -7,6 +7,8 @@ import { Button } from "../common/button.slint";
 import { PreferenceItem } from "preferences.slint";
 import { PreferenceList } from "preference_list.slint";
 import { Spinner } from "../common/spinner.slint";
+import { IconButton } from "../common/icon_button.slint";
+import { ExtensionDetailsState } from "../common/extension_details_modal.slint";
 import { SettingsPageLayout } from "settings_page_layout.slint";
 
 component ExtensionsManifest inherits VerticalLayout {
@@ -103,6 +105,17 @@ component ExtensionsManifest inherits VerticalLayout {
                         alignment: center;
                         HorizontalLayout {
                             spacing: Theme.spacingMd;
+                            alignment: center;
+
+                            IconButton {
+                                icon_source: @image-url("../icons/info.svg");
+                                icon_size: Theme.iconSizeSm;
+                                accessible-label: @tr("Extension Details");
+                                clicked => {
+                                    ExtensionDetailsState.item = item;
+                                    ExtensionDetailsState.show_modal = true;
+                                }
+                            }
 
                             if item.loading: Spinner {
                                 active: true;

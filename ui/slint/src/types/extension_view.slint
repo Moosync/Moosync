@@ -1,3 +1,29 @@
+export enum ProviderScope {
+    search,
+    playlists,
+    playlist_songs,
+    artist_songs,
+    album_songs,
+    recommendations,
+    scrobble,
+    playlist_from_url,
+    song_from_url,
+    playback_details,
+    lyrics,
+    song_context_menu,
+    playlist_context_menu,
+    accounts,
+    database_song_events,
+    database_playlist_events,
+    player_ui_events,
+    player_data_events,
+}
+
+export struct ExtensionPathPermission {
+    source: string,
+    target: string,
+}
+
 export struct ExtensionItem {
     name: string,
     package_name: string,
@@ -9,6 +35,10 @@ export struct ExtensionItem {
     has_started: bool,
     icon_url: string,
     registry: string,
+    author: string,
+    network_permissions: [string],
+    filesystem_permissions: [ExtensionPathPermission],
+    scopes: [ProviderScope],
 }
 
 export struct ExtensionProviderItem {

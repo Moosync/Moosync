@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use slint::{ComponentHandle, Image, ModelRc, Timer};
+use slint::{ComponentHandle, Image, Model, ModelRc, Timer};
 use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
 use tracing::Instrument;
@@ -148,6 +148,20 @@ impl<'a> QueuePageHandler<'a> {
         self.main_window
             .global::<AppCallbacks>()
             .on_transfer_to_string(move |transfer| transfer.plain_text().unwrap_or_default());
+
+        self.main_window
+            .global::<AppCallbacks>()
+            .on_get_active_lyric_index(move |lines, current_ms| {
+                let mut active_idx = -1;
+                for (idx, line) in lines.iter().enumerate() {
+                    if line.time_ms <= current_ms {
+                        active_idx = idx as i32;
+                    } else {
+                        break;
+                    }
+                }
+                active_idx
+            });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -173,12 +187,16 @@ impl<'a> QueuePageHandler<'a> {
                     &cache_dir,
                 );
 
+                let state_manager_ui = state_manager.clone();
+                let mw_weak_ui = main_window_weak.clone();
                 let _ = slint::invoke_from_event_loop(move || {
-                    if let Some(main_window) = main_window_weak.upgrade() {
-                        Self::update_ui_queue(&main_window, &state_manager, queue);
+                    if let Some(main_window) = mw_weak_ui.upgrade() {
+                        Self::update_ui_queue(&main_window, &state_manager_ui, queue);
                         Self::update_ui_blurred_cover(&main_window, &blurred_path);
                     }
                 });
+
+                Self::fetch_and_update_lyrics(state_manager, main_window_weak, current_song);
             }
             .in_current_span(),
         );
@@ -196,13 +214,17 @@ impl<'a> QueuePageHandler<'a> {
                 let cache_dir = state_manager.get_cache_dir();
                 let mut handles = Vec::new();
 
-                // Song changed listener to update blurred cover background
+                // Song changed listener to update blurred cover background and lyrics
                 let mw_weak_song = main_window_weak.clone();
+                let state_manager_song = state_manager.clone();
                 let cache_dir_events = cache_dir.clone();
                 let ch_song = player_handler.on_song_changed(move |song| {
                     let mw_weak = mw_weak_song.clone();
                     let song = song.cloned();
                     let cache_dir = cache_dir_events.clone();
+                    let state_manager = state_manager_song.clone();
+
+                    Self::fetch_and_update_lyrics(state_manager, mw_weak.clone(), song.clone());
 
                     tokio::spawn(
                         async move {
@@ -267,6 +289,72 @@ impl<'a> QueuePageHandler<'a> {
         main_window
             .global::<QueuePageProps>()
             .set_blurred_cover(blurred_cover);
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn update_ui_lyrics(
+        main_window: &MainWindow,
+        lyrics: Option<songs_proto::moosync::types::Lyrics>,
+    ) {
+        let props = main_window.global::<QueuePageProps>();
+        props.set_lyrics_loading(false);
+        match lyrics {
+            Some(l) if !l.lines.is_empty() => {
+                let lines: Vec<crate::LyricLineModel> = l
+                    .lines
+                    .into_iter()
+                    .map(|line| crate::LyricLineModel {
+                        text: line.text.into(),
+                        time_ms: line.time_ms as i32,
+                    })
+                    .collect();
+                props.set_has_lyrics(true);
+                props.set_is_synced(l.is_synced);
+                props.set_lyrics_lines(slint::ModelRc::new(slint::VecModel::from(lines)));
+            }
+            _ => {
+                props.set_has_lyrics(false);
+                props.set_is_synced(false);
+                props.set_lyrics_lines(slint::ModelRc::default());
+            }
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn fetch_and_update_lyrics(
+        state_manager: StateManager,
+        main_window_weak: slint::Weak<MainWindow>,
+        song: Option<Song>,
+    ) {
+        let Some(song) = song else {
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(main_window) = main_window_weak.upgrade() {
+                    Self::update_ui_lyrics(&main_window, None);
+                }
+            });
+            return;
+        };
+
+        let mw_weak = main_window_weak.clone();
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Some(main_window) = mw_weak.upgrade() {
+                main_window
+                    .global::<QueuePageProps>()
+                    .set_lyrics_loading(true);
+            }
+        });
+
+        tokio::spawn(
+            async move {
+                let lyrics = crate::utils::fetch_song_lyrics(&state_manager, &song).await;
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(main_window) = main_window_weak.upgrade() {
+                        Self::update_ui_lyrics(&main_window, lyrics);
+                    }
+                });
+            }
+            .in_current_span(),
+        );
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

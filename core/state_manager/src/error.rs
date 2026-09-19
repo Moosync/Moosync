@@ -25,9 +25,6 @@ pub enum StateManagerError {
     #[error("File scanner error: {0}")]
     Scanner(#[from] file_scanner::error::ScannerError),
 
-    #[error("Lyrics error: {0}")]
-    Lyrics(#[from] lyrics::error::LyricsError),
-
     #[error("Preferences error: {0}")]
     Preferences(#[from] preferences::error::PreferencesError),
 

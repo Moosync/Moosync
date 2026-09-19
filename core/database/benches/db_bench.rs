@@ -384,18 +384,6 @@ fn bench_db_ops(c: &mut Criterion) {
         });
     });
 
-    update_group.bench_function("update_lyrics", |b| {
-        let target_id = inserted_huge[0].song.as_ref().unwrap().id.clone().unwrap();
-        b.iter(|| {
-            shared_db
-                .update_lyrics(
-                    target_id.clone(),
-                    "New lyrics for the benchmark".to_string(),
-                )
-                .unwrap();
-        });
-    });
-
     update_group.bench_function("increment_play_count", |b| {
         let target_id = inserted_huge[0].song.as_ref().unwrap().id.clone().unwrap();
         b.iter(|| {

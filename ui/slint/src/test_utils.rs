@@ -384,6 +384,13 @@ pub mod integration {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn click_element(handle: &i_slint_backend_testing::ElementHandle) {
+        handle
+            .single_click(slint::platform::PointerEventButton::Left)
+            .await;
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn setup_test_context(state_manager: &StateManager) {
         state_manager.setup().await;
         let mut ph = state_manager.get_player_handler_mut().await;

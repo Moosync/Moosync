@@ -58,6 +58,8 @@ SRC_LIST = [
     "src/utils/image_test.rs",
     "src/utils/lazy_model.rs",
     "src/utils/lazy_model_test.rs",
+    "src/utils/lyrics.rs",
+    "src/utils/lyrics_test.rs",
     "src/utils/mod.rs",
     "src/utils/models.rs",
     "src/utils/models_test.rs",

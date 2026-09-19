@@ -9,6 +9,7 @@ import {
     SongDetailAction,
     SongSortCriterion,
     MenuItem,
+    LyricLineModel,
 } from "./types/song_view.slint";
 import { ContextMenuItem } from "./types/context_menu.slint";
 import { ExtensionProviderItem } from "./types/extension_view.slint";
@@ -70,6 +71,7 @@ export global AppCallbacks {
 
     // Song List Filter & Sort Callbacks and Functions
     pure callback filter_and_sort_songs([SongModel], string, SongSortCriterion, bool) -> [SongModel];
+    pure callback get_active_lyric_index([LyricLineModel], int) -> int;
 
     pure public function decide_sort_criterion(id: string) -> SongSortCriterion {
         if (id == "date") { return SongSortCriterion.Date; }

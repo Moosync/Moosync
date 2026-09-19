@@ -16,7 +16,7 @@
 
 use std::fs;
 
-use assertables::{assert_none, assert_some, assert_some_eq_x};
+use assertables::{assert_none, assert_some};
 use lofty::tag::Tag;
 use rstest::{fixture, rstest};
 use tempdir::TempDir;
@@ -33,12 +33,13 @@ fn temp_dir_fixture() -> TempDir {
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_lyrics_scanner_scan_lrc_file_parsing(temp_dir_fixture: TempDir) {
+fn test_lyrics_scanner_scan_lrc_synced_parsing(temp_dir_fixture: TempDir) {
     let audio_path = temp_dir_fixture.path().join("sample_song.mp3");
     let lrc_path = temp_dir_fixture.path().join("sample_song.lrc");
     let lrc_content = "\
 [ti:Sample Title]
 [ar:Sample Artist]
+[offset:500]
 [00:05.12]First line of lyrics
 [00:10.45]Second line of lyrics
 [00:15.99]Third line of lyrics
@@ -48,10 +49,80 @@ fn test_lyrics_scanner_scan_lrc_file_parsing(temp_dir_fixture: TempDir) {
     let lyrics = LyricsScanner::scan_lrc(audio_path);
 
     assert_some!(&lyrics);
-    let lyrics_text = lyrics.unwrap();
-    assert!(lyrics_text.contains("First line of lyrics"));
-    assert!(lyrics_text.contains("Second line of lyrics"));
-    assert!(lyrics_text.contains("Third line of lyrics"));
+    let lyrics_val = lyrics.unwrap();
+    assert!(lyrics_val.is_synced);
+    assert_eq!(lyrics_val.lines.len(), 3);
+    assert_eq!(lyrics_val.lines[0].text, "First line of lyrics");
+    assert_eq!(lyrics_val.lines[0].time_ms, 5620);
+    assert_eq!(lyrics_val.lines[1].text, "Second line of lyrics");
+    assert_eq!(lyrics_val.lines[1].time_ms, 10950);
+    assert_eq!(lyrics_val.lines[2].text, "Third line of lyrics");
+    assert_eq!(lyrics_val.lines[2].time_ms, 16490);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_lyrics_scanner_scan_lrc_multiple_timestamps_on_single_line(temp_dir_fixture: TempDir) {
+    let audio_path = temp_dir_fixture.path().join("multi_ts.mp3");
+    let lrc_path = temp_dir_fixture.path().join("multi_ts.lrc");
+    let lrc_content = "[00:01.00][00:05.00]Chorus line\n";
+    fs::write(&lrc_path, lrc_content).unwrap();
+
+    let lyrics = LyricsScanner::scan_lrc(audio_path);
+
+    assert_some!(&lyrics);
+    let lyrics_val = lyrics.unwrap();
+    assert!(lyrics_val.is_synced);
+    assert_eq!(lyrics_val.lines.len(), 2);
+    assert_eq!(lyrics_val.lines[0].text, "Chorus line");
+    assert_eq!(lyrics_val.lines[0].time_ms, 1000);
+    assert_eq!(lyrics_val.lines[1].text, "Chorus line");
+    assert_eq!(lyrics_val.lines[1].time_ms, 5000);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_lyrics_scanner_scan_plain_unsynced_text(temp_dir_fixture: TempDir) {
+    let audio_path = temp_dir_fixture.path().join("plain.mp3");
+    let lrc_path = temp_dir_fixture.path().join("plain.lrc");
+    let lrc_content = "Just plain line 1\nJust plain line 2\n";
+    fs::write(&lrc_path, lrc_content).unwrap();
+
+    let lyrics = LyricsScanner::scan_lrc(audio_path);
+
+    assert_some!(&lyrics);
+    let lyrics_val = lyrics.unwrap();
+    assert!(!lyrics_val.is_synced);
+    assert_eq!(lyrics_val.lines.len(), 2);
+    assert_eq!(lyrics_val.lines[0].text, "Just plain line 1");
+    assert_eq!(lyrics_val.lines[0].time_ms, 0);
+    assert_eq!(lyrics_val.lines[1].text, "Just plain line 2");
+    assert_eq!(lyrics_val.lines[1].time_ms, 0);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_lyrics_scanner_extract_lyrics_from_id3_tag(temp_dir_fixture: TempDir) {
+    let mut tag = Tag::new(lofty::tag::TagType::Id3v2);
+    tag.insert_text(
+        lofty::prelude::ItemKey::Lyrics,
+        "[00:02.00]Tag Lyric Line 1\n[00:04.50]Tag Lyric Line 2".to_string(),
+    );
+    let dummy_path = temp_dir_fixture.path().join("dummy.mp3");
+
+    let extracted = LyricsScanner::extract_lyrics(&tag, &dummy_path);
+
+    assert_some!(&extracted);
+    let lyrics_val = extracted.unwrap();
+    assert!(lyrics_val.is_synced);
+    assert_eq!(lyrics_val.lines.len(), 2);
+    assert_eq!(lyrics_val.lines[0].text, "Tag Lyric Line 1");
+    assert_eq!(lyrics_val.lines[0].time_ms, 2000);
+    assert_eq!(lyrics_val.lines[1].text, "Tag Lyric Line 2");
+    assert_eq!(lyrics_val.lines[1].time_ms, 4500);
 }
 
 #[rstest]
@@ -68,15 +139,25 @@ fn test_lyrics_scanner_scan_lrc_non_existent_returns_none(temp_dir_fixture: Temp
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_lyrics_scanner_extract_lyrics_from_tag_or_lrc(temp_dir_fixture: TempDir) {
-    let mut tag = Tag::new(lofty::tag::TagType::Id3v2);
-    tag.insert_text(
-        lofty::prelude::ItemKey::Lyrics,
-        "Embedded ID3 Lyrics Text".to_string(),
-    );
-    let dummy_path = temp_dir_fixture.path().join("dummy.mp3");
+fn test_lyrics_scanner_scan_lrc_empty_file_returns_none(temp_dir_fixture: TempDir) {
+    let audio_path = temp_dir_fixture.path().join("empty.mp3");
+    let lrc_path = temp_dir_fixture.path().join("empty.lrc");
+    fs::write(&lrc_path, "   \n\n  ").unwrap();
 
-    let extracted = LyricsScanner::extract_lyrics(&tag, &dummy_path);
+    let lyrics = LyricsScanner::scan_lrc(audio_path);
 
-    assert_some_eq_x!(extracted.as_deref(), "Embedded ID3 Lyrics Text");
+    assert_none!(lyrics);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_lyrics_scanner_scan_lrc_only_headers_returns_none(temp_dir_fixture: TempDir) {
+    let audio_path = temp_dir_fixture.path().join("headers_only.mp3");
+    let lrc_path = temp_dir_fixture.path().join("headers_only.lrc");
+    fs::write(&lrc_path, "[ti:Title]\n[ar:Artist]\n[al:Album]\n").unwrap();
+
+    let lyrics = LyricsScanner::scan_lrc(audio_path);
+
+    assert_none!(lyrics);
 }

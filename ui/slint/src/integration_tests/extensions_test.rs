@@ -897,12 +897,20 @@ async fn do_extension_details_modal_lifecycle(
     .await;
     assert!(album_songs_scope_found);
 
+    let lyrics_scope_found = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Scope: Lyrics")
+            .next()
+            .is_some()
+    })
+    .await;
+    assert!(lyrics_scope_found);
+
     assert_eq!(details_state.get_item().network_permissions.row_count(), 2);
     assert_eq!(
         details_state.get_item().filesystem_permissions.row_count(),
         2
     );
-    assert_eq!(details_state.get_item().scopes.row_count(), 6);
+    assert_eq!(details_state.get_item().scopes.row_count(), 7);
 
     let ext_handler = state_manager.get_extension_handler().await;
     assert!(ext_handler.get_extension("rs.sample").is_ok());
@@ -948,6 +956,32 @@ async fn do_extension_details_modal_lifecycle(
     tokio::time::sleep(Duration::from_millis(100)).await;
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_extension_get_lyrics(
+    _main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let _ext = ExtensionFixture::new(state_manager).await;
+
+    let test_song = create_test_song(
+        "lyric_ext_song",
+        "Sample Song",
+        "Sample Album",
+        "Sample Artist",
+    );
+
+    let lyrics = slint_app::utils::fetch_song_lyrics(state_manager, &test_song).await;
+
+    assert!(lyrics.is_some());
+    let lyrics_val = lyrics.unwrap();
+    assert!(lyrics_val.is_synced);
+    assert_eq!(lyrics_val.lines.len(), 100);
+    assert_eq!(lyrics_val.lines[0].text, "Sample lyric line 1");
+    assert_eq!(lyrics_val.lines[0].time_ms, 0);
+    assert_eq!(lyrics_val.lines[1].text, "Sample lyric line 2");
+    assert_eq!(lyrics_val.lines[1].time_ms, 500);
+}
+
 integration_test!(
     test_playlists_extension_integration => do_playlists_extension_integration,
     test_extension_content_toggle_provider_off => do_extension_content_toggle_provider_off,
@@ -959,4 +993,5 @@ integration_test!(
     // test_extension_preference_text_input => do_extension_preference_text_input,
     // test_extension_preference_toggle => do_extension_preference_toggle,
     test_extension_details_modal_lifecycle => do_extension_details_modal_lifecycle,
+    test_extension_get_lyrics => do_extension_get_lyrics,
 );

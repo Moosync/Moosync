@@ -88,6 +88,7 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Pros
     }
 
     let _runtime_guard = reply_handler.clone().enter_runtime();
+    tracing::debug!("Sending command {:?} from {}", command, package_name);
     let response = match command.command {
         Some(cmd) => cmd.dispatch(reply_handler.as_ref(), &package_name),
         None => Err(ExtensionError::MissingCommand),
@@ -96,6 +97,8 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Pros
     let result = response.map(|resp| MainCommandResponse {
         response: Some(resp),
     });
+
+    tracing::debug!("command returning to {}", package_name);
 
     match result {
         Ok(response) => {
@@ -445,6 +448,7 @@ impl ExtismContext {
         thread::spawn(move || {
             {
                 let mut plugin = plugin_clone.lock().unwrap();
+                tracing::debug!("Calling entry on {:?}", package_name_clone);
                 if let Err(e) = plugin.call::<(), ()>("entry", ()) {
                     tracing::error!("Failed to call extension entry: {:?}", e);
                 }

@@ -35,6 +35,7 @@ rust_library(
         "//core/types",
         "//core/types/protos:songs_rs",
         "@crates//:libsqlite3-sys",
+        "@crates//:prost",
         "@crates//:r2d2",
         "@crates//:r2d2_sqlite",
         "@crates//:rusqlite",

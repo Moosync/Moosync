@@ -13,7 +13,6 @@
     "build",
     "//core/database",
     "//core/extensions",
-    "//core/lyrics",
     "//core/mpris",
     "//core/player",
     "//core/plugin_macro",

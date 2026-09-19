@@ -27,7 +27,6 @@ plugin_macro::generate_plugin_system!(
     preferences::preferences::PreferenceConfig,
     database::Database,
     file_scanner::ScannerHolder,
-    lyrics::LyricsFetcher,
     extensions::ExtensionHandler,
     player::PlayerHandler,
     themes::themes::ThemeHolder,

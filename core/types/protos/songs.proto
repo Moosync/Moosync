@@ -51,6 +51,16 @@ enum SongType {
   HLS = 4;
 }
 
+message LyricLine {
+  string text = 1;
+  int64 time_ms = 2;
+}
+
+message Lyrics {
+  repeated LyricLine lines = 1;
+  bool is_synced = 2;
+}
+
 message InnerSong {
   optional string id = 1; // _id
   optional string path = 2;
@@ -58,7 +68,7 @@ message InnerSong {
   optional string title = 6;
   optional string date = 7;
   optional string year = 8;
-  optional string lyrics = 9;
+  optional Lyrics lyrics = 9;
   optional string release_type = 10;
   optional double bitrate = 11;
   optional string codec = 12;

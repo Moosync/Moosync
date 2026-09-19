@@ -43,7 +43,6 @@ rust_library(
         "//core/database",
         "//core/extensions",
         "//core/file_scanner",
-        "//core/lyrics",
         "//core/preferences",
         "//core/types/protos:extensions_rs",
         "//core/types/protos:preferences_rs",

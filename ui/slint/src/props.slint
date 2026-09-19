@@ -1,4 +1,4 @@
-import { SongModel } from "types/song_view.slint";
+import { SongModel, LyricLineModel } from "types/song_view.slint";
 import { Constants, Pages } from "constants.slint";
 import { AppCallbacks } from "callbacks.slint";
 
@@ -15,5 +15,20 @@ export global AppProps {
 
     changed active_page => {
         AppCallbacks.active_page_changed(self.active_page);
+    }
+}
+
+export global QueuePageProps {
+    in-out property <[SongModel]> queue: Constants.testSongs;
+    in-out property <image> blurred-cover;
+    in-out property <bool> show_queue: false;
+    in-out property <bool> show_lyrics: false;
+    in-out property <bool> lyrics_loading: false;
+    in-out property <bool> has_lyrics: false;
+    in-out property <bool> is_synced: false;
+    in-out property <[LyricLineModel]> lyrics_lines: [];
+
+    changed show_queue => {
+        AppCallbacks.queue-toggled(self.show_queue);
     }
 }

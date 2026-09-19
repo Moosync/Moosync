@@ -1,0 +1,194 @@
+import { LyricLineModel } from "../types/song_view.slint";
+import { Theme } from "../constants.slint";
+import { WindowInfo } from "../window_info.slint";
+import { QueuePageProps, PlayerProps } from "../props.slint";
+import { AppCallbacks } from "../callbacks.slint";
+import { ListView, ScrollView } from "std-widgets.slint";
+
+export component LyricsView inherits HorizontalLayout {
+    in property <[LyricLineModel]> lyrics_lines: QueuePageProps.lyrics_lines;
+    in property <bool> is_synced: QueuePageProps.is_synced;
+    in property <bool> lyrics_loading: QueuePageProps.lyrics_loading;
+    in property <bool> has_lyrics: QueuePageProps.has_lyrics;
+
+    alignment: start;
+    spacing: Theme.spacingMd;
+    width: WindowInfo.window-size > WindowInfo.md ? Theme.songDetailsThumbnailSize : 0px;
+    visible: WindowInfo.window-size > WindowInfo.md;
+
+    pure function get_line_opacity(idx: int, active_idx: int) -> float {
+        if (active_idx == -1) {
+            return 0.75;
+        }
+        let d = Math.abs(idx - active_idx);
+        if (d == 0) {
+            return 1.0;
+        }
+        if (d == 1) {
+            return 0.70;
+        }
+        if (d == 2) {
+            return 0.50;
+        }
+        if (d == 3) {
+            return 0.35;
+        }
+        return 0.20;
+    }
+
+    property <int> active_index: (root.is_synced && root.lyrics_lines.length > 0)
+        ? AppCallbacks.get_active_lyric_index(root.lyrics_lines, PlayerProps.current_duration * 1000)
+        : -1;
+
+    VerticalLayout {
+        width: 100%;
+        height: 100%;
+        spacing: Theme.spacingSm;
+
+        // Top Header
+        HorizontalLayout {
+            alignment: space-between;
+            padding-bottom: Theme.spacingXs;
+
+            HorizontalLayout {
+                spacing: Theme.spacingSm;
+                alignment: start;
+
+                Text {
+                    text: @tr("Lyrics");
+                    color: Theme.textPrimary;
+                    font-size: Theme.modelTitle;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                }
+
+                if (root.has_lyrics): Rectangle {
+                    background: Theme.accent.transparentize(0.85);
+                    border-radius: Theme.borderRadiusSm;
+                    border-width: 1px;
+                    border-color: Theme.accent.transparentize(0.5);
+                    clip: true;
+                    height: 20px;
+
+                    HorizontalLayout {
+                        padding-left: 6px;
+                        padding-right: 6px;
+                        alignment: center;
+
+                        Text {
+                            text: root.is_synced ? @tr("Synced") : @tr("Plain");
+                            color: Theme.accent;
+                            font-size: Theme.caption;
+                            font-weight: 600;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+            }
+
+            TouchArea {
+                accessible-role: button;
+                accessible-label: @tr("Show Details");
+                clicked => {
+                    QueuePageProps.show_lyrics = false;
+                }
+
+                Text {
+                    text: @tr("Show Details");
+                    color: Theme.accent;
+                    font-size: Theme.subtitle;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        // Lyrics Content Area
+        Rectangle {
+            vertical-stretch: 1;
+            clip: true;
+
+            if (root.lyrics_loading): HorizontalLayout {
+                alignment: center;
+                Text {
+                    text: @tr("Loading lyrics...");
+                    color: Theme.textSecondary;
+                    font-size: Theme.body;
+                    vertical-alignment: center;
+                }
+            }
+
+            if (!root.lyrics_loading && !root.has_lyrics): HorizontalLayout {
+                alignment: center;
+                Text {
+                    text: @tr("No lyrics available");
+                    color: Theme.textSecondary;
+                    font-size: Theme.body;
+                    vertical-alignment: center;
+                }
+            }
+
+            if (!root.lyrics_loading && root.has_lyrics && root.is_synced): ScrollView {
+                width: 100%;
+                height: 100%;
+                viewport-y: (root.active_index >= 0)
+                    ? Math.min(0px, -root.active_index * 42px + (self.height / 2) - 21px)
+                    : 0px;
+
+                animate viewport-y {
+                    duration: 250ms;
+                    easing: ease-out;
+                }
+
+                VerticalLayout {
+                    alignment: start;
+                    spacing: 0px;
+                    padding-top: 40px;
+                    padding-bottom: 40px;
+
+                    for line[idx] in root.lyrics_lines: Rectangle {
+                        height: 42px;
+                        width: 100%;
+                        background: transparent;
+
+                        Text {
+                            width: 100%;
+                            height: 100%;
+                            text: line.text;
+                            color: (idx == root.active_index) ? Theme.accent : Theme.textPrimary;
+                            font-size: (idx == root.active_index) ? Theme.modelTitle : Theme.body;
+                            font-weight: (idx == root.active_index) ? 700 : 500;
+                            opacity: root.get_line_opacity(idx, root.active_index);
+                            vertical-alignment: center;
+                            overflow: elide;
+
+                            animate opacity {
+                                duration: 250ms;
+                                easing: ease-in-out;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!root.lyrics_loading && root.has_lyrics && !root.is_synced): ScrollView {
+                width: 100%;
+                height: 100%;
+
+                VerticalLayout {
+                    alignment: start;
+                    spacing: Theme.spacingXs;
+                    padding-right: Theme.paddingSm;
+
+                    for line[idx] in root.lyrics_lines: Text {
+                        text: line.text;
+                        color: Theme.textPrimary;
+                        font-size: Theme.body;
+                        opacity: 0.85;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+    }
+}

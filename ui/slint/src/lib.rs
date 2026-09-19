@@ -23,7 +23,7 @@ mod main_content;
 mod pages;
 mod settings;
 pub mod test_utils;
-mod utils;
+pub mod utils;
 mod window_info;
 
 #[cfg(test)]

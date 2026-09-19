@@ -4,6 +4,7 @@ pub mod entity_list;
 pub mod filter_sort;
 pub mod image;
 pub mod lazy_model;
+pub mod lyrics;
 pub mod models;
 pub mod navigation;
 pub mod parsers;
@@ -17,6 +18,7 @@ pub use entity_list::*;
 pub use filter_sort::*;
 pub use image::*;
 pub use lazy_model::*;
+pub use lyrics::*;
 pub use models::*;
 pub use parsers::*;
 pub use queue::*;
@@ -35,6 +37,8 @@ mod filter_sort_test;
 mod image_test;
 #[cfg(test)]
 mod lazy_model_test;
+#[cfg(test)]
+mod lyrics_test;
 #[cfg(test)]
 mod models_test;
 #[cfg(test)]

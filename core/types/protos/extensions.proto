@@ -186,7 +186,7 @@ message RequestedLyricsRequest {
   Song song = 1;
 }
 message RequestedLyricsResponse {
-  string lyrics = 1;
+  optional Lyrics lyrics = 1;
 }
 
 message RequestedArtistSongsRequest {

@@ -1,14 +1,19 @@
-import { SongModel, CoverHelper } from "../types/song_view.slint";
+import {
+    SongModel,
+    LyricLineModel,
+    CoverHelper,
+} from "../types/song_view.slint";
 import { Theme, Constants, QueuePages } from "../constants.slint";
 import { ListView } from "std-widgets.slint";
 import { AppCallbacks, ContextMenuCallbacks } from "../callbacks.slint";
 import { Button } from "../common/button.slint";
 import { IconButton } from "../common/icon_button.slint";
 import { SongDetails } from "../common/song_details.slint";
+import { LyricsView } from "lyrics_view.slint";
 import { ContextMenu } from "../common/context_menu.slint";
 import { Utils, DefaultIconType } from "../utils.slint";
 import { SavePlaylistState } from "../common/save_playlist_modal.slint";
-import { PlayerProps } from "../props.slint";
+import { PlayerProps, QueuePageProps } from "../props.slint";
 
 component QueueListItem inherits Rectangle {
     in property <SongModel> song;
@@ -171,16 +176,6 @@ component QueueListItem inherits Rectangle {
     }
 }
 
-export global QueuePageProps {
-    in-out property <[SongModel]> queue: Constants.testSongs;
-    in-out property <image> blurred-cover;
-    in-out property <bool> show_queue: false;
-
-    changed show_queue => {
-        AppCallbacks.queue-toggled(self.show_queue);
-    }
-}
-
 export component QueuePage inherits Rectangle {
     in property <QueuePages> page-type: QueuePages.Queue;
     in-out property <int> active-idx: -1;
@@ -263,13 +258,19 @@ export component QueuePage inherits Rectangle {
         padding: Theme.paddingLg * 2;
         spacing: Theme.spacingXl * 2;
 
-        SongDetails {
+        if (!QueuePageProps.show_lyrics): SongDetails {
             song: PlayerProps.current_song;
 
             HorizontalLayout {
                 alignment: end;
                 padding-top: Theme.spacingSm;
                 TouchArea {
+                    accessible-role: button;
+                    accessible-label: @tr("Show Lyrics");
+                    clicked => {
+                        QueuePageProps.show_lyrics = true;
+                    }
+
                     Text {
                         text: @tr("Show Lyrics");
                         color: Theme.accent;
@@ -279,6 +280,8 @@ export component QueuePage inherits Rectangle {
                 }
             }
         }
+
+        if (QueuePageProps.show_lyrics): LyricsView { }
 
         VerticalLayout {
             horizontal-stretch: 1;

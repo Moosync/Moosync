@@ -22,10 +22,11 @@ use std::{
     vec,
 };
 
+use prost::Message;
 use rusqlite::OptionalExtension;
 use songs_proto::moosync::types::{
     Album, AlbumList, AllAnalytics, Artist, ArtistList, EntityResult, Genre, GenreList,
-    GetEntityOptions, GetSongOptions, InnerSong, Playlist, PlaylistList, SearchResult,
+    GetEntityOptions, GetSongOptions, InnerSong, Lyrics, Playlist, PlaylistList, SearchResult,
     SearchableSong, Song, all_analytics::SongListenTime,
 };
 use tracing::{debug, info, trace, warn};
@@ -220,7 +221,7 @@ impl Database {
             title: Option<String>,
             date: Option<String>,
             year: Option<String>,
-            lyrics: Option<String>,
+            lyrics: Option<Vec<u8>>,
             release_type: Option<String>,
             bitrate: Option<f64>,
             codec: Option<String>,
@@ -578,7 +579,7 @@ impl Database {
                     title: inner_song.title.clone(),
                     date: inner_song.date.clone(),
                     year: inner_song.year.clone(),
-                    lyrics: inner_song.lyrics.clone(),
+                    lyrics: inner_song.lyrics.as_ref().map(|l| l.encode_to_vec()),
                     release_type: inner_song.release_type.clone(),
                     bitrate: inner_song.bitrate,
                     codec: inner_song.codec.clone(),
@@ -845,7 +846,7 @@ impl Database {
                 &song.title,
                 &song.date,
                 &song.year,
-                &song.lyrics,
+                &song.lyrics.as_ref().map(|l| l.encode_to_vec()),
                 &song.release_type,
                 &song.bitrate,
                 &song.codec,
@@ -1774,7 +1775,7 @@ impl Database {
                     &inner_song.title,
                     &inner_song.date,
                     &inner_song.year,
-                    &inner_song.lyrics,
+                    &inner_song.lyrics.as_ref().map(|l| l.encode_to_vec()),
                     &inner_song.release_type,
                     &inner_song.bitrate,
                     &inner_song.codec,
@@ -1814,31 +1815,29 @@ impl Database {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_lyrics(&self, id: &str) -> Result<Option<String>, DatabaseError> {
+    pub fn get_lyrics(&self, id: &str) -> Result<Option<Lyrics>, DatabaseError> {
         trace!("Getting lyrics for song {id}");
         let conn = self.pool.get().unwrap();
-        let lyrics = conn
+        let lyrics_bytes = conn
             .query_row("SELECT lyrics FROM allsongs WHERE _id = ?1", [id], |row| {
-                row.get::<_, Option<String>>(0)
+                row.get::<_, Option<Vec<u8>>>(0)
             })
             .optional()
             .map_err(DatabaseError::Query)?
             .flatten();
+
+        let lyrics = match lyrics_bytes {
+            Some(bytes) => match Lyrics::decode(bytes.as_slice()) {
+                Ok(l) => Some(l),
+                Err(e) => {
+                    tracing::error!("Failed to decode lyrics protobuf: {e:?}");
+                    None
+                }
+            },
+            None => None,
+        };
         info!("Fetched lyrics for song {id}");
         Ok(lyrics)
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn update_lyrics(&self, id: String, lyrics: String) -> Result<(), DatabaseError> {
-        trace!("Updating lyrics");
-        let conn = self.pool.get().unwrap();
-        conn.execute(
-            "UPDATE allsongs SET lyrics = ?1 WHERE _id = ?2",
-            (&lyrics, &id),
-        )
-        .map_err(DatabaseError::Query)?;
-        info!("Updated lyrics");
-        Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

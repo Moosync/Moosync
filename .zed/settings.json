@@ -26,7 +26,7 @@
             "build",
             "//core/database",
             "//core/extensions",
-            "//core/lyrics",
+            "//core/file_scanner",
             "//core/mpris",
             "//core/player",
             "//core/plugin_macro",

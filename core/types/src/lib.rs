@@ -45,7 +45,8 @@ pub mod prelude {
     use std::borrow::Cow;
 
     use songs_proto::moosync::types::{
-        Album, Artist, EntityResult, Genre, InnerSong, Playlist, Song, SongType, entity_result,
+        Album, Artist, EntityResult, Genre, InnerSong, Lyrics, Playlist, Song, SongType,
+        entity_result,
     };
     use themes_proto::moosync::types::{ThemeDetails, ThemeItem};
 
@@ -94,7 +95,7 @@ pub mod prelude {
         fn get_playback_url(&self) -> Option<Cow<'_, str>>;
         fn get_type_or_default(&self) -> SongType;
         fn get_path(&self) -> Option<Cow<'_, str>>;
-        fn get_lyrics(&self) -> Option<Cow<'_, str>>;
+        fn get_lyrics(&self) -> Option<&Lyrics>;
         fn get_date(&self) -> Option<Cow<'_, str>>;
         fn get_artist_string(&self) -> Option<String>;
         fn get_album_string(&self) -> Option<Cow<'_, str>>;
@@ -169,10 +170,8 @@ pub mod prelude {
                 .as_ref()
                 .and_then(|s| s.path.as_deref().map(Cow::Borrowed))
         }
-        fn get_lyrics(&self) -> Option<Cow<'_, str>> {
-            self.song
-                .as_ref()
-                .and_then(|s| s.lyrics.as_deref().map(Cow::Borrowed))
+        fn get_lyrics(&self) -> Option<&Lyrics> {
+            self.song.as_ref().and_then(|s| s.lyrics.as_ref())
         }
         fn get_date(&self) -> Option<Cow<'_, str>> {
             self.song

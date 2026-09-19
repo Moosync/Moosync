@@ -21,8 +21,8 @@ use assertables::{
 };
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{
-    Album, Artist, Genre, GetEntityOptions, GetSongOptions, InnerSong, Playlist, SearchableSong,
-    Song, SongType, entity_result::Result as EntityResultVariant,
+    Album, Artist, Genre, GetEntityOptions, GetSongOptions, InnerSong, LyricLine, Lyrics, Playlist,
+    SearchableSong, Song, SongType, entity_result::Result as EntityResultVariant,
 };
 use tempdir::TempDir;
 use tracing_test::traced_test;
@@ -1232,46 +1232,36 @@ fn test_update_songs_cascades_album_and_artist(db_context: TestDbContext) {
 }
 
 #[rstest]
-#[traced_test]
-#[tracing::instrument(level = "debug", skip_all)]
-fn test_update_lyrics(db_context: TestDbContext) {
-    let TestDbContext { db, .. } = db_context;
-
-    let song = create_test_song("Lyric Song", "/path/to/lyrics.mp3");
-    let inserted = db.insert_songs(vec![song]).unwrap();
-    let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
-
-    db.update_lyrics(song_id.clone(), "New Lyrics".to_string())
-        .unwrap();
-    let fetched_songs = db
-        .get_songs_by_options(GetSongOptions {
-            song: Some(SearchableSong {
-                id: Some(song_id.clone()),
-                ..Default::default()
-            }),
-            ..Default::default()
-        })
-        .unwrap();
-    let lyrics = db.get_lyrics(&song_id).unwrap();
-
-    assert_none!(fetched_songs[0].song.as_ref().unwrap().lyrics);
-    assert_eq!(lyrics.as_deref(), Some("New Lyrics"));
-}
-
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_get_lyrics_success(db_context: TestDbContext) {
     let TestDbContext { db, .. } = db_context;
     let mut song = create_test_song("Lyric Song", "/path/to/lyrics.mp3");
-    song.song.as_mut().unwrap().lyrics = Some("Song lyrics content".to_string());
+    song.song.as_mut().unwrap().lyrics = Some(Lyrics {
+        lines: vec![
+            LyricLine {
+                text: "Song lyrics line 1".to_string(),
+                time_ms: 1000,
+            },
+            LyricLine {
+                text: "Song lyrics line 2".to_string(),
+                time_ms: 2000,
+            },
+        ],
+        is_synced: true,
+    });
     let inserted = db.insert_songs(vec![song]).unwrap();
     let song_id = inserted[0].song.as_ref().unwrap().id.clone().unwrap();
 
     let lyrics = db.get_lyrics(&song_id);
 
     assert_ok!(lyrics.as_ref());
-    assert_eq!(lyrics.unwrap().as_deref(), Some("Song lyrics content"));
+    let lyrics_val = lyrics.unwrap().unwrap();
+    assert!(lyrics_val.is_synced);
+    assert_eq!(lyrics_val.lines.len(), 2);
+    assert_eq!(lyrics_val.lines[0].text, "Song lyrics line 1");
+    assert_eq!(lyrics_val.lines[0].time_ms, 1000);
 }
 
 #[rstest]

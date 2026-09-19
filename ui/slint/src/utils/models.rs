@@ -45,7 +45,7 @@ impl From<SongModel> for Song {
             title: (!model.title.is_empty()).then(|| model.title.to_string()),
             date: (!model.date.is_empty()).then(|| model.date.to_string()),
             year: (!model.year.is_empty()).then(|| model.year.to_string()),
-            lyrics: (!model.lyrics.is_empty()).then(|| model.lyrics.to_string()),
+            lyrics: None,
             release_type: (!model.release_type.is_empty()).then(|| model.release_type.to_string()),
             bitrate: (model.bitrate != 0.0).then_some(model.bitrate as f64),
             codec: (!model.codec.is_empty()).then(|| model.codec.to_string()),
@@ -166,11 +166,6 @@ impl From<(Song, Option<&ExtensionDetail>)> for SongModel {
             year: inner
                 .as_ref()
                 .and_then(|s| s.year.as_deref())
-                .unwrap_or_default()
-                .into(),
-            lyrics: inner
-                .as_ref()
-                .and_then(|s| s.lyrics.as_deref())
                 .unwrap_or_default()
                 .into(),
             release_type: inner

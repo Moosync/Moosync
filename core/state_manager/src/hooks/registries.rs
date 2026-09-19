@@ -35,14 +35,25 @@ impl ExtensionRegistriesHook {
 
     #[tracing::instrument(level = "debug", skip_all)]
     async fn fetch_and_update_manifests(state_manager: &StateManager) {
-        let mut extensions = state_manager.get_extension_handler_mut().await;
-        if let Ok(manifests) = extensions.get_extension_manifest().await {
-            extensions.set_remote_manifests(manifests);
-            extensions.check_for_updates();
-            extensions.trigger_extensions_updated();
-            return;
-        }
+        {
+            if let Ok(manifests) = {
+                let extensions = state_manager.get_extension_handler().await;
+                extensions.get_extension_manifest().await
+            } {
+                {
+                    let mut extensions = state_manager.get_extension_handler_mut().await;
+                    extensions.set_remote_manifests(manifests);
+                    extensions.check_for_updates();
+                }
 
+                {
+                    let extensions = state_manager.get_extension_handler().await;
+                    extensions.trigger_extensions_updated();
+                }
+
+                return;
+            }
+        }
         tracing::error!("Failed to fetch remote manifests");
     }
 }

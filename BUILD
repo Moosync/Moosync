@@ -202,7 +202,6 @@ test_suite(
         "//core/database:database_test",
         "//core/extensions:extensions_test",
         "//core/file_scanner:file_scanner_test",
-        "//core/lyrics:lyrics_test",
         "//core/mpris:mpris_test",
         "//core/player:player_test",
         "//core/plugin_macro:plugin_macro_test",

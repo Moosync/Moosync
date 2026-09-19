@@ -5,6 +5,7 @@ import { AllSongs, AllSongsPageProps } from "main_content/all_songs.slint";
 import { WindowInfo } from "window_info.slint";
 import {
     SongModel,
+    LyricLineModel,
     CoverHelper,
     AlbumModel,
     PlaylistModel,
@@ -24,8 +25,7 @@ import {
 import { GenresPage, GenresPageProps } from "main_content/genres.slint";
 import { ExplorePage, ExplorePageProps } from "main_content/explore.slint";
 import { SearchPage, SearchPageProps } from "main_content/search.slint";
-import { SongListView } from "common/song_list_view.slint";
-import { QueuePage, QueuePageProps } from "main_content/queue_page.slint";
+import { QueuePage } from "main_content/queue_page.slint";
 import {
     PlaylistContent,
     PlaylistContentPageProps,
@@ -94,7 +94,7 @@ import {
     ExtensionDetailsModal,
     ExtensionDetailsState,
 } from "common/extension_details_modal.slint";
-import { PlayerProps, AppProps } from "props.slint";
+import { PlayerProps, AppProps, QueuePageProps } from "props.slint";
 
 export {
     PlayerProps,
@@ -118,6 +118,7 @@ export {
     Constants,
     Theme,
     SongModel,
+    LyricLineModel,
     AlbumModel,
     PlaylistModel,
     ArtistModel,

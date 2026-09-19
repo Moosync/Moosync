@@ -278,6 +278,7 @@ impl ReplyHandler for StateReplyHandler {
         let extensions = self
             .runtime
             .block_on(self.state_manager.get_extension_handler());
+        tracing::debug!("Setting account {:?} for {}", account, package_name);
         let extension = extensions.get_extension(package_name)?;
         extension.set_account(account.clone());
         extensions.trigger_accounts_updated(Some(account.id));

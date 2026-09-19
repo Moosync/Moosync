@@ -1,3 +1,8 @@
+export struct LyricLineModel {
+    text: string,
+    time_ms: int,
+}
+
 export struct AlbumModel {
     id: string,
     title: string,
@@ -47,7 +52,6 @@ export struct SongModel {
     title: string,
     date: string,
     year: string,
-    lyrics: string,
     release_type: string,
     bitrate: float,
     codec: string,

@@ -306,6 +306,22 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
                                         e
                                     );
                                 }
+                                Self::refresh_preferences(main_window_weak, state_manager).await;
+                            }
+                            .in_current_span(),
+                        );
+                    }
+                });
+
+                let _cancel_pref = handler.on_preferences_updated({
+                    let state_manager = state_manager.clone();
+                    let main_window_weak = main_window_weak.clone();
+                    move |_| {
+                        let state_manager = state_manager.clone();
+                        let main_window_weak = main_window_weak.clone();
+                        tokio::spawn(
+                            async move {
+                                Self::refresh_preferences(main_window_weak, state_manager).await;
                             }
                             .in_current_span(),
                         );

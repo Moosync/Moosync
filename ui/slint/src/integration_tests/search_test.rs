@@ -2,10 +2,7 @@ use i_slint_backend_testing::ElementHandle;
 use slint::{ComponentHandle, Model};
 use slint_app::{
     AppCallbacks, AppProps, MainWindow, Pages, SearchPageProps,
-    test_utils::integration::{
-        click_element, create_test_song, integration_test, load_sample_extension, set_test_step,
-        wait_until,
-    },
+    test_utils::integration::{ExtensionFixture, create_test_song, integration_test, wait_until},
 };
 use songs_proto::moosync::types::Playlist;
 use state_manager::StateManager;
@@ -66,12 +63,10 @@ async fn do_search_category_albums(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    set_test_step("search_albums_insert_song");
     let database = state_manager.get_database().await;
     let song = create_test_song("s_album_disc", "Mix Track", "Searchable Disc", "Mix Artist");
     database.insert_songs(vec![song]).unwrap();
 
-    set_test_step("search_albums_goto_search_page");
     main_window
         .global::<AppCallbacks>()
         .invoke_active_page_changed(Pages::Search);
@@ -79,12 +74,10 @@ async fn do_search_category_albums(
         wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search).await;
     assert!(nav);
 
-    set_test_step("search_albums_invoke_search");
     main_window
         .global::<AppCallbacks>()
         .invoke_search_term_changed("Disc".into());
 
-    set_test_step("search_albums_wait_results");
     let searched = wait_until(|| {
         let results = main_window
             .global::<SearchPageProps>()
@@ -97,15 +90,15 @@ async fn do_search_category_albums(
     .await;
     assert!(searched);
 
-    set_test_step("search_albums_click_tab");
     let album_tabs: Vec<ElementHandle> =
         ElementHandle::find_by_accessible_label(main_window, "Search Albums").collect();
     assert_eq!(album_tabs.len(), 1);
     assert!(album_tabs[0].is_valid());
-    click_element(&album_tabs[0]).await;
+    album_tabs[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
     main_window.global::<SearchPageProps>().set_active_tab(1);
 
-    set_test_step("search_albums_wait_handle");
     let handles_found = wait_until(|| {
         ElementHandle::find_by_accessible_label(main_window, "Searchable Disc").count() > 0
     })
@@ -154,7 +147,9 @@ async fn do_search_category_artists(
         ElementHandle::find_by_accessible_label(main_window, "Search Artists").collect();
     assert_eq!(artist_tabs.len(), 1);
     assert!(artist_tabs[0].is_valid());
-    click_element(&artist_tabs[0]).await;
+    artist_tabs[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
 
     let handles_found = wait_until(|| {
         ElementHandle::find_by_accessible_label(main_window, "Searchable Singer").count() > 0
@@ -215,7 +210,9 @@ async fn do_search_category_playlists(
         ElementHandle::find_by_accessible_label(main_window, "Search Playlists").collect();
     assert_eq!(playlist_tabs.len(), 1);
     assert!(playlist_tabs[0].is_valid());
-    click_element(&playlist_tabs[0]).await;
+    playlist_tabs[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
 
     let handles_found = wait_until(|| {
         let handles: Vec<ElementHandle> =
@@ -236,7 +233,7 @@ async fn do_search_extension_integration(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    load_sample_extension(state_manager).await;
+    let _ext = ExtensionFixture::new(state_manager).await;
 
     main_window
         .global::<AppCallbacks>()

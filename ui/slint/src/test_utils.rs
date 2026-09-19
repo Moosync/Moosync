@@ -84,8 +84,7 @@ pub mod integration {
     use std::{env, fs, path::PathBuf, time::Duration};
 
     use futures::FutureExt;
-    use i_slint_backend_testing::ElementHandle;
-    use player::RepeatMode;
+    use player_proto::moosync::types::RepeatMode;
     use slint::{ComponentHandle, ModelRc, VecModel};
     use songs_proto::moosync::types::{
         Album, Artist, Genre, GetEntityOptions, GetSongOptions, InnerSong, Playlist,
@@ -126,11 +125,6 @@ pub mod integration {
         })
     }
 
-    static TEST_STEP: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_test_step(step: &str) { *TEST_STEP.lock().unwrap() = step.to_string(); }
-
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn runner() -> &'static tokio::sync::mpsc::UnboundedSender<Task> {
         RUNNER.get_or_init(|| {
@@ -160,21 +154,15 @@ pub mod integration {
 
                     slint::spawn_local(async move {
                         while let Some((test_name, test_fn, result_tx)) = rx.recv().await {
-                            set_test_step("reset_test_state");
                             let res = std::panic::AssertUnwindSafe(async {
                                 reset_test_state(main_window, state_manager).await;
-                                set_test_step("test_fn_start");
                                 let test_future = test_fn(main_window, state_manager);
 
                                 if tokio::time::timeout(Duration::from_secs(30), test_future)
                                     .await
                                     .is_err()
                                 {
-                                    let current_step = TEST_STEP.lock().unwrap().clone();
-                                    panic!(
-                                        "Test {} timed out after 30s at step: {}",
-                                        test_name, current_step
-                                    );
+                                    panic!("Test {} timed out after 30s", test_name);
                                 }
                             })
                             .catch_unwind()
@@ -198,6 +186,8 @@ pub mod integration {
         main_window: &'static MainWindow,
         state_manager: &'static StateManager,
     ) {
+        await_cleanup_handles().await;
+
         // 1. Remove all installed custom extensions
         {
             let ext_handler = state_manager.get_extension_handler().await;
@@ -252,7 +242,7 @@ pub mod integration {
             ph.clear_queue();
             ph.clear_queue();
             let _ = ph.pause();
-            ph.repeat(RepeatMode::None);
+            ph.repeat(RepeatMode::RepeatNone);
         }
 
         // 4. Reset Slint UI Modals and State
@@ -394,19 +384,6 @@ pub mod integration {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn click_element(handle: &ElementHandle) {
-        click_element_with_button(handle, slint::platform::PointerEventButton::Left).await;
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn click_element_with_button(
-        handle: &ElementHandle,
-        button: slint::platform::PointerEventButton,
-    ) {
-        handle.single_click(button).await;
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
     pub async fn setup_test_context(state_manager: &StateManager) {
         state_manager.setup().await;
         let mut ph = state_manager.get_player_handler_mut().await;
@@ -447,171 +424,118 @@ pub mod integration {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_sample_ext_path(subdir: &str) -> PathBuf {
-        let runfiles_dir = env::var("TEST_SRCDIR").unwrap_or_else(|_| ".".to_string());
-        let r = PathBuf::from(&runfiles_dir);
-        let sub = if subdir.is_empty() { "rs" } else { subdir };
-        let candidates = [
-            r.join("moosync_ext+/sample_extensions").join(sub),
-            r.join("moosync_ext/sample_extensions").join(sub),
-            r.join("_main/sample_extensions").join(sub),
-            r.join("_main/external/moosync_ext+/sample_extensions")
-                .join(sub),
-            r.join("_main/external/moosync_ext/sample_extensions")
-                .join(sub),
-            r.join("sample_extensions").join(sub),
-        ];
-        for c in &candidates {
-            if c.join("sample_extension.wasm").exists() {
-                return c.clone();
-            }
-        }
-        for c in &candidates {
-            if c.exists() {
-                return c.clone();
-            }
-        }
-        candidates[0].clone()
+    pub fn get_sample_ext_path() -> PathBuf {
+        let runfiles_dir = env::var("TEST_SRCDIR").expect("TEST_SRCDIR must be set");
+        PathBuf::from(runfiles_dir).join("moosync_ext+/sample_extensions/rs")
     }
 
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn load_custom_extension(
-        state_manager: &StateManager,
-        dir_name: &str,
-        pkg_name: &str,
-        display_name: &str,
-    ) {
-        let ext_handler = state_manager.get_extension_handler().await;
-        let extensions_dir = ext_handler.extensions_dir.clone();
-        let ext_dir = extensions_dir.join(dir_name);
-        fs::create_dir_all(&ext_dir).unwrap();
+    static CLEANUP_HANDLES: std::sync::Mutex<Vec<tokio::task::JoinHandle<()>>> =
+        std::sync::Mutex::new(Vec::new());
 
-        let src_ext_path = get_sample_ext_path("rs");
-        assert!(
-            src_ext_path.exists(),
-            "Source extension path does not exist: {:?}",
-            src_ext_path
-        );
-        for entry in fs::read_dir(&src_ext_path).unwrap() {
-            let entry = entry.unwrap();
-            let path = entry.path();
-            if path.is_file() {
-                let dest = ext_dir.join(path.file_name().unwrap());
-                fs::copy(&path, &dest).unwrap();
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::PermissionsExt;
-                    let perms = fs::Permissions::from_mode(0o644);
-                    fs::set_permissions(&dest, perms).unwrap();
-                }
-            }
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn await_cleanup_handles() {
+        let handles: Vec<_> = CLEANUP_HANDLES.lock().unwrap().drain(..).collect();
+        for handle in handles {
+            let _ = handle.await;
+        }
+    }
+
+    pub struct ExtensionFixture {
+        pub ext_dir: PathBuf,
+        pub package_name: String,
+        pub state_manager: &'static StateManager,
+    }
+
+    impl ExtensionFixture {
+        #[tracing::instrument(level = "debug", skip_all)]
+        pub async fn new(state_manager: &'static StateManager) -> Self {
+            Self::new_with_name(state_manager, "rs.sample", "Sample Extension").await
         }
 
-        let package_json_path = ext_dir.join("package.json");
-        if package_json_path.exists() {
-            let contents = fs::read_to_string(&package_json_path).unwrap();
-            if let Ok(mut json_val) = serde_json::from_str::<serde_json::Value>(&contents) {
-                if let Some(obj) = json_val.as_object_mut() {
-                    obj.insert(
-                        "name".to_string(),
-                        serde_json::Value::String(pkg_name.to_string()),
-                    );
-                    obj.insert(
-                        "displayName".to_string(),
-                        serde_json::Value::String(display_name.to_string()),
-                    );
-                    if !obj.contains_key("icon") {
-                        obj.insert(
-                            "icon".to_string(),
-                            serde_json::Value::String("icon.png".to_string()),
-                        );
-                    }
-                }
-                fs::write(
-                    &package_json_path,
-                    serde_json::to_string(&json_val).unwrap(),
-                )
-                .unwrap();
-            }
-        } else {
+        #[tracing::instrument(level = "debug", skip_all)]
+        pub async fn new_with_name(
+            state_manager: &'static StateManager,
+            package_name: &str,
+            display_name: &str,
+        ) -> Self {
+            await_cleanup_handles().await;
+
+            let ext_handler = state_manager.get_extension_handler().await;
+            let ext_dir = ext_handler.extensions_dir.join(package_name);
+            fs::create_dir_all(&ext_dir).unwrap();
+
+            let src_ext_path = get_sample_ext_path();
+            assert!(
+                src_ext_path.exists(),
+                "Source extension path does not exist: {:?}",
+                src_ext_path
+            );
+            fs::copy(
+                src_ext_path.join("sample_extension.wasm"),
+                ext_dir.join("sample_extension.wasm"),
+            )
+            .unwrap();
+
+            fs::write(
+                ext_dir.join("icon.svg"),
+                r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="red"/></svg>"#,
+            )
+            .unwrap();
+
             let manifest = format!(
                 r#"{{
-            "name": "{}",
-            "displayName": "{}",
-            "version": "1.0.0",
-            "extensionEntry": "sample_extension.wasm",
-            "moosyncExtension": true,
-            "description": "Sample Rust Extension",
-            "icon": "icon.png",
-            "author": "Moosync"
-        }}"#,
-                pkg_name, display_name
+    "name": "{package_name}",
+    "displayName": "{display_name}",
+    "version": "1.0.0",
+    "extensionEntry": "sample_extension.wasm",
+    "moosyncExtension": true,
+    "description": "Sample Rust Extension",
+    "icon": "icon.svg",
+    "author": "Moosync",
+    "permissions": {{
+        "hosts": [
+            "api.example.com",
+            "*.moosync.app"
+        ],
+        "paths": {{
+            "/music": "/media/music",
+            "/tmp/moosync": "/tmp/sandbox"
+        }}
+    }}
+}}"#
             );
-            fs::write(&package_json_path, manifest).unwrap();
-        }
+            fs::write(ext_dir.join("package.json"), manifest).unwrap();
 
-        set_test_step("load_custom_ext_find_new");
-        ext_handler.find_new_extensions().unwrap();
-        set_test_step("load_custom_ext_wait_started");
-        let loaded = wait_until(|| {
-            ext_handler
-                .get_active_extensions()
-                .iter()
-                .any(|e| e.get_package_name() == pkg_name && e.get_extension_detail().has_started)
-        })
-        .await;
-        assert!(loaded);
+            ext_handler.find_new_extensions().unwrap();
+            let loaded = wait_until(|| {
+                ext_handler.get_active_extensions().iter().any(|e| {
+                    let detail = e.get_extension_detail();
+                    e.get_package_name() == package_name
+                        && detail.has_started
+                        && (package_name != "rs.sample" || !detail.preferences.is_empty())
+                })
+            })
+            .await;
+            assert!(loaded);
+
+            Self {
+                ext_dir,
+                package_name: package_name.to_string(),
+                state_manager,
+            }
+        }
     }
 
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn load_sample_extension(state_manager: &StateManager) {
-        load_custom_extension(state_manager, "rs.sample", "rs.sample", "Sample Extension").await;
-        let ext_handler = state_manager.get_extension_handler().await;
-        if let Ok(ext) = ext_handler.get_extension("rs.sample") {
-            ext.set_account(extensions_proto::moosync::types::ExtensionAccountDetail {
-                id: "sample_spotify".into(),
-                package_name: "rs.sample".into(),
-                name: "Spotify".into(),
-                bg_color: "#1ed760".into(),
-                icon: "spotify".into(),
-                logged_in: false,
-                ..Default::default()
+    impl Drop for ExtensionFixture {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.ext_dir);
+            let state_manager = self.state_manager;
+            let package_name = self.package_name.clone();
+            let handle = runtime().spawn(async move {
+                let ext_handler = state_manager.get_extension_handler().await;
+                let _ = ext_handler.remove_extension(package_name);
             });
-            ext.register_ui_preferences(vec![
-                preferences_proto::moosync::types::PreferenceItem {
-                    id: "api_key".to_string(),
-                    title: "API Key".to_string(),
-                    subtitle: "API Key Description".to_string(),
-                    pref_type: preferences_proto::moosync::types::PreferenceType::TextInputGroup
-                        as i32,
-                    default: Some(preferences_proto::moosync::types::PreferenceValue {
-                        value: Some(
-                            preferences_proto::moosync::types::preference_value::Value::StringValue(
-                                "default_key".to_string(),
-                            ),
-                        ),
-                    }),
-                    ..Default::default()
-                },
-                preferences_proto::moosync::types::PreferenceItem {
-                    id: "enable_feature".to_string(),
-                    title: "Enable Feature".to_string(),
-                    subtitle: "Enable Feature Description".to_string(),
-                    pref_type: preferences_proto::moosync::types::PreferenceType::ToggleGroup
-                        as i32,
-                    default: Some(preferences_proto::moosync::types::PreferenceValue {
-                        value: Some(
-                            preferences_proto::moosync::types::preference_value::Value::BoolValue(
-                                false,
-                            ),
-                        ),
-                    }),
-                    ..Default::default()
-                },
-            ]);
-            ext_handler.trigger_preferences_updated("rs.sample".to_string());
-            ext_handler.trigger_extensions_updated();
-            ext_handler.trigger_accounts_updated(None);
+            CLEANUP_HANDLES.lock().unwrap().push(handle);
         }
     }
 }

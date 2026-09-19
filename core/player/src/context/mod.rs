@@ -17,17 +17,19 @@
 use std::time::Duration;
 
 use extensions_proto::moosync::types::{PlayerState, player_event::Event as PlayerEvent};
+use player_proto::moosync::types::PlayerData;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{error::PlayerError, source::ValidSrc};
 
 pub mod dummy;
+pub mod file_persist;
 pub mod rodio;
 
 #[cfg(test)]
 mod mod_test;
 
-pub use dummy::DummyAudioPlayerContext;
+pub use dummy::{DummyAudioPlayerContext, DummyPersistContext};
 pub use rodio::RodioPlayerContext;
 
 pub trait AudioPlayerContext: Send + Sync {
@@ -44,4 +46,9 @@ pub trait AudioPlayerContext: Send + Sync {
         src: ValidSrc,
         events_tx: UnboundedSender<PlayerEvent>,
     ) -> Result<(), PlayerError>;
+}
+
+pub trait PersistContext: Send + Sync {
+    fn persist(&self, player_data: &PlayerData) -> Result<(), PlayerError>;
+    fn load(&self) -> Result<PlayerData, PlayerError>;
 }

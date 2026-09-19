@@ -37,17 +37,6 @@ pub(crate) struct MuxPlayer {
 // active player
 impl MuxPlayer {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(events_tx: UnboundedSender<PlayerEvent>) -> Self {
-        let players: Vec<Arc<Box<dyn PlayerExt>>> =
-            vec![Arc::new(Box::new(RodioPlayer::new(events_tx)))];
-
-        Self {
-            active_player: players[0].clone(),
-            players,
-        }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new_with_context(
         events_tx: UnboundedSender<PlayerEvent>,
         context: Box<dyn AudioPlayerContext>,

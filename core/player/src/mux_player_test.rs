@@ -23,13 +23,13 @@ use songs_proto::moosync::types::{InnerSong, Song};
 use tokio::sync::mpsc::unbounded_channel;
 use tracing_test::traced_test;
 
-use crate::{mux_player::MuxPlayer, source::ValidSrc};
+use crate::{context::DummyAudioPlayerContext, mux_player::MuxPlayer, source::ValidSrc};
 
 #[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
 fn mux_player() -> MuxPlayer {
     let (tx, _rx) = unbounded_channel();
-    MuxPlayer::new(tx)
+    MuxPlayer::new_with_context(tx, Box::new(DummyAudioPlayerContext::new()))
 }
 
 #[rstest]

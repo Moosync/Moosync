@@ -24,10 +24,7 @@ use rodio::cpal::{
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-    context::{AudioPlayerContext, RodioPlayerContext},
-    error::PlayerError,
-    generic::PlayerExt,
-    source::ValidSrc,
+    context::AudioPlayerContext, error::PlayerError, generic::PlayerExt, source::ValidSrc,
 };
 
 pub(crate) mod decoder;
@@ -83,14 +80,6 @@ pub struct RodioPlayer {
 }
 
 impl RodioPlayer {
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(events_tx: UnboundedSender<PlayerEvent>) -> Self {
-        Self {
-            context: Box::new(RodioPlayerContext::new()),
-            events_tx,
-        }
-    }
-
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new_with_context(
         context: Box<dyn AudioPlayerContext>,

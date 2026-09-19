@@ -9,6 +9,7 @@ exports_files([
     "songs.proto",
     "themes.proto",
     "ui.proto",
+    "player.proto",
 ])
 
 proto_library(
@@ -70,11 +71,22 @@ rust_prost_library(
 proto_library(
     name = "themes_proto",
     srcs = ["themes.proto"],
-    deps = [":songs_proto"],
 )
 
 rust_prost_library(
     name = "themes_rs",
     proto = ":themes_proto",
+    visibility = ["//visibility:public"],
+)
+
+proto_library(
+    name = "player_proto",
+    srcs = ["player.proto"],
+    deps = [":songs_proto"],
+)
+
+rust_prost_library(
+    name = "player_rs",
+    proto = ":player_proto",
     visibility = ["//visibility:public"],
 )

@@ -36,25 +36,6 @@ pub struct AudioSource {
 
 impl AudioSource {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(on_ended_callback: OnEndedCallback) -> Self {
-        let (events_tx, mut events_rx) = unbounded_channel();
-        tokio::spawn(
-            async move {
-                while let Some(event) = events_rx.recv().await {
-                    if let Ended(_) = event {
-                        on_ended_callback();
-                    }
-                }
-            }
-            .in_current_span(),
-        );
-        Self {
-            mux: MuxPlayer::new(events_tx),
-            source_resolver: SourceResolver::new(),
-        }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
     pub fn new_with_context(
         on_ended_callback: OnEndedCallback,
         context: Box<dyn AudioPlayerContext>,

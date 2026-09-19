@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use prost::DecodeError;
 use rodio::{DeviceSinkError, source::SeekError};
 use songs_proto::moosync::types::Song;
 use thiserror::Error;
@@ -22,4 +23,8 @@ pub enum PlayerError {
     DecoderError(#[from] DecoderError),
     #[error("Audio device error: {0}")]
     AudioDevice(#[from] DeviceSinkError),
+    #[error("IO Error: {0}")]
+    IoError(#[from] std::io::Error),
+    #[error("Failed to parse stored player data: {0}")]
+    ParseError(#[from] DecodeError),
 }

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package moosync.types;
+
+import "core/types/protos/songs.proto";
+
+enum RepeatMode {
+  REPEAT_NONE = 0;
+  REPEAT_ONCE = 1;
+  REPEAT_INFINITE = 2;
+}
+
+message PlayerData {
+  repeated Song song_queue = 1;
+  uint64 current_idx = 2;
+  RepeatMode repeat_mode = 3;
+}

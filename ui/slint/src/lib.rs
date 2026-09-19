@@ -5,7 +5,7 @@ include!(concat!(env!("OUT_DIR"), "/app.rs"));
 use std::{path::Path, time::Duration};
 
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
-use player::RepeatMode;
+use player_proto::moosync::types::RepeatMode;
 use slint::{Image, Model, ModelRc, VecModel};
 use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
@@ -268,9 +268,9 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
                 async move {
                     let mut player_handler = state_manager.get_player_handler_mut().await;
                     let next_mode = match player_handler.get_repeat_mode() {
-                        RepeatMode::None => RepeatMode::Once,
-                        RepeatMode::Once => RepeatMode::Infinite,
-                        RepeatMode::Infinite => RepeatMode::None,
+                        RepeatMode::RepeatNone => RepeatMode::RepeatOnce,
+                        RepeatMode::RepeatOnce => RepeatMode::RepeatInfinite,
+                        RepeatMode::RepeatInfinite => RepeatMode::RepeatNone,
                     };
                     player_handler.repeat(next_mode);
                 }

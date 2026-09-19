@@ -23,6 +23,7 @@ use tokio::sync::mpsc::unbounded_channel;
 use tracing_test::traced_test;
 
 use crate::{
+    context::RodioPlayerContext,
     generic::PlayerExt,
     rodio::{RodioPlayer, get_system_sample_rate},
     source::ValidSrc,
@@ -34,7 +35,7 @@ const PATH_48K: &str = "core/player/src/rodio/test_data/LRMonoPhase4.mp3";
 #[tracing::instrument(level = "debug", skip_all)]
 fn rodio_player() -> RodioPlayer {
     let (tx, _rx) = unbounded_channel();
-    RodioPlayer::new(tx)
+    RodioPlayer::new_with_context(Box::new(RodioPlayerContext::new()), tx)
 }
 
 #[rstest]

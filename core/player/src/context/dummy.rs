@@ -17,9 +17,14 @@
 use std::{sync::Mutex, time::Duration};
 
 use extensions_proto::moosync::types::{PlayerState, player_event::Event as PlayerEvent};
+use player_proto::moosync::types::PlayerData;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::{context::AudioPlayerContext, error::PlayerError, source::ValidSrc};
+use crate::{
+    context::{AudioPlayerContext, PersistContext},
+    error::PlayerError,
+    source::ValidSrc,
+};
 
 struct DummyState {
     volume: u8,
@@ -118,4 +123,14 @@ impl AudioPlayerContext for DummyAudioPlayerContext {
         guard.position = Duration::default();
         Ok(())
     }
+}
+
+pub struct DummyPersistContext {}
+
+impl PersistContext for DummyPersistContext {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn persist(&self, _: &PlayerData) -> Result<(), PlayerError> { Ok(()) }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn load(&self) -> Result<PlayerData, PlayerError> { Ok(PlayerData::default()) }
 }

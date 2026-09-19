@@ -22,17 +22,19 @@ use std::{
     time::Duration,
 };
 
-use assertables::{assert_err, assert_ok};
+use assertables::assert_ok;
 use extensions_proto::moosync::types::PlayerState;
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{InnerSong, Song};
 use tracing_test::traced_test;
 
-use crate::audio_source::AudioSource;
+use crate::{audio_source::AudioSource, context::DummyAudioPlayerContext};
 
 #[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-fn audio_source() -> AudioSource { AudioSource::new(Box::new(|| {})) }
+fn audio_source() -> AudioSource {
+    AudioSource::new_with_context(Box::new(|| {}), Box::new(DummyAudioPlayerContext::new()))
+}
 
 #[rstest]
 #[tokio::test]
@@ -47,7 +49,7 @@ async fn test_audio_source_load_and_methods(mut audio_source: AudioSource) {
         ..Default::default()
     };
 
-    assert_err!(audio_source.set_src(&mut song).as_ref());
+    assert_ok!(audio_source.set_src(&mut song).as_ref());
     assert_ok!(audio_source.set_volume(85));
     assert_ok!(audio_source.seek(Duration::from_secs(12)));
     assert_ok!(audio_source.pause());
@@ -74,7 +76,7 @@ async fn test_audio_source_two_pass_resolver(mut audio_source: AudioSource) {
         ..Default::default()
     };
 
-    assert_err!(audio_source.load_song(&mut song).as_ref());
+    assert_ok!(audio_source.load_song(&mut song).as_ref());
     assert!(resolver_called.load(Ordering::SeqCst));
-    assert_eq!(audio_source.get_player_state(), PlayerState::Stopped);
+    assert_eq!(audio_source.get_player_state(), PlayerState::Playing);
 }

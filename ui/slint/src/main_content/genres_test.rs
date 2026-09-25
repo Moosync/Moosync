@@ -129,11 +129,13 @@ async fn test_genres_page_handler_on_hide(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
     let dummy_genres = vec![GenreModel::default(), GenreModel::default()];
     main_window
         .global::<GenresPageProps>()
         .set_genres(ModelRc::new(VecModel::from(dummy_genres)));
-    let handler = GenresPageHandler::new(&main_window, &sm);
+    let handler = GenresPageHandler::new(main_window, state_manager);
 
     handler.on_hide();
 

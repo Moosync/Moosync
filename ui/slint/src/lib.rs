@@ -371,8 +371,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
         .on_next_song(move || {
             tokio::spawn(
                 async move {
-                    let state_manager_clone = state_manager.clone();
-                    let mut player_handler = state_manager_clone.get_player_handler_mut().await;
+                    let mut player_handler = state_manager.get_player_handler_mut().await;
                     player_handler.next();
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_next_song")),
@@ -384,8 +383,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
         .on_prev_song(move || {
             tokio::spawn(
                 async move {
-                    let state_manager_clone = state_manager.clone();
-                    let mut player_handler = state_manager_clone.get_player_handler_mut().await;
+                    let mut player_handler = state_manager.get_player_handler_mut().await;
                     player_handler.prev();
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_prev_song")),
@@ -397,8 +395,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
         .on_set_volume(move |volume| {
             tokio::spawn(
                 async move {
-                    let state_manager_clone = state_manager.clone();
-                    let player_handler = state_manager_clone.get_player_handler().await;
+                    let player_handler = state_manager.get_player_handler().await;
                     player_handler.set_volume(volume as u8);
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_set_volume")),
@@ -410,8 +407,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
         .on_shuffle(move || {
             tokio::spawn(
                 async move {
-                    let state_manager_clone = state_manager.clone();
-                    let mut player_handler = state_manager_clone.get_player_handler_mut().await;
+                    let mut player_handler = state_manager.get_player_handler_mut().await;
                     player_handler.shuffle();
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_shuffle")),
@@ -426,8 +422,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
                     let safe_secs = pos.max(0) as u64;
                     let target_duration = Duration::from_secs(safe_secs);
 
-                    let state_manager_clone = state_manager.clone();
-                    let player_handler = state_manager_clone.get_player_handler().await;
+                    let player_handler = state_manager.get_player_handler().await;
 
                     player_handler.seek(target_duration);
                 }

@@ -34,7 +34,9 @@ async fn test_search_page_handler_search_whitespace_clears_results(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = SearchPageHandler::new(&main_window, &sm);
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let handler = SearchPageHandler::new(main_window, state_manager);
     handler.initialize();
 
     main_window
@@ -59,7 +61,9 @@ async fn test_search_page_handler_search_empty_clears_results(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = SearchPageHandler::new(&main_window, &sm);
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let handler = SearchPageHandler::new(main_window, state_manager);
     handler.initialize();
 
     main_window

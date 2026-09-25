@@ -34,9 +34,11 @@ async fn test_extensions_page_handler_on_show(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
     let props = main_window.global::<ExtensionsPageProps>();
     props.set_extensions(ModelRc::default());
-    let handler = ExtensionsPageHandler::new(&main_window, &sm);
+    let handler = ExtensionsPageHandler::new(main_window, state_manager);
 
     handler.on_show();
 
@@ -52,10 +54,12 @@ async fn test_extensions_page_handler_on_hide(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
     let props = main_window.global::<ExtensionsPageProps>();
     let dummy_exts = vec![ExtensionItem::default(), ExtensionItem::default()];
     props.set_extensions(ModelRc::new(slint::VecModel::from(dummy_exts)));
-    let handler = ExtensionsPageHandler::new(&main_window, &sm);
+    let handler = ExtensionsPageHandler::new(main_window, state_manager);
 
     handler.on_hide();
 
@@ -71,9 +75,11 @@ async fn test_extensions_page_handler_initialize(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
     let props = main_window.global::<ExtensionsPageProps>();
     props.set_extensions(ModelRc::default());
-    let handler = ExtensionsPageHandler::new(&main_window, &sm);
+    let handler = ExtensionsPageHandler::new(main_window, state_manager);
 
     handler.initialize();
 
@@ -91,7 +97,9 @@ async fn test_extensions_page_handler_registries(
     use preferences::keys::{EXTENSION_REGISTRIES, PreferenceItemExt};
 
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = ExtensionsPageHandler::new(&main_window, &sm);
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let handler = ExtensionsPageHandler::new(main_window, state_manager);
     handler.initialize();
     handle_preference_change(
         "extension_registries".to_string(),
@@ -99,12 +107,12 @@ async fn test_extensions_page_handler_registries(
         false,
         0.0,
         vec!["https://new-registry.org/manifest.json".to_string()],
-        sm.clone(),
+        state_manager,
         main_window.as_weak(),
     )
     .await;
 
-    let pref = sm.get_preference_config().await;
+    let pref = state_manager.get_preference_config().await;
     let saved: Vec<String> = pref
         .load(&EXTENSION_REGISTRIES)
         .value::<Vec<String>>()
@@ -121,7 +129,9 @@ async fn test_extensions_page_handler_props(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = ExtensionsPageHandler::new(&main_window, &sm);
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let handler = ExtensionsPageHandler::new(main_window, state_manager);
     handler.initialize();
     let props = main_window.global::<ExtensionsPageProps>();
 
@@ -139,9 +149,11 @@ async fn test_extensions_page_handler_update_all_callback(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
     let props = main_window.global::<ExtensionsPageProps>();
     props.set_has_updates(true);
-    let handler = ExtensionsPageHandler::new(&main_window, &sm);
+    let handler = ExtensionsPageHandler::new(main_window, state_manager);
     handler.initialize();
 
     main_window

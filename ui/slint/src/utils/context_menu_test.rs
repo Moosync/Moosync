@@ -17,9 +17,10 @@ async fn test_build_song_context_menu_items(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager = Box::leak(Box::new(sm));
     let song_models = ModelRc::default();
 
-    let items = build_song_context_menu_items(&main_window, &sm, &song_models);
+    let items = build_song_context_menu_items(&main_window, state_manager, &song_models);
 
     assert_eq!(items.row_count(), 4);
 }
@@ -33,9 +34,10 @@ async fn test_build_queue_context_menu_items(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager = Box::leak(Box::new(sm));
     let song_models = ModelRc::default();
 
-    let items = build_queue_context_menu_items(&main_window, &sm, &song_models, 0);
+    let items = build_queue_context_menu_items(&main_window, state_manager, &song_models, 0);
 
     assert_eq!(items.row_count(), 2);
 }

@@ -96,14 +96,14 @@ impl EntitySongProvider for ArtistSongProvider {
     }
 }
 
-pub struct ArtistContentPageHandler<'a> {
-    main_window: &'a MainWindow,
+pub struct ArtistContentPageHandler {
+    main_window: &'static MainWindow,
     coordinator: EntityContentCoordinator<ArtistSongProvider>,
 }
 
-impl<'a> ArtistContentPageHandler<'a> {
+impl ArtistContentPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
         Self {
             main_window,
             coordinator: EntityContentCoordinator::new(main_window, state_manager),
@@ -111,7 +111,7 @@ impl<'a> ArtistContentPageHandler<'a> {
     }
 }
 
-impl<'a> PageHandler for ArtistContentPageHandler<'a> {
+impl PageHandler for ArtistContentPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
         let coordinator = self.coordinator.clone();

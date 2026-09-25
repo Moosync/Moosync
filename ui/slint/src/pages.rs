@@ -476,39 +476,44 @@ impl PageLifecycleManager {
             active_main,
             main_actions
         );
-        for (page, is_visible) in main_actions {
-            if let Some((_, handler)) = self.main_pages.iter().find(|(p, _)| *p == page) {
-                if is_visible {
-                    tracing::debug!("Calling on_show for {:?}", page);
-                    handler.on_show();
-                } else {
-                    tracing::debug!("Calling on_hide for {:?}", page);
-                    handler.on_hide();
-                }
-            }
-        }
+        Self::apply_visibility_actions(&self.main_pages, main_actions);
 
         let settings_actions = self.compute_settings_visibility_changes(
             &settings_page_keys,
             active_settings,
             settings_open,
         );
-        for (page, is_visible) in settings_actions {
-            if let Some((_, handler)) = self.settings_pages.iter().find(|(p, _)| *p == page) {
-                if is_visible {
-                    handler.on_show();
-                } else {
-                    handler.on_hide();
-                }
-            }
-        }
+        Self::apply_visibility_actions(&self.settings_pages, settings_actions);
 
         if let Some(is_visible) = self.compute_queue_visibility_change(queue_open) {
-            if is_visible {
-                self.queue_page.on_show();
-            } else {
-                self.queue_page.on_hide();
-            }
+            Self::notify_visibility(self.queue_page.as_ref(), is_visible);
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn apply_visibility_actions<P: PartialEq + std::fmt::Debug>(
+        pages: &[(P, Box<dyn PageHandler + 'static>)],
+        actions: Vec<(P, bool)>,
+    ) {
+        for (page, is_visible) in actions {
+            let Some((_, handler)) = pages.iter().find(|(p, _)| *p == page) else {
+                continue;
+            };
+            tracing::debug!(
+                "Calling {} for {:?}",
+                if is_visible { "on_show" } else { "on_hide" },
+                page
+            );
+            Self::notify_visibility(handler.as_ref(), is_visible);
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn notify_visibility(handler: &dyn PageHandler, is_visible: bool) {
+        if is_visible {
+            handler.on_show();
+        } else {
+            handler.on_hide();
         }
     }
 

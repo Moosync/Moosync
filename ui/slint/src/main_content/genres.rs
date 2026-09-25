@@ -40,14 +40,14 @@ impl EntityListProvider for GenreListProvider {
     }
 }
 
-pub struct GenresPageHandler<'a> {
-    _main_window: &'a MainWindow,
+pub struct GenresPageHandler {
+    _main_window: &'static MainWindow,
     coordinator: EntityListCoordinator<GenreListProvider>,
 }
 
-impl<'a> GenresPageHandler<'a> {
+impl GenresPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
         Self {
             _main_window: main_window,
             coordinator: EntityListCoordinator::new(main_window, state_manager),
@@ -55,7 +55,7 @@ impl<'a> GenresPageHandler<'a> {
     }
 }
 
-impl<'a> PageHandler for GenresPageHandler<'a> {
+impl PageHandler for GenresPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) { self.coordinator.on_show(); }
 

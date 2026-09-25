@@ -10,14 +10,14 @@ use crate::{
     utils::{build_song_context_menu_items, dispatch_song_context_action, make_lazy_song_model},
 };
 
-pub struct AllSongsPageHandler<'a> {
-    main_window: &'a MainWindow,
-    state_manager: &'a StateManager,
+pub struct AllSongsPageHandler {
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
 }
 
-impl<'a> AllSongsPageHandler<'a> {
+impl AllSongsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
         Self {
             main_window,
             state_manager,
@@ -27,7 +27,7 @@ impl<'a> AllSongsPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn register_context_menu_callbacks(&self) {
         let main_window_weak = self.main_window.as_weak();
-        let state_manager_clone = self.state_manager.clone();
+        let state_manager = self.state_manager;
 
         self.main_window
             .global::<ContextMenuCallbacks>()
@@ -36,17 +36,16 @@ impl<'a> AllSongsPageHandler<'a> {
                     return ModelRc::default();
                 };
 
-                build_song_context_menu_items(&main_window, &state_manager_clone, &song_models)
+                build_song_context_menu_items(&main_window, state_manager, &song_models)
             });
 
-        let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
         self.main_window
             .global::<ContextMenuCallbacks>()
             .on_song_action(move |song_models, action_id| {
                 dispatch_song_context_action(
                     &main_window_weak,
-                    &state_manager,
+                    state_manager,
                     &song_models,
                     action_id.as_str(),
                 );
@@ -72,7 +71,7 @@ impl<'a> AllSongsPageHandler<'a> {
     }
 }
 
-impl<'a> PageHandler for AllSongsPageHandler<'a> {
+impl PageHandler for AllSongsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) { self.register_context_menu_callbacks(); }
 
@@ -80,14 +79,14 @@ impl<'a> PageHandler for AllSongsPageHandler<'a> {
     fn on_show(&self) {
         tracing::debug!("AllSongsPage: on_show triggered");
         tokio::spawn({
-            let state_manager = self.state_manager.clone();
+            let state_manager = self.state_manager;
             let main_window_weak = self.main_window.as_weak();
             async move {
-                match Self::fetch_songs(&state_manager).await {
+                match Self::fetch_songs(state_manager).await {
                     Ok(songs) => {
                         tracing::debug!("AllSongsPage: fetched {} songs", songs.len());
                         let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
-                            Self::set_songs(&main_window, &state_manager, songs);
+                            Self::set_songs(&main_window, state_manager, songs);
                         });
                     }
                     Err(e) => {

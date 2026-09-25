@@ -40,14 +40,14 @@ impl EntityListProvider for ArtistListProvider {
     }
 }
 
-pub struct ArtistsPageHandler<'a> {
-    _main_window: &'a MainWindow,
+pub struct ArtistsPageHandler {
+    _main_window: &'static MainWindow,
     coordinator: EntityListCoordinator<ArtistListProvider>,
 }
 
-impl<'a> ArtistsPageHandler<'a> {
+impl ArtistsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
         Self {
             _main_window: main_window,
             coordinator: EntityListCoordinator::new(main_window, state_manager),
@@ -55,7 +55,7 @@ impl<'a> ArtistsPageHandler<'a> {
     }
 }
 
-impl<'a> PageHandler for ArtistsPageHandler<'a> {
+impl PageHandler for ArtistsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) { self.coordinator.on_show(); }
 

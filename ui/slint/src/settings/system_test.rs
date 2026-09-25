@@ -35,7 +35,9 @@ async fn test_system_page_handler_initialize(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = SystemPageHandler::new(&main_window, &sm);
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let handler = SystemPageHandler::new(main_window, state_manager);
 
     handler.initialize();
 
@@ -51,7 +53,9 @@ async fn test_system_page_handler_on_show(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = SystemPageHandler::new(&main_window, &sm);
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let handler = SystemPageHandler::new(main_window, state_manager);
 
     handler.on_show();
 
@@ -67,13 +71,14 @@ async fn test_system_page_handler_handle_change_auto_startup(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let state_manager = Box::leak(Box::new(sm.clone()));
     handle_preference_change(
         "auto_startup".to_string(),
         "".to_string(),
         true,
         0.0,
         vec![],
-        sm.clone(),
+        state_manager,
         _main_window.as_weak(),
     )
     .await;

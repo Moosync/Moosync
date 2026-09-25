@@ -35,14 +35,14 @@ pub static PREFERENCES: &[&LazyLock<ProtoPreferenceItem>] = &[
     &I18N_LANGUAGE,
 ];
 
-pub struct SystemPageHandler<'a> {
-    main_window: &'a MainWindow,
-    state_manager: &'a StateManager,
+pub struct SystemPageHandler {
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
 }
 
-impl<'a> SystemPageHandler<'a> {
+impl SystemPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
         Self {
             main_window,
             state_manager,
@@ -57,7 +57,7 @@ impl<'a> SystemPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn refresh_preferences(
         main_window_weak: slint::Weak<MainWindow>,
-        state_manager: StateManager,
+        state_manager: &'static StateManager,
     ) {
         let config = state_manager.get_preference_config().await;
         let items: Vec<ProtoPreferenceItem> =
@@ -79,14 +79,14 @@ impl<'a> SystemPageHandler<'a> {
     }
 }
 
-impl<'a> PageHandler for SystemPageHandler<'a> {
+impl PageHandler for SystemPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) { self.on_show(); }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         let main_window_weak = self.main_window.as_weak();
-        let state_manager = self.state_manager.clone();
+        let state_manager = self.state_manager;
 
         tokio::spawn(
             async move {

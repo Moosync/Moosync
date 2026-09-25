@@ -19,17 +19,17 @@ use crate::{
     },
 };
 
-pub struct QueuePageHandler<'a> {
-    main_window: &'a MainWindow,
-    state_manager: &'a StateManager,
+pub struct QueuePageHandler {
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
     cancel_handles: Arc<Mutex<Vec<CancelHandle>>>,
     hide_timer: RefCell<Timer>,
     is_visible: Arc<Mutex<bool>>,
 }
 
-impl<'a> QueuePageHandler<'a> {
+impl QueuePageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
         Self {
             main_window,
             state_manager,
@@ -41,47 +41,38 @@ impl<'a> QueuePageHandler<'a> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn register_ui_callbacks(&self) {
-        let state_manager = self.state_manager.clone();
+        let state_manager = self.state_manager;
 
         self.main_window
             .global::<AppCallbacks>()
-            .on_play_queue_index({
-                let state_manager = state_manager.clone();
-                move |idx| {
-                    tracing::debug!("Queue action: play_queue_index({})", idx);
-                    let state_manager = state_manager.clone();
-                    tokio::spawn(
-                        async move {
-                            let mut player_handler = state_manager.get_player_handler_mut().await;
-                            player_handler.play_index(idx as usize);
-                        }
-                        .instrument(tracing::debug_span!("slint_cb_on_play_queue_index")),
-                    );
-                }
+            .on_play_queue_index(move |idx| {
+                tracing::debug!("Queue action: play_queue_index({})", idx);
+                tokio::spawn(
+                    async move {
+                        let mut player_handler = state_manager.get_player_handler_mut().await;
+                        player_handler.play_index(idx as usize);
+                    }
+                    .instrument(tracing::debug_span!("slint_cb_on_play_queue_index")),
+                );
             });
 
         self.main_window
             .global::<AppCallbacks>()
-            .on_remove_from_queue({
-                let state_manager = state_manager.clone();
-                move |idx| {
-                    tracing::debug!("Queue action: remove_from_queue({})", idx);
-                    let state_manager = state_manager.clone();
-                    tokio::spawn(
-                        async move {
-                            let mut player_handler = state_manager.get_player_handler_mut().await;
-                            player_handler.remove_from_queue(idx as usize);
-                        }
-                        .instrument(tracing::debug_span!("slint_cb_on_remove_from_queue")),
-                    );
-                }
+            .on_remove_from_queue(move |idx| {
+                tracing::debug!("Queue action: remove_from_queue({})", idx);
+                tokio::spawn(
+                    async move {
+                        let mut player_handler = state_manager.get_player_handler_mut().await;
+                        player_handler.remove_from_queue(idx as usize);
+                    }
+                    .instrument(tracing::debug_span!("slint_cb_on_remove_from_queue")),
+                );
             });
 
-        self.main_window.global::<AppCallbacks>().on_clear_queue({
-            let state_manager = state_manager.clone();
-            move || {
+        self.main_window
+            .global::<AppCallbacks>()
+            .on_clear_queue(move || {
                 tracing::debug!("Queue action: clear_queue");
-                let state_manager = state_manager.clone();
                 tokio::spawn(
                     async move {
                         let mut player_handler = state_manager.get_player_handler_mut().await;
@@ -89,13 +80,11 @@ impl<'a> QueuePageHandler<'a> {
                     }
                     .instrument(tracing::debug_span!("slint_cb_on_clear_queue")),
                 );
-            }
-        });
+            });
 
         self.main_window
             .global::<AppCallbacks>()
-            .on_move_queue_item({
-                let state_manager = state_manager.clone();
+            .on_move_queue_item(
                 move |from_idx_str, to_idx| match from_idx_str.parse::<usize>() {
                     Ok(from_idx) => {
                         tracing::debug!(
@@ -103,7 +92,6 @@ impl<'a> QueuePageHandler<'a> {
                             from_idx,
                             to_idx
                         );
-                        let state_manager = state_manager.clone();
                         tokio::spawn(
                             async move {
                                 let mut player_handler =
@@ -116,29 +104,25 @@ impl<'a> QueuePageHandler<'a> {
                     Err(e) => {
                         tracing::error!("Failed to parse from_idx '{}': {:?}", from_idx_str, e);
                     }
-                }
-            });
+                },
+            );
 
         self.main_window
             .global::<AppCallbacks>()
-            .on_save_queue_as_playlist({
-                let state_manager = state_manager.clone();
-                move |name, desc| {
-                    tracing::debug!(
-                        "Queue action: save_queue_as_playlist '{}' ('{}')",
-                        name,
-                        desc
-                    );
-                    let state_manager = state_manager.clone();
-                    let name_str = name.to_string();
-                    let desc_str = desc.to_string();
-                    tokio::spawn(
-                        async move {
-                            save_queue(&state_manager, name_str, desc_str).await;
-                        }
-                        .instrument(tracing::debug_span!("slint_cb_on_save_queue_as_playlist")),
-                    );
-                }
+            .on_save_queue_as_playlist(move |name, desc| {
+                tracing::debug!(
+                    "Queue action: save_queue_as_playlist '{}' ('{}')",
+                    name,
+                    desc
+                );
+                let name_str = name.to_string();
+                let desc_str = desc.to_string();
+                tokio::spawn(
+                    async move {
+                        save_queue(state_manager, name_str, desc_str).await;
+                    }
+                    .instrument(tracing::debug_span!("slint_cb_on_save_queue_as_playlist")),
+                );
             });
 
         self.main_window
@@ -165,7 +149,10 @@ impl<'a> QueuePageHandler<'a> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn fetch_initial_state(state_manager: StateManager, main_window_weak: slint::Weak<MainWindow>) {
+    fn fetch_initial_state(
+        state_manager: &'static StateManager,
+        main_window_weak: slint::Weak<MainWindow>,
+    ) {
         tokio::spawn(
             async move {
                 let player_handler = state_manager.get_player_handler().await;
@@ -187,11 +174,10 @@ impl<'a> QueuePageHandler<'a> {
                     &cache_dir,
                 );
 
-                let state_manager_ui = state_manager.clone();
                 let mw_weak_ui = main_window_weak.clone();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = mw_weak_ui.upgrade() {
-                        Self::update_ui_queue(&main_window, &state_manager_ui, queue);
+                        Self::update_ui_queue(&main_window, state_manager, queue);
                         Self::update_ui_blurred_cover(&main_window, &blurred_path);
                     }
                 });
@@ -204,7 +190,7 @@ impl<'a> QueuePageHandler<'a> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn register_player_callbacks(
-        state_manager: StateManager,
+        state_manager: &'static StateManager,
         main_window_weak: slint::Weak<MainWindow>,
         cancel_handles: Arc<Mutex<Vec<types::subscription::CancelHandle>>>,
     ) {
@@ -216,12 +202,10 @@ impl<'a> QueuePageHandler<'a> {
 
                 // Song changed listener to update blurred cover background and lyrics
                 let mw_weak_song = main_window_weak.clone();
-                let state_manager_song = state_manager.clone();
                 let cache_dir_events = cache_dir.clone();
                 let ch_song = player_handler.on_song_changed.listen(move |song| {
                     let mw_weak = mw_weak_song.clone();
                     let cache_dir = cache_dir_events.clone();
-                    let state_manager = state_manager_song.clone();
 
                     Self::fetch_and_update_lyrics(state_manager, mw_weak.clone(), song.clone());
 
@@ -253,13 +237,11 @@ impl<'a> QueuePageHandler<'a> {
                 handles.push(ch_song);
 
                 let mw_weak_queue = main_window_weak.clone();
-                let state_manager_queue = state_manager.clone();
                 let ch_queue = player_handler.on_queue_updated.listen(move |queue| {
                     let mw_weak = mw_weak_queue.clone();
-                    let state_manager = state_manager_queue.clone();
                     let _ = slint::invoke_from_event_loop(move || {
                         if let Some(main_window) = mw_weak.upgrade() {
-                            Self::update_ui_queue(&main_window, &state_manager, queue);
+                            Self::update_ui_queue(&main_window, state_manager, queue);
                         }
                     });
                 });
@@ -320,7 +302,7 @@ impl<'a> QueuePageHandler<'a> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn fetch_and_update_lyrics(
-        state_manager: StateManager,
+        state_manager: &'static StateManager,
         main_window_weak: slint::Weak<MainWindow>,
         song: Option<Song>,
     ) {
@@ -344,7 +326,7 @@ impl<'a> QueuePageHandler<'a> {
 
         tokio::spawn(
             async move {
-                let lyrics = crate::utils::fetch_song_lyrics(&state_manager, &song).await;
+                let lyrics = crate::utils::fetch_song_lyrics(state_manager, &song).await;
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = main_window_weak.upgrade() {
                         Self::update_ui_lyrics(&main_window, lyrics);
@@ -358,7 +340,7 @@ impl<'a> QueuePageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     fn register_context_menu_callbacks(&self) {
         let main_window_weak = self.main_window.as_weak();
-        let state_manager_clone = self.state_manager.clone();
+        let state_manager = self.state_manager;
 
         self.main_window
             .global::<ContextMenuCallbacks>()
@@ -367,21 +349,14 @@ impl<'a> QueuePageHandler<'a> {
                     return ModelRc::default();
                 };
 
-                build_queue_context_menu_items(
-                    &main_window,
-                    &state_manager_clone,
-                    &song_models,
-                    idx,
-                )
+                build_queue_context_menu_items(&main_window, state_manager, &song_models, idx)
             });
 
-        let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
         self.main_window
             .global::<ContextMenuCallbacks>()
             .on_queue_action(move |song_models, idx, action_id| {
                 if action_id == "play_now" {
-                    let state_manager = state_manager.clone();
                     let queue_idx = idx as usize;
                     tokio::spawn(
                         async move {
@@ -394,7 +369,6 @@ impl<'a> QueuePageHandler<'a> {
                 }
 
                 if action_id == "remove_from_queue" {
-                    let state_manager = state_manager.clone();
                     let queue_idx = idx as usize;
                     tokio::spawn(
                         async move {
@@ -410,7 +384,7 @@ impl<'a> QueuePageHandler<'a> {
 
                 dispatch_song_context_action(
                     &main_window_weak,
-                    &state_manager,
+                    state_manager,
                     &song_models,
                     action_id.as_str(),
                 );
@@ -418,7 +392,7 @@ impl<'a> QueuePageHandler<'a> {
     }
 }
 
-impl<'a> PageHandler for QueuePageHandler<'a> {
+impl PageHandler for QueuePageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
         self.register_ui_callbacks();
@@ -437,9 +411,9 @@ impl<'a> PageHandler for QueuePageHandler<'a> {
             }
         }
 
-        Self::fetch_initial_state(self.state_manager.clone(), self.main_window.as_weak());
+        Self::fetch_initial_state(self.state_manager, self.main_window.as_weak());
         Self::register_player_callbacks(
-            self.state_manager.clone(),
+            self.state_manager,
             self.main_window.as_weak(),
             self.cancel_handles.clone(),
         );

@@ -35,11 +35,13 @@ async fn test_all_songs_page_handler_on_hide(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
     let dummy_songs = vec![SongModel::default(), SongModel::default()];
     main_window
         .global::<AllSongsPageProps>()
         .set_songs(ModelRc::new(VecModel::from(dummy_songs)));
-    let handler = AllSongsPageHandler::new(&main_window, &sm);
+    let handler = AllSongsPageHandler::new(main_window, state_manager);
 
     handler.on_hide();
 
@@ -61,7 +63,9 @@ async fn test_all_songs_context_menu_items(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = AllSongsPageHandler::new(&main_window, &sm);
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let handler = AllSongsPageHandler::new(main_window, state_manager);
     handler.initialize();
 
     let song_with_path = SongModel {

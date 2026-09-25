@@ -15,14 +15,14 @@ use crate::{
     utils::{IntoVec, create_search_result},
 };
 
-pub struct SearchPageHandler<'a> {
-    main_window: &'a MainWindow,
-    state_manager: &'a StateManager,
+pub struct SearchPageHandler {
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
 }
 
-impl<'a> SearchPageHandler<'a> {
+impl SearchPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
         Self {
             main_window,
             state_manager,
@@ -70,7 +70,7 @@ impl<'a> SearchPageHandler<'a> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn perform_search(
-        state_manager: StateManager,
+        state_manager: &'static StateManager,
         main_window_weak: Weak<MainWindow>,
         term: String,
     ) {
@@ -88,7 +88,7 @@ impl<'a> SearchPageHandler<'a> {
 
                 tracing::debug!("Performing search for '{}'", term);
 
-                match Self::search_local(&state_manager, &term).await {
+                match Self::search_local(state_manager, &term).await {
                     Ok(local) => {
                         let _ = main_window_weak.upgrade_in_event_loop(|window| {
                             window
@@ -97,7 +97,7 @@ impl<'a> SearchPageHandler<'a> {
                         });
                         Self::append_search_result(
                             &main_window_weak,
-                            &state_manager,
+                            state_manager,
                             local,
                             None,
                             false,
@@ -114,7 +114,6 @@ impl<'a> SearchPageHandler<'a> {
                     .await;
 
                 for ext in active_extensions {
-                    let state_manager = state_manager.clone();
                     let main_window_weak = main_window_weak.clone();
                     let term = term.clone();
 
@@ -128,7 +127,7 @@ impl<'a> SearchPageHandler<'a> {
                             Ok(res) => {
                                 Self::append_search_result(
                                     &main_window_weak,
-                                    &state_manager,
+                                    state_manager,
                                     res,
                                     Some(detail),
                                     has_account,
@@ -144,7 +143,7 @@ impl<'a> SearchPageHandler<'a> {
                                 if has_account {
                                     Self::append_search_result(
                                         &main_window_weak,
-                                        &state_manager,
+                                        state_manager,
                                         ProtoSearchResult::default(),
                                         Some(detail),
                                         has_account,
@@ -161,31 +160,25 @@ impl<'a> SearchPageHandler<'a> {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn setup_callbacks(&self) {
-        let state_manager = self.state_manager.clone();
+        let state_manager = self.state_manager;
         let main_window_weak = self.main_window.as_weak();
         self.main_window
             .global::<AppCallbacks>()
             .on_search_term_changed(move |term| {
-                Self::perform_search(
-                    state_manager.clone(),
-                    main_window_weak.clone(),
-                    term.to_string(),
-                );
+                Self::perform_search(state_manager, main_window_weak.clone(), term.to_string());
             });
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn setup_accounts_listener(&self) {
-        let state_manager = self.state_manager.clone();
+        let state_manager = self.state_manager;
         let main_window_weak = self.main_window.as_weak();
         tokio::spawn(
             async move {
                 let extension_handler = state_manager.get_extension_handler().await;
                 let _cancel = extension_handler.on_accounts_updated.listen({
                     let main_window_weak = main_window_weak.clone();
-                    let state_manager = state_manager.clone();
                     move |_| {
-                        let state_manager = state_manager.clone();
                         let _ = main_window_weak.upgrade_in_event_loop(move |window| {
                             let query = window.global::<SearchPageProps>().get_search_query();
                             if !query.trim().is_empty() {
@@ -204,7 +197,7 @@ impl<'a> SearchPageHandler<'a> {
     }
 }
 
-impl<'a> PageHandler for SearchPageHandler<'a> {
+impl PageHandler for SearchPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
         self.setup_callbacks();

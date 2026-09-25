@@ -16,14 +16,14 @@ use crate::{
 
 type RecommendationItem = (ExtensionDetail, Option<String>, Vec<Song>);
 
-pub struct ExplorePageHandler<'a> {
-    main_window: &'a MainWindow,
-    state_manager: &'a StateManager,
+pub struct ExplorePageHandler {
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
 }
 
-impl<'a> ExplorePageHandler<'a> {
+impl ExplorePageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
         Self {
             main_window,
             state_manager,
@@ -84,15 +84,15 @@ impl<'a> ExplorePageHandler<'a> {
     }
 }
 
-impl<'a> PageHandler for ExplorePageHandler<'a> {
+impl PageHandler for ExplorePageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) {
         tracing::debug!("ExplorePage: on_show triggered");
         tokio::spawn({
-            let state_manager = self.state_manager.clone();
+            let state_manager = self.state_manager;
             let main_window_weak = self.main_window.as_weak();
             async move {
-                match Self::fetch_all_recommendations(&state_manager).await {
+                match Self::fetch_all_recommendations(state_manager).await {
                     Ok(recommendations) => {
                         let _ = slint::invoke_from_event_loop(move || {
                             if let Some(main_window) = main_window_weak.upgrade() {
@@ -105,7 +105,7 @@ impl<'a> PageHandler for ExplorePageHandler<'a> {
                                         .collect::<Vec<SongModel>>();
                                     let mapped_songs = make_lazy_song_model(
                                         &main_window,
-                                        &state_manager,
+                                        state_manager,
                                         song_models,
                                     );
                                     list.push(ProviderRecommendations {

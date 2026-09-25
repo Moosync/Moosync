@@ -120,7 +120,7 @@ pub trait EntitySongProvider: Send + Sync + 'static {
 
 pub struct EntityContentCoordinator<P: EntitySongProvider> {
     weak: Weak<MainWindow>,
-    state_manager: StateManager,
+    state_manager: &'static StateManager,
     pagination: Arc<Mutex<ExtensionPaginationManager>>,
     _phantom: PhantomData<P>,
 }
@@ -130,7 +130,7 @@ impl<P: EntitySongProvider> Clone for EntityContentCoordinator<P> {
     fn clone(&self) -> Self {
         Self {
             weak: self.weak.clone(),
-            state_manager: self.state_manager.clone(),
+            state_manager: self.state_manager,
             pagination: self.pagination.clone(),
             _phantom: PhantomData,
         }
@@ -139,10 +139,10 @@ impl<P: EntitySongProvider> Clone for EntityContentCoordinator<P> {
 
 impl<P: EntitySongProvider> EntityContentCoordinator<P> {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &MainWindow, state_manager: &StateManager) -> Self {
+    pub fn new(main_window: &MainWindow, state_manager: &'static StateManager) -> Self {
         Self {
             weak: main_window.as_weak(),
-            state_manager: state_manager.clone(),
+            state_manager,
             pagination: Arc::new(Mutex::new(ExtensionPaginationManager::default())),
             _phantom: PhantomData,
         }
@@ -155,7 +155,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                 .lock()
                 .unwrap()
                 .remove_extension(&package_name);
-            let state_manager = self.state_manager.clone();
+            let state_manager = self.state_manager;
             let _ = self.weak.upgrade_in_event_loop(move |main_window| {
                 P::update_extensions_enabled(&main_window, &package_name, false);
                 let current = P::get_songs(&main_window);
@@ -179,7 +179,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
             .unwrap()
             .register_extension(&package_name);
 
-        let state_manager = self.state_manager.clone();
+        let state_manager = self.state_manager;
         let weak = self.weak.clone();
         let pagination = self.pagination.clone();
 
@@ -203,7 +203,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                 let detail = ext.get_extension_detail();
 
                 let (new_songs, next_token) = match P::fetch_extension_songs(
-                    &state_manager,
+                    state_manager,
                     entity,
                     package_name.clone(),
                     None,
@@ -228,7 +228,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                 let _ = weak.upgrade_in_event_loop(move |main_window| {
                     let mut current = P::get_songs(&main_window);
                     current.extend(map_songs_to_models(new_songs, Some(&detail)));
-                    let model = make_lazy_song_model(&main_window, &state_manager, current);
+                    let model = make_lazy_song_model(&main_window, state_manager, current);
                     P::set_songs(&main_window, model);
 
                     pagination
@@ -254,7 +254,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
         let (entity, _) = P::get_entity(&main_window);
 
         for (package_name, page_token) in extensions_to_fetch {
-            let state_manager = self.state_manager.clone();
+            let state_manager = self.state_manager;
             let weak = self.weak.clone();
             let pagination = self.pagination.clone();
             let entity = entity.clone();
@@ -262,7 +262,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
             tokio::spawn(
                 async move {
                     let (new_songs, next_token) = match P::fetch_extension_songs(
-                        &state_manager,
+                        state_manager,
                         entity,
                         package_name.clone(),
                         page_token,
@@ -291,7 +291,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                     let _ = weak.upgrade_in_event_loop(move |window| {
                         let mut current = P::get_songs(&window);
                         current.extend(map_songs_to_models(new_songs, detail.as_ref()));
-                        let model = make_lazy_song_model(&window, &state_manager, current);
+                        let model = make_lazy_song_model(&window, state_manager, current);
                         P::set_songs(&window, model);
 
                         pagination
@@ -321,7 +321,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                 .register_extension(&extension);
         }
 
-        let state_manager = self.state_manager.clone();
+        let state_manager = self.state_manager;
         let weak = self.weak.clone();
         let pagination = self.pagination.clone();
 
@@ -332,7 +332,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                     fetch_scope_providers(&ext_handler, P::extension_scope(), &extension).await;
 
                 let (songs, next_token) = if !extension.is_empty() {
-                    match P::fetch_extension_songs(&state_manager, entity, extension.clone(), None)
+                    match P::fetch_extension_songs(state_manager, entity, extension.clone(), None)
                         .await
                     {
                         Ok(result) => result,
@@ -345,7 +345,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                         }
                     }
                 } else {
-                    match P::fetch_local_songs(&state_manager, entity).await {
+                    match P::fetch_local_songs(state_manager, entity).await {
                         Ok(songs) => (songs, None),
                         Err(error) => {
                             tracing::error!("on_show: failed to fetch local songs: {:?}", error);
@@ -357,7 +357,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                 let _ = weak.upgrade_in_event_loop(move |main_window| {
                     P::set_extensions(&main_window, ModelRc::new(VecModel::from(extensions)));
                     let song_models = map_songs_to_models(songs, detail.as_ref());
-                    let model = make_lazy_song_model(&main_window, &state_manager, song_models);
+                    let model = make_lazy_song_model(&main_window, state_manager, song_models);
                     P::set_songs(&main_window, model);
 
                     if !extension.is_empty() {

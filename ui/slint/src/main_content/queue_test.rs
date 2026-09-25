@@ -62,7 +62,9 @@ async fn test_queue_page_handler_initialize(
         ph.add_to_queue(vec![song1, song2]);
     }
 
-    let handler = QueuePageHandler::new(&main_window, &sm);
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm.clone()));
+    let handler = QueuePageHandler::new(main_window, state_manager);
     handler.initialize();
 
     main_window

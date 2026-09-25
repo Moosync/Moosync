@@ -97,7 +97,7 @@ pub async fn handle_preference_change(
     value_bool: bool,
     value_number: f32,
     value_list: Vec<String>,
-    state_manager: StateManager,
+    state_manager: &'static StateManager,
     main_window_weak: slint::Weak<MainWindow>,
 ) {
     tracing::debug!(
@@ -191,17 +191,12 @@ pub async fn handle_preference_change(
         }
 
         if paths::PREFERENCES.iter().any(|p| p.id == key) {
-            PathsPageHandler::refresh_preferences(main_window_weak.clone(), state_manager.clone())
-                .await;
+            PathsPageHandler::refresh_preferences(main_window_weak.clone(), state_manager).await;
         } else if system::PREFERENCES.iter().any(|p| p.id == key) {
-            SystemPageHandler::refresh_preferences(main_window_weak.clone(), state_manager.clone())
-                .await;
+            SystemPageHandler::refresh_preferences(main_window_weak.clone(), state_manager).await;
         } else if extensions::PREFERENCES.iter().any(|p| p.id == key) || key.starts_with("ext:") {
-            ExtensionsPageHandler::refresh_preferences(
-                main_window_weak.clone(),
-                state_manager.clone(),
-            )
-            .await;
+            ExtensionsPageHandler::refresh_preferences(main_window_weak.clone(), state_manager)
+                .await;
         }
     } else {
         tracing::error!("Preference {} not found in store or static registry", key);
@@ -242,12 +237,10 @@ pub fn setup_settings(main_window: &'static MainWindow, state_manager: &'static 
     system_handler.initialize();
     extensions_handler.initialize();
 
-    let state_manager_clone = state_manager.clone();
     let main_window_weak = main_window.as_weak();
     main_window
         .global::<AppCallbacks>()
         .on_preference_changed(move |change| {
-            let state_manager = state_manager_clone.clone();
             let main_window_weak = main_window_weak.clone();
             let key = change.id.to_string();
             let value_string = change.value_string.to_string();

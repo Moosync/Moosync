@@ -23,14 +23,14 @@ use crate::{
 
 theme_macro::generate_theme_ui_helpers!("ui/slint/src/constants.slint");
 
-pub struct ThemesPageHandler<'a> {
-    main_window: &'a MainWindow,
-    state_manager: &'a StateManager,
+pub struct ThemesPageHandler {
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
 }
 
-impl<'a> ThemesPageHandler<'a> {
+impl ThemesPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
         Self {
             main_window,
             state_manager,
@@ -256,15 +256,14 @@ impl<'a> ThemesPageHandler<'a> {
     }
 }
 
-impl<'a> PageHandler for ThemesPageHandler<'a> {
+impl PageHandler for ThemesPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) {
-        let state_manager = self.state_manager.clone();
+        let state_manager = self.state_manager;
         let main_window_weak = self.main_window.as_weak();
 
         // debounce theme configuration writes to disk
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<(String, String)>();
-        let state_manager_bg = state_manager.clone();
         let main_window_weak_bg = main_window_weak.clone();
 
         tokio::spawn(
@@ -280,14 +279,14 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                                 pending_changes.insert(name, val);
                             } else {
                                 if !pending_changes.is_empty() {
-                                    Self::flush_changes(&state_manager_bg, &main_window_weak_bg, &mut pending_changes).await;
+                                    Self::flush_changes(state_manager, &main_window_weak_bg, &mut pending_changes).await;
                                 }
                                 break;
                             }
                         }
                         _ = &mut timeout => {
                             if !pending_changes.is_empty() {
-                                Self::flush_changes(&state_manager_bg, &main_window_weak_bg, &mut pending_changes).await;
+                                Self::flush_changes(state_manager, &main_window_weak_bg, &mut pending_changes).await;
                             }
                         }
                     }
@@ -304,10 +303,8 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                     .listen_filtered_immediate(
                         {
                             let main_window_weak = main_window_weak.clone();
-                            let state_manager = state_manager.clone();
                             move |key| {
                                 if key == ACTIVE_THEME_ID.id.as_str() {
-                                    let state_manager = state_manager.clone();
                                     let main_window_weak = main_window_weak.clone();
                                     tokio::spawn(
                                         async move {
@@ -369,11 +366,10 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
         self.main_window
             .global::<crate::AppCallbacks>()
             .on_select_preset_theme({
-                let state_manager = self.state_manager.clone();
+                let state_manager = self.state_manager;
                 let main_window_weak = self.main_window.as_weak();
                 move |theme_id| {
                     let theme_id = theme_id.to_string();
-                    let state_manager = state_manager.clone();
                     let main_window_weak = main_window_weak.clone();
 
                     tokio::spawn(
@@ -444,13 +440,12 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
         self.main_window
             .global::<crate::AppCallbacks>()
             .on_save_custom_theme({
-                let state_manager = self.state_manager.clone();
+                let state_manager = self.state_manager;
                 let main_window_weak = self.main_window.as_weak();
                 move |name, author, description| {
                     let name = name.to_string();
                     let author = author.to_string();
                     let description = description.to_string();
-                    let state_manager = state_manager.clone();
                     let main_window_weak = main_window_weak.clone();
 
                     tokio::spawn(
@@ -516,17 +511,15 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
             });
 
         tokio::spawn({
-            let state_manager = self.state_manager.clone();
+            let state_manager = self.state_manager;
             let main_window_weak = self.main_window.as_weak();
             async move {
                 let theme_holder = state_manager.get_theme_holder().await;
                 let main_window_weak = main_window_weak.clone();
-                let state_manager = state_manager.clone();
 
                 theme_holder.on_theme_changed.listen(move |changed_theme| {
                     let changed_theme = changed_theme.clone();
                     let main_window_weak = main_window_weak.clone();
-                    let state_manager = state_manager.clone();
 
                     tokio::spawn(
                         async move {

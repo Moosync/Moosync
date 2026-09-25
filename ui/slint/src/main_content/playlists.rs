@@ -102,15 +102,15 @@ impl EntityListProvider for PlaylistListProvider {
     }
 }
 
-pub struct PlaylistsPageHandler<'a> {
-    main_window: &'a MainWindow,
-    state_manager: &'a StateManager,
+pub struct PlaylistsPageHandler {
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
     coordinator: EntityListCoordinator<PlaylistListProvider>,
 }
 
-impl<'a> PlaylistsPageHandler<'a> {
+impl PlaylistsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
         Self {
             main_window,
             state_manager,
@@ -121,7 +121,7 @@ impl<'a> PlaylistsPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn handle_playlist_action(
         weak: Weak<MainWindow>,
-        state_manager: StateManager,
+        state_manager: &'static StateManager,
         playlist_ids: Vec<String>,
         action: String,
     ) {
@@ -142,12 +142,12 @@ impl<'a> PlaylistsPageHandler<'a> {
                     }
                 }
             }
-            match PlaylistListProvider::fetch_entities(&state_manager).await {
+            match PlaylistListProvider::fetch_entities(state_manager).await {
                 Ok(playlists) => {
                     let _ = weak.upgrade_in_event_loop(move |main_window| {
                         let playlists: Vec<PlaylistModel> =
                             playlists.into_iter().map(PlaylistModel::from).collect();
-                        let model = make_lazy_card_model(&main_window, &state_manager, playlists);
+                        let model = make_lazy_card_model(&main_window, state_manager, playlists);
                         main_window
                             .global::<PlaylistsPageProps>()
                             .set_playlists(model);
@@ -179,12 +179,11 @@ impl<'a> PlaylistsPageHandler<'a> {
                 ModelRc::new(VecModel::from(all_items))
             });
 
-        let state_manager = self.state_manager.clone();
+        let state_manager = self.state_manager;
         let main_window_weak = self.main_window.as_weak();
         self.main_window
             .global::<ContextMenuCallbacks>()
             .on_playlist_action(move |playlist_models, action_id| {
-                let state_manager = state_manager.clone();
                 let playlist_ids: Vec<String> = playlist_models
                     .into_vec()
                     .into_iter()
@@ -204,7 +203,7 @@ impl<'a> PlaylistsPageHandler<'a> {
     }
 }
 
-impl<'a> PageHandler for PlaylistsPageHandler<'a> {
+impl PageHandler for PlaylistsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn initialize(&self) { self.register_context_menu_callbacks(); }
 

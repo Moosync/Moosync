@@ -47,14 +47,14 @@ impl EntitySongProvider for GenreSongProvider {
     }
 }
 
-pub struct GenreContentPageHandler<'a> {
-    _main_window: &'a MainWindow,
+pub struct GenreContentPageHandler {
+    _main_window: &'static MainWindow,
     coordinator: EntityContentCoordinator<GenreSongProvider>,
 }
 
-impl<'a> GenreContentPageHandler<'a> {
+impl GenreContentPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(main_window: &'a MainWindow, state_manager: &'a StateManager) -> Self {
+    pub fn new(main_window: &'static MainWindow, state_manager: &'static StateManager) -> Self {
         Self {
             _main_window: main_window,
             coordinator: EntityContentCoordinator::new(main_window, state_manager),
@@ -62,7 +62,7 @@ impl<'a> GenreContentPageHandler<'a> {
     }
 }
 
-impl<'a> PageHandler for GenreContentPageHandler<'a> {
+impl PageHandler for GenreContentPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn on_show(&self) { self.coordinator.on_show(); }
 

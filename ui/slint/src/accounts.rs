@@ -23,7 +23,6 @@ impl AccountsHandler {
         main_window_weak: Weak<MainWindow>,
         state_manager: &'static StateManager,
     ) {
-        let state_manager = state_manager.clone();
         tokio::spawn(
             async move {
                 let extension_handler = state_manager.get_extension_handler().await;
@@ -82,18 +81,16 @@ impl AccountsHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn setup_callbacks(main_window: &'static MainWindow, state_manager: &'static StateManager) {
         let main_window_weak = main_window.as_weak();
-        let sm = state_manager.clone();
         main_window
             .global::<AppCallbacks>()
             .on_account_login(move |package_name, account_id| {
                 tracing::debug!("on_account_login triggered: pkg={}, acc={}", package_name, account_id);
                 let main_window_weak = main_window_weak.clone();
-                let sm = sm.clone();
                 let package_name = package_name.to_string();
                 let account_id = account_id.to_string();
                 tokio::spawn(
                     async move {
-                        let extension_handler = sm.get_extension_handler().await;
+                        let extension_handler = state_manager.get_extension_handler().await;
                         match extension_handler.get_extension(&package_name) {
                             Ok(ext) => {
                                 match ext
@@ -135,16 +132,14 @@ impl AccountsHandler {
                 );
             });
 
-        let sm = state_manager.clone();
         main_window
             .global::<AppCallbacks>()
             .on_account_logout(move |package_name, account_id| {
-                let sm = sm.clone();
                 let package_name = package_name.to_string();
                 let account_id = account_id.to_string();
                 tokio::spawn(
                     async move {
-                        let extension_handler = sm.get_extension_handler().await;
+                        let extension_handler = state_manager.get_extension_handler().await;
                         if let Ok(ext) = extension_handler.get_extension(&package_name) {
                             if let Err(e) = ext
                                 .perform_account_login(
@@ -168,11 +163,9 @@ impl AccountsHandler {
             });
 
         let main_window_weak = main_window.as_weak();
-        let sm = state_manager.clone();
         main_window
             .global::<AppCallbacks>()
             .on_submit_oauth_code(move |code| {
-                let sm = sm.clone();
                 let code_str = if !code.starts_with("moosync://") {
                     format!("moosync://{}", code)
                 } else {
@@ -182,7 +175,7 @@ impl AccountsHandler {
                 let main_window_weak = main_window_weak.clone();
                 tokio::spawn(
                     async move {
-                        match sm.handle_oauth_callback(&code_str).await {
+                        match state_manager.handle_oauth_callback(&code_str).await {
                             Ok(_) => {
                                 let _ = slint::invoke_from_event_loop(move || {
                                     if let Some(main_window) = main_window_weak.upgrade() {
@@ -210,12 +203,11 @@ impl AccountsHandler {
         #[cfg(not(any(target_os = "android", test)))]
         {
             let mw_weak = _main_window.as_weak();
-            let sm = _state_manager.clone();
             sysuri::register_handler(
                 "moosync",
                 sysuri::FnHandler::new(move |uri: &str| {
                     if let Some(mw) = mw_weak.upgrade() {
-                        Self::handle_deep_link(uri, &sm, &mw);
+                        Self::handle_deep_link(uri, _state_manager, &mw);
                     }
                 }),
             );
@@ -230,13 +222,16 @@ impl AccountsHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn handle_deep_link(url: &str, state_manager: &StateManager, main_window: &MainWindow) {
-        let sm = state_manager.clone();
+    pub fn handle_deep_link(
+        url: &str,
+        state_manager: &'static StateManager,
+        main_window: &MainWindow,
+    ) {
         let url_str = url.to_string();
         let main_window_weak = main_window.as_weak();
         tokio::spawn(
             async move {
-                match sm.handle_oauth_callback(&url_str).await {
+                match state_manager.handle_oauth_callback(&url_str).await {
                     Ok(_) => {
                         let _ = slint::invoke_from_event_loop(move || {
                             if let Some(main_window) = main_window_weak.upgrade() {

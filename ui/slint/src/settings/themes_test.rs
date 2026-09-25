@@ -34,7 +34,9 @@ async fn test_themes_page_handler_initialize(
     state_manager_fixture: TestSlintSmContext,
 ) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
-    let handler = ThemesPageHandler::new(&main_window, &sm);
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm));
+    let handler = ThemesPageHandler::new(main_window, state_manager);
 
     handler.initialize();
 

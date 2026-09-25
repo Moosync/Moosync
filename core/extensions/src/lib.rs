@@ -102,7 +102,6 @@ pub struct ExtensionHandler {
     pub on_preferences_updated:
         types::subscription::SubscriberList<Box<dyn Fn(String) + Send + Sync + 'static>>,
     remote: RemoteExtensions,
-    registries: HashSet<String>,
     remote_manifests: HashSet<FetchedExtensionManifest>,
     has_updates: bool,
 }
@@ -118,8 +117,6 @@ types::generate_on_event_impl!(
 impl ExtensionHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(extensions_dir: PathBuf, tmp_dir: PathBuf, cache_dir: PathBuf) -> Self {
-        let mut registries = HashSet::new();
-        registries.insert(DEFAULT_EXTENSION_REGISTRY.to_string());
         Self {
             inner: ExtensionHandlerInner::new(extensions_dir.clone(), cache_dir.clone()),
             extensions_dir: extensions_dir.clone(),
@@ -130,7 +127,6 @@ impl ExtensionHandler {
             on_accounts_updated: types::subscription::SubscriberList::new(),
             on_preferences_updated: types::subscription::SubscriberList::new(),
             remote: RemoteExtensions::new(tmp_dir),
-            registries,
             remote_manifests: HashSet::new(),
             has_updates: false,
         }
@@ -197,20 +193,6 @@ impl ExtensionHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_remote_manifests(&mut self, manifests: HashSet<FetchedExtensionManifest>) {
         self.remote_manifests = manifests;
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_registries(&mut self, registries: HashSet<String>) {
-        let mut registries = registries;
-        registries.insert(DEFAULT_EXTENSION_REGISTRY.to_string());
-        self.registries = registries;
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_registries(&self) -> HashSet<String> {
-        let mut set = self.registries.clone();
-        set.insert(DEFAULT_EXTENSION_REGISTRY.to_string());
-        set
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -437,11 +419,17 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn get_extension_manifest(
-        &self,
-    ) -> Result<HashSet<FetchedExtensionManifest>, ExtensionError> {
-        let registries = self.get_registries();
-        self.remote.get_extension_manifest(&registries).await
+    pub async fn fetch_remote_manifests(
+        &mut self,
+        registries: HashSet<String>,
+    ) -> Result<(), ExtensionError> {
+        let mut registries = registries;
+        registries.insert(DEFAULT_EXTENSION_REGISTRY.to_string());
+        let manifests = self.remote.get_extension_manifest(&registries).await?;
+        self.set_remote_manifests(manifests);
+        self.check_for_updates();
+        self.trigger_extensions_updated();
+        Ok(())
     }
 }
 

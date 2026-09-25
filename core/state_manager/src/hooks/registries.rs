@@ -32,30 +32,6 @@ impl Default for ExtensionRegistriesHook {
 impl ExtensionRegistriesHook {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new() -> Self { Self }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    async fn fetch_and_update_manifests(state_manager: &StateManager) {
-        {
-            if let Ok(manifests) = {
-                let extensions = state_manager.get_extension_handler().await;
-                extensions.get_extension_manifest().await
-            } {
-                {
-                    let mut extensions = state_manager.get_extension_handler_mut().await;
-                    extensions.set_remote_manifests(manifests);
-                    extensions.check_for_updates();
-                }
-
-                {
-                    let extensions = state_manager.get_extension_handler().await;
-                    extensions.trigger_extensions_updated();
-                }
-
-                return;
-            }
-        }
-        tracing::error!("Failed to fetch remote manifests");
-    }
 }
 
 #[async_trait]
@@ -67,14 +43,6 @@ impl Hook for ExtensionRegistriesHook {
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let preferences = state_manager.get_preference_config().await;
 
-        if let Some(saved_registries) = preferences
-            .load(&EXTENSION_REGISTRIES)
-            .value::<Vec<String>>()
-        {
-            let mut extensions = state_manager.get_extension_handler_mut().await;
-            extensions.set_registries(saved_registries.into_iter().collect());
-        }
-
         preferences.on_preference_changed_immediate(
             {
                 let state_manager = state_manager.clone();
@@ -83,32 +51,23 @@ impl Hook for ExtensionRegistriesHook {
                     tokio::spawn(
                         async move {
                             let preferences = state_manager.get_preference_config().await;
-                            let Some(registries) = preferences
+                            let registries = preferences
                                 .load(&EXTENSION_REGISTRIES)
                                 .value::<Vec<String>>()
-                            else {
-                                return;
-                            };
+                                .unwrap_or_default();
+                            let mut extensions = state_manager.get_extension_handler_mut().await;
+                            if let Err(e) = extensions
+                                .fetch_remote_manifests(registries.into_iter().collect())
+                                .await
                             {
-                                let mut extensions =
-                                    state_manager.get_extension_handler_mut().await;
-                                extensions.set_registries(registries.into_iter().collect());
+                                tracing::error!("Failed to fetch remote manifests: {:?}", e);
                             }
-                            Self::fetch_and_update_manifests(&state_manager).await;
                         }
                         .in_current_span(),
                     );
                 }
             },
             EXTENSION_REGISTRIES.id.clone(),
-        );
-
-        let state_manager = state_manager.clone();
-        tokio::spawn(
-            async move {
-                Self::fetch_and_update_manifests(&state_manager).await;
-            }
-            .in_current_span(),
         );
 
         Ok(())

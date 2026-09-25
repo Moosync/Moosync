@@ -79,25 +79,6 @@ async fn test_extension_registries_hook_on_startup(sm_context: TestSmContext) {
     let TestSmContext { sm, .. } = sm_context;
     let hook = ExtensionRegistriesHook::new();
     assert_ok!(hook.on_startup(&sm).await);
-
-    let pref = sm.get_preference_config().await;
-    pref.save(PreferenceItem {
-        id: EXTENSION_REGISTRIES.id.clone(),
-        value: Some(PreferenceValue {
-            value: Some(preference_value::Value::ListValue(StringList {
-                values: vec!["https://example.com/custom_manifest.json".to_string()],
-            })),
-        }),
-        ..EXTENSION_REGISTRIES.clone()
-    })
-    .unwrap();
-    tokio::time::sleep(Duration::from_millis(50)).await;
-
-    let ext = sm.get_extension_handler().await;
-    assert!(
-        ext.get_registries()
-            .contains("https://example.com/custom_manifest.json")
-    );
 }
 
 #[rstest]

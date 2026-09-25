@@ -30,12 +30,10 @@ use uuid::Uuid;
 
 use crate::error::ThemesError;
 
-pub type OnThemeChangedCallback = Box<dyn Fn(&ThemeDetails) + Send + Sync + 'static>;
-
 pub struct ThemeHolder {
     pub theme_dir: PathBuf,
     pub tmp_dir: PathBuf,
-    pub on_theme_changed: SubscriberList<OnThemeChangedCallback>,
+    pub on_theme_changed: SubscriberList<ThemeDetails>,
 }
 
 #[plugin_macro::generate]
@@ -64,9 +62,7 @@ impl ThemeHolder {
         let theme_config = theme_path.join("config.json");
         fs::write(theme_config, serde_json::to_string(&theme)?).map_err(ThemesError::Io)?;
 
-        self.on_theme_changed.run_all(|sub| {
-            sub(&theme);
-        });
+        self.on_theme_changed.emit(theme);
         Ok(())
     }
 
@@ -270,11 +266,6 @@ impl ThemeHolder {
         Ok(ret)
     }
 }
-
-types::generate_on_event_impl!(
-    ThemeHolder;
-    on_theme_changed, on_theme_changed_immediate, &ThemeDetails;
-);
 
 impl types::plugin::Plugin for ThemeHolder {
     #[tracing::instrument(level = "debug", skip_all)]

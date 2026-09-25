@@ -327,7 +327,7 @@ async fn test_player_repeat_infinite_stays_on_ended(mut player_handler: PlayerHa
 async fn test_player_repeat_event_fires(mut player_handler: PlayerHandler) {
     let repeat_changed_fired = Arc::new(Mutex::new(Option::<RepeatMode>::None));
     let rc_clone = repeat_changed_fired.clone();
-    player_handler.on_repeat_changed(move |mode| {
+    player_handler.on_repeat_changed.listen(move |mode| {
         let mut fired = rc_clone.lock().unwrap();
         *fired = Some(mode);
     });

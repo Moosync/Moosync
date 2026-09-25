@@ -218,9 +218,8 @@ impl<'a> QueuePageHandler<'a> {
                 let mw_weak_song = main_window_weak.clone();
                 let state_manager_song = state_manager.clone();
                 let cache_dir_events = cache_dir.clone();
-                let ch_song = player_handler.on_song_changed(move |song| {
+                let ch_song = player_handler.on_song_changed.listen(move |song| {
                     let mw_weak = mw_weak_song.clone();
-                    let song = song.cloned();
                     let cache_dir = cache_dir_events.clone();
                     let state_manager = state_manager_song.clone();
 
@@ -255,13 +254,12 @@ impl<'a> QueuePageHandler<'a> {
 
                 let mw_weak_queue = main_window_weak.clone();
                 let state_manager_queue = state_manager.clone();
-                let ch_queue = player_handler.on_queue_updated(move |queue| {
-                    let queue_cloned = queue.to_vec();
+                let ch_queue = player_handler.on_queue_updated.listen(move |queue| {
                     let mw_weak = mw_weak_queue.clone();
                     let state_manager = state_manager_queue.clone();
                     let _ = slint::invoke_from_event_loop(move || {
                         if let Some(main_window) = mw_weak.upgrade() {
-                            Self::update_ui_queue(&main_window, &state_manager, queue_cloned);
+                            Self::update_ui_queue(&main_window, &state_manager, queue);
                         }
                     });
                 });

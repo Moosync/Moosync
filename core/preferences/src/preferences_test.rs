@@ -135,7 +135,7 @@ fn test_preferences_on_preference_changed(prefs_context: TestPrefsContext) {
     let call_count = Arc::new(AtomicUsize::new(0));
 
     let c = call_count.clone();
-    let _handle = prefs.on_preference_changed(
+    let _handle = prefs.on_preference_changed.listen_filtered(
         move |key| {
             c.fetch_add(1, Ordering::SeqCst);
             assert_eq!(key, "scan_threads");

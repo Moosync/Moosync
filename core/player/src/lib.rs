@@ -58,19 +58,14 @@ use crate::{
 
 pub type OnEndedCallback = Box<dyn Fn() + Send + Sync + 'static>;
 
-pub type OnSongChangedCallback = Box<dyn Fn(Option<&Song>) + Send + Sync + 'static>;
-pub type OnQueueUpdatedCallback = Box<dyn Fn(&[Song]) + Send + Sync + 'static>;
-pub type OnRepeatChangedCallback = Box<dyn Fn(RepeatMode) + Send + Sync + 'static>;
-pub type OnPlayerEventCallback = Box<dyn Fn(&PlayerEvent) + Send + Sync + 'static>;
-
 pub struct PlayerHandler {
     pub(crate) player_data: PlayerData,
     pub(crate) player: AudioSource,
     pub(crate) persist_context: Box<dyn PersistContext>,
-    pub(crate) on_song_changed: SubscriberList<OnSongChangedCallback>,
-    pub(crate) on_queue_updated: SubscriberList<OnQueueUpdatedCallback>,
-    pub(crate) on_repeat_changed: SubscriberList<OnRepeatChangedCallback>,
-    pub(crate) on_player_event: SubscriberList<OnPlayerEventCallback>,
+    pub on_song_changed: SubscriberList<Option<Song>>,
+    pub on_queue_updated: SubscriberList<Vec<Song>>,
+    pub on_repeat_changed: SubscriberList<RepeatMode>,
+    pub on_player_event: SubscriberList<PlayerEvent>,
 }
 
 #[plugin_macro::generate]
@@ -430,7 +425,7 @@ impl PlayerHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn trigger_queue_changed(&self) {
         self.on_queue_updated
-            .run_all(|cb| cb(&self.player_data.song_queue));
+            .emit(self.player_data.song_queue.clone());
         if let Err(e) = self.persist_context.persist(&self.player_data) {
             tracing::error!("Failed to persist player data: {}", e);
         }
@@ -439,7 +434,7 @@ impl PlayerHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn trigger_repeat_changed(&self) {
         let mode = RepeatMode::try_from(self.player_data.repeat_mode).unwrap_or_default();
-        self.on_repeat_changed.run_all(|cb| cb(mode));
+        self.on_repeat_changed.emit(mode);
         if let Err(e) = self.persist_context.persist(&self.player_data) {
             tracing::error!("Failed to persist player data: {}", e);
         }
@@ -448,7 +443,7 @@ impl PlayerHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     fn trigger_player_event(&self, event: Event) {
         let player_event = PlayerEvent { event: Some(event) };
-        self.on_player_event.run_all(|cb| cb(&player_event));
+        self.on_player_event.emit(player_event);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -464,23 +459,13 @@ impl PlayerHandler {
             tracing::error!("Failed to load song: {:?}", e);
             return;
         }
-        self.on_song_changed.run_all(|cb| {
-            cb(current.as_ref());
-        });
+        self.on_song_changed.emit(current);
         self.trigger_player_event(Event::TimeUpdate(Default::default()));
         if let Err(e) = self.persist_context.persist(&self.player_data) {
             tracing::error!("Failed to persist player data: {}", e);
         }
     }
 }
-
-types::generate_on_event_impl!(
-    PlayerHandler;
-    on_song_changed, Option<&Song>;
-    on_queue_updated, &[Song];
-    on_repeat_changed, RepeatMode;
-    on_player_event, &PlayerEvent;
-);
 
 impl Plugin for PlayerHandler {
     #[tracing::instrument(level = "debug", skip_all)]

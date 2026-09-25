@@ -43,7 +43,7 @@ impl Hook for ExtensionRegistriesHook {
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let preferences = state_manager.get_preference_config().await;
 
-        preferences.on_preference_changed_immediate(
+        preferences.on_preference_changed.listen_filtered_immediate(
             {
                 let state_manager = state_manager.clone();
                 move |_key| {

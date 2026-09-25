@@ -309,9 +309,8 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
             });
 
             let mw_weak_song = main_window_weak.clone();
-            player_handler.on_song_changed(move |song| {
+            player_handler.on_song_changed.listen(move |song| {
                 let mw_weak = mw_weak_song.clone();
-                let song = song.cloned();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = mw_weak.upgrade() {
                         let song_model = match song {
@@ -326,7 +325,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
             });
 
             let mw_weak_repeat = main_window_weak.clone();
-            player_handler.on_repeat_changed(move |mode| {
+            player_handler.on_repeat_changed.listen(move |mode| {
                 let mw_weak = mw_weak_repeat.clone();
                 let _ = slint::invoke_from_event_loop(move || {
                     if let Some(main_window) = mw_weak.upgrade() {
@@ -338,7 +337,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
             });
 
             let mw_weak_event = main_window_weak.clone();
-            player_handler.on_player_event(move |event| {
+            player_handler.on_player_event.listen(move |event| {
                 let event_cloned = event.clone();
                 let mw_weak = mw_weak_event.clone();
                 let _ = slint::invoke_from_event_loop(move || {

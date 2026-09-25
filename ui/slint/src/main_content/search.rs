@@ -181,7 +181,7 @@ impl<'a> SearchPageHandler<'a> {
         tokio::spawn(
             async move {
                 let extension_handler = state_manager.get_extension_handler().await;
-                let _cancel = extension_handler.on_accounts_updated({
+                let _cancel = extension_handler.on_accounts_updated.listen({
                     let main_window_weak = main_window_weak.clone();
                     let state_manager = state_manager.clone();
                     move |_| {

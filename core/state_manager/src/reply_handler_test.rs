@@ -404,9 +404,9 @@ async fn test_reply_handler_set_account(reply_context: TestReplyContext) {
     let received_clone = received.clone();
 
     let ext_handler = sm.get_extension_handler().await;
-    let _sub = ext_handler.on_accounts_updated.insert(Box::new(move |acc| {
+    let _sub = ext_handler.on_accounts_updated.listen(move |acc| {
         *received_clone.lock().unwrap() = acc;
-    }));
+    });
 
     let account = extensions_proto::moosync::types::ExtensionAccountDetail {
         id: "my_account".to_string(),

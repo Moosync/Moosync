@@ -299,62 +299,69 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
         tokio::spawn(
             async move {
                 let preference_config = state_manager.get_preference_config().await;
-                preference_config.on_preference_changed_immediate(
-                    {
-                        let main_window_weak = main_window_weak.clone();
-                        let state_manager = state_manager.clone();
-                        move |key| {
-                            if key == ACTIVE_THEME_ID.id.as_str() {
-                                let state_manager = state_manager.clone();
-                                let main_window_weak = main_window_weak.clone();
-                                tokio::spawn(
-                                    async move {
-                                        let theme_holder = state_manager.get_theme_holder().await;
-                                        let preference_config =
-                                            state_manager.get_preference_config().await;
-                                        let active_theme_id = preference_config
-                                            .inner
-                                            .load(&ACTIVE_THEME_ID)
-                                            .value::<String>()
-                                            .unwrap_or_else(|| "default".to_string());
+                preference_config
+                    .on_preference_changed
+                    .listen_filtered_immediate(
+                        {
+                            let main_window_weak = main_window_weak.clone();
+                            let state_manager = state_manager.clone();
+                            move |key| {
+                                if key == ACTIVE_THEME_ID.id.as_str() {
+                                    let state_manager = state_manager.clone();
+                                    let main_window_weak = main_window_weak.clone();
+                                    tokio::spawn(
+                                        async move {
+                                            let theme_holder =
+                                                state_manager.get_theme_holder().await;
+                                            let preference_config =
+                                                state_manager.get_preference_config().await;
+                                            let active_theme_id = preference_config
+                                                .inner
+                                                .load(&ACTIVE_THEME_ID)
+                                                .value::<String>()
+                                                .unwrap_or_else(|| "default".to_string());
 
-                                        let active_theme = theme_holder
-                                            .inner
-                                            .load_theme(active_theme_id.clone())
-                                            .unwrap_or_else(|_| ThemeDetails {
-                                                id: "default".to_string(),
-                                                name: "Default".to_string(),
-                                                ..Default::default()
-                                            });
+                                            let active_theme = theme_holder
+                                                .inner
+                                                .load_theme(active_theme_id.clone())
+                                                .unwrap_or_else(|_| ThemeDetails {
+                                                    id: "default".to_string(),
+                                                    name: "Default".to_string(),
+                                                    ..Default::default()
+                                                });
 
-                                        let themes_list =
-                                            Self::get_all_themes_list(&theme_holder.inner);
+                                            let themes_list =
+                                                Self::get_all_themes_list(&theme_holder.inner);
 
-                                        let _ = slint::invoke_from_event_loop(move || {
-                                            if let Some(main_window) = main_window_weak.upgrade() {
-                                                let themes_props =
-                                                    main_window.global::<ThemesPageProps>();
-                                                themes_props
-                                                    .set_active_theme_id(active_theme_id.into());
-                                                Self::apply_theme(&main_window, &active_theme);
+                                            let _ = slint::invoke_from_event_loop(move || {
+                                                if let Some(main_window) =
+                                                    main_window_weak.upgrade()
+                                                {
+                                                    let themes_props =
+                                                        main_window.global::<ThemesPageProps>();
+                                                    themes_props.set_active_theme_id(
+                                                        active_theme_id.into(),
+                                                    );
+                                                    Self::apply_theme(&main_window, &active_theme);
 
-                                                let vec_model = slint::VecModel::default();
-                                                for t in themes_list {
-                                                    vec_model.push(Self::map_theme_to_config(&t));
+                                                    let vec_model = slint::VecModel::default();
+                                                    for t in themes_list {
+                                                        vec_model
+                                                            .push(Self::map_theme_to_config(&t));
+                                                    }
+                                                    themes_props.set_available_themes(
+                                                        slint::ModelRc::new(vec_model),
+                                                    );
                                                 }
-                                                themes_props.set_available_themes(
-                                                    slint::ModelRc::new(vec_model),
-                                                );
-                                            }
-                                        });
-                                    }
-                                    .in_current_span(),
-                                );
+                                            });
+                                        }
+                                        .in_current_span(),
+                                    );
+                                }
                             }
-                        }
-                    },
-                    ACTIVE_THEME_ID.id.as_str(),
-                );
+                        },
+                        ACTIVE_THEME_ID.id.as_str(),
+                    );
             }
             .in_current_span(),
         );
@@ -389,7 +396,7 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                                             e
                                         );
                                     }
-                                    theme_holder.inner.on_theme_changed.run_all(|cb| cb(&theme));
+                                    theme_holder.inner.on_theme_changed.emit(theme.clone());
 
                                     let theme_id = theme_id.clone();
                                     let _ = slint::invoke_from_event_loop(move || {
@@ -516,7 +523,7 @@ impl<'a> PageHandler for ThemesPageHandler<'a> {
                 let main_window_weak = main_window_weak.clone();
                 let state_manager = state_manager.clone();
 
-                theme_holder.on_theme_changed(move |changed_theme| {
+                theme_holder.on_theme_changed.listen(move |changed_theme| {
                     let changed_theme = changed_theme.clone();
                     let main_window_weak = main_window_weak.clone();
                     let state_manager = state_manager.clone();

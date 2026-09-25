@@ -21,6 +21,7 @@ use extensions_proto::moosync::types::{
     ExtensionDetail, ExtensionManifest, FetchedExtensionManifest, PackageName,
 };
 use fs_extra::dir::CopyOptions;
+use types::subscription::SubscriberList;
 use zip_extensions::zip_extract;
 
 pub use crate::{
@@ -95,23 +96,13 @@ pub struct ExtensionHandler {
     pub cache_dir: PathBuf,
     inner: ExtensionHandlerInner,
     reply_handler: Option<Arc<dyn ReplyHandler>>,
-    pub on_extensions_updated:
-        types::subscription::SubscriberList<Box<dyn Fn(()) + Send + Sync + 'static>>,
-    pub on_accounts_updated:
-        types::subscription::SubscriberList<Box<dyn Fn(Option<String>) + Send + Sync + 'static>>,
-    pub on_preferences_updated:
-        types::subscription::SubscriberList<Box<dyn Fn(String) + Send + Sync + 'static>>,
+    pub on_extensions_updated: SubscriberList<()>,
+    pub on_accounts_updated: SubscriberList<Option<String>>,
+    pub on_preferences_updated: SubscriberList<String>,
     remote: RemoteExtensions,
     remote_manifests: HashSet<FetchedExtensionManifest>,
     has_updates: bool,
 }
-
-types::generate_on_event_impl!(
-    ExtensionHandler;
-    on_extensions_updated, ();
-    on_accounts_updated, Option<String>;
-    on_preferences_updated, String;
-);
 
 #[plugin_macro::generate]
 impl ExtensionHandler {
@@ -123,9 +114,9 @@ impl ExtensionHandler {
             tmp_dir: tmp_dir.clone(),
             cache_dir: cache_dir.clone(),
             reply_handler: None,
-            on_extensions_updated: types::subscription::SubscriberList::new(),
-            on_accounts_updated: types::subscription::SubscriberList::new(),
-            on_preferences_updated: types::subscription::SubscriberList::new(),
+            on_extensions_updated: SubscriberList::new(),
+            on_accounts_updated: SubscriberList::new(),
+            on_preferences_updated: SubscriberList::new(),
             remote: RemoteExtensions::new(tmp_dir),
             remote_manifests: HashSet::new(),
             has_updates: false,
@@ -201,18 +192,16 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn trigger_extensions_updated(&self) { self.on_extensions_updated.run_all(|cb| cb(())); }
+    pub fn trigger_extensions_updated(&self) { self.on_extensions_updated.emit(()); }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn trigger_accounts_updated(&self, account_id: Option<String>) {
-        self.on_accounts_updated
-            .run_all(|cb| cb(account_id.clone()));
+        self.on_accounts_updated.emit(account_id);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn trigger_preferences_updated(&self, package_name: String) {
-        self.on_preferences_updated
-            .run_all(|cb| cb(package_name.clone()));
+        self.on_preferences_updated.emit(package_name);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

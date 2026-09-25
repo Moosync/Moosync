@@ -34,7 +34,7 @@ use prost::Message;
 use serde::{Serialize, de::DeserializeOwned};
 use types::{
     plugin::{Plugin, PluginContext, RwLock as AsyncRwLock},
-    subscription::{SubscriberList, ToFilterKeys},
+    subscription::SubscriberList,
 };
 use whoami;
 
@@ -43,13 +43,11 @@ use crate::{
     error::PreferencesError,
 };
 
-pub type OnPreferenceChangedCallback = Box<dyn Fn(String) + Send + Sync + 'static>;
-
 pub struct PreferenceConfig {
     pub config_file: Mutex<PathBuf>,
     pub secret: Mutex<Key>,
     pub memcache: RwLock<HashMap<String, PreferenceItem>>,
-    pub on_preference_changed: SubscriberList<OnPreferenceChangedCallback>,
+    pub on_preference_changed: SubscriberList<String>,
 }
 
 impl fmt::Debug for PreferenceConfig {
@@ -202,9 +200,7 @@ impl PreferenceConfig {
             prefs.remove(&key);
             drop(prefs);
             self.persist()?;
-            self.on_preference_changed.run_all(|sub| {
-                sub(key.clone());
-            });
+            self.on_preference_changed.emit(key.clone());
             return Ok(());
         }
 
@@ -278,9 +274,7 @@ impl PreferenceConfig {
 
         self.persist()?;
 
-        self.on_preference_changed.run_all(|sub| {
-            sub(key.clone());
-        });
+        self.on_preference_changed.emit(key);
 
         Ok(())
     }
@@ -294,9 +288,7 @@ impl PreferenceConfig {
 
         self.persist()?;
 
-        self.on_preference_changed.run_all(|sub| {
-            sub(key.clone());
-        });
+        self.on_preference_changed.emit(key);
 
         Ok(())
     }
@@ -329,8 +321,3 @@ impl Plugin for PreferenceConfig {
         ))
     }
 }
-
-types::generate_on_event_impl!(
-    PreferenceConfig;
-    on_preference_changed, on_preference_changed_immediate, String, ToFilterKeys<String>;
-);

@@ -24,15 +24,15 @@ use crate::subscription::{SubscriberList, ToFilterKeys};
 #[test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_subscriber_list_insert_and_run_all() {
-    let list: SubscriberList<Box<dyn Fn(u32) + Send + Sync>> = SubscriberList::new();
+fn test_subscriber_list_listen_and_emit() {
+    let list: SubscriberList<u32> = SubscriberList::new();
     let counter = Arc::new(Mutex::new(0));
     let counter_clone = counter.clone();
-    let _handle = list.insert(Box::new(move |val| {
+    let _handle = list.listen(move |val| {
         *counter_clone.lock().unwrap() += val;
-    }));
+    });
 
-    list.run_all(|callback| callback(5));
+    list.emit(5);
 
     assert_eq!(*counter.lock().unwrap(), 5);
 }
@@ -41,16 +41,16 @@ fn test_subscriber_list_insert_and_run_all() {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_subscriber_list_cancel() {
-    let list: SubscriberList<Box<dyn Fn(u32) + Send + Sync>> = SubscriberList::new();
+    let list: SubscriberList<u32> = SubscriberList::new();
     let counter = Arc::new(Mutex::new(0));
     let counter_clone = counter.clone();
-    let handle = list.insert(Box::new(move |val| {
+    let handle = list.listen(move |val| {
         *counter_clone.lock().unwrap() += val;
-    }));
+    });
 
-    list.run_all(|callback| callback(5));
+    list.emit(5);
     handle.cancel();
-    list.run_all(|callback| callback(10));
+    list.emit(10);
 
     assert_eq!(*counter.lock().unwrap(), 5);
 }
@@ -58,22 +58,65 @@ fn test_subscriber_list_cancel() {
 #[test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_watch_immediate() {
-    let list: SubscriberList<Box<dyn Fn(String) + Send + Sync>> = SubscriberList::new();
+fn test_listen_immediate() {
+    let list: SubscriberList<String> = SubscriberList::new();
     let received = Arc::new(Mutex::new(String::new()));
     let received_clone = received.clone();
 
-    let _handle = list.watch_immediate(
-        Box::new(move |s| {
+    let _handle = list.listen_immediate(
+        move |s| {
             *received_clone.lock().unwrap() = s;
-        }),
+        },
         "initial".to_string(),
     );
 
     assert_eq!(*received.lock().unwrap(), "initial");
 
-    list.run_all(|callback| callback("updated".to_string()));
+    list.emit("updated".to_string());
     assert_eq!(*received.lock().unwrap(), "updated");
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_listen_filtered() {
+    let list: SubscriberList<String> = SubscriberList::new();
+    let received = Arc::new(Mutex::new(Vec::new()));
+    let received_clone = received.clone();
+
+    let _handle = list.listen_filtered(
+        move |s| {
+            received_clone.lock().unwrap().push(s);
+        },
+        vec!["match1".to_string(), "match2".to_string()],
+    );
+
+    list.emit("match1".to_string());
+    list.emit("ignored".to_string());
+    list.emit("match2".to_string());
+
+    assert_eq!(*received.lock().unwrap(), vec!["match1", "match2"]);
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_listen_filtered_immediate() {
+    let list: SubscriberList<String> = SubscriberList::new();
+    let received = Arc::new(Mutex::new(Vec::new()));
+    let received_clone = received.clone();
+
+    let _handle = list.listen_filtered_immediate(
+        move |s| {
+            received_clone.lock().unwrap().push(s);
+        },
+        vec!["init1".to_string(), "init2".to_string()],
+    );
+
+    list.emit("init1".to_string());
+    list.emit("other".to_string());
+
+    assert_eq!(*received.lock().unwrap(), vec!["init1", "init2", "init1"]);
 }
 
 #[test]

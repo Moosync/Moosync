@@ -108,12 +108,12 @@ fn test_theme_subscribers(theme_context: TestThemeContext) {
     let call_count2 = Arc::new(Mutex::new(0));
 
     let count1_clone = call_count1.clone();
-    let handle1 = theme_holder.on_theme_changed(move |theme| {
+    let handle1 = theme_holder.on_theme_changed.listen(move |theme| {
         *count1_clone.lock().unwrap() += 1;
         assert_eq!(theme.name, "Notify Test Theme");
     });
     let count2_clone = call_count2.clone();
-    let _handle2 = theme_holder.on_theme_changed(move |theme| {
+    let _handle2 = theme_holder.on_theme_changed.listen(move |theme| {
         *count2_clone.lock().unwrap() += 1;
         assert_eq!(theme.name, "Notify Test Theme");
     });

@@ -276,7 +276,7 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
         tokio::spawn(
             async move {
                 let handler = state_manager.get_extension_handler().await;
-                let _cancel_ext = handler.on_extensions_updated({
+                let _cancel_ext = handler.on_extensions_updated.listen({
                     let state_manager = state_manager.clone();
                     let main_window_weak = main_window_weak.clone();
                     move |_| {
@@ -313,7 +313,7 @@ impl<'a> PageHandler for ExtensionsPageHandler<'a> {
                     }
                 });
 
-                let _cancel_pref = handler.on_preferences_updated({
+                let _cancel_pref = handler.on_preferences_updated.listen({
                     let state_manager = state_manager.clone();
                     let main_window_weak = main_window_weak.clone();
                     move |_| {

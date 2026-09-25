@@ -43,12 +43,15 @@ impl CancelHandle {
     }
 }
 
-pub struct SubscriberList<F> {
-    subscribers: Arc<Mutex<HashMap<usize, Arc<F>>>>,
+type SubscriberCallback<T> = Arc<dyn Fn(T) + Send + Sync + 'static>;
+type SubscriberMap<T> = Arc<Mutex<HashMap<usize, SubscriberCallback<T>>>>;
+
+pub struct SubscriberList<T> {
+    subscribers: SubscriberMap<T>,
     next_id: Arc<Mutex<usize>>,
 }
 
-impl<F: Send + Sync + 'static> SubscriberList<F> {
+impl<T: Send + Sync + 'static> SubscriberList<T> {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new() -> Self {
         Self {
@@ -58,7 +61,10 @@ impl<F: Send + Sync + 'static> SubscriberList<F> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn insert(&self, subscriber: F) -> CancelHandle {
+    pub fn listen<F>(&self, subscriber: F) -> CancelHandle
+    where
+        F: Fn(T) + Send + Sync + 'static,
+    {
         let mut id_guard = self.next_id.lock().unwrap();
         let id = *id_guard;
         *id_guard += 1;
@@ -79,34 +85,68 @@ impl<F: Send + Sync + 'static> SubscriberList<F> {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn run_all<G>(&self, mut f: G)
+    pub fn listen_immediate<F>(&self, subscriber: F, init_val: T) -> CancelHandle
     where
-        G: FnMut(&F),
+        F: Fn(T) + Send + Sync + 'static,
+        T: Clone,
     {
-        let subs: Vec<Arc<F>> = {
+        subscriber(init_val);
+        self.listen(subscriber)
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn listen_filtered<F, K>(&self, subscriber: F, keys: K) -> CancelHandle
+    where
+        F: Fn(T) + Send + Sync + 'static,
+        K: ToFilterKeys<T>,
+        T: PartialEq + Clone,
+    {
+        let keys = keys.to_filter_keys();
+        self.listen(move |val| {
+            if keys.contains(&val) {
+                subscriber(val);
+            }
+        })
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn listen_filtered_immediate<F, K>(&self, subscriber: F, keys: K) -> CancelHandle
+    where
+        F: Fn(T) + Send + Sync + 'static,
+        K: ToFilterKeys<T>,
+        T: PartialEq + Clone,
+    {
+        let keys = keys.to_filter_keys();
+        for key in &keys {
+            subscriber(key.clone());
+        }
+        self.listen(move |val| {
+            if keys.contains(&val) {
+                subscriber(val);
+            }
+        })
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn emit(&self, val: T)
+    where
+        T: Clone,
+    {
+        let subs: Vec<SubscriberCallback<T>> = {
             let subscribers = self.subscribers.lock().unwrap();
             subscribers.values().cloned().collect()
         };
         for sub in subs {
-            f(&sub);
+            sub(val.clone());
         }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn watch_immediate<A>(&self, subscriber: F, init_val: A) -> CancelHandle
-    where
-        F: std::ops::Fn(A),
-    {
-        subscriber(init_val);
-        self.insert(subscriber)
     }
 }
 
-impl<F: Send + Sync + 'static> Default for SubscriberList<F> {
+impl<T: Send + Sync + 'static> Default for SubscriberList<T> {
     fn default() -> Self { Self::new() }
 }
 
-impl<F: Send + Sync + 'static> Clone for SubscriberList<F> {
+impl<T: Send + Sync + 'static> Clone for SubscriberList<T> {
     fn clone(&self) -> Self {
         Self {
             subscribers: self.subscribers.clone(),
@@ -137,80 +177,4 @@ impl ToFilterKeys<String> for &str {
 impl ToFilterKeys<String> for &String {
     #[tracing::instrument(level = "debug", skip_all)]
     fn to_filter_keys(self) -> Vec<String> { vec![self.clone()] }
-}
-
-#[macro_export]
-macro_rules! generate_on_event_impl {
-    ($struct_name:ident; $($name:ident, $watch_name:ident, $arg:ty, $trait_name:path);* $(;)?) => {
-        impl $struct_name {
-            $(
-                #[tracing::instrument(level = "debug", skip_all)]
-                pub fn $name<F, K>(&self, callback: F, keys: K) -> $crate::subscription::CancelHandle
-                where
-                    F: Fn($arg) + Send + Sync + 'static,
-                    K: $trait_name,
-                {
-                    let keys = keys.to_filter_keys();
-                    self.$name.insert(Box::new(move |val| {
-                        if keys.contains(&val) {
-                            callback(val);
-                        }
-                    }))
-                }
-
-                #[tracing::instrument(level = "debug", skip_all)]
-                pub fn $watch_name<F, K>(&self, callback: F, keys: K) -> $crate::subscription::CancelHandle
-                where
-                    F: Fn($arg) + Send + Sync + 'static,
-                    K: $trait_name,
-                {
-                    let keys = keys.to_filter_keys();
-                    for key in &keys {
-                        callback(key.clone());
-                    }
-                    self.$name.insert(Box::new(move |val| {
-                        if keys.contains(&val) {
-                            callback(val);
-                        }
-                    }))
-                }
-            )*
-        }
-    };
-
-    ($struct_name:ident; $($name:ident, $watch_name:ident, $arg:ty);* $(;)?) => {
-        impl $struct_name {
-            $(
-                #[tracing::instrument(level = "debug", skip_all)]
-                pub fn $name<F>(&self, callback: F) -> $crate::subscription::CancelHandle
-                where
-                    F: Fn($arg) + Send + Sync + 'static,
-                {
-                    self.$name.insert(Box::new(callback))
-                }
-
-                #[tracing::instrument(level = "debug", skip_all)]
-                pub fn $watch_name<F>(&self, callback: F, init_val: $arg) -> $crate::subscription::CancelHandle
-                where
-                    F: Fn($arg) + Send + Sync + 'static,
-                {
-                    self.$name.watch_immediate(Box::new(callback), init_val)
-                }
-            )*
-        }
-    };
-
-    ($struct_name:ident; $($name:ident, $arg:ty);* $(;)?) => {
-        impl $struct_name {
-            $(
-                #[tracing::instrument(level = "debug", skip_all)]
-                pub fn $name<F>(&self, callback: F) -> $crate::subscription::CancelHandle
-                where
-                    F: Fn($arg) + Send + Sync + 'static,
-                {
-                    self.$name.insert(Box::new(callback))
-                }
-            )*
-        }
-    };
 }

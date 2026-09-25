@@ -95,7 +95,7 @@ async fn test_extension_registries_hook_triggers_update_on_registry_change(
     let updated_flag = Arc::new(AtomicBool::new(false));
     let ext = sm.get_extension_handler().await;
     let flag_clone = updated_flag.clone();
-    let _cancel = ext.on_extensions_updated(move |_| {
+    let _cancel = ext.on_extensions_updated.listen(move |_| {
         flag_clone.store(true, Ordering::SeqCst);
     });
 

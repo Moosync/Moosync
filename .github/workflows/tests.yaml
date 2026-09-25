@@ -32,8 +32,8 @@ jobs:
           packages: >
             nasm yasm autoconf automake libtool pkg-config make build-essential clang
             libasound2-dev libxcb-shape0-dev libxcb-xfixes0-dev libxkbcommon-dev libfontconfig1-dev
-            nsis lld libdbus-1-dev libpulse-dev
-          version: 1.0
+            nsis lld mold libdbus-1-dev libpulse-dev
+          version: 1.1
 
       - name: Run Tests & Collect Coverage
         continue-on-error: true

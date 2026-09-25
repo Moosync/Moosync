@@ -464,9 +464,10 @@ fn test_to_search_result(main_window: MainWindow) {
     };
     let tmp = TempDir::new("moosync_search_utils_test").unwrap();
 
-    let result = create_search_result(proto_res, None, &theme, tmp.path());
+    let result = create_search_result(proto_res, None, false, &theme, tmp.path());
 
     assert_eq!(result.extension, "");
+    assert!(!result.has_account);
     assert_eq!(result.songs.row_count(), 1);
     assert_eq!(result.albums.row_count(), 1);
     assert_eq!(result.artists.row_count(), 1);

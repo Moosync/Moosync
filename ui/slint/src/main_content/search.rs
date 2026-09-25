@@ -54,11 +54,13 @@ impl<'a> SearchPageHandler<'a> {
         state_manager: &StateManager,
         res: ProtoSearchResult,
         detail: Option<ExtensionDetail>,
+        has_account: bool,
     ) {
         let cache_dir = state_manager.get_cache_dir();
         let _ = main_window_weak.upgrade_in_event_loop(move |window| {
             let theme = window.global::<Theme>();
-            let result_model = create_search_result(res, detail.as_ref(), &theme, &cache_dir);
+            let result_model =
+                create_search_result(res, detail.as_ref(), has_account, &theme, &cache_dir);
             let props = window.global::<SearchPageProps>();
             let mut list: Vec<SearchResult> = props.get_provider_results().into_vec();
             list.push(result_model);
@@ -93,7 +95,13 @@ impl<'a> SearchPageHandler<'a> {
                                 .global::<SearchPageProps>()
                                 .set_provider_results(ModelRc::default());
                         });
-                        Self::append_search_result(&main_window_weak, &state_manager, local, None);
+                        Self::append_search_result(
+                            &main_window_weak,
+                            &state_manager,
+                            local,
+                            None,
+                            false,
+                        );
                     }
                     Err(e) => {
                         tracing::error!("Local search failed for query '{}': {:?}", term, e);
@@ -112,6 +120,10 @@ impl<'a> SearchPageHandler<'a> {
 
                     tokio::spawn(async move {
                         let detail = ext.get_extension_detail();
+                        let has_account = !ext.get_accounts().is_empty()
+                            || detail
+                                .scopes
+                                .contains(&(ExtensionProviderScope::Accounts as i32));
                         match Self::search_extension(&term, &ext).await {
                             Ok(res) => {
                                 Self::append_search_result(
@@ -119,6 +131,7 @@ impl<'a> SearchPageHandler<'a> {
                                     &state_manager,
                                     res,
                                     Some(detail),
+                                    has_account,
                                 );
                             }
                             Err(e) => {
@@ -128,6 +141,15 @@ impl<'a> SearchPageHandler<'a> {
                                     term,
                                     e
                                 );
+                                if has_account {
+                                    Self::append_search_result(
+                                        &main_window_weak,
+                                        &state_manager,
+                                        ProtoSearchResult::default(),
+                                        Some(detail),
+                                        has_account,
+                                    );
+                                }
                             }
                         }
                     });
@@ -136,11 +158,9 @@ impl<'a> SearchPageHandler<'a> {
             .instrument(tracing::debug_span!("slint_cb_perform_search")),
         );
     }
-}
 
-impl<'a> PageHandler for SearchPageHandler<'a> {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn initialize(&self) {
+    fn setup_callbacks(&self) {
         let state_manager = self.state_manager.clone();
         let main_window_weak = self.main_window.as_weak();
         self.main_window
@@ -152,5 +172,42 @@ impl<'a> PageHandler for SearchPageHandler<'a> {
                     term.to_string(),
                 );
             });
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn setup_accounts_listener(&self) {
+        let state_manager = self.state_manager.clone();
+        let main_window_weak = self.main_window.as_weak();
+        tokio::spawn(
+            async move {
+                let extension_handler = state_manager.get_extension_handler().await;
+                let _cancel = extension_handler.on_accounts_updated({
+                    let main_window_weak = main_window_weak.clone();
+                    let state_manager = state_manager.clone();
+                    move |_| {
+                        let state_manager = state_manager.clone();
+                        let _ = main_window_weak.upgrade_in_event_loop(move |window| {
+                            let query = window.global::<SearchPageProps>().get_search_query();
+                            if !query.trim().is_empty() {
+                                Self::perform_search(
+                                    state_manager,
+                                    window.as_weak(),
+                                    query.to_string(),
+                                );
+                            }
+                        });
+                    }
+                });
+            }
+            .in_current_span(),
+        );
+    }
+}
+
+impl<'a> PageHandler for SearchPageHandler<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn initialize(&self) {
+        self.setup_callbacks();
+        self.setup_accounts_listener();
     }
 }

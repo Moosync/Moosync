@@ -564,6 +564,7 @@ impl From<FetchedExtensionManifest> for ExtensionItem {
 pub fn create_search_result(
     res: ProtoSearchResult,
     detail: Option<&ExtensionDetail>,
+    has_account: bool,
     theme: &Theme<'_>,
     cache_dir: &Path,
 ) -> SearchResult {
@@ -608,6 +609,7 @@ pub fn create_search_result(
         )),
         extension: extension.into(),
         extension_icon,
+        has_account,
     }
 }
 

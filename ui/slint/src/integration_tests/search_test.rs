@@ -1,7 +1,8 @@
 use i_slint_backend_testing::ElementHandle;
 use slint::{ComponentHandle, Model};
 use slint_app::{
-    AppCallbacks, AppProps, MainWindow, Pages, SearchPageProps,
+    AccountsProps, AppCallbacks, AppProps, MainWindow, OAuthState, Pages, SearchPageProps,
+    accounts::AccountsHandler,
     test_utils::integration::{ExtensionFixture, create_test_song, integration_test, wait_until},
 };
 use songs_proto::moosync::types::Playlist;
@@ -264,10 +265,144 @@ async fn do_search_extension_integration(
     );
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_search_not_logged_in_message(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    let _ext = ExtensionFixture::new(state_manager).await;
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Search);
+    let navigated =
+        wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search).await;
+    assert!(navigated);
+
+    AccountsHandler::fetch_and_render_accounts(main_window.as_weak(), state_manager);
+    let accounts_loaded = wait_until(|| {
+        main_window
+            .global::<AccountsProps>()
+            .get_accounts()
+            .iter()
+            .any(|a| a.package_name == "rs.sample" && !a.logged_in)
+    })
+    .await;
+    assert!(accounts_loaded);
+
+    main_window
+        .global::<SearchPageProps>()
+        .set_search_query("logged in".into());
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_search_term_changed("logged in".into());
+
+    let provider_loaded = wait_until(|| {
+        let results = main_window
+            .global::<SearchPageProps>()
+            .get_provider_results();
+        results.iter().any(|r| r.extension == "rs.sample")
+    })
+    .await;
+    assert!(provider_loaded);
+
+    let sample_idx = main_window
+        .global::<SearchPageProps>()
+        .get_provider_results()
+        .iter()
+        .position(|r| r.extension == "rs.sample")
+        .unwrap();
+    main_window
+        .global::<SearchPageProps>()
+        .set_selected_provider(sample_idx as i32);
+
+    let prompt_visible = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "Not logged in").count() > 0
+    })
+    .await;
+    assert!(prompt_visible);
+
+    let handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Not logged in").collect();
+    assert_eq!(handles.len(), 1);
+    assert!(handles[0].is_valid());
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+
+    let modal_shown =
+        wait_until(|| main_window.global::<OAuthState>().get_show_oauth_modal()).await;
+    assert!(modal_shown);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_submit_oauth_code("sample_callback?code=sample_auth_code_123".into());
+
+    let prompt_hidden = wait_until(|| {
+        let results = main_window
+            .global::<SearchPageProps>()
+            .get_provider_results();
+        results
+            .iter()
+            .any(|r| r.extension == "rs.sample" && r.songs.row_count() == 2)
+            && ElementHandle::find_by_accessible_label(main_window, "Not logged in").count() == 0
+    })
+    .await;
+    assert!(prompt_hidden);
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_search_no_results_tooltip(
+    main_window: &'static MainWindow,
+    _state_manager: &'static StateManager,
+) {
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Search);
+    let navigated =
+        wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search).await;
+    assert!(navigated);
+
+    main_window
+        .global::<SearchPageProps>()
+        .set_search_query("nonexistent_song_query_12345".into());
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_search_term_changed("nonexistent_song_query_12345".into());
+
+    let results_loaded = wait_until(|| {
+        main_window
+            .global::<SearchPageProps>()
+            .get_provider_results()
+            .row_count()
+            > 0
+    })
+    .await;
+    assert!(results_loaded);
+
+    main_window
+        .global::<SearchPageProps>()
+        .set_selected_provider(0);
+
+    let tooltip_visible = wait_until(|| {
+        ElementHandle::find_by_accessible_label(main_window, "No results found").count() > 0
+    })
+    .await;
+    assert!(tooltip_visible);
+
+    let handles: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "No results found").collect();
+    assert_eq!(handles.len(), 1);
+    assert!(handles[0].is_valid());
+}
+
 integration_test!(
     test_search_songs => do_search_category_songs,
     test_search_albums => do_search_category_albums,
     test_search_artists => do_search_category_artists,
     test_search_playlists => do_search_category_playlists,
     test_search_extension_integration => do_search_extension_integration,
+    test_search_not_logged_in_message => do_search_not_logged_in_message,
+    test_search_no_results_tooltip => do_search_no_results_tooltip,
 );

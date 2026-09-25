@@ -1,0 +1,50 @@
+import { Theme } from "../constants.slint";
+
+export component StatusTooltip inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+
+    width: 100%;
+    height: 100%;
+
+    VerticalLayout {
+        alignment: center;
+
+        HorizontalLayout {
+            alignment: center;
+
+            Rectangle {
+                background: Theme.secondary;
+                border-radius: Theme.borderRadiusMd;
+                border-width: Theme.borderWidth;
+                border-color: Theme.textSecondary.with-alpha(0.2);
+
+                HorizontalLayout {
+                    padding-left: Theme.paddingLg;
+                    padding-right: Theme.paddingLg;
+                    padding-top: Theme.paddingMd;
+                    padding-bottom: Theme.paddingMd;
+                    spacing: Theme.spacingSm;
+                    alignment: center;
+
+                    if (root.icon.width > 0): Image {
+                        source: root.icon;
+                        width: Theme.iconSizeMd;
+                        height: Theme.iconSizeMd;
+                        colorize: Theme.textSecondary;
+                    }
+
+                    Text {
+                        accessible-label: root.text;
+                        text: root.text;
+                        font-size: Theme.subtitle;
+                        font-weight: 500;
+                        color: Theme.textSecondary;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}

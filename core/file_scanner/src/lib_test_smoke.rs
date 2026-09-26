@@ -50,6 +50,5 @@ fn smoke_context() -> PluginSmokeContext {
 fn test_scanner_holder_plugin_init(smoke_context: PluginSmokeContext) {
     let PluginSmokeContext { context, .. } = smoke_context;
 
-    let plugin = ScannerHolder::init(&context);
-    let _guard = plugin.blocking_read();
+    let _plugin = ScannerHolder::init(&context);
 }

@@ -14,7 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{collections::HashSet, fs, path::PathBuf, sync::Arc};
+use std::{
+    collections::HashSet,
+    fs,
+    path::PathBuf,
+    sync::{Arc, Mutex, OnceLock},
+};
 
 use ext_runner::ExtensionHandlerInner;
 use extensions_proto::moosync::types::{
@@ -90,18 +95,23 @@ impl PartialEq for ExtensionInfo {
 
 impl Eq for ExtensionInfo {}
 
+#[derive(Default)]
+struct ExtensionConfig {
+    remote_manifests: HashSet<FetchedExtensionManifest>,
+    has_updates: bool,
+}
+
 pub struct ExtensionHandler {
     pub extensions_dir: PathBuf,
     pub tmp_dir: PathBuf,
     pub cache_dir: PathBuf,
     inner: ExtensionHandlerInner,
-    reply_handler: Option<Arc<dyn ReplyHandler>>,
+    reply_handler: OnceLock<Arc<dyn ReplyHandler>>,
     pub on_extensions_updated: SubscriberList<()>,
     pub on_accounts_updated: SubscriberList<Option<String>>,
     pub on_preferences_updated: SubscriberList<String>,
     remote: RemoteExtensions,
-    remote_manifests: HashSet<FetchedExtensionManifest>,
-    has_updates: bool,
+    config: Mutex<ExtensionConfig>,
 }
 
 #[plugin_macro::generate]
@@ -113,32 +123,33 @@ impl ExtensionHandler {
             extensions_dir: extensions_dir.clone(),
             tmp_dir: tmp_dir.clone(),
             cache_dir: cache_dir.clone(),
-            reply_handler: None,
+            reply_handler: OnceLock::new(),
             on_extensions_updated: SubscriberList::new(),
             on_accounts_updated: SubscriberList::new(),
             on_preferences_updated: SubscriberList::new(),
             remote: RemoteExtensions::new(tmp_dir),
-            remote_manifests: HashSet::new(),
-            has_updates: false,
+            config: Mutex::new(ExtensionConfig::default()),
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn has_updates(&self) -> bool { self.has_updates }
+    pub fn has_updates(&self) -> bool { self.config.lock().unwrap().has_updates }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn check_for_updates(&mut self) -> bool {
+    pub fn check_for_updates(&self) -> bool {
         let updatables = self.get_updatable_extensions();
-        self.has_updates = !updatables.is_empty();
-        self.has_updates
+        let mut config = self.config.lock().unwrap();
+        config.has_updates = !updatables.is_empty();
+        config.has_updates
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_updatable_extensions(&self) -> Vec<FetchedExtensionManifest> {
         let installed = self.get_installed_extensions();
+        let config = self.config.lock().unwrap();
         let mut updatables = Vec::new();
         for inst in installed {
-            let Some(remote) = self
+            let Some(remote) = config
                 .remote_manifests
                 .iter()
                 .find(|r| r.package_name == inst.package_name)
@@ -161,8 +172,8 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn update_all_extensions(&mut self) -> Result<(), ExtensionError> {
-        self.has_updates = false;
+    pub async fn update_all_extensions(&self) -> Result<(), ExtensionError> {
+        self.config.lock().unwrap().has_updates = false;
         let updatables = self.get_updatable_extensions();
         let mut any_failed = false;
         for remote in updatables {
@@ -182,13 +193,13 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_remote_manifests(&mut self, manifests: HashSet<FetchedExtensionManifest>) {
-        self.remote_manifests = manifests;
+    pub fn set_remote_manifests(&self, manifests: HashSet<FetchedExtensionManifest>) {
+        self.config.lock().unwrap().remote_manifests = manifests;
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_reply_handler(&mut self, reply_handler: Arc<dyn ReplyHandler>) {
-        self.reply_handler = Some(reply_handler);
+    pub fn set_reply_handler(&self, reply_handler: Arc<dyn ReplyHandler>) {
+        let _ = self.reply_handler.set(reply_handler);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -341,7 +352,8 @@ impl ExtensionHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_all_extensions(&self) -> Vec<ExtensionInfo> {
         let installed = self.get_installed_extensions();
-        let remote = &self.remote_manifests;
+        let config = self.config.lock().unwrap();
+        let remote = &config.remote_manifests;
 
         let mut seen_packages = HashSet::with_capacity(installed.len() + remote.len());
         let mut ret = Vec::with_capacity(installed.len() + remote.len());
@@ -369,7 +381,11 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn find_new_extensions(&self) -> Result<(), ExtensionError> {
-        let reply_handler = self.reply_handler.clone().expect("Reply handler not set");
+        let reply_handler = self
+            .reply_handler
+            .get()
+            .cloned()
+            .expect("Reply handler not set");
         self.inner.spawn_extensions(reply_handler);
         Ok(())
     }
@@ -380,7 +396,7 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_active_extensions(&self) -> Vec<std::sync::Arc<Extension>> {
+    pub fn get_active_extensions(&self) -> Vec<Arc<Extension>> {
         self.get_installed_extensions()
             .into_iter()
             .filter_map(|d| self.get_extension(&d.package_name).ok())
@@ -391,7 +407,7 @@ impl ExtensionHandler {
     pub async fn get_extensions_with_scope(
         &self,
         scope: extensions_proto::moosync::types::ExtensionProviderScope,
-    ) -> Vec<std::sync::Arc<Extension>> {
+    ) -> Vec<Arc<Extension>> {
         let mut extensions = Vec::new();
         let scope_val = scope as i32;
         for ext in self.get_active_extensions() {
@@ -409,7 +425,7 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn fetch_remote_manifests(
-        &mut self,
+        &self,
         registries: HashSet<String>,
     ) -> Result<(), ExtensionError> {
         let mut registries = registries;
@@ -424,14 +440,12 @@ impl ExtensionHandler {
 
 impl types::plugin::Plugin for ExtensionHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn init(
-        context: &types::plugin::PluginContext,
-    ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
+    fn init(context: &types::plugin::PluginContext) -> Arc<Self> {
         let handler = ExtensionHandler::new(
             context.data_dir.join("extensions"),
             context.tmp_dir.clone(),
             context.cache_dir.clone(),
         );
-        types::plugin::Arc::new(types::plugin::RwLock::new(handler))
+        Arc::new(handler)
     }
 }

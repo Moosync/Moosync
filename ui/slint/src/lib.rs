@@ -197,7 +197,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
             let song = Song::from(song_model);
             tokio::spawn(
                 async move {
-                    let mut queue = state_manager.get_player_handler_mut().await;
+                    let queue = state_manager.get_player_handler().await;
                     queue.play_now(vec![song]);
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_play_song")),
@@ -210,7 +210,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
             let song = Song::from(song_model);
             tokio::spawn(
                 async move {
-                    let mut queue = state_manager.get_player_handler_mut().await;
+                    let queue = state_manager.get_player_handler().await;
                     queue.add_to_queue(vec![song]);
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_add_song_to_queue")),
@@ -226,7 +226,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
                 .collect::<Vec<_>>();
             tokio::spawn(
                 async move {
-                    let mut queue = state_manager.get_player_handler_mut().await;
+                    let queue = state_manager.get_player_handler().await;
                     match action {
                         SongDetailAction::Play => {
                             queue.play_now(songs);
@@ -247,7 +247,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
             let main_window_weak = main_window_weak.clone();
             tokio::spawn(
                 async move {
-                    let mut player_handler = state_manager.get_player_handler_mut().await;
+                    let player_handler = state_manager.get_player_handler().await;
                     let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
                         let currently_playing = main_window.global::<PlayerProps>().get_playing();
                         if currently_playing {
@@ -266,7 +266,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
         .on_toggle_repeat(move || {
             tokio::spawn(
                 async move {
-                    let mut player_handler = state_manager.get_player_handler_mut().await;
+                    let player_handler = state_manager.get_player_handler().await;
                     let next_mode = match player_handler.get_repeat_mode() {
                         RepeatMode::RepeatNone => RepeatMode::RepeatOnce,
                         RepeatMode::RepeatOnce => RepeatMode::RepeatInfinite,
@@ -296,7 +296,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
 
             // Set initial repeat mode and current song
             let repeat_mode = player_handler.get_repeat_mode();
-            let current_song = player_handler.get_current_song().cloned();
+            let current_song = player_handler.get_current_song();
             let mw_weak_init = main_window_weak.clone();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(main_window) = mw_weak_init.upgrade() {
@@ -371,7 +371,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
         .on_next_song(move || {
             tokio::spawn(
                 async move {
-                    let mut player_handler = state_manager.get_player_handler_mut().await;
+                    let player_handler = state_manager.get_player_handler().await;
                     player_handler.next();
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_next_song")),
@@ -383,7 +383,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
         .on_prev_song(move || {
             tokio::spawn(
                 async move {
-                    let mut player_handler = state_manager.get_player_handler_mut().await;
+                    let player_handler = state_manager.get_player_handler().await;
                     player_handler.prev();
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_prev_song")),
@@ -407,7 +407,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
         .on_shuffle(move || {
             tokio::spawn(
                 async move {
-                    let mut player_handler = state_manager.get_player_handler_mut().await;
+                    let player_handler = state_manager.get_player_handler().await;
                     player_handler.shuffle();
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_shuffle")),

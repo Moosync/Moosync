@@ -134,7 +134,7 @@ impl ExtensionsPageHandler {
                     tokio::spawn(
                         async move {
                             tracing::info!("on_update_all_extensions");
-                            let mut handler = state_manager.get_extension_handler_mut().await;
+                            let handler = state_manager.get_extension_handler().await;
                             if let Err(e) = handler.update_all_extensions().await {
                                 tracing::error!("on_update_all_extensions: Failed: {:?}", e);
                                 handler.check_for_updates();

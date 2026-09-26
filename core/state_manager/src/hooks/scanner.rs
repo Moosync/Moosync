@@ -46,27 +46,21 @@ impl Hook for ScannerHook {
         let database = state_manager.plugins.get::<Database>();
 
         {
-            let mut file_scanner = scanner.write().await;
-            file_scanner.set_artist_split(",".into());
-            file_scanner.set_thumbnail_dir(temp_dir());
+            scanner.set_artist_split(",".into());
+            scanner.set_thumbnail_dir(temp_dir());
 
             let db_playlist = database.clone();
-            file_scanner.set_on_playlist(move |playlists_with_songs| {
+            scanner.set_on_playlist(move |playlists_with_songs| {
                 let db = db_playlist.clone();
                 async move {
-                    let db_read = db.read().await;
                     for (playlist, song_identifiers) in playlists_with_songs {
                         let mut playlist_songs = Vec::new();
                         for identifier in song_identifiers {
-                            if let Some(song) =
-                                resolve_or_create_playlist_song(&db_read, identifier)
-                            {
+                            if let Some(song) = resolve_or_create_playlist_song(&db, identifier) {
                                 playlist_songs.push(song);
                             }
                         }
-                        if let Err(e) =
-                            db_read.create_playlist_with_songs(playlist, &playlist_songs)
-                        {
+                        if let Err(e) = db.create_playlist_with_songs(playlist, &playlist_songs) {
                             tracing::error!("Failed to create playlist with songs: {:?}", e);
                         }
                     }
@@ -75,10 +69,10 @@ impl Hook for ScannerHook {
             });
 
             let db_song = database.clone();
-            file_scanner.set_on_song(move |pl_id: Option<String>, songs| {
+            scanner.set_on_song(move |pl_id: Option<String>, songs| {
                 let db = db_song.clone();
                 async move {
-                    let songs = match db.read().await.insert_songs(songs) {
+                    let songs = match db.insert_songs(songs) {
                         Ok(songs) => songs,
                         Err(e) => {
                             tracing::error!("Failed to insert scanned songs: {:?}", e);
@@ -86,7 +80,7 @@ impl Hook for ScannerHook {
                         }
                     };
                     if let Some(pl_id) = pl_id
-                        && let Err(e) = db.read().await.add_to_playlist(&pl_id, &songs)
+                        && let Err(e) = db.add_to_playlist(&pl_id, &songs)
                     {
                         tracing::error!(
                             "Failed to add scanned songs to playlist {}: {:?}",
@@ -99,139 +93,121 @@ impl Hook for ScannerHook {
             });
         }
 
-        preferences
-            .read()
-            .await
-            .on_preference_changed
-            .listen_filtered_immediate(
-                {
+        preferences.on_preference_changed.listen_filtered_immediate(
+            {
+                let database = database.clone();
+                let scanner = scanner.clone();
+                let preferences = preferences.clone();
+                move |key| {
                     let database = database.clone();
                     let scanner = scanner.clone();
                     let preferences = preferences.clone();
-                    move |key| {
-                        let database = database.clone();
-                        let scanner = scanner.clone();
-                        let preferences = preferences.clone();
-                        tokio::spawn(
-                            async move {
-                                let prefs_read = preferences.read().await;
-                                let mut scan_dirs = prefs_read
-                                    .load(&MUSIC_PATHS)
-                                    .value::<Vec<String>>()
-                                    .unwrap_or_default()
-                                    .into_iter()
-                                    .map(PathBuf::from)
-                                    .collect::<Vec<_>>();
+                    tokio::spawn(
+                        async move {
+                            let mut scan_dirs = preferences
+                                .load(&MUSIC_PATHS)
+                                .value::<Vec<String>>()
+                                .unwrap_or_default()
+                                .into_iter()
+                                .map(PathBuf::from)
+                                .collect::<Vec<_>>();
 
-                                if scan_dirs.is_empty()
-                                    && let Some(user_dirs) = UserDirs::new()
+                            if scan_dirs.is_empty()
+                                && let Some(user_dirs) = UserDirs::new()
+                            {
+                                scan_dirs.push(user_dirs.music_dir);
+                            }
+
+                            let exclude_dirs = preferences
+                                .load(&EXCLUDE_MUSIC_PATHS)
+                                .value::<Vec<String>>()
+                                .unwrap_or_default()
+                                .into_iter()
+                                .map(PathBuf::from)
+                                .collect::<Vec<_>>();
+
+                            let threads =
+                                preferences.load(&SCAN_THREADS).value::<i32>().unwrap_or(0);
+
+                            {
+                                scanner.set_scan_dirs(scan_dirs.clone());
+                                scanner.set_exclude_dirs(exclude_dirs);
+                                scanner.set_scan_threads(threads);
+                            }
+
+                            if key == MUSIC_PATHS.id && !scan_dirs.is_empty() {
+                                if let Err(e) =
+                                    database.remove_songs_outside_directories(&scan_dirs)
                                 {
-                                    scan_dirs.push(user_dirs.music_dir);
+                                    tracing::error!("Failed to clean up songs: {:?}", e);
                                 }
-
-                                let exclude_dirs = prefs_read
-                                    .load(&EXCLUDE_MUSIC_PATHS)
-                                    .value::<Vec<String>>()
-                                    .unwrap_or_default()
-                                    .into_iter()
-                                    .map(PathBuf::from)
-                                    .collect::<Vec<_>>();
-
-                                let threads =
-                                    prefs_read.load(&SCAN_THREADS).value::<i32>().unwrap_or(0);
-
-                                {
-                                    let mut scanner_write = scanner.write().await;
-                                    scanner_write.set_scan_dirs(scan_dirs.clone());
-                                    scanner_write.set_exclude_dirs(exclude_dirs);
-                                    scanner_write.set_scan_threads(threads);
-                                }
-
-                                if key == MUSIC_PATHS.id && !scan_dirs.is_empty() {
-                                    let db_read = database.read().await;
-                                    if let Err(e) =
-                                        db_read.remove_songs_outside_directories(&scan_dirs)
-                                    {
-                                        tracing::error!("Failed to clean up songs: {:?}", e);
-                                    }
-                                    let scanner_read = scanner.read().await;
-                                    if let Err(e) = scanner_read.start_scan().await {
-                                        tracing::error!("Scan failed: {:?}", e);
-                                    }
+                                if let Err(e) = scanner.start_scan().await {
+                                    tracing::error!("Scan failed: {:?}", e);
                                 }
                             }
-                            .in_current_span(),
-                        );
-                    }
-                },
-                vec![
-                    MUSIC_PATHS.id.clone(),
-                    EXCLUDE_MUSIC_PATHS.id.clone(),
-                    SCAN_THREADS.id.clone(),
-                ],
-            );
+                        }
+                        .in_current_span(),
+                    );
+                }
+            },
+            vec![
+                MUSIC_PATHS.id.clone(),
+                EXCLUDE_MUSIC_PATHS.id.clone(),
+                SCAN_THREADS.id.clone(),
+            ],
+        );
 
         let periodic_task = Arc::new(Mutex::new(None::<JoinHandle<()>>));
 
-        preferences
-            .read()
-            .await
-            .on_preference_changed
-            .listen_filtered_immediate(
-                {
+        preferences.on_preference_changed.listen_filtered_immediate(
+            {
+                let scanner = scanner.clone();
+                let preferences = preferences.clone();
+                let periodic_task = periodic_task.clone();
+                move |key| {
+                    if key != SCAN_INTERVAL.id {
+                        return;
+                    }
                     let scanner = scanner.clone();
                     let preferences = preferences.clone();
                     let periodic_task = periodic_task.clone();
-                    move |key| {
-                        if key != SCAN_INTERVAL.id {
-                            return;
-                        }
-                        let scanner = scanner.clone();
-                        let preferences = preferences.clone();
-                        let periodic_task = periodic_task.clone();
-                        tokio::spawn(
-                            async move {
-                                let interval_mins = preferences
-                                    .read()
-                                    .await
-                                    .load(&SCAN_INTERVAL)
-                                    .value::<i32>()
-                                    .unwrap_or(0);
+                    tokio::spawn(
+                        async move {
+                            let interval_mins =
+                                preferences.load(&SCAN_INTERVAL).value::<i32>().unwrap_or(0);
 
-                                if let Ok(mut guard) = periodic_task.lock()
-                                    && let Some(handle) = guard.take()
-                                {
-                                    handle.abort();
-                                }
+                            if let Ok(mut guard) = periodic_task.lock()
+                                && let Some(handle) = guard.take()
+                            {
+                                handle.abort();
+                            }
 
-                                if interval_mins <= 0 {
-                                    return;
-                                }
+                            if interval_mins <= 0 {
+                                return;
+                            }
 
-                                let scanner = scanner.clone();
-                                let handle = tokio::spawn(
-                                    async move {
-                                        loop {
-                                            sleep(Duration::from_secs(interval_mins as u64 * 60))
-                                                .await;
-                                            let scanner = scanner.read().await;
-                                            if let Err(e) = scanner.start_scan().await {
-                                                tracing::error!("Periodic scan failed: {:?}", e);
-                                            }
+                            let scanner = scanner.clone();
+                            let handle = tokio::spawn(
+                                async move {
+                                    loop {
+                                        sleep(Duration::from_secs(interval_mins as u64 * 60)).await;
+                                        if let Err(e) = scanner.start_scan().await {
+                                            tracing::error!("Periodic scan failed: {:?}", e);
                                         }
                                     }
-                                    .in_current_span(),
-                                );
-                                if let Ok(mut guard) = periodic_task.lock() {
-                                    *guard = Some(handle);
                                 }
+                                .in_current_span(),
+                            );
+                            if let Ok(mut guard) = periodic_task.lock() {
+                                *guard = Some(handle);
                             }
-                            .in_current_span(),
-                        );
-                    }
-                },
-                SCAN_INTERVAL.id.clone(),
-            );
+                        }
+                        .in_current_span(),
+                    );
+                }
+            },
+            SCAN_INTERVAL.id.clone(),
+        );
 
         Ok(())
     }

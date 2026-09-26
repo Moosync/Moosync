@@ -41,6 +41,7 @@ pub trait AudioPlayerContext: Send + Sync {
     fn seek(&self, pos: Duration) -> Result<(), PlayerError>;
     fn get_current_pos(&self) -> Result<Duration, PlayerError>;
     fn get_player_state(&self) -> Result<PlayerState, PlayerError>;
+    fn can_play(&self, src: &ValidSrc) -> bool;
     fn set_src(
         &self,
         src: ValidSrc,

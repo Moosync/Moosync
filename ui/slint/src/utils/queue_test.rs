@@ -21,7 +21,7 @@ async fn test_save_queue_creates_playlist_in_db() {
         ..Default::default()
     };
     {
-        let mut ph = sm.get_player_handler_mut().await;
+        let ph = sm.get_player_handler().await;
         ph.add_to_queue(vec![song]);
     }
 

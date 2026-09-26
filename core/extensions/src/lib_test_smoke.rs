@@ -50,6 +50,5 @@ fn smoke_context() -> PluginSmokeContext {
 fn test_extension_handler_plugin_init(smoke_context: PluginSmokeContext) {
     let PluginSmokeContext { context, .. } = smoke_context;
 
-    let plugin = ExtensionHandler::init(&context);
-    let _guard = plugin.blocking_read();
+    let _plugin = ExtensionHandler::init(&context);
 }

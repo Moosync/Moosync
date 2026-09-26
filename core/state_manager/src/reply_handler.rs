@@ -56,7 +56,7 @@ impl ReplyHandler for StateReplyHandler {
         let player = self
             .runtime
             .block_on(self.state_manager.get_player_handler());
-        let song = player.get_current_song().cloned();
+        let song = player.get_current_song();
         Ok(song)
     }
 

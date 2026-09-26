@@ -58,7 +58,7 @@ async fn test_queue_page_handler_initialize(
         ..Default::default()
     };
     {
-        let mut ph = sm.get_player_handler_mut().await;
+        let ph = sm.get_player_handler().await;
         ph.add_to_queue(vec![song1, song2]);
     }
 
@@ -109,7 +109,7 @@ async fn test_queue_save_queue_as_playlist(state_manager_fixture: TestSlintSmCon
         ..Default::default()
     };
     {
-        let mut ph = sm.get_player_handler_mut().await;
+        let ph = sm.get_player_handler().await;
         ph.add_to_queue(vec![song]);
     }
 

@@ -50,8 +50,7 @@ fn test_preferences_plugin_init(smoke_context: PluginSmokeContext) {
     let PluginSmokeContext { context, .. } = smoke_context;
 
     let pref_plugin = PreferenceConfig::init(&context);
-    let guard = pref_plugin.blocking_read();
 
     assert!(context.data_dir.join("preferences.bin").exists());
-    assert!(guard.get("scan_threads").is_none());
+    assert!(pref_plugin.get("scan_threads").is_none());
 }

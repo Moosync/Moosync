@@ -163,7 +163,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
                     .into_iter()
                     .filter(|s| s.extension != package_name)
                     .collect();
-                let model = make_lazy_song_model(&main_window, &state_manager, filtered);
+                let model = make_lazy_song_model(&main_window, state_manager, filtered);
                 P::set_songs(&main_window, model);
             });
             return;

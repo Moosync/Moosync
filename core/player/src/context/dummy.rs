@@ -112,6 +112,14 @@ impl AudioPlayerContext for DummyAudioPlayerContext {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
+    fn can_play(&self, src: &ValidSrc) -> bool {
+        match src {
+            ValidSrc::Path(path) => path.exists(),
+            ValidSrc::Url(url) => url.starts_with("http://") || url.starts_with("https://"),
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     fn set_src(
         &self,
         src: ValidSrc,

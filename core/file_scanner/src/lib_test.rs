@@ -54,7 +54,7 @@ async fn test_scanner_holder_scan_dirs_not_configured(default_scanner: ScannerHo
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_scanner_holder_thumbnail_dir_not_configured(
-    mut default_scanner: ScannerHolder,
+    default_scanner: ScannerHolder,
     temp_dir_fixture: TempDir,
 ) {
     default_scanner.set_scan_dirs(vec![temp_dir_fixture.path().to_path_buf()]);
@@ -70,7 +70,7 @@ async fn test_scanner_holder_thumbnail_dir_not_configured(
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_scanner_holder_song_callback_not_configured(
-    mut default_scanner: ScannerHolder,
+    default_scanner: ScannerHolder,
     temp_dir_fixture: TempDir,
 ) {
     default_scanner.set_scan_dirs(vec![temp_dir_fixture.path().to_path_buf()]);
@@ -87,7 +87,7 @@ async fn test_scanner_holder_song_callback_not_configured(
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_scanner_holder_playlist_callback_not_configured(
-    mut default_scanner: ScannerHolder,
+    default_scanner: ScannerHolder,
     temp_dir_fixture: TempDir,
 ) {
     default_scanner.set_scan_dirs(vec![temp_dir_fixture.path().to_path_buf()]);
@@ -127,7 +127,7 @@ https://radio.stereoanime.net/listen/stereoanime/320
     let playlist_count = Arc::new(Mutex::new(0));
     let playlist_count_clone = playlist_count.clone();
 
-    let mut scanner = ScannerHolder::new();
+    let scanner = ScannerHolder::new();
     scanner.set_scan_dirs(vec![in_dir.clone()]);
     scanner.set_exclude_dirs(vec![]);
     scanner.set_scan_threads(2);

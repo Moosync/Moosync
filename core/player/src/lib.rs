@@ -14,16 +14,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-pub(crate) mod audio_source;
 pub mod context;
 pub mod error;
-mod generic;
-mod mux_player;
+pub mod mux_player;
+pub mod player_data_ext;
 mod rodio;
 mod source;
 
-#[cfg(test)]
-mod audio_source_test;
 #[cfg(test)]
 mod lib_test;
 #[cfg(test)]
@@ -31,12 +28,20 @@ mod lib_test_smoke;
 #[cfg(test)]
 mod mux_player_test;
 #[cfg(test)]
+mod player_data_ext_test;
+#[cfg(test)]
 mod source_test;
 
-use std::{path::PathBuf, sync::Arc, time::Duration};
+use std::{
+    path::PathBuf,
+    sync::{Arc, RwLock},
+    time::Duration,
+};
 
 pub use context::{AudioPlayerContext, DummyAudioPlayerContext, RodioPlayerContext};
 use extensions_proto::moosync::types::{PlayerEvent, PlayerState, player_event::Event};
+pub use mux_player::MuxPlayer;
+pub use player_data_ext::PlayerDataExt;
 use player_proto::moosync::types::{PlayerData, RepeatMode};
 use songs_proto::moosync::types::Song;
 use tokio::{
@@ -45,22 +50,20 @@ use tokio::{
 };
 use tracing::{Instrument, debug};
 use types::{
-    plugin::{Plugin, PluginContext, RwLock},
+    plugin::{Plugin, PluginContext},
     prelude::core_to_proto_duration,
     subscription::SubscriberList,
 };
 
 use crate::{
-    audio_source::AudioSource,
     context::{PersistContext, dummy::DummyPersistContext, file_persist::FilePersist},
     error::PlayerError,
+    source::SourceResolverFn,
 };
 
-pub type OnEndedCallback = Box<dyn Fn() + Send + Sync + 'static>;
-
 pub struct PlayerHandler {
-    pub(crate) player_data: PlayerData,
-    pub(crate) player: AudioSource,
+    pub(crate) player_data: RwLock<PlayerData>,
+    pub(crate) player: MuxPlayer,
     pub(crate) persist_context: Box<dyn PersistContext>,
     pub on_song_changed: SubscriberList<Option<Song>>,
     pub on_queue_updated: SubscriberList<Vec<Song>>,
@@ -72,17 +75,20 @@ pub struct PlayerHandler {
 impl PlayerHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new(ended_tx: UnboundedSender<()>, data_dir: PathBuf) -> Self {
-        Self::new_with_context(
+        Self::new_with_contexts(
             ended_tx,
-            Box::new(RodioPlayerContext::new()),
+            vec![
+                Box::new(RodioPlayerContext::new()),
+                Box::new(DummyAudioPlayerContext::new()),
+            ],
             Box::new(FilePersist::new(data_dir)),
         )
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new_with_context(
+    pub fn new_with_contexts(
         ended_tx: UnboundedSender<()>,
-        context: Box<dyn AudioPlayerContext>,
+        contexts: Vec<Box<dyn AudioPlayerContext>>,
         persist_context: Box<dyn PersistContext>,
     ) -> Self {
         let mut player_data = match persist_context.load() {
@@ -95,14 +101,13 @@ impl PlayerHandler {
         if player_data.current_idx as usize >= player_data.song_queue.len() {
             player_data.current_idx = 0;
         }
+        let on_ended_list = SubscriberList::new();
+        on_ended_list.listen(move |()| {
+            let _ = ended_tx.send(());
+        });
         PlayerHandler {
-            player_data,
-            player: AudioSource::new_with_context(
-                Box::new(move || {
-                    let _ = ended_tx.send(());
-                }),
-                context,
-            ),
+            player_data: RwLock::new(player_data),
+            player: MuxPlayer::new_with_contexts(on_ended_list, contexts),
             persist_context,
             on_song_changed: SubscriberList::new(),
             on_queue_updated: SubscriberList::new(),
@@ -113,16 +118,11 @@ impl PlayerHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new_dummy(ended_tx: UnboundedSender<()>) -> Self {
-        Self::new_with_context(
+        Self::new_with_contexts(
             ended_tx,
-            Box::new(DummyAudioPlayerContext::new()),
+            vec![Box::new(DummyAudioPlayerContext::new())],
             Box::new(DummyPersistContext {}),
         )
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_context(&mut self, context: Box<dyn AudioPlayerContext>) {
-        self.player = AudioSource::new_with_context(Box::new(|| {}), context);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -132,31 +132,29 @@ impl PlayerHandler {
     pub fn get_volume(&self) -> u8 { self.player.get_volume() }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_queue(&self) -> &[Song] { &self.player_data.song_queue }
+    pub fn get_queue(&self) -> Vec<Song> { self.player_data.read().unwrap().song_queue.clone() }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_current_idx(&self) -> usize { self.player_data.current_idx as usize }
+    pub fn get_current_idx(&self) -> usize { self.player_data.read().unwrap().current_idx as usize }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_current_pos(&self) -> Result<Duration, PlayerError> { self.player.get_current_pos() }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn current_song(&self) -> Option<&Song> {
-        self.player_data
-            .song_queue
-            .get(self.player_data.current_idx as usize)
+    pub fn current_song(&self) -> Option<Song> {
+        self.player_data.read().unwrap().current_song().cloned()
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_current_song(&self) -> Option<&Song> { self.current_song() }
+    pub fn get_current_song(&self) -> Option<Song> { self.current_song() }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_repeat_mode(&self) -> RepeatMode {
-        RepeatMode::try_from(self.player_data.repeat_mode).unwrap_or_default()
+        RepeatMode::try_from(self.player_data.read().unwrap().repeat_mode).unwrap_or_default()
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn add_to_queue(&mut self, songs: Vec<Song>) {
+    pub fn add_to_queue(&self, songs: Vec<Song>) {
         if songs.is_empty() {
             return;
         }
@@ -166,12 +164,12 @@ impl PlayerHandler {
             return;
         }
 
-        self.player_data.song_queue.extend(songs);
+        self.player_data.write().unwrap().append_songs(songs);
         self.trigger_queue_changed();
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn play_next(&mut self, songs: Vec<Song>) {
+    pub fn play_next(&self, songs: Vec<Song>) {
         if songs.is_empty() {
             return;
         }
@@ -181,30 +179,25 @@ impl PlayerHandler {
             return;
         }
 
-        let insert_pos = (self.player_data.current_idx as usize) + 1;
-        self.player_data
-            .song_queue
-            .splice(insert_pos..insert_pos, songs);
+        self.player_data.write().unwrap().insert_songs_next(songs);
         self.trigger_queue_changed();
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn clear_and_play(&mut self, songs: Vec<Song>) {
-        self.player_data.song_queue.clear();
-        self.player_data.current_idx = 0;
+    pub fn clear_and_play(&self, songs: Vec<Song>) {
+        self.player_data.write().unwrap().clear_and_set(Vec::new());
         self.play_now(songs);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn play_now(&mut self, songs: Vec<Song>) {
+    pub fn play_now(&self, songs: Vec<Song>) {
         if songs.is_empty() {
             return;
         }
 
         debug!("Playing songs now: {:?}", songs);
         if self.current_song().is_none() {
-            self.player_data.song_queue = songs;
-            self.player_data.current_idx = 0;
+            self.player_data.write().unwrap().clear_and_set(songs);
             self.trigger_queue_changed();
             self.trigger_song_changed();
             if let Err(e) = self.play() {
@@ -213,11 +206,12 @@ impl PlayerHandler {
             return;
         }
 
-        let insert_pos = self.player_data.current_idx as usize;
-        self.player_data
-            .song_queue
-            .splice(insert_pos..insert_pos, songs);
-        self.player_data.current_idx = insert_pos as u64;
+        let insert_pos = self.get_current_idx();
+        {
+            let mut pd = self.player_data.write().unwrap();
+            pd.insert_songs_at(insert_pos, songs);
+            pd.set_index(insert_pos);
+        }
         self.trigger_queue_changed();
         self.trigger_song_changed();
 
@@ -227,36 +221,21 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn shuffle(&mut self) {
-        if self.player_data.song_queue.len() <= 1 {
-            return;
-        }
-
-        let current_song = self
-            .player_data
-            .song_queue
-            .remove(self.player_data.current_idx as usize);
-
-        use rand::seq::SliceRandom;
-        let mut rng = rand::thread_rng();
-        self.player_data.song_queue.shuffle(&mut rng);
-
-        self.player_data
-            .song_queue
-            .insert(self.player_data.current_idx as usize, current_song);
+    pub fn shuffle(&self) {
+        self.player_data.write().unwrap().shuffle_queue();
         self.trigger_queue_changed();
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn repeat(&mut self, mode: RepeatMode) {
-        self.player_data.repeat_mode = mode.into();
+    pub fn repeat(&self, mode: RepeatMode) {
+        self.player_data.write().unwrap().set_repeat_mode(mode);
         self.trigger_repeat_changed();
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn play(&mut self) -> Result<(), PlayerError> {
+    pub fn play(&self) -> Result<(), PlayerError> {
         if self.player.get_player_state() == PlayerState::Stopped
-            && let Some(mut song) = self.current_song().cloned()
+            && let Some(mut song) = self.current_song()
             && let Err(e) = self.player.set_src(&mut song)
         {
             tracing::error!("Failed to load song on play: {:?}", e);
@@ -267,23 +246,19 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn pause(&mut self) -> Result<(), PlayerError> {
+    pub fn pause(&self) -> Result<(), PlayerError> {
         self.player.pause()?;
         self.trigger_player_event(Event::Pause(true));
         Ok(())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn next(&mut self) {
-        if self.player_data.song_queue.is_empty() {
+    pub fn next(&self) {
+        if self.player_data.read().unwrap().song_queue.is_empty() {
             let _ = self.player.stop();
             return;
         }
-        if (self.player_data.current_idx as usize) + 1 < self.player_data.song_queue.len() {
-            self.player_data.current_idx += 1;
-        } else {
-            self.player_data.current_idx = 0;
-        }
+        self.player_data.write().unwrap().advance_index();
         self.trigger_song_changed();
         if let Err(e) = self.play() {
             tracing::error!("Failed to play song: {:?}", e);
@@ -291,12 +266,12 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn prev(&mut self) {
-        if self.player_data.song_queue.is_empty() {
+    pub fn prev(&self) {
+        if self.player_data.read().unwrap().song_queue.is_empty() {
             return;
         }
-        if self.player_data.current_idx > 0 {
-            self.player_data.current_idx -= 1;
+        if self.get_current_idx() > 0 {
+            self.player_data.write().unwrap().rewind_index();
             self.trigger_song_changed();
             if let Err(e) = self.play() {
                 tracing::error!("Failed to play song: {:?}", e);
@@ -322,9 +297,9 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn play_index(&mut self, idx: usize) {
-        if idx < self.player_data.song_queue.len() {
-            self.player_data.current_idx = idx as u64;
+    pub fn play_index(&self, idx: usize) {
+        if idx < self.player_data.read().unwrap().song_queue.len() {
+            self.player_data.write().unwrap().set_index(idx);
             self.trigger_song_changed();
             if let Err(e) = self.play() {
                 tracing::error!("Failed to play song at index {}: {:?}", idx, e);
@@ -333,72 +308,35 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn remove_from_queue(&mut self, idx: usize) {
-        if idx < self.player_data.song_queue.len() {
-            self.player_data.song_queue.remove(idx);
-            if (self.player_data.current_idx as usize) >= self.player_data.song_queue.len()
-                && !self.player_data.song_queue.is_empty()
-            {
-                self.player_data.current_idx = (self.player_data.song_queue.len() - 1) as u64;
-            }
-            self.trigger_queue_changed();
-        }
+    pub fn remove_from_queue(&self, idx: usize) {
+        self.player_data.write().unwrap().remove_at_index(idx);
+        self.trigger_queue_changed();
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn clear_queue(&mut self) {
-        if self.player_data.song_queue.len() > 1 {
-            if (self.player_data.current_idx as usize) < self.player_data.song_queue.len() {
-                let song = self
-                    .player_data
-                    .song_queue
-                    .remove(self.player_data.current_idx as usize);
-                self.player_data.song_queue.clear();
-                self.player_data.song_queue.push(song);
-                self.player_data.current_idx = 0;
-                self.trigger_queue_changed();
-            }
-            return;
-        }
-
-        if self.player_data.song_queue.len() == 1 {
-            self.player_data.song_queue.clear();
-            self.player_data.current_idx = 0;
-            self.trigger_queue_changed();
+    pub fn clear_queue(&self) {
+        let is_single = self.player_data.read().unwrap().song_queue.len() == 1;
+        self.player_data.write().unwrap().clear_except_current();
+        self.trigger_queue_changed();
+        if is_single {
             self.trigger_song_changed();
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn move_queue_item(&mut self, from_idx: usize, to_idx: usize) {
-        if from_idx < self.player_data.song_queue.len()
-            && to_idx < self.player_data.song_queue.len()
-        {
-            let song = self.player_data.song_queue.remove(from_idx);
-            self.player_data.song_queue.insert(to_idx, song);
-            if (self.player_data.current_idx as usize) == from_idx {
-                self.player_data.current_idx = to_idx as u64;
-            } else if from_idx < (self.player_data.current_idx as usize)
-                && to_idx >= (self.player_data.current_idx as usize)
-            {
-                self.player_data.current_idx -= 1;
-            } else if from_idx > (self.player_data.current_idx as usize)
-                && to_idx <= (self.player_data.current_idx as usize)
-            {
-                self.player_data.current_idx += 1;
-            }
-            self.trigger_queue_changed();
-        }
+    pub fn move_queue_item(&self, from_idx: usize, to_idx: usize) {
+        self.player_data.write().unwrap().reorder(from_idx, to_idx);
+        self.trigger_queue_changed();
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn on_song_ended(&mut self) {
+    pub fn on_song_ended(&self) {
         self.trigger_player_event(Event::Ended(true));
 
-        match RepeatMode::try_from(self.player_data.repeat_mode).unwrap_or_default() {
+        match self.get_repeat_mode() {
             RepeatMode::RepeatOnce => {
                 self.repeat(RepeatMode::RepeatNone);
-                if (self.player_data.current_idx as usize) < self.player_data.song_queue.len() {
+                if self.get_current_idx() < self.player_data.read().unwrap().song_queue.len() {
                     self.trigger_song_changed();
                     if let Err(e) = self.play() {
                         tracing::error!("Failed to play song: {:?}", e);
@@ -406,7 +344,7 @@ impl PlayerHandler {
                 }
             }
             RepeatMode::RepeatInfinite => {
-                if (self.player_data.current_idx as usize) < self.player_data.song_queue.len() {
+                if self.get_current_idx() < self.player_data.read().unwrap().song_queue.len() {
                     self.trigger_song_changed();
                     if let Err(e) = self.play() {
                         tracing::error!("Failed to play song: {:?}", e);
@@ -420,22 +358,24 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_resolver(&self, f: crate::source::SourceResolverFn) { self.player.set_resolver(f); }
+    pub fn set_resolver(&self, f: SourceResolverFn) { self.player.set_resolver(f); }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn trigger_queue_changed(&self) {
-        self.on_queue_updated
-            .emit(self.player_data.song_queue.clone());
-        if let Err(e) = self.persist_context.persist(&self.player_data) {
+        let queue = self.player_data.read().unwrap().song_queue.clone();
+        self.on_queue_updated.emit(queue);
+        let pd = self.player_data.read().unwrap().clone();
+        if let Err(e) = self.persist_context.persist(&pd) {
             tracing::error!("Failed to persist player data: {}", e);
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn trigger_repeat_changed(&self) {
-        let mode = RepeatMode::try_from(self.player_data.repeat_mode).unwrap_or_default();
+        let mode = self.get_repeat_mode();
         self.on_repeat_changed.emit(mode);
-        if let Err(e) = self.persist_context.persist(&self.player_data) {
+        let pd = self.player_data.read().unwrap().clone();
+        if let Err(e) = self.persist_context.persist(&pd) {
             tracing::error!("Failed to persist player data: {}", e);
         }
     }
@@ -447,8 +387,8 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn trigger_song_changed(&mut self) {
-        let mut current = self.current_song().cloned();
+    fn trigger_song_changed(&self) {
+        let mut current = self.current_song();
         if current.is_none() {
             let _ = self.player.stop();
         }
@@ -461,7 +401,8 @@ impl PlayerHandler {
         }
         self.on_song_changed.emit(current);
         self.trigger_player_event(Event::TimeUpdate(Default::default()));
-        if let Err(e) = self.persist_context.persist(&self.player_data) {
+        let pd = self.player_data.read().unwrap().clone();
+        if let Err(e) = self.persist_context.persist(&pd) {
             tracing::error!("Failed to persist player data: {}", e);
         }
     }
@@ -469,19 +410,15 @@ impl PlayerHandler {
 
 impl Plugin for PlayerHandler {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn init(context: &PluginContext) -> Arc<RwLock<Self>> {
+    fn init(context: &PluginContext) -> Arc<Self> {
         let (ended_tx, mut ended_rx) = unbounded_channel();
-        let ph = Arc::new(RwLock::new(PlayerHandler::new(
-            ended_tx,
-            context.data_dir.clone(),
-        )));
+        let ph = Arc::new(PlayerHandler::new(ended_tx, context.data_dir.clone()));
 
         let ph_clone = ph.clone();
         tokio::spawn(
             async move {
                 while ended_rx.recv().await.is_some() {
-                    let mut ph = ph_clone.write().await;
-                    ph.on_song_ended();
+                    ph_clone.on_song_ended();
                 }
             }
             .in_current_span(),
@@ -493,9 +430,9 @@ impl Plugin for PlayerHandler {
                 let mut interval = interval(Duration::from_secs(1));
                 loop {
                     interval.tick().await;
-                    let ph = ph_clone_timer.read().await;
-                    if let Ok(pos) = ph.player.get_current_pos() {
-                        ph.trigger_player_event(Event::TimeUpdate(core_to_proto_duration(pos)));
+                    if let Ok(pos) = ph_clone_timer.player.get_current_pos() {
+                        ph_clone_timer
+                            .trigger_player_event(Event::TimeUpdate(core_to_proto_duration(pos)));
                     }
                 }
             }

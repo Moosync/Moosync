@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::fs;
+use std::{fs, sync::Arc};
 
 use assertables::{assert_none, assert_ok};
 use rstest::{fixture, rstest};
@@ -22,7 +22,7 @@ use tempdir::TempDir;
 use tracing_test::traced_test;
 
 use crate::{
-    FileList, ScanProgress,
+    FileList, OnProgressUpdated, OnSongScanned, ScanProgress,
     context::desktop::song_scanner::{SongScanner, check_directory},
 };
 
@@ -77,8 +77,8 @@ async fn test_song_scanner_lifecycle(temp_dir_fixture: TempDir) {
     };
     let scanner = SongScanner::new(&file_list, thumb_dir, ";".to_string(), Some(2));
     let mut scanned = 0;
-    let on_song: crate::OnSongScanned = Box::new(|_pl_id, _songs| Box::pin(async {}));
-    let on_progress: crate::OnProgressUpdated = Box::new(|_p: ScanProgress| {});
+    let on_song: OnSongScanned = Arc::new(|_pl_id, _songs| Box::pin(async {}));
+    let on_progress: OnProgressUpdated = Box::new(|_p: ScanProgress| {});
 
     assert_ok!(scanner.scan(&mut scanned, 0, &on_song, &on_progress).await);
     assert_eq!(scanned, 0);

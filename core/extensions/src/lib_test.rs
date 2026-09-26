@@ -142,7 +142,7 @@ fn handler_context() -> TestHandlerContext {
     fs::create_dir_all(&tmp_dir).unwrap();
     fs::create_dir_all(&cache_dir).unwrap();
 
-    let mut handler = ExtensionHandler::new(ext_dir, tmp_dir, cache_dir);
+    let handler = ExtensionHandler::new(ext_dir, tmp_dir, cache_dir);
     handler.set_reply_handler(Arc::new(DummyReply));
     TestHandlerContext {
         _temp_dir: temp_dir,
@@ -165,7 +165,7 @@ fn test_extension_handler_init_and_get_all(handler_context: TestHandlerContext) 
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_extension_handler_check_for_updates(mut handler_context: TestHandlerContext) {
+fn test_extension_handler_check_for_updates(handler_context: TestHandlerContext) {
     let ext_dir = handler_context.handler.extensions_dir.join("test_ext");
     fs::create_dir_all(&ext_dir).unwrap();
     let pkg_json = r#"{
@@ -217,7 +217,7 @@ fn test_extension_handler_check_for_updates(mut handler_context: TestHandlerCont
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_extension_handler_check_for_updates_older_remote(mut handler_context: TestHandlerContext) {
+fn test_extension_handler_check_for_updates_older_remote(handler_context: TestHandlerContext) {
     let ext_dir = handler_context.handler.extensions_dir.join("test_ext");
     fs::create_dir_all(&ext_dir).unwrap();
     let pkg_json = r#"{
@@ -269,7 +269,7 @@ fn test_extension_handler_check_for_updates_older_remote(mut handler_context: Te
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_extension_handler_update_all_extensions_no_updates(
-    mut handler_context: TestHandlerContext,
+    handler_context: TestHandlerContext,
 ) {
     let res = handler_context.handler.update_all_extensions().await;
     assert!(res.is_ok());
@@ -280,9 +280,7 @@ async fn test_extension_handler_update_all_extensions_no_updates(
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_extension_handler_update_all_extensions_failed(
-    mut handler_context: TestHandlerContext,
-) {
+async fn test_extension_handler_update_all_extensions_failed(handler_context: TestHandlerContext) {
     let ext_dir = handler_context.handler.extensions_dir.join("test_ext");
     fs::create_dir_all(&ext_dir).unwrap();
     let pkg_json = r#"{

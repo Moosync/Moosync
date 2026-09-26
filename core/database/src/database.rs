@@ -19,6 +19,7 @@ use std::{
     fmt::{Debug, Write},
     fs,
     path::PathBuf,
+    sync::Arc,
     vec,
 };
 
@@ -30,7 +31,10 @@ use songs_proto::moosync::types::{
     SearchableSong, Song, all_analytics::SongListenTime,
 };
 use tracing::{debug, info, trace, warn};
-use types::prelude::SongsExt;
+use types::{
+    plugin::{Plugin, PluginContext},
+    prelude::SongsExt,
+};
 use uuid::Uuid;
 
 use super::migrations::run_migrations;
@@ -2049,13 +2053,9 @@ impl Database {
     }
 }
 
-impl types::plugin::Plugin for Database {
+impl Plugin for Database {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn init(
-        context: &types::plugin::PluginContext,
-    ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
-        types::plugin::Arc::new(types::plugin::RwLock::new(Database::new(
-            context.data_dir.clone(),
-        )))
+    fn init(context: &PluginContext) -> Arc<Self> {
+        Arc::new(Database::new(context.data_dir.clone()))
     }
 }

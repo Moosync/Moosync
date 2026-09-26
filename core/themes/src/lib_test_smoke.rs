@@ -49,6 +49,5 @@ fn smoke_context() -> PluginSmokeContext {
 fn test_themes_plugin_init(smoke_context: PluginSmokeContext) {
     let PluginSmokeContext { context, .. } = smoke_context;
 
-    let plugin = ThemeHolder::init(&context);
-    let _guard = plugin.blocking_read();
+    let _plugin = ThemeHolder::init(&context);
 }

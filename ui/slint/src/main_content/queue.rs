@@ -49,7 +49,7 @@ impl QueuePageHandler {
                 tracing::debug!("Queue action: play_queue_index({})", idx);
                 tokio::spawn(
                     async move {
-                        let mut player_handler = state_manager.get_player_handler_mut().await;
+                        let player_handler = state_manager.get_player_handler().await;
                         player_handler.play_index(idx as usize);
                     }
                     .instrument(tracing::debug_span!("slint_cb_on_play_queue_index")),
@@ -62,7 +62,7 @@ impl QueuePageHandler {
                 tracing::debug!("Queue action: remove_from_queue({})", idx);
                 tokio::spawn(
                     async move {
-                        let mut player_handler = state_manager.get_player_handler_mut().await;
+                        let player_handler = state_manager.get_player_handler().await;
                         player_handler.remove_from_queue(idx as usize);
                     }
                     .instrument(tracing::debug_span!("slint_cb_on_remove_from_queue")),
@@ -75,7 +75,7 @@ impl QueuePageHandler {
                 tracing::debug!("Queue action: clear_queue");
                 tokio::spawn(
                     async move {
-                        let mut player_handler = state_manager.get_player_handler_mut().await;
+                        let player_handler = state_manager.get_player_handler().await;
                         player_handler.clear_queue();
                     }
                     .instrument(tracing::debug_span!("slint_cb_on_clear_queue")),
@@ -94,8 +94,7 @@ impl QueuePageHandler {
                         );
                         tokio::spawn(
                             async move {
-                                let mut player_handler =
-                                    state_manager.get_player_handler_mut().await;
+                                let player_handler = state_manager.get_player_handler().await;
                                 player_handler.move_queue_item(from_idx, to_idx as usize);
                             }
                             .instrument(tracing::debug_span!("slint_cb_on_move_queue_item")),
@@ -157,7 +156,7 @@ impl QueuePageHandler {
             async move {
                 let player_handler = state_manager.get_player_handler().await;
                 let queue = player_handler.get_queue().to_vec();
-                let current_song = player_handler.get_current_song().cloned();
+                let current_song = player_handler.get_current_song();
                 let cache_dir = state_manager.get_cache_dir();
 
                 let (song_id, cover_path_high) = match &current_song {
@@ -360,7 +359,7 @@ impl QueuePageHandler {
                     let queue_idx = idx as usize;
                     tokio::spawn(
                         async move {
-                            let mut player = state_manager.get_player_handler_mut().await;
+                            let player = state_manager.get_player_handler().await;
                             player.play_index(queue_idx);
                         }
                         .instrument(tracing::debug_span!("slint_cb_on_queue_action_play_now")),
@@ -372,7 +371,7 @@ impl QueuePageHandler {
                     let queue_idx = idx as usize;
                     tokio::spawn(
                         async move {
-                            let mut player = state_manager.get_player_handler_mut().await;
+                            let player = state_manager.get_player_handler().await;
                             player.remove_from_queue(queue_idx);
                         }
                         .instrument(tracing::debug_span!(

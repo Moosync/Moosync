@@ -52,5 +52,5 @@ async fn test_player_plugin_init(smoke_context: PluginSmokeContext) {
     let PluginSmokeContext { context, .. } = smoke_context;
 
     let plugin = PlayerHandler::init(&context);
-    let _guard = plugin.read().await;
+    let _ = plugin.get_queue();
 }

@@ -6,6 +6,8 @@ Moosync is a cross-platform music player written in Rust, built entirely with **
 
 Don't try to explore the entire project. Understand the context of the task and refer to the moosync skill to determine which files to read.
 
+If the user has Jujutsu (`jj`) installed on their system, prefer using `.agents/skills/jj/SKILL.md`. Before starting any new work, create a new workspace and start working there. Once done, merge the new workspace into the original one
+
 ---
 
 ## Skill References

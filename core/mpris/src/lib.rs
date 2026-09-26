@@ -26,6 +26,7 @@ use extensions_proto::moosync::types::PlayerState;
 use serde::{Deserialize, Serialize};
 #[cfg(target_os = "android")]
 use types::android::AndroidJNIContext;
+use types::plugin::{Plugin, PluginContext};
 pub mod error;
 #[cfg(not(target_os = "android"))]
 use crate::context::{DummyContext, SouvlakiMprisContext};
@@ -209,17 +210,15 @@ impl MprisHolder {
     }
 }
 
-impl types::plugin::Plugin for MprisHolder {
+impl Plugin for MprisHolder {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn init(
-        _context: &types::plugin::PluginContext,
-    ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
-        types::plugin::Arc::new(types::plugin::RwLock::new(
+    fn init(_context: &PluginContext) -> Arc<Self> {
+        Arc::new(
             MprisHolder::new(
                 #[cfg(target_os = "android")]
                 _context.android_context.clone(),
             )
             .expect("Failed to initialize MprisHolder"),
-        ))
+        )
     }
 }

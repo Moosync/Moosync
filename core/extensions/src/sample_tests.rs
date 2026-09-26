@@ -670,7 +670,7 @@ async fn setup_extension_at(
 /// `$pkg`      – expected package_name in the extension manifest (e.g.
 /// `"rs.sample"`)
 macro_rules! generate_sample_tests {
-    ($mod_name:ident, $subdir:expr, $pkg:expr) => {
+    ($mod_name:ident, $subdir:expr, $pkg:expr, $expected_scopes:expr) => {
         mod $mod_name {
             use super::*;
 
@@ -695,7 +695,7 @@ macro_rules! generate_sample_tests {
                     .get_provider_scopes(GetProviderScopesRequest {})
                     .await
                     .unwrap();
-                assert_eq!(res.scopes, vec![13, 0, 1, 2, 3, 4]);
+                assert_eq!(res.scopes, $expected_scopes);
             }
 
             #[tokio::test]
@@ -1066,7 +1066,8 @@ macro_rules! generate_sample_tests {
 }
 
 // Instantiate the full test suite for each language fixture.
-generate_sample_tests!(sample_rs, "rs", "rs.sample");
-generate_sample_tests!(sample_go, "go", "go.sample");
-// generate_sample_tests!(sample_js, "js", "js.sample");
-generate_sample_tests!(sample_py, "py", "py.sample");
+generate_sample_tests!(sample_rs, "rs", "rs.sample", vec![13, 0, 1, 2, 3, 4, 10]);
+generate_sample_tests!(sample_go, "go", "go.sample", vec![13, 0, 1, 2, 3, 4]);
+// generate_sample_tests!(sample_js, "js", "js.sample", vec![13, 0, 1, 2, 3,
+// 4]);
+generate_sample_tests!(sample_py, "py", "py.sample", vec![13, 0, 1, 2, 3, 4]);

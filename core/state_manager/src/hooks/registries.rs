@@ -55,7 +55,7 @@ impl Hook for ExtensionRegistriesHook {
                                 .load(&EXTENSION_REGISTRIES)
                                 .value::<Vec<String>>()
                                 .unwrap_or_default();
-                            let mut extensions = state_manager.get_extension_handler_mut().await;
+                            let extensions = state_manager.get_extension_handler().await;
                             if let Err(e) = extensions
                                 .fetch_remote_manifests(registries.into_iter().collect())
                                 .await

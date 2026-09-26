@@ -238,7 +238,7 @@ pub mod integration {
 
         // 3. Reset Player Handler
         {
-            let mut ph = state_manager.get_player_handler_mut().await;
+            let ph = state_manager.get_player_handler().await;
             ph.clear_queue();
             ph.clear_queue();
             let _ = ph.pause();
@@ -391,11 +391,7 @@ pub mod integration {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn setup_test_context(state_manager: &StateManager) {
-        state_manager.setup().await;
-        let mut ph = state_manager.get_player_handler_mut().await;
-        ph.set_context(Box::new(player::DummyAudioPlayerContext::new()));
-    }
+    pub async fn setup_test_context(state_manager: &StateManager) { state_manager.setup().await; }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn create_test_song(id: &str, title: &str, album: &str, artist: &str) -> Song {

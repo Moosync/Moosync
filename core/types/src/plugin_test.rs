@@ -18,7 +18,6 @@ use std::sync::Arc;
 
 use assertables::{assert_none, assert_some_eq_x};
 use rstest::{fixture, rstest};
-use tokio::sync::RwLock;
 use tracing_test::traced_test;
 
 use crate::plugin::{CallContext, Plugin, PluginContext, PluginRegistry};
@@ -29,27 +28,24 @@ struct DummyPlugin {
 
 impl Plugin for DummyPlugin {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn init(_: &PluginContext) -> Arc<RwLock<Self>> {
-        Arc::new(RwLock::new(DummyPlugin { value: 42 }))
-    }
+    fn init(_: &PluginContext) -> Arc<Self> { Arc::new(DummyPlugin { value: 42 }) }
 }
 
 #[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
-fn dummy_plugin() -> Arc<RwLock<DummyPlugin>> { Arc::new(RwLock::new(DummyPlugin { value: 100 })) }
+fn dummy_plugin() -> Arc<DummyPlugin> { Arc::new(DummyPlugin { value: 100 }) }
 
 #[rstest]
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_plugin_registry_register_and_get(dummy_plugin: Arc<RwLock<DummyPlugin>>) {
+async fn test_plugin_registry_register_and_get(dummy_plugin: Arc<DummyPlugin>) {
     let mut registry = PluginRegistry::new();
 
     registry.register(dummy_plugin);
 
     let retrieved = registry.get::<DummyPlugin>();
-    let guard = retrieved.read().await;
-    assert_eq!(guard.value, 100);
+    assert_eq!(retrieved.value, 100);
 }
 
 #[test]

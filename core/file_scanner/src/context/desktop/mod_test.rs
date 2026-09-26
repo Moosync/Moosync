@@ -14,16 +14,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::fs;
+use std::{fs, sync::Arc};
 
 use assertables::{assert_len_eq_x, assert_ok};
 use rstest::{fixture, rstest};
 use tempdir::TempDir;
 use tracing_test::traced_test;
 
-use crate::context::{
-    ScannerContext,
-    desktop::{DesktopScannerContext, get_files_recursively},
+use crate::{
+    OnPlaylistScanned, OnProgressUpdated, OnSongScanned,
+    context::{
+        ScannerContext,
+        desktop::{DesktopScannerContext, get_files_recursively},
+    },
 };
 
 #[fixture]
@@ -78,9 +81,9 @@ async fn test_desktop_scanner_context_start_scan(temp_dir_fixture: TempDir) {
         Some(2),
     );
 
-    let on_song: crate::OnSongScanned = Box::new(|_pl_id, _songs| Box::pin(async {}));
-    let on_playlist: crate::OnPlaylistScanned = Box::new(|_pls| Box::pin(async {}));
-    let on_progress: crate::OnProgressUpdated = Box::new(|_p| {});
+    let on_song: OnSongScanned = Arc::new(|_pl_id, _songs| Box::pin(async {}));
+    let on_playlist: OnPlaylistScanned = Arc::new(|_pls| Box::pin(async {}));
+    let on_progress: OnProgressUpdated = Box::new(|_p| {});
 
     let res = ctx.start_scan(&on_song, &on_playlist, &on_progress).await;
 

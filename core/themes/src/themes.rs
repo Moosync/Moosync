@@ -20,12 +20,16 @@ use std::{
     io::Write,
     path::PathBuf,
     str::FromStr,
+    sync::Arc,
 };
 
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
 use themes_proto::moosync::types::ThemeDetails;
-use types::subscription::SubscriberList;
+use types::{
+    plugin::{Plugin, PluginContext},
+    subscription::SubscriberList,
+};
 use uuid::Uuid;
 
 use crate::error::ThemesError;
@@ -267,14 +271,12 @@ impl ThemeHolder {
     }
 }
 
-impl types::plugin::Plugin for ThemeHolder {
+impl Plugin for ThemeHolder {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn init(
-        context: &types::plugin::PluginContext,
-    ) -> types::plugin::Arc<types::plugin::RwLock<Self>> {
-        types::plugin::Arc::new(types::plugin::RwLock::new(ThemeHolder::new(
+    fn init(context: &PluginContext) -> Arc<Self> {
+        Arc::new(ThemeHolder::new(
             context.data_dir.join("themes"),
             context.tmp_dir.clone(),
-        )))
+        ))
     }
 }

@@ -39,7 +39,7 @@ async fn do_queue_display_items(
     let s2 = create_test_song("q2", "Queue Track 2", "Album Q", "Artist Q");
 
     {
-        let mut ph = state_manager.get_player_handler_mut().await;
+        let ph = state_manager.get_player_handler().await;
         ph.add_to_queue(vec![s1.clone(), s2.clone()]);
     }
 
@@ -96,7 +96,7 @@ async fn do_queue_remove_item(
     let s2 = create_test_song("qr2", "Remove Track 2", "Album", "Artist");
 
     {
-        let mut ph = state_manager.get_player_handler_mut().await;
+        let ph = state_manager.get_player_handler().await;
         ph.add_to_queue(vec![s1.clone(), s2.clone()]);
     }
 
@@ -148,7 +148,7 @@ async fn do_queue_clear(main_window: &'static MainWindow, state_manager: &'stati
     let s1 = create_test_song("qc1", "Clear Track 1", "Album", "Artist");
 
     {
-        let mut ph = state_manager.get_player_handler_mut().await;
+        let ph = state_manager.get_player_handler().await;
         ph.add_to_queue(vec![s1.clone()]);
     }
 
@@ -197,9 +197,8 @@ async fn do_queue_save_as_playlist_modal_lifecycle(
     state_manager: &'static StateManager,
 ) {
     let s = create_test_song("qs", "Queue Song", "Album", "Artist");
-    let mut ph = state_manager.get_player_handler_mut().await;
+    let ph = state_manager.get_player_handler().await;
     ph.add_to_queue(vec![s.clone()]);
-    drop(ph);
 
     main_window
         .global::<QueuePageProps>()

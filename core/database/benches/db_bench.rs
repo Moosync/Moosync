@@ -19,8 +19,8 @@ use std::{env::temp_dir, fs, path::PathBuf, time::Duration};
 use criterion::{BatchSize, Criterion, criterion_group, criterion_main};
 use database::Database;
 use songs_proto::moosync::types::{
-    Album, Artist, Genre, GetEntityOptions, GetSongOptions, InnerSong, Playlist, SearchableSong,
-    Song, SongType,
+    Album, Artist, Genre, GetEntityOptions, GetSongOptions, InnerSong, LyricLine, Lyrics, Playlist,
+    SearchableSong, Song, SongType,
 };
 use uuid::Uuid;
 
@@ -90,7 +90,13 @@ fn generate_complex_songs(count: usize) -> Vec<Song> {
                     nanos: 0,
                 }),
                 sample_rate: Some(48000.0),
-                lyrics: Some(format!("These are lyrics for song {}", i)),
+                lyrics: Some(Lyrics {
+                    lines: vec![LyricLine {
+                        text: format!("These are lyrics for song {}", i),
+                        time_ms: 1000,
+                    }],
+                    is_synced: false,
+                }),
                 r#type: song_type.into(),
                 track_no: Some(i as f64),
                 ..Default::default()

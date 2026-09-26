@@ -25,10 +25,8 @@ impl Hook for PlayerHook {
         state_manager: &StateManager,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let player_handler = state_manager.plugins.get::<PlayerHandler>();
-        player_handler
-            .read()
-            .await
-            .set_resolver(Box::new(|_| Ok("".into())));
+        // TODO: Bind source resolver to extensions
+        player_handler.set_resolver(Box::new(|_| Ok("".into())));
 
         Ok(())
     }

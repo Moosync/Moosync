@@ -51,5 +51,5 @@ fn test_database_plugin_init(smoke_context: PluginSmokeContext) {
     let PluginSmokeContext { context, .. } = smoke_context;
 
     let db_plugin = Database::init(&context);
-    let _guard = db_plugin.blocking_read();
+    let _ = db_plugin;
 }

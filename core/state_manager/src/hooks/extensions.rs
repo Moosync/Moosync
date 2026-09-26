@@ -24,7 +24,7 @@ impl Hook for ExtensionsHook {
         &self,
         state_manager: &StateManager,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let mut extensions = state_manager.get_extension_handler_mut().await;
+        let extensions = state_manager.get_extension_handler().await;
         let reply_handler = Arc::new(StateReplyHandler::new(state_manager.clone()));
         extensions.set_reply_handler(reply_handler);
 

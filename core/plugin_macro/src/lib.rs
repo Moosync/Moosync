@@ -374,7 +374,6 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
         let trait_ident = format_ident!("{}Interceptor", struct_ident);
         let wrapper_ident = format_ident!("Intercepted{}", struct_ident);
         let getter_ident = format_ident!("get_{}", snake_case);
-        let getter_mut_ident = format_ident!("get_{}_mut", snake_case);
         let marker_ident = format_ident!("{}Marker", struct_ident);
 
         fields.push(quote! {
@@ -387,21 +386,10 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
 
         getters.push(quote! {
             #[tracing::instrument(level = "debug", skip_all)]
-            pub async fn #getter_ident(&self) -> #mod_prefix #wrapper_ident<tokio::sync::OwnedRwLockReadGuard<#mod_prefix #struct_ident>> {
-                let _db = self.plugins.get::<#mod_prefix #struct_ident>();
-                let _guard = _db.read_owned().await;
+            pub async fn #getter_ident(&self) -> #mod_prefix #wrapper_ident<std::sync::Arc<#mod_prefix #struct_ident>> {
+                let _plugin = self.plugins.get::<#mod_prefix #struct_ident>();
                 #mod_prefix #wrapper_ident {
-                    inner: _guard,
-                    interceptor: self.interceptors.#field_ident.clone(),
-                }
-            }
-
-            #[tracing::instrument(level = "debug", skip_all)]
-            pub async fn #getter_mut_ident(&self) -> #mod_prefix #wrapper_ident<tokio::sync::OwnedRwLockWriteGuard<#mod_prefix #struct_ident>> {
-                let _db = self.plugins.get::<#mod_prefix #struct_ident>();
-                let _guard = _db.write_owned().await;
-                #mod_prefix #wrapper_ident {
-                    inner: _guard,
+                    inner: _plugin,
                     interceptor: self.interceptors.#field_ident.clone(),
                 }
             }

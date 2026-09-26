@@ -230,7 +230,7 @@ async fn handle_playback_action(state_manager: &StateManager, songs: Vec<Song>, 
         action,
         songs.len()
     );
-    let mut player = state_manager.get_player_handler_mut().await;
+    let player = state_manager.get_player_handler().await;
     match action {
         "play_now" => player.play_now(songs),
         "play_next" => player.play_next(songs),
@@ -303,7 +303,7 @@ async fn handle_remove_from_playlist(
 
     let _ = weak.upgrade_in_event_loop(move |window| {
         let songs_view: Vec<SongModel> = updated_songs.into_iter().map(Into::into).collect();
-        let model = make_lazy_song_model(&window, &state_manager, songs_view);
+        let model = make_lazy_song_model(&window, state_manager, songs_view);
         window.global::<PlaylistContentPageProps>().set_songs(model);
     });
 }
@@ -423,7 +423,7 @@ pub fn dispatch_song_context_action(
         async move {
             match action.as_str() {
                 "play_now" | "play_next" | "clear_queue_and_play" | "add_to_queue" => {
-                    handle_playback_action(&state_manager, songs, &action).await;
+                    handle_playback_action(state_manager, songs, &action).await;
                     return;
                 }
                 "remove_from_playlist" => {
@@ -434,17 +434,17 @@ pub fn dispatch_song_context_action(
             }
 
             if let Some(playlist_id) = action.strip_prefix("add_to_playlist:") {
-                handle_add_to_playlist(&state_manager, &songs, playlist_id).await;
+                handle_add_to_playlist(state_manager, &songs, playlist_id).await;
                 return;
             }
 
             if let Some(album_id) = action.strip_prefix("goto_album:") {
-                handle_goto_entity_by_id(weak, &state_manager, Pages::AlbumContent, album_id).await;
+                handle_goto_entity_by_id(weak, state_manager, Pages::AlbumContent, album_id).await;
                 return;
             }
 
             if let Some(artist_id) = action.strip_prefix("goto_artist:") {
-                handle_goto_entity_by_id(weak, &state_manager, Pages::ArtistContent, artist_id)
+                handle_goto_entity_by_id(weak, state_manager, Pages::ArtistContent, artist_id)
                     .await;
             }
         }

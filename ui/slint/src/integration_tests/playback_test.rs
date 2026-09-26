@@ -136,7 +136,7 @@ async fn do_playback_skip_next(
         .unwrap();
 
     {
-        let mut ph = state_manager.get_player_handler_mut().await;
+        let ph = state_manager.get_player_handler().await;
         ph.play_now(vec![song1.clone(), song2.clone()]);
     }
 
@@ -169,7 +169,7 @@ async fn do_playback_skip_previous(
         .unwrap();
 
     {
-        let mut ph = state_manager.get_player_handler_mut().await;
+        let ph = state_manager.get_player_handler().await;
         ph.play_now(vec![song1.clone(), song2.clone()]);
         ph.next();
     }

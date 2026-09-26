@@ -20,40 +20,48 @@ use assertables::{assert_err, assert_ok};
 use extensions_proto::moosync::types::PlayerState;
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{InnerSong, Song};
-use tokio::sync::mpsc::unbounded_channel;
 use tracing_test::traced_test;
+use types::subscription::SubscriberList;
 
-use crate::{context::DummyAudioPlayerContext, mux_player::MuxPlayer, source::ValidSrc};
+use crate::{
+    context::DummyAudioPlayerContext, mux_player::MuxPlayer, rodio::get_system_sample_rate,
+    source::ValidSrc,
+};
 
 #[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
 fn mux_player() -> MuxPlayer {
-    let (tx, _rx) = unbounded_channel();
-    MuxPlayer::new_with_context(tx, Box::new(DummyAudioPlayerContext::new()))
+    MuxPlayer::new_with_contexts(
+        SubscriberList::new(),
+        vec![Box::new(DummyAudioPlayerContext::new())],
+    )
 }
 
 #[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mux_player_initial_state(mux_player: MuxPlayer) {
+async fn test_mux_player_initial_state(mux_player: MuxPlayer) {
     let state = mux_player.get_player_state();
 
     assert_eq!(state, PlayerState::Stopped);
 }
 
 #[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mux_player_can_play_unsupported_url(mux_player: MuxPlayer) {
+async fn test_mux_player_can_play_unsupported_url(mux_player: MuxPlayer) {
     let can_play_ftp = mux_player.can_play(ValidSrc::Url(Cow::Borrowed("ftp://example.com")));
 
     assert!(!can_play_ftp);
 }
 
 #[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mux_player_load_unsupported_url(mut mux_player: MuxPlayer) {
+async fn test_mux_player_load_unsupported_url(mux_player: MuxPlayer) {
     let song = Song {
         song: Some(InnerSong {
             playback_url: Some("ftp://example.com/audio.mp3".to_string()),
@@ -68,28 +76,41 @@ fn test_mux_player_load_unsupported_url(mut mux_player: MuxPlayer) {
 }
 
 #[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mux_player_pause(mux_player: MuxPlayer) {
+async fn test_mux_player_pause(mux_player: MuxPlayer) {
     let result = mux_player.pause();
 
     assert_ok!(result);
 }
 
 #[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mux_player_stop(mux_player: MuxPlayer) {
+async fn test_mux_player_stop(mux_player: MuxPlayer) {
     let result = mux_player.stop();
 
     assert_ok!(result);
 }
 
 #[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mux_player_set_volume(mux_player: MuxPlayer) {
+async fn test_mux_player_set_volume(mux_player: MuxPlayer) {
     let result = mux_player.set_volume(90);
+
+    assert_ok!(result);
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_mux_player_seek(mux_player: MuxPlayer) {
+    let result = mux_player.seek(Duration::from_secs(5));
 
     assert_ok!(result);
 }
@@ -97,8 +118,8 @@ fn test_mux_player_set_volume(mux_player: MuxPlayer) {
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_mux_player_seek(mux_player: MuxPlayer) {
-    let result = mux_player.seek(Duration::from_secs(5));
+fn test_get_system_sample_rate() {
+    let rate = get_system_sample_rate();
 
-    assert_ok!(result);
+    assert!(rate >= 8000, "Expected valid sample rate, got {}", rate);
 }

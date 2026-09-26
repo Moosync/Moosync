@@ -33,7 +33,7 @@ use preferences_proto::moosync::types::{PreferenceItem, PreferenceValue, prefere
 use prost::Message;
 use serde::{Serialize, de::DeserializeOwned};
 use types::{
-    plugin::{Plugin, PluginContext, RwLock as AsyncRwLock},
+    plugin::{Plugin, PluginContext},
     subscription::SubscriberList,
 };
 use whoami;
@@ -314,10 +314,10 @@ impl PreferenceConfig {
 
 impl Plugin for PreferenceConfig {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn init(context: &PluginContext) -> Arc<AsyncRwLock<Self>> {
-        Arc::new(AsyncRwLock::new(
+    fn init(context: &PluginContext) -> Arc<Self> {
+        Arc::new(
             PreferenceConfig::new(context.data_dir.clone())
                 .expect("Failed to initialize PreferenceConfig"),
-        ))
+        )
     }
 }

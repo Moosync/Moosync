@@ -26,7 +26,7 @@ pub struct PluginContext {
 
 // Every core plugin must implement this initialization trait
 pub trait Plugin: Send + Sync + 'static {
-    fn init(context: &PluginContext) -> Arc<RwLock<Self>>;
+    fn init(context: &PluginContext) -> Arc<Self>;
 }
 
 // A generic Type-Map registry to store and retrieve plugin instances
@@ -45,17 +45,17 @@ impl PluginRegistry {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn register<P: Plugin>(&mut self, plugin: Arc<RwLock<P>>) {
+    pub fn register<P: Plugin>(&mut self, plugin: Arc<P>) {
         self.map.insert(TypeId::of::<P>(), plugin);
     }
 
     // Panics on failure to retrieve/downcast target plugin
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get<P: Plugin>(&self) -> Arc<RwLock<P>> {
+    pub fn get<P: Plugin>(&self) -> Arc<P> {
         self.map
             .get(&TypeId::of::<P>())
-            .and_then(|boxed| boxed.clone().downcast::<RwLock<P>>().ok())
-            .unwrap_or_else(|| panic!("Plugin not registered: {}", std::any::type_name::<P>()))
+            .and_then(|boxed| boxed.clone().downcast::<P>().ok())
+            .expect("Plugin not registered")
     }
 }
 

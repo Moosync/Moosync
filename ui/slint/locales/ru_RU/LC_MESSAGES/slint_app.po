@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-09-06 00:10\n"
+"PO-Revision-Date: 2026-10-01 04:50\n"
 "Language: ru_RU\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -15,23 +15,23 @@ msgstr ""
 "X-Crowdin-File-ID: 73\n"
 "Language-Team: Russian\n"
 
-#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99 ui/slint/src/main_content/search.slint:98
+#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99
 msgid "Songs"
 msgstr "Все песни"
 
-#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21 ui/slint/src/app.slint:169
+#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21
 msgid "Playlists"
 msgstr "Плейлисты"
 
-#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21 ui/slint/src/app.slint:173
+#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21
 msgid "Artists"
 msgstr "Исполнители"
 
-#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21 ui/slint/src/app.slint:174
+#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21
 msgid "Albums"
 msgstr "Альбомы"
 
-#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21 ui/slint/src/app.slint:175
+#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21
 msgid "Genres"
 msgstr "Жанры"
 
@@ -43,7 +43,7 @@ msgstr "Обзор"
 msgid "Filter songs..."
 msgstr "Фильтровать песни..."
 
-#: ui/slint/src/common/card_view.slint:4
+#: ui/slint/src/common/card_view.slint:4 ui/slint/src/common/card_view.slint:5
 msgid "Card Title"
 msgstr "Заголовок карты"
 
@@ -322,4 +322,324 @@ msgstr "Обновить все"
 #: ui/slint/src/settings/text_array_input.slint:82
 msgid "Add"
 msgstr "Добавить"
+
+#: ui/slint/src/bottombar/bottom_bar.slint:60
+msgid "Queue"
+msgstr "Очередь"
+
+#: ui/slint/src/bottombar/playback_controls.slint:117
+msgid "Pause"
+msgstr "Пауза"
+
+#: ui/slint/src/bottombar/playback_controls.slint:117
+msgid "Play"
+msgstr "Играть"
+
+#: ui/slint/src/bottombar/playback_controls.slint:206
+msgid "Previous"
+msgstr "Предыдущий"
+
+#: ui/slint/src/bottombar/playback_controls.slint:214
+msgid "Repeat"
+msgstr "Повторить"
+
+#: ui/slint/src/bottombar/playback_controls.slint:230
+msgid "Next"
+msgstr "Следующий"
+
+#: ui/slint/src/bottombar/playback_controls.slint:238
+msgid "Shuffle"
+msgstr "Перемешать"
+
+#: ui/slint/src/bottombar/playback_controls.slint:246
+msgid "Favorite"
+msgstr "Избранное"
+
+#: ui/slint/src/bottombar/volume_control.slint:11
+msgid "Mute"
+msgstr "Заглушить"
+
+#: ui/slint/src/bottombar/volume_control.slint:11
+msgid "Unmute"
+msgstr "Включить звук"
+
+#: ui/slint/src/bottombar/volume_control.slint:96
+msgid "Volume"
+msgstr "Объем"
+
+#: ui/slint/src/common/accounts_popup.slint:14
+msgid "Login"
+msgstr "Логин"
+
+#: ui/slint/src/common/accounts_popup.slint:14
+msgid "Logout"
+msgstr "Выйти"
+
+#: ui/slint/src/common/accounts_popup.slint:80
+msgid "No accounts configured"
+msgstr "Учетные записи не настроены"
+
+#: ui/slint/src/common/extension_details_modal.slint:25
+msgid "Playlist Songs"
+msgstr "Треки плейлиста"
+
+#: ui/slint/src/common/extension_details_modal.slint:28
+msgid "Artist Songs"
+msgstr "Треки исполнителя"
+
+#: ui/slint/src/common/extension_details_modal.slint:31
+msgid "Album Songs"
+msgstr "Треки альбома"
+
+#: ui/slint/src/common/extension_details_modal.slint:34
+msgid "Recommendations"
+msgstr "Рекомендации"
+
+#: ui/slint/src/common/extension_details_modal.slint:37
+msgid "Scrobble"
+msgstr "Скробблинг"
+
+#: ui/slint/src/common/extension_details_modal.slint:40
+msgid "Playlist from URL"
+msgstr "Плейлист по URL"
+
+#: ui/slint/src/common/extension_details_modal.slint:43
+msgid "Song from URL"
+msgstr "Песня из URL"
+
+#: ui/slint/src/common/extension_details_modal.slint:46
+msgid "Playback Details"
+msgstr "Детали воспроизведения"
+
+#: ui/slint/src/common/extension_details_modal.slint:49
+msgid "Lyrics"
+msgstr "Тексты песен"
+
+#: ui/slint/src/common/extension_details_modal.slint:52
+msgid "Song Context Menu"
+msgstr "Контекстное меню песни"
+
+#: ui/slint/src/common/extension_details_modal.slint:55
+msgid "Playlist Context Menu"
+msgstr "контекстное меню плейлиста"
+
+#: ui/slint/src/common/extension_details_modal.slint:58
+msgid "Accounts"
+msgstr "Аккаунты"
+
+#: ui/slint/src/common/extension_details_modal.slint:61
+msgid "Song Database Events"
+msgstr "События базы данных песни"
+
+#: ui/slint/src/common/extension_details_modal.slint:64
+msgid "Playlist Database Events"
+msgstr "События базы данных плейлистов"
+
+#: ui/slint/src/common/extension_details_modal.slint:67
+msgid "Player UI Events"
+msgstr "События пользовательского интерфейса"
+
+#: ui/slint/src/common/extension_details_modal.slint:70
+msgid "Player Data Events"
+msgstr "Данные о игроке"
+
+#: ui/slint/src/common/extension_details_modal.slint:72
+msgid "Unknown Scope"
+msgstr "Неизвестная область"
+
+#: ui/slint/src/common/extension_details_modal.slint:123
+msgid "By "
+msgstr "По "
+
+#: ui/slint/src/common/extension_details_modal.slint:147
+msgid "Network Permissions"
+msgstr "Разрешения сети"
+
+#: ui/slint/src/common/extension_details_modal.slint:155
+msgid "No network permissions requested."
+msgstr "Сеть не запрашивается."
+
+#: ui/slint/src/common/extension_details_modal.slint:163
+msgid "Network Host: "
+msgstr "Сетевой хост: "
+
+#: ui/slint/src/common/extension_details_modal.slint:172
+msgid "Filesystem Permissions"
+msgstr "Права доступа к файлам"
+
+#: ui/slint/src/common/extension_details_modal.slint:180
+msgid "No filesystem permissions requested."
+msgstr "Файловые системы не запрашиваются."
+
+#: ui/slint/src/common/extension_details_modal.slint:188
+msgid "Filesystem Path: "
+msgstr "Путь для файловой системы: "
+
+#: ui/slint/src/common/extension_details_modal.slint:197
+msgid "Provider Scopes"
+msgstr "Области Провайдеров"
+
+#: ui/slint/src/common/extension_details_modal.slint:205
+msgid "No provider scopes registered."
+msgstr "Области провайдера не зарегистрированы."
+
+#: ui/slint/src/common/extension_details_modal.slint:224
+msgid "Scope: "
+msgstr "Область: "
+
+#: ui/slint/src/common/extension_details_modal.slint:239
+msgid "Close"
+msgstr "Закрыть"
+
+#: ui/slint/src/common/extension_details_modal.slint:240
+msgid "Close Extension Details"
+msgstr "Закрыть детали расширения"
+
+#: ui/slint/src/common/oauth_modal.slint:33
+msgid "Account Login"
+msgstr "Вход в аккаунт"
+
+#: ui/slint/src/common/oauth_modal.slint:40
+msgid "If the browser did not open automatically, copy the URL below:"
+msgstr "Если браузер не открывался автоматически, скопируйте адрес ниже:"
+
+#: ui/slint/src/common/oauth_modal.slint:72
+msgid "Authorization Code / Callback URL"
+msgstr "Код авторизации / URL обратного вызова"
+
+#: ui/slint/src/common/oauth_modal.slint:74
+msgid "Paste the code or redirected URL here"
+msgstr "Вставьте код или перенаправленный URL здесь"
+
+#: ui/slint/src/common/oauth_modal.slint:84
+msgid "Submit"
+msgstr "Отправить"
+
+#: ui/slint/src/main_content/lyrics_view.slint:79
+msgid "Synced"
+msgstr "Синхронизировано"
+
+#: ui/slint/src/main_content/lyrics_view.slint:79
+msgid "Plain"
+msgstr "Простой"
+
+#: ui/slint/src/main_content/lyrics_view.slint:91
+msgid "Show Details"
+msgstr "Показать подробности"
+
+#: ui/slint/src/main_content/lyrics_view.slint:114
+msgid "Loading lyrics..."
+msgstr "Загрузка текста..."
+
+#: ui/slint/src/main_content/lyrics_view.slint:124
+msgid "No lyrics available"
+msgstr "Нет доступных текстов"
+
+#: ui/slint/src/main_content/queue_page.slint:159
+msgid "Remove from queue"
+msgstr "Удалить из очереди"
+
+#: ui/slint/src/main_content/search.slint:108
+msgid "Search Songs"
+msgstr "Поиск треков"
+
+#: ui/slint/src/main_content/search.slint:109
+msgid "Search Albums"
+msgstr "Поиск альбомов"
+
+#: ui/slint/src/main_content/search.slint:110
+msgid "Search Artists"
+msgstr "Поиск исполнителей"
+
+#: ui/slint/src/main_content/search.slint:111
+msgid "Search Playlists"
+msgstr "Поиск плейлистов"
+
+#: ui/slint/src/main_content/search.slint:112
+msgid "Search Genres"
+msgstr "Поиск жанров"
+
+#: ui/slint/src/main_content/search.slint:234
+msgid "Not logged in"
+msgstr "Не авторизован"
+
+#: ui/slint/src/main_content/search.slint:244
+msgid "Please log in to your account to view search results."
+msgstr "Войдите в свою учетную запись для просмотра результатов поиска."
+
+#: ui/slint/src/settings/button_group.slint:129
+msgid "Confirm Action"
+msgstr "Подтвердить действие"
+
+#: ui/slint/src/settings/button_group.slint:134
+msgid "Are you sure you want to {}? This cannot be undone."
+msgstr "Вы уверены, что хотите удалить {}? Это действие нельзя отменить."
+
+#: ui/slint/src/settings/button_group.slint:153
+msgid "Confirm"
+msgstr "Подтвердить"
+
+#: ui/slint/src/settings/extensions.slint:113
+msgid "Extension Details"
+msgstr "Подробности расширения"
+
+#: ui/slint/src/settings/settings.slint:44
+msgid "Settings Paths"
+msgstr "Путь к настройкам"
+
+#: ui/slint/src/settings/settings.slint:50
+msgid "Settings System"
+msgstr "Настройки системы"
+
+#: ui/slint/src/settings/settings.slint:56
+msgid "Settings Extensions"
+msgstr "Расширения настроек"
+
+#: ui/slint/src/settings/settings.slint:62
+msgid "Settings Themes"
+msgstr "Темы настроек"
+
+#: ui/slint/src/sidebar/sidebar_header.slint:18
+msgid "Toggle Sidebar"
+msgstr "Переключить боковую панель"
+
+#: ui/slint/src/sidebar/sidebar.slint:57
+msgid "Sidebar Songs"
+msgstr "Треки боковой панели"
+
+#: ui/slint/src/sidebar/sidebar.slint:63
+msgid "Sidebar Playlists"
+msgstr "Плейлисты боковой панели"
+
+#: ui/slint/src/sidebar/sidebar.slint:69
+msgid "Sidebar Artists"
+msgstr "Исполнители боковой панели"
+
+#: ui/slint/src/sidebar/sidebar.slint:75
+msgid "Sidebar Albums"
+msgstr "Альбомы боковой панели"
+
+#: ui/slint/src/sidebar/sidebar.slint:81
+msgid "Sidebar Genres"
+msgstr "Sidebar Genres"
+
+#: ui/slint/src/sidebar/sidebar.slint:87
+msgid "Sidebar Explore"
+msgstr "Sidebar Explore"
+
+#: ui/slint/src/topbar/nav_buttons.slint:16
+msgid "Back"
+msgstr "Назад"
+
+#: ui/slint/src/topbar/nav_buttons.slint:27
+msgid "Forward"
+msgstr "Вперёд"
+
+#: ui/slint/src/topbar/top_bar.slint:88
+msgid "Settings"
+msgstr "Настройки"
+
+#: ui/slint/src/main_content/search.slint:278
+msgid "No results found"
+msgstr "Ничего не найдено"
 

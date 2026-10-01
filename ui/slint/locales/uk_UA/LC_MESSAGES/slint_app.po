@@ -1,243 +1,645 @@
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: slint_app\n"
+"Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-08-24 20:45+0000\n"
+"PO-Revision-Date: 2026-10-01 04:50\n"
 "Language: uk_UA\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=4; plural=((n%10==1 && n%100!=11) ? 0 : ((n%10 >= 2 && n%10 <=4 && (n%100 < 12 || n%100 > 14)) ? 1 : ((n%10 == 0 || (n%10 >= 5 && n%10 <=9)) || (n%100 >= 11 && n%100 <= 14)) ? 2 : 3));\n"
+"X-Crowdin-Project: moosync\n"
+"X-Crowdin-Project-ID: 529128\n"
+"X-Crowdin-Language: uk\n"
+"X-Crowdin-File: /main/ui/slint/locales/en_US/LC_MESSAGES/slint_app.po\n"
+"X-Crowdin-File-ID: 73\n"
+"Language-Team: Ukrainian\n"
 
-#: src/app.slint:156 src/main_content/search.slint:99
+#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99
 msgid "Songs"
 msgstr "Всі пісні"
 
-#: src/app.slint:157 src/main_content/playlists.slint:21
-#: src/app.slint:157 src/main_content/playlists.slint:21
+#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21
 msgid "Playlists"
 msgstr "Плейлісти"
 
-#: src/app.slint:158 src/main_content/artists.slint:21
-#: src/app.slint:158 src/main_content/artists.slint:21
+#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21
 msgid "Artists"
 msgstr "Виконавці"
 
-#: src/app.slint:159 src/main_content/albums.slint:21
-#: src/app.slint:159 src/main_content/albums.slint:21
+#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21
 msgid "Albums"
 msgstr "Альбоми"
 
-#: src/app.slint:160 src/main_content/genres.slint:21
-#: src/app.slint:160 src/main_content/genres.slint:21
+#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21
 msgid "Genres"
-msgstr "Genres"
+msgstr "Жанри"
 
-#: src/app.slint:161 src/main_content/explore.slint:22
+#: ui/slint/src/app.slint:161 ui/slint/src/main_content/explore.slint:22
 msgid "Explore"
 msgstr "Досліджуйте"
 
-#: src/common/song_list_view.slint:59
+#: ui/slint/src/common/song_list_view.slint:59
 msgid "Filter songs..."
-msgstr "Пошук..."
+msgstr "Фільтрувати пісні..."
 
-#: src/common/card_view.slint:4
+#: ui/slint/src/common/card_view.slint:4 ui/slint/src/common/card_view.slint:5
 msgid "Card Title"
-msgstr ""
+msgstr "Заголовок картки"
 
-#: src/constants.slint:17 src/callbacks.slint:75
+#: ui/slint/src/constants.slint:17 ui/slint/src/callbacks.slint:75
 msgid "Title"
 msgstr "Найменування"
 
-#: src/constants.slint:25 src/callbacks.slint:83
+#: ui/slint/src/constants.slint:25 ui/slint/src/callbacks.slint:83
 msgid "Date"
-msgstr "Дата додавання"
+msgstr "Дата"
 
-#: src/constants.slint:33 src/callbacks.slint:91
+#: ui/slint/src/constants.slint:33 ui/slint/src/callbacks.slint:91
 msgid "Album"
-msgstr "Album (Track No.)"
+msgstr "Альбом"
 
-#: src/constants.slint:41 src/callbacks.slint:99
+#: ui/slint/src/constants.slint:41 ui/slint/src/callbacks.slint:99
 msgid "Track Number"
-msgstr ""
+msgstr "Відслідковує число"
 
-#: src/constants.slint:49 src/callbacks.slint:107
+#: ui/slint/src/constants.slint:49 ui/slint/src/callbacks.slint:107
 msgid "Artist"
 msgstr "Художник"
 
-#: src/main_content/explore.slint:32
+#: ui/slint/src/main_content/explore.slint:32
 msgid "No recommendations"
-msgstr ""
+msgstr "Немає рекомендацій"
 
-#: src/main_content/search.slint:80
+#: ui/slint/src/main_content/search.slint:80
 msgid "Search"
-msgstr ""
+msgstr "Пошук"
 
-#: src/main_content/search.slint:89
+#: ui/slint/src/main_content/search.slint:89
 msgid "Local"
-msgstr "Local"
+msgstr "Локальні"
 
-#: src/main_content/queue_page.slint:250
+#: ui/slint/src/main_content/queue_page.slint:250
 msgid "Show Lyrics"
-msgstr ""
+msgstr "Показати текст пісні"
 
-#: src/main_content/queue_page.slint:268
+#: ui/slint/src/main_content/queue_page.slint:268
 msgid "Save as playlist"
-msgstr ""
+msgstr "Зберегти як список відтворення"
 
-#: src/main_content/queue_page.slint:274
+#: ui/slint/src/main_content/queue_page.slint:274
 msgid "Clear"
-msgstr ""
+msgstr "Очистити"
 
-#: src/settings/extensions.slint:154
+#: ui/slint/src/settings/extensions.slint:154
 msgid "Settings > Extensions"
-msgstr ""
+msgstr "Налаштування > Розширення"
 
-#: src/settings/extensions.slint:167 src/settings/settings.slint:43
+#: ui/slint/src/settings/extensions.slint:167
 msgid "Extensions"
-msgstr "Extensions"
+msgstr "Розширення"
 
-#: src/settings/extensions.slint:173
+#: ui/slint/src/settings/extensions.slint:173
 msgid "Manage your extensions"
-msgstr ""
+msgstr "Керування розширеннями"
 
-#: src/settings/extensions.slint:181
+#: ui/slint/src/settings/extensions.slint:181
 msgid "Add Extension"
-msgstr ""
+msgstr "Додати розширення"
 
-#: src/settings/extensions.slint:193
+#: ui/slint/src/settings/extensions.slint:193
 msgid "No extensions available."
-msgstr ""
+msgstr "Немає доступних розширень."
 
-#: src/settings/path_selector.slint:35
+#: ui/slint/src/settings/path_selector.slint:35
 msgid "Add folder"
-msgstr ""
+msgstr "Додати теку"
 
-#: src/settings/paths.slint:24
+#: ui/slint/src/settings/paths.slint:24 ui/slint/src/settings/paths.slint:16
 msgid "Settings > Paths"
-msgstr ""
+msgstr "Налаштування > Шляхи"
 
-#: src/settings/settings.slint:40
+#: ui/slint/src/settings/settings.slint:40
 msgid "Paths"
-msgstr "Paths"
+msgstr "Шляхи"
 
-#: src/settings/settings.slint:41
+#: ui/slint/src/settings/settings.slint:41
 msgid "System"
-msgstr "System"
+msgstr "Система"
 
-#: src/settings/settings.slint:47
+#: ui/slint/src/settings/settings.slint:47
 msgid "Themes"
-msgstr "Themes"
+msgstr "Теми"
 
-#: src/settings/settings.slint:160
+#: ui/slint/src/settings/settings.slint:160
 msgid "Save Custom Theme"
-msgstr ""
+msgstr "Зберегти власну тему"
 
-#: src/settings/settings.slint:166
+#: ui/slint/src/settings/settings.slint:166
 msgid "Your current accent and advanced styling variables will be saved."
-msgstr ""
+msgstr "Ваші поточні змінні акцентів і розширених стилів будуть збережені."
 
-#: src/settings/settings.slint:174
+#: ui/slint/src/settings/settings.slint:174
 msgid "Theme Name"
-msgstr ""
+msgstr "Назва теми"
 
-#: src/settings/settings.slint:175
+#: ui/slint/src/settings/settings.slint:175
 msgid "A short, distinct name"
-msgstr ""
+msgstr "Коротке і чітке ім'я"
 
-#: src/settings/settings.slint:176
+#: ui/slint/src/settings/settings.slint:176
 msgid "e.g., Midnight Blue"
-msgstr ""
+msgstr "Опівнічний синій"
 
-#: src/settings/settings.slint:182
+#: ui/slint/src/settings/settings.slint:182
 msgid "Author"
-msgstr ""
+msgstr "Автор"
 
-#: src/settings/settings.slint:183
+#: ui/slint/src/settings/settings.slint:183
 msgid "Who created this theme?"
-msgstr ""
+msgstr "Хто створив цю тему?"
 
-#: src/settings/settings.slint:184
+#: ui/slint/src/settings/settings.slint:184
 msgid "Your name"
-msgstr ""
+msgstr "Ваше ім'я"
 
-#: src/settings/settings.slint:190
+#: ui/slint/src/settings/settings.slint:190
 msgid "Description"
-msgstr ""
+msgstr "Опис"
 
-#: src/settings/settings.slint:191
+#: ui/slint/src/settings/settings.slint:191
 msgid "A brief summary of the aesthetics"
-msgstr ""
+msgstr "Коротке описання естетики"
 
-#: src/settings/settings.slint:192
+#: ui/slint/src/settings/settings.slint:192
 msgid "High contrast dark theme..."
-msgstr ""
+msgstr "Темна тема високої контрастності..."
 
-#: src/settings/settings.slint:203
+#: ui/slint/src/settings/settings.slint:203
 msgid "Cancel"
-msgstr ""
+msgstr "Скасувати"
 
-#: src/settings/settings.slint:204
+#: ui/slint/src/settings/settings.slint:204
 msgid "Save Theme"
-msgstr ""
+msgstr "Зберегти тему"
 
-#: src/settings/system.slint:24
+#: ui/slint/src/settings/system.slint:24 ui/slint/src/settings/system.slint:16
 msgid "Settings > System"
-msgstr ""
+msgstr "Налаштування > Система"
 
-#: src/settings/themes.slint:215
+#: ui/slint/src/settings/themes.slint:215
 msgid "Opacity"
-msgstr ""
+msgstr "Непрозорість"
 
-#: src/settings/themes.slint:467
+#: ui/slint/src/settings/themes.slint:467
 msgid "Settings > Themes"
-msgstr ""
+msgstr "Налаштування > Теми"
 
-#: src/settings/themes.slint:484
+#: ui/slint/src/settings/themes.slint:484
 msgid "Preset Themes"
-msgstr ""
+msgstr "Шаблони"
 
-#: src/settings/themes.slint:490
+#: ui/slint/src/settings/themes.slint:490
 msgid "Selecting a theme will instantly override your advanced styling configurations."
-msgstr ""
+msgstr "Вибір теми дозволить миттєво перевизначати додаткові конфігурації."
 
-#: src/settings/themes.slint:520
+#: ui/slint/src/settings/themes.slint:520
 msgid "Quick Accent"
-msgstr ""
+msgstr "Швидкий акцент"
 
-#: src/settings/themes.slint:526
+#: ui/slint/src/settings/themes.slint:526
 msgid "Instantly update the primary interactive color."
-msgstr ""
+msgstr "Миттєво обновіть первинний інтерактивний колір."
 
-#: src/settings/themes.slint:573
+#: ui/slint/src/settings/themes.slint:573
 msgid "Advanced Styling"
-msgstr ""
+msgstr "Розширені стилі"
 
-#: src/settings/themes.slint:579
+#: ui/slint/src/settings/themes.slint:579
 msgid "Fine-tune UI parameters. Modifying these clones/mutates the current active theme."
-msgstr ""
+msgstr "Точне налаштування параметрів інтерфейсу. Зміна цих клонів/мутує поточну активну тему."
 
-#: src/settings/themes.slint:606
+#: ui/slint/src/settings/themes.slint:606
 msgid "Adjust the color for {}"
-msgstr ""
+msgstr "Налаштувати колір {}"
 
-#: src/settings/themes.slint:615
+#: ui/slint/src/settings/themes.slint:615
 msgid "Adjust the size for {}"
-msgstr ""
+msgstr "Налаштувати розмір {}"
 
-#: src/settings/themes.slint:630
+#: ui/slint/src/settings/themes.slint:630
 msgid "Export Theme"
-msgstr ""
+msgstr "Експорт теми"
 
-#: src/settings/themes.slint:631
+#: ui/slint/src/settings/themes.slint:631
 msgid "Save your current styling configuration as a new reusable preset."
-msgstr ""
+msgstr "Збережіть поточну конфігурацію стилів як новий повторно використовуваний пресет."
 
-#: src/settings/themes.slint:632
+#: ui/slint/src/settings/themes.slint:632
 msgid "Save as New Theme"
-msgstr ""
+msgstr "Зберегти як нову тему"
 
-#: src/topbar/search_bar.slint:6
+#: ui/slint/src/topbar/search_bar.slint:6
 msgid "Search..."
 msgstr "Пошук..."
+
+#: ui/slint/src/common/save_playlist_modal.slint:29
+msgid "Save as Playlist"
+msgstr "Зберегти як список відтворення"
+
+#: ui/slint/src/common/save_playlist_modal.slint:36
+msgid "Enter details for the new playlist."
+msgstr "Введіть дані для нового списку відтворення."
+
+#: ui/slint/src/common/save_playlist_modal.slint:44
+msgid "Playlist Name"
+msgstr "Назва списку відтворення"
+
+#: ui/slint/src/common/save_playlist_modal.slint:46
+msgid "e.g., My Queue Playlist"
+msgstr "наприклад, Список відтворення моєї черги"
+
+#: ui/slint/src/common/save_playlist_modal.slint:54
+msgid "e.g., Chill vibes and favorites"
+msgstr "наприклад, Фіолетові та улюблені"
+
+#: ui/slint/src/common/save_playlist_modal.slint:70
+msgid "Save"
+msgstr "Зберегти"
+
+#: ui/slint/src/types/context_menu.slint:12
+msgid "Play Now"
+msgstr "Грати зараз"
+
+#: ui/slint/src/types/context_menu.slint:17
+msgid "Play Next"
+msgstr "Відтворити далі"
+
+#: ui/slint/src/types/context_menu.slint:22
+msgid "Add to Queue"
+msgstr "Додати до черги"
+
+#: ui/slint/src/types/context_menu.slint:37
+msgid "Remove from Queue"
+msgstr "Видалити з черги"
+
+#: ui/slint/src/types/context_menu.slint:62
+msgid "Remove from Playlist"
+msgstr "Видалити зі списку відтворення"
+
+#: ui/slint/src/types/context_menu.slint:72
+msgid "Delete Playlist"
+msgstr "Видалити список відтворення"
+
+#: ui/slint/src/types/context_menu.slint:34
+msgid "Clear queue and play"
+msgstr "Очистити чергу і відграти"
+
+#: ui/slint/src/types/context_menu.slint:119
+msgid "Export Playlist"
+msgstr "Експортувати список відтворення"
+
+#: ui/slint/src/types/context_menu.slint:126
+msgid "Save Playlist"
+msgstr "Зберегти список відтворення"
+
+#: ui/slint/src/types/context_menu.slint:135
+msgid "Add to Playlist"
+msgstr "Додати до списку відтворення"
+
+#: ui/slint/src/types/context_menu.slint:139
+msgid "Go to album"
+msgstr "Перейти до альбому"
+
+#: ui/slint/src/types/context_menu.slint:143
+msgid "Go to artists"
+msgstr "Перейти до виконавців"
+
+#: ui/slint/src/settings/extensions.slint:209
+msgid "Update all"
+msgstr "Оновити все"
+
+#: ui/slint/src/settings/text_array_input.slint:82
+msgid "Add"
+msgstr "Додати"
+
+#: ui/slint/src/bottombar/bottom_bar.slint:60
+msgid "Queue"
+msgstr "Черга"
+
+#: ui/slint/src/bottombar/playback_controls.slint:117
+msgid "Pause"
+msgstr "Пауза"
+
+#: ui/slint/src/bottombar/playback_controls.slint:117
+msgid "Play"
+msgstr "Відтворити"
+
+#: ui/slint/src/bottombar/playback_controls.slint:206
+msgid "Previous"
+msgstr "Попереднє"
+
+#: ui/slint/src/bottombar/playback_controls.slint:214
+msgid "Repeat"
+msgstr "Повторити"
+
+#: ui/slint/src/bottombar/playback_controls.slint:230
+msgid "Next"
+msgstr "Уперед"
+
+#: ui/slint/src/bottombar/playback_controls.slint:238
+msgid "Shuffle"
+msgstr "Випадковий порядок"
+
+#: ui/slint/src/bottombar/playback_controls.slint:246
+msgid "Favorite"
+msgstr "Фаворит"
+
+#: ui/slint/src/bottombar/volume_control.slint:11
+msgid "Mute"
+msgstr "Вимкнути звук"
+
+#: ui/slint/src/bottombar/volume_control.slint:11
+msgid "Unmute"
+msgstr "Увімк. звук"
+
+#: ui/slint/src/bottombar/volume_control.slint:96
+msgid "Volume"
+msgstr "Об'єм"
+
+#: ui/slint/src/common/accounts_popup.slint:14
+msgid "Login"
+msgstr "Логін"
+
+#: ui/slint/src/common/accounts_popup.slint:14
+msgid "Logout"
+msgstr "Вихід із системи"
+
+#: ui/slint/src/common/accounts_popup.slint:80
+msgid "No accounts configured"
+msgstr "Рахунки не налаштовані"
+
+#: ui/slint/src/common/extension_details_modal.slint:25
+msgid "Playlist Songs"
+msgstr "Пісні в плейлісті"
+
+#: ui/slint/src/common/extension_details_modal.slint:28
+msgid "Artist Songs"
+msgstr "Композиції виконавця"
+
+#: ui/slint/src/common/extension_details_modal.slint:31
+msgid "Album Songs"
+msgstr "Пісні в альбомі"
+
+#: ui/slint/src/common/extension_details_modal.slint:34
+msgid "Recommendations"
+msgstr "Рекомендації"
+
+#: ui/slint/src/common/extension_details_modal.slint:37
+msgid "Scrobble"
+msgstr "Скробблінг"
+
+#: ui/slint/src/common/extension_details_modal.slint:40
+msgid "Playlist from URL"
+msgstr "Список відтворення з URL"
+
+#: ui/slint/src/common/extension_details_modal.slint:43
+msgid "Song from URL"
+msgstr "Пісня з URL-адреси"
+
+#: ui/slint/src/common/extension_details_modal.slint:46
+msgid "Playback Details"
+msgstr "Деталі відтворення"
+
+#: ui/slint/src/common/extension_details_modal.slint:49
+msgid "Lyrics"
+msgstr "Тексти пісень"
+
+#: ui/slint/src/common/extension_details_modal.slint:52
+msgid "Song Context Menu"
+msgstr "Контекстне меню пісні"
+
+#: ui/slint/src/common/extension_details_modal.slint:55
+msgid "Playlist Context Menu"
+msgstr "Контекстне меню списку відтворення"
+
+#: ui/slint/src/common/extension_details_modal.slint:58
+msgid "Accounts"
+msgstr "Облікові записи"
+
+#: ui/slint/src/common/extension_details_modal.slint:61
+msgid "Song Database Events"
+msgstr "Події бази даних пісні"
+
+#: ui/slint/src/common/extension_details_modal.slint:64
+msgid "Playlist Database Events"
+msgstr "Події бази даних плейлісту"
+
+#: ui/slint/src/common/extension_details_modal.slint:67
+msgid "Player UI Events"
+msgstr "Події інтерфейсу гравця"
+
+#: ui/slint/src/common/extension_details_modal.slint:70
+msgid "Player Data Events"
+msgstr "Дані гравця"
+
+#: ui/slint/src/common/extension_details_modal.slint:72
+msgid "Unknown Scope"
+msgstr "Невідома область дії"
+
+#: ui/slint/src/common/extension_details_modal.slint:123
+msgid "By "
+msgstr "Від "
+
+#: ui/slint/src/common/extension_details_modal.slint:147
+msgid "Network Permissions"
+msgstr "Права доступу до мережі"
+
+#: ui/slint/src/common/extension_details_modal.slint:155
+msgid "No network permissions requested."
+msgstr "Немає запитаних дозволів."
+
+#: ui/slint/src/common/extension_details_modal.slint:163
+msgid "Network Host: "
+msgstr "Мережевий хост: "
+
+#: ui/slint/src/common/extension_details_modal.slint:172
+msgid "Filesystem Permissions"
+msgstr "Дозволи файлової системи"
+
+#: ui/slint/src/common/extension_details_modal.slint:180
+msgid "No filesystem permissions requested."
+msgstr "Немає дозволів файлової системи."
+
+#: ui/slint/src/common/extension_details_modal.slint:188
+msgid "Filesystem Path: "
+msgstr "Шлях до файлової системи: "
+
+#: ui/slint/src/common/extension_details_modal.slint:197
+msgid "Provider Scopes"
+msgstr "Постачальник областей"
+
+#: ui/slint/src/common/extension_details_modal.slint:205
+msgid "No provider scopes registered."
+msgstr "Немає областей провайдера."
+
+#: ui/slint/src/common/extension_details_modal.slint:224
+msgid "Scope: "
+msgstr "Область: "
+
+#: ui/slint/src/common/extension_details_modal.slint:239
+msgid "Close"
+msgstr "Закрити"
+
+#: ui/slint/src/common/extension_details_modal.slint:240
+msgid "Close Extension Details"
+msgstr "Закрити деталі розширення"
+
+#: ui/slint/src/common/oauth_modal.slint:33
+msgid "Account Login"
+msgstr "Вхід до облікового запису"
+
+#: ui/slint/src/common/oauth_modal.slint:40
+msgid "If the browser did not open automatically, copy the URL below:"
+msgstr "Якщо браузер не відкрився автоматично, копіювати посилання нижче:"
+
+#: ui/slint/src/common/oauth_modal.slint:72
+msgid "Authorization Code / Callback URL"
+msgstr "Код авторизації / URL зворотного виклику"
+
+#: ui/slint/src/common/oauth_modal.slint:74
+msgid "Paste the code or redirected URL here"
+msgstr "Вставте тут код або перенаправлення URL"
+
+#: ui/slint/src/common/oauth_modal.slint:84
+msgid "Submit"
+msgstr "Ввести"
+
+#: ui/slint/src/main_content/lyrics_view.slint:79
+msgid "Synced"
+msgstr "Синхронізовано"
+
+#: ui/slint/src/main_content/lyrics_view.slint:79
+msgid "Plain"
+msgstr "Рівнина"
+
+#: ui/slint/src/main_content/lyrics_view.slint:91
+msgid "Show Details"
+msgstr "Показати подробиці"
+
+#: ui/slint/src/main_content/lyrics_view.slint:114
+msgid "Loading lyrics..."
+msgstr "Завантаження тексту..."
+
+#: ui/slint/src/main_content/lyrics_view.slint:124
+msgid "No lyrics available"
+msgstr "Немає доступних текстів"
+
+#: ui/slint/src/main_content/queue_page.slint:159
+msgid "Remove from queue"
+msgstr "Видалити з черги"
+
+#: ui/slint/src/main_content/search.slint:108
+msgid "Search Songs"
+msgstr "Пошук пісень"
+
+#: ui/slint/src/main_content/search.slint:109
+msgid "Search Albums"
+msgstr "Пошук альбомів"
+
+#: ui/slint/src/main_content/search.slint:110
+msgid "Search Artists"
+msgstr "Пошук Виконавців"
+
+#: ui/slint/src/main_content/search.slint:111
+msgid "Search Playlists"
+msgstr "Пошук плейлістів"
+
+#: ui/slint/src/main_content/search.slint:112
+msgid "Search Genres"
+msgstr "Пошук жанрів"
+
+#: ui/slint/src/main_content/search.slint:234
+msgid "Not logged in"
+msgstr "Вхід не здійснено"
+
+#: ui/slint/src/main_content/search.slint:244
+msgid "Please log in to your account to view search results."
+msgstr "Будь ласка, увійдіть до свого облікового запису, щоб переглянути результати пошуку."
+
+#: ui/slint/src/settings/button_group.slint:129
+msgid "Confirm Action"
+msgstr "Підтвердити дію"
+
+#: ui/slint/src/settings/button_group.slint:134
+msgid "Are you sure you want to {}? This cannot be undone."
+msgstr "Ви певні, що хочете {}? Це не може бути скасовано."
+
+#: ui/slint/src/settings/button_group.slint:153
+msgid "Confirm"
+msgstr "Підтвердити"
+
+#: ui/slint/src/settings/extensions.slint:113
+msgid "Extension Details"
+msgstr "Деталі розширення"
+
+#: ui/slint/src/settings/settings.slint:44
+msgid "Settings Paths"
+msgstr "Шлях до налаштувань"
+
+#: ui/slint/src/settings/settings.slint:50
+msgid "Settings System"
+msgstr "Налаштування системи"
+
+#: ui/slint/src/settings/settings.slint:56
+msgid "Settings Extensions"
+msgstr "Налаштування розширень"
+
+#: ui/slint/src/settings/settings.slint:62
+msgid "Settings Themes"
+msgstr "Налаштування тем"
+
+#: ui/slint/src/sidebar/sidebar_header.slint:18
+msgid "Toggle Sidebar"
+msgstr "Перемикач бічної панелі"
+
+#: ui/slint/src/sidebar/sidebar.slint:57
+msgid "Sidebar Songs"
+msgstr "Пісні з бічної панелі"
+
+#: ui/slint/src/sidebar/sidebar.slint:63
+msgid "Sidebar Playlists"
+msgstr "Плейлісти бічної панелі"
+
+#: ui/slint/src/sidebar/sidebar.slint:69
+msgid "Sidebar Artists"
+msgstr "Бічна панель Виконавців"
+
+#: ui/slint/src/sidebar/sidebar.slint:75
+msgid "Sidebar Albums"
+msgstr "Альбоми бічної панелі"
+
+#: ui/slint/src/sidebar/sidebar.slint:81
+msgid "Sidebar Genres"
+msgstr "Sidebar Genres"
+
+#: ui/slint/src/sidebar/sidebar.slint:87
+msgid "Sidebar Explore"
+msgstr "Sidebar Explore"
+
+#: ui/slint/src/topbar/nav_buttons.slint:16
+msgid "Back"
+msgstr "Відмінити"
+
+#: ui/slint/src/topbar/nav_buttons.slint:27
+msgid "Forward"
+msgstr "Переслати"
+
+#: ui/slint/src/topbar/top_bar.slint:88
+msgid "Settings"
+msgstr "Налаштування"
+
+#: ui/slint/src/main_content/search.slint:278
+msgid "No results found"
+msgstr "Нічого не знайдено"
+

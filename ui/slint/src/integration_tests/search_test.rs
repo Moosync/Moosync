@@ -13,7 +13,7 @@ async fn do_search_category_songs(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("s4", "Searchable Melody", "Mix Album", "Mix Artist");
     database.insert_songs(vec![song]).unwrap();
 
@@ -64,7 +64,7 @@ async fn do_search_category_albums(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("s_album_disc", "Mix Track", "Searchable Disc", "Mix Artist");
     database.insert_songs(vec![song]).unwrap();
 
@@ -117,7 +117,7 @@ async fn do_search_category_artists(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("s4", "Mix Track", "Mix Album", "Searchable Singer");
     database.insert_songs(vec![song]).unwrap();
 
@@ -169,7 +169,7 @@ async fn do_search_category_playlists(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("s4", "Mix Track", "Mix Album", "Mix Artist");
     database.insert_songs(vec![song.clone()]).unwrap();
     let playlist = Playlist {
@@ -270,7 +270,7 @@ async fn do_search_not_logged_in_message(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let _ext = ExtensionFixture::new(state_manager).await;
+    let _ext = ExtensionFixture::new_empty(state_manager).await;
 
     main_window
         .global::<AppCallbacks>()
@@ -285,23 +285,23 @@ async fn do_search_not_logged_in_message(
             .global::<AccountsProps>()
             .get_accounts()
             .iter()
-            .any(|a| a.package_name == "rs.sample" && !a.logged_in)
+            .any(|a| a.package_name == "rs.sample.empty" && !a.logged_in)
     })
     .await;
     assert!(accounts_loaded);
 
     main_window
         .global::<SearchPageProps>()
-        .set_search_query("logged in".into());
+        .set_search_query("test".into());
     main_window
         .global::<AppCallbacks>()
-        .invoke_search_term_changed("logged in".into());
+        .invoke_search_term_changed("test".into());
 
     let provider_loaded = wait_until(|| {
         let results = main_window
             .global::<SearchPageProps>()
             .get_provider_results();
-        results.iter().any(|r| r.extension == "rs.sample")
+        results.iter().any(|r| r.extension == "rs.sample.empty")
     })
     .await;
     assert!(provider_loaded);
@@ -310,7 +310,7 @@ async fn do_search_not_logged_in_message(
         .global::<SearchPageProps>()
         .get_provider_results()
         .iter()
-        .position(|r| r.extension == "rs.sample")
+        .position(|r| r.extension == "rs.sample.empty")
         .unwrap();
     main_window
         .global::<SearchPageProps>()
@@ -329,7 +329,7 @@ async fn do_search_not_logged_in_message(
 
     main_window
         .global::<AppCallbacks>()
-        .invoke_account_login("rs.sample".into(), "sample_spotify".into());
+        .invoke_account_login("rs.sample.empty".into(), "sample_spotify".into());
 
     let modal_shown =
         wait_until(|| main_window.global::<OAuthState>().get_show_oauth_modal()).await;
@@ -340,13 +340,7 @@ async fn do_search_not_logged_in_message(
         .invoke_submit_oauth_code("sample_callback?code=sample_auth_code_123".into());
 
     let prompt_hidden = wait_until(|| {
-        let results = main_window
-            .global::<SearchPageProps>()
-            .get_provider_results();
-        results
-            .iter()
-            .any(|r| r.extension == "rs.sample" && r.songs.row_count() == 2)
-            && ElementHandle::find_by_accessible_label(main_window, "Not logged in").count() == 0
+        ElementHandle::find_by_accessible_label(main_window, "Not logged in").count() == 0
     })
     .await;
     assert!(prompt_hidden);

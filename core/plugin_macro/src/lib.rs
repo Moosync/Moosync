@@ -386,7 +386,7 @@ pub fn generate_plugin_system(input: TokenStream) -> TokenStream {
 
         getters.push(quote! {
             #[tracing::instrument(level = "debug", skip_all)]
-            pub async fn #getter_ident(&self) -> #mod_prefix #wrapper_ident<std::sync::Arc<#mod_prefix #struct_ident>> {
+            pub fn #getter_ident(&self) -> #mod_prefix #wrapper_ident<std::sync::Arc<#mod_prefix #struct_ident>> {
                 let _plugin = self.plugins.get::<#mod_prefix #struct_ident>();
                 #mod_prefix #wrapper_ident {
                     inner: _plugin,

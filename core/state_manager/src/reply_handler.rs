@@ -31,7 +31,7 @@ impl ReplyHandler for StateReplyHandler {
         _package_name: &str,
         options: GetSongOptions,
     ) -> Result<Vec<Song>, ExtensionError> {
-        let db = self.runtime.block_on(self.state_manager.get_database());
+        let db = self.state_manager.get_database();
         let songs = db
             .get_songs_by_options(options)
             .map_err(|e| ExtensionError::Sanitize(e.to_string()))?;
@@ -44,7 +44,7 @@ impl ReplyHandler for StateReplyHandler {
         _package_name: &str,
         options: GetEntityOptions,
     ) -> Result<EntityResult, ExtensionError> {
-        let db = self.runtime.block_on(self.state_manager.get_database());
+        let db = self.state_manager.get_database();
         let entity_res = db
             .get_entity_by_options(options)
             .map_err(|e| ExtensionError::Sanitize(e.to_string()))?;
@@ -53,36 +53,28 @@ impl ReplyHandler for StateReplyHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_current_song(&self, _package_name: &str) -> Result<Option<Song>, ExtensionError> {
-        let player = self
-            .runtime
-            .block_on(self.state_manager.get_player_handler());
+        let player = self.state_manager.get_player_handler();
         let song = player.get_current_song();
         Ok(song)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_player_state(&self, _package_name: &str) -> Result<i32, ExtensionError> {
-        let player = self
-            .runtime
-            .block_on(self.state_manager.get_player_handler());
+        let player = self.state_manager.get_player_handler();
         let state = player.get_player_state();
         Ok(state)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_volume(&self, _package_name: &str) -> Result<f64, ExtensionError> {
-        let player = self
-            .runtime
-            .block_on(self.state_manager.get_player_handler());
+        let player = self.state_manager.get_player_handler();
         let volume = player.get_volume() as f64;
         Ok(volume)
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_time(&self, _package_name: &str) -> Result<f64, ExtensionError> {
-        let player = self
-            .runtime
-            .block_on(self.state_manager.get_player_handler());
+        let player = self.state_manager.get_player_handler();
         let pos = player
             .get_current_pos()
             .unwrap_or(std::time::Duration::ZERO);
@@ -91,9 +83,7 @@ impl ReplyHandler for StateReplyHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_queue(&self, _package_name: &str) -> Result<(Vec<Song>, usize), ExtensionError> {
-        let player = self
-            .runtime
-            .block_on(self.state_manager.get_player_handler());
+        let player = self.state_manager.get_player_handler();
         Ok((player.get_queue().to_vec(), player.get_current_idx()))
     }
 
@@ -104,9 +94,7 @@ impl ReplyHandler for StateReplyHandler {
         key: &str,
     ) -> Result<Option<extensions_proto::struct_proto::google::protobuf::Value>, ExtensionError>
     {
-        let prefs = self
-            .runtime
-            .block_on(self.state_manager.get_preference_config());
+        let prefs = self.state_manager.get_preference_config();
         let scoped_key = format!("{}.{}", package_name, key);
         if let Some(item) = prefs.get(&scoped_key)
             && let Some(val) = item.value
@@ -130,9 +118,7 @@ impl ReplyHandler for StateReplyHandler {
         key: &str,
         value: extensions_proto::struct_proto::google::protobuf::Value,
     ) -> Result<bool, ExtensionError> {
-        let prefs = self
-            .runtime
-            .block_on(self.state_manager.get_preference_config());
+        let prefs = self.state_manager.get_preference_config();
         let scoped_key = format!("{}.{}", package_name, key);
         let bytes = value.encode_to_vec();
         let item = PreferenceItem {
@@ -159,9 +145,7 @@ impl ReplyHandler for StateReplyHandler {
         key: &str,
     ) -> Result<Option<extensions_proto::struct_proto::google::protobuf::Value>, ExtensionError>
     {
-        let prefs = self
-            .runtime
-            .block_on(self.state_manager.get_preference_config());
+        let prefs = self.state_manager.get_preference_config();
         let scoped_key = format!("{}.{}", package_name, key);
         let val: serde_json::Value = prefs
             .get_secure(scoped_key)
@@ -183,9 +167,7 @@ impl ReplyHandler for StateReplyHandler {
         key: &str,
         value: extensions_proto::struct_proto::google::protobuf::Value,
     ) -> Result<bool, ExtensionError> {
-        let prefs = self
-            .runtime
-            .block_on(self.state_manager.get_preference_config());
+        let prefs = self.state_manager.get_preference_config();
         let scoped_key = format!("{}.{}", package_name, key);
         let serialized = serde_json::to_string(&value)?;
         let val: serde_json::Value = serde_json::from_str(&serialized)?;
@@ -201,7 +183,7 @@ impl ReplyHandler for StateReplyHandler {
         _package_name: &str,
         songs: Vec<Song>,
     ) -> Result<Vec<Song>, ExtensionError> {
-        let db = self.runtime.block_on(self.state_manager.get_database());
+        let db = self.state_manager.get_database();
         let songs = db
             .insert_songs(songs)
             .map_err(|e| ExtensionError::Sanitize(e.to_string()))?;
@@ -210,7 +192,7 @@ impl ReplyHandler for StateReplyHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn remove_song(&self, _package_name: &str, song: Song) -> Result<bool, ExtensionError> {
-        let db = self.runtime.block_on(self.state_manager.get_database());
+        let db = self.state_manager.get_database();
         if let Some(id) = song.get_id() {
             let ids: &[_] = &[id.as_ref().to_string()];
             db.remove_songs(ids)
@@ -222,7 +204,7 @@ impl ReplyHandler for StateReplyHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn update_song(&self, _package_name: &str, song: Song) -> Result<Song, ExtensionError> {
-        let db = self.runtime.block_on(self.state_manager.get_database());
+        let db = self.state_manager.get_database();
         if let Some(inner) = &song.song {
             db.update_song(inner)
                 .map_err(|e| ExtensionError::Sanitize(e.to_string()))?;
@@ -236,7 +218,7 @@ impl ReplyHandler for StateReplyHandler {
         _package_name: &str,
         playlist: Playlist,
     ) -> Result<String, ExtensionError> {
-        let db = self.runtime.block_on(self.state_manager.get_database());
+        let db = self.state_manager.get_database();
         let playlist_id = db
             .create_playlist(playlist)
             .map_err(|e| ExtensionError::Sanitize(e.to_string()))?;
@@ -250,7 +232,7 @@ impl ReplyHandler for StateReplyHandler {
         playlist_id: String,
         songs: Vec<Song>,
     ) -> Result<bool, ExtensionError> {
-        let db = self.runtime.block_on(self.state_manager.get_database());
+        let db = self.state_manager.get_database();
         db.add_to_playlist(&playlist_id, &songs)
             .map_err(|e| ExtensionError::Sanitize(e.to_string()))?;
         Ok(true)
@@ -275,9 +257,7 @@ impl ReplyHandler for StateReplyHandler {
         package_name: &str,
         account: extensions_proto::moosync::types::ExtensionAccountDetail,
     ) -> Result<bool, ExtensionError> {
-        let extensions = self
-            .runtime
-            .block_on(self.state_manager.get_extension_handler());
+        let extensions = self.state_manager.get_extension_handler();
         tracing::debug!("Setting account {:?} for {}", account, package_name);
         let extension = extensions.get_extension(package_name)?;
         extension.set_account(account.clone());
@@ -291,9 +271,7 @@ impl ReplyHandler for StateReplyHandler {
         package_name: &str,
         prefs: Vec<PreferenceItem>,
     ) -> Result<bool, ExtensionError> {
-        let extensions = self
-            .runtime
-            .block_on(self.state_manager.get_extension_handler());
+        let extensions = self.state_manager.get_extension_handler();
         let extension = extensions.get_extension(package_name)?;
         extension.register_ui_preferences(prefs);
         extensions.trigger_preferences_updated(package_name.to_string());
@@ -306,9 +284,7 @@ impl ReplyHandler for StateReplyHandler {
         package_name: &str,
         keys: Vec<String>,
     ) -> Result<bool, ExtensionError> {
-        let extensions = self
-            .runtime
-            .block_on(self.state_manager.get_extension_handler());
+        let extensions = self.state_manager.get_extension_handler();
         let extension = extensions.get_extension(package_name)?;
         extension.unregister_ui_preferences(keys);
         extensions.trigger_preferences_updated(package_name.to_string());
@@ -320,7 +296,7 @@ impl ReplyHandler for StateReplyHandler {
         let state_manager = self.state_manager.clone();
         self.runtime.spawn(
             async move {
-                let extensions = state_manager.get_extension_handler().await;
+                let extensions = state_manager.get_extension_handler();
                 extensions.trigger_extensions_updated();
             }
             .in_current_span(),

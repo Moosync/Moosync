@@ -31,7 +31,7 @@ use crate::{
 async fn test_fetch_song_lyrics_from_database(state_manager_fixture: TestSlintSmContext) {
     let TestSlintSmContext { sm, .. } = state_manager_fixture;
 
-    let db = sm.get_database().await;
+    let db = sm.get_database();
     let song = Song {
         song: Some(InnerSong {
             id: Some("lyrics_test_song_1".to_string()),

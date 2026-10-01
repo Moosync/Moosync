@@ -100,7 +100,7 @@ async fn test_playlist_list_provider_fetch_entities_success(
         playlist_name: "My Test Playlist".into(),
         ..Default::default()
     };
-    let db = sm.get_database().await;
+    let db = sm.get_database();
     assert_ok!(db.create_playlist_with_songs(playlist, &[]));
 
     let entities_res = PlaylistListProvider::fetch_entities(&sm).await;

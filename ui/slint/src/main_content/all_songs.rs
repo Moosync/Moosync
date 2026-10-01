@@ -55,7 +55,7 @@ impl AllSongsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn fetch_songs(state_manager: &StateManager) -> Result<Vec<Song>, UiError> {
         tracing::debug!("Fetching all songs from database");
-        let database = state_manager.get_database().await;
+        let database = state_manager.get_database();
         let songs = database.get_songs_by_options(GetSongOptions {
             song: Some(SearchableSong::default()),
             ..Default::default()

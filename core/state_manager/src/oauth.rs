@@ -67,7 +67,7 @@ impl StateManager {
             ExtensionError::Sanitize(format!("No extension registered for oauth host: {host}"))
         })?;
 
-        let extensions = self.get_extension_handler().await;
+        let extensions = self.get_extension_handler();
         let extension = extensions.get_extension(&package_name)?;
         extension
             .oauth_callback(OauthCallbackRequest {

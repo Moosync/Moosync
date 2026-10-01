@@ -34,7 +34,7 @@ impl SearchPageHandler {
         state_manager: &StateManager,
         term: &str,
     ) -> Result<ProtoSearchResult, UiError> {
-        let database = state_manager.get_database().await;
+        let database = state_manager.get_database();
         Ok(database.search_all(term)?)
     }
 
@@ -108,7 +108,7 @@ impl SearchPageHandler {
                     }
                 }
 
-                let ext_handler = state_manager.get_extension_handler().await;
+                let ext_handler = state_manager.get_extension_handler();
                 let active_extensions = ext_handler
                     .get_extensions_with_scope(ExtensionProviderScope::Search)
                     .await;
@@ -175,7 +175,7 @@ impl SearchPageHandler {
         let main_window_weak = self.main_window.as_weak();
         tokio::spawn(
             async move {
-                let extension_handler = state_manager.get_extension_handler().await;
+                let extension_handler = state_manager.get_extension_handler();
                 let _cancel = extension_handler.on_accounts_updated.listen({
                     let main_window_weak = main_window_weak.clone();
                     move |_| {

@@ -38,7 +38,7 @@ impl EntitySongProvider for GenreSongProvider {
         genre: Genre,
     ) -> Result<Vec<Song>, UiError> {
         tracing::debug!("Fetching local songs for genre {:?}", genre.genre_name);
-        let database = state_manager.get_database().await;
+        let database = state_manager.get_database();
         let options = GetSongOptions {
             genre: Some(genre),
             ..Default::default()

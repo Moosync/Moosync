@@ -85,7 +85,7 @@ async fn test_genre_song_provider_fetch_local_songs_success(
         genre: vec![genre.clone()],
         ..Default::default()
     };
-    let db = sm.get_database().await;
+    let db = sm.get_database();
     assert_ok!(db.insert_songs(vec![song]));
 
     let songs_res = GenreSongProvider::fetch_local_songs(&sm, genre).await;

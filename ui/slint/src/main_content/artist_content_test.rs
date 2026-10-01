@@ -119,7 +119,7 @@ async fn test_artist_song_provider_fetch_local_songs_success(
         artists: vec![artist.clone()],
         ..Default::default()
     };
-    let db = sm.get_database().await;
+    let db = sm.get_database();
     assert_ok!(db.insert_songs(vec![song]));
 
     let songs_res = ArtistSongProvider::fetch_local_songs(&sm, artist).await;

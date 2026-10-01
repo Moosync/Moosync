@@ -109,7 +109,7 @@ async fn test_genre_list_provider_fetch_entities_success(
         }],
         ..Default::default()
     };
-    let db = sm.get_database().await;
+    let db = sm.get_database();
     assert_ok!(db.insert_songs(vec![song]));
 
     let entities_res = GenreListProvider::fetch_entities(&sm).await;

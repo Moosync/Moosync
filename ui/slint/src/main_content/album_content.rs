@@ -67,7 +67,7 @@ impl EntitySongProvider for AlbumSongProvider {
         state_manager: &StateManager,
         album: Album,
     ) -> Result<Vec<Song>, UiError> {
-        let database = state_manager.get_database().await;
+        let database = state_manager.get_database();
         let options = GetSongOptions {
             album: Some(album),
             ..Default::default()
@@ -84,7 +84,6 @@ impl EntitySongProvider for AlbumSongProvider {
     ) -> Result<(Vec<Song>, Option<String>), UiError> {
         let ext = state_manager
             .get_extension_handler()
-            .await
             .get_extension(&extension)?;
         let resp = ext
             .get_album_songs(RequestedAlbumSongsRequest {

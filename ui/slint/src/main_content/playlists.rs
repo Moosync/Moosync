@@ -18,7 +18,7 @@ pub struct PlaylistListProvider;
 impl PlaylistListProvider {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn get_local_playlists(state_manager: &StateManager) -> Result<Vec<Playlist>, UiError> {
-        let database = state_manager.get_database().await;
+        let database = state_manager.get_database();
         let playlists_res = database.get_entity_by_options(GetEntityOptions {
             playlist: Some(Playlist::default()),
             ..Default::default()
@@ -49,7 +49,7 @@ impl PlaylistListProvider {
         state_manager: &StateManager,
     ) -> Result<Vec<Playlist>, UiError> {
         let mut playlists = Vec::new();
-        let ext_handler = state_manager.get_extension_handler().await;
+        let ext_handler = state_manager.get_extension_handler();
         let playlist_extensions = ext_handler
             .get_extensions_with_scope(ExtensionProviderScope::Playlists)
             .await;
@@ -131,7 +131,7 @@ impl PlaylistsPageHandler {
             playlist_ids
         );
         if action == "delete_playlist" {
-            let db = state_manager.get_database().await;
+            let db = state_manager.get_database();
             for pid in &playlist_ids {
                 match db.remove_playlist(pid) {
                     Ok(()) => {

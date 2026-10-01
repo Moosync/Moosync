@@ -62,7 +62,7 @@ async fn test_scanner_hook_on_startup(sm_context: TestSmContext) {
 
     assert_ok!(hook.on_startup(&sm).await);
 
-    let pref = sm.get_preference_config().await;
+    let pref = sm.get_preference_config();
     pref.save(PreferenceItem {
         id: SCAN_THREADS.id.clone(),
         value: Some(PreferenceValue {
@@ -73,6 +73,6 @@ async fn test_scanner_hook_on_startup(sm_context: TestSmContext) {
     .unwrap();
     tokio::time::sleep(Duration::from_millis(50)).await;
 
-    let scanner = sm.get_scanner_holder().await;
+    let scanner = sm.get_scanner_holder();
     assert_eq!(scanner.get_scan_threads(), Some(4));
 }

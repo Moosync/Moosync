@@ -112,7 +112,7 @@ async fn test_extensions_page_handler_registries(
     )
     .await;
 
-    let pref = state_manager.get_preference_config().await;
+    let pref = state_manager.get_preference_config();
     let saved: Vec<String> = pref
         .load(&EXTENSION_REGISTRIES)
         .value::<Vec<String>>()

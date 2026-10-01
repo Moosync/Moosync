@@ -41,7 +41,7 @@ impl Hook for ExtensionRegistriesHook {
         &self,
         state_manager: &StateManager,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let preferences = state_manager.get_preference_config().await;
+        let preferences = state_manager.get_preference_config();
 
         preferences.on_preference_changed.listen_filtered_immediate(
             {
@@ -50,12 +50,12 @@ impl Hook for ExtensionRegistriesHook {
                     let state_manager = state_manager.clone();
                     tokio::spawn(
                         async move {
-                            let preferences = state_manager.get_preference_config().await;
+                            let preferences = state_manager.get_preference_config();
                             let registries = preferences
                                 .load(&EXTENSION_REGISTRIES)
                                 .value::<Vec<String>>()
                                 .unwrap_or_default();
-                            let extensions = state_manager.get_extension_handler().await;
+                            let extensions = state_manager.get_extension_handler();
                             if let Err(e) = extensions
                                 .fetch_remote_manifests(registries.into_iter().collect())
                                 .await

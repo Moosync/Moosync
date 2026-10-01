@@ -93,7 +93,7 @@ async fn do_extension_preference_text_input(
     let start = std::time::Instant::now();
     let mut updated = false;
     while start.elapsed() < Duration::from_secs(5) {
-        let config = state_manager.get_preference_config().await;
+        let config = state_manager.get_preference_config();
         if config
             .get("ext:rs.sample:api_key")
             .and_then(|p| p.value::<String>())
@@ -194,7 +194,7 @@ async fn do_extension_preference_toggle(
     let start = std::time::Instant::now();
     let mut updated = false;
     while start.elapsed() < Duration::from_secs(5) {
-        let config = state_manager.get_preference_config().await;
+        let config = state_manager.get_preference_config();
         if config
             .get("ext:rs.sample:enable_feature")
             .and_then(|p| p.value::<bool>())
@@ -221,7 +221,7 @@ async fn do_playlists_extension_integration(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("p1", "Local Song", "Local Album", "Local Artist");
     database.insert_songs(vec![song.clone()]).unwrap();
     let playlist = Playlist {
@@ -260,7 +260,7 @@ async fn do_extension_content_toggle_provider_off(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("p_ext_t", "Local Song", "Local Album", "Local Artist");
     database.insert_songs(vec![song.clone()]).unwrap();
     let playlist = Playlist {
@@ -343,7 +343,7 @@ async fn do_extension_content_toggle_provider_on(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("p_ext_on", "Local Song", "Local Album", "Local Artist");
     database.insert_songs(vec![song.clone()]).unwrap();
     let playlist = Playlist {
@@ -445,7 +445,7 @@ async fn do_artist_content_extension_toggle_and_open(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("art_ext", "Local Song", "Local Album", "Artist Ext");
     database.insert_songs(vec![song]).unwrap();
     let songs = database
@@ -514,7 +514,7 @@ async fn do_album_content_extension_toggle_and_open(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("alb_ext", "Local Song", "Album Ext", "Local Artist");
     database.insert_songs(vec![song]).unwrap();
     let songs = database
@@ -912,7 +912,7 @@ async fn do_extension_details_modal_lifecycle(
     );
     assert_eq!(details_state.get_item().scopes.row_count(), 7);
 
-    let ext_handler = state_manager.get_extension_handler().await;
+    let ext_handler = state_manager.get_extension_handler();
     assert!(ext_handler.get_extension("rs.sample").is_ok());
 
     close_handles[0]

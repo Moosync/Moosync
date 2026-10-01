@@ -27,7 +27,7 @@ impl EntityListProvider for ArtistListProvider {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn fetch_entities(state_manager: &StateManager) -> Result<Vec<Artist>, UiError> {
         tracing::debug!("Fetching artists from database");
-        let database = state_manager.get_database().await;
+        let database = state_manager.get_database();
         let artists_res = database.get_entity_by_options(GetEntityOptions {
             artist: Some(Artist::default()),
             ..Default::default()

@@ -150,7 +150,7 @@ async fn do_playback_pause_song(
     // Tier 2: Slint Props assertion
     assert!(!main_window.global::<PlayerProps>().get_playing());
     // Tier 3: Core Crate State assertion
-    let ph = state_manager.get_player_handler().await;
+    let ph = state_manager.get_player_handler();
     assert_eq!(ph.get_player_state(), PlayerState::Paused);
 }
 ```

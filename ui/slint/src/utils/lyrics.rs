@@ -23,7 +23,7 @@ use types::prelude::SongsExt;
 pub async fn fetch_song_lyrics(state_manager: &StateManager, song: &Song) -> Option<Lyrics> {
     let song_id = song.get_id()?;
 
-    let db = state_manager.get_database().await;
+    let db = state_manager.get_database();
     match db.get_lyrics(&song_id) {
         Ok(Some(lyrics)) => {
             if !lyrics.lines.is_empty() {
@@ -36,7 +36,7 @@ pub async fn fetch_song_lyrics(state_manager: &StateManager, song: &Song) -> Opt
         }
     }
 
-    let ext_handler = state_manager.get_extension_handler().await;
+    let ext_handler = state_manager.get_extension_handler();
     let lyric_extensions = ext_handler
         .get_extensions_with_scope(ExtensionProviderScope::Lyrics)
         .await;

@@ -25,7 +25,7 @@ impl AccountsHandler {
     ) {
         tokio::spawn(
             async move {
-                let extension_handler = state_manager.get_extension_handler().await;
+                let extension_handler = state_manager.get_extension_handler();
                 let extensions = extension_handler
                     .get_extensions_with_scope(ExtensionProviderScope::Accounts)
                     .await;
@@ -66,7 +66,7 @@ impl AccountsHandler {
         let main_window_weak = main_window.as_weak();
         tokio::spawn(
             async move {
-                let extension_handler = state_manager.get_extension_handler().await;
+                let extension_handler = state_manager.get_extension_handler();
                 let _cancel = extension_handler.on_accounts_updated.listen({
                     let main_window_weak = main_window_weak.clone();
                     move |_| {
@@ -90,7 +90,7 @@ impl AccountsHandler {
                 let account_id = account_id.to_string();
                 tokio::spawn(
                     async move {
-                        let extension_handler = state_manager.get_extension_handler().await;
+                        let extension_handler = state_manager.get_extension_handler();
                         match extension_handler.get_extension(&package_name) {
                             Ok(ext) => {
                                 match ext
@@ -139,7 +139,7 @@ impl AccountsHandler {
                 let account_id = account_id.to_string();
                 tokio::spawn(
                     async move {
-                        let extension_handler = state_manager.get_extension_handler().await;
+                        let extension_handler = state_manager.get_extension_handler();
                         if let Ok(ext) = extension_handler.get_extension(&package_name) {
                             if let Err(e) = ext
                                 .perform_account_login(

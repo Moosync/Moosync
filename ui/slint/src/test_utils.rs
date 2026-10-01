@@ -190,7 +190,7 @@ pub mod integration {
 
         // 1. Remove all installed custom extensions
         {
-            let ext_handler = state_manager.get_extension_handler().await;
+            let ext_handler = state_manager.get_extension_handler();
             for detail in ext_handler.get_installed_extensions() {
                 let _ = ext_handler.remove_extension(detail.package_name);
             }
@@ -209,7 +209,7 @@ pub mod integration {
 
         // 2. Clear Database
         {
-            let database = state_manager.get_database().await;
+            let database = state_manager.get_database();
             if let Ok(songs) = database.get_songs_by_options(GetSongOptions {
                 song: Some(SearchableSong::default()),
                 ..Default::default()
@@ -238,7 +238,7 @@ pub mod integration {
 
         // 3. Reset Player Handler
         {
-            let ph = state_manager.get_player_handler().await;
+            let ph = state_manager.get_player_handler();
             ph.clear_queue();
             ph.clear_queue();
             let _ = ph.pause();
@@ -427,10 +427,23 @@ pub mod integration {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_sample_ext_path() -> PathBuf {
+    pub fn get_sample_ext_path_for(subpath: &str) -> PathBuf {
         let runfiles_dir = env::var("TEST_SRCDIR").expect("TEST_SRCDIR must be set");
-        PathBuf::from(runfiles_dir).join("moosync_ext+/sample_extensions/rs")
+        let candidates = [
+            PathBuf::from(&runfiles_dir).join(format!("_main/sample_extensions/{subpath}")),
+            PathBuf::from(&runfiles_dir).join(format!("moosync/sample_extensions/{subpath}")),
+            PathBuf::from(&runfiles_dir).join(format!("moosync_ext+/sample_extensions/{subpath}")),
+            PathBuf::from(&runfiles_dir).join(format!("moosync_ext/sample_extensions/{subpath}")),
+        ];
+        candidates
+            .iter()
+            .find(|p| p.exists())
+            .cloned()
+            .unwrap_or_else(|| candidates[0].clone())
     }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn get_sample_ext_path() -> PathBuf { get_sample_ext_path_for("default") }
 
     static CLEANUP_HANDLES: std::sync::Mutex<Vec<tokio::task::JoinHandle<()>>> =
         std::sync::Mutex::new(Vec::new());
@@ -456,18 +469,39 @@ pub mod integration {
         }
 
         #[tracing::instrument(level = "debug", skip_all)]
+        pub async fn new_empty(state_manager: &'static StateManager) -> Self {
+            Self::new_from_subpath(
+                state_manager,
+                "empty",
+                "rs.sample.empty",
+                "Empty Sample Extension",
+            )
+            .await
+        }
+
+        #[tracing::instrument(level = "debug", skip_all)]
         pub async fn new_with_name(
             state_manager: &'static StateManager,
             package_name: &str,
             display_name: &str,
         ) -> Self {
+            Self::new_from_subpath(state_manager, "default", package_name, display_name).await
+        }
+
+        #[tracing::instrument(level = "debug", skip_all)]
+        pub async fn new_from_subpath(
+            state_manager: &'static StateManager,
+            subpath: &str,
+            package_name: &str,
+            display_name: &str,
+        ) -> Self {
             await_cleanup_handles().await;
 
-            let ext_handler = state_manager.get_extension_handler().await;
+            let ext_handler = state_manager.get_extension_handler();
             let ext_dir = ext_handler.extensions_dir.join(package_name);
             fs::create_dir_all(&ext_dir).unwrap();
 
-            let src_ext_path = get_sample_ext_path();
+            let src_ext_path = get_sample_ext_path_for(subpath);
             assert!(
                 src_ext_path.exists(),
                 "Source extension path does not exist: {:?}",
@@ -535,7 +569,7 @@ pub mod integration {
             let state_manager = self.state_manager;
             let package_name = self.package_name.clone();
             let handle = runtime().spawn(async move {
-                let ext_handler = state_manager.get_extension_handler().await;
+                let ext_handler = state_manager.get_extension_handler();
                 let _ = ext_handler.remove_extension(package_name);
             });
             CLEANUP_HANDLES.lock().unwrap().push(handle);

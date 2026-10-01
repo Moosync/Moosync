@@ -112,7 +112,7 @@ fn attach_playlist_submenu(
 ) {
     let _ = slint::spawn_local(
         async move {
-            let db = state_manager.get_database().await;
+            let db = state_manager.get_database();
             let res = match db.get_entity_by_options(GetEntityOptions {
                 playlist: Some(Playlist::default()),
                 ..Default::default()
@@ -230,7 +230,7 @@ async fn handle_playback_action(state_manager: &StateManager, songs: Vec<Song>, 
         action,
         songs.len()
     );
-    let player = state_manager.get_player_handler().await;
+    let player = state_manager.get_player_handler();
     match action {
         "play_now" => player.play_now(songs),
         "play_next" => player.play_next(songs),
@@ -269,7 +269,7 @@ async fn handle_remove_from_playlist(
         song_ids.len(),
         selected_pid
     );
-    let db = state_manager.get_database().await;
+    let db = state_manager.get_database();
     match db.remove_from_playlist(&selected_pid, &song_ids) {
         Ok(()) => {
             tracing::debug!(
@@ -311,7 +311,7 @@ async fn handle_remove_from_playlist(
 #[tracing::instrument(level = "debug", skip_all)]
 async fn handle_add_to_playlist(state_manager: &StateManager, songs: &[Song], playlist_id: &str) {
     tracing::debug!("Adding {} songs to playlist '{}'", songs.len(), playlist_id);
-    let db = state_manager.get_database().await;
+    let db = state_manager.get_database();
     match db.add_to_playlist(playlist_id, songs) {
         Ok(()) => {
             tracing::debug!("Successfully added songs to playlist '{}'", playlist_id);
@@ -330,7 +330,7 @@ async fn handle_goto_entity_by_id(
     id: &str,
 ) {
     tracing::debug!("Navigating to {:?} with ID: '{}'", target_page, id);
-    let db = state_manager.get_database().await;
+    let db = state_manager.get_database();
     match target_page {
         Pages::AlbumContent => {
             let album = match db.get_entity_by_options(GetEntityOptions {

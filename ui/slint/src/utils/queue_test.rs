@@ -21,7 +21,7 @@ async fn test_save_queue_creates_playlist_in_db() {
         ..Default::default()
     };
     {
-        let ph = sm.get_player_handler().await;
+        let ph = sm.get_player_handler();
         ph.add_to_queue(vec![song]);
     }
 
@@ -32,7 +32,7 @@ async fn test_save_queue_creates_playlist_in_db() {
     )
     .await;
 
-    let db = sm.get_database().await;
+    let db = sm.get_database();
     let playlists_res = db.get_entity_by_options(GetEntityOptions {
         playlist: Some(Playlist::default()),
         ..Default::default()

@@ -24,14 +24,14 @@ impl Hook for ExtensionsHook {
         &self,
         state_manager: &StateManager,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let extensions = state_manager.get_extension_handler().await;
+        let extensions = state_manager.get_extension_handler();
         let reply_handler = Arc::new(StateReplyHandler::new(state_manager.clone()));
         extensions.set_reply_handler(reply_handler);
 
         let state_manager = state_manager.clone();
         tokio::spawn(
             async move {
-                let extensions = state_manager.get_extension_handler().await;
+                let extensions = state_manager.get_extension_handler();
                 if let Err(e) = extensions.find_new_extensions() {
                     tracing::error!("Failed to find new extensions: {:?}", e);
                 }

@@ -83,7 +83,7 @@ async fn test_system_page_handler_handle_change_auto_startup(
     )
     .await;
 
-    let config = sm.get_preference_config().await;
+    let config = sm.get_preference_config();
     let auto_startup = config.load(&AUTO_STARTUP).value::<bool>().unwrap();
     assert!(auto_startup);
 }

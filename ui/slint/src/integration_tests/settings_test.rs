@@ -49,7 +49,7 @@ async fn do_preference_paths_list(
             value_list: ModelRc::default(),
         });
 
-    let config = state_manager.get_preference_config().await;
+    let config = state_manager.get_preference_config();
     let path_saved = wait_until(|| {
         config
             .load(pref_key)
@@ -97,7 +97,7 @@ async fn do_preference_scan_number(
             value_list: ModelRc::default(),
         });
 
-    let config = state_manager.get_preference_config().await;
+    let config = state_manager.get_preference_config();
     let saved = wait_until(|| {
         config
             .load(pref_key)
@@ -145,7 +145,7 @@ async fn do_preference_path_string(
             value_list: ModelRc::default(),
         });
 
-    let config = state_manager.get_preference_config().await;
+    let config = state_manager.get_preference_config();
     let saved = wait_until(|| {
         config
             .load(pref_key)
@@ -191,7 +191,7 @@ async fn do_preference_system_bool(
             value_list: ModelRc::default(),
         });
 
-    let config = state_manager.get_preference_config().await;
+    let config = state_manager.get_preference_config();
     let saved = wait_until(|| {
         config
             .load(pref_key)
@@ -239,7 +239,7 @@ async fn do_preference_system_string(
             value_list: ModelRc::default(),
         });
 
-    let config = state_manager.get_preference_config().await;
+    let config = state_manager.get_preference_config();
     let saved = wait_until(|| {
         config
             .load(pref_key)
@@ -284,7 +284,7 @@ async fn do_preference_extension_registries(
             value_list: ModelRc::default(),
         });
 
-    let config = state_manager.get_preference_config().await;
+    let config = state_manager.get_preference_config();
     let registry_saved = wait_until(|| {
         config
             .load(&EXTENSION_REGISTRIES)

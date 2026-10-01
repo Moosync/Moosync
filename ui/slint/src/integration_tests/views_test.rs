@@ -11,7 +11,7 @@ use state_manager::StateManager;
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_view_all_songs(main_window: &'static MainWindow, state_manager: &'static StateManager) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("s1", "Song Alpha", "Album Alpha", "Artist Alpha");
     database.insert_songs(vec![song]).unwrap();
 
@@ -51,7 +51,7 @@ async fn do_view_all_songs(main_window: &'static MainWindow, state_manager: &'st
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_view_playlists(main_window: &'static MainWindow, state_manager: &'static StateManager) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let playlist = Playlist {
         playlist_id: Some("pl1".into()),
         playlist_name: "Favorites Playlist".into(),
@@ -90,7 +90,7 @@ async fn do_view_playlist_content(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("s1", "Content Song", "Content Album", "Content Artist");
     database.insert_songs(vec![song.clone()]).unwrap();
     let playlist = Playlist {
@@ -149,7 +149,7 @@ async fn do_view_playlist_content(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_view_albums(main_window: &'static MainWindow, state_manager: &'static StateManager) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("s2", "Rock Song", "Rock Album", "Rock Artist");
     database.insert_songs(vec![song]).unwrap();
 
@@ -181,7 +181,7 @@ async fn do_view_album_content(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("s2", "Album Song", "Rock Album", "Rock Artist");
     let inserted = database.insert_songs(vec![song]).unwrap();
     let album_id = inserted[0]
@@ -239,7 +239,7 @@ async fn do_view_album_content(
 
 #[tracing::instrument(level = "debug", skip_all)]
 async fn do_view_artists(main_window: &'static MainWindow, state_manager: &'static StateManager) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("s3", "Pop Song", "Pop Album", "Rock Star");
     database.insert_songs(vec![song]).unwrap();
 
@@ -271,7 +271,7 @@ async fn do_view_artist_content(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("s3", "Artist Song", "Pop Album", "Rock Star");
     let inserted = database.insert_songs(vec![song]).unwrap();
     let artist_id = inserted[0].artists[0].artist_id.clone().unwrap_or_default();

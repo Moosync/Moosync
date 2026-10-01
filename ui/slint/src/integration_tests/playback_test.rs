@@ -13,7 +13,7 @@ async fn do_playback_play_song(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("s_play", "Playback Track", "Album", "Artist");
     database.insert_songs(vec![song.clone()]).unwrap();
 
@@ -51,7 +51,7 @@ async fn do_playback_pause_song(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("s_pause", "Playback Track", "Album", "Artist");
     database.insert_songs(vec![song.clone()]).unwrap();
 
@@ -87,7 +87,7 @@ async fn do_playback_resume_song(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("s_resume", "Playback Track", "Album", "Artist");
     database.insert_songs(vec![song.clone()]).unwrap();
 
@@ -128,7 +128,7 @@ async fn do_playback_skip_next(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song1 = create_test_song("s_next1", "Track 1", "Album", "Artist");
     let song2 = create_test_song("s_next2", "Track 2", "Album", "Artist");
     database
@@ -136,7 +136,7 @@ async fn do_playback_skip_next(
         .unwrap();
 
     {
-        let ph = state_manager.get_player_handler().await;
+        let ph = state_manager.get_player_handler();
         ph.play_now(vec![song1.clone(), song2.clone()]);
     }
 
@@ -161,7 +161,7 @@ async fn do_playback_skip_previous(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song1 = create_test_song("s_prev1", "Track 1", "Album", "Artist");
     let song2 = create_test_song("s_prev2", "Track 2", "Album", "Artist");
     database
@@ -169,7 +169,7 @@ async fn do_playback_skip_previous(
         .unwrap();
 
     {
-        let ph = state_manager.get_player_handler().await;
+        let ph = state_manager.get_player_handler();
         ph.play_now(vec![song1.clone(), song2.clone()]);
         ph.next();
     }
@@ -226,7 +226,7 @@ async fn do_playback_volume_and_mute(
     state_manager: &'static StateManager,
 ) {
     let _initial_volume = {
-        let player_handler = state_manager.get_player_handler().await;
+        let player_handler = state_manager.get_player_handler();
         player_handler.get_volume()
     };
 
@@ -237,7 +237,7 @@ async fn do_playback_volume_and_mute(
     let start = std::time::Instant::now();
     let mut changed = false;
     while start.elapsed() < Duration::from_secs(5) {
-        let ph = state_manager.get_player_handler().await;
+        let ph = state_manager.get_player_handler();
         if ph.get_volume() == 42 {
             changed = true;
             break;
@@ -256,7 +256,7 @@ async fn do_playback_volume_and_mute(
     let start = std::time::Instant::now();
     let mut muted = false;
     while start.elapsed() < Duration::from_secs(5) {
-        let ph = state_manager.get_player_handler().await;
+        let ph = state_manager.get_player_handler();
         if ph.get_volume() == 0 {
             muted = true;
             break;

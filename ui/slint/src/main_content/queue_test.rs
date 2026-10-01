@@ -58,7 +58,7 @@ async fn test_queue_page_handler_initialize(
         ..Default::default()
     };
     {
-        let ph = sm.get_player_handler().await;
+        let ph = sm.get_player_handler();
         ph.add_to_queue(vec![song1, song2]);
     }
 
@@ -72,7 +72,7 @@ async fn test_queue_page_handler_initialize(
         .invoke_play_queue_index(1);
     tokio::time::sleep(Duration::from_millis(50)).await;
     {
-        let ph = sm.get_player_handler().await;
+        let ph = sm.get_player_handler();
         assert_eq!(ph.get_current_idx(), 1);
     }
 
@@ -81,14 +81,14 @@ async fn test_queue_page_handler_initialize(
         .invoke_remove_from_queue(0);
     tokio::time::sleep(Duration::from_millis(50)).await;
     {
-        let ph = sm.get_player_handler().await;
+        let ph = sm.get_player_handler();
         assert_eq!(ph.get_queue().len(), 1);
     }
 
     main_window.global::<AppCallbacks>().invoke_clear_queue();
     tokio::time::sleep(Duration::from_millis(50)).await;
     {
-        let ph = sm.get_player_handler().await;
+        let ph = sm.get_player_handler();
         assert_eq!(ph.get_queue().len(), 0);
     }
 }
@@ -109,13 +109,13 @@ async fn test_queue_save_queue_as_playlist(state_manager_fixture: TestSlintSmCon
         ..Default::default()
     };
     {
-        let ph = sm.get_player_handler().await;
+        let ph = sm.get_player_handler();
         ph.add_to_queue(vec![song]);
     }
 
     save_queue(&sm, "My Saved Queue".into(), "My Description".into()).await;
 
-    let db = sm.get_database().await;
+    let db = sm.get_database();
     let playlists_res = db.get_entity_by_options(GetEntityOptions {
         playlist: Some(Playlist::default()),
         ..Default::default()

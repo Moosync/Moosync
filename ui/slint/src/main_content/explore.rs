@@ -44,7 +44,7 @@ impl ExplorePageHandler {
     ) -> Result<Vec<RecommendationItem>, UiError> {
         tracing::debug!("Fetching recommendations across all active providers");
         let mut results = Vec::new();
-        let ext_handler = state_manager.get_extension_handler().await;
+        let ext_handler = state_manager.get_extension_handler();
         let rec_extensions = ext_handler
             .get_extensions_with_scope(ExtensionProviderScope::Recommendations)
             .await;

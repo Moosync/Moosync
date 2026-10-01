@@ -403,7 +403,7 @@ async fn test_reply_handler_set_account(reply_context: TestReplyContext) {
     let received = std::sync::Arc::new(std::sync::Mutex::new(None));
     let received_clone = received.clone();
 
-    let ext_handler = sm.get_extension_handler().await;
+    let ext_handler = sm.get_extension_handler();
     let _sub = ext_handler.on_accounts_updated.listen(move |acc| {
         *received_clone.lock().unwrap() = acc;
     });

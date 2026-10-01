@@ -3,13 +3,13 @@ use state_manager::StateManager;
 
 #[tracing::instrument(level = "debug", skip_all)]
 pub async fn save_queue(state_manager: &StateManager, name: String, description: String) {
-    let player_handler = state_manager.get_player_handler().await;
+    let player_handler = state_manager.get_player_handler();
     let queue = player_handler.get_queue().to_vec();
     if queue.is_empty() {
         return;
     }
 
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let trimmed_name = name.trim();
     let playlist_name = if trimmed_name.is_empty() {
         "Queue playlist".to_string()

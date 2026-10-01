@@ -104,7 +104,7 @@ pub async fn handle_preference_change(
         "handle_preference_change: received update for key = {}",
         key
     );
-    let config = state_manager.get_preference_config().await;
+    let config = state_manager.get_preference_config();
 
     // Load existing preference or template from static list or extension
     // preferences
@@ -115,7 +115,7 @@ pub async fn handle_preference_change(
     });
 
     if existing_item.is_none() && key.starts_with("ext:") {
-        let ext_handler = state_manager.get_extension_handler().await;
+        let ext_handler = state_manager.get_extension_handler();
         for ext in ext_handler.get_installed_extensions() {
             for mut p in ext.preferences {
                 let scoped_id = format!("ext:{}:{}", ext.package_name, p.id);
@@ -204,7 +204,7 @@ pub async fn handle_preference_change(
 
     if let Some(rest) = key.strip_prefix("ext:") {
         if let Some((pkg, ext_key)) = rest.split_once(':') {
-            let ext_handler = state_manager.get_extension_handler().await;
+            let ext_handler = state_manager.get_extension_handler();
             match ext_handler.get_extension(pkg) {
                 Ok(ext) => {
                     if let Err(e) = ext

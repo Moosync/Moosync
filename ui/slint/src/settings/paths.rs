@@ -61,7 +61,7 @@ impl PathsPageHandler {
         main_window_weak: slint::Weak<MainWindow>,
         state_manager: &'static StateManager,
     ) {
-        let config = state_manager.get_preference_config().await;
+        let config = state_manager.get_preference_config();
         let items: Vec<ProtoPreferenceItem> =
             PREFERENCES.iter().map(|pref| config.load(pref)).collect();
 

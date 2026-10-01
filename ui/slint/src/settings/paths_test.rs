@@ -83,7 +83,7 @@ async fn test_paths_page_handler_handle_change_music_paths(
     )
     .await;
 
-    let config = sm.get_preference_config().await;
+    let config = sm.get_preference_config();
     let paths = config.load(&MUSIC_PATHS).value::<Vec<String>>().unwrap();
     assert!(paths.contains(&"/test/path".to_string()));
 }

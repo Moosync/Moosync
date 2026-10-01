@@ -166,13 +166,13 @@ impl ThemesPageHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    async fn flush_changes(
+    fn flush_changes(
         state_manager: &StateManager,
         main_window_weak: &slint::Weak<MainWindow>,
         pending_changes: &mut std::collections::HashMap<String, String>,
     ) {
-        let theme_holder = state_manager.get_theme_holder().await;
-        let preference_config = state_manager.get_preference_config().await;
+        let theme_holder = state_manager.get_theme_holder();
+        let preference_config = state_manager.get_preference_config();
 
         let active_theme_id = preference_config
             .inner
@@ -279,14 +279,14 @@ impl PageHandler for ThemesPageHandler {
                                 pending_changes.insert(name, val);
                             } else {
                                 if !pending_changes.is_empty() {
-                                    Self::flush_changes(state_manager, &main_window_weak_bg, &mut pending_changes).await;
+                                    Self::flush_changes(state_manager, &main_window_weak_bg, &mut pending_changes);
                                 }
                                 break;
                             }
                         }
                         _ = &mut timeout => {
                             if !pending_changes.is_empty() {
-                                Self::flush_changes(state_manager, &main_window_weak_bg, &mut pending_changes).await;
+                                Self::flush_changes(state_manager, &main_window_weak_bg, &mut pending_changes);
                             }
                         }
                     }
@@ -297,7 +297,7 @@ impl PageHandler for ThemesPageHandler {
 
         tokio::spawn(
             async move {
-                let preference_config = state_manager.get_preference_config().await;
+                let preference_config = state_manager.get_preference_config();
                 preference_config
                     .on_preference_changed
                     .listen_filtered_immediate(
@@ -308,10 +308,9 @@ impl PageHandler for ThemesPageHandler {
                                     let main_window_weak = main_window_weak.clone();
                                     tokio::spawn(
                                         async move {
-                                            let theme_holder =
-                                                state_manager.get_theme_holder().await;
+                                            let theme_holder = state_manager.get_theme_holder();
                                             let preference_config =
-                                                state_manager.get_preference_config().await;
+                                                state_manager.get_preference_config();
                                             let active_theme_id = preference_config
                                                 .inner
                                                 .load(&ACTIVE_THEME_ID)
@@ -375,8 +374,8 @@ impl PageHandler for ThemesPageHandler {
                     tokio::spawn(
                         async move {
                             tracing::debug!("Selecting preset theme: {}", theme_id);
-                            let theme_holder = state_manager.get_theme_holder().await;
-                            let preference_config = state_manager.get_preference_config().await;
+                            let theme_holder = state_manager.get_theme_holder();
+                            let preference_config = state_manager.get_preference_config();
 
                             match theme_holder.inner.load_theme(theme_id.clone()) {
                                 Ok(theme) => {
@@ -451,8 +450,8 @@ impl PageHandler for ThemesPageHandler {
                     tokio::spawn(
                         async move {
                             tracing::debug!("Saving custom theme: name={}, author={}", name, author);
-                            let theme_holder = state_manager.get_theme_holder().await;
-                            let preference_config = state_manager.get_preference_config().await;
+                            let theme_holder = state_manager.get_theme_holder();
+                            let preference_config = state_manager.get_preference_config();
 
                             match theme_holder.inner.load_theme("current".to_string()) {
                                 Ok(mut theme) => {
@@ -514,7 +513,7 @@ impl PageHandler for ThemesPageHandler {
             let state_manager = self.state_manager;
             let main_window_weak = self.main_window.as_weak();
             async move {
-                let theme_holder = state_manager.get_theme_holder().await;
+                let theme_holder = state_manager.get_theme_holder();
                 let main_window_weak = main_window_weak.clone();
 
                 theme_holder.on_theme_changed.listen(move |changed_theme| {
@@ -523,8 +522,8 @@ impl PageHandler for ThemesPageHandler {
 
                     tokio::spawn(
                         async move {
-                            let theme_holder = state_manager.get_theme_holder().await;
-                            let preference_config = state_manager.get_preference_config().await;
+                            let theme_holder = state_manager.get_theme_holder();
+                            let preference_config = state_manager.get_preference_config();
 
                             let active_theme_id = preference_config
                                 .inner

@@ -67,6 +67,6 @@ async fn test_player_hook_on_startup(sm_context: TestSmContext) {
         }),
         ..Default::default()
     };
-    let player = sm.get_player_handler().await;
+    let player = sm.get_player_handler();
     assert_ok!(player.resolve_playback_url(&mut song));
 }

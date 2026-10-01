@@ -187,7 +187,6 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
             async move {
                 let ext = match state_manager
                     .get_extension_handler()
-                    .await
                     .get_extension(&package_name)
                 {
                     Ok(ext) => ext,
@@ -283,7 +282,6 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
 
                     let detail = state_manager
                         .get_extension_handler()
-                        .await
                         .get_extension(&package_name)
                         .ok()
                         .map(|e| e.get_extension_detail());
@@ -327,7 +325,7 @@ impl<P: EntitySongProvider> EntityContentCoordinator<P> {
 
         tokio::spawn(
             async move {
-                let ext_handler = state_manager.get_extension_handler().await;
+                let ext_handler = state_manager.get_extension_handler();
                 let (extensions, detail) =
                     fetch_scope_providers(&ext_handler, P::extension_scope(), &extension).await;
 

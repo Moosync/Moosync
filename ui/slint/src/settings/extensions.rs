@@ -134,7 +134,7 @@ impl ExtensionsPageHandler {
                     tokio::spawn(
                         async move {
                             tracing::info!("on_update_all_extensions");
-                            let handler = state_manager.get_extension_handler().await;
+                            let handler = state_manager.get_extension_handler();
                             if let Err(e) = handler.update_all_extensions().await {
                                 tracing::error!("on_update_all_extensions: Failed: {:?}", e);
                                 handler.check_for_updates();
@@ -157,7 +157,7 @@ impl ExtensionsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn handle_toggle_extension(package_name: String, state_manager: &'static StateManager) {
         tracing::info!("handle_toggle_extension: {}", package_name);
-        let handler = state_manager.get_extension_handler().await;
+        let handler = state_manager.get_extension_handler();
         let extensions = handler.get_all_extensions();
         let ext_info = extensions.into_iter().find(|ext| match ext {
             ExtensionInfo::Local(detail) => detail.package_name == package_name,
@@ -193,7 +193,7 @@ impl ExtensionsPageHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn install_local_extension(file_path: String, state_manager: &'static StateManager) {
         tracing::info!("install_local_extension: {}", file_path);
-        let handler = state_manager.get_extension_handler().await;
+        let handler = state_manager.get_extension_handler();
         let info = ExtensionInfo::LocalPath(PathBuf::from(file_path));
         match handler.install_extension(info).await {
             Ok(_) => tracing::info!("install_local_extension: Installed successfully"),
@@ -206,8 +206,8 @@ impl ExtensionsPageHandler {
         main_window_weak: slint::Weak<MainWindow>,
         state_manager: &'static StateManager,
     ) {
-        let config = state_manager.get_preference_config().await;
-        let handler = state_manager.get_extension_handler().await;
+        let config = state_manager.get_preference_config();
+        let handler = state_manager.get_extension_handler();
         let installed = handler.get_installed_extensions();
 
         let loaded_static: Vec<ProtoPreferenceItem> =
@@ -270,14 +270,14 @@ impl PageHandler for ExtensionsPageHandler {
         let main_window_weak = self.main_window.as_weak();
         tokio::spawn(
             async move {
-                let handler = state_manager.get_extension_handler().await;
+                let handler = state_manager.get_extension_handler();
                 let _cancel_ext = handler.on_extensions_updated.listen({
                     let main_window_weak = main_window_weak.clone();
                     move |_| {
                         let main_window_weak = main_window_weak.clone();
                         tokio::spawn(
                             async move {
-                                let handler = state_manager.get_extension_handler().await;
+                                let handler = state_manager.get_extension_handler();
                                 let extensions = handler.get_all_extensions();
                                 let has_updates = handler.has_updates();
                                 let cache_dir = state_manager.get_cache_dir();
@@ -331,7 +331,7 @@ impl PageHandler for ExtensionsPageHandler {
         tokio::spawn(
             async move {
                 let cache_dir = state_manager.get_cache_dir();
-                let handler = state_manager.get_extension_handler().await;
+                let handler = state_manager.get_extension_handler();
                 let extensions = handler.get_all_extensions();
                 let has_updates = handler.has_updates();
                 let mw_weak = main_window_weak.clone();

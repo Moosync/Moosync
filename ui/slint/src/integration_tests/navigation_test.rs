@@ -173,7 +173,7 @@ async fn do_context_menu_goto_album(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("cm_al", "Song For Album", "Target Album", "Target Artist");
     database.insert_songs(vec![song]).unwrap();
 
@@ -240,7 +240,7 @@ async fn do_context_menu_goto_artist(
     main_window: &'static MainWindow,
     state_manager: &'static StateManager,
 ) {
-    let database = state_manager.get_database().await;
+    let database = state_manager.get_database();
     let song = create_test_song("cm_ar", "Song For Artist", "Target Album", "Target Artist");
     database.insert_songs(vec![song]).unwrap();
 

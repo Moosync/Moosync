@@ -27,7 +27,7 @@ impl EntityListProvider for AlbumListProvider {
     #[tracing::instrument(level = "debug", skip_all)]
     async fn fetch_entities(state_manager: &StateManager) -> Result<Vec<Album>, UiError> {
         tracing::debug!("Fetching albums from database");
-        let database = state_manager.get_database().await;
+        let database = state_manager.get_database();
         let albums_res = database.get_entity_by_options(GetEntityOptions {
             album: Some(Album::default()),
             ..Default::default()

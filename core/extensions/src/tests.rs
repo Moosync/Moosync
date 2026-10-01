@@ -42,6 +42,10 @@ fn get_sample_wasm_path() -> PathBuf {
     if let Ok(runfiles_dir) = std::env::var("TEST_SRCDIR") {
         let candidates = [
             PathBuf::from(&runfiles_dir)
+                .join("_main/sample_extensions/default/sample_extension.wasm"),
+            PathBuf::from(&runfiles_dir)
+                .join("moosync/sample_extensions/default/sample_extension.wasm"),
+            PathBuf::from(&runfiles_dir)
                 .join("moosync_ext+/sample_extensions/rs/sample_extension.wasm"),
             PathBuf::from(&runfiles_dir)
                 .join("moosync_ext/sample_extensions/rs/sample_extension.wasm"),

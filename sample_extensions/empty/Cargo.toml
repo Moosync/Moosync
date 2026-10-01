@@ -1,0 +1,10 @@
+[package]
+name = "rs-sample-empty"
+version = "1.0.0"
+edition = "2024"
+
+[dependencies]
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"

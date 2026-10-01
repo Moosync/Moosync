@@ -6,8 +6,8 @@ use std::{
 use extensions_proto::moosync::types::{
     ContextMenuActionRequest, CustomRequest, GetProviderScopesRequest, MainCommand,
     PerformAccountLoginRequest, PlayerState, PlayerStateChangedRequest, PreferenceArgs,
-    PreferenceChangedRequest, RequestedSearchResultRequest, SeekedRequest, SongChangedRequest,
-    SongQueueChangedRequest, VolumeChangedRequest, main_command,
+    PreferenceChangedRequest, RequestedPlaylistsRequest, RequestedSearchResultRequest,
+    SeekedRequest, SongChangedRequest, SongQueueChangedRequest, VolumeChangedRequest, main_command,
 };
 use preferences_proto::moosync::types::PreferenceItem;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
@@ -527,19 +527,19 @@ async fn setup_extension_at(
     let runfiles_dir = std::env::var("TEST_SRCDIR").unwrap_or_else(|_| ".".to_string());
 
     let src_ext_path = {
-        let subdir_or_default = if subdir.is_empty() { "rs" } else { subdir };
-        // Try bzlmod canonical repo name first (used when building from Moosync
-        // workspace), then fall back to the plain module name (used when
-        // building from moosync-exts workspace).
+        let subdir_or_default = if subdir.is_empty() { "default" } else { subdir };
         let candidates = [
+            PathBuf::from(&runfiles_dir)
+                .join("_main/sample_extensions")
+                .join(subdir_or_default),
+            PathBuf::from(&runfiles_dir)
+                .join("moosync/sample_extensions")
+                .join(subdir_or_default),
             PathBuf::from(&runfiles_dir)
                 .join("moosync_ext+/sample_extensions")
                 .join(subdir_or_default),
             PathBuf::from(&runfiles_dir)
                 .join("moosync_ext/sample_extensions")
-                .join(subdir_or_default),
-            PathBuf::from(&runfiles_dir)
-                .join("_main/sample_extensions")
                 .join(subdir_or_default),
         ];
         candidates
@@ -1047,9 +1047,56 @@ macro_rules! generate_sample_tests {
     };
 }
 
-// Instantiate the full test suite for each language fixture.
-generate_sample_tests!(sample_rs, "rs", "rs.sample", vec![13, 0, 1, 2, 3, 4, 10]);
-generate_sample_tests!(sample_go, "go", "go.sample", vec![13, 0, 1, 2, 3, 4]);
-// generate_sample_tests!(sample_js, "js", "js.sample", vec![13, 0, 1, 2, 3,
-// 4]);
-generate_sample_tests!(sample_py, "py", "py.sample", vec![13, 0, 1, 2, 3, 4]);
+generate_sample_tests!(
+    sample_rs,
+    "default",
+    "rs.sample",
+    vec![13, 0, 1, 2, 3, 4, 10]
+);
+
+mod sample_empty {
+    use super::*;
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn setup() -> (
+        Arc<ExtensionHandlerInner>,
+        String,
+        Arc<Mutex<Vec<MainCommand>>>,
+        TestCleanupGuard,
+    ) {
+        setup_extension_at("empty", "rs.sample.empty").await
+    }
+
+    #[tokio::test]
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn test_empty_search() {
+        let (handler, pkg, _captured_commands, _guard) = setup().await;
+        let ext = {
+            let map = handler.extensions_map.lock().unwrap();
+            map.get(&pkg).unwrap().clone()
+        };
+        let res = ext
+            .get_search_result(RequestedSearchResultRequest {
+                query: "anything".to_string(),
+            })
+            .await
+            .unwrap();
+        assert_eq!(res.songs.len(), 0);
+        assert_eq!(res.playlists.len(), 0);
+    }
+
+    #[tokio::test]
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn test_empty_playlists() {
+        let (handler, pkg, _captured_commands, _guard) = setup().await;
+        let ext = {
+            let map = handler.extensions_map.lock().unwrap();
+            map.get(&pkg).unwrap().clone()
+        };
+        let res = ext
+            .get_playlists(RequestedPlaylistsRequest {})
+            .await
+            .unwrap();
+        assert_eq!(res.playlists.len(), 0);
+    }
+}

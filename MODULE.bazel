@@ -76,13 +76,6 @@ buf = use_extension("@rules_buf//buf:extensions.bzl", "buf")
 buf.toolchains(version = "v1.72.0")
 use_repo(buf, "rules_buf_toolchains")
 
-bazel_dep(name = "moosync_ext", version = "0.0.1")
-git_override(
-    module_name = "moosync_ext",
-    branch = "bazel",
-    remote = "https://github.com/Moosync/moosync-exts",
-)
-
 bazel_dep(name = "extensions_sdk")
 git_override(
     module_name = "extensions_sdk",

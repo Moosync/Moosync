@@ -5,9 +5,8 @@ rust_test(
     crate = ":extensions",
     data = [
         "tests/fixtures/package.json",
-        "@moosync_ext//sample_extensions/go:sample_extension",
-        "@moosync_ext//sample_extensions/py:sample_extension",
-        "@moosync_ext//sample_extensions/rs:sample_extension",
+        "//sample_extensions/default:sample_extension",
+        "//sample_extensions/empty:sample_extension",
     ],
     deps = [
         "@crates//:assertables",
@@ -27,9 +26,8 @@ rust_test(
     crate_features = ["wasm_integration_tests"],
     data = [
         "tests/fixtures/package.json",
-        "@moosync_ext//sample_extensions/go:sample_extension",
-        "@moosync_ext//sample_extensions/py:sample_extension",
-        "@moosync_ext//sample_extensions/rs:sample_extension",
+        "//sample_extensions/default:sample_extension",
+        "//sample_extensions/empty:sample_extension",
     ],
     deps = [
         "@crates//:assertables",

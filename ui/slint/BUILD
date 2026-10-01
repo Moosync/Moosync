@@ -139,7 +139,8 @@ rust_test(
     size = "large",
     srcs = ["src/integration_tests/search_test.rs"],
     data = [
-        "@moosync_ext//sample_extensions/rs:sample_extension",
+        "//sample_extensions/default:sample_extension",
+        "//sample_extensions/empty:sample_extension",
     ],
     deps = [
         ":slint_app_lib",
@@ -190,7 +191,7 @@ rust_test(
     size = "large",
     srcs = ["src/integration_tests/accounts_test.rs"],
     data = [
-        "@moosync_ext//sample_extensions/rs:sample_extension",
+        "//sample_extensions/default:sample_extension",
     ],
     deps = [
         ":slint_app_lib",
@@ -208,7 +209,7 @@ rust_test(
     size = "large",
     srcs = ["src/integration_tests/extensions_test.rs"],
     data = [
-        "@moosync_ext//sample_extensions/rs:sample_extension",
+        "//sample_extensions/default:sample_extension",
     ],
     deps = [
         ":slint_app_lib",

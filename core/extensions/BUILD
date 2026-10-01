@@ -86,7 +86,6 @@ rust_library(
         "@crates//:prost",
         "@crates//:regex",
         "@crates//:reqwest",
-        "@crates//:rust-crypto",
         "@crates//:semver",
         "@crates//:serde",
         "@crates//:serde_json",

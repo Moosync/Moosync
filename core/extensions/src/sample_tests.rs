@@ -760,24 +760,6 @@ macro_rules! generate_sample_tests {
 
             #[tokio::test]
             #[tracing::instrument(level = "debug", skip_all)]
-            async fn test_custom_request_hash() {
-                let (handler, pkg, _, _guard) = setup().await;
-                let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
-                    map.get(&pkg).unwrap().clone()
-                };
-                let res = ext
-                    .custom_request(CustomRequest {
-                        request_id: "hash_test".to_string(),
-                        payload: None,
-                    })
-                    .await
-                    .unwrap();
-                assert!(res.data.is_none());
-            }
-
-            #[tokio::test]
-            #[tracing::instrument(level = "debug", skip_all)]
             async fn test_custom_request_preferences() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {

@@ -2,9 +2,7 @@ load("@rules_proto//proto:defs.bzl", "ProtoInfo")
 load("@rules_rust//rust/private:providers.bzl", "CrateInfo")
 load("@rules_rust_prost//:providers.bzl", "ProstProtoInfo")
 
-CRATE_NAME_OVERRIDE = {
-    "crypto": "rust-crypto",
-}
+CRATE_NAME_OVERRIDE = {}
 
 GIT_OVERRIDES = {
     "tauri_plugin_autostart": struct(repo = "https://github.com/tauri-apps/plugins-workspace", branch = "v2"),

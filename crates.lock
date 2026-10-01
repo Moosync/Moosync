@@ -1,5 +1,5 @@
 {
-  "checksum": "47264513ff61d9c2d18979d96a0f8f6fd32c3337e1aa79ac7976a15399717fe1",
+  "checksum": "0790d27b0a576077fe8320e61eed3fe2bac4e3f825e385532992826b2d19165f",
   "crates": {
     "ab_glyph 0.2.32": {
       "name": "ab_glyph",
@@ -19045,45 +19045,6 @@
       ],
       "license_file": null
     },
-    "gcc 0.3.55": {
-      "name": "gcc",
-      "version": "0.3.55",
-      "package_url": "https://github.com/alexcrichton/gcc-rs",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/gcc/0.3.55/download",
-          "sha256": "8f5f3913fa0bfe7ee1fd8248b6b9f42a5af4b9d65ec2dd2c3c26132b950ecfc2"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "gcc",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "gcc",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2015",
-        "version": "0.3.55"
-      },
-      "license": "MIT/Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
     "generic-array 0.14.7": {
       "name": "generic-array",
       "version": "0.14.7",
@@ -34736,10 +34697,6 @@
               "target": "rusqlite"
             },
             {
-              "id": "rust-crypto 0.2.36",
-              "target": "crypto"
-            },
-            {
               "id": "rusty_ffmpeg 0.16.7+ffmpeg.8",
               "target": "rusty_ffmpeg"
             },
@@ -46717,58 +46674,6 @@
       ],
       "license_file": "LICENSE"
     },
-    "rand 0.3.23": {
-      "name": "rand",
-      "version": "0.3.23",
-      "package_url": "https://github.com/rust-lang-nursery/rand",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/rand/0.3.23/download",
-          "sha256": "64ac302d8f83c0c1974bf758f6b041c6c8ada916fbb44a609158ca8b064cc76c"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "rand",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "rand",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "libc 0.2.189",
-              "target": "libc"
-            },
-            {
-              "id": "rand 0.4.6",
-              "target": "rand"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2015",
-        "version": "0.3.23"
-      },
-      "license": "MIT/Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
     "rand 0.4.6": {
       "name": "rand",
       "version": "0.4.6",
@@ -50543,104 +50448,6 @@
       ],
       "license_file": "LICENSE"
     },
-    "rust-crypto 0.2.36": {
-      "name": "rust-crypto",
-      "version": "0.2.36",
-      "package_url": "https://github.com/DaGenix/rust-crypto/",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/rust-crypto/0.2.36/download",
-          "sha256": "f76d05d3993fd5f4af9434e8e436db163a12a9d40e1a58a726f27a01dfd12a2a"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "crypto",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        },
-        {
-          "BuildScript": {
-            "crate_name": "build_script_build",
-            "crate_root": "build.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "crypto",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "libc 0.2.189",
-              "target": "libc"
-            },
-            {
-              "id": "rand 0.3.23",
-              "target": "rand"
-            },
-            {
-              "id": "rustc-serialize 0.3.25",
-              "target": "rustc_serialize"
-            },
-            {
-              "id": "time 0.1.45",
-              "target": "time"
-            }
-          ],
-          "selects": {}
-        },
-        "extra_deps": {
-          "common": [
-            ":build_script_build"
-          ],
-          "selects": {}
-        },
-        "edition": "2015",
-        "version": "0.2.36"
-      },
-      "build_script_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "compile_data_glob_excludes": [
-          "**/*.rs"
-        ],
-        "data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "gcc 0.3.55",
-              "target": "gcc"
-            }
-          ],
-          "selects": {}
-        }
-      },
-      "license": "MIT/Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
     "rustc-demangle 0.1.28": {
       "name": "rustc-demangle",
       "version": "0.1.28",
@@ -50766,45 +50573,6 @@
         "version": "2.1.3"
       },
       "license": "Apache-2.0 OR MIT",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
-    "rustc-serialize 0.3.25": {
-      "name": "rustc-serialize",
-      "version": "0.3.25",
-      "package_url": "https://github.com/rust-lang/rustc-serialize",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/rustc-serialize/0.3.25/download",
-          "sha256": "fe834bc780604f4674073badbad26d7219cadfb4a2275802db12cbae17498401"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "rustc_serialize",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "rustc_serialize",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2015",
-        "version": "0.3.25"
-      },
-      "license": "MIT/Apache-2.0",
       "license_ids": [
         "Apache-2.0",
         "MIT"
@@ -59444,67 +59212,6 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "time 0.1.45": {
-      "name": "time",
-      "version": "0.1.45",
-      "package_url": "https://github.com/time-rs/time",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/time/0.1.45/download",
-          "sha256": "1b797afad3f312d1c66a56d11d0316f916356d11bd158fbc6ca6389ff6bf805a"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "time",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "time",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "libc 0.2.189",
-              "target": "libc"
-            }
-          ],
-          "selects": {
-            "cfg(target_os = \"wasi\")": [
-              {
-                "id": "wasi 0.10.0+wasi-snapshot-preview1",
-                "target": "wasi"
-              }
-            ],
-            "cfg(windows)": [
-              {
-                "id": "winapi 0.3.9",
-                "target": "winapi"
-              }
-            ]
-          }
-        },
-        "edition": "2015",
-        "version": "0.1.45"
-      },
-      "license": "MIT/Apache-2.0",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
     "time 0.3.55": {
       "name": "time",
       "version": "0.3.55",
@@ -64799,45 +64506,6 @@
       ],
       "license_file": "LICENSE"
     },
-    "wasi 0.10.0+wasi-snapshot-preview1": {
-      "name": "wasi",
-      "version": "0.10.0+wasi-snapshot-preview1",
-      "package_url": "https://github.com/bytecodealliance/wasi",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/wasi/0.10.0+wasi-snapshot-preview1/download",
-          "sha256": "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "wasi",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "wasi",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "edition": "2018",
-        "version": "0.10.0+wasi-snapshot-preview1"
-      },
-      "license": "Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT",
-      "license_ids": [
-        "Apache-2.0",
-        "MIT"
-      ],
-      "license_file": "LICENSE-APACHE"
-    },
     "wasi 0.11.1+wasi-snapshot-preview1": {
       "name": "wasi",
       "version": "0.11.1+wasi-snapshot-preview1",
@@ -69370,14 +69038,11 @@
             "libloaderapi",
             "minwinbase",
             "minwindef",
-            "ntdef",
             "ntsecapi",
             "objbase",
             "profileapi",
             "shlobj",
             "std",
-            "sysinfoapi",
-            "timezoneapi",
             "winbase",
             "windef",
             "winerror",
@@ -78982,7 +78647,6 @@
     "rsmpeg 0.18.0+ffmpeg.8.0",
     "rstest 0.25.0",
     "rusqlite 0.37.0",
-    "rust-crypto 0.2.36",
     "rusty_ffmpeg 0.16.7+ffmpeg.8",
     "semver 1.0.28",
     "serde 1.0.229",

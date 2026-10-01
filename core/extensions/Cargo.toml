@@ -12,7 +12,6 @@ interprocess = "2.2.3"
 mockall = "0.14.0"
 regex = "1.12.2"
 reqwest = { version = "0.13.1", features = ["stream", "json"] }
-rust-crypto = "0.2.36"
 serde = "1.0.228"
 serde_json = "1.0.148"
 tokio = "1.48.0"

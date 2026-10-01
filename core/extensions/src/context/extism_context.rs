@@ -28,11 +28,6 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crypto::{
-    digest::Digest,
-    sha1::Sha1,
-    sha2::{Sha256, Sha512},
-};
 use extensions_proto::moosync::types::{
     BatchHttpRequest, BatchHttpResponse, Error as MainCommandError, ExtensionCommand,
     ExtensionCommandResponse, ExtensionManifest, HttpRequest, HttpResponse, HttpResult,
@@ -221,26 +216,6 @@ host_fn!(read_sock(user_data: SocketUserData; sock_id: i64, read_len: u64) -> Ve
     }
     ret.truncate(read);
     Ok(ret)
-});
-
-host_fn!(hash(hash_type: String, data: Vec<u8>) -> Vec<u8> {
-    tracing::info!("Calling hash function {} type {:?}", hash_type, data);
-    let mut hasher: Box<dyn Digest> = match hash_type.as_str() {
-        "SHA256" => {
-            Box::new(Sha256::new())
-        },
-        "SHA512" => {
-            Box::new(Sha512::new())
-        },
-        _ => {
-            Box::new(Sha1::new())
-        }
-    };
-
-    hasher.input(&data);
-    let mut buf = vec![0u8; hasher.output_bytes()];
-    hasher.result(&mut buf);
-    Ok(buf)
 });
 
 #[tracing::instrument(level = "trace", skip_all)]
@@ -603,7 +578,6 @@ files-total-size-soft-limit = "1Gi"
                     write_sock,
                 )
                 .with_function("read_sock", [I64, I64], [PTR], sock_data, read_sock)
-                .with_function("hash", [PTR, PTR], [PTR], UserData::default(), hash)
                 .with_function(
                     "batch_http_request",
                     [PTR],

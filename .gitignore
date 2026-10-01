@@ -22,3 +22,4 @@ coverage/
 *.html
 *.info
 .rules_rust_analyzer
+.aspect

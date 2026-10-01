@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-09-06 00:10\n"
+"PO-Revision-Date: 2026-10-01 04:50\n"
 "Language: ko_KR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -15,23 +15,23 @@ msgstr ""
 "X-Crowdin-File-ID: 73\n"
 "Language-Team: Korean\n"
 
-#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99 ui/slint/src/main_content/search.slint:98
+#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99
 msgid "Songs"
 msgstr "All Songs"
 
-#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21 ui/slint/src/app.slint:169
+#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21
 msgid "Playlists"
 msgstr ""
 
-#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21 ui/slint/src/app.slint:173
+#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21
 msgid "Artists"
 msgstr ""
 
-#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21 ui/slint/src/app.slint:174
+#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21
 msgid "Albums"
 msgstr ""
 
-#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21 ui/slint/src/app.slint:175
+#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21
 msgid "Genres"
 msgstr ""
 
@@ -43,7 +43,7 @@ msgstr ""
 msgid "Filter songs..."
 msgstr ""
 
-#: ui/slint/src/common/card_view.slint:4
+#: ui/slint/src/common/card_view.slint:4 ui/slint/src/common/card_view.slint:5
 msgid "Card Title"
 msgstr ""
 
@@ -321,5 +321,325 @@ msgstr ""
 
 #: ui/slint/src/settings/text_array_input.slint:82
 msgid "Add"
+msgstr ""
+
+#: ui/slint/src/bottombar/bottom_bar.slint:60
+msgid "Queue"
+msgstr ""
+
+#: ui/slint/src/bottombar/playback_controls.slint:117
+msgid "Pause"
+msgstr ""
+
+#: ui/slint/src/bottombar/playback_controls.slint:117
+msgid "Play"
+msgstr ""
+
+#: ui/slint/src/bottombar/playback_controls.slint:206
+msgid "Previous"
+msgstr ""
+
+#: ui/slint/src/bottombar/playback_controls.slint:214
+msgid "Repeat"
+msgstr ""
+
+#: ui/slint/src/bottombar/playback_controls.slint:230
+msgid "Next"
+msgstr ""
+
+#: ui/slint/src/bottombar/playback_controls.slint:238
+msgid "Shuffle"
+msgstr ""
+
+#: ui/slint/src/bottombar/playback_controls.slint:246
+msgid "Favorite"
+msgstr ""
+
+#: ui/slint/src/bottombar/volume_control.slint:11
+msgid "Mute"
+msgstr ""
+
+#: ui/slint/src/bottombar/volume_control.slint:11
+msgid "Unmute"
+msgstr ""
+
+#: ui/slint/src/bottombar/volume_control.slint:96
+msgid "Volume"
+msgstr ""
+
+#: ui/slint/src/common/accounts_popup.slint:14
+msgid "Login"
+msgstr ""
+
+#: ui/slint/src/common/accounts_popup.slint:14
+msgid "Logout"
+msgstr ""
+
+#: ui/slint/src/common/accounts_popup.slint:80
+msgid "No accounts configured"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:25
+msgid "Playlist Songs"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:28
+msgid "Artist Songs"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:31
+msgid "Album Songs"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:34
+msgid "Recommendations"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:37
+msgid "Scrobble"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:40
+msgid "Playlist from URL"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:43
+msgid "Song from URL"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:46
+msgid "Playback Details"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:49
+msgid "Lyrics"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:52
+msgid "Song Context Menu"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:55
+msgid "Playlist Context Menu"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:58
+msgid "Accounts"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:61
+msgid "Song Database Events"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:64
+msgid "Playlist Database Events"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:67
+msgid "Player UI Events"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:70
+msgid "Player Data Events"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:72
+msgid "Unknown Scope"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:123
+msgid "By "
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:147
+msgid "Network Permissions"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:155
+msgid "No network permissions requested."
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:163
+msgid "Network Host: "
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:172
+msgid "Filesystem Permissions"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:180
+msgid "No filesystem permissions requested."
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:188
+msgid "Filesystem Path: "
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:197
+msgid "Provider Scopes"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:205
+msgid "No provider scopes registered."
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:224
+msgid "Scope: "
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:239
+msgid "Close"
+msgstr ""
+
+#: ui/slint/src/common/extension_details_modal.slint:240
+msgid "Close Extension Details"
+msgstr ""
+
+#: ui/slint/src/common/oauth_modal.slint:33
+msgid "Account Login"
+msgstr ""
+
+#: ui/slint/src/common/oauth_modal.slint:40
+msgid "If the browser did not open automatically, copy the URL below:"
+msgstr ""
+
+#: ui/slint/src/common/oauth_modal.slint:72
+msgid "Authorization Code / Callback URL"
+msgstr ""
+
+#: ui/slint/src/common/oauth_modal.slint:74
+msgid "Paste the code or redirected URL here"
+msgstr ""
+
+#: ui/slint/src/common/oauth_modal.slint:84
+msgid "Submit"
+msgstr ""
+
+#: ui/slint/src/main_content/lyrics_view.slint:79
+msgid "Synced"
+msgstr ""
+
+#: ui/slint/src/main_content/lyrics_view.slint:79
+msgid "Plain"
+msgstr ""
+
+#: ui/slint/src/main_content/lyrics_view.slint:91
+msgid "Show Details"
+msgstr ""
+
+#: ui/slint/src/main_content/lyrics_view.slint:114
+msgid "Loading lyrics..."
+msgstr ""
+
+#: ui/slint/src/main_content/lyrics_view.slint:124
+msgid "No lyrics available"
+msgstr ""
+
+#: ui/slint/src/main_content/queue_page.slint:159
+msgid "Remove from queue"
+msgstr ""
+
+#: ui/slint/src/main_content/search.slint:108
+msgid "Search Songs"
+msgstr ""
+
+#: ui/slint/src/main_content/search.slint:109
+msgid "Search Albums"
+msgstr ""
+
+#: ui/slint/src/main_content/search.slint:110
+msgid "Search Artists"
+msgstr ""
+
+#: ui/slint/src/main_content/search.slint:111
+msgid "Search Playlists"
+msgstr ""
+
+#: ui/slint/src/main_content/search.slint:112
+msgid "Search Genres"
+msgstr ""
+
+#: ui/slint/src/main_content/search.slint:234
+msgid "Not logged in"
+msgstr ""
+
+#: ui/slint/src/main_content/search.slint:244
+msgid "Please log in to your account to view search results."
+msgstr ""
+
+#: ui/slint/src/settings/button_group.slint:129
+msgid "Confirm Action"
+msgstr ""
+
+#: ui/slint/src/settings/button_group.slint:134
+msgid "Are you sure you want to {}? This cannot be undone."
+msgstr ""
+
+#: ui/slint/src/settings/button_group.slint:153
+msgid "Confirm"
+msgstr ""
+
+#: ui/slint/src/settings/extensions.slint:113
+msgid "Extension Details"
+msgstr ""
+
+#: ui/slint/src/settings/settings.slint:44
+msgid "Settings Paths"
+msgstr ""
+
+#: ui/slint/src/settings/settings.slint:50
+msgid "Settings System"
+msgstr ""
+
+#: ui/slint/src/settings/settings.slint:56
+msgid "Settings Extensions"
+msgstr ""
+
+#: ui/slint/src/settings/settings.slint:62
+msgid "Settings Themes"
+msgstr ""
+
+#: ui/slint/src/sidebar/sidebar_header.slint:18
+msgid "Toggle Sidebar"
+msgstr ""
+
+#: ui/slint/src/sidebar/sidebar.slint:57
+msgid "Sidebar Songs"
+msgstr ""
+
+#: ui/slint/src/sidebar/sidebar.slint:63
+msgid "Sidebar Playlists"
+msgstr ""
+
+#: ui/slint/src/sidebar/sidebar.slint:69
+msgid "Sidebar Artists"
+msgstr ""
+
+#: ui/slint/src/sidebar/sidebar.slint:75
+msgid "Sidebar Albums"
+msgstr ""
+
+#: ui/slint/src/sidebar/sidebar.slint:81
+msgid "Sidebar Genres"
+msgstr ""
+
+#: ui/slint/src/sidebar/sidebar.slint:87
+msgid "Sidebar Explore"
+msgstr ""
+
+#: ui/slint/src/topbar/nav_buttons.slint:16
+msgid "Back"
+msgstr ""
+
+#: ui/slint/src/topbar/nav_buttons.slint:27
+msgid "Forward"
+msgstr ""
+
+#: ui/slint/src/topbar/top_bar.slint:88
+msgid "Settings"
+msgstr ""
+
+#: ui/slint/src/main_content/search.slint:278
+msgid "No results found"
 msgstr ""
 

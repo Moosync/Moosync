@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-09-06 00:10\n"
+"PO-Revision-Date: 2026-10-01 04:50\n"
 "Language: zh_CN\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -15,23 +15,23 @@ msgstr ""
 "X-Crowdin-File-ID: 73\n"
 "Language-Team: Chinese Simplified\n"
 
-#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99 ui/slint/src/main_content/search.slint:98
+#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99
 msgid "Songs"
 msgstr "所有歌曲"
 
-#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21 ui/slint/src/app.slint:169
+#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21
 msgid "Playlists"
 msgstr "播放列表"
 
-#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21 ui/slint/src/app.slint:173
+#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21
 msgid "Artists"
 msgstr "歌手"
 
-#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21 ui/slint/src/app.slint:174
+#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21
 msgid "Albums"
 msgstr "专辑"
 
-#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21 ui/slint/src/app.slint:175
+#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21
 msgid "Genres"
 msgstr "风格"
 
@@ -43,7 +43,7 @@ msgstr "探索"
 msgid "Filter songs..."
 msgstr "过滤歌曲..."
 
-#: ui/slint/src/common/card_view.slint:4
+#: ui/slint/src/common/card_view.slint:4 ui/slint/src/common/card_view.slint:5
 msgid "Card Title"
 msgstr "卡片标题"
 
@@ -322,4 +322,324 @@ msgstr "全部更新"
 #: ui/slint/src/settings/text_array_input.slint:82
 msgid "Add"
 msgstr "添加"
+
+#: ui/slint/src/bottombar/bottom_bar.slint:60
+msgid "Queue"
+msgstr "队列"
+
+#: ui/slint/src/bottombar/playback_controls.slint:117
+msgid "Pause"
+msgstr "暂停"
+
+#: ui/slint/src/bottombar/playback_controls.slint:117
+msgid "Play"
+msgstr "播放"
+
+#: ui/slint/src/bottombar/playback_controls.slint:206
+msgid "Previous"
+msgstr "上一个"
+
+#: ui/slint/src/bottombar/playback_controls.slint:214
+msgid "Repeat"
+msgstr "重复"
+
+#: ui/slint/src/bottombar/playback_controls.slint:230
+msgid "Next"
+msgstr "下一个"
+
+#: ui/slint/src/bottombar/playback_controls.slint:238
+msgid "Shuffle"
+msgstr "随机播放"
+
+#: ui/slint/src/bottombar/playback_controls.slint:246
+msgid "Favorite"
+msgstr "收藏夹"
+
+#: ui/slint/src/bottombar/volume_control.slint:11
+msgid "Mute"
+msgstr "静音"
+
+#: ui/slint/src/bottombar/volume_control.slint:11
+msgid "Unmute"
+msgstr "取消静音"
+
+#: ui/slint/src/bottombar/volume_control.slint:96
+msgid "Volume"
+msgstr "音量"
+
+#: ui/slint/src/common/accounts_popup.slint:14
+msgid "Login"
+msgstr "登录"
+
+#: ui/slint/src/common/accounts_popup.slint:14
+msgid "Logout"
+msgstr "注销"
+
+#: ui/slint/src/common/accounts_popup.slint:80
+msgid "No accounts configured"
+msgstr "未配置账户"
+
+#: ui/slint/src/common/extension_details_modal.slint:25
+msgid "Playlist Songs"
+msgstr "播放列表歌曲"
+
+#: ui/slint/src/common/extension_details_modal.slint:28
+msgid "Artist Songs"
+msgstr "艺术家歌曲"
+
+#: ui/slint/src/common/extension_details_modal.slint:31
+msgid "Album Songs"
+msgstr "专辑歌曲"
+
+#: ui/slint/src/common/extension_details_modal.slint:34
+msgid "Recommendations"
+msgstr "建议"
+
+#: ui/slint/src/common/extension_details_modal.slint:37
+msgid "Scrobble"
+msgstr "滚动条"
+
+#: ui/slint/src/common/extension_details_modal.slint:40
+msgid "Playlist from URL"
+msgstr "来自 URL 的播放列表"
+
+#: ui/slint/src/common/extension_details_modal.slint:43
+msgid "Song from URL"
+msgstr "来自 URL 的歌曲"
+
+#: ui/slint/src/common/extension_details_modal.slint:46
+msgid "Playback Details"
+msgstr "播放详情"
+
+#: ui/slint/src/common/extension_details_modal.slint:49
+msgid "Lyrics"
+msgstr "歌词"
+
+#: ui/slint/src/common/extension_details_modal.slint:52
+msgid "Song Context Menu"
+msgstr "歌曲上下文菜单"
+
+#: ui/slint/src/common/extension_details_modal.slint:55
+msgid "Playlist Context Menu"
+msgstr "播放列表上下文菜单"
+
+#: ui/slint/src/common/extension_details_modal.slint:58
+msgid "Accounts"
+msgstr "账户"
+
+#: ui/slint/src/common/extension_details_modal.slint:61
+msgid "Song Database Events"
+msgstr "歌曲数据库事件"
+
+#: ui/slint/src/common/extension_details_modal.slint:64
+msgid "Playlist Database Events"
+msgstr "播放列表数据库事件"
+
+#: ui/slint/src/common/extension_details_modal.slint:67
+msgid "Player UI Events"
+msgstr "玩家界面事件"
+
+#: ui/slint/src/common/extension_details_modal.slint:70
+msgid "Player Data Events"
+msgstr "玩家数据事件"
+
+#: ui/slint/src/common/extension_details_modal.slint:72
+msgid "Unknown Scope"
+msgstr "未知范围"
+
+#: ui/slint/src/common/extension_details_modal.slint:123
+msgid "By "
+msgstr "由 "
+
+#: ui/slint/src/common/extension_details_modal.slint:147
+msgid "Network Permissions"
+msgstr "网络权限"
+
+#: ui/slint/src/common/extension_details_modal.slint:155
+msgid "No network permissions requested."
+msgstr "没有请求网络权限。"
+
+#: ui/slint/src/common/extension_details_modal.slint:163
+msgid "Network Host: "
+msgstr "网络主机： "
+
+#: ui/slint/src/common/extension_details_modal.slint:172
+msgid "Filesystem Permissions"
+msgstr "文件系统权限"
+
+#: ui/slint/src/common/extension_details_modal.slint:180
+msgid "No filesystem permissions requested."
+msgstr "没有请求文件系统权限。"
+
+#: ui/slint/src/common/extension_details_modal.slint:188
+msgid "Filesystem Path: "
+msgstr "文件系统路径： "
+
+#: ui/slint/src/common/extension_details_modal.slint:197
+msgid "Provider Scopes"
+msgstr "提供者范围"
+
+#: ui/slint/src/common/extension_details_modal.slint:205
+msgid "No provider scopes registered."
+msgstr "没有注册的提供者范围。"
+
+#: ui/slint/src/common/extension_details_modal.slint:224
+msgid "Scope: "
+msgstr "范围： "
+
+#: ui/slint/src/common/extension_details_modal.slint:239
+msgid "Close"
+msgstr "关闭"
+
+#: ui/slint/src/common/extension_details_modal.slint:240
+msgid "Close Extension Details"
+msgstr "关闭扩展详情"
+
+#: ui/slint/src/common/oauth_modal.slint:33
+msgid "Account Login"
+msgstr "帐户登录"
+
+#: ui/slint/src/common/oauth_modal.slint:40
+msgid "If the browser did not open automatically, copy the URL below:"
+msgstr "如果浏览器不是自动打开，请复制下面的 URL："
+
+#: ui/slint/src/common/oauth_modal.slint:72
+msgid "Authorization Code / Callback URL"
+msgstr "授权代码 / 回调URL"
+
+#: ui/slint/src/common/oauth_modal.slint:74
+msgid "Paste the code or redirected URL here"
+msgstr "在这里粘贴代码或重定向URL"
+
+#: ui/slint/src/common/oauth_modal.slint:84
+msgid "Submit"
+msgstr "提交"
+
+#: ui/slint/src/main_content/lyrics_view.slint:79
+msgid "Synced"
+msgstr "已同步"
+
+#: ui/slint/src/main_content/lyrics_view.slint:79
+msgid "Plain"
+msgstr "纯色"
+
+#: ui/slint/src/main_content/lyrics_view.slint:91
+msgid "Show Details"
+msgstr "显示详细信息"
+
+#: ui/slint/src/main_content/lyrics_view.slint:114
+msgid "Loading lyrics..."
+msgstr "加载歌词..."
+
+#: ui/slint/src/main_content/lyrics_view.slint:124
+msgid "No lyrics available"
+msgstr "无可用歌词"
+
+#: ui/slint/src/main_content/queue_page.slint:159
+msgid "Remove from queue"
+msgstr "从队列中移除"
+
+#: ui/slint/src/main_content/search.slint:108
+msgid "Search Songs"
+msgstr "搜索歌曲"
+
+#: ui/slint/src/main_content/search.slint:109
+msgid "Search Albums"
+msgstr "搜索相册"
+
+#: ui/slint/src/main_content/search.slint:110
+msgid "Search Artists"
+msgstr "搜索艺人"
+
+#: ui/slint/src/main_content/search.slint:111
+msgid "Search Playlists"
+msgstr "搜索播放列表"
+
+#: ui/slint/src/main_content/search.slint:112
+msgid "Search Genres"
+msgstr "搜索流源"
+
+#: ui/slint/src/main_content/search.slint:234
+msgid "Not logged in"
+msgstr "未登录"
+
+#: ui/slint/src/main_content/search.slint:244
+msgid "Please log in to your account to view search results."
+msgstr "请登录到您的帐户查看搜索结果。"
+
+#: ui/slint/src/settings/button_group.slint:129
+msgid "Confirm Action"
+msgstr "确认操作"
+
+#: ui/slint/src/settings/button_group.slint:134
+msgid "Are you sure you want to {}? This cannot be undone."
+msgstr "您确定想要{}吗？此操作无法撤销。"
+
+#: ui/slint/src/settings/button_group.slint:153
+msgid "Confirm"
+msgstr "确认"
+
+#: ui/slint/src/settings/extensions.slint:113
+msgid "Extension Details"
+msgstr "扩展详情"
+
+#: ui/slint/src/settings/settings.slint:44
+msgid "Settings Paths"
+msgstr "设置路径"
+
+#: ui/slint/src/settings/settings.slint:50
+msgid "Settings System"
+msgstr "设置系统"
+
+#: ui/slint/src/settings/settings.slint:56
+msgid "Settings Extensions"
+msgstr "设置扩展"
+
+#: ui/slint/src/settings/settings.slint:62
+msgid "Settings Themes"
+msgstr "设置主题"
+
+#: ui/slint/src/sidebar/sidebar_header.slint:18
+msgid "Toggle Sidebar"
+msgstr "切换侧边栏"
+
+#: ui/slint/src/sidebar/sidebar.slint:57
+msgid "Sidebar Songs"
+msgstr "侧边栏歌曲"
+
+#: ui/slint/src/sidebar/sidebar.slint:63
+msgid "Sidebar Playlists"
+msgstr "侧边栏播放列表"
+
+#: ui/slint/src/sidebar/sidebar.slint:69
+msgid "Sidebar Artists"
+msgstr "侧边栏艺人"
+
+#: ui/slint/src/sidebar/sidebar.slint:75
+msgid "Sidebar Albums"
+msgstr "侧边栏专辑"
+
+#: ui/slint/src/sidebar/sidebar.slint:81
+msgid "Sidebar Genres"
+msgstr "Sidebar Genres"
+
+#: ui/slint/src/sidebar/sidebar.slint:87
+msgid "Sidebar Explore"
+msgstr "Sidebar Explore"
+
+#: ui/slint/src/topbar/nav_buttons.slint:16
+msgid "Back"
+msgstr "后退"
+
+#: ui/slint/src/topbar/nav_buttons.slint:27
+msgid "Forward"
+msgstr "转发方式"
+
+#: ui/slint/src/topbar/top_bar.slint:88
+msgid "Settings"
+msgstr "设置"
+
+#: ui/slint/src/main_content/search.slint:278
+msgid "No results found"
+msgstr "未找到结果"
 

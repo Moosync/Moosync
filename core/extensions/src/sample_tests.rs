@@ -1094,7 +1094,7 @@ mod sample_empty {
             map.get(&pkg).unwrap().clone()
         };
         let res = ext
-            .get_playlists(RequestedPlaylistsRequest {})
+            .get_playlists(RequestedPlaylistsRequest { refresh: false })
             .await
             .unwrap();
         assert_eq!(res.playlists.len(), 0);

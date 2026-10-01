@@ -1,6 +1,9 @@
 #![no_main]
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
 
 use moosync_edk::{
     AddToPlaylistRequest, Album, Artist, ContextMenuActionRequest, ContextMenuReturnType,
@@ -275,7 +278,7 @@ impl Provider for SampleExtension {
             }
         }
         Ok(PlaybackDetailsReturnType {
-            duration: 0,
+            duration: Duration::ZERO,
             url: "https://example.com/song.mp3".to_string(),
         })
     }

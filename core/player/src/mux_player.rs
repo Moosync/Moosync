@@ -160,15 +160,17 @@ impl MuxPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_src(&self, song: &mut Song) -> Result<(), PlayerError> { self.load_song(song) }
+    pub async fn set_src(&self, song: &mut Song) -> Result<(), PlayerError> {
+        self.load_song(song).await
+    }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn load_song(&self, song: &mut Song) -> Result<(), PlayerError> {
+    pub async fn load_song(&self, song: &mut Song) -> Result<(), PlayerError> {
         let res = self.load(song);
         if let Err(e) = res {
             match e {
                 PlayerError::NoPlayerFound(_) | PlayerError::NoSrcFound(_) => {
-                    self.source_resolver.resolve_playback_url(song)?;
+                    self.source_resolver.resolve_playback_url(song).await?;
                     self.load(song)?;
                 }
                 _ => return Err(e),

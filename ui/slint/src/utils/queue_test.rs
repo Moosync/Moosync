@@ -22,7 +22,7 @@ async fn test_save_queue_creates_playlist_in_db() {
     };
     {
         let ph = sm.get_player_handler();
-        ph.add_to_queue(vec![song]);
+        ph.add_to_queue(vec![song]).await;
     }
 
     save_queue(

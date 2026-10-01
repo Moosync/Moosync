@@ -40,7 +40,7 @@ async fn do_queue_display_items(
 
     {
         let ph = state_manager.get_player_handler();
-        ph.add_to_queue(vec![s1.clone(), s2.clone()]);
+        ph.add_to_queue(vec![s1.clone(), s2.clone()]).await;
     }
 
     main_window
@@ -97,7 +97,7 @@ async fn do_queue_remove_item(
 
     {
         let ph = state_manager.get_player_handler();
-        ph.add_to_queue(vec![s1.clone(), s2.clone()]);
+        ph.add_to_queue(vec![s1.clone(), s2.clone()]).await;
     }
 
     main_window
@@ -149,7 +149,7 @@ async fn do_queue_clear(main_window: &'static MainWindow, state_manager: &'stati
 
     {
         let ph = state_manager.get_player_handler();
-        ph.add_to_queue(vec![s1.clone()]);
+        ph.add_to_queue(vec![s1.clone()]).await;
     }
 
     main_window
@@ -198,7 +198,7 @@ async fn do_queue_save_as_playlist_modal_lifecycle(
 ) {
     let s = create_test_song("qs", "Queue Song", "Album", "Artist");
     let ph = state_manager.get_player_handler();
-    ph.add_to_queue(vec![s.clone()]);
+    ph.add_to_queue(vec![s.clone()]).await;
 
     main_window
         .global::<QueuePageProps>()

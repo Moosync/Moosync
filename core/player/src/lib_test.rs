@@ -70,7 +70,7 @@ async fn test_current_song_when_empty(player_handler: PlayerHandler) {
 async fn test_add_to_queue_sets_initial_current_song(player_handler: PlayerHandler) {
     let song1 = create_mock_song("1", "Song One");
 
-    player_handler.add_to_queue(vec![song1]);
+    player_handler.add_to_queue(vec![song1]).await;
     let current = player_handler.current_song();
 
     assert_some_eq_x!(
@@ -89,9 +89,9 @@ async fn test_add_to_queue_sets_initial_current_song(player_handler: PlayerHandl
 async fn test_add_to_queue_preserves_current_song(player_handler: PlayerHandler) {
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
-    player_handler.add_to_queue(vec![song1]);
+    player_handler.add_to_queue(vec![song1]).await;
 
-    player_handler.add_to_queue(vec![song2]);
+    player_handler.add_to_queue(vec![song2]).await;
     let current = player_handler.current_song();
 
     assert_some_eq_x!(
@@ -110,9 +110,9 @@ async fn test_add_to_queue_preserves_current_song(player_handler: PlayerHandler)
 async fn test_play_now_overwrites_current_song(player_handler: PlayerHandler) {
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
-    player_handler.add_to_queue(vec![song1]);
+    player_handler.add_to_queue(vec![song1]).await;
 
-    player_handler.play_now(vec![song2]);
+    player_handler.play_now(vec![song2]).await;
     let current = player_handler.current_song();
 
     assert_some_eq_x!(
@@ -134,7 +134,7 @@ async fn test_play_now_multiple_songs(player_handler: PlayerHandler) {
     let song2 = create_mock_song("2", "Song Two");
     let song3 = create_mock_song("3", "Song Three");
 
-    player_handler.play_now(vec![song1, song2, song3]);
+    player_handler.play_now(vec![song1, song2, song3]).await;
     let current = player_handler.current_song();
 
     assert_len_eq_x!(&player_handler.get_queue(), 3);
@@ -153,7 +153,7 @@ async fn test_play_now_multiple_songs(player_handler: PlayerHandler) {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_play_now_empty(player_handler: PlayerHandler) {
-    player_handler.play_now(vec![]);
+    player_handler.play_now(vec![]).await;
     let current = player_handler.current_song();
 
     assert_none!(current);
@@ -166,9 +166,9 @@ async fn test_play_now_empty(player_handler: PlayerHandler) {
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_play_now_empty_with_existing_queue(player_handler: PlayerHandler) {
     let song = create_mock_song("1", "Song One");
-    player_handler.add_to_queue(vec![song]);
+    player_handler.add_to_queue(vec![song]).await;
 
-    player_handler.play_now(vec![]);
+    player_handler.play_now(vec![]).await;
     let current = player_handler.current_song();
 
     assert_len_eq_x!(&player_handler.get_queue(), 1);
@@ -189,9 +189,9 @@ async fn test_add_to_queue_multiple_songs(player_handler: PlayerHandler) {
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
     let song3 = create_mock_song("3", "Song Three");
-    player_handler.add_to_queue(vec![song1]);
+    player_handler.add_to_queue(vec![song1]).await;
 
-    player_handler.add_to_queue(vec![song2, song3]);
+    player_handler.add_to_queue(vec![song2, song3]).await;
 
     assert_len_eq_x!(&player_handler.get_queue(), 3);
     assert_eq!(player_handler.get_current_idx(), 0);
@@ -202,7 +202,7 @@ async fn test_add_to_queue_multiple_songs(player_handler: PlayerHandler) {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_add_to_queue_empty(player_handler: PlayerHandler) {
-    player_handler.add_to_queue(vec![]);
+    player_handler.add_to_queue(vec![]).await;
     let current = player_handler.current_song();
 
     assert_none!(current);
@@ -215,9 +215,9 @@ async fn test_add_to_queue_empty(player_handler: PlayerHandler) {
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_add_to_queue_empty_with_existing_queue(player_handler: PlayerHandler) {
     let song = create_mock_song("1", "Song One");
-    player_handler.add_to_queue(vec![song]);
+    player_handler.add_to_queue(vec![song]).await;
 
-    player_handler.add_to_queue(vec![]);
+    player_handler.add_to_queue(vec![]).await;
     let current = player_handler.current_song();
 
     assert_len_eq_x!(&player_handler.get_queue(), 1);
@@ -238,9 +238,9 @@ async fn test_player_next_advances_index(player_handler: PlayerHandler) {
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
     let song3 = create_mock_song("3", "Song Three");
-    player_handler.add_to_queue(vec![song1, song2, song3]);
+    player_handler.add_to_queue(vec![song1, song2, song3]).await;
 
-    player_handler.next();
+    player_handler.next().await;
 
     assert_eq!(player_handler.get_current_idx(), 1);
 }
@@ -252,10 +252,10 @@ async fn test_player_next_advances_index(player_handler: PlayerHandler) {
 async fn test_player_next_wraps_around(player_handler: PlayerHandler) {
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
-    player_handler.add_to_queue(vec![song1, song2]);
+    player_handler.add_to_queue(vec![song1, song2]).await;
     player_handler.player_data.write().unwrap().current_idx = 1;
 
-    player_handler.next();
+    player_handler.next().await;
 
     assert_eq!(player_handler.get_current_idx(), 0);
 }
@@ -267,10 +267,10 @@ async fn test_player_next_wraps_around(player_handler: PlayerHandler) {
 async fn test_player_prev_decrements_index(player_handler: PlayerHandler) {
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
-    player_handler.add_to_queue(vec![song1, song2]);
+    player_handler.add_to_queue(vec![song1, song2]).await;
     player_handler.player_data.write().unwrap().current_idx = 1;
 
-    player_handler.prev();
+    player_handler.prev().await;
 
     assert_eq!(player_handler.get_current_idx(), 0);
 }
@@ -281,9 +281,9 @@ async fn test_player_prev_decrements_index(player_handler: PlayerHandler) {
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_player_prev_at_start_stays_zero(player_handler: PlayerHandler) {
     let song1 = create_mock_song("1", "Song One");
-    player_handler.add_to_queue(vec![song1]);
+    player_handler.add_to_queue(vec![song1]).await;
 
-    player_handler.prev();
+    player_handler.prev().await;
 
     assert_eq!(player_handler.get_current_idx(), 0);
 }
@@ -295,10 +295,10 @@ async fn test_player_prev_at_start_stays_zero(player_handler: PlayerHandler) {
 async fn test_player_repeat_once_resets_on_ended(player_handler: PlayerHandler) {
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
-    player_handler.add_to_queue(vec![song1, song2]);
+    player_handler.add_to_queue(vec![song1, song2]).await;
     player_handler.repeat(RepeatMode::RepeatOnce);
 
-    player_handler.on_song_ended();
+    player_handler.on_song_ended().await;
 
     assert_eq!(player_handler.get_current_idx(), 0);
     assert_eq!(player_handler.get_repeat_mode(), RepeatMode::RepeatNone);
@@ -311,10 +311,10 @@ async fn test_player_repeat_once_resets_on_ended(player_handler: PlayerHandler) 
 async fn test_player_repeat_infinite_stays_on_ended(player_handler: PlayerHandler) {
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
-    player_handler.add_to_queue(vec![song1, song2]);
+    player_handler.add_to_queue(vec![song1, song2]).await;
     player_handler.repeat(RepeatMode::RepeatInfinite);
 
-    player_handler.on_song_ended();
+    player_handler.on_song_ended().await;
 
     assert_eq!(player_handler.get_current_idx(), 0);
     assert_eq!(player_handler.get_repeat_mode(), RepeatMode::RepeatInfinite);
@@ -346,10 +346,12 @@ async fn test_player_repeat_event_fires(player_handler: PlayerHandler) {
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_player_shuffle_preserves_current_song(player_handler: PlayerHandler) {
     for i in 1..=8 {
-        player_handler.add_to_queue(vec![create_mock_song(
-            &i.to_string(),
-            &format!("Song {}", i),
-        )]);
+        player_handler
+            .add_to_queue(vec![create_mock_song(
+                &i.to_string(),
+                &format!("Song {}", i),
+            )])
+            .await;
     }
     player_handler.player_data.write().unwrap().current_idx = 3;
     let current_id = player_handler
@@ -382,10 +384,12 @@ async fn test_player_shuffle_preserves_current_song(player_handler: PlayerHandle
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_player_move_queue_item(player_handler: PlayerHandler) {
     for i in 1..=4 {
-        player_handler.add_to_queue(vec![create_mock_song(
-            &i.to_string(),
-            &format!("Song {}", i),
-        )]);
+        player_handler
+            .add_to_queue(vec![create_mock_song(
+                &i.to_string(),
+                &format!("Song {}", i),
+            )])
+            .await;
     }
 
     player_handler.move_queue_item(0, 3);
@@ -407,7 +411,7 @@ async fn test_player_move_queue_item(player_handler: PlayerHandler) {
 async fn test_player_remove_from_queue(player_handler: PlayerHandler) {
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
-    player_handler.add_to_queue(vec![song1, song2]);
+    player_handler.add_to_queue(vec![song1, song2]).await;
 
     player_handler.remove_from_queue(0);
 
@@ -428,9 +432,9 @@ async fn test_player_remove_from_queue(player_handler: PlayerHandler) {
 async fn test_player_clear_queue(player_handler: PlayerHandler) {
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
-    player_handler.add_to_queue(vec![song1, song2]);
+    player_handler.add_to_queue(vec![song1, song2]).await;
 
-    player_handler.clear_queue();
+    player_handler.clear_queue().await;
 
     assert_len_eq_x!(&player_handler.get_queue(), 1);
 }
@@ -440,8 +444,8 @@ async fn test_player_clear_queue(player_handler: PlayerHandler) {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_player_empty_queue_navigation(player_handler: PlayerHandler) {
-    player_handler.next();
-    player_handler.prev();
+    player_handler.next().await;
+    player_handler.prev().await;
     player_handler.shuffle();
 
     assert_none!(player_handler.current_song());
@@ -454,10 +458,10 @@ async fn test_player_empty_queue_navigation(player_handler: PlayerHandler) {
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_player_single_song_queue_navigation(player_handler: PlayerHandler) {
     let single = create_mock_song("single", "Single Song");
-    player_handler.add_to_queue(vec![single]);
+    player_handler.add_to_queue(vec![single]).await;
 
-    player_handler.next();
-    player_handler.prev();
+    player_handler.next().await;
+    player_handler.prev().await;
     player_handler.shuffle();
 
     assert_len_eq_x!(&player_handler.get_queue(), 1);
@@ -471,7 +475,7 @@ async fn test_player_single_song_queue_navigation(player_handler: PlayerHandler)
 async fn test_play_next_empty_queue(player_handler: PlayerHandler) {
     let song = create_mock_song("1", "Song One");
 
-    player_handler.play_next(vec![song]);
+    player_handler.play_next(vec![song]).await;
     let current = player_handler.current_song();
 
     assert_len_eq_x!(&player_handler.get_queue(), 1);
@@ -493,9 +497,9 @@ async fn test_play_next_with_existing_queue(player_handler: PlayerHandler) {
     let song1 = create_mock_song("1", "Song One");
     let song2 = create_mock_song("2", "Song Two");
     let song_next = create_mock_song("next", "Next Song");
-    player_handler.add_to_queue(vec![song1, song2]);
+    player_handler.add_to_queue(vec![song1, song2]).await;
 
-    player_handler.play_next(vec![song_next]);
+    player_handler.play_next(vec![song_next]).await;
 
     assert_len_eq_x!(&player_handler.get_queue(), 3);
     assert_some_eq_x!(
@@ -521,11 +525,11 @@ async fn test_play_next_with_existing_queue(player_handler: PlayerHandler) {
 async fn test_clear_and_play(player_handler: PlayerHandler) {
     let old1 = create_mock_song("old1", "Old 1");
     let old2 = create_mock_song("old2", "Old 2");
-    player_handler.add_to_queue(vec![old1, old2]);
-    player_handler.next();
+    player_handler.add_to_queue(vec![old1, old2]).await;
+    player_handler.next().await;
     let new_song = create_mock_song("new1", "New 1");
 
-    player_handler.clear_and_play(vec![new_song]);
+    player_handler.clear_and_play(vec![new_song]).await;
     let current = player_handler.current_song();
 
     assert_len_eq_x!(&player_handler.get_queue(), 1);
@@ -615,7 +619,7 @@ async fn test_restore_player_data_play_loads_and_plays() {
         Box::new(MockPersistContext { data: player_data }),
     );
 
-    let play_result = player_handler.play();
+    let play_result = player_handler.play().await;
 
     assert!(play_result.is_ok());
     assert_eq!(

@@ -1,6 +1,9 @@
 #![no_main]
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
 
 use moosync_edk::{
     ContextMenuActionRequest, ContextMenuReturnType, CustomRequest, ExtensionAccountDetail,
@@ -140,7 +143,7 @@ impl Provider for EmptySampleExtension {
         _req: PlaybackDetailsRequestedRequest,
     ) -> api::MoosyncResult<PlaybackDetailsReturnType> {
         Ok(PlaybackDetailsReturnType {
-            duration: 0,
+            duration: Duration::ZERO,
             url: String::new(),
         })
     }

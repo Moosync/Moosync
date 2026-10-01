@@ -198,7 +198,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
             tokio::spawn(
                 async move {
                     let queue = state_manager.get_player_handler();
-                    queue.play_now(vec![song]);
+                    queue.play_now(vec![song]).await;
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_play_song")),
             );
@@ -211,7 +211,7 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
             tokio::spawn(
                 async move {
                     let queue = state_manager.get_player_handler();
-                    queue.add_to_queue(vec![song]);
+                    queue.add_to_queue(vec![song]).await;
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_add_song_to_queue")),
             );
@@ -229,10 +229,10 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
                     let queue = state_manager.get_player_handler();
                     match action {
                         SongDetailAction::Play => {
-                            queue.play_now(songs);
+                            queue.play_now(songs).await;
                         }
                         SongDetailAction::AddToQueue => {
-                            queue.add_to_queue(songs);
+                            queue.add_to_queue(songs).await;
                         }
                     }
                 }
@@ -244,18 +244,18 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
     main_window
         .global::<BottomBarCallbacks>()
         .on_play_pause_clicked(move || {
-            let main_window_weak = main_window_weak.clone();
+            let Some(main_window) = main_window_weak.upgrade() else {
+                return;
+            };
+            let currently_playing = main_window.global::<PlayerProps>().get_playing();
             tokio::spawn(
                 async move {
                     let player_handler = state_manager.get_player_handler();
-                    let _ = main_window_weak.upgrade_in_event_loop(move |main_window| {
-                        let currently_playing = main_window.global::<PlayerProps>().get_playing();
-                        if currently_playing {
-                            let _ = player_handler.pause();
-                        } else {
-                            let _ = player_handler.play();
-                        }
-                    });
+                    if currently_playing {
+                        let _ = player_handler.pause();
+                    } else {
+                        let _ = player_handler.play().await;
+                    }
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_play_pause_clicked")),
             );
@@ -372,7 +372,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
             tokio::spawn(
                 async move {
                     let player_handler = state_manager.get_player_handler();
-                    player_handler.next();
+                    player_handler.next().await;
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_next_song")),
             );
@@ -384,7 +384,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
             tokio::spawn(
                 async move {
                     let player_handler = state_manager.get_player_handler();
-                    player_handler.prev();
+                    player_handler.prev().await;
                 }
                 .instrument(tracing::debug_span!("slint_cb_on_prev_song")),
             );

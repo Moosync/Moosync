@@ -154,13 +154,13 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn add_to_queue(&self, songs: Vec<Song>) {
+    pub async fn add_to_queue(&self, songs: Vec<Song>) {
         if songs.is_empty() {
             return;
         }
 
         if self.current_song().is_none() {
-            self.play_now(songs);
+            self.play_now(songs).await;
             return;
         }
 
@@ -169,13 +169,13 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn play_next(&self, songs: Vec<Song>) {
+    pub async fn play_next(&self, songs: Vec<Song>) {
         if songs.is_empty() {
             return;
         }
 
         if self.current_song().is_none() {
-            self.play_now(songs);
+            self.play_now(songs).await;
             return;
         }
 
@@ -184,13 +184,13 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn clear_and_play(&self, songs: Vec<Song>) {
+    pub async fn clear_and_play(&self, songs: Vec<Song>) {
         self.player_data.write().unwrap().clear_and_set(Vec::new());
-        self.play_now(songs);
+        self.play_now(songs).await;
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn play_now(&self, songs: Vec<Song>) {
+    pub async fn play_now(&self, songs: Vec<Song>) {
         if songs.is_empty() {
             return;
         }
@@ -199,8 +199,8 @@ impl PlayerHandler {
         if self.current_song().is_none() {
             self.player_data.write().unwrap().clear_and_set(songs);
             self.trigger_queue_changed();
-            self.trigger_song_changed();
-            if let Err(e) = self.play() {
+            self.trigger_song_changed().await;
+            if let Err(e) = self.play().await {
                 tracing::error!("Failed to play song: {:?}", e);
             }
             return;
@@ -213,9 +213,9 @@ impl PlayerHandler {
             pd.set_index(insert_pos);
         }
         self.trigger_queue_changed();
-        self.trigger_song_changed();
+        self.trigger_song_changed().await;
 
-        if let Err(e) = self.play() {
+        if let Err(e) = self.play().await {
             tracing::error!("Failed to play song: {:?}", e);
         }
     }
@@ -233,10 +233,10 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn play(&self) -> Result<(), PlayerError> {
+    pub async fn play(&self) -> Result<(), PlayerError> {
         if self.player.get_player_state() == PlayerState::Stopped
             && let Some(mut song) = self.current_song()
-            && let Err(e) = self.player.set_src(&mut song)
+            && let Err(e) = self.player.set_src(&mut song).await
         {
             tracing::error!("Failed to load song on play: {:?}", e);
         }
@@ -253,27 +253,27 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn next(&self) {
+    pub async fn next(&self) {
         if self.player_data.read().unwrap().song_queue.is_empty() {
             let _ = self.player.stop();
             return;
         }
         self.player_data.write().unwrap().advance_index();
-        self.trigger_song_changed();
-        if let Err(e) = self.play() {
+        self.trigger_song_changed().await;
+        if let Err(e) = self.play().await {
             tracing::error!("Failed to play song: {:?}", e);
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn prev(&self) {
+    pub async fn prev(&self) {
         if self.player_data.read().unwrap().song_queue.is_empty() {
             return;
         }
         if self.get_current_idx() > 0 {
             self.player_data.write().unwrap().rewind_index();
-            self.trigger_song_changed();
-            if let Err(e) = self.play() {
+            self.trigger_song_changed().await;
+            if let Err(e) = self.play().await {
                 tracing::error!("Failed to play song: {:?}", e);
             }
         }
@@ -297,11 +297,11 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn play_index(&self, idx: usize) {
+    pub async fn play_index(&self, idx: usize) {
         if idx < self.player_data.read().unwrap().song_queue.len() {
             self.player_data.write().unwrap().set_index(idx);
-            self.trigger_song_changed();
-            if let Err(e) = self.play() {
+            self.trigger_song_changed().await;
+            if let Err(e) = self.play().await {
                 tracing::error!("Failed to play song at index {}: {:?}", idx, e);
             }
         }
@@ -314,12 +314,12 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn clear_queue(&self) {
+    pub async fn clear_queue(&self) {
         let is_single = self.player_data.read().unwrap().song_queue.len() == 1;
         self.player_data.write().unwrap().clear_except_current();
         self.trigger_queue_changed();
         if is_single {
-            self.trigger_song_changed();
+            self.trigger_song_changed().await;
         }
     }
 
@@ -330,29 +330,29 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn on_song_ended(&self) {
+    pub async fn on_song_ended(&self) {
         self.trigger_player_event(Event::Ended(true));
 
         match self.get_repeat_mode() {
             RepeatMode::RepeatOnce => {
                 self.repeat(RepeatMode::RepeatNone);
                 if self.get_current_idx() < self.player_data.read().unwrap().song_queue.len() {
-                    self.trigger_song_changed();
-                    if let Err(e) = self.play() {
+                    self.trigger_song_changed().await;
+                    if let Err(e) = self.play().await {
                         tracing::error!("Failed to play song: {:?}", e);
                     }
                 }
             }
             RepeatMode::RepeatInfinite => {
                 if self.get_current_idx() < self.player_data.read().unwrap().song_queue.len() {
-                    self.trigger_song_changed();
-                    if let Err(e) = self.play() {
+                    self.trigger_song_changed().await;
+                    if let Err(e) = self.play().await {
                         tracing::error!("Failed to play song: {:?}", e);
                     }
                 }
             }
             RepeatMode::RepeatNone => {
-                self.next();
+                self.next().await;
             }
         }
     }
@@ -387,14 +387,14 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn trigger_song_changed(&self) {
+    async fn trigger_song_changed(&self) {
         let mut current = self.current_song();
         if current.is_none() {
             let _ = self.player.stop();
         }
 
         if let Some(song) = current.as_mut()
-            && let Err(e) = self.player.set_src(song)
+            && let Err(e) = self.player.set_src(song).await
         {
             tracing::error!("Failed to load song: {:?}", e);
             return;
@@ -418,7 +418,7 @@ impl Plugin for PlayerHandler {
         tokio::spawn(
             async move {
                 while ended_rx.recv().await.is_some() {
-                    ph_clone.on_song_ended();
+                    ph_clone.on_song_ended().await;
                 }
             }
             .in_current_span(),

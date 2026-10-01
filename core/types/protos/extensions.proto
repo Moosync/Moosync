@@ -134,7 +134,7 @@ message PlaybackDetailsRequestedRequest {
   Song song = 1;
 }
 message PlaybackDetailsRequestedResponse {
-  uint32 duration = 1;
+  google.protobuf.Duration duration = 1;
   string url = 2;
 }
 

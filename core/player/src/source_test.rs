@@ -17,6 +17,7 @@
 use std::{borrow::Cow, fs, path::PathBuf};
 
 use assertables::{assert_err, assert_matches, assert_ok, assert_some_eq_x};
+use extensions_proto::moosync::types::PlaybackDetailsRequestedResponse;
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{InnerSong, Song};
 use tempdir::TempDir;
@@ -104,10 +105,10 @@ fn test_get_valid_src_error_when_none_present() {
     assert_matches!(valid_src.unwrap_err(), PlayerError::NoSrcFound(_));
 }
 
-#[test]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_source_resolver_resolve_playback_url() {
+async fn test_source_resolver_resolve_playback_url() {
     let resolver = SourceResolver::new();
     let mut song = Song {
         song: Some(InnerSong {
@@ -117,10 +118,17 @@ fn test_source_resolver_resolve_playback_url() {
         ..Default::default()
     };
 
-    assert_err!(resolver.resolve_playback_url(&mut song).as_ref());
+    assert_err!(resolver.resolve_playback_url(&mut song).await.as_ref());
 
-    resolver.set_resolver(Box::new(|_s| Ok("https://resolved.stream/123".to_string())));
-    assert_ok!(resolver.resolve_playback_url(&mut song));
+    resolver.set_resolver(Box::new(|_s| {
+        Box::new(Box::pin(std::future::ready(Ok(
+            PlaybackDetailsRequestedResponse {
+                url: "https://resolved.stream/123".to_string(),
+                duration: None,
+            },
+        ))))
+    }));
+    assert_ok!(resolver.resolve_playback_url(&mut song).await);
     assert_some_eq_x!(
         song.song.as_ref().unwrap().playback_url.as_deref(),
         "https://resolved.stream/123"

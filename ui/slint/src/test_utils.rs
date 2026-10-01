@@ -239,8 +239,8 @@ pub mod integration {
         // 3. Reset Player Handler
         {
             let ph = state_manager.get_player_handler();
-            ph.clear_queue();
-            ph.clear_queue();
+            ph.clear_queue().await;
+            ph.clear_queue().await;
             let _ = ph.pause();
             ph.repeat(RepeatMode::RepeatNone);
         }

@@ -1,5 +1,6 @@
 use std::{borrow::Cow, error::Error, fmt::Display, path::PathBuf};
 
+use extensions_proto::moosync::types::PlaybackDetailsRequestedResponse;
 use songs_proto::moosync::types::Song;
 use types::prelude::SongsExt;
 
@@ -40,8 +41,17 @@ pub(crate) fn get_valid_src(song: &'_ Song) -> Result<ValidSrc<'_>, PlayerError>
     Err(PlayerError::NoSrcFound(Box::new(song.clone())))
 }
 
-pub type SourceResolverFn =
-    Box<dyn Fn(&Song) -> Result<String, Box<dyn Error + Send + Sync>> + Send + Sync>;
+pub type SourceResolverFn = Box<
+    dyn Fn(
+            &Song,
+        ) -> Box<
+            dyn Future<
+                    Output = Result<PlaybackDetailsRequestedResponse, Box<dyn Error + Send + Sync>>,
+                > + Send
+                + Unpin,
+        > + Send
+        + Sync,
+>;
 pub(crate) struct SourceResolver {
     resolver: std::sync::Mutex<Option<SourceResolverFn>>,
 }
@@ -63,18 +73,24 @@ impl SourceResolver {
     // This method will ignore any existing playback url and path and try to find a
     // new one
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn resolve_playback_url(&self, song: &mut Song) -> Result<(), PlayerError> {
-        let resolver_lock = self.resolver.lock().unwrap();
-        let playback_url = if let Some(ref resolver) = *resolver_lock {
-            resolver(song).map_err(|e| PlayerError::PlaybackUrlResolutionFailed(e.to_string()))?
-        } else {
-            return Err(PlayerError::PlaybackUrlResolutionFailed(
-                "Resolver not set".to_string(),
-            ));
-        };
+    pub async fn resolve_playback_url(&self, song: &mut Song) -> Result<(), PlayerError> {
+        let resp = {
+            let resolver_lock = self.resolver.lock().unwrap();
+            let Some(ref resolver) = *resolver_lock else {
+                return Err(PlayerError::PlaybackUrlResolutionFailed(
+                    "Resolver not set".to_string(),
+                ));
+            };
+            resolver(song)
+        }
+        .await
+        .map_err(|e| PlayerError::PlaybackUrlResolutionFailed(format!("Resolver failed: {}", e)))?;
 
         if let Some(inner_song) = song.song.as_mut() {
-            inner_song.playback_url = Some(playback_url);
+            inner_song.playback_url = Some(resp.url);
+            if resp.duration.is_some() {
+                inner_song.duration = resp.duration;
+            }
             return Ok(());
         }
         Err(PlayerError::InvalidSong)

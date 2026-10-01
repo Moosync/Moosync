@@ -59,7 +59,7 @@ async fn test_queue_page_handler_initialize(
     };
     {
         let ph = sm.get_player_handler();
-        ph.add_to_queue(vec![song1, song2]);
+        ph.add_to_queue(vec![song1, song2]).await;
     }
 
     let main_window = Box::leak(Box::new(main_window));
@@ -110,7 +110,7 @@ async fn test_queue_save_queue_as_playlist(state_manager_fixture: TestSlintSmCon
     };
     {
         let ph = sm.get_player_handler();
-        ph.add_to_queue(vec![song]);
+        ph.add_to_queue(vec![song]).await;
     }
 
     save_queue(&sm, "My Saved Queue".into(), "My Description".into()).await;

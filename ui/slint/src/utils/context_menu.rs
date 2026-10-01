@@ -232,10 +232,10 @@ async fn handle_playback_action(state_manager: &StateManager, songs: Vec<Song>, 
     );
     let player = state_manager.get_player_handler();
     match action {
-        "play_now" => player.play_now(songs),
-        "play_next" => player.play_next(songs),
-        "clear_queue_and_play" => player.clear_and_play(songs),
-        "add_to_queue" => player.add_to_queue(songs),
+        "play_now" => player.play_now(songs).await,
+        "play_next" => player.play_next(songs).await,
+        "clear_queue_and_play" => player.clear_and_play(songs).await,
+        "add_to_queue" => player.add_to_queue(songs).await,
         _ => {}
     }
 }

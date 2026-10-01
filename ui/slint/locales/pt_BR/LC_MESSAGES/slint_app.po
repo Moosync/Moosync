@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-09-06 00:11\n"
+"PO-Revision-Date: 2026-10-01 04:50\n"
 "Language: pt_BR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -15,23 +15,23 @@ msgstr ""
 "X-Crowdin-File-ID: 73\n"
 "Language-Team: Portuguese, Brazilian\n"
 
-#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99 ui/slint/src/main_content/search.slint:98
+#: ui/slint/src/app.slint:156 ui/slint/src/main_content/search.slint:99
 msgid "Songs"
 msgstr "Todas as Músicas"
 
-#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21 ui/slint/src/app.slint:169
+#: ui/slint/src/app.slint:157 ui/slint/src/main_content/playlists.slint:21
 msgid "Playlists"
 msgstr "Playlists"
 
-#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21 ui/slint/src/app.slint:173
+#: ui/slint/src/app.slint:158 ui/slint/src/main_content/artists.slint:21
 msgid "Artists"
 msgstr "Artistas"
 
-#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21 ui/slint/src/app.slint:174
+#: ui/slint/src/app.slint:159 ui/slint/src/main_content/albums.slint:21
 msgid "Albums"
 msgstr "Álbuns"
 
-#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21 ui/slint/src/app.slint:175
+#: ui/slint/src/app.slint:160 ui/slint/src/main_content/genres.slint:21
 msgid "Genres"
 msgstr "Gêneros"
 
@@ -43,7 +43,7 @@ msgstr "Explorar"
 msgid "Filter songs..."
 msgstr "Filtrar músicas..."
 
-#: ui/slint/src/common/card_view.slint:4
+#: ui/slint/src/common/card_view.slint:4 ui/slint/src/common/card_view.slint:5
 msgid "Card Title"
 msgstr "Título do Cartão"
 
@@ -322,4 +322,324 @@ msgstr "Atualizar todos"
 #: ui/slint/src/settings/text_array_input.slint:82
 msgid "Add"
 msgstr "Adicionar"
+
+#: ui/slint/src/bottombar/bottom_bar.slint:60
+msgid "Queue"
+msgstr "Fila"
+
+#: ui/slint/src/bottombar/playback_controls.slint:117
+msgid "Pause"
+msgstr "Suspender"
+
+#: ui/slint/src/bottombar/playback_controls.slint:117
+msgid "Play"
+msgstr "Reproduzir"
+
+#: ui/slint/src/bottombar/playback_controls.slint:206
+msgid "Previous"
+msgstr "Anterior"
+
+#: ui/slint/src/bottombar/playback_controls.slint:214
+msgid "Repeat"
+msgstr "Repetir"
+
+#: ui/slint/src/bottombar/playback_controls.slint:230
+msgid "Next"
+msgstr "Próximo"
+
+#: ui/slint/src/bottombar/playback_controls.slint:238
+msgid "Shuffle"
+msgstr "Aleatório"
+
+#: ui/slint/src/bottombar/playback_controls.slint:246
+msgid "Favorite"
+msgstr "Favorito"
+
+#: ui/slint/src/bottombar/volume_control.slint:11
+msgid "Mute"
+msgstr "Silenciar"
+
+#: ui/slint/src/bottombar/volume_control.slint:11
+msgid "Unmute"
+msgstr "Desbloquear"
+
+#: ui/slint/src/bottombar/volume_control.slint:96
+msgid "Volume"
+msgstr "Volume"
+
+#: ui/slint/src/common/accounts_popup.slint:14
+msgid "Login"
+msgstr "Conectar-se"
+
+#: ui/slint/src/common/accounts_popup.slint:14
+msgid "Logout"
+msgstr "Desconectar"
+
+#: ui/slint/src/common/accounts_popup.slint:80
+msgid "No accounts configured"
+msgstr "Nenhuma conta configurada"
+
+#: ui/slint/src/common/extension_details_modal.slint:25
+msgid "Playlist Songs"
+msgstr "Músicas da Playlist"
+
+#: ui/slint/src/common/extension_details_modal.slint:28
+msgid "Artist Songs"
+msgstr "Músicas do Artista"
+
+#: ui/slint/src/common/extension_details_modal.slint:31
+msgid "Album Songs"
+msgstr "Músicas do Álbum"
+
+#: ui/slint/src/common/extension_details_modal.slint:34
+msgid "Recommendations"
+msgstr "Recomendações"
+
+#: ui/slint/src/common/extension_details_modal.slint:37
+msgid "Scrobble"
+msgstr "Bolha"
+
+#: ui/slint/src/common/extension_details_modal.slint:40
+msgid "Playlist from URL"
+msgstr "Lista de reprodução da URL"
+
+#: ui/slint/src/common/extension_details_modal.slint:43
+msgid "Song from URL"
+msgstr "Música da URL"
+
+#: ui/slint/src/common/extension_details_modal.slint:46
+msgid "Playback Details"
+msgstr "Detalhes de reprodução"
+
+#: ui/slint/src/common/extension_details_modal.slint:49
+msgid "Lyrics"
+msgstr "Letras"
+
+#: ui/slint/src/common/extension_details_modal.slint:52
+msgid "Song Context Menu"
+msgstr "Menu de contexto da música"
+
+#: ui/slint/src/common/extension_details_modal.slint:55
+msgid "Playlist Context Menu"
+msgstr "Menu de Contexto da Playlist"
+
+#: ui/slint/src/common/extension_details_modal.slint:58
+msgid "Accounts"
+msgstr "Organizações"
+
+#: ui/slint/src/common/extension_details_modal.slint:61
+msgid "Song Database Events"
+msgstr "Eventos do Song Database"
+
+#: ui/slint/src/common/extension_details_modal.slint:64
+msgid "Playlist Database Events"
+msgstr "Banco de Dados de Playlist"
+
+#: ui/slint/src/common/extension_details_modal.slint:67
+msgid "Player UI Events"
+msgstr "Eventos da interface do jogador"
+
+#: ui/slint/src/common/extension_details_modal.slint:70
+msgid "Player Data Events"
+msgstr "Eventos de Dados do Jogador"
+
+#: ui/slint/src/common/extension_details_modal.slint:72
+msgid "Unknown Scope"
+msgstr "Escopo Desconhecido"
+
+#: ui/slint/src/common/extension_details_modal.slint:123
+msgid "By "
+msgstr "por "
+
+#: ui/slint/src/common/extension_details_modal.slint:147
+msgid "Network Permissions"
+msgstr "Permissões de Rede"
+
+#: ui/slint/src/common/extension_details_modal.slint:155
+msgid "No network permissions requested."
+msgstr "Nenhuma permissão de rede solicitada."
+
+#: ui/slint/src/common/extension_details_modal.slint:163
+msgid "Network Host: "
+msgstr "Host da rede: "
+
+#: ui/slint/src/common/extension_details_modal.slint:172
+msgid "Filesystem Permissions"
+msgstr "Permissões de sistema"
+
+#: ui/slint/src/common/extension_details_modal.slint:180
+msgid "No filesystem permissions requested."
+msgstr "Nenhuma permissão de sistema de arquivos solicitada."
+
+#: ui/slint/src/common/extension_details_modal.slint:188
+msgid "Filesystem Path: "
+msgstr "Caminho do sistema "
+
+#: ui/slint/src/common/extension_details_modal.slint:197
+msgid "Provider Scopes"
+msgstr "Fornecer Escopos"
+
+#: ui/slint/src/common/extension_details_modal.slint:205
+msgid "No provider scopes registered."
+msgstr "Nenhum escopo de provedor registrado."
+
+#: ui/slint/src/common/extension_details_modal.slint:224
+msgid "Scope: "
+msgstr "Escopo "
+
+#: ui/slint/src/common/extension_details_modal.slint:239
+msgid "Close"
+msgstr "FECHAR"
+
+#: ui/slint/src/common/extension_details_modal.slint:240
+msgid "Close Extension Details"
+msgstr "Fechar detalhes da extensão"
+
+#: ui/slint/src/common/oauth_modal.slint:33
+msgid "Account Login"
+msgstr "Login da conta"
+
+#: ui/slint/src/common/oauth_modal.slint:40
+msgid "If the browser did not open automatically, copy the URL below:"
+msgstr "Se o navegador não abrir automaticamente, copie a URL abaixo:"
+
+#: ui/slint/src/common/oauth_modal.slint:72
+msgid "Authorization Code / Callback URL"
+msgstr "Código de Autorização / URL de Callback"
+
+#: ui/slint/src/common/oauth_modal.slint:74
+msgid "Paste the code or redirected URL here"
+msgstr "Cole o código ou URL redirecionada aqui"
+
+#: ui/slint/src/common/oauth_modal.slint:84
+msgid "Submit"
+msgstr "submeter"
+
+#: ui/slint/src/main_content/lyrics_view.slint:79
+msgid "Synced"
+msgstr "Sincronizado"
+
+#: ui/slint/src/main_content/lyrics_view.slint:79
+msgid "Plain"
+msgstr "Simples"
+
+#: ui/slint/src/main_content/lyrics_view.slint:91
+msgid "Show Details"
+msgstr "Mostrar detalhes"
+
+#: ui/slint/src/main_content/lyrics_view.slint:114
+msgid "Loading lyrics..."
+msgstr "Carregando letras..."
+
+#: ui/slint/src/main_content/lyrics_view.slint:124
+msgid "No lyrics available"
+msgstr "Nenhuma letra disponível"
+
+#: ui/slint/src/main_content/queue_page.slint:159
+msgid "Remove from queue"
+msgstr "Remover da fila"
+
+#: ui/slint/src/main_content/search.slint:108
+msgid "Search Songs"
+msgstr "Pesquisar músicas"
+
+#: ui/slint/src/main_content/search.slint:109
+msgid "Search Albums"
+msgstr "Pesquisar álbuns"
+
+#: ui/slint/src/main_content/search.slint:110
+msgid "Search Artists"
+msgstr "Buscar Artistas"
+
+#: ui/slint/src/main_content/search.slint:111
+msgid "Search Playlists"
+msgstr "Buscar Playlists"
+
+#: ui/slint/src/main_content/search.slint:112
+msgid "Search Genres"
+msgstr "Pesquisar gêneros"
+
+#: ui/slint/src/main_content/search.slint:234
+msgid "Not logged in"
+msgstr "Sem sessão iniciada"
+
+#: ui/slint/src/main_content/search.slint:244
+msgid "Please log in to your account to view search results."
+msgstr "Por favor, acesse sua conta para ver os resultados da busca."
+
+#: ui/slint/src/settings/button_group.slint:129
+msgid "Confirm Action"
+msgstr "Confirmar ação"
+
+#: ui/slint/src/settings/button_group.slint:134
+msgid "Are you sure you want to {}? This cannot be undone."
+msgstr "Tem certeza de que deseja {}? Isso não pode ser desfeito."
+
+#: ui/slint/src/settings/button_group.slint:153
+msgid "Confirm"
+msgstr "Confirmar"
+
+#: ui/slint/src/settings/extensions.slint:113
+msgid "Extension Details"
+msgstr "Detalhes da extensão"
+
+#: ui/slint/src/settings/settings.slint:44
+msgid "Settings Paths"
+msgstr "Caminhos de configuração"
+
+#: ui/slint/src/settings/settings.slint:50
+msgid "Settings System"
+msgstr "Sistema de configurações"
+
+#: ui/slint/src/settings/settings.slint:56
+msgid "Settings Extensions"
+msgstr "Extensões de configurações"
+
+#: ui/slint/src/settings/settings.slint:62
+msgid "Settings Themes"
+msgstr "Temas de Configurações"
+
+#: ui/slint/src/sidebar/sidebar_header.slint:18
+msgid "Toggle Sidebar"
+msgstr "Alternar barra lateral"
+
+#: ui/slint/src/sidebar/sidebar.slint:57
+msgid "Sidebar Songs"
+msgstr "Músicas no Painel"
+
+#: ui/slint/src/sidebar/sidebar.slint:63
+msgid "Sidebar Playlists"
+msgstr "Playlists laterais"
+
+#: ui/slint/src/sidebar/sidebar.slint:69
+msgid "Sidebar Artists"
+msgstr "Artistas do Painel"
+
+#: ui/slint/src/sidebar/sidebar.slint:75
+msgid "Sidebar Albums"
+msgstr "Álbuns da barra lateral"
+
+#: ui/slint/src/sidebar/sidebar.slint:81
+msgid "Sidebar Genres"
+msgstr "Sidebar Genres"
+
+#: ui/slint/src/sidebar/sidebar.slint:87
+msgid "Sidebar Explore"
+msgstr "Sidebar Explore"
+
+#: ui/slint/src/topbar/nav_buttons.slint:16
+msgid "Back"
+msgstr "Anterior"
+
+#: ui/slint/src/topbar/nav_buttons.slint:27
+msgid "Forward"
+msgstr "Encaminhar"
+
+#: ui/slint/src/topbar/top_bar.slint:88
+msgid "Settings"
+msgstr "Confirgurações"
+
+#: ui/slint/src/main_content/search.slint:278
+msgid "No results found"
+msgstr "Nenhum resultado encontrado"
 

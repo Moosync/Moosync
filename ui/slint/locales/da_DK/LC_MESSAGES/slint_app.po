@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-10-01 04:50\n"
+"PO-Revision-Date: 2026-10-01 22:27\n"
 "Language: da_DK\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -369,277 +369,277 @@ msgstr "Lydstyrke"
 
 #: ui/slint/src/common/accounts_popup.slint:14
 msgid "Login"
-msgstr ""
+msgstr "Login"
 
 #: ui/slint/src/common/accounts_popup.slint:14
 msgid "Logout"
-msgstr ""
+msgstr "Log Ud"
 
 #: ui/slint/src/common/accounts_popup.slint:80
 msgid "No accounts configured"
-msgstr ""
+msgstr "Ingen konti konfigureret"
 
 #: ui/slint/src/common/extension_details_modal.slint:25
 msgid "Playlist Songs"
-msgstr ""
+msgstr "Afspilningsliste Sange"
 
 #: ui/slint/src/common/extension_details_modal.slint:28
 msgid "Artist Songs"
-msgstr ""
+msgstr "Kunstner Sange"
 
 #: ui/slint/src/common/extension_details_modal.slint:31
 msgid "Album Songs"
-msgstr ""
+msgstr "Albumsange"
 
 #: ui/slint/src/common/extension_details_modal.slint:34
 msgid "Recommendations"
-msgstr ""
+msgstr "Anbefalinger"
 
 #: ui/slint/src/common/extension_details_modal.slint:37
 msgid "Scrobble"
-msgstr ""
+msgstr "Scrobble"
 
 #: ui/slint/src/common/extension_details_modal.slint:40
 msgid "Playlist from URL"
-msgstr ""
+msgstr "Afspilningsliste fra URL"
 
 #: ui/slint/src/common/extension_details_modal.slint:43
 msgid "Song from URL"
-msgstr ""
+msgstr "Sang fra URL"
 
 #: ui/slint/src/common/extension_details_modal.slint:46
 msgid "Playback Details"
-msgstr ""
+msgstr "Afspilningsdetaljer"
 
 #: ui/slint/src/common/extension_details_modal.slint:49
 msgid "Lyrics"
-msgstr ""
+msgstr "Sangtekster"
 
 #: ui/slint/src/common/extension_details_modal.slint:52
 msgid "Song Context Menu"
-msgstr ""
+msgstr "Sang Kontekst Menu"
 
 #: ui/slint/src/common/extension_details_modal.slint:55
 msgid "Playlist Context Menu"
-msgstr ""
+msgstr "Spillelistens Kontekstmenu"
 
 #: ui/slint/src/common/extension_details_modal.slint:58
 msgid "Accounts"
-msgstr ""
+msgstr "Konti"
 
 #: ui/slint/src/common/extension_details_modal.slint:61
 msgid "Song Database Events"
-msgstr ""
+msgstr "Sang Databasebegivenheder"
 
 #: ui/slint/src/common/extension_details_modal.slint:64
 msgid "Playlist Database Events"
-msgstr ""
+msgstr "Afspilningsliste Databasebegivenheder"
 
 #: ui/slint/src/common/extension_details_modal.slint:67
 msgid "Player UI Events"
-msgstr ""
+msgstr "Spiller UI Begivenheder"
 
 #: ui/slint/src/common/extension_details_modal.slint:70
 msgid "Player Data Events"
-msgstr ""
+msgstr "Spiller Data Begivenheder"
 
 #: ui/slint/src/common/extension_details_modal.slint:72
 msgid "Unknown Scope"
-msgstr ""
+msgstr "Ukendt Anvendelsesområde"
 
 #: ui/slint/src/common/extension_details_modal.slint:123
 msgid "By "
-msgstr ""
+msgstr "Af "
 
 #: ui/slint/src/common/extension_details_modal.slint:147
 msgid "Network Permissions"
-msgstr ""
+msgstr "Netværk Tilladelser"
 
 #: ui/slint/src/common/extension_details_modal.slint:155
 msgid "No network permissions requested."
-msgstr ""
+msgstr "Ingen netværkstilladelser forespurgt."
 
 #: ui/slint/src/common/extension_details_modal.slint:163
 msgid "Network Host: "
-msgstr ""
+msgstr "Netværks Vært: "
 
 #: ui/slint/src/common/extension_details_modal.slint:172
 msgid "Filesystem Permissions"
-msgstr ""
+msgstr "Filsystem Tilladelser"
 
 #: ui/slint/src/common/extension_details_modal.slint:180
 msgid "No filesystem permissions requested."
-msgstr ""
+msgstr "Der blev ikke anmodet om tilladelser til filsystemet."
 
 #: ui/slint/src/common/extension_details_modal.slint:188
 msgid "Filesystem Path: "
-msgstr ""
+msgstr "Filsystem Sti: "
 
 #: ui/slint/src/common/extension_details_modal.slint:197
 msgid "Provider Scopes"
-msgstr ""
+msgstr "Udbyder Scopes"
 
 #: ui/slint/src/common/extension_details_modal.slint:205
 msgid "No provider scopes registered."
-msgstr ""
+msgstr "Ingen udbyder scopes registreret."
 
 #: ui/slint/src/common/extension_details_modal.slint:224
 msgid "Scope: "
-msgstr ""
+msgstr "Anvendelsesområde: "
 
 #: ui/slint/src/common/extension_details_modal.slint:239
 msgid "Close"
-msgstr ""
+msgstr "Luk"
 
 #: ui/slint/src/common/extension_details_modal.slint:240
 msgid "Close Extension Details"
-msgstr ""
+msgstr "Luk Detaljer For Udvidelser"
 
 #: ui/slint/src/common/oauth_modal.slint:33
 msgid "Account Login"
-msgstr ""
+msgstr "Konto Login"
 
 #: ui/slint/src/common/oauth_modal.slint:40
 msgid "If the browser did not open automatically, copy the URL below:"
-msgstr ""
+msgstr "Hvis browseren ikke åbnede automatisk, kopier webadressen nedenfor:"
 
 #: ui/slint/src/common/oauth_modal.slint:72
 msgid "Authorization Code / Callback URL"
-msgstr ""
+msgstr "Godkendelseskode / Tilbagekaldelse URL"
 
 #: ui/slint/src/common/oauth_modal.slint:74
 msgid "Paste the code or redirected URL here"
-msgstr ""
+msgstr "Indsæt koden eller omdirigeret URL her"
 
 #: ui/slint/src/common/oauth_modal.slint:84
 msgid "Submit"
-msgstr ""
+msgstr "Indsend"
 
 #: ui/slint/src/main_content/lyrics_view.slint:79
 msgid "Synced"
-msgstr ""
+msgstr "Synkroniseret"
 
 #: ui/slint/src/main_content/lyrics_view.slint:79
 msgid "Plain"
-msgstr ""
+msgstr "Enkelt"
 
 #: ui/slint/src/main_content/lyrics_view.slint:91
 msgid "Show Details"
-msgstr ""
+msgstr "Vis Detaljer"
 
 #: ui/slint/src/main_content/lyrics_view.slint:114
 msgid "Loading lyrics..."
-msgstr ""
+msgstr "Indlæser sangtekster..."
 
 #: ui/slint/src/main_content/lyrics_view.slint:124
 msgid "No lyrics available"
-msgstr ""
+msgstr "Ingen sangtekster tilgængelige"
 
 #: ui/slint/src/main_content/queue_page.slint:159
 msgid "Remove from queue"
-msgstr ""
+msgstr "Fjern fra kø"
 
 #: ui/slint/src/main_content/search.slint:108
 msgid "Search Songs"
-msgstr ""
+msgstr "Søg Sange"
 
 #: ui/slint/src/main_content/search.slint:109
 msgid "Search Albums"
-msgstr ""
+msgstr "Søg I Albums"
 
 #: ui/slint/src/main_content/search.slint:110
 msgid "Search Artists"
-msgstr ""
+msgstr "Søg I Kunstnere"
 
 #: ui/slint/src/main_content/search.slint:111
 msgid "Search Playlists"
-msgstr ""
+msgstr "Søg Afspilningslister"
 
 #: ui/slint/src/main_content/search.slint:112
 msgid "Search Genres"
-msgstr ""
+msgstr "Søg I Genrer"
 
 #: ui/slint/src/main_content/search.slint:234
 msgid "Not logged in"
-msgstr ""
+msgstr "Ikke logget ind"
 
 #: ui/slint/src/main_content/search.slint:244
 msgid "Please log in to your account to view search results."
-msgstr ""
+msgstr "Log ind på din konto for at se søgeresultater."
 
 #: ui/slint/src/settings/button_group.slint:129
 msgid "Confirm Action"
-msgstr ""
+msgstr "Bekræft Handling"
 
 #: ui/slint/src/settings/button_group.slint:134
 msgid "Are you sure you want to {}? This cannot be undone."
-msgstr ""
+msgstr "Er du sikker på du vil {}? Dette kan ikke fortrydes."
 
 #: ui/slint/src/settings/button_group.slint:153
 msgid "Confirm"
-msgstr ""
+msgstr "Bekræft"
 
 #: ui/slint/src/settings/extensions.slint:113
 msgid "Extension Details"
-msgstr ""
+msgstr "Detaljer Om Udvidelse"
 
 #: ui/slint/src/settings/settings.slint:44
 msgid "Settings Paths"
-msgstr ""
+msgstr "Opsætning Stier"
 
 #: ui/slint/src/settings/settings.slint:50
 msgid "Settings System"
-msgstr ""
+msgstr "Opsætning System"
 
 #: ui/slint/src/settings/settings.slint:56
 msgid "Settings Extensions"
-msgstr ""
+msgstr "Indstillinger Udvidelser"
 
 #: ui/slint/src/settings/settings.slint:62
 msgid "Settings Themes"
-msgstr ""
+msgstr "Opsætning Temaer"
 
 #: ui/slint/src/sidebar/sidebar_header.slint:18
 msgid "Toggle Sidebar"
-msgstr ""
+msgstr "Slå Sidebjælke Til/Fra"
 
 #: ui/slint/src/sidebar/sidebar.slint:57
 msgid "Sidebar Songs"
-msgstr ""
+msgstr "Sidebar Sange"
 
 #: ui/slint/src/sidebar/sidebar.slint:63
 msgid "Sidebar Playlists"
-msgstr ""
+msgstr "Sidebjælke Spillelister"
 
 #: ui/slint/src/sidebar/sidebar.slint:69
 msgid "Sidebar Artists"
-msgstr ""
+msgstr "Sidebjælke Kunstnere"
 
 #: ui/slint/src/sidebar/sidebar.slint:75
 msgid "Sidebar Albums"
-msgstr ""
+msgstr "Sidebjælke Albums"
 
 #: ui/slint/src/sidebar/sidebar.slint:81
 msgid "Sidebar Genres"
-msgstr ""
+msgstr "Sidebar Genres"
 
 #: ui/slint/src/sidebar/sidebar.slint:87
 msgid "Sidebar Explore"
-msgstr ""
+msgstr "Sidebar Explore"
 
 #: ui/slint/src/topbar/nav_buttons.slint:16
 msgid "Back"
-msgstr ""
+msgstr "Tilbage"
 
 #: ui/slint/src/topbar/nav_buttons.slint:27
 msgid "Forward"
-msgstr ""
+msgstr "Fremad"
 
 #: ui/slint/src/topbar/top_bar.slint:88
 msgid "Settings"
-msgstr ""
+msgstr "Indstillinger"
 
 #: ui/slint/src/main_content/search.slint:278
 msgid "No results found"
-msgstr ""
+msgstr "Ingen resultater fundet"
 

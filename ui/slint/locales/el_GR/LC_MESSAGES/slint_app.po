@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: moosync\n"
 "POT-Creation-Date: 2026-08-24 20:45+0000\n"
-"PO-Revision-Date: 2026-10-01 04:50\n"
+"PO-Revision-Date: 2026-10-01 22:27\n"
 "Language: el_GR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -369,277 +369,277 @@ msgstr "Όγκος"
 
 #: ui/slint/src/common/accounts_popup.slint:14
 msgid "Login"
-msgstr ""
+msgstr "Είσοδος"
 
 #: ui/slint/src/common/accounts_popup.slint:14
 msgid "Logout"
-msgstr ""
+msgstr "Αποσύνδεση"
 
 #: ui/slint/src/common/accounts_popup.slint:80
 msgid "No accounts configured"
-msgstr ""
+msgstr "Δεν έχουν ρυθμιστεί λογαριασμοί"
 
 #: ui/slint/src/common/extension_details_modal.slint:25
 msgid "Playlist Songs"
-msgstr ""
+msgstr "Τραγούδια Λιστών Αναπαραγωγής"
 
 #: ui/slint/src/common/extension_details_modal.slint:28
 msgid "Artist Songs"
-msgstr ""
+msgstr "Τραγούδια Καλλιτέχνη"
 
 #: ui/slint/src/common/extension_details_modal.slint:31
 msgid "Album Songs"
-msgstr ""
+msgstr "Τραγούδια Άλμπουμ"
 
 #: ui/slint/src/common/extension_details_modal.slint:34
 msgid "Recommendations"
-msgstr ""
+msgstr "Συστάσεις"
 
 #: ui/slint/src/common/extension_details_modal.slint:37
 msgid "Scrobble"
-msgstr ""
+msgstr "Scrobble"
 
 #: ui/slint/src/common/extension_details_modal.slint:40
 msgid "Playlist from URL"
-msgstr ""
+msgstr "Λίστα αναπαραγωγής από URL"
 
 #: ui/slint/src/common/extension_details_modal.slint:43
 msgid "Song from URL"
-msgstr ""
+msgstr "Τραγούδι από URL"
 
 #: ui/slint/src/common/extension_details_modal.slint:46
 msgid "Playback Details"
-msgstr ""
+msgstr "Λεπτομέρειες Αναπαραγωγής"
 
 #: ui/slint/src/common/extension_details_modal.slint:49
 msgid "Lyrics"
-msgstr ""
+msgstr "Στίχοι"
 
 #: ui/slint/src/common/extension_details_modal.slint:52
 msgid "Song Context Menu"
-msgstr ""
+msgstr "Μενού Περιεχομένου Τραγουδιού"
 
 #: ui/slint/src/common/extension_details_modal.slint:55
 msgid "Playlist Context Menu"
-msgstr ""
+msgstr "Μενού Περιγραφής Λίστας Αναπαραγωγής"
 
 #: ui/slint/src/common/extension_details_modal.slint:58
 msgid "Accounts"
-msgstr ""
+msgstr "Λογαριασμοί"
 
 #: ui/slint/src/common/extension_details_modal.slint:61
 msgid "Song Database Events"
-msgstr ""
+msgstr "Γεγονότα Βάσης Δεδομένων Τραγουδιού"
 
 #: ui/slint/src/common/extension_details_modal.slint:64
 msgid "Playlist Database Events"
-msgstr ""
+msgstr "Γεγονότα Βάσης Δεδομένων"
 
 #: ui/slint/src/common/extension_details_modal.slint:67
 msgid "Player UI Events"
-msgstr ""
+msgstr "Γεγονότα Παίκτη UI"
 
 #: ui/slint/src/common/extension_details_modal.slint:70
 msgid "Player Data Events"
-msgstr ""
+msgstr "Γεγονότα Δεδομένων Παίκτη"
 
 #: ui/slint/src/common/extension_details_modal.slint:72
 msgid "Unknown Scope"
-msgstr ""
+msgstr "Άγνωστο Πεδίο Εφαρμογής"
 
 #: ui/slint/src/common/extension_details_modal.slint:123
 msgid "By "
-msgstr ""
+msgstr "Από "
 
 #: ui/slint/src/common/extension_details_modal.slint:147
 msgid "Network Permissions"
-msgstr ""
+msgstr "Δικαιώματα Δικτύου"
 
 #: ui/slint/src/common/extension_details_modal.slint:155
 msgid "No network permissions requested."
-msgstr ""
+msgstr "Δεν ζητήθηκαν δικαιώματα δικτύου."
 
 #: ui/slint/src/common/extension_details_modal.slint:163
 msgid "Network Host: "
-msgstr ""
+msgstr "Δικτυακός Υπολογιστής: "
 
 #: ui/slint/src/common/extension_details_modal.slint:172
 msgid "Filesystem Permissions"
-msgstr ""
+msgstr "Δικαιώματα Συστήματος Αρχείων"
 
 #: ui/slint/src/common/extension_details_modal.slint:180
 msgid "No filesystem permissions requested."
-msgstr ""
+msgstr "Δεν ζητήθηκαν δικαιώματα συστήματος αρχείων."
 
 #: ui/slint/src/common/extension_details_modal.slint:188
 msgid "Filesystem Path: "
-msgstr ""
+msgstr "Διαδρομή Συστήματος Αρχείων: "
 
 #: ui/slint/src/common/extension_details_modal.slint:197
 msgid "Provider Scopes"
-msgstr ""
+msgstr "Εμβέλεια Παροχής"
 
 #: ui/slint/src/common/extension_details_modal.slint:205
 msgid "No provider scopes registered."
-msgstr ""
+msgstr "Κανένας πάροχος δεν έχει καταχωρηθεί."
 
 #: ui/slint/src/common/extension_details_modal.slint:224
 msgid "Scope: "
-msgstr ""
+msgstr "Εμβέλεια: "
 
 #: ui/slint/src/common/extension_details_modal.slint:239
 msgid "Close"
-msgstr ""
+msgstr "Κλείσιμο"
 
 #: ui/slint/src/common/extension_details_modal.slint:240
 msgid "Close Extension Details"
-msgstr ""
+msgstr "Κλείσιμο Λεπτομερειών Επέκτασης"
 
 #: ui/slint/src/common/oauth_modal.slint:33
 msgid "Account Login"
-msgstr ""
+msgstr "Είσοδος Λογαριασμού"
 
 #: ui/slint/src/common/oauth_modal.slint:40
 msgid "If the browser did not open automatically, copy the URL below:"
-msgstr ""
+msgstr "Αν το πρόγραμμα περιήγησης δεν άνοιξε αυτόματα, αντιγράψτε το URL παρακάτω:"
 
 #: ui/slint/src/common/oauth_modal.slint:72
 msgid "Authorization Code / Callback URL"
-msgstr ""
+msgstr "Κωδικός Εξουσιοδότησης / Url Επανάκλησης"
 
 #: ui/slint/src/common/oauth_modal.slint:74
 msgid "Paste the code or redirected URL here"
-msgstr ""
+msgstr "Επικολλήστε τον κώδικα ή το ανακατευθυνόμενο URL εδώ"
 
 #: ui/slint/src/common/oauth_modal.slint:84
 msgid "Submit"
-msgstr ""
+msgstr "Υποβολή"
 
 #: ui/slint/src/main_content/lyrics_view.slint:79
 msgid "Synced"
-msgstr ""
+msgstr "Συγχρονισμένα"
 
 #: ui/slint/src/main_content/lyrics_view.slint:79
 msgid "Plain"
-msgstr ""
+msgstr "Απλό"
 
 #: ui/slint/src/main_content/lyrics_view.slint:91
 msgid "Show Details"
-msgstr ""
+msgstr "Εμφάνιση Λεπτομερειών"
 
 #: ui/slint/src/main_content/lyrics_view.slint:114
 msgid "Loading lyrics..."
-msgstr ""
+msgstr "Φόρτωση στίχων..."
 
 #: ui/slint/src/main_content/lyrics_view.slint:124
 msgid "No lyrics available"
-msgstr ""
+msgstr "Δεν υπάρχουν διαθέσιμοι στίχοι"
 
 #: ui/slint/src/main_content/queue_page.slint:159
 msgid "Remove from queue"
-msgstr ""
+msgstr "Αφαίρεση από την ουρά"
 
 #: ui/slint/src/main_content/search.slint:108
 msgid "Search Songs"
-msgstr ""
+msgstr "Αναζήτηση Τραγουδιών"
 
 #: ui/slint/src/main_content/search.slint:109
 msgid "Search Albums"
-msgstr ""
+msgstr "Αναζήτηση Άλμπουμ"
 
 #: ui/slint/src/main_content/search.slint:110
 msgid "Search Artists"
-msgstr ""
+msgstr "Αναζήτηση Καλλιτεχνών"
 
 #: ui/slint/src/main_content/search.slint:111
 msgid "Search Playlists"
-msgstr ""
+msgstr "Αναζήτηση Λιστών Αναπαραγωγής"
 
 #: ui/slint/src/main_content/search.slint:112
 msgid "Search Genres"
-msgstr ""
+msgstr "Αναζήτηση Είδη"
 
 #: ui/slint/src/main_content/search.slint:234
 msgid "Not logged in"
-msgstr ""
+msgstr "Δεν έχετε συνδεθεί"
 
 #: ui/slint/src/main_content/search.slint:244
 msgid "Please log in to your account to view search results."
-msgstr ""
+msgstr "Παρακαλούμε συνδεθείτε στο λογαριασμό σας για να δείτε τα αποτελέσματα αναζήτησης."
 
 #: ui/slint/src/settings/button_group.slint:129
 msgid "Confirm Action"
-msgstr ""
+msgstr "Επιβεβαίωση Ενέργειας"
 
 #: ui/slint/src/settings/button_group.slint:134
 msgid "Are you sure you want to {}? This cannot be undone."
-msgstr ""
+msgstr "Είστε βέβαιοι ότι θέλετε να {}? Αυτό δεν μπορεί να αναιρεθεί."
 
 #: ui/slint/src/settings/button_group.slint:153
 msgid "Confirm"
-msgstr ""
+msgstr "Επιβεβαίωση"
 
 #: ui/slint/src/settings/extensions.slint:113
 msgid "Extension Details"
-msgstr ""
+msgstr "Λεπτομέρειες Επέκτασης"
 
 #: ui/slint/src/settings/settings.slint:44
 msgid "Settings Paths"
-msgstr ""
+msgstr "Διαδρομές Ρυθμίσεων"
 
 #: ui/slint/src/settings/settings.slint:50
 msgid "Settings System"
-msgstr ""
+msgstr "Σύστημα Ρυθμίσεων"
 
 #: ui/slint/src/settings/settings.slint:56
 msgid "Settings Extensions"
-msgstr ""
+msgstr "Επεκτάσεις Ρυθμίσεων"
 
 #: ui/slint/src/settings/settings.slint:62
 msgid "Settings Themes"
-msgstr ""
+msgstr "Θέματα Ρυθμίσεων"
 
 #: ui/slint/src/sidebar/sidebar_header.slint:18
 msgid "Toggle Sidebar"
-msgstr ""
+msgstr "Εναλλαγή Πλευρικής Μπάρας"
 
 #: ui/slint/src/sidebar/sidebar.slint:57
 msgid "Sidebar Songs"
-msgstr ""
+msgstr "Τραγούδια Πλευρικής Μπάρας"
 
 #: ui/slint/src/sidebar/sidebar.slint:63
 msgid "Sidebar Playlists"
-msgstr ""
+msgstr "Λίστες Πλαϊνής Μπάρας"
 
 #: ui/slint/src/sidebar/sidebar.slint:69
 msgid "Sidebar Artists"
-msgstr ""
+msgstr "Καλλιτέχνες Πλευρικής Μπάρας"
 
 #: ui/slint/src/sidebar/sidebar.slint:75
 msgid "Sidebar Albums"
-msgstr ""
+msgstr "Λευκώματα Πλευρικής Μπάρας"
 
 #: ui/slint/src/sidebar/sidebar.slint:81
 msgid "Sidebar Genres"
-msgstr ""
+msgstr "Sidebar Genres"
 
 #: ui/slint/src/sidebar/sidebar.slint:87
 msgid "Sidebar Explore"
-msgstr ""
+msgstr "Sidebar Explore"
 
 #: ui/slint/src/topbar/nav_buttons.slint:16
 msgid "Back"
-msgstr ""
+msgstr "Πίσω"
 
 #: ui/slint/src/topbar/nav_buttons.slint:27
 msgid "Forward"
-msgstr ""
+msgstr "Μπροστά"
 
 #: ui/slint/src/topbar/top_bar.slint:88
 msgid "Settings"
-msgstr ""
+msgstr "Ρυθμίσεις"
 
 #: ui/slint/src/main_content/search.slint:278
 msgid "No results found"
-msgstr ""
+msgstr "Δεν βρέθηκαν αποτελέσματα"
 

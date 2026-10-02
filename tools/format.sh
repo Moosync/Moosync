@@ -46,6 +46,36 @@ chmod +x "$BUF_PATH" 2>/dev/null || true
 WORKSPACE_DIR="${BUILD_WORKSPACE_DIRECTORY:-$(pwd)}"
 cd "$WORKSPACE_DIR"
 
+if [ "${1:-}" = "--fix" ]; then
+  shift
+  file="${1:-}"
+  case "$file" in
+    *.rs)
+      "$RUSTFMT_PATH" --edition 2024 --emit stdout
+      ;;
+    *.slint)
+      TMP=$(mktemp --suffix=.slint)
+      trap 'rm -f "$TMP"' EXIT
+      cat > "$TMP"
+      "$SLINT_LSP_PATH" format "$TMP"
+      ;;
+    *BUILD|*BUILD.bazel|*WORKSPACE|*WORKSPACE.bazel|*MODULE.bazel|*.bzl|*.bazel)
+      "$BUILDIFIER_PATH" -path "$file"
+      ;;
+    *.proto)
+      TMPDIR=$(mktemp -d)
+      trap 'rm -rf "$TMPDIR"' EXIT
+      TMP="$TMPDIR/$(basename "$file")"
+      cat > "$TMP"
+      "$BUF_PATH" format "$TMP"
+      ;;
+    *)
+      cat
+      ;;
+  esac
+  exit 0
+fi
+
 if [ $# -gt 0 ]; then
   # Format only the specified files (e.g. staged files)
   for file in "$@"; do

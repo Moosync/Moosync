@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{borrow::Cow, time::Duration};
+use std::time::Duration;
 
 use assertables::{assert_err, assert_ok};
 use extensions_proto::moosync::types::PlayerState;
@@ -52,7 +52,7 @@ async fn test_mux_player_initial_state(mux_player: MuxPlayer) {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 async fn test_mux_player_can_play_unsupported_url(mux_player: MuxPlayer) {
-    let can_play_ftp = mux_player.can_play(ValidSrc::Url(Cow::Borrowed("ftp://example.com")));
+    let can_play_ftp = mux_player.can_play(ValidSrc::new_url("ftp://example.com"));
 
     assert!(!can_play_ftp);
 }

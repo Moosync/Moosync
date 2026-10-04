@@ -6,10 +6,13 @@ use types::prelude::SongsExt;
 
 use crate::error::PlayerError;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ValidSrc<'a> {
     Path(PathBuf),
-    Url(Cow<'a, str>),
+    Url {
+        url: Cow<'a, str>,
+        decryption_key: Option<Cow<'a, str>>,
+    },
 }
 
 impl Display for ValidSrc<'_> {
@@ -18,11 +21,39 @@ impl Display for ValidSrc<'_> {
     }
 }
 
-impl ValidSrc<'_> {
+impl<'a> ValidSrc<'a> {
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new_url(url: impl Into<Cow<'a, str>>) -> Self {
+        Self::Url {
+            url: url.into(),
+            decryption_key: None,
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub fn new_url_with_key(
+        url: impl Into<Cow<'a, str>>,
+        decryption_key: Option<impl Into<Cow<'a, str>>>,
+    ) -> Self {
+        Self::Url {
+            url: url.into(),
+            decryption_key: decryption_key.map(Into::into),
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
     pub(crate) fn inner(&self) -> Cow<'_, str> {
         match self {
             ValidSrc::Path(path) => path.to_string_lossy(),
-            ValidSrc::Url(url) => url.clone(),
+            ValidSrc::Url { url, .. } => url.clone(),
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub(crate) fn decryption_key(&self) -> Option<Cow<'_, str>> {
+        match self {
+            ValidSrc::Path(_) => None,
+            ValidSrc::Url { decryption_key, .. } => decryption_key.clone(),
         }
     }
 }
@@ -36,7 +67,7 @@ pub(crate) fn get_valid_src(song: &'_ Song) -> Result<ValidSrc<'_>, PlayerError>
         return Ok(ValidSrc::Path(path));
     }
     if let Some(src) = song.get_playback_url() {
-        return Ok(ValidSrc::Url(src));
+        return Ok(ValidSrc::new_url(src));
     }
     Err(PlayerError::NoSrcFound(Box::new(song.clone())))
 }
@@ -70,11 +101,12 @@ impl SourceResolver {
         *r = Some(resolver);
     }
 
-    // This method will ignore any existing playback url and path and try to find a
-    // new one
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn resolve_playback_url(&self, song: &mut Song) -> Result<(), PlayerError> {
-        let resp = {
+    pub async fn resolve(
+        &self,
+        song: &Song,
+    ) -> Result<PlaybackDetailsRequestedResponse, PlayerError> {
+        let resp_fut = {
             let resolver_lock = self.resolver.lock().unwrap();
             let Some(ref resolver) = *resolver_lock else {
                 return Err(PlayerError::PlaybackUrlResolutionFailed(
@@ -82,17 +114,9 @@ impl SourceResolver {
                 ));
             };
             resolver(song)
-        }
-        .await
-        .map_err(|e| PlayerError::PlaybackUrlResolutionFailed(format!("Resolver failed: {}", e)))?;
-
-        if let Some(inner_song) = song.song.as_mut() {
-            inner_song.playback_url = Some(resp.url);
-            if resp.duration.is_some() {
-                inner_song.duration = resp.duration;
-            }
-            return Ok(());
-        }
-        Err(PlayerError::InvalidSong)
+        };
+        resp_fut.await.map_err(|e| {
+            PlayerError::PlaybackUrlResolutionFailed(format!("Resolver failed: {}", e))
+        })
     }
 }

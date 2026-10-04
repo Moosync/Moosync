@@ -115,7 +115,7 @@ impl AudioPlayerContext for DummyAudioPlayerContext {
     fn can_play(&self, src: &ValidSrc) -> bool {
         match src {
             ValidSrc::Path(path) => path.exists(),
-            ValidSrc::Url(url) => url.starts_with("http://") || url.starts_with("https://"),
+            ValidSrc::Url { url, .. } => url.starts_with("http://") || url.starts_with("https://"),
         }
     }
 

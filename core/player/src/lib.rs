@@ -235,8 +235,8 @@ impl PlayerHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn play(&self) -> Result<(), PlayerError> {
         if self.player.get_player_state() == PlayerState::Stopped
-            && let Some(mut song) = self.current_song()
-            && let Err(e) = self.player.set_src(&mut song).await
+            && let Some(song) = self.current_song()
+            && let Err(e) = self.player.set_src(&song).await
         {
             tracing::error!("Failed to load song on play: {:?}", e);
         }
@@ -388,12 +388,12 @@ impl PlayerHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     async fn trigger_song_changed(&self) {
-        let mut current = self.current_song();
+        let current = self.current_song();
         if current.is_none() {
             let _ = self.player.stop();
         }
 
-        if let Some(song) = current.as_mut()
+        if let Some(song) = current.as_ref()
             && let Err(e) = self.player.set_src(song).await
         {
             tracing::error!("Failed to load song: {:?}", e);

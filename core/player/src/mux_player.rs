@@ -31,12 +31,10 @@ use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 use tracing::Instrument;
 use types::subscription::SubscriberList;
 
-#[cfg(test)]
-use crate::source::ValidSrc;
 use crate::{
     context::AudioPlayerContext,
     error::PlayerError,
-    source::{SourceResolver, SourceResolverFn, get_valid_src},
+    source::{SourceResolver, SourceResolverFn, ValidSrc, get_valid_src},
 };
 
 pub struct MuxPlayer {
@@ -121,8 +119,7 @@ impl MuxPlayer {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn load(&self, song: &Song) -> Result<(), PlayerError> {
-        let src = get_valid_src(song)?;
+    pub fn load_src(&self, src: ValidSrc) -> Result<(), PlayerError> {
         let current_idx = self.active_idx.load(Ordering::SeqCst);
 
         if self.players[current_idx].can_play(&src) {
@@ -156,22 +153,31 @@ impl MuxPlayer {
                 }
             }
         }
-        Err(PlayerError::NoPlayerFound(Box::new(song.clone())))
+        Err(PlayerError::NoPlayerFound(Box::default()))
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn set_src(&self, song: &mut Song) -> Result<(), PlayerError> {
+    pub fn load(&self, song: &Song) -> Result<(), PlayerError> {
+        let src = get_valid_src(song)?;
+        self.load_src(src)
+            .map_err(|_| PlayerError::NoPlayerFound(Box::new(song.clone())))
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn set_src(&self, song: &Song) -> Result<(), PlayerError> {
         self.load_song(song).await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn load_song(&self, song: &mut Song) -> Result<(), PlayerError> {
+    pub async fn load_song(&self, song: &Song) -> Result<(), PlayerError> {
         let res = self.load(song);
         if let Err(e) = res {
             match e {
                 PlayerError::NoPlayerFound(_) | PlayerError::NoSrcFound(_) => {
-                    self.source_resolver.resolve_playback_url(song).await?;
-                    self.load(song)?;
+                    let resp = self.source_resolver.resolve(song).await?;
+                    let src = ValidSrc::new_url_with_key(resp.url, resp.decryption_key);
+                    self.load_src(src)
+                        .map_err(|_| PlayerError::NoPlayerFound(Box::new(song.clone())))?;
                 }
                 _ => return Err(e),
             }

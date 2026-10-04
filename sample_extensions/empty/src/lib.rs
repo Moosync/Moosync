@@ -145,6 +145,7 @@ impl Provider for EmptySampleExtension {
         Ok(PlaybackDetailsReturnType {
             duration: Duration::ZERO,
             url: String::new(),
+            decryption_key: None,
         })
     }
 

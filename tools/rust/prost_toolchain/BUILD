@@ -6,6 +6,7 @@ PROST_OPTS = [
     "type_attribute=.moosync.types.ThemeItem=#[serde(default)]",
     "type_attribute=.moosync.types.ThemeDetails=#[serde(default)]",
     "type_attribute=.moosync.types.ExtensionManifest=#[serde(default)]",
+    "type_attribute=.moosync.types.ManifestPermissions=#[serde(default)]",
     "type_attribute=.moosync.types.FetchedExtensionManifest=#[derive(Eq\\,Hash)]",
     "type_attribute=.=#[serde(rename_all=\"camelCase\")]",
 ]

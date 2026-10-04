@@ -14,9 +14,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-use std::{borrow::Cow, fs, path::PathBuf};
+use std::{fs, path::PathBuf};
 
-use assertables::{assert_err, assert_matches, assert_ok, assert_some_eq_x};
+use assertables::{assert_err, assert_matches, assert_ok};
 use extensions_proto::moosync::types::PlaybackDetailsRequestedResponse;
 use rstest::{fixture, rstest};
 use songs_proto::moosync::types::{InnerSong, Song};
@@ -39,12 +39,15 @@ fn temp_dir_fixture() -> TempDir {
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_valid_src_inner_and_display() {
     let path_src = ValidSrc::Path(PathBuf::from("/music/song.mp3"));
-    let url_src = ValidSrc::Url(Cow::Borrowed("https://stream.org/audio.mp3"));
+    let url_src = ValidSrc::new_url("https://stream.org/audio.mp3");
+    let key_src = ValidSrc::new_url_with_key("https://stream.org/audio.mp3", Some("mykey"));
 
     assert_eq!(path_src.inner(), "/music/song.mp3");
     assert_eq!(format!("{}", path_src), "/music/song.mp3");
     assert_eq!(url_src.inner(), "https://stream.org/audio.mp3");
     assert_eq!(format!("{}", url_src), "https://stream.org/audio.mp3");
+    assert_eq!(url_src.decryption_key(), None);
+    assert_eq!(key_src.decryption_key().as_deref(), Some("mykey"));
 }
 
 #[rstest]
@@ -83,7 +86,7 @@ fn test_get_valid_src_playback_url_when_file_absent() {
     let valid_src = get_valid_src(&song);
 
     assert_ok!(valid_src.as_ref());
-    assert_matches!(valid_src.unwrap(), ValidSrc::Url(u) if u == "https://example.com/audio");
+    assert_matches!(valid_src.unwrap(), ValidSrc::Url { url, .. } if url == "https://example.com/audio");
 }
 
 #[test]
@@ -108,9 +111,9 @@ fn test_get_valid_src_error_when_none_present() {
 #[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-async fn test_source_resolver_resolve_playback_url() {
+async fn test_source_resolver_resolve() {
     let resolver = SourceResolver::new();
-    let mut song = Song {
+    let song = Song {
         song: Some(InnerSong {
             id: Some("123".to_string()),
             ..Default::default()
@@ -118,19 +121,23 @@ async fn test_source_resolver_resolve_playback_url() {
         ..Default::default()
     };
 
-    assert_err!(resolver.resolve_playback_url(&mut song).await.as_ref());
+    assert_err!(resolver.resolve(&song).await.as_ref());
 
     resolver.set_resolver(Box::new(|_s| {
         Box::new(Box::pin(std::future::ready(Ok(
             PlaybackDetailsRequestedResponse {
                 url: "https://resolved.stream/123".to_string(),
                 duration: None,
+                decryption_key: Some("0123456789abcdef0123456789abcdef".to_string()),
             },
         ))))
     }));
-    assert_ok!(resolver.resolve_playback_url(&mut song).await);
-    assert_some_eq_x!(
-        song.song.as_ref().unwrap().playback_url.as_deref(),
-        "https://resolved.stream/123"
+    let res = resolver.resolve(&song).await;
+    assert_ok!(res.as_ref());
+    let resp = res.unwrap();
+    assert_eq!(resp.url, "https://resolved.stream/123");
+    assert_eq!(
+        resp.decryption_key.as_deref(),
+        Some("0123456789abcdef0123456789abcdef")
     );
 }

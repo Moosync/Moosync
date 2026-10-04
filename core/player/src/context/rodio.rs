@@ -135,7 +135,7 @@ impl AudioPlayerContext for RodioPlayerContext {
     fn can_play(&self, src: &ValidSrc) -> bool {
         match src {
             ValidSrc::Path(path) => path.exists(),
-            ValidSrc::Url(url) => url.starts_with("http://") || url.starts_with("https://"),
+            ValidSrc::Url { url, .. } => url.starts_with("http://") || url.starts_with("https://"),
         }
     }
 
@@ -170,7 +170,11 @@ impl AudioPlayerContext for RodioPlayerContext {
             cfg.sample_format()
         );
 
-        let decoder = FFMPEGDecoder::open(&src.inner(), output_sample_rate)?;
+        let decoder = FFMPEGDecoder::open(
+            &src.inner(),
+            src.decryption_key().as_deref(),
+            output_sample_rate,
+        )?;
         let player = rodio::Player::connect_new(sink.mixer());
         player.append(decoder);
         player.append(EmptyCallback::new(Box::new(move || {

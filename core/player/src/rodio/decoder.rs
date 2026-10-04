@@ -13,7 +13,7 @@ use rodio::{ChannelCount, Sample, SampleRate, Source, source::SeekError};
 use rsmpeg::{
     avcodec::AVCodecContext,
     avformat::AVFormatContextInput,
-    avutil::{AVFrame, AVRational, AVSamples, err2str},
+    avutil::{AVDictionary, AVFrame, AVRational, AVSamples, err2str},
     error::RsmpegError,
     ffi::{
         AV_NOPTS_VALUE, AV_SAMPLE_FMT_FLT, AVMEDIA_TYPE_AUDIO, AVSEEK_FLAG_BACKWARD, AVSampleFormat,
@@ -101,11 +101,23 @@ impl FFMPEGDecoder {
     /// Opens an audio file or stream from the given path/URL and initializes
     /// the decoder.
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn open(path: &str, output_sample_rate: u32) -> Result<FFMPEGDecoder, DecoderError> {
+    pub fn open(
+        path: &str,
+        decryption_key: Option<&str>,
+        output_sample_rate: u32,
+    ) -> Result<FFMPEGDecoder, DecoderError> {
         let input_path = format_input_url(path)?;
+
+        let mut options = decryption_key.and_then(|key| {
+            let key = key.split(':').next_back().unwrap_or(key).trim();
+            let c_opt = CString::new("decryption_key").ok()?;
+            let c_val = CString::new(key).ok()?;
+            Some(AVDictionary::new(&c_opt, &c_val, 0))
+        });
 
         let format_ctx = AVFormatContextInput::builder()
             .url(&input_path)
+            .options(&mut options)
             .open()
             .map_err(|e| DecoderError::AV(e.raw_error().unwrap_or_default()))?;
 

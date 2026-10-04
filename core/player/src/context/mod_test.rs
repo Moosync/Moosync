@@ -44,7 +44,7 @@ fn test_dummy_audio_player_context_operations(dummy_player_context: DummyAudioPl
     dummy_player_context.set_volume(80).unwrap();
     assert_ok_eq_x!(dummy_player_context.get_volume(), 80);
 
-    let src = ValidSrc::Url("https://example.com/test.mp3".into());
+    let src = ValidSrc::new_url("https://example.com/test.mp3");
     dummy_player_context.set_src(src, events_tx).unwrap();
     assert_ok_eq_x!(
         dummy_player_context.get_player_state(),

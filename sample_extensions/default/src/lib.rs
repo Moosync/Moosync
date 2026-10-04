@@ -280,6 +280,7 @@ impl Provider for SampleExtension {
         Ok(PlaybackDetailsReturnType {
             duration: Duration::ZERO,
             url: "https://example.com/song.mp3".to_string(),
+            decryption_key: None,
         })
     }
 

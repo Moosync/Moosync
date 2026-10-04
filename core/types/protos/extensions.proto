@@ -81,6 +81,7 @@ message ExtensionCommandResponse {
 message RequestedPlaylistsRequest {
   bool refresh = 1;
 }
+
 message RequestedPlaylistsResponse {
   repeated Playlist playlists = 1;
 }
@@ -90,6 +91,7 @@ message RequestedPlaylistSongsRequest {
   bool refresh = 2;
   optional string page_token = 3;
 }
+
 message RequestedPlaylistSongsResponse {
   repeated Song songs = 1;
   optional string next_page_token = 2;
@@ -98,50 +100,60 @@ message RequestedPlaylistSongsResponse {
 message OauthCallbackRequest {
   string callback_uri = 1;
 }
+
 message OauthCallbackResponse {}
 
 message SongQueueChangedRequest {
   google.protobuf.Struct queue_state = 1;
 }
+
 message SongQueueChangedResponse {}
 
 message SeekedRequest {
   double position = 1;
 }
+
 message SeekedResponse {}
 
 message VolumeChangedRequest {
   double volume = 1;
 }
+
 message VolumeChangedResponse {}
 
 message PlayerStateChangedRequest {
   PlayerState state = 1;
 }
+
 message PlayerStateChangedResponse {}
 
 message SongChangedRequest {
   Song song = 1;
 }
+
 message SongChangedResponse {}
 
 message PreferenceChangedRequest {
   PreferenceArgs preference = 1;
 }
+
 message PreferenceChangedResponse {}
 
 message PlaybackDetailsRequestedRequest {
   Song song = 1;
 }
+
 message PlaybackDetailsRequestedResponse {
   google.protobuf.Duration duration = 1;
   string url = 2;
+  optional string decryption_key = 3;
 }
 
 message CustomRequest {
   string request_id = 1;
   optional google.protobuf.Struct payload = 2;
 }
+
 message CustomRequestResponse {
   optional string mime_type = 1;
   optional bytes data = 2;
@@ -152,6 +164,7 @@ message RequestedSongFromUrlRequest {
   string url = 1;
   bool refresh = 2;
 }
+
 message RequestedSongFromUrlResponse {
   optional Song song = 1;
 }
@@ -160,6 +173,7 @@ message RequestedPlaylistFromUrlRequest {
   string url = 1;
   bool refresh = 2;
 }
+
 message RequestedPlaylistFromUrlResponse {
   optional Playlist playlist = 1;
   repeated Song songs = 2;
@@ -168,6 +182,7 @@ message RequestedPlaylistFromUrlResponse {
 message RequestedSearchResultRequest {
   string query = 1;
 }
+
 message RequestedSearchResultResponse {
   repeated Song songs = 1;
   repeated Playlist playlists = 2;
@@ -178,6 +193,7 @@ message RequestedSearchResultResponse {
 message RequestedRecommendationsRequest {
   bool refresh = 1;
 }
+
 message RequestedRecommendationsResponse {
   repeated Song songs = 1;
 }
@@ -185,6 +201,7 @@ message RequestedRecommendationsResponse {
 message RequestedLyricsRequest {
   Song song = 1;
 }
+
 message RequestedLyricsResponse {
   optional Lyrics lyrics = 1;
 }
@@ -193,6 +210,7 @@ message RequestedArtistSongsRequest {
   Artist artist = 1;
   optional string page_token = 2;
 }
+
 message RequestedArtistSongsResponse {
   repeated Song songs = 1;
   optional string next_page_token = 2;
@@ -202,6 +220,7 @@ message RequestedAlbumSongsRequest {
   Album album = 1;
   optional string page_token = 2;
 }
+
 message RequestedAlbumSongsResponse {
   repeated Song songs = 1;
   optional string next_page_token = 2;
@@ -210,26 +229,31 @@ message RequestedAlbumSongsResponse {
 message SongAddedRequest {
   repeated Song songs = 1;
 }
+
 message SongAddedResponse {}
 
 message SongRemovedRequest {
   repeated Song songs = 1;
 }
+
 message SongRemovedResponse {}
 
 message PlaylistAddedRequest {
   repeated Playlist playlists = 1;
 }
+
 message PlaylistAddedResponse {}
 
 message PlaylistRemovedRequest {
   repeated Playlist playlists = 1;
 }
+
 message PlaylistRemovedResponse {}
 
 message RequestedSongFromIdRequest {
   string id = 1;
 }
+
 message RequestedSongFromIdResponse {
   optional Song song = 1;
 }
@@ -237,6 +261,7 @@ message RequestedSongFromIdResponse {
 message GetRemoteUrlRequest {
   Song song = 1;
 }
+
 message GetRemoteUrlResponse {
   string url = 1;
 }
@@ -244,11 +269,13 @@ message GetRemoteUrlResponse {
 message ScrobbleRequest {
   Song song = 1;
 }
+
 message ScrobbleResponse {}
 
 message RequestedSongContextMenuRequest {
   repeated Song songs = 1;
 }
+
 message RequestedSongContextMenuResponse {
   ContextMenuReturnType menu = 1;
 }
@@ -256,6 +283,7 @@ message RequestedSongContextMenuResponse {
 message RequestedPlaylistContextMenuRequest {
   Playlist playlist = 1;
 }
+
 message RequestedPlaylistContextMenuResponse {
   ContextMenuReturnType menu = 1;
 }
@@ -263,9 +291,11 @@ message RequestedPlaylistContextMenuResponse {
 message ContextMenuActionRequest {
   string action_id = 1;
 }
+
 message ContextMenuActionResponse {}
 
 message GetProviderScopesRequest {}
+
 message GetProviderScopesResponse {
   repeated ExtensionProviderScope scopes = 1;
 }
@@ -274,6 +304,7 @@ message PerformAccountLoginRequest {
   string account_id = 2;
   bool login_status = 3;
 }
+
 message PerformAccountLoginResponse {
   string status = 1;
 }
@@ -338,6 +369,7 @@ message MainCommandResponse {
 message GetSongRequest {
   GetSongOptions options = 1;
 }
+
 message GetSongResponse {
   repeated Song songs = 1;
 }
@@ -345,31 +377,37 @@ message GetSongResponse {
 message GetEntityRequest {
   GetEntityOptions options = 1;
 }
+
 message GetEntityResponse {
   EntityResult entity = 1;
 }
 
 message GetCurrentSongRequest {}
+
 message GetCurrentSongResponse {
   Song song = 1;
 }
 
 message GetPlayerStateRequest {}
+
 message GetPlayerStateResponse {
   PlayerState state = 1;
 }
 
 message GetVolumeRequest {}
+
 message GetVolumeResponse {
   double volume = 1;
 }
 
 message GetTimeRequest {}
+
 message GetTimeResponse {
   double time = 1;
 }
 
 message GetQueueRequest {}
+
 message GetQueueResponse {
   google.protobuf.Struct queue = 1;
 }
@@ -377,6 +415,7 @@ message GetQueueResponse {
 message GetPreferenceRequest {
   PreferenceData data = 1;
 }
+
 message GetPreferenceResponse {
   PreferenceData data = 1;
 }
@@ -384,6 +423,7 @@ message GetPreferenceResponse {
 message SetPreferenceRequest {
   PreferenceData data = 1;
 }
+
 message SetPreferenceResponse {
   bool success = 1;
 }
@@ -391,6 +431,7 @@ message SetPreferenceResponse {
 message GetSecureRequest {
   PreferenceData data = 1;
 }
+
 message GetSecureResponse {
   PreferenceData data = 1;
 }
@@ -398,6 +439,7 @@ message GetSecureResponse {
 message SetSecureRequest {
   PreferenceData data = 1;
 }
+
 message SetSecureResponse {
   bool success = 1;
 }
@@ -405,6 +447,7 @@ message SetSecureResponse {
 message AddSongsRequest {
   repeated Song songs = 1;
 }
+
 message AddSongsResponse {
   repeated Song songs = 1;
 }
@@ -412,6 +455,7 @@ message AddSongsResponse {
 message RemoveSongRequest {
   Song song = 1;
 }
+
 message RemoveSongResponse {
   bool success = 1;
 }
@@ -419,6 +463,7 @@ message RemoveSongResponse {
 message UpdateSongRequest {
   Song song = 1;
 }
+
 message UpdateSongResponse {
   Song song = 1;
 }
@@ -426,6 +471,7 @@ message UpdateSongResponse {
 message AddPlaylistRequest {
   Playlist playlist = 1;
 }
+
 message AddPlaylistResponse {
   string playlist_id = 1;
 }
@@ -434,6 +480,7 @@ message AddToPlaylistRequest {
   string playlist_id = 1;
   repeated Song songs = 2;
 }
+
 message AddToPlaylistResponse {
   bool success = 1;
 }
@@ -441,6 +488,7 @@ message AddToPlaylistResponse {
 message RegisterOauthRequest {
   string url = 1;
 }
+
 message RegisterOauthResponse {
   bool success = 1;
 }
@@ -448,6 +496,7 @@ message RegisterOauthResponse {
 message OpenExternalUrlRequest {
   string url = 1;
 }
+
 message OpenExternalUrlResponse {
   bool success = 1;
 }
@@ -455,6 +504,7 @@ message OpenExternalUrlResponse {
 message SetAccountRequest {
   ExtensionAccountDetail account = 1;
 }
+
 message SetAccountResponse {
   bool success = 1;
 }
@@ -462,6 +512,7 @@ message SetAccountResponse {
 message RegisterUserPreferenceRequest {
   repeated PreferenceItem prefs = 1;
 }
+
 message RegisterUserPreferenceResponse {
   bool success = 1;
 }
@@ -469,14 +520,17 @@ message RegisterUserPreferenceResponse {
 message UnregisterUserPreferenceRequest {
   repeated string keys = 1;
 }
+
 message UnregisterUserPreferenceResponse {
   bool success = 1;
 }
 
 message ExtensionsUpdatedRequest {}
+
 message ExtensionsUpdatedResponse {}
 
 message GetAppVersionRequest {}
+
 message GetAppVersionResponse {
   string version = 1;
 }

@@ -89,7 +89,7 @@ fn test_decoder_raw_tracks(
     #[case] sample_rate: u32,
     #[case] expected_samples: usize,
 ) {
-    let decoder = FFMPEGDecoder::open(path, sample_rate).expect("Failed to open track");
+    let decoder = FFMPEGDecoder::open(path, None, sample_rate).expect("Failed to open track");
     let output = capture_raw_decoder_output(decoder, sample_rate, 2);
 
     assert_len_eq_x!(&output, expected_samples);
@@ -103,13 +103,23 @@ fn test_decoder_raw_tracks(
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_raw_decoder_succession() {
-    let expected_48k =
-        capture_raw_decoder_output(FFMPEGDecoder::open(PATH_48K, 48000).unwrap(), 48000, 2);
-    let expected_44k =
-        capture_raw_decoder_output(FFMPEGDecoder::open(PATH_44K, 44100).unwrap(), 44100, 2);
+    let expected_48k = capture_raw_decoder_output(
+        FFMPEGDecoder::open(PATH_48K, None, 48000).unwrap(),
+        48000,
+        2,
+    );
+    let expected_44k = capture_raw_decoder_output(
+        FFMPEGDecoder::open(PATH_44K, None, 44100).unwrap(),
+        44100,
+        2,
+    );
 
-    let decoder_48k = FFMPEGDecoder::open(PATH_48K, 48000).unwrap().take(480_000);
-    let decoder_44k = FFMPEGDecoder::open(PATH_44K, 44100).unwrap().take(441_000);
+    let decoder_48k = FFMPEGDecoder::open(PATH_48K, None, 48000)
+        .unwrap()
+        .take(480_000);
+    let decoder_44k = FFMPEGDecoder::open(PATH_44K, None, 44100)
+        .unwrap()
+        .take(441_000);
     let mut succession_output: Vec<f32> = decoder_48k.chain(decoder_44k).collect();
     let succession_44k = succession_output.split_off(expected_48k.len());
     let succession_48k = succession_output;
@@ -124,7 +134,8 @@ fn test_raw_decoder_succession() {
 async fn test_decoder_http_stream_with_cache() {
     let (_mock_server, url) = spawn_audio_mock_server(PATH_48K).await;
 
-    let decoder = FFMPEGDecoder::open(&url, 48000).expect("Failed to open http stream with cache");
+    let decoder =
+        FFMPEGDecoder::open(&url, None, 48000).expect("Failed to open http stream with cache");
     let output = capture_raw_decoder_output(decoder, 48000, 2);
 
     assert_len_eq_x!(&output, 480_000);
@@ -136,7 +147,7 @@ async fn test_decoder_http_stream_with_cache() {
 async fn test_decoder_http_stream_cache_seeking() {
     let (_mock_server, url) = spawn_audio_mock_server(PATH_48K).await;
     let mut decoder =
-        FFMPEGDecoder::open(&url, 48000).expect("Failed to open http stream with cache");
+        FFMPEGDecoder::open(&url, None, 48000).expect("Failed to open http stream with cache");
 
     let first_chunk: Vec<f32> = decoder.by_ref().take(48_000).collect();
     let seek_res = Source::try_seek(&mut decoder, Duration::from_secs(0));
@@ -154,7 +165,7 @@ async fn test_decoder_http_stream_cache_seeking() {
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_decoder_resampling_44100_to_48000() {
     let decoder =
-        FFMPEGDecoder::open(PATH_44K, 48000).expect("Failed to open with 48k output rate");
+        FFMPEGDecoder::open(PATH_44K, None, 48000).expect("Failed to open with 48k output rate");
 
     let samples: Vec<f32> = decoder.collect();
 
@@ -170,7 +181,7 @@ fn test_decoder_resampling_44100_to_48000() {
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_decoder_local_file_seek() {
     let mut decoder =
-        FFMPEGDecoder::open(PATH_48K, 44100).expect("Failed to open local test audio file");
+        FFMPEGDecoder::open(PATH_48K, None, 44100).expect("Failed to open local test audio file");
 
     let initial_chunk: Vec<f32> = decoder.by_ref().take(44_100).collect();
     let seek_2s_res = Source::try_seek(&mut decoder, Duration::from_secs(2));
@@ -185,4 +196,13 @@ fn test_decoder_local_file_seek() {
     assert_ok!(seek_0s_res);
     assert_len_eq_x!(&start_chunk, 44_100);
     assert!(start_chunk.iter().any(|&s| s != 0.0));
+}
+
+#[test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_decoder_with_decryption_key() {
+    let key = "1234567890abcdef1234567890abcdef:abcdef1234567890abcdef1234567890";
+    let decoder = FFMPEGDecoder::open(PATH_48K, Some(key), 48000);
+    assert!(decoder.is_ok());
 }

@@ -165,7 +165,7 @@ fn test_extension_handler_init_and_get_all(handler_context: TestHandlerContext) 
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_extension_handler_check_for_updates(handler_context: TestHandlerContext) {
+fn test_extension_handler_check_for_updates_v1(handler_context: TestHandlerContext) {
     let ext_dir = handler_context.handler.extensions_dir.join("test_ext");
     fs::create_dir_all(&ext_dir).unwrap();
     let pkg_json = r#"{
@@ -190,16 +190,19 @@ fn test_extension_handler_check_for_updates(handler_context: TestHandlerContext)
     .unwrap();
     handler_context.handler.find_new_extensions().unwrap();
 
-    let mut remote_manifests = std::collections::HashSet::new();
-    remote_manifests.insert(extensions_proto::moosync::types::FetchedExtensionManifest {
-        name: "Test Extension".to_string(),
-        package_name: "test_ext".to_string(),
+    let remote_manifests = vec![extensions_proto::moosync::types::ExtensionManifest {
+        moosync_extension: false,
+        display_name: "Test Extension".to_string(),
+        extension_entry: "".to_string(),
+        author: None,
+        name: "test_ext".to_string(),
         version: "1.1.0".to_string(),
-        url: "https://example.com/test_ext.msxt".to_string(),
-        logo: None,
+        icon: "".to_string(),
+        permissions: None,
         description: None,
+        url: Some("https://example.com/test_ext.msxt".to_string()),
         registry: Some("default".to_string()),
-    });
+    }];
     handler_context
         .handler
         .set_remote_manifests(remote_manifests);
@@ -210,7 +213,7 @@ fn test_extension_handler_check_for_updates(handler_context: TestHandlerContext)
     assert!(has_updates);
     assert!(handler_context.handler.has_updates());
     assert_eq!(updatables.len(), 1);
-    assert_eq!(updatables[0].package_name, "test_ext");
+    assert_eq!(updatables[0].name, "test_ext");
     assert_eq!(updatables[0].version, "1.1.0");
 }
 
@@ -242,16 +245,19 @@ fn test_extension_handler_check_for_updates_older_remote(handler_context: TestHa
     .unwrap();
     handler_context.handler.find_new_extensions().unwrap();
 
-    let mut remote_manifests = std::collections::HashSet::new();
-    remote_manifests.insert(extensions_proto::moosync::types::FetchedExtensionManifest {
-        name: "Test Extension".to_string(),
-        package_name: "test_ext".to_string(),
+    let remote_manifests = vec![extensions_proto::moosync::types::ExtensionManifest {
+        moosync_extension: false,
+        display_name: "Test Extension".to_string(),
+        extension_entry: "".to_string(),
+        author: None,
+        name: "test_ext".to_string(),
         version: "1.1.0".to_string(),
-        url: "https://example.com/test_ext.msxt".to_string(),
-        logo: None,
+        icon: "".to_string(),
+        permissions: None,
         description: None,
+        url: Some("https://example.com/test_ext.msxt".to_string()),
         registry: Some("default".to_string()),
-    });
+    }];
     handler_context
         .handler
         .set_remote_manifests(remote_manifests);
@@ -305,16 +311,19 @@ async fn test_extension_handler_update_all_extensions_failed(handler_context: Te
     .unwrap();
     handler_context.handler.find_new_extensions().unwrap();
 
-    let mut remote_manifests = std::collections::HashSet::new();
-    remote_manifests.insert(extensions_proto::moosync::types::FetchedExtensionManifest {
-        name: "Test Extension".to_string(),
-        package_name: "test_ext".to_string(),
+    let remote_manifests = vec![extensions_proto::moosync::types::ExtensionManifest {
+        moosync_extension: false,
+        display_name: "Test Extension".to_string(),
+        extension_entry: "".to_string(),
+        author: None,
+        name: "test_ext".to_string(),
         version: "1.1.0".to_string(),
-        url: "http://127.0.0.1:9/non_existent.msxt".to_string(),
-        logo: None,
+        icon: "".to_string(),
+        permissions: None,
         description: None,
+        url: Some("http://127.0.0.1:9/non_existent.msxt".to_string()),
         registry: Some("default".to_string()),
-    });
+    }];
     handler_context
         .handler
         .set_remote_manifests(remote_manifests);

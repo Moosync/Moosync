@@ -16,7 +16,7 @@
 
 use std::{collections::HashSet, fs::File, io::Write, path::PathBuf};
 
-use extensions_proto::moosync::types::{ExtensionRegistryManifest, FetchedExtensionManifest};
+use extensions_proto::moosync::types::{ExtensionManifest, ExtensionRegistryManifest};
 use futures::StreamExt;
 use prost::Message;
 
@@ -43,19 +43,17 @@ impl RemoteExtensions {
     pub async fn get_extension_manifest(
         &self,
         registries: &HashSet<String>,
-    ) -> Result<HashSet<FetchedExtensionManifest>, ExtensionError> {
+    ) -> Result<Vec<ExtensionManifest>, ExtensionError> {
         tracing::info!(
             "Getting extension manifests from registries: {:?}",
             registries
         );
-        let mut ret = HashSet::new();
+        let mut ret = Vec::new();
 
         for registry_url in registries {
             match self.fetch_registry(&self.client, registry_url).await {
                 Ok(manifests) => {
-                    for manifest in manifests {
-                        ret.insert(manifest);
-                    }
+                    ret.extend(manifests);
                 }
                 Err(err) => {
                     tracing::error!(
@@ -75,7 +73,7 @@ impl RemoteExtensions {
         &self,
         client: &reqwest::Client,
         registry_url: &str,
-    ) -> Result<Vec<FetchedExtensionManifest>, ExtensionError> {
+    ) -> Result<Vec<ExtensionManifest>, ExtensionError> {
         let res = client
             .get(registry_url)
             .header(
@@ -100,23 +98,15 @@ impl RemoteExtensions {
 
         let mut list = Vec::new();
         for mut item in parsed.extensions {
-            if item.version.is_empty() || item.package_name.is_empty() {
+            if item.version.is_empty() || item.name.is_empty() {
                 continue;
             }
 
-            if item.name.is_empty() {
-                item.name = item.package_name.clone();
-            }
-
-            if let Some(logo) = item.logo.as_mut()
-                && !logo.starts_with("http://")
-                && !logo.starts_with("https://")
+            if let Some(url) = item.url.as_ref()
+                && !url.starts_with("http://")
+                && !url.starts_with("https://")
             {
-                *logo = format!("{}{}", base_url, logo.trim_start_matches('/'));
-            }
-
-            if !item.url.starts_with("http://") && !item.url.starts_with("https://") {
-                item.url = format!("{}{}", base_url, item.url.trim_start_matches('/'));
+                item.url = Some(format!("{}{}", base_url, url.trim_start_matches('/')));
             }
 
             if item.registry.is_none() || item.registry.as_deref() == Some("") {
@@ -132,12 +122,15 @@ impl RemoteExtensions {
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn download_extension(
         &self,
-        fetched_ext: FetchedExtensionManifest,
+        ext_manifest: ExtensionManifest,
     ) -> Result<PathBuf, ExtensionError> {
-        let parsed_url = fetched_ext.url;
+        let parsed_url = ext_manifest
+            .url
+            .as_ref()
+            .ok_or(ExtensionError::InvalidResponse)?;
         let file_path = self.tmp_dir.join(format!(
             "{}-{}.msox",
-            fetched_ext.package_name,
+            ext_manifest.name,
             uuid::Uuid::new_v4()
         ));
 

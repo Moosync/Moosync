@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use assertables::assert_some_eq_x;
 use extensions_proto::moosync::types::{
-    ExtensionDetail, ExtensionProviderScope, FetchedExtensionManifest, ManifestPermissions,
+    ExtensionDetail, ExtensionManifest, ExtensionProviderScope, ManifestPermissions,
 };
 use rstest::rstest;
 use slint::{ComponentHandle, Image, Model};
@@ -413,12 +413,18 @@ fn test_provider_scope_from_i32(#[case] val: i32, #[case] expected: ProviderScop
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_to_fetched_extension_item() {
-    let manifest = FetchedExtensionManifest {
-        package_name: "com.fetched.ext".to_string(),
-        name: "Fetched Ext".to_string(),
-        description: Some("Fetched description".to_string()),
+    let manifest = ExtensionManifest {
+        moosync_extension: false,
+        display_name: "Fetched Ext".to_string(),
+        extension_entry: "".to_string(),
+        author: None,
+        name: "com.fetched.ext".to_string(),
         version: "2.0.0".to_string(),
-        ..Default::default()
+        icon: "".to_string(),
+        permissions: None,
+        description: Some("Fetched description".to_string()),
+        url: None,
+        registry: None,
     };
 
     let fetched_item = ExtensionItem::from(manifest);
@@ -501,13 +507,17 @@ fn test_from_extension_detail_default_icon() {
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_from_fetched_extension_manifest_default_icon() {
-    let manifest = FetchedExtensionManifest {
-        name: "Remote Extension".to_string(),
-        package_name: "remote.ext".to_string(),
+    let manifest = ExtensionManifest {
+        moosync_extension: false,
+        display_name: "Remote Extension".to_string(),
+        extension_entry: "".to_string(),
+        author: None,
+        name: "remote.ext".to_string(),
         version: "2.0.0".to_string(),
+        icon: "".to_string(),
+        permissions: None,
         description: Some("Remote description".to_string()),
-        logo: None,
-        url: "https://example.com/ext.msox".to_string(),
+        url: Some("https://example.com/ext.msox".to_string()),
         registry: Some("Community".to_string()),
     };
 

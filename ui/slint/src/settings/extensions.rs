@@ -161,7 +161,7 @@ impl ExtensionsPageHandler {
         let extensions = handler.get_all_extensions();
         let ext_info = extensions.into_iter().find(|ext| match ext {
             ExtensionInfo::Local(detail) => detail.package_name == package_name,
-            ExtensionInfo::Remote(manifest) => manifest.package_name == package_name,
+            ExtensionInfo::Remote(manifest) => manifest.name == package_name,
             _ => false,
         });
 

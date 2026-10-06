@@ -1,7 +1,7 @@
 use std::{path::Path, time::Duration};
 
 use extensions_proto::moosync::types::{
-    ExtensionAccountDetail, ExtensionDetail, ExtensionProviderScope, FetchedExtensionManifest,
+    ExtensionAccountDetail, ExtensionDetail, ExtensionManifest, ExtensionProviderScope,
 };
 use slint::{Color, Image, Model, ModelRc, SharedString, VecModel};
 use songs_proto::moosync::types::{
@@ -538,21 +538,21 @@ impl From<ExtensionDetail> for ExtensionItem {
     }
 }
 
-impl From<FetchedExtensionManifest> for ExtensionItem {
+impl From<ExtensionManifest> for ExtensionItem {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn from(ext: FetchedExtensionManifest) -> Self {
+    fn from(ext: ExtensionManifest) -> Self {
         Self {
-            name: ext.name.into(),
-            package_name: ext.package_name.into(),
+            name: ext.display_name.into(),
+            package_name: ext.name.into(),
             version: ext.version.into(),
             is_installed: false,
             loading: false,
             description: ext.description.unwrap_or_default().into(),
             icon: Image::default(),
             has_started: false,
-            icon_url: ext.logo.unwrap_or_default().into(),
+            icon_url: ext.icon.into(),
             registry: ext.registry.unwrap_or_default().into(),
-            author: SharedString::default(),
+            author: ext.author.unwrap_or_default().into(),
             network_permissions: ModelRc::default(),
             filesystem_permissions: ModelRc::default(),
             scopes: ModelRc::default(),

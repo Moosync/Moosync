@@ -22,9 +22,7 @@ use std::{
 };
 
 use ext_runner::ExtensionHandlerInner;
-use extensions_proto::moosync::types::{
-    ExtensionDetail, ExtensionManifest, FetchedExtensionManifest, PackageName,
-};
+use extensions_proto::moosync::types::{ExtensionDetail, ExtensionManifest, PackageName};
 use fs_extra::dir::CopyOptions;
 use types::subscription::SubscriberList;
 use zip_extensions::zip_extract;
@@ -68,7 +66,7 @@ mod tests;
 #[derive(Debug, Clone)]
 pub enum ExtensionInfo {
     Local(ExtensionDetail),
-    Remote(FetchedExtensionManifest),
+    Remote(ExtensionManifest),
     LocalPath(std::path::PathBuf),
 }
 
@@ -77,7 +75,7 @@ impl ExtensionInfo {
     pub fn package_name(&self) -> &str {
         match self {
             ExtensionInfo::Local(detail) => &detail.package_name,
-            ExtensionInfo::Remote(manifest) => &manifest.package_name,
+            ExtensionInfo::Remote(manifest) => &manifest.name,
             ExtensionInfo::LocalPath(_) => "",
         }
     }
@@ -97,7 +95,7 @@ impl Eq for ExtensionInfo {}
 
 #[derive(Default)]
 struct ExtensionConfig {
-    remote_manifests: HashSet<FetchedExtensionManifest>,
+    remote_manifests: Vec<ExtensionManifest>,
     has_updates: bool,
 }
 
@@ -144,7 +142,7 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_updatable_extensions(&self) -> Vec<FetchedExtensionManifest> {
+    pub fn get_updatable_extensions(&self) -> Vec<ExtensionManifest> {
         let installed = self.get_installed_extensions();
         let config = self.config.lock().unwrap();
         let mut updatables = Vec::new();
@@ -152,7 +150,7 @@ impl ExtensionHandler {
             let Some(remote) = config
                 .remote_manifests
                 .iter()
-                .find(|r| r.package_name == inst.package_name)
+                .find(|r| r.name == inst.package_name)
             else {
                 continue;
             };
@@ -193,7 +191,7 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn set_remote_manifests(&self, manifests: HashSet<FetchedExtensionManifest>) {
+    pub fn set_remote_manifests(&self, manifests: Vec<ExtensionManifest>) {
         self.config.lock().unwrap().remote_manifests = manifests;
     }
 
@@ -364,8 +362,8 @@ impl ExtensionHandler {
         }
 
         for rem in remote {
-            if !seen_packages.contains(&rem.package_name) {
-                seen_packages.insert(rem.package_name.clone());
+            if !seen_packages.contains(&rem.name) {
+                seen_packages.insert(rem.name.clone());
                 ret.push(ExtensionInfo::Remote(rem.clone()));
             }
         }

@@ -8,11 +8,11 @@ use std::{
 use extensions_proto::moosync::types::{
     ContextMenuActionRequest, ContextMenuActionResponse, CustomRequest, CustomRequestResponse,
     ExtensionAccountDetail, ExtensionCommand, ExtensionCommandResponse, ExtensionDetail,
-    ExtensionManifest, GetProviderScopesRequest, GetProviderScopesResponse, GetRemoteUrlRequest,
-    GetRemoteUrlResponse, OauthCallbackRequest, OauthCallbackResponse, PerformAccountLoginRequest,
-    PerformAccountLoginResponse, PlaybackDetailsRequestedRequest, PlaybackDetailsRequestedResponse,
-    PlayerStateChangedRequest, PlayerStateChangedResponse, PlaylistAddedRequest,
-    PlaylistAddedResponse, PlaylistRemovedRequest, PlaylistRemovedResponse,
+    ExtensionLockData, ExtensionManifest, GetProviderScopesRequest, GetProviderScopesResponse,
+    GetRemoteUrlRequest, GetRemoteUrlResponse, OauthCallbackRequest, OauthCallbackResponse,
+    PerformAccountLoginRequest, PerformAccountLoginResponse, PlaybackDetailsRequestedRequest,
+    PlaybackDetailsRequestedResponse, PlayerStateChangedRequest, PlayerStateChangedResponse,
+    PlaylistAddedRequest, PlaylistAddedResponse, PlaylistRemovedRequest, PlaylistRemovedResponse,
     PreferenceChangedRequest, PreferenceChangedResponse, RequestedAlbumSongsRequest,
     RequestedAlbumSongsResponse, RequestedArtistSongsRequest, RequestedArtistSongsResponse,
     RequestedLyricsRequest, RequestedLyricsResponse, RequestedPlaylistContextMenuRequest,
@@ -29,6 +29,7 @@ use extensions_proto::moosync::types::{
     extension_command_response,
 };
 use preferences_proto::moosync::types::PreferenceItem;
+use prost::Message;
 
 use crate::{
     ReplyHandler,
@@ -36,11 +37,6 @@ use crate::{
     errors::ExtensionError,
     sanitize::Sanitize,
 };
-
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
-pub struct ExtensionLockData {
-    pub registry: String,
-}
 
 pub struct Extension {
     context: Mutex<Option<Arc<dyn ExtensionContext>>>,
@@ -58,7 +54,7 @@ impl Extension {
     #[tracing::instrument(level = "debug", skip_all)]
     fn read_manifest(manifest_path: &std::path::Path) -> Result<ExtensionManifest, ExtensionError> {
         let contents = std::fs::read(manifest_path)?;
-        let mut manifest = serde_json::from_slice::<ExtensionManifest>(&contents)?;
+        let mut manifest = ExtensionManifest::decode(&contents[..])?;
 
         let parent = manifest_path.parent().unwrap();
         let extension_entry_path = parent.join(&manifest.extension_entry);
@@ -129,7 +125,7 @@ impl Extension {
     pub fn get_lock_data(&self) -> ExtensionLockData {
         let lock_path = self.extension_path.join("extension.lock");
         if let Ok(bytes) = fs::read(&lock_path)
-            && let Ok(data) = serde_json::from_slice::<ExtensionLockData>(&bytes)
+            && let Ok(data) = ExtensionLockData::decode(&bytes[..])
         {
             return data;
         }

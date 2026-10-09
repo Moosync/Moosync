@@ -17,16 +17,15 @@
 use std::{path::PathBuf, sync::Arc};
 
 use assertables::{assert_is_empty, assert_len_eq_x};
-use extensions_proto::moosync::types::{ExtensionAccountDetail, GetProviderScopesRequest};
+use extensions_proto::moosync::types::{
+    ExtensionAccountDetail, ExtensionLockData, GetProviderScopesRequest,
+};
 use preferences_proto::moosync::types::{PreferenceItem, PreferenceType};
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 use tempdir::TempDir;
 use tracing_test::traced_test;
 
-use crate::{
-    ExtensionError, context::ReplyHandler, ext_runner::ExtensionHandlerInner,
-    extension::ExtensionLockData,
-};
+use crate::{ExtensionError, context::ReplyHandler, ext_runner::ExtensionHandlerInner};
 
 static INIT: std::sync::Once = std::sync::Once::new();
 
@@ -215,17 +214,21 @@ fn test_find_and_spawn_extensions() {
     let ext_path = extensions_path.join("test_ext");
     std::fs::create_dir_all(&ext_path).unwrap();
 
-    let manifest = r#"{
-        "name": "test.pkg",
-        "displayName": "Test Extension",
-        "version": "1.0.0",
-        "extensionEntry": "main.wasm",
-        "moosyncExtension": true,
-        "description": "Test",
-        "icon": "icon.png",
-        "author": "Author"
-    }"#;
-    std::fs::write(ext_path.join("package.json"), manifest).unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "test.pkg".to_string(),
+        display_name: "Test Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        description: Some("Test".to_string()),
+        icon: "icon.png".to_string(),
+        author: Some("Author".to_string()),
+        ..Default::default()
+    };
+    std::fs::write(
+        ext_path.join("manifest.pb"),
+        prost::Message::encode_to_vec(&manifest),
+    )
+    .unwrap();
 
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
@@ -254,15 +257,19 @@ async fn test_handle_extension_command() {
     let ext_path = extensions_path.join("test_ext");
     std::fs::create_dir_all(&ext_path).unwrap();
 
-    let manifest = r#"{
-        "name": "sample.pkg",
-        "displayName": "Test Extension",
-        "version": "1.0.0",
-        "extensionEntry": "main.wasm",
-        "moosyncExtension": true,
-        "icon": "icon.png"
-    }"#;
-    std::fs::write(ext_path.join("package.json"), manifest).unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "sample.pkg".to_string(),
+        display_name: "Test Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        icon: "icon.png".to_string(),
+        ..Default::default()
+    };
+    std::fs::write(
+        ext_path.join("manifest.pb"),
+        prost::Message::encode_to_vec(&manifest),
+    )
+    .unwrap();
 
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
@@ -297,15 +304,19 @@ fn test_register_unregister_ui_preferences() {
     let ext_path = extensions_path.join("test_ext");
     std::fs::create_dir_all(&ext_path).unwrap();
 
-    let manifest = r#"{
-        "name": "sample.pkg",
-        "displayName": "Test Extension",
-        "version": "1.0.0",
-        "extensionEntry": "main.wasm",
-        "moosyncExtension": true,
-        "icon": "icon.png"
-    }"#;
-    std::fs::write(ext_path.join("package.json"), manifest).unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "sample.pkg".to_string(),
+        display_name: "Test Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        icon: "icon.png".to_string(),
+        ..Default::default()
+    };
+    std::fs::write(
+        ext_path.join("manifest.pb"),
+        prost::Message::encode_to_vec(&manifest),
+    )
+    .unwrap();
 
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
@@ -345,15 +356,19 @@ fn test_extension_removal() {
     let ext_path = extensions_path.join("test_pkg");
     std::fs::create_dir_all(&ext_path).unwrap();
 
-    let manifest = r#"{
-        "name": "test_pkg",
-        "displayName": "Test Extension",
-        "version": "1.0.0",
-        "extensionEntry": "main.wasm",
-        "moosyncExtension": true,
-        "icon": "icon.png"
-    }"#;
-    std::fs::write(ext_path.join("package.json"), manifest).unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "test_pkg".to_string(),
+        display_name: "Test Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        icon: "icon.png".to_string(),
+        ..Default::default()
+    };
+    std::fs::write(
+        ext_path.join("manifest.pb"),
+        prost::Message::encode_to_vec(&manifest),
+    )
+    .unwrap();
 
     std::fs::copy(get_sample_wasm_path(), ext_path.join("main.wasm")).unwrap();
 
@@ -361,7 +376,7 @@ fn test_extension_removal() {
     let lock_data = ExtensionLockData {
         registry: "local".to_string(),
     };
-    std::fs::write(&lock_file, serde_json::to_vec_pretty(&lock_data).unwrap()).unwrap();
+    std::fs::write(&lock_file, prost::Message::encode_to_vec(&lock_data)).unwrap();
 
     let reply_handler = Arc::new(TestReplyHandler);
     let handler = ExtensionHandlerInner::new(extensions_path.clone(), tmp_dir.path().join("cache"));

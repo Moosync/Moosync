@@ -30,9 +30,6 @@ pub enum DatabaseError {
     #[error("SQLite transaction failed")]
     Transaction(#[source] rusqlite::Error),
 
-    #[error("JSON serialization failed: {0}")]
-    Json(#[from] serde_json::Error),
-
     #[error("System time error: {0}")]
     SystemTime(#[from] SystemTimeError),
 

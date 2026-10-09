@@ -55,9 +55,6 @@ pub enum ExtensionError {
     #[error("Filesystem copy error: {0}")]
     FsExtra(#[from] fs_extra::error::Error),
 
-    #[error("JSON error: {0}")]
-    Serde(#[from] serde_json::Error),
-
     #[error("Zip extraction error: {0}")]
     Zip(String),
 

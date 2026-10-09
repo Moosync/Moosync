@@ -22,3 +22,7 @@ message ThemeDetails {
   ThemeItem theme = 4;
   optional string description = 5;
 }
+
+message ThemesManifest {
+  repeated ThemeDetails themes = 1;
+}

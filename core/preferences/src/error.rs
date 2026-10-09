@@ -21,9 +21,6 @@ pub enum PreferencesError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("JSON error: {0}")]
-    Json(#[from] serde_json::Error),
-
     #[error("Keyring access failed: {0}")]
     Keyring(#[from] keyring::Error),
 

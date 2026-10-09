@@ -39,8 +39,6 @@ rust_library(
         "@crates//:r2d2",
         "@crates//:r2d2_sqlite",
         "@crates//:rusqlite",
-        "@crates//:serde",
-        "@crates//:serde_json",
         "@crates//:thiserror",
         "@crates//:tracing",
         "@crates//:uuid",

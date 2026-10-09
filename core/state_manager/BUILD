@@ -58,8 +58,6 @@ rust_library(
         "@crates//:tracing",
         "@crates//:lru",
         "@crates//:open",
-        "@crates//:serde",
-        "@crates//:serde_json",
         "@crates//:prost",
         "@crates//:prost-types",
         "@crates//:hex",

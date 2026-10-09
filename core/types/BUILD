@@ -42,7 +42,6 @@ rust_library(
             "@crates//:bitcode",
             "@crates//:prost",
             "@crates//:serde",
-            "@crates//:serde_json",
             "@crates//:thiserror",
             "@crates//:tokio",
             "@crates//:tracing",

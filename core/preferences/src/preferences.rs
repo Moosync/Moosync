@@ -31,7 +31,6 @@ use chacha20poly1305::{
 use chacha20poly1305::{ChaCha20Poly1305, Key, KeyInit, aead::OsRng};
 use preferences_proto::moosync::types::{PreferenceItem, PreferenceValue, preference_value};
 use prost::Message;
-use serde::{Serialize, de::DeserializeOwned};
 use types::{
     plugin::{Plugin, PluginContext},
     subscription::SubscriberList,
@@ -142,7 +141,7 @@ impl PreferenceConfig {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_secure<T>(&self, key: String) -> Result<T, PreferencesError>
     where
-        T: DeserializeOwned,
+        T: Message + Default,
     {
         #[cfg(not(target_os = "android"))]
         {
@@ -168,13 +167,11 @@ impl PreferenceConfig {
 
             let secret = self.secret.lock().unwrap();
             let cipher = ChaCha20Poly1305::new(&secret);
-            let plaintext = String::from_utf8(
-                cipher
-                    .decrypt(&nonce, ciphertext.as_slice())
-                    .map_err(PreferencesError::Decryption)?,
-            )?;
+            let decrypted = cipher
+                .decrypt(&nonce, ciphertext.as_slice())
+                .map_err(PreferencesError::Decryption)?;
 
-            Ok(serde_json::from_str(&plaintext)?)
+            Ok(T::decode(&decrypted[..])?)
         }
 
         #[cfg(target_os = "android")]
@@ -186,14 +183,15 @@ impl PreferenceConfig {
                 Some(preference_value::Value::StringValue(s)) => s,
                 _ => return Err(PreferencesError::KeyNotFound(key)),
             };
-            Ok(serde_json::from_str(&data)?)
+            let bytes = hex::decode(data).map_err(PreferencesError::HexDecode)?;
+            Ok(T::decode(&bytes[..])?)
         }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_secure<T>(&self, key: String, value: Option<T>) -> Result<(), PreferencesError>
     where
-        T: Serialize + Clone + Debug,
+        T: Message + Clone + Debug,
     {
         if value.is_none() {
             let mut prefs = self.memcache.write().unwrap();
@@ -210,9 +208,9 @@ impl PreferenceConfig {
             let secret = self.secret.lock().unwrap();
             let cipher = ChaCha20Poly1305::new(&secret);
             let nonce = ChaCha20Poly1305::generate_nonce(&mut OsRng);
-            let serialized = serde_json::to_string(&val)?;
+            let serialized = val.encode_to_vec();
             let encrypted = cipher
-                .encrypt(&nonce, serialized.as_bytes())
+                .encrypt(&nonce, serialized.as_slice())
                 .map_err(PreferencesError::Encryption)?;
 
             let parsed = format!("{}:{}", hex::encode(nonce), hex::encode(encrypted));
@@ -229,7 +227,7 @@ impl PreferenceConfig {
         #[cfg(target_os = "android")]
         {
             let val = value.unwrap();
-            let serialized = serde_json::to_string(&val)?;
+            let serialized = hex::encode(val.encode_to_vec());
             let item = PreferenceItem {
                 id: key.clone(),
                 value: Some(PreferenceValue {

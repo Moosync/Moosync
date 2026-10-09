@@ -519,29 +519,30 @@ pub mod integration {
             )
             .unwrap();
 
-            let manifest = format!(
-                r#"{{
-    "name": "{package_name}",
-    "displayName": "{display_name}",
-    "version": "1.0.0",
-    "extensionEntry": "sample_extension.wasm",
-    "moosyncExtension": true,
-    "description": "Sample Rust Extension",
-    "icon": "icon.svg",
-    "author": "Moosync",
-    "permissions": {{
-        "hosts": [
-            "api.example.com",
-            "*.moosync.app"
-        ],
-        "paths": {{
-            "/music": "/media/music",
-            "/tmp/moosync": "/tmp/sandbox"
-        }}
-    }}
-}}"#
-            );
-            fs::write(ext_dir.join("package.json"), manifest).unwrap();
+            let manifest = extensions_proto::moosync::types::ExtensionManifest {
+                name: package_name.to_string(),
+                display_name: display_name.to_string(),
+                version: "1.0.0".to_string(),
+                extension_entry: "sample_extension.wasm".to_string(),
+                description: Some("Sample Rust Extension".to_string()),
+                icon: "icon.svg".to_string(),
+                author: Some("Moosync".to_string()),
+                permissions: Some(extensions_proto::moosync::types::Permissions {
+                    hosts: vec!["api.example.com".to_string(), "*.moosync.app".to_string()],
+                    paths: [
+                        ("/music".to_string(), "/media/music".to_string()),
+                        ("/tmp/moosync".to_string(), "/tmp/sandbox".to_string()),
+                    ]
+                    .into_iter()
+                    .collect(),
+                }),
+                ..Default::default()
+            };
+            fs::write(
+                ext_dir.join("manifest.pb"),
+                prost::Message::encode_to_vec(&manifest),
+            )
+            .unwrap();
 
             ext_handler.find_new_extensions().unwrap();
             let loaded = wait_until(|| {

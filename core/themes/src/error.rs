@@ -19,8 +19,8 @@ pub enum ThemesError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("JSON error: {0}")]
-    Json(#[from] serde_json::Error),
+    #[error("Protobuf decode error: {0}")]
+    Decode(#[from] prost::DecodeError),
 
     #[error("HTTP request failed: {0}")]
     Network(#[from] reqwest::Error),

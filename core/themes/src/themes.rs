@@ -25,6 +25,7 @@ use std::{
 
 use fs_extra::dir::CopyOptions;
 use futures::StreamExt;
+use prost::Message;
 use themes_proto::moosync::types::ThemeDetails;
 use types::{
     plugin::{Plugin, PluginContext},
@@ -63,8 +64,8 @@ impl ThemeHolder {
         if !theme_path.exists() {
             fs::create_dir_all(&theme_path).map_err(ThemesError::Io)?;
         }
-        let theme_config = theme_path.join("config.json");
-        fs::write(theme_config, serde_json::to_string(&theme)?).map_err(ThemesError::Io)?;
+        let theme_config = theme_path.join("config.pb");
+        fs::write(theme_config, theme.encode_to_vec()).map_err(ThemesError::Io)?;
 
         self.on_theme_changed.emit(theme);
         Ok(())
@@ -86,10 +87,10 @@ impl ThemeHolder {
             return Ok(ThemeDetails::default());
         }
         let root_dir = self.theme_dir.join(id.clone());
-        let theme_config = root_dir.join("config.json");
+        let theme_config = root_dir.join("config.pb");
         if theme_config.exists() {
-            let data = fs::read_to_string(theme_config).map_err(ThemesError::Io)?;
-            return Ok(serde_json::from_str(&data)?);
+            let data = fs::read(theme_config).map_err(ThemesError::Io)?;
+            return Ok(ThemeDetails::decode(&data[..])?);
         }
 
         Err(ThemesError::ThemeNotFound)
@@ -131,9 +132,9 @@ impl ThemeHolder {
 
         for item in extract_dir.read_dir().map_err(ThemesError::Io)?.flatten() {
             let item = item.path();
-            if item.is_file() && item.file_name().unwrap().to_string_lossy() == "config.json" {
+            if item.is_file() && item.file_name().unwrap().to_string_lossy() == "config.pb" {
                 let config = fs::read(item).map_err(ThemesError::Io)?;
-                let parsed: ThemeDetails = serde_json::from_slice(config.as_slice())?;
+                let parsed = ThemeDetails::decode(config.as_slice())?;
                 let final_theme_path = self.theme_dir.join(&parsed.id);
                 let options = CopyOptions::default().overwrite(true);
 
@@ -164,9 +165,8 @@ impl ThemeHolder {
             fs::create_dir_all(theme_dir.clone()).map_err(ThemesError::Io)?;
         }
 
-        let config_path = theme_dir.clone().join("config.json");
-        fs::write(config_path.clone(), serde_json::to_string_pretty(&theme)?)
-            .map_err(ThemesError::Io)?;
+        let config_path = theme_dir.clone().join("config.pb");
+        fs::write(config_path.clone(), theme.encode_to_vec()).map_err(ThemesError::Io)?;
 
         zip_extensions::zip_create_from_directory(&export_path, &theme_dir)
             .map_err(|e| ThemesError::Zip(format!("{:?}", e)))?;
@@ -202,72 +202,8 @@ impl ThemeHolder {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub async fn get_themes_manifest(&self) -> Result<HashMap<String, ThemeDetails>, ThemesError> {
-        #[derive(serde::Deserialize, Debug)]
-        struct GithubReleaseAsset {
-            browser_download_url: String,
-            name: String,
-        }
-
-        #[derive(serde::Deserialize, Debug)]
-        struct GithubReleasesResp {
-            assets: Vec<GithubReleaseAsset>,
-        }
-
-        #[derive(serde::Deserialize, Debug)]
-        struct ThemeItemHelper {
-            data: ThemeDetails,
-        }
-
-        let client = reqwest::Client::new();
-        let res = client
-            .get("https://api.github.com/repos/Moosync/themes/releases/latest")
-            .header(
-                "User-Agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
-            )
-            .header("Accept", "application/json")
-            .send()
-            .await
-            .map_err(ThemesError::Network)?;
-
-        let releases_resp = res
-            .json::<GithubReleasesResp>()
-            .await
-            .map_err(ThemesError::Network)?;
-
-        let Some(manifest_asset) = releases_resp
-            .assets
-            .iter()
-            .find(|asset| asset.name == "manifest.json")
-        else {
-            return Ok(HashMap::new());
-        };
-
-        let res = client
-            .get(&manifest_asset.browser_download_url)
-            .header(
-                "User-Agent",
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
-            )
-            .header("Accept", "application/json")
-            .send()
-            .await
-            .map_err(ThemesError::Network)?;
-
-        let bytes = res.bytes().await.map_err(ThemesError::Network)?;
-        let manifests: HashMap<String, ThemeItemHelper> = serde_json::from_slice(&bytes)?;
-
-        let mut ret = HashMap::new();
-        for (theme_id, manifest) in manifests {
-            let asset = releases_resp.assets.iter().find(|asset| {
-                asset.name.starts_with(theme_id.as_str()) && asset.name.ends_with(".mstx")
-            });
-            if let Some(asset) = asset {
-                ret.insert(asset.browser_download_url.clone(), manifest.data);
-            }
-        }
-
-        Ok(ret)
+        // Remote theme registry will be implemented with ThemesManifest protobuf later.
+        Ok(HashMap::new())
     }
 }
 

@@ -147,16 +147,12 @@ impl ReplyHandler for StateReplyHandler {
     {
         let prefs = self.state_manager.get_preference_config();
         let scoped_key = format!("{}.{}", package_name, key);
-        let val: serde_json::Value = prefs
-            .get_secure(scoped_key)
-            .unwrap_or(serde_json::Value::Null);
-        if val.is_null() {
-            Ok(None)
-        } else {
-            let serialized = serde_json::to_string(&val)?;
-            let proto_val: extensions_proto::struct_proto::google::protobuf::Value =
-                serde_json::from_str(&serialized)?;
-            Ok(Some(proto_val))
+        match prefs
+            .get_secure::<extensions_proto::struct_proto::google::protobuf::Value>(scoped_key)
+        {
+            Ok(val) => Ok(Some(val)),
+            Err(preferences::error::PreferencesError::KeyNotFound(_)) => Ok(None),
+            Err(e) => Err(ExtensionError::Sanitize(e.to_string())),
         }
     }
 
@@ -169,10 +165,8 @@ impl ReplyHandler for StateReplyHandler {
     ) -> Result<bool, ExtensionError> {
         let prefs = self.state_manager.get_preference_config();
         let scoped_key = format!("{}.{}", package_name, key);
-        let serialized = serde_json::to_string(&value)?;
-        let val: serde_json::Value = serde_json::from_str(&serialized)?;
         prefs
-            .set_secure(scoped_key, Some(val))
+            .set_secure(scoped_key, Some(value))
             .map_err(|e| ExtensionError::Sanitize(e.to_string()))?;
         Ok(true)
     }

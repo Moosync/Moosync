@@ -168,24 +168,28 @@ fn test_extension_handler_init_and_get_all(handler_context: TestHandlerContext) 
 fn test_extension_handler_check_for_updates_v1(handler_context: TestHandlerContext) {
     let ext_dir = handler_context.handler.extensions_dir.join("test_ext");
     fs::create_dir_all(&ext_dir).unwrap();
-    let pkg_json = r#"{
-        "name": "test_ext",
-        "displayName": "Test Extension",
-        "version": "1.0.0",
-        "extensionEntry": "main.wasm",
-        "icon": "icon.png",
-        "author": "Tester",
-        "moosyncExtension": true
-    }"#;
-    fs::write(ext_dir.join("package.json"), pkg_json).unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "test_ext".to_string(),
+        display_name: "Test Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        icon: "icon.png".to_string(),
+        author: Some("Tester".to_string()),
+        ..Default::default()
+    };
+    fs::write(
+        ext_dir.join("manifest.pb"),
+        prost::Message::encode_to_vec(&manifest),
+    )
+    .unwrap();
     let empty_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
     fs::write(ext_dir.join("main.wasm"), empty_wasm.clone()).unwrap();
-    let lock_data = serde_json::json!({
-        "registry": "local"
-    });
+    let lock_data = extensions_proto::moosync::types::ExtensionLockData {
+        registry: "local".to_string(),
+    };
     fs::write(
         ext_dir.join("extension.lock"),
-        serde_json::to_vec(&lock_data).unwrap(),
+        prost::Message::encode_to_vec(&lock_data),
     )
     .unwrap();
     handler_context.handler.find_new_extensions().unwrap();
@@ -223,24 +227,28 @@ fn test_extension_handler_check_for_updates_v1(handler_context: TestHandlerConte
 fn test_extension_handler_check_for_updates_older_remote(handler_context: TestHandlerContext) {
     let ext_dir = handler_context.handler.extensions_dir.join("test_ext");
     fs::create_dir_all(&ext_dir).unwrap();
-    let pkg_json = r#"{
-        "name": "test_ext",
-        "displayName": "Test Extension",
-        "version": "1.2.0",
-        "extensionEntry": "main.wasm",
-        "icon": "icon.png",
-        "author": "Tester",
-        "moosyncExtension": true
-    }"#;
-    fs::write(ext_dir.join("package.json"), pkg_json).unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "test_ext".to_string(),
+        display_name: "Test Extension".to_string(),
+        version: "1.2.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        icon: "icon.png".to_string(),
+        author: Some("Tester".to_string()),
+        ..Default::default()
+    };
+    fs::write(
+        ext_dir.join("manifest.pb"),
+        prost::Message::encode_to_vec(&manifest),
+    )
+    .unwrap();
     let empty_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
     fs::write(ext_dir.join("main.wasm"), empty_wasm.clone()).unwrap();
-    let lock_data = serde_json::json!({
-        "registry": "local"
-    });
+    let lock_data = extensions_proto::moosync::types::ExtensionLockData {
+        registry: "local".to_string(),
+    };
     fs::write(
         ext_dir.join("extension.lock"),
-        serde_json::to_vec(&lock_data).unwrap(),
+        prost::Message::encode_to_vec(&lock_data),
     )
     .unwrap();
     handler_context.handler.find_new_extensions().unwrap();
@@ -289,24 +297,28 @@ async fn test_extension_handler_update_all_extensions_no_updates(
 async fn test_extension_handler_update_all_extensions_failed(handler_context: TestHandlerContext) {
     let ext_dir = handler_context.handler.extensions_dir.join("test_ext");
     fs::create_dir_all(&ext_dir).unwrap();
-    let pkg_json = r#"{
-        "name": "test_ext",
-        "displayName": "Test Extension",
-        "version": "1.0.0",
-        "extensionEntry": "main.wasm",
-        "icon": "icon.png",
-        "author": "Tester",
-        "moosyncExtension": true
-    }"#;
-    fs::write(ext_dir.join("package.json"), pkg_json).unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "test_ext".to_string(),
+        display_name: "Test Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        icon: "icon.png".to_string(),
+        author: Some("Tester".to_string()),
+        ..Default::default()
+    };
+    fs::write(
+        ext_dir.join("manifest.pb"),
+        prost::Message::encode_to_vec(&manifest),
+    )
+    .unwrap();
     let empty_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
     fs::write(ext_dir.join("main.wasm"), empty_wasm).unwrap();
-    let lock_data = serde_json::json!({
-        "registry": "local"
-    });
+    let lock_data = extensions_proto::moosync::types::ExtensionLockData {
+        registry: "local".to_string(),
+    };
     fs::write(
         ext_dir.join("extension.lock"),
-        serde_json::to_vec(&lock_data).unwrap(),
+        prost::Message::encode_to_vec(&lock_data),
     )
     .unwrap();
     handler_context.handler.find_new_extensions().unwrap();

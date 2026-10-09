@@ -43,7 +43,7 @@ impl ExtensionHandlerInner {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn find_extension_manifests(&self) -> Vec<PathBuf> {
-        let mut package_json_paths = Vec::new();
+        let mut manifest_paths = Vec::new();
 
         if let Ok(entries) = fs::read_dir(self.extensions_path.clone()) {
             for entry in entries.flatten() {
@@ -54,18 +54,18 @@ impl ExtensionHandlerInner {
                         for sub_entry in sub_entries.flatten() {
                             let sub_path = sub_entry.path();
                             if sub_path.is_file()
-                                && sub_path.file_name() == Some("package.json".as_ref())
+                                && sub_path.file_name() == Some("manifest.pb".as_ref())
                             {
-                                package_json_paths.push(sub_path);
+                                manifest_paths.push(sub_path);
                             }
                         }
                     }
-                } else if path.is_file() && path.file_name() == Some("package.json".as_ref()) {
-                    package_json_paths.push(path);
+                } else if path.is_file() && path.file_name() == Some("manifest.pb".as_ref()) {
+                    manifest_paths.push(path);
                 }
             }
         }
-        package_json_paths
+        manifest_paths
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

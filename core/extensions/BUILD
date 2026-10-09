@@ -85,8 +85,6 @@ rust_library(
         "@crates//:regex",
         "@crates//:reqwest",
         "@crates//:semver",
-        "@crates//:serde",
-        "@crates//:serde_json",
         "@crates//:thiserror",
         "@crates//:tokio",
         "@crates//:tracing",

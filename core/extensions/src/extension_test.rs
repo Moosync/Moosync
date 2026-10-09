@@ -153,25 +153,25 @@ struct TestExtContext {
 #[tracing::instrument(level = "debug", skip_all)]
 fn ext_context() -> TestExtContext {
     let temp_dir = TempDir::new("moosync_ext_unit").expect("failed to create temp dir");
-    let manifest_json = r#"{
-        "name": "unit.pkg",
-        "displayName": "Unit Test Extension",
-        "version": "1.0.0",
-        "extensionEntry": "main.wasm",
-        "moosyncExtension": true,
-        "icon": "icon.png",
-        "author": "Tester"
-    }"#;
-    let manifest_path = temp_dir.path().join("package.json");
-    fs::write(&manifest_path, manifest_json).unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "unit.pkg".to_string(),
+        display_name: "Unit Test Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        icon: "icon.png".to_string(),
+        author: Some("Tester".to_string()),
+        ..Default::default()
+    };
+    let manifest_path = temp_dir.path().join("manifest.pb");
+    fs::write(&manifest_path, prost::Message::encode_to_vec(&manifest)).unwrap();
     let empty_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
     fs::write(temp_dir.path().join("main.wasm"), empty_wasm).unwrap();
-    let lock_data = serde_json::json!({
-        "registry": "local"
-    });
+    let lock_data = extensions_proto::moosync::types::ExtensionLockData {
+        registry: "local".to_string(),
+    };
     fs::write(
         temp_dir.path().join("extension.lock"),
-        serde_json::to_vec(&lock_data).unwrap(),
+        prost::Message::encode_to_vec(&lock_data),
     )
     .unwrap();
     let cache_dir = temp_dir.path().join("cache");
@@ -221,23 +221,23 @@ fn test_extension_preferences(ext_context: TestExtContext) {
 #[tracing::instrument(level = "debug", skip_all)]
 fn test_extension_load_manifest_without_optional_fields() {
     let temp_dir = TempDir::new("moosync_ext_no_icon").expect("failed to create temp dir");
-    let manifest_json = r#"{
-        "name": "sample.ext",
-        "displayName": "Sample Extension",
-        "version": "0.1.0",
-        "extensionEntry": "main.wasm",
-        "moosyncExtension": true
-    }"#;
-    let manifest_path = temp_dir.path().join("package.json");
-    fs::write(&manifest_path, manifest_json).unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "sample.ext".to_string(),
+        display_name: "Sample Extension".to_string(),
+        version: "0.1.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        ..Default::default()
+    };
+    let manifest_path = temp_dir.path().join("manifest.pb");
+    fs::write(&manifest_path, prost::Message::encode_to_vec(&manifest)).unwrap();
     let empty_wasm = vec![0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00];
     fs::write(temp_dir.path().join("main.wasm"), empty_wasm).unwrap();
-    let lock_data = serde_json::json!({
-        "registry": "dev"
-    });
+    let lock_data = extensions_proto::moosync::types::ExtensionLockData {
+        registry: "dev".to_string(),
+    };
     fs::write(
         temp_dir.path().join("extension.lock"),
-        serde_json::to_vec(&lock_data).unwrap(),
+        prost::Message::encode_to_vec(&lock_data),
     )
     .unwrap();
     let cache_dir = temp_dir.path().join("cache");

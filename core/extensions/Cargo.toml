@@ -12,8 +12,6 @@ interprocess = "2.2.3"
 mockall = "0.14.0"
 regex = "1.12.2"
 reqwest = { version = "0.13.1", features = ["stream", "json"] }
-serde = "1.0.228"
-serde_json = "1.0.148"
 tokio = "1.48.0"
 tracing = "0.1.44"
 uuid = "1.19.0"

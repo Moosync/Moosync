@@ -4658,18 +4658,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "json_dotpath"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbdcfef3cf5591f0cef62da413ae795e3d1f5a00936ccec0b2071499a32efd1a"
-dependencies = [
- "serde",
- "serde_derive",
- "serde_json",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "keyboard-types"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5592,7 +5580,6 @@ dependencies = [
  "interprocess",
  "is_wine",
  "jni 0.21.1",
- "json_dotpath",
  "keyring",
  "lazy_static",
  "libpulse-binding",
@@ -5626,7 +5613,6 @@ dependencies = [
  "rusty_ffmpeg",
  "semver",
  "serde",
- "serde_json",
  "slint",
  "slint-build",
  "slint-lsp",

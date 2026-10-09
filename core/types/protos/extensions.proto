@@ -104,7 +104,7 @@ message OauthCallbackRequest {
 message OauthCallbackResponse {}
 
 message SongQueueChangedRequest {
-  google.protobuf.Struct queue_state = 1;
+  QueueState queue_state = 1;
 }
 
 message SongQueueChangedResponse {}
@@ -406,10 +406,19 @@ message GetTimeResponse {
   double time = 1;
 }
 
+message QueueState {
+  repeated Song songs = 1;
+  uint64 index = 2;
+}
+
 message GetQueueRequest {}
 
 message GetQueueResponse {
-  google.protobuf.Struct queue = 1;
+  QueueState queue = 1;
+}
+
+message ExtensionLockData {
+  string registry = 1;
 }
 
 message GetPreferenceRequest {

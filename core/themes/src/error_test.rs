@@ -35,10 +35,12 @@ fn test_themes_error_display(#[case] error: ThemesError, #[case] expected: &str)
 #[test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_themes_error_from_json() {
-    let json_err = serde_json::from_str::<bool>("invalid").unwrap_err();
+fn test_themes_error_from_decode() {
+    let decode_err =
+        <themes_proto::moosync::types::ThemeDetails as prost::Message>::decode(&b"\xff\xff"[..])
+            .unwrap_err();
 
-    let theme_err: ThemesError = json_err.into();
+    let theme_err: ThemesError = decode_err.into();
 
-    assert_matches!(theme_err, ThemesError::Json(_));
+    assert_matches!(theme_err, ThemesError::Decode(_));
 }

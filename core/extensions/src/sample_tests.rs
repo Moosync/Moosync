@@ -10,6 +10,7 @@ use extensions_proto::moosync::types::{
     SeekedRequest, SongChangedRequest, SongQueueChangedRequest, VolumeChangedRequest, main_command,
 };
 use preferences_proto::moosync::types::PreferenceItem;
+use prost::Message;
 use songs_proto::moosync::types::{EntityResult, GetEntityOptions, GetSongOptions, Playlist, Song};
 
 use crate::{context::ReplyHandler, errors::ExtensionError, ext_runner::ExtensionHandlerInner};
@@ -580,26 +581,28 @@ async fn setup_extension_at(
         }
     }
 
-    let package_json_path = dest_ext_path.join("package.json");
-    let contents = std::fs::read_to_string(&package_json_path).unwrap();
-    let mut json_val: serde_json::Value = serde_json::from_str(&contents).unwrap();
-    if let Some(obj) = json_val.as_object_mut() {
-        obj.insert(
-            "name".to_string(),
-            serde_json::Value::String(actual_pkg.clone()),
-        );
-        if !obj.contains_key("icon") {
-            obj.insert(
-                "icon".to_string(),
-                serde_json::Value::String("icon.png".to_string()),
-            );
+    let manifest_pb_path = dest_ext_path.join("manifest.pb");
+    if manifest_pb_path.exists() {
+        let contents = std::fs::read(&manifest_pb_path).unwrap();
+        let mut manifest =
+            extensions_proto::moosync::types::ExtensionManifest::decode(&contents[..]).unwrap();
+        manifest.name = actual_pkg.clone();
+        if manifest.icon.is_empty() {
+            manifest.icon = "icon.png".to_string();
         }
+        std::fs::write(&manifest_pb_path, prost::Message::encode_to_vec(&manifest)).unwrap();
+    } else {
+        let manifest = extensions_proto::moosync::types::ExtensionManifest {
+            name: actual_pkg.clone(),
+            display_name: "Sample Extension".to_string(),
+            version: "1.0.0".to_string(),
+            extension_entry: "sample_extension.wasm".to_string(),
+            icon: "icon.png".to_string(),
+            author: Some("Moosync".to_string()),
+            ..Default::default()
+        };
+        std::fs::write(&manifest_pb_path, prost::Message::encode_to_vec(&manifest)).unwrap();
     }
-    std::fs::write(
-        &package_json_path,
-        serde_json::to_string(&json_val).unwrap(),
-    )
-    .unwrap();
 
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {

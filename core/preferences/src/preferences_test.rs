@@ -160,20 +160,29 @@ fn test_preferences_on_preference_changed(prefs_context: TestPrefsContext) {
 fn test_preferences_secure_storage(prefs_context: TestPrefsContext) {
     let TestPrefsContext { prefs, .. } = prefs_context;
 
-    #[derive(serde::Serialize, serde::Deserialize, PartialEq, Debug, Clone)]
-    struct SecretToken {
-        token: String,
-    }
-
-    let token = SecretToken {
-        token: "super_secret_123".to_string(),
+    let token = extensions_proto::moosync::types::PreferenceData {
+        key: "token_key".to_string(),
+        value: Some(extensions_proto::struct_proto::google::protobuf::Value {
+            kind: Some(
+                extensions_proto::struct_proto::google::protobuf::value::Kind::StringValue(
+                    "super_secret_123".to_string(),
+                ),
+            ),
+        }),
     };
 
     assert_ok!(prefs.set_secure("auth_token".to_string(), Some(token.clone())));
-    let loaded: Result<SecretToken, _> = prefs.get_secure("auth_token".to_string());
+    let loaded: Result<extensions_proto::moosync::types::PreferenceData, _> =
+        prefs.get_secure("auth_token".to_string());
     assert_ok_eq_x!(&loaded, &token);
 
-    assert_ok!(prefs.set_secure::<SecretToken>("auth_token".to_string(), None));
-    let deleted: Result<SecretToken, _> = prefs.get_secure("auth_token".to_string());
+    assert_ok!(
+        prefs.set_secure::<extensions_proto::moosync::types::PreferenceData>(
+            "auth_token".to_string(),
+            None
+        )
+    );
+    let deleted: Result<extensions_proto::moosync::types::PreferenceData, _> =
+        prefs.get_secure("auth_token".to_string());
     assert!(deleted.is_err());
 }

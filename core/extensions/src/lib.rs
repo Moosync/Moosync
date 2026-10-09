@@ -22,15 +22,14 @@ use std::{
 };
 
 use ext_runner::ExtensionHandlerInner;
+pub use extensions_proto::moosync::types::ExtensionLockData;
 use extensions_proto::moosync::types::{ExtensionDetail, ExtensionManifest, PackageName};
 use fs_extra::dir::CopyOptions;
+use prost::Message;
 use types::subscription::SubscriberList;
 use zip_extensions::zip_extract;
 
-pub use crate::{
-    errors::ExtensionError,
-    extension::{Extension, ExtensionLockData},
-};
+pub use crate::{errors::ExtensionError, extension::Extension};
 
 mod context;
 pub use context::ReplyHandler;
@@ -215,10 +214,9 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_extension_version(&self, ext_path: PathBuf) -> Result<String, ExtensionError> {
-        let manifest_path = ext_path.join("package.json");
+        let manifest_path = ext_path.join("manifest.pb");
         if manifest_path.exists() {
-            let package_manifest: ExtensionManifest =
-                serde_json::from_slice(&fs::read(manifest_path)?)?;
+            let package_manifest = ExtensionManifest::decode(&fs::read(manifest_path)?[..])?;
 
             return Ok(package_manifest.version);
         }
@@ -260,8 +258,8 @@ impl ExtensionHandler {
 
         zip_extract(&ext_path, &tmp_dir).map_err(|e| ExtensionError::Zip(e.to_string()))?;
 
-        let package_manifest: ExtensionManifest =
-            serde_json::from_slice(&fs::read(tmp_dir.join("package.json"))?)?;
+        let package_manifest =
+            ExtensionManifest::decode(&fs::read(tmp_dir.join("manifest.pb"))?[..])?;
 
         if !package_manifest.moosync_extension {
             return Err(ExtensionError::NotAnExtension);
@@ -317,7 +315,7 @@ impl ExtensionHandler {
         };
         let _ = fs::write(
             ext_extract_path.join("extension.lock"),
-            serde_json::to_vec_pretty(&lock_data)?,
+            lock_data.encode_to_vec(),
         );
 
         self.find_new_extensions()?;

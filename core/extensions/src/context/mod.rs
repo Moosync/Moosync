@@ -21,9 +21,10 @@ use extensions_proto::moosync::types::{
     ExtensionCommand, ExtensionCommandResponse, ExtensionsUpdatedResponse, GetAppVersionResponse,
     GetCurrentSongResponse, GetEntityResponse, GetPlayerStateResponse, GetPreferenceResponse,
     GetQueueResponse, GetSecureResponse, GetSongResponse, GetTimeResponse, GetVolumeResponse,
-    OpenExternalUrlResponse, PreferenceData, RegisterOauthResponse, RegisterUserPreferenceResponse,
-    RemoveSongResponse, SetAccountResponse, SetPreferenceResponse, SetSecureResponse,
-    UnregisterUserPreferenceResponse, UpdateSongResponse, main_command, main_command_response,
+    OpenExternalUrlResponse, PreferenceData, QueueState, RegisterOauthResponse,
+    RegisterUserPreferenceResponse, RemoveSongResponse, SetAccountResponse, SetPreferenceResponse,
+    SetSecureResponse, UnregisterUserPreferenceResponse, UpdateSongResponse, main_command,
+    main_command_response,
 };
 pub use extism_context::ExtismContext;
 use preferences_proto::moosync::types::PreferenceItem;
@@ -156,25 +157,14 @@ impl DispatchCommand for main_command::Command {
                 .get_time(package_name)
                 .map(|time| main_command_response::Response::GetTime(GetTimeResponse { time })),
             main_command::Command::GetQueue(_) => {
-                reply_handler
-                    .get_queue(package_name)
-                    .and_then(|(songs, index)| {
-                        #[derive(serde::Serialize)]
-                        struct QueueState {
-                            songs: Vec<songs_proto::moosync::types::Song>,
-                            index: usize,
-                        }
-                        let state = QueueState { songs, index };
-                        let struct_val = serde_json::from_value(
-                            serde_json::to_value(&state).map_err(ExtensionError::Serde)?,
-                        )
-                        .map_err(ExtensionError::Serde)?;
-                        Ok(main_command_response::Response::GetQueue(
-                            GetQueueResponse {
-                                queue: Some(struct_val),
-                            },
-                        ))
+                reply_handler.get_queue(package_name).map(|(songs, index)| {
+                    main_command_response::Response::GetQueue(GetQueueResponse {
+                        queue: Some(QueueState {
+                            songs,
+                            index: index as u64,
+                        }),
                     })
+                })
             }
             main_command::Command::GetPreference(req) => {
                 let key = req.data.map(|d| d.key).unwrap_or_default();

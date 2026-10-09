@@ -1,5 +1,5 @@
 {
-  "checksum": "0790d27b0a576077fe8320e61eed3fe2bac4e3f825e385532992826b2d19165f",
+  "checksum": "871fe1630263aefb46948a4e1e881954e95f202a2ebdb82371b573b619e19b85",
   "crates": {
     "ab_glyph 0.2.32": {
       "name": "ab_glyph",
@@ -28883,70 +28883,6 @@
       ],
       "license_file": "LICENSE-APACHE"
     },
-    "json_dotpath 1.1.0": {
-      "name": "json_dotpath",
-      "version": "1.1.0",
-      "package_url": "https://git.ondrovo.com/packages/json_dotpath",
-      "repository": {
-        "Http": {
-          "url": "https://static.crates.io/crates/json_dotpath/1.1.0/download",
-          "sha256": "dbdcfef3cf5591f0cef62da413ae795e3d1f5a00936ccec0b2071499a32efd1a"
-        }
-      },
-      "targets": [
-        {
-          "Library": {
-            "crate_name": "json_dotpath",
-            "crate_root": "src/lib.rs",
-            "srcs": {
-              "allow_empty": true,
-              "include": [
-                "**/*.rs"
-              ]
-            }
-          }
-        }
-      ],
-      "library_target_name": "json_dotpath",
-      "common_attrs": {
-        "compile_data_glob": [
-          "**"
-        ],
-        "deps": {
-          "common": [
-            {
-              "id": "serde 1.0.229",
-              "target": "serde"
-            },
-            {
-              "id": "serde_json 1.0.151",
-              "target": "serde_json"
-            },
-            {
-              "id": "thiserror 1.0.69",
-              "target": "thiserror"
-            }
-          ],
-          "selects": {}
-        },
-        "edition": "2018",
-        "proc_macro_deps": {
-          "common": [
-            {
-              "id": "serde_derive 1.0.229",
-              "target": "serde_derive"
-            }
-          ],
-          "selects": {}
-        },
-        "version": "1.1.0"
-      },
-      "license": "MIT",
-      "license_ids": [
-        "MIT"
-      ],
-      "license_file": null
-    },
     "keyboard-types 0.7.0": {
       "name": "keyboard-types",
       "version": "0.7.0",
@@ -34573,10 +34509,6 @@
               "target": "jni"
             },
             {
-              "id": "json_dotpath 1.1.0",
-              "target": "json_dotpath"
-            },
-            {
               "id": "keyring 3.6.3",
               "target": "keyring"
             },
@@ -34707,10 +34639,6 @@
             {
               "id": "serde 1.0.229",
               "target": "serde"
-            },
-            {
-              "id": "serde_json 1.0.151",
-              "target": "serde_json"
             },
             {
               "id": "slint 1.17.1",
@@ -78616,7 +78544,6 @@
     "interprocess 2.4.3",
     "is_wine 0.1.2",
     "jni 0.21.1",
-    "json_dotpath 1.1.0",
     "keyring 3.6.3",
     "lazy_static 1.5.0",
     "libpulse-binding 2.30.1",
@@ -78650,7 +78577,6 @@
     "rusty_ffmpeg 0.16.7+ffmpeg.8",
     "semver 1.0.28",
     "serde 1.0.229",
-    "serde_json 1.0.151",
     "slint 1.17.1",
     "slint-build 1.17.1",
     "souvlaki 0.7.3",

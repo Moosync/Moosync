@@ -375,6 +375,42 @@ fn test_remove_at_index_out_of_bounds() {
 #[rstest]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
+fn test_remove_at_index_before_current_idx() {
+    let mut data = PlayerData {
+        song_queue: vec![make_song("s1"), make_song("s2"), make_song("s3")],
+        current_idx: 2,
+        ..Default::default()
+    };
+
+    data.remove_at_index(0);
+
+    assert_eq!(data.song_queue.len(), 2);
+    assert_eq!(
+        data.song_queue[1].song.as_ref().unwrap().id.as_deref(),
+        Some("s3")
+    );
+    assert_eq!(data.current_idx, 1);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_remove_at_index_single_item() {
+    let mut data = PlayerData {
+        song_queue: vec![make_song("s1")],
+        current_idx: 0,
+        ..Default::default()
+    };
+
+    data.remove_at_index(0);
+
+    assert!(data.song_queue.is_empty());
+    assert_eq!(data.current_idx, 0);
+}
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
 fn test_clear_except_current_multi_songs() {
     let mut data = PlayerData {
         song_queue: vec![make_song("s1"), make_song("s2"), make_song("s3")],

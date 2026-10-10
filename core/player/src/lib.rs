@@ -238,12 +238,16 @@ impl PlayerHandler {
             && let Some(song) = self.current_song()
             && let Err(e) = self.player.set_src(&song).await
         {
+            self.trigger_player_event(Event::Pause(true));
             return Err(PlayerError::PlaybackUrlResolutionFailed(format!(
                 "Failed to load song on play: {:?}",
                 e
             )));
         }
-        self.player.play()?;
+        if let Err(e) = self.player.play() {
+            self.trigger_player_event(Event::Pause(true));
+            return Err(e);
+        }
         self.trigger_player_event(Event::Play(true));
         Ok(())
     }
@@ -311,9 +315,37 @@ impl PlayerHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn remove_from_queue(&self, idx: usize) {
+    pub async fn remove_from_queue(&self, idx: usize) {
+        if idx >= self.get_queue().len() {
+            return;
+        }
+
+        let is_current = idx == self.get_current_idx();
+        let was_playing = self.player.get_player_state() == PlayerState::Playing;
+
         self.player_data.write().unwrap().remove_at_index(idx);
         self.trigger_queue_changed();
+
+        if is_current {
+            self.handle_current_removed(was_playing).await;
+        }
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    async fn handle_current_removed(&self, was_playing: bool) {
+        self.trigger_song_changed().await;
+        if self.current_song().is_none() {
+            return;
+        }
+
+        if was_playing {
+            if let Err(e) = self.play().await {
+                tracing::error!("Failed to play song: {:?}", e);
+            }
+            return;
+        }
+
+        let _ = self.pause();
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -400,7 +432,8 @@ impl PlayerHandler {
             && let Err(e) = self.player.set_src(song).await
         {
             tracing::error!("Failed to load song: {:?}", e);
-            return;
+            let _ = self.player.stop();
+            self.trigger_player_event(Event::Pause(true));
         }
         self.on_song_changed.emit(current);
         self.trigger_player_event(Event::TimeUpdate(Default::default()));

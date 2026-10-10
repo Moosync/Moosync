@@ -133,3 +133,63 @@ async fn test_queue_save_queue_as_playlist(state_manager_fixture: TestSlintSmCon
         Some("My Description".to_string())
     );
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_queue_remove_currently_playing_song(
+    main_window: MainWindow,
+    state_manager_fixture: TestSlintSmContext,
+) {
+    let TestSlintSmContext { sm, .. } = state_manager_fixture;
+    let song1 = Song {
+        song: Some(InnerSong {
+            id: Some("q_song_1".into()),
+            title: Some("Queue Song 1".into()),
+            path: Some("/music/q1.mp3".into()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let song2 = Song {
+        song: Some(InnerSong {
+            id: Some("q_song_2".into()),
+            title: Some("Queue Song 2".into()),
+            path: Some("/music/q2.mp3".into()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    };
+    let player_handler = sm.get_player_handler();
+    player_handler.add_to_queue(vec![song1, song2]).await;
+
+    let main_window = Box::leak(Box::new(main_window));
+    let state_manager = Box::leak(Box::new(sm.clone()));
+    let handler = QueuePageHandler::new(main_window, state_manager);
+    handler.initialize();
+
+    player_handler.play_index(0).await;
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    assert_eq!(
+        player_handler
+            .current_song()
+            .and_then(|s| s.song)
+            .and_then(|s| s.id),
+        Some("q_song_1".to_string())
+    );
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_remove_from_queue(0);
+    tokio::time::sleep(Duration::from_millis(100)).await;
+
+    assert_eq!(player_handler.get_queue().len(), 1);
+    assert_eq!(
+        player_handler
+            .current_song()
+            .and_then(|s| s.song)
+            .and_then(|s| s.id),
+        Some("q_song_2".to_string())
+    );
+}

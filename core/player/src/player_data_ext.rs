@@ -102,11 +102,23 @@ impl PlayerDataExt for PlayerData {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn remove_at_index(&mut self, idx: usize) {
-        if idx < self.song_queue.len() {
-            self.song_queue.remove(idx);
-            if (self.current_idx as usize) >= self.song_queue.len() && !self.song_queue.is_empty() {
-                self.current_idx = (self.song_queue.len() - 1) as u64;
-            }
+        if idx >= self.song_queue.len() {
+            return;
+        }
+
+        self.song_queue.remove(idx);
+        if self.song_queue.is_empty() {
+            self.current_idx = 0;
+            return;
+        }
+
+        if idx < self.current_idx as usize {
+            self.current_idx -= 1;
+            return;
+        }
+
+        if (self.current_idx as usize) >= self.song_queue.len() {
+            self.current_idx = (self.song_queue.len() - 1) as u64;
         }
     }
 

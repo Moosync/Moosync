@@ -63,7 +63,7 @@ impl QueuePageHandler {
                 tokio::spawn(
                     async move {
                         let player_handler = state_manager.get_player_handler();
-                        player_handler.remove_from_queue(idx as usize);
+                        player_handler.remove_from_queue(idx as usize).await;
                     }
                     .instrument(tracing::debug_span!("slint_cb_on_remove_from_queue")),
                 );
@@ -372,7 +372,7 @@ impl QueuePageHandler {
                     tokio::spawn(
                         async move {
                             let player = state_manager.get_player_handler();
-                            player.remove_from_queue(queue_idx);
+                            player.remove_from_queue(queue_idx).await;
                         }
                         .instrument(tracing::debug_span!(
                             "slint_cb_on_queue_action_remove_from_queue"

@@ -42,6 +42,19 @@ fn create_mock_song(id: &str, title: &str) -> Song {
     }
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+fn create_unplayable_mock_song(id: &str, title: &str) -> Song {
+    Song {
+        song: Some(InnerSong {
+            id: Some(id.to_string()),
+            title: Some(title.to_string()),
+            path: Some("/nonexistent/file.mp3".to_string()),
+            ..Default::default()
+        }),
+        ..Default::default()
+    }
+}
+
 #[fixture]
 #[tracing::instrument(level = "debug", skip_all)]
 fn player_handler() -> PlayerHandler {
@@ -413,7 +426,7 @@ async fn test_player_remove_from_queue(player_handler: PlayerHandler) {
     let song2 = create_mock_song("2", "Song Two");
     player_handler.add_to_queue(vec![song1, song2]).await;
 
-    player_handler.remove_from_queue(0);
+    player_handler.remove_from_queue(0).await;
 
     assert_len_eq_x!(&player_handler.get_queue(), 1);
     assert_some_eq_x!(
@@ -422,6 +435,161 @@ async fn test_player_remove_from_queue(player_handler: PlayerHandler) {
             .as_ref()
             .and_then(|s| s.id.as_deref()),
         "2"
+    );
+    assert_some_eq_x!(
+        player_handler
+            .current_song()
+            .as_ref()
+            .and_then(|s| s.song.as_ref())
+            .and_then(|s| s.id.as_deref()),
+        "2"
+    );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_player_remove_currently_playing_song_updates_playback(player_handler: PlayerHandler) {
+    let song1 = create_mock_song("1", "Song One");
+    let song2 = create_mock_song("2", "Song Two");
+    let song3 = create_mock_song("3", "Song Three");
+    player_handler.add_to_queue(vec![song1, song2, song3]).await;
+    player_handler.play_index(1).await;
+
+    player_handler.remove_from_queue(1).await;
+
+    assert_len_eq_x!(&player_handler.get_queue(), 2);
+    assert_eq!(player_handler.get_current_idx(), 1);
+    assert_some_eq_x!(
+        player_handler
+            .current_song()
+            .as_ref()
+            .and_then(|s| s.song.as_ref())
+            .and_then(|s| s.id.as_deref()),
+        "3"
+    );
+    assert_eq!(
+        player_handler.get_player_state(),
+        PlayerState::Playing as i32
+    );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_player_remove_currently_playing_last_song(player_handler: PlayerHandler) {
+    let song1 = create_mock_song("1", "Song One");
+    let song2 = create_mock_song("2", "Song Two");
+    player_handler.add_to_queue(vec![song1, song2]).await;
+    player_handler.play_index(1).await;
+
+    player_handler.remove_from_queue(1).await;
+
+    assert_len_eq_x!(&player_handler.get_queue(), 1);
+    assert_eq!(player_handler.get_current_idx(), 0);
+    assert_some_eq_x!(
+        player_handler
+            .current_song()
+            .as_ref()
+            .and_then(|s| s.song.as_ref())
+            .and_then(|s| s.id.as_deref()),
+        "1"
+    );
+    assert_eq!(
+        player_handler.get_player_state(),
+        PlayerState::Playing as i32
+    );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_player_remove_only_song(player_handler: PlayerHandler) {
+    let song1 = create_mock_song("1", "Song One");
+    player_handler.add_to_queue(vec![song1]).await;
+    player_handler.play_index(0).await;
+
+    player_handler.remove_from_queue(0).await;
+
+    assert_is_empty!(&player_handler.get_queue());
+    assert_none!(player_handler.current_song());
+    assert_eq!(
+        player_handler.get_player_state(),
+        PlayerState::Stopped as i32
+    );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_player_remove_non_current_song(player_handler: PlayerHandler) {
+    let song1 = create_mock_song("1", "Song One");
+    let song2 = create_mock_song("2", "Song Two");
+    let song3 = create_mock_song("3", "Song Three");
+    player_handler.add_to_queue(vec![song1, song2, song3]).await;
+    player_handler.play_index(1).await;
+
+    player_handler.remove_from_queue(0).await;
+
+    assert_len_eq_x!(&player_handler.get_queue(), 2);
+    assert_eq!(player_handler.get_current_idx(), 0);
+    assert_some_eq_x!(
+        player_handler
+            .current_song()
+            .as_ref()
+            .and_then(|s| s.song.as_ref())
+            .and_then(|s| s.id.as_deref()),
+        "2"
+    );
+    assert_eq!(
+        player_handler.get_player_state(),
+        PlayerState::Playing as i32
+    );
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_player_song_failure_updates_current_song(player_handler: PlayerHandler) {
+    let song1 = create_mock_song("1", "Song One");
+    let song2 = create_unplayable_mock_song("2", "Song Two");
+    player_handler.add_to_queue(vec![song1, song2]).await;
+    player_handler.play_index(0).await;
+
+    let received_song = Arc::new(Mutex::new(None));
+    let received_song_clone = received_song.clone();
+    player_handler.on_song_changed.listen(move |song| {
+        *received_song_clone.lock().unwrap() = song.clone();
+    });
+
+    player_handler.play_index(1).await;
+
+    assert_eq!(player_handler.get_current_idx(), 1);
+    assert_some_eq_x!(
+        player_handler
+            .current_song()
+            .as_ref()
+            .and_then(|s| s.song.as_ref())
+            .and_then(|s| s.id.as_deref()),
+        "2"
+    );
+    assert_eq!(
+        received_song
+            .lock()
+            .unwrap()
+            .as_ref()
+            .and_then(|s| s.song.as_ref())
+            .and_then(|s| s.id.as_deref()),
+        Some("2")
+    );
+    assert_eq!(
+        player_handler.get_player_state(),
+        PlayerState::Stopped as i32
     );
 }
 

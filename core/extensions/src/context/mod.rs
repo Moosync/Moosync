@@ -107,7 +107,7 @@ pub trait ReplyHandler: Send + Sync + 'static {
     ) -> Result<bool, ExtensionError>;
     fn extensions_updated(&self, _package_name: &str) -> Result<(), ExtensionError>;
     fn get_app_version(&self, _package_name: &str) -> Result<String, ExtensionError>;
-    fn enter_runtime(self: std::sync::Arc<Self>) -> Box<dyn std::any::Any> { Box::new(()) }
+    fn get_runtime_handle(&self) -> Option<tokio::runtime::Handle> { None }
 }
 
 pub(crate) trait DispatchCommand {

@@ -591,6 +591,7 @@ message ExtensionDetail {
   optional string registry = 12;
   optional ManifestPermissions permissions = 13;
   repeated ExtensionProviderScope scopes = 14;
+  optional string error = 15;
 }
 
 message ExtensionAccountDetail {

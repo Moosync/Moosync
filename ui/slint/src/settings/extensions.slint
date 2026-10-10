@@ -93,6 +93,13 @@ component ExtensionsManifest inherits VerticalLayout {
                             }
                         }
 
+                        if item.error != "": Text {
+                            text: item.error;
+                            font-size: Theme.caption;
+                            color: Theme.danger;
+                            overflow: elide;
+                        }
+
                         if item.description != "": Text {
                             text: item.description;
                             font-size: Theme.caption;
@@ -106,6 +113,18 @@ component ExtensionsManifest inherits VerticalLayout {
                         HorizontalLayout {
                             spacing: Theme.spacingMd;
                             alignment: center;
+
+                            if item.error != "": Rectangle {
+                                width: Theme.iconSizeSm;
+                                height: Theme.iconSizeSm;
+                                Image {
+                                    width: 100%;
+                                    height: 100%;
+                                    source: @image-url("../icons/warning.svg");
+                                    image-fit: contain;
+                                    colorize: Theme.danger;
+                                }
+                            }
 
                             IconButton {
                                 icon_source: @image-url("../icons/info.svg");

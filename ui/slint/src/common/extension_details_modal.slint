@@ -134,6 +134,46 @@ export component ExtensionDetailsModal inherits Modal {
                 wrap: word-wrap;
             }
 
+            if root.item.error != "": Rectangle {
+                background: Theme.danger.transparentize(0.85);
+                border-radius: Theme.borderRadiusMd;
+                border-width: Theme.borderWidth;
+                border-color: Theme.danger;
+
+                HorizontalLayout {
+                    padding: Theme.paddingMd;
+                    spacing: Theme.spacingMd;
+                    alignment: center;
+
+                    Image {
+                        width: Theme.iconSizeSm;
+                        height: Theme.iconSizeSm;
+                        source: @image-url("../icons/warning.svg");
+                        image-fit: contain;
+                        colorize: Theme.danger;
+                    }
+
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        spacing: Theme.spacingTiny;
+
+                        Text {
+                            text: @tr("Extension Failed to Load");
+                            font-size: Theme.caption;
+                            font-weight: 700;
+                            color: Theme.danger;
+                        }
+
+                        Text {
+                            text: root.item.error;
+                            font-size: Theme.caption;
+                            color: Theme.textSecondary;
+                            wrap: word-wrap;
+                        }
+                    }
+                }
+            }
+
             ScrollView {
                 vertical-stretch: 1;
 

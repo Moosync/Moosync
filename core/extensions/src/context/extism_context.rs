@@ -23,7 +23,7 @@ use std::{
     path::{Path, PathBuf},
     process,
     str::FromStr,
-    sync::{Arc, LazyLock, Mutex},
+    sync::{Arc, LazyLock, Mutex, OnceLock},
     thread,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -64,6 +64,7 @@ struct SocketUserData {
 struct HttpUserData {
     allowed_hosts: Option<Vec<String>>,
     client: reqwest::Client,
+    runtime: Option<tokio::runtime::Handle>,
 }
 
 host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Prost<MainCommand>) {
@@ -82,8 +83,9 @@ host_fn!(send_main_command(user_data: MainCommandUserData; command_wrapper: Pros
         }));
     }
 
-    let _runtime_guard = reply_handler.clone().enter_runtime();
     tracing::debug!("Sending command {:?} from {}", command, package_name);
+    let runtime_handle = reply_handler.get_runtime_handle();
+    let _runtime_guard = runtime_handle.as_ref().map(|h| h.enter());
     let response = match command.command {
         Some(cmd) => cmd.dispatch(reply_handler.as_ref(), &package_name),
         None => Err(ExtensionError::MissingCommand),
@@ -318,10 +320,10 @@ pub(crate) async fn execute_single_request(
 
 host_fn!(batch_http_request(user_data: HttpUserData; req: Prost<BatchHttpRequest>) -> Prost<BatchHttpResponse> {
     let requests = req.0.requests;
-    let (client, allowed_hosts) = {
+    let (client, allowed_hosts, runtime) = {
         let user_data = user_data.get()?;
         let data = user_data.lock().unwrap();
-        (data.client.clone(), data.allowed_hosts.clone())
+        (data.client.clone(), data.allowed_hosts.clone(), data.runtime.clone())
     };
 
     // Upfront validation: if ANY request is invalid or disallowed, abort and do not execute any request
@@ -334,9 +336,9 @@ host_fn!(batch_http_request(user_data: HttpUserData; req: Prost<BatchHttpRequest
         }
     }
 
-    let handle = tokio::runtime::Handle::current();
-    let responses = tokio::task::block_in_place(|| {
-        handle.block_on(async {
+    let handle = runtime.unwrap_or_else(|| tokio::runtime::Handle::current());
+    let responses = handle.block_on(
+        async {
             let futures = requests
                 .into_iter()
                 .map(|r| execute_single_request(&client, r, allowed_hosts.as_deref()));
@@ -352,8 +354,9 @@ host_fn!(batch_http_request(user_data: HttpUserData; req: Prost<BatchHttpRequest
                     },
                 })
                 .collect()
-        }.in_current_span())
-    });
+        }
+        .in_current_span(),
+    );
 
     Ok(Prost(BatchHttpResponse {
         responses,
@@ -380,12 +383,13 @@ impl Debug for ExtismContext {
 
 impl ExtismContext {
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn new(
+    pub fn try_new(
         manifest: &ExtensionManifest,
         has_started: Arc<std::sync::atomic::AtomicBool>,
         cache_path: &Path,
         reply_handler: Arc<dyn ReplyHandler>,
-    ) -> Self {
+        error_holder: Arc<OnceLock<String>>,
+    ) -> Result<Self, ExtensionError> {
         let url = Wasm::file(manifest.extension_entry.clone());
         let mut plugin_manifest = Manifest::new([url]);
 
@@ -416,26 +420,29 @@ impl ExtismContext {
         );
 
         let plugin =
-            Self::build_plugin(cache_path, plugin_manifest, user_data, sock_data, http_data);
+            Self::build_plugin(cache_path, plugin_manifest, user_data, sock_data, http_data)?;
         let plugin_clone = plugin.clone();
         let package_name_clone = package_name.clone();
         let reply_handler_clone = reply_handler.clone();
         thread::spawn(move || {
+            let mut plugin = plugin_clone.lock().unwrap();
+            tracing::debug!("Calling entry on {:?}", package_name_clone);
+            if plugin.function_exists("entry")
+                && let Err(e) = plugin.call::<(), ()>("entry", ())
             {
-                let mut plugin = plugin_clone.lock().unwrap();
-                tracing::debug!("Calling entry on {:?}", package_name_clone);
-                if let Err(e) = plugin.call::<(), ()>("entry", ()) {
-                    tracing::error!("Failed to call extension entry: {:?}", e);
-                }
+                tracing::error!("Failed to call extension entry: {:?}", e);
+                let _ = error_holder.set(format!("Failed to start: {}", e));
+                let _ = reply_handler_clone.extensions_updated(&package_name_clone);
+                return;
             }
             has_started.store(true, std::sync::atomic::Ordering::SeqCst);
             let _ = reply_handler_clone.extensions_updated(&package_name_clone);
         });
 
-        Self {
+        Ok(Self {
             plugin,
             package_name,
-        }
+        })
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -482,6 +489,7 @@ impl ExtismContext {
         UserData<SocketUserData>,
         UserData<HttpUserData>,
     ) {
+        let runtime = reply_handler.get_runtime_handle();
         let user_data = UserData::new(MainCommandUserData {
             package_name,
             reply_handler,
@@ -498,6 +506,7 @@ impl ExtismContext {
                 .pool_max_idle_per_host(10)
                 .build()
                 .unwrap_or_else(|_| reqwest::Client::new()),
+            runtime,
         });
 
         (user_data, sock_data, http_data)
@@ -510,7 +519,7 @@ impl ExtismContext {
         user_data: UserData<MainCommandUserData>,
         sock_data: UserData<SocketUserData>,
         http_data: UserData<HttpUserData>,
-    ) -> Arc<Mutex<Plugin>> {
+    ) -> Result<Arc<Mutex<Plugin>>, ExtensionError> {
         let config_path = cache_path.join("wasmtime").join("config.toml");
         static WRITTEN_PATHS: std::sync::OnceLock<
             std::sync::Mutex<std::collections::HashSet<PathBuf>>,
@@ -521,9 +530,9 @@ impl ExtismContext {
             let mut paths = mutex.lock().unwrap();
             if !paths.contains(&config_path) {
                 if !config_path.exists() {
-                    fs::create_dir_all(config_path.parent().unwrap()).unwrap();
+                    let _ = fs::create_dir_all(config_path.parent().unwrap());
                 }
-                fs::write(
+                let _ = fs::write(
                     &config_path,
                     format!(
                         r#"[cache]
@@ -537,8 +546,7 @@ files-total-size-soft-limit = "1Gi"
                             .join("cache")
                             .to_string_lossy()
                     ),
-                )
-                .unwrap();
+                );
                 paths.insert(config_path.clone());
             }
         }
@@ -550,56 +558,51 @@ files-total-size-soft-limit = "1Gi"
         *count += 1;
         drop(count);
 
-        let plugin_result = std::panic::catch_unwind(|| {
-            #[allow(unused_mut)]
-            let mut plugin_builder = PluginBuilder::new(plugin_manifest)
-                .with_wasi(true)
-                .with_cache_config(config_path)
-                .with_function(
-                    "send_main_command",
-                    [PTR],
-                    [PTR],
-                    user_data,
-                    send_main_command,
-                )
-                .with_function("system_time", [], [PTR], UserData::default(), system_time)
-                .with_function(
-                    "open_clientfd",
-                    [PTR],
-                    [I64],
-                    sock_data.clone(),
-                    open_clientfd,
-                )
-                .with_function(
-                    "write_sock",
-                    [I64, PTR],
-                    [I64],
-                    sock_data.clone(),
-                    write_sock,
-                )
-                .with_function("read_sock", [I64, I64], [PTR], sock_data, read_sock)
-                .with_function(
-                    "batch_http_request",
-                    [PTR],
-                    [PTR],
-                    http_data,
-                    batch_http_request,
-                );
+        #[allow(unused_mut)]
+        let mut plugin_builder = PluginBuilder::new(plugin_manifest)
+            .with_wasi(true)
+            .with_cache_config(config_path)
+            .with_function(
+                "send_main_command",
+                [PTR],
+                [PTR],
+                user_data,
+                send_main_command,
+            )
+            .with_function("system_time", [], [PTR], UserData::default(), system_time)
+            .with_function(
+                "open_clientfd",
+                [PTR],
+                [I64],
+                sock_data.clone(),
+                open_clientfd,
+            )
+            .with_function(
+                "write_sock",
+                [I64, PTR],
+                [I64],
+                sock_data.clone(),
+                write_sock,
+            )
+            .with_function("read_sock", [I64, I64], [PTR], sock_data, read_sock)
+            .with_function(
+                "batch_http_request",
+                [PTR],
+                [PTR],
+                http_data,
+                batch_http_request,
+            );
 
-            plugin_builder.build().unwrap()
-        });
+        let build_result = plugin_builder.build();
 
         let mut count = COMPILE_LIMIT.lock().unwrap();
         *count -= 1;
         COMPILE_CONDVAR.notify_one();
         drop(count);
 
-        let plugin = match plugin_result {
-            Ok(p) => p,
-            Err(err) => std::panic::resume_unwind(err),
-        };
+        let plugin = build_result?;
 
-        Arc::new(Mutex::new(plugin))
+        Ok(Arc::new(Mutex::new(plugin)))
     }
 }
 
@@ -612,22 +615,30 @@ impl ExtensionContext for ExtismContext {
     ) -> Result<ExtensionCommandResponse, ExtensionError> {
         let plugin = self.plugin.clone();
         let package_name = self.package_name.clone();
-        tokio::task::spawn_blocking(move || {
-            let mut plugin = plugin.lock().unwrap();
-            tracing::debug!("Calling {:?} on {:?}", command, plugin.id);
-            let res = plugin.call::<_, Prost<ExtensionCommandResponse>>(
-                "handle_extension_command",
-                Prost(command),
-            )?;
-            tracing::trace!("Finished calling on {:?}", plugin.id);
-            tracing::trace!("Response: {:?}", res);
+        let (tx, rx) = tokio::sync::oneshot::channel();
 
-            let mut parsed_resp = res.0;
-            parsed_resp.sanitize(&package_name)?;
-            Ok(parsed_resp)
-        })
-        .await
-        .unwrap()
+        thread::spawn(move || {
+            let run = move || {
+                let mut plugin = plugin.lock().unwrap();
+                tracing::debug!("Calling {:?} on {:?}", command, plugin.id);
+                let res = plugin.call::<_, Prost<ExtensionCommandResponse>>(
+                    "handle_extension_command",
+                    Prost(command),
+                )?;
+                tracing::trace!("Finished calling on {:?}", plugin.id);
+                tracing::trace!("Response: {:?}", res);
+
+                let mut parsed_resp = res.0;
+                parsed_resp.sanitize(&package_name)?;
+                Ok(parsed_resp)
+            };
+            let _ = tx.send(run());
+        });
+
+        match rx.await {
+            Ok(res) => res,
+            Err(e) => Err(ExtensionError::Extism(extism::Error::msg(e.to_string()))),
+        }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

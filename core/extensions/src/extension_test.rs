@@ -467,3 +467,34 @@ fn test_sanitize_trait_search_result() {
         Some("ext.pkg:al1".to_string())
     );
 }
+
+#[rstest]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+fn test_extension_load_invalid_wasm_records_error() {
+    let temp_dir = TempDir::new("moosync_ext_invalid_wasm").expect("failed to create temp dir");
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "invalid.wasm.ext".to_string(),
+        display_name: "Invalid WASM Extension".to_string(),
+        version: "0.1.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        ..Default::default()
+    };
+    let manifest_path = temp_dir.path().join("manifest.pb");
+    fs::write(&manifest_path, prost::Message::encode_to_vec(&manifest)).unwrap();
+    // Invalid wasm bytes
+    fs::write(temp_dir.path().join("main.wasm"), b"not a wasm binary").unwrap();
+    let cache_dir = temp_dir.path().join("cache");
+    let reply = Arc::new(DummyReply);
+    let has_started = Arc::new(AtomicBool::new(false));
+
+    let ext = Extension::new(&manifest_path, reply, cache_dir, has_started);
+    assert!(ext.is_ok());
+    let ext = ext.unwrap();
+
+    let detail = ext.get_extension_detail();
+    assert_eq!(detail.package_name, "invalid.wasm.ext");
+    assert!(!detail.has_started);
+    assert!(detail.error.is_some());
+    assert!(!detail.error.unwrap().is_empty());
+}

@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fs,
     path::PathBuf,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, Mutex, OnceLock, RwLock},
 };
 
 use extensions_proto::moosync::types::{
@@ -48,6 +48,7 @@ pub struct Extension {
     cache_path: PathBuf,
     extension_path: PathBuf,
     reply_handler: Arc<dyn ReplyHandler>,
+    error: Arc<OnceLock<String>>,
 }
 
 impl Extension {
@@ -75,11 +76,12 @@ impl Extension {
         cache_path: PathBuf,
         has_started: Arc<std::sync::atomic::AtomicBool>,
     ) -> Result<Self, ExtensionError> {
-        let manifest = Self::read_manifest(manifest_path)?;
         let extension_dir = manifest_path
             .parent()
             .expect("manifest path cannot be root")
             .to_path_buf();
+
+        let manifest = Self::read_manifest(manifest_path)?;
 
         let ext = Self {
             context: Mutex::new(None),
@@ -91,6 +93,7 @@ impl Extension {
             cache_path,
             extension_path: extension_dir,
             reply_handler,
+            error: Arc::new(OnceLock::new()),
         };
 
         ext.spawn_extension();
@@ -100,13 +103,26 @@ impl Extension {
 
     #[tracing::instrument(level = "debug", skip_all)]
     fn spawn_extension(&self) {
-        let mut context = self.context.lock().unwrap();
-        *context = Some(Arc::new(ExtismContext::new(
+        match ExtismContext::try_new(
             &self.manifest,
             self.has_started.clone(),
             &self.cache_path,
             self.reply_handler.clone(),
-        )));
+            self.error.clone(),
+        ) {
+            Ok(context) => *self.context.lock().unwrap() = Some(Arc::new(context)),
+            Err(e) => {
+                tracing::error!(
+                    "Failed to initialize extension context for {}: {}",
+                    self.get_package_name(),
+                    e
+                );
+                let _ = self.error.set(e.to_string());
+                let _ = self
+                    .reply_handler
+                    .extensions_updated(self.get_package_name());
+            }
+        }
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -423,6 +439,7 @@ impl From<&Extension> for ExtensionDetail {
                 .as_ref()
                 .map(|s| s.scopes.clone())
                 .unwrap_or_default(),
+            error: val.error.get().cloned(),
         }
     }
 }

@@ -305,21 +305,5 @@ impl ReplyHandler for StateReplyHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn enter_runtime(self: std::sync::Arc<Self>) -> Box<dyn std::any::Any> {
-        struct StateReplyHandlerRuntimeGuard {
-            _handler: std::sync::Arc<StateReplyHandler>,
-            _guard: tokio::runtime::EnterGuard<'static>,
-        }
-        // SAFETY: self.runtime lives as long as the StateReplyHandler inside the Arc,
-        // which is held in StateReplyHandlerRuntimeGuard.
-        let guard = unsafe {
-            std::mem::transmute::<tokio::runtime::EnterGuard<'_>, tokio::runtime::EnterGuard<'static>>(
-                self.runtime.enter(),
-            )
-        };
-        Box::new(StateReplyHandlerRuntimeGuard {
-            _handler: self,
-            _guard: guard,
-        })
-    }
+    fn get_runtime_handle(&self) -> Option<Handle> { Some(self.runtime.clone()) }
 }

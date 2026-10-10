@@ -519,12 +519,15 @@ impl From<ExtensionDetail> for ExtensionItem {
 
         let scopes: Vec<ProviderScope> = ext.scopes.into_iter().map(ProviderScope::from).collect();
 
+        let error = ext.error.unwrap_or_default();
+        let has_error = !error.is_empty();
+
         Self {
             name: ext.name.into(),
             package_name: ext.package_name.into(),
             version: ext.version.into(),
             is_installed: true,
-            loading: !ext.has_started,
+            loading: !ext.has_started && !has_error,
             description: ext.desc.unwrap_or_default().into(),
             icon: Image::default(),
             has_started: ext.has_started,
@@ -534,6 +537,7 @@ impl From<ExtensionDetail> for ExtensionItem {
             network_permissions: ModelRc::new(VecModel::from(network_permissions)),
             filesystem_permissions: ModelRc::new(VecModel::from(filesystem_permissions)),
             scopes: ModelRc::new(VecModel::from(scopes)),
+            error: error.into(),
         }
     }
 }
@@ -556,6 +560,7 @@ impl From<ExtensionManifest> for ExtensionItem {
             network_permissions: ModelRc::default(),
             filesystem_permissions: ModelRc::default(),
             scopes: ModelRc::default(),
+            error: SharedString::default(),
         }
     }
 }

@@ -83,8 +83,10 @@ macro_rules! parameterized_test {
 pub mod integration {
     use std::{env, fs, path::PathBuf, time::Duration};
 
+    use extensions_proto::moosync::types::{ExtensionManifest, ManifestPermissions};
     use futures::FutureExt;
     use player_proto::moosync::types::RepeatMode;
+    use prost::Message;
     use slint::{ComponentHandle, ModelRc, VecModel};
     use songs_proto::moosync::types::{
         Album, Artist, Genre, GetEntityOptions, GetSongOptions, InnerSong, Playlist,
@@ -519,7 +521,7 @@ pub mod integration {
             )
             .unwrap();
 
-            let manifest = extensions_proto::moosync::types::ExtensionManifest {
+            let manifest = ExtensionManifest {
                 name: package_name.to_string(),
                 display_name: display_name.to_string(),
                 version: "1.0.0".to_string(),
@@ -527,7 +529,7 @@ pub mod integration {
                 description: Some("Sample Rust Extension".to_string()),
                 icon: "icon.svg".to_string(),
                 author: Some("Moosync".to_string()),
-                permissions: Some(extensions_proto::moosync::types::Permissions {
+                permissions: Some(ManifestPermissions {
                     hosts: vec!["api.example.com".to_string(), "*.moosync.app".to_string()],
                     paths: [
                         ("/music".to_string(), "/media/music".to_string()),
@@ -540,7 +542,7 @@ pub mod integration {
             };
             fs::write(
                 ext_dir.join("manifest.pb"),
-                prost::Message::encode_to_vec(&manifest),
+                Message::encode_to_vec(&manifest),
             )
             .unwrap();
 
@@ -555,6 +557,16 @@ pub mod integration {
             })
             .await;
             assert!(loaded);
+
+            for ext in ext_handler.get_active_extensions() {
+                if ext.get_package_name() == package_name {
+                    let _ = ext
+                        .get_provider_scopes(
+                            extensions_proto::moosync::types::GetProviderScopesRequest {},
+                        )
+                        .await;
+                }
+            }
 
             Self {
                 ext_dir,

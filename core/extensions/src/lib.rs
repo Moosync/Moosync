@@ -326,7 +326,7 @@ impl ExtensionHandler {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn remove_extension(&self, package_name: String) -> Result<(), ExtensionError> {
-        let ext_path = self.extensions_dir.join(package_name.clone());
+        let ext_path = self.extensions_dir.join(&package_name);
         if ext_path.exists() {
             let _ = fs::remove_dir_all(ext_path);
         }
@@ -395,7 +395,13 @@ impl ExtensionHandler {
     pub fn get_active_extensions(&self) -> Vec<Arc<Extension>> {
         self.get_installed_extensions()
             .into_iter()
-            .filter_map(|d| self.get_extension(&d.package_name).ok())
+            .filter_map(|d| {
+                if d.has_started && d.error.is_none() {
+                    self.get_extension(&d.package_name).ok()
+                } else {
+                    None
+                }
+            })
             .collect()
     }
 

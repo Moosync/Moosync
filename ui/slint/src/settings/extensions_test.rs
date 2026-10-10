@@ -188,3 +188,26 @@ async fn test_extension_details_modal_state(main_window: MainWindow) {
     assert_eq!(state.get_item().description, "Modal test description");
     assert_eq!(state.get_item().author, "Tester");
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extension_item_with_error(main_window: MainWindow) {
+    let state = main_window.global::<ExtensionDetailsState>();
+    let test_item = ExtensionItem {
+        name: "Broken Extension".into(),
+        package_name: "broken.ext".into(),
+        version: "1.0.0".into(),
+        error: "failed to load wasm".into(),
+        is_installed: true,
+        loading: false,
+        ..Default::default()
+    };
+
+    state.set_item(test_item);
+    state.set_show_modal(true);
+
+    assert_eq!(state.get_item().error, "failed to load wasm");
+    assert!(!state.get_item().loading);
+}

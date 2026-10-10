@@ -304,6 +304,7 @@ rust_library(
         "@crates//:image",
         "@crates//:open",
         "@crates//:platform-dirs",
+        "@crates//:prost",
         "@crates//:prost-types",
         "@crates//:regex",
         "@crates//:reqwest",

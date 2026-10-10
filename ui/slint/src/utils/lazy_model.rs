@@ -9,7 +9,7 @@ use slint::{ComponentHandle, Image, Model, ModelNotify, ModelRc, ModelTracker, S
 use state_manager::StateManager;
 use tracing::{Instrument, trace};
 
-use super::load_image_from_path_or_url;
+use super::cache_image;
 use crate::{
     AlbumModel, ArtistModel, ExtensionItem, GenreModel, MainWindow, PlaylistModel, SongModel,
     Theme, WINDOW_EVENTS,
@@ -128,8 +128,13 @@ impl<T: LazyModel + 'static> LazySongVecModel<T> {
 
         slint::spawn_local(
             async move {
-                let Some(img) = load_image_from_path_or_url(&cover_url_str, &cache_dir).await
-                else {
+                let handle =
+                    tokio::spawn(async move { cache_image(&cover_url_str, &cache_dir).await });
+                let Some(cached_path) = handle.await.ok().flatten() else {
+                    allocated_rows.borrow_mut().remove(&row);
+                    return;
+                };
+                let Ok(img) = Image::load_from_path(&cached_path) else {
                     allocated_rows.borrow_mut().remove(&row);
                     return;
                 };

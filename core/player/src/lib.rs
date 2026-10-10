@@ -238,7 +238,10 @@ impl PlayerHandler {
             && let Some(song) = self.current_song()
             && let Err(e) = self.player.set_src(&song).await
         {
-            tracing::error!("Failed to load song on play: {:?}", e);
+            return Err(PlayerError::PlaybackUrlResolutionFailed(format!(
+                "Failed to load song on play: {:?}",
+                e
+            )));
         }
         self.player.play()?;
         self.trigger_player_event(Event::Play(true));

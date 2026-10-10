@@ -113,6 +113,7 @@ impl SourceResolver {
                     "Resolver not set".to_string(),
                 ));
             };
+            tracing::debug!("Resolving playback details for song: {:?}", song);
             resolver(song)
         };
         resp_fut.await.map_err(|e| {

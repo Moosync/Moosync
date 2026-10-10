@@ -125,6 +125,11 @@ impl SearchPageHandler {
                                 .contains(&(ExtensionProviderScope::Accounts as i32));
                         match Self::search_extension(&term, &ext).await {
                             Ok(res) => {
+                                tracing::debug!(
+                                    "Extension search '{}' ({:?})",
+                                    detail.package_name,
+                                    res
+                                );
                                 Self::append_search_result(
                                     &main_window_weak,
                                     state_manager,

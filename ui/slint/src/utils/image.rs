@@ -7,6 +7,7 @@ use extensions_proto::moosync::types::ExtensionDetail;
 use image::ImageFormat;
 use slint::Image;
 use tokio::fs;
+use tracing::Instrument;
 
 static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 
@@ -87,6 +88,45 @@ pub async fn cache_image(cover_url: &str, cache_dir: &Path) -> Option<PathBuf> {
     let cached_path = img_cache_dir.join(format!("{}.{}", safe_name, ext));
     fs::write(&cached_path, bytes).await.ok()?;
     Some(cached_path)
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub fn find_cached_or_local_image(cover_url: &str, cache_dir: &Path) -> Option<Image> {
+    if cover_url.is_empty() {
+        return None;
+    }
+    if !cover_url.starts_with("http://") && !cover_url.starts_with("https://") {
+        let path = Path::new(cover_url);
+        if path.exists() {
+            return Image::load_from_path(path).ok();
+        }
+        return None;
+    }
+
+    let safe_name = get_safe_name(cover_url);
+    let img_cache_dir = cache_dir.join("image_cache");
+    const EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp", "gif", "avif", "ico", "bmp"];
+    for ext in EXTENSIONS {
+        let path = img_cache_dir.join(format!("{}.{}", safe_name, ext));
+        if path.exists() {
+            return Image::load_from_path(&path).ok();
+        }
+    }
+    None
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
+pub async fn resolve_image(cover_url: &str, cache_dir: &Path) -> Option<Image> {
+    if cover_url.is_empty() {
+        return None;
+    }
+    let cover_url_str = cover_url.to_string();
+    let cache_dir_buf = cache_dir.to_path_buf();
+    let handle = tokio::spawn(
+        async move { cache_image(&cover_url_str, &cache_dir_buf).await }.in_current_span(),
+    );
+    let cached_path = handle.await.ok().flatten()?;
+    Image::load_from_path(&cached_path).ok()
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

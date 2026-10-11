@@ -2,7 +2,7 @@
 // slint::include_modules!();
 include!(concat!(env!("OUT_DIR"), "/app.rs"));
 
-use std::{path::Path, time::Duration};
+use std::time::Duration;
 
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
 use player_proto::moosync::types::RepeatMode;
@@ -13,7 +13,10 @@ use tracing::{Instrument, debug, trace};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};
 use types::prelude::format_duration;
 
-use crate::pages::{NavigationManager, PageLifecycleManager};
+use crate::{
+    pages::{NavigationManager, PageLifecycleManager},
+    utils::{find_cached_or_local_image, resolve_image},
+};
 
 pub mod accounts;
 #[cfg(test)]
@@ -86,31 +89,77 @@ fn setup_resize(main_window: &MainWindow) {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-fn setup_cover_helper(main_window: &MainWindow) {
+fn setup_cover_helper(main_window: &MainWindow, state_manager: &'static StateManager) {
+    let mw_high = main_window.as_weak();
     main_window
         .global::<CoverHelper>()
         .on_fetch_cover_high(move |song_model| {
             trace!("Fetching high-res cover for song {}", song_model.title);
+            let cache_dir = state_manager.get_cache_dir();
+            if let Some(image) =
+                find_cached_or_local_image(song_model.coverPathUrlHigh.as_str(), &cache_dir)
+            {
+                return image;
+            }
             if !song_model.coverPathUrlHigh.is_empty() {
-                if let Ok(image) =
-                    Image::load_from_path(Path::new(song_model.coverPathUrlHigh.as_str()))
-                {
-                    return image;
-                }
+                let song_id = song_model.id.clone();
+                let cover_url = song_model.coverPathUrlHigh.clone();
+                let mw_weak = mw_high.clone();
+                slint::spawn_local(
+                    async move {
+                        let Some(img) = resolve_image(cover_url.as_str(), &cache_dir).await else {
+                            return;
+                        };
+                        let Some(main_window) = mw_weak.upgrade() else {
+                            return;
+                        };
+                        let player_props = main_window.global::<PlayerProps>();
+                        let mut current = player_props.get_current_song();
+                        if current.id == song_id {
+                            current.coverPathHigh = img;
+                            player_props.set_current_song(current);
+                        }
+                    }
+                    .in_current_span(),
+                )
+                .ok();
             }
             Image::default()
         });
 
+    let mw_low = main_window.as_weak();
     main_window
         .global::<CoverHelper>()
         .on_fetch_cover_low(move |song_model| {
             trace!("Fetching low-res cover for song {}", song_model.title);
+            let cache_dir = state_manager.get_cache_dir();
+            if let Some(image) =
+                find_cached_or_local_image(song_model.coverPathUrlLow.as_str(), &cache_dir)
+            {
+                return image;
+            }
             if !song_model.coverPathUrlLow.is_empty() {
-                if let Ok(image) =
-                    Image::load_from_path(Path::new(song_model.coverPathUrlLow.as_str()))
-                {
-                    return image;
-                }
+                let song_id = song_model.id.clone();
+                let cover_url = song_model.coverPathUrlLow.clone();
+                let mw_weak = mw_low.clone();
+                slint::spawn_local(
+                    async move {
+                        let Some(img) = resolve_image(cover_url.as_str(), &cache_dir).await else {
+                            return;
+                        };
+                        let Some(main_window) = mw_weak.upgrade() else {
+                            return;
+                        };
+                        let player_props = main_window.global::<PlayerProps>();
+                        let mut current = player_props.get_current_song();
+                        if current.id == song_id {
+                            current.coverPathLow = img;
+                            player_props.set_current_song(current);
+                        }
+                    }
+                    .in_current_span(),
+                )
+                .ok();
             }
             Image::default()
         });
@@ -280,6 +329,49 @@ fn setup_song_cbs(main_window: &MainWindow, state_manager: &'static StateManager
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
+fn resolve_current_song_covers(
+    main_window: &MainWindow,
+    state_manager: &'static StateManager,
+    song_model: SongModel,
+) {
+    let song_id = song_model.id.clone();
+    if song_id.is_empty() {
+        return;
+    }
+    let mw_weak = main_window.as_weak();
+    let cache_dir = state_manager.get_cache_dir();
+    let low_url = song_model.coverPathUrlLow.clone();
+    let high_url = song_model.coverPathUrlHigh.clone();
+
+    slint::spawn_local(
+        async move {
+            let low_img = resolve_image(low_url.as_str(), &cache_dir).await;
+            let high_img = resolve_image(high_url.as_str(), &cache_dir).await;
+            if low_img.is_none() && high_img.is_none() {
+                return;
+            }
+            let Some(main_window) = mw_weak.upgrade() else {
+                return;
+            };
+            let player_props = main_window.global::<PlayerProps>();
+            let mut current = player_props.get_current_song();
+            if current.id != song_id {
+                return;
+            }
+            if let Some(img) = low_img {
+                current.coverPathLow = img;
+            }
+            if let Some(img) = high_img {
+                current.coverPathHigh = img;
+            }
+            player_props.set_current_song(current);
+        }
+        .in_current_span(),
+    )
+    .ok();
+}
+
+#[tracing::instrument(level = "debug", skip_all)]
 fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     // Clear default values on load
     main_window
@@ -303,7 +395,9 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
                     let player_props = main_window.global::<PlayerProps>();
                     player_props.set_repeat_mode(repeat_mode as i32);
                     if let Some(song) = current_song {
-                        player_props.set_current_song(SongModel::from(song));
+                        let song_model = SongModel::from(song);
+                        player_props.set_current_song(song_model.clone());
+                        resolve_current_song_covers(&main_window, state_manager, song_model);
                     }
                 }
             });
@@ -319,7 +413,8 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
                         };
                         main_window
                             .global::<PlayerProps>()
-                            .set_current_song(song_model);
+                            .set_current_song(song_model.clone());
+                        resolve_current_song_covers(&main_window, state_manager, song_model);
                     }
                 });
             });
@@ -434,7 +529,7 @@ fn setup_player_events(main_window: &'static MainWindow, state_manager: &'static
 #[tracing::instrument(level = "debug", skip_all)]
 fn setup_ui(main_window: &'static MainWindow, state_manager: &'static StateManager) {
     setup_resize(main_window);
-    setup_cover_helper(main_window);
+    setup_cover_helper(main_window, state_manager);
     setup_song_list_helper(main_window, state_manager);
 
     let main_pages = PageLifecycleManager::get_main_pages(main_window, state_manager);

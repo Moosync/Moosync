@@ -84,6 +84,7 @@ rust_test(
     deps = [
         "@crates//:assertables",
         "@crates//:tracing-test",
+        "@crates//:wiremock",
     ],
 )
 
@@ -151,6 +152,7 @@ rust_test(
         "@crates//:tokio",
         "@crates//:tracing",
         "@crates//:tracing-test",
+        "@crates//:wiremock",
     ],
 )
 

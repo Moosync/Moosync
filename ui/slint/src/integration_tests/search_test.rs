@@ -391,6 +391,96 @@ async fn do_search_no_results_tooltip(
     assert!(handles[0].is_valid());
 }
 
+#[tracing::instrument(level = "debug", skip_all)]
+async fn do_search_network_covers_ui_hang(
+    main_window: &'static MainWindow,
+    state_manager: &'static StateManager,
+) {
+    use std::time::Duration;
+
+    use wiremock::{Mock, MockServer, ResponseTemplate, matchers::method};
+
+    let server = MockServer::start().await;
+    const PNG_BYTES: &[u8] = &[
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44,
+        0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f,
+        0x15, 0xc4, 0x89, 0x00, 0x00, 0x00, 0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x63, 0x00,
+        0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49,
+        0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+    ];
+
+    Mock::given(method("GET"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_delay(Duration::from_secs(2))
+                .set_body_bytes(PNG_BYTES.to_vec()),
+        )
+        .mount(&server)
+        .await;
+
+    let database = state_manager.get_database();
+    let mut songs = Vec::new();
+    for i in 0..10 {
+        let mut song = create_test_song(
+            &format!("net_song_{}", i),
+            &format!("Track {}", i),
+            "Test Album",
+            "Test Artist",
+        );
+        if let Some(inner) = song.song.as_mut() {
+            inner.song_cover_path_low = Some(format!("{}/cover_{}.png", server.uri(), i));
+        }
+        songs.push(song);
+    }
+    database.insert_songs(songs).unwrap();
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_active_page_changed(Pages::Search);
+    let nav =
+        wait_until(|| main_window.global::<AppProps>().get_active_page() == Pages::Search).await;
+    assert!(nav);
+
+    main_window
+        .global::<AppCallbacks>()
+        .invoke_search_term_changed("Track".into());
+
+    let searched = wait_until(|| {
+        let results = main_window
+            .global::<SearchPageProps>()
+            .get_provider_results();
+        results.row_count() > 0
+            && results.row_data(0).is_some_and(|r| {
+                r.songs.row_count() == 10
+                    && r.songs.row_data(0).is_some_and(|s| s.title == "Track 0")
+            })
+    })
+    .await;
+    assert!(searched);
+    let handles_found =
+        wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Track 0").count() == 1)
+            .await;
+    assert!(handles_found);
+
+    let start_time = std::time::Instant::now();
+    let album_tabs: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Search Albums").collect();
+    assert_eq!(album_tabs.len(), 1);
+    album_tabs[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let tab_switched =
+        wait_until(|| main_window.global::<SearchPageProps>().get_active_tab() == 1).await;
+    let elapsed = start_time.elapsed();
+    assert!(tab_switched);
+    assert!(
+        elapsed < Duration::from_millis(500),
+        "UI hung during cover fetch! Elapsed: {:?}",
+        elapsed
+    );
+}
+
 integration_test!(
     test_search_songs => do_search_category_songs,
     test_search_albums => do_search_category_albums,
@@ -399,4 +489,5 @@ integration_test!(
     test_search_extension_integration => do_search_extension_integration,
     test_search_not_logged_in_message => do_search_not_logged_in_message,
     test_search_no_results_tooltip => do_search_no_results_tooltip,
+    test_search_network_covers_ui_hang => do_search_network_covers_ui_hang,
 );

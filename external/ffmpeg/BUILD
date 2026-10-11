@@ -46,6 +46,7 @@ configure_make(
         "--enable-demuxer=mov",
         "--enable-demuxer=ogg",
         "--enable-demuxer=wav",
+        "--enable-demuxer=hls",
         # https://www.mail-archive.com/ffmpeg-devel@ffmpeg.org/msg33510.html
         "--enable-demuxer=w64",
         "--enable-muxer=adts",

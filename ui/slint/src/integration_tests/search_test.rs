@@ -412,7 +412,7 @@ async fn do_search_network_covers_ui_hang(
     Mock::given(method("GET"))
         .respond_with(
             ResponseTemplate::new(200)
-                .set_delay(Duration::from_secs(2))
+                .set_delay(Duration::from_secs(5))
                 .set_body_bytes(PNG_BYTES.to_vec()),
         )
         .mount(&server)
@@ -433,6 +433,8 @@ async fn do_search_network_covers_ui_hang(
         songs.push(song);
     }
     database.insert_songs(songs).unwrap();
+
+    main_window.global::<AppCallbacks>().invoke_resize();
 
     main_window
         .global::<AppCallbacks>()
@@ -456,10 +458,21 @@ async fn do_search_network_covers_ui_hang(
             })
     })
     .await;
+    assert!(searched);
     let handles_found =
         wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Track 0").count() == 1)
             .await;
     assert!(handles_found);
+
+    let results = main_window
+        .global::<SearchPageProps>()
+        .get_provider_results();
+    let song_before = results.row_data(0).unwrap().songs.row_data(0).unwrap();
+    assert_eq!(
+        song_before.coverPathLow.size().width,
+        0,
+        "Expected placeholder before fetch"
+    );
 
     let start_time = std::time::Instant::now();
     let album_tabs: Vec<ElementHandle> =
@@ -473,10 +486,51 @@ async fn do_search_network_covers_ui_hang(
         wait_until(|| main_window.global::<SearchPageProps>().get_active_tab() == 1).await;
     let elapsed = start_time.elapsed();
     assert!(tab_switched);
+
+    let song_tabs: Vec<ElementHandle> =
+        ElementHandle::find_by_accessible_label(main_window, "Search Songs").collect();
+    assert_eq!(song_tabs.len(), 1);
+    let switch_back_start = std::time::Instant::now();
+    song_tabs[0]
+        .single_click(slint::platform::PointerEventButton::Left)
+        .await;
+
+    let switched_back =
+        wait_until(|| main_window.global::<SearchPageProps>().get_active_tab() == 0).await;
+    let switch_back_elapsed = switch_back_start.elapsed();
+    assert!(switched_back);
+
+    let received = server.received_requests().await.unwrap();
+    assert!(
+        !received.is_empty(),
+        "Wiremock received requests during fetch"
+    );
+
     assert!(
         elapsed < Duration::from_millis(500),
-        "UI hung during cover fetch! Elapsed: {:?}",
+        "UI hung switching to Albums! Elapsed: {:?}",
         elapsed
+    );
+    assert!(
+        switch_back_elapsed < Duration::from_millis(500),
+        "UI hung switching back to Songs! Elapsed: {:?}",
+        switch_back_elapsed
+    );
+
+    let songs_loaded = wait_until(|| {
+        let results = main_window
+            .global::<SearchPageProps>()
+            .get_provider_results();
+        results.row_data(0).is_some_and(|r| {
+            r.songs
+                .row_data(0)
+                .is_some_and(|s| s.coverPathLow.size().width > 0)
+        })
+    })
+    .await;
+    assert!(
+        songs_loaded,
+        "Song cover failed to load after network fetch"
     );
 }
 

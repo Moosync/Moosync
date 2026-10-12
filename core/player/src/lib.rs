@@ -38,7 +38,9 @@ use std::{
     time::Duration,
 };
 
-pub use context::{AudioPlayerContext, DummyAudioPlayerContext, RodioPlayerContext};
+pub use context::{AudioPlayerContext, RodioPlayerContext};
+#[cfg(test)]
+pub use context::{DummyAudioPlayerContext, DummyPersistContext};
 use extensions_proto::moosync::types::{PlayerEvent, PlayerState, player_event::Event};
 pub use mux_player::MuxPlayer;
 pub use player_data_ext::PlayerDataExt;
@@ -56,7 +58,7 @@ use types::{
 };
 
 use crate::{
-    context::{PersistContext, dummy::DummyPersistContext, file_persist::FilePersist},
+    context::{PersistContext, file_persist::FilePersist},
     error::PlayerError,
     source::SourceResolverFn,
 };
@@ -79,6 +81,7 @@ impl PlayerHandler {
             ended_tx,
             vec![
                 Box::new(RodioPlayerContext::new()),
+                #[cfg(test)]
                 Box::new(DummyAudioPlayerContext::new()),
             ],
             Box::new(FilePersist::new(data_dir)),
@@ -116,6 +119,7 @@ impl PlayerHandler {
         }
     }
 
+    #[cfg(test)]
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn new_dummy(ended_tx: UnboundedSender<()>) -> Self {
         Self::new_with_contexts(

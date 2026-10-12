@@ -198,6 +198,27 @@ fn test_decoder_local_file_seek() {
     assert!(start_chunk.iter().any(|&s| s != 0.0));
 }
 
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_decoder_http_403_and_subsequent_stream() {
+    let mock_403 = MockServer::start().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(403))
+        .mount(&mock_403)
+        .await;
+
+    let bad_url = format!("{}/audio.mp3", mock_403.uri());
+    let res_bad = FFMPEGDecoder::open(&bad_url, None, 48000);
+    assert!(res_bad.is_err());
+
+    let (_mock_200, good_url) = spawn_audio_mock_server(PATH_48K).await;
+    let res_good = FFMPEGDecoder::open(&good_url, None, 48000);
+    assert!(res_good.is_ok());
+    let output = capture_raw_decoder_output(res_good.unwrap(), 48000, 2);
+    assert_len_eq_x!(&output, 480_000);
+}
+
 #[test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]

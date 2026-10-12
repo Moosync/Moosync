@@ -175,6 +175,7 @@ impl MuxPlayer {
             match e {
                 PlayerError::NoPlayerFound(_) | PlayerError::NoSrcFound(_) => {
                     let resp = self.source_resolver.resolve(song).await?;
+                    tracing::debug!("Resolved playback details for: {:?}", resp);
                     let src = ValidSrc::new_url_with_key(resp.url, resp.decryption_key);
                     self.load_src(src)
                         .map_err(|_| PlayerError::NoPlayerFound(Box::new(song.clone())))?;

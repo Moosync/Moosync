@@ -57,7 +57,7 @@ pub struct FFMPEGDecoder {
 #[tracing::instrument(level = "debug", skip_all)]
 fn format_input_url(path: &str) -> Result<CString, NulError> {
     if path.starts_with("http") {
-        return CString::from_str(&format!("cache:{}", path));
+        return CString::from_str(path);
     }
     CString::from_str(&format!("file:{}", path))
 }
@@ -98,6 +98,41 @@ impl FFMPEGDecoder {
         Ok(ctx)
     }
 
+    #[tracing::instrument(level = "debug", skip_all)]
+    fn build_format_options(path: &str, decryption_key: Option<&str>) -> Option<AVDictionary> {
+        let mut options: Option<AVDictionary> = None;
+
+        let mut set_opt = |key: &str, val: &str| {
+            if let (Ok(c_key), Ok(c_val)) = (CString::new(key), CString::new(val)) {
+                options = Some(match options.take() {
+                    Some(dict) => dict.set(&c_key, &c_val, 0),
+                    None => AVDictionary::new(&c_key, &c_val, 0),
+                });
+            }
+        };
+
+        if path.starts_with("http") {
+            set_opt("seekable", "1");
+            set_opt("reconnect", "1");
+            set_opt("reconnect_streamed", "1");
+            set_opt("reconnect_delay_max", "5");
+            set_opt("user_agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+        }
+
+        if let Some(key) = decryption_key {
+            let key = key.split(':').next_back().unwrap_or(key).trim();
+            set_opt("decryption_key", key);
+        }
+
+        tracing::debug!(
+            "build_format_options for path={}, options is_some={}",
+            path,
+            options.is_some()
+        );
+
+        options
+    }
+
     /// Opens an audio file or stream from the given path/URL and initializes
     /// the decoder.
     #[tracing::instrument(level = "debug", skip_all)]
@@ -107,19 +142,19 @@ impl FFMPEGDecoder {
         output_sample_rate: u32,
     ) -> Result<FFMPEGDecoder, DecoderError> {
         let input_path = format_input_url(path)?;
-
-        let mut options = decryption_key.and_then(|key| {
-            let key = key.split(':').next_back().unwrap_or(key).trim();
-            let c_opt = CString::new("decryption_key").ok()?;
-            let c_val = CString::new(key).ok()?;
-            Some(AVDictionary::new(&c_opt, &c_val, 0))
-        });
-
+        let mut options = Self::build_format_options(path, decryption_key);
         let format_ctx = AVFormatContextInput::builder()
             .url(&input_path)
             .options(&mut options)
             .open()
-            .map_err(|e| DecoderError::AV(e.raw_error().unwrap_or_default()))?;
+            .map_err(|e| {
+                tracing::error!(
+                    "avformat_open_input error {:?}, remaining options: {:?}",
+                    e,
+                    options
+                );
+                DecoderError::AV(e.raw_error().unwrap_or_default())
+            })?;
 
         let stream = format_ctx.find_best_stream(AVMEDIA_TYPE_AUDIO)?;
         let Some((stream_idx, codec)) = stream else {

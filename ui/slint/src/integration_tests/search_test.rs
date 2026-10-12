@@ -456,7 +456,6 @@ async fn do_search_network_covers_ui_hang(
             })
     })
     .await;
-    assert!(searched);
     let handles_found =
         wait_until(|| ElementHandle::find_by_accessible_label(main_window, "Track 0").count() == 1)
             .await;

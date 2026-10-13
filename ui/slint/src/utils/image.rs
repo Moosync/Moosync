@@ -116,17 +116,15 @@ pub fn find_cached_or_local_image(cover_url: &str, cache_dir: &Path) -> Option<I
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub async fn resolve_image(cover_url: &str, cache_dir: &Path) -> Option<Image> {
+// Always use in tokio context
+pub async fn resolve_image(cover_url: &str, cache_dir: &Path) -> Option<PathBuf> {
     if cover_url.is_empty() {
+        tracing::trace!("cover_url is empty");
         return None;
     }
     let cover_url_str = cover_url.to_string();
     let cache_dir_buf = cache_dir.to_path_buf();
-    let handle = tokio::spawn(
-        async move { cache_image(&cover_url_str, &cache_dir_buf).await }.in_current_span(),
-    );
-    let cached_path = handle.await.ok().flatten()?;
-    Image::load_from_path(&cached_path).ok()
+    cache_image(&cover_url_str, &cache_dir_buf).await
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

@@ -10,6 +10,10 @@ FN_RE = re.compile(r'^\s*(?:pub\s+(?:\([^)]+\)\s+)?)?(?:async\s+)?(?:const\s+)?f
 # Regex to match async blocks / async closures (not async fn)
 ASYNC_BLOCK_RE = re.compile(r'\basync\b(?:\s+move)?(?:\s*\|[^|]*\|)?\s*\{')
 
+# Regex to match ignore directive with a non-empty reason
+# Example: // moosync::no_instrument(reason = "hot loop: called per audio sample")
+IGNORE_DIRECTIVE_RE = re.compile(r'^\s*//\s*moosync::no_instrument\s*\(\s*reason\s*=\s*["\']([^"\']+)["\']\s*\)')
+
 def get_all_rs_files(project_root):
     rs_files = []
     # Check core/ and ui/slint/src/
@@ -197,19 +201,49 @@ def check_file(filepath):
             if fn_name in ["main", "default", "from", "into", "try_from", "fmt", "clone", "drop"]:
                 continue
 
-            # Look backwards up to 5 lines for tracing::instrument
+            # Look backwards up to 5 lines for tracing::instrument or // moosync::no_instrument(reason = "...")
             instrumented = False
-            for lookback in range(1, 6):
+            ignored = False
+            invalid_directive_reason = None
+
+            # Collect contiguous comment lines immediately preceding the function/attributes
+            # to handle rustfmt wrapping comments onto multiple lines.
+            comment_lines = []
+            for lookback in range(1, 8):
                 prev_idx = idx - lookback
                 if prev_idx < 0:
                     break
                 prev_line = lines[prev_idx].strip()
-                # If we encounter another statement/expression, stop looking
-                if prev_line.endswith(";") or prev_line.endswith("}") or (prev_line.startswith("fn ") and not prev_line.endswith("{")):
-                    break
-                if "#[tracing::instrument" in prev_line or "#[instrument" in prev_line:
+                if prev_line.startswith("//"):
+                    comment_lines.append(prev_line.lstrip("/").strip())
+                elif "#[tracing::instrument" in prev_line or "#[instrument" in prev_line:
                     instrumented = True
                     break
+                elif prev_line.startswith("#["):
+                    # Attribute like #[inline], continue checking further back
+                    continue
+                elif prev_line.endswith(";") or prev_line.endswith("}") or (prev_line.startswith("fn ") and not prev_line.endswith("{")):
+                    break
+
+            joined_comments = " ".join(reversed(comment_lines))
+            if "moosync::no_instrument" in joined_comments:
+                directive_match = re.search(r'moosync::no_instrument\s*\(\s*reason\s*=\s*["\']([^"\']+)["\']\s*\)', joined_comments)
+                if directive_match and directive_match.group(1).strip():
+                    ignored = True
+                else:
+                    invalid_directive_reason = (
+                        idx + 1,
+                        f"Function '{fn_name}'",
+                        striped,
+                        "Directive '// moosync::no_instrument' must specify a non-empty reason: // moosync::no_instrument(reason = \"...\")"
+                    )
+
+            if invalid_directive_reason:
+                missing.append(invalid_directive_reason)
+                continue
+
+            if ignored:
+                continue
             
             if not instrumented:
                 # Find if the function declaration ends with ; (meaning it's an FFI declaration or trait decl)

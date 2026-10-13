@@ -105,24 +105,27 @@ fn setup_cover_helper(main_window: &MainWindow, state_manager: &'static StateMan
                 let song_id = song_model.id.clone();
                 let cover_url = song_model.coverPathUrlHigh.clone();
                 let mw_weak = mw_high.clone();
-                slint::spawn_local(
+                tokio::spawn(
                     async move {
                         let Some(img) = resolve_image(cover_url.as_str(), &cache_dir).await else {
                             return;
                         };
-                        let Some(main_window) = mw_weak.upgrade() else {
-                            return;
-                        };
-                        let player_props = main_window.global::<PlayerProps>();
-                        let mut current = player_props.get_current_song();
-                        if current.id == song_id {
-                            current.coverPathHigh = img;
-                            player_props.set_current_song(current);
-                        }
+
+                        slint::invoke_from_event_loop(move || {
+                            let Some(main_window) = mw_weak.upgrade() else {
+                                return;
+                            };
+                            let player_props = main_window.global::<PlayerProps>();
+                            let mut current = player_props.get_current_song();
+                            if current.id == song_id {
+                                current.coverPathHigh =
+                                    Image::load_from_path(&img).unwrap_or_default();
+                                player_props.set_current_song(current);
+                            }
+                        });
                     }
                     .in_current_span(),
-                )
-                .ok();
+                );
             }
             Image::default()
         });
@@ -142,24 +145,27 @@ fn setup_cover_helper(main_window: &MainWindow, state_manager: &'static StateMan
                 let song_id = song_model.id.clone();
                 let cover_url = song_model.coverPathUrlLow.clone();
                 let mw_weak = mw_low.clone();
-                slint::spawn_local(
+                tokio::spawn(
                     async move {
                         let Some(img) = resolve_image(cover_url.as_str(), &cache_dir).await else {
                             return;
                         };
-                        let Some(main_window) = mw_weak.upgrade() else {
-                            return;
-                        };
-                        let player_props = main_window.global::<PlayerProps>();
-                        let mut current = player_props.get_current_song();
-                        if current.id == song_id {
-                            current.coverPathLow = img;
-                            player_props.set_current_song(current);
-                        }
+
+                        slint::invoke_from_event_loop(move || {
+                            let Some(main_window) = mw_weak.upgrade() else {
+                                return;
+                            };
+                            let player_props = main_window.global::<PlayerProps>();
+                            let mut current = player_props.get_current_song();
+                            if current.id == song_id {
+                                current.coverPathLow =
+                                    Image::load_from_path(&img).unwrap_or_default();
+                                player_props.set_current_song(current);
+                            }
+                        });
                     }
                     .in_current_span(),
-                )
-                .ok();
+                );
             }
             Image::default()
         });
@@ -343,32 +349,37 @@ fn resolve_current_song_covers(
     let low_url = song_model.coverPathUrlLow.clone();
     let high_url = song_model.coverPathUrlHigh.clone();
 
-    slint::spawn_local(
+    tokio::spawn(
         async move {
             let low_img = resolve_image(low_url.as_str(), &cache_dir).await;
             let high_img = resolve_image(high_url.as_str(), &cache_dir).await;
             if low_img.is_none() && high_img.is_none() {
                 return;
             }
-            let Some(main_window) = mw_weak.upgrade() else {
-                return;
-            };
-            let player_props = main_window.global::<PlayerProps>();
-            let mut current = player_props.get_current_song();
-            if current.id != song_id {
-                return;
-            }
-            if let Some(img) = low_img {
-                current.coverPathLow = img;
-            }
-            if let Some(img) = high_img {
-                current.coverPathHigh = img;
-            }
-            player_props.set_current_song(current);
+
+            slint::invoke_from_event_loop(move || {
+                let low_img =
+                    Image::load_from_path(&low_img.unwrap_or_default()).unwrap_or_default();
+                let high_img =
+                    Image::load_from_path(&high_img.unwrap_or_default()).unwrap_or_default();
+
+                let Some(main_window) = mw_weak.upgrade() else {
+                    return;
+                };
+                let player_props = main_window.global::<PlayerProps>();
+                let mut current = player_props.get_current_song();
+                if current.id != song_id {
+                    return;
+                }
+
+                current.coverPathLow = low_img;
+                current.coverPathHigh = high_img;
+
+                player_props.set_current_song(current);
+            });
         }
         .in_current_span(),
-    )
-    .ok();
+    );
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

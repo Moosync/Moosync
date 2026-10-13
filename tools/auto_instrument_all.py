@@ -22,6 +22,7 @@ def get_all_rs_files(project_root):
     return rs_files
 
 FN_START_RE = re.compile(r'^(\s*)(?:pub\s+(?:\([^)]+\)\s+)?)?(?:async\s+)?(?:const\s+)?fn\s+([a-zA-Z0-9_]+)\s*(?:<[^>]+>)?\s*\(')
+IGNORE_DIRECTIVE_RE = re.compile(r'^\s*//\s*moosync::no_instrument\s*\(\s*reason\s*=\s*["\']([^"\']+)["\']\s*\)')
 
 project_root = os.getcwd()
 files_to_instrument = get_all_rs_files(project_root)
@@ -63,22 +64,34 @@ for rel_path in files_to_instrument:
                     if ";" in ahead_line:
                         break
             
-            # Check if this function already has instrument above it
+            # Check if this function already has instrument or ignore directive above it
             instrument_idx = None
-            for lookback in range(1, 6):
+            is_ignored = False
+            comment_lines = []
+            for lookback in range(1, 8):
                 if idx - lookback >= 0:
                     prev = lines[idx - lookback].strip()
-                    if "#[tracing::instrument" in prev or "#[instrument" in prev:
+                    if prev.startswith("//"):
+                        comment_lines.append(prev.lstrip("/").strip())
+                    elif "#[tracing::instrument" in prev or "#[instrument" in prev:
                         instrument_idx = idx - lookback
                         break
-                    if prev.endswith("}") or prev.endswith(";"):
+                    elif prev.startswith("#["):
+                        continue
+                    elif prev.endswith("}") or prev.endswith(";"):
                         break
-            
+
+            joined_comments = " ".join(reversed(comment_lines))
+            if "moosync::no_instrument" in joined_comments:
+                directive_match = re.search(r'moosync::no_instrument\s*\(\s*reason\s*=\s*["\']([^"\']+)["\']\s*\)', joined_comments)
+                if directive_match and directive_match.group(1).strip():
+                    is_ignored = True
+
             is_common = fn_name in ["main", "default", "from", "into", "try_from", "fmt", "clone", "drop"]
-            
+
             # Ignore test modules and traits (but check_file handles this by context. For simple script,
             # we just do it if it's a definition and not common)
-            if is_definition and not is_common:
+            if is_definition and not is_common and not is_ignored:
                 # Check if we are inside a test module or trait definition in the lines so far
                 in_test = False
                 in_trait = False

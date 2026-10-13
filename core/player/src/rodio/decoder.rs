@@ -354,7 +354,8 @@ impl Iterator for FFMPEGDecoder {
     type Item = Sample;
 
     #[inline]
-    #[tracing::instrument(level = "debug", skip_all)]
+    // moosync::no_instrument(reason = "hot loop: invoked per audio sample (~96k
+    // times/sec)")
     fn next(&mut self) -> Option<Self::Item> {
         if self.current_frame_cursor < self.current_frame.len() {
             return Some(self.next_sample());
@@ -408,7 +409,9 @@ impl Source for FFMPEGDecoder {
         None
     }
 
-    #[tracing::instrument(level = "debug", skip_all)]
+    #[inline]
+    // moosync::no_instrument(reason = "trivial getter called frequently on audio
+    // rendering thread")
     fn current_span_len(&self) -> Option<usize> { None }
 
     #[tracing::instrument(level = "debug", skip_all)]

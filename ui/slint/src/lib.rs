@@ -2,13 +2,14 @@
 // slint::include_modules!();
 include!(concat!(env!("OUT_DIR"), "/app.rs"));
 
-use std::time::Duration;
+use std::{thread::available_parallelism, time::Duration};
 
 use extensions_proto::moosync::types::player_event::Event as PlayerEvent;
 use player_proto::moosync::types::RepeatMode;
 use slint::{Image, Model, ModelRc, VecModel};
 use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
+use tokio::runtime::Builder;
 use tracing::{Instrument, debug, trace};
 use tracing_subscriber::{EnvFilter, fmt, layer::SubscriberExt};
 use types::prelude::format_duration;
@@ -53,7 +54,18 @@ fn android_main(app: slint::android::AndroidApp) {
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
-pub async fn run() {
+pub fn run() {
+    let threads = available_parallelism()
+        .map(|parallelism| parallelism.get().clamp(2, 4))
+        .unwrap_or(4);
+
+    let runtime = Builder::new_multi_thread()
+        .worker_threads(threads)
+        .enable_all()
+        .build()
+        .expect("Failed to build Tokio runtime");
+    let _guard = runtime.enter();
+
     setup_tracing();
     debug!("Starting Moosync...");
 
@@ -71,11 +83,21 @@ pub async fn run() {
 
     setup_ui(main_window, state_manager);
 
-    state_manager.setup().await;
+    runtime.block_on(async {
+        state_manager.setup().await;
+    });
+
     main_window.show().unwrap();
-    state_manager.delayed_setup().await;
+
+    runtime.block_on(async {
+        state_manager.delayed_setup().await;
+    });
+
     slint::run_event_loop().unwrap();
-    state_manager.shutdown().await;
+
+    runtime.block_on(async {
+        state_manager.shutdown().await;
+    });
 }
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -111,7 +133,7 @@ fn setup_cover_helper(main_window: &MainWindow, state_manager: &'static StateMan
                             return;
                         };
 
-                        slint::invoke_from_event_loop(move || {
+                        let _ = slint::invoke_from_event_loop(move || {
                             let Some(main_window) = mw_weak.upgrade() else {
                                 return;
                             };
@@ -151,7 +173,7 @@ fn setup_cover_helper(main_window: &MainWindow, state_manager: &'static StateMan
                             return;
                         };
 
-                        slint::invoke_from_event_loop(move || {
+                        let _ = slint::invoke_from_event_loop(move || {
                             let Some(main_window) = mw_weak.upgrade() else {
                                 return;
                             };
@@ -357,7 +379,7 @@ fn resolve_current_song_covers(
                 return;
             }
 
-            slint::invoke_from_event_loop(move || {
+            let _ = slint::invoke_from_event_loop(move || {
                 let low_img =
                     Image::load_from_path(&low_img.unwrap_or_default()).unwrap_or_default();
                 let high_img =

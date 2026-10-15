@@ -7,7 +7,6 @@ use extensions_proto::moosync::types::ExtensionDetail;
 use image::ImageFormat;
 use slint::Image;
 use tokio::fs;
-use tracing::Instrument;
 
 static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 

@@ -58,7 +58,7 @@ export component ProviderItem inherits Button {
 
 export global SearchPageProps {
     in-out property <string> search_query: "";
-    in-out property <[SearchResult]> provider_results;
+    in-out property <[SearchResult]> provider_results: Constants.testSearchResults;
     in-out property <int> active_tab: 0;
     in-out property <int> selected_provider: 0;
 
@@ -71,6 +71,8 @@ export component SearchPage inherits Rectangle {
     in-out property <int> active_tab <=> SearchPageProps.active_tab;
     in-out property <int> selected_provider <=> SearchPageProps.selected_provider;
 
+    width: 100%;
+    height: 100%;
     background: transparent;
 
     VerticalLayout {
@@ -101,7 +103,7 @@ export component SearchPage inherits Rectangle {
             }
         }
 
-        FlexboxLayout {
+        HorizontalLayout {
             spacing: Theme.spacingLg;
             alignment: start;
 

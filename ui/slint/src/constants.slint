@@ -5,6 +5,7 @@ import {
     ArtistModel,
     GenreModel,
     MenuItem,
+    SearchResult,
 } from "./types/song_view.slint";
 import { ExtensionItem } from "./types/extension_view.slint";
 
@@ -429,6 +430,39 @@ export global Constants {
             icon: @image-url("icons/song_default.svg"),
             has_started: false,
         }
+    ];
+
+    out property <[SearchResult]> testSearchResults: [
+        {
+            extension: "",
+            extension_icon: @image-url("icons/folder.svg"),
+            has_account: false,
+            songs: Constants.testSongs,
+            albums: Constants.testAlbums,
+            artists: Constants.testArtists,
+            playlists: Constants.testPlaylists,
+            genres: Constants.testGenres,
+        },
+        {
+            extension: "Spotify",
+            extension_icon: @image-url("icons/explore.svg"),
+            has_account: true,
+            songs: Constants.testSongs,
+            albums: Constants.testAlbums,
+            artists: Constants.testArtists,
+            playlists: Constants.testPlaylists,
+            genres: Constants.testGenres,
+        },
+        {
+            extension: "YouTube Music",
+            extension_icon: @image-url("icons/extensions.svg"),
+            has_account: true,
+            songs: Constants.testSongs,
+            albums: Constants.testAlbums,
+            artists: Constants.testArtists,
+            playlists: Constants.testPlaylists,
+            genres: Constants.testGenres,
+        },
     ];
 }
 

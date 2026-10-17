@@ -521,6 +521,23 @@ pub mod integration {
             )
             .unwrap();
 
+            let scopes = if subpath == "empty" {
+                vec![
+                    extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
+                    extensions_proto::moosync::types::ExtensionProviderScope::Accounts as i32,
+                ]
+            } else {
+                vec![
+                    extensions_proto::moosync::types::ExtensionProviderScope::Accounts as i32,
+                    extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
+                    extensions_proto::moosync::types::ExtensionProviderScope::Playlists as i32,
+                    extensions_proto::moosync::types::ExtensionProviderScope::PlaylistSongs as i32,
+                    extensions_proto::moosync::types::ExtensionProviderScope::ArtistSongs as i32,
+                    extensions_proto::moosync::types::ExtensionProviderScope::AlbumSongs as i32,
+                    extensions_proto::moosync::types::ExtensionProviderScope::Lyrics as i32,
+                ]
+            };
+
             let manifest = ExtensionManifest {
                 name: package_name.to_string(),
                 display_name: display_name.to_string(),
@@ -538,6 +555,7 @@ pub mod integration {
                     .into_iter()
                     .collect(),
                 }),
+                scopes,
                 ..Default::default()
             };
             fs::write(
@@ -557,16 +575,6 @@ pub mod integration {
             })
             .await;
             assert!(loaded);
-
-            for ext in ext_handler.get_active_extensions() {
-                if ext.get_package_name() == package_name {
-                    let _ = ext
-                        .get_provider_scopes(
-                            extensions_proto::moosync::types::GetProviderScopesRequest {},
-                        )
-                        .await;
-                }
-            }
 
             Self {
                 ext_dir,

@@ -1,4 +1,4 @@
-load("@extensions_sdk//:defs.bzl", "rust_extension")
+load("@extensions_sdk//:defs.bzl", "PROVIDER_SCOPES", "rust_extension")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -15,6 +15,10 @@ rust_extension(
         "/music": "/media/music",
     },
     display_name = "Sample Extension (Rust)",
+    scopes = [
+        PROVIDER_SCOPES.SEARCH,
+        PROVIDER_SCOPES.PLAYBACK_DETAILS,
+    ],
     version = "1.0.0",
 )
 

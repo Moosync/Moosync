@@ -498,3 +498,194 @@ fn test_extension_load_invalid_wasm_records_error() {
     assert!(detail.error.is_some());
     assert!(!detail.error.unwrap().is_empty());
 }
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extension_group_with_order() {
+    use futures::StreamExt;
+
+    use crate::extension::ExtensionGroupExt;
+
+    let temp_dir = TempDir::new("moosync_ext_group_order").unwrap();
+    let manifest1 = extensions_proto::moosync::types::ExtensionManifest {
+        name: "ext.one".to_string(),
+        display_name: "Extension One".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        scopes: vec![extensions_proto::moosync::types::ExtensionProviderScope::Search as i32],
+        ..Default::default()
+    };
+    let p1 = temp_dir.path().join("m1.pb");
+    fs::write(&p1, prost::Message::encode_to_vec(&manifest1)).unwrap();
+    fs::write(temp_dir.path().join("main.wasm"), b"wasm bytes").unwrap();
+
+    let manifest2 = extensions_proto::moosync::types::ExtensionManifest {
+        name: "ext.two".to_string(),
+        display_name: "Extension Two".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        scopes: vec![extensions_proto::moosync::types::ExtensionProviderScope::Search as i32],
+        ..Default::default()
+    };
+    let p2 = temp_dir.path().join("m2.pb");
+    fs::write(&p2, prost::Message::encode_to_vec(&manifest2)).unwrap();
+
+    let reply = Arc::new(DummyReply);
+    let cache_dir = temp_dir.path().join("cache");
+    let ext1 = Arc::new(
+        Extension::new(
+            &p1,
+            reply.clone(),
+            cache_dir.clone(),
+            Arc::new(AtomicBool::new(false)),
+        )
+        .unwrap(),
+    );
+    let ext2 =
+        Arc::new(Extension::new(&p2, reply, cache_dir, Arc::new(AtomicBool::new(false))).unwrap());
+
+    let extensions = [ext1, ext2];
+    let mut stream = extensions.with(|ext| async move {
+        if ext.manifest.name == "ext.one" {
+            tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+            "ext.one"
+        } else {
+            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+            "ext.two"
+        }
+    });
+
+    let first = stream.next().await.unwrap();
+    let second = stream.next().await.unwrap();
+
+    assert_eq!(first, "ext.two");
+    assert_eq!(second, "ext.one");
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extension_group_with_drop_cancels_pending() {
+    use futures::StreamExt;
+
+    use crate::extension::ExtensionGroupExt;
+
+    let temp_dir = TempDir::new("moosync_ext_group_drop").unwrap();
+    let manifest1 = extensions_proto::moosync::types::ExtensionManifest {
+        name: "ext.fast".to_string(),
+        display_name: "Fast Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        scopes: vec![
+            extensions_proto::moosync::types::ExtensionProviderScope::PlaybackDetails as i32,
+        ],
+        ..Default::default()
+    };
+    let p1 = temp_dir.path().join("fast.pb");
+    fs::write(&p1, prost::Message::encode_to_vec(&manifest1)).unwrap();
+    fs::write(temp_dir.path().join("main.wasm"), b"wasm bytes").unwrap();
+
+    let manifest2 = extensions_proto::moosync::types::ExtensionManifest {
+        name: "ext.slow".to_string(),
+        display_name: "Slow Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        scopes: vec![
+            extensions_proto::moosync::types::ExtensionProviderScope::PlaybackDetails as i32,
+        ],
+        ..Default::default()
+    };
+    let p2 = temp_dir.path().join("slow.pb");
+    fs::write(&p2, prost::Message::encode_to_vec(&manifest2)).unwrap();
+
+    let reply = Arc::new(DummyReply);
+    let cache_dir = temp_dir.path().join("cache");
+    let ext1 = Arc::new(
+        Extension::new(
+            &p1,
+            reply.clone(),
+            cache_dir.clone(),
+            Arc::new(AtomicBool::new(false)),
+        )
+        .unwrap(),
+    );
+    let ext2 =
+        Arc::new(Extension::new(&p2, reply, cache_dir, Arc::new(AtomicBool::new(false))).unwrap());
+
+    struct TrackDrop(Arc<AtomicBool>);
+    impl Drop for TrackDrop {
+        #[tracing::instrument(level = "debug", skip_all)]
+        fn drop(&mut self) { self.0.store(true, std::sync::atomic::Ordering::SeqCst); }
+    }
+
+    let slow_dropped = Arc::new(AtomicBool::new(false));
+
+    let extensions = [ext1, ext2];
+    {
+        let slow_dropped_clone = slow_dropped.clone();
+        let mut stream = extensions.with(move |ext| {
+            let is_slow = ext.manifest.name == "ext.slow";
+            let drop_tracker = if is_slow {
+                Some(TrackDrop(slow_dropped_clone.clone()))
+            } else {
+                None
+            };
+            async move {
+                let _drop = drop_tracker;
+                if ext.manifest.name == "ext.fast" {
+                    "fast_result"
+                } else {
+                    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                    "slow_result"
+                }
+            }
+        });
+
+        let first = stream.next().await.unwrap();
+        assert_eq!(first, "fast_result");
+    }
+
+    assert!(slow_dropped.load(std::sync::atomic::Ordering::SeqCst));
+}
+
+#[rstest]
+#[tokio::test]
+#[traced_test]
+#[tracing::instrument(level = "debug", skip_all)]
+async fn test_extension_provider_scopes_from_manifest() {
+    let temp_dir = TempDir::new("moosync_ext_scopes").unwrap();
+    let manifest = extensions_proto::moosync::types::ExtensionManifest {
+        name: "scoped.ext".to_string(),
+        display_name: "Scoped Extension".to_string(),
+        version: "1.0.0".to_string(),
+        extension_entry: "main.wasm".to_string(),
+        scopes: vec![
+            extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
+            extensions_proto::moosync::types::ExtensionProviderScope::Playlists as i32,
+        ],
+        ..Default::default()
+    };
+    let manifest_path = temp_dir.path().join("manifest.pb");
+    fs::write(&manifest_path, prost::Message::encode_to_vec(&manifest)).unwrap();
+    fs::write(temp_dir.path().join("main.wasm"), b"wasm bytes").unwrap();
+
+    let ext = Extension::new(
+        &manifest_path,
+        Arc::new(DummyReply),
+        temp_dir.path().join("cache"),
+        Arc::new(AtomicBool::new(false)),
+    )
+    .unwrap();
+
+    let expected_scopes = vec![
+        extensions_proto::moosync::types::ExtensionProviderScope::Search as i32,
+        extensions_proto::moosync::types::ExtensionProviderScope::Playlists as i32,
+    ];
+
+    assert_eq!(ext.manifest.scopes, expected_scopes);
+    let detail = ext.get_extension_detail();
+    assert_eq!(detail.scopes, expected_scopes);
+}

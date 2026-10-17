@@ -29,7 +29,10 @@ use prost::Message;
 use types::subscription::SubscriberList;
 use zip_extensions::zip_extract;
 
-pub use crate::{errors::ExtensionError, extension::Extension};
+pub use crate::{
+    errors::ExtensionError,
+    extension::{Extension, ExtensionGroupExt},
+};
 
 mod context;
 pub use context::ReplyHandler;
@@ -197,6 +200,7 @@ impl ExtensionHandler {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn set_reply_handler(&self, reply_handler: Arc<dyn ReplyHandler>) {
         let _ = self.reply_handler.set(reply_handler);
+        let _ = self.find_new_extensions();
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -346,7 +350,7 @@ impl ExtensionHandler {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn get_all_extensions(&self) -> Vec<ExtensionInfo> {
+    pub async fn get_all_extensions(&self) -> Vec<ExtensionInfo> {
         let installed = self.get_installed_extensions();
         let config = self.config.lock().unwrap();
         let remote = &config.remote_manifests;
@@ -410,19 +414,13 @@ impl ExtensionHandler {
         &self,
         scope: extensions_proto::moosync::types::ExtensionProviderScope,
     ) -> Vec<Arc<Extension>> {
-        let mut extensions = Vec::new();
         let scope_val = scope as i32;
-        for ext in self.get_active_extensions() {
-            let has_scope = ext
-                .get_provider_scopes(extensions_proto::moosync::types::GetProviderScopesRequest {})
-                .await
-                .map(|s| s.scopes.contains(&scope_val))
-                .unwrap_or(false);
-            if has_scope {
-                extensions.push(ext);
-            }
-        }
-        extensions
+        let extensions_map = self.inner.extensions_map.read().unwrap();
+        extensions_map
+            .values()
+            .filter(|ext| ext.manifest.scopes.contains(&scope_val))
+            .cloned()
+            .collect()
     }
 
     #[tracing::instrument(level = "debug", skip_all)]

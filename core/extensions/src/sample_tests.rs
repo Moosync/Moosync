@@ -407,7 +407,7 @@ impl ReplyHandler for TestReplyRouter {
         let mut applied = false;
         if let Some(weak_handler) = self.handlers_inner.lock().unwrap().get(package_name)
             && let Some(handler) = weak_handler.upgrade()
-            && let Some(ext) = handler.extensions_map.lock().unwrap().get(package_name)
+            && let Some(ext) = handler.extensions_map.read().unwrap().get(package_name)
         {
             ext.set_account(account.clone());
             applied = true;
@@ -622,7 +622,7 @@ async fn setup_extension_at(
     handler.spawn_extensions(reply_handler);
 
     if let Some(pending) = get_global_router().drain_pending_accounts(&actual_pkg)
-        && let Some(ext) = handler.extensions_map.lock().unwrap().get(&actual_pkg)
+        && let Some(ext) = handler.extensions_map.read().unwrap().get(&actual_pkg)
     {
         for acc in pending {
             ext.set_account(acc);
@@ -691,14 +691,10 @@ macro_rules! generate_sample_tests {
             async fn test_get_provider_scopes() {
                 let (handler, pkg, _, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
-                let res = ext
-                    .get_provider_scopes(GetProviderScopesRequest {})
-                    .await
-                    .unwrap();
-                assert_eq!(res.scopes, $expected_scopes);
+                assert_eq!(ext.manifest.scopes, $expected_scopes);
             }
 
             #[tokio::test]
@@ -706,7 +702,7 @@ macro_rules! generate_sample_tests {
             async fn test_accounts() {
                 let (handler, pkg, _captured_commands, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
 
@@ -737,7 +733,7 @@ macro_rules! generate_sample_tests {
             async fn test_perform_account_login() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let res = ext
@@ -766,7 +762,7 @@ macro_rules! generate_sample_tests {
             async fn test_custom_request_preferences() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let res = ext
@@ -795,7 +791,7 @@ macro_rules! generate_sample_tests {
             async fn test_custom_request_http_get() {
                 let (handler, pkg, _, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let res = ext
@@ -813,7 +809,7 @@ macro_rules! generate_sample_tests {
             async fn test_custom_request_http_request() {
                 let (handler, pkg, _, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let res = ext
@@ -831,7 +827,7 @@ macro_rules! generate_sample_tests {
             async fn test_custom_request_http_batch_get() {
                 let (handler, pkg, _, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let res = ext
@@ -849,7 +845,7 @@ macro_rules! generate_sample_tests {
             async fn test_custom_request_http_batch_request() {
                 let (handler, pkg, _, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let res = ext
@@ -867,7 +863,7 @@ macro_rules! generate_sample_tests {
             async fn test_search() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let res = ext
@@ -890,7 +886,7 @@ macro_rules! generate_sample_tests {
             async fn test_context_menu_action() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let _res = ext
@@ -921,7 +917,7 @@ macro_rules! generate_sample_tests {
             async fn test_preference_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let _res = ext
@@ -951,7 +947,7 @@ macro_rules! generate_sample_tests {
             async fn test_queue_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let _res = ext
@@ -973,7 +969,7 @@ macro_rules! generate_sample_tests {
             async fn test_volume_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let _res = ext
@@ -993,7 +989,7 @@ macro_rules! generate_sample_tests {
             async fn test_player_state_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let _res = ext
@@ -1015,7 +1011,7 @@ macro_rules! generate_sample_tests {
             async fn test_song_changed() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let _res = ext
@@ -1035,7 +1031,7 @@ macro_rules! generate_sample_tests {
             async fn test_seeked() {
                 let (handler, pkg, captured_commands, _guard) = setup().await;
                 let ext = {
-                    let map = handler.extensions_map.lock().unwrap();
+                    let map = handler.extensions_map.read().unwrap();
                     map.get(&pkg).unwrap().clone()
                 };
                 let _res = ext.seeked(SeekedRequest { position: 10.0 }).await.unwrap();
@@ -1075,7 +1071,7 @@ mod sample_empty {
     async fn test_empty_search() {
         let (handler, pkg, _captured_commands, _guard) = setup().await;
         let ext = {
-            let map = handler.extensions_map.lock().unwrap();
+            let map = handler.extensions_map.read().unwrap();
             map.get(&pkg).unwrap().clone()
         };
         let res = ext
@@ -1093,7 +1089,7 @@ mod sample_empty {
     async fn test_empty_playlists() {
         let (handler, pkg, _captured_commands, _guard) = setup().await;
         let ext = {
-            let map = handler.extensions_map.lock().unwrap();
+            let map = handler.extensions_map.read().unwrap();
             map.get(&pkg).unwrap().clone()
         };
         let res = ext

@@ -68,6 +68,7 @@ async fn test_fetch_registry_success_and_caching(remote_context: TestRemoteConte
             description: Some("Rich presence for discord".to_string()),
             url: Some("discord.msox".to_string()),
             registry: None,
+            scopes: vec![],
         }],
     };
 
@@ -121,6 +122,7 @@ async fn test_fetch_registry_fallback_to_name(remote_context: TestRemoteContext)
             description: None,
             url: Some("ext.msox".to_string()),
             registry: None,
+            scopes: vec![],
         }],
     };
 
@@ -164,6 +166,7 @@ async fn test_fetch_registry_rejects_missing_version(remote_context: TestRemoteC
                 description: None,
                 url: Some("valid.msox".to_string()),
                 registry: None,
+                scopes: vec![],
             },
             ExtensionManifest {
                 moosync_extension: false,
@@ -177,6 +180,7 @@ async fn test_fetch_registry_rejects_missing_version(remote_context: TestRemoteC
                 description: None,
                 url: Some("invalid.msox".to_string()),
                 registry: None,
+                scopes: vec![],
             },
         ],
     };
@@ -220,6 +224,7 @@ async fn test_fetch_multiple_registries_and_download(remote_context: TestRemoteC
             description: None,
             url: Some("pkg1.msox".to_string()),
             registry: None,
+            scopes: vec![],
         }],
     };
     let reg2 = ExtensionRegistryManifest {
@@ -236,6 +241,7 @@ async fn test_fetch_multiple_registries_and_download(remote_context: TestRemoteC
             description: None,
             url: Some("pkg2.msox".to_string()),
             registry: None,
+            scopes: vec![],
         }],
     };
 
@@ -387,6 +393,7 @@ async fn test_download_extension_http_404_error(remote_context: TestRemoteContex
         description: Some("Has a broken 404 download link".to_string()),
         url: Some(format!("{}/broken_pkg.msox", server.uri())),
         registry: Some("Test Registry".to_string()),
+        scopes: vec![],
     };
 
     let result = remote.download_extension(fake_ext).await;
@@ -420,6 +427,7 @@ async fn test_download_extension_http_500_error(remote_context: TestRemoteContex
         description: Some("Fails with 500 error".to_string()),
         url: Some(format!("{}/crash_pkg.msox", server.uri())),
         registry: Some("Test Registry".to_string()),
+        scopes: vec![],
     };
 
     let result = remote.download_extension(fake_ext).await;
@@ -449,6 +457,7 @@ async fn test_fetch_registry_with_mixed_and_broken_extensions(remote_context: Te
                 description: Some("Stream metadata and controls from fake spotify".to_string()),
                 url: Some("downloads/spotify.msox".to_string()),
                 registry: None,
+                scopes: vec![],
             },
             ExtensionManifest {
                 moosync_extension: false,
@@ -462,6 +471,7 @@ async fn test_fetch_registry_with_mixed_and_broken_extensions(remote_context: Te
                 description: None,
                 url: Some("broken.msox".to_string()),
                 registry: None,
+                scopes: vec![],
             },
             ExtensionManifest {
                 moosync_extension: false,
@@ -475,6 +485,7 @@ async fn test_fetch_registry_with_mixed_and_broken_extensions(remote_context: Te
                 description: None,
                 url: Some("https://cdn.example.com/download.msox".to_string()),
                 registry: None,
+                scopes: vec![],
             },
         ],
     };

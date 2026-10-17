@@ -1,5 +1,6 @@
 use assertables::{assert_none, assert_some, assert_some_eq_x};
 use rstest::{fixture, rstest};
+use slint::Image;
 use tempdir::TempDir;
 use tracing_test::traced_test;
 use wiremock::{Mock, MockServer, ResponseTemplate, matchers::method};
@@ -110,7 +111,13 @@ async fn test_resolve_image_local_and_cached(temp_dir_fixture: TempDir) {
 
     let local_res = resolve_image(local_file.to_str().unwrap(), temp_dir_fixture.path()).await;
     assert_some!(local_res.as_ref());
-    assert_eq!(local_res.unwrap().size().width, 1);
+    assert_eq!(
+        Image::load_from_path(&local_res.unwrap())
+            .unwrap()
+            .size()
+            .width,
+        1
+    );
 }
 
 #[rstest]
@@ -135,5 +142,8 @@ async fn test_resolve_image_network(temp_dir_fixture: TempDir) {
     let image_url = format!("{}/cover.png", server.uri());
     let res = resolve_image(&image_url, temp_dir_fixture.path()).await;
     assert_some!(res.as_ref());
-    assert_eq!(res.unwrap().size().width, 1);
+    assert_eq!(
+        Image::load_from_path(&res.unwrap()).unwrap().size().width,
+        1
+    );
 }

@@ -2,17 +2,17 @@ use std::{
     collections::HashMap,
     fs,
     path::PathBuf,
-    sync::{Arc, Mutex, OnceLock, RwLock},
+    sync::{Arc, OnceLock, RwLock},
 };
 
 use extensions_proto::moosync::types::{
     ContextMenuActionRequest, ContextMenuActionResponse, CustomRequest, CustomRequestResponse,
     ExtensionAccountDetail, ExtensionCommand, ExtensionCommandResponse, ExtensionDetail,
-    ExtensionLockData, ExtensionManifest, GetProviderScopesRequest, GetProviderScopesResponse,
-    GetRemoteUrlRequest, GetRemoteUrlResponse, OauthCallbackRequest, OauthCallbackResponse,
-    PerformAccountLoginRequest, PerformAccountLoginResponse, PlaybackDetailsRequestedRequest,
-    PlaybackDetailsRequestedResponse, PlayerStateChangedRequest, PlayerStateChangedResponse,
-    PlaylistAddedRequest, PlaylistAddedResponse, PlaylistRemovedRequest, PlaylistRemovedResponse,
+    ExtensionLockData, ExtensionManifest, GetRemoteUrlRequest, GetRemoteUrlResponse,
+    OauthCallbackRequest, OauthCallbackResponse, PerformAccountLoginRequest,
+    PerformAccountLoginResponse, PlaybackDetailsRequestedRequest, PlaybackDetailsRequestedResponse,
+    PlayerStateChangedRequest, PlayerStateChangedResponse, PlaylistAddedRequest,
+    PlaylistAddedResponse, PlaylistRemovedRequest, PlaylistRemovedResponse,
     PreferenceChangedRequest, PreferenceChangedResponse, RequestedAlbumSongsRequest,
     RequestedAlbumSongsResponse, RequestedArtistSongsRequest, RequestedArtistSongsResponse,
     RequestedLyricsRequest, RequestedLyricsResponse, RequestedPlaylistContextMenuRequest,
@@ -30,6 +30,7 @@ use extensions_proto::moosync::types::{
 };
 use preferences_proto::moosync::types::PreferenceItem;
 use prost::Message;
+use tokio::sync::watch;
 
 use crate::{
     ReplyHandler,
@@ -38,22 +39,61 @@ use crate::{
     sanitize::Sanitize,
 };
 
+pub(crate) struct AsyncContext {
+    tx: watch::Sender<Option<Result<Arc<dyn ExtensionContext>, String>>>,
+    rx: watch::Receiver<Option<Result<Arc<dyn ExtensionContext>, String>>>,
+}
+
+impl AsyncContext {
+    #[tracing::instrument(level = "trace", skip_all)]
+    pub fn new() -> Self {
+        let (tx, rx) = watch::channel(None);
+        Self { tx, rx }
+    }
+
+    #[tracing::instrument(level = "trace", skip_all)]
+    pub fn set(&self, result: Result<Arc<dyn ExtensionContext>, String>) {
+        let _ = self.tx.send(Some(result));
+    }
+
+    #[tracing::instrument(level = "debug", skip_all)]
+    pub async fn wait(&self) -> Result<Arc<dyn ExtensionContext>, ExtensionError> {
+        if let Some(res) = self.rx.borrow().as_ref() {
+            return match res {
+                Ok(ctx) => Ok(ctx.clone()),
+                Err(e) => Err(ExtensionError::Extism(extism::Error::msg(e.clone()))),
+            };
+        }
+        let mut rx = self.rx.clone();
+        let _ = rx
+            .wait_for(|val| val.is_some())
+            .await
+            .map_err(|_| ExtensionError::NoContext)?;
+        match self.rx.borrow().as_ref() {
+            Some(Ok(ctx)) => Ok(ctx.clone()),
+            Some(Err(e)) => Err(ExtensionError::Extism(extism::Error::msg(e.clone()))),
+            None => Err(ExtensionError::NoContext),
+        }
+    }
+}
+
 pub struct Extension {
-    context: Mutex<Option<Arc<dyn ExtensionContext>>>,
-    manifest: ExtensionManifest,
+    pub(crate) context: Arc<AsyncContext>,
+    pub manifest: ExtensionManifest,
     preferences: RwLock<HashMap<String, PreferenceItem>>,
     accounts: RwLock<HashMap<String, ExtensionAccountDetail>>,
-    has_started: Arc<std::sync::atomic::AtomicBool>,
-    provider_scopes: Mutex<Option<GetProviderScopesResponse>>,
-    cache_path: PathBuf,
+    pub(crate) has_started: Arc<std::sync::atomic::AtomicBool>,
+    pub(crate) cache_path: PathBuf,
     extension_path: PathBuf,
-    reply_handler: Arc<dyn ReplyHandler>,
-    error: Arc<OnceLock<String>>,
+    pub(crate) reply_handler: Arc<dyn ReplyHandler>,
+    pub(crate) error: Arc<OnceLock<String>>,
 }
 
 impl Extension {
     #[tracing::instrument(level = "debug", skip_all)]
-    fn read_manifest(manifest_path: &std::path::Path) -> Result<ExtensionManifest, ExtensionError> {
+    pub(crate) fn read_manifest(
+        manifest_path: &std::path::Path,
+    ) -> Result<ExtensionManifest, ExtensionError> {
         let contents = std::fs::read(manifest_path)?;
         let mut manifest = ExtensionManifest::decode(&contents[..])?;
 
@@ -84,12 +124,11 @@ impl Extension {
         let manifest = Self::read_manifest(manifest_path)?;
 
         let ext = Self {
-            context: Mutex::new(None),
+            context: Arc::new(AsyncContext::new()),
             preferences: Default::default(),
             accounts: Default::default(),
             has_started,
             manifest,
-            provider_scopes: Mutex::new(None),
             cache_path,
             extension_path: extension_dir,
             reply_handler,
@@ -102,39 +141,11 @@ impl Extension {
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    fn spawn_extension(&self) {
-        match ExtismContext::try_new(
-            &self.manifest,
-            self.has_started.clone(),
-            &self.cache_path,
-            self.reply_handler.clone(),
-            self.error.clone(),
-        ) {
-            Ok(context) => *self.context.lock().unwrap() = Some(Arc::new(context)),
-            Err(e) => {
-                tracing::error!(
-                    "Failed to initialize extension context for {}: {}",
-                    self.get_package_name(),
-                    e
-                );
-                let _ = self.error.set(e.to_string());
-                let _ = self
-                    .reply_handler
-                    .extensions_updated(self.get_package_name());
-            }
-        }
-    }
+    fn spawn_extension(&self) { let _ = Arc::<ExtismContext>::try_from(self); }
 
     #[tracing::instrument(level = "debug", skip_all)]
-    pub(crate) fn kill_extension(&self) {
-        if let Some(context) = self.context.lock().unwrap().take()
-            && let Err(e) = context.kill()
-        {
-            tracing::error!("Failed to kill extension: {}", e);
-        }
-        self.has_started
-            .store(false, std::sync::atomic::Ordering::SeqCst);
-        *self.provider_scopes.lock().unwrap() = None;
+    pub(crate) async fn wait_context(&self) -> Result<Arc<dyn ExtensionContext>, ExtensionError> {
+        self.context.wait().await
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -200,41 +211,8 @@ impl Extension {
         &self,
         cmd: ExtensionCommand,
     ) -> Result<ExtensionCommandResponse, ExtensionError> {
-        let context = self.context.lock().unwrap().clone();
-        if let Some(context) = context {
-            context.execute_command(cmd).await
-        } else {
-            Err(ExtensionError::NoContext)
-        }
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    pub async fn get_provider_scopes(
-        &self,
-        req: GetProviderScopesRequest,
-    ) -> Result<GetProviderScopesResponse, ExtensionError> {
-        let cached = self.provider_scopes.lock().unwrap().clone();
-        if let Some(scopes) = cached {
-            return Ok(scopes);
-        }
-
-        let cmd = ExtensionCommand {
-            package_name: self.get_package_name().to_string(),
-            event: Some(extension_command::Event::GetProviderScopes(req)),
-        };
-        let res = self.execute_command(cmd).await?;
-        let resp = res
-            .response
-            .and_then(|r| match r {
-                extension_command_response::Response::GetProviderScopes(resp) => Some(resp),
-                _ => None,
-            })
-            .ok_or(ExtensionError::InvalidResponse)?;
-
-        let mut lock = self.provider_scopes.lock().unwrap();
-        *lock = Some(resp.clone());
-
-        Ok(resp)
+        let context = self.wait_context().await?;
+        context.execute_command(cmd).await
     }
 
     delegate_command!(
@@ -432,14 +410,26 @@ impl From<&Extension> for ExtensionDetail {
             extension_icon: Some(val.manifest.icon.clone()),
             registry: Some(lock_data.registry),
             permissions: val.manifest.permissions.clone(),
-            scopes: val
-                .provider_scopes
-                .lock()
-                .unwrap()
-                .as_ref()
-                .map(|s| s.scopes.clone())
-                .unwrap_or_default(),
+            scopes: val.manifest.scopes.clone(),
             error: val.error.get().cloned(),
         }
+    }
+}
+
+pub trait ExtensionGroupExt {
+    fn with<F, Fut, R>(&self, f: F) -> futures::stream::FuturesUnordered<Fut>
+    where
+        F: Fn(Arc<Extension>) -> Fut,
+        Fut: std::future::Future<Output = R>;
+}
+
+impl ExtensionGroupExt for [Arc<Extension>] {
+    #[tracing::instrument(level = "trace", skip_all)]
+    fn with<F, Fut, R>(&self, f: F) -> futures::stream::FuturesUnordered<Fut>
+    where
+        F: Fn(Arc<Extension>) -> Fut,
+        Fut: std::future::Future<Output = R>,
+    {
+        self.iter().map(|ext| f(Arc::clone(ext))).collect()
     }
 }

@@ -1,5 +1,6 @@
-use extensions::Extension;
+use extensions::{Extension, ExtensionGroupExt};
 use extensions_proto::moosync::types::{ExtensionProviderScope, RequestedPlaylistsRequest};
+use futures::StreamExt;
 use slint::{ComponentHandle, ModelRc, VecModel, Weak};
 use songs_proto::moosync::types::{GetEntityOptions, Playlist, PlaylistList, entity_result};
 use state_manager::StateManager;
@@ -53,15 +54,19 @@ impl PlaylistListProvider {
         let playlist_extensions = ext_handler
             .get_extensions_with_scope(ExtensionProviderScope::Playlists)
             .await;
-        for ext in playlist_extensions {
-            match Self::fetch_extension_playlists(&ext).await {
+        let mut stream = playlist_extensions.with(|ext| {
+            async move { (ext.clone(), Self::fetch_extension_playlists(&ext).await) }
+                .in_current_span()
+        });
+        while let Some((ext, res)) = stream.next().await {
+            match res {
                 Ok(ext_playlists) => {
                     playlists.extend(ext_playlists);
                 }
                 Err(e) => {
                     tracing::error!(
                         "Failed to fetch playlists from extension {}: {:?}",
-                        ext.get_extension_detail().package_name,
+                        ext.get_package_name(),
                         e
                     );
                 }

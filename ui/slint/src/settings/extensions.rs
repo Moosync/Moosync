@@ -158,7 +158,7 @@ impl ExtensionsPageHandler {
     async fn handle_toggle_extension(package_name: String, state_manager: &'static StateManager) {
         tracing::info!("handle_toggle_extension: {}", package_name);
         let handler = state_manager.get_extension_handler();
-        let extensions = handler.get_all_extensions();
+        let extensions = handler.get_all_extensions().await;
         let ext_info = extensions.into_iter().find(|ext| match ext {
             ExtensionInfo::Local(detail) => detail.package_name == package_name,
             ExtensionInfo::Remote(manifest) => manifest.name == package_name,
@@ -278,7 +278,7 @@ impl PageHandler for ExtensionsPageHandler {
                         tokio::spawn(
                             async move {
                                 let handler = state_manager.get_extension_handler();
-                                let extensions = handler.get_all_extensions();
+                                let extensions = handler.get_all_extensions().await;
                                 let has_updates = handler.has_updates();
                                 let cache_dir = state_manager.get_cache_dir();
                                 let mw_weak = main_window_weak.clone();
@@ -332,7 +332,7 @@ impl PageHandler for ExtensionsPageHandler {
             async move {
                 let cache_dir = state_manager.get_cache_dir();
                 let handler = state_manager.get_extension_handler();
-                let extensions = handler.get_all_extensions();
+                let extensions = handler.get_all_extensions().await;
                 let has_updates = handler.has_updates();
                 let mw_weak = main_window_weak.clone();
                 if let Err(e) = invoke_from_event_loop(move || {

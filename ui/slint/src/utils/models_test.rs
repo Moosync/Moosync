@@ -425,6 +425,7 @@ fn test_to_fetched_extension_item() {
         description: Some("Fetched description".to_string()),
         url: None,
         registry: None,
+        ..Default::default()
     };
 
     let fetched_item = ExtensionItem::from(manifest);
@@ -519,6 +520,7 @@ fn test_from_fetched_extension_manifest_default_icon() {
         description: Some("Remote description".to_string()),
         url: Some("https://example.com/ext.msox".to_string()),
         registry: Some("Community".to_string()),
+        ..Default::default()
     };
 
     let item = ExtensionItem::from(manifest);

@@ -1,7 +1,9 @@
 use std::error::Error;
 
 use async_trait::async_trait;
+use extensions::ExtensionGroupExt;
 use extensions_proto::moosync::types::{ExtensionProviderScope, PlaybackDetailsRequestedRequest};
+use futures::StreamExt;
 use player::{PlayerHandler, error::PlayerError};
 use tracing::{Instrument, error};
 
@@ -39,13 +41,15 @@ impl Hook for PlayerHook {
                         let extensions = extension_handler
                             .get_extensions_with_scope(ExtensionProviderScope::PlaybackDetails)
                             .await;
-                        for ext in extensions {
-                            match ext
-                                .playback_details_requested(PlaybackDetailsRequestedRequest {
-                                    song: Some(song.clone()),
-                                })
-                                .await
-                            {
+                        let song_ref = &song;
+                        let mut stream = extensions.with(|ext| async move {
+                            ext.playback_details_requested(PlaybackDetailsRequestedRequest {
+                                song: Some(song_ref.clone()),
+                            })
+                            .await
+                        });
+                        while let Some(res) = stream.next().await {
+                            match res {
                                 Ok(resp) => return Ok(resp),
                                 Err(err) => {
                                     error!(

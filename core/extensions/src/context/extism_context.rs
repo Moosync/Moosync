@@ -23,15 +23,15 @@ use std::{
     path::{Path, PathBuf},
     process,
     str::FromStr,
-    sync::{Arc, LazyLock, Mutex, OnceLock},
+    sync::{Arc, LazyLock, Mutex},
     thread,
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use extensions_proto::moosync::types::{
     BatchHttpRequest, BatchHttpResponse, Error as MainCommandError, ExtensionCommand,
-    ExtensionCommandResponse, ExtensionManifest, HttpRequest, HttpResponse, HttpResult,
-    MainCommand, MainCommandResponse, ManifestPermissions, http_result, main_command_response,
+    ExtensionCommandResponse, HttpRequest, HttpResponse, HttpResult, MainCommand,
+    MainCommandResponse, ManifestPermissions, http_result, main_command_response,
 };
 use extism::{Manifest, PTR, Plugin, PluginBuilder, UserData, ValType::I64, Wasm, host_fn};
 use extism_convert::Prost;
@@ -45,11 +45,14 @@ use tracing::Instrument;
 use crate::{
     context::{DispatchCommand, ExtensionContext, ReplyHandler},
     errors::ExtensionError,
+    extension::Extension,
     models::SanitizeCommand,
 };
 
 static ENV_VAR_REGEX: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\{([A-Z_][A-Z0-9_]*)\}").unwrap());
+
+const HANDLE_EXTENSION_COMMAND: &str = "handle_extension_command";
 
 struct MainCommandUserData {
     package_name: String,
@@ -371,6 +374,7 @@ const MAX_CONCURRENT_COMPILATIONS: usize = 5;
 pub struct ExtismContext {
     plugin: Arc<Mutex<Plugin>>,
     package_name: String,
+    cancel_handle: extism::CancelHandle,
 }
 
 impl Debug for ExtismContext {
@@ -381,20 +385,17 @@ impl Debug for ExtismContext {
     }
 }
 
-impl ExtismContext {
+impl TryFrom<&Extension> for Arc<ExtismContext> {
+    type Error = ExtensionError;
+
     #[tracing::instrument(level = "debug", skip_all)]
-    pub fn try_new(
-        manifest: &ExtensionManifest,
-        has_started: Arc<std::sync::atomic::AtomicBool>,
-        cache_path: &Path,
-        reply_handler: Arc<dyn ReplyHandler>,
-        error_holder: Arc<OnceLock<String>>,
-    ) -> Result<Self, ExtensionError> {
+    fn try_from(ext: &Extension) -> Result<Self, Self::Error> {
+        let manifest = &ext.manifest;
         let url = Wasm::file(manifest.extension_entry.clone());
         let mut plugin_manifest = Manifest::new([url]);
 
         let package_name = manifest.name.clone();
-        let ext_cache_dir = cache_path.join("extensions").join(&package_name);
+        let ext_cache_dir = ext.cache_path.join("extensions").join(&package_name);
 
         if let Err(e) = fs::create_dir_all(&ext_cache_dir) {
             tracing::error!(
@@ -405,46 +406,71 @@ impl ExtismContext {
         }
 
         if let Some(permissions) = &manifest.permissions {
-            let allowed_paths = Self::get_allowed_paths(permissions, &ext_cache_dir);
+            let allowed_paths = ExtismContext::get_allowed_paths(permissions, &ext_cache_dir);
             plugin_manifest = plugin_manifest
                 .with_allowed_hosts(permissions.hosts.clone().into_iter())
                 .with_allowed_paths(allowed_paths.into_iter())
                 .with_config_key("pid", format!("{}", process::id()));
         }
 
-        let (user_data, sock_data, http_data) = Self::get_user_data(
+        let (user_data, sock_data, http_data) = ExtismContext::get_user_data(
             package_name.clone(),
-            reply_handler.clone(),
+            ext.reply_handler.clone(),
             plugin_manifest.allowed_paths.clone(),
             manifest.permissions.as_ref().map(|p| p.hosts.clone()),
         );
 
-        let plugin =
-            Self::build_plugin(cache_path, plugin_manifest, user_data, sock_data, http_data)?;
-        let plugin_clone = plugin.clone();
+        let plugin = match ExtismContext::build_plugin(
+            &ext.cache_path,
+            plugin_manifest,
+            user_data,
+            sock_data,
+            http_data,
+        ) {
+            Ok(p) => p,
+            Err(e) => {
+                let err_msg = format!("Failed to build plugin: {}", e);
+                let _ = ext.error.set(err_msg.clone());
+                ext.context.set(Err(err_msg));
+                return Err(e);
+            }
+        };
+        let cancel_handle = plugin.lock().unwrap().cancel_handle();
+        let ctx = Arc::new(ExtismContext {
+            plugin: plugin.clone(),
+            package_name: package_name.clone(),
+            cancel_handle,
+        });
+
         let package_name_clone = package_name.clone();
-        let reply_handler_clone = reply_handler.clone();
+        let reply_handler_clone = ext.reply_handler.clone();
+        let error_holder = ext.error.clone();
+        let context_holder = ext.context.clone();
+        let has_started = ext.has_started.clone();
+        let ctx_clone = ctx.clone();
         thread::spawn(move || {
-            let mut plugin = plugin_clone.lock().unwrap();
+            let mut plugin = plugin.lock().unwrap();
             tracing::debug!("Calling entry on {:?}", package_name_clone);
             if plugin.function_exists("entry")
                 && let Err(e) = plugin.call::<(), ()>("entry", ())
             {
                 tracing::error!("Failed to call extension entry: {:?}", e);
-                let _ = error_holder.set(format!("Failed to start: {}", e));
+                let err_msg = format!("Failed to start: {}", e);
+                let _ = error_holder.set(err_msg.clone());
+                context_holder.set(Err(err_msg));
                 let _ = reply_handler_clone.extensions_updated(&package_name_clone);
                 return;
             }
             has_started.store(true, std::sync::atomic::Ordering::SeqCst);
+            context_holder.set(Ok(ctx_clone));
             let _ = reply_handler_clone.extensions_updated(&package_name_clone);
         });
 
-        Ok(Self {
-            plugin,
-            package_name,
-        })
+        Ok(ctx)
     }
+}
 
+impl ExtismContext {
     #[tracing::instrument(level = "debug", skip_all)]
     fn get_allowed_paths(
         permissions: &ManifestPermissions,
@@ -606,6 +632,12 @@ files-total-size-soft-limit = "1Gi"
     }
 }
 
+struct CancelGuard(extism::CancelHandle);
+
+impl Drop for CancelGuard {
+    fn drop(&mut self) { let _ = self.0.cancel(); }
+}
+
 #[async_trait::async_trait]
 impl ExtensionContext for ExtismContext {
     #[tracing::instrument(level = "debug", skip_all)]
@@ -613,6 +645,8 @@ impl ExtensionContext for ExtismContext {
         &self,
         command: ExtensionCommand,
     ) -> Result<ExtensionCommandResponse, ExtensionError> {
+        let guard = CancelGuard(self.cancel_handle.clone());
+
         let plugin = self.plugin.clone();
         let package_name = self.package_name.clone();
         let (tx, rx) = tokio::sync::oneshot::channel();
@@ -622,7 +656,7 @@ impl ExtensionContext for ExtismContext {
                 let mut plugin = plugin.lock().unwrap();
                 tracing::debug!("Calling {:?} on {:?}", command, plugin.id);
                 let res = plugin.call::<_, Prost<ExtensionCommandResponse>>(
-                    "handle_extension_command",
+                    HANDLE_EXTENSION_COMMAND,
                     Prost(command),
                 )?;
                 tracing::trace!("Finished calling on {:?}", plugin.id);
@@ -635,16 +669,12 @@ impl ExtensionContext for ExtismContext {
             let _ = tx.send(run());
         });
 
-        match rx.await {
+        let res = match rx.await {
             Ok(res) => res,
             Err(e) => Err(ExtensionError::Extism(extism::Error::msg(e.to_string()))),
-        }
-    }
+        };
 
-    #[tracing::instrument(level = "debug", skip_all)]
-    fn kill(&self) -> Result<(), ExtensionError> {
-        let plugin = self.plugin.lock().unwrap();
-        plugin.cancel_handle().cancel()?;
-        Ok(())
+        std::mem::forget(guard);
+        res
     }
 }

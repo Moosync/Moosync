@@ -14,9 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+use extensions::ExtensionGroupExt;
 use extensions_proto::moosync::types::{ExtensionProviderScope, RequestedLyricsRequest};
+use futures::StreamExt;
 use songs_proto::moosync::types::{Lyrics, Song};
 use state_manager::StateManager;
+use tracing::Instrument;
 use types::prelude::SongsExt;
 
 #[tracing::instrument(level = "debug", skip_all)]
@@ -41,11 +44,18 @@ pub async fn fetch_song_lyrics(state_manager: &StateManager, song: &Song) -> Opt
         .get_extensions_with_scope(ExtensionProviderScope::Lyrics)
         .await;
 
-    for ext in lyric_extensions {
-        let req = RequestedLyricsRequest {
-            song: Some(song.clone()),
-        };
-        match ext.get_lyrics(req).await {
+    let mut stream = lyric_extensions.with(|ext| {
+        async move {
+            ext.get_lyrics(RequestedLyricsRequest {
+                song: Some(song.clone()),
+            })
+            .await
+        }
+        .in_current_span()
+    });
+
+    while let Some(res) = stream.next().await {
+        match res {
             Ok(resp) => {
                 if let Some(lyrics) = resp.lyrics {
                     if !lyrics.lines.is_empty() {

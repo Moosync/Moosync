@@ -577,6 +577,7 @@ message ExtensionManifest {
   optional string description = 9;
   optional string url = 10;
   optional string registry = 11;
+  repeated ExtensionProviderScope scopes = 12;
 }
 
 message ExtensionDetail {

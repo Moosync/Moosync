@@ -15,10 +15,10 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fs,
     path::PathBuf,
-    sync::{Arc, Mutex},
+    sync::{Arc, RwLock},
 };
 
 use extensions_proto::moosync::types::ExtensionDetail;
@@ -27,7 +27,7 @@ use crate::{context::ReplyHandler, errors::ExtensionError, extension::Extension}
 
 pub(crate) struct ExtensionHandlerInner {
     extensions_path: String,
-    pub(crate) extensions_map: Mutex<HashMap<String, Arc<Extension>>>,
+    pub(crate) extensions_map: RwLock<HashMap<String, Arc<Extension>>>,
     cache_path: PathBuf,
 }
 
@@ -71,7 +71,22 @@ impl ExtensionHandlerInner {
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn spawn_extensions(&self, reply_handler: Arc<dyn ReplyHandler>) {
         let manifests = self.find_extension_manifests();
+        let existing_names: HashSet<String> = {
+            let map = self.extensions_map.read().unwrap();
+            map.keys().cloned().collect()
+        };
+
         for manifest_path in manifests {
+            let manifest = match Extension::read_manifest(&manifest_path) {
+                Ok(m) => m,
+                Err(e) => {
+                    tracing::error!("Error reading manifest {:?}: {:?}", manifest_path, e);
+                    continue;
+                }
+            };
+            if existing_names.contains(&manifest.name) {
+                continue;
+            }
             match Extension::new(
                 &manifest_path,
                 reply_handler.clone(),
@@ -79,7 +94,7 @@ impl ExtensionHandlerInner {
                 Arc::new(std::sync::atomic::AtomicBool::new(false)),
             ) {
                 Ok(extension) => {
-                    let mut extensions_map = self.extensions_map.lock().unwrap();
+                    let mut extensions_map = self.extensions_map.write().unwrap();
                     extensions_map.insert(
                         extension.get_package_name().to_string(),
                         Arc::new(extension),
@@ -116,7 +131,7 @@ impl ExtensionHandlerInner {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_installed_extensions(&self) -> Vec<ExtensionDetail> {
-        let extensions_map = self.extensions_map.lock().unwrap();
+        let extensions_map = self.extensions_map.read().unwrap();
         extensions_map
             .values()
             .map(|e| e.get_extension_detail())
@@ -125,15 +140,13 @@ impl ExtensionHandlerInner {
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn remove_extension(&self, package_name: &str) {
-        let mut extensions_map = self.extensions_map.lock().unwrap();
-        if let Some(ext) = extensions_map.remove(package_name) {
-            ext.kill_extension();
-        }
+        let mut extensions_map = self.extensions_map.write().unwrap();
+        extensions_map.remove(package_name);
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
     pub fn get_extension(&self, package_name: &str) -> Result<Arc<Extension>, ExtensionError> {
-        let extensions_map = self.extensions_map.lock().unwrap();
+        let extensions_map = self.extensions_map.read().unwrap();
         extensions_map
             .get(package_name)
             .cloned()

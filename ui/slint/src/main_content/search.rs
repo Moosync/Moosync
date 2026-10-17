@@ -1,7 +1,8 @@
-use extensions::Extension;
+use extensions::ExtensionGroupExt;
 use extensions_proto::moosync::types::{
     ExtensionDetail, ExtensionProviderScope, RequestedSearchResultRequest,
 };
+use futures::StreamExt;
 use slint::{ComponentHandle, ModelRc, VecModel, Weak};
 use songs_proto::moosync::types::SearchResult as ProtoSearchResult;
 use state_manager::StateManager;
@@ -36,16 +37,6 @@ impl SearchPageHandler {
     ) -> Result<ProtoSearchResult, UiError> {
         let database = state_manager.get_database();
         Ok(database.search_all(term)?)
-    }
-
-    #[tracing::instrument(level = "debug", skip_all)]
-    async fn search_extension(term: &str, ext: &Extension) -> Result<ProtoSearchResult, UiError> {
-        let resp = ext
-            .get_search_result(RequestedSearchResultRequest {
-                query: term.to_string(),
-            })
-            .await?;
-        Ok(resp.to_songs_proto())
     }
 
     #[tracing::instrument(level = "debug", skip_all)]
@@ -113,50 +104,55 @@ impl SearchPageHandler {
                     .get_extensions_with_scope(ExtensionProviderScope::Search)
                     .await;
 
-                for ext in active_extensions {
-                    let main_window_weak = main_window_weak.clone();
-                    let term = term.clone();
+                let req = RequestedSearchResultRequest {
+                    query: term.clone(),
+                };
+                let mut stream = active_extensions.with(|ext| {
+                    let req = req.clone();
+                    let detail = ext.get_extension_detail();
+                    let has_account = !ext.get_accounts().is_empty()
+                        || detail
+                            .scopes
+                            .contains(&(ExtensionProviderScope::Accounts as i32));
+                    async move { (detail, has_account, ext.get_search_result(req).await) }
+                        .in_current_span()
+                });
 
-                    tokio::spawn(async move {
-                        let detail = ext.get_extension_detail();
-                        let has_account = !ext.get_accounts().is_empty()
-                            || detail
-                                .scopes
-                                .contains(&(ExtensionProviderScope::Accounts as i32));
-                        match Self::search_extension(&term, &ext).await {
-                            Ok(res) => {
-                                tracing::debug!(
-                                    "Extension search '{}' ({:?})",
-                                    detail.package_name,
-                                    res
-                                );
+                while let Some((detail, has_account, res)) = stream.next().await {
+                    match res {
+                        Ok(resp) => {
+                            let res = resp.to_songs_proto();
+                            tracing::debug!(
+                                "Extension search '{}' ({:?})",
+                                detail.package_name,
+                                res
+                            );
+                            Self::append_search_result(
+                                &main_window_weak,
+                                state_manager,
+                                res,
+                                Some(detail),
+                                has_account,
+                            );
+                        }
+                        Err(e) => {
+                            tracing::error!(
+                                "Extension search failed for '{}' ({:?}): {:?}",
+                                detail.package_name,
+                                term,
+                                e
+                            );
+                            if has_account {
                                 Self::append_search_result(
                                     &main_window_weak,
                                     state_manager,
-                                    res,
+                                    ProtoSearchResult::default(),
                                     Some(detail),
                                     has_account,
                                 );
                             }
-                            Err(e) => {
-                                tracing::error!(
-                                    "Extension search failed for '{}' ({:?}): {:?}",
-                                    detail.package_name,
-                                    term,
-                                    e
-                                );
-                                if has_account {
-                                    Self::append_search_result(
-                                        &main_window_weak,
-                                        state_manager,
-                                        ProtoSearchResult::default(),
-                                        Some(detail),
-                                        has_account,
-                                    );
-                                }
-                            }
                         }
-                    });
+                    }
                 }
             }
             .instrument(tracing::debug_span!("slint_cb_perform_search")),

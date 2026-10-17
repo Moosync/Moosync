@@ -83,21 +83,30 @@ pub fn run() {
 
     setup_ui(main_window, state_manager);
 
-    runtime.block_on(async {
-        state_manager.setup().await;
-    });
+    runtime.block_on(
+        async {
+            state_manager.setup().await;
+        }
+        .in_current_span(),
+    );
 
     main_window.show().unwrap();
 
-    runtime.block_on(async {
-        state_manager.delayed_setup().await;
-    });
+    runtime.block_on(
+        async {
+            state_manager.delayed_setup().await;
+        }
+        .in_current_span(),
+    );
 
     slint::run_event_loop().unwrap();
 
-    runtime.block_on(async {
-        state_manager.shutdown().await;
-    });
+    runtime.block_on(
+        async {
+            state_manager.shutdown().await;
+        }
+        .in_current_span(),
+    );
 }
 
 #[tracing::instrument(level = "debug", skip_all)]

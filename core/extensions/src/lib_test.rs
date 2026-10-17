@@ -151,12 +151,13 @@ fn handler_context() -> TestHandlerContext {
 }
 
 #[rstest]
+#[tokio::test]
 #[traced_test]
 #[tracing::instrument(level = "debug", skip_all)]
-fn test_extension_handler_init_and_get_all(handler_context: TestHandlerContext) {
+async fn test_extension_handler_init_and_get_all(handler_context: TestHandlerContext) {
     let TestHandlerContext { handler, .. } = handler_context;
 
-    let all = handler.get_all_extensions();
+    let all = handler.get_all_extensions().await;
 
     assert_is_empty!(&all);
     assert!(!handler.has_updates());
@@ -206,6 +207,7 @@ fn test_extension_handler_check_for_updates_v1(handler_context: TestHandlerConte
         description: None,
         url: Some("https://example.com/test_ext.msxt".to_string()),
         registry: Some("default".to_string()),
+        scopes: vec![],
     }];
     handler_context
         .handler
@@ -265,6 +267,7 @@ fn test_extension_handler_check_for_updates_older_remote(handler_context: TestHa
         description: None,
         url: Some("https://example.com/test_ext.msxt".to_string()),
         registry: Some("default".to_string()),
+        scopes: vec![],
     }];
     handler_context
         .handler
@@ -335,6 +338,7 @@ async fn test_extension_handler_update_all_extensions_failed(handler_context: Te
         description: None,
         url: Some("http://127.0.0.1:9/non_existent.msxt".to_string()),
         registry: Some("default".to_string()),
+        scopes: vec![],
     }];
     handler_context
         .handler

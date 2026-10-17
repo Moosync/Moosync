@@ -1,7 +1,8 @@
-use extensions::Extension;
+use extensions::{Extension, ExtensionGroupExt};
 use extensions_proto::moosync::types::{
     ExtensionDetail, ExtensionProviderScope, RequestedRecommendationsRequest,
 };
+use futures::StreamExt;
 use slint::{ComponentHandle, ModelRc, VecModel};
 use songs_proto::moosync::types::Song;
 use state_manager::StateManager;
@@ -51,16 +52,19 @@ impl ExplorePageHandler {
 
         let cache_dir = state_manager.get_cache_dir();
 
-        for ext in rec_extensions {
+        let mut stream = rec_extensions.with(|ext| {
+            async move {
+                (
+                    ext.clone(),
+                    Self::fetch_extension_recommendations(&ext).await,
+                )
+            }
+            .in_current_span()
+        });
+
+        while let Some((ext, res)) = stream.next().await {
             let detail = ext.get_extension_detail();
-            let icon_path = detail.extension_icon.clone();
-            let cached_path = match icon_path {
-                Some(p) if !p.is_empty() => cache_image(&p, &cache_dir)
-                    .await
-                    .map(|p| p.to_string_lossy().to_string()),
-                _ => None,
-            };
-            match Self::fetch_extension_recommendations(&ext).await {
+            match res {
                 Ok(songs) => {
                     tracing::debug!(
                         "Fetched {} recommendations from extension '{}'",
@@ -68,6 +72,12 @@ impl ExplorePageHandler {
                         detail.package_name
                     );
                     if !songs.is_empty() {
+                        let cached_path = match &detail.extension_icon {
+                            Some(p) if !p.is_empty() => cache_image(p, &cache_dir)
+                                .await
+                                .map(|p| p.to_string_lossy().to_string()),
+                            _ => None,
+                        };
                         results.push((detail, cached_path, songs));
                     }
                 }

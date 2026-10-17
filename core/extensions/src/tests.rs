@@ -280,16 +280,11 @@ async fn test_handle_extension_command() {
     std::thread::sleep(std::time::Duration::from_millis(500));
 
     let ext = {
-        let map = handler.extensions_map.lock().unwrap();
+        let map = handler.extensions_map.read().unwrap();
         map.get("sample.pkg").unwrap().clone()
     };
 
-    let res = ext
-        .get_provider_scopes(GetProviderScopesRequest {})
-        .await
-        .unwrap();
-
-    assert_eq!(res.scopes, vec![13, 0, 1, 2, 3, 4, 10]);
+    assert_eq!(ext.manifest.scopes, vec![13, 0, 1, 2, 3, 4, 10]);
 }
 
 #[test]

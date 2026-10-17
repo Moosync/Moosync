@@ -54,6 +54,7 @@ rust_library(
         "@crates//:tokio",
         "@crates//:thiserror",
         "@crates//:platform-dirs",
+        "@crates//:futures",
         "@crates//:tempdir",
         "@crates//:tracing",
         "@crates//:lru",
